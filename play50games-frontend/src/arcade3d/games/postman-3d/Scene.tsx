@@ -17,6 +17,7 @@ import { Parcel } from "@/arcade3d/core/kit";
 import { useLevel } from "@/arcade3d/core/level";
 import { randomSeed } from "@/arcade3d/core/math";
 import { hop, type BodyOffset } from "@/arcade3d/core/motion";
+import { scaledCount, useQuality } from "@/arcade3d/core/quality";
 import { BlobShadow, Instanced, useCanvasTexture, type InstancePart, type InstanceSpot } from "@/arcade3d/core/render";
 import { HumanoidModel, POSE_MASK, blendPoses, carryPose, cheerPose, createPose, gaitPhaseStep, idlePose, reachPose, useHumanoidPose, walkPose, wrapPhase } from "@/arcade3d/core/rig";
 import type { ModelAsset } from "@/arcade3d/core/types";
@@ -25,12 +26,12 @@ import { useFittedView } from "@/arcade3d/core/useFittedView";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { ASSETS, FIT, POSTMAN_LANDMARKS, POSTMAN_SCALE } from "./assets";
 import type { PostLevel } from "./levels";
-import { CAMERA, COLORS, FOV, HOUSE_COLORS, LOOK_AHEAD, PITCH, VIEW, decorSpots, fogFor } from "./looks";
+import { CAMERA, COLORS, FOV, HOUSE_COLORS, LOOK_AHEAD, PITCH, VIEW, decorSpots, fogFor, lampSpots } from "./looks";
 import { OFFICE, OFFICE_BOX, ROAD_HALF, SPEED, STREET_GAP, VAN_BOX, ZEBRA_X, createRun, nextItem, step, syncStore, targetFor, type Run } from "./rules";
 
-/** Unit rounded boxes, sized only by their spots. */
-function Boxes({ spots, color, emissive }: { spots: InstanceSpot[]; color: string; emissive?: number }) {
-   const geometry = useMemo(() => new RoundedBoxGeometry(1, 1, 1, 2, 0.045), []);
+/** Unit boxes (12 triangles; `rounded` = bevelled, for the bigger fallback pieces), sized only by their spots. */
+function Boxes({ spots, color, emissive, rounded }: { spots: InstanceSpot[]; color: string; emissive?: number; rounded?: boolean }) {
+   const geometry = useMemo(() => (rounded ? new RoundedBoxGeometry(1, 1, 1, 2, 0.045) : new BoxGeometry(1, 1, 1)), [rounded]);
    useEffect(() => () => geometry.dispose(), [geometry]);
    return spots.length ? (
       <Instanced spots={spots}>
@@ -43,7 +44,7 @@ function Boxes({ spots, color, emissive }: { spots: InstanceSpot[]; color: strin
 /** A GLB prop at its spots; its fallback a deliberate two-tone box at the same size. */
 function Props({ asset, spots, size, color, detail }: { asset: ModelAsset; spots: InstanceSpot[]; size: [number, number, number]; color: string; detail?: ReactNode }) {
    const body = useMemo(() => spots.map((s) => ({ ...s, y: s.y + (size[1] * (s.scale ?? 1)) / 2, sx: size[0] * (s.scale ?? 1), sy: size[1] * (s.scale ?? 1), sz: size[2] * (s.scale ?? 1), scale: undefined })), [spots, size]);
-   return spots.length ? <InstancedModel asset={asset} spots={spots} fallback={<><Boxes spots={body} color={color} />{detail}</>} /> : null;
+   return spots.length ? <InstancedModel asset={asset} spots={spots} fallback={<><Boxes spots={body} color={color} rounded />{detail}</>} /> : null;
 }
 
 // One canvas atlas and one non-indexed mesh for every number plate (never merged with indexed geometry).
@@ -118,7 +119,7 @@ function Neighborhood({ run, id }: { run: Run; id: Parameters<typeof decorSpots>
       const width = b.max.x - b.min.x + 30;
       const midX = (b.max.x + b.min.x) / 2;
       const roads: InstanceSpot[] = [], lines: InstanceSpot[] = [], paving: InstanceSpot[] = [], kerbs: InstanceSpot[] = [], paths: InstanceSpot[] = [], zebra: InstanceSpot[] = [];
-      const lamps: InstanceSpot[] = [], fences: InstanceSpot[] = [], doors: InstanceSpot[] = [], boxes: InstanceSpot[] = [];
+      const fences: InstanceSpot[] = [], posts: InstanceSpot[] = [], doors: InstanceSpot[] = [], frames: InstanceSpot[] = [], boxes: InstanceSpot[] = [];
       for (let street = 0; street < run.level.streets; street++) {
          const z = street * STREET_GAP;
          roads.push({ x: midX, y: 0.015, z, sx: width, sy: 0.03, sz: ROAD_HALF * 2 });
@@ -128,16 +129,23 @@ function Neighborhood({ run, id }: { run: Run; id: Parameters<typeof decorSpots>
             kerbs.push({ x: midX, y: 0.07, z: z + side * (ROAD_HALF + 0.05), sx: width, sy: 0.12, sz: 0.14 });
          }
          for (let j = 0; j < 7; j++) zebra.push({ x: ZEBRA_X, y: 0.04, z: z - 2.4 + j * 0.8, sx: 2.4, sy: 0.015, sz: 0.4 });
-         for (let x = -2; x <= b.max.x; x += 16) for (const side of [-1, 1]) lamps.push({ x: x + 4, y: 0, z: z + side * 3.1, rotY: side > 0 ? Math.PI : 0 });
       }
       roads.push({ x: ZEBRA_X, y: 0.02, z: (b.max.z + b.min.z) / 2, sx: 4, sy: 0.04, sz: b.max.z - b.min.z + 30 });
       for (const h of run.houses) {
          paths.push({ x: h.x, y: 0.055, z: (h.mailZ + h.doorZ) / 2, sx: 1.3, sy: 0.05, sz: 3.5 });
-         doors.push({ x: h.x, y: 0, z: h.doorZ + h.side * 0.36, rotY: h.side > 0 ? Math.PI : 0 });
+         // a code door on the house front (the house GLBs keep their own detail): a frame and a two-tone leaf
+         frames.push({ x: h.x, y: FIT.doorHeight / 2 + 0.06, z: h.doorZ + h.side * 0.4, sx: 1.2, sy: FIT.doorHeight + 0.12, sz: 0.1 });
+         doors.push({ x: h.x, y: FIT.doorHeight / 2, z: h.doorZ + h.side * 0.34, sx: 0.95, sy: FIT.doorHeight, sz: 0.06 });
          boxes.push({ x: h.x + 0.62, y: 0, z: h.mailZ, rotY: h.side > 0 ? Math.PI : 0 });
-         for (const side of [-1, 1]) fences.push({ x: h.x + side * 2.0, y: 0, z: h.mailZ + h.side * 0.6, rotY: 0 });
+         // a low code picket fence either side of the front path: two rails and a post every 0.33 m
+         for (const side of [-1, 1]) {
+            const cx = h.x + side * 2.0;
+            const z = h.mailZ + h.side * 0.6;
+            for (const y of [0.22, 0.46]) fences.push({ x: cx, y, z, sx: FIT.fenceLength, sy: 0.06, sz: 0.05 });
+            for (let i = 0; i <= 8; i++) posts.push({ x: cx - FIT.fenceLength / 2 + (i * FIT.fenceLength) / 8, y: FIT.fenceHeight / 2, z, sx: 0.07, sy: FIT.fenceHeight, sz: 0.07 });
+         }
       }
-      return { roads, lines, paving, kerbs, paths, zebra, lamps, fences, doors, boxes };
+      return { roads, lines, paving, kerbs, paths, zebra, fences, posts, doors, frames, boxes };
    }, [run]);
    const houses = useMemo(
       () =>
@@ -152,7 +160,16 @@ function Neighborhood({ run, id }: { run: Run; id: Parameters<typeof decorSpots>
    );
    const roofs = useMemo(() => houses.map((row, r) => row.map((spots) => spots.map((s) => ({ ...s, y: r === 0 ? FIT.houseHeightNorth : FIT.houseHeightSouth, sx: 5.2, sy: 0.4, sz: 3.2 })))), [houses]);
    const bulbs = useMemo(() => (night ? run.houses.flatMap((h) => Array.from({ length: 6 }, (_, i) => ({ x: h.x - 2.2 + i * 0.88, y: (h.side < 0 ? FIT.houseHeightNorth : FIT.houseHeightSouth) - 0.15, z: h.doorZ + h.side * 0.32, scale: 0.08 }))) : []), [run, night]);
-   const extra = useMemo(() => decorSpots(id), [id]);
+   const quality = useQuality();
+   const extra = useMemo(() => {
+      const d = decorSpots(id);
+      return { ...d, trees: d.trees.slice(0, scaledCount(d.trees.length, quality.decor)) };
+   }, [id, quality.decor]);
+   const lamps = useMemo(() => {
+      const all = lampSpots(run.level);
+      return all.slice(0, scaledCount(all.length, quality.decor));
+   }, [run, quality.decor]);
+   const lampGlow = useMemo(() => lamps.map((s) => ({ ...s, y: FIT.lampHeight - 0.35, scale: 0.18 })), [lamps]);
    const lightSpots = useMemo(() => (run.level.traffic > 0 ? Array.from({ length: run.level.streets }, (_, s): InstanceSpot => ({ x: ZEBRA_X + 2.2, y: 0, z: s * STREET_GAP - 3.2, rotY: 0 })) : []), [run]);
    return (
       <>
@@ -178,11 +195,13 @@ function Neighborhood({ run, id }: { run: Run; id: Parameters<typeof decorSpots>
                />
             ))
          )}
-         <Props asset={ASSETS.door} spots={decor.doors} size={[1.0, FIT.doorHeight, 0.13]} color={COLORS.bag} />
+         <Boxes spots={decor.frames} color={COLORS.white} />
+         <Boxes spots={decor.doors} color={COLORS.door} />
          <Props asset={ASSETS.mailbox} spots={decor.boxes} size={[0.5, FIT.mailboxHeight, 0.4]} color={COLORS.accent} />
-         <Props asset={ASSETS.fence} spots={decor.fences} size={[FIT.fenceLength, FIT.fenceHeight, 0.08]} color={COLORS.white} />
-         <Props asset={ASSETS.lamp} spots={decor.lamps} size={[0.15, FIT.lampHeight, 0.15]} color={COLORS.navy} />
-         <Instanced spots={decor.lamps.map((s) => ({ ...s, y: FIT.lampHeight - 0.35, scale: 0.18 }))}>
+         <Boxes spots={decor.fences} color={COLORS.white} />
+         <Boxes spots={decor.posts} color={COLORS.white} />
+         <Props asset={ASSETS.lamp} spots={lamps} size={[0.15, FIT.lampHeight, 0.15]} color={COLORS.navy} />
+         <Instanced spots={lampGlow}>
             <sphereGeometry args={[1, 10, 8]} />
             <meshStandardMaterial color={COLORS.glow} emissive={COLORS.glow} emissiveIntensity={night ? 2.6 : 0.25} toneMapped={!night} />
          </Instanced>

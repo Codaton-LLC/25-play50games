@@ -24,3 +24,13 @@
    .hint { display: none; }
    .items { margin-top: 4px; }
 }
+/* Narrow phones: one compact row of chips (number + colour + icon), no heading or hint, so the map keeps its room. */
+@media (max-width: 480px) {
+   .route { top: calc(env(safe-area-inset-top, 0px) + 108px); left: 8px; width: auto; max-width: calc(100% - 16px); padding: 5px 8px; border-radius: 12px; font-size: 11px; }
+   .heading, .hint { display: none; }
+   .items { margin-top: 0; gap: 10px; }
+   .item { flex: 0 0 auto; flex-wrap: nowrap; gap: 3px; }
+   .item strong { font-size: 15px; }
+   .item > span:last-child { width: auto; }
+   .colorName { display: none; }
+}

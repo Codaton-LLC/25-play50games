@@ -11,7 +11,7 @@ export const COLORS = {
    navy: "#1e293b", ink: "#0f172a", cream: "#fff7ed", white: "#f8fafc",
    roof: "#475569", glass: "#bae6fd", skin: "#e8b893", bag: "#92400e",
    red: "#ef4444", blue: "#3b82f6", yellow: "#facc15", glow: "#fde68a",
-   dog: "#b45309", tree: "#15803d", trim: "#94a3b8", path: "#e7e5e4",
+   dog: "#b45309", tree: "#15803d", trim: "#94a3b8", path: "#e7e5e4", door: "#7c2d12",
 } as const;
 export const HOUSE_COLORS = [COLORS.red, COLORS.blue, COLORS.yellow];
 export const FOV = 48;
@@ -54,6 +54,17 @@ export function environmentFor(level: PostLevel) {
 
 export const SOUTH_DECOR_MAX_H = 0.7;
 
+/** Victorian lamps: one pair of pavement lamps every 24 m along each street (decor: the scene keeps useQuality().decor of them). */
+export function lampSpots(level: PostLevel): InstanceSpot[] {
+   const b = boundsFor(level);
+   const out: InstanceSpot[] = [];
+   for (let street = 0; street < level.streets; street++) {
+      const z = street * STREET_GAP;
+      for (let x = -2; x <= b.max.x; x += 24) for (const side of [-1, 1]) out.push({ x: x + 4, y: 0, z: z + side * 3.1, rotY: side > 0 ? Math.PI : 0 });
+   }
+   return out;
+}
+
 export interface DecorSpots {
    benches: InstanceSpot[];
    bicycles: InstanceSpot[];
@@ -69,9 +80,9 @@ export function decorSpots(id: LevelId): DecorSpots {
    out.benches.push({ x: b.min.x - 1.2, y: 0, z: -8.5, rotY: Math.PI / 2, scale: 0.84 });
    out.bicycles.push({ x: -2.2, y: 0, z: -10.3, rotY: 0.3, scale: 1.0 });
    if (level.lighting === "night") {
-      // L5 holiday rush: decorated trees north of the first street's houses and past the street ends
-      for (let i = 0; i < 6; i++) out.trees.push({ x: -2 + i * 7, y: 0, z: b.min.z - 1.6, rotY: i * 1.3, scale: 2.4 + (i % 3) * 0.3 });
-      for (let s = 0; s < level.streets; s++) out.trees.push({ x: b.max.x + 1.8, y: 0, z: s * STREET_GAP - 6, rotY: s, scale: 2.6 });
+      // L5 holiday rush: a few decorated trees by the route (north of the first street's houses, west of the cross road)
+      for (let i = 0; i < 4; i++) out.trees.push({ x: -2 + i * 9, y: 0, z: b.min.z - 1.6, rotY: i * 1.3, scale: 2.4 + (i % 3) * 0.3 });
+      for (let s = 1; s < level.streets; s++) out.trees.push({ x: -10.5, y: 0, z: s * STREET_GAP - 6, rotY: s, scale: 2.6 });
    }
    return out;
 }

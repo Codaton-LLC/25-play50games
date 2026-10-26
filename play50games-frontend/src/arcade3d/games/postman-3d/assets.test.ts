@@ -5,9 +5,9 @@ import { REUSED_GLB_SIZE } from "@/arcade3d/core/sharedAssets";
 import type { ModelAsset } from "@/arcade3d/core/types";
 import { fitView } from "@/arcade3d/core/view";
 import { LEVEL_IDS } from "@/arcade3d/types";
-import { ASSETS, FIT, GLB_SIZE } from "./assets";
+import { ASSETS, FIT, GLB_SIZE, GLB_TRIS } from "./assets";
 import { LEVELS } from "./levels";
-import { FOV, SOUTH_DECOR_MAX_H, VIEW, WINDOW, decorSpots, fogFor } from "./looks";
+import { FOV, SOUTH_DECOR_MAX_H, VIEW, WINDOW, decorSpots, fogFor, lampSpots } from "./looks";
 import { CAR_HX, CAR_HZ, HOUSE_HX, HOUSE_HZ, OFFICE_BOX, STREET_GAP, VAN_BOX, boundsFor } from "./rules";
 
 async function bounds(url: string) {
@@ -39,7 +39,6 @@ describe("postman-3d GLB fits (real meshes)", () => {
          streetLampVictorian: ASSETS.lamp.url,
          bicycle: ASSETS.bicycle.url,
          holidayTree: ASSETS.holidayTree.url,
-         picketFence: ASSETS.fence.url,
          trafficLight: ASSETS.trafficLight.url,
          dog: ASSETS.dog.url,
       };
@@ -66,7 +65,7 @@ describe("postman-3d GLB fits (real meshes)", () => {
       }
    });
 
-   it("street pieces at their rules sizes: office, van, car, mailbox, lamp, door, fence, traffic light, dog", () => {
+   it("street pieces at their rules sizes: office, van, car, mailbox, lamp, traffic light, dog", () => {
       const o = ASSETS.office;
       expect(GLB_SIZE.postOffice.width * k(o)).toBeCloseTo(2 * OFFICE_BOX.hx, 6);
       expect(GLB_SIZE.postOffice.depth * k(o) * st(o, 2)).toBeCloseTo(2 * OFFICE_BOX.hz, 6);
@@ -80,9 +79,6 @@ describe("postman-3d GLB fits (real meshes)", () => {
       expect(ASSETS.car.rotationY).toBeCloseTo(Math.PI / 2, 9);
       expect(GLB_SIZE.mailbox.height * k(ASSETS.mailbox)).toBeCloseTo(FIT.mailboxHeight, 6);
       expect(GLB_SIZE.streetLampVictorian.height * k(ASSETS.lamp)).toBeCloseTo(FIT.lampHeight, 6);
-      expect(REUSED_GLB_SIZE.door.height * k(ASSETS.door)).toBeCloseTo(FIT.doorHeight, 6);
-      expect(GLB_SIZE.picketFence.width * k(ASSETS.fence)).toBeCloseTo(FIT.fenceLength, 6);
-      expect(GLB_SIZE.picketFence.height * k(ASSETS.fence) * st(ASSETS.fence, 1)).toBeCloseTo(FIT.fenceHeight, 6);
       expect(GLB_SIZE.trafficLight.height * k(ASSETS.trafficLight)).toBeCloseTo(FIT.trafficLightHeight, 6);
       expect(GLB_SIZE.dog.depth * k(ASSETS.dog)).toBeCloseTo(FIT.dogLength, 6);
       expect(GLB_SIZE.mailbag.height * k(ASSETS.mailbag)).toBeCloseTo(FIT.bagHeight, 6);
@@ -95,6 +91,48 @@ describe("postman-3d GLB fits (real meshes)", () => {
       for (const a of [ASSETS.bicycle, ASSETS.holidayTree, ASSETS.bench] as ModelAsset[]) expect(a.stretch).toBeUndefined();
    });
 });
+
+describe("postman-3d triangle budget", () => {
+   it("pins every GLB's triangles", async () => {
+      const urls: Record<string, [string, number]> = {
+         charPostman: [ASSETS.postman.url, GLB_TRIS.charPostman], mailbag: [ASSETS.mailbag.url, GLB_TRIS.mailbag], mailbox: [ASSETS.mailbox.url, GLB_TRIS.mailbox],
+         houseA: [ASSETS.houseAN.url, GLB_TRIS.house], houseB: [ASSETS.houseBN.url, GLB_TRIS.house], houseC: [ASSETS.houseCN.url, GLB_TRIS.house],
+         office: [ASSETS.office.url, GLB_TRIS.postOffice], van: [ASSETS.van.url, GLB_TRIS.postVan], lamp: [ASSETS.lamp.url, GLB_TRIS.streetLampVictorian],
+         bicycle: [ASSETS.bicycle.url, GLB_TRIS.bicycle], tree: [ASSETS.holidayTree.url, GLB_TRIS.holidayTree], light: [ASSETS.trafficLight.url, GLB_TRIS.trafficLight],
+         dog: [ASSETS.dog.url, GLB_TRIS.dog], bench: [ASSETS.bench.url, GLB_TRIS.bench], car: [ASSETS.car.url, GLB_TRIS.car],
+      };
+      for (const [id, [url, tris]] of Object.entries(urls)) expect((await readCharacterGlb(url)).indices.length / 3, id).toBe(tris);
+   });
+   for (const id of LEVEL_IDS) {
+      it(`L${id}: every GLB copy drawn at full decor quality, plus the code pieces, stays under ${FRAME_TRIS} triangles`, () => {
+         const total = levelTriangles(id);
+         console.info(`postman-3d L${id} frame triangles ${total}`);
+         expect(total).toBeLessThanOrEqual(FRAME_TRIS);
+      });
+   }
+});
+
+/** Triangles of everything the scene draws on a level at decor quality 1 (GLB copies x measured tris + the code pieces). */
+const FRAME_TRIS = 300_000;
+function levelTriangles(id: (typeof LEVEL_IDS)[number]): number {
+   const level = LEVELS[id];
+   const houses = level.streets * level.housesPerStreet;
+   const d = decorSpots(id);
+   const boxTris = 12; // the scene's code pieces are plain unit boxes (Boxes without `rounded`)
+   // code pieces as the scene builds them: per street roads, dashes, pavements, kerbs, zebra; per house path, door frame and leaf, 2 x (2 rails + 9 posts)
+   const lines = level.streets * Math.ceil((boundsFor(level).max.x + 28 + 13) / 4);
+   const codeBoxes = level.streets * (1 + 2 + 2 + 7) + 1 + lines + houses * (1 + 2 + 22);
+   return (
+      GLB_TRIS.charPostman + GLB_TRIS.mailbag + GLB_TRIS.postOffice + GLB_TRIS.postVan +
+      houses * (GLB_TRIS.house + GLB_TRIS.mailbox) +
+      lampSpots(level).length * GLB_TRIS.streetLampVictorian +
+      level.dogs * GLB_TRIS.dog +
+      level.traffic * GLB_TRIS.car +
+      (level.traffic > 0 ? level.streets * GLB_TRIS.trafficLight : 0) +
+      d.benches.length * GLB_TRIS.bench + d.bicycles.length * GLB_TRIS.bicycle + d.trees.length * GLB_TRIS.holidayTree +
+      codeBoxes * boxTris + 10_000 // plates, lamp glows, bulbs, the parcel, the lawn, rings, fx
+   );
+}
 
 describe("postman-3d decor and fog", () => {
    for (const id of LEVEL_IDS) {

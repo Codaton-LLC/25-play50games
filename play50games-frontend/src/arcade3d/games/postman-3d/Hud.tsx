@@ -14,8 +14,8 @@ export default function Hud() {
             const color = stats[`color${slot}`] ?? 0;
             return number ? <div className={styles.item} key={slot}>
                <span className={styles.swatch} style={{ background: HOUSE_COLORS[color] }} />
-               <strong>{number}</strong><span>{ADDRESS_COLORS[color]}</span>
-               <span aria-label={stats[`parcel${slot}`] ? "Parcel: front door" : "Letter: mailbox"}>{stats[`parcel${slot}`] ? "▣ Door" : "✉ Box"}</span>
+               <strong>{number}</strong><span className={styles.colorName}>{ADDRESS_COLORS[color]}</span>
+               <span aria-label={stats[`parcel${slot}`] ? "Parcel: front door" : "Letter: mailbox"}>{stats[`parcel${slot}`] ? "Door" : "Box"}</span>
             </div> : <div className={styles.item} key={slot}>—</div>;
          })}
       </div>

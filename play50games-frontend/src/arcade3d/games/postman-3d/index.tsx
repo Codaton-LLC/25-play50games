@@ -9,7 +9,7 @@ import { CAMERA, environmentFor } from "./looks";
 import Scene from "./Scene";
 
 const instructions = [
-   "WASD / arrows or the stick moves. E / Enter or Deliver posts an item within 1.2 m.",
+   "WASD / arrows or the stick moves. E / Enter or the Post button delivers within 1.2 m.",
    "Match the number and colour. Letters go in mailboxes; parcels go to the front door.",
    "Follow the list for +40. Return to POST for more mail and one parcel at a time.",
 ];
@@ -18,7 +18,7 @@ const definition: GameDefinition<PostLevel> = {
    slug: "postman-3d", Scene, Hud, assets: ASSETS,
    camera: CAMERA, environment: environmentFor(LEVELS[1]), durationMs: LEVELS[1].durationMs,
    touchControls: ["joystick", "action"],
-   touchLabels: { action: "Deliver" }, instructions, hudStats: stats(LEVELS[1]), resultDelayMs: 900,
+   touchLabels: { action: "Post" }, instructions, hudStats: stats(LEVELS[1]), resultDelayMs: 900,
    levels: LEVEL_IDS.map((id) => ({
       id, config: LEVELS[id], description: LEVEL_LINES[id], durationMs: LEVELS[id].durationMs,
       lives: LEVELS[id].lives, environment: environmentFor(LEVELS[id]), hudStats: stats(LEVELS[id]),

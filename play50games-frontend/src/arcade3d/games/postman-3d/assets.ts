@@ -1,5 +1,5 @@
-// Postman 3D models: the ready Hyper3D set (menu1-postman-3d) plus the shared picket fence, traffic
-// light and the dog-park dog, fitted from their measured bounds (assets.test.ts checks every fit on the
+// Postman 3D models: the ready Hyper3D set (menu1-postman-3d) plus the shared traffic light and the
+// dog-park dog, fitted from their measured bounds (assets.test.ts checks every fit on the
 // real mesh). Gameplay pieces are fitted to their rules size in metres; decor (bench, bicycle, holiday
 // tree) to 1 m, so a decor spot's `scale` is its size and nothing is scaled twice.
 import type { HumanoidLandmarks } from "@/arcade3d/core/rig";
@@ -20,9 +20,14 @@ export const GLB_SIZE = {
    streetLampVictorian: { width: 0.4007, height: 1.9024, depth: 0.6856 },
    bicycle: { width: 0.7319, height: 1.1859, depth: 1.8906 },
    holidayTree: { width: 1.1173, height: 1.8575, depth: 1.1543 },
-   picketFence: { width: 1.8986, height: 1.0494, depth: 0.2345 },
    trafficLight: { width: 0.547, height: 1.8964, depth: 0.5693 },
    dog: { width: 1.0087, height: 1.5248, depth: 1.8976 },
+} as const;
+
+/** Measured triangles per GLB (assets.test.ts pins them; the per-level frame budget sums them). */
+export const GLB_TRIS = {
+   charPostman: 18000, mailbag: 1500, mailbox: 1500, house: 3000, postOffice: 3000, postVan: 3000,
+   streetLampVictorian: 1500, bicycle: 1500, holidayTree: 1500, trafficLight: 3000, dog: 18000, bench: 2000, car: 2500,
 } as const;
 
 /** Drawn sizes in metres (the rules' boxes are in rules.ts). */
@@ -145,7 +150,6 @@ export const ASSETS = {
    ),
    van: local("postVan", { scale: vanScale }, "box", "#ef4444"),
    lamp: local("streetLampVictorian", { scale: FIT.lampHeight / GLB_SIZE.streetLampVictorian.height }, "cylinder", "#1e293b"),
-   fence: shared("picketFence", { scale: FIT.fenceLength / GLB_SIZE.picketFence.width, stretch: [1, FIT.fenceHeight / (GLB_SIZE.picketFence.height * (FIT.fenceLength / GLB_SIZE.picketFence.width)), 1] }, "box", "#f8fafc"),
    trafficLight: shared("trafficLight", { scale: FIT.trafficLightHeight / GLB_SIZE.trafficLight.height }, "box", "#1e293b"),
    /** the dog-park dog, tinted per yard (a creature mesh), 0.9 m long */
    dog: shared("dog", { scale: FIT.dogLength / GLB_SIZE.dog.depth }, "box", "#b45309"),
@@ -153,7 +157,6 @@ export const ASSETS = {
    bicycle: local("bicycle", { scale: unit(GLB_SIZE.bicycle.height) }, "box", "#1e293b"),
    holidayTree: local("holidayTree", { scale: unit(GLB_SIZE.holidayTree.height) }, "cylinder", "#15803d"),
    bench: { ...REUSED_ASSETS.bench, scale: unit(REUSED_GLB_SIZE.bench.height) },
-   door: { ...REUSED_ASSETS.door, scale: FIT.doorHeight / REUSED_GLB_SIZE.door.height },
    /** the clean-city car, its length (GLB z) turned along the street (x): 2.8 m, the rules' 2.8 x 1.3 box */
    car: { ...REUSED_ASSETS.car, scale: carScale, rotationY: Math.PI / 2 },
 } satisfies Record<string, ModelAsset>;

@@ -16,7 +16,7 @@ export const postman3dMeta: ArcadeGameMeta = {
    controls: {
       scheme: "joystick",
       keyboard: "WASD / arrows to move, E or Enter to deliver",
-      touch: "Joystick to move + Deliver",
+      touch: "Joystick to move + Post",
    },
    scoring: PROPOSED_LEVEL_LIMITS[1],
    levels: LEVEL_IDS.map((id) => ({ id, title: LEVEL_TITLES[id], scoring: PROPOSED_LEVEL_LIMITS[id] })),

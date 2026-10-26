@@ -219,7 +219,7 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/shared/sofa.glb",
    "/models/3d/shared/travellerNpc.glb",
    // postman-3d (2026-10-26): the ready menu1-postman-3d set (holidayTree included, now ready), copied as
-   // optimized; the postman is a static T-pose for the core auto-rig. picketFence / trafficLight are the
+   // optimized; the postman is a static T-pose for the core auto-rig. trafficLight is the
    // shared ready set, the dog is menu1-dog-park-fetch's (shared with dog-park-fetch).
    "/models/3d/postman-3d/charPostman.glb",
    "/models/3d/postman-3d/letter.glb",
@@ -233,7 +233,6 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/postman-3d/streetLampVictorian.glb",
    "/models/3d/postman-3d/bicycle.glb",
    "/models/3d/postman-3d/holidayTree.glb",
-   "/models/3d/shared/picketFence.glb",
    "/models/3d/shared/trafficLight.glb",
    "/models/3d/shared/dog.glb",
    // Menu 1 jungle-bridge-run (2026-10-25): the ready menu1-jungle-bridge-run GLBs (templePillarV2 and

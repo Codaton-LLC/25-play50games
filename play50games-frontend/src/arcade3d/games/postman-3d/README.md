@@ -7,7 +7,7 @@ Walk a small neighbourhood with a mailbag. Each item on today's list shows a hou
 ## Controls and timing (one set for keyboard and touch)
 
 - WASD / arrows or the joystick through `inputToWorld`; the robot-collector on-foot mover: accel 22 m/s², brake 28 m/s², top 4.6 m/s, × 0.85 with a parcel. Radius 0.38.
-- E / Enter or the touch Deliver (`actionPressed`, one per press) within 1.2 m: the nearest mailbox or door, or the post-office counter (refill).
+- E / Enter or the touch Post button (`actionPressed`, one per press) within 1.2 m: the nearest mailbox or door, or the post-office counter (refill).
 - A wrong mailbox / door: 0.40 s stun, the item stays in the bag. A dog: 0.60 s stun, 0.80 s mercy, no life. A car (L4–L5): a life and a 0.60 s stun. Cars stop before the zebra while the postman is on it.
 - Nothing in the rules depends on the device (`rules.test.ts` "keyboard and touch").
 
@@ -51,14 +51,18 @@ Tests: `proof.level-N.test.ts` (the arithmetic, the careful bot ≥ 99 % clears 
 
 ## Look and models
 
-Adopted from `menu1-postman-3d/` (all fitted from measured bounds, `assets.test.ts`): `charPostman` (1.78 m, core auto-rig with `POSTMAN_LANDMARKS`, walk on `gaitPhaseStep`, reach on Deliver, carry with a parcel, cheer on the win; mailbag on the hip through `attach`), `houseA/B/C` (5 × 3 m, instanced per type and row: two storeys, 3.6 m, on the north row; 1.95 m bungalows on the camera side so the camera sees over them to their doors), `mailbox` (1.1 m), `postOffice` (4.2 × 2.5 × 3.4 m), `postVan` (4 m, solid), `streetLampVictorian` (3 m, lit at night), `bicycle` and `holidayTree` (decor fitted to 1 m, placed by spot scale; the trees on L5 only), `letter` (the delivery puff asset). Shared: `picketFence` (front yards, 0.6 m), `trafficLight` (L4–L5 at the zebra), `dog` (menu1-dog-park-fetch, `shared/dog.glb`, tinted per yard, `hop`). Core: kit `<Parcel>`, `REUSED_ASSETS.door`, `bench`, `car` (one pool). Skipped: `postman-3d/hero.glb`.
+Adopted from `menu1-postman-3d/` (all fitted from measured bounds, `assets.test.ts`): `charPostman` (1.78 m, core auto-rig with `POSTMAN_LANDMARKS`, walk on `gaitPhaseStep`, reach on Deliver, carry with a parcel, cheer on the win; mailbag on the hip through `attach`), `houseA/B/C` (5 × 3 m, instanced per type and row: two storeys, 3.6 m, on the north row; 1.95 m bungalows on the camera side so the camera sees over them to their doors), `mailbox` (1.1 m), `postOffice` (4.2 × 2.5 × 3.4 m), `postVan` (4 m, solid), `streetLampVictorian` (3 m, lit at night), `bicycle` and `holidayTree` (decor fitted to 1 m, placed by spot scale; the trees on L5 only), `letter` (the delivery puff asset). Shared: `trafficLight` (L4–L5 at the zebra), `dog` (menu1-dog-park-fetch, `shared/dog.glb`, tinted per yard, `hop`). Core: kit `<Parcel>`, `REUSED_ASSETS.bench`, `car` (one pool). Front doors and the low picket fences are code (instanced boxes): the picket-fence and door GLBs cost 1.5k / 2.5k triangles a copy, 2-3 copies per house. Skipped: `postman-3d/hero.glb`.
 
 Camera: a follow camera at 66° pitch (steeper than the spec's 52°, so no bungalow hides the postman at a south-row door: `rules.test.ts` "sightline"), 2 m look-ahead, a 12 × 12 m window kept clear of the HUD and the controls (`shift`). The fog starts past that window at whatever distance the camera was fitted to (`fogFor`). House plates are one canvas atlas on one non-indexed mesh, leaned back to face the camera, 0.9 × 0.75 m. Ground: a 300 m lawn under the fog, roads with dashes, pavements and kerbs, front paths, the zebra.
 
-HUD: the shell's chips (score, time, lives on L4–L5, Delivered, Bag) and the game's route panel (next three items: number, colour, letter / parcel). `<TargetMarkers>` and a ground ring on the next address on L1–L2 only.
+HUD: the shell's chips (score, time, lives on L4–L5, Delivered, Bag) and the game's route panel (next three items: number, colour, Box / Door); on screens under 480 px wide it is one compact row of chips. `<TargetMarkers>` and a ground ring on the next address on L1–L2 only.
 
 ## Known issues
 
-- Front-yard fences are visual only (low, 0.6 m): the postman walks through them.
+- Front-yard fences are visual only (low, 0.6 m, code pickets): the postman walks through them.
+
+## Triangle budget
+
+`assets.test.ts` pins every GLB's triangles (`GLB_TRIS`) and sums every copy a level draws at full decor quality plus the code pieces: each level stays under 300k (the 2026-10-26 playtest measured 91k / 152-183k / 243-268k / 368-386k / 479-490k before: the picket fence and door GLBs per house). Lamps and holiday trees follow `useQuality().decor`.
 - The holiday lights are emissive spheres along the house fronts (the spec's emissive strings).
 - The spec still lists `holidayTree` as needed; it is in the ready folder now and adopted.
