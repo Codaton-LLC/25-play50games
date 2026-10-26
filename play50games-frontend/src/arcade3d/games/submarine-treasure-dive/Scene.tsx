@@ -2,7 +2,7 @@
 
 // One useRunFrame steps rules.ts. Visuals read the run and animate with useGameTime.
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useFrame } from "@react-three/fiber";
+import { useFrame, useThree } from "@react-three/fiber";
 import {
    AdditiveBlending,
    BoxGeometry,
@@ -68,6 +68,12 @@ function circleSpots(items: readonly CircleSolid[], yOf: (item: CircleSolid) => 
 function LevelScene() {
    const { id, config } = useLevel<SubLevel>();
    const view = useFittedView(viewFor(id));
+   // the fog is tuned for a desktop camera (about 14 m away); a phone or tablet fit sits further back and would see only murk
+   const scene = useThree((state) => state.scene);
+   useEffect(() => {
+      const fog = scene.fog;
+      if (fog && "far" in fog) fog.far = Math.max(fog.far, view.distance * 1.3);
+   }, [scene, view.distance]);
    const input = useInput();
    const fx = useFx();
    const time = useGameTime();
