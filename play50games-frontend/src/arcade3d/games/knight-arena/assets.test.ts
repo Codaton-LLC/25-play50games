@@ -27,6 +27,40 @@ import {
    TOWER_HEIGHT,
    TREE_HEIGHT,
 } from "./assets";
+import * as decor from "./assets";
+import { ARENA } from "./rules";
+
+describe("late-level training decor", () => {
+   it("registers the training dummy file and fits its measured mesh to 1.5 m on the ground", async () => {
+      const asset = ASSETS["trainingDummyT" as keyof typeof ASSETS];
+      expect(asset?.url).toBe("/models/3d/knight-arena/trainingDummyT.glb");
+      expect(MODEL_MANIFEST).toContain(asset.url);
+      expect(existsSync(path.join(process.cwd(), "public", asset.url))).toBe(true);
+      const measured = await measureDrawnAsset(asset);
+      expect(measured.rawSize.x).toBeCloseTo(1.656493, 5);
+      expect(measured.rawSize.y).toBeCloseTo(1.895201, 5);
+      expect(measured.rawSize.z).toBeCloseTo(0.674425, 5);
+      expect(measured.drawnSize.y).toBeCloseTo(1.5, 5);
+      expect(measured.minY * (asset.scale ?? 1) + (asset.yOffset ?? 0)).toBeCloseTo(0, 5);
+   });
+
+   it("keeps every dummy footprint outside the play bounds and only enables levels 4 and 5", async () => {
+      const { TRAINING_DUMMY_SPOTS, hasTrainingDecor } = decor as typeof decor & {
+         TRAINING_DUMMY_SPOTS: readonly { x: number; y: number; z: number }[];
+         hasTrainingDecor: (level: number) => boolean;
+      };
+      expect(TRAINING_DUMMY_SPOTS).toBeDefined();
+      expect(TRAINING_DUMMY_SPOTS.length).toBeGreaterThanOrEqual(2);
+      expect(TRAINING_DUMMY_SPOTS.length).toBeLessThanOrEqual(4);
+      const { drawnSize } = await measureDrawnAsset(ASSETS["trainingDummyT" as keyof typeof ASSETS]);
+      const radius = Math.hypot(drawnSize.x, drawnSize.z) / 2;
+      for (const spot of TRAINING_DUMMY_SPOTS) {
+         expect(Math.max(Math.abs(spot.x), Math.abs(spot.z)) - radius).toBeGreaterThan(ARENA.RADIUS_M);
+         expect(spot.y).toBeCloseTo(-0.04, 6);
+      }
+      expect([1, 2, 3, 4, 5, 6].map(hasTrainingDecor)).toEqual([false, false, false, true, true, false]);
+   });
+});
 
 async function measureDrawnAsset(asset: ModelAsset): Promise<{ rawSize: Vector3; drawnSize: Vector3; minY: number; tris: number; bytes: number }> {
    const file = path.join(process.cwd(), "public", asset.url.replace(/^\//, ""));
