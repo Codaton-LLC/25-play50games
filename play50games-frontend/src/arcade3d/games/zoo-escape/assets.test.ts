@@ -8,7 +8,7 @@ import { modelParts } from "@/arcade3d/core/assets";
 import { hasModel } from "@/arcade3d/core/modelManifest";
 import { readCharacterGlb } from "@/arcade3d/core/rig/robotGlb";
 import type { ModelAsset } from "@/arcade3d/core/types";
-import { ASSETS, BAMBOO_GLB, BRIDGE_GLB, BRIDGE_Y_OFFSET, BUSH_GLB, KEEPER_SCALE, KIOSK_GLB, PANDA_LENGTH, PROP_SIZE, SNACK_GLB, TOWER_GLB, ZOO_ROCK_SPOTS, ZOO_ROCKS_DRAWN, ZOO_ROCKS_GLB, ZOO_ROCKS_WIDTH } from "./assets";
+import { ASSETS, BAMBOO_GLB, BRIDGE_GLB, BRIDGE_Y_OFFSET, BUSH_GLB, KEEPER_SCALE, KIOSK_GLB, PANDA_LENGTH, PROP_SIZE, SNACK_GLB, TOWER_GLB, ZOO_FOUNTAIN_DRAWN, ZOO_FOUNTAIN_GLB, ZOO_FOUNTAIN_SPOTS, ZOO_FOUNTAIN_WIDTH, ZOO_ROCK_SPOTS, ZOO_ROCKS_DRAWN, ZOO_ROCKS_GLB, ZOO_ROCKS_WIDTH } from "./assets";
 import { DECOR, inPlayArea } from "./looks";
 
 async function drawnBox(asset: ModelAsset): Promise<Box3> {
@@ -166,6 +166,39 @@ describe("adopted batch-5 prop GLBs", () => {
             const reach = decor.kind === "pine" ? 1.25 * decor.sx : decor.kind === "tree" ? 1.4 * decor.sx : Math.hypot(decor.sx, decor.sz) / 2;
             if (decor.kind !== "tree" && decor.kind !== "pine" && decor.kind !== "hedge") continue;
             expect(Math.hypot(spot.x - decor.x, spot.z - decor.z)).toBeGreaterThan(rockR + reach);
+         }
+      }
+   });
+
+
+   it("measures the zooFountain GLB and draws it fitted to real size", async () => {
+      expect(existsSync(resolve("public", ASSETS.zooFountain.url.slice(1)))).toBe(true);
+      expect(hasModel(ASSETS.zooFountain.url)).toBe(true);
+      const raw = await rawBox(ASSETS.zooFountain);
+      expect(raw.min.y).toBeCloseTo(0, 2);
+      expect(raw.max.x - raw.min.x).toBeCloseTo(ZOO_FOUNTAIN_GLB.width, 2);
+      expect(raw.max.y).toBeCloseTo(ZOO_FOUNTAIN_GLB.height, 2);
+      expect(raw.max.z - raw.min.z).toBeCloseTo(ZOO_FOUNTAIN_GLB.depth, 2);
+      const drawn = await drawnBox(ASSETS.zooFountain);
+      expect(drawn.min.y).toBeCloseTo(0, 2);
+      expect(drawn.max.x - drawn.min.x).toBeCloseTo(ZOO_FOUNTAIN_WIDTH, 2);
+      expect(drawn.max.z - drawn.min.z).toBeCloseTo(ZOO_FOUNTAIN_DRAWN.depth, 2);
+      expect(drawn.max.y - drawn.min.y).toBeCloseTo(ZOO_FOUNTAIN_DRAWN.height, 2);
+   });
+
+   it("places the zooFountain spots outside the play bounds and clear of other decor", () => {
+      expect(ZOO_FOUNTAIN_SPOTS.length).toBeGreaterThanOrEqual(2);
+      expect(ZOO_FOUNTAIN_SPOTS.length).toBeLessThanOrEqual(4);
+      const fountainR = Math.max(ZOO_FOUNTAIN_DRAWN.width, ZOO_FOUNTAIN_DRAWN.depth) / 2;
+      for (const spot of ZOO_FOUNTAIN_SPOTS) {
+         expect(inPlayArea(spot.x, spot.z, fountainR)).toBe(false);
+         for (const decor of DECOR) {
+            const reach = decor.kind === "pine" ? 1.25 * decor.sx : decor.kind === "tree" ? 1.4 * decor.sx : Math.hypot(decor.sx, decor.sz) / 2;
+            if (decor.kind !== "tree" && decor.kind !== "pine" && decor.kind !== "hedge") continue;
+            expect(Math.hypot(spot.x - decor.x, spot.z - decor.z)).toBeGreaterThan(fountainR + reach);
+         }
+         for (const rock of ZOO_ROCK_SPOTS) {
+            expect(Math.hypot(spot.x - rock.x, spot.z - rock.z)).toBeGreaterThan(fountainR + 1.1);
          }
       }
    });
