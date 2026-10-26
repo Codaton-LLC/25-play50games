@@ -131,7 +131,7 @@ export function TankSurroundings({ level }: { level: AquariumLevel }) {
          </mesh>
          <mesh rotation-x={-Math.PI / 2} position={[0, 0.006, 0]}>
             <planeGeometry args={[level.width, level.depth]} />
-            <meshBasicMaterial map={caustics} transparent opacity={night ? 0.35 : 0.22} blending={AdditiveBlending} depthWrite={false} />
+            <meshBasicMaterial map={caustics} transparent opacity={night ? 0.14 : 0.16} blending={AdditiveBlending} depthWrite={false} />
          </mesh>
          {/* a faint tint under the water surface */}
          <mesh rotation-x={-Math.PI / 2} position={[0, GLASS_H - 0.05, 0]} renderOrder={2}>
