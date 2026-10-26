@@ -139,6 +139,10 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/zoo-escape/zooRocks.glb",
    "/models/3d/treasure-island/beachRocks.glb",
    "/models/3d/penguin-slide/iceArch.glb",
+   // penguin-slide level 4-5 decor (2026-10-25): Group D adoptions, Gen-2.5-Medium, 1500-3000 tris,
+   // optimized with tools/hyper3d; drawn only on Aurora Run (4) and Glacier Sprint (5)
+   "/models/3d/penguin-slide/auroraCrystal.glb",
+   "/models/3d/penguin-slide/glacierChunk.glb",
    "/models/3d/mini-golf/golfCastle.glb",
    // Menu 1 haunted-mansion-keys (2026-10-25): the ready menu1-haunted-mansion-keys GLBs (wallLeverV2,
    // not wallLever), plus the shared ready furniture; fits measured in
