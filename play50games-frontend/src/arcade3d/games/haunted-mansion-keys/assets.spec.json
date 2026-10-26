@@ -1,0 +1,17 @@
+{
+   "slug": "haunted-mansion-keys",
+   "universe": "play50-toy-world-premium",
+   "notes": "GLBs are generated already (menu1-haunted-mansion-keys/ and the shared ready set). This file names the ids the game loads from /models/3d/haunted-mansion-keys/. Claude copies them and adds the manifest lines. Leave haunted-mansion-keys/hero.glb and wallLever.glb.",
+   "assets": [
+      { "id": "charDetective", "kind": "character", "file": "menu1-haunted-mansion-keys/charDetective.glb", "budget": { "tris": 20000, "bytes": 1500000 } },
+      { "id": "skeletonKey", "kind": "prop", "file": "menu1-haunted-mansion-keys/skeletonKey.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "mansionDoor", "kind": "prop", "file": "menu1-haunted-mansion-keys/mansionDoor.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "wallLeverV2", "kind": "prop", "file": "menu1-haunted-mansion-keys/wallLeverV2.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "grandfatherClock", "kind": "prop", "file": "menu1-haunted-mansion-keys/grandfatherClock.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "paintingFrame", "kind": "prop", "file": "menu1-haunted-mansion-keys/paintingFrame.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "armourStand", "kind": "prop", "file": "menu1-haunted-mansion-keys/armourStand.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "woodenChair", "kind": "prop", "file": "woodenChair.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "table", "kind": "prop", "file": "table.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "bookshelf", "kind": "prop", "file": "bookshelf.glb", "budget": { "tris": 5000, "bytes": 300000 } }
+   ]
+}
