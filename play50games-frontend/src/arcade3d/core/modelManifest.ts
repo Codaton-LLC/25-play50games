@@ -218,6 +218,17 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/hotel-bellboy-rush/lobbyPlanterR.glb",
    "/models/3d/shared/sofa.glb",
    "/models/3d/shared/travellerNpc.glb",
+   // Menu 1 cat-vs-robot-vacuum (2026-10-25): the ready menu1-cat-vs-robot-vacuum set (catTreeR, and the
+   // regenerated catTreatFish / catToyPlush instead of the flagged originals) plus the shared furniture
+   // (bed, table, bookshelfFull, woodenChair); optimized GLBs copied in, fits in the game's assets.ts.
+   "/models/3d/cat-vs-robot-vacuum/cat.glb",
+   "/models/3d/cat-vs-robot-vacuum/robotVacuum.glb",
+   "/models/3d/cat-vs-robot-vacuum/catTreatFish.glb",
+   "/models/3d/cat-vs-robot-vacuum/catToyPlush.glb",
+   "/models/3d/cat-vs-robot-vacuum/catBox.glb",
+   "/models/3d/cat-vs-robot-vacuum/catTreeR.glb",
+   "/models/3d/shared/bed.glb",
+   "/models/3d/shared/bookshelfFull.glb",
    // Menu 1 mars-rover-mission (2026-10-25): the ready menu1-mars-rover-mission GLBs (ledger OK; not marsRoverV2,
    // groundSolarPanel or the broken ancientMarsRuin), copied as optimized; fits measured in its assets.ts.
    // The astronaut is a static T-pose for the core auto-rig (ASTRONAUT_LANDMARKS).
