@@ -26,6 +26,7 @@ import { Course, type VisualClock } from "./Course";
 import { Hero, createHeroAnim, groundUnder, type HeroAnim } from "./Hero";
 import { FOV, FOV_PORTRAIT, cameraGoal, introKeyframes, playCamera, type CameraGoal } from "./camera";
 import { ORB, STAT, createRun, createStepInput, step, type SkyRun } from "./rules";
+import { pickedHero } from "./heroes";
 import { createBot, botInput } from "./bot";
 import type { SkyLevel } from "./levels";
 
@@ -58,6 +59,7 @@ function Simulation({ run, anim, clock, won }: { run: SkyRun; anim: HeroAnim; cl
       stepInput.moveX = world.x;
       stepInput.moveZ = world.z;
       stepInput.jumpPressed = i.jumpPressed;
+      stepInput.actionPressed = i.actionPressed;
       if (bot) {
          bot.frameMs = lastFrame.current;
          botInput(bot, run, stepInput);
@@ -74,6 +76,10 @@ function Simulation({ run, anim, clock, won }: { run: SkyRun; anim: HeroAnim; cl
       if (ev.jumped) {
          anim.jumpAt = now;
          playSfx("jump", { volume: 0.6 });
+      }
+      if (ev.powered) {
+         fx.burst("sparkle", chest, 18);
+         playSfx("whoosh", { volume: 0.55, pitch: 1.15 });
       }
       if (ev.landed) {
          anim.landAt = now;
@@ -115,6 +121,10 @@ function Simulation({ run, anim, clock, won }: { run: SkyRun; anim: HeroAnim; cl
       }
       const height = Math.round(Math.max(0, run.bestTop));
       if (store.stats[STAT.height] !== height) store.setStat(STAT.height, height);
+      const heroStat = run.heroId === "nami" ? 1 : run.heroId === "kiro" ? 2 : run.heroId === "zuno" ? 3 : run.heroId === "vexa" ? 4 : 0;
+      if (store.stats[STAT.hero] !== heroStat) store.setStat(STAT.hero, heroStat);
+      const powerLeft = Math.max(0, Math.ceil((run.powerReadyAt - run.simMs) / 1000));
+      if (store.stats[STAT.power] !== powerLeft) store.setStat(STAT.power, powerLeft);
       if (ev.finished) {
          won.current = true;
          anim.winAt = now;
@@ -228,7 +238,7 @@ export default function Scene() {
    const { config } = useLevel<SkyLevel>();
    const levelId: LevelId = config?.id ?? 1;
    // runId remounts the Scene; the seed only places decor (the course is the same race for everyone)
-   const run = useMemo(() => createRun(randomSeed(), levelId), [runId, levelId]);
+   const run = useMemo(() => createRun(randomSeed(), levelId, pickedHero()), [runId, levelId]);
    const decorSeed = 20261025;
    const anim = useMemo(createHeroAnim, [run]);
    const clock = useMemo<VisualClock>(() => ({ ms: 0 }), [run]);

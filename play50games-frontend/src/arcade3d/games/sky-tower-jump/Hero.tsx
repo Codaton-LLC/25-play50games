@@ -24,6 +24,7 @@ import {
    type HumanoidPose,
 } from "@/arcade3d/core/rig";
 import { ASSETS, RIKO_LANDMARKS, RIKO_SCALE, RIKO_SOLE_Z } from "./assets";
+import { heroById } from "./heroes";
 import { ARMADILLO, ArmadilloBall, ArmadilloStandIn, createArmadilloPose, type ArmadilloPose } from "./Armadillo";
 import { V_BOUNCE, V_JUMP, V_RUN, arcVy, supportX, supportZ, type SkyRun } from "./rules";
 
@@ -67,6 +68,7 @@ export function stepHeroPose(pose: ArmadilloPose, run: SkyRun, anim: HeroAnim, n
    let runAmount = 0;
    if (h.state === "lost") roll = 1;
    else if (!Number.isNaN(anim.intro) && anim.intro < 0.97) roll = 1;
+   else if (h.dashUntil >= run.simMs) roll = 1;
    else if (h.grounded) runAmount = Math.min(1, speed / V_RUN);
    else {
       // a bounce flight is a ball (from the pad until it lands); a jump tucks near the apex
@@ -117,6 +119,13 @@ export function Hero({ run, anim, ground }: { run: SkyRun; anim: HeroAnim; groun
       ),
       [],
    );
+   // Riko keeps the GLB's own red. The other four reuse that mesh with a white material tinted to their colour.
+   const tinted = run.heroId !== "riko";
+   const heroAsset = useMemo(() => {
+      if (!tinted) return ASSETS.hero;
+      const color = heroById(run.heroId).color;
+      return { ...ASSETS.hero, material: { color: "#ffffff", roughness: 0.48, metalness: 0.08, emissive: color } };
+   }, [tinted, run.heroId]);
    const rigPose = useHumanoidPose((p) => {
       stepHeroPose(pose.current, run, anim, time.now, time.delta);
       driveRig(pose.current, p);
@@ -204,7 +213,7 @@ export function Hero({ run, anim, ground }: { run: SkyRun; anim: HeroAnim; groun
             <group ref={pivot}>
                <group ref={rigWrap}>
                   <group ref={shift}>
-                     <HumanoidModel asset={ASSETS.hero} pose={rigPose} fallback={standIn} />
+                     <HumanoidModel asset={heroAsset} pose={rigPose} tint={tinted ? heroById(run.heroId).color : undefined} fallback={standIn} />
                   </group>
                </group>
                <ArmadilloBall pose={pose} />

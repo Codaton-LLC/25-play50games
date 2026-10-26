@@ -817,41 +817,11 @@
       "time_base_ms": 90000,
       "enabled": false,
       "levels": [
-        {
-          "title": "Training Sky",
-          "max_score": 7850,
-          "min_duration_ms": 11500,
-          "max_duration_ms": 90000,
-          "time_base_ms": 90000
-        },
-        {
-          "title": "Cloud Steps",
-          "max_score": 7850,
-          "min_duration_ms": 11500,
-          "max_duration_ms": 90000,
-          "time_base_ms": 90000
-        },
-        {
-          "title": "Moving Platforms",
-          "max_score": 7850,
-          "min_duration_ms": 11500,
-          "max_duration_ms": 90000,
-          "time_base_ms": 90000
-        },
-        {
-          "title": "Storm Heights",
-          "max_score": 7850,
-          "min_duration_ms": 11500,
-          "max_duration_ms": 90000,
-          "time_base_ms": 90000
-        },
-        {
-          "title": "Infinite Tower",
-          "max_score": 7850,
-          "min_duration_ms": 11500,
-          "max_duration_ms": 90000,
-          "time_base_ms": 90000
-        }
+        { "title": "Training Sky", "max_score": 7850, "min_duration_ms": 11500, "max_duration_ms": 90000, "time_base_ms": 90000 },
+        { "title": "Cloud Steps", "max_score": 9860, "min_duration_ms": 21400, "max_duration_ms": 120000, "time_base_ms": 120000 },
+        { "title": "Moving Platforms", "max_score": 12130, "min_duration_ms": 28700, "max_duration_ms": 150000, "time_base_ms": 150000 },
+        { "title": "Storm Heights", "max_score": 14110, "min_duration_ms": 38900, "max_duration_ms": 180000, "time_base_ms": 180000 },
+        { "title": "Infinite Tower", "max_score": 18170, "min_duration_ms": 58300, "max_duration_ms": 240000, "time_base_ms": 240000 }
       ]
     }
   }

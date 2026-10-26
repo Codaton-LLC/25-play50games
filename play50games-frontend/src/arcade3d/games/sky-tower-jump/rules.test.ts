@@ -9,15 +9,18 @@ import { createRng } from "@/arcade3d/core/math";
 import { LEVEL_IDS, type LevelId } from "@/arcade3d/types";
 import { skyTowerJumpMeta } from "./meta";
 import { LEVELS } from "./levels";
+import { POWER_MS, V_DASH, heroById } from "./heroes";
 import { createBot, botInput } from "./bot";
 import {
    BUFFER_MS,
    COURSE,
    COYOTE_MS,
    FALL_DEPTH,
+   FOOT,
    G,
    H_BOUNCE,
    H_JUMP,
+   LEVEL1_LIMITS,
    LOST_MS,
    ORB,
    PROPOSED_LEVEL_LIMITS,
@@ -47,16 +50,22 @@ import {
 
 const FPS = [30, 60, 144] as const;
 
-/** Runs the honest bot to the end at a fixed frame rate (rules only). */
+const botCache = new Map<string, SkyRun>();
+
+/** Runs the honest bot to the end at a fixed frame rate (rules only). Cached: the proof reads each run once. */
 function botRun(level: LevelId, fps: number, seed = 1): SkyRun {
+   const key = `${level}:${fps}:${seed}`;
+   const hit = botCache.get(key);
+   if (hit) return hit;
    const fms = 1000 / fps;
    const run = createRun(seed, level);
    const bot = createBot(run, fms);
    const input = createStepInput();
-   for (let f = 0; f < 200_000 && run.ended === null; f++) {
+   for (let f = 0; f < 400_000 && run.ended === null; f++) {
       botInput(bot, run, input);
       step(run, fms, input);
    }
+   botCache.set(key, run);
    return run;
 }
 
@@ -93,7 +102,7 @@ describe("the course (level 1, Training Sky)", () => {
       const a = createRun(1, 1);
       const b = createRun(987654321, 1);
       expect(a.course).toBe(b.course);
-      const input: StepInput = { moveX: 0, moveZ: -1, jumpPressed: false };
+      const input: StepInput = { moveX: 0, moveZ: -1, jumpPressed: false, actionPressed: false };
       for (let f = 0; f < 240; f++) {
          input.jumpPressed = f % 40 === 10;
          step(a, 1000 / 60, input);
@@ -102,12 +111,41 @@ describe("the course (level 1, Training Sky)", () => {
       expect(a.hero).toEqual(b.hero);
    });
 
-   it("placeholder levels keep the course and only harden its constants", () => {
+   it("levels 2-5 are their own towers: the plan's heights, movers on 3, gusts and lightning on 4 and 5", () => {
+      const tops = { 2: 100, 3: 150, 4: 220, 5: 300 } as const;
       for (const id of [2, 3, 4, 5] as const) {
          const c = courseFor(id);
-         expect(LEVELS[id].placeholder).toBe(true);
-         expect(c.supports.map((s) => [s.kind, s.cx, s.cz, s.top])).toEqual(COURSE.supports.map((s) => [s.kind, s.cx, s.cz, s.top]));
-         expect(c.maxCarry).toBeGreaterThan(COURSE.maxCarry);
+         expect(c.supports[c.goal].top).toBe(tops[id]);
+         expect(c.durationMs).toBe(LEVELS[id].durationMs);
+         expect(c.supports.length).toBeGreaterThan(COURSE.supports.length);
+         expect(LEVELS[id].tower).not.toBeNull();
+      }
+      expect(courseFor(3).supports.filter((s) => s.mover).length).toBeGreaterThan(courseFor(2).supports.filter((s) => s.mover).length);
+      expect(courseFor(2).wind).toBe(false);
+      expect(courseFor(2).strikes).toHaveLength(0);
+      expect(courseFor(4).wind).toBe(true);
+      expect(courseFor(4).strikes.length).toBeGreaterThan(0);
+      expect(courseFor(5).wind).toBe(true);
+      expect(courseFor(5).strikes.length).toBeGreaterThan(0);
+      expect(courseFor(5).supports.length).toBeGreaterThan(courseFor(4).supports.length);
+      expect(COURSE.wind).toBe(false);
+      expect(COURSE.strikes).toHaveLength(0);
+      // the same race for every seed
+      expect(createRun(1, 3).course).toBe(createRun(99, 3).course);
+   });
+
+   it("every generated step is a jump or a pad, and the gap is short enough to land", () => {
+      for (const id of [2, 3, 4, 5] as const) {
+         const s = courseFor(id).supports;
+         for (let i = 1; i < s.length; i++) {
+            const rise = s[i].top - s[i - 1].top;
+            const reach = s[i - 1].pad ? H_BOUNCE : H_JUMP;
+            expect(rise, `L${id} rise ${i}`).toBeGreaterThan(0.5);
+            expect(rise, `L${id} rise ${i}`).toBeLessThan(reach - 0.6);
+            const dx = Math.max(0, Math.abs(s[i].cx - s[i - 1].cx) - s[i].hw - s[i - 1].hw - 2 * FOOT);
+            const dz = Math.max(0, Math.abs(s[i].cz - s[i - 1].cz) - s[i].hd - s[i - 1].hd - 2 * FOOT);
+            expect(Math.hypot(dx, dz), `L${id} gap ${i}`).toBeLessThan(3.2);
+         }
       }
    });
 });
@@ -115,7 +153,7 @@ describe("the course (level 1, Training Sky)", () => {
 describe("movement", () => {
    it("a jump from flat ground peaks at H_JUMP after APEX and lands back after about 2 x apex", () => {
       const run = createRun(1, 1);
-      const input: StepInput = { moveX: 0, moveZ: 0, jumpPressed: true };
+      const input: StepInput = { moveX: 0, moveZ: 0, jumpPressed: true, actionPressed: false };
       step(run, 1, input);
       input.jumpPressed = false;
       let peak = 0;
@@ -134,7 +172,7 @@ describe("movement", () => {
    it("keeps a jump press for BUFFER_MS and honours coyote time after walking off", () => {
       // pressed in the air 100 ms before landing: jumps on landing
       const run = createRun(1, 1);
-      const input: StepInput = { moveX: 0, moveZ: 0, jumpPressed: true };
+      const input: StepInput = { moveX: 0, moveZ: 0, jumpPressed: true, actionPressed: false };
       step(run, 1, input);
       input.jumpPressed = false;
       let jumps = 1;
@@ -188,7 +226,7 @@ describe("movement", () => {
 describe("falls, respawns, orbs, the finish", () => {
    it("a fall FALL_DEPTH under the last top is lost; the hero comes back on the checkpoint after LOST_MS + SPAWN_MS", () => {
       const run = createRun(1, 1);
-      const input: StepInput = { moveX: 1, moveZ: 0, jumpPressed: false };
+      const input: StepInput = { moveX: 1, moveZ: 0, jumpPressed: false, actionPressed: false };
       let lostAt = -1;
       let backAt = -1;
       for (let ms = 0; ms < 6000; ms++) {
@@ -249,13 +287,61 @@ describe("the lower bound (README proof)", () => {
          const c = courseFor(level);
          const lb = minDurationMsOf(c);
          const lim = PROPOSED_LEVEL_LIMITS[level];
+         expect(Number.isFinite(lb), `level ${level} reachable`).toBe(true);
+         expect(Number.isFinite(lim.maxScore)).toBe(true);
          expect(lim.minDurationMs).toBeLessThanOrEqual(lb);
          expect(lim.minDurationMs).toBeGreaterThanOrEqual(lb * 0.94);
          expect(lim.maxScore).toBe(Math.floor((lim.timeBaseMs - lim.minDurationMs) / 10));
          expect(lim.maxDurationMs).toBe(c.durationMs);
+         expect(lim.timeBaseMs).toBe(c.durationMs);
+         // meta (and arcade-games.json, registry.sync.test.ts) ship exactly these limits on this level
          expect(skyTowerJumpMeta.levels![level - 1].scoring).toMatchObject(lim);
+         if (level === 1) expect(lim).toEqual(LEVEL1_LIMITS);
       });
    }
+
+   it("a dash does not pull level 1's least finish under the shipped floor", () => {
+      const dashed = minFinishMs(COURSE, V_DASH) - COURSE.orbs.length * ORB.bonusMs;
+      expect(dashed).toBeGreaterThanOrEqual(LEVEL1_LIMITS.minDurationMs);
+   });
+
+   for (const level of LEVEL_IDS) {
+      it(`level ${level}: Riko's dashes cannot pull the least finish under the shipped floor`, () => {
+         // A dash is on for at most POWER_MS.dash + 1 rules ms (dashUntil is inclusive) at V_DASH instead of V_RUN,
+         // so it adds at most that many ms × (V_DASH - V_RUN) of horizontal travel. Every edge bound is
+         // max(flat, vertical) with flat = distance / (V_RUN + carry), so the extra travel saves at most
+         // extra / V_RUN of the summed bound. A run that finishes at T fired at most 1 + floor(T / cooldown) dashes.
+         const c = courseFor(level);
+         const F = minFinishMs(c);
+         const perDash = ((POWER_MS.dash + 1) * (V_DASH - V_RUN)) / V_RUN;
+         const cooldown = heroById("riko").cooldownMs;
+         let T = 0;
+         // the least T with T + perDash · dashes(T) >= F
+         while (T + perDash * (1 + Math.floor(T / cooldown)) < F) T += 1;
+         const floor = T - c.orbs.length * ORB.bonusMs;
+         expect(floor, `level ${level} dashed floor ${floor} vs min ${PROPOSED_LEVEL_LIMITS[level].minDurationMs}`).toBeGreaterThanOrEqual(PROPOSED_LEVEL_LIMITS[level].minDurationMs);
+      });
+   }
+
+   it("pins the shipped per-level limits (meta.ts and arcade-games.json repeat them)", () => {
+      const rows = LEVEL_IDS.map((id) => {
+         const l = PROPOSED_LEVEL_LIMITS[id];
+         return [l.minDurationMs, l.maxDurationMs, l.timeBaseMs, l.maxScore];
+      });
+      expect(rows).toEqual([
+         [11500, 90000, 90000, 7850],
+         [21400, 120000, 120000, 9860],
+         [28700, 150000, 150000, 12130],
+         [38900, 180000, 180000, 14110],
+         [58300, 240000, 240000, 18170],
+      ]);
+   });
+
+   it("every proposed level is worth at least level 1's points, and level 5 is at most about 3x", () => {
+      const l1 = PROPOSED_LEVEL_LIMITS[1].maxScore;
+      for (const id of LEVEL_IDS) expect(PROPOSED_LEVEL_LIMITS[id].maxScore).toBeGreaterThanOrEqual(l1);
+      expect(PROPOSED_LEVEL_LIMITS[5].maxScore).toBeLessThanOrEqual(Math.round(l1 * 3));
+   });
 });
 
 describe("bots (README 'What the bots reached')", () => {
@@ -269,11 +355,28 @@ describe("bots (README 'What the bots reached')", () => {
             const d = submitted(run);
             expect(d).toBeGreaterThanOrEqual(lim.minDurationMs);
             expect(d).toBeLessThanOrEqual(lim.maxDurationMs);
-            // the limit is not loose: the bot's time is within 1.5x of the floor
-            expect(d).toBeLessThan(lim.minDurationMs * 1.6);
+            // the limit is not loose: the bot's time is within 1.6x of the floor
+            expect(d, `${fps} fps submitted ${d} vs 1.6x ${lim.minDurationMs}`).toBeLessThan(lim.minDurationMs * 1.6);
          }
       });
    }
+
+   it("the honest bot's points: each level at least level 1, a clear is at least 90% of that level's max, level 5 at most about 3x", () => {
+      const points = (id: LevelId) => {
+         const run = botRun(id, 60);
+         expect(run.ended, `level ${id}`).toBe("win");
+         return Math.floor((PROPOSED_LEVEL_LIMITS[id].timeBaseMs - submitted(run)) / 10);
+      };
+      const first = points(1);
+      let last = first;
+      for (const id of LEVEL_IDS) {
+         const score = id === 1 ? first : points(id);
+         last = score;
+         expect(score, `level ${id} score ${score} / max ${PROPOSED_LEVEL_LIMITS[id].maxScore}`).toBeGreaterThanOrEqual(first);
+         expect(score, `level ${id} score ${score} / max ${PROPOSED_LEVEL_LIMITS[id].maxScore}`).toBeGreaterThanOrEqual(Math.floor(PROPOSED_LEVEL_LIMITS[id].maxScore * 0.9));
+      }
+      expect(last).toBeLessThanOrEqual(first * 3.05);
+   });
 
    it("the idle bot times out at 90 s: unranked, nothing sent", () => {
       const store = createArcadeStore();

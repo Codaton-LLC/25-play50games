@@ -17,11 +17,11 @@ import Scene from "./Scene";
 import Hud from "./Hud";
 
 const DESCRIPTIONS: Record<LevelId, string> = {
-   1: "Training Sky: wide islands, four moving blocks, three bounce pads, three checkpoints.",
-   2: "Cloud Steps (placeholder): level 1's tower with faster blocks and narrower islands.",
-   3: "Moving Platforms (placeholder): level 1's tower, faster and longer moving blocks.",
-   4: "Storm Heights (placeholder): level 1's tower, harder constants.",
-   5: "Infinite Tower (placeholder): level 1's tower, the hardest constants.",
+   1: "Training Sky: wide islands, four moving blocks, three bounce pads, three checkpoints. Reach 60 m.",
+   2: "Cloud Steps: a taller route to 100 m, with a few moving blocks. 120 seconds.",
+   3: "Moving Platforms: moving blocks along the climb. Reach 150 m in 150 seconds.",
+   4: "Storm Heights: gusts push you sideways and lightning hits the rims. Reach 220 m.",
+   5: "Infinite Tower: a long climb to 300 m, movers, gusts and lightning. 240 seconds.",
 };
 
 const definition: GameDefinition<SkyLevel> = {
@@ -32,7 +32,8 @@ const definition: GameDefinition<SkyLevel> = {
    // the first frame only: the Scene's follow camera (or the intro) takes over on mount
    camera: { position: [0, 4.4, 10.6], fov: FOV, lookAt: [0, 1.8, -1] },
    environment: { background: COLORS.background, fog: [FOG.color, FOG.near, FOG.far], lighting: "day" },
-   touchControls: ["joystick", "jump"],
+   touchControls: ["joystick", "jump", "action"],
+   touchLabels: { action: "Power" },
    hudStats: [],
    clockChip: false,
    intro: true,
@@ -40,6 +41,7 @@ const definition: GameDefinition<SkyLevel> = {
       "Jump from island to island up the sky tower and reach the gate at the top.",
       "Blue pads bounce you high. Moving blocks carry you. Beacons are checkpoints.",
       "Each orb takes 0.4 s off your time. A fall costs time and sends you back to the last beacon.",
+      "Power (E, Enter, or the Power button) is your hero's ability. The same timing on touch and keyboard.",
    ],
    // the hero hops and spins at the gate before the result panel
    resultDelayMs: 1600,
@@ -49,6 +51,11 @@ const definition: GameDefinition<SkyLevel> = {
          id,
          description: DESCRIPTIONS[id],
          config: LEVELS[id],
+         ...(id === 4
+            ? { environment: { background: "#7f9bbd", fog: ["#9eb4cc", 50, 240] as [string, number, number], lighting: "day" as const } }
+            : id === 5
+              ? { environment: { background: "#6d88b0", fog: ["#8ea6c4", 45, 220] as [string, number, number], lighting: "sunset" as const } }
+              : {}),
       }),
    ),
 };
