@@ -131,6 +131,11 @@ export const MODEL_MANIFEST: readonly string[] = [
    // from ~/.play50/hyper3d/ready/menu2, already optimized by tools/hyper3d. menu2/ = shared by the
    // Menu 2 games. m2HeroRiko is the Color Roll Heroes hero (static T-pose, no skeleton, auto-rigged).
    "/models/3d/menu2/m2HeroRiko.glb",
+   // the other four Color Roll Heroes, each its own Hyper3D model (menu2/heroModels.ts; the old m2Hero1-3 / m2ArmadilloHero stay unused)
+   "/models/3d/menu2/m2HeroNami.glb",
+   "/models/3d/menu2/m2HeroKiro.glb",
+   "/models/3d/menu2/m2HeroZuno.glb",
+   "/models/3d/menu2/m2HeroVexa.glb",
    "/models/3d/menu2/islandA.glb",
    "/models/3d/menu2/islandB.glb",
    "/models/3d/menu2/islandC.glb",

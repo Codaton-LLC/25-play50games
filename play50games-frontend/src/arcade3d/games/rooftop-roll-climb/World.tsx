@@ -253,6 +253,8 @@ export default function World({ course, seed, levelId = 1 }: { course: Course; s
          <Crane x={-18} z={-8} phase={0.4} />
          <Crane x={18} z={goal.cz * 0.55} phase={2.1} />
          <Boards seed={seed} />
+         {night ? <hemisphereLight args={["#bcd0ff", "#55658a", STORM.hemi]} /> : null}
+         {night ? <ambientLight intensity={STORM.ambient} /> : null}
          {night ? <pointLight position={[0, goal.top + 12, goal.cz]} intensity={18} distance={90} color="#93c5fd" /> : null}
       </>
    );

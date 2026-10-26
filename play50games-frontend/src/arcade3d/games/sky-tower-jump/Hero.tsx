@@ -23,8 +23,7 @@ import {
    walkPose,
    type HumanoidPose,
 } from "@/arcade3d/core/rig";
-import { ASSETS, RIKO_LANDMARKS, RIKO_SCALE, RIKO_SOLE_Z } from "./assets";
-import { heroById } from "./heroes";
+import { HERO_LANDMARKS, HERO_SCALE, HERO_SOLE_Z, heroModelAsset } from "@/arcade3d/menu2/heroModels";
 import { ARMADILLO, ArmadilloBall, ArmadilloStandIn, createArmadilloPose, type ArmadilloPose } from "./Armadillo";
 import { V_BOUNCE, V_JUMP, V_RUN, arcVy, supportX, supportZ, type SkyRun } from "./rules";
 
@@ -80,7 +79,7 @@ export function stepHeroPose(pose: ArmadilloPose, run: SkyRun, anim: HeroAnim, n
    pose.tuck = approach(pose.tuck, tuck, 16, dt);
    pose.roll = approach(pose.roll, roll, roll > pose.roll ? 18 : 12, dt);
    // the rig's own stride, capped so a full run does not buzz (bodyLift keeps the sole on the floor)
-   pose.phase += gaitPhaseStep(pose.run, RIKO_LANDMARKS, RIKO_SCALE, speed, dt, HERO_CADENCE);
+   pose.phase += gaitPhaseStep(pose.run, HERO_LANDMARKS[run.heroId], HERO_SCALE[run.heroId], speed, dt, HERO_CADENCE);
    // the ball spins forward with the speed it travels (vertical included)
    pose.spin += (Math.sqrt(speed * speed + vy * vy) / ARMADILLO.ballRadius) * dt * (pose.roll > 0.05 ? 1 : 0);
    const tw = now - anim.winAt;
@@ -119,13 +118,8 @@ export function Hero({ run, anim, ground }: { run: SkyRun; anim: HeroAnim; groun
       ),
       [],
    );
-   // Riko keeps the GLB's own red. The other four reuse that mesh with a white material tinted to their colour.
-   const tinted = run.heroId !== "riko";
-   const heroAsset = useMemo(() => {
-      if (!tinted) return ASSETS.hero;
-      const color = heroById(run.heroId).color;
-      return { ...ASSETS.hero, material: { color: "#ffffff", roughness: 0.48, metalness: 0.08, emissive: color } };
-   }, [tinted, run.heroId]);
+   // each hero is its own GLB with its own textures (menu2/heroModels.ts): no tinting
+   const heroAsset = useMemo(() => heroModelAsset(run.heroId), [run.heroId]);
    const rigPose = useHumanoidPose((p) => {
       stepHeroPose(pose.current, run, anim, time.now, time.delta);
       driveRig(pose.current, p);
@@ -143,7 +137,7 @@ export function Hero({ run, anim, ground }: { run: SkyRun; anim: HeroAnim; groun
       const arm = pose.current;
       const glb = standInMount.current == null;
       // the GLB's soles sit forward of its origin; the stand-in's feet are already on z = 0
-      if (shift.current) shift.current.position.z = glb ? -RIKO_SOLE_Z * RIKO_SCALE : 0;
+      if (shift.current) shift.current.position.z = glb ? -HERO_SOLE_Z[run.heroId] * HERO_SCALE[run.heroId] : 0;
       if (glb) {
          const r = arm.roll;
          rig.scale.setScalar(Math.max(0.001, 1 - r));
@@ -213,7 +207,7 @@ export function Hero({ run, anim, ground }: { run: SkyRun; anim: HeroAnim; groun
             <group ref={pivot}>
                <group ref={rigWrap}>
                   <group ref={shift}>
-                     <HumanoidModel asset={heroAsset} pose={rigPose} tint={tinted ? heroById(run.heroId).color : undefined} fallback={standIn} />
+                     <HumanoidModel asset={heroAsset} pose={rigPose} fallback={standIn} />
                   </group>
                </group>
                <ArmadilloBall pose={pose} />
