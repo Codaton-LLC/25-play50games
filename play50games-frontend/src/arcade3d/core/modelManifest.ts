@@ -110,6 +110,9 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/knight-arena/shield.glb",
    "/models/3d/alien-farm/ufo.glb",
    "/models/3d/space-repair/stationModule.glb",
+   // space-repair decor (2026-10-25): comms dish prop for levels 4-5 (External Platform /
+   // Station Emergency), drawn by games/space-repair only there; 1500 tris
+   "/models/3d/space-repair/satelliteDish.glb",
    "/models/3d/shared/snowman.glb",
    "/models/3d/dino-egg-rescue/volcano.glb",
    "/models/3d/treasure-island/shovel.glb",
