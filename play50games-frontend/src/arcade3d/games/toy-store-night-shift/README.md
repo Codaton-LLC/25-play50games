@@ -38,23 +38,23 @@ Keyboard and touch run the same `step()`: the same stun, mercy and reach on both
 
 ## Server limits
 
-`base = Bobj`. `maxDurationMs` is the level clock. `minDurationMs = 4000`. A win at time `t` scores `Bobj + 4 (dur - t)` and the server accepts `base + pps x t`, so `pps >= 4 (dur - t) / t` at the fastest possible win. The sketch assumed a first win at 30 s on level 1; the honest oracle wins level 1 in 5.85 s (the whole store is 5 toys within a few metres of each other). So the limits are re-derived from the measured earliest win `e` (100 seeds per level, the oracle at 30, 60 and 144 Hz; it carries pairs on levels 4-5), with `t = 0.85 e` as the allowance for a faster pilot, `pps = ceil(4 (dur - t) / t)` and `maxScore = Bobj + 4 (dur - t)` plus about 3%:
+`base = Bobj`. `maxDurationMs` is the level clock. `minDurationMs = 4000`. A win at time `t` scores `Bobj + 4 (dur - t)` and the server accepts `base + pps x t`, so `pps >= 4 (dur - t) / t` at the fastest possible win. The sketch assumed a first win at 30 s on level 1; the honest oracle wins level 1 in 5.85 s (the whole store is 5 toys within a few metres of each other). So the limits are re-derived from the measured earliest win `e` (the lowest over the builder's 100-seed run and the gate's 200-seed run per level, the oracle at 30, 60 and 144 Hz; it carries pairs on levels 4-5; the gate's 200 seeds lowered L2 and L5, so their pps and maxScore went up), with `t = 0.85 e` as the allowance for a faster pilot, `pps = ceil(4 (dur - t) / t)` and `maxScore = Bobj + 4 (dur - t)` plus about 3%:
 
 | L | Bobj | earliest win e | t = 0.85 e | base + pps x e | pps | maxScore | best oracle | best / max | maxDurationMs |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
 | 1 | 500 | 5.85 s | 4.97 s | 500 + 93 x 5.85 = 1044 | 93 | 990 | 956 | 96.6% | 120000 |
-| 2 | 800 | 11.80 s | 10.03 s | 800 + 56 x 11.80 = 1461 | 56 | 1400 | 1352 | 96.6% | 150000 |
+| 2 | 800 | 11.60 s | 9.86 s | 800 + 57 x 11.60 = 1461 | 57 | 1405 | 1352 | 96.2% | 150000 |
 | 3 | 1000 | 16.53 s | 14.05 s | 1000 + 48 x 16.53 = 1793 | 48 | 1715 | 1652 | 96.3% | 180000 |
 | 4 | 1400 | 21.61 s | 18.37 s | 1400 + 36 x 21.61 = 2178 | 36 | 2110 | 2032 | 96.3% | 180000 |
-| 5 | 1800 | 33.47 s | 28.45 s | 1800 + 26 x 33.47 = 2670 | 26 | 2605 | 2504 | 96.1% | 210000 |
+| 5 | 1800 | 31.37 s | 26.66 s | 1800 + 28 x 31.37 = 2678 | 28 | 2610 | 2512 | 96.2% | 210000 |
 
-Level 5 `maxScore` 2605 is under `3 x 990` (2.63x). The score without a win never passes `Bobj`, which `base` already covers. The oracle won 100/100 seeds on every level; the human-paced bot (stick 0.9, 0.15 s before each Use, one toy at a time) wins at least 99% of 100 seeds on every level (`levels.test.ts`).
+Level 5 `maxScore` 2610 is under `3 x 990` (2.64x). The score without a win never passes `Bobj`, which `base` already covers. The oracle won 100/100 seeds on every level; the human-paced bot (stick 0.9, 0.15 s before each Use, one toy at a time) wins at least 99% of 100 seeds on every level (`levels.test.ts`).
 
-Proof (`rules.test.ts`, through `createArcadeStore` + `advanceRunClock` + `withinServerLimits` + `capScore`): per level, 60 oracle seeds (30, 60 and 144 Hz mixed), 30 human-paced seeds, 30 spam seeds, 10 idle seeds. Idle scores 0 and never wins, spam stays inside the limits, `capScore` is a no-op, the best oracle win is at least 90% of `maxScore`. The table above is from a one-off run of 100 oracle seeds per level.
+Proof (`proof.level-N.test.ts`, one level per file so they run in parallel; `testing/proof.ts`, bots in `testing/bot.ts`, all through `createArcadeStore` + `advanceRunClock`): per level the proof's arithmetic (`PROOF_EARLIEST_WIN_S` = 0.85 e), 200 oracle seeds and 200 human-paced seeds at 30 / 60 / 144 Hz (each inside the limits, `capScore` a no-op, no win before 0.85 e, at least 99 % wins; measured 200/200 on every level), best oracle at least 90 % of `maxScore`, idle on 200 seeds through the rules and 10 through the store (never wins, scores 0), 40 spam seeds inside the limits. Mutation probes on every level read in `rules.ts`, `index.tsx` and `meta.ts` (18) all fail the tests.
 
 ## Look
 
-One palette (`COLORS`) in `looks.ts`: floor `#e2e8f0` tiles, shelf trims `#f472b6` / `#60a5fa`, accent `#f472b6`. Lighting and background come from the level (core presets + fog). Camera: follow, pitch 58 deg, yaws `[0, pi/2]`, fov 48, `shift: true`; the fit keeps an 18 x 12 m window round the guard on screen, so a big store scrolls under the camera and the floor outside it never shows a void.
+One palette (`COLORS`) in `looks.ts`: floor `#e2e8f0` tiles, shelf trims `#f472b6` / `#60a5fa`, accent `#f472b6`. Lighting and background come from the level (core presets + fog). Camera: follow, pitch 58 deg, yaws `[0, pi/2]`, fov 48, `shift: true`; the fit keeps a 12 x 7 m window round the guard on screen (a 390 x 844 phone turns to yaw pi/2 and sits about 21 m away), so a big store scrolls under the camera and the floor outside it never shows a void. Fog starts at 60 m, past every fitted camera plus the window (`looks.test.ts`). The +x wall, on the portrait camera's side, is a 0.7 m counter so it never hides the guard; the back and left walls are 2.6 m.
 
 Shelf signs lie flat on the shelf top, so they read from either camera yaw: a coloured plate with a white frame shape and the toy's silhouette (`glyphs.ts`: circle bears, square cars, triangle planes, diamond balls, hexagon blocks, star trains, pentagon robots). Colour alone fails at night, so the shape and the picture carry the kind. Plates are unlit (`MeshBasicMaterial`), so they read in the dark levels too. The carried toy's plate floats over the guard's head and faces the camera. The HUD (`data-arcade-safe-area`) lists the kinds of the level with the same chip and how many are left; the stat chips are Shelved and Carrying.
 

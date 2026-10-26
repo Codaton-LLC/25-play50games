@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { LEVEL_IDS } from "@/arcade3d/types";
 import { LEVELS } from "./levels";
-import { BACK, aimBounds, decorOf, signBaseSpots, signSpots, slotSpot, wallSpots, windowBox } from "./looks";
+import { fitView } from "@/arcade3d/core/view";
+import { BACK, FOG, FOV, WALL_H, WINDOW, aimBounds, decorOf, fog, signBaseSpots, signSpots, slotSpot, viewFor, wallSpots, windowBox } from "./looks";
 import { SHELF_H, createRun, standable } from "./rules";
 
 describe("toy store looks", () => {
@@ -41,10 +42,35 @@ describe("toy store looks", () => {
       for (const id of LEVEL_IDS) {
          const win = windowBox(LEVELS[id]);
          const aim = aimBounds(LEVELS[id]);
-         expect(win.max.x - win.min.x).toBeLessThanOrEqual(18);
-         expect(win.max.z - win.min.z).toBeLessThanOrEqual(12);
+         expect(win.max.x - win.min.x).toBeLessThanOrEqual(WINDOW.w);
+         expect(win.max.z - win.min.z).toBeLessThanOrEqual(WINDOW.d);
          expect(aim.max.x).toBeGreaterThanOrEqual(0);
          expect(aim.max.z).toBeGreaterThanOrEqual(0);
+      }
+   });
+
+   it("the fog starts past the fitted camera and the whole window on a phone and a desktop, and the phone camera stays close", () => {
+      for (const [w, h] of [[390, 844], [1280, 800], [844, 390]] as const) {
+         for (const id of LEVEL_IDS) {
+            const v = viewFor(id);
+            const f = fitView({ width: w, height: h, fov: FOV, area: v.area, pitch: v.pitch, yaws: v.yaws, focus: v.focus, margin: v.margin, shift: true });
+            expect(f.distance + Math.max(WINDOW.w, WINDOW.d) / 2).toBeLessThan(FOG.near);
+            expect(fog(LEVELS[id])).toEqual([LEVELS[id].background, FOG.near, FOG.far]);
+            if (w < h) expect(f.distance).toBeLessThan(24);
+         }
+      }
+   });
+
+   it("the wall on the portrait camera's side (+x, yaw pi/2) is a low counter, so it never hides the guard", () => {
+      for (const id of LEVEL_IDS) {
+         const { walls, trims } = wallSpots(LEVELS[id]);
+         const right = walls.filter((w) => w.x > 0 && (w.sx ?? 1) < 1);
+         expect(right.length).toBe(1);
+         expect((right[0].sy ?? 1)).toBeLessThanOrEqual(0.8);
+         expect(right[0].y).toBeCloseTo((right[0].sy ?? 1) / 2, 6);
+         for (const t of trims.filter((t) => t.x > 0 && (t.sx ?? 1) < 1)) expect(t.y + (t.sy ?? 0) / 2).toBeLessThanOrEqual(0.8);
+         // the back and the left walls stay full height
+         expect(walls.filter((w) => (w.sy ?? 1) === WALL_H).length).toBe(2);
       }
    });
 });

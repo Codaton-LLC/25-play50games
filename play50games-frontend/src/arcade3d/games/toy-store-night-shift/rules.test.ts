@@ -1,12 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { capScore, withinServerLimits } from "@/arcade3d/core/limits";
 import { LEVEL_IDS } from "@/arcade3d/types";
 import { LEVELS, shelvesOf } from "./levels";
 import {
    CARRY_SPEED, CLEAN_POINTS, MAX_SPEED, MERCY_S, PROPOSED_LEVEL_LIMITS, REACH, RIGHT_POINTS, SHELF_GAP, STUN_S, TIME_BONUS_PER_SECOND, WINDUP_HIT,
-   createRun, distanceToShelf, idleInput, objectiveCeiling, objectivesReachable, rowCount, standable, step, timeBonus, type Run, type ToyInput,
+   createRun, distanceToShelf, loopPoints, idleInput, objectiveCeiling, objectivesReachable, rowCount, standable, step, timeBonus, type Run, type ToyInput,
 } from "./rules";
-import { play } from "./testing/bot";
 
 const DT = 1 / 60;
 /** No wind-ups: a rules check that is not about them. */
@@ -314,45 +312,44 @@ describe("toy store use, drop, stun and carry", () => {
    });
 });
 
+describe("toy store wind-ups, per level", () => {
+   it("each level puts its wind-ups on the rows in turn, on their row's loop", () => {
+      for (const id of LEVEL_IDS) {
+         const level = LEVELS[id];
+         for (let seed = 0; seed < 20; seed++) {
+            const run = createRun(seed, level);
+            expect(run.windups.length).toBe(level.windups);
+            run.windups.forEach((w, i) => {
+               expect(w.row).toBe(i % level.aisles);
+               const pts = loopPoints(level, w.row, i % 2 === 0);
+               expect(pts.some((p) => Math.hypot(p.x - w.x, p.z - w.z) < 1e-9)).toBe(true);
+            });
+         }
+      }
+   });
+   it("each level's wind-ups roll at that level's speed", () => {
+      for (const id of LEVEL_IDS) {
+         const level = LEVELS[id];
+         const run = createRun(3, level);
+         const before = run.windups.map((w) => ({ x: w.x, z: w.z }));
+         const input = idleInput();
+         const t = 0.05;
+         step(run, input, t, 100_000);
+         run.windups.forEach((w, i) => {
+            // a 5 cm step never crosses two waypoints: the straight distance is the path distance or just under it at a corner
+            const d = Math.hypot(w.x - before[i].x, w.z - before[i].z);
+            expect(d).toBeLessThanOrEqual(level.windupSpeed * t + 1e-9);
+            expect(d).toBeGreaterThan(level.windupSpeed * t * 0.7);
+         });
+      }
+      expect(LEVEL_IDS.filter((id) => LEVELS[id].windups > 0).map((id) => LEVELS[id].windupSpeed)).toEqual([1.4, 1.6, 1.8, 2.0]);
+   });
+});
+
 describe("toy store score limits", () => {
    it("pays at most 100 per toy before the clock bonus", () => {
       for (const id of LEVEL_IDS) expect(objectiveCeiling(LEVELS[id])).toBe(100 * LEVELS[id].toys);
    });
 
-   it("an honest bot, a human-paced bot, an idle bot and a spam bot stay inside each level's limits", () => {
-      for (const id of LEVEL_IDS) {
-         const limits = PROPOSED_LEVEL_LIMITS[id];
-         let best = 0;
-         let wins = 0;
-         let runs = 0;
-         for (let seed = 0; seed < 60; seed++) {
-            const oracle = play(id, seed, seed % 3 === 0 ? 144 : seed % 3 === 1 ? 60 : 30, "oracle");
-            runs += 1;
-            expect(withinServerLimits(oracle.score, oracle.ms, limits)).toBe(true);
-            expect(oracle.score).toBe(oracle.run.score);
-            expect(capScore(oracle.score, oracle.ms, limits)).toBe(oracle.score);
-            if (oracle.reason === "win") {
-               wins += 1;
-               best = Math.max(best, oracle.score);
-            }
-         }
-         for (let seed = 0; seed < 30; seed++) {
-            const human = play(id, seed, 30, "human");
-            expect(withinServerLimits(human.score, human.ms, limits)).toBe(true);
-            const spam = play(id, seed, 30, "spam");
-            expect(spam.score).toBe(spam.run.score);
-            expect(withinServerLimits(spam.score, spam.ms, limits)).toBe(true);
-            expect(capScore(spam.score, spam.ms, limits)).toBe(spam.score);
-         }
-         for (let seed = 0; seed < 10; seed++) {
-            const idle = play(id, seed, 20, "idle");
-            expect(idle.score).toBe(0);
-            expect(idle.reason).not.toBe("win");
-            expect(withinServerLimits(idle.score, idle.ms, limits)).toBe(true);
-         }
-         console.log(`L${id} oracle wins ${wins}/${runs}, best ${best} (max ${limits.maxScore})`);
-         expect(wins / runs).toBeGreaterThanOrEqual(0.98);
-         expect(best).toBeGreaterThanOrEqual(0.9 * limits.maxScore);
-      }
-   }, 900_000);
+   // the per-level bot proofs live in proof.level-N.test.ts (testing/proof.ts)
 });

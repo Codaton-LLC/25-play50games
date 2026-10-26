@@ -42,16 +42,21 @@ export const FOV = 48;
 export const FOLLOW = 1;
 export const LOOK_AHEAD = 0.6;
 export const DAMPING = 4;
-/** What must stay on screen around the guard (m): a bigger store scrolls under the camera. */
-export const WINDOW = { w: 18, d: 12 } as const;
+/** What must stay on screen around the guard (m): a bigger store scrolls under the camera. Small enough that a portrait phone (the other yaw: d across its width) sees the guard clearly. */
+export const WINDOW = { w: 12, d: 7 } as const;
 export const WALL_H = 2.6;
+/** The +x side (the portrait camera's side) is a low counter. */
+export const SIDE_H = 0.7;
 /** The back wall stands this far behind the walkable floor: a display strip for the bins and crates. */
 export const BACK = 1.4;
 /** The guard's torch: half the cone, range. */
 export const TORCH = { halfAngle: 0.62, range: 6 } as const;
 
+/** Fog starts past the farthest fitted camera (a 390 x 844 phone: about 30 m + the window), so it only hides the far floor. */
+export const FOG = { near: 60, far: 150 } as const;
+
 export function fog(level: ToyLevel): [string, number, number] {
-   return [level.background, 40, 120];
+   return [level.background, FOG.near, FOG.far];
 }
 
 export function lookAtFor(): [number, number, number] {
@@ -116,7 +121,8 @@ export function wallSpots(level: ToyLevel): { walls: InstanceSpot[]; trims: Inst
    const walls: InstanceSpot[] = [
       { x: 0, y: h / 2, z: -hz - BACK - t / 2, sx: hx * 2 + t * 2, sy: h, sz: t },
       { x: -hx - t / 2, y: h / 2, z: -BACK / 2, sx: t, sy: h, sz: hz * 2 + BACK },
-      { x: hx + t / 2, y: h / 2, z: -BACK / 2, sx: t, sy: h, sz: hz * 2 + BACK },
+      // the portrait camera (yaw pi/2) looks in from +x: that side is a low counter, never a wall in front of the guard
+      { x: hx + t / 2, y: SIDE_H / 2, z: -BACK / 2, sx: t, sy: SIDE_H, sz: hz * 2 + BACK },
    ];
    const trims: InstanceSpot[] = [
       { x: 0, y: 0.3, z: -hz - BACK + 0.02, sx: hx * 2, sy: 0.12, sz: 0.06 },
@@ -124,7 +130,7 @@ export function wallSpots(level: ToyLevel): { walls: InstanceSpot[]; trims: Inst
       { x: hx - 0.02, y: 0.3, z: -BACK / 2, sx: 0.06, sy: 0.12, sz: hz * 2 + BACK },
       { x: 0, y: h - 0.15, z: -hz - BACK + 0.02, sx: hx * 2, sy: 0.14, sz: 0.06 },
       { x: -hx + 0.02, y: h - 0.15, z: -BACK / 2, sx: 0.06, sy: 0.14, sz: hz * 2 + BACK },
-      { x: hx - 0.02, y: h - 0.15, z: -BACK / 2, sx: 0.06, sy: 0.14, sz: hz * 2 + BACK },
+      { x: hx - 0.02, y: SIDE_H - 0.1, z: -BACK / 2, sx: 0.06, sy: 0.1, sz: hz * 2 + BACK },
    ];
    return { walls, trims };
 }

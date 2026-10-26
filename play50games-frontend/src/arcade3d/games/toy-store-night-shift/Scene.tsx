@@ -157,7 +157,7 @@ function LevelScene() {
    const windupYaw = useRef<number[]>(run.windups.map((w) => w.yaw)).current;
    const robots = useMemo(() => run.windups.filter((w) => w.kind === "robot"), [run]);
    const cars = useMemo(() => run.windups.filter((w) => w.kind === "car"), [run]);
-   const phase = useRef({ t: 0 }).current;
+   const synced = useRef({ shelved: -1, carrying: -1, left: false }).current;
 
    const pose = useHumanoidPose((p) => {
       const speed = Math.hypot(run.hero.vx, run.hero.vz);
@@ -181,9 +181,13 @@ function LevelScene() {
       const store = useArcadeStore.getState();
       const ev = step(run, { moveX, moveY, use: actionPressed, yaw: view.yaw }, dt, store.timeLeftMs ?? 0);
       if (ev.score) store.addScore(ev.score);
-      store.setStat("shelved", run.placed);
-      store.setStat("carrying", run.carried.length);
-      for (const cat of CATEGORIES) store.setStat(`left_${cat}`, leftOf(run, cat));
+      // the HUD only hears about a change (no store write per frame)
+      if (synced.shelved !== run.placed) store.setStat("shelved", (synced.shelved = run.placed));
+      if (synced.carrying !== run.carried.length) store.setStat("carrying", (synced.carrying = run.carried.length));
+      if (ev.right >= 0 || ev.pick >= 0 || ev.wrong || ev.hit || !synced.left) {
+         synced.left = true;
+         for (const cat of CATEGORIES) store.setStat(`left_${cat}`, leftOf(run, cat));
+      }
       const t = nextTarget(run);
       marker[0].hidden = !t;
       if (t) {
@@ -224,7 +228,6 @@ function LevelScene() {
    });
 
    useFrame((_s, delta) => {
-      phase.t += delta;
       const g = body.current;
       if (!g) return;
       gait.visYaw = turnTowards(gait.visYaw, run.hero.yaw, Math.min(1, delta * 12));

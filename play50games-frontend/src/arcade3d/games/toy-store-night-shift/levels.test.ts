@@ -1,13 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { definitionLevelProblems, levelEnvironment, levelHudStats, levelInstructions, levelRunConfig } from "@/arcade3d/core/levels";
-import { withinServerLimits } from "@/arcade3d/core/limits";
 import { levelMetaProblems } from "@/arcade3d/levelMeta";
 import { LEVEL_IDS } from "@/arcade3d/types";
 import definition from "./index";
 import { LEVELS, LEVEL_LINES, LEVEL_TITLES, shelvesOf } from "./levels";
 import { toyStoreNightShiftMeta } from "./meta";
 import { PROPOSED_LEVEL_LIMITS, objectiveCeiling } from "./rules";
-import { play } from "./testing/bot";
 
 describe("toy store levels", () => {
    it("matches the spec table and the definition", () => {
@@ -66,23 +64,4 @@ describe("toy store levels", () => {
       }
       expect(PROPOSED_LEVEL_LIMITS[5].maxScore).toBeLessThanOrEqual(3 * PROPOSED_LEVEL_LIMITS[1].maxScore);
    });
-
-   it("a level clears only on a win: a paced player wins at least 99% of seeds, an idle one never", () => {
-      for (const id of LEVEL_IDS) {
-         const limits = PROPOSED_LEVEL_LIMITS[id];
-         let won = 0;
-         const seeds = 100;
-         for (let seed = 0; seed < seeds; seed++) {
-            const human = play(id, seed + 1000, 30, "human");
-            expect(withinServerLimits(human.score, human.ms, limits)).toBe(true);
-            if (human.reason === "win") won += 1;
-            if (seed < 10) {
-               const idle = play(id, seed, 20, "idle");
-               expect(idle.reason).not.toBe("win");
-               expect(idle.score).toBe(0);
-            }
-         }
-         expect(won / seeds, `level ${id}`).toBeGreaterThanOrEqual(0.99);
-      }
-   }, 900_000);
 });

@@ -10,10 +10,10 @@ const SCORING: ScoringRules = { ...PTS, maxScore: 990, minDurationMs: 4000, maxD
 
 const LEVELS: readonly LevelMeta[] = [
    { id: 1, title: LEVEL_TITLES[1], scoring: SCORING },
-   { id: 2, title: LEVEL_TITLES[2], scoring: { ...PTS, maxScore: 1400, minDurationMs: 4000, maxDurationMs: 150_000, base: 800, maxPointsPerSec: 56 } },
+   { id: 2, title: LEVEL_TITLES[2], scoring: { ...PTS, maxScore: 1405, minDurationMs: 4000, maxDurationMs: 150_000, base: 800, maxPointsPerSec: 57 } },
    { id: 3, title: LEVEL_TITLES[3], scoring: { ...PTS, maxScore: 1715, minDurationMs: 4000, maxDurationMs: 180_000, base: 1000, maxPointsPerSec: 48 } },
    { id: 4, title: LEVEL_TITLES[4], scoring: { ...PTS, maxScore: 2110, minDurationMs: 4000, maxDurationMs: 180_000, base: 1400, maxPointsPerSec: 36 } },
-   { id: 5, title: LEVEL_TITLES[5], scoring: { ...PTS, maxScore: 2605, minDurationMs: 4000, maxDurationMs: 210_000, base: 1800, maxPointsPerSec: 26 } },
+   { id: 5, title: LEVEL_TITLES[5], scoring: { ...PTS, maxScore: 2610, minDurationMs: 4000, maxDurationMs: 210_000, base: 1800, maxPointsPerSec: 28 } },
 ];
 
 export const toyStoreNightShiftMeta: ArcadeGameMeta = {

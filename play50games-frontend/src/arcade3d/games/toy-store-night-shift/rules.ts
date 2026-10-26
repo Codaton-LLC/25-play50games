@@ -42,14 +42,21 @@ export const LOOP_CHAMFER = 0.9;
 /** Toys on a shelf: slots per shelf (the drawing stacks them), spread along its length. */
 export const SLOTS = 4;
 
-/** Sketch limits from the spec. The proof in README retunes these to the oracle. */
+/**
+ * Proven per level (README "Server limits"): the earliest win e is the oracle's fastest over 200 seeds at
+ * 30 / 60 / 144 Hz, t = 0.85 e, pps = ceil(4 (D - t) / t), maxScore = (Bobj + 4 floor(D - t)) x 1.03, rounded up to 5.
+ * The proof tests pin e (`PROOF_EARLIEST_WIN_S`).
+ */
 export const PROPOSED_LEVEL_LIMITS: Record<LevelId, ScoringRules> = {
    1: { kind: "points", maxScore: 990, minDurationMs: 4000, maxDurationMs: 120_000, base: 500, maxPointsPerSec: 93, unitLabel: "pts", display: "int" },
-   2: { kind: "points", maxScore: 1400, minDurationMs: 4000, maxDurationMs: 150_000, base: 800, maxPointsPerSec: 56, unitLabel: "pts", display: "int" },
+   2: { kind: "points", maxScore: 1405, minDurationMs: 4000, maxDurationMs: 150_000, base: 800, maxPointsPerSec: 57, unitLabel: "pts", display: "int" },
    3: { kind: "points", maxScore: 1715, minDurationMs: 4000, maxDurationMs: 180_000, base: 1000, maxPointsPerSec: 48, unitLabel: "pts", display: "int" },
    4: { kind: "points", maxScore: 2110, minDurationMs: 4000, maxDurationMs: 180_000, base: 1400, maxPointsPerSec: 36, unitLabel: "pts", display: "int" },
-   5: { kind: "points", maxScore: 2605, minDurationMs: 4000, maxDurationMs: 210_000, base: 1800, maxPointsPerSec: 26, unitLabel: "pts", display: "int" },
+   5: { kind: "points", maxScore: 2610, minDurationMs: 4000, maxDurationMs: 210_000, base: 1800, maxPointsPerSec: 28, unitLabel: "pts", display: "int" },
 };
+
+/** 0.85 x the fastest oracle win per level (s): no honest run may win earlier (proof tests). */
+export const PROOF_EARLIEST_WIN_S: Record<LevelId, number> = { 1: 4.97, 2: 9.86, 3: 14.05, 4: 18.37, 5: 26.66 };
 
 // ---------- layout ----------
 
