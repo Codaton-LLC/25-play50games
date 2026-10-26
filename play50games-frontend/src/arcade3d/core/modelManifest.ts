@@ -140,6 +140,31 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/treasure-island/beachRocks.glb",
    "/models/3d/penguin-slide/iceArch.glb",
    "/models/3d/mini-golf/golfCastle.glb",
+   // Menu 1 haunted-mansion-keys (2026-10-25): the ready menu1-haunted-mansion-keys GLBs (wallLeverV2,
+   // not wallLever), plus the shared ready furniture; fits measured in
+   // games/haunted-mansion-keys/assets.ts. The detective is auto-rigged.
+   "/models/3d/haunted-mansion-keys/charDetective.glb",
+   "/models/3d/haunted-mansion-keys/skeletonKey.glb",
+   "/models/3d/haunted-mansion-keys/mansionDoor.glb",
+   "/models/3d/haunted-mansion-keys/wallLeverV2.glb",
+   "/models/3d/haunted-mansion-keys/grandfatherClock.glb",
+   "/models/3d/haunted-mansion-keys/paintingFrame.glb",
+   "/models/3d/haunted-mansion-keys/armourStand.glb",
+   "/models/3d/shared/woodenChair.glb",
+   "/models/3d/shared/table.glb",
+   "/models/3d/shared/bookshelf.glb",
+   // Menu 1 beach-lifeguard (2026-10-25): the ready menu1-beach-lifeguard GLBs, copied as optimized.
+   // No surfboard (surfboard / surfboardV2 / surfboardLong are a disc, broken or square) and no alertBuoy
+   // (the alert stays the spec's code torus); fits in games/beach-lifeguard/assets.ts
+   "/models/3d/beach-lifeguard/charLifeguard.glb",
+   "/models/3d/beach-lifeguard/lifeguardTower.glb",
+   "/models/3d/beach-lifeguard/rescueFloat.glb",
+   "/models/3d/beach-lifeguard/beachChair.glb",
+   "/models/3d/beach-lifeguard/beachCooler.glb",
+   "/models/3d/beach-lifeguard/beachgoerNpc.glb",
+   "/models/3d/beach-lifeguard/beachHut.glb",
+   "/models/3d/beach-lifeguard/sandcastle.glb",
+   "/models/3d/beach-lifeguard/rescueJetSki.glb",
    // Menu 1 pizza-kitchen-3d (2026-10-25): the ready menu1-pizza-kitchen-3d GLBs (mushroomBowlR, prepCounterR,
    // pizzaPeelClean, pizzaBoxClosed; not mushroomBowl / prepCounter / pizzaPeel / pizzaBox / pizzaBoxV2),
    // copied as optimized; fits measured in games/pizza-kitchen-3d/assets.ts
@@ -205,6 +230,28 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/magic-carpet-ride/floatingPalaceR.glb",
    "/models/3d/magic-carpet-ride/floatingRockV3.glb",
    "/models/3d/magic-carpet-ride/star.glb",
+   // Menu 1 jungle-bridge-run (2026-10-25): the ready menu1-jungle-bridge-run GLBs (templePillarV2 and
+   // ruinGateR, not the V1s; jungleLogSingle, jungleFern and volcanoBackdrop from the still-needed list are
+   // in the ready folder now), copied as optimized; fits in games/jungle-bridge-run/assets.ts. The explorer
+   // is a static T-pose for the core auto-rig. jungleLog (two logs) and junglePlant (potted) are not used.
+   "/models/3d/jungle-bridge-run/charExplorer.glb",
+   "/models/3d/jungle-bridge-run/woodenBridge.glb",
+   "/models/3d/jungle-bridge-run/ropeBridge.glb",
+   "/models/3d/jungle-bridge-run/jungleRock.glb",
+   "/models/3d/jungle-bridge-run/templePillarV2.glb",
+   "/models/3d/jungle-bridge-run/waterfallCliff.glb",
+   "/models/3d/jungle-bridge-run/ruinGateR.glb",
+   "/models/3d/jungle-bridge-run/jungleLogSingle.glb",
+   "/models/3d/jungle-bridge-run/jungleFern.glb",
+   "/models/3d/jungle-bridge-run/volcanoBackdrop.glb",
+   "/models/3d/jungle-bridge-run/hangingVine.glb",
+   // Menu 1 taxi-rush-3d (2026-10-25): the ready menu1-taxi-rush-3d GLBs and the shared traffic light and
+   // cone, copied as optimized; fits measured in games/taxi-rush-3d/assets.ts.
+   "/models/3d/taxi-rush-3d/taxiCab.glb",
+   "/models/3d/taxi-rush-3d/townhouseBlock.glb",
+   "/models/3d/taxi-rush-3d/cornerShop.glb",
+   "/models/3d/taxi-rush-3d/busStop.glb",
+   "/models/3d/shared/trafficLight.glb",
 ];
 
 const LISTED: ReadonlySet<string> = new Set(MODEL_MANIFEST);

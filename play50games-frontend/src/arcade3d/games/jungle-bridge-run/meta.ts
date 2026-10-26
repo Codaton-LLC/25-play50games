@@ -1,8 +1,21 @@
-import type { ArcadeGameMeta } from "@/arcade3d/types";
+import type { ArcadeGameMeta, LevelMeta, ScoringRules } from "@/arcade3d/types";
+import { LEVEL_TITLES } from "./levels";
+import { PROPOSED_LEVEL_LIMITS } from "./rules";
 
 // Plain data only (server-safe). scoring must match WP includes/arcade-games.json.
-// Stub (Menu 1 game 46, docs/menu1-new/specs-41-50.md): placeholder limits; the build replaces them
-// with the proven per-level limits (PROPOSED_LEVEL_LIMITS) and adds meta.levels.
+// Numbers match rules.ts PROPOSED_LEVEL_LIMITS (levels.test.ts).
+const PTS = { kind: "points", unitLabel: "pts", display: "int" } as const;
+
+const SCORING: ScoringRules = PROPOSED_LEVEL_LIMITS[1];
+
+const LEVELS: readonly LevelMeta[] = [
+   { id: 1, title: LEVEL_TITLES[1], scoring: PROPOSED_LEVEL_LIMITS[1] },
+   { id: 2, title: LEVEL_TITLES[2], scoring: PROPOSED_LEVEL_LIMITS[2] },
+   { id: 3, title: LEVEL_TITLES[3], scoring: PROPOSED_LEVEL_LIMITS[3] },
+   { id: 4, title: LEVEL_TITLES[4], scoring: PROPOSED_LEVEL_LIMITS[4] },
+   { id: 5, title: LEVEL_TITLES[5], scoring: PROPOSED_LEVEL_LIMITS[5] },
+];
+
 export const jungleBridgeRunMeta: ArcadeGameMeta = {
    slug: "jungle-bridge-run",
    title: "Jungle Bridge Run",
@@ -18,16 +31,8 @@ export const jungleBridgeRunMeta: ArcadeGameMeta = {
       keyboard: "A / D or arrows to switch lanes, Space or W to jump, S to slide",
       touch: "Swipe to switch lanes, jump and slide",
    },
-   scoring: {
-      kind: "points",
-      maxScore: 3000,
-      minDurationMs: 10_000,
-      maxDurationMs: 300_000,
-      base: 3000,
-      maxPointsPerSec: 3000,
-      unitLabel: "pts",
-      display: "int",
-   },
+   scoring: SCORING,
+   levels: LEVELS,
    thumbnail: null,
    accent: "#22c55e",
    owner: "antigravity",

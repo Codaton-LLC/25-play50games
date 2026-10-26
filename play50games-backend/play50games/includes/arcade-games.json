@@ -587,12 +587,19 @@
     "taxi-rush-3d": {
       "title": "Taxi Rush 3D",
       "kind": "points",
-      "max_score": 3000,
-      "min_duration_ms": 10000,
-      "max_duration_ms": 300000,
-      "base": 3000,
-      "max_pps": 3000,
-      "enabled": false
+      "max_score": 1075,
+      "min_duration_ms": 4000,
+      "max_duration_ms": 120000,
+      "base": 600,
+      "max_pps": 15,
+      "enabled": false,
+      "levels": [
+        { "title": "Quiet Neighborhood", "max_score": 1075, "min_duration_ms": 4000, "max_duration_ms": 120000, "base": 600, "max_pps": 15 },
+        { "title": "Downtown", "max_score": 1390, "min_duration_ms": 4000, "max_duration_ms": 150000, "base": 800, "max_pps": 15 },
+        { "title": "Shopping District", "max_score": 1655, "min_duration_ms": 4000, "max_duration_ms": 180000, "base": 1000, "max_pps": 11 },
+        { "title": "Night City", "max_score": 1950, "min_duration_ms": 4000, "max_duration_ms": 210000, "base": 1200, "max_pps": 10 },
+        { "title": "Rush Hour", "max_score": 2400, "min_duration_ms": 4000, "max_duration_ms": 250000, "base": 1600, "max_pps": 8 }
+      ]
     },
     "burger-delivery-scooter": {
       "title": "Burger Delivery Scooter",
@@ -614,12 +621,19 @@
     "beach-lifeguard": {
       "title": "Beach Lifeguard",
       "kind": "points",
-      "max_score": 3000,
-      "min_duration_ms": 10000,
-      "max_duration_ms": 300000,
-      "base": 3000,
-      "max_pps": 3000,
-      "enabled": false
+      "max_score": 1110,
+      "min_duration_ms": 4000,
+      "max_duration_ms": 120000,
+      "base": 500,
+      "max_pps": 107,
+      "enabled": false,
+      "levels": [
+        { "title": "Small Beach", "max_score": 1110, "min_duration_ms": 4000, "max_duration_ms": 120000, "base": 500, "max_pps": 107 },
+        { "title": "Busy Beach", "max_score": 1490, "min_duration_ms": 4000, "max_duration_ms": 150000, "base": 750, "max_pps": 64 },
+        { "title": "Resort", "max_score": 1860, "min_duration_ms": 4000, "max_duration_ms": 180000, "base": 1000, "max_pps": 46 },
+        { "title": "Waterpark", "max_score": 2130, "min_duration_ms": 4000, "max_duration_ms": 180000, "base": 1250, "max_pps": 50 },
+        { "title": "Stormy Beach", "max_score": 2510, "min_duration_ms": 4000, "max_duration_ms": 210000, "base": 1500, "max_pps": 44 }
+      ]
     },
     "farm-tractor-challenge": {
       "title": "Farm Tractor Challenge",
@@ -671,11 +685,18 @@
     "haunted-mansion-keys": {
       "title": "Haunted Mansion Keys",
       "kind": "time",
-      "max_score": 29200,
-      "min_duration_ms": 8000,
-      "max_duration_ms": 300000,
-      "time_base_ms": 300000,
-      "enabled": false
+      "max_score": 17860,
+      "min_duration_ms": 1400,
+      "max_duration_ms": 180000,
+      "time_base_ms": 180000,
+      "enabled": false,
+      "levels": [
+        { "title": "Entrance Hall", "max_score": 17860, "min_duration_ms": 1400, "max_duration_ms": 180000, "time_base_ms": 180000 },
+        { "title": "Library", "max_score": 20590, "min_duration_ms": 4100, "max_duration_ms": 210000, "time_base_ms": 210000 },
+        { "title": "Bedrooms", "max_score": 23700, "min_duration_ms": 3000, "max_duration_ms": 240000, "time_base_ms": 240000 },
+        { "title": "Basement", "max_score": 23500, "min_duration_ms": 5000, "max_duration_ms": 240000, "time_base_ms": 240000 },
+        { "title": "Grand Mansion Escape", "max_score": 29320, "min_duration_ms": 6800, "max_duration_ms": 300000, "time_base_ms": 300000 }
+      ]
     },
     "bee-garden": {
       "title": "Bee Garden",
@@ -754,12 +775,19 @@
     "jungle-bridge-run": {
       "title": "Jungle Bridge Run",
       "kind": "points",
-      "max_score": 3000,
-      "min_duration_ms": 10000,
-      "max_duration_ms": 300000,
-      "base": 3000,
-      "max_pps": 3000,
-      "enabled": false
+      "max_score": 880,
+      "min_duration_ms": 5500,
+      "max_duration_ms": 75000,
+      "base": 480,
+      "max_pps": 30,
+      "enabled": false,
+      "levels": [
+        { "title": "Jungle Path", "max_score": 880, "min_duration_ms": 5500, "max_duration_ms": 75000, "base": 480, "max_pps": 30 },
+        { "title": "Rope Bridges", "max_score": 1260, "min_duration_ms": 5200, "max_duration_ms": 90000, "base": 800, "max_pps": 23 },
+        { "title": "Waterfall", "max_score": 1680, "min_duration_ms": 4900, "max_duration_ms": 110000, "base": 1120, "max_pps": 22 },
+        { "title": "Ancient Temple", "max_score": 2050, "min_duration_ms": 3300, "max_duration_ms": 120000, "base": 1440, "max_pps": 20 },
+        { "title": "Volcano Jungle", "max_score": 2505, "min_duration_ms": 3200, "max_duration_ms": 120000, "base": 1920, "max_pps": 15 }
+      ]
     },
     "magic-carpet-ride": {
       "title": "Magic Carpet Ride",
