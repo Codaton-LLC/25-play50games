@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { fitView } from "@/arcade3d/core/view";
 import { LEVEL_IDS } from "@/arcade3d/types";
 import { LEVELS } from "./levels";
-import { WINDOW, coralSpots, fog, schoolsOf, viewFor } from "./looks";
+import { HALL, WINDOW, coralSpots, fog, hallSpots, schoolsOf, viewFor } from "./looks";
 import { createRun } from "./rules";
 
 // a phone in portrait with the HUD and the touch controls lifted by the cookie banner, a desktop with the HUD
@@ -47,6 +47,28 @@ describe("aquarium-cleaner decor never stands between the camera and the diver",
                expect(s.cz + s.rz).toBeLessThan(0);
             }
          }
+      });
+   }
+});
+
+describe("aquarium-cleaner hall round the tank", () => {
+   for (const id of LEVEL_IDS) {
+      it(`L${id}: the hall floor reaches past the fog, the plinth stays outside the glass, the front lip never hides the diver, the wall stands behind`, () => {
+         const level = LEVELS[id];
+         const [, , far] = fog(level);
+         expect(HALL.reach).toBeGreaterThan(far);
+         const spots = hallSpots(level);
+         const hx = level.width / 2;
+         const hz = level.depth / 2;
+         for (const s of spots) {
+            // nothing of the hall stands inside the tank
+            const inside = Math.abs(s.x) + (s.sx ?? 1) / 2 <= hx && Math.abs(s.z) + (s.sz ?? 1) / 2 <= hz;
+            expect(inside).toBe(false);
+            // on the camera side (z > hz) only the low lip
+            if (s.z > hz) expect((s.sy ?? 1)).toBeLessThanOrEqual(0.2);
+         }
+         const wall = spots.find((s) => (s.sy ?? 0) > 1)!;
+         expect(wall.z + (wall.sz ?? 0) / 2).toBeLessThan(-hz - 5);
       });
    }
 });

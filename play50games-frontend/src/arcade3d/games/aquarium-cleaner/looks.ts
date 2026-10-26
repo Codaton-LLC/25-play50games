@@ -108,18 +108,38 @@ export function viewFor(id: LevelId): FittedViewOptions {
    return view;
 }
 
-/** Sand tiles: a faint grid of slightly darker slabs, one instanced box. UNIT size, scaled by the spot. */
-export function tileSpots(level: AquariumLevel): InstanceSpot[] {
+/** The sand texture covers this many metres before it repeats. */
+export const SAND_TILE_M = 4;
+
+/** The aquarium hall round the tank: how far its floor reaches, its tile size, the plinth and the back wall. */
+export const HALL = { reach: 150, tile: 2, plinthH: 0.45, frontH: 0.15, plinthW: 0.6, wallGap: 9, wallH: 5 } as const;
+
+/** Per-level tint multiplied into the sand texture (night and the tunnel read darker and cooler). */
+export function sandTint(level: AquariumLevel): string {
+   return level.lighting === "night" ? "#9fb6c8" : level.lighting === "indoor" ? "#d9e6de" : "#ffffff";
+}
+
+/** The faint colour under the water surface. */
+export function waterTint(level: AquariumLevel): string {
+   return level.lighting === "night" ? "#1e3a8a" : "#0891b2";
+}
+
+/**
+ * The hall pieces round the tank, UNIT boxes scaled by the spot: a plinth under the back and side glass,
+ * a lower lip along the open front (so it never hides the diver's feet from the camera), and a dim back
+ * wall well behind the tank (the camera looks north, so it is only ever a backdrop).
+ */
+export function hallSpots(level: AquariumLevel): InstanceSpot[] {
    const { hx, hz } = tankHalf(level);
-   const spots: InstanceSpot[] = [];
-   const step = 4;
-   for (let x = -hx + step / 2; x < hx; x += step) {
-      for (let z = -hz + step / 2; z < hz; z += step) {
-         if (((Math.round((x + hx) / step) + Math.round((z + hz) / step)) & 1) === 0) continue;
-         spots.push({ x, y: 0.004, z, sx: step, sy: 0.008, sz: step });
-      }
-   }
-   return spots;
+   const w = HALL.plinthW;
+   const h = HALL.plinthH;
+   return [
+      { x: 0, y: h / 2, z: -hz - w / 2, sx: level.width + 2 * w, sy: h, sz: w },
+      { x: -hx - w / 2, y: h / 2, z: 0, sx: w, sy: h, sz: level.depth },
+      { x: hx + w / 2, y: h / 2, z: 0, sx: w, sy: h, sz: level.depth },
+      { x: 0, y: HALL.frontH / 2, z: hz + w / 2, sx: level.width + 2 * w, sy: HALL.frontH, sz: w },
+      { x: 0, y: HALL.wallH / 2, z: -hz - HALL.wallGap, sx: level.width + 2 * HALL.reach, sy: HALL.wallH, sz: 0.5 },
+   ];
 }
 
 /** The glass frame: top rail and corner posts of the three glass sides, thin emissive boxes. UNIT size. */

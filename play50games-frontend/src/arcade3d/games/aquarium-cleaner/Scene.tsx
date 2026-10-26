@@ -28,8 +28,9 @@ import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { ASSETS, DIVER_LANDMARKS, DIVER_SCALE } from "./assets";
 import type { AquariumLevel } from "./levels";
 import {
-   COLORS, DAMPING, FOLLOW, FOV, GLASS_H, LOOK_AHEAD, coralSpots, frameSpots, lookAtFor, schoolsOf, aimBounds, tileSpots, viewFor,
+   COLORS, DAMPING, FOLLOW, FOV, GLASS_H, LOOK_AHEAD, coralSpots, frameSpots, lookAtFor, schoolsOf, aimBounds, viewFor,
 } from "./looks";
+import { TankSurroundings } from "./Tank";
 import { BasketStand, CastleStand, DiverFigure, FilterStand, bottleParts, coralParts, fishParts, rockParts, sharkParts } from "./Primitives";
 import {
    ALGAE_HOLD_S, COLUMN_R, FLOAT_H, HATCH_R, MAX_SPEED, createRun, nextTarget, step, type Run,
@@ -207,7 +208,6 @@ function LevelScene() {
    const bubbleAt = useRef(0);
    const bounds = useMemo(() => aimBounds(config), [config]);
    const look = useMemo(() => lookAtFor(config), [config]);
-   const tiles = useMemo(() => tileSpots(config), [config]);
    const corals = useMemo(() => coralSpots(run, 5).slice(0, Math.max(2, scaledCount(5, quality.decor))), [run, quality.decor]);
    const schools = useMemo(() => schoolsOf(run), [run]);
    const fishCount = schools.reduce((n, s) => n + s.count, 0);
@@ -385,14 +385,7 @@ function LevelScene() {
             shift={view.shift}
             damping={DAMPING}
          />
-         <mesh rotation-x={-Math.PI / 2} position={[0, 0, 0]}>
-            <planeGeometry args={[config.width + 300, config.depth + 300]} />
-            <meshStandardMaterial color={COLORS.sand} emissive="#0c4a6e" emissiveIntensity={config.lighting === "night" ? 0.7 : 0} roughness={0.95} />
-         </mesh>
-         <Instanced spots={tiles} name="sand-tiles">
-            <boxGeometry args={[1, 1, 1]} />
-            <meshStandardMaterial color={COLORS.sandDark} emissive="#0e7490" emissiveIntensity={config.lighting === "night" ? 1.0 : 0} roughness={0.95} />
-         </Instanced>
+         <TankSurroundings level={config} />
          <Glass run={run} />
          <AlgaePatches run={run} />
          <Column run={run} />
