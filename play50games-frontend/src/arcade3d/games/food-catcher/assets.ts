@@ -24,7 +24,27 @@ const prop = (id: string, fallbackColor: string, glbHeight: number): ModelAsset 
 });
 
 
+// Two ranges flank the 9.4-wide counter, facing the side-on camera (+z).
+export const KITCHEN_RANGE_SPOTS: readonly [number, number, number][] = [
+   [-5.35, 0, 0.1],
+   [5.35, 0, 0.1],
+];
+
+export const kitchenRangeSpots = (level: number) => level === 4 || level === 5 ? KITCHEN_RANGE_SPOTS : [];
+
 export const ASSETS = {
+   kitchenRangeOven: {
+      id: "kitchenRangeOven",
+      url: "/models/3d/food-catcher/kitchenRangeOven.glb",
+      fallback: "box",
+      fallbackColor: "#64748b",
+      // Measured root bounds: 1.727175 x 1.903701 x 0.963655; min.y = 0.
+      // Fit to 1.2 m tall (1.089 wide, 0.607 deep), with the base on y = 0.
+      scale: 1.2 / 1.9037013053894043,
+      rotationY: 0,
+      yOffset: 0,
+      budget: { ...PROP_BUDGET },
+   },
    chef: {
       id: "chef",
       url: "/models/3d/food-catcher/chef.glb",

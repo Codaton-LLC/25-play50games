@@ -23,7 +23,7 @@ import { HumanoidModel, createPose, useHumanoidPose } from "@/arcade3d/core/rig"
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useFittedView, type FittedViewOptions } from "@/arcade3d/core/useFittedView";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
-import { ASSETS } from "./assets";
+import { ASSETS, kitchenRangeSpots } from "./assets";
 import type { FoodCatcherLevel } from "./levels";
 import { chefPose, chefRootRoll, createChefGait, stepChefGait } from "./poses";
 import {
@@ -296,7 +296,7 @@ function FittedCamera() {
 }
 
 function LevelScene() {
-   const { config } = useFoodCatcherLevel();
+   const { id, config } = useFoodCatcherLevel();
    const [run] = useState<ViewRun>(() => Object.assign(createRun(randomSeed(), config), { flashAt: -10, flashX: 0 }));
    const scratch = useMemo<Scratch>(
       () => ({ ray: new Raycaster(), ndc: new Vector2(), input: { targetX: null, dir: 0 } }),
@@ -309,6 +309,11 @@ function LevelScene() {
          <Simulation run={run} scratch={scratch} />
          <FittedCamera />
          <Kitchen />
+         {kitchenRangeSpots(id).map((position, index) => (
+            <group key={index} position={position} name={`kitchen-range-${index}`}>
+               <Model asset={ASSETS.kitchenRangeOven} fallback={null} />
+            </group>
+         ))}
          <Chef run={run} />
          {slots.map((index) => (
             <FallingItem key={index} index={index} run={run} />
