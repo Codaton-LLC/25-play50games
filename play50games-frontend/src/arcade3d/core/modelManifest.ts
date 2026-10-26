@@ -285,6 +285,18 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/wizard-potion-lab/candle.glb",
    "/models/3d/wizard-potion-lab/crystalBall.glb",
    "/models/3d/wizard-potion-lab/bookshelfFull.glb",
+   // magic-carpet-ride (gate, 2026-10-25): menu1 ready set, optimized
+   "/models/3d/magic-carpet-ride/charCarpetRider.glb",
+   "/models/3d/magic-carpet-ride/magicCarpet.glb",
+   "/models/3d/magic-carpet-ride/flyingRing.glb",
+   "/models/3d/magic-carpet-ride/palaceTower.glb",
+   "/models/3d/magic-carpet-ride/desertRooftopV2.glb",
+   "/models/3d/magic-carpet-ride/cloud.glb",
+   "/models/3d/magic-carpet-ride/hangingLantern.glb",
+   "/models/3d/magic-carpet-ride/canyonMesa.glb",
+   "/models/3d/magic-carpet-ride/floatingPalaceR.glb",
+   "/models/3d/magic-carpet-ride/floatingRockV3.glb",
+   "/models/3d/magic-carpet-ride/star.glb",
    // Menu 1 jungle-bridge-run (2026-10-25): the ready menu1-jungle-bridge-run GLBs (templePillarV2 and
    // ruinGateR, not the V1s; jungleLogSingle, jungleFern and volcanoBackdrop from the still-needed list are
    // in the ready folder now), copied as optimized; fits in games/jungle-bridge-run/assets.ts. The explorer
