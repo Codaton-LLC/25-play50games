@@ -871,6 +871,22 @@
         { "title": "Fast Lava", "max_score": 16940, "min_duration_ms": 10600, "max_duration_ms": 180000, "time_base_ms": 180000 },
         { "title": "Volcano Core", "max_score": 19840, "min_duration_ms": 11600, "max_duration_ms": 210000, "time_base_ms": 210000 }
       ]
+    },
+    "temple-lantern-jump": {
+      "title": "Temple Lantern Jump",
+      "kind": "time",
+      "max_score": 8730,
+      "min_duration_ms": 2700,
+      "max_duration_ms": 90000,
+      "time_base_ms": 90000,
+      "enabled": false,
+      "levels": [
+        { "title": "Temple Gate", "max_score": 8730, "min_duration_ms": 2700, "max_duration_ms": 90000, "time_base_ms": 90000 },
+        { "title": "Lantern Hall", "max_score": 11530, "min_duration_ms": 4700, "max_duration_ms": 120000, "time_base_ms": 120000 },
+        { "title": "Balcony Climb", "max_score": 14560, "min_duration_ms": 4400, "max_duration_ms": 150000, "time_base_ms": 150000 },
+        { "title": "Night Temple", "max_score": 17590, "min_duration_ms": 4100, "max_duration_ms": 180000, "time_base_ms": 180000 },
+        { "title": "Golden Roof", "max_score": 23490, "min_duration_ms": 5100, "max_duration_ms": 240000, "time_base_ms": 240000 }
+      ]
     }
   }
 }

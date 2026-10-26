@@ -17,8 +17,8 @@ const wp = JSON.parse(fs.readFileSync(WP_JSON, "utf8")) as {
 describe("arcade registry", () => {
    it("has every slug exactly once, in order", () => {
       expect(ARCADE_GAMES.map((g) => g.slug)).toEqual([...ARCADE_SLUGS]);
-      // order 53 is left for flooded-ruins-escape (another branch); lava-pillar-jump is 54
-      expect(ARCADE_GAMES.map((g) => g.order)).toEqual(ARCADE_SLUGS.map((slug, i) => (slug === "lava-pillar-jump" ? 54 : i + 1)));
+      // order 53 is left for flooded-ruins-escape (another branch); lava-pillar-jump is 54, and 55 is left for cloud-hopper (another branch): temple-lantern-jump is 56
+      expect(ARCADE_GAMES.map((g) => g.order)).toEqual(ARCADE_SLUGS.map((slug, i) => (slug === "lava-pillar-jump" ? 54 : slug === "temple-lantern-jump" ? 56 : i + 1)));
    });
 
    it("WordPress arcade-games.json has the same games", () => {

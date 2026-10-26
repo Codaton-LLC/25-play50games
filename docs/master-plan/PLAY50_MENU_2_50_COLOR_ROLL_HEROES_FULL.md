@@ -675,6 +675,8 @@ Stylized fantasy temple lantern, warm glowing paper lantern in a dark wooden fra
 
 ### Level 1 — Temple Gate
 
+> **Course (implemented):** a courtyard of 10 balconies with 3 lantern bounce pads (each throws the hero 5.2 m up across the courtyard); goal at 24 m; wide and still.
+
 - **Difficulty:** Tutorial / Easy
 - **Environment / visual:** **Temple Gate** using the same art direction as Temple Lantern Jump; color-coded gameplay elements must be readable at a glance.
 - **Map size:** Compact
@@ -693,6 +695,8 @@ Stylized fantasy temple lantern, warm glowing paper lantern in a dark wooden fra
 - **Replay goal:** Beat personal best time/height/score and improve collectible or combo performance.
 
 ### Level 2 — Lantern Hall
+
+> **Course (implemented):** 14 balconies, 4 lanterns to 34 m, a swinging deck.
 
 - **Difficulty:** Easy
 - **Environment / visual:** **Lantern Hall** using the same art direction as Temple Lantern Jump; color-coded gameplay elements must be readable at a glance.
@@ -713,6 +717,8 @@ Stylized fantasy temple lantern, warm glowing paper lantern in a dark wooden fra
 
 ### Level 3 — Balcony Climb
 
+> **Course (implemented):** 18 balconies, 6 lanterns to 44 m, swinging decks, paper floors that tear away, polished wood.
+
 - **Difficulty:** Medium
 - **Environment / visual:** **Balcony Climb** using the same art direction as Temple Lantern Jump; color-coded gameplay elements must be readable at a glance.
 - **Map size:** Medium
@@ -732,6 +738,8 @@ Stylized fantasy temple lantern, warm glowing paper lantern in a dark wooden fra
 
 ### Level 4 — Night Temple
 
+> **Course (implemented):** 22 balconies, 7 lanterns to 54 m, night, bells that strike the rims.
+
 - **Difficulty:** Hard
 - **Environment / visual:** **Night Temple** using the same art direction as Temple Lantern Jump; color-coded gameplay elements must be readable at a glance.
 - **Map size:** Large
@@ -750,6 +758,8 @@ Stylized fantasy temple lantern, warm glowing paper lantern in a dark wooden fra
 - **Replay goal:** Beat personal best time/height/score and improve collectible or combo performance.
 
 ### Level 5 — Golden Roof
+
+> **Course (implemented):** 28 balconies, 9 lanterns to 68 m, every hazard and the hill wind; best-time climb on a 240 s clock.
 
 - **Difficulty:** Challenge
 - **Environment / visual:** **Golden Roof** using the same art direction as Temple Lantern Jump; color-coded gameplay elements must be readable at a glance.

@@ -171,6 +171,16 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/lava-pillar-jump/m2LavaRock.glb",
    "/models/3d/lava-pillar-jump/m2MagmaSlug.glb",
    "/models/3d/lava-pillar-jump/m2VolcanoBg.glb",
+   // Menu 2 game 06 (Temple Lantern Jump): hillside temple props from ~/.play50/hyper3d/ready/menu2/temple-lantern-jump
+   "/models/3d/temple-lantern-jump/m2LanternDeck.glb",
+   "/models/3d/temple-lantern-jump/m2RuinRoofSection.glb",
+   "/models/3d/temple-lantern-jump/m2StoneBrazier.glb",
+   "/models/3d/temple-lantern-jump/m2TempleBeam.glb",
+   "/models/3d/temple-lantern-jump/m2TempleLantern.glb",
+   "/models/3d/temple-lantern-jump/m2TempleLedge.glb",
+   "/models/3d/temple-lantern-jump/m2TempleTowerBg.glb",
+   "/models/3d/temple-lantern-jump/m2WoodenBalcony.glb",
+   "/models/3d/temple-lantern-jump/m2WoodenBalconyV2.glb",
    // P-121 dev adoptions (2026-10-25): V2 replacements and Group D variety whose QA verdict
    // starts with OK. Optimized GLBs copied in; not re-optimized. Live games are untouched.
    "/models/3d/shopping-cart/supermarketShelfV2.glb",

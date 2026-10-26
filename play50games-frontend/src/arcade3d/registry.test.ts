@@ -19,7 +19,7 @@ const GONE_LIVE = ["museum-guard", "knight-arena", "castle-defender"];
 const MENU1_NEW = ARCADE_SLUGS.slice(30, 50);
 
 /** Menu 2 (Color Roll Heroes): the vertical slice so far, after the 50 Menu 1 games, hidden ("dev") until the user signs off. */
-const MENU2 = ["sky-tower-jump", "rooftop-roll-climb", "flooded-ruins-escape", "lava-pillar-jump"];
+const MENU2 = ["sky-tower-jump", "rooftop-roll-climb", "flooded-ruins-escape", "lava-pillar-jump", "temple-lantern-jump"];
 
 describe("registry for 50 Menu 1 games plus Menu 2", () => {
    it("has 50 Menu 1 slugs plus the Menu 2 ones, each with one meta, a unique order and a loader", () => {
@@ -74,12 +74,12 @@ describe("Menu 2", () => {
    it("keeps its games last, in dev, in the rollheroes collection", () => {
       const menu2 = ARCADE_GAMES.slice(50);
       expect(menu2.map((g) => g.slug)).toEqual(MENU2);
-      expect(menu2.map((g) => g.order)).toEqual([51, 52, 53, 54]);
-      expect(menu2.map((g) => g.owner)).toEqual(["claude", "cursor", "cursor", "cursor"]);
+      expect(menu2.map((g) => g.order)).toEqual([51, 52, 53, 54, 56]);
+      expect(menu2.map((g) => g.owner)).toEqual(["claude", "cursor", "cursor", "cursor", "claude"]);
       for (const g of menu2) {
          expect(g.status).toBe("dev");
          expect(g.collection).toBe("rollheroes");
-         expect(g.owner).toBe(g.slug === "sky-tower-jump" ? "claude" : "cursor");
+         expect(g.owner).toBe(g.slug === "sky-tower-jump" || g.slug === "temple-lantern-jump" ? "claude" : "cursor");
          expect(isGameVisible(g, false)).toBe(false);
          expect(isGameVisible(g, true)).toBe(true);
       }
