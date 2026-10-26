@@ -218,6 +218,23 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/hotel-bellboy-rush/lobbyPlanterR.glb",
    "/models/3d/shared/sofa.glb",
    "/models/3d/shared/travellerNpc.glb",
+   // postman-3d (2026-10-26): the ready menu1-postman-3d set (holidayTree included, now ready), copied as
+   // optimized; the postman is a static T-pose for the core auto-rig. trafficLight is the
+   // shared ready set, the dog is menu1-dog-park-fetch's (shared with dog-park-fetch).
+   "/models/3d/postman-3d/charPostman.glb",
+   "/models/3d/postman-3d/letter.glb",
+   "/models/3d/postman-3d/mailbag.glb",
+   "/models/3d/postman-3d/mailbox.glb",
+   "/models/3d/postman-3d/houseA.glb",
+   "/models/3d/postman-3d/houseB.glb",
+   "/models/3d/postman-3d/houseC.glb",
+   "/models/3d/postman-3d/postOffice.glb",
+   "/models/3d/postman-3d/postVan.glb",
+   "/models/3d/postman-3d/streetLampVictorian.glb",
+   "/models/3d/postman-3d/bicycle.glb",
+   "/models/3d/postman-3d/holidayTree.glb",
+   "/models/3d/shared/trafficLight.glb",
+   "/models/3d/shared/dog.glb",
    // aquarium-cleaner (2026-10-25): menu1 ready set + shared coralI, optimized, character 18k tris
    "/models/3d/aquarium-cleaner/charDiver.glb",
    "/models/3d/aquarium-cleaner/aquariumScrubber.glb",
@@ -318,7 +335,6 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/taxi-rush-3d/townhouseBlock.glb",
    "/models/3d/taxi-rush-3d/cornerShop.glb",
    "/models/3d/taxi-rush-3d/busStop.glb",
-   "/models/3d/shared/trafficLight.glb",
 ];
 
 const LISTED: ReadonlySet<string> = new Set(MODEL_MANIFEST);
