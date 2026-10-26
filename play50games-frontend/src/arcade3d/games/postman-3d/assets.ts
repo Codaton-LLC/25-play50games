@@ -46,7 +46,7 @@ export const FIT = {
    officeHeight: 3.4,
    vanLength: 4.0,
    lampHeight: 3.0,
-   fenceLength: 2.6,
+   fenceLength: 1.6,
    fenceHeight: 0.6,
    trafficLightHeight: 2.6,
    dogLength: 0.9,
