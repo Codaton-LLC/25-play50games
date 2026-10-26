@@ -2,7 +2,8 @@ import { describe, expect, it } from "vitest";
 import { LEVEL_IDS } from "@/arcade3d/types";
 import { LEVELS } from "./levels";
 import { fitView } from "@/arcade3d/core/view";
-import { BACK, FOG, FOV, WALL_H, WINDOW, aimBounds, decorOf, fog, signBaseSpots, signSpots, slotSpot, viewFor, wallSpots, windowBox } from "./looks";
+import { ASSETS } from "./assets";
+import { BACK, FOG, FOV, ROW_TRIMS, WALL_H, WINDOW, aimBounds, shelfTrimSpots, decorOf, fog, signBaseSpots, signSpots, slotSpot, viewFor, wallSpots, windowBox } from "./looks";
 import { SHELF_H, createRun, standable } from "./rules";
 
 describe("toy store looks", () => {
@@ -72,5 +73,22 @@ describe("toy store looks", () => {
          // the back and the left walls stay full height
          expect(walls.filter((w) => (w.sy ?? 1) === WALL_H).length).toBe(2);
       }
+   });
+});
+
+describe("toy store painted shelves", () => {
+   it("every shelf gets a trim band front and back and a kick plate front and back, in its row's colour; the shelf GLB is painted cream", () => {
+      for (const id of LEVEL_IDS) {
+         const run = createRun(2, LEVELS[id]);
+         const groups = shelfTrimSpots(run);
+         expect(groups.reduce((n, g) => n + g.spots.length, 0)).toBe(run.shelves.length * 4);
+         for (const s of run.shelves) {
+            const g = groups[s.row % ROW_TRIMS.length];
+            expect(g.color).toBe(ROW_TRIMS[s.row % ROW_TRIMS.length]);
+            expect(g.spots.filter((p) => p.x === s.x && Math.abs(p.z - s.z) < 1).length).toBe(4);
+         }
+         for (const g of groups) for (const p of g.spots) expect(p.scale).toBeUndefined();
+      }
+      expect(ASSETS.shelf.material).toEqual({ color: "#fdf6ec", roughness: 0.6 });
    });
 });

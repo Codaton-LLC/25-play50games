@@ -30,7 +30,7 @@ import { ASSETS, GUARD_LANDMARKS, GUARD_SCALE, TOY_ASSETS } from "./assets";
 import { SIGN_ATLAS_W, SIGN_CELL, drawSigns } from "./glyphs";
 import { CATEGORIES, type Category, type ToyLevel } from "./levels";
 import {
-   COLORS, DAMPING, FOLLOW, FOV, LOOK_AHEAD, TORCH, aimBounds, decorOf, lookAtFor, signBaseSpots, signSpots, slotSpot, tileSpots, viewFor, wallSpots,
+   BACK, COLORS, DAMPING, FOLLOW, FOV, TORCH, aimBounds, aimFor, shelfTrimSpots, decorOf, lookAtFor, signBaseSpots, signSpots, slotSpot, tileSpots, viewFor, wallSpots,
 } from "./looks";
 import { BinStand, GuardFigure, shelfParts, toyParts, windupCarParts, windupRobotParts } from "./Primitives";
 import { MAX_SPEED, SHELF_H, createRun, nextTarget, step, type Run } from "./rules";
@@ -117,6 +117,21 @@ function CarryPlate({ run }: { run: Run }) {
    );
 }
 
+/** Coloured trim bands (front and back, under the top) and kick plates on the painted shelves: one colour per row. */
+function ShelfTrims({ run }: { run: Run }) {
+   const groups = useMemo(() => shelfTrimSpots(run), [run]);
+   return (
+      <>
+         {groups.map((g, i) => (g.spots.length ? (
+            <Instanced key={i} spots={g.spots} name={`shelf-trim-${i}`}>
+               <boxGeometry args={[1, 1, 1]} />
+               <meshStandardMaterial color={g.color} roughness={0.45} />
+            </Instanced>
+         ) : null))}
+      </>
+   );
+}
+
 function LevelScene() {
    const { id, config } = useLevel<ToyLevel>();
    const view = useFittedView(viewFor(id));
@@ -124,7 +139,7 @@ function LevelScene() {
    const fx = useFx();
    const time = useGameTime();
    const [run] = useState<Run>(() => createRun(randomSeed(), config));
-   const aim = useRef({ x: run.hero.x, y: 0.9, z: run.hero.z }).current;
+   const aim = useRef(aimFor(config, run.hero.x, run.hero.z, run.hero.yaw, { x: 0, y: 0.9, z: 0 })).current;
    const body = useRef<Group>(null);
    const torch = useRef<Group>(null);
    const gait = useRef({ phase: 0, amount: 0, visYaw: 0 }).current;
@@ -194,9 +209,7 @@ function LevelScene() {
          marker[0].x = t.x;
          marker[0].z = t.z;
       }
-      aim.x = Math.min(bounds.max.x, Math.max(bounds.min.x, run.hero.x + Math.sin(run.hero.yaw) * LOOK_AHEAD));
-      aim.z = Math.min(bounds.max.z, Math.max(bounds.min.z, run.hero.z + Math.cos(run.hero.yaw) * LOOK_AHEAD));
-      aim.y = 0.9;
+      aimFor(config, run.hero.x, run.hero.z, run.hero.yaw, aim);
       if (ev.pick >= 0) {
          AT.x = run.toys[ev.pick].x; AT.y = 0.5; AT.z = run.toys[ev.pick].z;
          fx.burst("puff", AT, 5);
@@ -286,8 +299,13 @@ function LevelScene() {
             shift={view.shift}
             damping={DAMPING}
          />
-         <mesh rotation-x={-Math.PI / 2}>
-            <planeGeometry args={[config.aisles * 40 + 80, config.aisles * 40 + 80]} />
+         {/* the dark ground round the store reaches past the fog; the store floor is its own lighter slab */}
+         <mesh rotation-x={-Math.PI / 2} position={[0, -0.01, 0]}>
+            <planeGeometry args={[400, 400]} />
+            <meshStandardMaterial color={config.lighting === "night" ? COLORS.outsideNight : COLORS.outside} roughness={0.95} />
+         </mesh>
+         <mesh rotation-x={-Math.PI / 2} position={[0, 0, -BACK / 2]}>
+            <planeGeometry args={[run.hx * 2, run.hz * 2 + BACK]} />
             <meshStandardMaterial color={COLORS.floor} roughness={0.85} />
          </mesh>
          <Instanced spots={tiles} name="floor-tiles">
@@ -316,6 +334,7 @@ function LevelScene() {
                </>
             )}
          />
+         <ShelfTrims run={run} />
          <Signs run={run} />
          {decor.map((d, i) => (
             <Model
@@ -336,6 +355,8 @@ function LevelScene() {
          </group>
          <group ref={body}>
             <HumanoidModel asset={ASSETS.guard} pose={pose} fallback={<GuardFigure />} />
+            {/* night levels: a dim warm fill that walks with the guard, so he keeps his colours (mounted for the whole run: no recompile) */}
+            {config.lighting === "night" && <pointLight position={[0, 2.2, 0.6]} intensity={5} distance={7} decay={1.6} color={COLORS.lantern} />}
          </group>
          <CarryPlate run={run} />
          <TargetMarkers targets={marker} color={COLORS.wallTrim} />

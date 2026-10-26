@@ -5,13 +5,16 @@ import type { FittedViewOptions } from "@/arcade3d/core/useFittedView";
 import { createRng } from "@/arcade3d/core/math";
 import type { LevelId } from "@/arcade3d/types";
 import { LEVELS, type Category, type ToyLevel } from "./levels";
-import { SHELF_H, storeHalf, type Run } from "./rules";
+import { SHELF_DEPTH, SHELF_H, SHELF_LEN, storeHalf, type Run } from "./rules";
 
 export const COLORS = {
    floor: "#e2e8f0",
    floorTile: "#cbd5e1",
    floorEdge: "#94a3b8",
-   outside: "#cbd5e1",
+   /** the ground round the store, past the walls and the fog: dark, never a pale void */
+   outside: "#1f2937",
+   outsideNight: "#0b1120",
+   lantern: "#fde68a",
    wall: "#fbcfe8",
    wallTrim: "#f472b6",
    wallBlue: "#60a5fa",
@@ -70,13 +73,30 @@ export function windowBox(level: ToyLevel): AABB {
    return { min: { x: -w, y: 0, z: -d }, max: { x: w, y: 2.4, z: d } };
 }
 
-/** Where the camera aim may go: the store shrunk by half the window, so the walls never leave the frame. */
+/** How far inside the walls the aim may go: the guard stays near the middle of the fitted window. */
+export const AIM_INSET = 1.0;
+
+/**
+ * Where the camera aim may go: the walkable store shrunk by AIM_INSET (not by half the window), so the
+ * guard is never pushed to a window edge (under the HUD panel or the controls). Past the walls the view
+ * shows the dark outside ground and the walls.
+ */
 export function aimBounds(level: ToyLevel): AABB {
    const { hx, hz } = storeHalf(level);
-   const w = Math.min(hx * 2, WINDOW.w) / 2;
-   const d = Math.min(hz * 2, WINDOW.d) / 2;
-   return { min: { x: -(hx - w), y: 0, z: -(hz - d) }, max: { x: hx - w, y: 2.4, z: hz - d } };
+   return { min: { x: -(hx - AIM_INSET), y: 0, z: -(hz - AIM_INSET) }, max: { x: hx - AIM_INSET, y: 2.4, z: hz - AIM_INSET } };
 }
+
+/** The follow aim for a guard at (x, z) facing yaw: LOOK_AHEAD in front of him, clamped to aimBounds. Writes `out`. */
+export function aimFor(level: ToyLevel, x: number, z: number, yaw: number, out: { x: number; y: number; z: number }) {
+   const b = aimBounds(level);
+   out.x = Math.min(b.max.x, Math.max(b.min.x, x + Math.sin(yaw) * LOOK_AHEAD));
+   out.z = Math.min(b.max.z, Math.max(b.min.z, z + Math.cos(yaw) * LOOK_AHEAD));
+   out.y = 0.9;
+   return out;
+}
+
+/** Shelf trim colours, one per row (pink, blue, yellow, mint, lilac). */
+export const ROW_TRIMS = ["#f472b6", "#60a5fa", "#facc15", "#34d399", "#a78bfa"] as const;
 
 const VIEWS = new Map<LevelId, FittedViewOptions>();
 
@@ -172,6 +192,23 @@ export function decorOf(run: Run): Decor[] {
       const x = -hx + 1.2 + (hx * 2 - 2.4) * ((i + 0.3 + rng() * 0.4) / n);
       const kind = run.level.lighting === "night" && i % 2 === 0 ? "crate" : i % 2 === 0 ? "bin" : "binPlush";
       out.push({ kind, x, z: -hz - 0.7, rotY: (rng() - 0.5) * 0.4, y: kind === "crate" ? 0 : 0 });
+   }
+   return out;
+}
+
+/**
+ * The painted shelves' coloured parts, grouped by trim colour (row index mod ROW_TRIMS): a band under the
+ * top on the front and back faces, and a kick plate at the floor. Unit boxes scaled by the spot (sized once).
+ */
+export function shelfTrimSpots(run: Run): Array<{ color: string; spots: InstanceSpot[] }> {
+   const out = ROW_TRIMS.map((color) => ({ color: color as string, spots: [] as InstanceSpot[] }));
+   for (const s of run.shelves) {
+      const g = out[s.row % ROW_TRIMS.length].spots;
+      for (const side of [-1, 1]) {
+         const z = s.z + side * (SHELF_DEPTH / 2 + 0.012);
+         g.push({ x: s.x, y: SHELF_H - 0.11, z, sx: SHELF_LEN + 0.02, sy: 0.14, sz: 0.024 });
+         g.push({ x: s.x, y: 0.06, z, sx: SHELF_LEN + 0.02, sy: 0.12, sz: 0.024 });
+      }
    }
    return out;
 }

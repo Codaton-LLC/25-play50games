@@ -91,7 +91,8 @@ export const SHELF_STRETCH_Z = SHELF_DEPTH / (GLB_SIZE.shelf.z * SHELF_SCALE);
 
 export const ASSETS = {
    guard: local("charNightGuard", "capsule", "#1e3a8a", { scale: GUARD_SCALE, humanoid: { landmarks: GUARD_LANDMARKS } }, CHARACTER_BUDGET),
-   shelf: local("toyShelfSolidT", "box", "#facc15", { scale: SHELF_SCALE, stretch: [1, SHELF_STRETCH_Y, SHELF_STRETCH_Z] }),
+   // painted cream (one material, no texture): the olive GLB texture read as a flat monotone; the row trims carry the colour
+   shelf: local("toyShelfSolidT", "box", "#fdf6ec", { scale: SHELF_SCALE, stretch: [1, SHELF_STRETCH_Y, SHELF_STRETCH_Z], material: { color: "#fdf6ec", roughness: 0.6 } }),
    teddy: local("teddyBear", "sphere", "#f59e0b", { scale: fit(TOY_SIZE.teddy, GLB_SIZE.teddy) }),
    car: local("toyCar", "box", "#ef4444", { scale: fit(TOY_SIZE.car, GLB_SIZE.car) }),
    airplane: local("toyAirplane", "box", "#38bdf8", { scale: fit(TOY_SIZE.airplane, GLB_SIZE.airplane) }),
