@@ -104,6 +104,9 @@ export const ASSETS = {
    lamp: { ...prop("lamp", "cylinder", "#94a3b8"), scale: 1.3404, stretch: [1, 0.7852, 1] },
    palm: { ...prop("palm", "cylinder", "#15803d"), scale: 0.6734, stretch: [1, 1.3264, 1] },
    umbrella: { ...prop("umbrella", "cylinder", "#38bdf8"), scale: 0.8428 },
+   // Measured GLB: 1.893705 x 1.778490 x 1.264846, min y = 0. At this game's
+   // 0.95-unit person scale, the stall is about 3 m wide and 2.8 m tall.
+   festivalStall: { ...prop("festivalStall", "box", "#f59e0b"), scale: 0.85, rotationY: 0, yOffset: 0 },
    // scenery that stays primitives (no GLB in the manifest, nothing fetched). Same swap path.
    tree: prop("tree", "cylinder", "#166534"),
    building: prop("building", "box", "#64748b"),
@@ -125,3 +128,10 @@ export const ASSETS = {
 
 /** Drawn litter size the stand-ins are built at (the GLBs reach it through LITTER_SCALE). */
 export const LITTER_DRAW = 0.95;
+
+/** Far-side gaps between the existing decor; complete stall footprints stay beyond z = -16. */
+export const FESTIVAL_STALL_SPOTS = [
+   { x: -5, y: 0, z: -16.6 },
+   { x: 0, y: 0, z: -16.6 },
+   { x: 6, y: 0, z: -16.6 },
+] as const;
