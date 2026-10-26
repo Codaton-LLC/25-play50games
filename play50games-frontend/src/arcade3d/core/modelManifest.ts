@@ -307,6 +307,10 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/taxi-rush-3d/cornerShop.glb",
    "/models/3d/taxi-rush-3d/busStop.glb",
    "/models/3d/shared/trafficLight.glb",
+   // snowball-battle village decor (2026-10-25): extra Hyper3D props drawn only on levels 4-5
+   // (Ice Village, Championship Arena), behind the yard's far fence
+   "/models/3d/snowball-battle/igloo.glb",
+   "/models/3d/snowball-battle/snowmanBig.glb",
 ];
 
 const LISTED: ReadonlySet<string> = new Set(MODEL_MANIFEST);
