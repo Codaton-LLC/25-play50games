@@ -167,7 +167,7 @@ export const INPUT_SCRIPTS = {
    "wizard-potion-lab": [
       { down: "ArrowUp" },
       { wait: 550 },
-      { zoom: 2, at: [0.5, 0.46] },
+      { zoom: 1.4, at: [0.5, 0.5] },
    ],
 
    // walk into the house (up is away from the camera)
