@@ -24,6 +24,7 @@ import {
    createPigeonPose, writePigeonPose, placePigeon,
 } from "./camera";
 import { useStreetGate } from "./Hud";
+import { StreetDecor } from "./Decor";
 import { COLORS, PigeonPrimitive, useStreetParts, type StreetParts } from "./Primitives";
 import { COVER_INNER_X, HOP_MS, LANE_SLOTS, NONE, ROW_PITCH, VEHICLE_SLOTS, createRun, step, type PigeonRun } from "./rules";
 import { VEHICLE_ASSETS, vehicleFacing } from "./traffic";
@@ -218,6 +219,7 @@ export default function Scene() {
          <VehiclePool run={run} kind={1} parts={parts} />
          <VehiclePool run={run} kind={2} parts={parts} />
          <SideCover layout={layout} />
+         <StreetDecor run={run} horizon={layout.horizon} parts={parts} level={config.id} />
          <Pigeon run={run} layout={layout} />
       </>
    );
