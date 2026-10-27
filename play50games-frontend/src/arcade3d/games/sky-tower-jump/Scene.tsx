@@ -1,9 +1,11 @@
 "use client";
 
 // Sky Tower Jump's scene: the run (rules.ts) stepped in useRunFrame, the world and the course, the
-// hero, the follow camera, the intro's camera (core/intro, opted in by index.tsx `intro: true`), and
-// the juice: bursts, floating time bonuses, shake and sounds on jumps, bounces, orbs, checkpoints,
-// falls and the finish. Remounted for every run (runId).
+// hero (animated by the shared menu2/heroAnim), the follow camera, the intro's camera (core/intro,
+// opted in by index.tsx `intro: true`), and the juice (the shared menu2/juice JuiceLayer: pooled
+// particles in at most 3 draw calls, floating time bonuses, camera kicks and shake, short hit-stops
+// that only slow the visuals) and sounds on jumps, bounces, orbs, checkpoints, falls and the finish.
+// Remounted for every run (runId).
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import type { PerspectiveCamera } from "three";
@@ -12,7 +14,8 @@ import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { useInput, inputToWorld } from "@/arcade3d/core/input";
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import { useLevel } from "@/arcade3d/core/level";
-import { useFx } from "@/arcade3d/core/fx";
+import { JuiceLayer, useJuice } from "@/arcade3d/menu2/juice";
+import { heroAccent } from "@/arcade3d/menu2/heroAnim";
 import { playSfx } from "@/arcade3d/core/audio";
 import { randomSeed } from "@/arcade3d/core/math";
 import { FRAME_PRIORITY } from "@/arcade3d/core/frameLoop";
@@ -42,7 +45,7 @@ function autoplayRequested(): boolean {
 
 function Simulation({ run, anim, clock, won }: { run: SkyRun; anim: HeroAnim; clock: VisualClock; won: { current: boolean } }) {
    const input = useInput();
-   const fx = useFx();
+   const juice = useJuice();
    const time = useGameTime();
    const stepInput = useMemo(createStepInput, []);
    const world = useMemo(() => ({ x: 0, z: 0 }), []);
@@ -50,8 +53,6 @@ function Simulation({ run, anim, clock, won }: { run: SkyRun; anim: HeroAnim; cl
    const lastFrame = useRef(1000 / 60);
    const chest = useMemo(() => ({ x: 0, y: 0, z: 0 }), []);
    const feet = useMemo(() => ({ x: 0, y: 0, z: 0 }), []);
-
-   useEffect(() => fx.warm("sparkle", "puff", "confetti", "sparks", "score"), [fx]);
 
    useRunFrame((_state, dt) => {
       const i = input.current;
@@ -78,45 +79,52 @@ function Simulation({ run, anim, clock, won }: { run: SkyRun; anim: HeroAnim; cl
          playSfx("jump", { volume: 0.6 });
       }
       if (ev.powered) {
-         fx.burst("sparkle", chest, 18);
+         juice.burst("pickup", chest, 20, { color: heroAccent(run.heroId) });
+         juice.burst("aura", chest, 14, { color: heroAccent(run.heroId) });
          playSfx("whoosh", { volume: 0.55, pitch: 1.15 });
       }
       if (ev.landed) {
          anim.landAt = now;
-         fx.burst("puff", feet, 7);
+         juice.burst("dust", feet, 9);
+         juice.kick(0, -1, 0, 1.2);
       }
       if (ev.bounced) {
          anim.bounceAt = now;
-         fx.burst("sparks", feet, 22);
-         fx.burst("sparkle", chest, 12);
-         fx.shake(0.18);
+         juice.burst("hit", feet, 18, { color: "#7dd3fc" });
+         juice.burst("pickup", chest, 12);
+         juice.kick(0, 1, 0, 2.5);
+         juice.shake(0.15);
+         juice.hitStop(45);
          playSfx("whoosh", { pitch: 1.3 });
       }
       for (let k = 0; k < ev.orbCount; k++) {
          const o = run.course.orbs[ev.orbList[k]];
-         fx.burst("sparkle", o, 16);
-         fx.score(o, `-${(ORB.bonusMs / 1000).toFixed(1)} s`, { color: "#ffe08a" });
+         juice.burst("pickup", o, 14);
+         juice.popup(o, `-${(ORB.bonusMs / 1000).toFixed(1)} s`, { color: "#ffe08a" });
          playSfx("pickup", { pitch: 1 + Math.min(0.6, run.orbs * 0.03) });
       }
       if (ev.orbCount > 0) store.setStat(STAT.orbs, run.orbs);
       if (ev.checkpoint > 0) {
-         fx.burst("confetti", chest, 40);
-         fx.burst("sparkle", chest, 20);
-         fx.score(chest, "Checkpoint!", { color: "#ffd257" });
+         juice.burst("checkpoint", chest, 46);
+         juice.burst("pickup", chest, 16);
+         juice.popup(chest, "Checkpoint!", { color: "#ffd257", size: 0.07 });
+         juice.hitStop(40);
          playSfx("chime");
          store.setStat(STAT.checkpoint, ev.checkpoint);
       }
       if (ev.lost) {
          anim.lostAt = now;
-         fx.burst("puff", chest, 14);
-         fx.shake(0.25);
+         juice.burst("hit", chest, 16);
+         juice.burst("dust", feet, 10);
+         juice.shake(0.28);
+         juice.hitStop(90);
          playSfx("lose", { volume: 0.5 });
          store.setStat(STAT.falls, run.respawns + 1);
       }
       if (ev.respawned) {
          anim.spawnAt = now;
-         fx.burst("sparkle", chest, 24);
-         fx.score(chest, "+fall time", { color: "#fca5a5" });
+         juice.burst("pickup", chest, 22, { color: heroAccent(run.heroId) });
+         juice.popup(chest, "+fall time", { color: "#fca5a5" });
          playSfx("pop");
       }
       const height = Math.round(Math.max(0, run.bestTop));
@@ -128,9 +136,9 @@ function Simulation({ run, anim, clock, won }: { run: SkyRun; anim: HeroAnim; cl
       if (ev.finished) {
          won.current = true;
          anim.winAt = now;
-         fx.burst("confetti", chest, 90);
-         fx.burst("sparkle", chest, 40);
-         fx.shake(0.2);
+         juice.burst("checkpoint", chest, 110);
+         juice.burst("pickup", chest, 40);
+         juice.shake(0.2);
          store.setStat(STAT.orbs, run.orbs);
          store.setStat(STAT.finishMs, run.finishMs);
          store.end("win");
@@ -218,15 +226,17 @@ function IntroCamera({ run, anim }: { run: SkyRun; anim: HeroAnim }) {
    useFrame(() => {
       anim.intro = running && intro ? intro.hero.current : Number.NaN;
    }, FRAME_PRIORITY.pose);
-   const fx = useFx();
+   const juice = useJuice();
    const landed = useRef(false);
    useFrame(() => {
       if (!running || landed.current || anim.intro < 0.985) return;
       landed.current = true;
       const h = run.hero;
-      fx.burst("puff", { x: h.x, y: h.y + 0.1, z: h.z }, 18);
-      fx.burst("sparkle", { x: h.x, y: h.y + 0.5, z: h.z }, 16);
-      fx.shake(0.25);
+      juice.burst("dust", { x: h.x, y: h.y + 0.1, z: h.z }, 18);
+      juice.burst("pickup", { x: h.x, y: h.y + 0.5, z: h.z }, 16, { color: heroAccent(run.heroId) });
+      juice.kick(0, -1, 0, 4);
+      juice.shake(0.25);
+      juice.hitStop(70);
       playSfx("thud");
    });
    if (!running || !intro?.session) return null;
@@ -247,7 +257,7 @@ export default function Scene() {
    const won = useRef(false);
    const ground = useRef(0);
    return (
-      <>
+      <JuiceLayer>
          <World course={run.course} seed={decorSeed} levelId={levelId} />
          <Course run={run} clock={clock} won={won} />
          <Hero run={run} anim={anim} ground={ground} />
@@ -255,6 +265,6 @@ export default function Scene() {
          <GroundProbe run={run} clock={clock} ground={ground} />
          <FollowCamera run={run} />
          <IntroCamera run={run} anim={anim} />
-      </>
+      </JuiceLayer>
    );
 }
