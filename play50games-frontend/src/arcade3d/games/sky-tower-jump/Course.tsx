@@ -15,6 +15,7 @@ import { useGameTime } from "@/arcade3d/core/gameTime";
 import { ASSETS, GLB_SIZE, ORB_SIZE } from "./assets";
 import { COLORS, arrowTexture, glowTexture } from "./look";
 import { BillboardField, type Billboard } from "./World";
+import { SECRETS } from "./progression";
 import { PAD_HALF, strikeLive, supportX, supportZ, type Course as CourseData, type SkyRun } from "./rules";
 
 /** The visual clock (ms of rules time to draw the movers at), written by Scene every frame. */
@@ -209,6 +210,45 @@ function Lightning({ run, clock }: { run: SkyRun; clock: VisualClock }) {
    );
 }
 
+/**
+ * The level's secrets (menu2/secrets via progression.ts): a glowing ice-blue crystal per colour shard,
+ * a pink spinning badge for a sticker. At most 3 meshes, hidden once found. Code-drawn on purpose:
+ * markers and glow stay in code (the Hyper3D rule).
+ */
+function Secrets({ run }: { run: SkyRun }) {
+   const specs = SECRETS[run.level];
+   const spots = run.course.secrets;
+   const refs = useRef<Array<Mesh | null>>([]);
+   const time = useGameTime();
+   useFrame(() => {
+      const t = time.now;
+      for (let i = 0; i < spots.length; i++) {
+         const m = refs.current[i];
+         if (!m) continue;
+         m.visible = !run.secrets.found[i];
+         m.rotation.y = t * 1.8 + i;
+         m.position.y = spots[i].y + Math.sin(t * 2.2 + i) * 0.15;
+      }
+   });
+   return (
+      <>
+         {spots.map((p, i) => (
+            <mesh key={specs[i].id} ref={(m) => void (refs.current[i] = m)} position={[p.x, p.y, p.z]} rotation={[0, 0, specs[i].kind === "sticker" ? Math.PI / 2 : 0]}>
+               {specs[i].kind === "shard" ? <octahedronGeometry args={[0.32, 0]} /> : <cylinderGeometry args={[0.34, 0.34, 0.08, 24]} />}
+               <meshStandardMaterial
+                  color={specs[i].kind === "shard" ? "#bae6fd" : "#f9a8d4"}
+                  emissive={specs[i].kind === "shard" ? "#38bdf8" : "#ec4899"}
+                  emissiveIntensity={1.4}
+                  roughness={0.25}
+                  metalness={0.1}
+                  toneMapped={false}
+               />
+            </mesh>
+         ))}
+      </>
+   );
+}
+
 export function Course({ run, clock, won }: { run: SkyRun; clock: VisualClock; won: MutableRefObject<boolean> }) {
    const course = run.course;
    const spots = useStaticSpots(course);
@@ -264,6 +304,7 @@ export function Course({ run, clock, won }: { run: SkyRun; clock: VisualClock; w
          <PadGlows course={course} />
          <Portal course={course} won={won} />
          <Lightning run={run} clock={clock} />
+         <Secrets run={run} />
       </>
    );
 }

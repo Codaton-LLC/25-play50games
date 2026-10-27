@@ -72,7 +72,7 @@ obstacle-race): every jump arc depends only on the ms since take-off, the same a
   a press on the ground does not start the cooldown. Kiro Shield: 2.5 s ignoring gusts and lightning, then 20 s.
   Zuno Magnet: 2.5 s at the wider pickup, then 20 s. Vexa Phase: 1.2 s ignoring gusts and lightning, then 20 s.
   None of them adds a vertical reach or a speed the level 1 proof does not already allow (`V_DASH` is
-  horizontal; `minFinishMs(COURSE, V_DASH)` stays at or above the 11 500 ms floor).
+  horizontal; `minFinishMs(COURSE, V_DASH)` stays at or above the 10 200 ms floor).
 - **Wind** (levels 4 and 5): a sideways gust while airborne, peak 3.5 m/s², flipping every 2.8 s.
   The speed cap is still `V_RUN`, so a gust cannot beat the horizontal bound. Shield and phase ignore it.
 - **Lightning** (levels 4 and 5): a rim strike on some islands. The centre is outside the radius.
@@ -92,18 +92,15 @@ travel, 3.2-4 s periods), 2 plank bridges (6 m), 3 checkpoints at 9.4, 23.4 and 
 ## Scoring
 
 A **time game**: `kind: "time"`, display `"time"`. The server computes `score = floor((timeBaseMs − duration_ms) / 10)`.
-What is shipped today, on every level, is level 1's row: `timeBaseMs` 90 000, duration 11 500-90 000 ms.
+What the server ships today, on every level, is the old level 1 row (11 500-90 000 ms); the new
+rows below go up with this branch's `arcade-games.json` (user upload).
 The submitted duration is
-`finishMs − 400 · orbs` (`finalScore`, `runTimeMs`): the exact finish ms the Scene publishes with
-`setStat("finishMs")` before `end("win")` (never the frame's end), minus the orb bonus. Only a win is
-ranked (`isRankedRun`). The HUD clock shows the same number live. The game's own clock is the level
-timer (`course.durationMs`), which is longer than 90 s on levels 2-5; until the JSON is updated, a
-finish slower than 90 s on those levels would be rejected by the server.
+`finishMs − 400 · orbs − comboMs` (`finalScore`, `runTimeMs`): the exact finish ms the Scene publishes
+with `setStat("finishMs")` before `end("win")` (never the frame's end), minus the orb bonus and the
+flow bonus (`STAT.comboMs`, "Stars, flow, secrets"). Only a win is ranked (`isRankedRun`). The HUD
+clock shows the same number live.
 
 ### Server limits and why they hold (the proof)
-
-Shipped today, the server accepts a time run only if `11500 ≤ duration_ms ≤ 90000`, for every level
-(level 1's row). The table in step 7 is what to ship per level.
 
 1. **Clock.** `useRunFrame` hands the game exactly the play time the run clock counted; the rules
    turn it into whole ms with a carried remainder (`simMs ≤ elapsedMs`). Every ms of motion is a
@@ -124,44 +121,65 @@ Shipped today, the server accepts a time run only if `11500 ≤ duration_ms ≤ 
 5. **Least finish.** Dijkstra over the platforms with those edges (`minArrivalMs`) gives the least
    ms to stand on the goal (`minFinishMs`). Every route (falls and respawns included) is a chain of
    such edges. Level 1: **19 238 ms**.
-6. **Least duration.** At most every orb, 400 ms each (`minDurationMsOf`):
+6. **Least duration.** At most every orb, 400 ms each, and at most the flow bound
+   `comboMaxBonus(comboSpecOf(course))` (menu2/combo: each orb and each first landing is one link, so
+   the meter can pay no more than one unbroken chain of all of them) (`minDurationMsOf`):
 
-   | Level | Least finish | Orbs | Least duration |
-   |---|---:|---:|---:|
-   | 1 Training Sky | 19 238 ms | 18 | 12 038 ms |
-   | 2 Cloud Steps | 27 232 ms | 12 | 22 432 ms |
-   | 3 Moving Platforms | 36 518 ms | 16 | 30 118 ms |
-   | 4 Storm Heights | 46 747 ms | 15 | 40 747 ms |
-   | 5 Infinite Tower | 69 521 ms | 21 | 61 121 ms |
+   | Level | Least finish | Orbs | Flow bound | Least duration |
+   |---|---:|---:|---:|---:|
+   | 1 Training Sky | 19 238 ms | 18 | 1 230 ms | 10 808 ms |
+   | 2 Cloud Steps | 27 232 ms | 12 | 1 150 ms | 21 282 ms |
+   | 3 Moving Platforms | 36 518 ms | 16 | 1 550 ms | 28 568 ms |
+   | 4 Storm Heights | 46 747 ms | 15 | 1 750 ms | 38 997 ms |
+   | 5 Infinite Tower | 69 521 ms | 21 | 2 470 ms | 58 651 ms |
 
-7. **Limits.** Level 1 is unchanged: `minDurationMs` 11 500 (the bound less 4.5 %), `maxScore` 7 850,
-   `timeBaseMs` and `maxDurationMs` 90 000. Levels 2-5 use the same formula (the bound less about
-   4.5 %, rounded down to 100 ms, still inside 94-100 % of the bound) and the level's own timer as
-   `timeBaseMs` / `maxDurationMs`. `PROPOSED_LEVEL_LIMITS`:
+7. **Limits.** Every level (level 1 too, since the flow bonus moved its bound) uses one formula: the
+   bound less about 4.5 %, rounded down to 100 ms, still inside 94-100 % of the bound, and never above
+   Riko's dashed floor (`dashFloorMs`: at most `(POWER_MS.dash + 1) × (V_DASH − V_RUN) / V_RUN` ≈
+   260 ms off the summed bound per dash, one dash per 15 s cooldown plus the first; this is what puts
+   level 1 at 10 200), with the level's own timer as `timeBaseMs` / `maxDurationMs`.
+   `PROPOSED_LEVEL_LIMITS`:
 
    | Level | minDurationMs | maxDurationMs | timeBaseMs | maxScore |
    |---|---:|---:|---:|---:|
-   | 1 | 11 500 | 90 000 | 90 000 | 7 850 |
-   | 2 | 21 400 | 120 000 | 120 000 | 9 860 |
-   | 3 | 28 700 | 150 000 | 150 000 | 12 130 |
-   | 4 | 38 900 | 180 000 | 180 000 | 14 110 |
-   | 5 | 58 300 | 240 000 | 240 000 | 18 170 |
+   | 1 | 10 200 | 90 000 | 90 000 | 7 980 |
+   | 2 | 20 300 | 120 000 | 120 000 | 9 970 |
+   | 3 | 27 200 | 150 000 | 150 000 | 12 280 |
+   | 4 | 37 200 | 180 000 | 180 000 | 14 280 |
+   | 5 | 56 000 | 240 000 | 240 000 | 18 400 |
 
-   Every level's maxScore is at least level 1's 7 850, and level 5's 18 170 is 2.3× that (the cap
-   asked for is about 3×). `meta.ts` and `arcade-games.json` ship this table (Claude, on merge).
-   `rules.test.ts` recomputes the bound and checks the margin, pins the table, and checks that Riko's
-   dashes (at most `(POWER_MS.dash + 1) × (V_DASH − V_RUN) / V_RUN` ≈ 260 ms off the summed bound per
-   dash, one dash per 15 s cooldown plus the first) cannot pull any level under its floor;
-   `registry.sync.test.ts` checks the JSON against meta.
+   (Before the flow meter: 11 500 / 21 400 / 28 700 / 38 900 / 58 300 and 7 850 / 9 860 / 12 130 /
+   14 110 / 18 170.) `meta.ts` and `arcade-games.json` ship this table. `rules.test.ts` recomputes the
+   bound and checks the margin, pins the table, and re-derives the dashed floor on every level;
+   `registry.sync.test.ts` checks the JSON against meta; `progression.test.ts` checks the bots' flow
+   bonus never passes the bound.
+
+## Stars, flow, secrets (Menu 2 shared systems)
+
+The reference adoption of `menu2/` (`progression.ts`, `levelEnd.ts`, `StarResult.tsx`):
+
+- **Flow meter** (`menu2/combo`): a link within 2 s, +0.25 per link, capped at x2 (`COMBO`). Links:
+  each orb (base 40 ms) and the first landing on each platform (20 ms). A fall or a strike breaks
+  the chain. The bonus comes off the submitted time; the HUD shows `<ComboMeter>` under the power pill.
+- **Stars** (`menu2/stars`): clear, all orbs, and the submitted time at or under `STAR_TARGET_MS`
+  (17 / 27 / 36 / 50 / 72 s, a little over the honest bot). No-hit = no fall and no strike. The star
+  screen is `GameDefinition.ResultExtra`, at the top of the result card.
+- **Secrets** (`menu2/secrets`): a sky shard over the first pad's bounce apex (out of reach of a plain
+  jump), a ledge shard 1.4 m off the side of a mid-route island, a sticker beside the gate on levels 1
+  and 5. Glowing code markers (`Course.tsx` `Secrets`), no score.
+- **Progress** (`menu2/progress`): on a win (and a time-up, for the secrets) the Scene calls
+  `levelEndStats`, which records through `recordLevelResult` and publishes the star screen's stats.
+- **Boss** (`menu2/boss`): `STORM_GUARDIAN` is declared for level 5 but not fought yet (Infinite Tower
+  stays a climb).
 
 ### What the bots reached
 
 | Bot | Result |
 |---|---|
-| Honest bot (`bot.ts`: look-ahead jumps at the first frame that lands, waits for movers, walks onto pads; it does not use the hero power) | Wins on every level at 30, 60 and 144 fps, no falls. Submitted times and scores (`floor((timeBase − submitted) / 10)`): level 1 **16.3 / 16.1 / 16.1 s**, 17 orbs, scores 7 366 / 7 386 / 7 392 (94 % of 7 850). Level 2 **26.4 / 26.2 / 26.2 s**, 12 orbs, 9 357 / 9 376 / 9 385 (95 % of 9 860). Level 3 **35.3 / 34.9 / 34.8 s**, 15 orbs, 11 465 / 11 514 / 11 522 (95 % of 12 130). Level 4 **50.0 / 47.3 / 47.3 s**, 15 orbs, 13 003 / 13 268 / 13 269 (94 % of 14 110). Level 5 **71.6 / 70.0 / 69.8 s**, 21 orbs, 16 841 / 16 997 / 17 015 (93 % of 18 170). Each level's score is above level 1's, and level 5 is 2.3× level 1 |
+| Honest bot (`bot.ts`: look-ahead jumps at the first frame that lands, waits for movers, walks onto pads; it does not use the hero power) | Wins on every level at 30, 60 and 144 fps, no falls. With the flow meter (60 fps, submitted = finish − orbs − flow): level 1 **15.0 s** (17 orbs, flow 1 095 ms, score 7 496 = 94 % of 7 980), level 2 **25.1 s** (9 490, 95 % of 9 970), level 3 **33.4 s** (11 664, 95 % of 12 280), level 4 **45.6 s** (13 443, 94 % of 14 280), level 5 **67.6 s** (17 244, 94 % of 18 400). The bot keeps nearly the whole flow bound, so the bound is tight. Each level's score is above level 1's, and level 5 is 2.3× level 1 |
 | Honest bot through the real store, ragged frames | a ranked win inside the limits, the score recomputed from the time |
 | Idle bot | "timeup" at exactly 90 000 ms on level 1, unranked, nothing sent |
-| 200 spam bots (random stick, jump mashing, 4-50 ms frames) | no win under 11 500 ms on level 1; most never finish |
+| 200 spam bots (random stick, jump mashing, 4-50 ms frames) | no win under 10 200 ms on level 1; most never finish |
 
 The level 1 bound (12.0 s) is 75 % of the best bot time (16.1 s): it ignores ground time, so the floor
 is safe rather than tight. The best bot on every level is inside 90-100 % of that level's maxScore.
@@ -275,7 +293,7 @@ copy per grounded frame), which a real player does not pay. No per-frame allocat
 `rules.test.ts`: course shape and comfort (every generated step is a jump or a bounce), determinism
 across seeds, jump apex and landing, buffer, the per-ms speed bound on every level, movers,
 falls/respawn timing, finalScore, the lower bound per level, the proposed limits, a dash not pulling
-level 1 under 11 500 ms, the honest bot on every level at 30/60/144 fps (a clear, at least 90 % of
+level 1 under 10 200 ms, the honest bot on every level at 30/60/144 fps (a clear, at least 90 % of
 that level's maxScore, each level at least level 1's points, level 5 at most about 3×), the idle bot,
 200 spam bots, the honest bot through the real store with ragged frames.
 `powers.test.ts`: one test per power (distance or effect, the plan's cooldown, a jump press does not

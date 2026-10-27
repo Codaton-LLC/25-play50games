@@ -29,6 +29,10 @@ import { ORB, STAT, createRun, createStepInput, step, type SkyRun } from "./rule
 import { pickedHero, subscribeHero } from "./heroes";
 import { createBot, botInput } from "./bot";
 import type { SkyLevel } from "./levels";
+import { COMBO, SECRETS } from "./progression";
+import { levelEndStats } from "./levelEnd";
+import { comboFlow } from "@/arcade3d/menu2/combo/combo";
+import { useAuth } from "@/contexts/AuthContext";
 
 /** Preview builds only: `?autoplay=1` lets the honest bot (bot.ts) play, for screenshots and checks. */
 function autoplayRequested(): boolean {
@@ -49,6 +53,9 @@ function Simulation({ run, anim, clock, won }: { run: SkyRun; anim: HeroAnim; cl
    const [bot] = useState(() => (autoplayRequested() ? createBot(run) : null));
    const lastFrame = useRef(1000 / 60);
    const chest = useMemo(() => ({ x: 0, y: 0, z: 0 }), []);
+   const { user } = useAuth();
+   const userRef = useRef<number | null>(null);
+   userRef.current = user?.id ?? null;
    const feet = useMemo(() => ({ x: 0, y: 0, z: 0 }), []);
 
    useEffect(() => fx.warm("sparkle", "puff", "confetti", "sparks", "score"), [fx]);
@@ -99,6 +106,22 @@ function Simulation({ run, anim, clock, won }: { run: SkyRun; anim: HeroAnim; cl
          playSfx("pickup", { pitch: 1 + Math.min(0.6, run.orbs * 0.03) });
       }
       if (ev.orbCount > 0) store.setStat(STAT.orbs, run.orbs);
+      for (let k = 0; k < ev.secretCount; k++) {
+         const spot = run.course.secrets[ev.secretList[k]];
+         const spec = SECRETS[run.level][ev.secretList[k]];
+         fx.burst("sparkle", spot, 30);
+         fx.burst("confetti", spot, 24);
+         fx.score(spot, `${spec.name}!`, { color: spec.kind === "shard" ? "#bae6fd" : "#f9a8d4" });
+         playSfx("chime", { pitch: 1.4 });
+      }
+      // the flow meter: link sound, and the HUD numbers (chain, multiplier x100, window in tenths)
+      if (ev.comboLinked && run.combo.chain > 1) playSfx("combo", { pitch: 0.9 + run.combo.multiplier * 0.2, volume: 0.45 });
+      if (ev.comboBonus > 0) store.setStat(STAT.comboMs, run.combo.bonusTotal);
+      const flow = Math.ceil(comboFlow(run.combo, COMBO, run.simMs) * 10);
+      if (store.stats[STAT.comboChain] !== run.combo.chain) store.setStat(STAT.comboChain, run.combo.chain);
+      const mult = Math.round(run.combo.multiplier * 100);
+      if (store.stats[STAT.comboMult] !== mult) store.setStat(STAT.comboMult, mult);
+      if (store.stats[STAT.comboFlow] !== flow) store.setStat(STAT.comboFlow, flow);
       if (ev.checkpoint > 0) {
          fx.burst("confetti", chest, 40);
          fx.burst("sparkle", chest, 20);
@@ -133,8 +156,13 @@ function Simulation({ run, anim, clock, won }: { run: SkyRun; anim: HeroAnim; cl
          fx.shake(0.2);
          store.setStat(STAT.orbs, run.orbs);
          store.setStat(STAT.finishMs, run.finishMs);
+         store.setStat(STAT.comboMs, run.combo.bonusTotal);
+         // stars, the no-hit badge and secrets go to Menu 2 progress (menu2/progress, never localStorage here)
+         const end = levelEndStats(run, userRef.current);
+         for (const key of Object.keys(end) as Array<keyof typeof end>) store.setStat(STAT[key], end[key]);
          store.end("win");
       } else if (ev.timeup) {
+         levelEndStats(run, userRef.current); // keeps the secrets found; no star without a clear
          store.end("timeup");
       }
    });

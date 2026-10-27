@@ -8,6 +8,8 @@
 // an edge. A pad platform: it walks onto the pad. In the air it steers at the target.
 import { NONE, createRun, onSupport, step, supportX, supportZ, type SkyRun, type StepInput } from "./rules";
 import { PAD_HALF } from "./rules";
+import { copyCombo } from "@/arcade3d/menu2/combo/combo";
+import { copySecretTracker } from "@/arcade3d/menu2/secrets/secrets";
 
 export interface Bot {
    /** the frame time (ms) the look-ahead simulates with */
@@ -37,6 +39,10 @@ export function copyRun(src: SkyRun, dst: SkyRun): void {
    dst.collected.set(src.collected);
    dst.orbs = src.orbs;
    dst.finishMs = src.finishMs;
+   copyCombo(src.combo, dst.combo);
+   dst.visited.set(src.visited);
+   copySecretTracker(src.secrets, dst.secrets);
+   dst.hits = src.hits;
    dst.bestTop = src.bestTop;
    dst.ended = src.ended;
 }

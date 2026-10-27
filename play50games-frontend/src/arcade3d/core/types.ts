@@ -237,6 +237,12 @@ export interface GameDefinition<C = unknown> {
     * `data-arcade-safe-area` (they join useSafeArea().hud).
     */
    Hud?: ComponentType;
+   /**
+    * Optional block at the top of the result card (plain DOM, inside ResultPanel above the score
+    * details), e.g. the Menu 2 star screen (menu2/stars). Rendered only while the result shows; it
+    * reads the finished run from the store (stats, endReason). Omitted = the card as before.
+    */
+   ResultExtra?: ComponentType;
    assets: Record<string, ModelAsset>;
    /** true = wrap the scene in lazy-loaded Rapier <Physics> */
    physics?: boolean;
