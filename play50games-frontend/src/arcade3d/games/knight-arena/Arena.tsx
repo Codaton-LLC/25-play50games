@@ -7,7 +7,7 @@ import { SkyDome } from "../../core/env";
 import { Fence } from "../../core/kit/Fence";
 import { createPath } from "../../core/path";
 import type { InstanceSpot } from "../../core/render";
-import { ASSETS } from "./assets";
+import { ASSETS, hasTrainingDecor, TRAINING_DUMMY_SPOTS } from "./assets";
 import { TowerPrimitive, TreePrimitive } from "./Primitives";
 import { ARENA, COLORS, TARGETS } from "./rules";
 
@@ -89,7 +89,7 @@ function ArenaBanners(): React.ReactElement {
    );
 }
 
-export function Arena(): React.ReactElement {
+export function Arena({ level }: { level: number }): React.ReactElement {
    return (
       <group>
          <SkyDome top="#1e1b4b" bottom="#fdba74" radius={42} />
@@ -130,6 +130,10 @@ export function Arena(): React.ReactElement {
             railColor={COLORS.wood}
          />
          <ArenaBanners />
+
+         {hasTrainingDecor(level) && (
+            <InstancedModel asset={ASSETS.trainingDummyT} spots={TRAINING_DUMMY_SPOTS} fallback={null} />
+         )}
 
          {/* Background Castle Towers (2 instances) */}
          <InstancedModel
