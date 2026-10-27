@@ -2,12 +2,12 @@
 
 // Tiny Escape Room look: a roofless office, four stations, the door and the runner stand-in.
 // Positions come from the run's layout. Opening parts are rigid transforms of existing groups.
-import { useLayoutEffect, useMemo, useRef, type MutableRefObject } from "react";
+import { Suspense, useLayoutEffect, useMemo, useRef, type MutableRefObject } from "react";
 import { useFrame } from "@react-three/fiber";
 import { RingGeometry, type Group, type Mesh, type MeshStandardMaterial } from "three";
 import { InstancedModel, Model } from "@/arcade3d/core/assets";
 import { Instanced, type InstanceSpot } from "@/arcade3d/core/render";
-import { ASSETS, BOOK_DRAWN, BOOK_GROUP, BOOK_STAND_IN, DOOR_HINGE, DOOR_LEAF, KEY_DRAWN } from "./assets";
+import { ASSETS, BOOK_DRAWN, BOOK_GROUP, BOOK_STAND_IN, DOOR_HINGE, DOOR_LEAF, KEY_DRAWN, SHIP_CONSOLE_SPOTS, STOVE_SPOTS } from "./assets";
 import { LOOT_AT, createCupboardShell, poseCupboard } from "./cupboard";
 import { DRAWER, UNDER_DESK, drawerX, underDeskLid, underDeskX } from "./desk";
 import {
@@ -164,6 +164,12 @@ export function Room({ run, moving }: { run: EscapeRun; moving: MutableRefObject
             <planeGeometry args={[12, 10]} />
             <meshStandardMaterial color="#d6d3d1" roughness={0.95} />
          </mesh>
+         {run.level.id === 4 && <Suspense fallback={null}>
+            <InstancedModel asset={ASSETS.stoveT} spots={STOVE_SPOTS} fallback={null} />
+         </Suspense>}
+         {run.level.id === 5 && <Suspense fallback={null}>
+            <InstancedModel asset={ASSETS.shipConsole} spots={SHIP_CONSOLE_SPOTS} fallback={null} />
+         </Suspense>}
          <Instanced spots={SHELL} name="shell">
             <boxGeometry args={[1, 1, 1]} />
             <meshStandardMaterial color="#a8a29e" roughness={0.85} />
