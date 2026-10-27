@@ -294,6 +294,12 @@ export interface GameDefinition<C = unknown> {
    /** override how the final score/duration is computed (default: store score + elapsedMs) */
    finalScore?(state: RunState): { score: number; durationMs: number };
    /**
+    * How many players played this run (local multiplayer, menu2/multiplayer). Omitted = 1. More
+    * than one: the run is unranked (never submitted to the solo leaderboard, isRankedRun) and its
+    * FinishedRun carries `players`.
+    */
+   runPlayers?(state: RunState): number;
+   /**
     * Omitted = one level (useLevel() gives config undefined). When present: one spec per
     * meta.levels entry, same ids in the same order (definitionLevelProblems in core/levels.ts).
     */

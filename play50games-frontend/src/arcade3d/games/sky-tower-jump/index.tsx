@@ -13,6 +13,7 @@ import { LEVELS, type SkyLevel } from "./levels";
 import { COLORS, levelEnvironment } from "./look";
 import { FOG } from "./World";
 import { finalScore } from "./rules";
+import { sessionRunPlayers } from "@/arcade3d/menu2/multiplayer/leaderboard";
 import Scene from "./Scene";
 import Hud from "./Hud";
 import StarResult from "./StarResult";
@@ -50,6 +51,8 @@ const definition: GameDefinition<SkyLevel> = {
    // the hero hops and spins at the gate before the result panel
    resultDelayMs: 1600,
    finalScore,
+   // local multiplayer (menu2/multiplayer): a run with 2-4 players is never submitted to the solo board
+   runPlayers: () => sessionRunPlayers(),
    levels: LEVEL_IDS.map((id): LevelSpec<SkyLevel> => {
       const storm = levelEnvironment(id);
       return {

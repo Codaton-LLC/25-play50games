@@ -409,9 +409,12 @@ export default function GameShell({ meta, definition, exitHref = "/3d" }: GameSh
             },
             scoring
          );
-         // time games: only a win has a finish time; a lost or timed-out run scores 0 and is not saved
-         const ranked = isRankedRun(scoring, state.endReason);
-         const run: FinishedRun = ranked ? normalized : { ...normalized, score: 0 };
+         // time games: only a win has a finish time; a lost or timed-out run scores 0 and is not saved;
+         // a local multiplayer run (definition.runPlayers > 1) is never saved or sent either
+         const players = Math.max(1, Math.floor(definition.runPlayers?.(state) ?? 1));
+         const ranked = isRankedRun(scoring, state.endReason, players);
+         const marked: FinishedRun = players > 1 ? { ...normalized, players } : normalized;
+         const run: FinishedRun = ranked ? marked : { ...marked, score: 0 };
          const runId = state.runId;
          const userId = userRef.current?.id ?? null;
          // frozen at the end: a ticket that arrives later is too late for this run

@@ -3,7 +3,10 @@
 // The game HUD, after the concept board: orbs and height on the left, the title and the level in a
 // banner at the top centre with the run clock (finish time so far, orb bonus taken off) under it.
 // The shell keeps Mute / Pause (top right); its own clock chip is off (index.tsx clockChip: false).
-import { useState } from "react";
+// Local multiplayer (menu2/multiplayer): a "2-4 players" button beside the hero row opens the join
+// screen (desktop and tablet only); during multiplayer runs the per-player chips replace the solo
+// pills, and the podium covers the shell's result card.
+import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useLevel } from "@/arcade3d/core/level";
@@ -12,6 +15,8 @@ import { STAT, runTimeMs } from "./rules";
 import type { SkyLevel } from "./levels";
 import ComboMeter from "@/arcade3d/menu2/combo/ComboMeter";
 import { COMBO } from "./progression";
+import { MultiplayerHud, MultiplayerButton } from "./MultiplayerHud";
+import { playersStore, usePlayers } from "@/arcade3d/menu2/multiplayer/players";
 import styles from "./Hud.module.css";
 
 function clockText(ms: number): string {
@@ -25,8 +30,9 @@ const HERO_STAT: HeroId[] = ["riko", "nami", "kiro", "zuno", "vexa"];
 /** Shown on the start card (phase "ready"), before the run. The choice is a run option, not localStorage. */
 function HeroPick() {
    const phase = useArcadeStore((s) => s.phase);
+   const lobby = usePlayers((s) => s.phase === "lobby");
    const [hero, setHero] = useState<HeroId>(pickedHero);
-   if (phase !== "ready" || typeof document === "undefined") return null;
+   if (phase !== "ready" || lobby || typeof document === "undefined") return null;
    return createPortal(
       <div className={styles.pick} role="group" aria-label="Choose your hero">
          <span className={styles.pickLabel}>Hero</span>
@@ -47,6 +53,7 @@ function HeroPick() {
                <span className={styles.pickPower}>{h.powerLabel}</span>
             </button>
          ))}
+         <MultiplayerButton />
       </div>,
       document.body,
    );
@@ -67,10 +74,15 @@ export default function Hud() {
    const shown = runTimeMs(tenths * 100, orbs, comboMs);
    const level = config?.id ?? 1;
    const hero = heroById(HERO_STAT[heroStat] ?? "riko");
+   const multiplayer = usePlayers((s) => s.phase !== "off");
+   const playing = usePlayers((s) => s.phase === "playing");
+   // leaving the game (Exit) ends a multiplayer session
+   useEffect(() => () => playersStore.getState().endSession(), []);
    return (
       <>
          <HeroPick />
-         <div className={styles.left} data-arcade-safe-area="">
+         {multiplayer && <MultiplayerHud />}
+         <div className={styles.left} data-arcade-safe-area="" style={playing ? { display: "none" } : undefined}>
             <div className={styles.pill} aria-label={`Orbs ${orbs}`}>
                <span className={styles.orb} aria-hidden="true" />
                <span className={styles.value}>{orbs}</span>

@@ -236,3 +236,24 @@
       transform: none;
    }
 }
+
+/* the start card's local multiplayer entry (menu2/multiplayer; hidden on phones by device.ts) */
+.mpBtn {
+   min-height: 44px;
+   margin-left: 4px;
+   padding: 0 12px;
+   border: 2px solid #ffd257;
+   border-radius: 12px;
+   background: rgba(255, 210, 87, 0.14);
+   color: #fff;
+   font: inherit;
+   font-size: 0.78rem;
+   font-weight: 800;
+   white-space: nowrap;
+   cursor: pointer;
+}
+
+.mpBtn:focus-visible {
+   outline: 3px solid #ffd257;
+   outline-offset: 2px;
+}

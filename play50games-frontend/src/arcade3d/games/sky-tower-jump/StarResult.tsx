@@ -1,7 +1,8 @@
 "use client";
 
 // GameDefinition.ResultExtra: the Menu 2 star screen at the top of the result card, after a win.
-// Reads what the Scene published before end("win") (levelEnd.ts levelEndStats).
+// Reads what the Scene published before end("win") (levelEnd.ts levelEndStats). A local multiplayer
+// run shows its podium instead (MultiplayerHud): no stars, no progress.
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useLevel } from "@/arcade3d/core/level";
 import StarScreen from "@/arcade3d/menu2/stars/StarScreen";
@@ -12,6 +13,7 @@ import { courseFor, STAT } from "./rules";
 import { SECRETS, starSpecFor } from "./progression";
 import { SLUG } from "./levelEnd";
 import type { SkyLevel } from "./levels";
+import { usePlayers } from "@/arcade3d/menu2/multiplayer/players";
 
 export default function StarResult() {
    const { config } = useLevel<SkyLevel>();
@@ -19,7 +21,8 @@ export default function StarResult() {
    const endReason = useArcadeStore((s) => s.endReason);
    const stats = useArcadeStore((s) => s.stats);
    const { data } = useProgress();
-   if (endReason !== "win") return null;
+   const multiplayer = usePlayers((s) => s.phase === "playing");
+   if (endReason !== "win" || multiplayer) return null;
    const spec = starSpecFor(level, courseFor(level).orbs.length);
    const secretsMask = stats[STAT.secrets] ?? 0;
    let found = 0;

@@ -5,7 +5,8 @@
 // opted in by index.tsx `intro: true`), and the juice (the shared menu2/juice JuiceLayer: pooled
 // particles in at most 3 draw calls, floating time bonuses, camera kicks and shake, short hit-stops
 // that only slow the visuals) and sounds on jumps, bounces, orbs, checkpoints, falls and the finish.
-// Remounted for every run (runId).
+// Remounted for every run (runId). Local multiplayer runs (2-4 heroes) render MultiScene.tsx
+// instead, with the same animator and juice.
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import type { PerspectiveCamera } from "three";
@@ -36,6 +37,8 @@ import { COMBO, SECRETS } from "./progression";
 import { levelEndStats } from "./levelEnd";
 import { comboFlow } from "@/arcade3d/menu2/combo/combo";
 import { useAuth } from "@/contexts/AuthContext";
+import { usePlayers } from "@/arcade3d/menu2/multiplayer/players";
+import MultiScene from "./MultiScene";
 
 /** Preview builds only: `?autoplay=1` lets the honest bot (bot.ts) play, for screenshots and checks. */
 function autoplayRequested(): boolean {
@@ -272,7 +275,8 @@ function IntroCamera({ run, anim }: { run: SkyRun; anim: HeroAnim }) {
    return <GameIntro session={intro.session} keyframes={keys} playCamera={play} hero={intro.hero} />;
 }
 
-export default function Scene() {
+/** The solo scene, exactly as before multiplayer. */
+function SoloScene() {
    const runId = useArcadeStore((s) => s.runId);
    const { config } = useLevel<SkyLevel>();
    const levelId: LevelId = config?.id ?? 1;
@@ -296,4 +300,10 @@ export default function Scene() {
          <IntroCamera run={run} anim={anim} />
       </JuiceLayer>
    );
+}
+
+/** Local multiplayer runs (menu2/multiplayer) get their own scene; everything else is the solo one. */
+export default function Scene() {
+   const multiplayer = usePlayers((s) => s.phase === "playing");
+   return multiplayer ? <MultiScene /> : <SoloScene />;
 }

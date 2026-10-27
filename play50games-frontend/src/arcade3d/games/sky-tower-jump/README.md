@@ -311,3 +311,17 @@ fire it, touch and keyboard are the same `actionPressed`).
 meshes, feet on 0, 1.45 m tall), the definition's levels, intro, and the Power button, the intro ending on the
 follow camera's pose. `hero.test.ts`: Riko's landmarks, 1.45 m with feet on 0, the tail tip on
 the hips and the spine.
+
+## Local multiplayer (menu2/multiplayer, phase M1)
+
+2-4 heroes on one device, the framework's reference adoption (`menu2/multiplayer/README.md`).
+`multiplayer.ts` (pure, `multiplayer.test.ts`): N `SkyRun`s from the same seed, stepped together;
+orbs are shared (first to reach one gets it); co-op shares checkpoints, combines Kiro's shield,
+Zuno's magnet and Vexa's phase through `onAllyPower` (Riko's dash and Nami's double jump stay
+personal) and clears only when every hero is on the gate; versus ends 15 s after the first
+finisher, ranked by run time (finish minus the orb bonus), then height. `MultiScene.tsx` draws one
+hero per player with a player-coloured ring, the shared camera frames every hero still climbing
+(28 m zoom limit, held on the leader in versus). `MultiplayerHud.tsx`: the "2-4 players" button on
+the hero row (desktop and tablet), the join screen, the player chips and the podium. The solo
+scene, rules and proof are unchanged; `index.tsx` `runPlayers` keeps multiplayer runs off the
+leaderboard.
