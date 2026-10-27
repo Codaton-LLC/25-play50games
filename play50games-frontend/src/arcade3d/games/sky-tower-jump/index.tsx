@@ -47,6 +47,7 @@ const definition: GameDefinition<SkyLevel> = {
       "Each orb takes 0.4 s off your time. Chain orbs and new islands to fill the flow meter for a little more.",
       "A fall costs time, breaks the flow and sends you back to the last beacon. Hidden shards wait off the path.",
       "Power (E, Enter, or the Power button) is your hero's ability. The same timing on touch and keyboard.",
+      "Turn the camera: drag the view (or two fingers), mouse wheel / pinch zooms, Q / C turn, R / F tilt, V recenters.",
    ],
    // the hero hops and spins at the gate before the result panel
    resultDelayMs: 1600,

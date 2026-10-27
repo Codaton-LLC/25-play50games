@@ -107,10 +107,11 @@ describe("definition and camera", () => {
       expect(skyTowerJumpMeta.levels!.map((l) => l.title)).toEqual(["Training Sky", "Cloud Steps", "Moving Platforms", "Storm Heights", "Infinite Tower"]);
    });
 
-   it("the intro ends on the follow camera's start pose, and flies from the gate down", () => {
+   it("the intro ends behind and above the hero (the orbit camera's start pose: orbit.test.ts), and flies from the gate down", () => {
+      // play now uses the shared orbit camera (menu2/camera); orbit.test.ts checks the exact pose
       const play = playCamera(COURSE, 1.6);
-      const g = cameraGoal(0, 0, 1.5, COURSE.supports[1].cx, COURSE.supports[1].top, COURSE.supports[1].cz, 1.6, { px: 0, py: 0, pz: 0, lx: 0, ly: 0, lz: 0 });
-      expect(play.position).toEqual([g.px, g.py, g.pz]);
+      expect(play.position[2]).toBeGreaterThan(1.5);
+      expect(play.position[1]).toBeGreaterThan(2);
       const keys = introKeyframes(COURSE);
       expect(keys[0].position[1]).toBeGreaterThan(COURSE.supports[COURSE.goal].top);
       // descending: each shot no higher than the one before
