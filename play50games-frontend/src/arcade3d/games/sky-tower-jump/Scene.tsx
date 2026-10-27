@@ -1,13 +1,14 @@
 "use client";
 
 // Sky Tower Jump's scene: the run (rules.ts) stepped in useRunFrame, the world and the course, the
-// hero (animated by the shared menu2/heroAnim), the follow camera, the intro's camera (core/intro,
+// hero (animated by the shared menu2/heroAnim), the free orbit camera (menu2/camera: the player turns
+// it; movement is camera-relative through StepInput.yaw), the intro's camera (core/intro,
 // opted in by index.tsx `intro: true`), and the juice (the shared menu2/juice JuiceLayer: pooled
 // particles in at most 3 draw calls, floating time bonuses, camera kicks and shake, short hit-stops
 // that only slow the visuals) and sounds on jumps, bounces, orbs, checkpoints, falls and the finish.
 // Remounted for every run (runId). Local multiplayer runs (2-4 heroes) render MultiScene.tsx
 // instead, with the same animator and juice.
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import type { PerspectiveCamera } from "three";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
@@ -20,15 +21,16 @@ import { heroAccent } from "@/arcade3d/menu2/heroAnim";
 import { playSfx } from "@/arcade3d/core/audio";
 import { randomSeed } from "@/arcade3d/core/math";
 import { FRAME_PRIORITY } from "@/arcade3d/core/frameLoop";
-import { useSafeArea } from "@/arcade3d/core/safeArea";
-import { clearLensShift, stepLensShift, type LensState } from "@/arcade3d/core/view";
+import type { AABB } from "@/arcade3d/core/collision";
+import { createOrbit, type OrbitState } from "@/arcade3d/menu2/camera/orbit";
+import { OrbitCamera } from "@/arcade3d/menu2/camera/OrbitCamera";
 import { GameIntro, useShellIntro } from "@/arcade3d/core/intro";
 import { ARCADE_PREVIEW } from "@/arcade3d/flags";
 import type { LevelId } from "@/arcade3d/types";
 import World from "./World";
 import { Course, type VisualClock } from "./Course";
 import { Hero, createHeroAnim, groundUnder, type HeroAnim } from "./Hero";
-import { FOV, FOV_PORTRAIT, cameraGoal, introKeyframes, playCamera, type CameraGoal } from "./camera";
+import { FOV, FOV_PORTRAIT, SKY_ORBIT, courseSolids, introKeyframes, orbitLookUp, orbitPivot, orbitScale, playCamera } from "./camera";
 import { ORB, STAT, createRun, createStepInput, step, type SkyRun } from "./rules";
 import { pickedHero, subscribeHero } from "./heroes";
 import { createBot, botInput } from "./bot";
@@ -50,7 +52,7 @@ function autoplayRequested(): boolean {
    }
 }
 
-function Simulation({ run, anim, clock, won }: { run: SkyRun; anim: HeroAnim; clock: VisualClock; won: { current: boolean } }) {
+function Simulation({ run, anim, clock, won, orbit }: { run: SkyRun; anim: HeroAnim; clock: VisualClock; won: { current: boolean }; orbit: OrbitState }) {
    const input = useInput();
    const juice = useJuice();
    const time = useGameTime();
@@ -69,9 +71,14 @@ function Simulation({ run, anim, clock, won }: { run: SkyRun; anim: HeroAnim; cl
       inputToWorld(i.moveX, i.moveY, 0, world);
       stepInput.moveX = world.x;
       stepInput.moveZ = world.z;
+      // camera-relative movement: the rules turn the stick by the orbit camera's drawn yaw (part of
+      // the step input, so a replay or a bot with the same inputs gets the same run)
+      stepInput.yaw = orbit.viewYaw;
       stepInput.jumpPressed = i.jumpPressed;
       stepInput.actionPressed = i.actionPressed;
       if (bot) {
+         // the bot steers in world space
+         stepInput.yaw = 0;
          bot.frameMs = lastFrame.current;
          botInput(bot, run, stepInput);
       }
@@ -190,53 +197,58 @@ function Simulation({ run, anim, clock, won }: { run: SkyRun; anim: HeroAnim; cl
    return null;
 }
 
-/** The follow camera: eased towards cameraGoal; it holds still while the hero falls out of view. */
-function FollowCamera({ run }: { run: SkyRun }) {
+/**
+ * The shared Menu 2 orbit camera (menu2/camera) round the hero: the pivot leads towards the next
+ * platform and holds still while the hero falls out of view; platforms pull the camera in.
+ */
+function SkyCamera({ run, orbit, clock }: { run: SkyRun; orbit: OrbitState; clock: VisualClock }) {
    const camera = useThree((s) => s.camera) as PerspectiveCamera;
    const size = useThree((s) => s.size);
-   const goal = useMemo<CameraGoal>(() => ({ px: 0, py: 0, pz: 0, lx: 0, ly: 0, lz: 0 }), []);
-   const look = useMemo(() => ({ x: 0, y: 0, z: 0 }), []);
-   const placed = useRef(false);
    const lastSupport = useRef(run.course.checkpoints[0]);
    const aspect = size.width / Math.max(1, size.height);
    useEffect(() => {
       camera.fov = aspect < 1 ? FOV_PORTRAIT : FOV;
       camera.updateProjectionMatrix();
    }, [camera, aspect]);
-   // the cookie banner (or the home indicator) covers the bottom: move the picture up by half of it
-   // with a lens shift (the camera does not turn), so the hero stays in the free area
-   const cover = useSafeArea((a) => {
-      let c = 0;
-      for (const r of a.obstructions) c = Math.max(c, a.height - r.top);
-      return Math.round(Math.max(0, Math.min(a.height * 0.5, c)));
-   });
-   const lens = useMemo<LensState>(() => ({ x: 0, y: 0, set: false }), []);
-   useLayoutEffect(() => () => clearLensShift(camera, lens), [camera, lens]);
-   useFrame((state, delta) => {
-      stepLensShift(camera, lens, 0, cover / Math.max(1, state.size.height), state.size.width, state.size.height, 1 - Math.exp(-6 * Math.min(0.1, delta)));
-      const h = run.hero;
-      const supports = run.course.supports;
-      // the next platform after the one last stood on (kept through jumps and bounces), for the look-ahead
-      if (h.grounded && h.support >= 0) lastSupport.current = h.support;
-      else if (h.state !== "play") lastSupport.current = run.course.checkpoints[run.checkpoint];
-      const here = lastSupport.current;
-      const next = supports[Math.min(supports.length - 1, here + 1)];
-      const falling = h.state === "lost" || (!h.grounded && h.y < h.lastTop - 3);
-      if (!falling) cameraGoal(h.x, h.state === "lost" ? h.lastTop : Math.max(h.y, h.lastTop - 1), h.z, next.cx, next.top, next.cz, aspect, goal);
-      const dt = Math.min(0.1, delta);
-      const kp = placed.current ? 1 - Math.exp(-4.2 * dt) : 1;
-      const kl = placed.current ? 1 - Math.exp(-6 * dt) : 1;
-      placed.current = true;
-      camera.position.x += (goal.px - camera.position.x) * kp;
-      camera.position.y += (goal.py - camera.position.y) * kp;
-      camera.position.z += (goal.pz - camera.position.z) * kp;
-      look.x += (goal.lx - look.x) * kl;
-      look.y += (goal.ly - look.y) * kl;
-      look.z += (goal.lz - look.z) * kl;
-      camera.lookAt(look.x, look.y, look.z);
-   }, FRAME_PRIORITY.camera);
-   return null;
+   const pivot = useMemo(
+      () => (out: { x: number; y: number; z: number }) => {
+         const h = run.hero;
+         const supports = run.course.supports;
+         // the next platform after the one last stood on (kept through jumps and bounces), for the lead
+         if (h.grounded && h.support >= 0) lastSupport.current = h.support;
+         else if (h.state !== "play") lastSupport.current = run.course.checkpoints[run.checkpoint];
+         const next = supports[Math.min(supports.length - 1, lastSupport.current + 1)];
+         const falling = h.state === "lost" || (!h.grounded && h.y < h.lastTop - 3);
+         if (falling) return false;
+         orbitPivot(h.x, Math.max(h.y, h.lastTop - 1), h.z, next.cx, next.top, next.cz, out);
+         return true;
+      },
+      [run],
+   );
+   const travel = useMemo(
+      () => (out: { x: number; z: number }) => {
+         const h = run.hero;
+         if (h.state !== "play") return;
+         out.x = h.vx;
+         out.z = h.vz;
+      },
+      [run],
+   );
+   const solids = useMemo(() => (out: AABB[]) => courseSolids(run, clock.ms, camera.position.x, camera.position.y, camera.position.z, out), [run, clock, camera]);
+   return (
+      <OrbitCamera
+         orbit={orbit}
+         pivot={pivot}
+         travel={travel}
+         solids={solids}
+         lookUp={orbitLookUp(aspect)}
+         distanceScale={orbitScale(aspect)}
+         collision={SKY_COLLISION}
+      />
+   );
 }
+
+const SKY_COLLISION = { radius: 0.35, minDistance: 1.6 };
 
 /** The shadow's floor under the hero, written before the visuals draw. */
 function GroundProbe({ run, clock, ground }: { run: SkyRun; clock: VisualClock; ground: { current: number } }) {
@@ -282,21 +294,29 @@ function SoloScene() {
    const levelId: LevelId = config?.id ?? 1;
    // runId remounts the Scene; the seed only places decor (the course is the same race for everyone)
    // the picker changes the hero live: the start card and the intro show the picked hero before Play
-   const hero = useSyncExternalStore(subscribeHero, pickedHero, pickedHero);
+   const livePick = useSyncExternalStore(subscribeHero, pickedHero, pickedHero);
+   // on the start card the pick shows at once; after that it is the next run's option (the picker
+   // also opens in the pause menu and on the result screen): a run keeps the hero it started with
+   const startCard = useArcadeStore((s) => s.phase === "ready");
+   // eslint-disable-next-line react-hooks/exhaustive-deps
+   const runPick = useMemo(() => pickedHero(), [runId]);
+   const hero = startCard ? livePick : runPick;
    const run = useMemo(() => createRun(randomSeed(), levelId, hero), [runId, levelId, hero]);
    const decorSeed = 20261025;
    const anim = useMemo(createHeroAnim, [run]);
    const clock = useMemo<VisualClock>(() => ({ ms: 0 }), [run]);
    const won = useRef(false);
    const ground = useRef(0);
+   // one orbit per run: it starts (like the intro's last shot) behind the hero
+   const orbit = useMemo(() => createOrbit(SKY_ORBIT), [run]);
    return (
       <JuiceLayer>
          <World course={run.course} seed={decorSeed} levelId={levelId} />
          <Course run={run} clock={clock} won={won} />
          <Hero run={run} anim={anim} ground={ground} />
-         <Simulation run={run} anim={anim} clock={clock} won={won} />
+         <Simulation run={run} anim={anim} clock={clock} won={won} orbit={orbit} />
          <GroundProbe run={run} clock={clock} ground={ground} />
-         <FollowCamera run={run} />
+         <SkyCamera run={run} orbit={orbit} clock={clock} />
          <IntroCamera run={run} anim={anim} />
       </JuiceLayer>
    );
