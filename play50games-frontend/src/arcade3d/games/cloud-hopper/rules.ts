@@ -3,8 +3,9 @@
 // wind and lift rings, centre landings (the streak), the hero roles, hazards (thunderheads, rim
 // strikes, Gloom Nimbus's hail and its chase), checkpoints on solid anchor clouds, orbs (a time
 // bonus), the flow meter, secrets, the level 5 boss and the lower bound behind the server limits.
-// Pure and deterministic: no three.js, React, DOM, Math.random or Date.now. Scene.tsx maps the stick
-// with inputToWorld(moveX, moveY, 0) and calls step() once per useRunFrame; tests and bot.ts drive it.
+// Pure and deterministic: no three.js, React, DOM, Math.random or Date.now. Scene.tsx passes the stick
+// plus the orbit camera's yaw (StepInput.yaw) and step() turns it camera-relative with core
+// inputToWorld, so the yaw is part of the input every step reads; tests and bot.ts drive it (yaw 0).
 //
 // Clock: whole ms, the fraction carried, stepped 1 ms at a time, so every arc, glide and sink depends
 // only on rules ms: the same at 30, 60 or 144 fps. No allocation after createRun().
@@ -333,12 +334,12 @@ export interface Hero extends Vec3Like {
 export interface StepInput {
    /**
     * The stick: screen-relative (moveX right, moveZ = the core's moveY, up = -1), turned into the world
-    * by `yaw` (the camera's yaw, core inputToWorld). With yaw 0 (today's fixed camera) it is the world
+    * by `yaw` (the camera's yaw, core inputToWorld). With yaw 0 (bots, tests) it is the world
     * direction itself, so up is -z (the bot passes world directions with yaw 0).
     */
    moveX: number;
    moveZ: number;
-   /** the camera's yaw (rad) the stick is relative to; 0 = the fixed follow camera */
+   /** the camera's yaw (rad) the stick is relative to: the orbit camera's viewYaw (menu2/camera); 0 = world space (bots, tests) */
    yaw: number;
    /** a jump press this frame (keyboard and touch alike), latched at the frame's first ms */
    jumpPressed: boolean;

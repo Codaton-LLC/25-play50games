@@ -1,13 +1,15 @@
 // The five Color Roll Heroes (CLAUDE.md decision 5) and what each one does in Cloud Hopper (the
 // card's hero roles, docs/menu2-super/world-2-sky-and-sea.md). Each hero is its own GLB
 // (menu2/heroModels.ts); the colour here is the picker swatch. The picked hero is a run option: the
-// overlay writes it here and the next createRun copies it. Not localStorage.
+// picker (menu2/heroes HeroPicker) writes it here and the next createRun copies it.
 //
 // - Riko: an air dash (one per flight) that spends 1 s of glide for a 6 m burst; it breaks storm-cloud walls.
 // - Nami: a second jump in the air, refreshed once per glide: hopping out of a glide re-launches it.
 // - Kiro: a shield: thunderheads, rim strikes and hail do not drop him.
 // - Zuno: a magnet: feathers and orbs come from 6 m, and hidden orb trails in the rain columns show.
 // - Vexa: a phase: she slips through ghost-cloud walls into the night path (and past hazards).
+import { createHeroPick } from "@/arcade3d/menu2/heroes/heroPick";
+
 export type HeroId = "riko" | "nami" | "kiro" | "zuno" | "vexa";
 export type PowerId = "dash" | "doubleJump" | "shield" | "magnet" | "phase";
 
@@ -55,25 +57,27 @@ export const MAGNET_REACH = 6;
 /** World 2's lead hero is preselected (the coordinator's rule: each Menu 2 game starts on its world's lead). */
 export const DEFAULT_HERO: HeroId = "nami";
 
-let picked: HeroId = DEFAULT_HERO;
+// The pick is the shared Menu 2 hero pick (menu2/heroes): it starts as the player's own last pick in
+// this game, else the world's lead hero (Cloud Hopper is in W2 "Sky & Sea": Nami, the same as
+// DEFAULT_HERO, the rules' own default for bots and proofs). The shared module remembers it; this
+// file never touches storage.
+const pick = createHeroPick("cloud-hopper");
 
-/** The hero the next run starts as. The overlay sets it; Scene passes it into createRun. */
+/** The hero the next run starts as. The picker sets it; Scene passes it into createRun when a run starts. */
 export function pickedHero(): HeroId {
-   return picked;
+   return pick.get();
 }
 
-const listeners = new Set<() => void>();
-
-/** Calls `fn` whenever the pick changes (the Scene re-makes its run, so the intro shows the picked hero). */
+/** Calls `fn` whenever the pick changes (on the start card the Scene re-makes its run, so the intro shows the picked hero). */
 export function subscribeHero(fn: () => void): () => void {
-   listeners.add(fn);
-   return () => {
-      listeners.delete(fn);
-   };
+   return pick.subscribe(fn);
 }
 
 export function selectHero(id: HeroId): void {
-   if (picked === id) return;
-   picked = id;
-   for (const fn of listeners) fn();
+   pick.set(id);
+}
+
+/** Tests: forget the cached pick (the next pickedHero() reads the stored pick or the default again). */
+export function resetHeroPick(): void {
+   pick.reset();
 }

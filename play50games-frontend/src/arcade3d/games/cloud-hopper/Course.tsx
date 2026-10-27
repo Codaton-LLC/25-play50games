@@ -7,15 +7,17 @@
 // hidden trail only shows under the magnet), wind and lift rings (m2WindRing), the rainbow bridge
 // (m2RainbowBridge) with the Tide Bell, rainbow arches on the anchor clouds, storm-cloud walls and
 // thunderheads (m2StormCloud), Vexa's ghost veils, rim strikes, wind streaks, the secrets, and on
-// level 5 Gloom Nimbus (m2StormCloud at about 6x with glowing eyes), its rods, its eye ring and its hail.
+// level 5 Gloom Nimbus (its own m2GloomNimbusBoss GLB, 11 m wide, m2StormCloud as the fallback; it
+// faces you, leans in to attack, pulses on the telegraph, flashes and recoils on a hit, glows its eyes
+// while open and sinks on its defeat), its rods, its eye ring and its hail.
 import { useEffect, useMemo, useRef, type MutableRefObject } from "react";
 import { useFrame } from "@react-three/fiber";
 import { AdditiveBlending, Color, DoubleSide, Matrix4, Object3D, Vector3, type Group, type InstancedMesh, type Mesh, type MeshBasicMaterial, type MeshStandardMaterial } from "three";
-import { DynamicInstancedModel, InstancedModel } from "@/arcade3d/core/assets";
+import { DynamicInstancedModel, InstancedModel, Model } from "@/arcade3d/core/assets";
 import { Instanced, type InstanceSpot } from "@/arcade3d/core/render";
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import { stepProgress } from "@/arcade3d/menu2/boss/boss";
-import { ASSETS, BOSS_WIDTH, GLB_SIZE, ORB_SIZE } from "./assets";
+import { ASSETS, BOSS_SCALE, GLB_SIZE, ORB_SIZE } from "./assets";
 import { COLORS, glowTexture } from "./look";
 import { BillboardField, type Billboard } from "./World";
 import { GLOOM_NIMBUS, SECRETS } from "./progression";
@@ -262,7 +264,11 @@ function TideBell({ run }: { run: CloudRun }) {
 const EYE_ON = new Color("#fef08a");
 const EYE_OFF = new Color("#7c3aed");
 
-/** Gloom Nimbus (level 5): m2StormCloud at about 6x, three eyes, behind you in the chase and ahead after; its rods, ring and hail. */
+/**
+ * Gloom Nimbus (level 5): m2GloomNimbusBoss (BOSS_WIDTH wide), three eye glints, behind you in the
+ * chase and ahead after; it turns to face you, leans in through an attack, recoils on a hit and rolls
+ * as it sinks; its rods, ring and hail.
+ */
 function Boss({ run, clock }: { run: CloudRun; clock: VisualClock }) {
    const body = useRef<Group>(null);
    const eyes = useRef<(Mesh | null)[]>([]);
@@ -270,7 +276,9 @@ function Boss({ run, clock }: { run: CloudRun; clock: VisualClock }) {
    const hail = useRef<Mesh>(null);
    const time = useGameTime();
    const pos = useRef({ x: 0, y: 0, z: run.chaseZ, placed: false });
-   const k = BOSS_WIDTH / GLB_SIZE.storm.x;
+   const k = BOSS_SCALE;
+   const lastHp = useRef(GLOOM_NIMBUS.maxHp);
+   const recoil = useRef(0);
    useFrame((_s, delta) => {
       const b = run.boss;
       const g = body.current;
@@ -293,6 +301,18 @@ function Boss({ run, clock }: { run: CloudRun; clock: VisualClock }) {
       const flash = b.flashMs > 0 ? 1.15 : 1;
       const pulse = b.step === "telegraph" ? 1 + 0.06 * Math.sin(stepProgress(b, GLOOM_NIMBUS) * Math.PI * 6) : 1;
       g.scale.setScalar(k * flash * pulse * (1 - sink * 0.6));
+      // reactions: face the hero, lean in through an attack, recoil on a hit, roll as it sinks
+      if (b.hp < lastHp.current) recoil.current = 1;
+      lastHp.current = b.hp;
+      recoil.current = Math.max(0, recoil.current - Math.min(0.1, delta) * 3);
+      const dt = Math.min(0.1, delta);
+      const face = Math.atan2(h.x - p.x, h.z - p.z);
+      let dy = face - g.rotation.y;
+      dy = Math.atan2(Math.sin(dy), Math.cos(dy));
+      g.rotation.y += dy * (1 - Math.exp(-3 * dt));
+      const lean = b.step === "attack" ? 0.22 : b.step === "telegraph" ? -0.1 * stepProgress(b, GLOOM_NIMBUS) : 0;
+      g.rotation.x += (lean - recoil.current * 0.35 - g.rotation.x) * (1 - Math.exp(-6 * dt));
+      g.rotation.z = sink * 0.5 + Math.sin(time.now * 0.9 + b.phase) * 0.05 * (1 + b.phase) + recoil.current * 0.12 * Math.sin(time.now * 40);
       const open = b.step === "vulnerable";
       eyes.current.forEach((m) => {
          if (!m) return;
@@ -318,11 +338,19 @@ function Boss({ run, clock }: { run: CloudRun; clock: VisualClock }) {
    return (
       <>
          <group ref={body}>
-            <InstancedModel asset={ASSETS.storm} spots={[{ x: 0, y: 0, z: 0, scale: 1 }]} fallback={null} />
-            {[-0.35, 0, 0.35].map((dx, i) => (
+            <Model
+               asset={ASSETS.boss}
+               fallback={
+                  // m2StormCloud at the boss's width if its own GLB fails
+                  <group scale={GLB_SIZE.boss.x / GLB_SIZE.storm.x}>
+                     <Model asset={ASSETS.storm} />
+                  </group>
+               }
+            />
+            {[-0.32, 0, 0.32].map((dx, i) => (
                <mesh key={i} ref={(m) => {
                   eyes.current[i] = m;
-               }} position={[dx, GLB_SIZE.storm.y * 0.55, GLB_SIZE.storm.z * 0.5]}>
+               }} position={[dx, GLB_SIZE.boss.y * (i === 1 ? 0.62 : 0.56), GLB_SIZE.boss.z * 0.5]}>
                   <sphereGeometry args={[0.09, 12, 10]} />
                   <meshBasicMaterial color="#7c3aed" toneMapped={false} />
                </mesh>

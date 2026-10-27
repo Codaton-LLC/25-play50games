@@ -1,9 +1,58 @@
-// The follow camera and the intro's shots (pure, no three.js). The camera sits behind, above and a
-// little to the side of the hero (a 3/4 view down the run towards -z), looks ahead at the next cloud,
-// and frames more height on a portrait screen. Scene.tsx eases towards cameraGoal every frame; the intro's
-// fly-through (core/intro) ends exactly on playCamera, the pose the follow camera starts from.
+// The camera and the intro's shots (pure, no three.js). Play uses the shared Menu 2 orbit camera
+// (menu2/camera): the player turns it freely round the hero; it starts (and recenters) behind and
+// above the hero (the run heads towards -z), its pivot leads a little towards the next cloud, and it
+// stands farther back on a portrait screen. The intro's fly-through (core/intro) ends exactly on
+// playCamera, the orbit's first pose. cameraGoal is the old fixed 3/4 follow camera's goal, kept for
+// its tests and as the reference the orbit's start pose was tuned against.
 import type { IntroKeyframe } from "@/arcade3d/core/intro";
-import type { Course } from "./rules";
+import type { AABB } from "@/arcade3d/core/collision";
+import { orbitPosition, type OrbitSettings } from "@/arcade3d/menu2/camera/orbit";
+import { solidBoxes, type CloudRun, type Course, type SolidBox } from "./rules";
+
+const DEG = Math.PI / 180;
+
+/**
+ * The orbit camera's tuning for this game (menu2/camera createOrbit). Yaw 0: straight behind the
+ * run, so "up" on the stick glides down the course (the old follow camera's 3/4 side offset would
+ * have turned "up" off the course); its height and distance match the old camera's (2.9 m up, 5.6 m back).
+ */
+export const CLOUD_ORBIT: Partial<OrbitSettings> = {
+   yaw: 0,
+   pitch: 26 * DEG,
+   distance: 6.4,
+   minDistance: 4,
+   maxDistance: 16,
+};
+
+/** How much farther the orbit stands on a portrait screen (aspect < 1): OrbitCamera distanceScale. */
+export function orbitScale(aspect: number): number {
+   const portrait = Math.max(0, Math.min(1, (1.2 - aspect) / 0.7));
+   return 1 + 0.5 * portrait;
+}
+
+/** The camera looks this far above the pivot (a little more on a portrait phone). */
+export function orbitLookUp(aspect: number): number {
+   const portrait = Math.max(0, Math.min(1, (1.2 - aspect) / 0.7));
+   return 0.1 + 0.05 * portrait;
+}
+
+/**
+ * The orbit's pivot: the hero's chest, led towards the next cloud's top (so the next landing is on
+ * screen), and never behind the hero along the run (only ever ahead, -z).
+ */
+export function orbitPivot(hx: number, hy: number, hz: number, nx: number, ny: number, nz: number, out: { x: number; y: number; z: number }): { x: number; y: number; z: number } {
+   const k = 0.35;
+   out.x = hx + (nx - hx) * k * 0.5;
+   out.y = hy + 1.1 + Math.max(0, ny - hy) * k;
+   out.z = hz + Math.min(0, Math.max(-6, (nz - hz) * k)) * 0.5;
+   return out;
+}
+
+/** Where the hero stands at the start (rules createRun: the first cloud's centre x and top, startZ). */
+export function startSpot(course: Course): { x: number; y: number; z: number } {
+   const start = course.clouds[course.checkpoints[0]];
+   return { x: start.cx, y: start.top, z: course.startZ };
+}
 
 export const FOV = 55;
 export const FOV_PORTRAIT = 66;
@@ -57,12 +106,45 @@ export function cameraGoal(
    return out;
 }
 
-/** The follow camera's pose on the start platform (the intro ends on it). */
+/**
+ * The orbit camera's first pose on the start cloud, at its start yaw, pitch and distance (the intro
+ * ends on it, so the hand-over to the orbit is seamless).
+ */
 export function playCamera(course: Course, aspect: number): IntroKeyframe {
-   const start = course.clouds[course.checkpoints[0]];
+   const s = startSpot(course);
    const next = course.clouds[course.route[1]];
-   const g = cameraGoal(start.cx, start.top, course.startZ, next.cx, next.top, next.cz, aspect, { px: 0, py: 0, pz: 0, lx: 0, ly: 0, lz: 0 });
-   return { position: [g.px, g.py, g.pz], lookAt: [g.lx, g.ly, g.lz] };
+   const p = orbitPivot(s.x, s.y, s.z, next.cx, next.top, next.cz, { x: 0, y: 0, z: 0 });
+   const c = orbitPosition(p.x, p.y, p.z, CLOUD_ORBIT.yaw ?? 0, CLOUD_ORBIT.pitch ?? 0, (CLOUD_ORBIT.distance ?? 6) * orbitScale(aspect), { x: 0, y: 0, z: 0 });
+   return { position: [c.x, c.y, c.z], lookAt: [p.x, p.y + orbitLookUp(aspect), p.z] };
+}
+
+/** Solids within this distance (m) of the camera are the orbit camera's collision boxes. */
+const SOLID_REACH = 22;
+/** scratch for rules solidBoxes (grown once, then reused: no allocation per frame) */
+const SCRATCH: SolidBox[] = [];
+
+/**
+ * Fills `out` with the clouds (where they are now at visual time `ms`; burst ones left out) and the
+ * standing storm / ghost walls near (x, y, z) for the orbit camera's collision; returns how many.
+ */
+export function courseSolids(run: CloudRun, ms: number, x: number, y: number, z: number, out: AABB[]): number {
+   const all = solidBoxes(run, ms, SCRATCH);
+   let n = 0;
+   for (let i = 0; i < all && n < out.length; i++) {
+      const s = SCRATCH[i];
+      const dx = Math.max(s.minX - x, 0, x - s.maxX);
+      const dy = Math.max(s.minY - y, 0, y - s.maxY);
+      const dz = Math.max(s.minZ - z, 0, z - s.maxZ);
+      if (dx * dx + dy * dy + dz * dz > SOLID_REACH * SOLID_REACH) continue;
+      const b = out[n++];
+      b.min.x = s.minX;
+      b.max.x = s.maxX;
+      b.min.y = s.minY;
+      b.max.y = s.maxY;
+      b.min.z = s.minZ;
+      b.max.z = s.maxZ;
+   }
+   return n;
 }
 
 /**

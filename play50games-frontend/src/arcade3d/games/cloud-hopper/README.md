@@ -16,10 +16,20 @@ once Gloom Nimbus is down).
 - Keyboard: WASD / arrows move, Space jumps (**hold it in the air to glide**), E or Enter uses the power.
 - Touch: joystick + Jump (hold to glide) + Power. One jump press, one held Jump and one action press,
   the same timings on touch and keyboard (decision 7).
-- The stick is screen-relative and turned into the world by `StepInput.yaw` (core `inputToWorld`);
-  the Scene fills it from a ref that is 0 today (the fixed 3/4 follow camera). A future orbit camera
-  (`menu2/camera`) only has to write that ref. With yaw 0 the bot's world-space stick is unchanged.
-- **Nami** (World 2's lead) is preselected (`heroes.ts DEFAULT_HERO`); the pick stays for the session.
+- Camera (menu2/camera, the shared free orbit camera): drag the view with either mouse button (or two
+  fingers / one finger on empty canvas), wheel or pinch zooms, Q / Z and C / X turn, R / F tilt, V (or
+  the round touch button) recenters behind the hero; after 2.5 s without camera input it swings gently
+  behind the travel. It starts straight behind the run (`camera.ts CLOUD_ORBIT`: yaw 0, 26° pitch,
+  6.4 m, 4-16 m zoom, farther on portrait), its pivot leads towards the next cloud on the route, and
+  clouds and walls near it pull it in (`courseSolids`). The intro ends on its first pose (`playCamera`).
+- Movement is camera-relative inside the rules: the Scene writes the orbit's `viewYaw` into
+  `StepInput.yaw` and `step()` turns the stick with core `inputToWorld` (multiplayer: every player's
+  input gets the shared camera's yaw). Bots and tests leave it 0, so every bot and proof result is
+  unchanged (`orbit.test.ts`); turning keeps the stick's length, so the speed bounds hold for any yaw.
+- Hero choice: the shared Menu 2 picker (menu2/heroes `HeroPicker`) on the start card, the pause menu
+  and the result screen; `heroes.ts` uses `createHeroPick("cloud-hopper")`, so **Nami** (W2's lead) is
+  preselected and the player's own last pick here is remembered. A run keeps the hero it started with.
+  The rules' own default (`DEFAULT_HERO`, bots and proofs) is Nami too.
 
 ## Files
 
@@ -36,7 +46,8 @@ once Gloom Nimbus is down).
 | `bot.ts` | the honest bot (tests, `?autoplay=1` on preview builds) |
 | `multiplayer.ts`, `MultiScene.tsx`, `MultiplayerHud.tsx` | local 2-4 players (menu2/multiplayer) |
 | `Hero.tsx` | the picked hero's GLB on menu2/heroAnim, the glide lean, blob shadow |
-| `Scene.tsx` | simulation, menu2/juice, the 3/4 follow camera, intro |
+| `Scene.tsx` | simulation, menu2/juice, the orbit camera (menu2/camera), intro |
+| `camera.ts` | orbit tuning, pivot, the intro shots and their end pose, the camera's solid boxes |
 | `Course.tsx`, `World.tsx` | the clouds and everything on them; the sky (follows the camera), puffs, cloud banks, castle |
 | `Hud.tsx` | orbs, distance, glide meter, power, streak, flow meter, clock, Gloom Nimbus's bar |
 
@@ -145,8 +156,10 @@ The sunset star targets are the card's: 60 / 80 / 95 / 110 / 150 s (the honest b
 
 ### Boss: Gloom Nimbus (level 5, menu2/boss `GLOOM_NIMBUS`)
 
-Drawn as `m2StormCloud` scaled to 11 m with three glowing eyes (the card allows it until
-`m2GloomNimbusBoss` exists). 7 hp, three phases, one hit per open window, a slow-mo-style hit-stop on the
+Drawn as its own Hyper3D High model `m2GloomNimbusBoss` (15k tris, 0.6 MB, the character budget),
+11 m wide (`assets.ts BOSS_SCALE`), with three eye glints that turn gold while it is open; it turns to
+face the hero, leans back on the telegraph and in on the attack, recoils on a hit and rolls as it
+sinks on its defeat. `m2StormCloud` at the same width is its fallback. 7 hp, three phases, one hit per open window, a slow-mo-style hit-stop on the
 finish (visual only).
 1. **Chase** (3 hits): it rolls after you at 5.2 m/s (a catch is a hit; each centre landing pushes it back
    2 m). Glide past its three lightning rods to charge shocks; each charge lands the moment it opens.
@@ -173,9 +186,9 @@ are on the bridge. Versus: first to the bridge, then the grace. `MultiScene.tsx`
 zoom limit, player rings, a glide trail per player) and `MultiplayerHud.tsx` (button, join screen,
 chips, podium). Multiplayer runs are never ranked.
 
-## For menu2/camera (another agent's orbit camera)
+## Camera solids (menu2/camera)
 
-- `StepInput.yaw`: the camera's yaw the stick is read against (0 = today's camera).
+- `StepInput.yaw`: the orbit camera's yaw the stick is read against (0 = world space, bots and tests).
 - `courseBoxes(course)` (the resting clouds and walls, static) and `solidBoxes(run, ms, out)` (clouds
   where they are now, gone ones left out, unbroken walls) as `{minX, maxX, minY, maxY, minZ, maxZ}`.
 
@@ -183,7 +196,7 @@ chips, podium). Multiplayer runs are never ranked.
 
 `public/models/3d/cloud-hopper/`: `m2CloudPlatformV2` (every cloud), `m2Feather`, `m2SkyStar` (the colour
 orbs), `m2WindRing` (wind and lift rings), `m2RainbowBridge` (the bridge and the anchor arches),
-`m2StormCloud` (thunderheads, storm walls, Gloom Nimbus), `m2CloudCastleBg`, and **`m2CloudBank`** (new
+`m2StormCloud` (thunderheads, storm walls, the boss fallback), `m2GloomNimbusBoss` (the level 5 boss), `m2CloudCastleBg`, and **`m2CloudBank`** (new
 here, copied from the ready sky-tower-jump set: low banks under the run). `m2CloudPlatform` (v1) is not
 used. The heroes are `menu2/heroModels`. Code: the sky dome, wind streaks, ghost veils, the bell, rods,
 the eye ring, hail shadows, secret markers.
@@ -197,7 +210,8 @@ the eye ring, hail shadows, secret markers.
   **straggler teleport** are not built.
 - A respawn re-forms every cloud and returns every feather; in multiplayer that resets the shared sky
   for everyone.
-- `m2GloomNimbusBoss` (NICE) is still to generate; the storm-cloud stand-in has code eyes.
+- The boss GLB's eye glints are placed from its bounds, not from its drawn face: check them against
+  the model in a browser.
 - Music stems per combo and the sunset sky tint over time are not built (the HUD clock is the sun).
 - Gloom Nimbus's "swallows clouds" and "sinks the last clouds, drops feathers" are flavour not built:
   the chase is a line behind you and the burst is a third ring.

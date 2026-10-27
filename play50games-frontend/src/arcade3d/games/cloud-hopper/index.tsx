@@ -44,6 +44,7 @@ const definition: GameDefinition<CloudLevel> = {
       "Land on a cloud's bright centre to build a streak. Each orb takes 0.4 s off your time.",
       "Wind bands push gliders. Solid anchor clouds are checkpoints. A fall costs time.",
       "Power (E, Enter, or the Power button): Riko air-dashes through storm walls, Nami jumps again after a glide, Kiro shields through thunder, Zuno's magnet pulls feathers and hidden orbs, Vexa phases through ghost veils.",
+      "Turn the camera: drag the view (or two fingers), mouse wheel / pinch zooms, Q / C turn, R / F tilt, V recenters.",
    ],
    resultDelayMs: 1600,
    finalScore,

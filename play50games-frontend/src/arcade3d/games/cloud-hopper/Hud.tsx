@@ -5,16 +5,19 @@
 // with the run clock (the sunset; finish time so far, orb and flow bonus taken off), and on level 5
 // Gloom Nimbus's health bar with the shocks charged. The shell keeps Mute / Pause; its clock chip is
 // off (index.tsx clockChip: false). Local multiplayer (menu2/multiplayer): a "2-4 players" button on
-// the hero row (desktop and tablet), the join screen, per-player chips and the podium.
-import { useEffect, useState } from "react";
-import { createPortal } from "react-dom";
+// the shared hero picker (desktop and tablet), the join screen, per-player chips and the podium. The
+// shared Menu 2 hero picker (menu2/heroes) shows on the start card, the pause menu and the result; the
+// orbit camera's recenter button and first-time hint come from menu2/camera's OrbitHud.
+import { useEffect, useSyncExternalStore } from "react";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useLevel } from "@/arcade3d/core/level";
 import ComboMeter from "@/arcade3d/menu2/combo/ComboMeter";
 import BossHealthBar from "@/arcade3d/menu2/boss/BossHealthBar";
 import { phaseMarks } from "@/arcade3d/menu2/boss/boss";
 import { playersStore, usePlayers } from "@/arcade3d/menu2/multiplayer/players";
-import { HEROES, heroById, pickedHero, selectHero, type HeroId } from "./heroes";
+import { HEROES, heroById, pickedHero, selectHero, subscribeHero, type HeroId } from "./heroes";
+import HeroPicker from "@/arcade3d/menu2/heroes/HeroPicker";
+import OrbitHud from "@/arcade3d/menu2/camera/OrbitHud";
 import { GLIDE_MAX_MS, STAT, runTimeMs } from "./rules";
 import type { CloudLevel } from "./levels";
 import { COMBO, GLOOM_NIMBUS } from "./progression";
@@ -29,35 +32,17 @@ function clockText(ms: number): string {
 
 const HERO_STAT: HeroId[] = ["riko", "nami", "kiro", "zuno", "vexa"];
 
+/**
+ * The shared Menu 2 hero picker (menu2/heroes): on the start card, the result screen and the pause
+ * menu. The pick is the next run's option (solo Scene reads it when a run starts). Hidden while a
+ * local multiplayer lobby or race is up (the join screen picks the heroes there).
+ */
 function HeroPick() {
-   const phase = useArcadeStore((s) => s.phase);
-   const lobby = usePlayers((s) => s.phase === "lobby");
-   const [hero, setHero] = useState<HeroId>(pickedHero);
-   if (phase !== "ready" || lobby || typeof document === "undefined") return null;
-   return createPortal(
-      <div className={styles.pick} role="group" aria-label="Choose your hero">
-         <span className={styles.pickLabel}>Hero</span>
-         {HEROES.map((h) => (
-            <button
-               key={h.id}
-               type="button"
-               className={hero === h.id ? styles.pickOn : styles.pickBtn}
-               aria-label={`${h.name}, ${h.powerLabel}`}
-               aria-pressed={hero === h.id}
-               onClick={() => {
-                  selectHero(h.id);
-                  setHero(h.id);
-               }}
-            >
-               <span className={styles.swatch} style={{ background: h.color }} aria-hidden="true" />
-               <span className={styles.pickName}>{h.name}</span>
-               <span className={styles.pickPower}>{h.powerLabel}</span>
-            </button>
-         ))}
-         <MultiplayerButton />
-      </div>,
-      document.body,
-   );
+   const multiplayer = usePlayers((s) => s.phase !== "off");
+   const hero = useSyncExternalStore(subscribeHero, pickedHero, pickedHero);
+   // the "2-4 players" entry only on the start card
+   const startCard = useArcadeStore((s) => s.phase === "ready");
+   return <HeroPicker heroes={HEROES} value={hero} onPick={selectHero} hidden={multiplayer} extra={startCard ? <MultiplayerButton /> : null} />;
 }
 
 function Boss() {
@@ -87,7 +72,8 @@ export default function Hud() {
    const { config } = useLevel<CloudLevel>();
    const orbs = useArcadeStore((s) => s.stats[STAT.orbs] ?? 0);
    const dist = useArcadeStore((s) => s.stats[STAT.distance] ?? 0);
-   const heroStat = useArcadeStore((s) => s.stats[STAT.hero] ?? 0);
+   // undefined until the run's first playing frame sets it: the countdown shows the run's pick
+   const heroStat = useArcadeStore((s) => s.stats[STAT.hero]);
    const powerLeft = useArcadeStore((s) => s.stats[STAT.power] ?? 0);
    const glide = useArcadeStore((s) => s.stats[STAT.glide] ?? 0);
    const streak = useArcadeStore((s) => s.stats[STAT.streak] ?? 0);
@@ -98,7 +84,8 @@ export default function Hud() {
    const flow = useArcadeStore((s) => s.stats[STAT.comboFlow] ?? 0);
    const shown = runTimeMs(tenths * 100, orbs, comboMs);
    const level = config?.id ?? 1;
-   const hero = heroById(HERO_STAT[heroStat] ?? "riko");
+   const pick = useSyncExternalStore(subscribeHero, pickedHero, pickedHero);
+   const hero = heroById(heroStat === undefined ? pick : HERO_STAT[heroStat] ?? "nami");
    const multiplayer = usePlayers((s) => s.phase !== "off");
    const playing = usePlayers((s) => s.phase === "playing");
    useEffect(() => () => playersStore.getState().endSession(), []);
@@ -107,6 +94,8 @@ export default function Hud() {
       <>
          <HeroPick />
          {multiplayer && <MultiplayerHud />}
+         {/* the orbit camera's recenter button (touch) and first-time hint (menu2/camera) */}
+         <OrbitHud />
          <div className={styles.left} data-arcade-safe-area="" style={playing ? { display: "none" } : undefined}>
             <div className={styles.pill} aria-label={`Orbs ${orbs}`}>
                <span className={styles.orb} aria-hidden="true" />

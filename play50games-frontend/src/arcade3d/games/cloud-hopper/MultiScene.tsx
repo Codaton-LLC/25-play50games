@@ -25,7 +25,10 @@ import { SharedCamera } from "@/arcade3d/menu2/multiplayer/SharedCamera";
 import World from "./World";
 import { Course, type VisualClock } from "./Course";
 import { Hero, createHeroAnim, groundUnder, type HeroAnim } from "./Hero";
-import { FOV } from "./camera";
+import { CLOUD_ORBIT, FOV, courseSolids } from "./camera";
+import type { AABB } from "@/arcade3d/core/collision";
+import { createOrbit, type OrbitState } from "@/arcade3d/menu2/camera/orbit";
+import { OrbitDriver } from "@/arcade3d/menu2/camera/OrbitCamera";
 import { ORB, STAT, createStepInput, type StepInput } from "./rules";
 import { createJuiceEmitter } from "@/arcade3d/menu2/juice";
 import { createMultiRun, leaderIndex, stepMulti, type MultiRun } from "./multiplayer";
@@ -35,7 +38,7 @@ import type { CloudLevel } from "./levels";
 /** The shared camera: tilt (the solo follow camera's), and the zoom limit (m) before it holds on the leader. */
 export const MP_CAMERA = { pitch: 0.5, minSpan: 8, maxSpan: 30, padding: 2 } as const;
 
-function MultiSimulation({ multi, anims, clock, won }: { multi: MultiRun; anims: HeroAnim[]; clock: VisualClock; won: { current: boolean } }) {
+function MultiSimulation({ multi, anims, clock, won, orbit }: { multi: MultiRun; anims: HeroAnim[]; clock: VisualClock; won: { current: boolean }; orbit: OrbitState }) {
    const juice = useJuice();
    const time = useGameTime();
    const inputs = useMemo<StepInput[]>(() => multi.runs.map(() => createStepInput()), [multi]);
@@ -54,7 +57,8 @@ function MultiSimulation({ multi, anims, clock, won }: { multi: MultiRun; anims:
          const s = inputs[i];
          s.moveX = p.moveX;
          s.moveZ = p.moveY;
-         s.yaw = 0;
+         // every player moves relative to the one shared camera
+         s.yaw = orbit.viewYaw;
          s.jumpPressed = p.jumpPressed;
          s.jumpHeld = p.jump;
          s.actionPressed = p.actionPressed;
@@ -213,6 +217,25 @@ export default function MultiScene() {
       camera.fov = FOV;
       camera.updateProjectionMatrix();
    }, [camera]);
+   // the shared camera turns round the group (mouse, P1's camera keys Q/Z C/X R/F V, or two fingers)
+   const orbit = useMemo(() => createOrbit({ ...CLOUD_ORBIT, pitch: MP_CAMERA.pitch }), [multi]);
+   const travel = useMemo(
+      () => (out: { x: number; z: number }) => {
+         let n = 0;
+         for (const r of multi.runs) {
+            if (r.ended !== null || r.hero.state !== "play") continue;
+            out.x += r.hero.vx;
+            out.z += r.hero.vz;
+            n++;
+         }
+         if (n > 0) {
+            out.x /= n;
+            out.z /= n;
+         }
+      },
+      [multi],
+   );
+   const solids = useMemo(() => (out: AABB[]) => courseSolids(multi.view, clock.ms, camera.position.x, camera.position.y, camera.position.z, out), [multi, clock, camera]);
    const decorSeed = 20261025;
    return (
       <JuiceLayer>
@@ -225,7 +248,8 @@ export default function MultiScene() {
             <PlayerRing key={i} multi={multi} index={i} ground={grounds[i]} />
          ))}
          <PlayerInputLatch />
-         <MultiSimulation multi={multi} anims={anims} clock={clock} won={won} />
+         <MultiSimulation multi={multi} anims={anims} clock={clock} won={won} orbit={orbit} />
+         <OrbitDriver orbit={orbit} travel={travel} />
          <GroundProbes multi={multi} clock={clock} grounds={grounds} />
          <SharedCamera
             points={points}
@@ -236,6 +260,8 @@ export default function MultiScene() {
             maxSpan={MP_CAMERA.maxSpan}
             padding={MP_CAMERA.padding}
             fov={FOV}
+            orbit={orbit}
+            solids={solids}
          />
       </JuiceLayer>
    );
