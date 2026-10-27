@@ -426,6 +426,9 @@ export const MODEL_MANIFEST: readonly string[] = [
    // fitted and placed in games/pigeon-crossing (assets.ts, Decor.tsx)
    "/models/3d/pigeon-crossing/streetLampNight.glb",
    "/models/3d/pigeon-crossing/rushTaxi.glb",
+   // tower-climb storm decor (2026-10-25): batch 5 part B adoption, Gen-2.5-Medium, optimized GLB;
+   // frames levels 4-5 (Storm Tower, Sky Tower) beside the column. Fit in games/tower-climb/assets.ts.
+   "/models/3d/tower-climb/stormCloud.glb",
 ];
 
 const LISTED: ReadonlySet<string> = new Set(MODEL_MANIFEST);
