@@ -429,6 +429,9 @@ export const MODEL_MANIFEST: readonly string[] = [
    // tower-climb storm decor (2026-10-25): batch 5 part B adoption, Gen-2.5-Medium, optimized GLB;
    // frames levels 4-5 (Storm Tower, Sky Tower) beside the column. Fit in games/tower-climb/assets.ts.
    "/models/3d/tower-climb/stormCloud.glb",
+   // penalty-hero finalTrophy (2026-10-25): the final's presentation cup (text-to-3D batch, optimized);
+   // level 4-5 decor behind the goal, placed in games/penalty-hero/assets.ts
+   "/models/3d/penalty-hero/finalTrophy.glb",
 ];
 
 const LISTED: ReadonlySet<string> = new Set(MODEL_MANIFEST);
