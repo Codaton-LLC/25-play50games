@@ -41,6 +41,13 @@ Games stay separate, as the user decided. Each one is its own page and leaderboa
 6. **Secrets:** 1 to 3 hidden things per level, such as colour shards, a hidden sticker or a shortcut. They are found by exploring or by using a hero power.
 7. **Teach by playing:** level 1 teaches the mechanic in 3 safe beats with no text walls. Levels 2 to 4 each add one twist. Level 5 is the boss plus everything combined.
 8. **Performance:** 60 fps on a mid phone, at most 50 draw calls and 300k triangles per frame, and no void and no hero hidden at 390×844, 844×390, 768×1024 and 1280×800.
+10. **Free orbit camera** (user, 2026-10-28): the player can rotate the camera around the hero:
+   - Desktop: drag with the mouse, zoom with the wheel, or use keys.
+   - Phone and tablet: rotate with two fingers, pinch to zoom.
+   - The player can look from behind, the front, the sides or from above; pitch is clamped.
+   - Movement is camera-relative, and auto-follow swings the camera back behind the hero gently.
+   - Camera collision keeps the hero visible.
+   - Shared system `menu2/camera`.
 9. **Originality:** no turtles, ninja, masks, katanas, sai, nunchaku, pizza, sewers, rats, sensei or throwing stars. Use discs, not stars, and generic ancient ruins, not a dojo.
 
 ## Shared systems: built once in `src/arcade3d/menu2/`, before more games
