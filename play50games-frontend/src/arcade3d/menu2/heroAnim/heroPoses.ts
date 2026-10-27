@@ -419,7 +419,7 @@ export function hurtPose(t: number, out: HumanoidPose): HumanoidPose {
    armsDownPose(out);
    const k = Math.exp(-t * 4);
    const shake = Math.sin(t * 38) * Math.exp(-t * 6);
-   for (let side = 1; side >= -1; side -= 2) {
+   for (const side of [1, -1] as const) {
       aimArm(out, side, lerp(0.3, 0.75, k), lerp(-0.9, 0.2, k), lerp(0.2, 0.65, k), 0.25, lerp(-0.6, 0.5, k), 0.8);
    }
    setLeg(out, 1, 0.45 * k, 0.06);
