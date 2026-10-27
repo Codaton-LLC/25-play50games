@@ -418,6 +418,9 @@ export const MODEL_MANIFEST: readonly string[] = [
    // office-escape exec decor (2026-10-25): batch 5 extra GLB, adopted as corridor decor drawn only
    // on levels 4-5 (games/office-escape/assets.ts, Scene.tsx)
    "/models/3d/office-escape/execDesk.glb",
+   // robot-collector hazard beacon (2026-10-25): Hyper3D prop copied in by Claude; decor on the
+   // wall trim of levels 4-5 (Dark Storage / Mega Warehouse), adopted in games/robot-collector
+   "/models/3d/robot-collector/hazardBeacon.glb",
 ];
 
 const LISTED: ReadonlySet<string> = new Set(MODEL_MANIFEST);
