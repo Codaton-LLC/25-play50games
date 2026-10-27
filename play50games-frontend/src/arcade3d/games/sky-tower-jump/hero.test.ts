@@ -168,6 +168,16 @@ describe("sky-tower-jump: the run -> the animator's motion", () => {
       anim.bounceAt = 1;
       writeHeroMotion(m, memo, run, anim, 1);
       expect(m.rolling).toBe(true);
+      // landing straight onto a pad: the Scene stamps landAt and bounceAt in the same frame
+      const onPad = createHeroAnim();
+      onPad.landAt = 2;
+      onPad.bounceAt = 2;
+      writeHeroMotion(m, createMotionMemo(), run, onPad, 2);
+      expect(m.rolling).toBe(true);
+      // the flight's own landing afterwards ends the ball
+      onPad.landAt = 3;
+      writeHeroMotion(m, createMotionMemo(), run, onPad, 3);
+      expect(m.rolling).toBe(false);
       const intro = createHeroAnim();
       intro.intro = 0.4;
       const run2 = createRun(1, 1, "riko");

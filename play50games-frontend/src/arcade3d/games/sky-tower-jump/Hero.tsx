@@ -70,8 +70,9 @@ export function writeHeroMotion(m: HeroMotion, memo: MotionMemo, run: SkyRun, an
    }
    m.grounded = h.grounded && h.state === "play";
    m.power = h.dashUntil >= ms ? "dash" : h.shieldUntil >= ms ? "shield" : h.magnetUntil >= ms ? "magnet" : h.phaseUntil >= ms ? "phase" : null;
-   // the ball: a bounce flight (from the pad until it lands), the intro's drop, and a fall (lost)
-   const bounced = !h.grounded && anim.bounceAt > anim.landAt && h.arcV >= V_BOUNCE - 1e-9;
+   // the ball: a bounce flight (from the pad until it lands), the intro's drop, and a fall (lost).
+   // A landing straight onto a pad stamps landAt and bounceAt in the same frame (equal): still a bounce.
+   const bounced = !h.grounded && anim.bounceAt >= anim.landAt && h.arcV >= V_BOUNCE - 1e-9;
    const introDrop = !Number.isNaN(anim.intro) && anim.intro < 0.97;
    m.rolling = h.state === "lost" || introDrop || bounced;
    if (introDrop) {
