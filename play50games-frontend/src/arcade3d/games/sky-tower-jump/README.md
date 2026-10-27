@@ -19,10 +19,17 @@ ride moving stone blocks, cross plank bridges, launch off blue bounce pads, ligh
 beacons and reach the sky gate at the top. Golden orbs take 0.4 s off your time each. A fall
 costs time and sends you back to the last beacon.
 
-- Keyboard: WASD / arrows move (screen-relative: up = away from the camera), Space jumps, E or Enter uses the hero power.
+- Keyboard: WASD / arrows move (camera-relative: up = away from the camera, whichever way it is turned), Space jumps, E or Enter uses the hero power.
+- **Free orbit camera** (shared `menu2/camera`, README there): drag with the left or right mouse button (or one finger on empty
+  canvas / two fingers on touch) to turn round the hero, from behind, the sides, the front or above (pitch -5°..80°); the
+  wheel or a pinch zooms (4-15 m); Q / Z turn left, C / X right, R / F tilt, V (or the touch recenter button above Jump /
+  Power) swings back behind the hero. After 2.5 s without camera input it slowly follows behind the hero's travel. The yaw is
+  part of the rules' input (`StepInput.yaw`), so the bots and the proof are unchanged (`orbit.test.ts`). Platforms between
+  the camera and the hero pull the camera in (`courseSolids`). The intro ends on the orbit's first pose. Local multiplayer:
+  the shared camera turns round the group (mouse, two fingers or P1's camera keys), every stick relative to it.
 - Touch: the core joystick + Jump + a Power button (`touchLabels.action`). **The same timing for both** (decision 7): one jump press
   and one action press (`jumpPressed`, `actionPressed`), the same 130 ms buffer and 100 ms coyote time, no device-specific help.
-- Before the run, a hero row on the start card picks Riko (Dash), Nami (Double Jump), Kiro (Shield), Zuno (Magnet) or Vexa (Phase). The pick is the next run's option (`heroes.ts`), not localStorage.
+- The shared Menu 2 hero picker (`menu2/heroes`) picks Riko (Dash), Nami (Double Jump), Kiro (Shield), Zuno (Magnet) or Vexa (Phase) on the start card, in the pause menu and on the result screen (a "change hero" chip on phones). The pick is the next run's option; a running run keeps its hero. Preselected: the player's own last pick in this game, else **Nami** (W2 Sky & Sea's lead hero, `defaultHeroFor`). The shared module stores it; the game never writes localStorage.
 
 ## Files
 
@@ -35,17 +42,17 @@ costs time and sends you back to the last beacon.
 | `heroes.ts` | the five heroes, power durations, and the run-option pick |
 | `rules.ts` | pure rules: the course, the ms clock, movement, collisions, movers, pads, checkpoints, falls, orbs, the finish, the lower bound and `PROPOSED_LEVEL_LIMITS` |
 | `bot.ts` | the honest bot (tests, and `?autoplay=1` on preview builds for screenshots) |
-| `camera.ts` | the follow camera goal, the play pose, the intro keyframes (pure) |
+| `camera.ts` | the orbit camera's tuning (`SKY_ORBIT`), pivot with lead, play pose (= the orbit's first pose), solid boxes for its collision, the intro keyframes, the old follow goal (pure) |
 | `Armadillo.tsx` | the hero's code stand-in (fallback) and the ball of plates it curls into |
 | `look.ts` | palette, canvas textures (clouds, glows, waterfall, pad arrow), the billboard shader |
 | `World.tsx` | sky, cloud sea and banks, background islands and castles, waterfalls, motes, rock roots |
 | `Course.tsx` | the playable course drawn from the rules' data: islands, checkpoints + beacons + beams, movers, bridges, pads + glows, gate + portal, orbs + halos, ladders |
 | `Hero.tsx` | the hero: the picked hero's GLB animated by `menu2/heroAnim` (`useHeroAnimator` + `<AnimatedHero>`: idle, run, jump, ball-roll on pads; stand-in fallback), blob shadow |
-| `Scene.tsx` | the solo scene (simulation in useRunFrame, `menu2/juice` JuiceLayer, follow camera, the intro camera and the hero's drop); multiplayer runs render `MultiScene.tsx` |
+| `Scene.tsx` | the solo scene (simulation in useRunFrame, `menu2/juice` JuiceLayer, the `menu2/camera` orbit camera, the intro camera and the hero's drop); multiplayer runs render `MultiScene.tsx` |
 | `MultiScene.tsx`, `multiplayer.ts`, `MultiplayerHud.tsx` | local 2-4 players (section below), the same animated heroes and juice |
 | `progression.ts`, `levelEnd.ts`, `StarResult.tsx` | stars, flow (combo), secrets, Menu 2 progress, the star screen on the result card (solo only) |
 | `Hud.tsx` / `Hud.module.css` | the concept-style HUD: orbs, height, title banner, run clock |
-| `rules.test.ts`, `powers.test.ts`, `assets.test.ts` | rules, proof, bots, one test per power, models, definition, camera |
+| `rules.test.ts`, `powers.test.ts`, `assets.test.ts`, `orbit.test.ts` | rules, proof, bots, one test per power, models, definition, camera |
 
 ## Rules
 

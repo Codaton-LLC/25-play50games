@@ -2,14 +2,16 @@
 // with closed-form jumps, moving platforms as functions of rules time, bounce pads, checkpoints,
 // falls and respawns (dead time = the time penalty), orbs (a time bonus), the finish, and the
 // lower bound behind the server limits. Pure and deterministic: no three.js, React, DOM,
-// Math.random or Date.now. Scene.tsx maps the stick with inputToWorld(moveX, moveY, 0) and calls
-// step() once per useRunFrame; rules.test.ts and bot.ts drive it directly.
+// Math.random or Date.now. Scene.tsx passes the stick as inputToWorld(moveX, moveY, 0) plus the
+// orbit camera's yaw (StepInput.yaw), and step() turns it camera-relative with core inputToWorld, so
+// the yaw is part of the input every step reads; rules.test.ts and bot.ts drive it directly (yaw 0).
 //
 // Clock: whole ms, the fraction carried to the next step (as obstacle-race), stepped 1 ms at a time,
 // so a jump arc depends only on the ms since take-off and is the same at 30, 60 or 144 fps.
 // No allocation after createRun(): the hero and the events object are rewritten in place.
 // README.md "Rules" and "Server limits" explain the design and the proof; rules.test.ts checks them.
 import { resolveSphereAabb, type AABB, type Vec3Like } from "@/arcade3d/core/collision";
+import { inputToWorld } from "@/arcade3d/core/math";
 import type { RunState } from "@/arcade3d/core/types";
 import type { LevelId } from "@/arcade3d/types";
 import { MAGNET_REACH, POWER_MS, V_DASH, heroById, type HeroId } from "./heroes";
@@ -471,9 +473,19 @@ export interface Hero extends Vec3Like {
 
 /** One frame of input. Scene fills one object per run and passes it every step. */
 export interface StepInput {
-   /** the stick in world space: inputToWorld(moveX, moveY, 0), so up is -z. Length <= 1 (longer is normalised). */
+   /**
+    * The stick at camera yaw 0: inputToWorld(moveX, moveY, 0), so up is -z. Length <= 1 (longer is
+    * normalised). step() turns it by `yaw`.
+    */
    moveX: number;
    moveZ: number;
+   /**
+    * The camera yaw the stick is relative to (rad, core fitView / menu2 orbit convention; the orbit
+    * camera's viewYaw). step() maps (moveX, moveZ) with inputToWorld(moveX, moveZ, yaw), so "up" moves
+    * away from the camera. 0 or omitted (bots, tests) = the stick is already world space. Turning
+    * keeps the length, so the proof's speed bounds hold for any yaw.
+    */
+   yaw?: number;
    /** a jump press this frame (the core's jumpPressed: keyboard and touch alike), latched at the frame's first ms */
    jumpPressed: boolean;
    /**
@@ -484,7 +496,7 @@ export interface StepInput {
 }
 
 export function createStepInput(): StepInput {
-   return { moveX: 0, moveZ: 0, jumpPressed: false, actionPressed: false };
+   return { moveX: 0, moveZ: 0, yaw: 0, jumpPressed: false, actionPressed: false };
 }
 
 /** What happened in one step. The same object every step, reset at its start. */
@@ -788,6 +800,8 @@ export function advanceClock(run: SkyRun, dtMs: number): number {
 }
 
 const finite = (v: number): number => (Number.isFinite(v) ? v : 0);
+/** scratch for the camera-relative stick (step() is not re-entrant) */
+const TURNED = { x: 0, z: 0 };
 
 /**
  * One frame: `dtMs` is useRunFrame's dt · 1000. Each whole ms: simMs += 1; the ms that reaches the
@@ -804,6 +818,12 @@ export function step(run: SkyRun, dtMs: number, input: StepInput): StepEvents {
    if (input.actionPressed) run.actionMs = run.simMs + 1;
    let mx = finite(input.moveX);
    let mz = finite(input.moveZ);
+   const yaw = finite(input.yaw ?? 0);
+   if (yaw !== 0) {
+      const turned = inputToWorld(mx, mz, yaw, TURNED);
+      mx = turned.x;
+      mz = turned.z;
+   }
    const len = Math.sqrt(mx * mx + mz * mz);
    if (len > 1) {
       mx /= len;
