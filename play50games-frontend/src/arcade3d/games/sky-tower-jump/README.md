@@ -236,17 +236,26 @@ the rig back by the sole centre. The tail is not a limb: `hemY` sits under it an
 shins only, so the tail tip is skirt-weighted to the hips and the spine (`hero.test.ts`).
 
 The **code stand-in** `Armadillo.tsx` stays the fallback (Riko red plates, glowing seams, open
-helmet and visor, tan muzzle, charcoal suit). The **ball of plates** is still that stand-in's
-mesh (`ArmadilloBall`): bounce pads, the intro drop and a fall curl into it and spin with the
-speed. Nami, Kiro, Zuno and Vexa reuse `m2HeroRiko.glb` with a white material and `HumanoidModel`
-`tint` in that hero's colour (a stand-in until each hero has a mesh). The curl ball stays Riko red.
-The old turtle GLBs (`m2Hero1/2/3`, `turtleNinja`) are not used.
+helmet and visor, tan muzzle, charcoal suit). Each hero is drawn from its own GLB
+(`menu2/heroModels.ts`). The old turtle GLBs (`m2Hero1/2/3`, `turtleNinja`) are not used.
 
-Posed every frame (`stepHeroPose`, then the rig): `walkPose` on the rig's own stride (capped at
-5 strides a second: at 6.5 m/s the own stride is 0.83 m, so the cap stretches it and the planted
-foot slides about a third of the step), `jumpPose` in the air, `cheerPose` at the gate, bob and
-lean, landing squash, a pop-in on respawn. The stand-in, while it is showing, still swings its
-own joints from the same pose.
+**Animation (2026-10-27): the shared Menu 2 animator** (`menu2/heroAnim`, its README). `Hero.tsx`
+turns the run into a `HeroMotion` every frame (`writeHeroMotion`, pure, `hero.test.ts`): velocity,
+grounded, the power that is up, the ball (bounce flights, the intro drop, a fall), the cheer at the
+gate, and one-frame events (jump, Nami's double jump = her air jump spent in the air, landing with
+its fall speed, a lightning hit = lost while standing). `useHeroAnimator` + `<AnimatedHero>` then
+blend idle (breathing, looking around), the run with planted feet (`heroStride`, about 5 strides a
+second at 6.5 m/s, no foot slide), takeoff / rise / fall / land squash, Nami's somersault, the
+ball-roll (the hero curls and an armoured shell in its own colours closes round it and rolls with
+the travel speed), Riko's dash streak, hurt and cheer. The respawn pop-in, the fall's shrink, the
+spin at the gate and the blob shadow stay in `Hero.tsx`.
+
+**Juice:** the Scene is wrapped in the shared `menu2/juice` `<JuiceLayer>` (at most 3 draw calls for
+every particle and popup): pickup glints and `-0.4 s` popups on orbs, landing dust with a small
+camera thump, bounce-pad sparks with an upward kick, a 45 ms hit-stop and shake, checkpoint fountains
+with a popup and a 40 ms hit-stop, a fall's hit glints, dust, shake and a 90 ms hit-stop, the power's
+burst and aura in the hero's colour, and a big fountain at the gate. Hit-stop slows only the visuals;
+the rules step by `useRunFrame`'s dt, so the run clock and every proof are unchanged.
 
 ## Intro (core/intro, opted in)
 
@@ -277,10 +286,9 @@ copy per grounded frame), which a real player does not pay. No per-frame allocat
 
 ## Known gaps vs the concept (for the sign-off)
 
-1. **The curl is still the code ball** (the GLB has no roll pose). The sculpted hero shows while
-   it runs and jumps; bounce pads, falls and the intro drop swap in the ball of plates.
-2. **The other four heroes are tints of Riko's mesh** (white material × the hero colour). Their own
-   GLBs are not in this task.
+1. **The curl is a code-built shell** (menu2/heroAnim `HeroBall`) round the curled GLB body, in the
+   hero's colours; the GLB itself has no ball mesh.
+2. ~~The other four heroes are tints of Riko's mesh~~: each hero is now its own GLB (`menu2/heroModels.ts`).
 3. **Rock roots** under the islands are low-poly code rock, flatter than the concept's sculpted cliffs.
 4. **No real shadows** (blob shadow only); the concept's soft contact shadows are not there.
 5. **Clouds are billboards** (soft but flat when the camera passes close); no volumetric clouds.

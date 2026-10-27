@@ -5,12 +5,13 @@
 // m2HeroRiko.glb must be re-measured.
 import { beforeAll, describe, expect, it } from "vitest";
 import { BONE, computeSkinWeights } from "@/arcade3d/core/rig/humanoid";
-import { armsDownPose, createPose, gaitPhaseStep, walkStride } from "@/arcade3d/core/rig";
+import { armsDownPose, createPose, walkStride } from "@/arcade3d/core/rig";
+import { createHeroMotion, heroStride } from "@/arcade3d/menu2/heroAnim";
 import { describeCharacter, rigCharacter, type RiggedCharacter } from "@/arcade3d/core/rig/characterChecks";
 import { readCharacterGlb } from "@/arcade3d/core/rig/robotGlb";
 import { ASSETS, RIKO_GLB_HEIGHT, RIKO_LANDMARKS, RIKO_SCALE } from "./assets";
-import { HERO_CADENCE } from "./Hero";
-import { V_RUN } from "./rules";
+import { createHeroAnim, createMotionMemo, writeHeroMotion } from "./Hero";
+import { V_BOUNCE, V_RUN, createRun, createStepInput, step } from "./rules";
 
 const L = RIKO_LANDMARKS;
 
@@ -47,12 +48,12 @@ describe("sky-tower-jump m2HeroRiko.glb", () => {
       hipHalfWidth: 0.2,
    });
 
-   it("caps a full run at 5 strides a second (the own stride would buzz at 8)", () => {
+   it("runs on the shared animator's stride: the planted foot stays put at about five strides a second (the walk's own stride would buzz at 8)", () => {
       const own = walkStride(1, L) * RIKO_SCALE;
-      expect(own).toBeGreaterThan(0.7);
-      expect(own).toBeLessThan(V_RUN / HERO_CADENCE);
-      const step = gaitPhaseStep(1, L, RIKO_SCALE, V_RUN, 1, HERO_CADENCE);
-      expect(step).toBeCloseTo(HERO_CADENCE * Math.PI * 2, 6);
+      expect(V_RUN / own).toBeGreaterThan(7);
+      const cadence = V_RUN / (heroStride(1, L) * RIKO_SCALE);
+      expect(cadence).toBeGreaterThan(4);
+      expect(cadence).toBeLessThan(6);
    });
 
    it("its scale draws it 1.45 m tall, feet on y = 0", async () => {
@@ -127,5 +128,72 @@ describe("sky-tower-jump m2HeroRiko.glb: the arms", () => {
       }
       // the T-pose reach is 0.75; a hanging arm stays in under half of that
       expect(widest).toBeLessThan(0.55);
+   });
+});
+
+describe("sky-tower-jump: the run -> the animator's motion", () => {
+   it("velocity, grounded and the power from the run; one-frame events from the Scene's stamps, once each", () => {
+      const run = createRun(1, 1, "riko");
+      const anim = createHeroAnim();
+      const m = createHeroMotion();
+      const memo = createMotionMemo();
+      run.hero.vx = 3;
+      writeHeroMotion(m, memo, run, anim, 0);
+      expect(m.vx).toBe(3);
+      expect(m.grounded).toBe(true);
+      expect(m.power).toBeNull();
+      expect(m.rolling).toBe(false);
+      expect(m.events.jumped).toBe(false);
+      anim.jumpAt = 1;
+      writeHeroMotion(m, memo, run, anim, 1);
+      expect(m.events.jumped).toBe(true);
+      m.events.jumped = false;
+      writeHeroMotion(m, memo, run, anim, 1.1);
+      expect(m.events.jumped).toBe(false);
+      anim.landAt = 2;
+      writeHeroMotion(m, memo, run, anim, 2);
+      expect(m.events.landed).toBe(true);
+      anim.winAt = 3;
+      writeHeroMotion(m, memo, run, anim, 3.5);
+      expect(m.celebrating).toBe(true);
+   });
+
+   it("a bounce flight and the intro's drop roll the hero into its ball; Riko's dash is the dash streak", () => {
+      const run = createRun(1, 1, "riko");
+      const anim = createHeroAnim();
+      const m = createHeroMotion();
+      const memo = createMotionMemo();
+      run.hero.grounded = false;
+      run.hero.arcV = V_BOUNCE;
+      anim.bounceAt = 1;
+      writeHeroMotion(m, memo, run, anim, 1);
+      expect(m.rolling).toBe(true);
+      const intro = createHeroAnim();
+      intro.intro = 0.4;
+      const run2 = createRun(1, 1, "riko");
+      writeHeroMotion(m, memo, run2, intro, 0);
+      expect(m.rolling).toBe(true);
+      expect(m.grounded).toBe(false);
+      const run3 = createRun(1, 1, "riko");
+      const input = createStepInput();
+      input.actionPressed = true;
+      step(run3, 20, input);
+      writeHeroMotion(m, createMotionMemo(), run3, createHeroAnim(), 0);
+      expect(m.power).toBe("dash");
+      expect(Math.hypot(m.vx, m.vz)).toBeGreaterThan(V_RUN);
+   });
+
+   it("Nami's double jump (her air jump spent in the air) is the somersault", () => {
+      const run = createRun(1, 1, "nami");
+      const anim = createHeroAnim();
+      const m = createHeroMotion();
+      const memo = createMotionMemo();
+      run.hero.grounded = false;
+      writeHeroMotion(m, memo, run, anim, 0);
+      run.hero.airJump = false;
+      anim.jumpAt = 0.5;
+      writeHeroMotion(m, memo, run, anim, 0.5);
+      expect(m.events.airJumped).toBe(true);
+      expect(m.events.jumped).toBe(false);
    });
 });
