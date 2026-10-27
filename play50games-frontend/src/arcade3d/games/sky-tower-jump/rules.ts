@@ -15,6 +15,9 @@ import type { LevelId } from "@/arcade3d/types";
 import { MAGNET_REACH, POWER_MS, V_DASH, heroById, type HeroId } from "./heroes";
 import { LEVELS, type SkyLevel } from "./levels";
 import { buildTower, type TowerStrike } from "./tower";
+import { comboBreak, comboHit, comboMaxBonus, comboTick, createCombo, type ComboLevelSpec, type ComboState } from "@/arcade3d/menu2/combo/combo";
+import { collectSecret, createSecretTracker, type SecretTracker } from "@/arcade3d/menu2/secrets/secrets";
+import { COMBO, COMBO_BASE_MS, SECRETS } from "./progression";
 
 // ---------- tuning (1 unit = 1 m, forward is -z, up is +y) ----------
 
@@ -100,6 +103,8 @@ export interface Course {
    wind: boolean;
    /** lightning on island rims; the centre of each island is outside the strike */
    strikes: TowerStrike[];
+   /** the level's secrets (progression.ts SECRETS, same order): where each floats; no score */
+   secrets: Vec3Like[];
 }
 
 export type { TowerStrike };
@@ -182,7 +187,61 @@ function finishCourse(supports: Support[], level: SkyLevel, orbs: Orb[], strikes
    const goal = supports.findIndex((s) => s.kind === "goal");
    let maxCarry = 0;
    for (const s of supports) if (s.mover) maxCarry = Math.max(maxCarry, moverTopSpeed(s.mover));
-   return { supports, checkpoints, goal, orbs, durationMs: level.durationMs, maxCarry, strikes, wind };
+   const course: Course = { supports, checkpoints, goal, orbs, durationMs: level.durationMs, maxCarry, strikes, wind, secrets: [] };
+   course.secrets = secretSpots(course, level.id);
+   return course;
+}
+
+/**
+ * Where the level's secrets float (README "Stars, flow, secrets"):
+ * - "pad-sky": straight over the first bounce pad, just under the bounce apex's chest height;
+ * - "ledge": off the far side of the static island nearest the route's middle, 1.4 m past its edge;
+ * - "gate": beside the last gap before the goal, 2.6 m to the side and 1.4 m over the goal's top.
+ */
+export function secretSpots(course: Course, level: LevelId): Vec3Like[] {
+   const sup = course.supports;
+   return SECRETS[level].map((spec) => {
+      if (spec.id === "pad-sky") {
+         const pad = sup.find((s) => s.pad) ?? sup[course.checkpoints[Math.min(1, course.checkpoints.length - 1)]];
+         const lift = pad.pad ? H_BOUNCE : H_JUMP;
+         return { x: pad.cx, y: pad.top + lift + ORB.centerY - 0.45, z: pad.cz };
+      }
+      if (spec.id === "ledge") {
+         const mid = Math.floor(sup.length / 2);
+         let k = mid;
+         for (let d = 0; d < sup.length; d++) {
+            const a = sup[mid + d];
+            if (a && a.kind === "island" && !a.mover && !a.pad) {
+               k = mid + d;
+               break;
+            }
+            const b = sup[mid - d];
+            if (b && b.kind === "island" && !b.mover && !b.pad) {
+               k = mid - d;
+               break;
+            }
+         }
+         const s = sup[k];
+         const next = sup[Math.min(sup.length - 1, k + 1)];
+         const side = next.cx >= s.cx ? -1 : 1;
+         return { x: s.cx + side * (s.hw + 1.4), y: s.top + 1.0, z: s.cz };
+      }
+      const g = sup[course.goal];
+      const before = sup[Math.max(0, course.goal - 1)];
+      const side = g.cx >= before.cx ? 1 : -1;
+      return { x: (g.cx + before.cx) / 2 + side * 2.6, y: g.top + 1.4, z: (g.cz + g.hd + before.cz) / 2 };
+   });
+}
+
+/** What the course can feed the flow meter: every orb once, the first landing on each platform but the start. */
+export function comboSpecOf(course: Course): ComboLevelSpec {
+   return {
+      combo: COMBO,
+      sources: [
+         { count: course.orbs.length, base: COMBO_BASE_MS.orb },
+         { count: course.supports.length - 1, base: COMBO_BASE_MS.island },
+      ],
+   };
 }
 
 /** Level 1, unchanged: the hand-built rows. Levels 2-5: buildTower. */
@@ -321,9 +380,9 @@ export function minFinishMs(course: Course, vRun = V_RUN): number {
    return minArrivalMs(course, vRun)[course.goal];
 }
 
-/** The least submitted duration: the least finish minus every orb's bonus (README proof step 5). */
+/** The least submitted duration: the least finish minus every orb's bonus and the most flow bonus (README proof steps 5-6). */
 export function minDurationMsOf(course: Course): number {
-   return minFinishMs(course) - course.orbs.length * ORB.bonusMs;
+   return minFinishMs(course) - course.orbs.length * ORB.bonusMs - comboMaxBonus(comboSpecOf(course));
 }
 
 // ---------- limits per level (README "Server limits"; meta.ts and arcade-games.json copy these) ----------
@@ -337,18 +396,32 @@ export interface LevelLimits {
 }
 
 /**
- * Level 1's limits, unchanged. Levels 2-5 are filled in after courseFor (the bound needs the course).
+ * The least submitted duration with Riko's dashes: a dash is on for at most POWER_MS.dash + 1 ms at
+ * V_DASH, so it saves at most (POWER_MS.dash + 1) (V_DASH - V_RUN) / V_RUN ms of the summed bound; a
+ * run that finishes at T fired at most 1 + floor(T / cooldown) dashes. The least such T, less every
+ * orb's bonus and the most flow bonus.
+ */
+export function dashFloorMs(course: Course): number {
+   const F = minFinishMs(course);
+   const perDash = ((POWER_MS.dash + 1) * (V_DASH - V_RUN)) / V_RUN;
+   const cooldown = heroById("riko").cooldownMs;
+   let T = 0;
+   while (T + perDash * (1 + Math.floor(T / cooldown)) < F) T += 1;
+   return T - course.orbs.length * ORB.bonusMs - comboMaxBonus(comboSpecOf(course));
+}
+
+/**
+ * minDurationMs = the bound less about 4.5 %, rounded down to 100 ms, still inside 94-100 % of the bound.
+ * Every level, level 1 included (the flow bonus moved level 1's bound, so its old 11 500 row went).
  * meta.ts publishes PROPOSED_LEVEL_LIMITS per level and arcade-games.json repeats it (registry.sync.test.ts).
  */
-export const LEVEL1_LIMITS: LevelLimits = { kind: "time", maxScore: 7850, minDurationMs: 11500, maxDurationMs: 90000, timeBaseMs: 90000 };
-
-/** minDurationMs = the bound less about 4.5 %, rounded down to 100 ms, still inside 94-100 % of the bound. */
-export function proposeLimits(id: LevelId, course: Course): LevelLimits {
-   if (id === 1) return LEVEL1_LIMITS;
+export function proposeLimits(_id: LevelId, course: Course): LevelLimits {
    const lb = minDurationMsOf(course);
    let minDurationMs = Math.floor((lb * 0.955) / 100) * 100;
    if (minDurationMs < lb * 0.94) minDurationMs = Math.ceil((lb * 0.94) / 100) * 100;
    if (minDurationMs > lb) minDurationMs = Math.floor(lb);
+   // never above what Riko's dashes can reach (README proof step 7; the test re-derives it)
+   minDurationMs = Math.min(minDurationMs, Math.floor(dashFloorMs(course) / 100) * 100);
    const timeBaseMs = course.durationMs;
    return { kind: "time", maxScore: Math.floor((timeBaseMs - minDurationMs) / 10), minDurationMs, maxDurationMs: course.durationMs, timeBaseMs };
 }
@@ -432,6 +505,12 @@ export interface StepEvents {
    timeup: boolean;
    /** a hero power actually fired this step (a press on cooldown does not) */
    powered: boolean;
+   /** flow bonus (ms) paid in this step, and whether a link was added */
+   comboBonus: number;
+   comboLinked: boolean;
+   /** secrets found in this step: their indices in secretList[0..secretCount) */
+   secretCount: number;
+   secretList: number[];
 }
 
 export interface SkyRun {
@@ -459,6 +538,14 @@ export interface SkyRun {
    collected: Uint8Array;
    orbs: number;
    finishMs: number;
+   /** the flow meter (menu2/combo): combo.bonusTotal ms come off the submitted time */
+   combo: ComboState;
+   /** 1 = landed on this support before (a first landing is a flow link) */
+   visited: Uint8Array;
+   /** the level's secrets found (progression.ts SECRETS order) */
+   secrets: SecretTracker;
+   /** falls and strikes taken (0 = the no-hit badge) */
+   hits: number;
    /** the highest top stood on (HUD "height") */
    bestTop: number;
    ended: "win" | "timeup" | null;
@@ -468,7 +555,24 @@ export interface SkyRun {
 function createEvents(): StepEvents {
    const orbList = new Array<number>(32);
    for (let i = 0; i < orbList.length; i++) orbList[i] = 0;
-   return { jumped: false, bounced: false, landed: false, landedOn: NONE, checkpoint: NONE, orbCount: 0, orbList, lost: false, respawned: false, finished: false, timeup: false, powered: false };
+   return {
+      jumped: false,
+      bounced: false,
+      landed: false,
+      landedOn: NONE,
+      checkpoint: NONE,
+      orbCount: 0,
+      orbList,
+      lost: false,
+      respawned: false,
+      finished: false,
+      timeup: false,
+      powered: false,
+      comboBonus: 0,
+      comboLinked: false,
+      secretCount: 0,
+      secretList: [0, 0, 0],
+   };
 }
 
 function resetEvents(ev: StepEvents): void {
@@ -483,6 +587,9 @@ function resetEvents(ev: StepEvents): void {
    ev.finished = false;
    ev.timeup = false;
    ev.powered = false;
+   ev.comboBonus = 0;
+   ev.comboLinked = false;
+   ev.secretCount = 0;
 }
 
 const COURSES: Partial<Record<LevelId, Course>> = { 1: COURSE };
@@ -494,12 +601,15 @@ export function courseFor(level: LevelId): Course {
 
 /** Proposed server limits. Level 1 is the shipped row; 2-5 follow proposeLimits on that level's course. */
 export const PROPOSED_LEVEL_LIMITS: Record<LevelId, LevelLimits> = {
-   1: LEVEL1_LIMITS,
+   1: proposeLimits(1, courseFor(1)),
    2: proposeLimits(2, courseFor(2)),
    3: proposeLimits(3, courseFor(3)),
    4: proposeLimits(4, courseFor(4)),
    5: proposeLimits(5, courseFor(5)),
 };
+
+/** Level 1's row (the game's top-level meta.scoring). */
+export const LEVEL1_LIMITS: LevelLimits = PROPOSED_LEVEL_LIMITS[1];
 
 function freshHero(x: number, y: number, z: number, support: number): Hero {
    return {
@@ -555,6 +665,10 @@ export function createRun(seed: number, level: LevelId = 1, heroId: HeroId = "ri
       collected: new Uint8Array(course.orbs.length),
       orbs: 0,
       finishMs: 0,
+      combo: createCombo(),
+      visited: new Uint8Array(course.supports.length),
+      secrets: createSecretTracker(SECRETS[level]),
+      hits: 0,
       bestTop: start.top,
       ended: null,
       events: createEvents(),
@@ -812,6 +926,7 @@ function playMs(run: SkyRun, mx: number, mz: number): void {
    const ms = run.simMs;
    const x0 = h.x;
    const z0 = h.z;
+   comboTick(run.combo, COMBO, ms);
 
    // 1. carry: the mover's own step this ms when grounded on one; in the air the take-off's
    let cx = h.carryX;
@@ -912,6 +1027,12 @@ function playMs(run: SkyRun, mx: number, mz: number): void {
             if (top > run.bestTop) run.bestTop = top;
             ev.landed = true;
             ev.landedOn = s;
+            // a first landing on a platform (the start excluded) is a flow link
+            if (!run.visited[s] && s !== course.checkpoints[0]) {
+               run.visited[s] = 1;
+               ev.comboBonus += comboHit(run.combo, COMBO, ms, COMBO_BASE_MS.island);
+               ev.comboLinked = true;
+            }
          }
       }
    }
@@ -948,6 +1069,21 @@ function playMs(run: SkyRun, mx: number, mz: number): void {
          run.collected[i] = 1;
          run.orbs += 1;
          if (ev.orbCount < ev.orbList.length) ev.orbList[ev.orbCount++] = i;
+         ev.comboBonus += comboHit(run.combo, COMBO, ms, COMBO_BASE_MS.orb);
+         ev.comboLinked = true;
+      }
+   }
+
+   // 8b. secrets (no score): the same reach as an orb, the magnet's too
+   const secrets = course.secrets;
+   for (let i = 0; i < secrets.length; i++) {
+      if (run.secrets.found[i]) continue;
+      const o = secrets[i];
+      const ox = o.x - h.x;
+      const oy = o.y - my;
+      const oz = o.z - h.z;
+      if (ox * ox + oy * oy + oz * oz <= reach * reach && collectSecret(run.secrets, i)) {
+         if (ev.secretCount < ev.secretList.length) ev.secretList[ev.secretCount++] = i;
       }
    }
 
@@ -1003,6 +1139,8 @@ function lose(run: SkyRun): void {
    h.carryZ = 0;
    h.coyoteFrom = NONE;
    h.dashUntil = NONE;
+   run.hits += 1;
+   comboBreak(run.combo);
    run.events.lost = true;
 }
 
@@ -1037,19 +1175,40 @@ function respawn(run: SkyRun): void {
 // ---------- the store hand-off (README "Scoring") ----------
 
 /** HUD and hand-off stats. */
-export const STAT = { orbs: "orbs", height: "height", checkpoint: "checkpoint", finishMs: "finishMs", falls: "falls", hero: "hero", power: "power" } as const;
+export const STAT = {
+   orbs: "orbs",
+   height: "height",
+   checkpoint: "checkpoint",
+   finishMs: "finishMs",
+   falls: "falls",
+   hero: "hero",
+   power: "power",
+   /** the flow bonus (ms) so far: comes off the submitted time */
+   comboMs: "comboMs",
+   /** the HUD meter: chain length, multiplier x100, window left in tenths */
+   comboChain: "comboChain",
+   comboMult: "comboMult",
+   comboFlow: "comboFlow",
+   /** set before end("win") for the star screen: STAR_BIT mask, new-star mask, no-hit (1/0), secrets mask, new-secret count, XP gained */
+   stars: "stars",
+   newStars: "newStars",
+   noHit: "noHit",
+   secrets: "secrets",
+   newSecrets: "newSecrets",
+   xp: "xp",
+} as const;
 
-/** The run time a player sees and submits: play ms minus the orb bonus, never below 0. */
-export function runTimeMs(playMs: number, orbs: number): number {
-   return Math.max(0, playMs - orbs * ORB.bonusMs);
+/** The run time a player sees and submits: play ms minus the orb bonus and the flow bonus, never below 0. */
+export function runTimeMs(playMs: number, orbs: number, comboMs = 0): number {
+   return Math.max(0, playMs - orbs * ORB.bonusMs - comboMs);
 }
 
 /**
- * GameDefinition.finalScore: a win submits the finish ms minus the orb bonus (the Scene publishes
- * finishMs and orbs with setStat before end("win")); any other end keeps elapsedMs (unranked anyway).
+ * GameDefinition.finalScore: a win submits the finish ms minus the orb and flow bonus (the Scene
+ * publishes finishMs, orbs and comboMs with setStat before end("win")); any other end keeps elapsedMs (unranked anyway).
  */
 export function finalScore(s: Pick<RunState, "score" | "endReason" | "stats" | "elapsedMs">): { score: number; durationMs: number } {
    const finishMs = s.stats[STAT.finishMs] ?? 0;
-   if (s.endReason === "win" && finishMs > 0) return { score: s.score, durationMs: runTimeMs(finishMs, s.stats[STAT.orbs] ?? 0) };
+   if (s.endReason === "win" && finishMs > 0) return { score: s.score, durationMs: runTimeMs(finishMs, s.stats[STAT.orbs] ?? 0, s.stats[STAT.comboMs] ?? 0) };
    return { score: s.score, durationMs: s.elapsedMs };
 }

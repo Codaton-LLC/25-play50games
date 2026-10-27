@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import type { ArcadeGameMeta } from "../types";
+import { useEffect, useState, type ReactNode } from "react";
+import type { ArcadeCollection, ArcadeGameMeta } from "../types";
 import { useBestScore } from "../core/useBestScore";
 import ArcadeCard from "./ArcadeCard";
 import {
@@ -21,6 +21,8 @@ export interface ArcadeGridProps {
    games: ArcadeGameMeta[];
    /** When set, games are grouped into these sections with filter chips. Omitted = one flat grid. */
    collections?: CollectionInfo[];
+   /** A section drawn by its own view instead of the card grid (the Menu 2 world map on preview builds). */
+   sectionViews?: Partial<Record<ArcadeCollection, ReactNode>>;
 }
 
 function CardWithBest({ meta }: { meta: ArcadeGameMeta }) {
@@ -42,7 +44,7 @@ function GameList({ games }: { games: ArcadeGameMeta[] }) {
    );
 }
 
-export default function ArcadeGrid({ games, collections }: ArcadeGridProps) {
+export default function ArcadeGrid({ games, collections, sectionViews }: ArcadeGridProps) {
    const [filter, setFilter] = useState<CollectionFilter>("all");
    const grouped = collections !== undefined;
 
@@ -95,7 +97,7 @@ export default function ArcadeGrid({ games, collections }: ArcadeGridProps) {
                   {section.title}
                </h2>
                <p className={styles.blurb}>{section.blurb}</p>
-               <GameList games={section.games} />
+               {sectionViews?.[section.id] ?? <GameList games={section.games} />}
             </section>
          ))}
       </div>

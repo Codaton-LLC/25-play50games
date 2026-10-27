@@ -741,6 +741,13 @@ export default function GameShell({ meta, definition, exitHref = "/3d" }: GameSh
                            isNewBest={result?.isNewBest ?? false}
                            status={outcome.saving ? null : result?.status ?? null}
                            scoring={resultScoring}
+                           banner={
+                              definition.ResultExtra ? (
+                                 <LevelProvider value={activeLevel}>
+                                    <definition.ResultExtra />
+                                 </LevelProvider>
+                              ) : undefined
+                           }
                            onRetry={() => arcadeStore.getState().restart()}
                            onExit={exit}
                            level={

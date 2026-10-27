@@ -10,6 +10,8 @@ import { useLevel } from "@/arcade3d/core/level";
 import { HEROES, heroById, pickedHero, selectHero, type HeroId } from "./heroes";
 import { STAT, runTimeMs } from "./rules";
 import type { SkyLevel } from "./levels";
+import ComboMeter from "@/arcade3d/menu2/combo/ComboMeter";
+import { COMBO } from "./progression";
 import styles from "./Hud.module.css";
 
 function clockText(ms: number): string {
@@ -58,7 +60,11 @@ export default function Hud() {
    const powerLeft = useArcadeStore((s) => s.stats[STAT.power] ?? 0);
    // a tenth of a second is enough for the clock: 10 renders a second, not one per frame
    const tenths = useArcadeStore((s) => Math.floor((s.stats[STAT.finishMs] || s.elapsedMs) / 100));
-   const shown = runTimeMs(tenths * 100, orbs);
+   const comboMs = useArcadeStore((s) => s.stats[STAT.comboMs] ?? 0);
+   const chain = useArcadeStore((s) => s.stats[STAT.comboChain] ?? 0);
+   const mult = useArcadeStore((s) => s.stats[STAT.comboMult] ?? 100);
+   const flow = useArcadeStore((s) => s.stats[STAT.comboFlow] ?? 0);
+   const shown = runTimeMs(tenths * 100, orbs, comboMs);
    const level = config?.id ?? 1;
    const hero = heroById(HERO_STAT[heroStat] ?? "riko");
    return (
@@ -80,6 +86,7 @@ export default function Hud() {
                <span className={styles.swatch} style={{ background: hero.color }} aria-hidden="true" />
                <span className={styles.value}>{powerLeft > 0 ? `${powerLeft}s` : hero.powerLabel}</span>
             </div>
+            <ComboMeter chain={chain} multiplier={mult / 100} flow={flow / 10} cap={COMBO.cap} />
          </div>
          <div className={styles.center} data-arcade-safe-area="">
             <div className={styles.banner}>

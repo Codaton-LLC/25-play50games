@@ -2,6 +2,7 @@
 // the store, and the server-limit proof (README "Server limits and why they hold") with an honest
 // bot, an idle bot and a spam bot, driven through the real store like the shell does.
 import { describe, expect, it } from "vitest";
+import { comboMaxBonus } from "@/arcade3d/menu2/combo/combo";
 import { advanceRunClock, playedFrameDt } from "@/arcade3d/core/frameLoop";
 import { computeTimeScore, isRankedRun, normalizeRun } from "@/arcade3d/core/scores";
 import { createArcadeStore } from "@/arcade3d/core/useArcadeStore";
@@ -35,6 +36,7 @@ import {
    finalScore,
    minArrivalMs,
    minDurationMsOf,
+   comboSpecOf,
    minFinishMs,
    moverOffset,
    moverTopSpeed,
@@ -70,7 +72,7 @@ function botRun(level: LevelId, fps: number, seed = 1): SkyRun {
 }
 
 /** The submitted duration of a finished run. */
-const submitted = (run: SkyRun) => runTimeMs(run.finishMs, run.orbs);
+const submitted = (run: SkyRun) => runTimeMs(run.finishMs, run.orbs, run.combo.bonusTotal);
 
 describe("the course (level 1, Training Sky)", () => {
    it("climbs 60 m to the goal, with the start, three checkpoints, three pads, four movers, two bridges", () => {
@@ -301,7 +303,7 @@ describe("the lower bound (README proof)", () => {
    }
 
    it("a dash does not pull level 1's least finish under the shipped floor", () => {
-      const dashed = minFinishMs(COURSE, V_DASH) - COURSE.orbs.length * ORB.bonusMs;
+      const dashed = minFinishMs(COURSE, V_DASH) - COURSE.orbs.length * ORB.bonusMs - comboMaxBonus(comboSpecOf(COURSE));
       expect(dashed).toBeGreaterThanOrEqual(LEVEL1_LIMITS.minDurationMs);
    });
 
@@ -318,7 +320,7 @@ describe("the lower bound (README proof)", () => {
          let T = 0;
          // the least T with T + perDash · dashes(T) >= F
          while (T + perDash * (1 + Math.floor(T / cooldown)) < F) T += 1;
-         const floor = T - c.orbs.length * ORB.bonusMs;
+         const floor = T - c.orbs.length * ORB.bonusMs - comboMaxBonus(comboSpecOf(c));
          expect(floor, `level ${level} dashed floor ${floor} vs min ${PROPOSED_LEVEL_LIMITS[level].minDurationMs}`).toBeGreaterThanOrEqual(PROPOSED_LEVEL_LIMITS[level].minDurationMs);
       });
    }
@@ -329,11 +331,11 @@ describe("the lower bound (README proof)", () => {
          return [l.minDurationMs, l.maxDurationMs, l.timeBaseMs, l.maxScore];
       });
       expect(rows).toEqual([
-         [11500, 90000, 90000, 7850],
-         [21400, 120000, 120000, 9860],
-         [28700, 150000, 150000, 12130],
-         [38900, 180000, 180000, 14110],
-         [58300, 240000, 240000, 18170],
+         [10200, 90000, 90000, 7980],
+         [20300, 120000, 120000, 9970],
+         [27200, 150000, 150000, 12280],
+         [37200, 180000, 180000, 14280],
+         [56000, 240000, 240000, 18400],
       ]);
    });
 
@@ -443,6 +445,7 @@ describe("bots (README 'What the bots reached')", () => {
          if (ev.finished) {
             store.getState().setStat(STAT.orbs, run.orbs);
             store.getState().setStat(STAT.finishMs, run.finishMs);
+            store.getState().setStat(STAT.comboMs, run.combo.bonusTotal);
             store.getState().end("win");
          }
       }

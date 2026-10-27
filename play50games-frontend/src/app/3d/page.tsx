@@ -5,8 +5,9 @@ import HeaderWithAuth from "@/components/Header/HeaderWithAuth";
 import Footer from "@/components/Footer/Footer";
 import SectionTabs from "@/components/Nav/SectionTabs";
 import ArcadeGrid from "@/arcade3d/ui/ArcadeGrid";
-import { ARCADE_ENABLED, ARCADE_LEADERBOARD } from "@/arcade3d/flags";
-import { getLiveGames, getVisibleGames, getVisibleSections } from "@/arcade3d/registry";
+import WorldMap from "@/arcade3d/menu2/worldMap/WorldMap";
+import { ARCADE_ENABLED, ARCADE_LEADERBOARD, ARCADE_PREVIEW } from "@/arcade3d/flags";
+import { gameCollection, getLiveGames, getVisibleGames, getVisibleSections } from "@/arcade3d/registry";
 import type { ArcadeCollection } from "@/arcade3d/types";
 import { arcadeJsonLd, serializeJsonLd } from "@/lib/seo/jsonLd";
 import ArcadeScoreSync from "./ArcadeScoreSync";
@@ -78,7 +79,10 @@ const COLLECTION_INFO = [
 function ArcadeSections() {
    const games = getVisibleGames();
    const grouped = getVisibleSections().length > 1;
-   return <ArcadeGrid games={games} collections={grouped ? [...COLLECTION_INFO] : undefined} />;
+   // Menu 2 (Color Roll Heroes) is drawn as its world map on preview builds; the other sections keep the card grid
+   const heroes = games.filter((game) => gameCollection(game) === "rollheroes");
+   const sectionViews = ARCADE_PREVIEW && grouped && heroes.length > 0 ? { rollheroes: <WorldMap games={heroes} preview /> } : undefined;
+   return <ArcadeGrid games={games} collections={grouped ? [...COLLECTION_INFO] : undefined} sectionViews={sectionViews} />;
 }
 
 export default function ArcadePage() {

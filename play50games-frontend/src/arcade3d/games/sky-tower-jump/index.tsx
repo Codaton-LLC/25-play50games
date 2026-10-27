@@ -15,6 +15,7 @@ import { FOG } from "./World";
 import { finalScore } from "./rules";
 import Scene from "./Scene";
 import Hud from "./Hud";
+import StarResult from "./StarResult";
 
 const DESCRIPTIONS: Record<LevelId, string> = {
    1: "Training Sky: wide islands, four moving blocks, three bounce pads, three checkpoints. Reach 60 m.",
@@ -28,6 +29,8 @@ const definition: GameDefinition<SkyLevel> = {
    slug: "sky-tower-jump",
    Scene,
    Hud,
+   // the Menu 2 star screen on the result card (menu2/stars)
+   ResultExtra: StarResult,
    assets: ASSETS,
    // the first frame only: the Scene's follow camera (or the intro) takes over on mount
    camera: { position: [0, 4.4, 10.6], fov: FOV, lookAt: [0, 1.8, -1] },
@@ -40,7 +43,8 @@ const definition: GameDefinition<SkyLevel> = {
    instructions: [
       "Jump from island to island up the sky tower and reach the gate at the top.",
       "Blue pads bounce you high. Moving blocks carry you. Beacons are checkpoints.",
-      "Each orb takes 0.4 s off your time. A fall costs time and sends you back to the last beacon.",
+      "Each orb takes 0.4 s off your time. Chain orbs and new islands to fill the flow meter for a little more.",
+      "A fall costs time, breaks the flow and sends you back to the last beacon. Hidden shards wait off the path.",
       "Power (E, Enter, or the Power button) is your hero's ability. The same timing on touch and keyboard.",
    ],
    // the hero hops and spins at the gate before the result panel
