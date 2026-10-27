@@ -1,12 +1,14 @@
-// The follow camera and the intro's shots (pure, no three.js). The camera sits behind and above the
-// hero (the route climbs towards -z), looks a little ahead and up at the next platform, and frames
-// more height on a portrait screen. Scene.tsx eases towards cameraGoal every frame; the intro's
+// The follow camera and the intro's shots (pure, no three.js). The camera sits behind, above and a
+// little to the side of the hero (a 3/4 view down the run towards -z), looks ahead at the next cloud,
+// and frames more height on a portrait screen. Scene.tsx eases towards cameraGoal every frame; the intro's
 // fly-through (core/intro) ends exactly on playCamera, the pose the follow camera starts from.
 import type { IntroKeyframe } from "@/arcade3d/core/intro";
 import type { Course } from "./rules";
 
 export const FOV = 55;
 export const FOV_PORTRAIT = 66;
+/** the 3/4 view: the camera sits this far to the +x side of the run */
+export const SIDE = 2.4;
 
 export interface CameraGoal {
    px: number;
@@ -49,7 +51,7 @@ export function cameraGoal(
    out.ly = fy + 0.1;
    out.lz = fz - 4.5;
    // the camera keeps its distance to the hero (not to the look-ahead point), rising with the next top
-   out.px = hx * 0.6 + fx * 0.25;
+   out.px = hx * 0.6 + fx * 0.25 + SIDE;
    out.py = hy + 1.1 + up + Math.max(0, ny - hy) * 0.15;
    out.pz = hz + back;
    return out;
@@ -57,33 +59,28 @@ export function cameraGoal(
 
 /** The follow camera's pose on the start platform (the intro ends on it). */
 export function playCamera(course: Course, aspect: number): IntroKeyframe {
-   const start = course.supports[course.checkpoints[0]];
-   const next = course.supports[1];
-   const g = cameraGoal(start.cx, start.top, start.cz + 1.5, next.cx, next.top, next.cz, aspect, { px: 0, py: 0, pz: 0, lx: 0, ly: 0, lz: 0 });
+   const start = course.clouds[course.checkpoints[0]];
+   const next = course.clouds[course.route[1]];
+   const g = cameraGoal(start.cx, start.top, course.startZ, next.cx, next.top, next.cz, aspect, { px: 0, py: 0, pz: 0, lx: 0, ly: 0, lz: 0 });
    return { position: [g.px, g.py, g.pz], lookAt: [g.lx, g.ly, g.lz] };
 }
 
 /**
- * The fly-through: from the sky gate at the top, down along the tower past the checkpoints, to the
+ * The fly-through: from the rainbow bridge at the far end, back along the run past the anchor clouds, to the
  * start (then playCamera). World-space shots built from the course, so a level's layout keeps them.
  */
 export function introKeyframes(course: Course): IntroKeyframe[] {
-   const goal = course.supports[course.goal];
-   const cps = course.checkpoints.slice(1).map((i) => course.supports[i]);
-   const high = cps.length > 0 ? cps[cps.length - 1].top + 11 : goal.top;
-   // the second shot stays between the establishing shot and the first checkpoint, even when a
-   // checkpoint sits only a few metres under the helipad
-   const midY = Math.max(goal.top + 6, (goal.top + 16 + high) / 2);
-   const shots: IntroKeyframe[] = [
-      // establishing: the rainbow arch from out in the sky, then down along the helix
-      { position: [goal.cx + 34, goal.top + 16, goal.cz + 26], lookAt: [goal.cx, goal.top + 4, goal.cz - 4] },
-      { position: [goal.cx + 12, midY, goal.cz + 14], lookAt: [goal.cx, goal.top + 2, goal.cz - 3] },
-   ];
+   const goal = course.clouds[course.goal];
+   const cps = course.checkpoints.slice(1).map((i) => course.clouds[i]);
+   // the establishing shot: the rainbow bridge from high out over the cloud sea
+   const shots: IntroKeyframe[] = [{ position: [goal.cx + 30, goal.top + 18, goal.cz - 10], lookAt: [goal.cx, goal.top + 2, goal.cz] }];
+   // then back along the run over at most three anchor clouds (far to near), each shot a little lower
+   const picks = cps.length <= 3 ? cps.slice() : [cps[cps.length - 1], cps[Math.floor(cps.length / 2)], cps[0]];
+   picks.sort((a, b) => a.cz - b.cz);
    let side = -1;
-   for (let i = cps.length - 1; i >= 0; i--) {
-      const c = cps[i];
-      shots.push({ position: [c.cx + side * 22, c.top + 11, c.cz + 12], lookAt: [c.cx, c.top + 1, c.cz - 3] });
+   picks.forEach((c, k) => {
+      shots.push({ position: [c.cx + side * 16, c.top + 14 - 2 * k, c.cz + 12], lookAt: [c.cx, c.top + 1, c.cz - 6] });
       side = -side;
-   }
+   });
    return shots;
 }

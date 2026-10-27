@@ -105,20 +105,26 @@ describe("definition and camera", () => {
       expect(cloudHopperMeta.collection).toBe("rollheroes");
       expect(cloudHopperMeta.order).toBe(55);
       expect(cloudHopperMeta.owner).toBe("cursor");
+      expect(definition.ResultExtra).toBeDefined();
+      expect(definition.runPlayers?.({} as never)).toBe(1);
       expect(cloudHopperMeta.levels!.map((l) => l.title)).toEqual(["Soft Clouds", "Moving Clouds", "Wind Zone", "Fading Clouds", "Sky Sprint"]);
    });
 
-   it("the intro ends on the follow camera's start pose, and flies from the gate down", () => {
+   it("the intro ends on the follow camera's start pose, and flies back from the bridge", () => {
       const play = playCamera(COURSE, 1.6);
-      const g = cameraGoal(COURSE.supports[0].cx, 0, COURSE.supports[0].cz + 1.5, COURSE.supports[1].cx, COURSE.supports[1].top, COURSE.supports[1].cz, 1.6, { px: 0, py: 0, pz: 0, lx: 0, ly: 0, lz: 0 });
+      const next = COURSE.clouds[COURSE.route[1]];
+      const g = cameraGoal(COURSE.clouds[0].cx, 0, COURSE.startZ, next.cx, next.top, next.cz, 1.6, { px: 0, py: 0, pz: 0, lx: 0, ly: 0, lz: 0 });
       expect(play.position).toEqual([g.px, g.py, g.pz]);
       const keys = introKeyframes(COURSE);
-      expect(keys[0].position[1]).toBeGreaterThan(COURSE.supports[COURSE.goal].top);
+      expect(keys[0].position[1]).toBeGreaterThan(COURSE.clouds[COURSE.goal].top);
+      // the shots fly back from the bridge towards the start
+      for (let i = 1; i < keys.length; i++) expect(keys[i].position[2]).toBeGreaterThan(keys[i - 1].position[2]);
       // descending: each shot no higher than the one before
       for (let i = 1; i < keys.length; i++) expect(keys[i].position[1]).toBeLessThanOrEqual(keys[i - 1].position[1]);
-      // the camera stays behind the hero at the same distance whatever the look-ahead
+      // the camera stays behind the hero at the same distance whatever the look-ahead, a little to the side (3/4)
       const far = cameraGoal(0, 10, -20, 6, 14, -30, 1.6, { px: 0, py: 0, pz: 0, lx: 0, ly: 0, lz: 0 });
       expect(far.pz).toBeCloseTo(-20 + 5.6, 6);
+      expect(far.px).toBeGreaterThan(1);
       // a target behind the hero (a fall back, a jump from the last island) never turns the view round
       const back = cameraGoal(0, 58, -115, 1, 40, -84, 1.6, { px: 0, py: 0, pz: 0, lx: 0, ly: 0, lz: 0 });
       expect(back.lz).toBeLessThanOrEqual(-115 - 4.5 + 1e-9);

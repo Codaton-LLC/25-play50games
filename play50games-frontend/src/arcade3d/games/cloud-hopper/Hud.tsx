@@ -1,15 +1,24 @@
 "use client";
 
-// The game HUD, after the concept board: orbs and height on the left, the title and the level in a
-// banner at the top centre with the run clock (finish time so far, orb bonus taken off) under it.
-// The shell keeps Mute / Pause (top right); its own clock chip is off (index.tsx clockChip: false).
-import { useState } from "react";
+// The game HUD: orbs, the distance, the hero power, the glide meter (feather gold, max 4.5 s), the
+// centre streak and the flow meter on the left; the title and the level in a banner at the top centre
+// with the run clock (the sunset; finish time so far, orb and flow bonus taken off), and on level 5
+// Gloom Nimbus's health bar with the shocks charged. The shell keeps Mute / Pause; its clock chip is
+// off (index.tsx clockChip: false). Local multiplayer (menu2/multiplayer): a "2-4 players" button on
+// the hero row (desktop and tablet), the join screen, per-player chips and the podium.
+import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useLevel } from "@/arcade3d/core/level";
+import ComboMeter from "@/arcade3d/menu2/combo/ComboMeter";
+import BossHealthBar from "@/arcade3d/menu2/boss/BossHealthBar";
+import { phaseMarks } from "@/arcade3d/menu2/boss/boss";
+import { playersStore, usePlayers } from "@/arcade3d/menu2/multiplayer/players";
 import { HEROES, heroById, pickedHero, selectHero, type HeroId } from "./heroes";
-import { STAT, runTimeMs } from "./rules";
-import type { RoofLevel } from "./levels";
+import { GLIDE_MAX_MS, STAT, runTimeMs } from "./rules";
+import type { CloudLevel } from "./levels";
+import { COMBO, GLOOM_NIMBUS } from "./progression";
+import { MultiplayerHud, MultiplayerButton } from "./MultiplayerHud";
 import styles from "./Hud.module.css";
 
 function clockText(ms: number): string {
@@ -20,11 +29,11 @@ function clockText(ms: number): string {
 
 const HERO_STAT: HeroId[] = ["riko", "nami", "kiro", "zuno", "vexa"];
 
-/** Shown on the start card (phase "ready"), before the run. The choice is a run option, not localStorage. */
 function HeroPick() {
    const phase = useArcadeStore((s) => s.phase);
+   const lobby = usePlayers((s) => s.phase === "lobby");
    const [hero, setHero] = useState<HeroId>(pickedHero);
-   if (phase !== "ready" || typeof document === "undefined") return null;
+   if (phase !== "ready" || lobby || typeof document === "undefined") return null;
    return createPortal(
       <div className={styles.pick} role="group" aria-label="Choose your hero">
          <span className={styles.pickLabel}>Hero</span>
@@ -45,41 +54,90 @@ function HeroPick() {
                <span className={styles.pickPower}>{h.powerLabel}</span>
             </button>
          ))}
+         <MultiplayerButton />
       </div>,
       document.body,
    );
 }
 
+function Boss() {
+   const hp = useArcadeStore((s) => s.stats[STAT.bossHp] ?? GLOOM_NIMBUS.maxHp);
+   const phase = useArcadeStore((s) => s.stats[STAT.bossPhase] ?? 0);
+   const open = useArcadeStore((s) => (s.stats[STAT.bossOpen] ?? 0) === 1);
+   const flash = useArcadeStore((s) => (s.stats[STAT.bossFlash] ?? 0) === 1);
+   const charges = useArcadeStore((s) => s.stats[STAT.charges] ?? 0);
+   return (
+      <div className={styles.boss}>
+         <BossHealthBar
+            name={GLOOM_NIMBUS.name}
+            phaseName={GLOOM_NIMBUS.phases[phase]?.name}
+            hp={hp}
+            maxHp={GLOOM_NIMBUS.maxHp}
+            marks={phaseMarks(GLOOM_NIMBUS)}
+            vulnerable={open}
+            flash={flash}
+            accent="#a78bfa"
+         />
+         {phase === 0 && hp > 0 ? <div className={styles.charges}>{charges > 0 ? `Shock charged x${charges}` : "Glide past the lightning rods"}</div> : null}
+      </div>
+   );
+}
+
 export default function Hud() {
-   const { config } = useLevel<RoofLevel>();
+   const { config } = useLevel<CloudLevel>();
    const orbs = useArcadeStore((s) => s.stats[STAT.orbs] ?? 0);
-   const height = useArcadeStore((s) => s.stats[STAT.height] ?? 0);
+   const dist = useArcadeStore((s) => s.stats[STAT.distance] ?? 0);
    const heroStat = useArcadeStore((s) => s.stats[STAT.hero] ?? 0);
    const powerLeft = useArcadeStore((s) => s.stats[STAT.power] ?? 0);
-   // a tenth of a second is enough for the clock: 10 renders a second, not one per frame
+   const glide = useArcadeStore((s) => s.stats[STAT.glide] ?? 0);
+   const streak = useArcadeStore((s) => s.stats[STAT.streak] ?? 0);
    const tenths = useArcadeStore((s) => Math.floor((s.stats[STAT.finishMs] || s.elapsedMs) / 100));
-   const shown = runTimeMs(tenths * 100, orbs);
+   const comboMs = useArcadeStore((s) => s.stats[STAT.comboMs] ?? 0);
+   const chain = useArcadeStore((s) => s.stats[STAT.comboChain] ?? 0);
+   const mult = useArcadeStore((s) => s.stats[STAT.comboMult] ?? 100);
+   const flow = useArcadeStore((s) => s.stats[STAT.comboFlow] ?? 0);
+   const shown = runTimeMs(tenths * 100, orbs, comboMs);
    const level = config?.id ?? 1;
    const hero = heroById(HERO_STAT[heroStat] ?? "riko");
+   const multiplayer = usePlayers((s) => s.phase !== "off");
+   const playing = usePlayers((s) => s.phase === "playing");
+   useEffect(() => () => playersStore.getState().endSession(), []);
+   const glideFrac = Math.max(0, Math.min(1, (glide * 100) / GLIDE_MAX_MS));
    return (
       <>
          <HeroPick />
-         <div className={styles.left} data-arcade-safe-area="">
-            <div className={styles.pill} aria-label={`Stars ${orbs}`}>
+         {multiplayer && <MultiplayerHud />}
+         <div className={styles.left} data-arcade-safe-area="" style={playing ? { display: "none" } : undefined}>
+            <div className={styles.pill} aria-label={`Orbs ${orbs}`}>
                <span className={styles.orb} aria-hidden="true" />
                <span className={styles.value}>{orbs}</span>
             </div>
-            <div className={styles.pill} aria-label={`Height ${height} metres`}>
+            <div className={styles.pill} aria-label={`Distance ${dist} metres`}>
                <svg className={styles.icon} viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M2 20 L9 8 L13 14 L16 10 L22 20 Z" fill="#7dd3fc" />
-                  <path d="M9 8 L11 11.5 L9.8 12.4 L8.4 11 Z" fill="#fff" />
+                  <path d="M3 15 C6 10 10 10 12 13 C14 9 19 9 21 14 Z" fill="#fff" />
+                  <path d="M4 19 H20" stroke="#7dd3fc" strokeWidth="2.4" strokeLinecap="round" />
                </svg>
-               <span className={styles.value}>{height} m</span>
+               <span className={styles.value}>{dist} m</span>
+            </div>
+            <div className={styles.pill} aria-label={`Glide ${(glide / 10).toFixed(1)} seconds`}>
+               <svg className={styles.icon} viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M4 20 C8 10 14 5 20 4 C18 10 13 16 4 20 Z" fill="#fde68a" />
+                  <path d="M6 18 L16 8" stroke="#b45309" strokeWidth="1.4" />
+               </svg>
+               <span className={styles.glide}>
+                  <span className={styles.glideFill} style={{ width: `${glideFrac * 100}%` }} />
+               </span>
             </div>
             <div className={styles.pill} aria-label={`${hero.name} ${hero.powerLabel}${powerLeft > 0 ? `, ready in ${powerLeft} seconds` : ", ready"}`}>
                <span className={styles.swatch} style={{ background: hero.color }} aria-hidden="true" />
                <span className={styles.value}>{powerLeft > 0 ? `${powerLeft}s` : hero.powerLabel}</span>
             </div>
+            {streak > 1 ? (
+               <div className={styles.pill} aria-label={`Centre streak ${streak}`}>
+                  <span className={styles.value}>★ {streak}</span>
+               </div>
+            ) : null}
+            <ComboMeter chain={chain} multiplier={mult / 100} flow={flow / 10} cap={COMBO.cap} />
          </div>
          <div className={styles.center} data-arcade-safe-area="">
             <div className={styles.banner}>
@@ -95,6 +153,7 @@ export default function Hud() {
                </svg>
                <span className={styles.value}>{clockText(shown)}</span>
             </div>
+            {config?.boss && !playing ? <Boss /> : null}
          </div>
       </>
    );

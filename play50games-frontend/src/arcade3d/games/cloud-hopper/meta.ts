@@ -3,7 +3,7 @@ import { PROPOSED_LEVEL_LIMITS } from "./rules";
 
 // Plain data only (server-safe). scoring must match WP includes/arcade-games.json (registry.sync.test.ts).
 // Menu 2 (Color Roll Heroes) game 05. Status "dev" (preview builds only) until the user signs it off.
-// A time game: the finish time minus the star bonus is the score (README "Scoring").
+// A time game: the finish time minus the orb and flow bonus is the score (README "Scoring").
 // Each level row carries its own proven limits (PROPOSED_LEVEL_LIMITS in rules.ts).
 // order 55 (54 is lava-pillar-jump).
 const LEVEL_TITLES: Record<LevelId, string> = {
@@ -25,8 +25,8 @@ const scoring = (id: LevelId): ScoringRules => ({
 export const cloudHopperMeta: ArcadeGameMeta = {
    slug: "cloud-hopper",
    title: "Cloud Hopper",
-   tagline: "Bounce the clouds and hop to the top of the sky.",
-   description: "Hop a helix of soft clouds as a Color Roll Heroes armadillo. Pick Riko, Nami, Kiro, Zuno or Vexa, bounce off the springy clouds, ride a drifting chain, and reach the rainbow arch.",
+   tagline: "Cross a sinking cloud sea before sunset. Glide on feathers.",
+   description: "Hop across a drifting cloud sea as a Color Roll Heroes armadillo: every cloud sinks under you, feathers buy glide time, wind bands push you. Pick Riko, Nami, Kiro, Zuno or Vexa and reach the rainbow bridge before the sun sets.",
    order: 55,
    status: "dev",
    collection: "rollheroes",
@@ -34,8 +34,8 @@ export const cloudHopperMeta: ArcadeGameMeta = {
    orientation: "any",
    controls: {
       scheme: "platformer",
-      keyboard: "WASD or arrows to move, Space to jump, E or Enter for the hero power",
-      touch: "Joystick + Jump and Power buttons",
+      keyboard: "WASD or arrows to move, Space to jump (hold it in the air to glide), E or Enter for the hero power",
+      touch: "Joystick + Jump (hold to glide) and Power buttons",
    },
    scoring: scoring(1),
    levels: LEVEL_IDS.map((id) => ({ id, title: LEVEL_TITLES[id], scoring: scoring(id) })),

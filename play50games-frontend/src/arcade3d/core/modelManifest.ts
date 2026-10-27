@@ -177,6 +177,7 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/lava-pillar-jump/m2MagmaSlug.glb",
    "/models/3d/lava-pillar-jump/m2VolcanoBg.glb",
    // Menu 2 game 05 (Cloud Hopper): cloud props from ~/.play50/hyper3d/ready/menu2/cloud-hopper
+   "/models/3d/cloud-hopper/m2CloudBank.glb",
    "/models/3d/cloud-hopper/m2CloudCastleBg.glb",
    "/models/3d/cloud-hopper/m2CloudPlatformV2.glb",
    "/models/3d/cloud-hopper/m2Feather.glb",

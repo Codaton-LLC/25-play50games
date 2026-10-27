@@ -1,96 +1,111 @@
-// Cloud Hopper plays its own courses: a breathing helix of bounce clouds, drift chains, fade-after-land
-// clouds and wind lanes. Not a reskin of Sky Tower Jump, Rooftop Roll Climb or Flooded Ruins Escape.
+// Cloud Hopper plays its own game (the card's GLIDE): a horizontal run across, not up; gaps a plain
+// jump cannot clear, so you glide on feathers; clouds that sink under you; one new twist per level;
+// and a hero-gated route or secret for every hero. These checks read only this game's own data, so
+// they do not depend on any other game's code.
 import { describe, expect, it } from "vitest";
 import { LEVEL_IDS } from "@/arcade3d/types";
-import { H_BOUNCE, H_JUMP } from "./rules";
-import { PROPOSED_LEVEL_LIMITS as SKY_LIMITS, courseFor as skyCourse } from "../sky-tower-jump/rules";
-import { PROPOSED_LEVEL_LIMITS as ROOF_LIMITS, courseFor as roofCourse } from "../rooftop-roll-climb/rules";
-import { PROPOSED_LEVEL_LIMITS as FLOOD_LIMITS, courseFor as floodCourse } from "../flooded-ruins-escape/rules";
 import { LEVELS } from "./levels";
-import { helixTurns } from "./clouds";
-import { PROPOSED_LEVEL_LIMITS, courseFor, createRun, createStepInput, laneAccel, step, supportX, supportZ } from "./rules";
+import { SCRIPTS } from "./sea";
+import { G, H_JUMP, V_GLIDE, V_JUMP, V_RUN, GLIDE_FALL, FEATHER, courseFor } from "./rules";
 
-const sig = (supports: { cx: number; cz: number; top: number }[]) => supports.map((s) => `${s.cx},${s.cz},${s.top}`).join("|");
+/** The furthest a plain jump carries forward and lands `drop` m lower (m): run speed over the flight. */
+function plainReach(drop: number): number {
+   const t = (V_JUMP + Math.sqrt(V_JUMP * V_JUMP + 2 * G * drop)) / G;
+   return V_RUN * t;
+}
 
-describe("the helix", () => {
-   it("winds around the origin and turns further on the longer levels", () => {
-      const turns = LEVEL_IDS.map((id) => helixTurns(LEVELS[id].spec, LEVELS[id].spec.surfaces));
-      expect(turns[0]).toBeGreaterThan(0.9);
-      expect(turns[4]).toBeGreaterThan(turns[0] + 0.8);
+describe("across, not up", () => {
+   for (const id of LEVEL_IDS) {
+      it(`level ${id}: the run is at least 30x longer than it is high, and it goes forward the whole way`, () => {
+         const c = courseFor(id);
+         const tops = c.route.map((i) => c.clouds[i].top);
+         const span = Math.max(...tops) - Math.min(...tops);
+         const length = c.startZ - c.goalNearZ;
+         expect(length / Math.max(1, span)).toBeGreaterThan(30);
+         expect(length).toBeGreaterThan(LEVELS[id].length - 20);
+      });
+   }
+});
+
+describe("the glide is the engine", () => {
+   for (const id of LEVEL_IDS) {
+      it(`level ${id}: glide gaps a plain jump cannot clear, each with a feather on its launch cloud, and one feather's glide clears them`, () => {
+         const c = courseFor(id);
+         let glideGaps = 0;
+         for (let k = 1; k < c.route.length; k++) {
+            const a = c.clouds[c.route[k - 1]];
+            const b = c.clouds[c.route[k]];
+            const gap = a.cz - a.hd - (b.cz + b.hd);
+            const drop = Math.max(0, a.top - b.top);
+            if (gap <= plainReach(drop) - 1) continue;
+            glideGaps += 1;
+            // a feather sits on the launch cloud
+            expect(c.feathers.some((f) => Math.abs(f.z - a.cz) <= a.hd && Math.abs(f.x - a.cx) <= a.hw), `L${id} gap ${k}`).toBe(true);
+            // a jump to the apex, then one feather's glide (plus a ring's second where there is one), lands it
+            const ring = c.rings.some((r) => r.kind === "wind" && r.z < a.cz && r.z > b.cz) ? 1000 : 0;
+            const reach = V_RUN * (V_JUMP / G) + (V_GLIDE * (FEATHER.glideMs + ring)) / 1000;
+            expect(reach, `L${id} gap ${k}: ${gap} m`).toBeGreaterThan(gap);
+         }
+         expect(glideGaps, `L${id} glide gaps`).toBeGreaterThanOrEqual(4);
+         // a glide falls far slower than a jump: 1.2 m/s against up to V_JUMP
+         expect(GLIDE_FALL).toBeLessThan(V_JUMP / 10);
+         expect(H_JUMP).toBeLessThan(3);
+      });
+   }
+
+   it("most clouds sink under you (the run never lets you stand still)", () => {
       for (const id of LEVEL_IDS) {
          const c = courseFor(id);
-         const zs = c.supports.map((s) => s.cz);
-         expect(Math.min(...zs)).toBeLessThan(0);
-         expect(Math.max(...zs)).toBeGreaterThan(0);
-         expect(c.supports[0].cz).toBeCloseTo(0, 5);
+         const route = c.route.map((i) => c.clouds[i]).filter((x) => x.kind === "cloud");
+         const sinking = route.filter((x) => x.sinks).length;
+         expect(sinking / route.length, `L${id}`).toBeGreaterThan(id === 4 ? 0.4 : 0.8);
       }
-   });
-
-   it("a launch cannot skip a cloud: two steps from a bounce cloud clear the bounce apex, two normal steps clear the jump", () => {
-      for (const id of LEVEL_IDS) {
-         const s = courseFor(id).supports;
-         for (let i = 0; i < s.length - 2; i++) {
-            const dy = s[i + 2].top - s[i].top;
-            if (s[i].pad) expect(dy, `L${id} bounce skip ${i}`).toBeGreaterThan(H_BOUNCE);
-            else expect(dy, `L${id} jump skip ${i}`).toBeGreaterThan(H_JUMP);
-         }
-      }
-   });
-
-   it("drift chains share a phase and a tangent, fade clouds remember a landing, wind lanes push sideways", () => {
-      const moving = courseFor(2);
-      const drifted = moving.supports.filter((s) => s.mover);
-      expect(drifted.length).toBeGreaterThanOrEqual(4);
-      const phase = drifted[0].mover!;
-      expect(phase.axis).toBe("tangent");
-      expect(Math.hypot(phase.tx, phase.tz)).toBeCloseTo(1, 5);
-      const mate = drifted.find((s) => s.mover!.phase === phase.phase && s !== drifted[0]);
-      expect(mate).toBeTruthy();
-      expect(supportX(drifted[0], 1000) - drifted[0].cx).not.toBe(0);
-
-      const run = createRun(1, 4);
-      const fade = run.course.supports.findIndex((s) => s.fadeMs > 0);
-      expect(fade).toBeGreaterThan(0);
-      run.hero.x = run.course.supports[fade].cx;
-      run.hero.z = run.course.supports[fade].cz;
-      run.hero.y = run.course.supports[fade].top;
-      run.hero.lastTop = run.hero.y;
-      run.hero.support = fade;
-      run.hero.grounded = true;
-      step(run, 20, createStepInput());
-      expect(run.goneAt[fade]).toBeGreaterThan(0);
-      const hold = run.goneAt[fade];
-      run.hero.y = run.course.supports[fade].top;
-      run.hero.grounded = true;
-      run.hero.support = fade;
-      for (let ms = 0; ms < hold + 80 && run.hero.grounded; ms += 20) step(run, 20, createStepInput());
-      expect(run.hero.grounded).toBe(false);
-
-      const wind = courseFor(3);
-      expect(wind.lanes.length).toBeGreaterThan(2);
-      const lane = wind.lanes[0];
-      const push = laneAccel(wind, lane.x, (lane.y0 + lane.y1) / 2, lane.z);
-      expect(Math.hypot(push.ax, push.az)).toBeGreaterThan(1);
-      expect(laneAccel(wind, 80, 0, 80)).toEqual({ ax: 0, az: 0 });
    });
 });
 
-describe("courses and limits differ from the other Menu 2 jumpers", () => {
-   it("every level's cloud positions differ from sky tower, rooftop and flooded ruins", () => {
-      for (const id of LEVEL_IDS) {
-         const mine = sig(courseFor(id).supports);
-         expect(mine).not.toBe(sig(skyCourse(id).supports));
-         expect(mine).not.toBe(sig(roofCourse(id).supports));
-         expect(mine).not.toBe(sig(floodCourse(id).supports));
-      }
+describe("one twist per level (the card)", () => {
+   it("L2 drifting clouds, L3 wind bands (head, tail, cross), L4 pulse clouds and thunder strikes, L5 Gloom Nimbus with three rods", () => {
+      const d = (id: 1 | 2 | 3 | 4 | 5) => courseFor(id);
+      expect(d(1).clouds.some((c) => c.drift || c.pulse)).toBe(false);
+      expect(d(1).bands).toHaveLength(0);
+      expect(d(2).clouds.filter((c) => c.drift).length).toBeGreaterThanOrEqual(8);
+      expect(d(3).bands.some((b) => b.wz < 0) && d(3).bands.some((b) => b.wz > 0) && d(3).bands.some((b) => b.wx !== 0)).toBe(true);
+      expect(d(3).orbs.some((o) => o.kind === "main" && d(3).bands.some((b) => b.wz < 0 && o.z <= b.z0 && o.z > b.z1) && !d(3).clouds.some((c) => Math.abs(o.z - c.cz) <= c.hd))).toBe(true);
+      expect(d(4).clouds.filter((c) => c.pulse).length).toBeGreaterThanOrEqual(8);
+      expect(d(4).strikes.length).toBeGreaterThanOrEqual(3);
+      expect(d(5).boss).toBe(true);
+      expect(d(5).rods).toHaveLength(3);
+      for (const id of [1, 2, 3, 4] as const) expect(d(id).boss).toBe(false);
+      for (const id of LEVEL_IDS) expect(LEVELS[id].length).toBeGreaterThanOrEqual(250);
+      expect(LEVELS[5].length).toBeLessThanOrEqual(600);
    });
+});
 
-   it("every level's limits differ from those three games", () => {
+describe("every hero matters (pillar 2)", () => {
+   for (const id of LEVEL_IDS) {
+      it(`level ${id}: Riko's storm wall, Nami's sun shelf, Kiro's thunderhead orb, Zuno's hidden trail and Vexa's ghost veil are all on the level`, () => {
+         const c = courseFor(id);
+         const script = SCRIPTS[id];
+         expect(c.walls.some((w) => w.kind === "storm"), "Riko").toBe(true);
+         expect(c.clouds.some((x) => x.kind === "shelf"), "Nami").toBe(true);
+         expect(c.orbs.some((o) => o.hero === "kiro"), "Kiro").toBe(true);
+         expect(c.orbs.some((o) => o.hidden && o.hero === "zuno"), "Zuno").toBe(true);
+         expect(c.walls.some((w) => w.kind === "ghost"), "Vexa").toBe(true);
+         // the gated orbs are a bonus: the all-orbs star counts the main ones
+         expect(c.mainOrbs).toBeLessThan(c.orbs.length);
+         expect(c.mainOrbs).toBeGreaterThanOrEqual(15);
+         expect(script.length).toBeGreaterThan(20);
+      });
+   }
+
+   it("Nami's sun shelf is out of a plain jump's reach from the glide line, and inside a double jump's", () => {
       for (const id of LEVEL_IDS) {
-         const mine = JSON.stringify(PROPOSED_LEVEL_LIMITS[id]);
-         expect(mine).not.toBe(JSON.stringify(SKY_LIMITS[id]));
-         expect(mine).not.toBe(JSON.stringify(ROOF_LIMITS[id]));
-         expect(mine).not.toBe(JSON.stringify(FLOOD_LIMITS[id]));
+         const c = courseFor(id);
+         for (const s of c.clouds.filter((x) => x.kind === "shelf")) {
+            const launch = c.route.map((i) => c.clouds[i]).filter((x) => x.cz > s.cz).pop()!;
+            expect(s.top - launch.top).toBeGreaterThan(H_JUMP + 0.5);
+            expect(s.top - launch.top).toBeLessThan(H_JUMP + 2.2 + H_JUMP);
+         }
       }
    });
 });

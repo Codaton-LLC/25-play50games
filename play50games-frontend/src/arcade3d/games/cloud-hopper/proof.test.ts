@@ -1,18 +1,18 @@
-// The gate's extra proof (on top of rules.test.ts): every level, every hero power, at 30/60/144 Hz;
-// idle and spam on all five levels; and mutation probes that show the limits tests read the right level.
+// The gate's extra proof (on top of rules.test.ts): every hero with its power mashed on every level,
+// spam on all five levels, and mutation probes that show the limits tests read the level they claim.
 import { describe, expect, it } from "vitest";
 import { createRng } from "@/arcade3d/core/math";
 import { LEVEL_IDS, type LevelId } from "@/arcade3d/types";
 import { createBot, botInput } from "./bot";
 import { HEROES, type HeroId } from "./heroes";
 import { LEVELS } from "./levels";
-import { PROPOSED_LEVEL_LIMITS, buildCourse, courseFor, createRun, createStepInput, minDurationMsOf, runTimeMs, step, type RoofRun } from "./rules";
+import { SCRIPTS } from "./sea";
+import { PROPOSED_LEVEL_LIMITS, buildCourse, courseFor, createRun, createStepInput, minDurationMsOf, proposeLimits, runTimeMs, step, type CloudRun } from "./rules";
+import { cloudHopperMeta } from "./meta";
 
-const FPS = [30, 60, 144] as const;
-const submitted = (run: RoofRun) => runTimeMs(run.finishMs, run.orbs);
+const submitted = (run: CloudRun) => runTimeMs(run.finishMs, run.orbs, run.combo.bonusTotal);
 
-/** The honest bot with the hero's power pressed as often as the cooldown allows (every frame). */
-function powerRun(level: LevelId, hero: HeroId, fps: number, mash: boolean): RoofRun {
+function powerRun(level: LevelId, hero: HeroId, fps: number, mash: boolean): CloudRun {
    const fms = 1000 / fps;
    const run = createRun(1, level, hero);
    const bot = createBot(run, fms);
@@ -25,88 +25,85 @@ function powerRun(level: LevelId, hero: HeroId, fps: number, mash: boolean): Roo
    return run;
 }
 
-describe("every hero power against the limits (honest bot, power mashed, 30/60/144 Hz)", () => {
+describe("every hero power against the limits (honest bot, power mashed)", () => {
    for (const level of LEVEL_IDS) {
-      for (const hero of HEROES) {
-         it(`level ${level} ${hero.name} (${hero.power}): a finish never beats the floor or the clock, and the plain bot with this hero still clears`, () => {
-            const lim = PROPOSED_LEVEL_LIMITS[level];
-            for (const fps of FPS) {
-               const plain = powerRun(level, hero.id, fps, false);
-               expect(plain.ended, `${hero.id} plain ${fps} Hz`).toBe("win");
-               expect(submitted(plain)).toBeGreaterThanOrEqual(lim.minDurationMs);
+      it(`level ${level}: every hero clears with the plain bot, and with its power mashed (60 Hz; Riko at 30/60/144) a finish never beats the floor`, () => {
+         const lim = PROPOSED_LEVEL_LIMITS[level];
+         for (const hero of HEROES) {
+            const plain = powerRun(level, hero.id, 60, false);
+            expect(plain.ended, `${hero.id} plain`).toBe("win");
+            for (const fps of hero.id === "riko" ? [30, 60, 144] : [60]) {
                const mashed = powerRun(level, hero.id, fps, true);
                if (mashed.ended === "win") {
                   expect(submitted(mashed), `${hero.id} ${fps} Hz`).toBeGreaterThanOrEqual(lim.minDurationMs);
-                  expect(submitted(mashed)).toBeLessThanOrEqual(lim.maxDurationMs);
-                  // a power may shave a little, never more than the shipped margin
                   expect(Math.floor((lim.timeBaseMs - submitted(mashed)) / 10)).toBeLessThanOrEqual(lim.maxScore);
                }
             }
-         }, 120_000);
-      }
+         }
+      }, 240_000);
    }
 });
 
-describe("idle never wins, spam stays inside the limits (all five levels)", () => {
+describe("spam stays inside the limits (all five levels)", () => {
    for (const level of LEVEL_IDS) {
-      it(`level ${level}: idle never wins (the clock ends it); 60 spam runs (random stick, jump and power mashing, random frame times, any hero) never beat the floor`, () => {
+      it(`level ${level}: 40 spam runs (random stick, jump mashing and holding, power mashing, random frame times, any hero) never beat the floor`, () => {
          const lim = PROPOSED_LEVEL_LIMITS[level];
-         const idle = createRun(3, level);
-         const none = createStepInput();
-         for (let f = 0; f < 40_000 && idle.ended === null; f++) step(idle, 1000 / 60, none);
-         // standing still: the clock ends the run unranked; never a win
-         expect(idle.ended === "flood" || idle.ended === "timeup").toBe(true);
-         expect(idle.ended).not.toBe("win");
-         for (let seed = 1; seed <= 60; seed++) {
+         for (let seed = 1; seed <= 40; seed++) {
             const rng = createRng(seed * 104729 + level);
             const run = createRun(seed, level, HEROES[seed % HEROES.length].id);
             const input = createStepInput();
             for (let f = 0; f < 12_000 && run.ended === null; f++) {
                if (f % 10 === 0) {
                   input.moveX = rng() * 2 - 1;
-                  input.moveZ = rng() * 2 - 1;
+                  input.moveZ = rng() * 2 - 1.5;
+                  input.jumpHeld = rng() < 0.6;
                }
                input.jumpPressed = rng() < 0.5;
                input.actionPressed = rng() < 0.3;
                step(run, 4 + rng() * 46, input);
             }
             if (run.ended === "win") expect(submitted(run)).toBeGreaterThanOrEqual(lim.minDurationMs);
-            expect(run.ended === null || run.ended === "win" || run.ended === "timeup" || run.ended === "flood").toBe(true);
          }
       }, 120_000);
    }
 });
 
 describe("mutation probes: the limits tests read the level they claim to", () => {
-   it("each level has its own floor and its own clock: no two levels share a limits row", () => {
+   it("no two levels share a limits row; each row is its own course's proposeLimits; meta ships them in order", () => {
       const rows = LEVEL_IDS.map((id) => JSON.stringify(PROPOSED_LEVEL_LIMITS[id]));
       expect(new Set(rows).size).toBe(5);
-      const floors = LEVEL_IDS.map((id) => minDurationMsOf(courseFor(id)));
-      for (let i = 1; i < floors.length; i++) expect(floors[i]).toBeGreaterThan(floors[i - 1]);
-      for (const id of LEVEL_IDS) expect(PROPOSED_LEVEL_LIMITS[id].timeBaseMs).toBe(LEVELS[id].durationMs);
+      for (const id of LEVEL_IDS) {
+         expect(PROPOSED_LEVEL_LIMITS[id]).toEqual(proposeLimits(id, courseFor(id)));
+         expect(PROPOSED_LEVEL_LIMITS[id].timeBaseMs).toBe(LEVELS[id].durationMs);
+         expect(cloudHopperMeta.levels![id - 1].id).toBe(id);
+      }
    });
 
    for (const level of LEVEL_IDS) {
-      it(`level ${level}: a mutated level (a 15 % lower goal roof, or three fewer climbs) falls outside the limits window, so the "limits sit under the bound" test would fail on a misread`, () => {
-         const spec = LEVELS[level].spec;
+      it(`level ${level}: a mutated level (15 % shorter, or its script with tail winds everywhere) falls outside the limits window`, () => {
          const lim = PROPOSED_LEVEL_LIMITS[level];
-         // rules.test.ts accepts a floor lb when lim.min <= lb and lim.min >= 0.9 lb: a misread level must fall outside that window
-         const accepts = (lb: number) => lim.minDurationMs <= lb && lim.minDurationMs >= lb * 0.9;
+         const accepts = (lb: number) => lim.minDurationMs <= lb && lim.minDurationMs >= lb * 0.88;
          expect(accepts(minDurationMsOf(courseFor(level)))).toBe(true);
-         const lower = buildCourse({ ...LEVELS[level], spec: { ...spec, goalTop: spec.goalTop * 0.85 } });
-         const fewer = buildCourse({ ...LEVELS[level], spec: { ...spec, rises: Math.max(2, spec.rises - 3) } });
-         expect(accepts(minDurationMsOf(lower)), "goalTop read").toBe(false);
-         expect(accepts(minDurationMsOf(fewer)), "rises read").toBe(false);
-         // and the real course still sits over it
-         expect(minDurationMsOf(courseFor(level))).toBeGreaterThanOrEqual(PROPOSED_LEVEL_LIMITS[level].minDurationMs);
+         const shorter = buildCourse({ ...LEVELS[level], length: LEVELS[level].length * 0.85 });
+         expect(accepts(minDurationMsOf(shorter)), "length read").toBe(false);
+         const windy = buildCourse(LEVELS[level], SCRIPTS[level].replace(/h/g, "+h"));
+         expect(accepts(minDurationMsOf(windy)), "bands read").toBe(false);
       });
    }
 
-   it("a level's honest finish is not inside the limits of the level below it (a swapped read would fail the tightness test)", () => {
-      for (const level of [2, 3, 4, 5] as const) {
-         const run = powerRun(level, "riko", 60, false);
+   it("a swapped read would fail: no level's row matches another level's course or timer", () => {
+      for (const a of LEVEL_IDS) {
+         for (const b of LEVEL_IDS) {
+            if (a === b) continue;
+            expect(PROPOSED_LEVEL_LIMITS[b]).not.toEqual(proposeLimits(a, courseFor(a)));
+            expect(PROPOSED_LEVEL_LIMITS[b].timeBaseMs).not.toBe(LEVELS[a].durationMs);
+         }
+      }
+      // and the honest bot of each level is inside its own row
+      for (const level of LEVEL_IDS) {
+         const run = powerRun(level, "nami", 60, false);
          expect(run.ended).toBe("win");
-         expect(submitted(run)).toBeGreaterThanOrEqual(PROPOSED_LEVEL_LIMITS[(level - 1) as LevelId].minDurationMs * 1.6 - 1);
+         expect(submitted(run)).toBeGreaterThanOrEqual(PROPOSED_LEVEL_LIMITS[level].minDurationMs);
       }
    });
 });

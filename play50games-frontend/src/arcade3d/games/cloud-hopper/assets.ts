@@ -20,10 +20,14 @@ export const GLB_SIZE = {
    rainbow: { x: 1.9011526107788086, y: 0.7578415274620056, z: 0.5023049712181091 },
    storm: { x: 1.8936362266540527, y: 1.3123397827148438, z: 1.4208033084869385 },
    castle: { x: 1.7162638902664185, y: 1.714633822441101, z: 1.8908324241638184 },
+   bank: { x: 0.801439106464386, y: 1.7607693672180176, z: 1.9095768928527832 },
 } as const;
 
-/** A star is drawn 0.62 m across, its centre on the rules' pickup point. */
+/** A star (the colour orb, m2SkyStar) is drawn 0.62 m across, its centre on the rules' pickup point. */
 export const ORB_SIZE = 0.62;
+
+/** Gloom Nimbus is m2StormCloud scaled this wide (m) until its own model exists (the card). */
+export const BOSS_WIDTH = 11;
 
 const prop = (id: string, color: string): ModelAsset => ({
    id,
@@ -42,4 +46,6 @@ export const ASSETS: Record<string, ModelAsset> = {
    rainbow: prop("m2RainbowBridge", "#f9a8d4"),
    storm: prop("m2StormCloud", "#94a3b8"),
    castle: prop("m2CloudCastleBg", "#c4b5fd"),
+   // a low cloud bank from sky-tower-jump's set (decor under the run)
+   bank: prop("m2CloudBank", "#e8f0fb"),
 };
