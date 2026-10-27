@@ -175,6 +175,10 @@ const eye = useEyeShift({ fov: 70, eyeY: 1.6, band: BAND, padding: 8 });        
 
 - `useSafeArea(selector, isEqual?)`: a Scene that needs one number (a top inset, a control's top) re-renders only when that number changes, not every time a HUD chip grows with the score. A selector that builds an object needs an `isEqual` (`sameScreenRects` for rect lists, `shallow` from `"zustand/shallow"` for plain objects).
 
+## Camera views (`camera/`)
+
+Opt-in per game: `useCameraViews({ slug, subject, steering, defaultYaw: view.yaw, target, solids? })` in the Scene, next to its CameraRig, and `<CameraViewButton />` in the Hud. The player cycles default → chase → front → top → free with the 📷 button or C (T too); a drag or two fingers switch to the free orbit (ported from Menu 2). The rules get `cam.yaw()` instead of `view.yaw` (the same number in the default view, so proofs are unchanged). The last view per game and the one-time hint are stored by `camera/cameraPrefs.ts` only. Details, controls and the adoption guide: `camera/README.md`.
+
 ## Models and the manifest
 
 `modelManifest.ts` lists every GLB under `public/models/3d`. `modelManifest.test.ts` fails when the list and the folder differ. A url that is not listed goes straight to its fallback: there is no request and no suspense. So a game written before its models exist makes no `.glb` requests. Claude's assets PRs commit the GLB and its manifest line together. Repeated props use `<InstancedModel>`, so a GLB drop keeps them instanced and needs no scene change.

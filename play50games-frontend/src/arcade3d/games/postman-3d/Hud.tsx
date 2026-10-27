@@ -2,11 +2,12 @@
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { ADDRESS_COLORS } from "./rules";
 import { HOUSE_COLORS } from "./looks";
+import CameraViewButton from "@/arcade3d/core/camera/CameraViewButton";
 import styles from "./Hud.module.css";
 
 export default function Hud() {
    const stats = useArcadeStore((s) => s.stats);
-   return <aside className={styles.route} data-arcade-safe-area aria-label="Delivery list">
+   return <><CameraViewButton /><aside className={styles.route} data-arcade-safe-area aria-label="Delivery list">
       <div className={styles.heading}>TODAY’S ROUTE <span>{stats.refill ? "Return to POST" : "Number + colour"}</span></div>
       <div className={styles.items}>
          {[0, 1, 2].map((slot) => {
@@ -20,5 +21,5 @@ export default function Hud() {
          })}
       </div>
       <div className={styles.hint}>{stats.message === 1 ? "Wrong address or item type — check the list" : stats.message === 2 ? "Mailbag refilled" : "Letters → mailbox · Parcels → front door"}</div>
-   </aside>;
+   </aside></>;
 }

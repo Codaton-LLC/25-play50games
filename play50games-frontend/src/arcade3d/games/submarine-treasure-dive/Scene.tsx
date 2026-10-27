@@ -21,6 +21,7 @@ import {
 } from "three";
 import { DynamicInstancedModel, InstancedModel, Model } from "@/arcade3d/core/assets";
 import CameraRig from "@/arcade3d/core/CameraRig";
+import { useCameraViews } from "@/arcade3d/core/camera/CameraViews";
 import { playSfx, startLoop, type LoopHandle } from "@/arcade3d/core/audio";
 import { FRAME_PRIORITY } from "@/arcade3d/core/frameLoop";
 import { useFx } from "@/arcade3d/core/fx";
@@ -79,6 +80,24 @@ function LevelScene() {
    const time = useGameTime();
    const quality = useQuality();
    const [run] = useState<Run>(() => createRun(randomSeed(), config));
+   // camera views (core/camera): vehicle framing, but the stick is camera-relative (inputToWorld in
+   // rules.ts), so the chase camera only drifts behind the travel; the top view stays inside the fog
+   const cam = useCameraViews({
+      slug: "submarine-treasure-dive",
+      subject: "vehicle",
+      steering: "camera",
+      defaultYaw: view.yaw,
+      framing: { top: { distance: 13 }, free: { distance: 8 } },
+      target: (o) => {
+         const sub = run.sub;
+         o.x = sub.x;
+         o.y = sub.y + 0.3;
+         o.z = sub.z;
+         o.heading = sub.yaw;
+         o.vx = sub.vx;
+         o.vz = sub.vz;
+      },
+   });
    const aim = useRef({ x: run.sub.x, y: 0.55, z: run.sub.z + LOOK_AHEAD }).current;
    const body = useRef<Group>(null);
    const shadow = useRef<Group>(null);
@@ -229,7 +248,7 @@ function LevelScene() {
    useRunFrame((_state, dt) => {
       const { moveX, moveY, action } = input.current;
       const store = useArcadeStore.getState();
-      const ev = step(run, { moveX, moveY, action, yaw: view.yaw }, dt, store.timeLeftMs ?? 0);
+      const ev = step(run, { moveX, moveY, action, yaw: cam.yaw() }, dt, store.timeLeftMs ?? 0);
       if (ev.score) store.addScore(ev.score);
       store.setStat("treasure", run.found);
       store.setStat("battery", Math.round(Math.max(0, Math.min(100, run.sub.battery))));

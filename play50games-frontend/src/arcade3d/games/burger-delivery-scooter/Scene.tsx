@@ -8,6 +8,8 @@ import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeom
 import { DynamicInstancedModel, InstancedModel, Model } from "../../core/assets";
 import { playSfx, startLoop, useMuted, type LoopHandle } from "../../core/audio";
 import CameraRig from "../../core/CameraRig";
+import { useCameraViews } from "../../core/camera/CameraViews";
+import type { AABB } from "../../core/collision";
 import { FRAME_PRIORITY } from "../../core/frameLoop";
 import { useFx } from "../../core/fx";
 import { useGameTime } from "../../core/gameTime";
@@ -22,7 +24,7 @@ import { useFittedView } from "../../core/useFittedView";
 import { useRunFrame } from "../../core/useRunFrame";
 import { ASSETS, FIT, GLB_SIZE } from "./assets";
 import type { BurgerLevel } from "./levels";
-import { CAMERA, CAR_TINTS, COLORS as C, DAMPING, FOV, LOOK_AHEAD, aimBounds, blockSpots, dressing, laneDashes, shopSpot, viewFor, type BlockSpot } from "./looks";
+import { BUILDING_HEIGHT, CAMERA, CAR_TINTS, COLORS as C, DAMPING, FOV, LOOK_AHEAD, aimBounds, blockSpots, dressing, laneDashes, shopSpot, viewFor, type BlockSpot } from "./looks";
 import { PAD_RADIUS, PAD_SECONDS, createRun, stepRun, target, type Run } from "./rules";
 
 // one bevelled unit box for every code-built body (indexed, never merged with anything)
@@ -92,6 +94,39 @@ function LevelScene() {
    const { id, config } = useLevel<BurgerLevel>();
    const [run] = useState<Run>(() => createRun(randomSeed(), id, config));
    const view = useFittedView(viewFor());
+   // camera views (core/camera): the stick steers the scooter itself (rules.ts), so chase and front
+   // lock onto its heading; the town blocks pull the camera in front of them
+   useCameraViews({
+      slug: "burger-delivery-scooter",
+      subject: "vehicle",
+      steering: "vehicle",
+      defaultYaw: view.yaw,
+      target: (o) => {
+         const p = run.player;
+         o.x = p.x;
+         o.y = p.y + 0.9;
+         o.z = p.z;
+         o.heading = p.yaw;
+         o.vx = Math.sin(p.yaw) * p.speed;
+         o.vz = Math.cos(p.yaw) * p.speed;
+      },
+      solids: (out: AABB[]) => {
+         let n = 0;
+         const p = run.player;
+         for (const b of run.buildings) {
+            if (n >= out.length) break;
+            if (Math.abs(b.x - p.x) > b.hx + 30 || Math.abs(b.z - p.z) > b.hz + 30) continue;
+            const box = out[n++];
+            box.min.x = b.x - b.hx;
+            box.max.x = b.x + b.hx;
+            box.min.y = 0;
+            box.max.y = BUILDING_HEIGHT;
+            box.min.z = b.z - b.hz;
+            box.max.z = b.z + b.hz;
+         }
+         return n;
+      },
+   });
    const input = useInput(), fx = useFx(), time = useGameTime(), muted = useMuted();
    const phase = useArcadeStore((s) => s.phase);
    const body = useRef<Group>(null), pad = useRef<Mesh>(null), shopRing = useRef<Mesh>(null);

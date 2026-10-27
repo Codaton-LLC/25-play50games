@@ -7,6 +7,7 @@ import { useFrame, useThree } from "@react-three/fiber";
 import { RepeatWrapping, type Group } from "three";
 import { InstancedModel, Model } from "@/arcade3d/core/assets";
 import CameraRig from "@/arcade3d/core/CameraRig";
+import { useCameraViews } from "@/arcade3d/core/camera/CameraViews";
 import { playSfx } from "@/arcade3d/core/audio";
 import { FRAME_PRIORITY } from "@/arcade3d/core/frameLoop";
 import { useFx } from "@/arcade3d/core/fx";
@@ -190,6 +191,23 @@ function LevelScene() {
    const fx = useFx();
    const [run] = useState<Run>(() => createRun(randomSeed(), level));
    const dir = useRef({ x: 0, z: 0 }).current;
+   // camera views (core/camera): the stick turns with the drawn camera's yaw
+   const cam = useCameraViews({
+      slug: "pizza-kitchen-3d",
+      subject: "character",
+      steering: "camera",
+      defaultYaw: view.yaw,
+      target: (o) => {
+         const p = run.player;
+         o.x = p.x;
+         o.y = 1.1;
+         o.z = p.z;
+         if (Math.hypot(p.vx, p.vz) > 0.3) o.heading = Math.atan2(p.vx, p.vz);
+         else if (o.heading === 0) o.heading = Math.PI; // before the first step: facing the counters
+         o.vx = p.vx;
+         o.vz = p.vz;
+      },
+   });
    // the camera pans along the row with the cook (L3-L5 on narrow screens), never past its ends
    const aim = useRef({ x: Math.max(-pan, Math.min(pan, run.player.x)), y: 0, z: AIM_Z }).current;
    const half = kitchenHalf(level);
@@ -217,7 +235,7 @@ function LevelScene() {
 
    useRunFrame((_s, dt) => {
       const { moveX, moveY, actionPressed } = input.current;
-      inputToWorld(moveX, moveY, view.yaw, dir);
+      inputToWorld(moveX, moveY, cam.yaw(), dir);
       frame(run, dt, dir.x, dir.z, actionPressed, useArcadeStore);
       aim.x = Math.max(-pan, Math.min(pan, run.player.x));
       for (const ev of run.events) {

@@ -7,6 +7,8 @@ import { BoxGeometry, BufferAttribute, CapsuleGeometry, Color, DoubleSide, Euler
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 import { DynamicInstancedModel, InstancedModel, Model } from "@/arcade3d/core/assets";
 import CameraRig from "@/arcade3d/core/CameraRig";
+import { useCameraViews } from "@/arcade3d/core/camera/CameraViews";
+import type { AABB } from "@/arcade3d/core/collision";
 import { playSfx } from "@/arcade3d/core/audio";
 import { FRAME_PRIORITY } from "@/arcade3d/core/frameLoop";
 import { useFx } from "@/arcade3d/core/fx";
@@ -27,7 +29,7 @@ import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { ASSETS, FIT, POSTMAN_LANDMARKS, POSTMAN_SCALE } from "./assets";
 import type { PostLevel } from "./levels";
 import { CAMERA, COLORS, FOV, HOUSE_COLORS, LOOK_AHEAD, PITCH, VIEW, decorSpots, fogFor, lampSpots } from "./looks";
-import { FENCE_CENTER, FENCE_LEN, OFFICE, OFFICE_BOX, ROAD_HALF, SPEED, STREET_GAP, VAN_BOX, ZEBRA_X, createRun, nextItem, step, syncStore, targetFor, type Run } from "./rules";
+import { FENCE_CENTER, FENCE_LEN, HOUSE_HX, HOUSE_HZ, OFFICE, OFFICE_BOX, ROAD_HALF, SPEED, STREET_GAP, VAN_BOX, ZEBRA_X, createRun, nextItem, step, syncStore, targetFor, type Run } from "./rules";
 
 /** Unit boxes (12 triangles; `rounded` = bevelled, for the bigger fallback pieces), sized only by their spots. */
 function Boxes({ spots, color, emissive, rounded }: { spots: InstanceSpot[]; color: string; emissive?: number; rounded?: boolean }) {
@@ -229,6 +231,25 @@ const Q = new Quaternion();
 const E = new Euler();
 const S = new Vector3(1, 1, 1);
 const HOP: BodyOffset = { y: 0, roll: 0, yaw: 0, squash: 1 };
+/** The houses near the postman as camera solids (core camera views pull the camera in front of them). */
+function houseSolids(run: Run, out: AABB[]): number {
+   let n = 0;
+   for (const h of run.houses) {
+      if (n >= out.length) break;
+      if (Math.abs(h.x - run.hero.x) > 30 || Math.abs(h.z - run.hero.z) > 30) continue;
+      const b = out[n++];
+      b.min.x = h.x - HOUSE_HX;
+      b.max.x = h.x + HOUSE_HX;
+      b.min.y = 0;
+      b.max.y = HOUSE_HEIGHT;
+      b.min.z = h.z - HOUSE_HZ;
+      b.max.z = h.z + HOUSE_HZ;
+   }
+   return n;
+}
+/** how tall a house blocks the camera (m) */
+const HOUSE_HEIGHT = 3.6;
+
 const DOG_TINTS = [new Color("#ffffff"), new Color("#fde68a"), new Color("#a8a29e")];
 
 function LevelScene() {
@@ -239,6 +260,23 @@ function LevelScene() {
    const time = useGameTime();
    const fx = useFx();
    const view = useFittedView(VIEW);
+   // camera views (core/camera): the rules get the drawn camera's yaw, the houses block the camera
+   const cam = useCameraViews({
+      slug: "postman-3d",
+      subject: "character",
+      steering: "camera",
+      defaultYaw: view.yaw,
+      target: (o) => {
+         const h = run.hero;
+         o.x = h.x;
+         o.y = h.y + 1.1;
+         o.z = h.z;
+         o.heading = h.yaw;
+         o.vx = h.vx;
+         o.vz = h.vz;
+      },
+      solids: (out) => houseSolids(run, out),
+   });
    const scene = useThree((s) => s.scene);
    const hero = useRef<Group>(null);
    const parcel = useRef<Group>(null);
@@ -339,7 +377,7 @@ function LevelScene() {
    useRunFrame((_s, dt) => {
       controls.moveX = input.current.moveX;
       controls.moveY = input.current.moveY;
-      controls.yaw = view.yaw;
+      controls.yaw = cam.yaw();
       controls.actionPressed = input.current.actionPressed;
       const e = step(run, controls, dt);
       syncStore(run, useArcadeStore);

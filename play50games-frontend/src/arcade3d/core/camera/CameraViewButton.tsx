@@ -1,0 +1,107 @@
+"use client";
+
+// The camera views' HUD part, rendered by a game's Hud (outside the Canvas) next to useCameraViews
+// in its Scene (README.md):
+// - the 📷 button (44 px, touch and desktop) that cycles the views; its tooltip names the key (C).
+//   It sits on the right, above the touch Jump / Action buttons on touch and in the bottom-right
+//   corner on desktop, both riding the cookie banner's lift (--arcade-bottom-obstruction). It is a
+//   safe-area panel (fitted views keep clear of it) and a touch control (core input skips it).
+// - a short label with the new view's name after each switch;
+// - once ever (cameraPrefs `hintSeen`), a hint while the first run plays:
+//   "📷 / C: change view; drag to look around". It hides after HINT_MS or on the first switch or turn.
+// Nothing is shown while no Scene uses camera views, so a game can render it unconditionally.
+import { useEffect, useRef, useState, useSyncExternalStore, type CSSProperties } from "react";
+import { useArcadeStore } from "../useArcadeStore";
+import { useCoarsePointer } from "../TouchControls";
+import { CONTROLS_ATTR } from "../input";
+import { SAFE_AREA_ATTR } from "../safeArea";
+import { cameraPrefs, cameraTurned, liveViews, markCameraHintSeen, requestViewCycle, serverLiveViews, subscribeLiveViews } from "./cameraPrefs";
+import { VIEW_LABELS, nextView } from "./views";
+import styles from "./CameraViewButton.module.css";
+
+/** How long the first-time hint stays up (ms of a playing run). */
+export const HINT_MS = 7000;
+/** How long the view's name shows after a switch (ms). */
+export const LABEL_MS = 1400;
+
+export function hintText(touch: boolean, key: string, oneFinger: boolean): string {
+   if (touch) return oneFinger ? "📷: change view; drag to look around" : "📷: change view; two fingers to look around";
+   return `📷 / ${key}: change view; drag to look around`;
+}
+
+function Hint({ touch, keyName, oneFinger }: { touch: boolean; keyName: string; oneFinger: boolean }) {
+   const turned = useSyncExternalStore(subscribeLiveViews, cameraTurned, () => 0);
+   const playing = useArcadeStore((s) => s.phase === "playing");
+   const expired = useArcadeStore((s) => s.phase === "playing" && s.elapsedMs >= HINT_MS);
+   const [stage, setStage] = useState<"idle" | "on" | "done">("idle");
+   useEffect(() => {
+      if (stage !== "idle" || !playing) return;
+      // seen as soon as it is up: shown once, never again
+      if (cameraPrefs().hintSeen) setStage("done");
+      else {
+         markCameraHintSeen();
+         setStage("on");
+      }
+   }, [stage, playing]);
+   useEffect(() => {
+      if (stage === "on" && (turned > 0 || expired)) setStage("done");
+   }, [stage, turned, expired]);
+   if (!(stage === "on" && playing && turned === 0 && !expired)) return null;
+   return (
+      <div className={styles.hint} role="status" aria-live="polite">
+         {hintText(touch, keyName, oneFinger)}
+      </div>
+   );
+}
+
+export interface CameraViewButtonProps {
+   /** extra placement for a game whose HUD sits where the button would (e.g. `{ bottom: "..." }`) */
+   style?: CSSProperties;
+   /** show the first-time hint (default true) */
+   hint?: boolean;
+}
+
+export default function CameraViewButton({ style, hint = true }: CameraViewButtonProps) {
+   const views = useSyncExternalStore(subscribeLiveViews, liveViews, serverLiveViews);
+   const touch = useCoarsePointer();
+   const live = useArcadeStore((s) => s.phase === "playing" || s.phase === "countdown");
+   const [label, setLabel] = useState<string | null>(null);
+   const last = useRef(views.current);
+   useEffect(() => {
+      if (views.current === last.current) return;
+      last.current = views.current;
+      setLabel(VIEW_LABELS[views.current]);
+      const t = window.setTimeout(() => setLabel(null), LABEL_MS);
+      return () => window.clearTimeout(t);
+   }, [views.current]);
+   if (views.list.length < 2 || !live) return null;
+   const next = VIEW_LABELS[nextView(views.list, views.current)];
+   const title = `Change view (${views.key}): ${VIEW_LABELS[views.current]}, next ${next}`;
+   return (
+      <>
+         <button
+            type="button"
+            className={touch ? `${styles.button} ${styles.touch}` : styles.button}
+            style={style}
+            aria-label={title}
+            title={title}
+            tabIndex={-1}
+            {...{ [CONTROLS_ATTR]: "", [SAFE_AREA_ATTR]: "", "data-camera-views": views.current }}
+            onPointerDown={(e) => {
+               e.preventDefault();
+               e.stopPropagation();
+               requestViewCycle();
+            }}
+            onContextMenu={(e) => e.preventDefault()}
+         >
+            <span aria-hidden="true">📷</span>
+         </button>
+         {label && (
+            <div className={touch ? `${styles.label} ${styles.touchLabel}` : styles.label} aria-hidden="true">
+               {label}
+            </div>
+         )}
+         {hint && <Hint touch={touch} keyName={views.key} oneFinger={views.oneFinger} />}
+      </>
+   );
+}
