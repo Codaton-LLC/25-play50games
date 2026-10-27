@@ -4,7 +4,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import type { Group, Mesh, MeshBasicMaterial, Object3D } from "three";
 import { createAxisAim, followRelativeDrag, type AxisAimOptions } from "@/arcade3d/core/aim";
-import { Model } from "@/arcade3d/core/assets";
+import { InstancedModel, Model } from "@/arcade3d/core/assets";
 import { playSfx, startLoop, useMuted } from "@/arcade3d/core/audio";
 import { useFx } from "@/arcade3d/core/fx";
 import { useGameTime } from "@/arcade3d/core/gameTime";
@@ -21,7 +21,7 @@ import type { ModelAsset } from "@/arcade3d/core/types";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useEyeShift } from "@/arcade3d/core/useEyeShift";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
-import { EXHIBIT_LOOK, statueAsset } from "./assets";
+import { ASSETS, EXHIBIT_LOOK, SARCOPHAGUS_SPOTS, statueAsset } from "./assets";
 import { useMuseumLevel } from "./useMuseumLevel";
 import { SoftBeam } from "./Beam";
 import Gallery from "./Gallery";
@@ -154,7 +154,7 @@ function FloorMarks({ run }: { run: Run }) {
 }
 
 export default function Scene() {
-   const { config } = useMuseumLevel();
+   const { id: levelId, config } = useMuseumLevel();
    const runId = useArcadeStore((s) => s.runId);
    const phase = useArcadeStore((s) => s.phase);
    const run = useMemo(() => createRun(randomSeed(), config), [runId, config]);
@@ -318,6 +318,9 @@ export default function Scene() {
       <>
          <EyeRig position={EYE} yaw={yawRef} fov={FOV} shift={eye.shift} />
          <Gallery yaw={yawRef} />
+         {(levelId === 4 || levelId === 5) && (
+            <InstancedModel asset={ASSETS.sarcophagus} spots={SARCOPHAGUS_SPOTS} fallback={null} />
+         )}
          {INDEXES.map((i) => (
             <StatueView key={`${run.seed}-${i}`} index={i} run={run} asset={statues[i]} />
          ))}

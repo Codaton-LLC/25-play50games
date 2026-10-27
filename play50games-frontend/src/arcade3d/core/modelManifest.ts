@@ -88,6 +88,7 @@ export const MODEL_MANIFEST: readonly string[] = [
    // expansion tier 3 (2026-10-08): class E decor, Rodin Gen-2.5-Medium text-to-3D, 1500-3000 tris, 512 px
    // (shared rock and luggage-rush suitcase were regenerated as v2 in place, same urls)
    "/models/3d/museum-guard/bust.glb",
+   "/models/3d/museum-guard/sarcophagusT.glb",
    "/models/3d/shared/mushroom.glb",
    "/models/3d/luggage-rush/plane.glb",
    "/models/3d/treasure-island/crab.glb",
