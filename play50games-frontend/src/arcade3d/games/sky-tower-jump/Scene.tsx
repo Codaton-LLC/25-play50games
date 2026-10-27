@@ -3,7 +3,8 @@
 // Sky Tower Jump's scene: the run (rules.ts) stepped in useRunFrame, the world and the course, the
 // hero, the follow camera, the intro's camera (core/intro, opted in by index.tsx `intro: true`), and
 // the juice: bursts, floating time bonuses, shake and sounds on jumps, bounces, orbs, checkpoints,
-// falls and the finish. Remounted for every run (runId).
+// falls and the finish. Remounted for every run (runId). Local multiplayer runs (2-4 heroes) render
+// MultiScene.tsx instead; the solo path below is unchanged.
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import type { PerspectiveCamera } from "three";
@@ -29,6 +30,8 @@ import { ORB, STAT, createRun, createStepInput, step, type SkyRun } from "./rule
 import { pickedHero, subscribeHero } from "./heroes";
 import { createBot, botInput } from "./bot";
 import type { SkyLevel } from "./levels";
+import { usePlayers } from "@/arcade3d/menu2/multiplayer/players";
+import MultiScene from "./MultiScene";
 
 /** Preview builds only: `?autoplay=1` lets the honest bot (bot.ts) play, for screenshots and checks. */
 function autoplayRequested(): boolean {
@@ -233,7 +236,8 @@ function IntroCamera({ run, anim }: { run: SkyRun; anim: HeroAnim }) {
    return <GameIntro session={intro.session} keyframes={keys} playCamera={play} hero={intro.hero} />;
 }
 
-export default function Scene() {
+/** The solo scene, exactly as before multiplayer. */
+function SoloScene() {
    const runId = useArcadeStore((s) => s.runId);
    const { config } = useLevel<SkyLevel>();
    const levelId: LevelId = config?.id ?? 1;
@@ -257,4 +261,10 @@ export default function Scene() {
          <IntroCamera run={run} anim={anim} />
       </>
    );
+}
+
+/** Local multiplayer runs (menu2/multiplayer) get their own scene; everything else is the solo one. */
+export default function Scene() {
+   const multiplayer = usePlayers((s) => s.phase === "playing");
+   return multiplayer ? <MultiScene /> : <SoloScene />;
 }

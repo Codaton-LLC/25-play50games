@@ -1,0 +1,325 @@
+/* Local multiplayer join screen: four player slots on desktop, two per row on a tablet. Deep navy
+   panels like the Menu 2 HUDs, each slot ringed in its player colour (--tag), the hero in its own
+   colour (--hero). */
+.backdrop {
+   position: fixed;
+   inset: 0;
+   z-index: 60;
+   display: flex;
+   align-items: flex-start;
+   justify-content: center;
+   padding: max(16px, env(safe-area-inset-top, 0px)) 16px 16px;
+   overflow-y: auto;
+   background: rgba(6, 10, 30, 0.72);
+   backdrop-filter: blur(6px);
+}
+
+.panel {
+   width: min(1080px, 100%);
+   margin-block: auto;
+   padding: 20px 22px 18px;
+   border: 1px solid var(--stroke, rgba(255, 255, 255, 0.16));
+   border-radius: 20px;
+   background: linear-gradient(180deg, rgba(23, 37, 84, 0.96), rgba(12, 18, 48, 0.97));
+   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+   color: #fff;
+   outline: none;
+}
+
+.head {
+   display: flex;
+   flex-wrap: wrap;
+   align-items: flex-end;
+   justify-content: space-between;
+   gap: 12px;
+}
+
+.kicker {
+   margin: 0;
+   color: #ffd257;
+   font-size: 0.85rem;
+   font-weight: 700;
+   letter-spacing: 0.08em;
+   text-transform: uppercase;
+}
+
+.title {
+   margin: 2px 0 0;
+   font-size: 1.6rem;
+   font-weight: 800;
+}
+
+.modes {
+   display: inline-flex;
+   padding: 4px;
+   border-radius: 999px;
+   background: rgba(255, 255, 255, 0.08);
+}
+
+.mode,
+.modeOn {
+   min-height: 40px;
+   padding: 0 18px;
+   border: 0;
+   border-radius: 999px;
+   background: transparent;
+   color: rgba(255, 255, 255, 0.8);
+   font: inherit;
+   font-weight: 700;
+   cursor: pointer;
+}
+
+.modeOn {
+   background: var(--accent, #ef4444);
+   color: #fff;
+}
+
+.blurb {
+   margin: 10px 0 16px;
+   color: rgba(255, 255, 255, 0.78);
+}
+
+.slots {
+   display: grid;
+   grid-template-columns: repeat(4, minmax(0, 1fr));
+   gap: 12px;
+   margin: 0;
+   padding: 0;
+   list-style: none;
+}
+
+@media (max-width: 1000px) {
+   .slots {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+   }
+}
+
+.slot,
+.slotEmpty {
+   position: relative;
+   display: flex;
+   flex-direction: column;
+   min-height: 250px;
+   padding: 34px 12px 12px;
+   border: 2px solid var(--tag);
+   border-radius: 16px;
+   background: rgba(255, 255, 255, 0.05);
+}
+
+.slotEmpty {
+   border-style: dashed;
+   opacity: 0.85;
+}
+
+.tag {
+   position: absolute;
+   top: 8px;
+   left: 10px;
+   padding: 2px 10px;
+   border-radius: 999px;
+   background: var(--tag);
+   color: #0b1030;
+   font-weight: 800;
+}
+
+.joinHint {
+   display: flex;
+   flex: 1;
+   flex-direction: column;
+   align-items: center;
+   justify-content: center;
+   gap: 8px;
+   text-align: center;
+}
+
+.press {
+   margin: 0;
+   font-size: 1.05rem;
+   font-weight: 700;
+}
+
+.press kbd {
+   padding: 1px 7px;
+   border: 1px solid rgba(255, 255, 255, 0.4);
+   border-bottom-width: 3px;
+   border-radius: 6px;
+   font: inherit;
+   font-size: 0.9em;
+}
+
+.small {
+   margin: 0;
+   color: rgba(255, 255, 255, 0.62);
+   font-size: 0.8rem;
+}
+
+.joined {
+   display: flex;
+   flex: 1;
+   flex-direction: column;
+   gap: 10px;
+}
+
+.device {
+   margin: 0;
+   color: rgba(255, 255, 255, 0.75);
+   font-size: 0.85rem;
+}
+
+.hero {
+   display: flex;
+   align-items: center;
+   gap: 6px;
+}
+
+.arrow {
+   flex: none;
+   width: 40px;
+   height: 40px;
+   border: 1px solid rgba(255, 255, 255, 0.2);
+   border-radius: 12px;
+   background: rgba(255, 255, 255, 0.08);
+   color: #fff;
+   font-size: 1.4rem;
+   line-height: 1;
+   cursor: pointer;
+}
+
+.arrow:disabled {
+   opacity: 0.35;
+   cursor: default;
+}
+
+.heroCard {
+   display: flex;
+   flex: 1;
+   flex-direction: column;
+   align-items: center;
+   min-width: 0;
+   padding: 8px 4px;
+   border-radius: 12px;
+   background: color-mix(in srgb, var(--hero) 22%, transparent);
+   border: 1px solid color-mix(in srgb, var(--hero) 70%, transparent);
+}
+
+.swatch {
+   width: 30px;
+   height: 30px;
+   border-radius: 50%;
+   background: var(--hero);
+   box-shadow: 0 0 14px var(--hero);
+}
+
+.heroName {
+   margin-top: 4px;
+   font-size: 1.15rem;
+   font-weight: 800;
+}
+
+.power {
+   color: rgba(255, 255, 255, 0.75);
+   font-size: 0.85rem;
+}
+
+.dots {
+   display: flex;
+   justify-content: center;
+   gap: 6px;
+}
+
+.dot,
+.dotOn {
+   width: 22px;
+   height: 22px;
+   padding: 0;
+   border: 2px solid rgba(255, 255, 255, 0.25);
+   border-radius: 50%;
+   cursor: pointer;
+}
+
+.dotOn {
+   border-color: #fff;
+   box-shadow: 0 0 0 2px var(--tag);
+}
+
+.dot:disabled {
+   opacity: 0.25;
+   cursor: default;
+}
+
+.slotActions {
+   display: flex;
+   gap: 8px;
+   margin-top: auto;
+}
+
+.ready,
+.readyOn,
+.leave,
+.secondary {
+   min-height: 44px;
+   border-radius: 12px;
+   font: inherit;
+   font-weight: 800;
+   cursor: pointer;
+}
+
+.ready,
+.readyOn {
+   flex: 1;
+   border: 2px solid var(--tag);
+   background: transparent;
+   color: #fff;
+}
+
+.readyOn {
+   background: var(--tag);
+   color: #0b1030;
+}
+
+.leave {
+   width: 44px;
+   border: 1px solid rgba(255, 255, 255, 0.2);
+   background: rgba(255, 255, 255, 0.06);
+   color: #fff;
+   font-size: 1.3rem;
+}
+
+.secondary {
+   padding: 0 16px;
+   border: 1px solid rgba(255, 255, 255, 0.25);
+   background: rgba(255, 255, 255, 0.08);
+   color: #fff;
+}
+
+.foot {
+   display: flex;
+   flex-wrap: wrap;
+   align-items: center;
+   justify-content: space-between;
+   gap: 10px;
+   margin-top: 16px;
+}
+
+.status {
+   margin: 0;
+   font-weight: 700;
+}
+
+.actions {
+   display: flex;
+   gap: 8px;
+}
+
+.ready:focus-visible,
+.readyOn:focus-visible,
+.leave:focus-visible,
+.secondary:focus-visible,
+.mode:focus-visible,
+.modeOn:focus-visible,
+.arrow:focus-visible,
+.dot:focus-visible,
+.dotOn:focus-visible {
+   outline: 3px solid #ffd257;
+   outline-offset: 2px;
+}

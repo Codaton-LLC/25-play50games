@@ -1,0 +1,85 @@
+/* Per-player chips: navy pills ringed in the player colour (--tag), like the Menu 2 HUD pills. */
+.strip,
+.bottom {
+   position: absolute;
+   display: flex;
+   gap: 8px;
+   margin: 0;
+   padding: 0;
+   list-style: none;
+   pointer-events: none;
+}
+
+.strip {
+   top: calc(env(safe-area-inset-top, 0px) + 58px);
+   left: calc(env(safe-area-inset-left, 0px) + 10px);
+   flex-direction: column;
+}
+
+.bottom {
+   bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
+   left: 50%;
+   transform: translateX(-50%);
+   flex-wrap: wrap;
+   justify-content: center;
+   max-width: calc(100% - 24px);
+}
+
+.chip,
+.chipDone {
+   display: flex;
+   align-items: center;
+   gap: 8px;
+   min-width: 170px;
+   padding: 5px 12px 5px 5px;
+   border: 2px solid var(--tag);
+   border-radius: 999px;
+   background: linear-gradient(180deg, rgba(23, 37, 84, 0.9), rgba(15, 23, 60, 0.9));
+   box-shadow: 0 4px 14px rgba(8, 15, 40, 0.35);
+   color: #fff;
+}
+
+.chipDone {
+   background: linear-gradient(180deg, rgba(60, 50, 10, 0.9), rgba(40, 30, 5, 0.9));
+}
+
+.tag {
+   padding: 3px 8px;
+   border-radius: 999px;
+   background: var(--tag);
+   color: #0b1030;
+   font-size: 0.85rem;
+   font-weight: 800;
+}
+
+.swatch {
+   flex: none;
+   width: 18px;
+   height: 18px;
+   border-radius: 50%;
+   box-shadow: 0 0 8px rgba(255, 255, 255, 0.35);
+}
+
+.body {
+   display: flex;
+   flex-direction: column;
+   line-height: 1.1;
+}
+
+.name {
+   font-size: 0.8rem;
+   font-weight: 700;
+   opacity: 0.8;
+}
+
+.stat {
+   font-size: 1.05rem;
+   font-weight: 800;
+   font-variant-numeric: tabular-nums;
+}
+
+.place {
+   margin-left: auto;
+   color: #ffd257;
+   font-weight: 800;
+}

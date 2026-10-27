@@ -65,6 +65,11 @@ export interface FinishedRun {
    level?: LevelId;
    /** how the run ended: a "win" clears its level (isLevelCleared) */
    endReason?: EndReason | null;
+   /**
+    * Players in the run (local multiplayer, menu2/multiplayer). Omitted or 1 = a solo run. A run with
+    * more than one player never goes into the solo board: submitScore saves and sends nothing.
+    */
+   players?: number;
 }
 
 export type SubmitStatus =
@@ -125,10 +130,16 @@ export function normalizeRun(run: FinishedRun, rules: ScoringRules): FinishedRun
 /**
  * Time games rank only finished runs: a lost or timed-out run has no finish time, and deriving
  * a score from its duration would reward dying early. Points games rank every run but "quit".
+ * A local multiplayer run (`players` > 1) is never ranked on the solo board.
  */
-export function isRankedRun(rules: ScoringRules, endReason: EndReason | null): boolean {
-   if (endReason === "quit") return false;
+export function isRankedRun(rules: ScoringRules, endReason: EndReason | null, players = 1): boolean {
+   if (endReason === "quit" || isMultiplayerRun(players)) return false;
    return rules.kind !== "time" || endReason === "win";
+}
+
+/** More than one player played the run (local multiplayer): never on the solo leaderboard. */
+export function isMultiplayerRun(players: number | undefined | null): boolean {
+   return typeof players === "number" && players > 1;
 }
 
 const finite = (value: unknown): value is number => typeof value === "number" && Number.isFinite(value);
@@ -415,6 +426,8 @@ const accountSaveKey = (userId: number, run: FinishedRun) => `${userId}|${run.sl
  * `runToken`: the run's single-use ticket (memory only, never stored), or null to send without one.
  */
 export async function submitScore(run: FinishedRun, userId: number | null, runToken: string | null = null): Promise<SubmitResult> {
+   // a multiplayer run never reaches the solo board, whoever calls this (GameShell already skips it)
+   if (isMultiplayerRun(run.players)) return unrankedResult(run.slug, userId, run.level ?? 1);
    const saved = saveLocally(run, userId);
    // a later "Save to my account" by the same user only resends (no second local play)
    if (userId) accountSaves.set(accountSaveKey(userId, run), saved);
@@ -427,6 +440,7 @@ export async function submitScore(run: FinishedRun, userId: number | null, runTo
  * Pass the run's ticket only when the run was played by this same user.
  */
 export function saveRunToAccount(run: FinishedRun, userId: number, runToken: string | null = null): Promise<SubmitResult> {
+   if (isMultiplayerRun(run.players)) return Promise.resolve(unrankedResult(run.slug, userId, run.level ?? 1));
    const key = accountSaveKey(userId, run);
    let saved = accountSaves.get(key);
    if (!saved) {
