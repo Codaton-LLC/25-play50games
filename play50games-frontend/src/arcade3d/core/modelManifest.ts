@@ -22,6 +22,7 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/food-catcher/apple.glb",
    "/models/3d/food-catcher/burger.glb",
    "/models/3d/food-catcher/sock.glb",
+   "/models/3d/food-catcher/kitchenRangeOven.glb",
    "/models/3d/warehouse-rush/shelfRack.glb",
    "/models/3d/warehouse-rush/pallet.glb",
    "/models/3d/obstacle-race/finishArch.glb",
