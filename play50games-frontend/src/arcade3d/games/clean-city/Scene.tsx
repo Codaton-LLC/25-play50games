@@ -19,7 +19,7 @@
 //   per kind, all three maps mounted, Worlds sets visible from run.map in a useFrame. The park and
 //   the city also carry their decor (Decor.tsx: ground beyond the floor, parked cars, pigeons),
 //   outside everything the run draws on the floor (decorSpots.ts).
-import { memo, useLayoutEffect, useRef, useState } from "react";
+import { Suspense, memo, useLayoutEffect, useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
 import { Euler, Matrix4, Quaternion, Vector3, type Group, type Mesh, type MeshBasicMaterial } from "three";
 import CameraRig from "@/arcade3d/core/CameraRig";
@@ -27,7 +27,7 @@ import { playSfx } from "@/arcade3d/core/audio";
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import { useInput } from "@/arcade3d/core/input";
 import { inputToWorld, randomSeed } from "@/arcade3d/core/math";
-import { DynamicInstancedModel } from "@/arcade3d/core/assets";
+import { DynamicInstancedModel, InstancedModel } from "@/arcade3d/core/assets";
 import { BlobShadow, DynamicInstanced } from "@/arcade3d/core/render";
 import {
    BONE,
@@ -49,7 +49,7 @@ import { useFittedView } from "@/arcade3d/core/useFittedView";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { useCleanLevel } from "./useCleanLevel";
 import { EXTRA_BINS, HAZARDS, HAZARD_RADIUS } from "./levels";
-import { ASSETS, CLEANER_LANDMARKS } from "./assets";
+import { ASSETS, CLEANER_LANDMARKS, FESTIVAL_STALL_SPOTS } from "./assets";
 import { DAMPING, FOLLOW, FOV, LOOK_AT, REACH, VIEW } from "./camera";
 import { CityDecor, ParkDecor } from "./Decor";
 import { CLEANER_SCALE, createCleanerGait, gaitFrameDt, stepCleanerGait } from "./gait";
@@ -395,8 +395,16 @@ function Cleaner({ run }: { run: CleanRun }) {
 
 // ---------- maps ----------
 
+function FestivalStalls() {
+   return <Suspense fallback={null}>
+      <InstancedModel asset={ASSETS.festivalStall} spots={FESTIVAL_STALL_SPOTS} fallback={null} />
+   </Suspense>;
+}
+
 /** All three maps stay mounted. visible follows run.map in the same frame as the litter move, not a render later. */
 function Worlds({ run }: { run: CleanRun }) {
+   const { id } = useCleanLevel();
+   const festival = id === 4 || id === 5;
    const park = useRef<Group>(null);
    const city = useRef<Group>(null);
    const beach = useRef<Group>(null);
@@ -413,10 +421,12 @@ function Worlds({ run }: { run: CleanRun }) {
          <group ref={park} name="map-park">
             <Park />
             <ParkDecor run={run} />
+            {festival && <FestivalStalls />}
          </group>
          <group ref={city} visible={false} name="map-city">
             <City />
             <CityDecor />
+            {festival && <FestivalStalls />}
          </group>
          <group ref={beach} visible={false} name="map-beach">
             <Beach />
