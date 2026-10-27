@@ -144,7 +144,8 @@ function SkyDome({ core }: { core: boolean }) {
 function useWalls(course: Course, seed: number): InstanceSpot[] {
    return useMemo(() => {
       const rnd = createRng(seed ^ 0x1a7a);
-      const goalZ = course.supports[course.goal].cz;
+      // level 5's arena reaches a ring's width past the entry
+      const goalZ = course.arena ? course.arena.cz - course.arena.radius - 6 : course.supports[course.goal].cz;
       const spots: InstanceSpot[] = [];
       const wallH = 28;
       for (let i = 0; i < 10; i++) {

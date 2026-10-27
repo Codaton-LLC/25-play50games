@@ -77,7 +77,10 @@ export function introKeyframes(course: Course): IntroKeyframe[] {
    const midY = Math.max(goal.top + 6, (goal.top + 16 + high) / 2);
    const shots: IntroKeyframe[] = [
       // establishing: the helipad from out in the sky, then down along the roofs
-      { position: [goal.cx + 15, goal.top + 16, goal.cz + 26], lookAt: [goal.cx, goal.top + 4, goal.cz - 4] },
+      course.arena
+         ? // level 5: Kalder in his ring, from over the entry
+           { position: [goal.cx + 15, goal.top + 16, goal.cz + 26], lookAt: [course.arena.cx, course.arena.top + 4, course.arena.cz] }
+         : { position: [goal.cx + 15, goal.top + 16, goal.cz + 26], lookAt: [goal.cx, goal.top + 4, goal.cz - 4] },
       { position: [goal.cx + 12, midY, goal.cz + 14], lookAt: [goal.cx, goal.top + 2, goal.cz - 3] },
    ];
    let side = -1;

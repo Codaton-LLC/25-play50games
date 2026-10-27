@@ -1,20 +1,26 @@
-// Lava Pillar Jump rules: the roofs as data, the integer-ms clock and its cap, kinematic movement
-// with closed-form jumps, moving roofs as functions of rules time, vanishing roofs, icy roofs,
-// checkpoints, falls and respawns (dead time = the time penalty), coins (a time bonus), the finish,
-// and the lower bound behind the server limits. Pure and deterministic: no three.js, React, DOM,
-// Math.random or Date.now. Scene.tsx maps the stick with inputToWorld(moveX, moveY, 0) and calls
-// step() once per useRunFrame; rules.test.ts and bot.ts drive it directly.
+// Lava Pillar Jump rules: the pillars as data, the integer-ms clock and its cap, kinematic movement
+// with closed-form jumps, the lava tide that surges on the volcano's heartbeat, pillar tops that heat
+// under the feet and crumble, geyser vents that fire on the beat, moving bridges, sinking and glassy
+// shelves, rocks shaken loose by the beat, checkpoints, falls and respawns (dead time = the time
+// penalty), embers (a time bonus), the flow meter, secrets, level 5's boss (Kalder, menu2/boss), the
+// finish, and the lower bound behind the server limits. Pure and deterministic: no three.js, React,
+// DOM, Math.random or Date.now. Scene.tsx maps the stick with inputToWorld(moveX, moveY, 0) and calls
+// step() once per useRunFrame; the tests and bot.ts drive it directly.
 //
 // Clock: whole ms, the fraction carried to the next step (as obstacle-race), stepped 1 ms at a time,
 // so a jump arc depends only on the ms since take-off and is the same at 30, 60 or 144 fps.
 // No allocation after createRun(): the hero and the events object are rewritten in place.
-// README.md "Rules" and "Server limits" explain the design and the proof; rules.test.ts checks them.
+// README.md "Rules" and "Server limits" explain the design and the proof; the tests check them.
 import { resolveSphereAabb, type AABB, type Vec3Like } from "@/arcade3d/core/collision";
 import type { RunState } from "@/arcade3d/core/types";
 import type { LevelId } from "@/arcade3d/types";
+import { comboBreak, comboHit, comboMaxBonus, comboTick, createCombo, type ComboLevelSpec, type ComboState } from "@/arcade3d/menu2/combo/combo";
+import { collectSecret, createSecretTracker, type SecretTracker } from "@/arcade3d/menu2/secrets/secrets";
+import { createBoss, createBossEvents, hitBoss, stepBoss, type BossConfig, type BossEvents, type BossState } from "@/arcade3d/menu2/boss/boss";
 import { MAGNET_REACH, POWER_MS, V_DASH, heroById, type HeroId } from "./heroes";
 import { LEVELS, type LavaLevel } from "./levels";
-import { buildPillars, type RockStrike } from "./pillars";
+import { ZONES, buildPillars, type PillarArena, type PillarVent, type RockStrike } from "./pillars";
+import { COMBO, COMBO_BASE_MS, KALDER, SECRETS } from "./progression";
 
 // ---------- tuning (1 unit = 1 m, forward is -z, up is +y) ----------
 
@@ -31,6 +37,8 @@ export const ACCEL = { ground: 50, air: 32, ice: 36 } as const;
 export const G = 30;
 export const V_JUMP = 14;
 export const V_BOUNCE = 22;
+/** a geyser vent's launch: twice a jump's height (the card's "2 times higher") */
+export const V_VENT = V_JUMP * Math.SQRT2;
 /** a jump still works this long after walking off an edge, and a press is kept this long */
 export const COYOTE_MS = 100;
 export const BUFFER_MS = 130;
@@ -41,23 +49,32 @@ export const FALL_DEPTH = 7;
 /** after a fall: frozen this long out of view, then this long on the checkpoint (the time penalty) */
 export const LOST_MS = 900;
 export const SPAWN_MS = 600;
-/**
- * After you land on a blinking pillar it stays solid this long, so a jump off is possible
- * before the gap in its cycle. Checkpoints and the goal never blink.
- */
+/** After you land on a blinking pillar it stays solid this long. Checkpoints and the goal never blink. */
 export const GRIP_MS = 1600;
-/** A collapsing pillar holds this long after you land, then drops into the lava. */
+/** A collapsing (sinking) pillar holds this long after you land, then drops into the lava. */
 export const COLLAPSE_HOLD = 3600;
-/** bounce pad: a square of this half size around its platform's centre */
+/** bounce pad: a square of this half size around its platform's centre (no pads in this cavern) */
 export const PAD_HALF = 0.8;
+/** a vent launches the hero standing in this square round its pillar's centre */
+export const VENT_HALF = 1.0;
+/** a vent stays open this long after each heartbeat */
+export const VENT_OPEN_MS = 800;
 /** platform colliders are this deep under their top (the visuals' rock hangs lower, no collision) */
 export const THICKNESS = 1.4;
-/** orbs: pickup radius around the hero's middle, the time bonus each, the middle's height over the feet */
+/** embers: pickup radius around the hero's middle, the time bonus each, the middle's height over the feet */
 export const ORB = { pickup: 0.95, bonusMs: 400, centerY: 0.6 } as const;
+/** the heartbeat surge: +height over riseMs, back over ebbMs, telegraphed telegraphMs ahead */
+export const SURGE = { height: 1.2, riseMs: 1500, ebbMs: 1500, telegraphMs: 1000 } as const;
+/** hot-foot: a top glows orange, then white, then crumbles (ms stood on); it cools to 0 over coolMs; a crumbled top re-forms after reformMs */
+export const HEAT = { orangeMs: 1200, whiteMs: 2400, crumbleMs: 3000, coolMs: 4000, reformMs: 4000 } as const;
+const COOL_PER_MS = HEAT.crumbleMs / HEAT.coolMs;
+/** Kalder's lava: the slam surge (P1), the standing tide (P2), the heart surge (P3), m over the capped base */
+export const BOSS_LAVA = { slam: 1.2, tear: 1.2, heart: 2.0 } as const;
 
-/** apex heights and times of the two launches (m, ms) */
+/** apex heights and times of the launches (m, ms) */
 export const H_JUMP = (V_JUMP * V_JUMP) / (2 * G);
 export const H_BOUNCE = (V_BOUNCE * V_BOUNCE) / (2 * G);
+export const H_VENT = (V_VENT * V_VENT) / (2 * G);
 export const APEX_MS = (1000 * V_JUMP) / G;
 export const BOUNCE_APEX_MS = (1000 * V_BOUNCE) / G;
 
@@ -83,7 +100,7 @@ export interface Support {
    top: number;
    bottom: number;
    mover: Mover | null;
-   /** a bounce pad in the middle of the top (unused on these roofs; the field stays for the launch) */
+   /** a bounce pad in the middle of the top (unused in this cavern; the field stays for the launch) */
    pad: boolean;
    /** blinks out for `gone` of each cycle; null = always solid */
    vanish: { periodMs: number; gone: number; phase: number } | null;
@@ -91,6 +108,15 @@ export interface Support {
    slippery: boolean;
    /** drops out after COLLAPSE_HOLD of standing on it */
    collapse: boolean;
+   /** heats while stood on and crumbles at HEAT.crumbleMs */
+   heat: boolean;
+   heatRate: number;
+   /** a geyser vent in the middle of the top */
+   vent: PillarVent | null;
+   /** a ring pillar of Kalder's arena (level 5) */
+   ring: boolean;
+   /** Kalder's hit zone for boss phase zone - 1; 0 = not a zone. Solid only in its phase */
+   zone: number;
 }
 
 export interface Orb extends Vec3Like {
@@ -99,23 +125,47 @@ export interface Orb extends Vec3Like {
    z: number;
 }
 
+/** A secret's spot and what takes it (progression.ts SECRETS order). */
+export interface SecretSpot extends Vec3Like {
+   x: number;
+   y: number;
+   z: number;
+   /** the power that must be up (a double jump's flight for Nami), or null (the spot itself is the gate) */
+   need: "dash" | "phase" | "shield" | "magnet" | "doubleJump" | null;
+   reach: number;
+   /** the pillar it belongs to (for the drawing) */
+   support: number;
+}
+
+export interface Arena extends PillarArena {
+   boss: BossConfig;
+}
+
 export interface Course {
    supports: Support[];
+   /** supports[0 .. route) are the route in order; level 5 appends the arena */
+   route: number;
    /** support indices of the checkpoints in order; [0] is the start */
    checkpoints: number[];
+   /** the goal shelf; level 5: the arena entry (the boss's defeat is the finish) */
    goal: number;
    orbs: Orb[];
    /** the run clock's cap (ms): "timeup" (unranked) */
    durationMs: number;
    /** the fastest any platform moves (m/s): the carry bound of the proof */
    maxCarry: number;
-   /** sideways heat gusts while airborne (Fast Lava, Volcano Core) */
+   /** sideways heat gusts while airborne */
    wind: boolean;
-   /** falling rocks on pillar rims; the centre of each pillar is outside the strike */
+   /** rocks on pillar rims, shaken loose by the beat; the centre of each pillar is outside the strike */
    strikes: RockStrike[];
-   /** lava height (m) at rules ms 0, and its rise (m/s) */
+   /** lava height (m) at rules ms 0, its rise (m/s), and where the steady rise stops (Infinity = never) */
    lava0: number;
    lavaRate: number;
+   lavaCap: number;
+   /** the heartbeat (ms) */
+   beatMs: number;
+   secrets: SecretSpot[];
+   arena: Arena | null;
 }
 
 export type { RockStrike };
@@ -151,33 +201,150 @@ export function roofGone(s: Support, ms: number): boolean {
    return frac < v.gone;
 }
 
-/** The run currently being stepped. Collapse state lives on the run; collision reads it here (step never yields). */
-let GONE_COLLAPSED: Float64Array | null = null;
+const smooth = (k: number) => k * k * (3 - 2 * k);
 
-/** A pillar that has already dropped. Blink grip does not bring it back. */
-function dropped(index: number, ms: number): boolean {
-   const c = GONE_COLLAPSED;
-   return c !== null && index >= 0 && index < c.length && c[index] > 0 && ms >= c[index];
+/** The surge's shape (0..1) `u` ms after a beat: up over riseMs, back over ebbMs. */
+export function surgeShape(u: number, riseMs: number = SURGE.riseMs, ebbMs: number = SURGE.ebbMs): number {
+   if (!(u >= 0)) return 0;
+   if (u < riseMs) return smooth(u / riseMs);
+   if (u < riseMs + ebbMs) return 1 - smooth((u - riseMs) / ebbMs);
+   return 0;
 }
 
-function finishCourse(supports: Support[], level: LavaLevel, orbs: Orb[], strikes: RockStrike[], wind: boolean): Course {
-   const checkpoints = [0];
-   supports.forEach((s, i) => {
-      if (s.kind === "checkpoint") checkpoints.push(i);
-   });
-   const goal = supports.findIndex((s) => s.kind === "goal");
-   let maxCarry = 0;
-   for (const s of supports) if (s.mover) maxCarry = Math.max(maxCarry, moverTopSpeed(s.mover));
-   return { supports, checkpoints, goal, orbs, durationMs: level.durationMs, maxCarry, strikes, wind, lava0: level.spec.lava0, lavaRate: level.spec.lavaRate };
+/** The heartbeat number at `ms`: 0 before the first beat (at beatMs), then 1, 2, ... */
+export function beatIndex(course: Course, ms: number): number {
+   return ms < course.beatMs ? 0 : Math.floor(ms / course.beatMs);
 }
 
-/** The lava surface (m) at rules ms. It only rises. */
+/** ms since the latest beat (NaN before the first). */
+export function sinceBeat(course: Course, ms: number): number {
+   if (ms < course.beatMs) return Number.NaN;
+   return ms - Math.floor(ms / course.beatMs) * course.beatMs;
+}
+
+/** The heartbeat surge (m) over the steady tide. */
+export function beatSurge(course: Course, ms: number): number {
+   const u = sinceBeat(course, ms);
+   return Number.isNaN(u) ? 0 : SURGE.height * surgeShape(u);
+}
+
+/** The 1 s telegraph before each beat (0..1, 1 = the beat): the walls pulse red and a kick drum hits. Pure, for the Scene. */
+export function surgeTelegraph(course: Course, ms: number): number {
+   const P = course.beatMs;
+   const t = ms - Math.floor(ms / P) * P;
+   const from = P - SURGE.telegraphMs;
+   return t >= from ? (t - from) / SURGE.telegraphMs : 0;
+}
+
+/** The steady tide (m): the start level plus the rise, held at the cap (level 5). */
+export function lavaBase(course: Course, ms: number): number {
+   return Math.min(course.lavaCap, course.lava0 + (course.lavaRate * Math.max(0, ms)) / 1000);
+}
+
+/** The lava surface (m) at rules ms on a course without a running boss: the steady tide plus the heartbeat surge. */
 export function lavaY(course: Course, ms: number): number {
-   return course.lava0 + course.lavaRate * Math.max(0, ms) / 1000;
+   return lavaBase(course, ms) + beatSurge(course, ms);
 }
 
-/** Every level, including Low Roofs: buildPillars. The course does not depend on the run seed. */
-export function buildCourse(level: LavaLevel = LEVELS[1]): Course {
+/** The run currently being stepped: absent() reads its dropped, crumbled and boss state (step never yields). */
+let CUR: LavaRun | null = null;
+
+/** Is support `index` gone at `ms` for the run being stepped (sunk, crumbled, or a boss zone out of its phase)? Blink is separate. */
+function absent(index: number, ms: number): boolean {
+   const r = CUR;
+   if (r === null || index < 0) return false;
+   const c = r.collapsed[index];
+   if (c > 0 && ms >= c) return true;
+   if (ms < r.crumbleUntil[index]) return true;
+   const z = r.course.supports[index].zone;
+   if (z > 0 && !zoneActive(r, index)) return true;
+   return false;
+}
+
+/** A boss zone is solid in its own phase only, while the fight runs. */
+export function zoneActive(run: LavaRun, index: number): boolean {
+   const z = run.course.supports[index].zone;
+   if (z === 0) return true;
+   const b = run.boss;
+   if (b === null || run.bossStartMs === NONE) return false;
+   if (b.step === "defeat" || b.step === "done") return false;
+   return z === b.phase + 1;
+}
+
+const round2 = (n: number) => Math.round(n * 100) / 100;
+
+function nearestStatic(supports: Support[], route: number, at: number, used: Set<number>): number {
+   let best = -1;
+   for (let d = 0; d < route; d++) {
+      for (const k of [at + d, at - d]) {
+         if (k <= 0 || k >= route - 1 || used.has(k)) continue;
+         const s = supports[k];
+         if (s.kind !== "roof" || s.mover || s.vanish || s.collapse || s.vent || s.slippery) continue;
+         best = k;
+         break;
+      }
+      if (best >= 0) break;
+   }
+   if (best < 0) best = Math.max(1, Math.min(route - 2, at));
+   used.add(best);
+   return best;
+}
+
+/** Where the level's secrets sit and what takes them (progression.ts SECRETS, README "Secrets"). */
+export function secretSpots(supports: Support[], route: number, level: LevelId, arena: PillarArena | null): SecretSpot[] {
+   const used = new Set<number>();
+   const side = (k: number) => {
+      const s = supports[k];
+      const next = supports[Math.min(route - 1, k + 1)];
+      return next.cx >= s.cx ? -1 : 1;
+   };
+   return SECRETS[level].map((spec): SecretSpot => {
+      if (spec.id === "chimney") {
+         const k = nearestStatic(supports, route, Math.floor(route * 0.5), used);
+         const s = supports[k];
+         return { x: s.cx, y: s.top + 0.6, z: s.cz, need: "dash", reach: 1.2, support: k };
+      }
+      if (spec.id === "ghost") {
+         const k = nearestStatic(supports, route, Math.floor(route * 0.3), used);
+         const s = supports[k];
+         return { x: round2(s.cx + side(k) * (s.hw + 1.0)), y: s.top + 0.8, z: s.cz, need: "phase", reach: 1.3, support: k };
+      }
+      if (spec.id === "trail") {
+         const k = nearestStatic(supports, route, Math.floor(route * 0.7), used);
+         const s = supports[k];
+         return { x: round2(s.cx + side(k) * (s.hw + 3.0)), y: s.top - 0.6, z: s.cz, need: "magnet", reach: ORB.pickup, support: k };
+      }
+      if (spec.id === "overhang") {
+         const k = nearestStatic(supports, route, Math.floor(route * 0.4), used);
+         const a = supports[k];
+         const b = supports[k + 1];
+         return { x: round2((a.cx + b.cx) / 2), y: Math.max(a.top, b.top) + 2.0, z: round2((a.cz + b.cz) / 2), need: "doubleJump", reach: 1.2, support: k };
+      }
+      if (spec.id === "spray" || spec.id === "vent3") {
+         let k = -1;
+         for (let i = 1; i < route; i++) {
+            const v = supports[i].vent;
+            if (v && (spec.id === "vent3" ? v.every === 3 : v.every === 1)) {
+               k = i;
+               break;
+            }
+         }
+         if (k < 0) k = nearestStatic(supports, route, Math.floor(route * 0.6), used);
+         const s = supports[k];
+         return spec.id === "spray"
+            ? { x: s.cx, y: s.top + 2.2, z: s.cz, need: "shield", reach: 1.0, support: k }
+            : { x: s.cx, y: s.top + 6.0, z: s.cz, need: null, reach: ORB.pickup, support: k };
+      }
+      // "core": over Kalder's head, on a slam geyser's line
+      if (!arena) {
+         const g = supports[route - 1];
+         return { x: g.cx, y: g.top + 6.6, z: g.cz, need: null, reach: ORB.pickup, support: route - 1 };
+      }
+      return { x: arena.cx, y: arena.top + 6.6, z: arena.cz, need: null, reach: ORB.pickup, support: arena.zones[0] };
+   });
+}
+
+function finishCourse(level: LavaLevel): Course {
    const draft = buildPillars(level);
    const supports: Support[] = draft.supports.map((s) => ({
       kind: s.kind,
@@ -192,12 +359,48 @@ export function buildCourse(level: LavaLevel = LEVELS[1]): Course {
       vanish: s.vanish ? { ...s.vanish } : null,
       slippery: s.slippery,
       collapse: s.collapse,
+      heat: s.heat,
+      heatRate: s.heatRate,
+      vent: s.vent ? { ...s.vent } : null,
+      ring: s.ring,
+      zone: s.zone,
    }));
-   return finishCourse(supports, level, draft.orbs, draft.strikes, draft.wind);
+   const checkpoints = [0];
+   supports.forEach((s, i) => {
+      if (s.kind === "checkpoint") checkpoints.push(i);
+   });
+   const arena: Arena | null = draft.arena ? { ...draft.arena, boss: KALDER } : null;
+   const goal = arena ? draft.route - 1 : supports.findIndex((s) => s.kind === "goal");
+   let maxCarry = 0;
+   for (const s of supports) if (s.mover) maxCarry = Math.max(maxCarry, moverTopSpeed(s.mover));
+   const spec = level.spec;
+   return {
+      supports,
+      route: draft.route,
+      checkpoints,
+      goal,
+      orbs: draft.orbs,
+      durationMs: level.durationMs,
+      maxCarry,
+      strikes: draft.strikes,
+      wind: draft.wind,
+      lava0: spec.lava0,
+      lavaRate: spec.lavaRate,
+      lavaCap: spec.lavaCap ?? Infinity,
+      beatMs: spec.beatMs,
+      secrets: secretSpots(supports, draft.route, level.id, draft.arena),
+      arena,
+   };
 }
 
-/** A strike is live this ms (the same fraction on every device). */
+/** Every level: buildPillars. The course does not depend on the run seed. */
+export function buildCourse(level: LavaLevel = LEVELS[1]): Course {
+   return finishCourse(level);
+}
+
+/** A strike is live this ms (the same fraction on every device), from the first heartbeat on. */
 export function strikeLive(st: RockStrike, ms: number): boolean {
+   if (ms < st.fromMs) return false;
    const t = ms / st.periodMs + st.phase;
    const frac = t - Math.floor(t);
    return frac < st.duty;
@@ -258,7 +461,8 @@ export function riseLandS(v: number, dy: number): number {
 
 /**
  * The least time (ms) from one support to another: max(the vertical bound, the horizontal bound).
- * Infinity when no launch reaches. Ground time is taken as 0.
+ * A vent pillar also launches at V_VENT (a fixed launch, like a bounce pad; taken as open at any ms,
+ * which covers the beat and Kiro's off-beat ride). Infinity when no launch reaches. Ground time is 0.
  */
 export function edgeMinMs(course: Course, from: number, to: number, vRun = V_RUN): number {
    const a = course.supports[from];
@@ -269,6 +473,7 @@ export function edgeMinMs(course: Course, from: number, to: number, vRun = V_RUN
    if (dy <= 0) return flat;
    let vertical = riseLandS(V_JUMP, dy);
    if (a.pad) vertical = Math.min(vertical, riseLandS(V_BOUNCE, dy));
+   if (a.vent) vertical = Math.min(vertical, riseLandS(V_VENT, dy));
    if (!Number.isFinite(vertical)) return Infinity;
    return Math.max(flat, 1000 * vertical);
 }
@@ -293,14 +498,45 @@ export function minArrivalMs(course: Course, vRun = V_RUN): number[] {
    return best;
 }
 
-/** The proven least finish ms of a course (README proof step 4). */
-export function minFinishMs(course: Course, vRun = V_RUN): number {
-   return minArrivalMs(course, vRun)[course.goal];
+/**
+ * The least ms from the fight's start to Kalder's defeat: the boss machine stepped 1 ms at a time with
+ * a hit on the first ms of every vulnerable window (one hit per window; hitting any later only delays
+ * every later window). The fight starts on the first landing on a ring pillar and is stepped from the
+ * next ms on, exactly like rules.ts tick().
+ */
+export function bossMinMs(cfg: BossConfig): number {
+   const s = createBoss(cfg);
+   const ev = createBossEvents();
+   for (let t = 1; t < 600_000; t++) {
+      stepBoss(s, cfg, 1, ev);
+      if (s.step === "vulnerable" && hitBoss(s, cfg, 1, ev) === "defeated") return t;
+   }
+   return Infinity;
 }
 
-/** The least submitted duration: the least finish minus every orb's bonus (README proof step 5). */
+/** The proven least finish ms of a course (README proof step 5): the goal, or (level 5) a ring pillar plus the least fight. */
+export function minFinishMs(course: Course, vRun = V_RUN): number {
+   const arrive = minArrivalMs(course, vRun);
+   if (!course.arena) return arrive[course.goal];
+   let first = Infinity;
+   for (const k of course.arena.ring) first = Math.min(first, arrive[k]);
+   return first + bossMinMs(course.arena.boss);
+}
+
+/** What the course can feed the flow meter: every ember once, the first landing on each support but the start. */
+export function comboSpecOf(course: Course): ComboLevelSpec {
+   return {
+      combo: COMBO,
+      sources: [
+         { count: course.orbs.length, base: COMBO_BASE_MS.ember },
+         { count: course.supports.length - 1, base: COMBO_BASE_MS.pillar },
+      ],
+   };
+}
+
+/** The least submitted duration: the least finish minus every ember's bonus and the most flow bonus (README proof step 6). */
 export function minDurationMsOf(course: Course): number {
-   return minFinishMs(course) - course.orbs.length * ORB.bonusMs;
+   return minFinishMs(course) - course.orbs.length * ORB.bonusMs - comboMaxBonus(comboSpecOf(course));
 }
 
 // ---------- limits per level (README "Server limits"; meta.ts and arcade-games.json copy these) ----------
@@ -314,15 +550,31 @@ export interface LevelLimits {
 }
 
 /**
- * About 8 % under the bound, rounded down to 100 ms, and never under 90 % of it.
- * A dash can shave about 260 ms; on a short roof climb that is more than 4.5 % of the bound,
- * so the margin has to cover that dash (rules.test.ts).
+ * The least submitted duration with Riko's dashes: a dash is on for at most POWER_MS.dash + 1 ms at
+ * V_DASH, so it saves at most (POWER_MS.dash + 1) (V_DASH - V_RUN) / V_RUN ms of the summed bound; a
+ * run that finishes at T fired at most 1 + floor(T / cooldown) dashes. The least such T, less every
+ * ember's bonus and the most flow bonus.
+ */
+export function dashFloorMs(course: Course): number {
+   const F = minFinishMs(course);
+   if (!Number.isFinite(F)) return Infinity;
+   const perDash = ((POWER_MS.dash + 1) * (V_DASH - V_RUN)) / V_RUN;
+   const cooldown = heroById("riko").cooldownMs;
+   let T = 0;
+   while (T + perDash * (1 + Math.floor(T / cooldown)) < F) T += 1;
+   return T - course.orbs.length * ORB.bonusMs - comboMaxBonus(comboSpecOf(course));
+}
+
+/**
+ * About 8 % under the bound, rounded down to 100 ms, never under 90 % of it, and never above Riko's
+ * dashed floor (a dash shaves about 260 ms of the summed bound per cooldown).
  */
 export function proposeLimits(_id: LevelId, course: Course): LevelLimits {
    const lb = minDurationMsOf(course);
    let minDurationMs = Math.floor((lb * 0.92) / 100) * 100;
    if (minDurationMs < lb * 0.9) minDurationMs = Math.ceil((lb * 0.9) / 100) * 100;
    if (minDurationMs > lb) minDurationMs = Math.floor(lb);
+   minDurationMs = Math.min(minDurationMs, Math.floor(dashFloorMs(course) / 100) * 100);
    const timeBaseMs = course.durationMs;
    return { kind: "time", maxScore: Math.floor((timeBaseMs - minDurationMs) / 10), minDurationMs, maxDurationMs: course.durationMs, timeBaseMs };
 }
@@ -372,6 +624,10 @@ export interface Hero extends Vec3Like {
    gripUntil: number;
    /** a collapsing pillar drops at this rules ms (0 = not on one) */
    collapseHold: number;
+   /** this flight came from a vent (the ball, the spark column) */
+   ventFlight: boolean;
+   /** thrown back by Kalder after a hit: the stick does not steer until the landing */
+   shrug: boolean;
 }
 
 /** One frame of input. Scene fills one object per run and passes it every step. */
@@ -381,11 +637,13 @@ export interface StepInput {
    moveZ: number;
    /** a jump press this frame (the core's jumpPressed: keyboard and touch alike), latched at the frame's first ms */
    jumpPressed: boolean;
-   /**
-    * The hero power (keyboard E/Enter and the touch Power button both set the core's actionPressed).
-    * One press, latched at the frame's first ms. No separate touch timing.
-    */
+   /** The hero power (keyboard E/Enter and the touch Power button both set the core's actionPressed). */
    actionPressed: boolean;
+   /**
+    * The yaw the stick was mapped with (inputToWorld(moveX, moveY, cameraYaw)); informational only:
+    * the rules stay world-space and never read a screen direction. 0 = the fixed follow camera.
+    */
+   cameraYaw?: number;
 }
 
 export function createStepInput(): StepInput {
@@ -396,8 +654,10 @@ export function createStepInput(): StepInput {
 export interface StepEvents {
    jumped: boolean;
    bounced: boolean;
+   /** a vent launched the hero */
+   vented: boolean;
    landed: boolean;
-   /** the support of the latest landing in this step, NONE without one (a pad launches at once, so the hero may already be in the air) */
+   /** the support of the latest landing in this step, NONE without one */
    landedOn: number;
    /** a checkpoint (1..) activated in this step, NONE otherwise */
    checkpoint: number;
@@ -412,6 +672,22 @@ export interface StepEvents {
    lava: boolean;
    /** a hero power actually fired this step (a press on cooldown does not) */
    powered: boolean;
+   /** a heated top crumbled this step (its support), NONE otherwise */
+   crumbled: number;
+   /** a beat telegraph began / a heartbeat surge began (Kalder's telegraph / slam on level 5) */
+   telegraph: boolean;
+   beat: boolean;
+   /** flow bonus (ms) paid in this step, and whether a link was added */
+   comboBonus: number;
+   comboLinked: boolean;
+   /** secrets found in this step: their indices in secretList[0..secretCount) */
+   secretCount: number;
+   secretList: number[];
+   /** the fight began, a hit landed (and whether it changed the phase), Kalder fell */
+   bossStarted: boolean;
+   bossHit: boolean;
+   bossPhase: boolean;
+   bossDefeated: boolean;
 }
 
 export interface LavaRun {
@@ -441,8 +717,28 @@ export interface LavaRun {
    finishMs: number;
    /** the highest top stood on (HUD "height") */
    bestTop: number;
-   /** 0 = the pillar is still there; otherwise the rules ms it dropped */
+   /** 0 = the pillar is still there; otherwise the rules ms it sank */
    collapsed: Float64Array;
+   /** heat (ms stood on, rate-weighted) as of heatMs, per support; heatOn = the one being heated now */
+   heat: Float64Array;
+   heatMs: Float64Array;
+   heatOn: number;
+   /** a crumbled top is gone until this rules ms */
+   crumbleUntil: Float64Array;
+   /** tops crumbled under the hero (0 = the "no crumbled pillar" bonus) */
+   crumbles: number;
+   /** the flow meter (menu2/combo): combo.bonusTotal ms come off the submitted time */
+   combo: ComboState;
+   /** 1 = landed on this support before (a first landing is a flow link) */
+   visited: Uint8Array;
+   /** the level's secrets found (progression.ts SECRETS order) */
+   secrets: SecretTracker;
+   /** falls, rock hits and lava falls (0 = the no-hit badge) */
+   hits: number;
+   /** Kalder (level 5): null elsewhere; the fight starts at bossStartMs (NONE before) */
+   boss: BossState | null;
+   bossEvents: BossEvents;
+   bossStartMs: number;
    ended: "win" | "timeup" | "lose" | null;
    events: StepEvents;
 }
@@ -450,12 +746,39 @@ export interface LavaRun {
 function createEvents(): StepEvents {
    const orbList = new Array<number>(32);
    for (let i = 0; i < orbList.length; i++) orbList[i] = 0;
-   return { jumped: false, bounced: false, landed: false, landedOn: NONE, checkpoint: NONE, orbCount: 0, orbList, lost: false, respawned: false, finished: false, timeup: false, lava: false, powered: false };
+   return {
+      jumped: false,
+      bounced: false,
+      vented: false,
+      landed: false,
+      landedOn: NONE,
+      checkpoint: NONE,
+      orbCount: 0,
+      orbList,
+      lost: false,
+      respawned: false,
+      finished: false,
+      timeup: false,
+      lava: false,
+      powered: false,
+      crumbled: NONE,
+      telegraph: false,
+      beat: false,
+      comboBonus: 0,
+      comboLinked: false,
+      secretCount: 0,
+      secretList: [0, 0, 0],
+      bossStarted: false,
+      bossHit: false,
+      bossPhase: false,
+      bossDefeated: false,
+   };
 }
 
 function resetEvents(ev: StepEvents): void {
    ev.jumped = false;
    ev.bounced = false;
+   ev.vented = false;
    ev.landed = false;
    ev.landedOn = NONE;
    ev.checkpoint = NONE;
@@ -466,6 +789,16 @@ function resetEvents(ev: StepEvents): void {
    ev.timeup = false;
    ev.lava = false;
    ev.powered = false;
+   ev.crumbled = NONE;
+   ev.telegraph = false;
+   ev.beat = false;
+   ev.comboBonus = 0;
+   ev.comboLinked = false;
+   ev.secretCount = 0;
+   ev.bossStarted = false;
+   ev.bossHit = false;
+   ev.bossPhase = false;
+   ev.bossDefeated = false;
 }
 
 const COURSES: Partial<Record<LevelId, Course>> = { 1: COURSE };
@@ -515,6 +848,8 @@ function freshHero(x: number, y: number, z: number, support: number): Hero {
       phaseUntil: NONE,
       gripUntil: 0,
       collapseHold: 0,
+      ventFlight: false,
+      shrug: false,
    };
 }
 
@@ -526,6 +861,7 @@ function freshHero(x: number, y: number, z: number, support: number): Hero {
 export function createRun(seed: number, level: LevelId = 1, heroId: HeroId = "riko"): LavaRun {
    const course = courseFor(level);
    const start = course.supports[course.checkpoints[0]];
+   const n = course.supports.length;
    return {
       course,
       level,
@@ -544,7 +880,19 @@ export function createRun(seed: number, level: LevelId = 1, heroId: HeroId = "ri
       orbs: 0,
       finishMs: 0,
       bestTop: start.top,
-      collapsed: new Float64Array(course.supports.length),
+      collapsed: new Float64Array(n),
+      heat: new Float64Array(n),
+      heatMs: new Float64Array(n),
+      heatOn: NONE,
+      crumbleUntil: new Float64Array(n),
+      crumbles: 0,
+      combo: createCombo(),
+      visited: new Uint8Array(n),
+      secrets: createSecretTracker(SECRETS[level]),
+      hits: 0,
+      boss: course.arena ? createBoss(course.arena.boss) : null,
+      bossEvents: createBossEvents(),
+      bossStartMs: NONE,
       ended: null,
       events: createEvents(),
    };
@@ -569,19 +917,75 @@ function startArc(h: Hero, ms: number, y0: number, v: number): void {
    h.y = y0;
    h.grounded = false;
    h.support = NONE;
+   h.ventFlight = false;
    if (v >= V_BOUNCE - 1e-6) h.apexCap = y0 + H_BOUNCE;
    else if (v > 0) h.apexCap = y0 + (v * v) / (2 * G);
    else h.apexCap = keep;
 }
 
-/** Shield or phase is up: gusts and lightning do not touch the hero. */
+/** Shield or phase is up: gusts and rocks do not touch the hero. */
 function hazardImmune(h: Hero, ms: number): boolean {
    return ms <= h.shieldUntil || ms <= h.phaseUntil;
 }
 
 /**
+ * The lava surface (m) the run sees at `ms`: lavaY, or on level 5 once the fight runs, the capped tide
+ * plus Kalder's surge (a slam bump in P1, a standing tide in P2, the big heart surge in P3).
+ */
+export function lavaAt(run: LavaRun, ms: number): number {
+   const course = run.course;
+   const b = run.boss;
+   if (b === null || run.bossStartMs === NONE || !course.arena) return lavaY(course, ms);
+   const base = lavaBase(course, ms);
+   const cfg = course.arena.boss;
+   if (b.step === "defeat" || b.step === "done" || b.step === "intro") return base;
+   const atk = cfg.phases[b.phase].attacks[b.attack % cfg.phases[b.phase].attacks.length];
+   const u = b.step === "attack" ? b.stepMs : b.step === "vulnerable" ? atk.attackMs + b.stepMs : -1;
+   if (b.phase === 1) return base + BOSS_LAVA.tear * (b.step === "transition" ? smooth(Math.min(1, b.stepMs / cfg.transitionMs)) : 1);
+   const amp = b.phase === 0 ? BOSS_LAVA.slam : BOSS_LAVA.heart;
+   return base + amp * surgeShape(u, 900, 1500);
+}
+
+/** Is a vent on support `s` open at `ms`: on its beat (every `every`-th), on Kalder's slam (ring vents, P1 and P3), or any time under Kiro's shield. */
+export function ventOpen(run: LavaRun, index: number, ms: number): boolean {
+   const s = run.course.supports[index];
+   const v = s.vent;
+   if (!v) return false;
+   if (ms <= run.hero.shieldUntil) return true;
+   if (s.ring) {
+      const b = run.boss;
+      return b !== null && run.bossStartMs !== NONE && b.step === "attack" && b.phase !== 1;
+   }
+   const u = sinceBeat(run.course, ms);
+   if (Number.isNaN(u) || u >= VENT_OPEN_MS) return false;
+   return beatIndex(run.course, ms) % v.every === 0;
+}
+
+/** The heat (0 .. HEAT.crumbleMs) of support `i` at `ms`. */
+export function heatAt(run: LavaRun, i: number, ms: number): number {
+   if (i < 0) return 0;
+   const dt = ms - run.heatMs[i];
+   if (i === run.heatOn) return run.heat[i] + run.course.supports[i].heatRate * dt;
+   return Math.max(0, run.heat[i] - COOL_PER_MS * dt);
+}
+
+function settleHeat(run: LavaRun, i: number, ms: number): void {
+   if (i < 0) return;
+   run.heat[i] = heatAt(run, i, ms);
+   run.heatMs[i] = ms;
+}
+
+function setHeatOn(run: LavaRun, next: number, ms: number): void {
+   if (next === run.heatOn) return;
+   settleHeat(run, run.heatOn, ms);
+   // settle the new one as it cooled so far (heatOn is not it yet)
+   settleHeat(run, next, ms);
+   run.heatOn = next;
+}
+
+/**
  * Nami's second jump. The new apex is capped at the flight's existing apexCap, so it cannot
- * reach a platform a single jump (or the bounce that started the flight) could not already reach.
+ * reach a platform a single jump (or the launch that started the flight) could not already reach.
  */
 function tryDoubleJump(run: LavaRun, ms: number): boolean {
    const h = run.hero;
@@ -591,7 +995,9 @@ function tryDoubleJump(run: LavaRun, ms: number): boolean {
    if (!(y < cap - 0.04)) return false;
    const v = Math.min(V_JUMP, Math.sqrt(Math.max(0, 2 * G * (cap - y))));
    if (!(v >= 1)) return false;
+   const vent = h.ventFlight;
    startArc(h, ms, y, v);
+   h.ventFlight = vent;
    h.apexCap = cap;
    h.airJump = false;
    return true;
@@ -637,7 +1043,7 @@ function tryPower(run: LavaRun, ms: number, mx: number, mz: number): void {
    run.events.powered = true;
 }
 
-function lightningHit(run: LavaRun, ms: number): boolean {
+function rockHit(run: LavaRun, ms: number): boolean {
    const strikes = run.course.strikes;
    if (strikes.length === 0) return false;
    const h = run.hero;
@@ -666,15 +1072,15 @@ const finite = (v: number): number => (Number.isFinite(v) ? v : 0);
 
 /**
  * One frame: `dtMs` is useRunFrame's dt · 1000. Each whole ms: simMs += 1; the ms that reaches the
- * cap ends with "timeup"; else the hero's state acts. A finish or a time-up ends the step, and every
- * later step does nothing. Returns run.events (the same object every step). Allocates nothing.
+ * cap ends with "timeup"; else the boss and the hero's state act. A finish, a lava loss or a time-up
+ * ends the step, and every later step does nothing. Returns run.events (the same object every step).
  */
 export function step(run: LavaRun, dtMs: number, input: StepInput): StepEvents {
    const ev = run.events;
    resetEvents(ev);
    run.stepMs = 0;
    if (run.ended !== null || !(dtMs > 0)) return ev;
-   GONE_COLLAPSED = run.collapsed;
+   CUR = run;
    const whole = advanceClock(run, dtMs);
    if (input.jumpPressed) run.pressMs = run.simMs + 1;
    if (input.actionPressed) run.actionMs = run.simMs + 1;
@@ -701,12 +1107,27 @@ export function step(run: LavaRun, dtMs: number, input: StepInput): StepEvents {
 
 function tick(run: LavaRun, mx: number, mz: number): void {
    const h = run.hero;
+   const ms = run.simMs;
+   const ev = run.events;
+   const course = run.course;
+   comboTick(run.combo, COMBO, ms);
+   // the heartbeat (level 5 after the fight starts: Kalder's slams instead)
+   if (run.bossStartMs === NONE) {
+      const P = course.beatMs;
+      const t = ms - Math.floor(ms / P) * P;
+      if (t === P - SURGE.telegraphMs) ev.telegraph = true;
+      if (t === 0 && ms >= P) ev.beat = true;
+   } else if (run.boss && course.arena) {
+      const bev = stepBoss(run.boss, course.arena.boss, 1, run.bossEvents);
+      if (bev.telegraph) ev.telegraph = true;
+      if (bev.attack) ev.beat = true;
+   }
    if (h.state === "lost") {
       run.pressMs = NONE;
       run.actionMs = NONE;
       h.timerMs -= 1;
       // keep falling out of view (looks only: nothing collides)
-      h.y = arcY(h, run.simMs);
+      h.y = arcY(h, ms);
       if (h.timerMs <= 0) respawn(run);
       return;
    }
@@ -741,7 +1162,7 @@ function sideCollisions(course: Course, h: Hero, ms: number): void {
    for (let i = 0; i < supports.length; i++) {
       const s = supports[i];
       const gripped = i === h.support && ms <= h.gripUntil;
-      if (dropped(i, ms)) continue;
+      if (absent(i, ms)) continue;
       if (!gripped && roofGone(s, ms)) continue;
       if (!(feet < s.top - 1e-9 && head > s.bottom)) continue;
       SCRATCH_P.x = h.x;
@@ -758,7 +1179,7 @@ function insideSolid(course: Course, x: number, z: number, feet: number, ms: num
    const supports = course.supports;
    for (let i = 0; i < supports.length; i++) {
       const s = supports[i];
-      if (dropped(i, ms) || roofGone(s, ms)) continue;
+      if (absent(i, ms) || roofGone(s, ms)) continue;
       if (!(feet < s.top - 1e-9 && feet + HERO.height > s.bottom)) continue;
       if (Math.abs(x - supportX(s, ms)) < s.hw && Math.abs(z - supportZ(s, ms)) < s.hd) return true;
    }
@@ -771,7 +1192,7 @@ function landingSupport(course: Course, x: number, z: number, yOld: number, yNew
    const supports = course.supports;
    for (let i = 0; i < supports.length; i++) {
       const s = supports[i];
-      if (dropped(i, ms) || roofGone(s, ms)) continue;
+      if (absent(i, ms) || roofGone(s, ms)) continue;
       if (!(yOld >= s.top && s.top > yNew)) continue;
       if (best !== NONE && supports[best].top >= s.top) continue;
       if (onSupport(s, x, z, ms)) best = i;
@@ -784,7 +1205,7 @@ function headSupport(course: Course, x: number, z: number, yOld: number, yNew: n
    const supports = course.supports;
    for (let i = 0; i < supports.length; i++) {
       const s = supports[i];
-      if (dropped(i, ms) || roofGone(s, ms)) continue;
+      if (absent(i, ms) || roofGone(s, ms)) continue;
       if (!(yOld + HERO.height <= s.bottom && s.bottom < yNew + HERO.height)) continue;
       if (Math.abs(x - supportX(s, ms)) < s.hw && Math.abs(z - supportZ(s, ms)) < s.hd) return i;
    }
@@ -792,7 +1213,7 @@ function headSupport(course: Course, x: number, z: number, yOld: number, yNew: n
 }
 
 function supportUnder(course: Course, h: Hero, ms: number): number {
-   if (h.support !== NONE && !dropped(h.support, ms)) {
+   if (h.support !== NONE && !absent(h.support, ms)) {
       const current = course.supports[h.support];
       const gripped = ms <= h.gripUntil;
       if ((gripped || !roofGone(current, ms)) && onSupport(current, h.x, h.z, ms)) return h.support;
@@ -800,10 +1221,44 @@ function supportUnder(course: Course, h: Hero, ms: number): number {
    const supports = course.supports;
    for (let i = 0; i < supports.length; i++) {
       const s = supports[i];
-      if (dropped(i, ms) || roofGone(s, ms)) continue;
+      if (absent(i, ms) || roofGone(s, ms)) continue;
       if (Math.abs(s.top - h.y) < 1e-9 && onSupport(s, h.x, h.z, ms)) return i;
    }
    return NONE;
+}
+
+/** Kalder throws the hero back after a hit: a jump's arc towards the nearest ring vent, at most V_RUN, no steering until the landing. */
+function shrugOff(run: LavaRun, ms: number): void {
+   const a = run.course.arena!;
+   const h = run.hero;
+   const sup = run.course.supports;
+   let best = a.ring[1];
+   let bestD = Infinity;
+   for (let k = 1; k < a.ring.length; k++) {
+      const s = sup[a.ring[k]];
+      const d = Math.hypot(s.cx - h.x, s.cz - h.z);
+      if (d < bestD) {
+         bestD = d;
+         best = a.ring[k];
+      }
+   }
+   const t = sup[best];
+   const dx = t.cx - h.x;
+   const dz = t.cz - h.z;
+   const dist = Math.max(1e-6, Math.hypot(dx, dz));
+   const drop = h.y - t.top;
+   const flight = (V_JUMP + Math.sqrt(V_JUMP * V_JUMP + 2 * G * Math.max(0, drop))) / G;
+   const v = Math.min(V_RUN, dist / flight);
+   setHeatOn(run, NONE, ms);
+   startArc(h, ms, h.y, V_JUMP);
+   h.vx = (dx / dist) * v;
+   h.vz = (dz / dist) * v;
+   h.carryX = 0;
+   h.carryZ = 0;
+   h.coyoteFrom = NONE;
+   h.dashUntil = NONE;
+   h.shrug = true;
+   run.pressMs = NONE;
 }
 
 function playMs(run: LavaRun, mx: number, mz: number): void {
@@ -847,13 +1302,14 @@ function playMs(run: LavaRun, mx: number, mz: number): void {
 
    // 3. ease the stick velocity towards V_RUN · stick, or snap to the dash. Wind is sideways, in the
    // air only, and the cap below keeps the step inside the proof (a dash uses V_DASH for that ms).
+   // Thrown back by Kalder, the hero keeps its throw (at most V_RUN) until it lands.
    const dashing = h.dashUntil >= ms;
    if (dashing) {
       h.vx = h.dashX * V_DASH;
       h.vz = h.dashZ * V_DASH;
-   } else {
+   } else if (!(h.shrug && !h.grounded)) {
       const icy = h.grounded && h.support !== NONE && course.supports[h.support].slippery;
-      const rate = ((h.grounded ? (icy ? ACCEL.ice : ACCEL.ground) : ACCEL.air) / 1000);
+      const rate = (h.grounded ? (icy ? ACCEL.ice : ACCEL.ground) : ACCEL.air) / 1000;
       let dvx = V_RUN * mx - h.vx;
       let dvz = V_RUN * mz - h.vz;
       const dv = Math.sqrt(dvx * dvx + dvz * dvz);
@@ -901,7 +1357,9 @@ function playMs(run: LavaRun, mx: number, mz: number): void {
          if (hit !== NONE) {
             // bump: start falling from just under the support
             yNew = Math.min(yOld, course.supports[hit].bottom - HERO.height - 1e-6);
+            const vent = h.ventFlight;
             startArc(h, ms, yNew, 0);
+            h.ventFlight = vent;
             h.coyoteFrom = NONE;
          }
       }
@@ -909,7 +1367,8 @@ function playMs(run: LavaRun, mx: number, mz: number): void {
       if (yNew < yOld) {
          const s = landingSupport(course, h.x, h.z, yOld, yNew, ms);
          if (s !== NONE) {
-            const top = course.supports[s].top;
+            const sup = course.supports[s];
+            const top = sup.top;
             h.y = top;
             h.grounded = true;
             h.support = s;
@@ -917,11 +1376,24 @@ function playMs(run: LavaRun, mx: number, mz: number): void {
             h.lastTop = top;
             h.airJump = true;
             h.apexCap = top + H_JUMP;
-            h.gripUntil = course.supports[s].vanish ? ms + GRIP_MS : 0;
-            h.collapseHold = course.supports[s].collapse && run.collapsed[s] === 0 ? ms + COLLAPSE_HOLD : 0;
+            h.ventFlight = false;
+            h.shrug = false;
+            h.gripUntil = sup.vanish ? ms + GRIP_MS : 0;
+            h.collapseHold = sup.collapse && run.collapsed[s] === 0 ? ms + COLLAPSE_HOLD : 0;
             if (top > run.bestTop) run.bestTop = top;
             ev.landed = true;
             ev.landedOn = s;
+            // a first landing on a support (the start excluded) is a flow link
+            if (!run.visited[s] && s !== course.checkpoints[0]) {
+               run.visited[s] = 1;
+               ev.comboBonus += comboHit(run.combo, COMBO, ms, COMBO_BASE_MS.pillar);
+               ev.comboLinked = true;
+            }
+            // the fight starts on the first landing in the ring
+            if (sup.ring && run.boss && run.bossStartMs === NONE) {
+               run.bossStartMs = ms;
+               ev.bossStarted = true;
+            }
          }
       }
    }
@@ -944,10 +1416,11 @@ function playMs(run: LavaRun, mx: number, mz: number): void {
       }
    }
 
-   // 8. orbs
+   // 8. embers
    const orbs = course.orbs;
    const my = h.y + ORB.centerY;
-   const reach = h.magnetUntil >= ms ? MAGNET_REACH : ORB.pickup;
+   const magnet = h.magnetUntil >= ms;
+   const reach = magnet ? MAGNET_REACH : ORB.pickup;
    for (let i = 0; i < orbs.length; i++) {
       if (run.collected[i]) continue;
       const o = orbs[i];
@@ -958,11 +1431,44 @@ function playMs(run: LavaRun, mx: number, mz: number): void {
          run.collected[i] = 1;
          run.orbs += 1;
          if (ev.orbCount < ev.orbList.length) ev.orbList[ev.orbCount++] = i;
+         ev.comboBonus += comboHit(run.combo, COMBO, ms, COMBO_BASE_MS.ember);
+         ev.comboLinked = true;
       }
    }
 
-   // 9. lava, then the fall line. A flooded checkpoint ends the run; a dry one is a respawn.
-   if (lavaY(course, ms) >= h.y - 1e-4) {
+   // 8b. secrets (no score): each behind its own gate (progression.ts SECRETS)
+   const secrets = course.secrets;
+   for (let i = 0; i < secrets.length; i++) {
+      if (run.secrets.found[i]) continue;
+      const o = secrets[i];
+      let r = o.reach;
+      if (o.need === "magnet") r = magnet ? MAGNET_REACH : ORB.pickup;
+      else if (o.need === "dash" && h.dashUntil < ms) continue;
+      else if (o.need === "phase" && h.phaseUntil < ms) continue;
+      else if (o.need === "shield" && h.shieldUntil < ms) continue;
+      else if (o.need === "doubleJump" && (h.grounded || h.airJump)) continue;
+      const ox = o.x - h.x;
+      const oy = o.y - my;
+      const oz = o.z - h.z;
+      if (ox * ox + oy * oy + oz * oz <= r * r && collectSecret(run.secrets, i)) {
+         if (ev.secretCount < ev.secretList.length) ev.secretList[ev.secretCount++] = i;
+      }
+   }
+
+   // 9. heat: the top under the feet heats, every other one cools; a white-hot top crumbles
+   const heating = h.grounded && h.support !== NONE && course.supports[h.support].heat ? h.support : NONE;
+   setHeatOn(run, heating, ms);
+   if (heating !== NONE && heatAt(run, heating, ms) >= HEAT.crumbleMs) {
+      run.crumbleUntil[heating] = ms + HEAT.reformMs;
+      run.heat[heating] = 0;
+      run.heatMs[heating] = ms;
+      run.heatOn = NONE;
+      run.crumbles += 1;
+      ev.crumbled = heating;
+   }
+
+   // 10. lava, then the fall line. A flooded checkpoint ends the run; a dry one is a respawn.
+   if (lavaAt(run, ms) >= h.y - 1e-4) {
       hitLava(run);
       return;
    }
@@ -972,25 +1478,46 @@ function playMs(run: LavaRun, mx: number, mz: number): void {
    }
    if (!h.grounded) return;
 
-   // 10. a falling rock on the rim (shield and phase ignore it)
-   if (lightningHit(run, ms)) {
+   // 11. a falling rock on the rim (shield and phase ignore it)
+   if (rockHit(run, ms)) {
       lose(run);
       return;
    }
 
-   // 11. a bounce pad under the feet launches at once (walking onto it too)
+   // 12. Kalder: standing on the zone of his phase while he is open is a hit
+   const boss = run.boss;
    const s = course.supports[h.support];
-   if (s.pad && Math.abs(h.x - s.cx) <= PAD_HALF && Math.abs(h.z - s.cz) <= PAD_HALF) {
-      startArc(h, ms, h.y, V_BOUNCE);
+   if (boss && course.arena && s.zone > 0 && boss.step === "vulnerable" && s.zone === boss.phase + 1) {
+      const res = hitBoss(boss, course.arena.boss, 1, run.bossEvents);
+      if (res !== "ignored") {
+         ev.bossHit = true;
+         if (res === "phase") ev.bossPhase = true;
+         if (res === "defeated") {
+            ev.bossDefeated = true;
+            run.finishMs = ms;
+            run.ended = "win";
+            ev.finished = true;
+            return;
+         }
+         shrugOff(run, ms);
+         return;
+      }
+   }
+
+   // 13. a vent under the feet launches when it is open (walking onto it too)
+   if (s.vent && Math.abs(h.x - s.cx) <= VENT_HALF && Math.abs(h.z - s.cz) <= VENT_HALF && ventOpen(run, h.support, ms)) {
+      setHeatOn(run, NONE, ms);
+      startArc(h, ms, h.y, V_VENT);
+      h.ventFlight = true;
       h.coyoteFrom = NONE;
       h.carryX = 0;
       h.carryZ = 0;
       run.pressMs = NONE;
-      ev.bounced = true;
+      ev.vented = true;
       return;
    }
 
-   // 12. checkpoints, forward only
+   // 14. checkpoints, forward only
    for (let k = run.checkpoint + 1; k < course.checkpoints.length; k++) {
       if (course.checkpoints[k] === h.support) {
          run.checkpoint = k;
@@ -999,8 +1526,8 @@ function playMs(run: LavaRun, mx: number, mz: number): void {
       }
    }
 
-   // 13. the goal
-   if (h.support === course.goal) {
+   // 15. the goal (level 5 ends on Kalder's defeat instead)
+   if (!course.arena && h.support === course.goal) {
       run.finishMs = ms;
       run.ended = "win";
       ev.finished = true;
@@ -1009,6 +1536,7 @@ function playMs(run: LavaRun, mx: number, mz: number): void {
 
 function lose(run: LavaRun): void {
    const h = run.hero;
+   setHeatOn(run, NONE, run.simMs);
    h.state = "lost";
    h.timerMs = LOST_MS;
    h.vx = 0;
@@ -1018,23 +1546,19 @@ function lose(run: LavaRun): void {
    h.coyoteFrom = NONE;
    h.dashUntil = NONE;
    h.collapseHold = 0;
+   h.shrug = false;
+   run.hits += 1;
+   comboBreak(run.combo);
    run.events.lost = true;
 }
 
 /** Feet in the lava. The active checkpoint is still above it: a fall. It is not: the run is over. */
 function hitLava(run: LavaRun): void {
-   const y = lavaY(run.course, run.simMs);
+   const y = lavaAt(run, run.simMs);
    const cp = run.course.supports[run.course.checkpoints[run.checkpoint]];
    if (cp.top <= y + 0.02) {
-      const h = run.hero;
-      h.state = "lost";
-      h.vx = 0;
-      h.vz = 0;
-      h.carryX = 0;
-      h.carryZ = 0;
-      h.collapseHold = 0;
+      lose(run);
       run.ended = "lose";
-      run.events.lost = true;
       run.events.lava = true;
       return;
    }
@@ -1046,7 +1570,7 @@ function respawn(run: LavaRun): void {
    const h = run.hero;
    const index = run.course.checkpoints[run.checkpoint];
    const s = run.course.supports[index];
-   if (s.top <= lavaY(run.course, run.simMs) + 0.02) {
+   if (s.top <= lavaAt(run, run.simMs) + 0.02) {
       run.ended = "lose";
       run.events.lava = true;
       run.events.lost = true;
@@ -1072,28 +1596,103 @@ function respawn(run: LavaRun): void {
    h.apexCap = s.top + H_JUMP;
    h.gripUntil = 0;
    h.collapseHold = 0;
+   h.ventFlight = false;
+   h.shrug = false;
    h.state = "spawn";
    h.timerMs = SPAWN_MS;
    run.respawns += 1;
    run.events.respawned = true;
 }
 
-// ---------- the store hand-off (README "Scoring") ----------
+// ---------- solid boxes (for a camera-collision pass, menu2/camera) ----------
 
-/** HUD and hand-off stats. */
-export const STAT = { orbs: "orbs", height: "height", checkpoint: "checkpoint", finishMs: "finishMs", falls: "falls", hero: "hero", power: "power" } as const;
-
-/** The run time a player sees and submits: play ms minus the orb bonus, never below 0. */
-export function runTimeMs(playMs: number, orbs: number): number {
-   return Math.max(0, playMs - orbs * ORB.bonusMs);
+export interface SolidBox {
+   minX: number;
+   minY: number;
+   minZ: number;
+   maxX: number;
+   maxY: number;
+   maxZ: number;
 }
 
 /**
- * GameDefinition.finalScore: a win submits the finish ms minus the orb bonus (the Scene publishes
- * finishMs and orbs with setStat before end("win")); any other end keeps elapsedMs (unranked anyway).
+ * The solid pillar tops at rules ms `ms` as plain AABBs (a collider is THICKNESS deep under its top;
+ * the drawn basalt hangs lower, so `depth` can extend the box down to the lava for the camera).
+ * Movers at their place, blinking / sunk / crumbled pillars and inactive boss zones left out (for
+ * the run `run`, or every static pillar without one). Pure; reuses `out`'s boxes.
+ */
+export function solidBoxes(course: Course, ms: number, out: SolidBox[] = [], run: LavaRun | null = null, depth = THICKNESS): SolidBox[] {
+   let n = 0;
+   const prev = CUR;
+   CUR = run;
+   for (let i = 0; i < course.supports.length; i++) {
+      const s = course.supports[i];
+      if (run ? absent(i, ms) : s.zone > 0) continue;
+      if (roofGone(s, ms)) continue;
+      const x = supportX(s, ms);
+      const z = supportZ(s, ms);
+      const b = out[n] ?? (out[n] = { minX: 0, minY: 0, minZ: 0, maxX: 0, maxY: 0, maxZ: 0 });
+      b.minX = x - s.hw;
+      b.maxX = x + s.hw;
+      b.minZ = z - s.hd;
+      b.maxZ = z + s.hd;
+      b.maxY = s.top;
+      b.minY = s.top - depth;
+      n++;
+   }
+   CUR = prev;
+   out.length = n;
+   return out;
+}
+
+// ---------- the store hand-off (README "Scoring") ----------
+
+/** HUD and hand-off stats. */
+export const STAT = {
+   orbs: "orbs",
+   height: "height",
+   checkpoint: "checkpoint",
+   finishMs: "finishMs",
+   falls: "falls",
+   hero: "hero",
+   power: "power",
+   /** the flow bonus (ms) so far: comes off the submitted time */
+   comboMs: "comboMs",
+   /** the HUD meter: chain length, multiplier x100, window left in tenths */
+   comboChain: "comboChain",
+   comboMult: "comboMult",
+   comboFlow: "comboFlow",
+   /** Kalder: 1 once the fight runs, hp, phase index, 1 while open, 1 while the hit flash is on */
+   bossOn: "bossOn",
+   bossHp: "bossHp",
+   bossPhase: "bossPhase",
+   bossOpen: "bossOpen",
+   bossFlash: "bossFlash",
+   /** tops crumbled under the hero this run */
+   crumbles: "crumbles",
+   /** set before end("win") for the star screen: STAR_BIT mask, new-star mask, no-hit (1/0), secrets mask, new-secret count, XP gained */
+   stars: "stars",
+   newStars: "newStars",
+   noHit: "noHit",
+   secrets: "secrets",
+   newSecrets: "newSecrets",
+   xp: "xp",
+} as const;
+
+/** The run time a player sees and submits: play ms minus the ember bonus and the flow bonus, never below 0. */
+export function runTimeMs(playMs: number, orbs: number, comboMs = 0): number {
+   return Math.max(0, playMs - orbs * ORB.bonusMs - comboMs);
+}
+
+/**
+ * GameDefinition.finalScore: a win submits the finish ms minus the ember and flow bonus (the Scene
+ * publishes finishMs, orbs and comboMs with setStat before end("win")); any other end keeps elapsedMs (unranked anyway).
  */
 export function finalScore(s: Pick<RunState, "score" | "endReason" | "stats" | "elapsedMs">): { score: number; durationMs: number } {
    const finishMs = s.stats[STAT.finishMs] ?? 0;
-   if (s.endReason === "win" && finishMs > 0) return { score: s.score, durationMs: runTimeMs(finishMs, s.stats[STAT.orbs] ?? 0) };
+   if (s.endReason === "win" && finishMs > 0) return { score: s.score, durationMs: runTimeMs(finishMs, s.stats[STAT.orbs] ?? 0, s.stats[STAT.comboMs] ?? 0) };
    return { score: s.score, durationMs: s.elapsedMs };
 }
+
+/** Zone lifts (m over the ring top), for the drawing. */
+export { ZONES };

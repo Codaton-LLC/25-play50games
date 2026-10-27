@@ -14,19 +14,23 @@ import { FOG } from "./World";
 import { finalScore } from "./rules";
 import Scene from "./Scene";
 import Hud from "./Hud";
+import StarResult from "./StarResult";
+import { sessionRunPlayers } from "@/arcade3d/menu2/multiplayer/leaderboard";
 
 const DESCRIPTIONS: Record<LevelId, string> = {
-   1: "Warm Cavern: ten wide pillars. Climb while the lava rises slowly. 90 seconds.",
-   2: "Pillar Field: fourteen pillars, some of them sliding. 120 seconds.",
-   3: "Falling Rocks: moving pillars, sinking tops, glassy shelves and rocks. 150 seconds.",
-   4: "Fast Lava: tighter gaps and lava that climbs faster. 180 seconds.",
-   5: "Volcano Core: every hazard on the way to the core. 210 seconds.",
+   1: "Warm Cavern: feel a pillar heat under you, outclimb the first surge, ride a vent on the beat to the exit ledge. 90 seconds.",
+   2: "Pillar Field: basalt bridges slide on the heartbeat, surges every 5 s, two vent climbs. 120 seconds.",
+   3: "Falling Rocks: every surge shakes rocks loose, glassy and sinking shelves, a vent that fires on every third beat. 150 seconds.",
+   4: "Fast Lava: magma slugs heat their tops twice as fast, surges every 4 s, narrower pillars. 180 seconds.",
+   5: "Volcano Core: down to the core and Kalder the Magma Golem: ride his slams onto his shoulders, jump on his back, dive into his heart. 240 seconds.",
 };
 
 const definition: GameDefinition<LavaLevel> = {
    slug: "lava-pillar-jump",
    Scene,
    Hud,
+   // the Menu 2 star screen on the result card (menu2/stars)
+   ResultExtra: StarResult,
    assets: ASSETS,
    camera: { position: [0, 4.4, 10.6], fov: FOV, lookAt: [0, 1.8, -1] },
    environment: { background: COLORS.background, fog: [FOG.color, FOG.near, FOG.far], lighting: "sunset" },
@@ -36,13 +40,16 @@ const definition: GameDefinition<LavaLevel> = {
    clockChip: false,
    intro: true,
    instructions: [
-      "Jump from pillar to pillar and reach the ring at the top before the lava catches you.",
-      "Sliding pillars carry you. Blinking pillars vanish. Orange shelves sink. Pale shelves are glassy.",
-      "Each ember takes 0.4 s off your time. A fall costs time and sends you back to the last crystal.",
+      "Out-climb the lava. It surges on the volcano's heartbeat: the walls pulse red a second before.",
+      "A top heats while you stand on it: orange, white, then it crumbles. Keep moving.",
+      "Geyser vents fire on the beat and throw you twice as high as a jump. Stand on one and wait for it.",
+      "Each ember takes 0.4 s off your time. Chain embers and new pillars for a little more. A fall sends you back to the last crystal.",
       "Power (E, Enter, or the Power button) is your hero's ability. The same timing on touch and keyboard.",
    ],
    resultDelayMs: 1600,
    finalScore,
+   // local multiplayer (menu2/multiplayer): a run with 2-4 players is never submitted to the solo board
+   runPlayers: () => sessionRunPlayers(),
    levels: LEVEL_IDS.map((id): LevelSpec<LavaLevel> => {
       const night = levelEnvironment(id);
       return {

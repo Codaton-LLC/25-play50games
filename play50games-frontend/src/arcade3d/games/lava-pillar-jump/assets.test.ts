@@ -8,7 +8,9 @@ import { describe, expect, it } from "vitest";
 import { hasModel } from "@/arcade3d/core/modelManifest";
 import { readCharacterGlb } from "@/arcade3d/core/rig/robotGlb";
 import { definitionLevelProblems } from "@/arcade3d/core/levels";
-import { ASSETS, GLB_SIZE } from "./assets";
+import { ASSETS, GLB_SIZE, GOLEM_HEIGHT, GOLEM_SCALE, GOLEM_SINK } from "./assets";
+import { CHARACTER_BUDGET } from "@/arcade3d/core/sharedAssets";
+import { ZONES, courseFor } from "./rules";
 import { BufferGeometry } from "three";
 import { ARMADILLO, buildArmadilloShapes } from "./Armadillo";
 import { lavaPillarJumpMeta } from "./meta";
@@ -85,6 +87,30 @@ describe("lava-pillar-jump models", () => {
       expect(feet).toBeLessThan(0.02);
       expect(top).toBeGreaterThan(ARMADILLO.height - 0.06);
       expect(top).toBeLessThan(ARMADILLO.height + 0.06);
+   });
+
+   it("Kalder (m2MagmaGolemBoss, adopted from ready/menu2/shared): a character-budget mesh that fits his arena", async () => {
+      expect(ASSETS.golem.url).toBe("/models/3d/menu2/m2MagmaGolemBoss.glb");
+      expect(ASSETS.golem.budget).toEqual(CHARACTER_BUDGET);
+      const { cloud, indices } = await readCharacterGlb(ASSETS.golem.url);
+      expect(indices.length / 3).toBeLessThanOrEqual(CHARACTER_BUDGET.tris);
+      const b = bounds(cloud);
+      expect(b.size[1] * GOLEM_SCALE).toBeCloseTo(GOLEM_HEIGHT, 3);
+      const a = courseFor(5).arena!;
+      // he stands inside the ring: his widest reach stays clear of the ring pillars' inner edges
+      const half = (Math.max(b.size[0], b.size[2]) / 2) * GOLEM_SCALE;
+      expect(half).toBeLessThan(a.radius - 2.0);
+      // feet in the lava under the ring, his head over the highest hit zone
+      const top = -GOLEM_SINK + b.size[1] * GOLEM_SCALE;
+      for (const z of ZONES) expect(top).toBeGreaterThan(z.lift);
+      // there is body at each zone's height inside its square (the hero lands on him, not on air)
+      for (const z of ZONES) {
+         const y = (z.lift + GOLEM_SINK) / GOLEM_SCALE;
+         const r = z.half / GOLEM_SCALE;
+         let n = 0;
+         for (let i = 0; i < cloud.length; i += 3) if (Math.abs(cloud[i + 1] - y) < 0.12 && Math.abs(cloud[i]) < r && Math.abs(cloud[i + 2]) < r) n++;
+         expect(n, `zone ${z.lift}`).toBeGreaterThan(20);
+      }
    });
 
    it("keeps the stand-in at the hero's drawn height", () => {

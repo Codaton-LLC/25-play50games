@@ -11,6 +11,7 @@ import { lavaPillarJumpMeta } from "./meta";
 import { LEVELS } from "./levels";
 import { POWER_MS, V_DASH, heroById } from "./heroes";
 import { createBot, botInput } from "./bot";
+import { comboMaxBonus } from "@/arcade3d/menu2/combo/combo";
 import {
    BUFFER_MS,
    COURSE,
@@ -19,6 +20,7 @@ import {
    FOOT,
    G,
    H_JUMP,
+   H_VENT,
    LEVEL1_LIMITS,
    LOST_MS,
    ORB,
@@ -27,8 +29,10 @@ import {
    STAT,
    V_JUMP,
    V_RUN,
+   comboSpecOf,
    courseFor,
    createRun,
+   dashFloorMs,
    lavaY,
    createStepInput,
    edgeMinMs,
@@ -70,12 +74,13 @@ function botRun(level: LevelId, fps: number, seed = 1): LavaRun {
 }
 
 /** The submitted duration of a finished run. */
-const submitted = (run: LavaRun) => runTimeMs(run.finishMs, run.orbs);
+const submitted = (run: LavaRun) => runTimeMs(run.finishMs, run.orbs, run.combo.bonusTotal);
 
 describe("the pillars", () => {
    it("level 1 is Warm Cavern: 10 landings, 8 rising sections, no movers, wide and safe, lava under the start", () => {
       const s = COURSE.supports;
       expect(s).toHaveLength(10);
+      expect(COURSE.route).toBe(10);
       expect(s[0].kind).toBe("start");
       expect(s[COURSE.goal].kind).toBe("goal");
       expect(s[COURSE.goal].top).toBe(16);
@@ -105,46 +110,61 @@ describe("the pillars", () => {
       expect(a.hero).toEqual(b.hero);
    });
 
-   it("levels match the plan: surface counts, climb counts, and the hazards each one adds", () => {
+   it("levels match the card: surface counts, climb counts, the heartbeat and the hazards each one adds", () => {
       const expectLevel = {
-         1: { surfaces: 10, rises: 8, movers: false, vanish: false, ice: false, wind: false, sparks: false, collapse: false },
-         2: { surfaces: 14, rises: 12, movers: true, vanish: false, ice: false, wind: false, sparks: false, collapse: false },
-         3: { surfaces: 18, rises: 16, movers: true, vanish: true, ice: true, wind: false, sparks: true, collapse: true },
-         4: { surfaces: 22, rises: 20, movers: true, vanish: true, ice: false, wind: true, sparks: true, collapse: true },
-         5: { surfaces: 28, rises: 25, movers: true, vanish: true, ice: true, wind: true, sparks: true, collapse: true },
+         1: { surfaces: 10, rises: 8, movers: false, vanish: false, ice: false, wind: false, sparks: false, collapse: false, slugs: false, beat: 6000 },
+         2: { surfaces: 14, rises: 12, movers: true, vanish: false, ice: false, wind: false, sparks: false, collapse: false, slugs: false, beat: 5000 },
+         3: { surfaces: 18, rises: 16, movers: true, vanish: true, ice: true, wind: false, sparks: true, collapse: true, slugs: false, beat: 5000 },
+         4: { surfaces: 22, rises: 20, movers: true, vanish: true, ice: false, wind: true, sparks: true, collapse: true, slugs: true, beat: 4000 },
+         5: { surfaces: 16, rises: 14, movers: true, vanish: false, ice: false, wind: false, sparks: true, collapse: true, slugs: true, beat: 4000 },
       } as const;
       for (const id of LEVEL_IDS) {
          const c = courseFor(id);
          const spec = expectLevel[id];
-         expect(c.supports, `L${id} surfaces`).toHaveLength(spec.surfaces);
+         const route = c.supports.slice(0, c.route);
+         expect(c.route, `L${id} surfaces`).toBe(spec.surfaces);
          expect(c.supports[c.goal].top).toBe(LEVELS[id].spec.goalTop);
          expect(c.durationMs).toBe(LEVELS[id].durationMs);
-         const rises = c.supports.filter((s, i) => i > 0 && s.top > c.supports[i - 1].top).length;
+         const rises = route.filter((s, i) => i > 0 && s.top > route[i - 1].top).length;
          expect(rises, `L${id} rises`).toBe(spec.rises);
-         expect(c.supports.some((s) => s.mover)).toBe(spec.movers);
-         expect(c.supports.some((s) => s.vanish)).toBe(spec.vanish);
-         expect(c.supports.some((s) => s.slippery)).toBe(spec.ice);
+         expect(route.some((s) => s.mover)).toBe(spec.movers);
+         expect(route.some((s) => s.vanish)).toBe(spec.vanish);
+         expect(route.some((s) => s.slippery)).toBe(spec.ice);
+         expect(route.some((s) => s.heatRate === 2), `L${id} slugs`).toBe(spec.slugs);
          expect(c.wind).toBe(spec.wind);
          expect(c.strikes.length > 0).toBe(spec.sparks);
-         expect(c.supports.some((s) => s.collapse), `L${id} collapse`).toBe(spec.collapse);
+         expect(route.some((s) => s.collapse), `L${id} collapse`).toBe(spec.collapse);
+         expect(c.beatMs, `L${id} beat`).toBe(spec.beat);
+         expect(route.some((s) => s.vent), `L${id} vents`).toBe(true);
          expect(c.lava0).toBe(-4.5);
          expect(c.lavaRate).toBe(LEVELS[id].spec.lavaRate);
          expect(createRun(1, id).course).toBe(createRun(99, id).course);
+         expect(!!c.arena, `L${id} arena`).toBe(id === 5);
       }
       expect(courseFor(3).supports.filter((s) => s.mover).length).toBeGreaterThan(courseFor(2).supports.filter((s) => s.mover).length);
-      expect(courseFor(5).supports.length).toBeGreaterThan(courseFor(4).supports.length);
+      // level 2's bridges slide on the heartbeat: one leg per beat, starting on it
+      for (const s of courseFor(2).supports) if (s.mover) expect(s.mover.periodMs).toBe(2 * courseFor(2).beatMs);
    });
 
-   it("every step up is a jump with room under the apex, and every gap is landable", () => {
+   it("every plain step up is a jump with room under the apex, a vent step needs the vent, and every gap is landable", () => {
       for (const id of LEVEL_IDS) {
-         const s = courseFor(id).supports;
-         for (let i = 1; i < s.length; i++) {
+         const c = courseFor(id);
+         const s = c.supports;
+         for (let i = 1; i < c.route; i++) {
             const rise = s[i].top - s[i - 1].top;
             expect(rise, `L${id} rise ${i}`).toBeGreaterThanOrEqual(0);
-            expect(rise, `L${id} rise ${i}`).toBeLessThan(H_JUMP - 0.6);
+            if (s[i - 1].vent?.lift) {
+               expect(rise, `L${id} vent rise ${i}`).toBeGreaterThan(H_JUMP + 0.5);
+               expect(rise, `L${id} vent rise ${i}`).toBeLessThan(H_VENT - 1.5);
+            } else expect(rise, `L${id} rise ${i}`).toBeLessThan(H_JUMP - 0.6);
             const dx = Math.max(0, Math.abs(s[i].cx - s[i - 1].cx) - s[i].hw - s[i - 1].hw - 2 * FOOT);
             const dz = Math.max(0, Math.abs(s[i].cz - s[i - 1].cz) - s[i].hd - s[i - 1].hd - 2 * FOOT);
             expect(Math.hypot(dx, dz), `L${id} gap ${i}`).toBeLessThan(3.2);
+         }
+         // the start, checkpoints, the goal and vents never heat; every other route pillar does
+         for (let i = 0; i < c.route; i++) {
+            const p = s[i];
+            expect(p.heat, `L${id} heat ${i}`).toBe(p.kind !== "start" && p.kind !== "checkpoint" && p.kind !== "goal" && !p.vent);
          }
       }
    });
@@ -250,6 +270,7 @@ describe("falls, respawns, orbs, the finish", () => {
 
    it("submits the finish ms minus 0.4 s per orb on a win, the elapsed time otherwise", () => {
       expect(finalScore({ score: 0, endReason: "win", elapsedMs: 30_123, stats: { [STAT.finishMs]: 30_000, [STAT.orbs]: 10 } })).toEqual({ score: 0, durationMs: 26_000 });
+      expect(finalScore({ score: 0, endReason: "win", elapsedMs: 30_123, stats: { [STAT.finishMs]: 30_000, [STAT.orbs]: 10, [STAT.comboMs]: 350 } })).toEqual({ score: 0, durationMs: 25_650 });
       expect(finalScore({ score: 0, endReason: "timeup", elapsedMs: 90_000, stats: { [STAT.orbs]: 3 } })).toEqual({ score: 0, durationMs: 90_000 });
       expect(runTimeMs(1000, 5)).toBe(0);
       expect(ORB.bonusMs).toBe(400);
@@ -291,7 +312,8 @@ describe("the lower bound (README proof)", () => {
          expect(Number.isFinite(lb), `level ${level} reachable`).toBe(true);
          expect(Number.isFinite(lim.maxScore)).toBe(true);
          expect(lim.minDurationMs).toBeLessThanOrEqual(lb);
-         expect(lim.minDurationMs).toBeGreaterThanOrEqual(lb * 0.9);
+         // 90 % of the bound, or Riko's dashed floor where that is lower (proposeLimits)
+         expect(lim.minDurationMs).toBeGreaterThanOrEqual(Math.min(lb * 0.9, Math.floor(dashFloorMs(c) / 100) * 100));
          expect(lim.maxScore).toBe(Math.floor((lim.timeBaseMs - lim.minDurationMs) / 10));
          expect(lim.maxDurationMs).toBe(c.durationMs);
          expect(lim.timeBaseMs).toBe(c.durationMs);
@@ -301,9 +323,13 @@ describe("the lower bound (README proof)", () => {
       });
    }
 
-   it("a dash does not pull level 1's least finish under the shipped floor", () => {
-      const dashed = minFinishMs(COURSE, V_DASH) - COURSE.orbs.length * ORB.bonusMs;
-      expect(dashed).toBeGreaterThanOrEqual(LEVEL1_LIMITS.minDurationMs);
+   it("the shipped floor is never above Riko's dashed floor, and the flow bound is in it", () => {
+      for (const id of LEVEL_IDS) {
+         const c = courseFor(id);
+         expect(PROPOSED_LEVEL_LIMITS[id].minDurationMs).toBeLessThanOrEqual(dashFloorMs(c));
+         expect(minDurationMsOf(c)).toBeCloseTo(minFinishMs(c) - c.orbs.length * ORB.bonusMs - comboMaxBonus(comboSpecOf(c)), 6);
+      }
+      expect(LEVEL1_LIMITS).toBe(PROPOSED_LEVEL_LIMITS[1]);
    });
 
    for (const level of LEVEL_IDS) {
@@ -330,11 +356,11 @@ describe("the lower bound (README proof)", () => {
          return [l.minDurationMs, l.maxDurationMs, l.timeBaseMs, l.maxScore];
       });
       expect(rows).toEqual([
-         [4100, 90000, 90000, 8590],
-         [4800, 120000, 120000, 11520],
-         [8500, 150000, 150000, 14150],
-         [10600, 180000, 180000, 16940],
-         [11600, 210000, 210000, 19840],
+         [3200, 90000, 90000, 8680],
+         [2600, 120000, 120000, 11740],
+         [6700, 150000, 150000, 14330],
+         [8900, 180000, 180000, 17110],
+         [19000, 240000, 240000, 22100],
       ]);
    });
 
@@ -356,8 +382,9 @@ describe("bots (README 'What the bots reached')", () => {
             const d = submitted(run);
             expect(d).toBeGreaterThanOrEqual(lim.minDurationMs);
             expect(d).toBeLessThanOrEqual(lim.maxDurationMs);
-            // the limit is not loose: the bot's time is within 2.2x of the floor (a sweeping route costs more than a straight climb)
-            expect(d, `${fps} fps submitted ${d} vs 2.2x ${lim.minDurationMs}`).toBeLessThan(lim.minDurationMs * 2.2);
+            // the limit is not loose: within 4x of the floor (the bound takes every vent as open at once, as Kiro's
+            // shield makes it; a bot that waits for the heartbeat pays up to a beat per vent climb)
+            expect(d, `${fps} fps submitted ${d} vs 4x ${lim.minDurationMs}`).toBeLessThan(lim.minDurationMs * 4);
          }
       });
    }
@@ -398,7 +425,7 @@ describe("bots (README 'What the bots reached')", () => {
       expect(s.endReason).toBe("lose");
       expect(run.ended).toBe("lose");
       expect(run.simMs).toBeLessThan(90_000);
-      expect(run.simMs).toBeGreaterThan(20_000);
+      expect(run.simMs).toBeGreaterThan(15_000);
       expect(isRankedRun(lavaPillarJumpMeta.scoring, s.endReason)).toBe(false);
    });
 

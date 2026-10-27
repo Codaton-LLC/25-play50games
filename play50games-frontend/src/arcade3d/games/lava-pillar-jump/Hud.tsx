@@ -1,15 +1,26 @@
 "use client";
 
-// The game HUD, after the concept board: orbs and height on the left, the title and the level in a
+// The game HUD: embers, height, the power and the flow meter on the left, Kalder's health bar on
+// level 5 once the fight starts, the title and the level in a
 // banner at the top centre with the run clock (finish time so far, orb bonus taken off) under it.
 // The shell keeps Mute / Pause (top right); its own clock chip is off (index.tsx clockChip: false).
-import { useState } from "react";
+// Local multiplayer (menu2/multiplayer): a "2-4 players" button beside the hero row opens the join
+// screen (desktop and tablet only); during multiplayer runs the per-player chips replace the solo
+// pills, and the podium covers the shell's result card.
+import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useLevel } from "@/arcade3d/core/level";
 import { HEROES, heroById, pickedHero, selectHero, type HeroId } from "./heroes";
 import { STAT, runTimeMs } from "./rules";
 import type { LavaLevel } from "./levels";
+import BossHealthBar from "@/arcade3d/menu2/boss/BossHealthBar";
+import { phaseMarks } from "@/arcade3d/menu2/boss/boss";
+import { COMBO, KALDER } from "./progression";
+import ComboMeter from "@/arcade3d/menu2/combo/ComboMeter";
+
+import { MultiplayerHud, MultiplayerButton } from "./MultiplayerHud";
+import { playersStore, usePlayers } from "@/arcade3d/menu2/multiplayer/players";
 import styles from "./Hud.module.css";
 
 function clockText(ms: number): string {
@@ -23,8 +34,9 @@ const HERO_STAT: HeroId[] = ["riko", "nami", "kiro", "zuno", "vexa"];
 /** Shown on the start card (phase "ready"), before the run. The choice is a run option, not localStorage. */
 function HeroPick() {
    const phase = useArcadeStore((s) => s.phase);
+   const lobby = usePlayers((s) => s.phase === "lobby");
    const [hero, setHero] = useState<HeroId>(pickedHero);
-   if (phase !== "ready" || typeof document === "undefined") return null;
+   if (phase !== "ready" || lobby || typeof document === "undefined") return null;
    return createPortal(
       <div className={styles.pick} role="group" aria-label="Choose your hero">
          <span className={styles.pickLabel}>Hero</span>
@@ -45,6 +57,7 @@ function HeroPick() {
                <span className={styles.pickPower}>{h.powerLabel}</span>
             </button>
          ))}
+         <MultiplayerButton />
       </div>,
       document.body,
    );
@@ -58,13 +71,27 @@ export default function Hud() {
    const powerLeft = useArcadeStore((s) => s.stats[STAT.power] ?? 0);
    // a tenth of a second is enough for the clock: 10 renders a second, not one per frame
    const tenths = useArcadeStore((s) => Math.floor((s.stats[STAT.finishMs] || s.elapsedMs) / 100));
-   const shown = runTimeMs(tenths * 100, orbs);
+   const comboMs = useArcadeStore((s) => s.stats[STAT.comboMs] ?? 0);
+   const chain = useArcadeStore((s) => s.stats[STAT.comboChain] ?? 0);
+   const mult = useArcadeStore((s) => s.stats[STAT.comboMult] ?? 100);
+   const flow = useArcadeStore((s) => s.stats[STAT.comboFlow] ?? 0);
+   const shown = runTimeMs(tenths * 100, orbs, comboMs);
    const level = config?.id ?? 1;
    const hero = heroById(HERO_STAT[heroStat] ?? "riko");
+   const multiplayer = usePlayers((s) => s.phase !== "off");
+   const playing = usePlayers((s) => s.phase === "playing");
+   const bossOn = useArcadeStore((s) => (s.stats[STAT.bossOn] ?? 0) === 1);
+   const bossHp = useArcadeStore((s) => s.stats[STAT.bossHp] ?? KALDER.maxHp);
+   const bossPhase = useArcadeStore((s) => s.stats[STAT.bossPhase] ?? 0);
+   const bossOpen = useArcadeStore((s) => (s.stats[STAT.bossOpen] ?? 0) === 1);
+   const bossFlash = useArcadeStore((s) => (s.stats[STAT.bossFlash] ?? 0) === 1);
+   // leaving the game (Exit) ends a multiplayer session
+   useEffect(() => () => playersStore.getState().endSession(), []);
    return (
       <>
          <HeroPick />
-         <div className={styles.left} data-arcade-safe-area="">
+         {multiplayer && <MultiplayerHud />}
+         <div className={styles.left} data-arcade-safe-area="" style={playing ? { display: "none" } : undefined}>
             <div className={styles.pill} aria-label={`Embers ${orbs}`}>
                <span className={styles.orb} aria-hidden="true" />
                <span className={styles.value}>{orbs}</span>
@@ -80,6 +107,7 @@ export default function Hud() {
                <span className={styles.swatch} style={{ background: hero.color }} aria-hidden="true" />
                <span className={styles.value}>{powerLeft > 0 ? `${powerLeft}s` : hero.powerLabel}</span>
             </div>
+            <ComboMeter chain={chain} multiplier={mult / 100} flow={flow / 10} cap={COMBO.cap} />
          </div>
          <div className={styles.center} data-arcade-safe-area="">
             <div className={styles.banner}>
@@ -95,6 +123,18 @@ export default function Hud() {
                </svg>
                <span className={styles.value}>{clockText(shown)}</span>
             </div>
+            {bossOn ? (
+               <BossHealthBar
+                  name={KALDER.name}
+                  phaseName={KALDER.phases[Math.min(KALDER.phases.length - 1, bossPhase)].name}
+                  hp={bossHp}
+                  maxHp={KALDER.maxHp}
+                  marks={phaseMarks(KALDER)}
+                  vulnerable={bossOpen}
+                  flash={bossFlash}
+                  accent="#ef4444"
+               />
+            ) : null}
          </div>
       </>
    );

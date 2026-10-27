@@ -26,7 +26,7 @@ export const lavaPillarJumpMeta: ArcadeGameMeta = {
    slug: "lava-pillar-jump",
    title: "Lava Pillar Jump",
    tagline: "Climb the pillars before the lava does.",
-   description: "Jump a volcanic cavern of basalt pillars as a Color Roll Heroes armadillo. Pick Riko, Nami, Kiro, Zuno or Vexa, grab embers to cut your time, and stay above the rising lava.",
+   description: "Out-climb a lava tide that surges on the volcano's heartbeat as a Color Roll Hero. Basalt tops heat under your feet and crumble, geysers fire on the beat, and Kalder the Magma Golem waits in the core.",
    order: 54,
    status: "dev",
    collection: "rollheroes",
