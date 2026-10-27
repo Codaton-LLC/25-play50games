@@ -31,7 +31,8 @@ export interface HeroAnim {
 }
 
 export function createHeroAnim(): HeroAnim {
-   return { landAt: -9, bounceAt: -9, jumpAt: -9, lostAt: -9, spawnAt: -9, winAt: -9, intro: Number.NaN };
+   // winAt starts in the future (never won): the cheer runs from winAt on, so -9 would cheer all run
+   return { landAt: -9, bounceAt: -9, jumpAt: -9, lostAt: -9, spawnAt: -9, winAt: Number.POSITIVE_INFINITY, intro: Number.NaN };
 }
 
 /** The intro's drop: the hero falls this far onto the start platform, curled up. */

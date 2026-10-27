@@ -143,6 +143,10 @@ describe("sky-tower-jump: the run -> the animator's motion", () => {
       expect(m.grounded).toBe(true);
       expect(m.power).toBeNull();
       expect(m.rolling).toBe(false);
+      // no cheer before the gate, however long the run has gone on
+      expect(m.celebrating).toBe(false);
+      writeHeroMotion(m, memo, run, anim, 60);
+      expect(m.celebrating).toBe(false);
       expect(m.events.jumped).toBe(false);
       anim.jumpAt = 1;
       writeHeroMotion(m, memo, run, anim, 1);
