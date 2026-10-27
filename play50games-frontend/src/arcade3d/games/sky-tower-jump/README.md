@@ -40,8 +40,10 @@ costs time and sends you back to the last beacon.
 | `look.ts` | palette, canvas textures (clouds, glows, waterfall, pad arrow), the billboard shader |
 | `World.tsx` | sky, cloud sea and banks, background islands and castles, waterfalls, motes, rock roots |
 | `Course.tsx` | the playable course drawn from the rules' data: islands, checkpoints + beacons + beams, movers, bridges, pads + glows, gate + portal, orbs + halos, ladders |
-| `Hero.tsx` | the hero: `m2HeroRiko.glb` on the auto-rig (stand-in fallback), its pose per frame, the curl ball, blob shadow |
-| `Scene.tsx` | simulation (useRunFrame), juice, follow camera, the intro camera and the hero's drop |
+| `Hero.tsx` | the hero: the picked hero's GLB animated by `menu2/heroAnim` (`useHeroAnimator` + `<AnimatedHero>`: idle, run, jump, ball-roll on pads; stand-in fallback), blob shadow |
+| `Scene.tsx` | the solo scene (simulation in useRunFrame, `menu2/juice` JuiceLayer, follow camera, the intro camera and the hero's drop); multiplayer runs render `MultiScene.tsx` |
+| `MultiScene.tsx`, `multiplayer.ts`, `MultiplayerHud.tsx` | local 2-4 players (section below), the same animated heroes and juice |
+| `progression.ts`, `levelEnd.ts`, `StarResult.tsx` | stars, flow (combo), secrets, Menu 2 progress, the star screen on the result card (solo only) |
 | `Hud.tsx` / `Hud.module.css` | the concept-style HUD: orbs, height, title banner, run clock |
 | `rules.test.ts`, `powers.test.ts`, `assets.test.ts` | rules, proof, bots, one test per power, models, definition, camera |
 
@@ -319,9 +321,10 @@ the hips and the spine.
 orbs are shared (first to reach one gets it); co-op shares checkpoints, combines Kiro's shield,
 Zuno's magnet and Vexa's phase through `onAllyPower` (Riko's dash and Nami's double jump stay
 personal) and clears only when every hero is on the gate; versus ends 15 s after the first
-finisher, ranked by run time (finish minus the orb bonus), then height. `MultiScene.tsx` draws one
-hero per player with a player-coloured ring, the shared camera frames every hero still climbing
+finisher, ranked by run time (finish minus the orb bonus and the flow bonus), then height. `MultiScene.tsx` draws one
+animated hero per player (menu2/heroAnim) inside the same menu2/juice JuiceLayer as solo, with a player-coloured ring, the shared camera frames every hero still climbing
 (28 m zoom limit, held on the leader in versus). `MultiplayerHud.tsx`: the "2-4 players" button on
 the hero row (desktop and tablet), the join screen, the player chips and the podium. The solo
 scene, rules and proof are unchanged; `index.tsx` `runPlayers` keeps multiplayer runs off the
-leaderboard.
+leaderboard, and `StarResult` stays off a multiplayer result (no stars or progress there; the
+podium shows).

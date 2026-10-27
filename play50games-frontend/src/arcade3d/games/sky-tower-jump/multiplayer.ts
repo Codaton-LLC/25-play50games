@@ -109,7 +109,7 @@ export function standings(m: MultiRun): Standing[] {
    return m.runs.map((r, index) => ({
       index,
       finished: r.ended === "win",
-      timeMs: r.ended === "win" ? runTimeMs(r.finishMs, r.orbs) : null,
+      timeMs: r.ended === "win" ? runTimeMs(r.finishMs, r.orbs, r.combo.bonusTotal) : null,
       score: r.orbs,
       progress: Math.round(Math.max(0, r.bestTop)),
    }));
