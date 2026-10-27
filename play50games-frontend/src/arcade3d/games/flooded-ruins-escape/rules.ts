@@ -137,7 +137,7 @@ export function buildCourse(level: RuinLevel = LEVELS[1]): Course {
    // the secrets in progression.ts order (ruins.ts places them by id)
    const secrets = SECRETS[level.id].map((spec) => {
       const spot = d.secrets.find((s) => s.id === spec.id);
-      if (!spot) return { id: spec.id, x: 0, y: -1000, z: 0, sunken: -1 }; // TODO-DEV
+      if (!spot) throw new Error(`flooded-ruins-escape level ${level.id}: secret "${spec.id}" is not placed`);
       return spot;
    });
    return {

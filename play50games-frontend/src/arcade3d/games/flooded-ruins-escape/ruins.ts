@@ -247,6 +247,8 @@ function drainEntry(): CourseDraft {
    const e1 = b.block("checkpoint", -3, 3, -19, -15, 4.4, -10);
    const zA = b.zone(-3, 3, -15, -3, -2, [-2, 2.4], 0);
    const lA = b.lever(1.8, -2, -7, [[[zA, 0]], [[zA, 1]]]);
+   // a floating crate (the card's buoyant m2FlyingCrate): it rests on the trench floor and rides the water up
+   b.crate(zA, -1.6, -4.6, 1.6, 1.6, -1.1, 2.7);
    // beat 2: trench B, flooded over a low door, drained from the lever on E1
    const bFloor = b.block("floor", -3, 3, -37, -19, -1, -10);
    b.block("wall", 3, 5.5, -46, -15, 9.2, -10);
@@ -254,7 +256,7 @@ function drainEntry(): CourseDraft {
    // Vexa's niche behind a ghost panel in the left wall beside c1 (outside the chamber)
    b.block("wall", -3.5, -3, -46, -44, 8, 5.2, { ghost: true });
    b.block("wall", -6.5, -5.0, -46, -44, 8, -10);
-   b.block("floor", -5.0, -3.5, -46, -44, 5.2, -10);
+   b.block("floor", -5.0, -3, -46, -44, 5.2, -10);
    b.block("wall", -5.0, -3.5, -46, -44, 8, 7.0);
    b.block("wall", -5.5, -3, -49, -46, 8, -10);
    b.block("wall", -3, 3, -28, -27, 8, 0.9);
@@ -272,10 +274,10 @@ function drainEntry(): CourseDraft {
    const goal = b.ledge(9, -70, 26.8, 6, 5, "goal");
    // orbs on the way (15), Zuno's buried trail and Nami's nest (bonus)
    b.orb(1.4, -1.2, -10.5);
-   b.orb(1.4, 1.6, -14.2);
+   b.orb(0, 1.6, -14.68);
    b.orb(0.5, 5.0, -15.8);
-   b.orb(0, 0.2, -23);
-   b.orb(0, 0.2, -27.5);
+   b.orb(0.8, 0.11, -22.83);
+   b.orb(0.54, -0.4, -27.47);
    b.orb(0, 0.2, -32);
    b.orb(0.1, 2.8, -37.5);
    b.orb(0, 4.2, -41.5);
@@ -324,7 +326,8 @@ function pipeMaze(): CourseDraft {
    const ab = b.block("checkpoint", -3, 3, -19, -15, 4.4, 0.4);
    b.block("wall", -3, -1, -19, -15, 0.4, -10);
    b.block("wall", 1, 3, -19, -15, 0.4, -10);
-   b.block("floor", -1, 1, -19, -15.5, -2, -10);
+   // the tunnel floor runs under the plug, so a broken plug leaves no hole
+   b.block("floor", -1, 1, -19, -15, -2, -10);
    b.block("wall", -1, 1, -15.5, -15, 0.4, -2, { crack: true });
    const zA = b.zone(-3, 3, -15, -3, -2, [-2, 2.4], 0);
    // chamber B
@@ -345,7 +348,7 @@ function pipeMaze(): CourseDraft {
    // Vexa's niche beside d2
    b.block("wall", -3.5, -3, -61, -59, 12, 6.4, { ghost: true });
    b.block("wall", -6.5, -5.0, -61, -59, 12, -10);
-   b.block("floor", -5.0, -3.5, -61, -59, 6.4, -10);
+   b.block("floor", -5.0, -3, -61, -59, 6.4, -10);
    b.block("wall", -5.0, -3.5, -61, -59, 12, 8.2);
    b.block("wall", -5.5, -3, -62, -61, 12, -10);
    // the levers: each links two chambers
@@ -432,7 +435,11 @@ function valveShaft(): CourseDraft {
    // the shaft walls: the near one is drawn as a cut-away face
    b.block("wall", -W - 1.5, -W, cz - W - 1.5, cz + W + 1.5, H, -12);
    b.block("wall", W, W + 1.5, cz - W - 1.5, cz + W + 1.5, H, -12);
-   b.block("wall", -W, W, cz - W - 1.5, cz - W, H, -12);
+   // the far wall, with Vexa's niche cut into it behind slot 8 (x -1..1, between 6.5 and 9 m)
+   b.block("wall", -W, -1, cz - W - 1.5, cz - W, H, -12);
+   b.block("wall", 1, W, cz - W - 1.5, cz - W, H, -12);
+   b.block("wall", -1, 1, cz - W - 1.5, cz - W, 6.5, -12);
+   b.block("wall", -1, 1, cz - W - 1.5, cz - W, H, 9.0);
    b.block("wall", -W, W, cz + W, cz + W + 1.5, H, -12, { hidden: true });
    const zS = b.zone(-W, W, cz - W, cz + W, -2, [...ringLevels], 0);
    const ledges: number[] = [];
@@ -465,10 +472,12 @@ function valveShaft(): CourseDraft {
    b.block("ledge", np.x - 0.6, np.x + 0.6, np.z - 0.6, np.z + 0.6, 5.9, 5.3);
    b.orb(np.x, 6.5, np.z, true);
    b.secret("sunken", 1.2, -1.3, cz + 1.2, zS);
-   // Vexa: a ghost panel in the far wall hides a sticker niche behind slot 8
+   // Vexa: a ghost panel closes the niche in the far wall behind slot 8; a stone sill bridges the
+   // ledge to it, and the sticker sits at the back of the niche (out of reach from the sill)
    const gp = ringPoint(r, cz, 8 * step);
-   b.block("wall", gp.x - 1, gp.x + 1, cz - W - 0.6, cz - W, H, 6.5, { ghost: true });
-   b.secret("ghost-spiral", gp.x, 7.4, cz - W - 0.3);
+   b.block("floor", gp.x - 1, gp.x + 1, cz - W, gp.z - ledge / 2, 6.5, 5.1);
+   b.block("wall", gp.x - 1, gp.x + 1, cz - W - 0.4, cz - W, 9.0, 6.5, { ghost: true });
+   b.secret("ghost-spiral", gp.x, 7.1, cz - W - 1.0);
    b.route(
       { lever: l1, pos: 1 },
       { go: ledges[1] },
@@ -557,7 +566,7 @@ function floodRise(): CourseDraft {
    const goal = b.ledge(-4.5, -65.5, 19.9, 6, 5, "goal");
    // Vexa's niche beside the goal
    b.block("wall", -8.2, -7.5, -67, -64, 24, 19.9, { ghost: true });
-   b.block("floor", -10, -8.2, -67, -64, 19.9, 17);
+   b.block("floor", -10, -7.5, -67, -64, 19.9, 17);
    b.block("wall", -10.5, -10, -67, -64, 24, 17);
    for (const [x, y, z] of FLOOD_ORBS) b.orb(x, y, z);
    b.orb(-4.0, -4.5, -34, true);
@@ -639,7 +648,7 @@ function finalEscape(): CourseDraft {
    const goal = b.ledge(1, -57.5, 17.0, 6, 5, "goal");
    // Vexa's niche beside the bell
    b.block("wall", 4.0, 4.6, -60, -57, 22, 17.0, { ghost: true });
-   b.block("floor", 4.6, 6.4, -60, -57, 17.0, 14);
+   b.block("floor", 4.0, 6.4, -60, -57, 17.0, 14);
    b.block("wall", 6.4, 7.0, -60, -57, 22, 14);
    b.d.boss = {
       rollPath: [
@@ -693,8 +702,8 @@ function finalEscape(): CourseDraft {
 
 /** Level 5's orbs on the honest route. */
 const FINAL_ORBS: readonly [number, number, number][] = [
-   [0, 9.6, -3.8], [2.2, 7.8, -8.8], [4.5, 6, -13.5], [-1, 3.0, -21], [-1, 3.6, -24], [0, 0.0, -27], [-3, 0, -29], [3, 0, -29],
-   [0, 1.6, -37.5], [4.5, 3.4, -39.5], [9, 5.2, -42.5], [4.5, 8.8, -45.5], [0, 10.6, -45.5], [-4.5, 12.4, -48.5], [-1.5, 15.8, -51.5], [1, 17.8, -54.5],
+   [0, 9.6, -3.8], [2.2, 7.8, -8.8], [4.5, 6, -13.5], [-0.88, 4.3, -22.69], [-1, 3.6, -24], [0, -0.4, -27.6], [-2.74, -0.4, -28.04], [3, 0, -29],
+   [0, 1.6, -37.5], [4.5, 3.4, -39.5], [9.16, 6.8, -43.81], [4.5, 8.8, -45.5], [0, 10.6, -45.5], [-4.62, 14, -49.9], [-0.75, 16.34, -51.26], [1, 17.8, -54.5],
 ];
 
 const BUILDERS: Record<LevelId, () => CourseDraft> = {

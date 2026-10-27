@@ -1,113 +1,165 @@
-// Flooded Ruins Escape plays its own courses: switchback rows on the first two levels, a spiral round
-// the flooded shaft on the other three, with a lever that sinks the water for a while, and a flood that
-// climbs faster every level. Not a reskin of Rooftop Roll Climb (its layouts and limits differ).
+// Flooded Ruins Escape plays its own verb, FLOOD (the card): you gain height by flooding a chamber
+// and floating up, you open low doors by draining one, and the storm tide climbs behind you. Not
+// a bounce climb (Sky Tower Jump), not a glide across (Cloud Hopper): no pads, no feathers, and the
+// route needs the water. The card's level twists: L1's three beats, L2's linked chambers, L3's
+// spiral valve shaft, L4's fast tide and air pockets, L5's Umbra Roller arena.
 import { describe, expect, it } from "vitest";
 import { LEVEL_IDS } from "@/arcade3d/types";
-import { PROPOSED_LEVEL_LIMITS as ROOFTOP_LIMITS, courseFor as rooftopCourse } from "../rooftop-roll-climb/rules";
 import { LEVELS } from "./levels";
-import { RING_MIN, ledgeXZ } from "./roofs";
-import { LEVER_DROP, LEVER_MS, PROPOSED_LEVEL_LIMITS, WATER_MPS, courseFor, createRun, createStepInput, step, waterAt, waterY } from "./rules";
+import { SHAFT, SHAFT_SLOTS, ringPoint } from "./ruins";
+import { UMBRA_ROLLER } from "./progression";
+import { H_JUMP, V_RUN, courseFor } from "./rules";
 
-describe("the layouts", () => {
-   it("levels 1-2 are switchbacks: rows that double back, one row gap apart toward -z", () => {
-      for (const id of [1, 2] as const) {
-         expect(LEVELS[id].spec.layout).toBe("switchback");
-         const c = courseFor(id);
-         const zs = [...new Set(c.supports.map((s) => s.cz))].sort((a, b) => b - a);
-         expect(zs.length, `L${id} rows`).toBeGreaterThanOrEqual(3);
-         // each row runs the other way from the one before it
-         const dirs = zs.slice(0, 3).map((z) => {
-            const row = c.supports.filter((s) => s.cz === z).map((s) => s.cx);
-            return Math.sign(row[row.length - 1] - row[0]);
-         });
-         expect(dirs[0]).toBe(-dirs[1]);
-      }
-   });
+const goSteps = (id: 1 | 2 | 3 | 4 | 5) => courseFor(id).route.filter((s): s is { go: number } => "go" in s).map((s) => s.go);
 
-   it("levels 3-5 spiral round an empty shaft: the ledges wind more than a lap, never on the shaft's axis, and the ring narrows", () => {
-      const laps: number[] = [];
-      for (const id of [3, 4, 5] as const) {
-         expect(LEVELS[id].spec.layout).toBe("spiral");
+describe("the water is the lift (FLOOD, not bounce or glide)", () => {
+   for (const id of [1, 2, 3] as const) {
+      it(`level ${id}: the route climbs to a block no jump reaches from the block before it: the water has to lift you there`, () => {
          const c = courseFor(id);
-         const spec = LEVELS[id].spec;
-         // the last lap's ring centre: every ledge stays clear of the shaft round it
-         const laps0 = Math.abs(ledgeXZ(spec, c.supports.length).length);
-         expect(laps0).toBe(c.supports.length);
-         const hLast = Math.max(RING_MIN, spec.side - spec.shrink * (c.supports.length * spec.gap) / (8 * spec.side));
-         const centre = { x: 0, z: -hLast };
-         let turn = 0;
-         let prev = Math.atan2(c.supports[0].cx - centre.x, c.supports[0].cz - centre.z);
-         let minR = Infinity;
-         for (const s of c.supports) {
-            const a = Math.atan2(s.cx - centre.x, s.cz - centre.z);
-            let d = a - prev;
-            while (d > Math.PI) d -= 2 * Math.PI;
-            while (d < -Math.PI) d += 2 * Math.PI;
-            turn += d;
-            prev = a;
-            minR = Math.min(minR, Math.hypot(s.cx - centre.x, s.cz - centre.z));
+         const tops = goSteps(id).map((i) => c.supports[i].top);
+         const route = c.route;
+         let lifted = 0;
+         let prev = c.supports[c.checkpoints[0]].top;
+         for (const st of route) {
+            if (!("go" in st)) continue;
+            const top = c.supports[st.go].top;
+            if (top - prev > H_JUMP) lifted += 1;
+            prev = top;
          }
-         laps.push(Math.abs(turn) / (2 * Math.PI));
-         expect(Math.abs(turn) / (2 * Math.PI), `L${id} laps`).toBeGreaterThan(1.2);
-         expect(minR, `L${id} shaft stays empty`).toBeGreaterThan(2.2);
-         // the ring narrows: the last ledges sit nearer the shaft than the first lap's
-         const pts = ledgeXZ(spec, c.supports.length);
-         const ring = (p: { x: number; z: number }) => Math.max(Math.abs(p.x), Math.abs(p.z + hLast));
-         expect(Math.min(...pts.slice(-4).map(ring))).toBeLessThanOrEqual(Math.max(...pts.slice(0, 8).map(ring)));
+         if (id === 3) {
+            // the shaft: the three swims cross whole sides of open water at the ring's level
+            expect(route.filter((s) => "swim" in s)).toHaveLength(3);
+            expect(route.filter((s) => "wait" in s)).toHaveLength(3);
+         } else expect(lifted, `level ${id} tops ${tops.join(",")}`).toBeGreaterThanOrEqual(1);
+      });
+   }
+
+   it("level 1 is the card's three beats: flood up out of trench A, drain trench B to walk under its door, then three switchback rows with the tide", () => {
+      const c = courseFor(1);
+      const r = c.route;
+      const kinds = r.map((s) => Object.keys(s)[0]);
+      // beat 1: a lever that raises A; beat 2: a lever that lowers B, then wait for it to drain
+      const lev = r.filter((s): s is { lever: number; pos: number } => "lever" in s);
+      expect(lev).toHaveLength(2);
+      const [[za, la]] = c.levers[lev[0].lever].effects[lev[0].pos];
+      expect(c.zones[za].levels[la]).toBeGreaterThan(c.zones[za].levels[c.zones[za].start]);
+      const [[zb, lb]] = c.levers[lev[1].lever].effects[lev[1].pos];
+      expect(c.zones[zb].levels[lb]).toBeLessThan(c.zones[zb].levels[c.zones[zb].start]);
+      expect(kinds).toContain("wait");
+      // beat 3: three rows of ledges, each row running the other way and climbing; the tide starts on the checkpoint before them
+      const rows = new Map<number, number[]>();
+      for (const i of goSteps(1).slice(-12, -1)) {
+         const s = c.supports[i];
+         rows.set(s.cz, [...(rows.get(s.cz) ?? []), s.cx]);
       }
-      expect(laps[2]).toBeGreaterThan(laps[0]);
+      const dirs = [...rows.values()].map((xs) => Math.sign(xs[xs.length - 1] - xs[0]));
+      expect(dirs).toHaveLength(3);
+      expect(dirs[0]).toBe(-dirs[1]);
+      expect(dirs[1]).toBe(-dirs[2]);
+      expect(LEVELS[1].tide.startCheckpoint).toBe(2);
+      expect(LEVELS[1].tide.rate).toBe(0.25);
    });
 
-   it("is its own game: its courses and its limits differ from Rooftop Roll Climb's on every level but the first rows", () => {
-      let differing = 0;
-      for (const id of LEVEL_IDS) {
-         const mine = courseFor(id);
-         const theirs = rooftopCourse(id);
-         if (mine.supports.length !== theirs.supports.length || mine.supports.some((s, i) => s.cx !== theirs.supports[i].cx)) differing++;
-         if (JSON.stringify(PROPOSED_LEVEL_LIMITS[id]) !== JSON.stringify(ROOFTOP_LIMITS[id])) differing += 0.01;
+   it("level 2 links its chambers: every lever floods one chamber and drains the next", () => {
+      const c = courseFor(2);
+      expect(c.zones.length).toBeGreaterThanOrEqual(3);
+      const used = c.route.filter((s) => "lever" in s);
+      expect(used.length).toBeGreaterThanOrEqual(2);
+      for (const l of c.levers) expect(l.effects.every((e) => e.length === 2)).toBe(true);
+   });
+
+   it("level 3 is the spiral valve shaft: ledges wind round the flooded shaft more than 1.5 laps, three rings of levers, a bat in a dry niche", () => {
+      const c = courseFor(3);
+      const ledges = goSteps(3).map((i) => c.supports[i]);
+      let turn = 0;
+      let prev = Math.atan2(ledges[0].cx, ledges[0].cz - SHAFT.cz);
+      for (const s of ledges.slice(1)) {
+         const a = Math.atan2(s.cx, s.cz - SHAFT.cz);
+         let d = a - prev;
+         while (d > Math.PI) d -= 2 * Math.PI;
+         while (d < -Math.PI) d += 2 * Math.PI;
+         turn += d;
+         prev = a;
+         // every ledge sits on the ring, never over the shaft's middle
+         expect(Math.max(Math.abs(s.cx), Math.abs(s.cz - SHAFT.cz))).toBeCloseTo(SHAFT.r, 6);
       }
-      expect(Math.floor(differing)).toBe(5);
-      const sameLimits = LEVEL_IDS.filter((id) => JSON.stringify(PROPOSED_LEVEL_LIMITS[id]) === JSON.stringify(ROOFTOP_LIMITS[id]));
-      expect(sameLimits).toEqual([1]);
+      expect(Math.abs(turn) / (2 * Math.PI)).toBeGreaterThan(1.5);
+      expect(c.levers).toHaveLength(3);
+      expect(c.zones[0].levels).toEqual([...SHAFT.ringLevels]);
+      expect(c.bats).toHaveLength(1);
+      // each collapsed stretch is wider than any run-up jump (V_RUN for the jump's whole flight)
+      const flight = (2 * Math.sqrt(2 * 30 * H_JUMP)) / 30;
+      const p = ringPoint(SHAFT.r, SHAFT.cz, 2 * SHAFT.step);
+      const q = ringPoint(SHAFT.r, SHAFT.cz, 6 * SHAFT.step);
+      expect(Math.hypot(p.x - q.x, p.z - q.z) - SHAFT.ledge).toBeGreaterThan(V_RUN * flight);
+      expect(SHAFT_SLOTS.filter((t) => t === null)).toHaveLength(9);
+   });
+
+   it("level 4 is the fast tide with air pockets: 0.6 m/s, a dive under the crypt roof between bubble spouts, no lever", () => {
+      const c = courseFor(4);
+      expect(LEVELS[4].tide.rate).toBe(0.6);
+      expect(c.spouts.length).toBeGreaterThanOrEqual(2);
+      expect(c.route.filter((s) => "swim" in s && s.dive !== undefined)).toHaveLength(3);
+      expect(c.route.some((s) => "lever" in s)).toBe(false);
+      expect(c.whirls).toHaveLength(1);
+   });
+
+   it("level 5 is Umbra Roller's arena: the roll ends in the ring basin, three pressure levers on the drain, the chase ends on the floodgate", () => {
+      const c = courseFor(5);
+      const a = c.boss!;
+      expect(a).not.toBeNull();
+      const end = a.rollPath[a.rollPath.length - 1];
+      const ring = c.zones[a.ring];
+      expect(end[0]).toBeGreaterThanOrEqual(ring.minX);
+      expect(end[0]).toBeLessThanOrEqual(ring.maxX);
+      expect(end[2]).toBeGreaterThanOrEqual(ring.minZ);
+      expect(end[2]).toBeLessThanOrEqual(ring.maxZ);
+      expect(ring.levels[ring.levels.length - 1]).toBeGreaterThanOrEqual(a.ringLevel);
+      expect(a.pressure).toHaveLength(3);
+      for (const li of a.pressure) expect(c.levers[li].kind).toBe("pressure");
+      expect(c.levers[a.gateLever].kind).toBe("gate");
+      const gateEnd = a.chasePath[a.chasePath.length - 1];
+      expect(c.supports.some((s) => s.cx === gateEnd[0] && s.cz === gateEnd[2] && s.top === gateEnd[1])).toBe(true);
+      expect(UMBRA_ROLLER.phases.map((p) => p.id)).toEqual(["chase", "drains", "tide"]);
+      expect(LEVELS[5].tide.rate).toBe(0.8);
+   });
+
+   it("no level is a bounce or glide course: blocks are stone, floors, walls and crates only", () => {
+      for (const id of LEVEL_IDS) {
+         for (const s of courseFor(id).supports) expect(["start", "ledge", "checkpoint", "goal", "floor", "wall", "crate"]).toContain(s.kind);
+      }
    });
 });
 
-describe("the flood and the levers", () => {
-   it("the water climbs faster every level; levels 1 and 2 are gentle", () => {
-      for (let id = 2; id <= 5; id++) expect(WATER_MPS[id as 2 | 3 | 4 | 5]).toBeGreaterThan(WATER_MPS[(id - 1) as 1 | 2 | 3 | 4]);
-      expect(WATER_MPS[1]).toBeLessThanOrEqual(0.15);
-      expect(WATER_MPS[2]).toBeLessThanOrEqual(0.25);
-      expect(WATER_MPS[5]).toBeGreaterThanOrEqual(0.7);
-   });
+describe("every hero matters (the card's hero roles)", () => {
+   const roles = (id: 1 | 2 | 3 | 4 | 5) => {
+      const c = courseFor(id);
+      return {
+         riko: c.supports.some((s) => s.crack),
+         nami: c.orbs.some((o) => o.bonus && o.buried < 0 && o.y > 4),
+         kiro: c.jets.length + c.whirls.length > 0,
+         zuno: c.orbs.some((o) => o.buried >= 0),
+         vexa: c.supports.some((s) => s.ghost),
+      };
+   };
 
-   it("a lever sinks the water by LEVER_DROP, which climbs back to the rising line over LEVER_MS", () => {
-      const run = createRun(1, 4);
-      expect(waterAt(run, 5000)).toBe(waterY(4, 5000));
-      run.leverAt = 5000;
-      expect(waterAt(run, 5000)).toBeCloseTo(waterY(4, 5000) - LEVER_DROP, 9);
-      expect(waterAt(run, 5000 + LEVER_MS / 2)).toBeCloseTo(waterY(4, 5000 + LEVER_MS / 2) - LEVER_DROP / 2, 9);
-      expect(waterAt(run, 5000 + LEVER_MS)).toBe(waterY(4, 5000 + LEVER_MS));
-      expect(waterAt(run, 4000)).toBe(waterY(4, 4000));
-   });
-
-   it("throwing a lever (reaching a checkpoint) opens the gate once; the water never makes a finish faster", () => {
-      const run = createRun(1, 1);
-      const c = run.course;
-      const lever = c.checkpoints[1];
-      const s = c.supports[lever];
-      run.hero.x = s.cx;
-      run.hero.z = s.cz;
-      run.hero.y = s.top;
-      run.hero.lastTop = s.top;
-      run.hero.support = lever;
-      run.hero.grounded = true;
-      run.hero.vx = 0;
-      run.hero.vz = 0;
-      step(run, 20, createStepInput());
-      expect(run.checkpoint).toBe(1);
-      expect(run.leverAt).toBeGreaterThanOrEqual(0);
-      const at = run.leverAt;
-      step(run, 20, createStepInput());
-      expect(run.leverAt).toBe(at);
+   it("each hero's feature is in the game, and every level has at least two of them; every level hides a ghost panel for Vexa", () => {
+      const all = { riko: 0, nami: 0, kiro: 0, zuno: 0, vexa: 0 };
+      for (const id of LEVEL_IDS) {
+         const r = roles(id);
+         let n = 0;
+         for (const k of Object.keys(all) as (keyof typeof all)[]) {
+            if (r[k]) {
+               all[k] += 1;
+               n += 1;
+            }
+         }
+         expect(n, `level ${id}`).toBeGreaterThanOrEqual(2);
+         expect(r.vexa, `level ${id}`).toBe(true);
+      }
+      for (const v of Object.values(all)) expect(v).toBeGreaterThanOrEqual(1);
+      expect(all.zuno).toBeGreaterThanOrEqual(3);
+      expect(all.nami).toBeGreaterThanOrEqual(3);
+      expect(all.kiro).toBeGreaterThanOrEqual(3);
    });
 });

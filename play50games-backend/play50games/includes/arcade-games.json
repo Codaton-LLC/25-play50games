@@ -941,17 +941,17 @@
     "flooded-ruins-escape": {
       "title": "Flooded Ruins Escape",
       "kind": "time",
-      "max_score": 8590,
-      "min_duration_ms": 4100,
-      "max_duration_ms": 90000,
-      "time_base_ms": 90000,
+      "max_score": 17210,
+      "min_duration_ms": 7900,
+      "max_duration_ms": 180000,
+      "time_base_ms": 180000,
       "enabled": false,
       "levels": [
-        { "title": "Ruined Gate", "max_score": 8590, "min_duration_ms": 4100, "max_duration_ms": 90000, "time_base_ms": 90000 },
-        { "title": "Flooded Hall", "max_score": 11410, "min_duration_ms": 5900, "max_duration_ms": 120000, "time_base_ms": 120000 },
-        { "title": "Sunken Stairs", "max_score": 14090, "min_duration_ms": 9100, "max_duration_ms": 150000, "time_base_ms": 150000 },
-        { "title": "Rising Water", "max_score": 16760, "min_duration_ms": 12400, "max_duration_ms": 180000, "time_base_ms": 180000 },
-        { "title": "Temple Escape", "max_score": 19460, "min_duration_ms": 15400, "max_duration_ms": 210000, "time_base_ms": 210000 }
+        { "title": "Drain Entry", "max_score": 17210, "min_duration_ms": 7900, "max_duration_ms": 180000, "time_base_ms": 180000 },
+        { "title": "Pipe Maze", "max_score": 20510, "min_duration_ms": 4900, "max_duration_ms": 210000, "time_base_ms": 210000 },
+        { "title": "Valve Shaft", "max_score": 23080, "min_duration_ms": 9200, "max_duration_ms": 240000, "time_base_ms": 240000 },
+        { "title": "Flood Rise", "max_score": 26830, "min_duration_ms": 1700, "max_duration_ms": 270000, "time_base_ms": 270000 },
+        { "title": "Final Escape", "max_score": 28570, "min_duration_ms": 14300, "max_duration_ms": 300000, "time_base_ms": 300000 }
       ]
     },
     "lava-pillar-jump": {
