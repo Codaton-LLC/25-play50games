@@ -15,13 +15,14 @@ import type { AABB } from "@/arcade3d/core/collision";
 import { FRAME_PRIORITY } from "@/arcade3d/core/frameLoop";
 import { useFx } from "@/arcade3d/core/fx";
 import { useGameTime } from "@/arcade3d/core/gameTime";
-import { TargetMarkers, type MarkerTarget } from "@/arcade3d/core/hud";
+import { TargetBeacon, TargetMarkers, type MarkerTarget } from "@/arcade3d/core/hud";
 import { useInput } from "@/arcade3d/core/input";
 import { Flashlight } from "@/arcade3d/core/kit";
 import { useLevel } from "@/arcade3d/core/level";
 import { randomSeed, turnTowards } from "@/arcade3d/core/math";
 import { hop, waddle, type BodyOffset } from "@/arcade3d/core/motion";
 import { Instanced, useCanvasTexture } from "@/arcade3d/core/render";
+import { useCameraZoom } from "@/arcade3d/core/useCameraZoom";
 import { useFittedView } from "@/arcade3d/core/useFittedView";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
@@ -29,7 +30,7 @@ import { ASSETS, HERO_HEIGHT, TOY_ASSETS } from "./assets";
 import { SIGN_ATLAS_W, SIGN_CELL, drawSigns } from "./glyphs";
 import { CATEGORIES, type Category, type ToyLevel } from "./levels";
 import {
-   BACK, COLORS, DAMPING, FOLLOW, FOV, SIDE_H, TORCH, WALL_H, aimBounds, aimFor, shelfTrimSpots, decorOf, lookAtFor, signBaseSpots, signSpots, slotSpot, tileSpots, viewFor, wallSpots,
+   BACK, COLORS, DAMPING, FOLLOW, FOV, SIDE_H, TORCH, WALL_H, ZOOM, aimBounds, aimFor, followOffset, shelfTrimSpots, decorOf, lookAtFor, signBaseSpots, signSpots, slotSpot, tileSpots, viewFor, wallSpots,
 } from "./looks";
 import HeroRobot, { type HeroCues } from "./HeroRobot";
 import { BinStand, shelfParts, toyParts, windupCarParts, windupRobotParts } from "./Primitives";
@@ -103,7 +104,7 @@ function CarryPlate({ run }: { run: Run }) {
       const top = run.carried.length > 0 ? run.toys[run.carried[run.carried.length - 1]].cat : null;
       g.visible = top !== null;
       if (top === null) return;
-      g.position.set(run.hero.x, CARRY_Y + 1.0 + CARRY_STEP * (run.carried.length - 1), run.hero.z);
+      g.position.set(run.hero.x, CARRY_Y + 0.85 + CARRY_STEP * (run.carried.length - 1), run.hero.z);
       g.quaternion.copy(camera.quaternion);
       CATEGORIES.forEach((c, i) => {
          const m = meshes.current[i];
@@ -113,7 +114,7 @@ function CarryPlate({ run }: { run: Run }) {
    return (
       <group ref={group} visible={false} renderOrder={20}>
          {CATEGORIES.map((c, i) => (
-            <group key={c} ref={(m) => { meshes.current[i] = m; }} scale={[0.78, 0.78, 0.78]}>
+            <group key={c} ref={(m) => { meshes.current[i] = m; }} scale={[0.56, 0.56, 0.56]}>
                <mesh geometry={geos[i]} material={mat} renderOrder={20} />
             </group>
          ))}
@@ -139,6 +140,11 @@ function ShelfTrims({ run }: { run: Run }) {
 function LevelScene() {
    const { id, config } = useLevel<ToyLevel>();
    const view = useFittedView(viewFor(id));
+   // the fitted window picks the yaw and the lens shift; the camera itself follows the robot close (looks.ts FOLLOW_CAM)
+   const aspect = useThree((s) => s.size.width / Math.max(1, s.size.height));
+   const offset = useMemo(() => followOffset(view.yaw, aspect), [view.yaw, aspect]);
+   const zoom = useCameraZoom({ min: ZOOM.min, max: ZOOM.max });
+   const carrying = useArcadeStore((s) => (s.stats.carrying ?? 0) > 0);
    const input = useInput();
    const fx = useFx();
    const time = useGameTime();
@@ -323,11 +329,12 @@ function LevelScene() {
    return (
       <>
          <CameraRig
-            camera={{ position: view.offset, fov: FOV, lookAt: look }}
+            camera={{ position: offset, fov: FOV, lookAt: look }}
             follow={aim}
             followFraction={FOLLOW}
             bounds={bounds}
-            offset={view.offset}
+            offset={offset}
+            zoom={zoom}
             shift={view.shift}
             damping={DAMPING}
          />
@@ -391,6 +398,8 @@ function LevelScene() {
             {config.lighting === "night" && <pointLight position={[0, 2.2, 0.6]} intensity={5} distance={7} decay={1.6} color={COLORS.lantern} />}
          </group>
          <CarryPlate run={run} />
+         {/* the next toy / shelf front: a beacon in view, the edge arrow while it is off screen (the close camera shows one aisle) */}
+         <TargetBeacon target={marker[0]} variant={carrying ? "drop-here" : "pick"} radius={0.5} height={0.7} />
          <TargetMarkers targets={marker} color={COLORS.wallTrim} />
       </>
    );

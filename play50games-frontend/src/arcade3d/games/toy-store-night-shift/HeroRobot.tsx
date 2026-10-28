@@ -25,11 +25,17 @@ export interface HeroCues {
 
 /** Crossfade speed (1/s): about 0.2 s to settle. */
 const FADE = 12;
-/** The arms' raise under a carried toy (model space: +y up, +z forward, +x the robot's left). */
-const UPPER_L = new Vector3(0.42, 1, 0.12).normalize();
-const FORE_L = new Vector3(-0.2, 1, 0.12).normalize();
-const UPPER_R = new Vector3(-0.42, 1, 0.12).normalize();
-const FORE_R = new Vector3(0.2, 1, 0.12).normalize();
+/**
+ * The arms' lift under a carried toy (model space: +y up, +z forward, +x the robot's left): upper arms up
+ * and out past the big head, forearms straight up, hands on the forearm's line (no wrist bent back),
+ * fingertips under the toy's edges, which rests on them just over the head (Scene CARRY_Y).
+ */
+const UPPER_L = new Vector3(0.45, 1, 0.08).normalize();
+const FORE_L = new Vector3(-0.08, 1, 0.06).normalize();
+const HAND_L = new Vector3(-0.22, 1, 0.04).normalize();
+const UPPER_R = new Vector3(-0.45, 1, 0.08).normalize();
+const FORE_R = new Vector3(0.08, 1, 0.06).normalize();
+const HAND_R = new Vector3(0.22, 1, 0.04).normalize();
 /** Upper-body bones the point overlays (the legs keep walking). */
 const POINT_BONES = /^(Spine1|Spine2|Neck|Head|(Left|Right)(Shoulder|Arm|ForeArm|Hand.*))$/;
 
@@ -87,7 +93,7 @@ function RobotRig({ run, cues, scene, animations }: { run: Run; cues: MutableRef
          point.play();
       }
       const bone = (name: string) => (scene.getObjectByName(name) as Bone | undefined) ?? null;
-      const arms = { lArm: bone("LeftArm"), lFore: bone("LeftForeArm"), rArm: bone("RightArm"), rFore: bone("RightForeArm") };
+      const arms = { lArm: bone("LeftArm"), lFore: bone("LeftForeArm"), lHand: bone("LeftHand"), rArm: bone("RightArm"), rFore: bone("RightForeArm"), rHand: bone("RightHand") };
       const pointBones: Bone[] = [];
       scene.traverse((o) => {
          if ((o as Bone).isBone && POINT_BONES.test(o.name)) pointBones.push(o as Bone);
@@ -139,12 +145,14 @@ function RobotRig({ run, cues, scene, animations }: { run: Run; cues: MutableRef
 
       // carrying: both arms up under the toy over the head
       rig.carry += ((run.carried.length > 0 && !won ? 1 : 0) - rig.carry) * ease;
-      const { lArm, lFore, rArm, rFore } = rig.arms;
+      const { lArm, lFore, lHand, rArm, rFore, rHand } = rig.arms;
       if (rig.carry > 0.01 && lArm && lFore && rArm && rFore) {
          aimBone(lArm, UPPER_L, scene, rig.carry);
          aimBone(lFore, FORE_L, scene, rig.carry);
+         if (lHand) aimBone(lHand, HAND_L, scene, rig.carry);
          aimBone(rArm, UPPER_R, scene, rig.carry);
          aimBone(rFore, FORE_R, scene, rig.carry);
+         if (rHand) aimBone(rHand, HAND_R, scene, rig.carry);
       }
    }, FRAME_PRIORITY.pose);
 
