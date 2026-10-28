@@ -12,7 +12,7 @@ import { playSfx } from "@/arcade3d/core/audio";
 import { FRAME_PRIORITY } from "@/arcade3d/core/frameLoop";
 import { SkyDome } from "@/arcade3d/core/env";
 import { Water } from "@/arcade3d/core/env/Water";
-import { useFx } from "@/arcade3d/core/fx";
+import { Toss, useActionPop, useFx, type TossHandle } from "@/arcade3d/core/fx";
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import { useInput } from "@/arcade3d/core/input";
 import { useLevel } from "@/arcade3d/core/level";
@@ -21,14 +21,17 @@ import { hop as hopOffset, type BodyOffset } from "@/arcade3d/core/motion";
 import { QuadrupedModel, useQuadrupedPose } from "@/arcade3d/core/rig/QuadrupedModel";
 import { blendQuadrupedPoses, createQuadrupedPose, quadrupedGait, quadrupedIdle, quadrupedLeap, quadrupedPhaseStep, quadrupedSit } from "@/arcade3d/core/rig/quadrupedPoses";
 import { useCameraZoom } from "@/arcade3d/core/useCameraZoom";
+import { TargetBeacon } from "@/arcade3d/core/hud";
 import { TargetMarkers, type MarkerTarget } from "@/arcade3d/core/hud/TargetMarkers";
+import { useCoarsePointer } from "@/arcade3d/core/TouchControls";
 import { BlobShadow, Instanced, useCanvasTexture, type InstanceSpot } from "@/arcade3d/core/render";
 import { useFittedView } from "@/arcade3d/core/useFittedView";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { ASSETS, DOG_LANDMARKS, FIT } from "./assets";
+import { GUIDE, dogHint, hintCode, nextGoal, type Goal } from "./guide";
 import type { DogLevel } from "./levels";
-import { BENCH_R, FOUNTAIN_R, LEAP_S, MAX_SPEED, STUN_S, TREE_R, blanketOf, createRun, frame, leapHeight, propsOf, toyXZ, type Kind, type Run } from "./rules";
+import { BENCH_R, BLANKET_R, FOUNTAIN_R, LEAP_S, MAX_SPEED, STUN_S, TREE_R, blanketOf, createRun, frame, leapHeight, propsOf, toyXZ, type Kind, type Run } from "./rules";
 import { COLORS, DAMPING, FOV, LOOK_AHEAD, ZOOM, aimBounds, blanketSpot, decorSpots, drawBlanket, drawGrass, fenceSpots, fogFor, lookAtFor, propSpots, railSpots, sandSpots, stripeSpots, viewFor } from "./looks";
 import { BallPrimitive, DogFigure, FrisbeePrimitive, MowerPrimitive, OwnerFigure, StickPrimitive } from "./Primitives";
 
@@ -61,6 +64,8 @@ function LevelScene() {
    const scene = useThree((state) => state.scene);
    const input = useInput();
    const fx = useFx();
+   const pop = useActionPop();
+   const touch = useCoarsePointer();
    const time = useGameTime();
    const [run] = useState<Run>(() => createRun(randomSeed(), config));
    const aim = useRef({ x: run.dog.x, y: 0.4, z: run.dog.z + LOOK_AHEAD }).current;
@@ -76,7 +81,18 @@ function LevelScene() {
    const sitPose = useMemo(createQuadrupedPose, []);
    const mouth = useRef<Record<string, Group | null>>({ ball: null, stick: null, frisbee: null });
    const dogFloor = useRef<Group>(null);
-   const beacon = useRef<Group>(null);
+   // clarity (visual only): beacons on the toy to fetch, on the ring where a thrown toy lands and on the
+   // blanket while carrying; the hint line; fail pops; the returned toy flies from the dog's mouth to the owner
+   const goal = useRef<Goal>({ kind: 0, x: 0, z: 0 }).current;
+   const toyBeacon = useRef({ x: 0, y: 0.1, z: 0, hidden: true }).current;
+   const landBeacon = useRef({ x: 0, y: 0.1, z: 0, hidden: true }).current;
+   const homeBeacon = useRef({ x: 0, y: 0.1, z: 0, hidden: true }).current;
+   const guideCode = useRef(-1);
+   const carriedKind = useRef<Kind>("ball");
+   const handsAt = useRef({ x: 0, y: 1.0, z: 0 }).current;
+   const tossBall = useRef<TossHandle>(null);
+   const tossStick = useRef<TossHandle>(null);
+   const tossFrisbee = useRef<TossHandle>(null);
    const zoom = useCameraZoom({ min: ZOOM.min, max: ZOOM.max });
    const grass = useCanvasTexture(256, 256, drawGrass);
    const blanketMap = useCanvasTexture(256, 256, drawBlanket);
@@ -174,6 +190,13 @@ function LevelScene() {
       fx.warm("sparkle", "confetti", "puff", "score");
    }, [fx]);
 
+   useEffect(() => {
+      guideCode.current = hintCode(run);
+      GUIDE.set(dogHint(run, guideCode.current, touch));
+      return () => GUIDE.reset();
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+   }, [run]);
+
    // the fog starts past the aim at whatever distance the camera was fitted to (looks.ts fogFor)
    useEffect(() => {
       const fog = scene.fog;
@@ -211,15 +234,31 @@ function LevelScene() {
          playSfx("chime");
       }
       if (ev.returned) {
+         // the toy flies from the dog's mouth into the owner's hands instead of vanishing
+         handsAt.x = run.blanket.x + OWNER_SIDE;
+         handsAt.z = run.blanket.z + 0.3;
+         const toss = carriedKind.current === "ball" ? tossBall : carriedKind.current === "stick" ? tossStick : tossFrisbee;
+         toss.current?.play({ x: run.dog.x, y: 0.5, z: run.dog.z }, handsAt, { duration: 0.45, height: 0.9, scaleFrom: 1, scaleTo: 0.8 });
          MARK.set(run.blanket.x, 0.8, run.blanket.z);
          fx.burst("confetti", MARK, 18);
          fx.score(MARK, `+${ev.score}`);
          playSfx("pickup");
       }
-      if (ev.fetched) playSfx("click");
+      if (ev.fetched) {
+         playSfx("click");
+         MARK.set(run.blanket.x, 1.2, run.blanket.z);
+         pop.fail(MARK, `Too slow! Owner took it ${run.timedOut}/2`, { shake: 0 });
+      }
       if (ev.mowerHit) {
-         fx.shake(0.3);
          playSfx("hit");
+         MARK.set(run.dog.x, 1.2, run.dog.z);
+         pop.fail(MARK, ev.dropped ? "Mower! Toy dropped" : "Mower!", { shake: 0.3 });
+      }
+      // the hint line changes only with the step
+      const code = hintCode(run);
+      if (code !== guideCode.current) {
+         guideCode.current = code;
+         GUIDE.set(dogHint(run, code, touch));
       }
       if (ev.won) playSfx("win");
    });
@@ -272,6 +311,17 @@ function LevelScene() {
       }
       const th = run.active;
       const carried = th?.state === "carried";
+      if (th && carried) carriedKind.current = th.kind;
+      nextGoal(run, goal);
+      toyBeacon.hidden = goal.kind !== 1;
+      toyBeacon.x = goal.x;
+      toyBeacon.z = goal.z;
+      landBeacon.hidden = goal.kind !== 3;
+      landBeacon.x = goal.x;
+      landBeacon.z = goal.z;
+      homeBeacon.hidden = goal.kind !== 2;
+      homeBeacon.x = goal.x;
+      homeBeacon.z = goal.z;
       for (const kind of ["ball", "stick", "frisbee"] as const) {
          const g = toys.current[kind];
          if (!g) continue;
@@ -292,17 +342,6 @@ function LevelScene() {
       for (const kind of ["ball", "stick", "frisbee"] as const) {
          const m = mouth.current[kind];
          if (m) m.visible = !!th && carried && th.kind === kind;
-      }
-      // a beacon on a toy waiting on the grass: where to run
-      const b = beacon.current;
-      if (b) {
-         b.visible = !!th && th.state !== "flying" && !carried;
-         if (b.visible && th) {
-            const xz = toyXZ(th, TOY);
-            b.position.set(xz.x, 0, xz.z);
-            const k = 1 + 0.15 * Math.sin(time.now * 6);
-            b.scale.set(k, 1, k);
-         }
       }
       // a shadow on the grass under a toy in the air: where it will come down, and when
       const shadow = toyShadow.current;
@@ -463,17 +502,21 @@ function LevelScene() {
                />
             </group>
          </group>
-         {/* the waiting toy's beacon: a soft column of light and a ring on the grass */}
-         <group ref={beacon} visible={false}>
-            <mesh position-y={1.1}>
-               <cylinderGeometry args={[0.18, 0.32, 2.2, 16, 1, true]} />
-               <meshBasicMaterial color={COLORS.target} transparent opacity={0.28} depthWrite={false} toneMapped={false} />
-            </mesh>
-            <mesh rotation-x={-Math.PI / 2} position-y={0.02}>
-               <ringGeometry args={[0.38, 0.5, 32]} />
-               <meshBasicMaterial color={COLORS.target} transparent opacity={0.8} depthWrite={false} toneMapped={false} />
-            </mesh>
-         </group>
+         {/* the toy to fetch, the ring where a thrown toy lands, the blanket while carrying */}
+         <TargetBeacon target={toyBeacon} variant="pick" color={COLORS.target} radius={0.8} height={0.7} />
+         <TargetBeacon target={landBeacon} variant="drop-here" color={COLORS.target} radius={1.0} height={0.9} />
+         <TargetBeacon target={homeBeacon} variant="drop-here" radius={BLANKET_R} height={1.1} label="HOME" />
+         <Toss ref={tossBall} spin={0}>
+            <Model asset={ASSETS.ball} fallback={<BallPrimitive />} />
+         </Toss>
+         <Toss ref={tossStick} spin={0}>
+            <Model asset={ASSETS.stick} fallback={<StickPrimitive />} />
+         </Toss>
+         <Toss ref={tossFrisbee} spin={10}>
+            <group rotation-x={Math.PI}>
+               <Model asset={ASSETS.frisbee} fallback={<FrisbeePrimitive />} />
+            </group>
+         </Toss>
          <group ref={(g) => { toys.current.ball = g; }}>
             <Model asset={ASSETS.ball} fallback={<BallPrimitive />} />
          </group>
