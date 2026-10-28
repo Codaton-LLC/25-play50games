@@ -1,6 +1,6 @@
 "use client";
 
-// Bevelled stand-ins (two or three tones) until the firefighter-rescue GLBs are in the manifest.
+// Bevelled stand-ins (two or three tones): the fallbacks while a GLB loads or if it fails.
 import { COLORS } from "./looks";
 import { FIREFIGHTER_HEIGHT } from "./assets";
 

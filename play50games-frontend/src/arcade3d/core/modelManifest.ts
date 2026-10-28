@@ -415,6 +415,18 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/dog-park-fetch/parkBush.glb",
    "/models/3d/dog-park-fetch/festivalTent.glb",
    "/models/3d/shared/civilianNpc.glb",
+   // Menu 1 firefighter-rescue (2026-10-28): the ready menu1-firefighter-rescue GLBs (exitSignV2, not
+   // exitSign; not the older firefighter-rescue/hero.glb), plus the shared ready cabinet; fits in
+   // games/firefighter-rescue/assets.ts (assets.test.ts). The firefighter is auto-rigged.
+   "/models/3d/firefighter-rescue/charFirefighter.glb",
+   "/models/3d/firefighter-rescue/fireExtinguisher.glb",
+   "/models/3d/firefighter-rescue/fireHydrant.glb",
+   "/models/3d/firefighter-rescue/hoseReel.glb",
+   "/models/3d/firefighter-rescue/fireTruck.glb",
+   "/models/3d/firefighter-rescue/exitSignV2.glb",
+   "/models/3d/firefighter-rescue/fireDoor.glb",
+   "/models/3d/firefighter-rescue/fallingDebris.glb",
+   "/models/3d/shared/cabinet.glb",
 ];
 
 const LISTED: ReadonlySet<string> = new Set(MODEL_MANIFEST);

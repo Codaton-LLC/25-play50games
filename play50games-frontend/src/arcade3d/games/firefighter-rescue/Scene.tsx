@@ -16,22 +16,47 @@ import { randomSeed } from "@/arcade3d/core/math";
 import { waddle, type BodyOffset } from "@/arcade3d/core/motion";
 import { useQuality } from "@/arcade3d/core/quality";
 import { DynamicInstanced, Instanced, type InstancePart } from "@/arcade3d/core/render";
-import { HumanoidModel, aimArm, cheerPose, idlePose, jumpPose, useHumanoidPose, walkPose, wrapPhase } from "@/arcade3d/core/rig";
+import { BlobShadow } from "@/arcade3d/core/render";
+import { HumanoidModel, gaitPhaseStep, useHumanoidPose, wrapPhase } from "@/arcade3d/core/rig";
 import { useFittedView } from "@/arcade3d/core/useFittedView";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
-import { ASSETS } from "./assets";
+import { ASSETS, FIREFIGHTER_LANDMARKS, FIREFIGHTER_SCALE, FIT } from "./assets";
 import type { FireLevel } from "./levels";
-import { COLORS, DAMPING, FOLLOW, FOV, LOOK_AHEAD, buildingBox, lookAtFor, plaqueSpots, viewFor, wallSpots } from "./looks";
+import {
+   COLORS,
+   DAMPING,
+   EXIT_SIGN_SPOTS,
+   FOLLOW,
+   FOV,
+   HOSE_REEL_SPOT,
+   HYDRANT_SPOTS,
+   LINTEL,
+   LOOK_AHEAD,
+   STREET,
+   TRUCK_SPOT,
+   WALL_H,
+   buildingBox,
+   cutawayWalls,
+   doorLeaf,
+   doorWallHeight,
+   lookAtFor,
+   openDoorHeight,
+   onFullWall,
+   plaqueSpots,
+   porchFull,
+   viewFor,
+} from "./looks";
+import { firefighterPose } from "./poses";
 import { ExitSignPrimitive, ExtinguisherPrimitive, FirefighterFigure, HoseReelPrimitive, HydrantPrimitive, TruckPrimitive } from "./Primitives";
 import {
    FURN_SIZE,
    HOP_H,
    MAX_SPEED,
+   SPRAY_RANGE,
    createRun,
    debrisPose,
    doorClosed,
-   doorMidZ,
    step,
    type FurnKind,
    type Furniture,
@@ -45,9 +70,18 @@ const S = new Vector3(1, 1, 1);
 const AT = { x: 0, y: 0.5, z: 0 };
 const WOFF: BodyOffset = { y: 0, roll: 0, yaw: 0, squash: 1 };
 
-function spotsOf(items: readonly Furniture[], kind: FurnKind) {
-   return items.filter((item) => item.kind === kind).map((item) => ({ x: item.x, y: 0, z: item.z, rotY: item.rotY }));
+/**
+ * The rules' furniture of one kind as instance spots. `turn` is a visual turn on top of the rules'
+ * rotY that keeps the box's footprint (a half turn): the GLB's front faces into its room.
+ */
+function spotsOf(items: readonly Furniture[], kind: FurnKind, turn: (item: Furniture) => number = () => 0) {
+   return items.filter((item) => item.kind === kind).map((item) => ({ x: item.x, y: 0, z: item.z, rotY: item.rotY + turn(item) }));
 }
+/** Doors swing open at this rate (1/s) once their lock fire is out. */
+const DOOR_SWING = 1.8;
+/** Water puffs from the nozzle while spraying, this often (s). */
+const SPRAY_EVERY = 0.08;
+const LEAF = { x: 0, z: 0, rotY: 0 };
 
 function FurnMeshes({ kind, color, trim, spots, asset }: {
    kind: FurnKind;
@@ -110,12 +144,29 @@ function LevelScene() {
    const puffAt = useRef(0);
    const bounds = useMemo(() => buildingBox(config), [config]);
    const look = useMemo(() => lookAtFor(config), [config]);
-   const walls = useMemo(() => wallSpots(config), [config]);
-   const plaques = useMemo(() => plaqueSpots(config).slice(0, Math.max(1, Math.round(config.rooms * quality.decor))), [config, quality.decor]);
-   const caps = useMemo(() => walls.map((spot) => ({ ...spot, y: 2.25, sy: 0.08 })), [walls]);
-   const sofas = useMemo(() => spotsOf(run.furniture, "sofa"), [run]);
+   // cutaway: walls the camera looks over at the floor are drawn low, so no wall hides the firefighter,
+   // a fire or a neighbour; their doors, plaques and signs follow
+   const walls = useMemo(() => cutawayWalls(config, view.yaw), [config, view.yaw]);
+   const plaques = useMemo(
+      () => plaqueSpots(config).filter((spot) => onFullWall(config, view.yaw, spot)).slice(0, Math.max(1, Math.round(config.rooms * quality.decor))),
+      [config, quality.decor, view.yaw]
+   );
+   const caps = useMemo(
+      () => [...walls.map((spot) => ({ ...spot, y: spot.y + (spot.sy ?? 0) / 2, sy: 0.08 })), ...(porchFull(config, view.yaw) ? [LINTEL] : [])],
+      [walls, config, view.yaw]
+   );
+   const signs = useMemo(() => EXIT_SIGN_SPOTS.filter((spot) => onFullWall(config, view.yaw, spot)), [config, view.yaw]);
+   // door leaves are cut down like a wall in their place: shut in the hall wall, open across the room's side
+   const doorScaleY = useMemo(
+      () => Array.from({ length: config.rooms }, (_, room) => [doorWallHeight(config, view.yaw, room) / WALL_H, openDoorHeight(config, view.yaw, room) / WALL_H] as const),
+      [config, view.yaw]
+   );
+   const doorOpen = useRef<number[]>([]).current;
+   const sprayAt = useRef(0);
+   // the sofa faces the hall from either side; the cabinet stands with its back to the hall wall
+   const sofas = useMemo(() => spotsOf(run.furniture, "sofa", (item) => (item.x > 0 ? Math.PI : 0)), [run]);
    const beds = useMemo(() => spotsOf(run.furniture, "bed"), [run]);
-   const cabinets = useMemo(() => spotsOf(run.furniture, "cabinet"), [run]);
+   const cabinets = useMemo(() => spotsOf(run.furniture, "cabinet", () => Math.PI), [run]);
    const chairs = useMemo(() => spotsOf(run.furniture, "chair"), [run]);
    const zEnd = config.rooms * 6;
 
@@ -130,10 +181,11 @@ function LevelScene() {
       ];
    }, []);
    const debrisParts = useMemo<InstancePart[]>(() => {
-      const box = new BoxGeometry(0.68, 0.5, 0.68);
-      box.translate(0, 0.28, 0);
-      const band = new BoxGeometry(0.72, 0.12, 0.72);
-      band.translate(0, 0.34, 0);
+      // one charred plank of the pile (the GLB's stand-in)
+      const box = new BoxGeometry(FIT.debrisLength, 0.18, 0.2);
+      box.translate(0, 0.09, 0);
+      const band = new BoxGeometry(FIT.debrisLength * 0.4, 0.06, 0.21);
+      band.translate(0.12, 0.17, 0);
       return [
          { geometry: box, material: new MeshStandardMaterial({ color: COLORS.debris, roughness: 0.7 }) },
          { geometry: band, material: new MeshStandardMaterial({ color: COLORS.debrisBand, roughness: 0.55 }) },
@@ -161,19 +213,24 @@ function LevelScene() {
       }
    }, [fireParts, debrisParts, civParts]);
 
+   const poseState = useRef({ phase: 0, amount: 0, now: 0, spray: false, guide: false, hop: 0, win: false }).current;
    const pose = useHumanoidPose((p) => {
       const speed = Math.hypot(run.hero.vx, run.hero.vz);
       const amount = Math.min(1, speed / MAX_SPEED);
-      gait.current.phase = wrapPhase(gait.current.phase + (speed / 0.72) * Math.PI * 2 * time.delta);
-      if (run.over === "win") cheerPose(time.now, p);
-      else if (run.hero.hop > 0) jumpPose(Math.min(1, run.hero.y / HOP_H), p);
-      else if (amount > 0.08) walkPose(gait.current.phase, Math.max(0.35, amount), p);
-      else idlePose(time.now, p);
-      if (run.holdKind !== 0) aimArm(p, -1, 0.12, -0.15, 0.95, 0.04, -0.1, 1);
+      // the walk's own stride (walkStride x scale): the planted foot stays put at a walk and a run
+      gait.current.phase = wrapPhase(gait.current.phase + gaitPhaseStep(Math.max(0.35, amount), FIREFIGHTER_LANDMARKS, FIREFIGHTER_SCALE, speed, time.delta));
+      poseState.phase = gait.current.phase;
+      poseState.amount = amount;
+      poseState.now = time.now;
+      poseState.spray = run.holdKind === 1;
+      poseState.guide = run.follower >= 0;
+      poseState.hop = run.hero.hop > 0 ? Math.min(1, run.hero.y / HOP_H) : 0;
+      poseState.win = run.over === "win";
+      firefighterPose(poseState, p);
    });
 
    useEffect(() => {
-      fx.warm("smoke", "sparks", "puff", "score");
+      fx.warm("smoke", "sparks", "puff", "splash", "confetti", "score");
    }, [fx]);
 
    useRunFrame((_state, dt) => {
@@ -190,6 +247,22 @@ function LevelScene() {
       aim.x = Math.min(bounds.max.x, Math.max(bounds.min.x, aim.x));
       aim.z = Math.min(bounds.max.z, Math.max(bounds.min.z, aim.z));
       if (ev.hop) playSfx("jump");
+      // the jet: water from the nozzle towards the fire being sprayed, steam where it lands
+      if (run.holdKind === 1 && run.time - sprayAt.current > SPRAY_EVERY) {
+         sprayAt.current = run.time;
+         const fire = run.fires[run.holdIndex];
+         if (fire && !fire.out) {
+            const dx = fire.x - run.hero.x;
+            const dz = fire.z - run.hero.z;
+            const d = Math.max(0.01, Math.hypot(dx, dz));
+            const reach = Math.min(d, SPRAY_RANGE);
+            const k = 0.35 + 0.4 * ((run.time * 7) % 1);
+            AT.x = run.hero.x + (dx / d) * reach * k; AT.y = 0.95 - 0.4 * k; AT.z = run.hero.z + (dz / d) * reach * k;
+            fx.burst("splash", AT, 3);
+            AT.x = fire.x; AT.y = 0.5; AT.z = fire.z;
+            fx.burst("smoke", AT, 2);
+         }
+      }
       if (ev.fire >= 0) {
          const fire = run.fires[ev.fire];
          AT.x = fire.x; AT.y = 0.6; AT.z = fire.z;
@@ -215,6 +288,8 @@ function LevelScene() {
       }
       if (ev.lifeLost) store.loseLife();
       if (ev.won) {
+         AT.x = run.hero.x; AT.y = 2; AT.z = run.hero.z;
+         fx.burst("confetti", AT, 24);
          playSfx("win");
          store.end("win");
       }
@@ -253,11 +328,18 @@ function LevelScene() {
       S.set(1, bob, 1);
       matrix.compose(V, Q, S);
    };
+   // a debris pile = two charred planks crossed and stacked; it tumbles as it slides and shudders at
+   // each end (the warning), always inside the rules' 0.68 m box
    const placeDebris = (index: number, matrix: Matrix4) => {
-      const debris = run.debris[index];
+      const debris = run.debris[index >> 1];
       if (!debris) return false;
-      V.set(debris.x, 0, debris.z);
-      Q.identity();
+      const top = index & 1;
+      const moving = debrisPose(debris.phase).moving;
+      const shake = moving ? 0 : 0.04 * Math.sin(run.time * 38 + index);
+      const rock = moving ? 0.1 * Math.sin(debris.x * 6 + top) : 0;
+      E.set(rock, debris.x * 1.4 + (top ? Math.PI / 2 : 0) + shake, shake);
+      Q.setFromEuler(E);
+      V.set(debris.x, top ? 0.2 + Math.abs(rock) * 0.3 : 0.02, debris.z);
       S.set(1, 1, 1);
       matrix.compose(V, Q, S);
    };
@@ -272,15 +354,22 @@ function LevelScene() {
       S.set(1, WOFF.squash, 1);
       matrix.compose(V, Q, S);
    };
+   // each room's double fire door: shut while its lock fire burns, then swung into the room
    const placeDoor = (index: number, matrix: Matrix4) => {
-      if (index >= config.rooms) return false;
-      const left = index % 2 === 0;
-      const closed = doorClosed(run, index);
-      const z = doorMidZ(index);
-      V.set(left ? -1.55 : 1.55, 0, closed ? z : z - 0.7);
-      E.set(0, left ? Math.PI / 2 : -Math.PI / 2, 0);
+      const room = index >> 1;
+      if (room >= config.rooms) return false;
+      if (index % 2 === 0) {
+         const target = doorClosed(run, room) ? 0 : 1;
+         const now = doorOpen[room] ?? target;
+         doorOpen[room] = target > now ? Math.min(target, now + DOOR_SWING * time.delta) : target;
+      }
+      const open = doorOpen[room] ?? 1;
+      doorLeaf(room, (index & 1) as 0 | 1, open * open * (3 - 2 * open), LEAF);
+      V.set(LEAF.x, 0, LEAF.z);
+      E.set(0, LEAF.rotY, 0);
       Q.setFromEuler(E);
-      S.set(1, 1, 1);
+      const [shutY, openY] = doorScaleY[room] ?? [1, 1];
+      S.set(1, shutY + (openY - shutY) * open, 1);
       matrix.compose(V, Q, S);
    };
 
@@ -302,8 +391,8 @@ function LevelScene() {
             <planeGeometry args={[16, zEnd + 8]} />
             <meshStandardMaterial color={COLORS.floor} roughness={0.92} />
          </mesh>
-         <mesh rotation-x={-Math.PI / 2} position={[0, 0.005, -4.6]}>
-            <planeGeometry args={[8, 3.2]} />
+         <mesh rotation-x={-Math.PI / 2} position={[0, 0.005, STREET.z]}>
+            <planeGeometry args={[STREET.width, STREET.depth]} />
             <meshStandardMaterial color={COLORS.street} roughness={0.88} />
          </mesh>
          <Instanced spots={walls} name="walls">
@@ -324,7 +413,7 @@ function LevelScene() {
          <FurnMeshes kind="bed" color={COLORS.bedFrame} trim={COLORS.bed} spots={beds} asset={ASSETS.bed} />
          <FurnMeshes kind="cabinet" color={COLORS.cabinet} trim={COLORS.cabinetDoor} spots={cabinets} asset={ASSETS.cabinet} />
          <FurnMeshes kind="chair" color={COLORS.chair} trim={COLORS.chairSeat} spots={chairs} asset={ASSETS.chair} />
-         <DynamicInstancedModel asset={ASSETS.door} count={config.rooms} update={placeDoor} fallbackParts={DOOR_PARTS} name="doors" />
+         <DynamicInstancedModel asset={ASSETS.door} count={config.rooms * 2} update={placeDoor} fallbackParts={DOOR_PARTS} name="doors" />
          <DynamicInstanced count={run.fires.length} update={placeFire} parts={fireParts} name="fires" />
          {run.smoke.map((disc, i) => (
             <mesh key={i} position={[disc.x, 0.025, disc.z]} rotation-x={-Math.PI / 2}>
@@ -333,26 +422,37 @@ function LevelScene() {
             </mesh>
          ))}
          {run.debris.length > 0 && (
-            <DynamicInstanced count={run.debris.length} update={placeDebris} parts={debrisParts} name="debris" />
+            <DynamicInstancedModel asset={ASSETS.debris} count={run.debris.length * 2} update={placeDebris} fallbackParts={debrisParts} name="debris" />
          )}
          <DynamicInstancedModel asset={ASSETS.civilian} count={5} update={placeCiv} fallbackParts={civParts} name="civilians" />
          <group ref={body}>
-            <HumanoidModel asset={ASSETS.firefighter} pose={pose} fallback={<FirefighterFigure />} attach={{ handR: <Model asset={ASSETS.extinguisher} fallback={<ExtinguisherPrimitive />} /> }} />
+            <BlobShadow radius={0.42} opacity={0.28} />
+            {/* the hand frame is upright in the carry and the spray (poses.ts): the canister hangs from its handle */}
+            <HumanoidModel
+               asset={ASSETS.firefighter}
+               pose={pose}
+               fallback={<FirefighterFigure />}
+               attach={{ handR: <group position={[0, -FIT.extinguisherHeight * 0.82, 0.02]}><Model asset={ASSETS.extinguisher} fallback={<ExtinguisherPrimitive />} /></group> }}
+            />
          </group>
-         <Model asset={ASSETS.truck} position={[0, 0, -5.5]} rotation-y={Math.PI} fallback={<TruckPrimitive />} />
-         <Model asset={ASSETS.hydrant} position={[-2.3, 0, -4.3]} fallback={<HydrantPrimitive />} />
-         <Model asset={ASSETS.hoseReel} position={[2.35, 0, -4.5]} fallback={<HoseReelPrimitive />} />
-         <Model asset={ASSETS.exitSign} position={[0, 0, -1.55]} fallback={<ExitSignPrimitive />} />
+         <Model asset={ASSETS.truck} position={[TRUCK_SPOT.x, 0, TRUCK_SPOT.z]} rotation-y={TRUCK_SPOT.rotY} fallback={<group rotation-y={-Math.PI / 2}><TruckPrimitive /></group>} />
+         <InstancedModel asset={ASSETS.hydrant} spots={HYDRANT_SPOTS} fallback={<>{HYDRANT_SPOTS.map((s, i) => <group key={i} position={[s.x, 0, s.z]}><HydrantPrimitive /></group>)}</>} />
+         <Model asset={ASSETS.hoseReel} position={[HOSE_REEL_SPOT.x, 0, HOSE_REEL_SPOT.z]} rotation-y={HOSE_REEL_SPOT.rotY} fallback={<HoseReelPrimitive />} />
+         <InstancedModel
+            asset={ASSETS.exitSign}
+            spots={signs}
+            fallback={<>{signs.map((s, i) => <group key={i} position={[s.x, s.y - 1.35, s.z]} rotation-y={s.rotY}><ExitSignPrimitive /></group>)}</>}
+         />
       </>
    );
 }
 
-const DOOR_SLAB = new BoxGeometry(1.1, 2.05, 0.08);
-DOOR_SLAB.translate(0, 1.02, 0);
-const DOOR_KNOB = new BoxGeometry(0.08, 0.08, 0.1);
-DOOR_KNOB.translate(0.38, 1, 0.06);
+const DOOR_SLAB = new BoxGeometry(FIT.doorLeafWidth, FIT.doorHeight, FIT.doorDepth);
+DOOR_SLAB.translate(0, FIT.doorHeight / 2, 0);
+const DOOR_KNOB = new BoxGeometry(0.08, 0.08, FIT.doorDepth + 0.06);
+DOOR_KNOB.translate(FIT.doorLeafWidth / 2 - 0.1, 1, 0);
 const DOOR_PARTS: InstancePart[] = [
-   { geometry: DOOR_SLAB, material: new MeshStandardMaterial({ color: "#a16207", roughness: 0.6 }) },
+   { geometry: DOOR_SLAB, material: new MeshStandardMaterial({ color: "#b91c1c", roughness: 0.6 }) },
    { geometry: DOOR_KNOB, material: new MeshStandardMaterial({ color: COLORS.emberCore, roughness: 0.35, metalness: 0.2 }) },
 ];
 
