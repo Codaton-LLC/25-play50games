@@ -16,6 +16,7 @@ import {
    carryPose,
    cheerPose,
    copyPose,
+   crawlPose,
    createPose,
    flailPose,
    idlePose,
@@ -657,5 +658,88 @@ describe("blend, mirror, copy", () => {
       const q = copyPose(p, createPose());
       mirrorPose(q, q);
       expectSamePose(q, m);
+   });
+});
+
+describe("sitPose cross-legged", () => {
+   it("cross 0 is the vehicle sit; any cross stays finite and keeps the seat at hip height", () => {
+      expectSamePose(sitPose(1, createPose(), 0), sitPose(1, createPose()));
+      for (const cross of [0.3, 1, 2]) for (const amount of [0, 0.5, 1]) expectFinitePose(sitPose(amount, createPose(), cross));
+      for (const [, l] of BODIES) expect(bodyLift(sitPose(1, createPose(), 1), l)).toBeCloseTo(0, 8);
+   });
+
+   it("the thighs lie forward and out near level, the shins fold across in front, the left one above", () => {
+      const p = sitPose(1, createPose(), 1);
+      const thighL = chainDir(p.q, [BONE.hips, BONE.upperLegL], DOWN);
+      const thighR = chainDir(p.q, [BONE.hips, BONE.upperLegR], DOWN);
+      expect(thighL.z).toBeGreaterThan(0.6);
+      expect(thighL.x).toBeGreaterThan(0.45);
+      expect(thighR.x).toBeLessThan(-0.45);
+      expect(Math.abs(thighL.y)).toBeLessThan(0.15);
+      const shinL = chainDir(p.q, [BONE.hips, BONE.upperLegL, BONE.lowerLegL], DOWN);
+      const shinR = chainDir(p.q, [BONE.hips, BONE.upperLegR, BONE.lowerLegR], DOWN);
+      // across the body, towards the other side
+      expect(shinL.x).toBeLessThan(-0.75);
+      expect(shinR.x).toBeGreaterThan(0.75);
+      expect(shinL.y).toBeGreaterThan(shinR.y);
+      // the knees bend under the skinning's comfortable limit (about 120 degrees)
+      for (const [thigh, shin] of [
+         [BONE.upperLegL, BONE.lowerLegL],
+         [BONE.upperLegR, BONE.lowerLegR],
+      ]) {
+         expect(angleBetween(p.q, [BONE.hips, thigh], [BONE.hips, thigh, shin])).toBeLessThan((125 * Math.PI) / 180);
+      }
+      // the back nearly upright
+      expect(chainDir(p.q, [BONE.hips, BONE.spine, BONE.chest, BONE.neck, BONE.head], new Vector3(0, 1, 0)).y).toBeGreaterThan(0.9);
+   });
+});
+
+describe("crawlPose", () => {
+   it("stays finite at every phase, off the ground, without lift", () => {
+      for (const phase of [...PHASES, -3, 40]) {
+         const p = crawlPose(phase, createPose());
+         expectFinitePose(p);
+         expect(p.ground).toBe(0);
+         expect(p.lift).toBe(0);
+      }
+      expectSamePose(crawlPose(0.7, createPose()), crawlPose(0.7 + 2 * Math.PI, createPose()));
+   });
+
+   it("one arm reaches overhead while the other finishes at the hip, then they swap; the body rolls to the pull", () => {
+      const up = new Vector3(0, 1, 0);
+      const a = resolved(crawlPose(0, createPose()));
+      const handL = chainDir(a, ARM_L, X);
+      const handR = chainDir(a, ARM_R, NX);
+      expect(handL.y).toBeGreaterThan(0.8);
+      expect(handR.y).toBeLessThan(-0.8);
+      const b = resolved(crawlPose(Math.PI, createPose()));
+      expect(chainDir(b, ARM_R, NX).y).toBeGreaterThan(0.8);
+      expect(chainDir(b, ARM_L, X).y).toBeLessThan(-0.8);
+      // mid-pull the left hand is under the body (+z = the water once the body lies down)
+      const c = resolved(crawlPose(Math.PI / 2, createPose()));
+      expect(chainDir(c, ARM_L, X).z).toBeGreaterThan(0.8);
+      // and mid-recovery the right arm is out of the water (-z), swung out to the side
+      const rec = chainDir(c, ARM_R, NX);
+      expect(rec.z).toBeLessThan(-0.4);
+      expect(rec.x).toBeLessThan(-0.3);
+      // the roll differs between the two halves of the cycle
+      const rollA = chainDir(crawlPose(Math.PI / 2, createPose()).q, [BONE.hips], X).z;
+      const rollB = chainDir(crawlPose((3 * Math.PI) / 2, createPose()).q, [BONE.hips], X).z;
+      expect(Math.sign(rollA)).toBe(-Math.sign(rollB));
+      expect(Math.abs(rollA)).toBeGreaterThan(0.15);
+      expect(chainDir(crawlPose(1, createPose()).q, [BONE.hips, BONE.spine, BONE.chest], up).y).toBeGreaterThan(0.95);
+   });
+
+   it("the legs flutter nearly straight", () => {
+      for (const phase of PHASES) {
+         const p = crawlPose(phase, createPose());
+         for (const [thigh, shin] of [
+            [BONE.upperLegL, BONE.lowerLegL],
+            [BONE.upperLegR, BONE.lowerLegR],
+         ]) {
+            expect(angleBetween(p.q, [BONE.hips, thigh], [BONE.hips, thigh, shin])).toBeLessThan(0.3);
+            expect(Math.abs(forwardPitch(p.q, [BONE.hips, thigh]))).toBeLessThan(0.3);
+         }
+      }
    });
 });

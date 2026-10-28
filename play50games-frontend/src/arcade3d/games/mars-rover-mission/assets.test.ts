@@ -3,10 +3,10 @@ import { hasModel } from "@/arcade3d/core/modelManifest";
 import { readCharacterGlb } from "@/arcade3d/core/rig/robotGlb";
 import type { ModelAsset } from "@/arcade3d/core/types";
 import { LEVEL_IDS } from "@/arcade3d/types";
-import { ASSETS, BOULDER_HALF_H, FIT, GLB_SIZE } from "./assets";
+import { ASSETS, BOULDER_HALF_H, FIT, GLB_SIZE, ROVER_SCALE, ROVER_WHEELS, WHEEL } from "./assets";
 import { LEVELS } from "./levels";
-import { SOUTH_WALL_H, campSpots, mesaSpots, wallSpots } from "./looks";
-import { BOULDER_RADIUS, ROCK_RADIUS, ROVER } from "./rules";
+import { campSpots, mesaSpots, ruinSpots, wallSpots } from "./looks";
+import { BOULDER_RADIUS, PROP_RADIUS, ROCK_RADIUS, ROVER, createRun, landerProp } from "./rules";
 
 async function bounds(url: string) {
    const { cloud } = await readCharacterGlb(url);
@@ -66,11 +66,15 @@ describe("mars-rover-mission GLB fits (real meshes)", () => {
       // the rover's body fits its 1.1 m collision circle within 10 %
       expect(Math.hypot(GLB_SIZE.marsRover.width, GLB_SIZE.marsRover.depth) * S(ASSETS.rover) / 2).toBeLessThan(ROVER.radius * 1.45);
       expect(GLB_SIZE.marsRover.width * S(ASSETS.rover)).toBeLessThan(2 * ROVER.radius);
-      expect(GLB_SIZE.sampleRock.width * S(ASSETS.rock)).toBeCloseTo(2 * ROCK_RADIUS, 6);
+      expect(GLB_SIZE.marsBoulder.depth * S(ASSETS.rock)).toBeCloseTo(2 * ROCK_RADIUS, 6);
       expect(GLB_SIZE.marsBoulder.depth * S(ASSETS.boulder)).toBeCloseTo(2 * BOULDER_RADIUS, 6);
       expect(ASSETS.boulder.yOffset).toBeCloseTo(-BOULDER_HALF_H, 9);
-      expect(GLB_SIZE.sampleRock.width * S(ASSETS.sample)).toBeCloseTo(FIT.sampleSize, 6);
       expect(GLB_SIZE.beaconLight.height * S(ASSETS.beacon)).toBeCloseTo(FIT.beaconHeight, 6);
+      expect(GLB_SIZE.magicCrystal.width * S(ASSETS.crystal)).toBeCloseTo(FIT.crystalWidth, 6);
+      expect(GLB_SIZE.auroraCrystal.height * S(ASSETS.carried)).toBeCloseTo(FIT.carriedHeight, 6);
+      expect(GLB_SIZE.m2RuinLanternPillar.height * S(ASSETS.relic)).toBeCloseTo(FIT.relicHeight, 6);
+      expect(GLB_SIZE.groundSolarPanelV2.width * S(ASSETS.panel)).toBeCloseTo(FIT.panelWidth, 6);
+      expect(GLB_SIZE.landingCapsule.height * S(ASSETS.lander)).toBeCloseTo(FIT.landerHeight, 6);
       expect(GLB_SIZE.chargingStation.height * S(ASSETS.charger)).toBeCloseTo(FIT.stationHeight, 6);
    });
 
@@ -79,32 +83,51 @@ describe("mars-rover-mission GLB fits (real meshes)", () => {
       expect(GLB_SIZE.marsBase.depth * S(ASSETS.base)).toBeCloseTo(1, 6);
       expect(GLB_SIZE.commsAntenna.height * S(ASSETS.antenna)).toBeCloseTo(1, 6);
       expect(GLB_SIZE.researchCrate.width * S(ASSETS.crate)).toBeCloseTo(1, 6);
-      expect(GLB_SIZE.landingCapsule.height * S(ASSETS.capsule)).toBeCloseTo(1, 6);
+      expect(GLB_SIZE.m2CaveTempleArch.height * S(ASSETS.arch)).toBeCloseTo(1, 6);
       expect(GLB_SIZE.marsMesaRock.depth * S(ASSETS.wall)).toBeCloseTo(1, 6);
       expect(GLB_SIZE.marsMesaTall.depth * S(ASSETS.mesa)).toBeCloseTo(1, 6);
-      for (const a of [ASSETS.solarPanel, ASSETS.base, ASSETS.antenna, ASSETS.crate, ASSETS.capsule, ASSETS.wall, ASSETS.mesa] as ModelAsset[]) expect(a.stretch).toBeUndefined();
+      for (const a of [ASSETS.solarPanel, ASSETS.base, ASSETS.antenna, ASSETS.crate, ASSETS.arch, ASSETS.wall, ASSETS.mesa] as ModelAsset[]) expect(a.stretch).toBeUndefined();
    });
 });
 
-describe("mars-rover-mission decor spots", () => {
+describe("mars-rover-mission decor spots and the rover's moving parts", () => {
    for (const id of LEVEL_IDS) {
-      it(`L${id}: walls frame the plain (the south one low), mesas and the camp stay outside it`, () => {
+      it(`L${id}: ledges, mesas, the camp and the ancient site stay outside the plain; the astronaut beside the lander`, () => {
          const L = LEVELS[id];
          const hx = L.width / 2;
          const hz = L.depth / 2;
          const outside = (x: number, z: number) => Math.abs(x) > hx || Math.abs(z) > hz;
-         const wallH = (GLB_SIZE.marsMesaRock.height / GLB_SIZE.marsMesaRock.depth);
-         for (const w of wallSpots(L)) {
-            expect(outside(w.x, w.z)).toBe(true);
-            if (w.z > hz) expect(wallH * (w.sy ?? w.scale ?? 1)).toBeLessThanOrEqual(SOUTH_WALL_H + 1e-9);
-         }
-         for (const m of mesaSpots(L, id)) {
-            expect(outside(m.x, m.z)).toBe(true);
-            // nothing tall on the camera's (south) side
-            expect(m.z).toBeLessThan(hz);
-         }
-         const camp = campSpots(L);
-         for (const p of [camp.base, camp.antenna, camp.capsule, camp.astronaut, ...camp.crates]) expect(p.z).toBeGreaterThan(hz + 1);
+         for (const w of wallSpots(L)) expect(outside(w.x, w.z)).toBe(true);
+         for (const m of mesaSpots(L, id)) expect(outside(m.x, m.z)).toBe(true);
+         const run = createRun(1, L, id);
+         const lander = landerProp(run.basePad);
+         const camp = campSpots(L, lander);
+         for (const p of [camp.base, camp.antenna, camp.astronaut, ...camp.crates]) expect(p.z).toBeGreaterThan(hz);
+         expect(Math.abs(camp.astronaut.x - lander.x)).toBeLessThan(3);
+         const ruins = ruinSpots(L);
+         for (const p of [ruins.arch, ...ruins.pillars]) expect(outside(p.x, p.z)).toBe(true);
+         // the lander is a solid prop inside the plain, clear of the base pad
+         expect(run.props.find((p) => p.kind === "lander")).toEqual(lander);
+         expect(lander.radius).toBe(PROP_RADIUS.lander);
       });
    }
+
+   it("the code wheels sit over the GLB's own wheels, a little larger, inside the rover's circle", () => {
+      expect(WHEEL.radius).toBeGreaterThan(ROVER_WHEELS.radius * ROVER_SCALE);
+      expect(WHEEL.width).toBeGreaterThan(ROVER_WHEELS.width * ROVER_SCALE);
+      // the wheel rests on the ground: its centre height is about its radius
+      expect(Math.abs(WHEEL.y - WHEEL.radius)).toBeLessThan(0.05);
+      expect(Math.hypot(WHEEL.x + WHEEL.width / 2, WHEEL.zFront + WHEEL.radius)).toBeLessThan(ROVER.radius * 1.5);
+   });
+
+   it("the wheel positions match the real mesh: its lowest vertices near each wheel centre", async () => {
+      const { cloud } = await readCharacterGlb(ASSETS.rover.url);
+      for (const [sx, z] of [[1, ROVER_WHEELS.zFront], [-1, ROVER_WHEELS.zFront], [1, ROVER_WHEELS.zBack], [-1, ROVER_WHEELS.zBack]]) {
+         let n = 0;
+         for (let i = 0; i < cloud.length; i += 3) {
+            if (Math.abs(cloud[i] - sx * ROVER_WHEELS.x) < ROVER_WHEELS.width / 2 && Math.abs(cloud[i + 2] - z) < ROVER_WHEELS.radius && cloud[i + 1] < 2 * ROVER_WHEELS.radius + 0.02) n++;
+         }
+         expect(n).toBeGreaterThan(100);
+      }
+   });
 });

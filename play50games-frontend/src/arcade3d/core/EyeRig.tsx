@@ -8,9 +8,9 @@
 //    <EyeRig position={EYE} yaw={guardYaw} fov={70} shift={eye.shift} turnRate={4} />
 //
 // - position: a tuple, or a ref to a live {x, y, z} read every frame (the simulation's state);
-//   yaw / pitch: numbers or refs read every frame. yaw is a facing like inViewCone / Flashlight
+//   yaw / pitch / roll / fov: numbers or refs read every frame (roll only when given). yaw is a facing like inViewCone / Flashlight
 //   (0 = looks along +z, positive turns towards +x); positive pitch looks down. The rotation is
-//   written directly (setEyeRotation, Euler "YXZ"), never with lookAt, so it never rolls.
+//   written directly (setEyeRotation, Euler "YXZ"), never with lookAt, so it rolls only by `roll`.
 // - turnRate (rad/s): turn towards `yaw` the short way round at most this fast (stepEyeYaw);
 //   omitted = face `yaw` at once. shiftRate (1/s, default 8): eases a new `shift` in; the first
 //   write snaps.
@@ -35,8 +35,13 @@ export interface EyeRigProps {
    yaw: number | { current: number };
    /** look down by this much, radians. Default 0 */
    pitch?: number | { current: number };
-   /** vertical fov in degrees; omitted = leave the camera's fov alone */
-   fov?: number;
+   /** vertical fov in degrees, or a ref read every frame (a boost's fov kick); omitted = leave the camera's fov alone */
+   fov?: number | { current: number };
+   /**
+    * Roll about the view axis, radians (positive tips the picture's top to the left), a number or a ref
+    * read every frame: a flight camera leaning into its turns. Default 0 = never rolls.
+    */
+   roll?: number | { current: number };
    /** lens shift (NDC, x right, y up) from useEyeShift; omit to leave the lens alone */
    shift?: readonly [number, number];
    /** how fast a new shift eases in, 1/s. Default 8 (the first write snaps) */
@@ -48,7 +53,7 @@ export interface EyeRigProps {
 const read = (value: number | { current: number } | undefined, fallback: number) =>
    value === undefined ? fallback : typeof value === "number" ? value : value.current;
 
-export function EyeRig({ position, yaw, pitch, fov, shift, shiftRate = 8, turnRate }: EyeRigProps): null {
+export function EyeRig({ position, yaw, pitch, fov, roll, shift, shiftRate = 8, turnRate }: EyeRigProps): null {
    const camera = useThree((state) => state.camera);
    const get = useThree((state) => state.get);
    const pose = useMemo(() => ({ yaw: 0 }), []);
@@ -62,8 +67,10 @@ export function EyeRig({ position, yaw, pitch, fov, shift, shiftRate = 8, turnRa
       const target = read(yaw, 0);
       pose.yaw = snap ? target : stepEyeYaw(pose.yaw, target, turnRate, dt);
       setEyeRotation(camera.rotation, pose.yaw, read(pitch, 0));
-      if (fov !== undefined && camera instanceof PerspectiveCamera && camera.fov !== fov) {
-         camera.fov = fov;
+      if (roll !== undefined) camera.rotation.z = read(roll, 0);
+      const f = fov === undefined ? undefined : read(fov, 0);
+      if (f !== undefined && camera instanceof PerspectiveCamera && Math.abs(camera.fov - f) > 1e-3) {
+         camera.fov = f;
          camera.updateProjectionMatrix();
       }
    };

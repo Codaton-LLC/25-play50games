@@ -47,8 +47,10 @@ export function PartsInstanced({ spots, parts, name }: { spots: readonly Instanc
 export const rockParts = (): InstancePart[] => [
    { geometry: at(new DodecahedronGeometry(FIT.rockWidth / 2, 1).scale(1, 0.7, 1), 0, FIT.rockWidth * 0.32, 0), material: mat(COLORS.rock, { flatShading: true }) },
 ];
-export const sampleParts = (): InstancePart[] => [
-   { geometry: at(new DodecahedronGeometry(FIT.sampleSize / 2, 0), 0, FIT.sampleSize / 2, 0), material: mat(COLORS.sampleGlow, { emissive: COLORS.sampleGlow, emissiveIntensity: 0.5, flatShading: true }) },
+/** the crystal deposit: a low sandy mound with teal shards (FIT.crystalWidth across) */
+export const crystalParts = (): InstancePart[] => [
+   { geometry: at(new CylinderGeometry(FIT.crystalWidth * 0.45, FIT.crystalWidth * 0.5, 0.1, 10), 0, 0.05, 0), material: mat(COLORS.groundDust) },
+   { geometry: at(new DodecahedronGeometry(FIT.crystalWidth * 0.22, 0).scale(0.7, 1.4, 0.7), 0, 0.22, 0), material: mat(COLORS.crystal, { emissive: COLORS.crystal, emissiveIntensity: 0.4, flatShading: true }) },
 ];
 export const boulderParts = (): InstancePart[] => [
    // centred on its middle like the fitted GLB (the pool spins it about its centre)
@@ -95,12 +97,70 @@ export function RoverPrimitive() {
    );
 }
 
-export function SampleRockPrimitive() {
+/** a carried crystal sample on the deck (FIT.carriedHeight tall) */
+export function CarriedPrimitive() {
    return (
-      <mesh position={[0, FIT.sampleSize / 2, 0]}>
-         <dodecahedronGeometry args={[FIT.sampleSize / 2, 0]} />
-         <meshStandardMaterial color={COLORS.sampleGlow} emissive={COLORS.sampleGlow} emissiveIntensity={0.5} flatShading />
+      <mesh position={[0, FIT.carriedHeight / 2, 0]} scale={[0.6, 1, 0.6]}>
+         <octahedronGeometry args={[FIT.carriedHeight / 2, 0]} />
+         <meshStandardMaterial color={COLORS.crystal} emissive={COLORS.crystal} emissiveIntensity={0.5} flatShading />
       </mesh>
+   );
+}
+
+/** the L5 ancient beacon: a carved sandstone pillar with a glowing lantern (FIT.relicHeight tall) */
+export function RelicPrimitive() {
+   const h = FIT.relicHeight;
+   return (
+      <group>
+         <mesh position={[0, h * 0.35, 0]}>
+            <boxGeometry args={[0.6, h * 0.7, 0.6]} />
+            <meshStandardMaterial color="#c99a68" roughness={0.85} />
+         </mesh>
+         <mesh position={[0, h * 0.8, 0]}>
+            <boxGeometry args={[0.5, h * 0.22, 0.5]} />
+            <meshStandardMaterial color="#f59e0b" emissive="#f59e0b" emissiveIntensity={0.7} />
+         </mesh>
+         <mesh position={[0, h * 0.95, 0]}>
+            <coneGeometry args={[0.45, h * 0.12, 4]} />
+            <meshStandardMaterial color="#b4875a" roughness={0.85} />
+         </mesh>
+      </group>
+   );
+}
+
+/** the lander: a white capsule on four legs (FIT.landerHeight tall) */
+export function LanderPrimitive() {
+   const h = FIT.landerHeight;
+   return (
+      <group>
+         <mesh position={[0, h * 0.55, 0]}>
+            <capsuleGeometry args={[h * 0.2, h * 0.45, 8, 16]} />
+            <meshStandardMaterial color="#f1f5f9" roughness={0.45} />
+         </mesh>
+         {[0, 1, 2, 3].map((i) => (
+            <mesh key={i} position={[Math.sin((i * Math.PI) / 2) * h * 0.22, h * 0.12, Math.cos((i * Math.PI) / 2) * h * 0.22]}>
+               <cylinderGeometry args={[0.05, 0.08, h * 0.28, 6]} />
+               <meshStandardMaterial color={COLORS.accent} />
+            </mesh>
+         ))}
+      </group>
+   );
+}
+
+/** a solar panel on an A-frame (FIT.panelWidth wide), 1 m stand-in fitted like the GLB */
+export function PanelPrimitive() {
+   const w = FIT.panelWidth;
+   return (
+      <group>
+         <mesh position={[0, w * 0.3, 0]} rotation-x={-0.6}>
+            <boxGeometry args={[w, 0.05, w * 0.6]} />
+            <meshStandardMaterial color="#1e3a8a" metalness={0.5} roughness={0.25} />
+         </mesh>
+         <mesh position={[0, w * 0.15, 0]}>
+            <boxGeometry args={[0.08, w * 0.3, 0.08]} />
+            <meshStandardMaterial color={COLORS.roverMetal} />
+         </mesh>
+      </group>
    );
 }
 

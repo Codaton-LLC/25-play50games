@@ -5,9 +5,12 @@ import { createGrid, fixedFrames, followPath, freeGrid, randomFrames, simulateRu
 import { createArcadeStore, type ArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import type { LevelId } from "@/arcade3d/types";
 import { LEVELS } from "../levels";
+import { RESULT_DELAY_MS } from "../resultDelay";
 import {
    BOULDER_RADIUS,
    CHARGER_PAD_RADIUS,
+   CREVASSE,
+   crevasseDistance,
    LIVES,
    ROVER,
    SCAN_SPEED_MAX,
@@ -31,6 +34,8 @@ export interface BotResult {
    /** the win score before the rules' safety cap */
    uncapped: number;
    charges: number;
+   /** lives spent, by cause */
+   hits: { rock: number; boulder: number; fell: number };
 }
 
 const wrap = (a: number) => {
@@ -39,16 +44,22 @@ const wrap = (a: number) => {
    return a;
 };
 
-/** Grid nodes the rover can drive through (rocks inflated by the rover and a margin, the walls). */
+/** Grid nodes the rover can drive through (rocks, props and crevasses inflated by the rover and a margin, the walls). */
 export function driveGrid(run: Run, margin: number): { grid: Grid; free: Uint8Array } {
    const halfX = run.level.width / 2 - ROVER.radius - 0.2;
    const halfZ = run.level.depth / 2 - ROVER.radius - 0.2;
    const grid = createGrid({ cell: 0.5, halfX, halfZ });
-   const free = freeGrid(grid, (x, z) => run.rocks.every((r) => Math.hypot(x - r.x, z - r.z) >= r.radius + ROVER.radius + margin));
+   const free = freeGrid(
+      grid,
+      (x, z) =>
+         run.rocks.every((r) => Math.hypot(x - r.x, z - r.z) >= r.radius + ROVER.radius + margin) &&
+         run.props.every((p) => Math.hypot(x - p.x, z - p.z) >= p.radius + ROVER.radius + margin) &&
+         run.crevasses.every((c) => crevasseDistance(c, x, z) >= c.halfWidth + CREVASSE.fallMargin + margin + 0.8)
+   );
    return { grid, free };
 }
 
-function makeDriver(run: Run, kind: BotKind, seed: number): (dt: number) => MarsInput {
+export function makeDriver(run: Run, kind: BotKind, seed: number): (dt: number) => MarsInput {
    const input: MarsInput = { moveX: 0, moveY: 0 };
    if (kind === "idle") return () => input;
    if (kind === "spam") {
@@ -60,7 +71,15 @@ function makeDriver(run: Run, kind: BotKind, seed: number): (dt: number) => Mars
       };
    }
    const oracle = kind === "oracle";
-   const { grid, free } = driveGrid(run, oracle ? 0.3 : 0.4);
+   const margin = oracle ? 0.3 : 0.4;
+   const { grid, free } = driveGrid(run, margin);
+   /** a point the rover can stand on: inside the walls, clear of rocks, props and crevasses */
+   const clearAt = (x: number, z: number) =>
+      Math.abs(x) <= run.level.width / 2 - ROVER.radius - 0.2 &&
+      Math.abs(z) <= run.level.depth / 2 - ROVER.radius - 0.2 &&
+      run.rocks.every((o) => Math.hypot(x - o.x, z - o.z) >= o.radius + ROVER.radius + margin) &&
+      run.props.every((o) => Math.hypot(x - o.x, z - o.z) >= o.radius + ROVER.radius + margin) &&
+      run.crevasses.every((c) => crevasseDistance(c, x, z) >= c.halfWidth + CREVASSE.fallMargin + margin + 0.8);
    const brakeShare = oracle ? 0.85 : 0.6;
    const reserve = oracle ? 6 : 14;
    let goal = -99;
@@ -145,9 +164,12 @@ function makeDriver(run: Run, kind: BotKind, seed: number): (dt: number) => Mars
          const band = ROVER.boxHalf + BOULDER_RADIUS + 0.5;
          const ahead = r.z - b.z;
          if (Math.abs(r.x - b.x) < band && ahead > -1.5 && ahead < 9) {
-            // in a lane with a boulder coming: step out sideways first
-            ax = b.x + (r.x >= b.x ? 1 : -1) * (band + 1.2);
-            az = r.z + Math.cos(r.yaw) * 1.5;
+            // in a lane with a boulder coming: step out sideways first, to the side that is clear
+            const pref = r.x >= b.x ? 1 : -1;
+            const sz = r.z + Math.cos(r.yaw) * 1.5;
+            const side = clearAt(b.x + pref * (band + 1.2), sz) || !clearAt(b.x - pref * (band + 1.2), sz) ? pref : -pref;
+            ax = b.x + side * (band + 1.2);
+            az = sz;
          }
       }
       const want = Math.atan2(ax - r.x, az - r.z);
@@ -158,6 +180,11 @@ function makeDriver(run: Run, kind: BotKind, seed: number): (dt: number) => Mars
       if (Math.abs(diff) > 0.5) vt = Math.min(vt, oracle ? 3 : 2.2);
       if (Math.abs(diff) > 1.6) vt = Math.min(vt, 1.2);
       void bendAt;
+      // never ram a boulder from behind: following one down its lane, stay slower than it
+      for (const b of run.boulders) {
+         const behind = b.z - r.z;
+         if (Math.abs(r.x - b.x) < ROVER.boxHalf + BOULDER_RADIUS + 0.6 && behind > 0 && behind < 6 && r.vz > 0) vt = Math.min(vt, b.speed * 0.5);
+      }
       // boulders roll south: wait outside a lane while one is about to cross our row
       for (const b of run.boulders) {
          const inLane = Math.abs(r.x - b.x) < ROVER.boxHalf + BOULDER_RADIUS + 0.4;
@@ -190,18 +217,24 @@ export function playBot(id: LevelId, seed: number, kind: BotKind, frames: FrameK
    let uncapped = 0;
    let charges = 0;
    let wasCharging = false;
+   const hits = { rock: 0, boulder: 0, fell: 0 };
    const end = simulateRun(store, {
       durationMs: level.durationMs,
       lives: LIVES,
-      resultDelayMs: 900,
+      resultDelayMs: RESULT_DELAY_MS,
       frame: frameOf(frames, seed),
       step: (dt, _time, s) => {
          const before = run.score;
          const ev = frame(run, drive(dt), dt, s, sync);
          if (ev.won) uncapped = before + (ev.score - ev.timeBonus) + Math.floor(Math.max(0, level.durationMs / 1000 - run.time)) * 5;
          if (run.charging && !wasCharging) charges++;
+         if (ev.lifeLost) {
+            if (ev.fell) hits.fell++;
+            else if (ev.boulderHit) hits.boulder++;
+            else hits.rock++;
+         }
          wasCharging = run.charging;
       },
    });
-   return { store: end, run, score: end.score, elapsedMs: end.elapsedMs, endReason: end.endReason, uncapped: end.endReason === "win" ? uncapped : end.score, charges };
+   return { store: end, run, score: end.score, elapsedMs: end.elapsedMs, endReason: end.endReason, uncapped: end.endReason === "win" ? uncapped : end.score, charges, hits };
 }

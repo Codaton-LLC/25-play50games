@@ -14,3 +14,5 @@ export { Instanced, type InstancedProps } from "./Instanced";
 export { TrajectoryDots, dotOpacity, shownDots, type TrajectoryDotsProps } from "./TrajectoryDots";
 export { useCanvasTexture, type CanvasDraw } from "./useCanvasTexture";
 export { spotMatrix, useInstanceMatrices, type InstanceSpot } from "./useInstanceMatrices";
+export { flapAngle, flapMaterial, type FlapClock, type WingFlap } from "./wingFlap";
+export { clothLift, clothWaveMaterial, patchClothWave, type ClothWave } from "./clothWave";
