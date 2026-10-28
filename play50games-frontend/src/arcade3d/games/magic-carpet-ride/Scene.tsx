@@ -6,6 +6,8 @@ import { useFrame, useThree } from "@react-three/fiber";
 import { AdditiveBlending, Color, Euler, Matrix4, MeshBasicMaterial, MeshStandardMaterial, SphereGeometry, OctahedronGeometry, Quaternion, TorusGeometry, Vector3, type Group } from "three";
 import { DynamicInstancedModel, InstancedModel, Model } from "@/arcade3d/core/assets";
 import { playSfx, startLoop, type LoopHandle } from "@/arcade3d/core/audio";
+import { useCameraViews } from "@/arcade3d/core/camera/CameraViews";
+import type { AABB } from "@/arcade3d/core/collision";
 import { SkyDome, Starfield } from "@/arcade3d/core/env";
 import { EyeRig } from "@/arcade3d/core/EyeRig";
 import { FRAME_PRIORITY } from "@/arcade3d/core/frameLoop";
@@ -23,7 +25,7 @@ import { ASSETS, OBSTACLE_ASSET, SEAT_Y, SEAT_Z } from "./assets";
 import type { CarpetLevel, ObstacleKind } from "./levels";
 import { BIOME_LOOK, BOOST_FOV, CAM_FOLLOW, CAM_LEAN, COLORS, camFor, decorSpots, type DecorKind } from "./looks";
 import { CarpetPrimitive, RiderFigure } from "./Primitives";
-import { BANK_MAX, MERCY, createRun, poseAt, ringValue, step, syncStore, type Run } from "./rules";
+import { BANK_MAX, BOOST_MUL, MERCY, createRun, poseAt, ringValue, step, syncStore, type Run } from "./rules";
 
 const AT = { x: 0, y: 0, z: 0 };
 const V = new Vector3();
@@ -70,6 +72,9 @@ const DECOR_ASSET: Record<DecorKind, (typeof ASSETS)[keyof typeof ASSETS]> = {
 /** Draw only what is this close ahead of the carpet (m) or just behind it. */
 const AHEAD = 150;
 const BEHIND = 12;
+/** Decor that can stand in the camera's way. Clouds are haze; the flyers are moving meshes, not walls. */
+const SOLID_DECOR: ReadonlySet<DecorKind> = new Set(["roof", "tower", "palm", "pyramid", "mesa", "islandCastle", "islandFalls", "islandMill", "lantern", "palace"]);
+const SOLID_REACH = 40;
 
 /** The finish: a glowing gate across the end of the lane (a marker, so it stays in code). */
 function FinishGate() {
@@ -123,6 +128,59 @@ export default function Scene() {
    const camPitch = useRef(view.pitch);
    const camRoll = useRef(0);
    const camFov = useRef(view.fov);
+   // EyeRig is already the chase camera, so "chase" is not offered again. The stick slides the carpet
+   // in the lane (rules take no yaw): front locks to the heading. The opening chase sits behind that
+   // heading. Top at 16 m stays inside the fog, which starts at 30 m on every level.
+   const defaultYaw = useMemo(() => run.yaw + Math.PI, [run]);
+   useCameraViews({
+      slug: "magic-carpet-ride",
+      subject: "vehicle",
+      steering: "vehicle",
+      defaultYaw,
+      views: ["default", "front", "top", "free"],
+      framing: { top: { distance: 16 } },
+      target: (o) => {
+         const speed = run.level.speed * (run.boostT > 0 ? BOOST_MUL : 1);
+         o.x = run.carpet.x;
+         o.y = run.carpet.y + 0.7;
+         o.z = run.carpet.z;
+         o.heading = run.yaw;
+         o.vx = Math.sin(run.yaw) * speed - Math.cos(run.yaw) * run.vLat;
+         o.vz = Math.cos(run.yaw) * speed + Math.sin(run.yaw) * run.vLat;
+      },
+      solids: (out: AABB[]) => {
+         let n = 0;
+         const cx = run.carpet.x;
+         const cy = run.carpet.y;
+         const cz = run.carpet.z;
+         for (const kind of DECOR_KINDS) {
+            if (!SOLID_DECOR.has(kind)) continue;
+            const list = decorShown[kind];
+            for (let i = 0; i < list.length; i++) {
+               if (n >= out.length) return n;
+               const s = list[i];
+               const sx = s.sx ?? s.scale ?? 1;
+               const sy = s.sy ?? s.scale ?? 1;
+               const sz = s.sz ?? s.scale ?? 1;
+               if (Math.abs(s.x - cx) > sx + SOLID_REACH || Math.abs(s.z - cz) > sz + SOLID_REACH) continue;
+               if (s.y + sy < cy - 30 || s.y > cy + 20) continue;
+               const rot = s.rotY ?? 0;
+               const c = Math.abs(Math.cos(rot));
+               const sn = Math.abs(Math.sin(rot));
+               const hx = (sx * c + sz * sn) / 2;
+               const hz = (sx * sn + sz * c) / 2;
+               const box = out[n++];
+               box.min.x = s.x - hx;
+               box.max.x = s.x + hx;
+               box.min.y = s.y;
+               box.max.y = s.y + sy;
+               box.min.z = s.z - hz;
+               box.max.z = s.z + hz;
+            }
+         }
+         return n;
+      },
+   });
    const follow = useRef({ lat: 0, vert: 0, roll: 0 }).current;
    const camAt = useRef({ x: 0, y: 0, z: 0 }).current;
    const placeCamera = (dt: number, snap: boolean) => {

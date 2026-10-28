@@ -27,7 +27,7 @@ export const magicCarpetRideMeta: ArcadeGameMeta = {
    orientation: "any",
    controls: {
       scheme: "flight",
-      keyboard: "WASD / arrows: left, right, up and down",
+      keyboard: "WASD / arrows: left, right, up and down. 📷 or C changes the view",
       touch: "Joystick to steer",
    },
    scoring: SCORING,

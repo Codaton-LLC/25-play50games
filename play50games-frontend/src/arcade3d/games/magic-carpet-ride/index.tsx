@@ -12,7 +12,7 @@ import { LIVES } from "./rules";
 import Scene from "./Scene";
 
 const LINES = [
-   "WASD, the arrows or the stick fly left, right, up and down. The carpet stays where you leave it.",
+   "WASD, the arrows or the stick fly left, right, up and down. The carpet stays where you leave it. 📷 or C changes the view.",
    "Fly through the rings: rings in a row build a combo. Follow the coin arcs, reach for the gems.",
    "Grab a rocket for a burst of speed. Gulls, balloons, bats, hawks and rocks cost a life.",
 ];
