@@ -157,6 +157,10 @@ useRunFrame(() => {
 - A follow camera: build `focus` with `followFocus` from the same `lookAt`, `followFraction` and `bounds` you give `CameraRig`.
 - The fov is the canvas camera's (`definition.camera.fov`). If the Scene's `CameraRig` sets another fov, pass the same `fov` to `useFittedView`.
 
+### Chase camera for vehicles: `ChaseRig` (`chaseCamera.ts`)
+
+`<ChaseRig target={run.vehicle} options={{ distance, height, lookAhead, lookHeight, yawRate, followRate, clearance }} ground={heightAt} yawOffset={orbit} fov={55} />` puts the canvas camera behind a vehicle's heading (yaw 0 = +z) and swings it round after the heading with a lag, so a vehicle steered by its own left/right is camera-relative: left on the stick turns the picture left. It never dips under `ground(x, z) + clearance`, widens the lens on a portrait screen (`chaseFov`: keeps a minimum horizontal fov) and pulls back there (`portraitPullback`), clears any lens shift left by an earlier rig, and runs at `FRAME_PRIORITY.camera`. `yawOffset` (a live `{ value }`) orbits it, e.g. after a win. Pure math in `chaseCamera.ts` (`stepChase`, `angleDelta`), tested in `chaseCamera.test.ts`. Used by mars-rover-mission.
+
 ### Fixed-eye cameras: `EyeRig`, `useEyeShift`, `fitEyeShift`
 
 **When:** `CameraRig` + `useFittedView` for a camera that looks *at* the play area from outside and may move back until the area fits (top-down, follow cameras). `EyeRig` for a first-person eye that must stay where it is (a guard at a fixed post, a turret): the camera never moves back; what must stay visible is kept clear of the HUD and the controls by a lens shift only.
@@ -174,6 +178,10 @@ const eye = useEyeShift({ fov: 70, eyeY: 1.6, band: BAND, padding: 8 });        
 - The first pose is written in a mount layout effect, so no frame is drawn from `definition.camera`. The shell's static `CameraRig` writes the camera only in its mount effect (its frame callback does nothing without `follow` / `shift`); if that passive effect runs after `EyeRig`'s layout effect, `EyeRig`'s first frame puts the pose (and fov) back before anything renders. Do not also render a `CameraRig` in the same Scene.
 
 - `useSafeArea(selector, isEqual?)`: a Scene that needs one number (a top inset, a control's top) re-renders only when that number changes, not every time a HUD chip grows with the score. A selector that builds an object needs an `isEqual` (`sameScreenRects` for rect lists, `shallow` from `"zustand/shallow"` for plain objects).
+
+## Camera views (`camera/`)
+
+Opt-in per game: `useCameraViews({ slug, subject, steering, defaultYaw: view.yaw, target, solids? })` in the Scene, next to its CameraRig, and `<CameraViewButton />` in the Hud. The player cycles default → chase → front → top → free with the 📷 button or C (T too); a drag or two fingers switch to the free orbit (ported from Menu 2). The rules get `cam.yaw()` instead of `view.yaw` (the same number in the default view, so proofs are unchanged). The last view per game and the one-time hint are stored by `camera/cameraPrefs.ts` only. Details, controls and the adoption guide: `camera/README.md`.
 
 ## Models and the manifest
 

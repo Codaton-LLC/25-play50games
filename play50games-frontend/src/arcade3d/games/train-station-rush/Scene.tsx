@@ -23,6 +23,7 @@ import {
 } from "three";
 import { DynamicInstancedModel, InstancedModel, Model } from "@/arcade3d/core/assets";
 import CameraRig from "@/arcade3d/core/CameraRig";
+import { useCameraViews } from "@/arcade3d/core/camera/CameraViews";
 import { playSfx } from "@/arcade3d/core/audio";
 import { FRAME_PRIORITY } from "@/arcade3d/core/frameLoop";
 import { useFx } from "@/arcade3d/core/fx";
@@ -322,12 +323,28 @@ function LevelScene() {
    const { id, config } = useStationLevel();
    const portrait = useThree((s) => s.size.height > s.size.width);
    const view = useFittedView(viewFor(id, portrait));
+   const [run] = useState<Run>(() => createRun(randomSeed(), config));
+   // camera views (core/camera): the rules get the drawn camera's yaw
+   const cam = useCameraViews({
+      slug: "train-station-rush",
+      subject: "character",
+      steering: "camera",
+      defaultYaw: view.yaw,
+      target: (o) => {
+         const h = run.hero;
+         o.x = h.x;
+         o.y = 1.1;
+         o.z = h.z;
+         o.heading = h.yaw;
+         o.vx = h.vx;
+         o.vz = h.vz;
+      },
+   });
    const input = useInput();
    const fx = useFx();
    const time = useGameTime();
    const quality = useQuality();
    const gl = useThree((s) => s.gl);
-   const [run] = useState<Run>(() => createRun(randomSeed(), config));
    const rest = restLook(portrait);
    const bounds = useMemo(() => lookBounds(config, portrait), [config, portrait]);
    const aim = useRef({ x: 0, y: LOOK_Y, z: rest[2] }).current;
@@ -388,7 +405,7 @@ function LevelScene() {
    useRunFrame((_state, dt) => {
       const { moveX, moveY, actionPressed } = input.current;
       const store = useArcadeStore.getState();
-      const ev = step(run, { moveX, moveY, actionPressed, yaw: view.yaw }, dt, store.timeLeftMs ?? 0);
+      const ev = step(run, { moveX, moveY, actionPressed, yaw: cam.yaw() }, dt, store.timeLeftMs ?? 0);
       if (ev.score) store.addScore(ev.score);
       store.setStat("delivered", run.delivered);
       store.setStat("dwell", run.level.dwellS);

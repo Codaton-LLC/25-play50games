@@ -192,11 +192,10 @@ export const INPUT_SCRIPTS = {
       { zoom: 2, at: [0.5, 0.48] },
    ],
 
-   // a short roll off the pad so the base stays in frame and the rover is large
+   // the chase camera behind the rover: roll off the pad towards the light pillars and the cliffs
    "mars-rover-mission": [
       { down: "ArrowUp" },
-      { wait: 320 },
-      { zoom: 2, at: [0.5, 0.58] },
+      { wait: 900 },
    ],
 
    // the cook starts on the dough station: take the dough, then walk the line

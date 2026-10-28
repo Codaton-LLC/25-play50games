@@ -1,5 +1,6 @@
 "use client";
 
+import CameraViewButton from "@/arcade3d/core/camera/CameraViewButton";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { platformLook, type PlatformShape } from "./looks";
 import styles from "./Hud.module.css";
@@ -49,7 +50,7 @@ function TaskRow({ slot }: { slot: 0 | 1 }) {
  * The open tasks: the platform's shape and number, bag or passenger, and the train's wait (green
  * above half: the +50). Score, time, lives and Delivered are the shell's chips.
  */
-export default function Hud() {
+function GameHud() {
    const any = useArcadeStore((s) => (s.stats.t0p ?? -1) >= 0 || (s.stats.t1p ?? -1) >= 0);
    if (!any) return null;
    return (
@@ -58,5 +59,15 @@ export default function Hud() {
          <TaskRow slot={0} />
          <TaskRow slot={1} />
       </div>
+   );
+}
+
+/** The game's HUD plus the core 📷 camera-view button (core/camera). */
+export default function Hud() {
+   return (
+      <>
+         <CameraViewButton />
+         <GameHud />
+      </>
    );
 }

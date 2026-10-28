@@ -280,14 +280,15 @@ function drive(run: Run, input: TaxiInput, dt: number, style: Style, rng: () => 
    if (mem.backUp > 0) {
       mem.backUp -= dt;
       input.moveY = 1;
-      input.moveX = -clamp(wrap(Math.atan2(target.x - run.x, target.z - run.z) - run.yaw) / 0.5, -1, 1);
+      input.moveX = clamp(wrap(Math.atan2(target.x - run.x, target.z - run.z) - run.yaw) / 0.5, -1, 1);
       return;
    }
 
    // steering: pure pursuit on the next point (a little ahead of it on long legs)
    const heading = Math.atan2(target.x - run.x, target.z - run.z);
    const err = wrap(heading - run.yaw);
-   input.moveX = clamp(err / 0.45, -1, 1);
+   // right on the stick lowers the yaw (rules.ts driveCab)
+   input.moveX = -clamp(err / 0.45, -1, 1);
 
    // speed plan
    const cornerV = oracle ? 4.2 : 3.8;

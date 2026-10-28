@@ -20,6 +20,8 @@ import {
 } from "three";
 import { InstancedModel, Model } from "@/arcade3d/core/assets";
 import CameraRig from "@/arcade3d/core/CameraRig";
+import { useCameraViews } from "@/arcade3d/core/camera/CameraViews";
+import type { AABB } from "@/arcade3d/core/collision";
 import { playSfx } from "@/arcade3d/core/audio";
 import { FRAME_PRIORITY } from "@/arcade3d/core/frameLoop";
 import { useFx } from "@/arcade3d/core/fx";
@@ -369,6 +371,39 @@ function LevelScene() {
 
    // ---- static decor ----
    const walls = useMemo(() => wallSpots(config), [config]);
+   // camera views (core/camera): the rules get the drawn camera's yaw, the corridor walls block the camera
+   const cam = useCameraViews({
+      slug: "hotel-bellboy-rush",
+      subject: "character",
+      steering: "camera",
+      defaultYaw: view.yaw,
+      target: (o) => {
+         const h = run.hero;
+         o.x = h.x;
+         o.y = 1.1;
+         o.z = h.z;
+         o.heading = h.yaw;
+         o.vx = h.vx;
+         o.vz = h.vz;
+      },
+      solids: (out: AABB[]) => {
+         let n = 0;
+         for (const w of walls) {
+            if (n >= out.length) break;
+            const b = out[n++];
+            const sx = (w.sx ?? 1) / 2;
+            const sy = (w.sy ?? 1) / 2;
+            const sz = (w.sz ?? 1) / 2;
+            b.min.x = w.x - sx;
+            b.max.x = w.x + sx;
+            b.min.y = w.y - sy;
+            b.max.y = w.y + sy;
+            b.min.z = w.z - sz;
+            b.max.z = w.z + sz;
+         }
+         return n;
+      },
+   });
    const trims = useMemo(() => trimSpots(config), [config]);
    const frames = useMemo(() => frameSpots(config), [config]);
    const doors = useMemo(() => doorSpots(config), [config]);
@@ -411,7 +446,7 @@ function LevelScene() {
    useRunFrame((_state, dt) => {
       const { moveX, moveY, actionPressed } = input.current;
       const store = useArcadeStore.getState();
-      const ev = step(run, { moveX, moveY, actionPressed, yaw: view.yaw }, dt, store.timeLeftMs ?? 0);
+      const ev = step(run, { moveX, moveY, actionPressed, yaw: cam.yaw() }, dt, store.timeLeftMs ?? 0);
       if (ev.score) store.addScore(ev.score);
       store.setStat("bags", run.delivered);
       store.setStat("floor", run.floor);

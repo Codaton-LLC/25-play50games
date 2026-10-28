@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { createInputController } from "@/arcade3d/core/inputController";
 import { advanceRunClock, playedFrameDt } from "@/arcade3d/core/frameLoop";
 import { withinServerLimits } from "@/arcade3d/core/limits";
 import { createRng } from "@/arcade3d/core/math";
@@ -66,7 +67,7 @@ function drive(run: Run, input: FarmInput, dt: number, style: Style, rng: () => 
    const stick = style === "human" ? 0.97 : 1;
    if (run.bumpLock > 0.85) {
       input.moveY = 0.7 * stick;
-      input.moveX = (run.tractor.x > 0 ? -1 : 1) * stick;
+      input.moveX = (run.tractor.x > 0 ? 1 : -1) * stick;
       return;
    }
    const armed = run.bales.filter((bale) => bale.state === "field" && bale.trip === run.trip);
@@ -135,7 +136,8 @@ function drive(run: Run, input: FarmInput, dt: number, style: Style, rng: () => 
       if (mem.stuck > 1.2) mem.side = -mem.side;
       return;
    }
-   input.moveX = clamp(diff / 0.42 * facing, -1, 1) * stick;
+   // stick right lowers the yaw (rules.ts integrateTractor)
+   input.moveX = -clamp(diff / 0.42 * facing, -1, 1) * stick;
    input.moveY = -throttle * stick;
 }
 
@@ -413,5 +415,43 @@ describe("farm tractor spec literals", () => {
    it("keeps the spec's numbers: top 6, accel 6, brake 10, reverse 2, steer 1.4, radius 1.35, drag 0.8, hitch under 2 m/s, fence bump above 0.8, park under 0.4 for 0.60 s", () => {
       expect(TRACTOR).toEqual({ top: 6, accel: 6, brake: 10, reverse: 2, steer: 1.4, radius: 1.35, drag: 0.8 });
       expect([HITCH_SPEED, FENCE_BUMP_SPEED, PARK_SPEED, PARK_HOLD, TIME_BONUS_PER_SECOND]).toEqual([2, 0.8, 0.4, 0.6, 4]);
+   });
+});
+
+// Steering direction on screen. A heading (sin yaw, cos yaw) has its driver's LEFT at (cos yaw, -sin yaw)
+// (three.js is right-handed, y up: facing +z, +x is on the left). A left turn rotates the heading
+// towards that side, so cross(before, after).y > 0, and the vehicle drifts to its own left.
+type Drive = "KeyA" | "ArrowLeft" | "KeyD" | "ArrowRight" | "stickLeft" | "stickRight";
+const DRIVES: readonly Drive[] = ["KeyA", "ArrowLeft", "stickLeft", "KeyD", "ArrowRight", "stickRight"];
+const isLeft = (d: Drive) => d === "KeyA" || d === "ArrowLeft" || d === "stickLeft";
+function pressDrive(d: Drive) {
+   const pad = createInputController();
+   if (d === "stickLeft") pad.setJoystick(-1, -1);
+   else if (d === "stickRight") pad.setJoystick(1, -1);
+   else {
+      pad.keyDown("KeyW");
+      pad.keyDown(d);
+   }
+   pad.latch();
+   return pad.state.current;
+}
+function turnOf(yaw0: number, x0: number, z0: number, yaw1: number, x1: number, z1: number) {
+   const turn = Math.sin(yaw0) * Math.cos(yaw1) - Math.cos(yaw0) * Math.sin(yaw1);
+   const side = (x1 - x0) * Math.cos(yaw0) - (z1 - z0) * Math.sin(yaw0);
+   return { turn: -turn, side };
+}
+
+describe("farm tractor steering", () => {
+   it.each(DRIVES)("%s turns the tractor to the driver's matching side (keys and joystick)", (d) => {
+      const run = createRun(3, LEVELS[1]);
+      const input = pressDrive(d);
+      const t = run.tractor;
+      const yaw0 = t.yaw, x0 = t.x, z0 = t.z;
+      const stick = { ...idleInput(), moveX: input.moveX, moveY: input.moveY };
+      for (let i = 0; i < 40; i++) step(run, stick, 1 / 60, 120_000);
+      const { turn, side } = turnOf(yaw0, x0, z0, t.yaw, t.x, t.z);
+      const sign = isLeft(d) ? 1 : -1;
+      expect(turn * sign).toBeGreaterThan(0.05);
+      expect(side * sign).toBeGreaterThan(0);
    });
 });
