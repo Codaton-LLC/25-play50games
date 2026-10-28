@@ -26,8 +26,9 @@ import CameraRig from "@/arcade3d/core/CameraRig";
 import type { AABB } from "@/arcade3d/core/collision";
 import { useCameraViews } from "@/arcade3d/core/camera/CameraViews";
 import { FRAME_PRIORITY } from "@/arcade3d/core/frameLoop";
-import { useFx } from "@/arcade3d/core/fx";
+import { Toss, useActionPop, useFx, type TossHandle } from "@/arcade3d/core/fx";
 import { useGameTime } from "@/arcade3d/core/gameTime";
+import { TargetBeacon } from "@/arcade3d/core/hud";
 import { useInput } from "@/arcade3d/core/input";
 import { useLevel } from "@/arcade3d/core/level";
 import { randomSeed } from "@/arcade3d/core/math";
@@ -35,10 +36,12 @@ import { useQuality } from "@/arcade3d/core/quality";
 import { Instanced, useCanvasTexture, type InstancePart } from "@/arcade3d/core/render";
 import { HumanoidModel, aimArm, cheerPose, gaitPhaseStep, idlePose, useHumanoidPose, walkPose, wrapPhase } from "@/arcade3d/core/rig";
 import { CAULDRON_INNER_RADIUS_GLB, EXPANSION_GLB_POINTS } from "@/arcade3d/core/sharedAssets";
+import { useCoarsePointer } from "@/arcade3d/core/TouchControls";
 import { useFittedView } from "@/arcade3d/core/useFittedView";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { ASSETS, WIZARD_LANDMARKS, WIZARD_SCALE } from "./assets";
+import { GUIDE, hintCode, labHint, nextGoal, type Goal } from "./guide";
 import { publishLab } from "./Hud";
 import { LEVELS, type WizardLevel } from "./levels";
 import { COLORS, DAMPING, FOLLOW, FOV, INGREDIENT_LOOK, candleSpots, aimBounds, drawFlagstones, labDecor, lookAtFor, obstacleBoxes, runeSpots, topDistanceFor, viewFor, wallBoxes, wallCapSpots, wallSpots } from "./looks";
@@ -60,6 +63,8 @@ const V = new Vector3();
 const S = new Vector3(1, 1, 1);
 const UP = new Vector3(0, 1, 0);
 const AT = { x: 0, y: 1, z: 0 };
+const HAND = { x: 0, y: 0.8, z: 0 };
+const POT = { x: 0, y: 0.85, z: 0 };
 const P = { x: 0, z: 0 };
 const POT_SCALE = ASSETS.cauldron.scale ?? 1;
 const DISC_R = CAULDRON_INNER_RADIUS_GLB * POT_SCALE;
@@ -201,6 +206,8 @@ function LevelScene() {
    const view = useFittedView(viewFor(id));
    const input = useInput();
    const fx = useFx();
+   const pop = useActionPop();
+   const touch = useCoarsePointer();
    const time = useGameTime();
    const quality = useQuality();
    const [run] = useState<Run>(() => createRun(randomSeed(), level));
@@ -298,6 +305,21 @@ function LevelScene() {
       if (run.reach > 0 || atPot) aimArm(p, -1, 0.04, -0.42, 0.88, 0.02, -0.7, 0.62);
    });
 
+   // clarity (visual only): a beacon on the shelf to take from, then on the cauldron; the hint line;
+   // the fail pop; the added ingredient flies from the hand into the pot
+   const goal = useRef<Goal>({ kind: 0, x: 0, z: 0, type: null }).current;
+   const shelfBeacon = useRef({ x: 0, y: 0.92, z: 0, hidden: true }).current;
+   const potBeacon = useRef({ x: 0, y: 0.9, z: 0, hidden: true }).current;
+   const guideCode = useRef(-1);
+   const toss = useRef<TossHandle>(null);
+   const tossMat = useRef<MeshStandardMaterial>(null);
+   useEffect(() => {
+      guideCode.current = hintCode(run);
+      GUIDE.set(labHint(run, guideCode.current, touch));
+      return () => GUIDE.reset();
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+   }, [run]);
+
    useEffect(() => {
       fx.warm("puff", "sparks", "smoke", "score");
       const loop = startLoop("bubbling", { volume: 0.18 });
@@ -320,6 +342,14 @@ function LevelScene() {
       aim.z = Math.min(bounds.max.z, Math.max(bounds.min.z, aim.z));
       if (ev.picked) playSfx("pickup");
       if (ev.added) {
+         if (run.brew) {
+            tossMat.current?.color.copy(BREW[run.brew]);
+            tossMat.current?.emissive.copy(BREW[run.brew]);
+         }
+         HAND.x = run.hero.x + Math.sin(run.hero.yaw) * 0.46;
+         HAND.y = 0.78;
+         HAND.z = run.hero.z + Math.cos(run.hero.yaw) * 0.46;
+         toss.current?.play(HAND, POT, { duration: 0.3, height: 0.5, scaleFrom: 1, scaleTo: 0.5 });
          AT.x = 0; AT.y = 0.7; AT.z = 0;
          fx.burst("puff", AT, 12);
          playSfx("pop");
@@ -333,7 +363,7 @@ function LevelScene() {
       if (ev.wrong) {
          AT.x = 0; AT.y = 0.8; AT.z = 0;
          fx.burst("smoke", AT, 8);
-         fx.shake(0.22);
+         pop.fail(AT, ev.lifeLost ? "Wrong! -1 life" : "Wrong ingredient!", { shake: 0.22 });
          playSfx("buzz");
       }
       if (ev.lifeLost) store.loseLife();
@@ -342,6 +372,16 @@ function LevelScene() {
          store.end("win");
       }
       if (ev.lost) playSfx("lose");
+      const code = hintCode(run);
+      if (code !== guideCode.current) {
+         guideCode.current = code;
+         GUIDE.set(labHint(run, code, touch));
+      }
+      nextGoal(run, goal);
+      shelfBeacon.x = goal.x;
+      shelfBeacon.z = goal.z;
+      shelfBeacon.hidden = goal.kind !== 1 && goal.kind !== 3;
+      potBeacon.hidden = goal.kind !== 2;
       publishLab(run);
    });
 
@@ -447,6 +487,14 @@ function LevelScene() {
             <Model asset={ASSETS.ball} position={[-0.28, 0.78, -0.04]} fallback={<BallPrimitive />} />
          </group>
          <IngredientPools run={run} parts={parts} />
+         <TargetBeacon target={shelfBeacon} variant="pick" color={COLORS.accent} radius={0.7} height={0.75} ground={0.05} />
+         <TargetBeacon target={potBeacon} variant="drop-here" radius={1.0} height={0.9} ground={0.05} label="ADD" />
+         <Toss ref={toss} spin={5}>
+            <mesh>
+               <sphereGeometry args={[0.13, 10, 8]} />
+               <meshStandardMaterial ref={tossMat} color={COLORS.glow} emissive={COLORS.glow} emissiveIntensity={0.6} roughness={0.35} />
+            </mesh>
+         </Toss>
          <group ref={body}>
             <pointLight position={[0, 2.4, 0.8]} intensity={level.lighting === "night" ? 9 : level.lighting === "sunset" ? 3 : 0} distance={7} decay={1.6} color="#ddd6fe" />
             <HumanoidModel asset={ASSETS.wizard} pose={pose} fallback={<WizardFigure />} />

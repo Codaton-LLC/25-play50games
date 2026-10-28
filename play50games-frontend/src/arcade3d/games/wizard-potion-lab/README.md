@@ -83,3 +83,7 @@ The slug is already on main. Status stays `dev`. Do not enable the game. Copy th
   ]
 }
 ```
+
+## Clarity (2026-10-28, visual only)
+
+`guide.ts` (pure, `guide.test.ts`) picks the goal: the shelf holding the next ingredient of the first open recipe, then the cauldron once it is in hand (a wrong item goes back to its own shelf). Core `TargetBeacon`s: a lilac "pick" arrow and ring on that shelf's item (it follows a wandering shelf), a green "ADD" drop-here ring on the cauldron. The core `HintLine` (in `Hud.tsx`) says "Take the mushroom from the glowing shelf (arrow), press E / tap Use", "Go to the cauldron, ... to add the mushroom" and a red "Not in the recipe: put it back" line. A wrong add pops "Wrong ingredient!" (or "Wrong! -1 life", `useActionPop`, same 0.22 shake); an accepted ingredient flies from the hand into the pot as a coloured orb (`<Toss>`, 0.3 s). The recipe card label is 12 px. Rules, scoring and limits are unchanged.

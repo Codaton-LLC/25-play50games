@@ -24,9 +24,9 @@ import { useCameraViews } from "@/arcade3d/core/camera/CameraViews";
 import type { AABB } from "@/arcade3d/core/collision";
 import { playSfx } from "@/arcade3d/core/audio";
 import { FRAME_PRIORITY } from "@/arcade3d/core/frameLoop";
-import { useFx } from "@/arcade3d/core/fx";
+import { Toss, useActionPop, useFx, type TossHandle } from "@/arcade3d/core/fx";
 import { useGameTime } from "@/arcade3d/core/gameTime";
-import { TargetMarkers } from "@/arcade3d/core/hud";
+import { TargetBeacon, TargetMarkers } from "@/arcade3d/core/hud";
 import { useInput } from "@/arcade3d/core/input";
 import { useLevel } from "@/arcade3d/core/level";
 import { randomSeed } from "@/arcade3d/core/math";
@@ -52,6 +52,7 @@ import {
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useFittedView } from "@/arcade3d/core/useFittedView";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
+import { nextGoal, type Goal } from "./guide";
 import { ASSETS, BELLBOY_LANDMARKS, BELLBOY_SCALE, DESK_TOP, TROLLEY_DECK } from "./assets";
 import type { HotelLevel } from "./levels";
 import {
@@ -360,12 +361,22 @@ function LevelScene() {
    const view = useFittedView(viewFor(id, portrait));
    const input = useInput();
    const fx = useFx();
+   const pop = useActionPop();
    const time = useGameTime();
    const quality = useQuality();
    const gl = useThree((s) => s.gl);
    const [run] = useState<Run>(() => createRun(randomSeed(), config));
    const aim = useRef({ x: 0, y: LOOK_Y, z: run.hero.z + LOOK_AHEAD }).current;
    const markers = useRef<{ x: number; y: number; z: number; hidden: boolean }[]>([{ x: DESK_POINT.x, y: 1.2, z: DESK_POINT.z, hidden: true }]).current;
+   // clarity (visual only): a beacon on the desk and on the elevator when a ride is due (never on the door:
+   // reading the key card is the game), a fail pop on a wrong door, the bag flying desk -> trolley -> door
+   const goal = useRef<Goal>({ kind: 0, x: 0, z: 0 }).current;
+   const deskBeacon = useRef({ x: DESK_POINT.x, y: 1.0, z: DESK_POINT.z, hidden: true }).current;
+   const padBeacon = useRef({ x: PAD_POINT.x, y: 0.3, z: PAD_POINT.z, hidden: true }).current;
+   const bagToss = useRef<TossHandle>(null);
+   const tossFrom = useRef({ x: 0, y: 0, z: 0 }).current;
+   const tossTo = useRef({ x: 0, y: 0, z: 0 }).current;
+   const deckPoint = useRef({ x: 0, y: TROLLEY_DECK + 0.3, z: 0 }).current;
    const bounds = useMemo(() => lookBounds(config, portrait), [config, portrait]);
    const rest = restLook(portrait);
 
@@ -464,7 +475,16 @@ function LevelScene() {
       markers[0].hidden = !bag || (run.carrying && !goalPad);
       markers[0].x = goalPad ? PAD_POINT.x : DESK_POINT.x;
       markers[0].z = goalPad ? PAD_POINT.z : DESK_POINT.z;
+      deckPoint.x = run.trolley.x.x;
+      deckPoint.z = run.trolley.z.x;
+      nextGoal(run, goal);
+      deskBeacon.hidden = goal.kind !== 1;
+      padBeacon.hidden = goal.kind !== 2;
       if (ev.took) {
+         tossFrom.x = DESK_POINT.x;
+         tossFrom.y = DESK_TOP + 0.2;
+         tossFrom.z = DESK_POINT.z - 0.3;
+         bagToss.current?.play(tossFrom, deckPoint, { duration: 0.4, height: 0.7, scaleFrom: 0.6, scaleTo: 1 });
          AT.x = run.hero.x; AT.y = 1.4; AT.z = run.hero.z;
          fx.burst("sparkle", AT, 10);
          playSfx("pickup");
@@ -478,6 +498,13 @@ function LevelScene() {
          }
       }
       if (ev.delivered >= 0) {
+         tossFrom.x = deckPoint.x;
+         tossFrom.y = deckPoint.y;
+         tossFrom.z = deckPoint.z;
+         tossTo.x = DOOR_X - 0.35;
+         tossTo.y = 0.7;
+         tossTo.z = doorZ(ev.delivered);
+         bagToss.current?.play(tossFrom, tossTo, { duration: 0.4, height: 0.6, scaleFrom: 1, scaleTo: 0.5 });
          AT.x = DOOR_X - 0.5; AT.y = 1.6; AT.z = doorZ(ev.delivered);
          fx.burst("confetti", AT, 22);
          fx.score(AT, `+${ev.score}`, { color: "#fde68a" });
@@ -486,7 +513,7 @@ function LevelScene() {
       if (ev.wrong >= 0) {
          AT.x = run.hero.x; AT.y = 1; AT.z = run.hero.z;
          fx.burst("puff", AT, 8);
-         fx.shake(0.22);
+         pop.fail(AT, ev.lost ? "Wrong door! Out of lives" : "Wrong door! -1 life", { shake: 0.22 });
          playSfx("buzz");
       }
       if (ev.buzz) playSfx("click", { volume: 0.5 });
@@ -551,6 +578,13 @@ function LevelScene() {
             damping={DAMPING}
          />
          <TargetMarkers targets={markers} color={COLORS.accent} />
+         <TargetBeacon target={deskBeacon} variant="pick" color={COLORS.accent} radius={0.9} height={1.1} label="BAG" />
+         <TargetBeacon target={padBeacon} variant="drop-here" radius={0.8} height={1.4} label="UP" />
+         <Toss ref={bagToss} spin={0}>
+            <group scale={0.8}>
+               <Model asset={ASSETS.suitcase} rotation-y={Math.PI / 2} fallback={<SuitcasePrimitive />} />
+            </group>
+         </Toss>
          <Floors level={config} />
          <Instanced spots={walls} name="walls">
             <boxGeometry args={[1, 1, 1]} />
