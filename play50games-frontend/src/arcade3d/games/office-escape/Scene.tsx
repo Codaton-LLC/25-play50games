@@ -27,6 +27,7 @@ import { useGameTime } from "@/arcade3d/core/gameTime";
 import { useInput } from "@/arcade3d/core/input";
 import { randomSeed } from "@/arcade3d/core/math";
 import { capScore as capToLimits } from "@/arcade3d/core/limits";
+import { Cues } from "./Cues";
 import { useOfficeLevel } from "./useOfficeLevel";
 import { BlobShadow } from "@/arcade3d/core/render";
 import {
@@ -605,6 +606,7 @@ export default function Scene() {
          <Obstacles run={run} fx={fx} standIns={standIns} />
          <Coins run={run} fx={fx} standIns={standIns} />
          <Runner run={run} fx={fx} />
+         <Cues run={run} />
       </>
    );
 }
