@@ -28,6 +28,21 @@ describe("the orbit faces along the docks", () => {
       }
    });
 
+   it("a player at the default camera: walk up, press Hook (stick held or let go), the first ring is taken", () => {
+      for (const held of [true, false]) {
+         const run = createRun(1, 1, "nami");
+         const walk = createStepInput();
+         walk.moveZ = -1;
+         walk.yaw = SWING_ORBIT.yaw ?? 0;
+         for (let i = 0; i < 25; i++) step(run, 16, walk);
+         const press = createStepInput();
+         press.yaw = walk.yaw;
+         press.moveZ = held ? -1 : 0;
+         press.actionPressed = true;
+         expect(step(run, 16, press).hooked, held ? "held" : "let go").toBe(0);
+      }
+   });
+
    it("the intro and the play camera are finite, and Nami is the default", () => {
       const course = courseFor(1);
       const play = playCamera(course, 16 / 9);

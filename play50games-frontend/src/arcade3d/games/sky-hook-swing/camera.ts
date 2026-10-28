@@ -1,5 +1,5 @@
 // The orbit camera. The docks run toward +x; the camera starts behind and to the left of the hero
-// (a three-quarter view: yaw -π/2 + 0.8), so a swing reads as an arc with depth and screen-up walks
+// (20° off straight behind: yaw -π/2 + 0.35), so a swing reads as an arc with depth and screen-up walks
 // along the docks and a little toward the far side. The intro flies the course, then lands on that pose.
 import type { IntroKeyframe } from "@/arcade3d/core/intro";
 import { orbitPosition, type OrbitSettings } from "@/arcade3d/menu2/camera/orbit";
@@ -8,7 +8,7 @@ import type { Course } from "./course";
 const DEG = Math.PI / 180;
 
 export const SWING_ORBIT: Partial<OrbitSettings> = {
-   yaw: -Math.PI / 2 + 0.8,
+   yaw: -Math.PI / 2 + 0.35,
    pitch: 20 * DEG,
    distance: 11,
    minDistance: 5,
@@ -29,18 +29,23 @@ export function orbitLookUp(aspect: number): number {
 }
 
 /** The pivot leads a little toward the next dock, and stays up with the hero on a high swing. */
-export function orbitPivot(hx: number, hy: number, hz: number, nx: number, ny: number, nz: number, out: { x: number; y: number; z: number }): { x: number; y: number; z: number } {
-   const k = 0.28;
+export function orbitPivot(hx: number, hy: number, hz: number, nx: number, ny: number, nz: number, out: { x: number; y: number; z: number }, lead = 0.28): { x: number; y: number; z: number } {
+   const k = lead;
    out.x = hx + Math.max(0, nx - hx) * k;
    out.y = hy + 1.3 + Math.max(0, ny - hy) * 0.15;
    out.z = hz + (nz - hz) * k * 0.4;
    return out;
 }
 
+/** A narrow portrait screen leads less, so the hero stays inside it. */
+export function pivotLead(aspect: number): number {
+   return aspect < 1 ? 0.1 : 0.28;
+}
+
 export function playCamera(course: Course, aspect: number): IntroKeyframe {
    const start = course.islands[0];
    const next = course.islands.find((s) => s.cp && s.x > start.x) ?? course.islands[course.finish];
-   const p = orbitPivot(start.x, start.y, start.z, next.x, next.y, next.z, { x: 0, y: 0, z: 0 });
+   const p = orbitPivot(start.x, start.y, start.z, next.x, next.y, next.z, { x: 0, y: 0, z: 0 }, pivotLead(aspect));
    const c = orbitPosition(p.x, p.y, p.z, SWING_ORBIT.yaw ?? 0, SWING_ORBIT.pitch ?? 0, (SWING_ORBIT.distance ?? 9) * orbitScale(aspect), { x: 0, y: 0, z: 0 });
    return { position: [c.x, c.y, c.z], lookAt: [p.x, p.y + orbitLookUp(aspect), p.z] };
 }

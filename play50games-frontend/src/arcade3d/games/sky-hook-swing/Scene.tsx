@@ -28,7 +28,7 @@ import World from "./World";
 import Docks, { Rope, type AimState, type VisualClock } from "./Docks";
 import Galleon from "./Galleon";
 import { Hero, createHeroAnim, type HeroAnim } from "./Hero";
-import { FOV, FOV_PORTRAIT, SWING_ORBIT, introKeyframes, orbitLookUp, orbitPivot, orbitScale, playCamera } from "./camera";
+import { FOV, FOV_PORTRAIT, SWING_ORBIT, introKeyframes, orbitLookUp, orbitPivot, orbitScale, pivotLead, playCamera } from "./camera";
 import { ORB, STAT, createRun, createStepInput, peekAim, step, type SwingRun } from "./rules";
 import { pickedHero, subscribeHero } from "./heroes";
 import { createBot, botInput } from "./bot";
@@ -235,7 +235,8 @@ function SwingCamera({ run, orbit, fx }: { run: SwingRun; orbit: OrbitState; fx:
    const camera = useThree((s) => s.camera) as PerspectiveCamera;
    const size = useThree((s) => s.size);
    const aspect = size.width / Math.max(1, size.height);
-   const lead = useRef(0);
+   const lead = useRef(0.28);
+   lead.current = pivotLead(aspect);
    const base = aspect < 1 ? FOV_PORTRAIT : FOV;
    useEffect(() => {
       camera.fov = base;
@@ -272,8 +273,7 @@ function SwingCamera({ run, orbit, fx }: { run: SwingRun; orbit: OrbitState; fx:
             }
          }
          if (h.mode === "lost") return false;
-         orbitPivot(h.x, h.y, h.z, nx, ny, nz, out);
-         lead.current = nx;
+         orbitPivot(h.x, h.y, h.z, nx, ny, nz, out, lead.current);
          return true;
       },
       [run],

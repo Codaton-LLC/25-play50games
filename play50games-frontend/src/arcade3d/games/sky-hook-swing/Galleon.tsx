@@ -91,7 +91,7 @@ export default function Galleon({ run, clock }: { run: SwingRun; clock: VisualCl
             const tele = b.step === "telegraph";
             glow.visible = live && (tele || open) && !run.turretHit[i];
             const k = tele ? 0.6 + Math.sin(now * 18) * 0.4 : 1;
-            glow.scale.setScalar(open ? 2.3 + Math.sin(now * 5) * 0.2 : 1.2 * k);
+            glow.scale.setScalar(open ? 1.6 + Math.sin(now * 5) * 0.15 : 1.1 * k);
             (glow.material as MeshStandardMaterial).color.set(open ? COLORS.peak : COLORS.hazard);
             (glow.material as MeshStandardMaterial).emissive.set(open ? COLORS.peak : COLORS.hazard);
          }

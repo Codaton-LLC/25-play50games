@@ -325,7 +325,8 @@ export function aimedAnchor(run: SwingRun, input: StepInput): number {
       h.faceX = ax;
       h.faceZ = az;
    }
-   const ay = 0.62;
+   // the cone leans 42° up: the rings hang 40-60° above a hero on a deck
+   const ay = 0.9;
    const al = Math.hypot(ax, ay, az) || 1;
    ax /= al;
    const ayy = ay / al;
