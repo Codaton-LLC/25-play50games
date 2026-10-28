@@ -1,90 +1,113 @@
-// The follow camera and the intro's shots (pure, no three.js). The camera sits behind and above the
-// hero (the route climbs towards -z), looks a little ahead and up at the next platform, and frames
-// more height on a portrait screen. Scene.tsx eases towards cameraGoal every frame; the intro's
-// fly-through (core/intro) ends exactly on playCamera, the pose the follow camera starts from.
+// The camera and the intro's shots (pure, no three.js). Play uses the shared Menu 2 orbit camera
+// (menu2/camera): the player turns it freely round the hero; it starts (and recenters) behind and
+// above the hero (the escape heads towards -z, down the chambers), a little higher than a platformer
+// camera so the water in a trench and the tide below read; it stands farther back on a portrait
+// screen. The chamber walls are its solids, so it pulls in rather than looking through stone. The
+// intro's fly-through (core/intro) ends exactly on playCamera, the orbit's first pose.
 import type { IntroKeyframe } from "@/arcade3d/core/intro";
-import type { Course } from "./rules";
+import type { AABB } from "@/arcade3d/core/collision";
+import { orbitPosition, type OrbitSettings } from "@/arcade3d/menu2/camera/orbit";
+import { solidBoxes, type Course, type RuinRun, type SolidBox } from "./rules";
+
+const DEG = Math.PI / 180;
 
 export const FOV = 55;
 export const FOV_PORTRAIT = 66;
 
-export interface CameraGoal {
-   px: number;
-   py: number;
-   pz: number;
-   lx: number;
-   ly: number;
-   lz: number;
+/** The orbit camera's tuning for this game (menu2/camera createOrbit). Yaw 0: straight behind the escape (-z). */
+export const RUIN_ORBIT: Partial<OrbitSettings> = {
+   yaw: 0,
+   pitch: 28 * DEG,
+   distance: 7.4,
+   minDistance: 3.5,
+   maxDistance: 16,
+};
+
+/** How much farther the orbit stands on a portrait screen (aspect < 1): OrbitCamera distanceScale. */
+export function orbitScale(aspect: number): number {
+   const portrait = Math.max(0, Math.min(1, (1.2 - aspect) / 0.7));
+   return 1 + 0.45 * portrait;
 }
 
-/** Behind and above the focus: wider and higher on a portrait screen (aspect < 1). */
-export function cameraOffset(aspect: number): { up: number; back: number } {
+/** The camera looks this far above the pivot (a little more on a portrait phone, over the controls). */
+export function orbitLookUp(aspect: number): number {
    const portrait = Math.max(0, Math.min(1, (1.2 - aspect) / 0.7));
-   return { up: 2.9 + 1.6 * portrait, back: 5.6 + 2.8 * portrait };
+   return 0.15 + 0.05 * portrait;
 }
 
 /**
- * Where the camera wants to be: the focus is the hero's chest pulled a third of the way to the next
- * platform's top (so the next jump is on screen), the camera behind it on +z and above it.
+ * The orbit's pivot: the hero's chest, led a little ahead along the escape (-z), so the next ledge
+ * or lever is on screen. While swimming the pivot stays at the surface's height band (the head).
  */
-export function cameraGoal(
-   hx: number,
-   hy: number,
-   hz: number,
-   nx: number,
-   ny: number,
-   nz: number,
-   aspect: number,
-   out: CameraGoal,
-): CameraGoal {
-   const k = 0.35;
-   const fx = hx + (nx - hx) * k * 0.5;
-   const fy = hy + 1.1 + Math.max(0, ny - hy) * k;
-   // only ever ahead (-z) of the hero, never behind it
-   const fz = hz + Math.min(0, Math.max(-6, (nz - hz) * k));
-   const { up, back } = cameraOffset(aspect);
-   const portrait = Math.max(0, Math.min(1, (1.2 - aspect) / 0.7));
-   // look past the hero and a little up, so the hero sits in the lower third with the next jump above
-   // it (on a portrait phone less high: the touch controls and the cookie banner take the bottom)
-   out.lx = fx;
-   out.ly = fy + 0.9 - 0.8 * portrait;
-   out.lz = fz - 4.5;
-   // the camera keeps its distance to the hero (not to the look-ahead point), rising with the next top
-   out.px = hx * 0.6 + fx * 0.25;
-   out.py = hy + 1.1 + up + Math.max(0, ny - hy) * 0.15;
-   out.pz = hz + back;
+export function orbitPivot(hx: number, hy: number, hz: number, out: { x: number; y: number; z: number }): { x: number; y: number; z: number } {
+   out.x = hx;
+   out.y = hy + 1.1;
+   out.z = hz - 1.2;
    return out;
 }
 
-/** The follow camera's pose on the start platform (the intro ends on it). */
-export function playCamera(course: Course, aspect: number): IntroKeyframe {
+/** Where the hero stands at the start (rules createRun: the start block's centre, up to 1.5 m back). */
+export function startSpot(course: Course): { x: number; y: number; z: number } {
    const start = course.supports[course.checkpoints[0]];
-   const next = course.supports[1];
-   const g = cameraGoal(start.cx, start.top, start.cz + 1.5, next.cx, next.top, next.cz, aspect, { px: 0, py: 0, pz: 0, lx: 0, ly: 0, lz: 0 });
-   return { position: [g.px, g.py, g.pz], lookAt: [g.lx, g.ly, g.lz] };
+   return { x: start.cx, y: start.top, z: start.cz + Math.min(1.5, start.hd * 0.5) };
 }
 
 /**
- * The fly-through: from the sky gate at the top, down along the tower past the checkpoints, to the
+ * The orbit camera's first pose at the start, at its start yaw, pitch and distance (the intro ends
+ * on it, so the hand-over to the orbit is seamless).
+ */
+export function playCamera(course: Course, aspect: number): IntroKeyframe {
+   const s = startSpot(course);
+   const p = orbitPivot(s.x, s.y, s.z, { x: 0, y: 0, z: 0 });
+   const c = orbitPosition(p.x, p.y, p.z, RUIN_ORBIT.yaw ?? 0, RUIN_ORBIT.pitch ?? 0, (RUIN_ORBIT.distance ?? 7) * orbitScale(aspect), { x: 0, y: 0, z: 0 });
+   return { position: [c.x, c.y, c.z], lookAt: [p.x, p.y + orbitLookUp(aspect), p.z] };
+}
+
+/**
+ * The fly-through: from the exit gate (high, out over the ruin), back along the checkpoints, to the
  * start (then playCamera). World-space shots built from the course, so a level's layout keeps them.
  */
 export function introKeyframes(course: Course): IntroKeyframe[] {
    const goal = course.supports[course.goal];
    const cps = course.checkpoints.slice(1).map((i) => course.supports[i]);
-   const high = cps.length > 0 ? cps[cps.length - 1].top + 11 : goal.top;
-   // the second shot stays between the establishing shot and the first checkpoint, even when a
-   // checkpoint sits only a few metres under the helipad
-   const midY = Math.max(goal.top + 6, (goal.top + 16 + high) / 2);
    const shots: IntroKeyframe[] = [
-      // establishing: the helipad from out in the sky, then down along the roofs
-      { position: [goal.cx + 34, goal.top + 16, goal.cz + 26], lookAt: [goal.cx, goal.top + 4, goal.cz - 4] },
-      { position: [goal.cx + 12, midY, goal.cz + 14], lookAt: [goal.cx, goal.top + 2, goal.cz - 3] },
+      // establishing: the flood gate from out over the ruin
+      { position: [goal.cx + 26, goal.top + 16, goal.cz - 14], lookAt: [goal.cx, goal.top + 2, goal.cz] },
+      { position: [goal.cx + 10, goal.top + 10, goal.cz + 12], lookAt: [goal.cx, goal.top + 1, goal.cz - 2] },
    ];
    let side = -1;
    for (let i = cps.length - 1; i >= 0; i--) {
       const c = cps[i];
-      shots.push({ position: [c.cx + side * 22, c.top + 11, c.cz + 12], lookAt: [c.cx, c.top + 1, c.cz - 3] });
+      shots.push({ position: [c.cx + side * 16, c.top + 11, c.cz + 12], lookAt: [c.cx, c.top + 1, c.cz - 3] });
       side = -side;
    }
    return shots;
+}
+
+/** Blocks within this distance (m) of the camera are the orbit camera's solids. */
+const SOLID_REACH = 24;
+const BOXES: SolidBox[] = [];
+
+/**
+ * Fills `out` with the stone blocks near (x, y, z) at rules ms `ms` (crates where they float now,
+ * broken brick left out) as AABBs for the orbit camera's collision; returns how many.
+ */
+export function courseSolids(run: RuinRun, ms: number, x: number, y: number, z: number, out: AABB[]): number {
+   const total = solidBoxes(run, Math.max(0, ms), BOXES);
+   let n = 0;
+   for (let i = 0; i < total && n < out.length; i++) {
+      const b = BOXES[i];
+      const dx = Math.max(b.minX - x, 0, x - b.maxX);
+      const dy = Math.max(b.minY - y, 0, y - b.maxY);
+      const dz = Math.max(b.minZ - z, 0, z - b.maxZ);
+      if (dx * dx + dy * dy + dz * dz > SOLID_REACH * SOLID_REACH) continue;
+      const o = out[n++];
+      o.min.x = b.minX;
+      o.max.x = b.maxX;
+      o.min.y = b.minY;
+      o.max.y = b.maxY;
+      o.min.z = b.minZ;
+      o.max.z = b.maxZ;
+   }
+   return n;
 }

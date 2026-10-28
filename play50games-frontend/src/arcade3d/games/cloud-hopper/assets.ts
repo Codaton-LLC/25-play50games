@@ -4,7 +4,7 @@
 import type { HumanoidLandmarks } from "@/arcade3d/core/rig/humanoid";
 import { HERO_GLB, HERO_LANDMARKS, HERO_SCALE, HERO_SOLE_Z, heroModelAsset } from "@/arcade3d/menu2/heroModels";
 import type { ModelAsset } from "@/arcade3d/core/types";
-import { PROP_BUDGET } from "@/arcade3d/core/sharedAssets";
+import { CHARACTER_BUDGET, PROP_BUDGET } from "@/arcade3d/core/sharedAssets";
 
 export const RIKO_GLB_HEIGHT = HERO_GLB.riko.height;
 export const RIKO_SCALE = HERO_SCALE.riko;
@@ -20,10 +20,20 @@ export const GLB_SIZE = {
    rainbow: { x: 1.9011526107788086, y: 0.7578415274620056, z: 0.5023049712181091 },
    storm: { x: 1.8936362266540527, y: 1.3123397827148438, z: 1.4208033084869385 },
    castle: { x: 1.7162638902664185, y: 1.714633822441101, z: 1.8908324241638184 },
+   bank: { x: 0.801439106464386, y: 1.7607693672180176, z: 1.9095768928527832 },
+   // Gloom Nimbus (m2GloomNimbusBoss, Hyper3D High): a storm-cloud face, front towards +z
+   boss: { x: 1.9041727781295776, y: 1.8485896587371826, z: 1.6619154214859009 },
 } as const;
 
-/** A star is drawn 0.62 m across, its centre on the rules' pickup point. */
+/** A star (the colour orb, m2SkyStar) is drawn 0.62 m across, its centre on the rules' pickup point. */
 export const ORB_SIZE = 0.62;
+
+/** Gloom Nimbus is drawn this wide (m): m2GloomNimbusBoss scaled by BOSS_WIDTH / GLB_SIZE.boss.x (m2StormCloud the same width as its fallback). */
+export const BOSS_WIDTH = 11;
+/** The boss GLB's scale (raw units to m). */
+export const BOSS_SCALE = BOSS_WIDTH / GLB_SIZE.boss.x;
+/** The boss model is a character-sized GLB (15k tris, about 0.6 MB): the character budget, not a prop's. */
+export const BOSS_BUDGET = { ...CHARACTER_BUDGET } as const;
 
 const prop = (id: string, color: string): ModelAsset => ({
    id,
@@ -42,4 +52,8 @@ export const ASSETS: Record<string, ModelAsset> = {
    rainbow: prop("m2RainbowBridge", "#f9a8d4"),
    storm: prop("m2StormCloud", "#94a3b8"),
    castle: prop("m2CloudCastleBg", "#c4b5fd"),
+   // a low cloud bank from sky-tower-jump's set (decor under the run)
+   bank: prop("m2CloudBank", "#e8f0fb"),
+   // the level 5 boss (its own Hyper3D model; m2StormCloud is drawn in its place if it fails)
+   boss: { ...prop("m2GloomNimbusBoss", "#6d28d9"), budget: BOSS_BUDGET },
 };

@@ -236,3 +236,56 @@
       transform: none;
    }
 }
+
+/* the start card's local multiplayer entry (menu2/multiplayer; hidden on phones by device.ts) */
+.mpBtn {
+   min-height: 44px;
+   margin-left: 4px;
+   padding: 0 12px;
+   border: 2px solid #ffd257;
+   border-radius: 12px;
+   background: rgba(255, 210, 87, 0.14);
+   color: #fff;
+   font: inherit;
+   font-size: 0.78rem;
+   font-weight: 800;
+   white-space: nowrap;
+   cursor: pointer;
+}
+
+.mpBtn:focus-visible {
+   outline: 3px solid #ffd257;
+   outline-offset: 2px;
+}
+
+/* the glide meter: a feather-gold bar that drains while you glide (max 4.5 s) */
+.glide {
+   position: relative;
+   width: 64px;
+   height: 8px;
+   border-radius: 999px;
+   background: rgba(255, 255, 255, 0.22);
+   overflow: hidden;
+}
+
+.glideFill {
+   position: absolute;
+   inset: 0 auto 0 0;
+   border-radius: 999px;
+   background: linear-gradient(90deg, #fde68a, #fff7d6);
+   transition: width 80ms linear;
+}
+
+.boss {
+   width: min(340px, calc(100vw - 32px));
+   pointer-events: none;
+}
+
+.charges {
+   margin-top: 4px;
+   text-align: center;
+   color: #fde047;
+   font-size: 0.78rem;
+   font-weight: 800;
+   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+}

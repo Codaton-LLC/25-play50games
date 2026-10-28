@@ -1,10 +1,12 @@
 "use client";
 
-// The pastel sky around the helix: a soft gradient, distant puff clouds and a cloud castle
-// (no collision). Levels 4 and 5 dusk into a deeper blue. Playable clouds are Course.tsx.
-import { useEffect, useMemo } from "react";
+// The pastel sky over the cloud sea: a soft gradient that travels with the camera, puff clouds on
+// both sides of the run, cloud banks low under it and a cloud castle by the rainbow bridge (no
+// collision). Levels 4 and 5 turn to a pastel sunset. Playable clouds are Course.tsx.
+import { useEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import {
+   type Group,
    BackSide,
    Color,
    InstancedBufferAttribute,
@@ -139,54 +141,44 @@ function SkyDome({ night }: { night: boolean }) {
    );
 }
 
-/** The footprint of the ledges (x0..x1, z0..z1), and the points of a ring `margin` m outside it. */
-function footprint(course: Course) {
-   let x0 = Infinity;
-   let x1 = -Infinity;
-   let z0 = Infinity;
-   let z1 = -Infinity;
-   for (const s of course.supports) {
-      x0 = Math.min(x0, s.cx - s.hw);
-      x1 = Math.max(x1, s.cx + s.hw);
-      z0 = Math.min(z0, s.cz - s.hd);
-      z1 = Math.max(z1, s.cz + s.hd);
-   }
-   return { x0, x1, z0, z1, cx: (x0 + x1) / 2, cz: (z0 + z1) / 2 };
-}
-
-/** n points round the footprint, `margin` m outside it (an ellipse through the corners' reach). */
-function ringAround(course: Course, n: number, margin: number): { x: number; z: number; angle: number }[] {
-   const f = footprint(course);
-   const rx = (f.x1 - f.x0) / 2 + margin;
-   const rz = (f.z1 - f.z0) / 2 + margin;
-   const out: { x: number; z: number; angle: number }[] = [];
-   for (let i = 0; i < n; i++) {
-      const a = (i / n) * Math.PI * 2 + 0.3;
-      out.push({ x: f.cx + Math.sin(a) * rx * 1.15, z: f.cz + Math.cos(a) * rz * 1.15, angle: a });
-   }
-   return out;
+/** The sky moves with the camera: the run is longer than the dome is wide. */
+function FollowSky({ night }: { night: boolean }) {
+   const ref = useRef<Group>(null);
+   useFrame((state) => {
+      if (ref.current) ref.current.position.copy(state.camera.position);
+   });
+   return (
+      <group ref={ref}>
+         <SkyDome night={night} />
+      </group>
+   );
 }
 
 export default function World({ course, seed, levelId = 1 }: { course: Course; seed: number; levelId?: number }) {
    const night = isStormLevel(levelId);
-   const goal = course.supports[course.goal];
-   const foot = footprint(course);
-   const puffs = useMemo(() => {
+   const goal = course.clouds[course.goal];
+   // puff clouds on both sides of the run, and cloud banks low under it (no collision)
+   const { puffs, banks } = useMemo(() => {
       const rnd = createRng(seed ^ 0xc10d);
-      return ringAround(course, 10, 9).map((p) => ({
-         x: p.x,
-         y: -6 + rnd() * 10,
-         z: p.z,
-         scale: 4.5 + rnd() * 3.5,
-         rotY: p.angle,
-      }));
-   }, [course, seed]);
-   const castleScale = 16 / GLB_SIZE.castle.y;
+      const p: InstanceSpot[] = [];
+      const b: InstanceSpot[] = [];
+      const far = goal.cz - 30;
+      for (let z = 20; z > far; z -= 22) {
+         for (const side of [-1, 1]) {
+            p.push({ x: side * (16 + rnd() * 16), y: -7 + rnd() * 9, z: z + rnd() * 8, scale: 4 + rnd() * 4, rotY: rnd() * 6.28 });
+         }
+         const w = 14 + rnd() * 8;
+         b.push({ x: (rnd() - 0.5) * 24, y: -16 - rnd() * 4, z: z - 11, sx: w / GLB_SIZE.bank.x, sy: 5 / GLB_SIZE.bank.y, sz: w / GLB_SIZE.bank.z, rotY: rnd() * 0.6 });
+      }
+      return { puffs: p, banks: b };
+   }, [course, seed, goal.cz]);
+   const castleScale = 18 / GLB_SIZE.castle.y;
    return (
       <>
-         <SkyDome night={night} />
+         <FollowSky night={night} />
          <InstancedModel asset={ASSETS.cloud} spots={puffs} fallback={null} />
-         <group position={[foot.cx + 18, goal.top * 0.45, foot.cz - 22]} scale={castleScale}>
+         <InstancedModel asset={ASSETS.bank} spots={banks} fallback={null} />
+         <group position={[goal.cx + 24, goal.top - 6, goal.cz - 26]} scale={castleScale}>
             <InstancedModel asset={ASSETS.castle} spots={[{ x: 0, y: 0, z: 0, scale: 1 }]} fallback={null} />
          </group>
          <hemisphereLight args={[night ? "#fff1f6" : "#fff4ea", night ? "#f2b0d2" : "#fbcfe8", night ? STORM.hemi : 0.85]} />

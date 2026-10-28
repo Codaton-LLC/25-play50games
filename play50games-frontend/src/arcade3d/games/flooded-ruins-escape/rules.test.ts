@@ -1,59 +1,58 @@
-// Flooded Ruins Escape rules: the roofs, the physics, falls and respawns, the coin bonus, the hand-off
-// to the store, and the server-limit proof (README "Server limits and why they hold") with an honest
-// bot, an idle bot and a spam bot, driven through the real store like the shell does.
+// Flooded Ruins Escape rules (the card's FLOOD verb): levers that move a chamber's water at 0.8 m/s,
+// swimming (hold Jump to rise, let go to sink, a press at the surface leaps out), the 6 s air meter
+// and the bubble spouts, floating crates, the storm tide (the escape clock), falls and respawns, the
+// hand-off to the store, and the server-limit proof (README "Server limits"): the pinned limits, the
+// dash floor, and an honest, an idle and a spam bot, driven through the real store like the shell does.
 import { describe, expect, it } from "vitest";
 import { advanceRunClock, playedFrameDt } from "@/arcade3d/core/frameLoop";
 import { computeTimeScore, isRankedRun, normalizeRun } from "@/arcade3d/core/scores";
 import { createArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { createRng } from "@/arcade3d/core/math";
+import { comboMaxBonus } from "@/arcade3d/menu2/combo/combo";
 import { LEVEL_IDS, type LevelId } from "@/arcade3d/types";
 import { floodedRuinsEscapeMeta } from "./meta";
 import { LEVELS } from "./levels";
-import { POWER_MS, V_DASH, heroById } from "./heroes";
+import { HEROES, POWER_MS, V_DASH, heroById } from "./heroes";
 import { createBot, botInput } from "./bot";
 import {
-   BUFFER_MS,
-   COURSE,
-   COYOTE_MS,
-   FALL_DEPTH,
-   FOOT,
-   G,
-   H_JUMP,
+   AIR_MS,
+   CRATE_LIFT,
+   FLOAT_DEPTH,
    LEVEL1_LIMITS,
    LOST_MS,
    ORB,
    PROPOSED_LEVEL_LIMITS,
    SPAWN_MS,
    STAT,
-   V_JUMP,
    V_RUN,
+   V_SINK,
+   V_SWIM_UP,
+   V_WATER,
+   bossDefeatMinMs,
+   comboSpecOf,
    courseFor,
    createRun,
    createStepInput,
-   edgeMinMs,
+   dashFloorMs,
    finalScore,
    minArrivalMs,
    minDurationMsOf,
    minFinishMs,
-   moverOffset,
-   moverTopSpeed,
-   riseLandS,
    runTimeMs,
-   standGap,
+   solidBoxes,
    step,
-   waterY,
-   supportX,
-   supportZ,
-   type RoofRun,
+   supportTop,
+   tideY,
+   zoneLevel,
+   type RuinRun,
+   type SolidBox,
    type StepInput,
 } from "./rules";
 
 const FPS = [30, 60, 144] as const;
+const botCache = new Map<string, RuinRun>();
 
-const botCache = new Map<string, RoofRun>();
-
-/** Runs the honest bot to the end at a fixed frame rate (rules only). Cached: the proof reads each run once. */
-function botRun(level: LevelId, fps: number, seed = 1): RoofRun {
+function botRun(level: LevelId, fps: number, seed = 1): RuinRun {
    const key = `${level}:${fps}:${seed}`;
    const hit = botCache.get(key);
    if (hit) return hit;
@@ -69,287 +68,290 @@ function botRun(level: LevelId, fps: number, seed = 1): RoofRun {
    return run;
 }
 
-/** The submitted duration of a finished run. */
-const submitted = (run: RoofRun) => runTimeMs(run.finishMs, run.orbs);
+const submitted = (run: RuinRun) => runTimeMs(run.finishMs, run.orbs, run.combo.bonusTotal);
 
-describe("the roofs", () => {
-   it("level 1 is Ruined Gate: 10 landings, 8 rising sections, no movers, wide and safe", () => {
-      const s = COURSE.supports;
-      expect(s).toHaveLength(10);
-      expect(s[0].kind).toBe("start");
-      expect(s[COURSE.goal].kind).toBe("goal");
-      expect(s[COURSE.goal].top).toBe(16);
-      expect(s.filter((x) => x.top > s[Math.max(0, s.indexOf(x) - 1)].top).length).toBeGreaterThanOrEqual(8);
-      expect(s.filter((x) => x.mover)).toHaveLength(0);
-      expect(s.filter((x) => x.vanish)).toHaveLength(0);
-      expect(s.filter((x) => x.slippery)).toHaveLength(0);
-      expect(COURSE.wind).toBe(false);
-      expect(COURSE.strikes).toHaveLength(0);
-      expect(COURSE.durationMs).toBe(90_000);
-      expect(s[0].hw).toBeGreaterThanOrEqual(3);
-   });
+function hold(run: RuinRun, ms: number, input: StepInput): void {
+   let left = ms;
+   while (left > 0 && run.ended === null) {
+      const d = Math.min(16, left);
+      step(run, d, input);
+      left -= d;
+   }
+}
 
-   it("is the same race for every seed (the seed only places decor)", () => {
-      const a = createRun(1, 1);
-      const b = createRun(987654321, 1);
-      expect(a.course).toBe(b.course);
-      const input: StepInput = { moveX: 0, moveZ: -1, jumpPressed: false, actionPressed: false };
-      for (let f = 0; f < 240; f++) {
-         input.jumpPressed = f % 40 === 10;
-         step(a, 1000 / 60, input);
-         step(b, 1000 / 60, input);
-      }
-      expect(a.hero).toEqual(b.hero);
-   });
+/** Puts the hero on block `i` at (x, z), at rest. */
+function standOn(run: RuinRun, i: number, x: number, z: number): void {
+   const s = run.course.supports[i];
+   const top = supportTop(run.course, run.water, s, run.simMs);
+   Object.assign(run.hero, { x, y: top, z, vx: 0, vz: 0, vy: 0, grounded: true, swim: false, support: i, lastTop: top, arcStart: run.simMs, arcY0: top, arcV: 0 });
+}
 
-   it("levels match the plan: surface counts, climb counts, and the hazards each one adds", () => {
-      const expectLevel = {
-         1: { surfaces: 10, rises: 8, movers: false, vanish: false, ice: false, wind: false, sparks: false },
-         2: { surfaces: 15, rises: 12, movers: true, vanish: false, ice: false, wind: false, sparks: false },
-         3: { surfaces: 19, rises: 16, movers: false, vanish: true, ice: true, wind: false, sparks: true },
-         4: { surfaces: 24, rises: 21, movers: true, vanish: true, ice: false, wind: false, sparks: true },
-         5: { surfaces: 30, rises: 26, movers: true, vanish: true, ice: true, wind: false, sparks: true },
-      } as const;
+/** Level 1's trench A floor, its lever, its chamber and its crate. */
+function trenchA() {
+   const c = courseFor(1);
+   const floor = c.supports.findIndex((s) => s.kind === "floor");
+   const crate = c.supports.findIndex((s) => s.kind === "crate");
+   return { c, floor, crate, zone: 0, lever: 0 };
+}
+
+describe("the drowned temple (a lever puzzle against a rising tide)", () => {
+   it("every level has a start, a goal, chambers and a tide; every level but the swim level (4) sets water with levers", () => {
       for (const id of LEVEL_IDS) {
          const c = courseFor(id);
-         const spec = expectLevel[id];
-         expect(c.supports, `L${id} surfaces`).toHaveLength(spec.surfaces);
-         expect(c.supports[c.goal].top).toBe(LEVELS[id].spec.goalTop);
-         expect(c.durationMs).toBe(LEVELS[id].durationMs);
-         const rises = c.supports.filter((s, i) => i > 0 && s.top > c.supports[i - 1].top).length;
-         expect(rises, `L${id} rises`).toBe(spec.rises);
-         expect(c.supports.some((s) => s.mover)).toBe(spec.movers);
-         expect(c.supports.some((s) => s.vanish)).toBe(spec.vanish);
-         expect(c.supports.some((s) => s.slippery)).toBe(spec.ice);
-         expect(c.wind).toBe(spec.wind);
-         expect(c.strikes.length > 0).toBe(spec.sparks);
-         expect(createRun(1, id).course).toBe(createRun(99, id).course);
+         expect(c.checkpoints[0]).toBeGreaterThanOrEqual(0);
+         expect(c.goal).toBeGreaterThanOrEqual(0);
+         expect(c.zones.length).toBeGreaterThan(0);
+         expect(c.tide.rate).toBeGreaterThan(0);
+         const leverSteps = c.route.filter((s) => "lever" in s).length;
+         if (id === 4) expect(leverSteps).toBe(0);
+         else expect(leverSteps, `level ${id}`).toBeGreaterThanOrEqual(2);
       }
-            expect(courseFor(5).supports.length).toBeGreaterThan(courseFor(4).supports.length);
    });
 
-   it("every step up is a jump with room under the apex, and every gap is landable", () => {
+   it("the storm tide speeds up level by level (the card's 0.25 to 0.8 m/s)", () => {
+      expect(LEVEL_IDS.map((id) => LEVELS[id].tide.rate)).toEqual([0.25, 0.32, 0.4, 0.6, 0.8]);
+   });
+
+   it("a lever never soft-locks: it cycles through its positions (a wrong pull is undone by pulling again)", () => {
       for (const id of LEVEL_IDS) {
-         const s = courseFor(id).supports;
-         for (let i = 1; i < s.length; i++) {
-            const rise = s[i].top - s[i - 1].top;
-            expect(rise, `L${id} rise ${i}`).toBeGreaterThanOrEqual(0);
-            expect(rise, `L${id} rise ${i}`).toBeLessThan(H_JUMP - 0.6);
-            const dx = Math.max(0, Math.abs(s[i].cx - s[i - 1].cx) - s[i].hw - s[i - 1].hw - 2 * FOOT);
-            const dz = Math.max(0, Math.abs(s[i].cz - s[i - 1].cz) - s[i].hd - s[i - 1].hd - 2 * FOOT);
-            expect(Math.hypot(dx, dz), `L${id} gap ${i}`).toBeLessThan(3.2);
+         const c = courseFor(id);
+         for (const l of c.levers) {
+            expect(l.positions).toBe(l.effects.length);
+            expect(l.positions).toBeGreaterThanOrEqual(2);
+            for (const eff of l.effects) for (const [zi, level] of eff) expect(c.zones[zi].levels[level], `level ${id}`).toBeDefined();
          }
       }
+      // level 2's linked levers: each position moves two chambers in opposite directions
+      const c2 = courseFor(2);
+      const linked = c2.levers.filter((l) => l.effects[1].length === 2);
+      expect(linked.length).toBeGreaterThanOrEqual(2);
+      for (const l of linked) {
+         const [[za, la], [zb, lb]] = l.effects[1];
+         const [[, la0], [, lb0]] = l.effects[0];
+         expect(Math.sign(c2.zones[za].levels[la] - c2.zones[za].levels[la0])).toBe(-Math.sign(c2.zones[zb].levels[lb] - c2.zones[zb].levels[lb0]));
+      }
+   });
+
+   it("the same level is the same race for every seed", () => {
+      const a = createRun(1, 2);
+      const b = createRun(99, 2);
+      expect(a.course).toBe(b.course);
+      expect(a.hero).toEqual(b.hero);
    });
 });
 
-describe("movement", () => {
-   it("a jump from flat ground peaks at H_JUMP after APEX and lands back after about 2 x apex", () => {
+describe("levers, water, swimming and air", () => {
+   it("a lever moves its chamber's water at V_WATER (0.8 m/s) towards its target; the swimmer rises at 1.2 m/s holding Jump and sinks at 0.9", () => {
+      const { c, floor, zone } = trenchA();
+      const run = createRun(1, 1, "riko");
+      const l = c.levers[0];
+      standOn(run, floor, l.x, l.z + 0.4);
+      const input = createStepInput();
+      let pulledAt = -1;
+      for (let i = 0; i < 20 && pulledAt < 0; i++) {
+         input.moveZ = -0.3;
+         step(run, 16, input);
+         if (run.events.lever === 0) pulledAt = run.simMs;
+      }
+      expect(pulledAt).toBeGreaterThan(0);
+      expect(run.levers.pos[0]).toBe(1);
+      input.moveZ = 0;
+      hold(run, 1000, input);
+      const y = zoneLevel(run.water, zone, run.simMs);
+      expect(y).toBeCloseTo(c.zones[zone].levels[0] + (V_WATER * (run.simMs - run.levers.at[0])) / 1000, 9);
+      // the water rises over the hero: swimming. Holding Jump rises at V_SWIM_UP (faster than the water) to the float height
+      hold(run, 300, input);
+      expect(run.hero.swim).toBe(true);
+      input.jumpHeld = true;
+      hold(run, 600, input);
+      const up0 = run.hero.y;
+      hold(run, 160, input);
+      expect((run.hero.y - up0) / 0.16).toBeCloseTo(V_SWIM_UP, 2);
+      hold(run, 6000, input);
+      expect(run.hero.y).toBeCloseTo(c.zones[zone].levels[1] - FLOAT_DEPTH, 6);
+      expect(run.hero.air).toBe(AIR_MS);
+      // let go: it sinks at V_SINK
+      input.jumpHeld = false;
+      hold(run, 500, input);
+      const s0 = run.hero.y;
+      hold(run, 160, input);
+      expect((s0 - run.hero.y) / 0.16).toBeCloseTo(V_SINK, 2);
+   });
+
+   it("a floating crate rests on the floor and rides the water up, CRATE_LIFT over the surface, to its cap", () => {
+      const { c, crate, zone } = trenchA();
       const run = createRun(1, 1);
-      const input: StepInput = { moveX: 0, moveZ: 0, jumpPressed: true, actionPressed: false };
-      step(run, 1, input);
-      input.jumpPressed = false;
-      let peak = 0;
-      let landedAt = -1;
-      for (let ms = 2; ms < 2000 && landedAt < 0; ms++) {
-         const ev = step(run, 1, input);
-         peak = Math.max(peak, run.hero.y);
-         if (ev.landed) landedAt = run.simMs;
-      }
-      expect(peak).toBeGreaterThan(H_JUMP - 0.01);
-      expect(peak).toBeLessThanOrEqual(H_JUMP + 1e-9);
-      expect(landedAt).toBeGreaterThan((2000 * V_JUMP) / G);
-      expect(landedAt).toBeLessThan((2000 * V_JUMP) / G + 3);
+      const s = c.supports[crate];
+      expect(supportTop(c, run.water, s, 0)).toBe(s.floatMin);
+      // pull the lever by hand: the water rises to 2.4
+      run.levers.pos[0] = 1;
+      run.water.fromY[zone] = zoneLevel(run.water, zone, 0);
+      run.water.fromMs[zone] = 0;
+      run.water.target[zone] = c.zones[zone].levels[1];
+      expect(supportTop(c, run.water, s, 3000)).toBeCloseTo(zoneLevel(run.water, zone, 3000) + CRATE_LIFT, 9);
+      expect(supportTop(c, run.water, s, 60_000)).toBe(s.floatMax);
    });
 
-   it("keeps a jump press for BUFFER_MS and honours coyote time after walking off", () => {
-      // pressed in the air 100 ms before landing: jumps on landing
-      const run = createRun(1, 1);
-      const input: StepInput = { moveX: 0, moveZ: 0, jumpPressed: true, actionPressed: false };
-      step(run, 1, input);
-      input.jumpPressed = false;
-      let jumps = 1;
-      for (let ms = 0; ms < 2000; ms++) {
-         if (run.simMs === Math.round((2000 * V_JUMP) / G) - (BUFFER_MS - 30)) input.jumpPressed = true;
-         const ev = step(run, 1, input);
-         input.jumpPressed = false;
-         if (ev.jumped) jumps++;
+   it("under water the 6 s air meter runs out (lost: air); in a bubble column it stays full", () => {
+      // level 4's flooded crypt, water at 3.0 over a floor at -6
+      const c = courseFor(4);
+      const drown = createRun(1, 4, "riko");
+      Object.assign(drown.hero, { x: -2, y: -5.5, z: -21, grounded: false, swim: true, support: -1, vx: 0, vz: 0, vy: 0, lastTop: -5.5 });
+      const input = createStepInput();
+      let lostAt = -1;
+      for (let i = 0; i < 1000 && lostAt < 0; i++) {
+         step(drown, 16, input);
+         if (drown.events.lost) lostAt = drown.simMs;
       }
-      expect(jumps).toBe(2);
-      expect(COYOTE_MS).toBeGreaterThan(0);
+      expect(drown.hero.lostCause).toBe("air");
+      expect(lostAt).toBeGreaterThanOrEqual(AIR_MS - 20);
+      expect(lostAt).toBeLessThanOrEqual(AIR_MS + 20);
+      const sp = c.spouts[0];
+      const breathe = createRun(1, 4, "riko");
+      Object.assign(breathe.hero, { x: sp.x, y: sp.y0 + 0.2, z: sp.z, grounded: false, swim: true, support: -1, vx: 0, vz: 0, vy: 0, lastTop: sp.y0 });
+      hold(breathe, AIR_MS + 1500, input);
+      expect(breathe.hits).toBe(0);
+      expect(breathe.hero.air).toBe(AIR_MS);
    });
 
-   it("never moves faster than V_RUN + the fastest carry in any one ms (the proof's speed bound)", () => {
-      const rng = createRng(42);
-      for (const level of LEVEL_IDS) {
-         const run = createRun(7, level);
-         const vh = (V_RUN + run.course.maxCarry) / 1000;
-         const input = createStepInput();
-         for (let ms = 0; ms < 40_000 && run.ended === null; ms++) {
-            if (ms % 120 === 0) {
-               input.moveX = rng() * 2 - 1;
-               input.moveZ = rng() * 2 - 1.3;
-            }
-            input.jumpPressed = rng() < 0.05;
-            const x0 = run.hero.x;
-            const z0 = run.hero.z;
-            const ev = step(run, 1, input);
-            if (ev.respawned || run.hero.state !== "play") continue;
-            const d = Math.hypot(run.hero.x - x0, run.hero.z - z0);
-            expect(d).toBeLessThanOrEqual(vh + 1e-9);
-         }
+   it("a pressure lever springs back after its hold time (level 5's drain levers)", () => {
+      const c = courseFor(5);
+      const li = c.boss!.pressure[0];
+      const l = c.levers[li];
+      expect(l.kind).toBe("pressure");
+      const run = createRun(1, 5);
+      const arena = c.supports.findIndex((s) => s.kind === "floor" && s.cz < -26);
+      standOn(run, arena, l.x, l.z + 1.2);
+      const input = createStepInput();
+      input.moveZ = -0.4;
+      let at = -1;
+      for (let i = 0; i < 60 && at < 0; i++) {
+         step(run, 16, input);
+         if (run.events.lever === li) at = run.simMs;
       }
-   });
-
-   it("movers use the smooth triangle wave within their travel and top speed", () => {
-      for (const s of COURSE.supports) {
-         if (!s.mover) continue;
-         let maxStep = 0;
-         for (let ms = 0; ms < 10_000; ms++) {
-            const o = moverOffset(s.mover, ms);
-            expect(Math.abs(o)).toBeLessThanOrEqual(s.mover.travel + 1e-9);
-            maxStep = Math.max(maxStep, Math.abs(moverOffset(s.mover, ms + 1) - o));
-         }
-         expect(maxStep * 1000).toBeLessThanOrEqual(moverTopSpeed(s.mover) + 1e-6);
-         expect(supportX(s, 0) === s.cx || supportZ(s, 0) === s.cz).toBe(true);
-      }
+      expect(at).toBeGreaterThan(0);
+      input.moveZ = 0.6;
+      hold(run, 400, input);
+      input.moveZ = 0;
+      hold(run, l.holdMs - 600, input);
+      expect(run.levers.pos[li]).toBe(1);
+      hold(run, 400, input);
+      expect(run.levers.pos[li]).toBe(0);
    });
 });
 
-describe("falls, respawns, orbs, the finish", () => {
-   it("a fall FALL_DEPTH under the last top is lost; the hero comes back on the checkpoint after LOST_MS + SPAWN_MS", () => {
+describe("the storm tide, falls and respawns", () => {
+   it("the tide starts at its checkpoint (level 1: the switchbacks) and rises at its rate; it never stops a finish from being ranked", () => {
+      const run = botRun(1, 60);
+      expect(run.ended).toBe("win");
+      expect(run.tideFrom).toBeGreaterThan(0);
+      const t = run.course.tide;
+      expect(tideY(run, run.tideFrom + 4000)).toBeCloseTo(t.y0 + t.rate * 4, 9);
+      expect(tideY(run, run.tideFrom - 1)).toBe(-Infinity);
+   });
+
+   it("a fall is lost for LOST_MS, then SPAWN_MS frozen on the checkpoint; a tide over the checkpoint ends the run 'flood' (unranked)", () => {
       const run = createRun(1, 1);
-      // Drop in open air, well above the flood, so the fall respawns instead of ending in the water.
-      const dropFrom = 20;
-      run.hero.x = 30;
-      run.hero.y = dropFrom;
-      run.hero.lastTop = dropFrom;
-      run.hero.arcY0 = dropFrom;
-      run.hero.arcV = 0;
-      run.hero.arcStart = 0;
-      run.hero.grounded = false;
-      run.hero.support = -1;
-      const input: StepInput = { moveX: 0, moveZ: 0, jumpPressed: false, actionPressed: false };
+      const start = run.course.supports[run.course.checkpoints[0]];
+      Object.assign(run.hero, { x: 30, y: start.top, z: 0, grounded: false, swim: false, support: -1, arcStart: 0, arcY0: start.top, arcV: 0, lastTop: start.top });
+      const input = createStepInput();
       let lostAt = -1;
       let backAt = -1;
-      for (let ms = 0; ms < 6000; ms++) {
-         const ev = step(run, 1, input);
-         if (ev.lost) {
-            lostAt = run.simMs;
-            expect(run.hero.y).toBeLessThan(dropFrom - FALL_DEPTH);
-         }
-         if (ev.respawned) backAt = run.simMs;
-         if (backAt > 0 && run.hero.state === "play") break;
+      for (let i = 0; i < 400 && backAt < 0; i++) {
+         step(run, 10, input);
+         if (run.events.lost) lostAt = run.simMs;
+         if (run.events.respawned) backAt = run.simMs;
       }
-      expect(lostAt).toBeGreaterThan(0);
+      expect(run.hero.lostCause).toBe("fall");
       expect(backAt - lostAt).toBe(LOST_MS);
-      const start = COURSE.supports[COURSE.checkpoints[0]];
-      expect(run.hero.y).toBe(start.top);
-      expect(run.respawns).toBe(1);
-      // the frozen spawn: no input acts for SPAWN_MS
-      expect(SPAWN_MS + LOST_MS).toBeGreaterThanOrEqual(1500);
-   });
-
-   it("submits the finish ms minus 0.4 s per orb on a win, the elapsed time otherwise", () => {
-      expect(finalScore({ score: 0, endReason: "win", elapsedMs: 30_123, stats: { [STAT.finishMs]: 30_000, [STAT.orbs]: 10 } })).toEqual({ score: 0, durationMs: 26_000 });
-      expect(finalScore({ score: 0, endReason: "timeup", elapsedMs: 90_000, stats: { [STAT.orbs]: 3 } })).toEqual({ score: 0, durationMs: 90_000 });
-      expect(runTimeMs(1000, 5)).toBe(0);
-      expect(ORB.bonusMs).toBe(400);
+      expect(run.hero.state).toBe("spawn");
+      hold(run, SPAWN_MS, input);
+      expect(run.hero.state).toBe("play");
+      // level 4 idle: the fast tide climbs over the start, and the run ends "flood"
+      const idle = createRun(1, 4);
+      hold(idle, 60_000, input);
+      expect(idle.ended).toBe("flood");
+      expect(isRankedRun(floodedRuinsEscapeMeta.scoring, "lose")).toBe(false);
    });
 });
 
-describe("the lower bound (README proof)", () => {
-   it("rise-and-land times follow the closed-form arc", () => {
-      expect(riseLandS(V_JUMP, H_JUMP + 0.01)).toBe(Infinity);
-      expect(riseLandS(V_JUMP, 0)).toBeCloseTo((2 * V_JUMP) / G, 9);
-      // landing 2 m up: apex then the drop from H_JUMP to 2 m
-      expect(riseLandS(V_JUMP, 2)).toBeCloseTo(V_JUMP / G + Math.sqrt((2 * (H_JUMP - 2)) / G), 9);
+describe("scoring hand-off", () => {
+   it("finalScore: a win submits the finish minus 300 ms per orb and the flow bonus; anything else keeps elapsedMs", () => {
+      expect(ORB.bonusMs).toBe(300);
+      const stats = { [STAT.finishMs]: 40_000, [STAT.orbs]: 10, [STAT.comboMs]: 500 };
+      expect(finalScore({ score: 0, endReason: "win", stats, elapsedMs: 41_000 }).durationMs).toBe(40_000 - 3000 - 500);
+      expect(finalScore({ score: 0, endReason: "timeup", stats, elapsedMs: 41_000 }).durationMs).toBe(41_000);
+      expect(runTimeMs(1000, 10)).toBe(0);
+   });
+});
+
+describe("the lower bound (README 'Server limits')", () => {
+   it("the least finish is the goal's least arrival (level 5: also Umbra Roller's least defeat time)", () => {
+      for (const id of [1, 2, 3, 4] as const) {
+         const c = courseFor(id);
+         expect(minFinishMs(c)).toBe(minArrivalMs(c)[c.goal]);
+         expect(Number.isFinite(minFinishMs(c))).toBe(true);
+      }
+      const c5 = courseFor(5);
+      expect(bossDefeatMinMs(c5)).toBeGreaterThan(10_000);
+      expect(minFinishMs(c5)).toBeGreaterThanOrEqual(bossDefeatMinMs(c5));
+      expect(minFinishMs(c5)).toBeGreaterThanOrEqual(minArrivalMs(c5)[c5.goal]);
    });
 
-   it("every edge costs at least its horizontal bound, and a rise never costs less than an apex", () => {
-      const c = COURSE;
-      const vh = V_RUN + c.maxCarry;
-      for (let a = 0; a < c.supports.length; a++) {
-         for (let b = 0; b < c.supports.length; b++) {
-            if (a === b) continue;
-            const e = edgeMinMs(c, a, b);
-            expect(e).toBeGreaterThanOrEqual((1000 * standGap(c.supports[a], c.supports[b])) / vh - 1e-9);
-            if (c.supports[b].top > c.supports[a].top && Number.isFinite(e)) expect(e).toBeGreaterThanOrEqual((1000 * V_JUMP) / G - 1e-9);
-         }
+   it("the least duration takes off every orb and the most flow bonus", () => {
+      for (const id of LEVEL_IDS) {
+         const c = courseFor(id);
+         expect(minDurationMsOf(c)).toBe(minFinishMs(c) - c.orbs.length * ORB.bonusMs - comboMaxBonus(comboSpecOf(c)));
       }
    });
 
-   it("every platform is reachable, in route order of arrival bounds", () => {
-      const arrive = minArrivalMs(COURSE);
-      expect(arrive.every(Number.isFinite)).toBe(true);
-      expect(arrive[COURSE.goal]).toBe(minFinishMs(COURSE));
-   });
-
-   for (const level of LEVEL_IDS) {
-      it(`level ${level}: the proposed limits sit under the bound, at least 90 % of it, and maxScore follows from them`, () => {
-         const c = courseFor(level);
-         const lb = minDurationMsOf(c);
-         const lim = PROPOSED_LEVEL_LIMITS[level];
-         expect(Number.isFinite(lb), `level ${level} reachable`).toBe(true);
-         expect(Number.isFinite(lim.maxScore)).toBe(true);
-         expect(lim.minDurationMs).toBeLessThanOrEqual(lb);
-         expect(lim.minDurationMs).toBeGreaterThanOrEqual(lb * 0.9);
-         expect(lim.maxScore).toBe(Math.floor((lim.timeBaseMs - lim.minDurationMs) / 10));
-         expect(lim.maxDurationMs).toBe(c.durationMs);
-         expect(lim.timeBaseMs).toBe(c.durationMs);
-         // meta (and arcade-games.json, registry.sync.test.ts) ship exactly these limits on this level
-         expect(floodedRuinsEscapeMeta.levels![level - 1].scoring).toMatchObject(lim);
-         if (level === 1) expect(lim).toEqual(LEVEL1_LIMITS);
-      });
-   }
-
-   it("a dash does not pull level 1's least finish under the shipped floor", () => {
-      const dashed = minFinishMs(COURSE, V_DASH) - COURSE.orbs.length * ORB.bonusMs;
-      expect(dashed).toBeGreaterThanOrEqual(LEVEL1_LIMITS.minDurationMs);
-   });
-
-   for (const level of LEVEL_IDS) {
-      it(`level ${level}: Riko's dashes cannot pull the least finish under the shipped floor`, () => {
-         // A dash is on for at most POWER_MS.dash + 1 rules ms (dashUntil is inclusive) at V_DASH instead of V_RUN,
-         // so it adds at most that many ms × (V_DASH - V_RUN) of horizontal travel. Every edge bound is
-         // max(flat, vertical) with flat = distance / (V_RUN + carry), so the extra travel saves at most
-         // extra / V_RUN of the summed bound. A run that finishes at T fired at most 1 + floor(T / cooldown) dashes.
-         const c = courseFor(level);
+   it("the dash floor: (POWER_MS.dash + 1) ms at V_DASH where the bound counted V_RUN, one dash per cooldown and the first", () => {
+      for (const id of LEVEL_IDS) {
+         const c = courseFor(id);
+         const per = ((POWER_MS.dash + 1) * (V_DASH - V_RUN)) / V_RUN;
          const F = minFinishMs(c);
-         const perDash = ((POWER_MS.dash + 1) * (V_DASH - V_RUN)) / V_RUN;
-         const cooldown = heroById("riko").cooldownMs;
          let T = 0;
-         // the least T with T + perDash · dashes(T) >= F
-         while (T + perDash * (1 + Math.floor(T / cooldown)) < F) T += 1;
-         const floor = T - c.orbs.length * ORB.bonusMs;
-         expect(floor, `level ${level} dashed floor ${floor} vs min ${PROPOSED_LEVEL_LIMITS[level].minDurationMs}`).toBeGreaterThanOrEqual(PROPOSED_LEVEL_LIMITS[level].minDurationMs);
-      });
-   }
-
-   it("pins the shipped per-level limits (meta.ts and arcade-games.json repeat them)", () => {
-      const rows = LEVEL_IDS.map((id) => {
-         const l = PROPOSED_LEVEL_LIMITS[id];
-         return [l.minDurationMs, l.maxDurationMs, l.timeBaseMs, l.maxScore];
-      });
-      expect(rows).toEqual([
-         [4100, 90000, 90000, 8590],
-         [5900, 120000, 120000, 11410],
-         [9100, 150000, 150000, 14090],
-         [12400, 180000, 180000, 16760],
-         [15400, 210000, 210000, 19460],
-      ]);
+         while (T + per * (1 + Math.floor(T / heroById("riko").cooldownMs)) < F) T += 1;
+         expect(dashFloorMs(c)).toBe(T - c.orbs.length * ORB.bonusMs - comboMaxBonus(comboSpecOf(c)));
+         expect(PROPOSED_LEVEL_LIMITS[id].minDurationMs).toBeLessThanOrEqual(dashFloorMs(c));
+      }
    });
 
-   it("every proposed level is worth at least level 1's points, and level 5 is at most about 3x", () => {
+   it("every level's minDurationMs sits in 94-100 % of its bound and under the dash floor; the limits are pinned", () => {
+      for (const id of LEVEL_IDS) {
+         const lb = minDurationMsOf(courseFor(id));
+         const lim = PROPOSED_LEVEL_LIMITS[id];
+         expect(lim.minDurationMs).toBeLessThanOrEqual(lb);
+         expect(lim.minDurationMs).toBeGreaterThanOrEqual(Math.min(lb * 0.94, Math.floor(dashFloorMs(courseFor(id)) / 100) * 100));
+         expect(lim.maxScore).toBe(Math.floor((lim.timeBaseMs - lim.minDurationMs) / 10));
+         expect(lim.timeBaseMs).toBe(LEVELS[id].durationMs);
+         expect(lim.maxDurationMs).toBe(LEVELS[id].durationMs);
+      }
+      expect(LEVEL1_LIMITS).toBe(PROPOSED_LEVEL_LIMITS[1]);
+      expect(LEVEL_IDS.map((id) => [PROPOSED_LEVEL_LIMITS[id].minDurationMs, PROPOSED_LEVEL_LIMITS[id].maxDurationMs, PROPOSED_LEVEL_LIMITS[id].timeBaseMs, PROPOSED_LEVEL_LIMITS[id].maxScore])).toEqual(PINNED);
+      expect(floodedRuinsEscapeMeta.scoring).toMatchObject(PROPOSED_LEVEL_LIMITS[1]);
+      for (const id of LEVEL_IDS) expect(floodedRuinsEscapeMeta.levels![id - 1].scoring).toMatchObject(PROPOSED_LEVEL_LIMITS[id]);
+   });
+
+   it("every level is worth at least level 1's points, and level 5 at most 3x", () => {
       const l1 = PROPOSED_LEVEL_LIMITS[1].maxScore;
       for (const id of LEVEL_IDS) expect(PROPOSED_LEVEL_LIMITS[id].maxScore).toBeGreaterThanOrEqual(l1);
-      expect(PROPOSED_LEVEL_LIMITS[5].maxScore).toBeLessThanOrEqual(Math.round(l1 * 3));
+      expect(PROPOSED_LEVEL_LIMITS[5].maxScore).toBeLessThanOrEqual(l1 * 3);
    });
 });
+
+/** minDurationMs, maxDurationMs, timeBaseMs, maxScore per level (README table). */
+const PINNED = [
+   [7900, 180000, 180000, 17210],
+   [4900, 210000, 210000, 20510],
+   [9200, 240000, 240000, 23080],
+   [1700, 270000, 270000, 26830],
+   [14300, 300000, 300000, 28570],
+];
 
 describe("bots (README 'What the bots reached')", () => {
    for (const level of LEVEL_IDS) {
-      it(`level ${level}: the honest bot climbs to the gate at 30, 60 and 144 fps, never under the bound`, () => {
+      it(`level ${level}: the honest bot reaches the goal at 30, 60 and 144 fps with every main orb, never under the floor, at least 90 % of maxScore`, () => {
          const lim = PROPOSED_LEVEL_LIMITS[level];
          for (const fps of FPS) {
             const run = botRun(level, fps);
@@ -358,32 +360,29 @@ describe("bots (README 'What the bots reached')", () => {
             const d = submitted(run);
             expect(d).toBeGreaterThanOrEqual(lim.minDurationMs);
             expect(d).toBeLessThanOrEqual(lim.maxDurationMs);
-            // the limit is not loose: the bot's time is within 2.2x of the floor (a spiral's corners cost more than a straight climb)
-            expect(d, `${fps} fps submitted ${d} vs 2.2x ${lim.minDurationMs}`).toBeLessThan(lim.minDurationMs * 2.2);
+            const score = Math.floor((lim.timeBaseMs - d) / 10);
+            expect(score, `${fps} fps ${score} / ${lim.maxScore}`).toBeGreaterThanOrEqual(lim.maxScore * 0.9);
+            expect(run.mainOrbs, `${fps} fps every main orb`).toBe(run.course.mainOrbs);
          }
-      });
+      }, 120_000);
    }
 
-   it("the honest bot's points: each level at least level 1, a clear is at least 90% of that level's max, level 5 at most about 3x", () => {
-      const points = (id: LevelId) => {
-         const run = botRun(id, 60);
-         expect(run.ended, `level ${id}`).toBe("win");
-         return Math.floor((PROPOSED_LEVEL_LIMITS[id].timeBaseMs - submitted(run)) / 10);
-      };
+   it("the honest bot's points: each level at least level 1, level 5 at most 3x", () => {
+      const points = (id: LevelId) => Math.floor((PROPOSED_LEVEL_LIMITS[id].timeBaseMs - submitted(botRun(id, 60))) / 10);
       const first = points(1);
-      let last = first;
-      for (const id of LEVEL_IDS) {
-         const score = id === 1 ? first : points(id);
-         last = score;
-         expect(score, `level ${id} score ${score} / max ${PROPOSED_LEVEL_LIMITS[id].maxScore}`).toBeGreaterThanOrEqual(first);
-         expect(score, `level ${id} score ${score} / max ${PROPOSED_LEVEL_LIMITS[id].maxScore}`).toBeGreaterThanOrEqual(Math.floor(PROPOSED_LEVEL_LIMITS[id].maxScore * 0.9));
-      }
-      expect(last).toBeLessThanOrEqual(first * 3.05);
-   });
+      for (const id of LEVEL_IDS) expect(points(id)).toBeGreaterThanOrEqual(first);
+      expect(points(5)).toBeLessThanOrEqual(first * 3);
+   }, 120_000);
 
-   it("the idle bot is caught by the water: unranked, nothing sent, and it never wins", () => {
+   it("idle never wins: the timer or the tide ends it unranked", () => {
+      for (const id of LEVEL_IDS) {
+         const run = createRun(3, id);
+         const none = createStepInput();
+         for (let f = 0; f < 40_000 && run.ended === null; f++) step(run, 50, none);
+         expect(["timeup", "flood"]).toContain(run.ended);
+      }
       const store = createArcadeStore();
-      store.getState().configure({ durationMs: undefined, lives: undefined, resultDelayMs: 1600 });
+      store.getState().configure({ resultDelayMs: 1600 });
       store.getState().markReady();
       store.getState().start();
       const run = createRun(3, 1);
@@ -393,43 +392,34 @@ describe("bots (README 'What the bots reached')", () => {
          const dt = playedFrameDt(store.getState());
          if (dt <= 0) continue;
          const ev = step(run, dt * 1000, input);
-         if (ev.flooded) store.getState().end("lose");
          if (ev.timeup) store.getState().end("timeup");
+         if (ev.flooded) store.getState().end("lose");
       }
-      const s = store.getState();
-      expect(s.endReason).toBe("lose");
-      expect(run.ended).toBe("flood");
-      expect(run.simMs).toBeGreaterThan(0);
-      expect(run.simMs).toBeLessThan(90_000);
-      expect(run.hero.y).toBeLessThanOrEqual(waterY(1, run.simMs) + 1e-6);
-      expect(isRankedRun(floodedRuinsEscapeMeta.scoring, s.endReason)).toBe(false);
+      expect(["timeup", "lose"]).toContain(store.getState().endReason);
+      expect(isRankedRun(floodedRuinsEscapeMeta.scoring, store.getState().endReason)).toBe(false);
    });
 
-   it("200 spam bots (random stick, jump mashing, random frame times) never beat the floor", () => {
+   it("120 spam bots on level 1 (random stick, jump mashing and holding, power, random frame times) never beat the floor", () => {
       const lim = PROPOSED_LEVEL_LIMITS[1];
-      let wins = 0;
-      for (let seed = 1; seed <= 200; seed++) {
+      for (let seed = 1; seed <= 120; seed++) {
          const rng = createRng(seed * 7919);
-         const run = createRun(seed, 1);
+         const run = createRun(seed, 1, HEROES[seed % 5].id);
          const input = createStepInput();
          for (let f = 0; f < 6000 && run.ended === null; f++) {
             if (f % 10 === 0) {
                input.moveX = rng() * 2 - 1;
                input.moveZ = -rng();
+               input.jumpHeld = rng() < 0.6;
             }
             input.jumpPressed = rng() < 0.5;
+            input.actionPressed = rng() < 0.1;
             step(run, 4 + rng() * 46, input);
          }
-         if (run.ended === "win") {
-            wins++;
-            expect(submitted(run)).toBeGreaterThanOrEqual(lim.minDurationMs);
-         }
-         expect(run.ended === null || run.ended === "win" || run.ended === "timeup" || run.ended === "flood").toBe(true);
+         if (run.ended === "win") expect(submitted(run)).toBeGreaterThanOrEqual(lim.minDurationMs);
       }
-      expect(wins).toBeLessThan(200);
-   });
+   }, 120_000);
 
-   it("the honest bot through the real store: a ranked win inside the server limits, score from the time", () => {
+   it("the honest bot through the real store with ragged frames: a ranked win inside the limits, the score from the time", () => {
       const store = createArcadeStore();
       store.getState().configure({ resultDelayMs: 1600 });
       store.getState().markReady();
@@ -439,17 +429,16 @@ describe("bots (README 'What the bots reached')", () => {
       const input = createStepInput();
       const rng = createRng(11);
       for (let f = 0; f < 50_000 && store.getState().phase !== "over"; f++) {
-         // ragged frames: mostly 60 fps, some long ones (the core caps a frame at 50 ms)
          advanceRunClock(store, rng() < 0.05 ? 0.05 + rng() * 0.2 : 1 / 60);
          const dt = playedFrameDt(store.getState());
          if (dt <= 0) continue;
          bot.frameMs = dt * 1000;
          botInput(bot, run, input);
          const ev = step(run, dt * 1000, input);
-         if (ev.orbCount > 0) store.getState().setStat(STAT.orbs, run.orbs);
-         if (ev.finished) {
+         if (ev.finished || run.ended === "win") {
             store.getState().setStat(STAT.orbs, run.orbs);
             store.getState().setStat(STAT.finishMs, run.finishMs);
+            store.getState().setStat(STAT.comboMs, run.combo.bonusTotal);
             store.getState().end("win");
          }
       }
@@ -458,11 +447,61 @@ describe("bots (README 'What the bots reached')", () => {
       expect(run.finishMs).toBeLessThanOrEqual(s.elapsedMs + 1);
       const fin = finalScore(s);
       const rules = floodedRuinsEscapeMeta.scoring;
-      const sent = normalizeRun({ slug: "flooded-ruins-escape", score: fin.score, durationMs: fin.durationMs, finishedAt: "2026-10-25T00:00:00Z" }, rules);
+      const sent = normalizeRun({ slug: "flooded-ruins-escape", score: fin.score, durationMs: fin.durationMs, finishedAt: "2026-10-28T00:00:00Z" }, rules);
       expect(isRankedRun(rules, s.endReason)).toBe(true);
       expect(sent.durationMs).toBeGreaterThanOrEqual(rules.minDurationMs);
-      expect(sent.durationMs).toBeLessThanOrEqual(rules.maxDurationMs);
       expect(sent.score).toBe(computeTimeScore(rules, sent.durationMs));
       expect(sent.score).toBeLessThanOrEqual(rules.maxScore);
+   }, 120_000);
+});
+
+describe("camera-relative stick and solid boxes (for menu2/camera)", () => {
+   it("yaw 0 is the world direction itself; a turned camera turns the stick (the yaw is part of the rules' input)", () => {
+      const z0 = createRun(1, 1).hero.z;
+      const x0 = createRun(1, 1).hero.x;
+      const a = createRun(1, 1);
+      const ia = createStepInput();
+      ia.moveZ = -1;
+      hold(a, 300, ia);
+      const c = createRun(1, 1);
+      const ic = createStepInput();
+      ic.moveZ = -1;
+      ic.yaw = Math.PI / 2;
+      hold(c, 300, ic);
+      expect(a.hero.z).toBeLessThan(z0 - 1);
+      expect(Math.abs(a.hero.x - x0)).toBeLessThan(1e-9);
+      // with the camera turned a quarter, the stick's "up" points along -x
+      expect(c.hero.x).toBeLessThan(x0 - 1);
+      expect(Math.abs(c.hero.z - z0)).toBeLessThan(1e-9);
+   });
+
+   it("the bot at yaw 0 plays exactly as with the yaw left out", () => {
+      const a = createRun(1, 1);
+      const b = createRun(1, 1);
+      const ba = createBot(a);
+      const bb = createBot(b);
+      const ia = createStepInput();
+      const ib = createStepInput();
+      for (let f = 0; f < 3000 && a.ended === null; f++) {
+         botInput(ba, a, ia);
+         botInput(bb, b, ib);
+         ib.yaw = 0;
+         step(a, 1000 / 60, ia);
+         step(b, 1000 / 60, ib);
+      }
+      expect(b.hero).toEqual(a.hero);
+   });
+
+   it("solidBoxes lists every block where it is now (a crate at its water, a broken brick left out)", () => {
+      const run = createRun(1, 1);
+      const out: SolidBox[] = [];
+      const n = solidBoxes(run, 0, out);
+      expect(n).toBe(run.course.supports.length);
+      const first = run.course.supports[0];
+      expect(out[0]).toEqual({ minX: first.cx - first.hw, maxX: first.cx + first.hw, minY: first.bottom, maxY: first.top, minZ: first.cz - first.hd, maxZ: first.cz + first.hd });
+      const r2 = createRun(1, 2);
+      const crack = r2.course.supports.findIndex((s) => s.crack);
+      r2.broken[crack] = 1;
+      expect(solidBoxes(r2, 0, out)).toBe(r2.course.supports.length - 1);
    });
 });

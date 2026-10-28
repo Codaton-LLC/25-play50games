@@ -164,11 +164,17 @@ export const MODEL_MANIFEST: readonly string[] = [
    // Menu 2 game 03 (Flooded Ruins Escape): ruin props from ~/.play50/hyper3d/ready/menu2/flooded-ruins-escape
    "/models/3d/flooded-ruins-escape/m2RuinBrickLedge.glb",
    "/models/3d/flooded-ruins-escape/m2RuinChannel.glb",
-   "/models/3d/flooded-ruins-escape/m2RuinFloodGate.glb",
+   // the exit flood gate, v2 (image-to-3D, replaces m2RuinFloodGate)
+   "/models/3d/flooded-ruins-escape/m2RuinFloodGateV2I.glb",
    "/models/3d/flooded-ruins-escape/m2RuinPlatform.glb",
    "/models/3d/flooded-ruins-escape/m2RuinWaterSpout.glb",
    "/models/3d/flooded-ruins-escape/m2StoneLever.glb",
    "/models/3d/flooded-ruins-escape/m2SunkenTempleBg.glb",
+   // floating crates (wind-tunnel-escape's m2FlyingCrate, buoyant here)
+   "/models/3d/flooded-ruins-escape/m2FlyingCrate.glb",
+   // Menu 2 shared creatures (ready/menu2/shared): the L5 boss Umbra Roller and the cave bats
+   "/models/3d/menu2/m2ShadowArmadillo.glb",
+   "/models/3d/menu2/m2CaveBat.glb",
    // Menu 2 game 04 (Lava Pillar Jump): cavern props from ~/.play50/hyper3d/ready/menu2/lava-pillar-jump
    "/models/3d/lava-pillar-jump/m2BasaltBridge.glb",
    "/models/3d/lava-pillar-jump/m2BasaltPillar.glb",
@@ -183,9 +189,11 @@ export const MODEL_MANIFEST: readonly string[] = [
    // Ashback, the Shadow Armadillo (Rooftop Roll Climb level 5 boss), shared by menu2/
    "/models/3d/menu2/m2ShadowArmadillo.glb",
    // Menu 2 game 05 (Cloud Hopper): cloud props from ~/.play50/hyper3d/ready/menu2/cloud-hopper
+   "/models/3d/cloud-hopper/m2CloudBank.glb",
    "/models/3d/cloud-hopper/m2CloudCastleBg.glb",
    "/models/3d/cloud-hopper/m2CloudPlatformV2.glb",
    "/models/3d/cloud-hopper/m2Feather.glb",
+   "/models/3d/cloud-hopper/m2GloomNimbusBoss.glb",
    "/models/3d/cloud-hopper/m2RainbowBridge.glb",
    "/models/3d/cloud-hopper/m2SkyStar.glb",
    "/models/3d/cloud-hopper/m2StormCloud.glb",

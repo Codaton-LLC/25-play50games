@@ -3,18 +3,23 @@
 // Each hero id maps to its own GLB (menu2/heroModels.ts). This file does not tint one mesh.
 import { afterEach, describe, expect, it } from "vitest";
 import { M2_HERO_IDS, heroModelAsset } from "@/arcade3d/menu2/heroModels";
-import { HEROES, pickedHero, selectHero, subscribeHero } from "./heroes";
+import { DEFAULT_HERO, HEROES, pickedHero, selectHero, subscribeHero } from "./heroes";
 
 describe("cloud-hopper: live hero pick", () => {
-   afterEach(() => selectHero("riko"));
+   afterEach(() => selectHero(DEFAULT_HERO));
+
+   it("World 2's lead, Nami, is preselected", () => {
+      expect(DEFAULT_HERO).toBe("nami");
+      expect(pickedHero()).toBe("nami");
+   });
 
    it("notifies a subscriber on a new pick, not on the same pick, and stops after unsubscribe", () => {
       let calls = 0;
       const off = subscribeHero(() => calls++);
-      selectHero("nami");
-      expect(pickedHero()).toBe("nami");
+      selectHero("zuno");
+      expect(pickedHero()).toBe("zuno");
       expect(calls).toBe(1);
-      selectHero("nami");
+      selectHero("zuno");
       expect(calls).toBe(1);
       selectHero("vexa");
       expect(calls).toBe(2);
