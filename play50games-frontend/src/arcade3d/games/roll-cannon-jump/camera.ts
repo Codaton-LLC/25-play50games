@@ -13,7 +13,7 @@ const DEG = Math.PI / 180;
 
 /** The orbit's tuning: behind the start cannon, a little above, zoom 5-20 m. */
 export function cannonOrbit(course: Course): Partial<OrbitSettings> {
-   return { yaw: course.cannons[0].yaw, pitch: 20 * DEG, distance: 7.4, minDistance: 4, maxDistance: 20 };
+   return { yaw: course.cannons[0].yaw, pitch: 27 * DEG, distance: 8.6, minDistance: 4, maxDistance: 22 };
 }
 
 export const FOV = 56;
@@ -30,11 +30,11 @@ export function orbitLookUp(aspect: number): number {
    return 0.4 + 0.3 * portrait;
 }
 
-/** The pivot in a cannon: the hero, led 2.6 m along the barrel and 1 m up. */
+/** The pivot in a cannon: the hero, led 3.4 m along the barrel and 1.3 m up. */
 export function aimPivot(x: number, y: number, z: number, yaw: number, out: { x: number; y: number; z: number }): { x: number; y: number; z: number } {
-   out.x = x + forwardX(yaw) * 2.6;
-   out.y = y + 1.0;
-   out.z = z + forwardZ(yaw) * 2.6;
+   out.x = x + forwardX(yaw) * 3.4;
+   out.y = y + 1.3;
+   out.z = z + forwardZ(yaw) * 3.4;
    return out;
 }
 

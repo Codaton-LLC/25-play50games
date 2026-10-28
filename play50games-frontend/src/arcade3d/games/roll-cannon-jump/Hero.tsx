@@ -120,8 +120,8 @@ export function Hero({ run, anim }: { run: CannonRun; anim: HeroAnim }) {
       }
       if (h.mode === "aim" || h.mode === "catch") {
          // curled in the bore: sunk a little, a shiver with the ring
-         y -= 0.3;
-         s = 0.82 + 0.03 * Math.sin(now * 30);
+         y -= 0.1;
+         s = 0.85 + 0.03 * Math.sin(now * 30);
       } else if (h.mode === "lost") s = Math.max(0, 1 - (now - anim.lostAt) / 0.7);
       const tp = now - anim.spawnAt;
       if (tp >= 0 && tp < 0.4) s *= Math.sin((tp / 0.4) * Math.PI * 0.5) * (1 + 0.2 * Math.sin((tp / 0.4) * Math.PI));

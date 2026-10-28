@@ -175,7 +175,7 @@ function Cannons({ run, clock }: { run: CannonRun; clock: VisualClock }) {
       const ms = Math.max(0, clock.ms);
       cannonPos(c, ms, P);
       const h = run.hero;
-      const mine = (h.mode === "aim" || h.mode === "catch") && h.cannon === i;
+      const mine = h.mode === "aim" && h.cannon === i;
       const yaw = mine ? h.yaw : wheelYaw(c, ms);
       const pitch = drawnPitch(mine ? h.pitch : c.pitch);
       // the model's mouth (its -z end) sits at the rules' mouth; it stands on the isle
@@ -231,7 +231,7 @@ function PowerRing({ run }: { run: CannonRun }) {
    const N = 24;
    const lit = useMemo(() => new Color(COLORS.gold), []);
    const hot = useMemo(() => new Color("#fff3b0"), []);
-   const off = useMemo(() => new Color("#3a3330"), []);
+   const off = useMemo(() => new Color("#8a7f76"), []);
    const last = useRef(-1);
    useFrame(() => {
       const m = ref.current;

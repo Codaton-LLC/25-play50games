@@ -134,7 +134,7 @@ function Crowd({ run, tent }: { run: CannonRun; tent: { cx: number; cz: number; 
          bands.forEach((b, k) => {
             if (z <= b.z0 + 6 && z >= b.z1 - 6 && Math.sign(x) === b.side) band = k;
          });
-         out.push({ x, y: 1.2 + tier * 1.3, z, band, ph: (i * 0.618) % 1 });
+         out.push({ x, y: 1.6 + tier * 1.3, z, band, ph: (i * 0.618) % 1 });
       }
       return out;
    }, [run.course, tent]);
@@ -149,7 +149,7 @@ function Crowd({ run, tent }: { run: CannonRun; tent: { cx: number; cz: number; 
          const hop = on ? Math.max(0, Math.sin(t * 7 + s.ph * 6.28)) * 0.25 : 0;
          DUMMY.position.set(s.x, s.y + hop, s.z);
          DUMMY.rotation.set(0, Math.atan2(tent.cx - s.x, tent.cz - s.z), 0);
-         DUMMY.scale.set(0.55, 0.9, 0.4);
+         DUMMY.scale.set(1.05, 1.35, 0.8);
          DUMMY.updateMatrix();
          m.setMatrixAt(i, DUMMY.matrix);
          const want = on ? 1 : 0;
@@ -312,7 +312,7 @@ export default function World({ run }: { run: CannonRun }) {
          {/* the safety net */}
          <mesh ref={netRef} rotation-x={-Math.PI / 2} position={[tent.cx, 0.9, tent.cz]} renderOrder={2}>
             <circleGeometry args={[tent.r - 9, 48]} />
-            <meshBasicMaterial map={net} transparent opacity={0.45} depthWrite={false} />
+            <meshBasicMaterial map={net} transparent opacity={0.22} depthWrite={false} />
          </mesh>
          {/* the stands: three tiers round the wall */}
          {[0, 1, 2].map((t) => (

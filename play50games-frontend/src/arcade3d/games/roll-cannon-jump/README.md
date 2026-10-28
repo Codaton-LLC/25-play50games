@@ -20,7 +20,7 @@ stripes, the bulbs and the crowd behind the hero as the show goes on.
 - Touch: joystick + Fire (then hold to dive) + Power. The same timings on touch and keyboard.
 - Camera (menu2/camera, the shared orbit): drag / two fingers turn, wheel / pinch zoom, Q/Z C/X R/F V.
   Each new aim swings it in behind the barrel (the barrel yaw is the orbit yaw) with its pivot led
-  2.6 m along the aim; in flight the pivot leads the travel. The nudge and the walk read the camera
+  3.4 m along the aim; in flight the pivot leads the travel. The nudge and the walk read the camera
   yaw (`StepInput.yaw`); the barrel is turned by the raw stick.
 - Hero: the shared picker (start card, pause, result). **Riko** (W1's lead) is preselected.
 
