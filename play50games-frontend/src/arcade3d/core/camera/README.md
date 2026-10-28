@@ -133,9 +133,9 @@ For a game that already passes a camera yaw in its step input (most Menu 1 3D ga
 
 Adopted: train-station-rush, postman-3d, hotel-bellboy-rush, pizza-kitchen-3d (character, camera
 steering), submarine-treasure-dive (vehicle framing, camera steering), burger-delivery-scooter (vehicle,
-vehicle steering). Waiting (other agents were rewriting them): taxi-rush-3d, farm-tractor-challenge,
-mars-rover-mission, magic-carpet-ride (vehicles), firefighter-rescue, beach-lifeguard, cat-vs-robot-vacuum,
-dog-park-fetch (characters).
+vehicle steering); batch 1 (2026-10-28): taxi-rush-3d, farm-tractor-challenge, mars-rover-mission,
+magic-carpet-ride (vehicles, vehicle steering), cat-vs-robot-vacuum, dog-park-fetch (characters, camera
+steering), wizard-potion-lab, haunted-mansion-keys. Waiting (batch 2): firefighter-rescue, beach-lifeguard.
 
 ## Cost
 
