@@ -9,8 +9,8 @@
    padding: 0.4rem 0.7rem;
    border: 1px solid var(--stroke);
    border-radius: 0.6rem;
-   background: var(--card);
-   color: var(--text);
+   background: rgba(15, 23, 42, 0.86);
+   color: #f8fafc;
    font-size: 0.75rem;
    pointer-events: none;
    white-space: nowrap;
@@ -18,8 +18,8 @@
 .low { outline: 2px solid #fb7185; animation: warning 1s ease-in-out infinite alternate; }
 @keyframes warning { to { outline-color: #fecdd3; } }
 @media (prefers-reduced-motion: reduce) { .low { animation: none; } }
-.aligned { color: #047857; }
-.turn { color: #be123c; }
+.aligned { color: #6ee7b7; }
+.turn { color: #fda4af; }
 @media (max-height: 520px) {
    .panel { top: 3.25rem; font-size: 0.75rem; padding: 0.25rem 0.5rem; }
 }
