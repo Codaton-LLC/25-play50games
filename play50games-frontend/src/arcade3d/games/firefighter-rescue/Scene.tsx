@@ -216,7 +216,19 @@ function LevelScene() {
    const guideCode = useRef(-1);
    const lastHold = useRef({ kind: 0, time: 0, index: -1, follower: -1, popAt: -10, goalKind: 0 as Target["kind"] }).current;
    const [goalKind, setGoalKind] = useState<Target["kind"]>(0);
-   useEffect(() => () => GUIDE.reset(), []);
+   useEffect(() => {
+      // the first target is up from the countdown on
+      nextTarget(run, goal);
+      beacon.x = goal.x;
+      beacon.y = goal.kind === 1 ? 0.7 : 1.3;
+      beacon.z = goal.z;
+      beacon.hidden = goal.kind === 0;
+      lastHold.goalKind = goal.kind;
+      setGoalKind(goal.kind);
+      GUIDE.set(targetHint(hintCode(run, goal, false), touch));
+      return () => GUIDE.reset();
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+   }, [run]);
    // the sofa faces the hall from either side; the cabinet stands with its back to the hall wall
    const sofas = useMemo(() => spotsOf(run.furniture, "sofa", (item) => (item.x > 0 ? Math.PI : 0)), [run]);
    const beds = useMemo(() => spotsOf(run.furniture, "bed"), [run]);
