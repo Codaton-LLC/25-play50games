@@ -29,7 +29,7 @@ export const warehouseRushMeta: ArcadeGameMeta = {
    slug: "warehouse-rush",
    title: "Warehouse Rush",
    tagline: "Right box, right zone, 60 seconds.",
-   description: "Pick up coloured boxes and deliver them to the matching zone. The wrong zone costs points.",
+   description: "Pick up coloured boxes and deliver them to the matching zone within 60 seconds. The wrong zone costs points, so sort carefully.",
    order: 6,
    status: "live",
    difficulty: 2,

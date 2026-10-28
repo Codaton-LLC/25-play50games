@@ -5,7 +5,7 @@ export const penaltyHeroMeta: ArcadeGameMeta = {
    slug: "penalty-hero",
    title: "Penalty Hero",
    tagline: "10 shots. Beat the keeper.",
-   description: "Pick a corner and shoot. The keeper guesses a side. Score streaks for bonus points.",
+   description: "Pick a corner and take 10 penalty shots. The keeper guesses a side, so read him, beat him and build score streaks for bonus points.",
    order: 5,
    status: "live",
    difficulty: 2,

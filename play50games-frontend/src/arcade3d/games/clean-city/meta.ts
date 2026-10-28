@@ -18,7 +18,7 @@ export const cleanCityMeta: ArcadeGameMeta = {
    slug: "clean-city",
    title: "Clean the City",
    tagline: "Tidy up the park, the city and the beach.",
-   description: "Collect every piece of litter across three maps. Faster clean-ups earn a time bonus.",
+   description: "Collect every piece of litter across a park, a city street and a beach as a tidy-up runner. Faster clean-ups earn a time bonus.",
    order: 8,
    status: "live",
    difficulty: 1,
