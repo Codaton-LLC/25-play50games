@@ -211,8 +211,9 @@ the eye ring, hail shadows, secret markers.
   **straggler teleport** are not built.
 - A respawn re-forms every cloud and returns every feather; in multiplayer that resets the shared sky
   for everyone.
-- The boss GLB's eye glints sit in its three sockets: the side ones at x = ±0.32 × 0.85 in GLB units
-  (`Course.tsx`; 0.94 put them just outside the sockets), checked headless against the drawn face on L5.
+- The boss GLB's eye glints sit in its three sockets: the side ones at x = ±0.32 × 0.68 in GLB units
+  (`Course.tsx`). 0.94 put them outside the sockets, and 0.85 still left them on the sockets' outer rims in
+  a headless close-up of the face on L5 (2026-10-28), so they moved to 0.68, the measured socket centres.
 - Music stems per combo and the sunset sky tint over time are not built (the HUD clock is the sun).
 - Gloom Nimbus's "swallows clouds" and "sinks the last clouds, drops feathers" are flavour not built:
   the chase is a line behind you and the burst is a third ring.
