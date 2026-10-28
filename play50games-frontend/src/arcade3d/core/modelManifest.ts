@@ -231,6 +231,17 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/ring-jump-challenge/m2SpringPad.glb",
    "/models/3d/ring-jump-challenge/m2StoneRingBg.glb",
    "/models/3d/ring-jump-challenge/spikedBall.glb",
+   // Menu 2 game 41 (Wind Tunnel Escape): tunnel props from ~/.play50/hyper3d/ready/menu2/wind-tunnel-escape,
+   // m2FactoryDrone (ready/menu2/shared) and m2WindFanTower (ready/menu2/sky-tower-jump); m2GaleEngineBoss is its L5 boss
+   "/models/3d/wind-tunnel-escape/m2AirVent.glb",
+   "/models/3d/wind-tunnel-escape/m2AnemometerPost.glb",
+   "/models/3d/wind-tunnel-escape/m2FactoryDrone.glb",
+   "/models/3d/wind-tunnel-escape/m2FanLiftPlatform.glb",
+   "/models/3d/wind-tunnel-escape/m2FlyingCrate.glb",
+   "/models/3d/wind-tunnel-escape/m2GaleEngineBoss.glb",
+   "/models/3d/wind-tunnel-escape/m2WindFan.glb",
+   "/models/3d/wind-tunnel-escape/m2WindFanTower.glb",
+   "/models/3d/wind-tunnel-escape/m2WindTubeBg.glb",
    // P-121 dev adoptions (2026-10-25): V2 replacements and Group D variety whose QA verdict
    // starts with OK. Optimized GLBs copied in; not re-optimized. Live games are untouched.
    "/models/3d/shopping-cart/supermarketShelfV2.glb",

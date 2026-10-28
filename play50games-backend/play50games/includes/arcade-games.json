@@ -1070,6 +1070,22 @@
         { "title": "Fast Route", "max_score": 14353, "min_duration_ms": 11300, "max_duration_ms": 131000, "base": 0, "max_pps": 1271 },
         { "title": "Perfect Streak", "max_score": 16228, "min_duration_ms": 33500, "max_duration_ms": 221000, "base": 0, "max_pps": 485 }
       ]
+    },
+    "wind-tunnel-escape": {
+      "title": "Wind Tunnel Escape",
+      "kind": "time",
+      "max_score": 11190,
+      "min_duration_ms": 8100,
+      "max_duration_ms": 120000,
+      "time_base_ms": 120000,
+      "enabled": false,
+      "levels": [
+        { "title": "Gentle Wind", "max_score": 11190, "min_duration_ms": 8100, "max_duration_ms": 120000, "time_base_ms": 120000 },
+        { "title": "Cross Wind", "max_score": 13700, "min_duration_ms": 13000, "max_duration_ms": 150000, "time_base_ms": 150000 },
+        { "title": "Vertical Lift", "max_score": 16730, "min_duration_ms": 12700, "max_duration_ms": 180000, "time_base_ms": 180000 },
+        { "title": "Moving Fans", "max_score": 19380, "min_duration_ms": 16200, "max_duration_ms": 210000, "time_base_ms": 210000 },
+        { "title": "Storm Tunnel", "max_score": 25950, "min_duration_ms": 40500, "max_duration_ms": 300000, "time_base_ms": 300000 }
+      ]
     }
   }
 }
