@@ -358,7 +358,8 @@ function SoloScene() {
    return (
       <JuiceLayer>
          <World course={run.course} seed={decorSeed} levelId={levelId} />
-         <Course run={run} clock={clock} won={won} />
+         {/* keyed by level: the pools below are sized once per mount, and a level switch keeps the scene */}
+         <Course key={levelId} run={run} clock={clock} won={won} />
          <Hero run={run} anim={anim} ground={ground} />
          <Simulation run={run} anim={anim} clock={clock} won={won} orbit={orbit} />
          <GroundProbe run={run} clock={clock} ground={ground} />

@@ -641,8 +641,9 @@ export function Course({ run, clock, won }: { run: RuinRun; clock: VisualClock; 
    const orbs = course.orbs;
 
    const orbUpdate = (i: number, m: Matrix4) => {
-      if (run.collected[i]) return false;
       const o = orbs[i];
+      // the pool is sized once per mount: a run on another course (fewer orbs) must not read past it
+      if (!o || run.collected[i]) return false;
       // a buried orb sits half sunk in its floor (only Zuno's magnet pulls it out of a drained floor)
       const buried = o.buried !== NONE;
       m.makeRotationY(time.now * (buried ? 0.8 : 2.4) + i);

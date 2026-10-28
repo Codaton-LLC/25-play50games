@@ -350,8 +350,9 @@ function Boss({ run, clock }: { run: CloudRun; clock: VisualClock }) {
             {[-0.32, 0, 0.32].map((dx, i) => (
                <mesh key={i} ref={(m) => {
                   eyes.current[i] = m;
-               }} position={[dx, GLB_SIZE.boss.y * (i === 1 ? 0.62 : 0.56), GLB_SIZE.boss.z * 0.5]}>
-                  <sphereGeometry args={[0.09, 12, 10]} />
+               }} position={[dx * 0.94, GLB_SIZE.boss.y * (i === 1 ? 0.6 : 0.565), GLB_SIZE.boss.z * 0.5]}>
+                  {/* small glints inside the GLB's own three eye sockets (0.09 covered the face as 1 m discs) */}
+                  <sphereGeometry args={[0.045, 12, 10]} />
                   <meshBasicMaterial color="#7c3aed" toneMapped={false} />
                </mesh>
             ))}
