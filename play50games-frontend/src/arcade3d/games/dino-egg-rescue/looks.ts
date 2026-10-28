@@ -2,6 +2,7 @@
 // Gameplay places (valley bounds, nest, mud pits, boulder lanes, trees) stay put.
 // No React, no three.js — Scene.tsx and Valley.tsx upload these buffers.
 import { rngNext } from "@/arcade3d/core/math";
+import type { ValleyTheme } from "./maps";
 
 /** Playable valley bounds. Decor instances stay strictly outside this rect. */
 export const VALLEY_FIELD = { x0: -15, x1: 15, z0: -11, z1: 11 } as const;
@@ -443,3 +444,52 @@ export function decorOf(kind: DecorSpot["kind"], tone?: number): DecorSpot[] {
       (spot) => spot.kind === kind && (tone === undefined || spot.tone === tone)
    );
 }
+
+// ---------- per-level looks (maps.ts themes) ----------
+
+/** One valley's palette and light: the ground, the gullies, the ridge tint, the sky dome, the fog and the core lighting preset. */
+export interface ThemeLook {
+   lighting: "day" | "night" | "sunset";
+   skyTop: string;
+   skyBottom: string;
+   fog: string;
+   fogNear: number;
+   fogFar: number;
+   grass: string;
+   grassSun: string;
+   grassShade: string;
+   soil: string;
+   gully: string;
+   /** multiplies the ridge mesh's vertex colours */
+   ridgeTint: string;
+   /** the meadow's mottling alpha (0.05 = today's calm valley) */
+   mottle: number;
+}
+
+export const THEME_LOOKS: Record<ValleyTheme, ThemeLook> = {
+   // Green Valley: today's sunset valley
+   valley: {
+      lighting: "sunset", skyTop: COLORS.skyTop, skyBottom: COLORS.skyBottom, fog: COLORS.fog, fogNear: FOG.near, fogFar: FOG.far,
+      grass: COLORS.grass, grassSun: COLORS.grassSun, grassShade: COLORS.grassShade, soil: COLORS.soil, gully: COLORS.gullyBed, ridgeTint: "#ffffff", mottle: 0.05,
+   },
+   // Fern Forest: green daylight under the canopy, a dark leaf-litter floor, green haze
+   forest: {
+      lighting: "day", skyTop: "#0f766e", skyBottom: "#bbf7d0", fog: "#9fc9a4", fogNear: 44, fogFar: 92,
+      grass: "#3f7d20", grassSun: "#65a30d", grassShade: "#24501a", soil: "#5b3a1a", gully: "#3b2611", ridgeTint: "#9bc28f", mottle: 0.14,
+   },
+   // Riverbank: a bright blue morning, lush banks, sand
+   river: {
+      lighting: "day", skyTop: "#0284c7", skyBottom: "#e0f2fe", fog: "#cfe8f5", fogNear: 50, fogFar: 105,
+      grass: "#5fa83a", grassSun: "#86c94f", grassShade: "#3f7f2a", soil: "#c9a46a", gully: "#6b4a2b", ridgeTint: "#d8e6d0", mottle: 0.08,
+   },
+   // Volcanic Pass: night under a red sky, basalt ground, lava glow
+   volcano: {
+      lighting: "night", skyTop: "#1c0606", skyBottom: "#9a2a0e", fog: "#4a1408", fogNear: 46, fogFar: 98,
+      grass: "#5a524c", grassSun: "#77695e", grassShade: "#3a3430", soil: "#2a211c", gully: "#7c2d12", ridgeTint: "#7a5a50", mottle: 0.12,
+   },
+   // Dino Sanctuary: a golden-violet dusk, a tended lawn
+   sanctuary: {
+      lighting: "sunset", skyTop: "#4c1d95", skyBottom: "#f9a8d4", fog: "#e9b6cf", fogNear: 50, fogFar: 104,
+      grass: "#71a83c", grassSun: "#a3d65c", grassShade: "#4f7f2a", soil: "#9a6b3c", gully: "#5b3a1f", ridgeTint: "#d9c6e8", mottle: 0.06,
+   },
+};

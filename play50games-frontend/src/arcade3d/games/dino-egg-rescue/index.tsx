@@ -6,7 +6,7 @@ import { ASSETS } from "./assets";
 import { FOV } from "./camera";
 import DinoHud from "./Hud";
 import { LEVELS, type DinoLevel } from "./levels";
-import { COLORS, FOG } from "./looks";
+import { COLORS, FOG, THEME_LOOKS } from "./looks";
 import { DURATION_MS, RESULT_DELAY_MS, regularSupply } from "./rules";
 import Scene from "./Scene";
 
@@ -16,25 +16,41 @@ const BASE_INSTRUCTIONS = [
    "WASD / Joystick to waddle, Space / E / tap Dash to dash.",
 ];
 
-function instructionsFor(level: DinoLevel): string[] {
-   const extra =
-      level.maxStack > 3
-         ? "You can carry four eggs. The fourth one slows you the most."
-         : level.unlocks[2] === 0
-           ? "All four boulder lanes roll early. Golden eggs come sooner."
-           : level.mudPatches > 3
-             ? "More mud pits, and the boulders roll faster."
-             : "Boulder lanes open sooner, and the rocks come in faster.";
-   return [...BASE_INSTRUCTIONS, extra];
+/** Each level's twist, as a fourth instruction line (level 1 keeps its three). */
+const TWISTS: Record<LevelId, string> = {
+   1: "",
+   2: "Fern Forest: fallen logs block the way. Walk round, or dash to hop over a log.",
+   3: "Riverbank: wading is slow and the current drags you downstream. Cross on the log bridges.",
+   4: "Volcanic Pass: lava vents glow, then erupt. Step off a glowing vent, or dash through it.",
+   5: "Dino Sanctuary: the nest pen has one gate. Mind the pond, the geysers and the logs. You can carry four eggs.",
+};
+
+/** Where the nest is, per level (the first instruction line). */
+const NEST_AT: Record<LevelId, string> = {
+   1: "in the South-East",
+   2: "in the South-West clearing",
+   3: "on the South-West bank",
+   4: "in the hollow on the west wall",
+   5: "in the fenced pen to the south",
+};
+
+function instructionsFor(id: LevelId): string[] {
+   return [...BASE_INSTRUCTIONS.map((line) => line.replace("in the South-East", NEST_AT[id])), TWISTS[id]];
 }
 
 /** one line under the level tiles */
 const DESCRIPTIONS: Record<LevelId, string> = {
-   1: "90 seconds in the valley. Carry eggs home and dodge the boulders.",
-   2: "Lanes open sooner and boulders come faster. 120 seconds.",
-   3: "Five mud pits and faster boulders. 120 seconds.",
-   4: "All four lanes roll early, and golden eggs come sooner. 120 seconds.",
-   5: "More eggs, and you can carry four. 120 seconds.",
+   1: "90 seconds in the sunset valley. Carry eggs home and dodge the boulders.",
+   2: "A dense forest: trunks, ferns and fallen logs to hop. 120 seconds.",
+   3: "A river splits the valley: wade against the current or use the bridges. 120 seconds.",
+   4: "Night in the volcanic pass: lava boulders and erupting vents. 120 seconds.",
+   5: "The sanctuary at dusk: a gated nest pen, a pond, geysers. Carry four. 120 seconds.",
+};
+
+/** each level's light, fog and backdrop colour (looks.ts THEME_LOOKS) */
+const environmentFor = (level: DinoLevel): NonNullable<LevelSpec<DinoLevel>["environment"]> => {
+   const look = THEME_LOOKS[level.map.theme];
+   return { background: look.skyBottom, lighting: look.lighting, fog: [look.fog, look.fogNear, look.fogFar] };
 };
 
 const savedMax = (level: DinoLevel) => regularSupply(level) + level.goldenSpawnTimes.length;
@@ -64,7 +80,8 @@ const definition: GameDefinition<DinoLevel> = {
          description: DESCRIPTIONS[id],
          config: level,
          durationMs: level.durationMs,
-         instructions: instructionsFor(level),
+         instructions: instructionsFor(id),
+         environment: environmentFor(level),
          hudStats: [{ key: "eggs", label: "Eggs Saved", max: savedMax(level) }],
       };
    }),
