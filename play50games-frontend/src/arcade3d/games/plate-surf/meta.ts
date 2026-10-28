@@ -5,7 +5,7 @@ import { PROPOSED_LEVEL_LIMITS } from "./rules";
 // Menu 2 (Color Roll Heroes) game 37, World 2. Status "dev" (preview builds only) until the user signs it off.
 // A time game: the finish time minus the orb and flow bonus is the score (README "Scoring").
 // Each level row carries its own proven limits (PROPOSED_LEVEL_LIMITS in rules.ts).
-// order 87 (50 Menu 1 games + its Menu 2 index 37).
+// order 56: the next slot after the Menu 2 games already in the registry (orders are the slug list's positions).
 const LEVEL_TITLES: Record<LevelId, string> = {
    1: "Training Swell",
    2: "Rocky Path",
@@ -27,7 +27,7 @@ export const plateSurfMeta: ArcadeGameMeta = {
    title: "Plate Surf",
    tagline: "Ride a giant rolling wave. Pump for speed, air off the lip, outrun the curl.",
    description: "Surf a curling wave on a hero plate as a Color Roll Heroes armadillo: carve up and down the face to pump for speed, launch off the lip for spins, flips and grabs, and stay ahead of the curl. Pick Riko, Nami, Kiro, Zuno or Vexa and ride to the lagoon.",
-   order: 87,
+   order: 56,
    status: "dev",
    collection: "rollheroes",
    difficulty: 2,

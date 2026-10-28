@@ -74,12 +74,12 @@ describe("Menu 2", () => {
    it("keeps its games last, in dev, in the rollheroes collection", () => {
       const menu2 = ARCADE_GAMES.slice(50);
       expect(menu2.map((g) => g.slug)).toEqual(MENU2);
-      expect(menu2.map((g) => g.order)).toEqual([51, 52, 53, 54, 55]);
-      expect(menu2.map((g) => g.owner)).toEqual(["claude", "cursor", "cursor", "cursor", "cursor"]);
+      expect(menu2.map((g) => g.order)).toEqual([51, 52, 53, 54, 55, 56]);
+      expect(menu2.map((g) => g.owner)).toEqual(["claude", "cursor", "cursor", "cursor", "cursor", "claude"]);
       for (const g of menu2) {
          expect(g.status).toBe("dev");
          expect(g.collection).toBe("rollheroes");
-         expect(g.owner).toBe(g.slug === "sky-tower-jump" ? "claude" : "cursor");
+         expect(g.owner).toBe(g.slug === "sky-tower-jump" || g.slug === "plate-surf" ? "claude" : "cursor");
          expect(isGameVisible(g, false)).toBe(false);
          expect(isGameVisible(g, true)).toBe(true);
       }

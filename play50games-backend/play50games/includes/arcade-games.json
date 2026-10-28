@@ -985,6 +985,22 @@
         { "title": "Fading Clouds", "max_score": 17180, "min_duration_ms": 38200, "max_duration_ms": 210000, "time_base_ms": 210000 },
         { "title": "Sky Sprint", "max_score": 20030, "min_duration_ms": 39700, "max_duration_ms": 240000, "time_base_ms": 240000 }
       ]
+    },
+    "plate-surf": {
+      "title": "Plate Surf",
+      "kind": "time",
+      "max_score": 10620,
+      "min_duration_ms": 13800,
+      "max_duration_ms": 120000,
+      "time_base_ms": 120000,
+      "enabled": false,
+      "levels": [
+        { "title": "Training Swell", "max_score": 10620, "min_duration_ms": 13800, "max_duration_ms": 120000, "time_base_ms": 120000 },
+        { "title": "Rocky Path", "max_score": 12240, "min_duration_ms": 17600, "max_duration_ms": 140000, "time_base_ms": 140000 },
+        { "title": "Jump Gates", "max_score": 13870, "min_duration_ms": 21300, "max_duration_ms": 160000, "time_base_ms": 160000 },
+        { "title": "Speed Canyon", "max_score": 15300, "min_duration_ms": 27000, "max_duration_ms": 180000, "time_base_ms": 180000 },
+        { "title": "Plate Surf Master", "max_score": 19770, "min_duration_ms": 42300, "max_duration_ms": 240000, "time_base_ms": 240000 }
+      ]
     }
   }
 }
