@@ -169,13 +169,13 @@ describe("HUD chips", () => {
       expect(labels(chips({ clock: true }))).toEqual(["Score", "Time", "Found"]);
    });
 
-   it("decides by meta.scoring.kind: the time games (escape-room, obstacle-race, haunted-mansion-keys, sky-tower-jump, rooftop-roll-climb, flooded-ruins-escape, lava-pillar-jump, cloud-hopper, plate-surf, color-city-sprint) hide it, every points game keeps it", () => {
+   it("decides by meta.scoring.kind: the time games (escape-room, obstacle-race, haunted-mansion-keys, sky-tower-jump, rooftop-roll-climb, flooded-ruins-escape, lava-pillar-jump, cloud-hopper, plate-surf, wind-tunnel-escape, roll-cannon-jump, color-city-sprint) hide it, every points game keeps it", () => {
       expect(hudShowsScore(escapeRoomMeta.scoring.kind)).toBe(false);
       expect(hudShowsScore(obstacleRaceMeta.scoring.kind)).toBe(false);
       expect(hudShowsScore(robotCollectorMeta.scoring.kind)).toBe(true);
-      expect(ARCADE_GAMES).toHaveLength(58);
+      expect(ARCADE_GAMES).toHaveLength(61);
       const hidden = ARCADE_GAMES.filter((meta) => !hudShowsScore(meta.scoring.kind)).map((meta) => meta.slug);
-      expect(hidden.sort()).toEqual(["cloud-hopper", "color-city-sprint", "escape-room", "flooded-ruins-escape", "haunted-mansion-keys", "lava-pillar-jump", "obstacle-race", "plate-surf", "rooftop-roll-climb", "sky-tower-jump"]);
+      expect(hidden.sort()).toEqual(["cloud-hopper", "color-city-sprint", "escape-room", "flooded-ruins-escape", "haunted-mansion-keys", "lava-pillar-jump", "obstacle-race", "plate-surf", "roll-cannon-jump", "rooftop-roll-climb", "sky-tower-jump", "wind-tunnel-escape"]);
    });
 
    it("GameShell hands the game's own meta.scoring to the HUD, which hands it on to HudChips untouched", () => {

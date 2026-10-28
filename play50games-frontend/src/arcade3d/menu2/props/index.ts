@@ -14,3 +14,6 @@ export * from "./Flipper";
 export * from "./SweeperBar";
 export * from "./RailJunction";
 export * from "./SpikeBlock";
+export * from "./TrainingDisc";
+export * from "./GreatGong";
+export * from "./MirrorGate";

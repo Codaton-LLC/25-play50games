@@ -1054,6 +1054,55 @@
         }
       ]
     },
+    "ring-jump-challenge": {
+      "title": "Ring Jump Challenge",
+      "kind": "points",
+      "max_score": 9421,
+      "min_duration_ms": 6100,
+      "max_duration_ms": 91000,
+      "base": 0,
+      "max_pps": 1545,
+      "enabled": false,
+      "levels": [
+        { "title": "Wide Rings", "max_score": 9421, "min_duration_ms": 6100, "max_duration_ms": 91000, "base": 0, "max_pps": 1545 },
+        { "title": "Moving Rings", "max_score": 11935, "min_duration_ms": 7800, "max_duration_ms": 101000, "base": 0, "max_pps": 1531 },
+        { "title": "Updraft Rings", "max_score": 17755, "min_duration_ms": 9700, "max_duration_ms": 121000, "base": 0, "max_pps": 1831 },
+        { "title": "Fast Route", "max_score": 14353, "min_duration_ms": 11300, "max_duration_ms": 131000, "base": 0, "max_pps": 1271 },
+        { "title": "Perfect Streak", "max_score": 16228, "min_duration_ms": 33500, "max_duration_ms": 221000, "base": 0, "max_pps": 485 }
+      ]
+    },
+    "wind-tunnel-escape": {
+      "title": "Wind Tunnel Escape",
+      "kind": "time",
+      "max_score": 11190,
+      "min_duration_ms": 8100,
+      "max_duration_ms": 120000,
+      "time_base_ms": 120000,
+      "enabled": false,
+      "levels": [
+        { "title": "Gentle Wind", "max_score": 11190, "min_duration_ms": 8100, "max_duration_ms": 120000, "time_base_ms": 120000 },
+        { "title": "Cross Wind", "max_score": 13700, "min_duration_ms": 13000, "max_duration_ms": 150000, "time_base_ms": 150000 },
+        { "title": "Vertical Lift", "max_score": 16730, "min_duration_ms": 12700, "max_duration_ms": 180000, "time_base_ms": 180000 },
+        { "title": "Moving Fans", "max_score": 19380, "min_duration_ms": 16200, "max_duration_ms": 210000, "time_base_ms": 210000 },
+        { "title": "Storm Tunnel", "max_score": 25950, "min_duration_ms": 40500, "max_duration_ms": 300000, "time_base_ms": 300000 }
+      ]
+    },
+    "roll-cannon-jump": {
+      "title": "Roll Cannon Jump",
+      "kind": "time",
+      "max_score": 7360,
+      "min_duration_ms": 1400,
+      "max_duration_ms": 75000,
+      "time_base_ms": 75000,
+      "enabled": false,
+      "levels": [
+        { "title": "Short Launch", "max_score": 7360, "min_duration_ms": 1400, "max_duration_ms": 75000, "time_base_ms": 75000 },
+        { "title": "Angle Practice", "max_score": 8790, "min_duration_ms": 2100, "max_duration_ms": 90000, "time_base_ms": 90000 },
+        { "title": "Moving Pads", "max_score": 10680, "min_duration_ms": 3200, "max_duration_ms": 110000, "time_base_ms": 110000 },
+        { "title": "Long Distance", "max_score": 12070, "min_duration_ms": 4300, "max_duration_ms": 125000, "time_base_ms": 125000 },
+        { "title": "Big Top Finale", "max_score": 17600, "min_duration_ms": 24000, "max_duration_ms": 200000, "time_base_ms": 200000 }
+      ]
+    },
     "color-city-sprint": {
       "title": "Color City Sprint",
       "kind": "time",

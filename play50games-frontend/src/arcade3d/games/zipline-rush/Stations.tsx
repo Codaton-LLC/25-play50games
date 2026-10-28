@@ -17,6 +17,7 @@ import {
    DoubleSide,
    Float32BufferAttribute,
    Matrix4,
+   MeshStandardMaterial,
    type Group,
    type Mesh,
    type MeshBasicMaterial,
@@ -36,6 +37,19 @@ import { lookFor } from "./look";
 import { deckPoint, type ZipRun } from "./rules";
 import { ANCHOR_DZ, ANCHOR_X, GANTRY_X, HANG, SEA_Y, STACK_POWER, TOWER_DZ, scenery, stations, type Station } from "./layout";
 import { LEVELS, type ZipLevel } from "./levels";
+
+/** A gantry beam right by the camera (a steep or close orbit) is cut away instead of filling the frame. */
+function nearFade(m: MeshStandardMaterial, radius: number): MeshStandardMaterial {
+   m.onBeforeCompile = (shader) => {
+      shader.vertexShader = shader.vertexShader
+         .replace("#include <common>", "#include <common>\nvarying vec3 vNearWorld;")
+         .replace("#include <worldpos_vertex>", "#include <worldpos_vertex>\nvNearWorld = (modelMatrix * vec4(transformed, 1.0)).xyz;");
+      shader.fragmentShader = shader.fragmentShader
+         .replace("#include <common>", "#include <common>\nvarying vec3 vNearWorld;")
+         .replace("#include <clipping_planes_fragment>", `#include <clipping_planes_fragment>\nif (distance(vNearWorld, cameraPosition) < ${radius.toFixed(1)}) discard;`);
+   };
+   return m;
+}
 
 /** One rock column: noisy elliptical rings from under the sea to `top`, a flat cap. */
 function stackPart(out: { pos: number[]; col: number[] }, cx: number, cz: number, rx: number, rz: number, top: number, seed: number, palette: { top: Color; mid: Color; base: Color; cap: Color }, flatFront = false) {
@@ -330,6 +344,8 @@ export function Stations({ run, runs }: { run: ZipRun; runs: readonly ZipRun[] }
    }, [level, lights]);
    const rock = useMemo(() => stackGeometry(level, sts, extras), [level, sts, extras]);
    const steel = useMemo(() => gantryGeometry(sts), [sts]);
+   const steelMaterial = useMemo(() => nearFade(new MeshStandardMaterial({ color: c.night ? "#3b4a63" : "#5b6b7c", metalness: 0.5, roughness: 0.38 }), 4.5), [c.night]);
+   useEffect(() => () => steelMaterial.dispose(), [steelMaterial]);
    useEffect(
       () => () => {
          rock.dispose();
@@ -361,9 +377,7 @@ export function Stations({ run, runs }: { run: ZipRun; runs: readonly ZipRun[] }
          <mesh geometry={rock}>
             <meshStandardMaterial vertexColors flatShading roughness={0.93} metalness={0.02} />
          </mesh>
-         <mesh geometry={steel}>
-            <meshStandardMaterial color={c.night ? "#3b4a63" : "#5b6b7c"} metalness={0.7} roughness={0.38} />
-         </mesh>
+         <mesh geometry={steel} material={steelMaterial} />
          <CulledModel asset={ASSETS.tower} spots={towers} />
          <CulledModel asset={ASSETS.lighthouse} spots={lights} ahead={300} behind={80} />
          {lights.length > 0 && <Beams run={run} spots={lights} />}

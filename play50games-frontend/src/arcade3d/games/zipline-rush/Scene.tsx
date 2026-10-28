@@ -20,6 +20,8 @@ import { cablePoint, createRun, landingZone, step, type ZipRun } from "./rules";
 import { pickedHero, subscribeHero } from "./heroes";
 import type { ZipLevel } from "./levels";
 import { levelEndStats } from "./levelEnd";
+import { botInput } from "./bot";
+import { ARCADE_PREVIEW } from "@/arcade3d/flags";
 import { Course } from "./Course";
 import { World } from "./World";
 import { Hero } from "./Hero";
@@ -29,6 +31,19 @@ import { BOUNDS, SIZE } from "./assets";
 import type { M2HeroId } from "../../menu2/heroModels";
 import type { IntroKeyframe } from "../../core/intro/introMachine";
 import type { LevelId } from "../../types";
+
+/** Preview builds only: `?autoplay=1` lets the honest bot (bot.ts, the proofs' bot) ride, for screenshots. */
+function autoplayRequested(): boolean {
+   if (!ARCADE_PREVIEW || typeof window === "undefined") return false;
+   try {
+      return new URLSearchParams(window.location.search).get("autoplay") === "1";
+   } catch {
+      return false;
+   }
+}
+
+/** Portrait phones: a little farther than landscape (the narrow view), but the rider stays readable. */
+export const PORTRAIT_DISTANCE = 1.12;
 
 function CourseView({ runs }: { runs: ZipRun[] }) {
    const [focus, setFocus] = useState(0);
@@ -111,6 +126,7 @@ function RunScene({ multi }: { multi: boolean }) {
    const r = group?.runs[0] ?? solo;
    const runs = group?.runs ?? [solo];
    const input = useInput();
+   const autoplay = useMemo(autoplayRequested, []);
    const orbit = useMemo(() => createOrbit({ yaw: 0, pitch: 0.48, distance: 8.6, minDistance: 4.5, maxDistance: 24 }), [id, multi]); // eslint-disable-line react-hooks/exhaustive-deps
    const aspect = useThree((s) => s.size.width / s.size.height);
    const intro = useShellIntro();
@@ -154,7 +170,7 @@ function RunScene({ multi }: { multi: boolean }) {
       } else {
          const i = input.current;
          // the stick's up is brake, down is tuck (rules.ts: throttle > 0 tucks)
-         step(r, dt * 1000, { x: i.moveX, throttle: i.moveY, yaw: orbit.viewYaw, jump: i.jumpPressed, power: i.actionPressed });
+         step(r, dt * 1000, autoplay ? botInput(r) : { x: i.moveX, throttle: i.moveY, yaw: orbit.viewYaw, jump: i.jumpPressed, power: i.actionPressed });
          publish(r);
          if (r.ended) {
             const s = useArcadeStore.getState();
@@ -284,7 +300,7 @@ function RunScene({ multi }: { multi: boolean }) {
                   out.x = r.vx;
                   out.z = r.vz;
                }}
-               distanceScale={aspect < 1 ? 1.4 : 1}
+               distanceScale={aspect < 1 ? PORTRAIT_DISTANCE : 1}
                solids={solids}
             />
          )}
