@@ -142,7 +142,7 @@ function LevelScene() {
    const time = useGameTime();
    const [run] = useState<Run>(() => createRun(randomSeed(), config));
    // camera views (core/camera): the rules get the drawn camera's yaw; the store's back and side
-   // walls (the right one a low counter) keep the chase / front / free camera out of the masonry
+   // walls (the right one a low counter) and the shelves keep the chase / front / free camera out of the masonry
    const cam = useCameraViews({
       slug: "toy-store-night-shift",
       subject: "character",
@@ -172,6 +172,8 @@ function LevelScene() {
          wall(0, -run.hz - BACK - t / 2, run.hx * 2 + t * 2, t, WALL_H);
          wall(-run.hx - t / 2, -BACK / 2, t, run.hz * 2 + BACK, WALL_H);
          wall(run.hx + t / 2, -BACK / 2, t, run.hz * 2 + BACK, SIDE_H);
+         // the shelves too: without them the chase / free camera ends inside a shelf (a pink trim slab)
+         for (const sh of run.shelves) wall((sh.minX + sh.maxX) / 2, sh.z, sh.maxX - sh.minX, sh.maxZ - sh.minZ, SHELF_H + 0.15);
          return n;
       },
    });
