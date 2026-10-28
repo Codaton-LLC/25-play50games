@@ -42,8 +42,9 @@ export interface BotShot {
    fireAt: number;
    /** dive when over Ashbag's valve (P3) */
    valveDive: boolean;
-   /** the planned outcome's rules ms and score (for tests) */
+   /** the planned outcome's rules ms (for tests) and the main orbs it takes */
    arriveMs: number;
+   main: number;
 }
 
 export interface Bot {
@@ -105,7 +106,10 @@ function overValve(run: CannonRun): boolean {
    const vx = a.topSpot.x;
    const vz = a.topSpot.z;
    const vy = a.topSpot.y + VALVE_DY;
-   return Math.hypot(h.x - vx, h.z - vz) < 1.1 && h.y > vy && h.y < vy + 4;
+   // dive just before passing over it (the dive pulls straight down at 50 m/s^2)
+   const d = Math.hypot(h.x - vx, h.z - vz);
+   const closing = (h.x - vx) * h.vx + (h.z - vz) * h.vz < 0;
+   return d < (closing ? 1.6 : 0.9) && h.y > vy && h.y < vy + 4;
 }
 
 /** Steps a copy in flight (and through auto cannons on the P3 chain) until the flight settles. */
@@ -235,7 +239,7 @@ export function planShot(bot: Bot, run: CannonRun, goal: Goal, latestMs = Infini
       if (kind === "auto" && fireAt > AUTO_FIRE_MS) return;
       const o = tryShot(bot, run, yaw, pitch, fireAt, goal);
       if (!o || o.ms > latestMs) return;
-      if (!best || shotScore(o) < shotScore(best.o)) best = { o, shot: { yaw, pitch, fireAt, valveDive: goal.chain, arriveMs: o.ms } };
+      if (!best || shotScore(o) < shotScore(best.o)) best = { o, shot: { yaw, pitch, fireAt, valveDive: goal.chain, arriveMs: o.ms, main: o.main } };
    };
    if (kind === "aim") {
       for (let deg = 20; deg <= 70; deg += 2.5) {
@@ -458,7 +462,7 @@ export function botInput(bot: Bot, run: CannonRun, input: StepInput): void {
    let good = sim.hero.mode === "fly";
    if (good) {
       const o = flyOut(sim, run, shot.valveDive);
-      good = goal ? goal.ok(o, sim) : o.kind !== "lost" || o.bossHit;
+      good = goal ? goal.ok(o, sim) && o.main >= shot.main : o.kind !== "lost" || o.bossHit;
       if (leg.to === "boss") good = o.bossHit || o.kind === "platform" || o.kind === "cannon";
    }
    if (good || next > shot.fireAt + dt + 40) {

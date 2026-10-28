@@ -85,7 +85,7 @@ export const SECRET_R = 1.0;
 /** Ashbag's hit reaches (m) from the hero's middle */
 export const POD_R = 1.7;
 export const GONDOLA_R = 1.6;
-export const VALVE_R = 1.6;
+export const VALVE_R = 2.0;
 /** the gondola hangs this far under the blimp's centre, the valve sits this far over it */
 export const GONDOLA_DY = -2.6;
 export const VALVE_DY = 3.0;
@@ -1268,11 +1268,11 @@ export interface LevelLimits {
  * the Dijkstra proof at load.
  */
 export const PROPOSED_LEVEL_LIMITS: Record<LevelId, LevelLimits> = {
-   1: { kind: "time", maxScore: 0, minDurationMs: 0, maxDurationMs: 75_000, timeBaseMs: 75_000 },
-   2: { kind: "time", maxScore: 0, minDurationMs: 0, maxDurationMs: 90_000, timeBaseMs: 90_000 },
-   3: { kind: "time", maxScore: 0, minDurationMs: 0, maxDurationMs: 110_000, timeBaseMs: 110_000 },
-   4: { kind: "time", maxScore: 0, minDurationMs: 0, maxDurationMs: 125_000, timeBaseMs: 125_000 },
-   5: { kind: "time", maxScore: 0, minDurationMs: 0, maxDurationMs: 200_000, timeBaseMs: 200_000 },
+   1: { kind: "time", maxScore: 7_360, minDurationMs: 1_400, maxDurationMs: 75_000, timeBaseMs: 75_000 },
+   2: { kind: "time", maxScore: 8_790, minDurationMs: 2_100, maxDurationMs: 90_000, timeBaseMs: 90_000 },
+   3: { kind: "time", maxScore: 10_680, minDurationMs: 3_200, maxDurationMs: 110_000, timeBaseMs: 110_000 },
+   4: { kind: "time", maxScore: 12_070, minDurationMs: 4_300, maxDurationMs: 125_000, timeBaseMs: 125_000 },
+   5: { kind: "time", maxScore: 17_600, minDurationMs: 24_000, maxDurationMs: 200_000, timeBaseMs: 200_000 },
 };
 
 export const LEVEL1_LIMITS: LevelLimits = PROPOSED_LEVEL_LIMITS[1];
