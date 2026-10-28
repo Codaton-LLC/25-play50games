@@ -19,7 +19,7 @@ export const magicCarpetRideMeta: ArcadeGameMeta = {
    slug: "magic-carpet-ride",
    title: "Magic Carpet Ride",
    tagline: "Fly the rings, dodge the flock.",
-   description: "Steer a magic carpet through desert skies, a red canyon, the clouds, a lantern-lit night and up to a floating palace: fly through rings for combos, sweep up coin arcs and gems, grab boosts and dodge gulls, balloons, bats, hawks and rocks.",
+   description: "Steer a magic carpet through desert skies, a red canyon and a lantern-lit night: fly through rings for combos, grab coins and boosts, dodge gulls and rocks.",
    order: 47,
    status: "dev",
    collection: "adventure",
@@ -32,7 +32,7 @@ export const magicCarpetRideMeta: ArcadeGameMeta = {
    },
    scoring: SCORING,
    levels: LEVELS,
-   thumbnail: null,
+   thumbnail: "/images/3d/magic-carpet-ride.webp",
    accent: "#a78bfa",
    owner: "cursor",
 };

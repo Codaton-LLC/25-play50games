@@ -163,7 +163,7 @@ Fix1 bot counts: expert/novice, 48 seeds each in both damping modes (32 at 60 fp
 Bot reports: terminal reasons, score/duration extrema, per-distance-band delivery times, substep cable clamp seconds/fractions per axis, peak/final energy. No measured values claimed.
 Scoring: sum(150 + precision + express 50), successful pads only; fragile requires precision >=40; express <=10 s; twelve single-use awards, no terminal bonus.
 Limits: max 3600; duration 20000–182000 ms; base 300; 75 points/s. Proof: n parcels require 4n s loading, score <=300n<=75t; twelve awards cap 3600; battery >=97-4t gives loss >=24.25 s; win >=48 s; ceiling 180 s.
-Evidence: screenshots 1280x800 / 390x844 banner open / 844x390 and tools/perf JSON are pending; thumbnail null.
+Evidence: screenshots 1280x800 / 390x844 banner open / 844x390 and tools/perf JSON are pending; thumbnail wired.
 Acceptance [x]: folder implementation; pure seeded rules/core helpers; keyboard/touch bindings in code; dev status; approved meta limits; TypeScript.
 Acceptance [ ]: executed tests/build/gamecheck; legal bot timing and score proof measurements; three-size playtests; real model fit results; fallback playtest; <=70 target / <=80 cap calls; mid-phone p95; Retry x10 GPU/heap stability; screenshot/perf evidence.
 Known limitations: full Vitest game-suite duration remains pending Claude; standalone checks do not measure Vitest overhead. Vehicle fits and phone readability require actual validation. Server catalog pairing belongs to Claude's merge.

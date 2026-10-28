@@ -19,7 +19,7 @@ export const firefighterRescueMeta: ArcadeGameMeta = {
    slug: "firefighter-rescue",
    title: "Firefighter Rescue",
    tagline: "Put the fires out. Walk the neighbours clear.",
-   description: "Enter one floor, hold a spray on each fire, and walk one neighbour at a time out to the exit sign.",
+   description: "Enter one floor at a time, hold your spray on each fire and walk the neighbours one by one out to the exit sign.",
    order: 31,
    status: "dev",
    collection: "adventure",
@@ -32,7 +32,7 @@ export const firefighterRescueMeta: ArcadeGameMeta = {
    },
    scoring: SCORING,
    levels: LEVELS,
-   thumbnail: null,
+   thumbnail: "/images/3d/firefighter-rescue.webp",
    accent: "#f97316",
    owner: "cursor",
 };

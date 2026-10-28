@@ -31,7 +31,7 @@ export const hotelBellboyRushMeta: ArcadeGameMeta = {
    },
    scoring: LEVELS[0].scoring,
    levels: LEVELS,
-   thumbnail: null,
+   thumbnail: "/images/3d/hotel-bellboy-rush.webp",
    accent: "#fbbf24",
    owner: "claude",
 };

@@ -4,5 +4,5 @@ export default [
    { tap: "Space" },
    { hold: "ArrowUp", ms: 350 },
    { wait: 500 },
-   { zoom: 1.35, at: [0.5, 0.55] },
+   { zoom: 2, at: [0.5, 0.42] },
 ];

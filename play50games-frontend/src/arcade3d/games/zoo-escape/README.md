@@ -110,7 +110,7 @@ Approved; settled for a modern, fair arcade feel: core end cue for scoring time-
 
 TASK P-18-zoo-escape | build zoo-escape | branch claude/game-zoo-escape | allowed: play50games-frontend/src/arcade3d/games/zoo-escape/**, play50games-frontend/public/images/3d/zoo-escape.webp, tools/thumbs/inputs/zoo-escape.mjs
 
-Branch checked: `git branch --show-current` = claude/game-zoo-escape (on top of claude/core-expansion-2). Status stays "dev"; meta.scoring unchanged (provisional); thumbnail null (not captured: no browser on this run).
+Branch checked: `git branch --show-current` = claude/game-zoo-escape (on top of claude/core-expansion-2). Status stays "dev"; meta.scoring unchanged (provisional); thumbnail wired.
 
 **Files** (all in `games/zoo-escape/` unless noted): new `level.ts`, `rules.ts`, `camera.ts`, `poses.ts`, `assets.ts`, `Scene.tsx`, `Stage.tsx`, `Keepers.tsx`, `Primitives.tsx`, `Hud.tsx`, `Hud.module.css`, `testkit.ts` (test-only helpers, imports no core/testing), tests `rules.test.ts`, `fairness.test.ts`, `camera.test.ts`, `poses.test.ts`, `assets.test.ts`; changed `index.tsx` (real GameDefinition), `meta.ts` (control strings only), `README.md`; new `tools/thumbs/inputs/zoo-escape.mjs`. No core, other game, manifest, GLB or arcade-games.json change.
 

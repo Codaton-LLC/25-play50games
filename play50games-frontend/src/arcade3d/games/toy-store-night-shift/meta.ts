@@ -33,7 +33,7 @@ export const toyStoreNightShiftMeta: ArcadeGameMeta = {
    },
    scoring: SCORING,
    levels: LEVELS,
-   thumbnail: null,
+   thumbnail: "/images/3d/toy-store-night-shift.webp",
    accent: "#f472b6",
    owner: "kimi",
 };
