@@ -2,10 +2,12 @@ import { FLOOR, PLAN, predictLanding, rateLanding, slotAt, type Run } from "./ru
 import { COLORS } from "./looks";
 
 export const VISUAL_EXTENSION = 0.45;
-const RATING_COLORS = [COLORS.guideGold, COLORS.guideMint, COLORS.safetyWhite, COLORS.flashRed] as const;
+/* Landing colours by rating: green perfect, light green good, yellow ok, red miss. */
+const RATING_COLORS = [COLORS.ratePerfect, COLORS.rateGood, COLORS.rateOk, COLORS.rateMiss] as const;
+export const RATING_NAME = ["Perfect", "Good", "OK", "Miss"] as const;
 
 export function markerColor(rating: number): string {
-   return RATING_COLORS[rating] ?? COLORS.flashRed;
+   return RATING_COLORS[rating] ?? COLORS.rateMiss;
 }
 
 /** Caller-owned output: shared scoring prediction, without changing the run. */

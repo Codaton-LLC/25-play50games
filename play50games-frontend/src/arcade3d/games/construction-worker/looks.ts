@@ -15,13 +15,21 @@ export const WIDE_YAW = Math.PI / 2 + 0.1;
 
 /* Work zone: piles (r 7, z ≥ 6.3), slots (r 9.5, x ≤ 4.3, z ≤ 9.4), the hook
    block (rest top 5.7) and the worker at (2.6, 0, 5.35). The empty yard in
-   front of the piles, and the mast above the hook, may leave the frame. */
+   front of the piles may leave the frame. Portrait and desktop also keep the
+   jib and trolley (y 10, plus 0.4 for the trolley) over the work zone in frame
+   (AREA_JIB), so the player sees where the cable comes from: 390 x 844 drops
+   from 31 to about 29 px/m. The short wide phone keeps the 5.7 top (it would fall
+   to 16 px/m). */
 export const AREA: AABB = { min: { x: -4.8, y: 0, z: 4.8 }, max: { x: 4.8, y: 5.7, z: 10.2 } };
-export const FOCUS = [{ x: 0, y: 1.2, z: 7.5 }, { x: 0, y: 2.6, z: 7.5 }];
+export const AREA_JIB: AABB = { min: AREA.min, max: { x: 4.8, y: 10.4, z: 10.2 } };
+/* The fit's look points: LOOK's own range, y 0.35 * roof (0 .. 1.05). Was y 1.2 .. 2.6, which
+   fitted a look point the camera never used, so the picture sat 1-2 m too high and the
+   jib ran off the top. */
+export const FOCUS = [{ x: 0, y: 0, z: 7.5 }, { x: 0, y: 1.05, z: 7.5 }];
 export const MARGIN = { top: 0.1, bottom: 0.08, left: 0.02, right: 0.02 };
 const BASE = { area: AREA, pitch: PITCH, focus: FOCUS, margin: MARGIN, padding: 8, shift: true as const, fov: FOV };
 
-const PORTRAIT: FittedViewOptions = { ...BASE, yaws: [YAW] };
+const PORTRAIT: FittedViewOptions = { ...BASE, area: AREA_JIB, yaws: [YAW] };
 const WIDE: FittedViewOptions = { ...BASE, yaws: [WIDE_YAW] };
 
 /** Portrait and desktop use YAW. A short wide phone (width / height > 1.9) uses WIDE_YAW. */
@@ -90,6 +98,11 @@ export const COLORS = {
    guideMint: "#34d399",
    guideGold: "#fbbf24",
    flashRed: "#fb7185",
+   // Landing rating (dropGuide markerColor, HUD, the rating popup)
+   ratePerfect: "#22c55e",
+   rateGood: "#86efac",
+   rateOk: "#facc15",
+   rateMiss: "#ef4444",
 } as const;
 
 function channel(c: number): number {

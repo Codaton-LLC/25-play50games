@@ -38,8 +38,9 @@ const definition: GameDefinition<CraneLevel> = {
    levels: LEVEL_IDS.map((id) => ({ id, description: DESCRIPTIONS[id], config: LEVELS[id], hudStats: HUD })),
    instructions: [
       "A / D rotates the crane, W / S runs the trolley. Arrows do the same.",
-      "Press 1-5 or tap a pile while the hook is over it. Action picks too.",
-      "Space or Action drops when the guide turns gold.",
+      "Swing the hook over the glowing pile (arrow + number), then press its key, tap it or Action, and hold still.",
+      "Run the trolley out into the green band over the glowing slot; Space or Action drops when the ring under the hook is green.",
+      "C or 📷 changes the view.",
    ],
 };
 

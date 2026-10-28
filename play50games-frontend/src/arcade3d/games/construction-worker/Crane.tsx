@@ -6,7 +6,8 @@ import { Vector3 } from "three";
 import type { Group, Mesh } from "three";
 import { Model } from "@/arcade3d/core/assets";
 import { ASSETS, JIB_DRAWN } from "./assets";
-import { JIB_Y } from "./rules";
+import { useGameTime } from "@/arcade3d/core/gameTime";
+import { CUE_DROP, CUE_MISS, JIB_Y } from "./rules";
 import type { Run } from "./rules";
 import {
    cableGeo,
@@ -25,6 +26,8 @@ const UP = new Vector3(0, 1, 0);
 const A = new Vector3();
 const B = new Vector3();
 const DIR = new Vector3();
+/** The release kick (visual): the freed hook block jumps up and its latch swings open, then settles. */
+const RELEASE_S = 0.7;
 
 /**
  * Tower crane: yellow lattice mast, rotating truss jib with counterweight and cab,
@@ -35,11 +38,19 @@ export function Crane({ run }: { run: Run }) {
    const cable = useRef<Mesh>(null);
    const hook = useRef<Group>(null);
    const trolley = useRef<Mesh>(null);
+   const latch = useRef<Group>(null);
+   const released = useRef(-9);
+   const time = useGameTime();
 
    useFrame(() => {
+      if (run.cue & (CUE_DROP | CUE_MISS)) released.current = time.now;
+      const k = (time.now - released.current) / RELEASE_S;
+      const kick = k >= 0 && k < 1 ? 1 - k : 0;
       const arm = jib.current;
       if (arm) {
-         arm.rotation.y = -run.angle;
+         // a group turned by y maps +z to (sin y, cos y): the rules' (r sin angle, r cos angle), so +angle.
+         // Was -angle, which swung the drawn jib and trolley to the mirror side of the hook and cable.
+         arm.rotation.y = run.angle;
          arm.position.set(0, JIB_Y, 0);
       }
       const trolleyZ = run.radius;
@@ -57,7 +68,9 @@ export function Crane({ run }: { run: Run }) {
       }
 
       const block = hook.current;
-      if (block) block.position.set(run.hookX, run.hookY, run.hookZ);
+      if (block) block.position.set(run.hookX, run.hookY + 0.35 * Math.sin(Math.PI * Math.min(1, k * 2)) * kick, run.hookZ);
+      const open = latch.current;
+      if (open) open.rotation.z = 0.55 * Math.sin(k * Math.PI * 3) * kick;
 
       const car = trolley.current;
       if (car) car.position.set(0, -0.05, trolleyZ);
@@ -75,7 +88,12 @@ export function Crane({ run }: { run: Run }) {
          </group>
          <mesh ref={cable} geometry={cableGeo} material={steel} dispose={null} name="crane-cable" />
          <group ref={hook} name="crane-hook">
-            <Model asset={ASSETS.craneHook} fallback={<mesh geometry={hookGeo} material={hookMat} dispose={null} position-y={0.6} />} />
+            {/* swings about the block's centre on a release */}
+            <group ref={latch} position-y={0.6}>
+               <group position-y={-0.6}>
+                  <Model asset={ASSETS.craneHook} fallback={<mesh geometry={hookGeo} material={hookMat} dispose={null} position-y={0.6} />} />
+               </group>
+            </group>
          </group>
       </group>
    );
