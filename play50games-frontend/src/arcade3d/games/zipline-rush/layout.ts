@@ -126,7 +126,7 @@ export function scenery(level: LevelId): Scenery {
          }
       }
       // surf boulders round the stack foot
-      for (let k = 0; k < 3; k++) {
+      for (let k = 0; k < 2; k++) {
          const a = rnd() * Math.PI * 2;
          const s = 3 + rnd() * 3;
          boulders.push({ x: Math.cos(a) * (st.rx + 4 + rnd() * 3), y: SEA_Y - 0.6, z: st.cz + Math.sin(a) * (st.rz + 4 + rnd() * 3), scale: s, rotY: rnd() * 6.28, r: s, h: s * 0.5 });
@@ -149,7 +149,7 @@ export function scenery(level: LevelId): Scenery {
       farStacks.push({ x, y: SEA_Y, z, scale: s, rotY: rnd() * 6.28, r: 5 * s, h: 9 * s });
       if (coast) pines.push({ x, y: SEA_Y + 9 * s - 0.4, z, scale: s * 1.1, rotY: rnd() * 6.28, r: 2.8 * s, h: PINE_H * s });
    }
-   for (let z = first; z > last; z -= 16 + rnd() * 14) {
+   for (let z = first; z > last; z -= 30 + rnd() * 16) {
       const side = rnd() < 0.5 ? -1 : 1;
       buoys.push({ x: side * (10 + rnd() * 16), y: SEA_Y, z, scale: 1 + rnd() * 0.4, rotY: rnd() * 6.28, r: 1.2, h: 2.6 });
    }

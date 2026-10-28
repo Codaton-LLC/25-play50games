@@ -34,6 +34,8 @@ export const SIZE = {
    orb: 0.62,
    eel: 9,
 } as const;
+/** The landing mat's top over its foot (m, as drawn). */
+export const MAT_TOP = BOUNDS.mat.y * (4.6 / BOUNDS.mat.x) * 0.45;
 /** The trolley: the cable runs through its pulley grooves this far over its foot (m, as drawn). */
 export const TROLLEY_CABLE_Y = 0.47;
 /** The T-grip's height over the trolley's foot (m). */
@@ -50,7 +52,7 @@ export const ASSETS = {
    tower: prop("m2ZiplineTower", SIZE.tower / BOUNDS.tower.y, "#c08a4e", 3000, 166652),
    trolley: prop("m2ZiplineTrolleyI", SIZE.trolleyWidth / BOUNDS.trolley.x, "#f97316", 5000, 203184),
    deck: { ...prop("m2TreetopDeck", 4.6 / BOUNDS.deck.x, "#c4a373", 3000, 162624), stretch: [1, 0.42, 0.68] as const },
-   mat: prop("m2LandingMat", 4.6 / BOUNDS.mat.x, "#4ade80", 3000, 51616),
+   mat: { ...prop("m2LandingMat", 4.6 / BOUNDS.mat.x, "#4ade80", 3000, 51616), stretch: [1, 0.45, 1] as const },
    canopy: prop("m2ForestCanopyBg", 1, "#4d7c70", 4248, 261888),
    boss: prop("m2VoltEelBoss", SIZE.eel / BOUNDS.boss.z, "#22d3ee", 15000, 622572),
 };

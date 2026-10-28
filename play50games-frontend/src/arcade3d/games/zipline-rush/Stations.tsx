@@ -13,6 +13,7 @@ import {
    BufferGeometry,
    Color,
    CylinderGeometry,
+   RingGeometry,
    DoubleSide,
    Float32BufferAttribute,
    Matrix4,
@@ -21,12 +22,16 @@ import {
    type MeshBasicMaterial,
    type PointLight,
 } from "three";
-import { InstancedModel, Model } from "../../core/assets";
+import { Model } from "../../core/assets";
+import { CulledModel } from "./Culled";
 import { useGameTime } from "../../core/gameTime";
 import { createRng } from "../../core/math";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import type { LevelId } from "../../types";
-import { ASSETS, BOUNDS } from "./assets";
+import { ASSETS, BOUNDS, MAT_TOP } from "./assets";
+
+/** The mat sinks into the floor so its top sits just over it. */
+const MAT_Y = -0.12;
 import { lookFor } from "./look";
 import { deckPoint, type ZipRun } from "./rules";
 import { ANCHOR_DZ, ANCHOR_X, GANTRY_X, HANG, SEA_Y, STACK_POWER, TOWER_DZ, scenery, stations, type Station } from "./layout";
@@ -174,39 +179,57 @@ function Lamps({ spots, color, night }: { spots: { x: number; y: number; z: numb
    );
 }
 
+/** The three landing zones (outer edge, inner edge, centre) as one flat geometry with vertex colours. */
+function zoneGeometry(): BufferGeometry {
+   const parts: BufferGeometry[] = [];
+   const colors = ["#fb923c", "#fde68a", "#4ade80"];
+   [2.25, 1.55, 0.8].forEach((r, i) => {
+      const g = new RingGeometry(r - 0.16, r, 48).toNonIndexed();
+      g.rotateX(-Math.PI / 2);
+      g.translate(0, i * 0.004, 0);
+      const c = new Color(colors[i]);
+      const n = g.getAttribute("position").count;
+      g.setAttribute("color", new Float32BufferAttribute(Array.from({ length: n * 3 }, (_, k) => [c.r, c.g, c.b][k % 3]), 3));
+      g.deleteAttribute("normal");
+      g.deleteAttribute("uv");
+      parts.push(g);
+   });
+   const merged = mergeGeometries(parts, false)!;
+   parts.forEach((p) => p.dispose());
+   return merged;
+}
+
 /** The landing of span `section`: mat + three-zone projection; on L3/L5 a deck sliding on its rails. */
-function Landing({ run, section, color }: { run: ZipRun; section: number; color: string }) {
+function Landing({ run, section }: { run: ZipRun; section: number }) {
    const group = useRef<Group>(null);
-   const ring = useRef<Mesh>(null);
+   const zones = useRef<Mesh>(null);
    const glow = useRef<Mesh>(null);
    const time = useGameTime();
    const moving = run.cfg.moving;
+   const geometry = useMemo(zoneGeometry, []);
+   useEffect(() => () => geometry.dispose(), [geometry]);
    useFrame(() => {
       const p = deckPoint(run.cfg, section, run.ms);
       if (group.current) group.current.position.set(p.x, p.y, p.z);
       const near = section === run.section && run.mode !== "deck" ? Math.max(0, Math.min(1, (run.t - 0.55) / 0.4)) : 0;
       // the projection grows and brightens as the rider nears the end of the line
-      if (ring.current) ring.current.scale.setScalar(1 + near * 0.35 + Math.sin(time.now * 6) * 0.03 * near);
-      if (glow.current) (glow.current.material as MeshBasicMaterial).opacity = 0.12 + near * 0.45;
+      if (zones.current) zones.current.scale.setScalar(1 + near * 0.25 + Math.sin(time.now * 6) * 0.025 * near);
+      if (glow.current) {
+         (glow.current.material as MeshBasicMaterial).opacity = 0.1 + near * 0.5;
+         glow.current.scale.setScalar(1 + near * 0.6);
+      }
    });
-   const top = moving ? 0.02 : 0.0;
    return (
       <group ref={group}>
-         {moving && <Model asset={ASSETS.deck} position={[0, -BOUNDS.deck.y * ASSETS.deck.scale! * ASSETS.deck.stretch[1] + 0.25, 0]} />}
-         <Model asset={ASSETS.mat} position={[0, top, 0]} />
-         <group position={[0, top + 0.22, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-            {[2.25, 1.55, 0.8].map((r, i) => (
-               <mesh key={r} position={[0, 0, i * 0.006]} ref={i === 2 ? ring : undefined}>
-                  <ringGeometry args={[r - 0.14, r, 40]} />
-                  <meshBasicMaterial color={["#fb923c", "#fde68a", "#4ade80"][i]} toneMapped={false} />
-               </mesh>
-            ))}
-            <mesh ref={glow} position={[0, 0, 0.02]}>
-               <circleGeometry args={[0.8, 32]} />
-               <meshBasicMaterial color="#86efac" transparent opacity={0.15} depthWrite={false} blending={AdditiveBlending} toneMapped={false} />
-            </mesh>
-         </group>
-         <pointLight color={color} intensity={run.cfg.night ? 6 : 0} distance={9} position={[0, 2.2, 0]} />
+         {moving && <Model asset={ASSETS.deck} position={[0, -BOUNDS.deck.y * ASSETS.deck.scale! * ASSETS.deck.stretch[1] + 0.12, 0]} />}
+         <Model asset={ASSETS.mat} position={[0, MAT_Y, 0]} />
+         <mesh ref={zones} geometry={geometry} position={[0, MAT_Y + MAT_TOP + 0.015, 0]}>
+            <meshBasicMaterial vertexColors toneMapped={false} />
+         </mesh>
+         <mesh ref={glow} position={[0, MAT_Y + MAT_TOP + 0.03, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+            <circleGeometry args={[0.72, 32]} />
+            <meshBasicMaterial color="#86efac" transparent opacity={0.15} depthWrite={false} blending={AdditiveBlending} toneMapped={false} />
+         </mesh>
       </group>
    );
 }
@@ -247,22 +270,14 @@ function Beams({ run, spots }: { run: ZipRun; spots: { x: number; y: number; z: 
          <meshBasicMaterial color="#e0f7ff" transparent opacity={0.07} depthWrite={false} side={DoubleSide} blending={AdditiveBlending} toneMapped={false} />
       </mesh>
    );
-   const back = (
-      <mesh rotation={[0, 0, Math.PI / 2]} position={[-22, 0, 0]}>
-         <coneGeometry args={[5, 44, 20, 1, true]} />
-         <meshBasicMaterial color="#e0f7ff" transparent opacity={0.05} depthWrite={false} side={DoubleSide} blending={AdditiveBlending} toneMapped={false} />
-      </mesh>
-   );
    return (
       <>
          <group ref={a}>
             {cone}
-            {back}
             <pointLight color="#fff7d6" intensity={30} distance={22} />
          </group>
          <group ref={b}>
             {cone}
-            {back}
          </group>
       </>
    );
@@ -339,7 +354,7 @@ export function Stations({ run, runs }: { run: ZipRun; runs: readonly ZipRun[] }
    });
    const activeKey = runs.map((r) => r.section).join(",");
    const active = useMemo(() => sts.filter((st) => st.land && runs.some((r) => st.index - 1 === r.section || st.index - 1 === r.section + 1)), [sts, activeKey]); // eslint-disable-line react-hooks/exhaustive-deps
-   const idle = useMemo(() => sts.filter((st) => st.land && !c.moving && !active.includes(st)).map((st) => ({ x: 0, y: st.landY, z: st.land!.z })), [sts, c, active]);
+   const idle = useMemo(() => sts.filter((st) => st.land && !c.moving && !active.includes(st)).map((st) => ({ x: 0, y: st.landY + MAT_Y, z: st.land!.z })), [sts, c, active]);
    const last = sts[sts.length - 1];
    return (
       <>
@@ -349,21 +364,17 @@ export function Stations({ run, runs }: { run: ZipRun; runs: readonly ZipRun[] }
          <mesh geometry={steel}>
             <meshStandardMaterial color={c.night ? "#3b4a63" : "#5b6b7c"} metalness={0.7} roughness={0.38} />
          </mesh>
-         <InstancedModel asset={ASSETS.tower} spots={towers} fallback={null} />
-         {lights.length > 0 && <InstancedModel asset={ASSETS.lighthouse} spots={lights} fallback={null} />}
+         <CulledModel asset={ASSETS.tower} spots={towers} />
+         <CulledModel asset={ASSETS.lighthouse} spots={lights} ahead={300} behind={80} />
          {lights.length > 0 && <Beams run={run} spots={lights} />}
          <Lamps spots={lamps} color={look.lantern} night={c.night} />
          {active.map((st) => (
-            <Landing key={st.index} run={run} section={st.index - 1} color={look.lantern} />
+            <Landing key={st.index} run={run} section={st.index - 1} />
          ))}
          <BellStation run={run} st={last} />
          {c.night && <pointLight ref={lantern} color={look.lantern} intensity={14} distance={20} />}
          {/* the static mats outside the active window keep the stations readable from afar */}
-         <InstancedModel
-            asset={ASSETS.mat}
-            spots={idle}
-            fallback={null}
-         />
+         <CulledModel asset={ASSETS.mat} spots={idle} />
       </>
    );
 }

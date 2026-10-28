@@ -111,7 +111,7 @@ function RunScene({ multi }: { multi: boolean }) {
    const r = group?.runs[0] ?? solo;
    const runs = group?.runs ?? [solo];
    const input = useInput();
-   const orbit = useMemo(() => createOrbit({ yaw: 0, pitch: 0.34, distance: 10.5, minDistance: 5, maxDistance: 24 }), [id, multi]); // eslint-disable-line react-hooks/exhaustive-deps
+   const orbit = useMemo(() => createOrbit({ yaw: 0, pitch: 0.4, distance: 8.6, minDistance: 4.5, maxDistance: 24 }), [id, multi]); // eslint-disable-line react-hooks/exhaustive-deps
    const aspect = useThree((s) => s.size.width / s.size.height);
    const intro = useShellIntro();
    const juice = useJuice();
@@ -228,16 +228,17 @@ function RunScene({ multi }: { multi: boolean }) {
       }
    });
    const start = sts[0].start!;
-   const end = sts[sts.length - 1];
-   const playCamera = useMemo<IntroKeyframe>(() => ({ position: [start.x, start.y + 4.9, start.z + 8.8], lookAt: [start.x, start.y + 1.2, start.z - 1] }), [start]);
+   const playCamera = useMemo<IntroKeyframe>(() => ({ position: [start.x, start.y + 1.2 + 8.6 * Math.sin(0.4), start.z - 1 + 8.6 * Math.cos(0.4)], lookAt: [start.x, start.y + 1.2, start.z - 1] }), [start]);
    const shots = useMemo<IntroKeyframe[]>(() => {
-      const mid = sts[Math.floor(sts.length / 2)];
+      // a sweep from high over the far end of the course back along the lines to the first tower
+      const far = sts[Math.min(sts.length - 1, 2)];
+      const mid = sts[1];
       return [
-         { position: [26, end.landY + 18, end.cz - 30], lookAt: [0, end.landY, end.cz] },
-         { position: [-24, mid.startY + 10, mid.cz + 10], lookAt: [0, mid.startY - 2, mid.cz - 20] },
-         { position: [14, start.y + 6, start.z - 14], lookAt: [start.x, start.y + 1, start.z] },
+         { position: [34, far.landY + 26, far.cz - 18], lookAt: [0, far.landY, far.cz + 20] },
+         { position: [-22, mid.startY + 12, mid.cz + 6], lookAt: [0, mid.startY + 1, mid.cz + 30] },
+         { position: [10, start.y + 9, start.z - 16], lookAt: [start.x, start.y + 1, start.z] },
       ];
-   }, [sts, start, end]);
+   }, [sts, start]);
    const solids = (out: { min: { x: number; y: number; z: number }; max: { x: number; y: number; z: number } }[]) => {
       let n = 0;
       const towerH = SIZE.tower;

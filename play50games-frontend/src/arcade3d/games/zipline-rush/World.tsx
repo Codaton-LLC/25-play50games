@@ -12,7 +12,6 @@ import {
    BufferGeometry,
    CanvasTexture,
    Color,
-   Euler,
    InstancedBufferAttribute,
    InstancedBufferGeometry,
    PlaneGeometry,
@@ -25,7 +24,7 @@ import {
    type AmbientLight,
    type Mesh,
 } from "three";
-import { InstancedModel, DynamicInstancedModel } from "../../core/assets";
+import { CulledModel } from "./Culled";
 import { Starfield } from "../../core/env";
 import { useGameTime } from "../../core/gameTime";
 import { FRAME_PRIORITY } from "../../core/frameLoop";
@@ -125,8 +124,10 @@ vec2 grad(vec2 p) {
    g += vec2(0.11, 0.05) * cos(dot(p, vec2(0.11, 0.05)) + uTime * 0.9) * 0.55;
    g += vec2(-0.07, 0.16) * cos(dot(p, vec2(-0.07, 0.16)) + uTime * 1.3) * 0.3;
    g += vec2(0.23, -0.19) * cos(dot(p, vec2(0.23, -0.19)) + uTime * 1.9) * 0.15;
-   g += vec2(0.9, 0.4) * cos(dot(p, vec2(0.9, 0.4)) + uTime * 2.7) * 0.05;
-   g += vec2(-0.5, 1.1) * cos(dot(p, vec2(-0.5, 1.1)) + uTime * 3.1) * 0.04;
+   g += vec2(0.83, 0.47) * cos(dot(p, vec2(0.83, 0.47)) + uTime * 2.7) * 0.035;
+   g += vec2(-0.61, 0.97) * cos(dot(p, vec2(-0.61, 0.97)) + uTime * 3.1) * 0.03;
+   g += vec2(1.37, -0.29) * cos(dot(p, vec2(1.37, -0.29)) + uTime * 3.7) * 0.02;
+   g += vec2(0.19, -1.53) * cos(dot(p, vec2(0.19, -1.53)) + uTime * 4.3) * 0.018;
    return g;
 }
 void main() {
@@ -134,9 +135,12 @@ void main() {
    vec3 v = normalize(cameraPosition - vWorld);
    float fres = pow(1.0 - max(0.0, dot(n, v)), 3.0);
    vec3 c = mix(uShallow, uDeep, clamp(fres * 1.2 + 0.15, 0.0, 1.0));
-   vec3 h = normalize(normalize(uSun) + v);
-   float spec = pow(max(0.0, dot(n, h)), 220.0) * uGlitter;
-   c += uSunColor * spec * 2.0;
+   // the sun's (moon's) path on the water: a soft streak, glinting where the small waves face it
+   vec3 r = reflect(-v, n);
+   float path = pow(max(0.0, dot(r, normalize(uSun))), 40.0);
+   float glint = pow(max(0.0, dot(r, normalize(uSun))), 400.0);
+   float dist = length(cameraPosition.xz - vWorld.xz);
+   c += uSunColor * (path * 0.35 + glint * 1.2) * uGlitter * smoothstep(320.0, 40.0, dist);
    float foam = 0.0;
    for (int i = 0; i < ${MAX_STACKS}; i++) {
       vec4 s = uStacks[i];
@@ -377,7 +381,6 @@ export function World({ level }: { level: LevelId }) {
    const flash = useMemo(() => ({ value: 0 }), []);
    const time = useGameTime();
    const storm = useRef<AmbientLight>(null);
-   const camera = useThree((s) => s.camera);
    useFrame(() => {
       flash.value = look.lightning ? lightningFlash(time.now) : 0;
       if (storm.current) storm.current.intensity = flash.value * 1.6;
@@ -388,6 +391,7 @@ export function World({ level }: { level: LevelId }) {
    const boulders = useMemo(() => scene.boulders.map((s) => ({ x: s.x, y: s.y, z: s.z, scale: s.scale / BOUNDS.rock.x, rotY: s.rotY })), [scene]);
    const pines = useMemo(() => scene.pines.map((s) => ({ x: s.x, y: s.y, z: s.z, scale: (s.scale * PINE_UNIT) / BOUNDS.canopy.y, rotY: s.rotY })), [scene]);
    const lighthouses = useMemo(() => scene.lighthouses.map((s) => ({ x: s.x, y: s.y, z: s.z, scale: s.scale, rotY: s.rotY })), [scene]);
+   const buoys = useMemo(() => scene.buoys.map((s) => ({ x: s.x, y: SEA_Y - 0.5, z: s.z, scale: s.scale, rotY: s.rotY, bob: 0.25 })), [scene]);
    return (
       <>
          <Sky look={look} flash={flash} />
@@ -395,24 +399,11 @@ export function World({ level }: { level: LevelId }) {
          <Sea look={look} sts={sts} flash={flash} />
          <Clouds look={look} level={level} zFrom={zFrom} zTo={zTo} flash={flash} />
          {look.rain && <Rain flash={flash} />}
-         <InstancedModel asset={ASSETS.cliff} spots={cliffs} fallback={null} />
-         <InstancedModel asset={ASSETS.rock} spots={boulders} fallback={null} />
-         {pines.length > 0 && <InstancedModel asset={ASSETS.canopy} spots={pines} fallback={null} />}
-         {lighthouses.length > 0 && <InstancedModel asset={ASSETS.lighthouse} spots={lighthouses} fallback={null} />}
-         <group>
-            <DynamicInstancedModel
-               asset={ASSETS.buoy}
-               count={scene.buoys.length}
-               update={(i, matrix) => {
-                  const b = scene.buoys[i];
-                  if (Math.abs(b.z - camera.position.z) > 200) return false;
-                  const t = time.now + i * 1.7;
-                  matrix.makeRotationFromEuler(BUOY_EULER.set(Math.sin(t * 1.3) * 0.12, b.rotY, Math.cos(t * 1.1) * 0.12));
-                  matrix.scale(BUOY_SCALE.setScalar(b.scale));
-                  matrix.setPosition(b.x, SEA_Y - 0.5 + Math.sin(t * 1.6) * 0.25, b.z);
-               }}
-            />
-         </group>
+         <CulledModel asset={ASSETS.cliff} spots={cliffs} ahead={420} behind={140} />
+         <CulledModel asset={ASSETS.rock} spots={boulders} />
+         <CulledModel asset={ASSETS.canopy} spots={pines} />
+         <CulledModel asset={ASSETS.lighthouse} spots={lighthouses} ahead={300} behind={80} />
+         <CulledModel asset={ASSETS.buoy} spots={buoys} ahead={160} behind={40} />
          <directionalLight position={[look.sun.dir[0] * 50, Math.max(10, look.sun.dir[1] * 50), look.sun.dir[2] * 50]} color={look.key.color} intensity={look.key.intensity} />
          <directionalLight position={[-look.sun.dir[0] * 40, 18, -look.sun.dir[2] * 40]} color={look.rim.color} intensity={look.rim.intensity} />
          {look.lightning && <ambientLight ref={storm} color="#d9d4ff" intensity={0} />}
@@ -420,5 +411,3 @@ export function World({ level }: { level: LevelId }) {
    );
 }
 
-const BUOY_EULER = new Euler();
-const BUOY_SCALE = new Vector3();

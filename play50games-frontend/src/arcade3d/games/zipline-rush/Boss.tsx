@@ -16,7 +16,7 @@ import { bossTimeScale } from "../../menu2/boss/boss";
 import { useJuice, createJuiceEmitter } from "../../menu2/juice";
 import { ASSETS } from "./assets";
 import { VOLT_EEL } from "./progression";
-import { cablePoint, deckPoint, type ZipRun } from "./rules";
+import { cablePoint, type ZipRun } from "./rules";
 import { HANG, SEA_Y, stations } from "./layout";
 
 /** The head's point in the eel group (m, as drawn): top front of the S. */
@@ -52,14 +52,20 @@ export function Boss({ run, owner = 0 }: { run: ZipRun; owner?: number }) {
       let lean = 0;
       let rise = 0;
       if (b.phase === 0) {
-         // swims along the charged line ahead of the rider; dips its head to the safe line when open
+         // it swims beside the charged line, always ahead of the rider; when it opens up its head
+         // swings in over the safe line right where the hop window is (u 0.4..0.68)
          const open = b.step === "vulnerable";
-         const lane = open ? 1 - run.electricLane : run.electricLane;
-         const u = open ? 0.54 : 0.5 + Math.sin(t * 0.7) * 0.22;
+         const charged = run.electricLane;
+         const safe = 1 - charged;
+         const lane = open ? safe : charged;
+         const ahead = run.section === 2 ? run.t : 0;
+         const u = open ? Math.max(0.5, Math.min(0.66, ahead + 0.1)) : Math.min(0.92, Math.max(0.35, ahead + 0.24 + Math.sin(t * 0.8) * 0.05));
          const p = cablePoint(run.cfg, 2, lane, u);
-         target.set(p.x + (lane === 0 ? -0.6 : 0.6), p.y - EEL_HEAD.y + (open ? -HANG + 1.1 : 1.6), p.z - EEL_HEAD.z * (open ? 1 : 0.3));
-         yaw = open ? 0 : Math.cos(t * 0.7) > 0 ? Math.PI : 0;
-         lean = open ? 0.18 : Math.sin(t * 2.3) * 0.08;
+         const out = p.x < 0 ? -1 : 1;
+         if (open) target.set(p.x + out * 1.1, p.y - HANG + 0.9 - EEL_HEAD.y, p.z - 0.6 - EEL_HEAD.z);
+         else target.set(p.x + out * 3.2, p.y - EEL_HEAD.y + 2.2, p.z);
+         yaw = open ? -out * 0.5 : Math.PI + out * 0.25;
+         lean = open ? 0.22 : Math.sin(t * 2.3) * 0.08;
       } else if (b.phase === 1) {
          // wound round the lighthouse at the spiral's top (station 4), head over the landing
          const st4 = sts[4];
@@ -104,14 +110,16 @@ export function Boss({ run, owner = 0 }: { run: ZipRun; owner?: number }) {
       // the weak point: the head (phase 1, 3) or the gill (phase 2), ringed while it is open
       const open = b.step === "vulnerable";
       if (cue.current) {
+         cue.current.position.set(0, b.phase === 1 ? EEL_HEAD.y - 1.6 : EEL_HEAD.y, (b.phase === 1 ? EEL_HEAD.z - 0.6 : EEL_HEAD.z) + 0.4);
          cue.current.visible = open || b.step === "telegraph";
          cue.current.scale.setScalar(open ? 1.25 + Math.sin(t * 10) * 0.12 : 0.8);
          cue.current.rotation.z = t * 2;
          (cue.current.material as MeshBasicMaterial).opacity = open ? 0.95 : 0.35;
       }
       if (halo.current) {
-         const telegraph = b.step === "telegraph" || b.step === "attack";
-         (halo.current.material as MeshBasicMaterial).opacity = (telegraph ? 0.35 : 0.14) + Math.sin(t * 20) * 0.06;
+         const gill = b.phase === 1 && open;
+         (halo.current.material as MeshBasicMaterial).opacity = gill ? 0.75 + Math.sin(t * 14) * 0.2 : 0.18 + Math.sin(t * 20) * 0.06;
+         halo.current.scale.setScalar(gill ? 1.5 : 1);
       }
       if (light.current) light.current.intensity = (b.step === "attack" ? 40 : 14) + Math.sin(t * 31) * 6;
       // arcs from the eel to its charged line
@@ -134,14 +142,13 @@ export function Boss({ run, owner = 0 }: { run: ZipRun; owner?: number }) {
       }
    });
    if (!run.boss) return null;
-   const deck = deckPoint(run.cfg, run.cfg.sections - 1, 0);
-   void deck;
    return (
       <group ref={root} visible={false}>
          <group ref={body}>
             <Model asset={ASSETS.boss} />
-            <mesh ref={halo} position={[0, 4, 0.5]}>
-               <sphereGeometry args={[4.6, 20, 14]} />
+            {/* the gill slits' glow (the phase 2 weak point) */}
+            <mesh ref={halo} position={[0, EEL_HEAD.y - 1.6, EEL_HEAD.z - 0.6]}>
+               <sphereGeometry args={[0.7, 14, 10]} />
                <meshBasicMaterial color="#22d3ee" transparent opacity={0.15} depthWrite={false} blending={AdditiveBlending} toneMapped={false} />
             </mesh>
          </group>

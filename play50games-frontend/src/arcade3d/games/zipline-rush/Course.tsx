@@ -12,11 +12,14 @@ import {
    BufferGeometry,
    Color,
    Float32BufferAttribute,
+   Euler,
+   InstancedMesh,
+   Matrix4,
    MeshStandardMaterial,
+   Quaternion,
    Vector3,
    type BufferAttribute,
    type Group,
-   type LineSegments,
    type Mesh,
    type MeshBasicMaterial,
 } from "three";
@@ -28,11 +31,14 @@ import { ASSETS } from "./assets";
 import { cablePoint, type ZipRun } from "./rules";
 import type { ZipLevel } from "./levels";
 import { lookFor } from "./look";
-import { HANG, stations } from "./layout";
+import { HANG } from "./layout";
 import { Stations, beamAngle, lighthouseSpots } from "./Stations";
 import { Boss } from "./Boss";
 
 const SIDES = 8;
+const P = new Vector3();
+const SIDE = new Vector3();
+const UP = new Vector3(0, 1, 0);
 const SEGS = 64;
 const RADIUS = 0.06;
 
@@ -110,7 +116,7 @@ interface CableUniforms {
 }
 
 function cableMaterial(color: string, uniforms: CableUniforms, night: boolean): MeshStandardMaterial {
-   const m = new MeshStandardMaterial({ color, metalness: 0.75, roughness: 0.32, vertexColors: true, emissive: night ? "#0b1830" : "#000000" });
+   const m = new MeshStandardMaterial({ color, metalness: 0.35, roughness: 0.4, vertexColors: true, emissive: night ? "#16305a" : "#000000" });
    m.onBeforeCompile = (shader) => {
       Object.assign(shader.uniforms, uniforms);
       shader.vertexShader = shader.vertexShader
@@ -189,7 +195,7 @@ function Cables({ run }: { run: ZipRun }) {
 /** A glowing overlay on part of one line: the Volt Eel's charge, a spark storm, the L4 beam line. */
 function LineGlow({ c, section, lane, u0, u1, color, live, bolts = false, offset }: { c: ZipLevel; section: number; lane: number; u0: number; u1: number; color: string; live: (now: number) => number; bolts?: boolean; offset?: { x: number; y: number } }) {
    const mesh = useRef<Mesh>(null);
-   const bolt = useRef<LineSegments>(null);
+   const bolt = useRef<Mesh>(null);
    const time = useGameTime();
    const geometry = useMemo(() => {
       const pts = Array.from({ length: 25 }, (_, k) => {
@@ -209,8 +215,12 @@ function LineGlow({ c, section, lane, u0, u1, color, live, bolts = false, offset
       return g;
    }, [c, section, lane, u0, u1, offset]);
    const boltGeometry = useMemo(() => {
+      // a ribbon of 18 segments (two triangles each) turned to face the camera every frame
       const g = new BufferGeometry();
-      g.setAttribute("position", new Float32BufferAttribute(new Float32Array(3 * 2 * 18), 3));
+      g.setAttribute("position", new Float32BufferAttribute(new Float32Array(19 * 2 * 3), 3));
+      const idx: number[] = [];
+      for (let i = 0; i < 18; i++) idx.push(i * 2, i * 2 + 1, i * 2 + 2, i * 2 + 1, i * 2 + 3, i * 2 + 2);
+      g.setIndex(idx);
       return g;
    }, []);
    useEffect(
@@ -220,7 +230,7 @@ function LineGlow({ c, section, lane, u0, u1, color, live, bolts = false, offset
       },
       [geometry, boltGeometry]
    );
-   useFrame(() => {
+   useFrame((state) => {
       const k = live(time.now);
       if (mesh.current) {
          mesh.current.visible = k > 0.01;
@@ -232,20 +242,16 @@ function LineGlow({ c, section, lane, u0, u1, color, live, bolts = false, offset
             // a zigzag strike from the storm cloud down onto the middle of the charged part
             const attr = boltGeometry.getAttribute("position") as BufferAttribute;
             const m = cablePoint(c, section, lane, (u0 + u1) / 2 + Math.sin(time.now * 9) * 0.03);
-            let x = m.x + 3;
-            let y = m.y + 16;
-            let z = m.z;
             const seed = Math.floor(time.now * 14);
-            for (let i = 0; i < 18; i++) {
-               const f = (i + 1) / 18;
-               const nx = m.x + 3 * (1 - f) + Math.sin(seed * 12.9898 + i * 78.233) * 0.9 * (1 - f * 0.7);
-               const ny = m.y + 16 * (1 - f);
-               const nz = m.z + Math.cos(seed * 4.1 + i * 3.7) * 0.7 * (1 - f);
-               attr.setXYZ(i * 2, x, y, z);
-               attr.setXYZ(i * 2 + 1, nx, ny, nz);
-               x = nx;
-               y = ny;
-               z = nz;
+            const cam = state.camera.position;
+            for (let i = 0; i <= 18; i++) {
+               const f = i / 18;
+               const jag = i === 0 || i === 18 ? 0 : 1;
+               P.set(m.x + 3 * (1 - f) + Math.sin(seed * 12.9898 + i * 78.233) * 0.9 * (1 - f * 0.7) * jag, m.y + 16 * (1 - f), m.z + Math.cos(seed * 4.1 + i * 3.7) * 0.7 * (1 - f) * jag);
+               // the ribbon's width across the view
+               SIDE.set(P.x - cam.x, P.y - cam.y, P.z - cam.z).cross(UP).normalize().multiplyScalar(0.09 * (1.4 - f * 0.6));
+               attr.setXYZ(i * 2, P.x - SIDE.x, P.y - SIDE.y, P.z - SIDE.z);
+               attr.setXYZ(i * 2 + 1, P.x + SIDE.x, P.y + SIDE.y, P.z + SIDE.z);
             }
             attr.needsUpdate = true;
          }
@@ -256,9 +262,9 @@ function LineGlow({ c, section, lane, u0, u1, color, live, bolts = false, offset
          <mesh ref={mesh} geometry={geometry} visible={false} frustumCulled={false}>
             <meshBasicMaterial color={color} transparent depthWrite={false} blending={AdditiveBlending} toneMapped={false} />
          </mesh>
-         <lineSegments ref={bolt} geometry={boltGeometry} visible={false} frustumCulled={false}>
-            <lineBasicMaterial color="#f5f3ff" toneMapped={false} />
-         </lineSegments>
+         <mesh ref={bolt} geometry={boltGeometry} visible={false} frustumCulled={false}>
+            <meshBasicMaterial color="#f5f3ff" side={2} toneMapped={false} />
+         </mesh>
       </>
    );
 }
@@ -278,7 +284,7 @@ function Storms({ run }: { run: ZipRun }) {
       at.set(p.x, p.y, p.z);
       juice.stream("hit", at, 30, emitter, { color: "#c4b5fd" });
    });
-   if (s === 0 || (c.boss && s === 2)) return null;
+   if (s === 0) return null;
    // storms charge for 2.4 s on alternate lanes; the glow warns 0.5 s ahead of a switch
    const live = (lane: number) => () => {
       if (!(lane === 1 || c.night)) return 0;
@@ -372,51 +378,67 @@ function Gulls({ run }: { run: ZipRun }) {
    );
 }
 
-/** Riko's cracked wall on the far line: shatters into chunks when the dash breaks it. */
+/** Riko's cracked stone barrier clamped on the far line: the dash shatters it into flying chunks. */
 function CrackedWall({ run }: { run: ZipRun }) {
    const at = useMemo(() => {
       const p = cablePoint(run.cfg, 1, 3, 0.48);
-      return { x: p.x, y: p.y - HANG - 0.4, z: p.z };
+      return { x: p.x, y: p.y - HANG + 0.2, z: p.z };
    }, [run.cfg]);
-   const chunks = useRef<(Mesh | null)[]>([]);
+   const chunks = useRef<InstancedMesh>(null);
+   const cracks = useRef<Mesh>(null);
    const time = useGameTime();
    const broke = useRef(-1);
    const juice = useJuice();
    const layout = useMemo(
       () =>
-         Array.from({ length: 9 }, (_, i) => ({
-            x: ((i % 3) - 1) * 0.95,
-            y: Math.floor(i / 3) * 0.95 + 0.5,
-            vx: ((i % 3) - 1) * 2 + Math.sin(i * 7.1),
-            vy: 3 + Math.cos(i * 3.3) * 2,
-            vz: -6 - (i % 4),
-         })),
+         Array.from({ length: 12 }, (_, i) => {
+            const a = (i / 12) * Math.PI * 2;
+            const ring = i % 2 ? 0.55 : 0.95;
+            return { x: Math.cos(a) * ring, y: 1.2 + Math.sin(a) * ring * 1.15, s: 0.55 + ((i * 37) % 10) / 30, vx: Math.cos(a) * 3, vy: 2 + Math.sin(a) * 3, vz: -5 - (i % 4), spin: 2 + (i % 5) };
+         }),
       []
    );
+   const m4 = useMemo(() => new Matrix4(), []);
+   const q = useMemo(() => new Quaternion(), []);
+   const e = useMemo(() => new Euler(), []);
+   const v = useMemo(() => new Vector3(), []);
+   const sc = useMemo(() => new Vector3(), []);
    useFrame(() => {
       if (run.wallBroken && broke.current < 0) {
          broke.current = time.now;
-         juice.burst("hit", { x: at.x, y: at.y + 1.4, z: at.z }, 40, { color: "#fb923c" });
-         juice.shake(0.35);
+         juice.burst("hit", { x: at.x, y: at.y + 1.2, z: at.z }, 46, { color: "#fb923c" });
+         juice.burst("dust", { x: at.x, y: at.y + 1.2, z: at.z }, 24);
+         juice.shake(0.4);
       }
       const t = broke.current < 0 ? 0 : time.now - broke.current;
-      chunks.current.forEach((m, i) => {
-         if (!m) return;
-         const l = layout[i];
-         m.visible = t < 2.2;
-         m.position.set(l.x + l.vx * t, l.y + l.vy * t - 9 * t * t, l.vz * t);
-         m.rotation.set(t * (3 + i), t * 2, 0);
-      });
+      const mesh = chunks.current;
+      if (mesh) {
+         mesh.visible = t < 2.4;
+         layout.forEach((l, i) => {
+            v.set(l.x + l.vx * t, l.y + l.vy * t - 9 * t * t, l.vz * t);
+            q.setFromEuler(e.set(i + t * l.spin, i * 0.7 + t * 2, i * 1.3));
+            sc.setScalar(l.s * (t > 1.6 ? Math.max(0.01, 1 - (t - 1.6) / 0.8) : 1));
+            mesh.setMatrixAt(i, m4.compose(v, q, sc));
+         });
+         mesh.instanceMatrix.needsUpdate = true;
+      }
+      if (cracks.current) {
+         cracks.current.visible = t === 0;
+         (cracks.current.material as MeshBasicMaterial).opacity = 0.55 + Math.sin(time.now * 4) * 0.25;
+      }
    });
    if (run.cfg.id === 1) return null;
    return (
       <group position={[at.x, at.y, at.z]}>
-         {layout.map((l, i) => (
-            <mesh key={i} ref={(m) => { chunks.current[i] = m; }} position={[l.x, l.y, 0]}>
-               <boxGeometry args={[0.9, 0.9, 0.6]} />
-               <meshStandardMaterial color={i % 2 ? "#a8a29e" : "#c4b5a4"} roughness={0.9} emissive="#f97316" emissiveIntensity={i === 4 ? 0.6 : 0.12} flatShading />
-            </mesh>
-         ))}
+         <instancedMesh ref={chunks} args={[undefined, undefined, layout.length]} frustumCulled={false}>
+            <dodecahedronGeometry args={[0.62, 0]} />
+            <meshStandardMaterial color="#b9ab98" roughness={0.95} flatShading />
+         </instancedMesh>
+         {/* the glowing cracks: the weak seam the dash breaks */}
+         <mesh ref={cracks} position={[0, 1.2, 0.95]}>
+            <torusGeometry args={[0.75, 0.05, 4, 7]} />
+            <meshBasicMaterial color="#fb923c" transparent toneMapped={false} />
+         </mesh>
       </group>
    );
 }
@@ -459,7 +481,7 @@ function HeroRoutes({ run }: { run: ZipRun }) {
          </group>
          <group ref={shard} position={[at.shard.x, at.shard.y, at.shard.z]}>
             <mesh>
-               <octahedronGeometry args={[0.38, 0]} />
+               <octahedronGeometry args={[0.24, 0]} />
                <meshStandardMaterial color="#fde68a" emissive="#f59e0b" emissiveIntensity={1.4} metalness={0.3} roughness={0.2} />
             </mesh>
          </group>
@@ -467,14 +489,11 @@ function HeroRoutes({ run }: { run: ZipRun }) {
    );
 }
 
-/** The trolleys of the other lines' last riders stay parked at the line ends (reads as a working line). */
 export function Course({ run, runs = [run] }: { run: ZipRun; runs?: readonly ZipRun[] }) {
    const [section, setSection] = useState(run.section);
    useFrame(() => {
       if (section !== run.section) setSection(run.section);
    });
-   const sts = useMemo(() => stations(run.cfg), [run.cfg]);
-   void sts;
    return (
       <>
          <Cables run={run} />
