@@ -24,7 +24,7 @@ Same lab. Counts, the clock and the core lighting preset change. Fog is `[backgr
 
 ## Controls
 
-WASD / arrows move. E or Enter uses. Touch: joystick, Action "Use". Scheme `joystick`. No jump. The same 1.2 m use range and 0.60 s stun run on both devices (`rules.test.ts`). The shell owns pause and the Score / Time chips. Lives appear from level 2. Custom HUD (`data-arcade-safe-area`) shows up to two rows of remaining steps as circle, square, triangle, diamond, star, drop, plus what you carry. `resultDelayMs` 900.
+WASD / arrows move. E or Enter uses. Touch: joystick, Action "Use". Scheme `joystick`. No jump. Camera views: 📷 button (touch) or **C** cycles default → chase → front → top → free (`core/camera`); the movement follows the view on screen (`cam.yaw()` into the rules). The same 1.2 m use range and 0.60 s stun run on both devices (`rules.test.ts`). The shell owns pause and the Score / Time chips. Lives appear from level 2. Custom HUD (`data-arcade-safe-area`) shows up to two rows of remaining steps as circle, square, triangle, diamond, star, drop, plus what you carry. `resultDelayMs` 900.
 
 ## Server limits
 
