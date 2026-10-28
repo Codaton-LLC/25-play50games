@@ -123,9 +123,11 @@ function substep(r: Run, input: Controls, dt: number): void {
    r.elapsed += dt;
    const p = r.player;
    const steer = axis(input.moveX), throttle = -axis(input.moveY);
-   // street-vehicle integrator: turn rate grows with speed (turnScale), reverse steers mirrored
+   // street-vehicle integrator: turn rate grows with speed (turnScale), reverse steers mirrored.
+   // The scooter faces (sin yaw, cos yaw); a growing yaw turns it towards +x = the rider's LEFT
+   // (three.js is right-handed, y up), so stick right (steer > 0) lowers the yaw.
    const turnScale = Math.max(0.35, Math.min(1, Math.abs(p.speed) / 2));
-   if (p.speed !== 0 || throttle !== 0) p.yaw += steer * VEHICLE.steer * turnScale * dt * (p.speed < 0 ? -1 : 1);
+   if (p.speed !== 0 || throttle !== 0) p.yaw -= steer * VEHICLE.steer * turnScale * dt * (p.speed < 0 ? -1 : 1);
    if (throttle > 0) p.speed = p.speed < 0 ? Math.min(0, p.speed + VEHICLE.brake * dt) : Math.min(VEHICLE.topSpeed, p.speed + throttle * VEHICLE.accel * dt);
    else if (throttle < 0) p.speed = p.speed > 0 ? Math.max(0, p.speed + throttle * VEHICLE.brake * dt) : Math.max(-VEHICLE.reverse, p.speed + throttle * VEHICLE.accel * dt);
    else p.speed *= Math.exp(-VEHICLE.drag * dt);

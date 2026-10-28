@@ -10,9 +10,26 @@ import type { ModelAsset } from "@/arcade3d/core/types";
 import { LEVEL_IDS } from "@/arcade3d/types";
 import {
    ASSETS, BARN_CRATE_WIDTH, BARN_SQUASH, BARN_WIDTH, FARMER_HEIGHT, FARMER_LANDMARKS, FARMER_SCALE, GATE_SCALE, GLB_SIZE, SCARECROW_HEIGHT, SEAT_Y,
-   SILO_HEIGHT, SILO_WIDTH, TRACTOR_LENGTH, TRAILER_LENGTH, TROUGH_LENGTH,
+   SILO_HEIGHT, SILO_WIDTH, TRACTOR_LENGTH, TRAILER_BED, TRAILER_LENGTH, TRAILER_SQUASH, TROUGH_LENGTH,
 } from "./assets";
 import { fenceDraw, fenceGlbSpots } from "./looks";
+
+async function drawnPoints(asset: ModelAsset): Promise<Vector3[]> {
+   const { local, node } = await readCharacterGlb(asset.url);
+   const geometry = new BufferGeometry();
+   geometry.setAttribute("position", new Float32BufferAttribute(local, 3));
+   const mesh = new Mesh(geometry);
+   mesh.position.fromArray(node);
+   const root = new Group();
+   root.add(mesh);
+   const out: Vector3[] = [];
+   for (const part of modelParts(root, asset)) {
+      const position = part.geometry.getAttribute("position");
+      for (let i = 0; i < position.count; i += 1) out.push(new Vector3().fromBufferAttribute(position, i).applyMatrix4(part.matrix));
+   }
+   geometry.dispose();
+   return out;
+}
 
 async function drawnSize(asset: ModelAsset): Promise<Vector3> {
    const { local, node } = await readCharacterGlb(asset.url);
@@ -44,6 +61,7 @@ describe("farm-tractor-challenge models", () => {
       expect((await drawnSize(ASSETS.farmer)).y).toBeCloseTo(FARMER_HEIGHT, 2);
       expect((await drawnSize(ASSETS.tractor)).z).toBeCloseTo(TRACTOR_LENGTH, 2);
       expect((await drawnSize(ASSETS.trailer)).z).toBeCloseTo(TRAILER_LENGTH, 2);
+      expect((await drawnSize(ASSETS.trailer)).y).toBeCloseTo(GLB_SIZE.trailer.y * (TRAILER_LENGTH / GLB_SIZE.trailer.z) * TRAILER_SQUASH, 2);
       const barn = await drawnSize(ASSETS.barn);
       expect(barn.x).toBeCloseTo(BARN_WIDTH, 2);
       expect(barn.y).toBeCloseTo(GLB_SIZE.barn.y * (BARN_WIDTH / GLB_SIZE.barn.x) * BARN_SQUASH, 2);
@@ -54,6 +72,27 @@ describe("farm-tractor-challenge models", () => {
       expect((await drawnSize(ASSETS.scarecrow)).y).toBeCloseTo(SCARECROW_HEIGHT, 2);
       expect((await drawnSize(ASSETS.gate)).x).toBeCloseTo(GLB_SIZE.gate.x * GATE_SCALE, 2);
       expect((await drawnSize(ASSETS.barnCrate)).x).toBeCloseTo(BARN_CRATE_WIDTH, 2);
+   });
+
+   it("measures the trailer's load bed and drawbar eye on the real mesh: the cargo sits on the floor, the hitch bar meets the eye", async () => {
+      const points = await drawnPoints(ASSETS.trailer);
+      const box = new Box3().setFromPoints(points);
+      // as wide as the tractor, so the cargo reads on it
+      expect(box.max.x - box.min.x).toBeGreaterThan(1.15);
+      // the floor: the highest point under the bed's middle, below the sides' top
+      const floor = points.filter((p) => Math.abs(p.x) < 0.2 && Math.abs(p.z - TRAILER_BED.z) < 0.5 && p.y < box.max.y * 0.7);
+      expect(floor.length).toBeGreaterThan(50);
+      expect(Math.max(...floor.map((p) => p.y))).toBeCloseTo(TRAILER_BED.y, 1);
+      // the box spans the bed, its walls the bed's width
+      const walls = points.filter((p) => p.y > TRAILER_BED.y + 0.1);
+      const wallBox = new Box3().setFromPoints(walls);
+      expect(wallBox.min.z).toBeCloseTo(TRAILER_BED.z - TRAILER_BED.length / 2, 1);
+      expect(wallBox.max.x - wallBox.min.x).toBeGreaterThan(TRAILER_BED.width);
+      // the drawbar eye is the front tip, at the given height
+      const tip = points.filter((p) => p.z > TRAILER_BED.tongueZ - 0.08);
+      expect(tip.length).toBeGreaterThan(5);
+      expect(box.max.z).toBeCloseTo(TRAILER_BED.tongueZ, 2);
+      for (const p of tip) expect(Math.abs(p.y - TRAILER_BED.tongueY)).toBeLessThan(0.12);
    });
 
    it("draws the fence, the hay bale and the apple crate as unit models: the scene's scale is their size, never doubled", async () => {
