@@ -1,116 +1,170 @@
 # Rooftop Roll Climb (Menu 2, game 02)
 
-Owner: Cursor. Status: **dev** (preview builds only, `enabled: false` in `arcade-games.json`).
-Spec: `docs/master-plan/PLAY50_MENU_2_50_COLOR_ROLL_HEROES_FULL.md` GAME 02.
-The hero is the shared Color Roll Heroes armadillo (`m2HeroRiko.glb`, the other four colours are a material tint).
+Owner: Cursor (Menu 2 super-game upgrade by Claude). Status: **dev** (preview builds only, `enabled: false` in `arcade-games.json`).
+Design card: `docs/menu2-super/world-1-ember-heights.md` "2 Rooftop Roll Climb" (branch `claude/m2-super-plan`), World 1 Ember Heights.
+The hero is the shared Color Roll Heroes armadillo (`m2HeroRiko.glb`; the other four colours are their own GLBs).
 
 ## Concept and controls
 
-Climb a stack of city rooftops as one of the five Color Roll Heroes (Riko by default). Jump from roof to roof,
-ride sliding rooftops, wait out a blinking roof, cross icy decks, light the checkpoint lamps and reach the
-helipad. Golden coins take 0.4 s off your time each. A fall costs time and sends you back to the last lamp.
+**Curl into a ball on slanted roofs to bank speed, then spend it on huge leaps up a zigzag city skyline.**
+Each block of the city is a landing deck, a fire-escape climb to its top deck, and a slanted tin roof that falls
+away to a lip over the street. Lean downhill on the roof and the hero curls into a ball that rolls faster and
+faster; jump at the lip and the banked speed carries the leap across the street to the next, higher block, which
+faces the other way (the switchback). A plain run-and-jump does not clear a street.
 
-The world is original city rooftops: water towers, AC units, antennas, unbranded colour-block billboards,
-cranes and a distant skyline. The hero is a rolling armoured armadillo.
-
-- Keyboard: WASD / arrows move (screen-relative: up = away from the camera), Space jumps, E or Enter uses the hero power.
-- Touch: the core joystick + Jump + a Power button (`touchLabels.action`). **The same timing for both** (decision 7): one jump press
-  and one action press (`jumpPressed`, `actionPressed`), the same 130 ms buffer and 100 ms coyote time.
-- Before the run, a hero row on the start card picks Riko (Dash), Nami (Double Jump), Kiro (Shield), Zuno (Magnet) or Vexa (Phase). The pick is the next run's option (`heroes.ts`).
-
-## Files
-
-| File | What |
-|---|---|
-| `meta.ts` | plain data: time game, five levels, collection `rollheroes`, order 52, status `dev`, owner `cursor` |
-| `index.tsx` | the GameDefinition: `intro: true`, `clockChip: false`, `finalScore`, five LevelSpecs |
-| `levels.ts` | the five level configs (one city, five layouts) |
-| `roofs.ts` | the generated layouts: rises, movers, blinking roofs, ice, antenna arcs |
-| `heroes.ts` | the five heroes, power durations, and the run-option pick |
-| `rules.ts` | pure rules: the course, the ms clock, movement, collisions, movers, grip, checkpoints, falls, coins, the finish, the lower bound and `PROPOSED_LEVEL_LIMITS` |
-| `bot.ts` | the honest bot (tests, and `?autoplay=1` on preview builds) |
-| `camera.ts` | the follow camera goal, the play pose, the intro keyframes (pure) |
-| `Armadillo.tsx` | the hero's code stand-in and the ball of plates it curls into |
-| `look.ts` | day palette and the night look (levels 4 and 5) |
-| `World.tsx` | sky, fog, distant towers, cranes, unbranded boards |
-| `Course.tsx` | roofs, fans, solar racks, tanks, chimneys, antennas, movers, coins, sparks |
-| `Hero.tsx` | `m2HeroRiko.glb` on the auto-rig, pose, curl ball, blob shadow |
-| `Scene.tsx` | simulation, juice, follow camera, intro |
-| `Hud.tsx` | orbs, height, title, run clock |
-| `rules.test.ts`, `powers.test.ts`, `assets.test.ts`, `hero.test.ts`, `look.test.ts` | proof, powers, mesh fit, landmarks, night look |
+- Keyboard: WASD / arrows move, **camera-relative** (up = away from the camera), Space jumps, E or Enter is the hero power.
+  Camera: drag the view (left or right mouse button), wheel zooms, Q / Z and C / X turn, R / F tilt, V recenters (menu2/camera).
+- Touch: the core joystick + Jump + Power; one finger on empty canvas or two fingers turn the camera, pinch zooms, the round
+  button recenters. **The same timing for both** (decision 7): one jump press and one action press, the same 130 ms buffer and
+  100 ms coyote time.
+- The hero picker (menu2/heroes `HeroPicker`) on the start card, the pause menu and the result screen preselects the World 1
+  lead, **Riko**, or the player's own last pick in this game. A run keeps the hero it started with.
 
 ## Rules
 
-Units: 1 = 1 m; forward is -z, up is +y. The clock is whole ms with the fraction carried: every jump arc depends only on the ms since take-off, the same at 30, 60 or 144 fps.
+Units: 1 = 1 m; forward is -z, up is +y. The clock is whole ms with the fraction carried: every arc depends only on the ms
+since take-off, the same at 30, 60 or 144 fps. `StepInput.yaw` (the orbit camera's drawn yaw) turns the stick inside the rules
+(core `inputToWorld`); bots and tests leave it 0. Turning keeps the stick's length, so every speed bound below holds for any yaw.
 
-- **Hero:** a vertical cylinder (radius 0.32, height 1.2), feet at y. Stick velocity eased towards `V_RUN` 6.5 m/s (accel 50 on the ground, 32 in the air, 36 on ice). Gravity `G` 30; jump `V_JUMP` 14 m/s (apex `H_JUMP` 3.27 m). There are no bounce pads.
-- **Roofs (supports):** rectangles. Landing = the feet cross a top downwards with the centre over it (grown by `FOOT` 0.15). Walking off starts a fall with 100 ms coyote time. A jump press is kept for 130 ms.
-- **Movers:** offset = travel · (2 · smoothstep(triangle(ms / period + phase)) − 1). A grounded hero is carried by the mover's own per-ms step.
-- **Blinking roofs:** period 2800 ms, gone for 28 % of the cycle, neighbours half a cycle apart so two neighbours are never gone together. Checkpoints, the start, the goal and movers never blink. Landing starts a 1600 ms grip: the roof stays solid under the hero until the grip ends.
-- **Ice:** accel 36. Slippery roofs are forced to at least 6.4 × 6.2 m. A roof is never both icy and moving, and never both icy and blinking.
-- **Checkpoints:** standing on one activates it (forward only). Start = checkpoint 0.
-- **Falls:** 7 m under the last top stood on is lost: 900 ms out of view, then 600 ms frozen on the checkpoint. The clock runs on.
-- **Coins:** picked up within 0.95 m of the hero's middle (4.2 m while Zuno's magnet is up); each takes 400 ms off the submitted time.
-- **Hero power** (E, Enter, or the Power button). Riko Dash: 280 ms at 12.5 m/s, then 15 s. Nami Double Jump: a second jump whose apex cannot pass the flight's existing apex, then 10 s. Kiro Shield: 2.5 s ignoring gusts and sparks, then 20 s. Zuno Magnet: 2.5 s at the wider pickup, then 20 s. Vexa Phase: 1.2 s ignoring gusts and sparks, then 20 s. None of them adds a vertical reach. A dash saves at most about 260 ms of the summed bound, and the floor still holds (`rules.test.ts`).
-- **Wind** (levels 4 and 5): a sideways gust while airborne, peak 3.5 m/s², flipping every 2.8 s. The speed cap is still `V_RUN`. Shield and phase ignore it.
-- **Sparks** (levels 4 and 5): an antenna arc on some rims. The centre is outside the radius. A grounded hero in a live arc falls. Shield and phase ignore it.
-- **Finish:** standing on the goal roof. The level's `durationMs` ends the run unranked (`timeup`). Only `end("win")` is ranked.
+- **Hero:** a vertical cylinder (radius 0.32, height 1.2), feet at y. Stick velocity eased towards `V_RUN` 6.5 m/s (accel 50 on
+  the ground, 32 in the air, 36 on a wet flat roof). Gravity 30, jump 14 m/s (apex 3.27 m), 130 ms buffer, 100 ms coyote time.
+- **Slope momentum (the signature).** On a slanted roof (grade 0.3, about 17°), leaning downhill (`moveX · dir > 0.5`) curls the
+  hero into a ball (`Hero.curled`). The ball accelerates downhill at the slope's `accel` (6.5 m/s² on L1, up to 8 on L5; rain-wet
+  tin 1.5×, and on wet tin you cannot uncurl), the stick only steers across, up to `V_ROLL_MAX` 13 m/s. A jump keeps the
+  horizontal speed: a leap off the lip covers about 9-12 m against about 6 m from a run (`rules.test.ts` "the signature").
+  Curled on a flat roof the ball bleeds 4 m/s²; uncurled above `V_RUN` it brakes at 22 m/s² (13 → 6.5 in 0.3 s). A landing on
+  a flat roof thumps the ball back to running speed; L1's chained slope and L5's ramps keep the roll (`keep`).
+- **Banked leap:** a take-off from a slope at 10 m/s or more is a flow link (once per slope); at 9 m/s or more it is a rolled
+  leap (`Hero.rolled`: the FOV push and the ember trail).
+- **Roofs:** rectangles; a slope's surface falls along x (`surfaceY`). Landing = the feet cross a surface downwards with the centre
+  over it (grown by `FOOT` 0.15). Touching roofs at the same height are walkable seams (a top deck and its slope's high edge).
+- **Gondolas (L2, L4) and crane slabs (L3, L5):** mid-street landing pads on a smooth triangle wave (2.4 s / 3.2 s); a grounded hero
+  is carried by the mover's own per-ms step.
+- **Blinking roofs (L3, L5):** period 2800 ms, gone 28 % of the cycle; a landing grips 1600 ms.
+- **Chimney updrafts (L4, L5):** a chimney cap beside the climb launches the hero up to the block's top deck (a vertical shortcut).
+- **Spark arcs (L4, L5):** a neon sign's arc across a slope's roll line on a 2.8 s cycle; shield and phase ignore it.
+- **Checkpoint lamps** every second deck; **falls** 7 m under the last top: 900 ms out of view, then 600 ms frozen on the lamp.
+- **Coins:** within 0.95 m of the hero's middle (4.2 m with Zuno's magnet); 400 ms off the submitted time each.
+- **Hero powers** (E / Enter / Power). Riko Dash: 280 ms at 12.5 m/s, or 3 m/s over a banked roll up to `V_TOP` 15.5 m/s (the card's
+  burst), then 15 s; it smashes cracked skylights. Nami Double Jump: a flutter (at most 3.25 m/s across) whose apex never passes the
+  flight's, then 10 s. Kiro Shield 2.5 s, Zuno Magnet 2.5 s, Vexa Phase 1.2 s (through ghost billboards), then 20 s each.
+- **Finish:** standing on the helipad; on L5 (solo) Ashback's defeat is the finish. The level timer ends the run unranked.
+
+## Levels (design card)
+
+| Level | Title | Timer | Blocks | What it adds |
+|---|---|---|---:|---|
+| 1 | Low Roofs | 90 s | 5 | a 7 m street only a rolled leap clears (a low catch roof under the first one, so a short leap can retry), the switchback, two chained slopes (roll off the lip onto the next one curled) to the helipad |
+| 2 | Office Roofs | 120 s | 6 | window-cleaner gondolas slide mid-street (2.4 s): time the roll so the leap meets one |
+| 3 | Moving Rooftops | 150 s | 7 | crane-swung slabs (3.2 s), rain-wet tin slopes (1.5× the roll, no braking), a blinking deck |
+| 4 | Night Skyline | 180 s | 7 | chimney updrafts, neon spark arcs on a 2.8 s cycle, night look |
+| 5 | High-Rise Climb | 240 s | 7 | everything, then **Ashback, the Shadow Armadillo** on the helipad arena |
+
+**Ashback** (`m2ShadowArmadillo`, `progression.ts ASHBACK`, menu2/boss): the arena is a half-pipe (deck, ramp, pad, ramp, deck).
+Every attack ends with him open at the foot of the ramp on your side: roll down it into him, curled and fast, for a hit.
+P1 Race (2 hits, ≥ 9 m/s): he kicks a water tank across the pad (1 s telegraph, a 1 s rolling hazard). P2 Grey paint (2 hits,
+≥ 10 m/s): he sprays your ramp grey (no roll speed on it) and stands at its foot. P3 Helipad duel (3 hits): a 2.5 s telegraph,
+a curled ram across the pad, then he is stunned at your foot. Slow-mo finish; he flees down the mountain. The boss adds no score.
+Local multiplayer plays the arena as a plain finish on the pad.
+
+## Stars, flow, secrets (Menu 2 systems)
+
+- **Stars** (menu2/stars): clear; every coin; the submitted time at or under the target (about 1.5× the honest bot: 29 / 37 / 40 /
+  42 / 83 s); the no-hit badge. `levelEnd.ts` records them in menu2/progress.
+- **Flow meter** (menu2/combo): each coin, each first landing on a roof and each slope's first banked leap is a link within 1.2 s
+  (the card's 0.6 s is shorter than a rolled leap's flight), +0.25 per link, up to ×2. The bonus comes off the submitted time and is
+  bounded in the proof (`comboSpecOf`).
+- **Secrets** (menu2/secrets, no score): L1 water-tower sticker (Nami's ledge 8 m past a deck), gutter shard (Zuno's magnet, out
+  over the street beside a slope), skylight shard (Riko's dash smashes the cracked skylight); L2 ghost-billboard shard (Vexa),
+  water-tower sticker; L3 the red shard on a crane hook over a street (a perfect rolled leap), skylight sticker; L4 neon shard inside
+  a live arc (Kiro), billboard shard, gutter sticker; L5 skylight, water-tower and neon.
 
 ## Scoring
 
-A **time game**: `kind: "time"`, display `"time"`. The server computes `score = floor((timeBaseMs − duration_ms) / 10)`.
-The submitted duration is `finishMs − 400 · coins` (`runTimeMs`). Only a win is ranked. The game's own clock is the HUD (`clockChip: false`).
+A **time game**: `score = floor((timeBaseMs − duration_ms) / 10)`, recomputed by the server. The submitted duration is
+`finishMs − 400 · coins − flow bonus` (`runTimeMs`). Only a win is ranked; multiplayer runs never are.
 
 ### Server limits and why they hold
 
-1. **Clock.** `useRunFrame` hands the game the play time the run clock counted; the rules turn it into whole ms (`simMs ≤ elapsedMs`). `finishMs ≤ elapsedMs`.
-2. **Height only grows in flight.** An arc starts at `V_JUMP` or 0 (walk-off, head bump). Landing sets y to a top just crossed downwards. A respawn puts the hero on an earlier checkpoint.
-3. **Horizontal speed.** In any ms the hero moves at most `(V_RUN + maxCarry) / 1000` m. Wind is clamped to `V_RUN`.
-4. **Edge bound.** To stand on roof b after a, the hero needs at least `max(gap(a, b) / (V_RUN + maxCarry), rise time)`. For a rise `dy > 0` the flight must pass its apex first. Ground time counts as 0.
-5. **Least finish.** Dijkstra over the roofs (`minArrivalMs`) gives the least ms to stand on the goal (`minFinishMs`).
-6. **Least duration.** At most every coin, 400 ms each (`minDurationMsOf`):
+1. **Clock.** `simMs ≤ elapsedMs`, `finishMs ≤ elapsedMs`.
+2. **Height only grows in flight.** An arc starts at `V_JUMP`, 0 (walk-off, head bump), an updraft's launch, or Nami's capped
+   second jump. A landing sets y to a surface just crossed downwards.
+3. **Speed caps, by construction.** The rules clamp the hero every ms (`capAt`): on a support the speed is at most
+   `sqrt(vIn² + 2 · accel · (d − dMin))` (the roll from the uphill-most point stood on, `d` downhill), never above `V_ROLL_MAX`;
+   `vIn` is `V_RUN` everywhere except `keep` slopes and the arena (`V_ROLL_MAX`). In the air at most the take-off's cap (the stick
+   may still reach `V_RUN`), Nami's flutter `V_FLUTTER`; a dash at most `V_TOP` for 281 ms.
+4. **Flights.** From a node to a support's slice at most `reachMax` away: `vh` times the longest flight, where a jump's flight with the
+   coyote walk-off first is `coyoteJumpS` (closed form: the walk-off drops the jump's start, the maximum is at `c = R / √2`), an updraft
+   adds its own arc, Nami's flutter its own, a dash 2.53 m. The least time is `max(gap / vh, the rise's arc for dy > 0, the free fall
+   from rest for a drop)`.
+5. **Least finish.** Dijkstra over (support, slope slice, entry slice, boundary) nodes: rolling across a slice costs its width at the
+   faster end's cap, so the bound cannot teleport along a slope. Riko's and Nami's powered flights are layers of the graph, with at
+   least `(k − 1)` cooldowns for `k` powered flights (`minArrivalMs`). L5 adds Ashback's least defeat time (`bossMinMs`: every hit on
+   the first ms of every open window) to the first stand on the arena.
+6. **Least duration.** The least finish minus every coin and the most flow bonus (`minDurationMsOf`):
 
-   | Level | Least finish | Coins | Least duration |
-   |---|---:|---:|---:|
-   | 1 Low Roofs | 6 089 ms | 4 | 4 489 ms |
-   | 2 Office Roofs | 9 309 ms | 6 | 6 909 ms |
-   | 3 Moving Rooftops | 12 340 ms | 5 | 10 340 ms |
-   | 4 Night Skyline | 15 370 ms | 7 | 12 570 ms |
-   | 5 High-Rise Climb | 19 377 ms | 9 | 15 777 ms |
+   | Level | Least finish | Coins | Flow max | Least duration |
+   |---|---:|---:|---:|---:|
+   | 1 Low Roofs | 15 894 ms | 8 | 1 010 ms | 11 684 ms |
+   | 2 Office Roofs | 19 951 ms | 6 | 1 030 ms | 16 521 ms |
+   | 3 Moving Rooftops | 22 847 ms | 9 | 1 260 ms | 17 987 ms |
+   | 4 Night Skyline | 22 035 ms | 9 | 1 320 ms | 17 115 ms |
+   | 5 High-Rise Climb | 45 930 ms | 11 | 1 540 ms | 39 990 ms |
 
-7. **Limits.** `proposeLimits` takes 92 % of the least duration, rounded down to 100 ms, and never under 90 % of it (a dash saves about 260 ms, which is more than 4.5 % of these short courses). `timeBaseMs` and `maxDurationMs` are the level timer. `maxScore = floor((timeBaseMs − minDurationMs) / 10)`.
+7. **Limits.** `proposeLimits` takes the least duration less about 2.5 %, rounded down to 100 ms (inside 94-100 % of it; the bound
+   already covers every hero, so the margin only absorbs rounding). `maxScore = floor((timeBaseMs − minDurationMs) / 10)`.
 
    | Level | minDurationMs | maxDurationMs | timeBaseMs | maxScore |
    |---|---:|---:|---:|---:|
-   | 1 | 4 100 | 90 000 | 90 000 | 8 590 |
-   | 2 | 6 300 | 120 000 | 120 000 | 11 370 |
-   | 3 | 9 500 | 150 000 | 150 000 | 14 050 |
-   | 4 | 11 500 | 180 000 | 180 000 | 16 850 |
-   | 5 | 14 500 | 210 000 | 210 000 | 19 550 |
+   | 1 | 11 300 | 90 000 | 90 000 | 7 870 |
+   | 2 | 16 100 | 120 000 | 120 000 | 10 390 |
+   | 3 | 17 500 | 150 000 | 150 000 | 13 250 |
+   | 4 | 16 600 | 180 000 | 180 000 | 16 340 |
+   | 5 | 38 900 | 240 000 | 240 000 | 20 110 |
 
-   Every level's maxScore is at least level 1's 8 590, and level 5's 19 550 is 2.28× that (the cap is 3×). `meta.ts` and `arcade-games.json` ship this table. `rules.test.ts` pins it and checks the dash floor. `registry.sync.test.ts` checks the JSON against meta.
+   Every level is worth at least level 1's 7 870; level 5's 20 110 is 2.56× (the cap is 3×). `meta.ts` and `arcade-games.json`
+   ship this table; `rules.test.ts` pins it; `registry.sync.test.ts` checks the JSON against meta.
 
 ### What the bots reached
 
 | Bot | Result |
 |---|---|
-| Honest bot (`bot.ts`: jumps at the first frame that lands, waits for movers and blinking roofs, walks only when two roofs actually overlap; it does not use the hero power) | Wins on every level at 30, 60 and 144 fps. Submitted times (30 / 60 / 144) and best score: level 1 **5.959 / 5.959 / 5.950 s**, 4 coins, score 8 405 (98 % of 8 590). Level 2 **8.711 / 8.628 / 8.607 s**, 6 coins, 11 139 (98 % of 11 370). Level 3 **13.439 / 12.939 / 12.895 s**, 13 710 (98 % of 14 050). Level 4 **16.736 / 16.770 / 17.160 s**, 16 326 (97 % of 16 850). Level 5 **21.943 / 22.260 / 22.232 s**, 18 805 (96 % of 19 550). Every clear is at least 90 % of that level's maxScore. At 60 fps each level's score is above level 1's, and level 5 is 2.2× level 1 |
+| Honest bot (`bot.ts`, never uses the hero power) | Wins every level at 30, 60 and 144 fps. Submitted (30 / 60 / 144): L1 **18.498 / 18.920 / 18.982 s** (≥ 90.2 % of max), L2 **24.442 / 24.363 / 24.413 s** (92 %), L3 **27.136 / 26.221 / 26.199 s** (92.7 %), L4 **27.511 / 27.497 / 27.498 s** (93.3 %), L5 **54.913 / 54.943 / 54.864 s** with Ashback beaten (92 %) |
+| Honest bot with each hero, power mashed (`proof.test.ts`) | never under the floor or over the clock on any level at 30/60/144 Hz |
 | Honest bot through the real store, ragged frames | a ranked win inside the limits, the score recomputed from the time |
-| Idle bot | "timeup" at exactly 90 000 ms on level 1, unranked, nothing sent |
-| 200 spam bots (random stick, jump mashing, 4-50 ms frames) | no win under 4 100 ms on level 1 |
+| Idle bot | "timeup" at exactly the level timer, unranked |
+| Spam bots (200 on L1; 60 per level with powers and random camera yaw) | no win under the floor |
+| Mutation probes | one block fewer or one climb step fewer per block falls outside the limits window; no two levels share a row |
 
-## Levels
+How the honest bot plays: it climbs the steps with the first jump that lands; from the last step it rehearses the skilled line (skip
+the top deck and leap straight onto the slope's upper half) and takes it only when it beats the ordinary route; it leans downhill on
+the roll line (where the coin is), jumps a little before the lip (or rolls off it onto L1's chained slope), waits for gondolas, crane
+slabs, arcs and blinking decks by rehearsing the descent; and in Ashback's arena it sets off down its ramp as soon as a rehearsed
+roll meets him while he is open.
 
-| Level | Title | Timer | What it adds |
-|---|---|---|---|
-| 1 | Low Roofs | 90 s | 10 roofs, 8 rises, goal at 16 m, wide and still |
-| 2 | Office Roofs | 120 s | 14 roofs, 12 rises, goal at 22 m, sliding roofs |
-| 3 | Moving Rooftops | 150 s | 18 roofs, 16 rises, goal at 30 m, more movers, blinking roofs, ice |
-| 4 | Night Skyline | 180 s | 22 roofs, 20 rises, goal at 38 m, faster movers, wind, antenna sparks |
-| 5 | High-Rise Climb | 210 s | 28 roofs, 25 rises, goal at 46 m, every hazard |
+## Tests
 
-Clear: a win (time game). Level 5's timer is 210 s (the plan's best-time climb needs a cap).
+`rules.test.ts` (skyline, slope momentum, jumps and falls, the bound, the limits, the bots), `proof.test.ts` (every hero's power at
+30/60/144 Hz, idle and spam on every level, mutation probes), `layouts.test.ts` (it plays differently from Lava Pillar Jump and Sky
+Tower Jump), `progression.test.ts` (stars, flow bound, secrets and their gates, Ashback), plus the UI tests listed below.
 
-## Models
+UI tests: `orbit.test.ts` (bot unchanged at yaw 0, camera-relative stick, intro ends on the orbit's first pose, Riko preselected),
+`multiplayer.test.ts`, `hero.test.ts` (menu2/heroAnim motion: curl, rolled leap), `assets.test.ts` (every GLB fitted to its real
+mesh, the sloped roof's ridge and lip on each slope, Ashback's height), `look.test.ts`, `livePick.test.ts`, `powers.test.ts`.
 
-Hyper3D props in `public/models/3d/rooftop-roll-climb/`: `m2RooftopBlock`, `m2RoofExhaustFan` (the AC), `m2RoofSolarRack`, `m2SkylineTower` (background only, off the climb). The hero reuses `/models/3d/menu2/m2HeroRiko.glb` at the same landmarks and scale as Sky Tower Jump (`hero.test.ts`). Coins reuse the shared coin. Water towers, chimneys, antennas, cranes and the billboards are code meshes (two or three tones, no letters). `assets.test.ts` fits every GLB to the real mesh bounds. `core/modelManifest.ts` lists the four prop urls.
+## Files and look
+
+| File | What |
+|---|---|
+| `levels.ts`, `roofs.ts` | the five level specs and the generated skylines (blocks, slopes, streets, movers, chimneys, arcs, secrets, the L5 arena) |
+| `rules.ts`, `bot.ts`, `progression.ts` | pure rules + the proof, the honest bot, stars / combo / secrets / Ashback config |
+| `levelEnd.ts`, `StarResult.tsx` | stars, no-hit and secrets into menu2/progress; the star screen on the result card |
+| `multiplayer.ts`, `MultiScene.tsx`, `MultiplayerHud.tsx` | local 1-4 players (versus race, co-op with shared coins, checkpoints and ally powers; L5 is a plain finish on the pad) |
+| `Scene.tsx`, `sceneJuice.ts`, `camera.ts` | simulation, menu2/juice (dust and kick on landing, ember trail at ≥ 10 m/s, +8° FOV in a rolled leap, banked-leap and skylight bursts, Ashback's hits and slow-mo defeat), the menu2 orbit camera, the intro |
+| `Course.tsx`, `World.tsx` | roofs (`m2RooftopBlock`), slanted tin roofs (`m2SlopedRoofI`, a bevelled code wedge with a lip as fallback; wet tin darker and glossy), gondolas and crane slabs, chimney updrafts, neon arcs, skylights, ghost billboards, water towers, neon strips that relight red once landed on, Ashback (`m2ShadowArmadillo`, tank, grey paint) |
+| `Hero.tsx` | the picked hero through menu2/heroAnim (ball-roll while curled, dash, double jump), blob shadow on slopes |
+| `Hud.tsx` | shared HeroPicker, OrbitHud, roll-speed meter (red at banking speed), flow meter, Ashback's bar |
+
+Known gaps: not yet looked at on screen (the slope GLB's stretch, Ashback's facing and scale, the paint decal); Ashback shows the
+shared health bar with phase marks, not a distance meter; water tanks rolling down slopes outside the arena and a landing-shadow
+preview while curled are not drawn; climb steps are separate narrow buildings rather than a fire escape.

@@ -6,10 +6,10 @@ import { LEVEL_IDS, type LevelId } from "@/arcade3d/types";
 import { createBot, botInput } from "./bot";
 import { HEROES, type HeroId } from "./heroes";
 import { LEVELS } from "./levels";
-import { PROPOSED_LEVEL_LIMITS, buildCourse, courseFor, createRun, createStepInput, minDurationMsOf, runTimeMs, step, type LavaRun } from "./rules";
+import { PROPOSED_LEVEL_LIMITS, buildCourse, courseFor, createRun, createStepInput, dashFloorMs, minDurationMsOf, runTimeMs, step, type Course, type LavaRun } from "./rules";
 
 const FPS = [30, 60, 144] as const;
-const submitted = (run: LavaRun) => runTimeMs(run.finishMs, run.orbs);
+const submitted = (run: LavaRun) => runTimeMs(run.finishMs, run.orbs, run.combo.bonusTotal);
 
 /** The honest bot with the hero's power pressed as often as the cooldown allows (every frame). */
 function powerRun(level: LevelId, hero: HeroId, fps: number, mash: boolean): LavaRun {
@@ -82,22 +82,28 @@ describe("mutation probes: the limits tests read the level they claim to", () =>
    it("each level has its own floor and its own clock: no two levels share a limits row", () => {
       const rows = LEVEL_IDS.map((id) => JSON.stringify(PROPOSED_LEVEL_LIMITS[id]));
       expect(new Set(rows).size).toBe(5);
+      // each level's floor is its own (vents can make a longer level's floor shorter, so no order is claimed)
       const floors = LEVEL_IDS.map((id) => minDurationMsOf(courseFor(id)));
-      for (let i = 1; i < floors.length; i++) expect(floors[i]).toBeGreaterThan(floors[i - 1]);
+      expect(new Set(floors.map((f) => Math.round(f))).size).toBe(5);
       for (const id of LEVEL_IDS) expect(PROPOSED_LEVEL_LIMITS[id].timeBaseMs).toBe(LEVELS[id].durationMs);
    });
 
    for (const level of LEVEL_IDS) {
-      it(`level ${level}: a mutated level (a 15 % lower goal roof, or five fewer pillars) falls outside the limits window, so the "limits sit under the bound" test would fail on a misread`, () => {
+      it(`level ${level}: a mutated level (a 30 % lower goal roof, five fewer pillars, or level 5 without Kalder) falls outside the limits window, so the "limits sit under the bound" test would fail on a misread`, () => {
          const spec = LEVELS[level].spec;
          const lim = PROPOSED_LEVEL_LIMITS[level];
-         // rules.test.ts accepts a floor lb when lim.min <= lb and lim.min >= 0.9 lb: a misread level must fall outside that window
-         const accepts = (lb: number) => lim.minDurationMs <= lb && lim.minDurationMs >= lb * 0.9;
-         expect(accepts(minDurationMsOf(courseFor(level)))).toBe(true);
-         const lower = buildCourse({ ...LEVELS[level], spec: { ...spec, goalTop: spec.goalTop * 0.85 } });
+         // rules.test.ts accepts a course when lim.min <= its bound lb and lim.min >= min(0.9 lb, its dashed floor):
+         // a misread level must fall outside that window
+         const accepts = (c: Course) => {
+            const lb = minDurationMsOf(c);
+            return lim.minDurationMs <= lb && lim.minDurationMs >= Math.min(lb * 0.9, Math.floor(dashFloorMs(c) / 100) * 100);
+         };
+         expect(accepts(courseFor(level))).toBe(true);
+         const lower = buildCourse({ ...LEVELS[level], spec: { ...spec, goalTop: spec.goalTop * 0.7, lavaCap: spec.lavaCap === null ? null : spec.goalTop * 0.7 - 3.2 } });
          const fewer = buildCourse({ ...LEVELS[level], spec: { ...spec, surfaces: spec.surfaces - 5, rises: Math.max(2, spec.rises - 5) } });
-         expect(accepts(minDurationMsOf(lower)), "goalTop read").toBe(false);
-         expect(accepts(minDurationMsOf(fewer)), "rises read").toBe(false);
+         expect(accepts(lower), "goalTop read").toBe(false);
+         expect(accepts(fewer), "rises read").toBe(false);
+         if (spec.arena) expect(accepts(buildCourse({ ...LEVELS[level], spec: { ...spec, arena: null, lavaCap: null } })), "boss read").toBe(false);
          // and the real course still sits over it
          expect(minDurationMsOf(courseFor(level))).toBeGreaterThanOrEqual(PROPOSED_LEVEL_LIMITS[level].minDurationMs);
       });

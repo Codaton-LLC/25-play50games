@@ -1,11 +1,13 @@
 // The picker updates the hero live: selectHero notifies subscribers (the Scene re-makes its run, so the
 // start card and the intro show the picked hero before Play) and does nothing when the pick is unchanged.
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import * as roof from "./heroes";
 import * as sky from "../sky-tower-jump/heroes";
 
 for (const [name, h] of [["rooftop-roll-climb", roof], ["sky-tower-jump", sky]] as const) {
    describe(`${name}: live hero pick`, () => {
+      // Sky Tower Jump preselects Nami (W2): start every case from a known pick
+      beforeEach(() => h.selectHero("riko"));
       afterEach(() => h.selectHero("riko"));
 
       it("notifies a subscriber on a new pick, not on the same pick, and stops after unsubscribe", () => {

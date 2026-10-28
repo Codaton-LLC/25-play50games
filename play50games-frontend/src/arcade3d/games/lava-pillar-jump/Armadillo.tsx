@@ -4,7 +4,7 @@
 // pangolin-style hero after the user's approved concept (B01-armadillo-hero, not committed): Riko red
 // overlapping plates from the crown down the back to a plated tail, glowing seams between them, red
 // shoulder and knee pads with glowing edges, an open helmet with a clear brim visor and headphones,
-// tan skin, a charcoal suit and a leather belt. It stands in the asset
+// tan skin, a charcoal suit and a leather belt (no eye mask, nothing TMNT-like). It stands in the asset
 // slot ASSETS.hero (assets.ts): the fallback while m2HeroRiko.glb is missing or broken. The curled
 // ball of plates is ArmadilloBall, drawn for the GLB and the stand-in alike.
 //

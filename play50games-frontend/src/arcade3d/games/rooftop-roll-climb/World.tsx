@@ -149,13 +149,20 @@ function useTowers(course: Course, seed: number): InstanceSpot[] {
    return useMemo(() => {
       const rnd = createRng(seed ^ 0x70f);
       const goalZ = course.supports[course.goal].cz;
+      // the zigzag spans x from minX to maxX: the towers stand outside it
+      let minX = Infinity;
+      let maxX = -Infinity;
+      for (const s of course.supports) {
+         minX = Math.min(minX, s.cx - s.hw);
+         maxX = Math.max(maxX, s.cx + s.hw);
+      }
       const spots: InstanceSpot[] = [];
       for (let i = 0; i < 16; i++) {
          const side = i % 2 === 0 ? -1 : 1;
          const along = (i / 15) * goalZ - 6;
          const height = 16 + rnd() * 26;
          spots.push({
-            x: side * (20 + rnd() * 18),
+            x: side < 0 ? minX - 14 - rnd() * 18 : maxX + 14 + rnd() * 18,
             y: -1.5,
             z: along,
             scale: height / GLB_SIZE.skylineTower.y,
@@ -188,7 +195,7 @@ function useBoardMap(): CanvasTexture {
 }
 
 /** Colour-block boards. No letters and no brands. */
-function Boards({ seed }: { seed: number }) {
+function Boards({ seed, minX, maxX }: { seed: number; minX: number; maxX: number }) {
    const map = useBoardMap();
    const spots = useMemo(() => {
       const rnd = createRng(seed ^ 0xb11);
@@ -196,14 +203,14 @@ function Boards({ seed }: { seed: number }) {
       for (let i = 0; i < 4; i++) {
          const side = i % 2 === 0 ? -1 : 1;
          out.push({
-            x: side * (14 + rnd() * 4),
+            x: side < 0 ? minX - 10 - rnd() * 4 : maxX + 10 + rnd() * 4,
             y: 7 + rnd() * 8,
             z: -6 - i * 12,
             ry: side > 0 ? -0.5 : 0.5,
          });
       }
       return out;
-   }, [seed]);
+   }, [seed, minX, maxX]);
    return (
       <>
          {spots.map((s, i) => (
@@ -246,13 +253,22 @@ export default function World({ course, seed, levelId = 1 }: { course: Course; s
    const towers = useTowers(course, seed);
    const night = isStormLevel(levelId);
    const goal = course.supports[course.goal];
+   const [minX, maxX] = useMemo(() => {
+      let lo = Infinity;
+      let hi = -Infinity;
+      for (const s of course.supports) {
+         lo = Math.min(lo, s.cx - s.hw);
+         hi = Math.max(hi, s.cx + s.hw);
+      }
+      return [lo, hi];
+   }, [course]);
    return (
       <>
          <SkyDome night={night} />
          <InstancedModel asset={ASSETS.skylineTower} spots={towers} fallback={null} />
-         <Crane x={-18} z={-8} phase={0.4} />
-         <Crane x={18} z={goal.cz * 0.55} phase={2.1} />
-         <Boards seed={seed} />
+         <Crane x={minX - 9} z={-8} phase={0.4} />
+         <Crane x={maxX + 9} z={goal.cz * 0.55} phase={2.1} />
+         <Boards seed={seed} minX={minX} maxX={maxX} />
          {night ? <hemisphereLight args={["#bcd0ff", "#55658a", STORM.hemi]} /> : null}
          {night ? <ambientLight intensity={STORM.ambient} /> : null}
          {night ? <pointLight position={[0, goal.top + 12, goal.cz]} intensity={18} distance={90} color="#93c5fd" /> : null}

@@ -4,7 +4,7 @@
 import type { HumanoidLandmarks } from "@/arcade3d/core/rig/humanoid";
 import { HERO_GLB, HERO_LANDMARKS, HERO_SCALE, HERO_SOLE_Z, heroModelAsset } from "@/arcade3d/menu2/heroModels";
 import type { ModelAsset } from "@/arcade3d/core/types";
-import { PROP_BUDGET } from "@/arcade3d/core/sharedAssets";
+import { CHARACTER_BUDGET, PROP_BUDGET } from "@/arcade3d/core/sharedAssets";
 
 export const RIKO_GLB_HEIGHT = HERO_GLB.riko.height;
 export const RIKO_SCALE = HERO_SCALE.riko;
@@ -21,7 +21,18 @@ export const GLB_SIZE = {
    geyser: { x: 1.8529993295669556, y: 0.8406079411506653, z: 1.9031288623809814 },
    slug: { x: 0.9996693134307861, y: 0.8379854559898376, z: 1.8894567489624023 },
    volcano: { x: 1.9023818969726562, y: 0.892869770526886, z: 1.8926067352294922 },
+   // Kalder (menu2/m2MagmaGolemBoss.glb, the shared World 1 guardian): 18 000 tris, 465 KB, feet on 0, faces +z
+   golem: { x: 1.9009854793548584, y: 1.8012889623641968, z: 0.803040087223053 },
 } as const;
+
+/**
+ * Kalder is drawn this tall (m), standing in the lava under the arena: his shoulders (about 0.78 of
+ * his height) at the P1 hit zone, ZONES[0].lift over the ring top, from the capped lava 3.2 m under it.
+ */
+export const GOLEM_HEIGHT = 9.6;
+export const GOLEM_SCALE = GOLEM_HEIGHT / GLB_SIZE.golem.y;
+/** his feet under the ring top (m): standing in the lava, which the cap holds 3.2 m under the ring */
+export const GOLEM_SINK = 3.2;
 
 /** An ember is drawn this tall (m), its centre on the pickup point. */
 export const EMBER_HEIGHT = 0.5;
@@ -45,4 +56,5 @@ export const ASSETS: Record<string, ModelAsset> = {
    geyser: prop("m2LavaGeyserVent", "#ea580c"),
    slug: prop("m2MagmaSlug", "#c2410c"),
    volcano: prop("m2VolcanoBg", "#292524"),
+   golem: { id: "m2MagmaGolemBoss", url: "/models/3d/menu2/m2MagmaGolemBoss.glb", fallback: "box", fallbackColor: "#57534e", budget: CHARACTER_BUDGET },
 };

@@ -159,6 +159,8 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/rooftop-roll-climb/m2RoofSolarRack.glb",
    "/models/3d/rooftop-roll-climb/m2RooftopBlock.glb",
    "/models/3d/rooftop-roll-climb/m2SkylineTower.glb",
+   // the slanted tin roof of the slope-momentum mechanic (ready/menu2/rooftop-roll-climb/m2SlopedRoofI)
+   "/models/3d/rooftop-roll-climb/m2SlopedRoofI.glb",
    // Menu 2 game 03 (Flooded Ruins Escape): ruin props from ~/.play50/hyper3d/ready/menu2/flooded-ruins-escape
    "/models/3d/flooded-ruins-escape/m2RuinBrickLedge.glb",
    "/models/3d/flooded-ruins-escape/m2RuinChannel.glb",
@@ -176,6 +178,10 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/lava-pillar-jump/m2LavaRock.glb",
    "/models/3d/lava-pillar-jump/m2MagmaSlug.glb",
    "/models/3d/lava-pillar-jump/m2VolcanoBg.glb",
+   // World 1's guardian, Kalder the Magma Golem (Lava Pillar Jump level 5 boss), shared by menu2/
+   "/models/3d/menu2/m2MagmaGolemBoss.glb",
+   // Ashback, the Shadow Armadillo (Rooftop Roll Climb level 5 boss), shared by menu2/
+   "/models/3d/menu2/m2ShadowArmadillo.glb",
    // Menu 2 game 05 (Cloud Hopper): cloud props from ~/.play50/hyper3d/ready/menu2/cloud-hopper
    "/models/3d/cloud-hopper/m2CloudCastleBg.glb",
    "/models/3d/cloud-hopper/m2CloudPlatformV2.glb",
