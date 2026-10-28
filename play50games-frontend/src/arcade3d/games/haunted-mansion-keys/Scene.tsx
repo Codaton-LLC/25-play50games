@@ -6,6 +6,8 @@ import { useFrame, useThree } from "@react-three/fiber";
 import { BoxGeometry, Color, Euler, Fog, Matrix4, MeshStandardMaterial, Quaternion, RepeatWrapping, Vector3, type Group, type MeshStandardMaterial as Mat } from "three";
 import { DynamicInstancedModel, InstancedModel, Model } from "@/arcade3d/core/assets";
 import CameraRig from "@/arcade3d/core/CameraRig";
+import type { AABB } from "@/arcade3d/core/collision";
+import { useCameraViews } from "@/arcade3d/core/camera/CameraViews";
 import { playSfx } from "@/arcade3d/core/audio";
 import { FRAME_PRIORITY } from "@/arcade3d/core/frameLoop";
 import { useFx } from "@/arcade3d/core/fx";
@@ -72,6 +74,33 @@ function LevelScene() {
    const time = useGameTime();
    const input = useInput();
    const [run] = useState<Run>(() => createRun(randomSeed(), config));
+   // camera views (core/camera): the rules get the drawn camera's yaw; the room walls block the camera
+   const cam = useCameraViews({
+      slug: "haunted-mansion-keys",
+      subject: "character",
+      steering: "camera",
+      defaultYaw: view.yaw,
+      target: (o) => {
+         const h = run.hero;
+         o.x = h.x;
+         o.y = 1.1;
+         o.z = h.z;
+         o.heading = h.yaw;
+         o.vx = h.vx;
+         o.vz = h.vz;
+      },
+      solids: (out: AABB[]) => {
+         let n = 0;
+         for (const w of run.walls) {
+            if (n >= out.length) break;
+            const b = out[n++];
+            b.min.x = w.min.x; b.max.x = w.max.x;
+            b.min.y = w.min.y; b.max.y = w.max.y;
+            b.min.z = w.min.z; b.max.z = w.max.z;
+         }
+         return n;
+      },
+   });
    const body = useRef<Group>(null);
    const armourBody = useRef<Group>(null);
    const keyBadges = useRef<(Group | null)[]>([]);
@@ -141,7 +170,7 @@ function LevelScene() {
    useRunFrame((_state, dt) => {
       const { moveX, moveY, action, actionPressed } = input.current;
       const store = useArcadeStore.getState();
-      const ev = step(run, { moveX, moveY, action, actionPressed, yaw: view.yaw }, dt, store.timeLeftMs ?? 0);
+      const ev = step(run, { moveX, moveY, action, actionPressed, yaw: cam.yaw() }, dt, store.timeLeftMs ?? 0);
 
       let mask = 0;
       for (let i = 0; i < run.heldKeys.length; i++) if (run.heldKeys[i]) mask |= 1 << i;

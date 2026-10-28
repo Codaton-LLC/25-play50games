@@ -7,6 +7,12 @@ A grid of 6 × 5 m rooms. Find each coloured key (tint plus shape), open its doo
 Hold Use (E / Enter / touch Use) for 0.20 s within 1.2 m to take a key, open a door or pull the lever. The
 finishing time is the score: `max(0, floor((timeBaseMs − durationMs) / 10))`, ranked on a win only.
 
+## Controls
+
+WASD / arrows move, E / Enter / Use take, open or pull. Camera views: 📷 button (touch) or **C** cycles
+default → chase → front → top → free (`core/camera`); the movement follows the view on screen. The room
+walls are the camera's solids (the camera pulls in before a wall).
+
 ## Rules (`rules.ts`, pure and seeded)
 
 - A random backbone from room (0,0) to the far corner, split into `keys + 1` wings; the other rooms join a

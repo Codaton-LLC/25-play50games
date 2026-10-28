@@ -1,5 +1,6 @@
 "use client";
 
+import CameraViewButton from "@/arcade3d/core/camera/CameraViewButton";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useLevel } from "@/arcade3d/core/level";
 import type { MansionLevel } from "./levels";
@@ -14,7 +15,7 @@ const SHAPE_GLYPHS = {
    star: "★",
 } as const;
 
-export default function Hud() {
+function KeyRing() {
    const { config } = useLevel<MansionLevel>();
    const keyMask = useArcadeStore((s) => s.stats.keyMask ?? 0);
    const keysTotal = config.keys;
@@ -39,5 +40,15 @@ export default function Hud() {
             })}
          </div>
       </div>
+   );
+}
+
+/** The key ring plus the core 📷 camera-view button (core/camera). */
+export default function Hud() {
+   return (
+      <>
+         <CameraViewButton />
+         <KeyRing />
+      </>
    );
 }
