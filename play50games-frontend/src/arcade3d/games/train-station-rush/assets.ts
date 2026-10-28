@@ -119,6 +119,8 @@ export const ASSETS = {
    loco: {
       ...local("locomotiveFront", "box", "#0ea5e9"),
       scale: locoScale,
+      /** the GLB faces +z; the train's nose points to -z (the concourse) */
+      rotationY: Math.PI,
       stretch: [1, 1, LOCO_LEN / (GLB_SIZE.locomotiveFront.depth * locoScale)] as const,
    },
    /**
