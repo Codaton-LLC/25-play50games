@@ -301,3 +301,91 @@
       animation: none;
    }
 }
+
+/* Dragon Cave Rush: the distance meter (always visible): Cindermaw's distance behind the cart, 0..100 */
+.meter {
+   display: flex;
+   align-items: center;
+   gap: 8px;
+   padding: 6px 10px;
+   border-radius: 999px;
+   background: rgba(20, 10, 6, 0.72);
+   border: 2px solid rgba(251, 146, 60, 0.55);
+   color: #fff;
+   min-width: 168px;
+}
+
+.meterLow {
+   border-color: #ef4444;
+   animation: pulse 0.5s ease-in-out infinite alternate;
+}
+
+.meterBar {
+   position: relative;
+   flex: 1;
+   height: 10px;
+   border-radius: 999px;
+   background: rgba(255, 255, 255, 0.14);
+   overflow: hidden;
+}
+
+.meterFill {
+   position: absolute;
+   inset: 0 auto 0 0;
+   border-radius: 999px;
+   background: linear-gradient(90deg, #ef4444, #f97316 45%, #facc15);
+   transition: width 0.15s linear;
+}
+
+/* the badge line at 50 */
+.meterMark {
+   position: absolute;
+   top: 0;
+   bottom: 0;
+   left: 50%;
+   width: 2px;
+   background: rgba(255, 255, 255, 0.7);
+}
+
+.progress {
+   width: 168px;
+   height: 6px;
+   margin-top: 6px;
+   border-radius: 999px;
+   background: rgba(255, 255, 255, 0.15);
+   overflow: hidden;
+}
+
+.progressFill {
+   height: 100%;
+   background: #fde68a;
+}
+
+.breath,
+.tilt,
+.sleep {
+   margin-top: 6px;
+   padding: 4px 12px;
+   border-radius: 999px;
+   font-size: 0.86rem;
+   font-weight: 800;
+   color: #fff;
+   white-space: nowrap;
+}
+
+.breath {
+   background: rgba(234, 88, 12, 0.88);
+   border: 2px solid #fed7aa;
+   animation: pulse 0.25s ease-in-out infinite alternate;
+}
+
+.tilt {
+   background: rgba(190, 18, 60, 0.85);
+   border: 2px solid #fecdd3;
+   animation: pulse 0.3s ease-in-out infinite alternate;
+}
+
+.sleep {
+   background: rgba(41, 37, 36, 0.78);
+   border: 2px solid rgba(251, 146, 60, 0.4);
+}

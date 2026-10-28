@@ -242,6 +242,25 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/wind-tunnel-escape/m2WindFan.glb",
    "/models/3d/wind-tunnel-escape/m2WindFanTower.glb",
    "/models/3d/wind-tunnel-escape/m2WindTubeBg.glb",
+   // Menu 2 game 14 (Dragon Cave Rush): cave props from ~/.play50/hyper3d/ready/menu2/dragon-cave-rush and
+   // m2PatrolBot (ready/menu2/shared); m2CinderDragon is Cindermaw, the chaser and the L5 boss
+   "/models/3d/dragon-cave-rush/m2CaveArchBridge.glb",
+   "/models/3d/dragon-cave-rush/m2CaveLanternPost.glb",
+   "/models/3d/dragon-cave-rush/m2CaveRock.glb",
+   "/models/3d/dragon-cave-rush/m2CaveWallChunk.glb",
+   "/models/3d/dragon-cave-rush/m2CinderDragon.glb",
+   "/models/3d/dragon-cave-rush/m2CrystalCluster.glb",
+   "/models/3d/dragon-cave-rush/m2DragonEgg.glb",
+   "/models/3d/dragon-cave-rush/m2DragonHoard.glb",
+   "/models/3d/dragon-cave-rush/m2DragonSkullGate.glb",
+   "/models/3d/dragon-cave-rush/m2GlowMushrooms.glb",
+   "/models/3d/dragon-cave-rush/m2HangingCrystal.glb",
+   "/models/3d/dragon-cave-rush/m2LavafallRock.glb",
+   "/models/3d/dragon-cave-rush/m2MineCart.glb",
+   "/models/3d/dragon-cave-rush/m2MineScaffold.glb",
+   "/models/3d/dragon-cave-rush/m2MineTrack.glb",
+   "/models/3d/dragon-cave-rush/m2PatrolBot.glb",
+   "/models/3d/dragon-cave-rush/m2Stalagmites.glb",
    // P-121 dev adoptions (2026-10-25): V2 replacements and Group D variety whose QA verdict
    // starts with OK. Optimized GLBs copied in; not re-optimized. Live games are untouched.
    "/models/3d/shopping-cart/supermarketShelfV2.glb",

@@ -1086,6 +1086,22 @@
         { "title": "Moving Fans", "max_score": 19380, "min_duration_ms": 16200, "max_duration_ms": 210000, "time_base_ms": 210000 },
         { "title": "Storm Tunnel", "max_score": 25950, "min_duration_ms": 40500, "max_duration_ms": 300000, "time_base_ms": 300000 }
       ]
+    },
+    "dragon-cave-rush": {
+      "title": "Dragon Cave Rush",
+      "kind": "time",
+      "max_score": 5360,
+      "min_duration_ms": 36400,
+      "max_duration_ms": 90000,
+      "time_base_ms": 90000,
+      "enabled": false,
+      "levels": [
+        { "title": "Crystal Entry", "max_score": 5360, "min_duration_ms": 36400, "max_duration_ms": 90000, "time_base_ms": 90000 },
+        { "title": "Rockfall", "max_score": 7670, "min_duration_ms": 33300, "max_duration_ms": 110000, "time_base_ms": 110000 },
+        { "title": "Glow Tunnel", "max_score": 8940, "min_duration_ms": 30600, "max_duration_ms": 120000, "time_base_ms": 120000 },
+        { "title": "Deep Cave", "max_score": 10170, "min_duration_ms": 28300, "max_duration_ms": 130000, "time_base_ms": 130000 },
+        { "title": "Dragon Hoard", "max_score": 14610, "min_duration_ms": 33900, "max_duration_ms": 180000, "time_base_ms": 180000 }
+      ]
     }
   }
 }
