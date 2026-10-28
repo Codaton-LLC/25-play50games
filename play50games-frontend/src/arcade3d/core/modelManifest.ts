@@ -532,6 +532,14 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/dog-park-fetch/parkBush.glb",
    "/models/3d/dog-park-fetch/festivalTent.glb",
    "/models/3d/shared/civilianNpc.glb",
+   "/models/3d/temple-lantern-jump/m2LanternDeck.glb",
+   "/models/3d/temple-lantern-jump/m2RuinRoofSection.glb",
+   "/models/3d/temple-lantern-jump/m2StoneBrazier.glb",
+   "/models/3d/temple-lantern-jump/m2StoneCageLantern.glb",
+   "/models/3d/temple-lantern-jump/m2TempleBeam.glb",
+   "/models/3d/temple-lantern-jump/m2TempleLedge.glb",
+   "/models/3d/temple-lantern-jump/m2TempleTowerBg.glb",
+   "/models/3d/temple-lantern-jump/m2WoodenBalconyV2.glb",
 ];
 
 const LISTED: ReadonlySet<string> = new Set(MODEL_MANIFEST);
