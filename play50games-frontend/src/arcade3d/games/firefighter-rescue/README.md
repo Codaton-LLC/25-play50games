@@ -113,3 +113,7 @@ Steps 1–4 are done (`claude/menu1-scaffold`, 2026-10-25: slug in `ARCADE_SLUGS
 ```
 
 5. Done (2026-10-28): the GLBs in `assets.spec.json` are in `public/models/3d/firefighter-rescue/` (plus the shared `cabinet.glb`) and in `core/modelManifest.ts`, fitted and tested. `hero.glb` and `exitSign.glb` are left out.
+
+## Clarity (2026-10-28, visual only)
+
+`guide.ts` (pure, `guide.test.ts`) picks the current target: the green exit while a neighbour follows, else the fire or neighbour already chosen until it is done, else the nearest one that can be reached now (never one behind a shut door). A core `TargetBeacon` stands over it (orange on a fire, blue on a neighbour, a green "drop-here" ring with an EXIT label at the exit); the core `HintLine` says what to do ("Go to the fire", "hold E / hold Spray until the fire is out", "hold … to talk: they follow you", "Neighbour following: lead them to the green EXIT"), and a sticky red "Low breath! Get out of the smoke" while breath is under 35 % in smoke; the breath meter turns red then too. Pops: "Keep holding!" when a spray is let go before the fire is out, "Follow me!" when a neighbour starts to follow, "Hit by debris! -1 life", "Out of breath! -1 life". Rules, scoring and limits are unchanged.
