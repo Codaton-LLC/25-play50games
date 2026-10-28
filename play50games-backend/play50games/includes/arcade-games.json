@@ -1070,6 +1070,22 @@
         { "title": "Fast Route", "max_score": 14353, "min_duration_ms": 11300, "max_duration_ms": 131000, "base": 0, "max_pps": 1271 },
         { "title": "Perfect Streak", "max_score": 16228, "min_duration_ms": 33500, "max_duration_ms": 221000, "base": 0, "max_pps": 485 }
       ]
+    },
+    "mine-tunnel-run": {
+      "title": "Mine Tunnel Run",
+      "kind": "time",
+      "max_score": 8890,
+      "min_duration_ms": 1100,
+      "max_duration_ms": 90000,
+      "time_base_ms": 90000,
+      "enabled": false,
+      "levels": [
+        { "title": "Dry Tunnel", "max_score": 8890, "min_duration_ms": 1100, "max_duration_ms": 90000, "time_base_ms": 90000 },
+        { "title": "Pipe Zone", "max_score": 11730, "min_duration_ms": 2700, "max_duration_ms": 120000, "time_base_ms": 120000 },
+        { "title": "Water Gaps", "max_score": 14570, "min_duration_ms": 4300, "max_duration_ms": 150000, "time_base_ms": 150000 },
+        { "title": "Fast Tunnel", "max_score": 11700, "min_duration_ms": 3000, "max_duration_ms": 120000, "time_base_ms": 120000 },
+        { "title": "Deep Mine Sprint", "max_score": 21920, "min_duration_ms": 20800, "max_duration_ms": 240000, "time_base_ms": 240000 }
+      ]
     }
   }
 }
