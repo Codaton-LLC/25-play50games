@@ -20,8 +20,8 @@ const MENU1_NEW = ARCADE_SLUGS.slice(30, 50);
 
 /** Menu 2 (Color Roll Heroes): the vertical slice so far, after the 50 Menu 1 games, hidden ("dev") until the user signs off. */
 /** Owners other than Cursor in the Menu 2 slice. */
-const OWNER: Record<string, string> = { "sky-tower-jump": "claude", "plate-surf": "claude", "zipline-rush": "codex", "ring-jump-challenge": "claude", "wind-tunnel-escape": "claude" };
-const MENU2 = ["sky-tower-jump", "rooftop-roll-climb", "flooded-ruins-escape", "lava-pillar-jump", "cloud-hopper", "plate-surf", "zipline-rush", "ring-jump-challenge", "wind-tunnel-escape"];
+const OWNER: Record<string, string> = { "temple-lantern-jump": "codex", "sky-tower-jump": "claude", "plate-surf": "claude", "zipline-rush": "codex", "ring-jump-challenge": "claude", "wind-tunnel-escape": "claude" };
+const MENU2 = ["temple-lantern-jump", "sky-tower-jump", "rooftop-roll-climb", "flooded-ruins-escape", "lava-pillar-jump", "cloud-hopper", "plate-surf", "zipline-rush", "ring-jump-challenge", "wind-tunnel-escape"];
 
 describe("registry for 50 Menu 1 games plus Menu 2", () => {
    it("has 50 Menu 1 slugs plus the Menu 2 ones, each with one meta, a unique order and a loader", () => {

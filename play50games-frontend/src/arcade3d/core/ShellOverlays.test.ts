@@ -175,7 +175,7 @@ describe("HUD chips", () => {
       expect(hudShowsScore(robotCollectorMeta.scoring.kind)).toBe(true);
       expect(ARCADE_GAMES).toHaveLength(59);
       const hidden = ARCADE_GAMES.filter((meta) => !hudShowsScore(meta.scoring.kind)).map((meta) => meta.slug);
-      expect(hidden.sort()).toEqual(["cloud-hopper", "escape-room", "flooded-ruins-escape", "haunted-mansion-keys", "lava-pillar-jump", "obstacle-race", "plate-surf", "rooftop-roll-climb", "sky-tower-jump", "wind-tunnel-escape"]);
+      expect(hidden.sort()).toEqual(["temple-lantern-jump", "cloud-hopper", "escape-room", "flooded-ruins-escape", "haunted-mansion-keys", "lava-pillar-jump", "obstacle-race", "plate-surf", "rooftop-roll-climb", "sky-tower-jump", "wind-tunnel-escape"].sort());
    });
 
    it("GameShell hands the game's own meta.scoring to the HUD, which hands it on to HudChips untouched", () => {
