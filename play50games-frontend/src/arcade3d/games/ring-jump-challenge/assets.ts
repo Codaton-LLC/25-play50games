@@ -30,8 +30,8 @@ export const GLB_SIZE = {
 export const RING_INNER = 0.6;
 /** m2WindRing's opening radius (GLB units). */
 export const WIND_INNER = 0.5;
-/** the column's top platform radius (GLB units) and its top height */
-export const COLUMN_TOP_R = 0.711;
+/** the column's round top platform radius (GLB units, measured: y 1.70-1.88; the shaft is 0.31, the base 1.04) */
+export const COLUMN_TOP_R = 0.42;
 /** rings are drawn this flat (the tube's height over its width, against the GLB's own) */
 export const RING_FLAT = 0.45;
 
