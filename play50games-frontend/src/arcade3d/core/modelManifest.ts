@@ -172,7 +172,8 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/flooded-ruins-escape/m2SunkenTempleBg.glb",
    // floating crates (wind-tunnel-escape's m2FlyingCrate, buoyant here)
    "/models/3d/flooded-ruins-escape/m2FlyingCrate.glb",
-   // Menu 2 shared creatures (ready/menu2/shared): the L5 boss Umbra Roller and the cave bats
+   // Menu 2 shared creatures (ready/menu2/shared): m2ShadowArmadillo is both Flooded Ruins Escape's L5 boss Umbra Roller
+   // and Rooftop Roll Climb's L5 boss Ashback; the cave bats
    "/models/3d/menu2/m2ShadowArmadillo.glb",
    "/models/3d/menu2/m2CaveBat.glb",
    // Menu 2 game 04 (Lava Pillar Jump): cavern props from ~/.play50/hyper3d/ready/menu2/lava-pillar-jump
@@ -186,8 +187,6 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/lava-pillar-jump/m2VolcanoBg.glb",
    // World 1's guardian, Kalder the Magma Golem (Lava Pillar Jump level 5 boss), shared by menu2/
    "/models/3d/menu2/m2MagmaGolemBoss.glb",
-   // Ashback, the Shadow Armadillo (Rooftop Roll Climb level 5 boss), shared by menu2/
-   "/models/3d/menu2/m2ShadowArmadillo.glb",
    // Menu 2 game 05 (Cloud Hopper): cloud props from ~/.play50/hyper3d/ready/menu2/cloud-hopper
    "/models/3d/cloud-hopper/m2CloudBank.glb",
    "/models/3d/cloud-hopper/m2CloudCastleBg.glb",
