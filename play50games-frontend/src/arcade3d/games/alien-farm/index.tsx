@@ -10,10 +10,12 @@ import { ASSETS } from "./assets";
 import { DESCRIPTIONS, LEVELS, type AlienFarmLevel } from "./levels";
 import { COLORS, FOG, FOV } from "./looks";
 import { DURATION_MS, HUD_STATS, RESULT_DELAY_MS } from "./rules";
+import CameraViewButton from "@/arcade3d/core/camera/CameraViewButton";
 
 const definition: GameDefinition<AlienFarmLevel> = {
    slug: "alien-farm",
    Scene,
+   Hud: CameraViewButton,
    assets: ASSETS,
    durationMs: DURATION_MS,
    // only the first frame uses this: the Scene's CameraRig (core useFittedView) fits a 6 x 6 m
