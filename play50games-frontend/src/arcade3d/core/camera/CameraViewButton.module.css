@@ -65,34 +65,43 @@
    bottom: calc(env(safe-area-inset-bottom, 0px) + var(--arcade-bottom-obstruction, 0px) + 20px + 72px + 26px);
 }
 
+/* The first-time hint: top right under the shell chips, placed in px by hintSpot.ts (left / top
+   inline), so it never covers the hero in the middle, the joystick or the buttons. */
 .hint {
    position: absolute;
-   left: 50%;
-   top: calc(env(safe-area-inset-top, 0px) + 30%);
-   transform: translateX(-50%);
    z-index: 4;
-   max-width: min(86vw, 420px);
-   padding: 10px 18px;
-   border: 2px solid rgba(255, 255, 255, 0.2);
-   border-radius: 16px;
-   background: rgba(15, 23, 60, 0.8);
-   box-shadow: 0 6px 20px rgba(8, 15, 40, 0.4);
+   box-sizing: border-box;
+   max-width: min(62vw, 380px);
+   padding: 7px 14px;
+   border: 1px solid rgba(255, 255, 255, 0.2);
+   border-radius: 14px;
+   background: rgba(15, 23, 60, 0.82);
+   box-shadow: 0 4px 14px rgba(8, 15, 40, 0.35);
    color: #fff;
-   font-size: 0.95rem;
+   font-size: 14px;
    font-weight: 700;
-   text-align: center;
+   line-height: 1.25;
+   text-align: right;
+   text-wrap: balance;
    pointer-events: none;
    animation: hintIn 0.35s ease-out both;
+}
+
+@media (max-width: 480px) {
+   .hint {
+      font-size: 13px;
+      padding: 6px 12px;
+   }
 }
 
 @keyframes hintIn {
    from {
       opacity: 0;
-      transform: translate(-50%, 8px);
+      transform: translateY(-6px);
    }
    to {
       opacity: 1;
-      transform: translate(-50%, 0);
+      transform: translateY(0);
    }
 }
 
