@@ -11,7 +11,7 @@ import { useCameraViews } from "@/arcade3d/core/camera/CameraViews";
 import type { AABB } from "@/arcade3d/core/collision";
 import { FRAME_PRIORITY } from "@/arcade3d/core/frameLoop";
 import { useActionPop, useFx } from "@/arcade3d/core/fx";
-import { TargetBeacon } from "@/arcade3d/core/hud";
+import { TargetBeacon, TargetMarkers } from "@/arcade3d/core/hud";
 import { useCoarsePointer } from "@/arcade3d/core/TouchControls";
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import { useInput } from "@/arcade3d/core/input";
@@ -213,6 +213,8 @@ function LevelScene() {
    const touch = useCoarsePointer();
    const goal = useRef<Target>({ kind: 0, index: -1, x: 0, z: 0 }).current;
    const beacon = useRef({ x: 0, y: 0, z: 0, hidden: true }).current;
+   // the same target for the edge arrow when it is off screen or under a HUD panel
+   const edgeTargets = useMemo(() => [beacon], [beacon]);
    const guideCode = useRef(-1);
    const lastHold = useRef({ kind: 0, time: 0, index: -1, follower: -1, popAt: -10, goalKind: 0 as Target["kind"] }).current;
    const [goalKind, setGoalKind] = useState<Target["kind"]>(0);
@@ -534,6 +536,7 @@ function LevelScene() {
             height={goalKind === 3 ? 1.8 : 0.9}
             label={goalKind === 3 ? "EXIT" : null}
          />
+         <TargetMarkers targets={edgeTargets} color={goalKind === 1 ? "#fb923c" : goalKind === 2 ? "#38bdf8" : "#4ade80"} />
          <DynamicInstancedModel asset={ASSETS.civilian} count={5} update={placeCiv} fallbackParts={civParts} name="civilians" />
          <group ref={body}>
             <BlobShadow radius={0.42} opacity={0.28} />
