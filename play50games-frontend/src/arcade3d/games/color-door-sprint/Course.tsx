@@ -62,13 +62,13 @@ const GLOWS = DOOR_COLORS.map((c) => new Color(c.glow));
 const GREY = new Color("#94a3b8");
 const SHAPES: readonly ShapeId[] = ["circle", "triangle", "square", "diamond", "hex"];
 
-/** Walls drawn round the hero: two behind (the doors just passed), this many ahead. */
-export const WALL_SLOTS = 9;
+/** Walls drawn round the hero: the one just passed and the next ones, within AHEAD (the doors are 3k triangles each). */
+export const WALL_SLOTS = 5;
 /** Props farther ahead than this are not drawn (the fog hides them). */
-export const AHEAD = 150;
+export const AHEAD = 125;
 
 function firstSlot(run: DoorRun): number {
-   return Math.max(0, run.nextWall - 2);
+   return Math.max(0, run.nextWall - 1);
 }
 
 function place(x: number, y: number, z: number, sx: number, sy: number, sz: number, ry = 0, rx = 0, rz = 0): Object3D {
@@ -371,7 +371,7 @@ interface LampSpot {
    echo: boolean;
 }
 
-const LAMP_SLOTS = 8;
+const LAMP_SLOTS = 5;
 export const LAMP_Y = 6.2;
 
 function lampsOf(run: DoorRun, out: LampSpot[], now: number): void {

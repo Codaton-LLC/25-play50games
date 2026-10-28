@@ -39,8 +39,8 @@ export const SHUT_SCALE_Y = DOOR_H / GLB_SIZE.sliding.y;
 export const ORB_H = 0.75;
 export const LANTERN_H = 1.5;
 export const SPIRIT_SCALE = 4;
-/** A side-wall slab is drawn 3 m wide and 3.6 m tall. */
-export const SLAB = { w: 3, h: 3.6 } as const;
+/** A side-wall slab is drawn 9 m wide and 4 m tall (3k triangles each: few, wide slabs keep the frame light). */
+export const SLAB = { w: 9, h: 4 } as const;
 
 const prop = (id: string, color: string, budget: { tris: number; bytes: number } = PROP_BUDGET): ModelAsset => ({
    id,

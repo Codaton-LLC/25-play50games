@@ -23,8 +23,8 @@ const TILE = 6;
 const FLOOR_AHEAD = 190;
 const FLOOR_BEHIND = 40;
 /** the side walls, lanterns and galleries are drawn this far ahead / behind the view */
-const WALL_AHEAD = 170;
-const WALL_BEHIND = 30;
+const WALL_AHEAD = 120;
+const WALL_BEHIND = 20;
 
 function skyMaterial(top: string, bottom: string): ShaderMaterial {
    return new ShaderMaterial({
@@ -107,10 +107,10 @@ export default function World({ course, view, offsetX = 0, outer = true }: { cou
    const slabSx = SLAB.w / GLB_SIZE.archWall.x;
    const slabSy = SLAB.h / GLB_SIZE.archWall.y;
    const slabCount = Math.ceil((WALL_AHEAD + WALL_BEHIND) / SLAB.w) * 2;
-   const lanternStep = 12;
+   const lanternStep = 20;
    const lanternCount = Math.ceil((WALL_AHEAD + WALL_BEHIND) / lanternStep) * 2;
-   const arcadeLen = 15;
-   const arcadeCount = quality.decor < 0.7 ? 0 : Math.ceil((WALL_AHEAD + WALL_BEHIND + 80) / arcadeLen) * 2;
+   const arcadeLen = 24;
+   const arcadeCount = quality.decor < 0.7 ? 0 : Math.ceil((WALL_AHEAD + WALL_BEHIND + 40) / arcadeLen) * 2;
    const arcadeS = arcadeLen / GLB_SIZE.arcade.x;
 
    return (
