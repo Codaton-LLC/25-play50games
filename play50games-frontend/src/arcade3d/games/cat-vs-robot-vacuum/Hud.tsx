@@ -1,7 +1,9 @@
 "use client";
 
 import CameraViewButton from "@/arcade3d/core/camera/CameraViewButton";
+import { HintLine } from "@/arcade3d/core/hud/HintLine";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
+import { GUIDE } from "./guide";
 import styles from "./Hud.module.css";
 
 /** The goal right now and the hop state. Treats and the score are the shell's chips; this is not a second clock. */
@@ -22,6 +24,7 @@ export default function Hud() {
    return (
       <>
          <CameraViewButton />
+         <HintLine signal={GUIDE} />
          <GameHud />
       </>
    );
