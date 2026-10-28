@@ -5,7 +5,7 @@ import { PROPOSED_LEVEL_LIMITS } from "./rules";
 // Menu 2 (Color Roll Heroes) game 41, World 2 Sky & Sea. Status "dev" (preview builds only) until the
 // user signs it off. A time game: the finish time minus the orb and flow bonus is the score (README
 // "Scoring"). Each level row carries its own proven limits (PROPOSED_LEVEL_LIMITS in rules.ts).
-// order 56 (55 is cloud-hopper; the registry needs consecutive orders).
+// order 59 (the coordinator's slot: 56 plate-surf, 57 zipline-rush, 58 ring-jump-challenge).
 const LEVEL_TITLES: Record<LevelId, string> = {
    1: "Gentle Wind",
    2: "Cross Wind",
@@ -27,7 +27,7 @@ export const windTunnelEscapeMeta: ArcadeGameMeta = {
    title: "Wind Tunnel Escape",
    tagline: "Turn the fans, ride your own currents, outrun the storm.",
    description: "Escape a storm tunnel as a Color Roll Heroes armadillo: turn the fans and switch the vents so the currents chain across gaps and up shafts, ride them out, and stay ahead of the violet storm front. Pick Riko, Nami, Kiro, Zuno or Vexa, then jam the Gale Engine and ring the Tide Bell in the open sky.",
-   order: 56,
+   order: 59,
    status: "dev",
    collection: "rollheroes",
    difficulty: 3,

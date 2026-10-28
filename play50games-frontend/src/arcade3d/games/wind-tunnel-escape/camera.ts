@@ -7,7 +7,7 @@
 import type { IntroKeyframe } from "@/arcade3d/core/intro";
 import type { AABB } from "@/arcade3d/core/collision";
 import { orbitPosition, type OrbitSettings } from "@/arcade3d/menu2/camera/orbit";
-import { solidBoxes, type Course, type SolidBox, type WindRun } from "./rules";
+import { fanX, solidBoxes, type Course, type SolidBox, type WindRun } from "./rules";
 
 const DEG = Math.PI / 180;
 
@@ -98,5 +98,27 @@ export function courseSolids(run: WindRun, x: number, y: number, z: number, out:
       b.min.z = s.minZ;
       b.max.z = s.maxZ;
    }
+   // the fan models are wider than their solid housings (the grille is 2.1 m across): camera-only boxes
+   // round each fan, so the camera never sits behind a grille with the hero hidden
+   const fans = run.course.fans;
+   for (let i = 0; i < fans.length && n < out.length; i++) {
+      const f = fans[i];
+      if (f.kind !== "fan") continue;
+      const fx = fanX(f, run.ms);
+      const dx = Math.max(Math.abs(x - fx) - FAN_CAM_HALF, 0);
+      const dz = Math.max(Math.abs(z - f.z) - FAN_CAM_HALF, 0);
+      if (dx * dx + dz * dz > SOLID_REACH * SOLID_REACH) continue;
+      const b = out[n++];
+      b.min.x = fx - FAN_CAM_HALF;
+      b.max.x = fx + FAN_CAM_HALF;
+      b.min.y = f.y;
+      b.max.y = f.y + 2.6;
+      b.min.z = f.z - FAN_CAM_HALF;
+      b.max.z = f.z + FAN_CAM_HALF;
+   }
+   void y;
    return n;
 }
+
+/** Half the size of a fan's camera-only box (m). */
+export const FAN_CAM_HALF = 1.15;
