@@ -34,7 +34,9 @@ Same corridor. Only counts, breath drain, clock and the core lighting preset cha
 
 ## Controls
 
-WASD / arrows move. Hold E or Enter to spray. Space hops. Touch: joystick, Action "Spray", Jump "Hop". Scheme `joystick`. The same 0.75 s spray, 0.30 s talk, 0.40 s hop and 0.50 s debris stun run on both devices (`rules.test.ts`). The shell owns pause. `clockChip` stays on. Custom HUD is a breath meter only (`data-arcade-safe-area`). Stat chips: Fires, Saved, Breath 0–100. `resultDelayMs` 900.
+WASD / arrows move. Hold E or Enter to spray. Space hops. Touch: joystick, Action "Spray", Jump "Hop". Scheme `joystick`. The same 0.75 s spray, 0.30 s talk, 0.40 s hop and 0.50 s debris stun run on both devices (`rules.test.ts`). The shell owns pause. `clockChip` stays on. Custom HUD is a breath meter only (`data-arcade-safe-area`) plus the core 📷 camera-view button. Stat chips: Fires, Saved, Breath 0–100. `resultDelayMs` 900.
+
+Camera views (core/camera): 📷 / C (T too) cycle Classic → Chase → Front → Top → Free; drag turns the free view, wheel / pinch zoom. `useCameraViews({ subject: "character", steering: "camera" })`, pivot at the firefighter's chest (`hero.y + 1.1`), all five views. Solids: the building's full-height walls (`wallSpots`) plus the rules' furniture and locked-door boxes (`run.solids`, only while `on`), so the camera pulls in front of them in the chase / front / free views. `step` gets `cam.yaw()`; in the classic view that is exactly the fitted yaw, so bots, proofs and limits are unchanged. No key conflicts: the game itself uses only WASD / arrows, E / Enter and Space. The cutaway walls (`looks.ts`) are cut for the classic fitted yaw only, so in a non-default view a wall kept low for the classic view can read as a low wall from that other angle; the camera collision still uses the full-height boxes, so the camera never ends up inside a wall.
 
 ## Server limits
 

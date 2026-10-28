@@ -7,6 +7,8 @@ import { BoxGeometry, ConeGeometry, CylinderGeometry, Euler, Matrix4, MeshStanda
 import { DynamicInstancedModel, InstancedModel, Model } from "@/arcade3d/core/assets";
 import CameraRig from "@/arcade3d/core/CameraRig";
 import { playSfx } from "@/arcade3d/core/audio";
+import { useCameraViews } from "@/arcade3d/core/camera/CameraViews";
+import type { AABB } from "@/arcade3d/core/collision";
 import { FRAME_PRIORITY } from "@/arcade3d/core/frameLoop";
 import { useFx } from "@/arcade3d/core/fx";
 import { useGameTime } from "@/arcade3d/core/gameTime";
@@ -46,6 +48,7 @@ import {
    plaqueSpots,
    porchFull,
    viewFor,
+   wallSpots,
 } from "./looks";
 import { firefighterPose } from "./poses";
 import { ExitSignPrimitive, ExtinguisherPrimitive, FirefighterFigure, HoseReelPrimitive, HydrantPrimitive, TruckPrimitive } from "./Primitives";
@@ -138,6 +141,45 @@ function LevelScene() {
    const time = useGameTime();
    const quality = useQuality();
    const [run] = useState<Run>(() => createRun(randomSeed(), config));
+   // camera views (core/camera): an on-foot hero, the stick is camera-relative (inputToWorld in
+   // rules.ts), so the chase view only drifts behind the travel. The building's walls (full height,
+   // not the cutaway) and furniture pull the camera in front of them in the chase / front / free views.
+   const solidBoxes = useMemo(() => wallSpots(config).map((s) => ({
+      min: { x: s.x - (s.sx ?? 1) / 2, y: 0, z: s.z - (s.sz ?? 1) / 2 },
+      max: { x: s.x + (s.sx ?? 1) / 2, y: (s.sy ?? 1), z: s.z + (s.sz ?? 1) / 2 },
+   } as AABB)), [config]);
+   const cam = useCameraViews({
+      slug: "firefighter-rescue",
+      subject: "character",
+      steering: "camera",
+      defaultYaw: view.yaw,
+      target: (o) => {
+         const h = run.hero;
+         o.x = h.x;
+         o.y = h.y + 1.1;
+         o.z = h.z;
+         o.heading = h.yaw;
+         o.vx = h.vx;
+         o.vz = h.vz;
+      },
+      solids: (out: AABB[]) => {
+         let n = 0;
+         for (const box of solidBoxes) {
+            if (n >= out.length) break;
+            const dst = out[n++];
+            dst.min.x = box.min.x; dst.min.y = box.min.y; dst.min.z = box.min.z;
+            dst.max.x = box.max.x; dst.max.y = box.max.y; dst.max.z = box.max.z;
+         }
+         for (const solid of run.solids) {
+            if (n >= out.length) break;
+            if (!solid.on) continue;
+            const dst = out[n++];
+            dst.min.x = solid.box.min.x; dst.min.y = solid.box.min.y; dst.min.z = solid.box.min.z;
+            dst.max.x = solid.box.max.x; dst.max.y = solid.box.max.y; dst.max.z = solid.box.max.z;
+         }
+         return n;
+      },
+   });
    const aim = useRef({ x: run.hero.x, y: 0.9, z: run.hero.z + LOOK_AHEAD }).current;
    const body = useRef<Group>(null);
    const gait = useRef({ phase: 0 });
@@ -236,7 +278,7 @@ function LevelScene() {
    useRunFrame((_state, dt) => {
       const { moveX, moveY, action, jumpPressed } = input.current;
       const store = useArcadeStore.getState();
-      const ev = step(run, { moveX, moveY, action, jumpPressed, yaw: view.yaw }, dt, store.timeLeftMs ?? 0);
+      const ev = step(run, { moveX, moveY, action, jumpPressed, yaw: cam.yaw() }, dt, store.timeLeftMs ?? 0);
       if (ev.score) store.addScore(ev.score);
       store.setStat("fires", run.firesOut);
       store.setStat("saved", run.saved);
