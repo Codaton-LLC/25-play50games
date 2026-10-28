@@ -1,5 +1,7 @@
 "use client";
+import { HintLine } from "@/arcade3d/core/hud/HintLine";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
+import { hintFor } from "./guide";
 import { PLANETS } from "./rules";
 import { useRocketLevel } from "./useRocketLevel";
 import styles from "./Hud.module.css";
@@ -14,7 +16,10 @@ export default function Hud() {
    const award = useArcadeStore((s) => s.stats.award ?? 0);
    const soft = useArcadeStore((s) => s.stats.soft ?? 0), centre = useArcadeStore((s) => s.stats.centre ?? 0), reserve = useArcadeStore((s) => s.stats.reserve ?? 0);
    const safe = useArcadeStore((s) => s.stats.landingSafe === 1);
+   const gates = { vy: config?.contactVy ?? 2, tilt: Math.round((config?.contactAngle ?? Math.PI / 18) * 180 / Math.PI) };
+   const hint = hintFor({ vx, vy, tilt, fuel, safe, hold }, gates);
    return <div className={styles.wrap}>
+      <HintLine text={hint.text} tone={hint.tone} />
       <div className={styles.flight} data-arcade-safe-area>
          <span>{PLANETS[Math.max(0, Math.min(4, planet - 1))].name} {planet || 1}/{config?.planets ?? 5}</span>
          <span className={styles.fuel}>Fuel {fuel}<meter min={0} max={100} value={fuel} aria-label="Fuel remaining percent" /></span>

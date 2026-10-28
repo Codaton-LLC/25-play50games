@@ -4,6 +4,8 @@
 // stage toast. Both are transient and never cover the play area while it matters, so they are not
 // marked data-arcade-safe-area (the camera fit ignores them).
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
+import { HintLine } from "@/arcade3d/core/hud/HintLine";
+import { hintFor } from "./guide";
 import { CATCH, STATS } from "./rules";
 import { useZooLevel } from "./useZooLevel";
 import { THEMES } from "./looks";
@@ -19,8 +21,11 @@ function GameHud() {
    const phase = useArcadeStore((s) => s.phase);
    const live = phase === "playing" || phase === "paused";
    const { config } = useZooLevel();
+   const bamboo = useArcadeStore((s) => s.stats[STATS.bamboo] ?? 0);
+   const hint = hintFor(catches, CATCH.max, bamboo);
    return (
       <>
+         <HintLine text={hint.text} tone={hint.tone} />
          {live && level >= 2 && level <= 3 && (
             <div key={level} className={styles.toast} role="status">
                {THEMES[config.map.theme].stageNames[level - 1]}

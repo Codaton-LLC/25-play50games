@@ -7,6 +7,8 @@ import { useSafeArea } from "@/arcade3d/core/safeArea";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { liveHud, readNeedle } from "./liveHud";
 import { COLORS } from "./looks";
+import { HintLine } from "@/arcade3d/core/hud/HintLine";
+import { hintFor } from "./guide";
 import styles from "./Hud.module.css";
 import CameraViewButton from "@/arcade3d/core/camera/CameraViewButton";
 
@@ -26,7 +28,9 @@ function GameHud() {
    const ringTop = landscape && rightControl ? rightControl.top - size - 8 : leftControl ? (leftControl.top + leftControl.bottom - size) / 2 : safe.height - size - 24;
    const ringStyle = { left: Math.max(8, ringLeft), top: Math.max(68, ringTop) } as CSSProperties;
    const zones = docked >= 0 && liveHud.run ? liveHud.run.modules[docked].zones : NO_ZONES;
+   const hint = hintFor(docked, waiting > 0, power);
    return <>
+      <HintLine text={hint.text} tone={hint.tone} />
       <div className={styles.stats} data-arcade-safe-area data-low={power < 25}>
          <div className={styles.power}><span>POWER <b>{power}%</b></span><progress max={100} value={power} aria-label="Station power" /></div>
          <div><span>REMAINING</span><b>{Math.floor(remaining / 60)}:{String(remaining % 60).padStart(2, "0")}</b></div>

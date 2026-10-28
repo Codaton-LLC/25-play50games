@@ -6,12 +6,12 @@
 // Levels: one LevelSpec per meta.ts level, built from levels.ts (core/README.md "Levels").
 import type { GameDefinition, LevelSpec } from "@/arcade3d/core/types";
 import { LEVEL_IDS, type LevelId } from "@/arcade3d/types";
+import Hud from "./Hud";
 import Scene from "./Scene";
 import { ASSETS } from "./assets";
 import { LEVELS, type IslandLevel } from "./levels";
 import { FOV } from "./looks";
 import { DURATION_MS, TREASURE_COUNT } from "./rules";
-import CameraViewButton from "@/arcade3d/core/camera/CameraViewButton";
 
 const DESCRIPTIONS: Record<LevelId, string> = {
    1: "Five treasures, 90 seconds. The tide turns at 70 s.",
@@ -33,7 +33,7 @@ function instructionsFor(level: IslandLevel): string[] {
 const definition: GameDefinition<IslandLevel> = {
    slug: "treasure-island",
    Scene,
-   Hud: CameraViewButton,
+   Hud,
    assets: ASSETS,
    durationMs: DURATION_MS,
    // only the first frame uses this: Scene's CameraRig (core useFittedView, looks.ts viewFor) fits a

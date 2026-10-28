@@ -16,7 +16,7 @@ import {
 import { Model } from "@/arcade3d/core/assets";
 import { isMuted, playSfx, startLoop, useMuted, type LoopHandle } from "@/arcade3d/core/audio";
 import { SkyDome, Starfield } from "@/arcade3d/core/env";
-import { useFx } from "@/arcade3d/core/fx";
+import { useActionPop, useFx } from "@/arcade3d/core/fx";
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import { TargetMarkers } from "@/arcade3d/core/hud";
 import { useInput } from "@/arcade3d/core/input";
@@ -38,7 +38,7 @@ const FLASH_SECONDS = 0.5;
 const GOOD = new Color("#6ee7b7"), BAD = new Color("#fda4af");
 
 export default function Scene() {
-   const input = useInput(), time = useGameTime(), fx = useFx(), quality = useQuality();
+   const input = useInput(), time = useGameTime(), fx = useFx(), pop = useActionPop(), quality = useQuality();
    const phase = useArcadeStore((s) => s.phase), muted = useMuted();
    const { config } = useRocketLevel();
    const loop = useRef<LoopHandle | null>(null), root = useRef<Group>(null), flame = useRef<Group>(null), flash = useRef<Mesh>(null);
@@ -89,7 +89,7 @@ export default function Scene() {
          crashContact(run, scratch.at);
          fx.burst("sparks", scratch.at, 28);
          fx.burst("sparkle", scratch.boom, 28); fx.burst("debris", scratch.boom, 20); fx.burst("smoke", scratch.boom, 12);
-         fx.shake(0.6); playSfx("boom"); store.loseLife();
+         pop.fail(scratch.at, "Crash! -1 life", { shake: 0.6 }); playSfx("boom"); store.loseLife();
       }
       if (ev.award) {
          store.addScore(ev.award); playSfx("thud"); playSfx("chime");

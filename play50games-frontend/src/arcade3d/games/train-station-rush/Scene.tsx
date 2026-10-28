@@ -26,9 +26,9 @@ import CameraRig from "@/arcade3d/core/CameraRig";
 import { useCameraViews } from "@/arcade3d/core/camera/CameraViews";
 import { playSfx } from "@/arcade3d/core/audio";
 import { FRAME_PRIORITY } from "@/arcade3d/core/frameLoop";
-import { useFx } from "@/arcade3d/core/fx";
+import { useActionPop, useFx } from "@/arcade3d/core/fx";
 import { useGameTime } from "@/arcade3d/core/gameTime";
-import { TargetMarkers } from "@/arcade3d/core/hud";
+import { TargetBeacon, TargetMarkers } from "@/arcade3d/core/hud";
 import { useInput } from "@/arcade3d/core/input";
 import { useLevel } from "@/arcade3d/core/level";
 import { randomSeed } from "@/arcade3d/core/math";
@@ -342,6 +342,8 @@ function LevelScene() {
    });
    const input = useInput();
    const fx = useFx();
+   const pop = useActionPop();
+   const padBeacon = useRef({ x: 0, y: 0.5, z: 0, hidden: true }).current;
    const time = useGameTime();
    const quality = useQuality();
    const gl = useThree((s) => s.gl);
@@ -428,7 +430,10 @@ function LevelScene() {
          const pad = padPoint(run.level, held.platform);
          markers[0].x = pad.x;
          markers[0].z = pad.z;
+         padBeacon.x = pad.x;
+         padBeacon.z = pad.z;
       }
+      padBeacon.hidden = !held;
       if (ev.took >= 0) {
          AT.x = run.hero.x; AT.y = 1.3; AT.z = run.hero.z;
          fx.burst("sparkle", AT, 10);
@@ -445,11 +450,16 @@ function LevelScene() {
          const pad = padPoint(run.level, run.tasks[ev.missed].platform);
          AT.x = pad.x; AT.y = 1; AT.z = pad.z;
          fx.burst("puff", AT, 10);
-         fx.shake(0.2);
+         AT.y = 1.6;
+         pop.fail(AT, "Train left! -1 life", { shake: 0.2 });
          playSfx("alarm");
       }
       if (ev.opened >= 0) playSfx("click", { volume: 0.4 });
-      if (ev.buzz) playSfx("buzz", { volume: 0.5 });
+      if (ev.buzz) {
+         playSfx("buzz", { volume: 0.5 });
+         AT.x = run.hero.x; AT.y = 1.6; AT.z = run.hero.z;
+         pop.fail(AT, "Not here: hands full, wrong pad or no train", { shake: 0 });
+      }
       if (ev.lifeLost) store.loseLife();
       if (ev.won) store.end("win");
       if (ev.lost && useArcadeStore.getState().phase !== "over") store.end("lose");
@@ -539,6 +549,7 @@ function LevelScene() {
             damping={DAMPING}
          />
          <TargetMarkers targets={markers} color={COLORS.accent} />
+         <TargetBeacon target={padBeacon} variant="drop-here" radius={1.1} height={1.0} label="DROP" />
          {/* ground: the concourse, the bed below everything, the islands */}
          <mesh rotation-x={-Math.PI / 2} position={[0, 0, CONCOURSE_DEPTH / 2]}>
             <planeGeometry args={[half * 2, CONCOURSE_DEPTH]} />

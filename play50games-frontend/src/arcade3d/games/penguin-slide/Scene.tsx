@@ -6,7 +6,7 @@ import type { Group } from "three";
 import { Model } from "@/arcade3d/core/assets";
 import { playSfx } from "@/arcade3d/core/audio";
 import { SkyDome, SnowFall } from "@/arcade3d/core/env";
-import { SCORE_LIFE, useFx } from "@/arcade3d/core/fx";
+import { SCORE_LIFE, useActionPop, useFx } from "@/arcade3d/core/fx";
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import { TargetMarkers } from "@/arcade3d/core/hud";
 import { useInput } from "@/arcade3d/core/input";
@@ -20,6 +20,7 @@ import { useFittedView } from "@/arcade3d/core/useFittedView";
 import { useCameraViews } from "@/arcade3d/core/camera/CameraViews";
 import { ASSETS, BELLY_LIFT, BELLY_ROTATION_Y, bellyClearance } from "./assets";
 import { ChaseCamera, VIEW, useReducedMotion } from "./camera";
+import { GUIDE, hintCode, hintFor } from "./guide";
 import { Decor } from "./Decor";
 import { COLORS } from "./looks";
 import { PenguinPrimitive } from "./Primitives";
@@ -101,6 +102,8 @@ function LevelScene() {
    const { config, id } = useSlideLevel();
    const input = useInput();
    const fx = useFx();
+   const pop = useActionPop();
+   const guideCode = useRef(-1);
    const time = useGameTime();
    const view = useFittedView(VIEW);
    const reduced = useReducedMotion();
@@ -140,6 +143,12 @@ function LevelScene() {
       store.setStat("distance", 0);
       store.setStat("crashes", 0);
    }, [fx, run]);
+
+   useEffect(() => {
+      guideCode.current = hintCode(run);
+      GUIDE.set(hintFor(guideCode.current));
+      return () => GUIDE.reset();
+   }, [run]);
 
    const popup = (text: string): boolean => {
       if (time.now >= scratch.popupA) scratch.popupA = time.now + SCORE_LIFE;
@@ -210,7 +219,7 @@ function LevelScene() {
       // Crash splash & camera shake
       if (run.events.crash) {
          fx.burst("splash", scratch.at, 22);
-         fx.shake(0.25);
+         pop.fail(scratch.at, run.end === "lose" ? "Crash! Out of lives" : `Crash! ${run.crashes} of 3`, { shake: 0.25 });
          playSfx("hit");
       }
 
@@ -225,6 +234,12 @@ function LevelScene() {
             fx.burst("snow", scratch.sprayPoint, sprayCount);
             scratch.snowAt = time.play;
          }
+      }
+
+      const code = hintCode(run);
+      if (code !== guideCode.current) {
+         guideCode.current = code;
+         GUIDE.set(hintFor(code));
       }
 
       // TODO(P-06): startLoop("slide") and the new carve/ramp/gate cues after that API merges.

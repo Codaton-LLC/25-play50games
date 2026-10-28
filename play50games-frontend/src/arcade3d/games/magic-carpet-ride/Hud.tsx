@@ -2,6 +2,8 @@
 
 import CameraViewButton from "@/arcade3d/core/camera/CameraViewButton";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
+import { HintLine } from "@/arcade3d/core/hud/HintLine";
+import { hintFor } from "./guide";
 import styles from "./Hud.module.css";
 
 const LINES = Array.from({ length: 18 }, (_v, i) => i);
@@ -18,10 +20,13 @@ function GameHud() {
    const combo = useArcadeStore((s) => s.stats.combo ?? 0);
    const boost = useArcadeStore((s) => (s.stats.boost ?? 0) > 0);
    const need = useArcadeStore((s) => s.stats.need ?? 0);
+   const needKnown = useArcadeStore((s) => s.stats.need !== undefined);
    const flying = phase === "playing" || phase === "paused" || phase === "countdown";
+   const hint = hintFor(needKnown ? need : -1, boost);
    const missed = phase === "over" && reason === "lose" && progress >= 100 && need > 0;
    return (
       <>
+         {flying && <HintLine text={hint.text} tone={hint.tone} />}
          {boost && phase === "playing" && (
             <div className={styles.speed} aria-hidden>
                {LINES.map((i) => (
