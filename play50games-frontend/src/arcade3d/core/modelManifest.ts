@@ -197,6 +197,14 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/cloud-hopper/m2SkyStar.glb",
    "/models/3d/cloud-hopper/m2StormCloud.glb",
    "/models/3d/cloud-hopper/m2WindRing.glb",
+   // Menu 2 game 43 (Roll Cannon Jump, W1 Ember Heights): the big-top cannon set
+   // (~/.play50/hyper3d/ready/menu2/roll-cannon-jump); bouncePad/islandA/islandB are shared menu2 props
+   "/models/3d/roll-cannon-jump/m2BalloonBunch.glb",
+   "/models/3d/roll-cannon-jump/m2BigTopTentBg.glb",
+   "/models/3d/roll-cannon-jump/m2CannonIsle.glb",
+   "/models/3d/roll-cannon-jump/m2RollCannon.glb",
+   "/models/3d/roll-cannon-jump/m2SmokeBlimpBoss.glb",
+   "/models/3d/roll-cannon-jump/m2Trampoline.glb",
    // P-121 dev adoptions (2026-10-25): V2 replacements and Group D variety whose QA verdict
    // starts with OK. Optimized GLBs copied in; not re-optimized. Live games are untouched.
    "/models/3d/shopping-cart/supermarketShelfV2.glb",
