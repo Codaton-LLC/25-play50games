@@ -3,7 +3,8 @@ import { describe, expect, it } from "vitest";
 import { fitView, setLensShift, type ScreenRect } from "@/arcade3d/core/view";
 import { LEVEL_IDS, type LevelId } from "@/arcade3d/types";
 import { LEVELS } from "./levels";
-import { AIM_INSET, FOV, aimBounds, aimFor, viewFor } from "./looks";
+import { HERO_HEIGHT } from "./assets";
+import { AIM_INSET, FOV, aimBounds, aimFor, followOffset, viewFor } from "./looks";
 import { RADIUS, createRun, standable, storeHalf } from "./rules";
 
 /** The kinds panel (Hud.module.css: top 74, left 12, about 28 px a row + padding, 140 px wide). */
@@ -29,7 +30,7 @@ const SCREENS: Array<{ name: string; w: number; h: number; avoid: (id: LevelId) 
 
 const inside = (x: number, y: number, r: ScreenRect) => x > r.left && x < r.right && y > r.top && y < r.bottom;
 
-describe("toy store framing: the robot stays in the free part of the screen", () => {
+describe("toy store framing: the close follow camera keeps the robot big and in the free part of the screen", () => {
    it("the aim follows the robot to within a step and a half, even at the walls", () => {
       for (const id of LEVEL_IDS) {
          const { hx, hz } = storeHalf(LEVELS[id]);
@@ -61,11 +62,12 @@ describe("toy store framing: the robot stays in the free part of the screen", ()
             for (const [x, z] of spots) {
                for (const yaw of [0, Math.PI / 2, Math.PI, -Math.PI / 2]) {
                   aimFor(LEVELS[id], x, z, yaw, aim);
-                  cam.position.set(aim.x + fit.offset[0], aim.y + fit.offset[1], aim.z + fit.offset[2]);
+                  const off = followOffset(fit.yaw, screen.w / screen.h);
+                  cam.position.set(aim.x + off[0], aim.y + off[1], aim.z + off[2]);
                   cam.lookAt(aim.x, aim.y, aim.z);
                   setLensShift(cam, fit.shift[0], fit.shift[1], screen.w, screen.h);
                   cam.updateMatrixWorld();
-                  for (const y of [0.1, 0.9, 1.7]) {
+                  for (const y of [0.1, 0.6, HERO_HEIGHT, HERO_HEIGHT + 0.5]) {
                      p.set(x, y, z).project(cam);
                      const sx = ((p.x + 1) / 2) * screen.w;
                      const sy = ((1 - p.y) / 2) * screen.h;
@@ -78,4 +80,37 @@ describe("toy store framing: the robot stays in the free part of the screen", ()
          }
       });
    }
+
+   it("the close follow camera draws the robot (its silhouette) at 1/6-1/5 of a 390 x 844 phone and over twice the old 6 % on a 1280 x 800 desktop", () => {
+      const size = (w: number, h: number, id: LevelId) => {
+         const v = viewFor(id);
+         const fit = fitView({ width: w, height: h, fov: FOV, area: v.area, pitch: v.pitch, yaws: v.yaws, focus: v.focus, margin: v.margin, padding: v.padding, shift: true });
+         const cam = new PerspectiveCamera(FOV, w / h, 0.1, 400);
+         const aim = aimFor(LEVELS[id], 0, 0, fit.yaw, { x: 0, y: 0, z: 0 });
+         const off = followOffset(fit.yaw, w / h);
+         cam.position.set(aim.x + off[0], aim.y + off[1], aim.z + off[2]);
+         cam.lookAt(aim.x, aim.y, aim.z);
+         setLensShift(cam, fit.shift[0], fit.shift[1], w, h);
+         cam.updateMatrixWorld();
+         // the drawn silhouette: the body is a round 0.5 m across, so its top face and its feet both show
+         let top = Infinity;
+         let bottom = -Infinity;
+         const p = new Vector3();
+         for (let k = 0; k < 12; k++) {
+            const a = (k / 12) * Math.PI * 2;
+            for (const y of [0, HERO_HEIGHT]) {
+               p.set(Math.cos(a) * 0.25, y, Math.sin(a) * 0.25).project(cam);
+               top = Math.min(top, -p.y);
+               bottom = Math.max(bottom, -p.y);
+            }
+         }
+         return (bottom - top) / 2;
+      };
+      for (const id of LEVEL_IDS) {
+         const phone = size(390, 844, id);
+         expect(phone, `L${id} phone`).toBeGreaterThanOrEqual(1 / 6);
+         expect(phone, `L${id} phone`).toBeLessThanOrEqual(1 / 5);
+         expect(size(1280, 800, id), `L${id} desktop`).toBeGreaterThan(0.12);
+      }
+   });
 });
