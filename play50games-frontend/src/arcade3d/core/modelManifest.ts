@@ -532,6 +532,20 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/dog-park-fetch/parkBush.glb",
    "/models/3d/dog-park-fetch/festivalTent.glb",
    "/models/3d/shared/civilianNpc.glb",
+   "/models/3d/robot-factory-run/m2Conveyor.glb",
+   "/models/3d/robot-factory-run/m2ConveyorTurntable.glb",
+   "/models/3d/robot-factory-run/m2EnergyGem.glb",
+   "/models/3d/robot-factory-run/m2FactoryCrate.glb",
+   "/models/3d/robot-factory-run/m2FactoryDrone.glb",
+   "/models/3d/robot-factory-run/m2FactoryHallBg.glb",
+   "/models/3d/robot-factory-run/m2HydraulicPress.glb",
+   "/models/3d/robot-factory-run/m2LaserGate.glb",
+   "/models/3d/robot-factory-run/m2MegaRobotBoss.glb",
+   "/models/3d/robot-factory-run/m2PatrolBot.glb",
+   "/models/3d/robot-factory-run/m2PowerCell.glb",
+   "/models/3d/robot-factory-run/m2RobotArm.glb",
+   "/models/3d/robot-factory-run/m2SteelCatwalk.glb",
+   "/models/3d/robot-factory-run/m2TreadBot.glb",
 ];
 
 const LISTED: ReadonlySet<string> = new Set(MODEL_MANIFEST);

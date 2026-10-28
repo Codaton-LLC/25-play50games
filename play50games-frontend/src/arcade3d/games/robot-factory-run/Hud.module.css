@@ -1,0 +1,6 @@
+.pill { padding: 8px 12px; background: var(--card, #241d24); color: var(--text, #fff); border: 1px solid var(--stroke, #57414b); border-radius: 12px; font-size: 13px; box-shadow: 0 4px 16px #08040b55; }
+.heroRow { display: flex; gap: 8px; }
+.mpBtn, .roll { pointer-events: auto; color: var(--text, #fff); background: var(--card, #32202a); border: 1px solid var(--stroke, #ad5b53); border-radius: 12px; padding: 10px 14px; font: inherit; touch-action: none; }
+.roll { position: absolute; right: 24px; bottom: calc(178px + env(safe-area-inset-bottom, 0px)); z-index: 20; font-weight: 800; }
+.roll[aria-pressed="true"] { background: #b53532; }
+.hint { max-width: 330px; text-align: center; color: #fecaca; font-size: 12px; line-height: 1.4; }
