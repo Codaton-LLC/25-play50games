@@ -34,7 +34,8 @@ import World, { TideBell } from "./World";
 import { Course, type VisualClock } from "./Course";
 import { Hero, createHeroAnim, type HeroAnim } from "./Hero";
 import { CycloneRay } from "./Boss";
-import { FOV, FOV_PORTRAIT, LOOK_UP, RING_ORBIT, fovFor, introKeyframes, orbitPivot, orbitScale, playCamera } from "./camera";
+import { FOV, FOV_PORTRAIT, LOOK_UP, RING_ORBIT, fovFor, introKeyframes, orbitPivot, orbitScale, playCamera, shaftSolids } from "./camera";
+import type { AABB } from "@/arcade3d/core/collision";
 import { PTS, STAT, createRun, createStepInput, fallSpeed, hintFor, ringPos, step, type RingRun } from "./rules";
 import { pickedHero, subscribeHero } from "./heroes";
 import { createBot, botInput } from "./bot";
@@ -357,8 +358,11 @@ function RingCamera({ run, orbit }: { run: RingRun; orbit: OrbitState }) {
       },
       [run],
    );
-   return <OrbitCamera orbit={orbit} pivot={pivot} travel={travel} lookUp={LOOK_UP} distanceScale={orbitScale(aspect)} pivotDamping={28} />;
+   const solids = useMemo(() => (out: AABB[]) => (run.hero.mode === "perch" ? 0 : shaftSolids(run.course, run.hero.y, out)), [run]);
+   return <OrbitCamera orbit={orbit} pivot={pivot} travel={travel} solids={solids} lookUp={LOOK_UP} distanceScale={orbitScale(aspect)} pivotDamping={28} collision={WALL_CLIP} />;
 }
+
+const WALL_CLIP = { radius: 0.4, minDistance: 3 };
 
 /** The boss's slow-mo finish: the visuals only (the hit-stop is its punch; the rules clock never slows). */
 function BossSlowMo({ run, ringing }: { run: RingRun; ringing: { current: boolean } }) {

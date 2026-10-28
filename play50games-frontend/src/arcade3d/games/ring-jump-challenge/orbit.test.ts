@@ -7,7 +7,8 @@ import { createOrbit, orbitPosition } from "@/arcade3d/menu2/camera/orbit";
 import { defaultHeroFor } from "@/arcade3d/menu2/heroes/heroPick";
 import { LEVEL_IDS, type LevelId } from "@/arcade3d/types";
 import { createBot, botInput } from "./bot";
-import { FOV, FOV_SPEED_GAIN, RING_ORBIT, fovFor, introKeyframes, orbitPivot, orbitScale, playCamera } from "./camera";
+import { FOV, FOV_SPEED_GAIN, RING_ORBIT, WALL_BOXES, fovFor, introKeyframes, orbitPivot, orbitScale, playCamera, shaftSolids } from "./camera";
+import { shaftRadius } from "./canyon";
 import { V_SPREAD, VMAX, courseFor, createRun, createStepInput, step, type RingRun } from "./rules";
 import { DEFAULT_HERO } from "./heroes";
 
@@ -97,6 +98,22 @@ describe("the camera", () => {
             expect(play.position[0]).toBeCloseTo(pos.x, 6);
             expect(play.position[1]).toBeCloseTo(pos.y, 6);
             expect(play.position[2]).toBeCloseTo(pos.z, 6);
+         }
+      }
+   });
+
+   it("the camera collides with the shaft wall: a closed ring of boxes outside the wall, none over the shaft's inner 80 %", () => {
+      const c = courseFor(4);
+      for (const y of [500, 300, 100]) {
+         const out = Array.from({ length: 64 }, () => ({ min: { x: 0, y: 0, z: 0 }, max: { x: 0, y: 0, z: 0 } }));
+         expect(shaftSolids(c, y, out)).toBe(WALL_BOXES);
+         const R = shaftRadius(c, y);
+         for (const b of out.slice(0, WALL_BOXES)) {
+            const nx = Math.max(b.min.x, Math.min(0, b.max.x));
+            const nz = Math.max(b.min.z, Math.min(0, b.max.z));
+            expect(Math.hypot(nx, nz)).toBeGreaterThan(R * 0.8 - 1e-9);
+            expect(b.min.y).toBeLessThan(y);
+            expect(b.max.y).toBeGreaterThan(y);
          }
       }
    });

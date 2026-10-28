@@ -6,7 +6,9 @@
 // fly-through (core/intro) rises from the sea up the canyon and ends exactly on playCamera, the
 // orbit's first pose.
 import type { IntroKeyframe } from "@/arcade3d/core/intro";
+import type { AABB } from "@/arcade3d/core/collision";
 import { orbitPosition, type OrbitSettings } from "@/arcade3d/menu2/camera/orbit";
+import { shaftRadius } from "./canyon";
 import { V_SPREAD, VMAX, type Course } from "./rules";
 
 const DEG = Math.PI / 180;
@@ -80,4 +82,31 @@ export function introKeyframes(course: Course): IntroKeyframe[] {
    if (high) shots.push({ position: [high.x + R * 0.35, high.y + 14, high.z - R * 0.3], lookAt: [high.x, high.y, high.z] });
    shots.push({ position: [0, top + 16, course.startZ + 14], lookAt: [course.startX, top, course.startZ - 6] });
    return shots;
+}
+
+/** The shaft wall as boxes for the orbit collision (menu2/camera): a ring of cubes just outside the wall. */
+export const WALL_BOXES = 32;
+
+/**
+ * Fills `out` with WALL_BOXES boxes standing just outside the shaft's wall round height y (60 m tall),
+ * so the orbit camera (solo and shared) is pulled in front of the wall instead of leaving the shaft.
+ * Returns how many. Axis-aligned cubes on a circle: a slightly bumpy but closed ring.
+ */
+export function shaftSolids(course: Course, y: number, out: AABB[]): number {
+   const R = shaftRadius(course, y) + 2.2;
+   const half = (Math.PI * R) / WALL_BOXES + 0.6;
+   const n = Math.min(WALL_BOXES, out.length);
+   for (let k = 0; k < n; k++) {
+      const a = (k / WALL_BOXES) * Math.PI * 2;
+      const cx = Math.cos(a) * R;
+      const cz = Math.sin(a) * R;
+      const b = out[k];
+      b.min.x = cx - half;
+      b.max.x = cx + half;
+      b.min.z = cz - half;
+      b.max.z = cz + half;
+      b.min.y = y - 30;
+      b.max.y = y + 30;
+   }
+   return n;
 }

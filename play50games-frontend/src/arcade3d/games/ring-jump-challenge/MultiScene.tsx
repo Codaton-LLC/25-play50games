@@ -27,7 +27,8 @@ import World, { TideBell } from "./World";
 import { Course, type VisualClock } from "./Course";
 import { Hero, createHeroAnim, type HeroAnim } from "./Hero";
 import { CycloneRay } from "./Boss";
-import { FOV, RING_ORBIT } from "./camera";
+import { FOV, RING_ORBIT, shaftSolids } from "./camera";
+import type { AABB } from "@/arcade3d/core/collision";
 import { PTS, createStepInput, ringPos, type StepInput } from "./rules";
 import { createMultiRun, leaderIndex, stepMulti, type MultiRun } from "./multiplayer";
 import type { HeroId } from "./heroes";
@@ -200,6 +201,14 @@ export default function MultiScene() {
       },
       [multi],
    );
+   const solids = useMemo(
+      () => (out: AABB[]) => {
+         let y = Infinity;
+         for (const r of multi.runs) if (r.ended === null) y = Math.min(y, r.hero.y);
+         return Number.isFinite(y) ? shaftSolids(multi.view.course, y, out) : 0;
+      },
+      [multi],
+   );
    return (
       <JuiceLayer>
          <World course={multi.view.course} levelId={levelId} />
@@ -215,7 +224,7 @@ export default function MultiScene() {
          <PlayerInputLatch />
          <MultiSimulation multi={multi} anims={anims} clock={clock} orbit={orbit} />
          <OrbitDriver orbit={orbit} travel={travel} />
-         <SharedCamera points={points} active={active} anchor={anchor} pitch={MP_CAMERA.pitch} minSpan={MP_CAMERA.minSpan} maxSpan={MP_CAMERA.maxSpan} padding={MP_CAMERA.padding} fov={FOV + 6} orbit={orbit} />
+         <SharedCamera points={points} active={active} anchor={anchor} pitch={MP_CAMERA.pitch} minSpan={MP_CAMERA.minSpan} maxSpan={MP_CAMERA.maxSpan} padding={MP_CAMERA.padding} fov={FOV + 6} orbit={orbit} solids={solids} />
       </JuiceLayer>
    );
 }
