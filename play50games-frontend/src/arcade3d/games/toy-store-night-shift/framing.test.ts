@@ -29,8 +29,8 @@ const SCREENS: Array<{ name: string; w: number; h: number; avoid: (id: LevelId) 
 
 const inside = (x: number, y: number, r: ScreenRect) => x > r.left && x < r.right && y > r.top && y < r.bottom;
 
-describe("toy store framing: the guard stays in the free part of the screen", () => {
-   it("the aim follows the guard to within a step and a half, even at the walls", () => {
+describe("toy store framing: the robot stays in the free part of the screen", () => {
+   it("the aim follows the robot to within a step and a half, even at the walls", () => {
       for (const id of LEVEL_IDS) {
          const { hx, hz } = storeHalf(LEVELS[id]);
          const b = aimBounds(LEVELS[id]);
@@ -47,7 +47,7 @@ describe("toy store framing: the guard stays in the free part of the screen", ()
    });
 
    for (const screen of SCREENS) {
-      it(`${screen.name}: from every spot the guard can stand on (and the start), his body projects clear of the HUD, the panel and the controls`, () => {
+      it(`${screen.name}: from every spot the robot can stand on (and the start), its body projects clear of the HUD, the panel and the controls`, () => {
          const cam = new PerspectiveCamera(FOV, screen.w / screen.h, 0.1, 400);
          const p = new Vector3();
          const aim = { x: 0, y: 0, z: 0 };
@@ -69,7 +69,7 @@ describe("toy store framing: the guard stays in the free part of the screen", ()
                      p.set(x, y, z).project(cam);
                      const sx = ((p.x + 1) / 2) * screen.w;
                      const sy = ((1 - p.y) / 2) * screen.h;
-                     const where = `L${id} guard (${x.toFixed(1)}, ${z.toFixed(1)}) yaw ${yaw.toFixed(2)} y ${y} at ${sx.toFixed(0)},${sy.toFixed(0)}`;
+                     const where = `L${id} robot (${x.toFixed(1)}, ${z.toFixed(1)}) yaw ${yaw.toFixed(2)} y ${y} at ${sx.toFixed(0)},${sy.toFixed(0)}`;
                      expect(sx > 4 && sx < screen.w - 4 && sy > 4 && sy < screen.h - 4, where).toBe(true);
                      for (const r of avoid) expect(inside(sx, sy, r), `${where} under ${JSON.stringify(r)}`).toBe(false);
                   }

@@ -273,7 +273,6 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/train-station-rush/backpack.glb",
    "/models/3d/train-station-rush/ticketMachine.glb",
    // toy-store-night-shift (2026-10-25): menu1 ready set, optimized, characters 18k tris
-   "/models/3d/toy-store-night-shift/charNightGuard.glb",
    "/models/3d/toy-store-night-shift/toyShelfSolidT.glb",
    "/models/3d/toy-store-night-shift/teddyBear.glb",
    "/models/3d/toy-store-night-shift/toyCar.glb",
@@ -283,6 +282,7 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/toy-store-night-shift/toyTrain.glb",
    "/models/3d/toy-store-night-shift/toyRobotProp.glb",
    "/models/3d/toy-store-night-shift/toyRobot.glb",
+   "/models/3d/toy-store-night-shift/toyRobotHero.glb",
    "/models/3d/toy-store-night-shift/toyBin.glb",
    "/models/3d/toy-store-night-shift/toyBinPlush.glb",
    // Menu 1 cat-vs-robot-vacuum (2026-10-25): the ready menu1-cat-vs-robot-vacuum set (catTreeR, and the

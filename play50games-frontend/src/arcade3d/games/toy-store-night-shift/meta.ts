@@ -19,8 +19,8 @@ const LEVELS: readonly LevelMeta[] = [
 export const toyStoreNightShiftMeta: ArcadeGameMeta = {
    slug: "toy-store-night-shift",
    title: "Toy Store Night Shift",
-   tagline: "Every toy on its shelf.",
-   description: "Work the night shift in a toy store: pick up the scattered toys and put each one back on its matching shelf before the store opens.",
+   tagline: "Tidy up the toy store before morning.",
+   description: "At night the toys came alive and wrecked the store. You are the store's tidy-up robot: put every toy back on its shelf before morning, while the wild wind-up toys run the aisles.",
    order: 48,
    status: "dev",
    collection: "skill",
