@@ -9,7 +9,7 @@
 // run (runId). Local multiplayer runs (2-4 heroes) render MultiScene.tsx instead.
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
-import type { PerspectiveCamera } from "three";
+import { Vector3, type PerspectiveCamera } from "three";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { useInput } from "@/arcade3d/core/input";
@@ -33,7 +33,7 @@ import World from "./World";
 import { Course, type VisualClock } from "./Course";
 import { Hero, createHeroAnim, type HeroAnim } from "./Hero";
 import { FOV, FOV_PORTRAIT, WIND_ORBIT, courseSolids, introKeyframes, orbitLookUp, orbitPivot, orbitScale, playCamera } from "./camera";
-import { ORB, STAT, bossVulnerable, createRun, createStepInput, gateOpen, groundUnder, nearestFan, step, type WindRun } from "./rules";
+import { ORB, STAT, bossVulnerable, createRun, createStepInput, groundUnder, nearestFan, step, type WindRun } from "./rules";
 import { pickedHero, subscribeHero } from "./heroes";
 import { createBot, botInput } from "./bot";
 import type { WindLevel } from "./levels";
@@ -338,11 +338,6 @@ export function WindCamera({ run, orbit }: { run: WindRun; orbit: OrbitState }) 
          const h = run.hero;
          if (h.state === "lost") return false;
          orbitPivot(h.x, h.y, h.z, h.vx, h.vz, h.ridingUp, out);
-         // in the Gale Engine's arena the view leans towards the engine (and up), so it stays in frame
-         if (run.world.bossAwake && !gateOpen(run)) {
-            out.z -= 0.8;
-            out.y += 1.4;
-         }
          return true;
       },
       [run],
@@ -408,6 +403,27 @@ function IntroCamera({ run, anim }: { run: WindRun; anim: HeroAnim }) {
    return <GameIntro session={intro.session} keyframes={keys} playCamera={play} hero={intro.hero} />;
 }
 
+/**
+ * Preview builds with ?autoplay=1 only: publishes where the hero's chest lands on screen (window.__wteView:
+ * NDC x / y, and whether it is in view), so the headless playtest can check the hero is never hidden.
+ */
+function ViewProbe({ run }: { run: WindRun }) {
+   const camera = useThree((s) => s.camera);
+   const on = useMemo(() => autoplayRequested(), []);
+   const v = useMemo(() => new Vector3(), []);
+   const stats = useMemo(() => ({ frames: 0, out: 0, x: 0, y: 0 }), []);
+   useFrame(() => {
+      if (!on || run.hero.state !== "play" || useArcadeStore.getState().phase !== "playing") return;
+      v.set(run.hero.x, run.hero.y + 0.7, run.hero.z).project(camera);
+      stats.frames += 1;
+      stats.x = v.x;
+      stats.y = v.y;
+      if (Math.abs(v.x) > 1 || Math.abs(v.y) > 1 || v.z > 1) stats.out += 1;
+      (window as unknown as { __wteView?: typeof stats }).__wteView = stats;
+   });
+   return null;
+}
+
 function SoloScene() {
    const runId = useArcadeStore((s) => s.runId);
    const { config } = useLevel<WindLevel>();
@@ -434,6 +450,7 @@ function SoloScene() {
          <WindCamera run={run} orbit={orbit} />
          <BossSlowMo run={run} />
          <IntroCamera run={run} anim={anim} />
+         <ViewProbe run={run} />
       </JuiceLayer>
    );
 }

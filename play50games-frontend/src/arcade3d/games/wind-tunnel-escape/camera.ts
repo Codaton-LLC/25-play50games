@@ -121,4 +121,4 @@ export function courseSolids(run: WindRun, x: number, y: number, z: number, out:
 }
 
 /** Half the size of a fan's camera-only box (m). */
-export const FAN_CAM_HALF = 1.15;
+export const FAN_CAM_HALF = 1.0;
