@@ -67,7 +67,8 @@ export const ASSETS: Record<string, ModelAsset> = {
    },
    gate: { ...own("m2ColorGateV2", "#ef4444"), scale: GATE_SCALE, stretch: [1, 3.4 / (GLB_SIZE.gate.y * GATE_SCALE), 0.6 / (GLB_SIZE.gate.z * GATE_SCALE)] },
    barrier: { ...own("m2CityBarrier", "#f59e0b"), scale: BARRIER_SCALE, stretch: [0.5 / (GLB_SIZE.barrier.x * BARRIER_SCALE), 2.2 / (GLB_SIZE.barrier.y * BARRIER_SCALE), 1] },
-   pastel: { ...own("m2PastelCityBg", "#f9a8d4"), scale: PASTEL_SCALE },
+   // no asset scale: every placement (skyline.ts, World.tsx) scales it per spot
+   pastel: own("m2PastelCityBg", "#f9a8d4"),
    tower: reused("/models/3d/rooftop-roll-climb/m2SkylineTower.glb", "m2SkylineTower", "#7dd3fc"),
    brick: reused("/models/3d/rooftop-roll-climb/m2RooftopBlock.glb", "m2RooftopBlock", "#b45309"),
    beacon: reused("/models/3d/menu2/checkpointBeacon.glb", "checkpointBeacon", "#38bdf8"),

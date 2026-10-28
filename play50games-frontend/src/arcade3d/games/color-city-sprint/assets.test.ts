@@ -12,6 +12,9 @@ import { ASSETS, GLB_SIZE } from "./assets";
 import { BUS_HALF_L, BUS_ROOF, RAMP_H, RAMP_LEN, TRUCK_HALF_L, TRUCK_ROOF } from "./city";
 import { colorCitySprintMeta } from "./meta";
 import definition from "./index";
+import { buildSkyline } from "./skyline";
+import { courseFor } from "./city";
+import { LEVEL_IDS } from "@/arcade3d/types";
 
 const PUBLIC = fileURLToPath(new URL("../../../../public", import.meta.url));
 
@@ -64,6 +67,24 @@ describe("color-city-sprint models", () => {
       expect(fit("boss").y).toBeCloseTo(TRUCK_ROOF, 6);
       expect(fit("ramp").z).toBeCloseTo(RAMP_LEN, 6);
       expect(fit("ramp").y).toBeCloseTo(RAMP_H, 6);
+   });
+
+   it("every building as drawn fills its block's footprint (6 m), no taller than the camera solids say", () => {
+      const sizes = { pastel: GLB_SIZE.pastel, tower: GLB_SIZE.tower, brick: GLB_SIZE.brick };
+      for (const id of LEVEL_IDS) {
+         const c = courseFor(id);
+         const sky = buildSkyline(c);
+         for (const key of ["pastel", "tower", "brick"] as const) {
+            const a = assetScale(ASSETS[key]);
+            for (const s of sky[key]) {
+               const w = sizes[key].x * a[0] * s.sx;
+               const h = sizes[key].y * a[1] * s.sy;
+               expect(w, `${key} L${id}`).toBeCloseTo(6, 1);
+               expect(h).toBeLessThanOrEqual(sky.height[s.block] + 1e-6);
+               expect(h).toBeLessThan(13);
+            }
+         }
+      }
    });
 
    it("the definition is a dev time game with five levels, an intro and no shell clock", () => {
