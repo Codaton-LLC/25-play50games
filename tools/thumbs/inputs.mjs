@@ -141,11 +141,18 @@ export const INPUT_SCRIPTS = {
       { zoom: 1.8, at: [0.5, 0.48] },
    ],
 
-   // up is -z, toward the water; still running on the sand
+   // up is -z, toward the water: out past the shore foam, swimming the front crawl
    "beach-lifeguard": [
       { down: "ArrowUp" },
-      { wait: 950 },
-      { zoom: 1.8, at: [0.5, 0.52] },
+      { wait: 2700 },
+      { zoom: 1.9, at: [0.5, 0.5] },
+   ],
+
+   // a few seconds into the flight, drifting right (the carpet banks), the next ring ahead
+   "magic-carpet-ride": [
+      { wait: 2600 },
+      { hold: "ArrowRight", ms: 350 },
+      { zoom: 1.1, at: [0.5, 0.42] },
    ],
 
    // down the hall (+z), hop so the cat is off the floor

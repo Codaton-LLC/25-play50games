@@ -2,7 +2,7 @@
 
 Menu 1 game 34 (`docs/menu1-new/specs-31-40.md` §34). Points, difficulty 2, collection adventure, owner antigravity (built by Antigravity, gated and reworked by Claude 2026-10-25). Status `dev`.
 
-A sand strip and a flat swim zone. An alert rings and a pink ring marks a swimmer; run down the beach, wade out (slower in the water), press Grab within 1.2 m, and carry them back up past the white line at z = 2. Three missed alerts end the run.
+A sand strip and a sea that deepens from the shore. An alert rings and a pink ring marks a swimmer; run down the beach, wade in and swim out (slower in the water), press Grab within 1.2 m, tow them back on the rescue tube and carry them up past the line at z = 2. Three missed alerts end the run.
 
 ## Files
 
@@ -10,9 +10,9 @@ A sand strip and a flat swim zone. An alert rings and a pink ring marks a swimme
 |---|---|
 | `rules.ts` | Pure rules: `createRun(seed, level, levelId)`, `step(run, input, dt, timeLeftMs)` (returns a shared event), `syncStore(run, ev, store)` (exactly the Scene's store calls), `stepZ` (the water split), `PROPOSED_LEVEL_LIMITS`, `PROOF_MIN_WIN_S`. |
 | `levels.ts` | The five `BeachLevel` configs, titles, tile lines. |
-| `looks.ts` | Palette, the follow view (an 18 x 15 m window round the aim, 9 x 12 m in portrait), aim bounds, the fog from the fitted distance, decor spots. |
+| `looks.ts` | Palette, the follow view (an 18 x 15 m window round the aim, 9 x 12 m in portrait), aim bounds, the fog from the fitted distance, decor spots, the sea floor (`seabedY`) and the swim blend (`swimBlend`). |
 | `assets.ts` | The ready Hyper3D GLBs with their measured raw bounds, fits in metres, `LIFEGUARD_LANDMARKS`. |
-| `Scene.tsx` | One `useRunFrame` (step + syncStore), the rigged lifeguard, instanced swimmers / props / decor, `<Water>`, the code torus, `TargetMarkers`. |
+| `Scene.tsx` | One `useRunFrame` (step + syncStore + effects), the rigged lifeguard (run, wade, front crawl, carry, jet ski seat, cheer), the towed / carried swimmer, the rescue tube and its line, instanced swimmers / props / decor, the sea floor, `<Water>`, the shore foam, the wake rings, the code torus, `TargetMarkers`. |
 | `testing/bots.ts`, `testing/limitProof.ts` | Test-only bots (oracle, greedy, idle, spam) through the real store (`playBot`) and a pure twin (`playPure`) for the 200-seed sweeps. |
 
 ## Controls and timing
@@ -49,7 +49,19 @@ L5 / L1 = 2.26. Tests (`limits.a/b.test.ts` via `testing/limitProof.ts`): every 
 
 ## Models
 
-Ready GLBs from `menu1-beach-lifeguard` (copied as optimized, listed in `core/modelManifest.ts`): `charLifeguard` (1.82 m, auto-rig with `LIFEGUARD_LANDMARKS`, `lifeguard.test.ts`), `lifeguardTower` (3.0 m, solid), `rescueFloat` (0.9 m, on the tower and in the right hand while carrying), `beachgoerNpc` (1.65 m, unrigged, chest-deep, bobbing), `rescueJetSki` (2.4 m), `beachChair`, `beachCooler`, `sandcastle`, `beachHut` (decor), plus the reused clean-city `umbrella` and `palm`. Not adopted: `surfboard*` (a disc, broken, and `surfboardLong` is square), `alertBuoy` (the alert stays the code torus), `hero.glb`.
+Ready GLBs from `menu1-beach-lifeguard` (copied as optimized, listed in `core/modelManifest.ts`): `charLifeguard` (1.82 m, auto-rig with `LIFEGUARD_LANDMARKS`, `lifeguard.test.ts`), `lifeguardTower` (3.0 m, solid), `rescueFloat` (0.9 m, on the tower, in the right hand on the sand, on its tow line in the water), `beachgoerNpc` (1.65 m, unrigged, chest-deep, bobbing), `rescueJetSki` (2.4 m), `beachChair`, `beachCooler`, `sandcastle`, `beachHut` (decor), plus the reused clean-city `umbrella` and `palm`. Not adopted: `surfboard*` (a disc, broken, and `surfboardLong` is square), `alertBuoy` (the alert stays the code torus), `hero.glb`.
+
+## The swim (2026-10-28, after the user's playtest: "the person walks on water; the lifeguard should swim")
+
+All visual: the rules (and so the limits) are unchanged.
+
+- **The sea has depth.** A sea floor (`Seabed`) slopes from the shore (`seabedY`: 0.42 m down per metre out, to 3.2 m) under a see-through `<Water>` (opacity 0.8), shaded from sand to deep teal: shallow water reads light, the deep reads dark. Two foam lines (`ShoreFoam`, a canvas texture) wash up the wet sand and back, half a wave apart.
+- **The lifeguard wades, then swims.** On foot he stands on the sea floor, so wading sinks him to the waist. From z = -1.3 to -2.3 (`swimBlend`) he lies down about his chest (the group turned 1.42 rad about x, pivoted at the chest) with the chest at the water line, and the pose blends from the walk into the core front crawl (`crawlPose`: arms over, a pull under the body, a high-elbow recovery, a body roll, a breath to the side, a flutter kick), one arm cycle about every 1.2 s at full speed. Each hand entry splashes; a ring of foam spreads behind the kick.
+- **The pickup.** Grab: a splash and two rings where the swimmer was, a "Saved!" popup, and the swimmer is drawn up out of the water onto the rescue tube (eased from where it stood).
+- **The tow.** In the water the swimmer lies on its back at the water line on the tube, head towards the lifeguard, towed on a yellow line from his hip; without a swimmer the tube trails on the line behind him. On the sand it is the tube in his hand.
+- **The carry.** Out of the water he carries the swimmer up the beach across his forearms (`carryPose` on the arms, the swimmer lying across them); a rescue drops it on the dry sand ("Rescued! +N", confetti), where every rescued swimmer then stands facing the sea, bouncing a little.
+- **The jet ski** rider sits on its seat with the core `sitPose` (it was the idle pose raised 0.55 m), and the ski leaves a wake.
+- The swimmer GLB is arms-down (no T-pose), so it cannot be auto-rigged: it stays a solid figure that bobs, rocks and splashes in trouble, lies on the tube and stands on the sand.
 
 ## Gate fixes (2026-10-25)
 
@@ -70,6 +82,5 @@ Ready GLBs from `menu1-beach-lifeguard` (copied as optimized, listed in `core/mo
 
 ## Known issues / for the playtest
 
-- Check the right-hand float attach (orientation along the hanging arm), the swimmer's chest-deep height in `<Water>`, the jet ski's forward axis, and that the tower's front faces the sea (`rotation-y = PI`).
-- The swimmer GLB is unrigged (spec): it bobs and the active one rocks; no wave.
-- The rider sits by raising the idle pose 0.55 m on the jet ski (no `sitPose` in core).
+- Check the jet ski's forward axis and that the tower's front faces the sea (`rotation-y = PI`).
+- The swimmer GLB is unrigged (arms down, no T-pose): it bobs and rocks, it cannot wave or hold the tube with its arms. A T-pose swimmer GLB would let the auto-rig animate it (a Hyper3D generation, user's call).

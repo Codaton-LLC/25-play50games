@@ -38,6 +38,10 @@ export const COLORS = {
    hair: "#451a03",
    swimmerSuit: "#3b82f6",
    safeLine: "#ffffff",
+   towLine: "#fde047",
+   savedText: "#fff1f2",
+   seabedShallow: "#f3dca8",
+   seabedDeep: "#0b4a6e",
 } as const;
 
 export const PITCH = (50 * Math.PI) / 180;
@@ -140,4 +144,26 @@ export function decorSpots(id: LevelId): DecorSpots {
       else out.coolers.push({ x, y: 0, z, rotY: rng() * Math.PI * 2, scale: 0.35 + rng() * 0.15 });
    }
    return out;
+}
+
+// ---------- the water's depth and the swim (visual only: the rules keep their flat z split) ----------
+
+/** The water surface's height (the Water plane), m. */
+export const WATER_Y = -0.06;
+/** The sea floor drops this much per metre out from the shoreline (z = 0), down to SEABED_MAX. */
+export const SEABED_SLOPE = 0.42;
+export const SEABED_MAX = 3.2;
+/** The lifeguard wades out to here, then swims from SWIM_FULL_Z on (z < 0 is the sea). */
+export const SWIM_START_Z = -1.3;
+export const SWIM_FULL_Z = -2.3;
+
+/** The sea floor's height at z (0 on the sand). */
+export function seabedY(z: number): number {
+   return z >= 0 ? 0 : Math.max(-SEABED_MAX, z * SEABED_SLOPE);
+}
+
+/** 0 = on foot (sand, wading), 1 = swimming, smooth in between. */
+export function swimBlend(z: number): number {
+   const t = Math.min(1, Math.max(0, (SWIM_START_Z - z) / (SWIM_START_Z - SWIM_FULL_Z)));
+   return t * t * (3 - 2 * t);
 }

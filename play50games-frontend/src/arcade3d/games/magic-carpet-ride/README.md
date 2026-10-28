@@ -1,70 +1,69 @@
 # Magic Carpet Ride
 
-Owner: cursor. Slug: `magic-carpet-ride`. Order 47. Status `dev`. Collection `adventure`. Points. Difficulty 2. One rail, five level configs. Spec: `.handoff/C-47-magic-carpet-ride/spec.md`.
+Menu 1 game 47. Slug `magic-carpet-ride`. Order 47. Status `dev`. Collection `adventure`. Points. Difficulty 2. Owner cursor (redesigned by Claude 2026-10-28 after the user's playtest: "the person flies but the objects don't fly; make it modern; use the GLBs to fly lower/higher/left/right, collect points").
+
+A modern flying game: the carpet flies forward along a winding sky lane through five biomes; the player steers it freely up, down, left and right, flies through rings (a chain of rings is a combo), sweeps up coin arcs, reaches for gems, grabs rocket boosts and dodges flying obstacles. The goal is the floating palace at the end of the lane with the ring quota.
+
+## Files
+
+| File | What |
+|---|---|
+| `rules.ts` | Pure rules: `createRun(seed, level, levelId)`, `step(run, input, dt, timeLeftMs)` (a shared event), `syncStore(run, ev, store)` (exactly the Scene's store calls), the racing line `lineAt`, `obstacleClearance`, `PROPOSED_LEVEL_LIMITS`, `PROOF_MIN_WIN_S`. |
+| `levels.ts` | The five `CarpetLevel` configs (biome, lane, rings and quota, coins, gems, boosts, flyers, clock, light), titles, tile lines. |
+| `looks.ts` | Palette, the chase camera's constants, the biome looks, `decorSpots` (each biome's dressing, kept clear of the lane). |
+| `assets.ts` | Every GLB with its measured bounds and fit (`assets.test.ts` checks them on the real meshes), `RIDER_LANDMARKS`. |
+| `Scene.tsx` | One `useRunFrame` (step + syncStore + effects), the chase `EyeRig` (eased follow, lean into turns, boost fov), pools for rings, coins, gems, boosts and each flyer kind, the biome decor, the carpet (cloth wave) and the cross-legged rider. |
+| `Hud.tsx` | Route progress to the palace, the combo pop, boost speed lines, the missed-quota line. |
+| `testing/bots.ts`, `testing/limitProof.ts` | Test-only bots (oracle, greedy, idle, spam) through the real store and a pure twin for the 200-seed sweeps. |
 
 ## Rules
 
-The carpet rides a smooth open spline (`createPath`, `smooth: true`) of length `level.length`. It advances at `level.speed`, or `speed × 1.5` while boosting. `moveX` / `moveY` slide it inside a window of ±4 m sideways and ±2.5 m up and down, at most 5 m/s, eased by `spring` (stiffness 42, critical damping). Up on the stick is up (`moveY` of −1), on keyboard and touch, because both devices write the same `InputState`.
-
-Boost drains stamina at 30/s from 100 and flies at 1.5×. At 0, a 1.00 s lock blocks boost. Stamina refills at 12/s whenever you are not boosting, including during the lock, so a held Boost becomes a 3.33 s burst, then 0.4 s pulses. A cloud hit (level 3 only) multiplies speed by 0.7 for 1.1 s and scores +0.
-
-Rings: 8 / 12 / 16 / 20 / 25 along the route, each offset inside the window. A ring pays +50 once when the carpet crosses its plane within 1.2 m of the centre (ring radius 1.5 minus the carpet half-width 0.3). A wider cross does not pay and does not cost a life. Stars sit on the lines between rings and pay +30 once inside 0.7 m. Both pay once.
-
-Rocks sit in the window, at least 6 m from every ring and off that ring's line. The first `movers` of them drift on a sine (period 3 s, amplitude 1.5 m) from level 3. A hit inside 1.15 m, outside a 1.0 s mercy, spends a life (3) and snaps the offset to the path centre. Level 3's obstacles are clouds: they only slow. The first rock is past 55 m, so three lives cannot end before 4 s.
-
-At the end of the route the run wins when rings passed ≥ quota and stars taken ≥ quota, else `end("lose")`. The miss line names what was short. Lives at 0 and the shell clock are the other endings. Timeup is the shell's.
-
-Score, all integers: +50 per ring, +30 per star, and on a win only +4 per full second left (`4 * floor(timeLeftMs / 1000)`). Object ceiling `Bobj = 50 * rings + 30 * stars`.
+- **Flight.** The lane is a smooth spline (`core/path`) of the level's length; the carpet flies along it at the level's speed. Its cross-section is 12 m wide and 7 m tall (`CORR_X` 6, `CORR_Y` 3.5). The stick sets a drift velocity (8 m/s sideways, 6 m/s up and down at full stick) that the carpet eases to at 7/s; released, the drift stops and the carpet stays where it was left. The walls stop it. Right on the keys or the stick moves the carpet to the right of the screen and up flies up (a test projects the carpet through the Scene's chase camera). The carpet banks into the drift and pitches with the climb.
+- **Rings** pay when the carpet crosses the ring's plane within 1.4 m of its centre (the drawn ring is 3.4 m across). Rings in a row build a chain: ring k of an unbroken chain pays 50 + 25 x min(k - 1, 4), so 50, 75, 100, 125, then 150. A ring passed by, or a hit, breaks the chain. No ring sits within 2.2 m of the lane's centre, so an idle carpet passes none.
+- **Coins** (10) float in an arc in every gap between two rings, on the racing line. **Gems** (50) sit 2.0-2.8 m off the line in the gem gaps (every second gap). **Boosts** (a rocket) give 1.6 x speed for 2.5 s, with speed lines and a wider fov.
+- **Obstacles** cost a life (3 lives), break the chain and give a 1.3 s mercy (the carpet blinks). Kinds and motion (`OBSTACLE_SPEC`): gulls, hawks and bats swing sideways (bats in a figure of eight) and beat their wings; balloons, hot-air balloons and sky lanterns bob up and down; rocks drift and tumble; the blimp drifts across, side on.
+- **The racing line** (`lineAt`) runs through every ring, its lat straight between rings and its height along that gap's arc; the coins sit on it. Obstacles live only in the obstacle gaps (the odd ones, not the first) and every position each one can ever reach keeps its radius + the carpet's 0.55 m + 0.5 m clear of the line (`obstacleClearance`, 200 seeds x 5 levels in `rules.test.ts`). Gems sit alone in their gaps. So following the coins is always safe, a gem is a safe detour, and leaving the line among the flyers is the risk.
+- **The end.** At the end of the lane the run wins with at least the ring quota (the result shows how many were missing otherwise). Lives at 0 and the shell clock are the other endings.
+- **Score**, all integers: rings with their chain, coins, gems, and on a win `FINISH_BONUS` 200 + `LIFE_BONUS` 100 x lives left + 5 x the full seconds left on the clock.
 
 ## Levels
 
-Same flight. Length, speed, counts, clock and the core lighting preset change. Fog is `[background, 22, fogFar]`.
+| L | Title | Biome | Length | Speed | Rings (quota) | Coins / arc | Gems | Boosts | Flyers | Kinds | Clock | Light |
+|---|---|---|---:|---:|---:|---:|---:|---:|---:|---|---:|---|
+| 1 | Desert Dawn | town rooftops, towers, palms, pyramids | 540 | 13 | 10 (7) | 5 | 4 | 2 | 4 | gull, balloon | 75 s | day |
+| 2 | Red Canyon | canyon walls (mesas) | 680 | 14 | 13 (9) | 5 | 5 | 3 | 7 | gull, rock | 85 s | sunset |
+| 3 | Cloud Kingdom | clouds, sky islands | 820 | 15 | 16 (12) | 6 | 6 | 3 | 9 | balloon, hot-air balloon, gull | 95 s | day |
+| 4 | Lantern Night | night town, lanterns, stars | 900 | 15.5 | 18 (13) | 6 | 7 | 4 | 11 | bat, sky lantern | 100 s | night |
+| 5 | Sky Palace | islands, palaces | 1080 | 16 | 22 (16) | 6 | 8 | 4 | 14 | hawk, rock, blimp | 115 s | sunset |
 
-| L | Title | Length | Speed | Rings | Quota | Stars | Quota | Rocks | Movers | Clock | Light |
-|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|
-| 1 | Desert Village | 420 | 9 | 8 | 6 | 8 | 5 | 3 | 0 | 120 s | day `#fde68a` |
-| 2 | Canyon | 600 | 10 | 12 | 9 | 12 | 8 | 6 | 0 | 150 s | sunset `#fb923c` |
-| 3 | Cloud Kingdom | 780 | 10.5 | 16 | 12 | 15 | 10 | 8 | 4 | 180 s | day `#e0f2fe` |
-| 4 | Night City | 880 | 11 | 20 | 15 | 18 | 12 | 10 | 6 | 180 s | night `#1e1b4b` |
-| 5 | Floating Palace | 1100 | 11.5 | 25 | 19 | 22 | 15 | 14 | 8 | 240 s | sunset `#7c2d12` |
+A level clears only on a win (no `clearScore`). minDurationMs 4000 everywhere (no run can end sooner: the first obstacle sits in the second gap and three hits need two mercies).
 
-## Controls
+## Server limits and why they hold
 
-WASD / arrows steer. Hold Space to boost. Touch: joystick, Jump label "Boost". Scheme `flight`. The same window, 5 m/s ease, 30/s drain, 12/s refill and 1.00 s lock run on both devices (`rules.test.ts`). The shell owns pause. Stat chips: Rings, Stars, Boost 0–100. `resultDelayMs` 900.
+`Bobj` = `ringChainMax(rings)` + 10 x coins + 50 x gems: every object pays once, so before the finish a score never exceeds `Bobj`. A win adds at most `WIN_BONUS_MAX` 500 (200 + 3 x 100) + 5 x floor(D - t), largest at the earliest win M. So `base = Bobj`, `maxScore >= Bobj + 500 + 5 floor(D - M)` and `pps >= (500 + 5 (D - M)) / M`. M (`PROOF_MIN_WIN_S`) is 0.8 x the fastest win of the oracle and greedy bots over 200 seeds at 30 / 60 / 144 Hz; margins maxScore +3 %, pps +4 %, rounded up.
 
-## Server limits
+| L | Bobj | D | fastest win | M | peak | maxScore | pps | best bot | best / max |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| 1 | 1900 | 75 | 38.55 | 30.84 | 2620 | 2700 | 25 | 2510 | 93 % |
+| 2 | 2550 | 85 | 44.08 | 35.26 | 3295 | 3400 | 22 | 3160 | 93 % |
+| 3 | 3350 | 95 | 50.17 | 40.13 | 4120 | 4250 | 20 | 3940 | 93 % |
+| 4 | 3820 | 100 | 52.07 | 41.65 | 4610 | 4750 | 20 | 4395 | 93 % |
+| 5 | 4710 | 115 | 61.50 | 49.20 | 5535 | 5710 | 18 | 5305 | 93 % |
 
-`base = Bobj`. `maxDurationMs` is the level clock. `minDurationMs = 4000`. `unitLabel: "pts"`, `display: "int"`.
-
-The sketch put the earliest win at a stamina time M (40 / 55 / 70 / 80 / 100 s) and pps 8 / 7 / 7 / 5 / 6. A held Boost refills during the lock, so the oracle finishes sooner and those pps lines reject a full clear. The proof uses the measured finish. `base` stays `Bobj`. pps is the smallest integer that still covers that finish with a few seconds of slack. `maxScore` is about 4% over the measured clear. Level 5 `maxScore` 2650 is under 3300 and under `3 × 1000`.
-
-`base + pps × seconds` at the measured best win (`rules.test.ts`, through `createArcadeStore` + `advanceRunClock`):
-
-| L | Bobj | Measured win | Score | base + pps × seconds | maxScore | Best / max |
-|---|---:|---:|---:|---:|---:|---:|
-| 1 | 640 | 39.80 s | 960 | 640 + 9 × 39.80 = 998 | 1000 | 96.0% |
-| 2 | 960 | 51.53 s | 1322 | 960 + 8 × 51.53 = 1372 | 1420 | 93.1% |
-| 3 | 1250 | 64.03 s | 1710 | 1250 + 8 × 64.03 = 1762 | 1780 | 96.1% |
-| 4 | 1540 | 69.00 s | 1954 | 1540 + 8 × 69.00 = 2092 | 2060 | 94.9% |
-| 5 | 1910 | 82.80 s | 2538 | 1910 + 9 × 82.80 = 2655 | 2650 | 95.8% |
-
-Level 1's 39.80 s leaves 80 full seconds (`320 + 640 = 960`). A hypothetical 37 s clear would score 972, and `640 + 9 × 37 = 973` still accepts it. The oracle did not beat 39.8 s.
-
-Proof: per level, 8 seeds at 30 Hz and 60 Hz for an oracle (full stick, boost held), a human-paced bot (stick capped at 0.85, boost after 0.2 s), an idle bot and a spam bot, plus one oracle at 144 Hz. Idle scores 0 and does not win. Spam and every oracle stay inside the limits, and `capScore` is a no-op on those runs. Oracle wins all 16 of the 30/60 Hz runs on every level. Every best is at least 90% of that level's `maxScore`. Layout: 200 seeds × 5 levels, deterministic, path length matches, every rock stays 6 m from every ring even at a mover's closest height. Decor (not the palace past the finish) sits at least 6 m off the path.
+L5 / L1 = 2.11. Tests (`limits.a/b.test.ts` via `testing/limitProof.ts`): every oracle, greedy, idle and spam run on 200 seeds is inside its level's limits with the cap a no-op; M <= 0.8 x the fastest win; the line covers B(t) for every t >= M; best >= 90 % of maxScore; the honest (greedy, racing line only) bot clears >= 99 % (it clears all 200); idle never clears; the store-driven bots (30 / 60 / 144 Hz and random frames) agree with the pure sweep. The old limits (stamina boost, stars) are gone with the old rules.
 
 ## Look
 
-One palette in `looks.ts`. Sand `#fcd34d`, rooftops `#c2410c`, rings `#fbbf24`, accent `#a78bfa`. Lighting and background come from the level. Chase camera: 5 m behind the carpet, 1.8 m above, pitch 12° down, yaw aimed 10 m along the path, no roll. `EyeRig` + `useEyeShift` (`shift: true`) keeps the lane off the HUD and the cookie banner. The carpet banks with `bank` and the cloth ripples with `hover`.
+- **Camera:** a chase eye 6.4 m behind and 2.3 m above the carpet, following 80 % of its offset in the lane (eased), turned a little into the drift, leaning (rolling) into the turns with the carpet's bank (`EyeRig roll`), its fov widening 12° on a boost (`EyeRig fov` ref).
+- **Rider:** `charCarpetRider` through the auto-rig, sitting cross-legged (core `sitPose(1, pose, 1)`), swaying with a slow breath, leaning into the turns and forward on a boost, looking into the turn; arms up on the win, a flail when hit. **Carpet:** `magicCarpet` (1.9 m wide, stretched 1.35 x long), its cloth rippling (core `patchClothWave`), bobbing; a sparkle trail behind it.
+- **Flyers:** the gull, bat and hawk beat their wings in the vertex shader (core `DynamicInstancedModel flap`); everything that moves swings, bobs, tumbles or banks.
+- **Biomes:** each level's dressing (`decorSpots`) lines the lane and stays out of it; the floating palace waits past the glowing finish gate on every level. Night adds stars and lantern halos.
 
-The rider is a `HumanoidModel` stand-in (`RiderFigure`, seated, scarf and cloth) until `charCarpetRider.glb` is measured. The sit is `turnBone` on the hips' legs and `aimArm` forward; a win lifts the arms. `applyLift` is off so the cushion stays put. Rings, stars and obstacles are instanced pools. Level 3 obstacles are clouds. Decor (rooftops, mesas, lanterns, far clouds, the palace) is outside the flight window or past the arch. The ground is one unit plane scaled under the carpet, so the frame does not open onto a void. Boost leaves a sparkle trail.
+## Models
+
+Kept from the menu1 set: `charCarpetRider`, `magicCarpet`, `flyingRing` (drawn bright gold), `floatingRockV3` (now an obstacle, tumbling), `cloud`, `palaceTower`, `desertRooftopV2`, `canyonMesa`, `hangingLantern`, `floatingPalaceR`. Removed: `star.glb` (stars are gone). Adopted from the other ready folders (copied as optimized, in `core/modelManifest.ts`, LEDGER QA OK): `m2SeaGullDiver` (gull), `m2CaveBat` (bat), `m2StormHawkBoss` (hawk), `m2BalloonBunch`, `m2AirshipBg` (a hot-air balloon), `m2SmokeBlimpBoss` (blimp), `m2TempleLantern` (sky lantern), `m2GoldCoin`, `treasureGem` (tinted per copy), `rocketBooster` (boost), `m2SkyIslandCastle`, `m2SkyIslandWaterfall`, `m2WindmillIsland`, `m2StepPyramidBg`, plus clean-city's `palm`. No kite GLB exists in the ready sets, so there are no kites.
 
 ## Known issues
 
-- `charCarpetRider` has no measured landmarks and `scale` 1. The sit angles are for the stand-in proportions. Claude's assets PR measures the GLB, sets landmarks and the scale that keeps a 1.72 m standing height, and checks the seated fit.
-- Every url under `/models/3d/magic-carpet-ride/` is unlisted, so the fallbacks draw. Ready files are named in `assets.spec.json`, including `floatingRockV3.glb`. Leave `desertRooftop.glb`, `floatingPalace.glb`, `floatingRock.glb`, `floatingRockV2.glb` and `hero.glb`.
-- The oracle on level 2's best seed still misses one star (1322 vs a full 1352). The limit uses that measured clear.
-- No thumbnail yet: `meta.thumbnail` is `null` until `/images/3d/magic-carpet-ride.webp` lands.
-
-## Status
-
-Playable on primitives. `status: "dev"`. Score limits are proposed in `meta.ts` and `rules.ts` (`PROPOSED_LEVEL_LIMITS`). Claude copies them into `arcade-games.json` at the gate. Do not enable the game.
+- The birds' flap bends a whole Rodin mesh: a gull's legs swing a little with its wings.
+- On phones the flyers' character-budget meshes (15-18k tris) are drawn only within 150 m ahead; keep an eye on the frame time on a mid phone.

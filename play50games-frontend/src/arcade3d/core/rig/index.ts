@@ -24,6 +24,7 @@ export {
    carryPose,
    cheerPose,
    copyPose,
+   crawlPose,
    createPose,
    flailPose,
    idlePose,

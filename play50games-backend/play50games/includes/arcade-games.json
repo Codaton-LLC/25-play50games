@@ -841,18 +841,18 @@
     "magic-carpet-ride": {
       "title": "Magic Carpet Ride",
       "kind": "points",
-      "max_score": 1000,
+      "max_score": 2700,
       "min_duration_ms": 4000,
-      "max_duration_ms": 120000,
-      "base": 640,
-      "max_pps": 9,
+      "max_duration_ms": 75000,
+      "base": 1900,
+      "max_pps": 25,
       "enabled": false,
       "levels": [
-        { "title": "Desert Village", "max_score": 1000, "min_duration_ms": 4000, "max_duration_ms": 120000, "base": 640, "max_pps": 9 },
-        { "title": "Canyon", "max_score": 1420, "min_duration_ms": 4000, "max_duration_ms": 150000, "base": 960, "max_pps": 8 },
-        { "title": "Cloud Kingdom", "max_score": 1780, "min_duration_ms": 4000, "max_duration_ms": 180000, "base": 1250, "max_pps": 8 },
-        { "title": "Night City", "max_score": 2060, "min_duration_ms": 4000, "max_duration_ms": 180000, "base": 1540, "max_pps": 8 },
-        { "title": "Floating Palace", "max_score": 2650, "min_duration_ms": 4000, "max_duration_ms": 240000, "base": 1910, "max_pps": 9 }
+        { "title": "Desert Dawn", "max_score": 2700, "min_duration_ms": 4000, "max_duration_ms": 75000, "base": 1900, "max_pps": 25 },
+        { "title": "Red Canyon", "max_score": 3400, "min_duration_ms": 4000, "max_duration_ms": 85000, "base": 2550, "max_pps": 22 },
+        { "title": "Cloud Kingdom", "max_score": 4250, "min_duration_ms": 4000, "max_duration_ms": 95000, "base": 3350, "max_pps": 20 },
+        { "title": "Lantern Night", "max_score": 4750, "min_duration_ms": 4000, "max_duration_ms": 100000, "base": 3820, "max_pps": 20 },
+        { "title": "Sky Palace", "max_score": 5710, "min_duration_ms": 4000, "max_duration_ms": 115000, "base": 4710, "max_pps": 18 }
       ]
     },
     "toy-store-night-shift": {
