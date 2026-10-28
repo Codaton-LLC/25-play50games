@@ -6,7 +6,7 @@
    padding: 12px;
    border: 1px solid var(--stroke, #334155);
    border-radius: 16px;
-   background: var(--card, #0f172a);
+   background: color-mix(in srgb, var(--card, #0f172a) 55%, #0b1220);
    color: var(--text, #f8fafc);
    pointer-events: none;
    font-size: 12px;
@@ -16,9 +16,9 @@
 .items { display: flex; gap: 8px; margin-top: 10px; }
 .item { flex: 1; display: flex; flex-wrap: wrap; align-items: center; gap: 4px; min-width: 0; }
 .item strong { font-size: 21px; font-variant-numeric: tabular-nums; }
-.item > span:last-child { width: 100%; opacity: 0.8; }
+.item > span:last-child { width: 100%; opacity: 0.92; }
 .swatch { width: 10px; height: 10px; border-radius: 50%; border: 1px solid #fff8; }
-.hint { margin-top: 10px; font-size: 12px; opacity: 0.8; }
+.hint { margin-top: 10px; font-size: 12px; opacity: 0.92; }
 @media (max-height: 520px) and (min-width: 560px) {
    .route { top: 62px; padding: 8px; width: 300px; }
    .hint { display: none; }
