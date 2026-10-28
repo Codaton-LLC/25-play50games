@@ -80,7 +80,7 @@ function Rings({ run, clock }: { run: RingRun; clock: VisualClock }) {
          const ms = clock.ms < 0 ? 0 : clock.ms;
          // far above or far below the hero: not drawn
          const dy = r.y - run.hero.y;
-         if (dy > 30 || dy < -160) return false;
+         if (dy > 30 || dy < -120) return false;
          ringPos(r, ms, P2);
          let open = ringOpen(run, r, ms);
          let pop = 1;
@@ -145,7 +145,7 @@ function Orbs({ run, clock }: { run: RingRun; clock: VisualClock }) {
          const o = c.orbs[i];
          if (!o || run.taken[i] === 1) return false;
          const dy = o.y - run.hero.y;
-         if (dy > 30 || dy < -140) return false;
+         if (dy > 30 || dy < -100) return false;
          const magnet = clock.ms < run.hero.magnetUntil;
          const hidden = o.gate === "zuno" && !magnet;
          color.copy(hidden ? TINT.hidden : TINT.orb);
@@ -188,7 +188,7 @@ function Glows({ run, clock }: { run: RingRun; clock: VisualClock }) {
       const magnet = clock.ms < run.hero.magnetUntil;
       for (let i = 0; i < c.orbs.length; i++) {
          const o = c.orbs[i];
-         if (run.taken[i] === 1 || o.y - hy > 30 || o.y - hy < -140) continue;
+         if (run.taken[i] === 1 || o.y - hy > 30 || o.y - hy < -100) continue;
          if (o.gate === "zuno" && !magnet) put(o.x, o.y, o.z, 1.1 + 0.4 * Math.sin(time.now * 3 + i), "#a8926a");
          else put(o.x, o.y, o.z, 2.2, "#ffd76a");
       }
