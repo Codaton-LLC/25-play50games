@@ -76,6 +76,31 @@ export const SCRUBBER_SPOTS = [
 ] as const;
 export const SCRUBBER_FALLBACK_SPOTS = SCRUBBER_SPOTS.map((s) => ({ ...s, y: SCRUBBER_HEIGHT / 2 }));
 
+/**
+ * Menu 1 adoptions, all parked on the north apron beside the bakery stalls (z about -17.4, outside PLAY_BOUNDS).
+ * Measured on the meshes (floor pivot, centred): checkoutCounter 1.9 x 1.692 x 1.628, freezerCase 1.251 x 1.896 x 0.839,
+ * fruitStand 1.907 x 1.655 x 1.779, wetFloorCone 0.973 x 1.902 x 1.144. Drawn 1.2 / 2.0 / 1.4 / 0.75 m tall.
+ */
+export const MARKET_GLB = {
+   checkoutCounter: { width: 1.9, height: 1.692, depth: 1.628 },
+   freezerCase: { width: 1.251, height: 1.896, depth: 0.839 },
+   fruitStand: { width: 1.907, height: 1.655, depth: 1.779 },
+   wetFloorCone: { width: 0.973, height: 1.902, depth: 1.144 },
+} as const;
+export const MARKET_HEIGHT = { checkoutCounter: 1.2, freezerCase: 2, fruitStand: 1.4, wetFloorCone: 0.75 } as const;
+export type MarketKind = keyof typeof MARKET_GLB;
+const marketScale = (k: MarketKind) => MARKET_HEIGHT[k] / MARKET_GLB[k].height;
+export const MARKET_DRAWN = Object.fromEntries(
+   (Object.keys(MARKET_GLB) as MarketKind[]).map((k) => [k, { width: MARKET_GLB[k].width * marketScale(k), height: MARKET_HEIGHT[k], depth: MARKET_GLB[k].depth * marketScale(k) }])
+) as Record<MarketKind, { width: number; height: number; depth: number }>;
+export const MARKET_SPOTS: Record<MarketKind, readonly { x: number; y: number; z: number; rotY: number }[]> = {
+   fruitStand: [{ x: -13.5, y: 0, z: -17.4, rotY: 0.1 }],
+   freezerCase: [{ x: -4.5, y: 0, z: -17.6, rotY: 0 }, { x: -3.1, y: 0, z: -17.6, rotY: 0 }],
+   checkoutCounter: [{ x: 4.5, y: 0, z: -17.4, rotY: -0.1 }, { x: 16, y: 0, z: -14.6, rotY: 0.5 }],
+   wetFloorCone: [{ x: -6.4, y: 0, z: -16.3, rotY: 0.6 }, { x: 6.8, y: 0, z: -16.1, rotY: 2.1 }],
+};
+export const MARKET_COLORS: Record<MarketKind, string> = { checkoutCounter: "#94a3b8", freezerCase: "#bae6fd", fruitStand: "#a16207", wetFloorCone: "#facc15" };
+
 export const ASSETS = {
    cart: EXPANSION_ASSETS.cart,
    pusher: {
@@ -112,6 +137,38 @@ export const ASSETS = {
       scale: BAKERY_SCALE,
       fallback: "box",
       fallbackColor: "#fde68a",
+      budget: { ...PROP_BUDGET },
+   },
+   checkoutCounter: {
+      id: "checkoutCounter",
+      url: "/models/3d/shopping-cart/checkoutCounter.glb",
+      scale: marketScale("checkoutCounter"),
+      fallback: "box",
+      fallbackColor: MARKET_COLORS.checkoutCounter,
+      budget: { ...PROP_BUDGET },
+   },
+   freezerCase: {
+      id: "freezerCase",
+      url: "/models/3d/shopping-cart/freezerCase.glb",
+      scale: marketScale("freezerCase"),
+      fallback: "box",
+      fallbackColor: MARKET_COLORS.freezerCase,
+      budget: { ...PROP_BUDGET },
+   },
+   fruitStand: {
+      id: "fruitStand",
+      url: "/models/3d/shopping-cart/fruitStand.glb",
+      scale: marketScale("fruitStand"),
+      fallback: "box",
+      fallbackColor: MARKET_COLORS.fruitStand,
+      budget: { ...PROP_BUDGET },
+   },
+   wetFloorCone: {
+      id: "wetFloorCone",
+      url: "/models/3d/shopping-cart/wetFloorCone.glb",
+      scale: marketScale("wetFloorCone"),
+      fallback: "cylinder",
+      fallbackColor: MARKET_COLORS.wetFloorCone,
       budget: { ...PROP_BUDGET },
    },
    scrubber: {
