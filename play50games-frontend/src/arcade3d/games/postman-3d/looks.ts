@@ -4,7 +4,7 @@ import type { FittedViewOptions } from "@/arcade3d/core/useFittedView";
 import type { LevelId } from "@/arcade3d/types";
 import type { PostLevel } from "./levels";
 import { LEVELS } from "./levels";
-import { OFFICE, STREET_GAP, boundsFor } from "./rules";
+import { OFFICE, STREET_GAP, boundsFor, type House } from "./rules";
 
 export const COLORS = {
    road: "#64748b", roadLine: "#e2e8f0", pavement: "#cbd5e1", kerb: "#94a3b8", lawn: "#86efac", lawnFar: "#4ade80", accent: "#ef4444",
@@ -55,6 +55,16 @@ export function environmentFor(level: PostLevel) {
 export const SOUTH_DECOR_MAX_H = 0.7;
 
 /** Victorian lamps: one pair of pavement lamps every 24 m along each street (decor: the scene keeps useQuality().decor of them). */
+/**
+ * Houses whose +x picket fence is the GLB (visual only: rules.ts keeps every fence solid). Three per level,
+ * the ones nearest the post office, so the level stays under the frame triangle budget (assets.test.ts).
+ */
+export const GLB_FENCE_HOUSES = 3;
+export function glbFenceHouses(houses: readonly House[]): Set<House> {
+   const distance = (h: House) => Math.hypot(h.x - OFFICE.x, h.z - OFFICE.z);
+   return new Set([...houses].sort((a, b) => distance(a) - distance(b) || a.number - b.number).slice(0, GLB_FENCE_HOUSES));
+}
+
 export function lampSpots(level: PostLevel): InstanceSpot[] {
    const b = boundsFor(level);
    const out: InstanceSpot[] = [];

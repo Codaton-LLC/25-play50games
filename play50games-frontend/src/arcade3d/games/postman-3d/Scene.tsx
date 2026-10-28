@@ -28,7 +28,7 @@ import { useFittedView } from "@/arcade3d/core/useFittedView";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { ASSETS, FIT, POSTMAN_LANDMARKS, POSTMAN_SCALE } from "./assets";
 import type { PostLevel } from "./levels";
-import { CAMERA, COLORS, FOV, HOUSE_COLORS, LOOK_AHEAD, PITCH, VIEW, decorSpots, fogFor, lampSpots } from "./looks";
+import { CAMERA, COLORS, FOV, HOUSE_COLORS, LOOK_AHEAD, PITCH, VIEW, decorSpots, fogFor, glbFenceHouses, lampSpots } from "./looks";
 import { FENCE_CENTER, FENCE_LEN, HOUSE_HX, HOUSE_HZ, OFFICE, OFFICE_BOX, ROAD_HALF, SPEED, STREET_GAP, VAN_BOX, ZEBRA_X, createRun, nextItem, step, syncStore, targetFor, type Run } from "./rules";
 
 /** Unit boxes (12 triangles; `rounded` = bevelled, for the bigger fallback pieces), sized only by their spots. */
@@ -122,6 +122,9 @@ function Neighborhood({ run, id }: { run: Run; id: Parameters<typeof decorSpots>
       const midX = (b.max.x + b.min.x) / 2;
       const roads: InstanceSpot[] = [], lines: InstanceSpot[] = [], paving: InstanceSpot[] = [], kerbs: InstanceSpot[] = [], paths: InstanceSpot[] = [], zebra: InstanceSpot[] = [];
       const fences: InstanceSpot[] = [], posts: InstanceSpot[] = [], doors: InstanceSpot[] = [], frames: InstanceSpot[] = [], boxes: InstanceSpot[] = [];
+      // the GLB picket fences (the +x fence of the fenced houses) and their code fallback boxes
+      const glbHouses = glbFenceHouses(run.houses);
+      const glbFences: InstanceSpot[] = [], glbFallback: InstanceSpot[] = [];
       for (let street = 0; street < run.level.streets; street++) {
          const z = street * STREET_GAP;
          roads.push({ x: midX, y: 0.015, z, sx: width, sy: 0.03, sz: ROAD_HALF * 2 });
@@ -143,11 +146,16 @@ function Neighborhood({ run, id }: { run: Run; id: Parameters<typeof decorSpots>
          for (const side of [-1, 1]) {
             const cx = h.x + side * FENCE_CENTER;
             const z = h.mailZ + h.side * 0.6;
-            for (const y of [0.22, 0.46]) fences.push({ x: cx, y, z, sx: FENCE_LEN, sy: 0.06, sz: 0.05 });
-            for (let i = 0; i <= 8; i++) posts.push({ x: cx - FENCE_LEN / 2 + (i * FENCE_LEN) / 8, y: FIT.fenceHeight / 2, z, sx: 0.07, sy: FIT.fenceHeight, sz: 0.07 });
+            // a GLB house's +x fence is the picket GLB; its code boxes only show if the GLB does not load
+            const glb = side > 0 && glbHouses.has(h);
+            const fenceOut = glb ? glbFallback : fences;
+            const postOut = glb ? glbFallback : posts;
+            for (const y of [0.22, 0.46]) fenceOut.push({ x: cx, y, z, sx: FENCE_LEN, sy: 0.06, sz: 0.05 });
+            for (let i = 0; i <= 8; i++) postOut.push({ x: cx - FENCE_LEN / 2 + (i * FENCE_LEN) / 8, y: FIT.fenceHeight / 2, z, sx: 0.07, sy: FIT.fenceHeight, sz: 0.07 });
+            if (glb) glbFences.push({ x: cx, y: FIT.fenceHeight / 2, z });
          }
       }
-      return { roads, lines, paving, kerbs, paths, zebra, fences, posts, doors, frames, boxes };
+      return { roads, lines, paving, kerbs, paths, zebra, fences, posts, doors, frames, boxes, glbFences, glbFallback };
    }, [run]);
    const houses = useMemo(
       () =>
@@ -202,6 +210,9 @@ function Neighborhood({ run, id }: { run: Run; id: Parameters<typeof decorSpots>
          <Props asset={ASSETS.mailbox} spots={decor.boxes} size={[0.5, FIT.mailboxHeight, 0.4]} color={COLORS.accent} />
          <Boxes spots={decor.fences} color={COLORS.white} />
          <Boxes spots={decor.posts} color={COLORS.white} />
+         {decor.glbFences.length > 0 && (
+            <InstancedModel asset={ASSETS.picketFence} spots={decor.glbFences} fallback={<Boxes spots={decor.glbFallback} color={COLORS.white} />} />
+         )}
          <Props asset={ASSETS.lamp} spots={lamps} size={[0.15, FIT.lampHeight, 0.15]} color={COLORS.navy} />
          <Instanced spots={lampGlow}>
             <sphereGeometry args={[1, 10, 8]} />

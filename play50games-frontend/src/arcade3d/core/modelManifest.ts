@@ -243,6 +243,8 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/postman-3d/streetLampVictorian.glb",
    "/models/3d/postman-3d/bicycle.glb",
    "/models/3d/postman-3d/holidayTree.glb",
+   // picket fence (2026-10-27): the ready shared Rodin set, 1500 triangles; drawn on the three fenced houses per level
+   "/models/3d/postman-3d/picketFence.glb",
    "/models/3d/shared/trafficLight.glb",
    "/models/3d/shared/dog.glb",
    // aquarium-cleaner (2026-10-25): menu1 ready set + shared coralI, optimized, character 18k tris
