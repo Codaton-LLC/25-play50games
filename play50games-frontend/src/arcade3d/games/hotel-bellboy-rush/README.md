@@ -142,3 +142,7 @@ Draw calls: see the playtest notes in the branch report (`?perf=1`, `window.__ar
 - `keyCard.glb` has pseudo-text on its face (small on screen); still wanted: `keyCardPlain`.
 - `travellerNpc.glb` is photoreal with hands in pockets (not a T-pose): decor only; still wanted: `passengerNpc`.
 - The shared sofa is teal-green, a little off the warm palette (untinted GLB).
+
+## Clarity (2026-10-28, visual only)
+
+The key card's hint ("Take the bag at the desk", "Elevator to floor 2", "Door 203") is the hint line, so no second `HintLine` is added. `guide.ts` (pure, `guide.test.ts`) picks the goal for two core `TargetBeacon`s: a gold "BAG" arrow on the reception desk while the trolley is empty and a green "UP" ring on the elevator pad while the carried bag is for another floor. The right DOOR is never marked: reading the key card and the door numbers is the game. A wrong door pops "Wrong door! -1 life" (`useActionPop`, same 0.22 shake); the bag hops from the desk onto the trolley and, on a correct door, from the trolley to the door (`<Toss>`, 0.4 s). The card's "Key card" label is 12 px. Rules, scoring and limits are unchanged.
