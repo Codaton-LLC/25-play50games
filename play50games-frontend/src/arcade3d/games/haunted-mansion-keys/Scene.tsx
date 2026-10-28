@@ -125,7 +125,17 @@ function LevelScene() {
    const lockedPopAt = useRef(-10);
    const keyTosses = useRef<(TossHandle | null)[]>([]);
    const [look, setLook] = useState<{ kind: Objective["kind"]; index: number }>({ kind: "key", index: 0 });
-   useEffect(() => () => GUIDE.reset(), []);
+   useEffect(() => {
+      // the first step is up from the countdown on
+      nextObjective(run, goal);
+      beacon.x = goal.x;
+      beacon.y = goal.y;
+      beacon.z = goal.z;
+      beacon.hidden = false;
+      GUIDE.set(objectiveHint(run, goal, touch));
+      return () => GUIDE.reset();
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+   }, [run]);
 
    const bounds = useMemo(() => aimBounds(config, portrait), [config, portrait]);
    // the fog starts past the aim at whatever distance the camera was fitted to (looks.ts fogFor)
