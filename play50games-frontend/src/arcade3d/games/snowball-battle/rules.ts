@@ -979,6 +979,29 @@ export function highlightOf(run: Run, yaw: number): number {
    return best;
 }
 
+export type MissReason = "ammo" | "blocked" | "none";
+
+/**
+ * Why a desktop throw press at `yaw` would not throw (read-only, for the Scene's feedback pop; it
+ * changes nothing). null = it throws, or it is a silent wait (scooping, the 0.40 s gap, the run is
+ * over). "ammo": no snowball packed. "blocked": a rival is in the cone but a fort or the snowman is in
+ * the way. "none": no rival in the cone.
+ */
+export function missReason(run: Run, yaw: number): MissReason | null {
+   const player = run.kids[0];
+   if (run.endReason || run.scooping || run.throwCd > 0) return null;
+   if (player.ammo <= 0) return "ammo";
+   if (highlightOf(run, yaw) >= 0) return null;
+   PA.x = player.x; PA.y = 0; PA.z = player.z;
+   for (let i = 1; i < run.kids.length; i++) {
+      const rival = run.kids[i];
+      if (!living(rival)) continue;
+      PB.x = rival.x; PB.y = 0; PB.z = rival.z;
+      if (inViewCone(PA, yaw, THROW.halfAngle, THROW.range, PB)) return "blocked";
+   }
+   return "none";
+}
+
 function allocBall(run: Run): Ball | null {
    for (let i = 0; i < run.balls.length; i++) if (!run.balls[i].alive) return run.balls[i];
    return null;

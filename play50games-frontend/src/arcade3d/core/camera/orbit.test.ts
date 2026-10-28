@@ -2,6 +2,7 @@
 // manual wins), the camera-relative contract with core inputToWorld, the collision pull-in and the
 // gesture router (mouse, one / two fingers, pinch, wheel, keys that never clash with the game's).
 import { describe, expect, it } from "vitest";
+import { hintText } from "./CameraViewButton";
 import { inputToWorld } from "@/arcade3d/core/math";
 import { createInputController } from "@/arcade3d/core/inputController";
 import type { AABB } from "@/arcade3d/core/collision";
@@ -173,6 +174,20 @@ describe("gesture router", () => {
       g.up(1);
       expect(g.down(2, 0, 0, "mouse", 2)).toBe(true);
       expect(g.consume().dragging).toBe(false);
+   });
+
+   it("mouseButtons [2, 1] (a game that throws on a left click): left is never taken, right and middle turn", () => {
+      const g = createOrbitGestures({ mouseButtons: [2, 1] });
+      expect(g.down(1, 100, 100, "mouse", 0)).toBe(false);
+      g.move(1, 160, 100);
+      expect(g.consume().dragX).toBe(0);
+      expect(g.down(2, 100, 100, "mouse", 2)).toBe(true);
+      g.move(2, 140, 100);
+      expect(g.consume().dragX).toBe(40);
+      g.up(2);
+      expect(g.down(3, 0, 0, "mouse", 1)).toBe(true);
+      expect(hintText(false, "C", true, false)).toBe("📷 / C: change view; right-drag to look around");
+      expect(hintText(false, "C", true)).toBe("📷 / C: change view; drag to look around");
    });
 
    it("two fingers: the mid-point turns (x = yaw, y = pitch), the spread zooms", () => {
