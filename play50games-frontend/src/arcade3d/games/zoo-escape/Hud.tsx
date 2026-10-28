@@ -7,11 +7,12 @@ import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { CATCH, STATS } from "./rules";
 import { useZooLevel } from "./useZooLevel";
 import styles from "./Hud.module.css";
+import CameraViewButton from "@/arcade3d/core/camera/CameraViewButton";
 
 const REASONS = ["", "Spotted by a keeper!", "Caught in the searchlight!", "Found in the bush!", "Bumped into a keeper!"];
 const STAGE_NAMES = ["", "The enclosure", "Stage 2: the visitor plaza", "Stage 3: the parking lot at dusk"];
 
-export default function Hud() {
+function GameHud() {
    const card = useArcadeStore((s) => s.stats[STATS.card] ?? 0);
    const catches = useArcadeStore((s) => s.stats[STATS.catches] ?? 0);
    const level = useArcadeStore((s) => s.level);
@@ -36,6 +37,16 @@ export default function Hud() {
                </div>
             </div>
          )}
+      </>
+   );
+}
+
+/** The game's HUD plus the core 📷 camera-view button (core/camera). */
+export default function Hud() {
+   return (
+      <>
+         <CameraViewButton />
+         <GameHud />
       </>
    );
 }

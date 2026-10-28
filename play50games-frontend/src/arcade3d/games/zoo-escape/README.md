@@ -142,3 +142,7 @@ Branch checked: `git branch --show-current` = claude/game-zoo-escape (on top of 
 6. Flashlight alert colour is applied by recolouring its two materials when the calm / alert flag flips (no React state per frame). A core `color` that is read live, or a `tint` ref, would be cleaner (core request, optional).
 7. Slot reassignment (a next-stage keeper entering / leaving the window) resets that slot's gait phase: a possible one-frame stride pop. Acceptable?
 8. Thumbnail `public/images/3d/zoo-escape.webp` not captured (no browser); the input script is ready.
+
+## Camera views
+
+Views: default, chase, front, top, free (fences and props block the camera). **C** / **T** or the 📷 button cycles them; drag (or two fingers) looks around and switches to the free view, wheel / pinch zooms, **V** recenters. The rules receive the drawn camera's yaw (the fitted yaw in the default view), so a run in the default view is unchanged; no rules, bots, proofs or scoring were touched. Core docs: `core/camera/README.md`.

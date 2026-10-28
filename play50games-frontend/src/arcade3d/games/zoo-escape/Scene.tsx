@@ -21,6 +21,8 @@ import { hop, squashStretch, waddle, type BodyOffset } from "@/arcade3d/core/mot
 import { BlobShadow } from "@/arcade3d/core/render";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useFittedView } from "@/arcade3d/core/useFittedView";
+import { useCameraViews } from "@/arcade3d/core/camera/CameraViews";
+import { SOLIDS } from "./level";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { ASSETS } from "./assets";
 import { aimAt, stageBounds, viewFor, windowHalf } from "./camera";
@@ -94,6 +96,18 @@ function Panda({ run }: { run: RunState }) {
    );
 }
 
+/** Copies `src` into the camera hook's box slots. */
+function fillSolids(src: readonly AABB[], out: AABB[]): number {
+   let n = 0;
+   for (const b of src) {
+      if (n >= out.length) break;
+      const o = out[n++];
+      o.min.x = b.min.x; o.min.y = b.min.y; o.min.z = b.min.z;
+      o.max.x = b.max.x; o.max.y = b.max.y; o.max.z = b.max.z;
+   }
+   return n;
+}
+
 function LevelScene() {
    const { id, config } = useZooLevel();
    const width = useThree((s) => s.size.width);
@@ -107,6 +121,20 @@ function LevelScene() {
    const muted = useMuted();
    const [reduced] = useState(() => typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
    const [run] = useState(() => createRun(randomSeed(), undefined, config));
+
+   // camera views (core/camera): the rules get the drawn camera's yaw (the fitted yaw in the default view)
+   const cam = useCameraViews({
+      slug: "zoo-escape",
+      subject: "character",
+      steering: "camera",
+      defaultYaw: view.yaw,
+      target: (o) => {
+         const p = run.panda;
+         o.x = p.x; o.y = 0.7; o.z = p.z; o.heading = p.facing; o.vx = p.vx; o.vz = p.vz;
+      },
+      solids: (out: AABB[]) => fillSolids(SOLIDS, out),
+   });
+
    const [scratch] = useState(() => ({
       step: { dirX: 0, dirZ: 0, sneak: false, toss: false } as StepInput,
       dir: { x: 0, z: 0 },
@@ -164,7 +192,7 @@ function LevelScene() {
    useRunFrame((_state, dt) => {
       const i = input.current;
       const { step, dir, at } = scratch;
-      inputToWorld(i.moveX, i.moveY, view.yaw, dir);
+      inputToWorld(i.moveX, i.moveY, cam.yaw(), dir);
       step.dirX = dir.x; step.dirZ = dir.z;
       step.sneak = i.jump;
       step.toss = i.actionPressed;
