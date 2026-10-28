@@ -22,7 +22,7 @@ import { useFittedView } from "@/arcade3d/core/useFittedView";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { ASSETS, DETECTIVE_LANDMARKS, DETECTIVE_SCALE, FIT } from "./assets";
 import type { MansionLevel } from "./levels";
-import { COLORS, DAMPING, FOV, LOOK_AHEAD, aimBounds, capSpots, fogFor, groundsSpots, paintingSpots, propSpots, viewFor, wallSpots } from "./looks";
+import { COLORS, DAMPING, FOV, LOOK_AHEAD, aimBounds, cameraSolidList, capSpots, fogFor, groundsSpots, paintingSpots, propSpots, viewFor, wallSpots } from "./looks";
 import {
    ArmourStandPrimitive,
    BookshelfPrimitive,
@@ -74,7 +74,8 @@ function LevelScene() {
    const time = useGameTime();
    const input = useInput();
    const [run] = useState<Run>(() => createRun(randomSeed(), config));
-   // camera views (core/camera): the rules get the drawn camera's yaw; the room walls block the camera
+   // camera views (core/camera): the rules get the drawn camera's yaw; the walls and the furniture block the camera
+   const cameraSolids = useMemo(() => cameraSolidList(run.walls, run.solids), [run]);
    const cam = useCameraViews({
       slug: "haunted-mansion-keys",
       subject: "character",
@@ -91,7 +92,7 @@ function LevelScene() {
       },
       solids: (out: AABB[]) => {
          let n = 0;
-         for (const w of run.walls) {
+         for (const w of cameraSolids) {
             if (n >= out.length) break;
             const b = out[n++];
             b.min.x = w.min.x; b.max.x = w.max.x;

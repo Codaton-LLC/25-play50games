@@ -171,6 +171,17 @@ export function groundsSpots(id: LevelId): GroundsSpots {
 export const isBackWall = (b: AABB) => b.max.z <= 0 && b.min.z < 0;
 
 /** Wall boxes as instance spots (unit cube scaled per spot), at their drawn height. */
+/**
+ * The camera's solids in priority order (core/camera takes VIEW_SOLIDS_MAX boxes): every wall first,
+ * then the furniture largest footprint first, so if the list is ever too long the big pieces stay.
+ * `solids` is walls followed by furniture (rules.ts), so the furniture is the part after the walls.
+ */
+export function cameraSolidList(walls: readonly AABB[], solids: readonly AABB[]): AABB[] {
+   const area = (b: AABB) => (b.max.x - b.min.x) * (b.max.z - b.min.z);
+   const furniture = solids.slice(walls.length).sort((a, b) => area(b) - area(a));
+   return [...walls, ...furniture];
+}
+
 export function wallSpots(walls: readonly AABB[]): InstanceSpot[] {
    return walls.map((b) => {
       const h = isBackWall(b) ? WALL_H : LOW_WALL_H;
