@@ -79,7 +79,7 @@ export const DAMPING = 4;
 /** The camera keeps this window (half sizes, m) around its aim: the hall's width and its walls, 7 m of it (the cat a clear size on a phone). */
 export const VIEW_WINDOW = { x: 2.65, z: 3.5 } as const;
 /** the player's zoom (wheel, pinch, + / -): a factor on the fitted camera distance */
-export const ZOOM = { min: 0.6, max: 1.6 } as const;
+export const ZOOM = { min: 0.6, max: 1.6, portrait: 0.8 } as const;
 
 export function hallBox(level: CatLevel): AABB {
    const zEnd = level.rooms * ROOM_LEN;

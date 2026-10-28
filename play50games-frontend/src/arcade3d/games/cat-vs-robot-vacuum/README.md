@@ -53,6 +53,13 @@ Adopted (copied into `public/models/3d`, listed in `modelManifest.ts`, fits in `
 - Decor (cat trees, chairs) is fitted to 1 m and placed by spot scale in the strip between the hall and the outer walls and beyond the far end wall, never on the camera side.
 - Camera: the aim may come within 1.2 m of either end wall, so the cat starts near the middle of the picture (it sat at the top edge with the aim held 3.5 m in).
 
+## Polish (2026-10-28, `claude/m1-animals`)
+
+- The cat walks, trots and gallops on the core quadruped rig (`CAT_LANDMARKS` in `assets.ts`, checked on the real mesh in `cat.test.ts`): planted paws by speed, idle when still, a leap for the hop, and on a win it hops onto the bed and sits. Rodin's second tail (lying on the floor) is folded away.
+- Readable colours: cool, quiet floors and walls (whitewashed and grey wood, pale tiles, a muted blue rug); the cat is the only warm orange (every level's tint is a ginger), the vacuums are dark graphite with a red glow ring and a red floor aura while they can hurt (both off while one drives back harmless), the treats gold with a pulsing gold disc, the toys a pink mouse with a pink disc, the bed's ring green and pulsing once every treat is in. A white ring and a contact shadow mark the cat; a cool rim light from the far end edges every object.
+- The goal: a HUD pill ("Eat the gold fish, dodge red" -> "All fish! Nap on the bed"), an edge arrow to the nearest treat and then to the bed.
+- Camera: a 5.3 x 7 m window (was 6 x 9), a closer start on a portrait phone, and the player zoom (wheel, pinch, + / -, `core/useCameraZoom`).
+
 ## Known issues
 
 - No playtest yet (gate fork: no build or screenshots). To check: the cat and vacuum facing, the turned sofa / table / shelf facing the lane, the shelf squashed to 1.15 m (stretch 0.70), the bed narrowed to 1.2 m (stretch 0.76), draw calls (estimate ~30, cap 45).

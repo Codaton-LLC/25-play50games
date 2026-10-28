@@ -37,3 +37,10 @@
 .panel > .cooling {
    color: #a8a29e;
 }
+
+/* phones: the shell's chips wrap to a second row; the goal panel sits under them */
+@media (max-width: 520px) {
+   .panel {
+      top: 128px;
+   }
+}

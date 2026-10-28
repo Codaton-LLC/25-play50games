@@ -259,6 +259,19 @@ Every stand-in primitive stays as the `fallback` with its old animation (the Sce
 - Not for props or pools (`<InstancedModel>` / `<DynamicInstancedModel>` treat a humanoid asset as a static mesh), and not for GLBs with a real skeleton (`rigged`; a skinned GLB gets no auto-rig).
 - The pigeon is not a humanoid: it stays a solid hopping bird.
 
+## Animals: the quadruped rig (`rig/quadruped*.ts`, `<QuadrupedModel>`)
+
+Static four-legged Rodin animals (standing on four paws, facing +z, no skeleton) are skinned in code like the humanoids, with a 21-bone skeleton: hips -> spine -> chest -> neck -> head, three tail bones, upper / lower / paw for each leg (front legs hang from the chest, hind legs from the hips) and `stash`, a bone scaled to nothing that folds away stray parts of the mesh (Rodin gave the cat and the dog a second tail).
+
+- `quadruped.ts` (pure): `QuadrupedLandmarks` (per leg pair `top`, `knee`, `ankle`, `toeZ`, `radius`, `bend` (+1 the middle joint bends forward = a front wrist, -1 back = a hind hock); `bellyY`, `thighBlend`, `neck`, `head`, `mouth`, a 4-point `tail` line and `tailRadius`, optional `stray` lines), `quadrupedJoints`, `computeQuadrupedWeights` (stray > tail > nearest leg > neck / head > trunk along z; smooth at every joint, rigid paws).
+- `quadrupedPoses.ts` (pure, allocation-free): `quadrupedGait(phase, speed01, lm, out, turn)` blends a 4-beat lateral walk, a trot and a transverse gallop by speed (timing, duty factor, paw sweep from the leg length, swing height, a down-only body bob, the gallop's rock and spine flex, head nod, tail wave about each bone's own sway axis). Legs are placed by a two-bone IK in the side plane on ground targets, so a stance paw stays on its spot while the body travels `quadrupedStride(speed01, lm)` per cycle; a target out of reach lowers the body (`plantAll`) instead of floating a paw. Advance the phase with `quadrupedPhaseStep(phase, metres, speed01, lm, scale, dt, maxHz)` (cadence cap: a small, fast animal slides a little rather than paddling). Also `quadrupedIdle(t)`, `quadrupedSit(amount, t)` (rump to the floor, shoulders kept, head level), `quadrupedLeap(f)` (take-off, tuck, reach to land; the game moves the body), `quadrupedStand`, `blendQuadrupedPoses`, `quadrupedAnkles` (FK for tests).
+- `quadrupedSkinning.ts` (three, no React) and `QuadrupedModel.tsx`: `const pose = useQuadrupedPose((p) => ...)` (FRAME_PRIORITY.pose) and `<QuadrupedModel asset pose tint attach={{ mouth }} fallback>`; the asset carries `quadruped: { landmarks }` (`ModelAsset.quadruped`). `attach.mouth` holds a carried toy on the head bone.
+- Measuring: side and top ASCII silhouettes and per-height slices of the vertex cloud; legs as centre lines through the leg columns (the knee on or just ahead of the top -> ankle line for a front leg, behind it for a hind leg, so the IK reproduces the bind pose), the tail line through the middle of the tail. `quadrupedChecks.ts` `describeQuadruped(name, spec)` checks a real mesh: every part has its bones, the stand pose is the bind pose, strays fold to the stash point, and at a walk, a trot and a gallop no paw sinks below the floor and stance soles keep their ground point (cat.test.ts, dog.test.ts).
+
+## Player camera zoom (`cameraZoom.ts`, `useCameraZoom.tsx`)
+
+`const zoom = useCameraZoom({ min, max, initial })` and `<CameraRig ... zoom={zoom} />`: the mouse wheel over the canvas, a two-finger pinch on it and the + / - keys scale the follow camera's offset (1 = the fitted view, < 1 closer); the rig eases to it every frame, nothing re-renders. One finger stays the game's. Pure steps `wheelZoom`, `pinchZoom`, `keyZoom` (cameraZoom.test.ts).
+
 ## Moving pools: `<DynamicInstancedModel>`
 
 For a fixed pool whose copies move every frame (office-escape coins and obstacles, pigeon-crossing vehicles):

@@ -2,7 +2,7 @@
 
 // One useRunFrame steps rules.ts. Visuals read the run and animate with useGameTime.
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useFrame } from "@react-three/fiber";
+import { useFrame, useThree } from "@react-three/fiber";
 import { BoxGeometry, CircleGeometry, Euler, Matrix4, MeshStandardMaterial, Quaternion, Vector3, type Group } from "three";
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 import { DynamicInstancedModel, InstancedModel } from "@/arcade3d/core/assets";
@@ -111,7 +111,9 @@ function LevelScene() {
    const idlePose = useMemo(createQuadrupedPose, []);
    const gaitPose = useMemo(createQuadrupedPose, []);
    const targets = useMemo<MarkerTarget[]>(() => [{ x: 0, y: 0.3, z: 0, hidden: true }], []);
-   const zoom = useCameraZoom({ min: ZOOM.min, max: ZOOM.max });
+   // a portrait phone fits the hall's width: start a little closer so the cat is a clear size
+   const portrait = useThree((state) => state.size.width < state.size.height);
+   const zoom = useCameraZoom({ min: ZOOM.min, max: ZOOM.max, initial: portrait ? ZOOM.portrait : 1 });
    const loop = useRef<LoopHandle | null>(null);
    const loopAt = useRef(0);
    const bounds = useMemo(() => aimBounds(config), [config]);

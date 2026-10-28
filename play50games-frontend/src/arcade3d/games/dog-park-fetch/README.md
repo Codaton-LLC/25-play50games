@@ -60,6 +60,12 @@ Tests: `proof.level-N.test.ts` (bots in `testing/bots.ts`, suite in `testing/pro
 - Left out: `dogHouse*`, `dogBone*`, `agilityHurdle` (dogs baked in, spec), `dogOwnerNpc` (a dog baked in at its feet), shared `picketFence` (80+ copies x 1.5k tris round the lawn: the code fence instead).
 - Triangles a frame (every copy at full decor): 96k / 109k / 123k / 124k / 147k on L1-L5 (test cap 300k).
 
+## Polish (2026-10-28, `claude/m1-animals`)
+
+- The dog runs like a dog on the core quadruped rig (`DOG_LANDMARKS` in `assets.ts`, checked on the real mesh in `dog.test.ts`): walk, trot and gallop by speed with planted paws, head nod and a wagging raised tail; idle when still and it sits after 1.2 s of waiting; a leap for the jump; it sits dazed while a mower has stunned it. The carried toy is held in its mouth (`attach.mouth`). Rodin's second, low curled tail is folded away.
+- Camera: a closer window (portrait 6.8 x 9.2 m, landscape 12 x 9.2 m; was 10 x 14 / 16 x 14) and the player zoom (wheel, pinch, + / -, `core/useCameraZoom`, `ZOOM` 0.55-1.8). The edge arrow and a beacon (a light column and ring) on the waiting toy show throws outside the view.
+- Look: a grass texture with quiet mowing stripes (they were loud lime bands), a red gingham picnic blanket instead of the orange disc, a white ring and contact shadow under the dog.
+
 ## Not built (spec items left out)
 
 - Festival bunting (L5) and tree shade (L3).
