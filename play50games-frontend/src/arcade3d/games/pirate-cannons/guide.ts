@@ -29,6 +29,6 @@ export function hintCode(run: RunState): number {
 
 export function hintFor(code: number, touch: boolean): HintState {
    if (code === 3) return { text: "A ship is nearly in the harbour: sink the marked one!", key: "harbour", tone: "warn" };
-   if (code === 2) return { text: "Aim at the marked ship. Read the wind arrow; a powder barrel blasts ships near it", key: "aim", tone: "info" };
+   if (code === 2) return { text: "Aim at the marked ship. Read the wind arrow; hit a powder barrel for a blast", key: "aim", tone: "info" };
    return { text: touch ? "Drag to turn the cannon, release to fire at the marked ship" : "Drag (or arrow keys) to aim, release to fire at the marked ship", key: "first", tone: "info" };
 }
