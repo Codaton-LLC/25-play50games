@@ -65,4 +65,5 @@ export const GAME_LOADERS: Record<ArcadeSlug, () => Promise<GameModule>> = {
    "cloud-hopper": () => import("./games/cloud-hopper"),
    "plate-surf": () => import("./games/plate-surf"),
    "zipline-rush": () => import("./games/zipline-rush"),
+   "color-door-sprint": () => import("./games/color-door-sprint"),
 };
