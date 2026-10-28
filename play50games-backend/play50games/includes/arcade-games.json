@@ -1086,6 +1086,22 @@
         { "title": "Moving Fans", "max_score": 19380, "min_duration_ms": 16200, "max_duration_ms": 210000, "time_base_ms": 210000 },
         { "title": "Storm Tunnel", "max_score": 25950, "min_duration_ms": 40500, "max_duration_ms": 300000, "time_base_ms": 300000 }
       ]
+    },
+    "roll-cannon-jump": {
+      "title": "Roll Cannon Jump",
+      "kind": "time",
+      "max_score": 7360,
+      "min_duration_ms": 1400,
+      "max_duration_ms": 75000,
+      "time_base_ms": 75000,
+      "enabled": false,
+      "levels": [
+        { "title": "Short Launch", "max_score": 7360, "min_duration_ms": 1400, "max_duration_ms": 75000, "time_base_ms": 75000 },
+        { "title": "Angle Practice", "max_score": 8790, "min_duration_ms": 2100, "max_duration_ms": 90000, "time_base_ms": 90000 },
+        { "title": "Moving Pads", "max_score": 10680, "min_duration_ms": 3200, "max_duration_ms": 110000, "time_base_ms": 110000 },
+        { "title": "Long Distance", "max_score": 12070, "min_duration_ms": 4300, "max_duration_ms": 125000, "time_base_ms": 125000 },
+        { "title": "Big Top Finale", "max_score": 17600, "min_duration_ms": 24000, "max_duration_ms": 200000, "time_base_ms": 200000 }
+      ]
     }
   }
 }
