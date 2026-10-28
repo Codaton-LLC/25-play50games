@@ -48,6 +48,8 @@ export interface ZipRun {
    targetLane: number; cooldown: number; powerMs: number; airPower: boolean;
    wallBroken: boolean;
    relayOpenMs: number; tandemMs: number;
+   /** the last throttle input (-1 brake .. 1 tuck), for the drawn pose only */
+   throttle: number;
    score: number; orbs: number; collected: Uint8Array; landings: Uint8Array; centres: number;
    secrets: ReturnType<typeof createSecretTracker>; combo: ReturnType<typeof createCombo>;
    boss: ReturnType<typeof createBoss> | null; bossEvents: ReturnType<typeof createBossEvents>;
@@ -60,7 +62,7 @@ export function createRun(level: LevelId = 1, heroId: M2HeroId = "nami"): ZipRun
    return {
       level, cfg, heroId, ms: 0, accumulator: 0, section: 0, lane: 0, t: 0, speed: 7,
       mode: "deck", hero, vx: 0, vy: 0, vz: 0, airMs: 0, releaseT: 0, targetLane: -1,
-      cooldown: 0, powerMs: 0, airPower: false, wallBroken: false, relayOpenMs: 0, tandemMs: 0, score: 0, orbs: 0,
+      cooldown: 0, powerMs: 0, airPower: false, wallBroken: false, relayOpenMs: 0, tandemMs: 0, throttle: 0, score: 0, orbs: 0,
       collected: new Uint8Array(cfg.sections * 4), landings: new Uint8Array(cfg.sections), centres: 0,
       secrets: createSecretTracker(SECRETS), combo: createCombo(),
       boss: cfg.boss ? createBoss(VOLT_EEL) : null, bossEvents: createBossEvents(),
@@ -135,6 +137,7 @@ function quantum(r: ZipRun, i: StepInput, dt: number) {
    r.ms += ms; r.cooldown = Math.max(0, r.cooldown - ms); r.powerMs = Math.max(0, r.powerMs - ms); r.hurtMs = Math.max(0, r.hurtMs - ms);
    r.relayOpenMs = Math.max(0, r.relayOpenMs - ms); r.tandemMs = Math.max(0, r.tandemMs - ms);
    comboTick(r.combo, COMBO, r.ms);
+   r.throttle = i.throttle;
    if (r.ms >= r.cfg.durationMs) { r.ended = "timeup"; return; }
    if (r.boss && r.section >= 2) {
       stepBoss(r.boss, VOLT_EEL, ms, r.bossEvents);
