@@ -86,3 +86,7 @@ All visual: the rules (and so the limits) are unchanged.
 
 - Check the jet ski's forward axis and that the tower's front faces the sea (`rotation-y = PI`).
 - The swimmer GLB is unrigged (arms down, no T-pose): it bobs and rocks, it cannot wave or hold the tube with its arms. A T-pose swimmer GLB would let the auto-rig animate it (a Hyper3D generation, user's call).
+
+## Clarity (2026-10-28, visual only)
+
+`guide.ts` (pure, `guide.test.ts`) picks the goal: the swimmer in trouble, or the dry-sand line (straight ahead of the lifeguard) while towing. Core `TargetBeacon`s: a pink "GRAB" arrow and ring on the water over the swimmer, a green "SAFE" drop-here ring on the sand line. The core `HintLine` (new `Hud.tsx`) says "Swim to the pink ring, then press E / tap Grab" (a jet-ski line on L4-L5, "Ride to..." on the ski), "Towing the swimmer: back to the dry sand", and a sticky red "Hurry!" when the alert is under 30 %. A lost life pops "Too late! -1 life" / "Lost them! -1 life" (`useActionPop`, same 0.25 shake); the rescued swimmer hops from the arms onto the sand (`<Toss>`, 0.45 s) instead of appearing there. Rules, scoring and limits are unchanged.
