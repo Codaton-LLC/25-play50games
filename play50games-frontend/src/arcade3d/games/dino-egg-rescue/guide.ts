@@ -9,7 +9,7 @@ export interface Hint {
 
 export function hintFor(carried: number, maxStack: number, golden: boolean): Hint {
    if (carried <= 0) return { text: "Walk over an egg to pick it up, then carry it to the nest. Dodge the boulders", tone: "info" };
-   const gold = golden ? " (the golden one is worth more)" : "";
+   const gold = golden ? " (golden!)" : "";
    if (carried >= maxStack) return { text: `Carrying ${carried}/${maxStack}: hands full, take them to the nest${gold}`, tone: "carry" };
-   return { text: `Carrying ${carried}/${maxStack}: take them to the nest, or grab more but you slow down${gold}`, tone: "carry" };
+   return { text: `Carrying ${carried}/${maxStack}: take them to the nest, or grab more (slower)${gold}`, tone: "carry" };
 }
