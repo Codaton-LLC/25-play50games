@@ -57,6 +57,7 @@ import { skyTowerJumpMeta } from "./games/sky-tower-jump/meta";
 import { rooftopRollClimbMeta } from "./games/rooftop-roll-climb/meta";
 import { floodedRuinsEscapeMeta } from "./games/flooded-ruins-escape/meta";
 import { lavaPillarJumpMeta } from "./games/lava-pillar-jump/meta";
+import { ziplineRushMeta } from "./games/zipline-rush/meta";
 import { cloudHopperMeta } from "./games/cloud-hopper/meta";
 import { plateSurfMeta } from "./games/plate-surf/meta";
 
@@ -117,6 +118,7 @@ export const ARCADE_GAMES: ArcadeGameMeta[] = [
    lavaPillarJumpMeta,
    cloudHopperMeta,
    plateSurfMeta,
+   ziplineRushMeta,
 ].sort((a, b) => a.order - b.order);
 
 export function getGameMeta(slug: string): ArcadeGameMeta | undefined {
