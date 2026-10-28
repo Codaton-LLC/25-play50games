@@ -196,3 +196,7 @@ The user approved this design and asked Claude to settle every open question wit
 - Q3: a knocked-down rival is exempt from the 2 s open rule.
 - Q4: a camper's fort is flushed after 6 s (a rival volley on it), so camping never wins.
 - Modern look: the new snowman GLB (`/models/3d/shared/snowman.glb`) as yard decor; soft snow lighting, falling snow (core env SnowFall), puff bursts on hits.
+
+## Camera views
+
+Views: default, chase, front, top, free (the throw aim uses the drawn camera). **C** / **T** or the 📷 button cycles them; drag (or two fingers) looks around and switches to the free view, wheel / pinch zooms, **V** recenters. The rules receive the drawn camera's yaw (the fitted yaw in the default view), so a run in the default view is unchanged; no rules, bots, proofs or scoring were touched. Core docs: `core/camera/README.md`.

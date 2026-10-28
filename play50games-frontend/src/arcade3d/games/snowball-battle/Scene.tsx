@@ -15,6 +15,7 @@ import { randomSeed } from "@/arcade3d/core/math";
 import { useSafeArea, type SafeArea } from "@/arcade3d/core/safeArea";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useFittedView } from "@/arcade3d/core/useFittedView";
+import { useCameraViews } from "@/arcade3d/core/camera/CameraViews";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { TEAM } from "./assets";
 import Balls from "./Balls";
@@ -109,6 +110,19 @@ function LevelScene() {
    areaRef.current = area;
    const coarse = useState(coarsePointer)[0];
    const run = useState(() => createRun(randomSeed(), coarse, config))[0];
+
+   // camera views (core/camera): the rules get the drawn camera's yaw (the fitted yaw in the default view)
+   const cam = useCameraViews({
+      slug: "snowball-battle",
+      subject: "character",
+      steering: "camera",
+      defaultYaw: view.yaw,
+      target: (o) => {
+         const k = run.kids[0];
+         o.x = k.x; o.y = 1.0; o.z = k.z; o.heading = k.yaw; o.vx = k.vx; o.vz = k.vz;
+      },
+   });
+
    const step = useRef<StepInput>({ moveX: 0, moveY: 0, camYaw: 0, scoop: false, fire: false, tapId: -1, aimYaw: Math.PI }).current;
    const aim = useRef({ moved: false, px: 0, py: 0 }).current;
    const follow = useRef({ x: 0, y: FOLLOW_Y, z: 6.2 }).current;
@@ -132,7 +146,7 @@ function LevelScene() {
       const live = input.current;
       step.moveX = live.moveX;
       step.moveY = live.moveY;
-      step.camYaw = view.yaw;
+      step.camYaw = cam.yaw();
       step.scoop = live.action;
       step.fire = !run.coarse && aimFired(live, { jump: true });
       step.tapId = -1;
