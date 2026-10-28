@@ -1,6 +1,8 @@
 "use client";
 
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
+import { HintLine } from "@/arcade3d/core/hud/HintLine";
+import { hintFor } from "./guide";
 import styles from "./Hud.module.css";
 import CameraViewButton from "@/arcade3d/core/camera/CameraViewButton";
 
@@ -22,11 +24,15 @@ function Marks({ n, total, kind }: { n: number; total: number; kind: "mitt" | "d
 function GameHud() {
    const health = useArcadeStore((s) => s.stats.health ?? 5);
    const ammo = useArcadeStore((s) => s.stats.ammo ?? 0);
+   const hint = hintFor(ammo, health);
    return (
-      <div className={styles.panel} data-arcade-safe-area>
-         <Marks n={health} total={5} kind="mitt" />
-         <Marks n={ammo} total={3} kind="dot" />
-      </div>
+      <>
+         <HintLine text={hint.text} tone={hint.tone} />
+         <div className={styles.panel} data-arcade-safe-area>
+            <Marks n={health} total={5} kind="mitt" />
+            <Marks n={ammo} total={3} kind="dot" />
+         </div>
+      </>
    );
 }
 
