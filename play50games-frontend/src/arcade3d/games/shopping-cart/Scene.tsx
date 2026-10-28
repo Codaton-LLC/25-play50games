@@ -10,7 +10,7 @@ import { InstancedModel, Model } from "@/arcade3d/core/assets";
 import { playSfx, startLoop, type LoopHandle } from "@/arcade3d/core/audio";
 import { SkyDome } from "@/arcade3d/core/env";
 import { tossAt, useActionPop, useFx, type TossFrame } from "@/arcade3d/core/fx";
-import { TargetBeacon } from "@/arcade3d/core/hud";
+import { TargetBeacon, TargetMarkers } from "@/arcade3d/core/hud";
 import { useCoarsePointer } from "@/arcade3d/core/TouchControls";
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import { useInput } from "@/arcade3d/core/input";
@@ -103,6 +103,8 @@ export default function Scene() {
    const pop = useActionPop();
    const touch = useCoarsePointer();
    const beacon = useRef({ x: 0, y: 0, z: 0, hidden: true }).current;
+   // the same target for the edge arrow when it is off screen or under a HUD panel
+   const edgeTargets = useMemo(() => [beacon], [beacon]);
    const guide = useRef({ next: -2, code: -1, combo: 0, checkout: false }).current;
    const kinds = useMemo(() => run.list.map((item) => item.kind), [run]);
    const [atCheckout, setAtCheckout] = useState(false);
@@ -110,6 +112,8 @@ export default function Scene() {
       // the list is up from the countdown on, so the panel's size (a safe-area rect) is settled before play
       guide.next = nextItem(run, -1);
       LIST.set({ kinds, taken: 0, next: guide.next, riding: false });
+      guide.code = hintCode(run, guide.next);
+      GUIDE.set(cartHint(run, guide.code, touch));
       const first = run.list[guide.next];
       if (first) {
          beacon.x = first.x;
@@ -121,6 +125,7 @@ export default function Scene() {
          GUIDE.reset();
          LIST.reset();
       };
+      // eslint-disable-next-line react-hooks/exhaustive-deps
    }, [run, kinds, guide, beacon]);
 
    // Cart rolling sound loop (P-06) - sync with play/pause phases
@@ -321,6 +326,7 @@ export default function Scene() {
             height={atCheckout ? 2 : 0.85}
             label={atCheckout ? "CHECKOUT" : null}
          />
+         <TargetMarkers targets={edgeTargets} color={atCheckout ? "#4ade80" : COLORS.halo} />
 
          {/* Instanced Can Pyramids */}
          <InstancedCanPyramids pyramids={run.pyramids} />
