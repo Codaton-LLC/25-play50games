@@ -49,7 +49,7 @@ export const MAX_STEP_MS = 50;
 export const HERO = { radius: 0.35, height: 1.3 } as const;
 /** speed along the wave (m/s): the start, the floor you slow to, the cap (the card: up to 24) */
 export const V_START = 13;
-export const V_MIN = 8;
+export const V_MIN = 9;
 export const V_MAX = 24;
 /** a pump (the card: +1.5 m/s): a down-carve from above the band through it within PUMP_WINDOW_MS */
 export const PUMP_GAIN = 1.5;

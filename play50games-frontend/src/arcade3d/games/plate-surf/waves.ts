@@ -9,7 +9,7 @@ import type { SurfLevel } from "./levels";
 /** the face's horizontal width, trough to lip (m) */
 export const FACE_W = 12;
 /** the steepest part of the face: the glowing sweet band a down-carve must cross to pump */
-export const BAND = { lo: 0.38 * FACE_W, hi: 0.62 * FACE_W } as const;
+export const BAND = { lo: 0.42 * FACE_W, hi: 0.58 * FACE_W } as const;
 /** the lip zone (m from the crest): a jump press there airs off the lip */
 export const LIP_W = 1.6;
 /** the side lanes (Riko's lagoon, Vexa's inner lane): flat water in front of the wave, behind a reef ridge */

@@ -180,7 +180,7 @@ const WAVE_FRAG = /* glsl */ `
       float inBand = smoothstep(uBandX.x - 0.5, uBandX.x + 0.2, bx) * (1.0 - smoothstep(uBandX.y - 0.2, uBandX.y + 0.5, bx));
       float edge = (1.0 - smoothstep(0.0, 0.35, abs(bx - uBandX.x))) + (1.0 - smoothstep(0.0, 0.35, abs(bx - uBandX.y)));
       float near = 1.0 - smoothstep(18.0, 70.0, abs(vWorld.z - uHeroZ));
-      float glow = (inBand * 0.22 + edge * 0.14) * uBand * near * (1.0 - vBroken);
+      float glow = (inBand * 0.2 + edge * 0.08) * uBand * near * (1.0 - vBroken);
       col = mix(col, uBandColor, clamp(glow, 0.0, 0.8));
       // foam: the lip line, the trough, and the whitewater behind the curl
       float lipFoam = 1.0 - smoothstep(0.0, 0.7, abs(vWorld.x - uW));

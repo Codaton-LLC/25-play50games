@@ -59,7 +59,8 @@ export const ASSETS: Record<string, ModelAsset> = {
    rock: { ...prop("m2SeaRock", "#64748b"), fallback: "box" },
    cliff: { ...prop("m2SeaCliffBg", "#a8a29e"), fallback: "box" },
    ring: prop("m2NeutralRing", "#e2e8f0"),
-   jelly: prop("m2SlimeBlob", "#7dd3fc"),
+   // m2SlimeBlob is an 18k-triangle character model: the character budget, and only the near ones are drawn (Course.tsx REACH)
+   jelly: prop("m2SlimeBlob", "#7dd3fc", CHARACTER_BUDGET),
    // King Breaker and the gull are character-sized GLBs (5-7k tris, 0.5 MB): the character budget
    crab: { ...prop("m2GiantCrabBoss", "#ef4444", CHARACTER_BUDGET) },
    gull: { ...prop("m2SeaGullDiver", "#f1f5f9", CHARACTER_BUDGET) },

@@ -49,7 +49,7 @@ export function cliffSpots(course: Course, seed: number, decor = 1): InstanceSpo
 const DUMMY = new Object3D();
 
 /** Cliffs farther than this along the ride than the rider are not drawn (the fog hides them). */
-export const CLIFF_REACH = 300;
+export const CLIFF_REACH = 240;
 
 export default function World({ course, seed, view }: { course: Course; seed: number; view: { z: number } }) {
    const quality = useQuality();

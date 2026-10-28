@@ -26,6 +26,19 @@ import { GULL, bossAlive, bossVulnerable, gullBeat, jellyX, type SurfRun } from 
 import type { VisualClock } from "./Wave";
 
 const DUMMY = new Object3D();
+
+/** How far ahead (and behind) of the rider each kind of prop is drawn (m): the GLBs are 3k-18k triangles each. */
+export const REACH = {
+   orb: { ahead: 95, behind: 12 },
+   rock: { ahead: 120, behind: 18 },
+   jelly: { ahead: 55, behind: 10 },
+   gull: { ahead: 100, behind: 15 },
+} as const;
+
+/** z is within reach of the rider at hz (the ride runs along -z: ahead is smaller z). */
+export function near(z: number, hz: number, r: { ahead: number; behind: number }): boolean {
+   return z >= hz - r.ahead && z <= hz + r.behind;
+}
 const TINT_HIDDEN = new Color("#bae6fd");
 const TINT_BONUS = new Color("#e0f2fe");
 const JELLY_ASSET = { ...ASSETS.jelly, material: { color: "#7dd3fc", roughness: 0.18, metalness: 0, emissive: "#0e5f80" } };
@@ -55,7 +68,7 @@ function Orbs({ run, clock }: { run: SurfRun; clock: VisualClock }) {
             if (run.collected[i]) return false;
             const o = c.orbs[i];
             const h = run.hero;
-            if (Math.abs(o.z - h.z) > 170 || o.z - h.z > 20) return false;
+            if (!near(o.z, h.z, REACH.orb)) return false;
             const magnet = clock.ms <= h.magnetUntil;
             if (o.hidden && !magnet) return false;
             if (o.hidden) color.copy(TINT_HIDDEN);
@@ -99,14 +112,14 @@ function useRockSpots(run: SurfRun): InstanceSpot[] {
       }
       // the side lanes' reef ridges
       for (const l of c.lanes) {
-         for (let z = l.z0; z >= l.z1; z -= 3.2) {
-            const k = (1.5 + ((Math.abs(z) * 7.3) % 1) * 0.6) / GLB_SIZE.rock.x;
+         for (let z = l.z0; z >= l.z1; z -= 4.8) {
+            const k = (1.9 + ((Math.abs(z) * 7.3) % 1) * 0.7) / GLB_SIZE.rock.x;
             out.push({ x: (LANE.x1 + 0) / 2 - 0.1, y: -0.35, z, rotY: z * 0.9, sx: k, sy: k * 1.1, sz: k });
          }
       }
       // level 4: the canyon's rock shelf where the trough was
       for (const n of c.narrows) {
-         for (let z = n.z0; z >= n.z1; z -= 3.6) {
+         for (let z = n.z0; z >= n.z1; z -= 5.5) {
             const j = (Math.abs(z) * 3.7) % 1;
             const k = (3.4 + j * 1.4) / GLB_SIZE.rock.x;
             out.push({ x: n.lo - 1.6 - j * 0.8, y: -0.4, z, rotY: z * 1.3, sx: k, sy: k * (1.4 + j), sz: k });
@@ -116,19 +129,23 @@ function useRockSpots(run: SurfRun): InstanceSpot[] {
    }, [run.course]);
 }
 
+/** Every rock (3k triangles each): only the ones near the rider are drawn. */
 function Rocks({ run }: { run: SurfRun }) {
    const spots = useRockSpots(run);
    if (spots.length === 0) return null;
    return (
-      <InstancedModel
+      <DynamicInstancedModel
          asset={ASSETS.rock}
-         spots={spots}
-         fallback={
-            <Instanced spots={spots}>
-               <dodecahedronGeometry args={[0.9, 0]} />
-               <meshStandardMaterial color={COLORS.reef} roughness={0.9} flatShading />
-            </Instanced>
-         }
+         count={spots.length}
+         update={(i, m) => {
+            const p = spots[i];
+            if (!near(p.z, run.hero.z, REACH.rock)) return false;
+            DUMMY.position.set(p.x, p.y, p.z);
+            DUMMY.rotation.set(0, p.rotY ?? 0, 0);
+            DUMMY.scale.set(p.sx ?? 1, p.sy ?? 1, p.sz ?? 1);
+            DUMMY.updateMatrix();
+            m.copy(DUMMY.matrix);
+         }}
       />
    );
 }
@@ -241,6 +258,8 @@ function Jellies({ run, clock: vc }: { run: SurfRun; clock: VisualClock }) {
          count={c.jellies.length}
          update={(i, m) => {
             const j = c.jellies[i];
+            // an 18k-triangle model: only the few just ahead are drawn
+            if (!near(j.z, run.hero.z, REACH.jelly)) return false;
             const x = jellyX(j, Math.max(0, vc.ms));
             const pulse = 1 + Math.sin(time.now * 3.1 + i) * 0.08;
             place(m, x, faceY(x, c.H) - 0.25 + Math.sin(time.now * 1.7 + i) * 0.1, j.z, 0, time.now * 0.4 + i, -roll(x, c.H), s * pulse, s * (2 - pulse));
@@ -277,6 +296,7 @@ function Gulls({ run, clock: vc }: { run: SurfRun; clock: VisualClock }) {
             count={c.gulls.length}
             update={(i, m) => {
                const g = c.gulls[i];
+               if (!near(g.z, run.hero.z, REACH.gull)) return false;
                const ms = Math.max(0, vc.ms);
                const beat = gullBeat(g, ms);
                const ground = faceY(g.x, c.H);
