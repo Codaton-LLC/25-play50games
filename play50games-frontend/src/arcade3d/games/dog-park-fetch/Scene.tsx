@@ -138,6 +138,8 @@ function LevelScene() {
             const h = p.r === FOUNTAIN_R ? 1.6 : p.r === BENCH_R ? 0.55 : 0.6;
             put(p.x, p.z, p.r, p.r, h);
          }
+         // the owner stands behind the blanket: a chase camera behind the dog must not sit inside them
+         put(run.blanket.x, run.blanket.z + 0.9, 0.3, 0.2, 1.9);
          const hw = config.width / 2;
          const hd = config.depth / 2;
          put(0, -hd, hw, 0.05, 1.1);
