@@ -29,7 +29,7 @@ import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { ASSETS, FIT, LIFEGUARD_LANDMARKS, LIFEGUARD_SCALE } from "./assets";
 import type { LevelId } from "@/arcade3d/types";
 import type { BeachLevel } from "./levels";
-import { COLORS, DAMPING, FOV, LOOK_AHEAD, SEABED_MAX, WATER_Y, aimBounds, decorSpots, fogFor, seabedY, swimBlend, viewFor } from "./looks";
+import { COLORS, DAMPING, FOV, LOOK_AHEAD, SEABED_MAX, WATER_Y, aimBounds, decorSpots, fogFor, frameAim, seabedY, swimBlend, viewFor, viewWindow } from "./looks";
 import {
    AlertTorusMarker,
    BeachChairPrimitive,
@@ -372,8 +372,18 @@ export default function Scene() {
       nextRipple: 0,
    }).current;
    const scratch = useMemo(() => createPose(), []);
-   const aim = useRef({ x: run.hero.x, y: 0.8, z: run.hero.z - LOOK_AHEAD }).current;
+   // the first aim already pans to the swimmer in trouble (the countdown shows it before the first frame of play)
+   const aim = useRef((() => {
+      const first = { x: run.hero.x, y: 0.8, z: run.hero.z - LOOK_AHEAD };
+      const swimmer = run.swimmers[run.activeSwimmer];
+      frameAim(first, run.hero, swimmer && !swimmer.saved ? swimmer : null, viewWindow(config, portrait));
+      const box = aimBounds(config, portrait);
+      first.x = Math.min(box.max.x, Math.max(box.min.x, first.x));
+      first.z = Math.min(box.max.z, Math.max(box.min.z, first.z));
+      return first;
+   })()).current;
    const bounds = useMemo(() => aimBounds(config, portrait), [config, portrait]);
+   const window = useMemo(() => viewWindow(config, portrait), [config, portrait]);
    // the fog starts past the aim at whatever distance the camera was fitted to (looks.ts fogFor)
    useEffect(() => {
       const fog = scene.fog;
@@ -458,8 +468,13 @@ export default function Scene() {
       const ev = step(run, { moveX, moveY, actionPressed, yaw: cam.yaw() }, dt, store.timeLeftMs ?? 0);
       syncStore(run, ev, useArcadeStore);
       const h = run.hero;
-      aim.x = Math.min(bounds.max.x, Math.max(bounds.min.x, h.x + h.vx * (LOOK_AHEAD / SPEED_SAND)));
-      aim.z = Math.min(bounds.max.z, Math.max(bounds.min.z, h.z + h.vz * (LOOK_AHEAD / SPEED_SAND)));
+      aim.x = h.x + h.vx * (LOOK_AHEAD / SPEED_SAND);
+      aim.z = h.z + h.vz * (LOOK_AHEAD / SPEED_SAND);
+      // pan to the swimmer in trouble so its GRAB beacon is never at the window's edge, under the chips
+      const trouble = run.swimmers[run.activeSwimmer];
+      frameAim(aim, h, !run.carrying && trouble && !trouble.saved ? trouble : null, window);
+      aim.x = Math.min(bounds.max.x, Math.max(bounds.min.x, aim.x));
+      aim.z = Math.min(bounds.max.z, Math.max(bounds.min.z, aim.z));
       AT.x = h.x;
       AT.y = 1;
       AT.z = h.z;
