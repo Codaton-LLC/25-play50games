@@ -25,7 +25,7 @@ export const marsRoverMissionMeta: ArcadeGameMeta = {
    orientation: "any",
    controls: {
       scheme: "steer",
-      keyboard: "W / up drives, S / down brakes and reverses, A D / arrows steer (the camera follows behind)",
+      keyboard: "W / up drives, S / down brakes and reverses, A D / arrows steer (the camera follows behind). 📷 or C changes the view",
       touch: "Joystick: push up to drive, left or right to turn",
    },
    scoring: SCORING,

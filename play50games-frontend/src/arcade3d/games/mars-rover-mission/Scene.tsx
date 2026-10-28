@@ -7,7 +7,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { Fog } from "three";
 import { playSfx, startLoop, useMuted, type LoopHandle } from "@/arcade3d/core/audio";
+import { useCameraViews } from "@/arcade3d/core/camera/CameraViews";
 import ChaseRig from "@/arcade3d/core/ChaseRig";
+import type { AABB } from "@/arcade3d/core/collision";
 import { FRAME_PRIORITY } from "@/arcade3d/core/frameLoop";
 import { useFx } from "@/arcade3d/core/fx";
 import { useGameTime } from "@/arcade3d/core/gameTime";
@@ -17,11 +19,12 @@ import { useLevel } from "@/arcade3d/core/level";
 import { randomSeed } from "@/arcade3d/core/math";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
+import { BOULDER_HALF_H, FIT, GLB_SIZE } from "./assets";
 import { GOAL, TOAST } from "./Hud";
 import { LEVELS, type MarsLevel } from "./levels";
-import { CHASE, COLORS, FOG, FOV, MISSION_COLOR, ORBIT_SPEED, fogAt } from "./looks";
+import { CHASE, COLORS, FOG, FOV, MISSION_COLOR, ORBIT_SPEED, WALL_H, WALL_PIECE, WALL_W, fogAt, wallSpots } from "./looks";
 import { Rover } from "./Rover";
-import { CHARGER_PAD_RADIUS, SCAN_HOLD_S, axis, createRun, createStoreSync, frame, type Run } from "./rules";
+import { BOULDER_RADIUS, CHARGER_PAD_RADIUS, SCAN_HOLD_S, axis, createRun, createStoreSync, frame, type PropKind, type Run } from "./rules";
 import { DustStorm, MarsSky } from "./Sky";
 import { Sites, type Guide } from "./Sites";
 import { Terrain } from "./Ground";
@@ -30,6 +33,20 @@ import { createVis } from "./visual";
 import { Decor, DustTrail, GuideArrow, Hazards, Tracks } from "./World";
 
 const AT = { x: 0, y: 0, z: 0 };
+/** The squat rock (the boulder mesh, stretch y 0.78 in assets.ts) and the panel's drawn height. */
+const ROCK_H = GLB_SIZE.marsBoulder.height * (FIT.rockWidth / GLB_SIZE.marsBoulder.depth) * 0.78;
+const BOULDER_H = BOULDER_HALF_H * 2;
+const PANEL_H = FIT.panelWidth * (GLB_SIZE.groundSolarPanelV2.height / GLB_SIZE.groundSolarPanelV2.width);
+const PROP_H: Record<PropKind, number> = {
+   beacon: FIT.beaconHeight,
+   relic: FIT.relicHeight,
+   panel: PANEL_H,
+   stationPanel: PANEL_H,
+   station: FIT.stationHeight,
+   lander: FIT.landerHeight,
+};
+/** How far (m) a solid is considered: past the free view's furthest zoom. */
+const SOLID_REACH = 40;
 
 function LevelScene() {
    const { id, config } = useLevel<MarsLevel>();
@@ -47,6 +64,81 @@ function LevelScene() {
    const goal = useRef<{ x: number; z: number; color: string; on: boolean }>({ x: 0, z: 0, color: COLORS.accent, on: true }).current;
    const doneAt = useMemo(() => new Float32Array(run.sites.length).fill(-1), [run]);
    const cam = useRef({ x: run.rover.x, y: 0, z: run.rover.z, yaw: run.rover.yaw }).current;
+   const walls = useMemo(() => wallSpots(level), [level]);
+   // The chase rig is already the behind view, so it stays "default". Left and right turn the rover
+   // (rules take no yaw). Top starts at 12 m: L4's storm fog closes to 8–30 m, and 20 m would sit in it.
+   // The opening chase looks along -z (rover yaw π), so the top view keeps that yaw (north up).
+   useCameraViews({
+      slug: "mars-rover-mission",
+      subject: "vehicle",
+      steering: "vehicle",
+      defaultYaw: 0,
+      views: ["default", "front", "top", "free"],
+      framing: { top: { distance: 12 } },
+      target: (o) => {
+         const r = run.rover;
+         o.x = r.x;
+         o.y = height(r.x, r.z) + 0.9;
+         o.z = r.z;
+         o.heading = r.yaw;
+         o.vx = r.vx;
+         o.vz = r.vz;
+      },
+      solids: (out: AABB[]) => {
+         let n = 0;
+         const rx = run.rover.x;
+         const rz = run.rover.z;
+         for (const rock of run.rocks) {
+            if (n >= out.length || Math.abs(rock.x - rx) >= SOLID_REACH || Math.abs(rock.z - rz) >= SOLID_REACH) continue;
+            const y = height(rock.x, rock.z);
+            const box = out[n++];
+            box.min.x = rock.x - rock.radius;
+            box.max.x = rock.x + rock.radius;
+            box.min.z = rock.z - rock.radius;
+            box.max.z = rock.z + rock.radius;
+            box.min.y = y;
+            box.max.y = y + ROCK_H;
+         }
+         for (const boulder of run.boulders) {
+            if (n >= out.length || Math.abs(boulder.x - rx) >= SOLID_REACH || Math.abs(boulder.z - rz) >= SOLID_REACH) continue;
+            const y = height(boulder.x, boulder.z);
+            const box = out[n++];
+            box.min.x = boulder.x - BOULDER_RADIUS;
+            box.max.x = boulder.x + BOULDER_RADIUS;
+            box.min.z = boulder.z - BOULDER_RADIUS;
+            box.max.z = boulder.z + BOULDER_RADIUS;
+            box.min.y = y;
+            box.max.y = y + BOULDER_H;
+         }
+         for (const prop of run.props) {
+            if (n >= out.length || Math.abs(prop.x - rx) >= SOLID_REACH || Math.abs(prop.z - rz) >= SOLID_REACH) continue;
+            const y = height(prop.x, prop.z);
+            const r = prop.radius;
+            const box = out[n++];
+            box.min.x = prop.x - r;
+            box.max.x = prop.x + r;
+            box.min.z = prop.z - r;
+            box.max.z = prop.z + r;
+            box.min.y = y;
+            box.max.y = y + PROP_H[prop.kind];
+         }
+         for (const w of walls) {
+            if (n >= out.length || Math.abs(w.x - rx) >= SOLID_REACH || Math.abs(w.z - rz) >= SOLID_REACH) continue;
+            const sideways = Math.abs(Math.sin(w.rotY ?? 0)) > 0.5;
+            const hx = (sideways ? WALL_PIECE : WALL_W) / 2;
+            const hz = (sideways ? WALL_W : WALL_PIECE) / 2;
+            const y = height(w.x, w.z) - 0.15;
+            const box = out[n++];
+            box.min.x = w.x - hx;
+            box.max.x = w.x + hx;
+            box.min.z = w.z - hz;
+            box.max.z = w.z + hz;
+            box.min.y = y;
+            box.max.y = y + WALL_H;
+         }
+         return n;
+      },
+   });
    const orbit = useRef({ value: 0 }).current;
    const storm = useRef({ value: 0 }).current;
    const hud = useRef({ dist: -1, goal: -1, work: -1, toastN: 0, low: false }).current;

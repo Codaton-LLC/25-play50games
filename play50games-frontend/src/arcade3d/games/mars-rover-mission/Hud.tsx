@@ -5,6 +5,7 @@
 // just happened. The shell HUD keeps score, time, lives and the counter / battery chips. The card is a
 // fixed box marked data-arcade-safe-area so its text changes never move anything else.
 import { useEffect, useState } from "react";
+import CameraViewButton from "@/arcade3d/core/camera/CameraViewButton";
 import { useLevel } from "@/arcade3d/core/level";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { LEVELS, MISSION_WORDS, type MarsLevel } from "./levels";
@@ -40,7 +41,7 @@ function toastText(code: number, level: MarsLevel): string {
    }
 }
 
-export default function MarsHud() {
+function GameHud() {
    const { config } = useLevel<MarsLevel>();
    const level = config ?? LEVELS[1];
    const words = MISSION_WORDS[level.mission];
@@ -107,6 +108,16 @@ export default function MarsHud() {
                {toastText(shown.code, level)}
             </div>
          )}
+      </>
+   );
+}
+
+/** The mission card plus the core 📷 camera-view button. The card is top-left, so the button stays bottom-right. */
+export default function MarsHud() {
+   return (
+      <>
+         <CameraViewButton />
+         <GameHud />
       </>
    );
 }

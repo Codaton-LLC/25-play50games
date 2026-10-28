@@ -1,5 +1,6 @@
 "use client";
 
+import CameraViewButton from "@/arcade3d/core/camera/CameraViewButton";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import styles from "./Hud.module.css";
 
@@ -10,7 +11,7 @@ const LINES = Array.from({ length: 18 }, (_v, i) => i);
  * row, speed lines while a boost lasts, and, on a finish short of the quota, what was missing. The
  * shell's chips show the score, the clock, lives, rings and gems.
  */
-export default function Hud() {
+function GameHud() {
    const phase = useArcadeStore((s) => s.phase);
    const reason = useArcadeStore((s) => s.endReason);
    const progress = useArcadeStore((s) => s.stats.progress ?? 0);
@@ -47,6 +48,16 @@ export default function Hud() {
                {need} more ring{need === 1 ? "" : "s"} needed to clear.
             </div>
          )}
+      </>
+   );
+}
+
+/** The flight HUD plus the core 📷 button. On a phone the route sits under the chips, so the button stays bottom-right. */
+export default function Hud() {
+   return (
+      <>
+         <CameraViewButton />
+         <GameHud />
       </>
    );
 }

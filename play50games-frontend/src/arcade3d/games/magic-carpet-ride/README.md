@@ -55,6 +55,7 @@ L5 / L1 = 2.11. Tests (`limits.a/b.test.ts` via `testing/limitProof.ts`): every 
 ## Look
 
 - **Camera:** a chase eye 6.4 m behind and 2.3 m above the carpet, following 80 % of its offset in the lane (eased), turned a little into the drift, leaning (rolling) into the turns with the carpet's bank (`EyeRig roll`), its fov widening 12° on a boost (`EyeRig fov` ref).
+- **Camera views** (core `useCameraViews`): 📷 or **C** cycles the view. The chase eye is the default, then Front, Top and Free (drag looks around; Q / Z and X turn, R / F tilt, V recenters). The stick still slides the carpet in the lane: left and right do not follow the camera. The top view starts 16 m out, inside the fog (it starts at 30 m on every level). Roofs, towers, mesas, islands and the palace pull the camera in; clouds and the flyers do not.
 - **Rider:** `charCarpetRider` through the auto-rig, sitting cross-legged (core `sitPose(1, pose, 1)`), swaying with a slow breath, leaning into the turns and forward on a boost, looking into the turn; arms up on the win, a flail when hit. **Carpet:** `magicCarpet` (1.9 m wide, stretched 1.35 x long), its cloth rippling (core `patchClothWave`), bobbing; a sparkle trail behind it.
 - **Flyers:** the gull, bat and hawk beat their wings in the vertex shader (core `DynamicInstancedModel flap`); everything that moves swings, bobs, tumbles or banks.
 - **Biomes:** each level's dressing (`decorSpots`) lines the lane and stays out of it; the floating palace waits past the glowing finish gate on every level. Night adds stars and lantern halos.
