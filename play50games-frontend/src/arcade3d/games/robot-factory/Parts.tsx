@@ -1,6 +1,7 @@
 "use client";
 
-// Every part on screen, from fixed pools (one draw call per shape): the belt's parts, the ones flying
+// Every part on screen, from fixed pools (one draw call per shape; every shape is a Hyper3D GLB with the procedural
+// partShapes silhouette as its fallback): the belt's parts, the ones flying
 // to the cradle or the bin, and the robot being built on the cradle. A display list is filled once
 // per frame (after the run step and the camera), then each shape's pool picks its items from it.
 // Also the cyan ring under every part the blueprint wants, the red "!" over faulty parts, and soft
@@ -30,7 +31,8 @@ import { buildShape } from "./partShapes";
 import { CLAW, SHAPES, STREAM, inZone, isWanted, type Run } from "./rules";
 
 const ITEMS = STREAM.MAX_PARTS + 6 + 5;
-const GLB_SHAPES = [ASSETS.barrel, ASSETS.crate, ASSETS.battery] as const;
+/** In SHAPES order (rules.ts): barrel, crate, battery, dome, boxHead, antenna, claw, wrench, drill. */
+const GLB_SHAPES = [ASSETS.barrel, ASSETS.crate, ASSETS.battery, ASSETS.headDome, ASSETS.headBox, ASSETS.headAntenna, ASSETS.armClaw, ASSETS.armWrench, ASSETS.armDrill] as const;
 /** Belt top over the path (Conveyor lift). */
 const BELT_TOP = 0.02;
 const BADGE_M = 0.42;

@@ -5,6 +5,7 @@ import { Box3, BufferGeometry, Float32BufferAttribute, Group, Mesh, Vector3 } fr
 import { modelParts } from "@/arcade3d/core/assets";
 import { hasModel } from "@/arcade3d/core/modelManifest";
 import { readCharacterGlb } from "@/arcade3d/core/rig/robotGlb";
+import type { ModelAsset } from "@/arcade3d/core/types";
 import { EXPANSION_GLB_SIZE } from "@/arcade3d/core/sharedAssets";
 import {
    ASSETS,
@@ -138,7 +139,7 @@ describe("dino-egg-rescue lava rock decor (levels 4-5 only)", () => {
    });
 
    it("fits the Menu 1 egg, golden egg and nest on the floor at their README sizes", async () => {
-      const box = async (asset: typeof ASSETS.dinoEgg) => {
+      const box = async (asset: ModelAsset) => {
          const { local, node } = await readCharacterGlb(asset.url);
          const geometry = new BufferGeometry();
          geometry.setAttribute("position", new Float32BufferAttribute(local, 3));

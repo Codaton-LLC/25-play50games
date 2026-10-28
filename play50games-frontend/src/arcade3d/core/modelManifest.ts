@@ -422,6 +422,9 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/robot-factory/powerCore.glb",
    // zoo-escape extra decor (levels 4-5)
    "/models/3d/zoo-escape/zooFountain.glb",
+   // Menu 1 adoption A (2026-10-28): ready GLBs of treasure-island, dino-egg-rescue, delivery-drone, shopping-cart,
+   // snowball-battle, alien-farm, pirate-cannons, space-repair, rocket-landing, penguin-slide, monster-kitchen,
+   // construction-worker and robot-factory; fits in each game's assets.ts (assets.test.ts)
    "/models/3d/treasure-island/palmTreeI.glb",
    "/models/3d/treasure-island/rowboat.glb",
    "/models/3d/treasure-island/treasureGem.glb",
@@ -454,6 +457,12 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/construction-worker/buildWindow.glb",
    "/models/3d/construction-worker/craneHook.glb",
    "/models/3d/construction-worker/craneJibI.glb",
+   "/models/3d/robot-factory/robotArmClaw.glb",
+   "/models/3d/robot-factory/robotArmDrill.glb",
+   "/models/3d/robot-factory/robotArmWrench.glb",
+   "/models/3d/robot-factory/robotHeadAntenna.glb",
+   "/models/3d/robot-factory/robotHeadBox.glb",
+   "/models/3d/robot-factory/robotHeadDome.glb",
    // Menu 1 dog-park-fetch (2026-10-26): the ready menu1-dog-park-fetch GLBs the gate adopts (dogHouse*,
    // dogBone*, agilityHurdle and dogOwnerNpc left out: a dog is baked into each), plus shared civilianNpc
    // as the owner; fits in games/dog-park-fetch/assets.ts.

@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 import { BufferGeometry, Float32BufferAttribute, Group, Mesh, Vector3, Box3 } from "three";
 import { modelParts } from "@/arcade3d/core/assets";
 import { readCharacterGlb } from "@/arcade3d/core/rig/robotGlb";
+import type { ModelAsset } from "@/arcade3d/core/types";
 import { hasModel } from "@/arcade3d/core/modelManifest";
 import { WORLD } from "./rules";
 import {
@@ -210,7 +211,7 @@ describe("habitat dome outpost decor (levels 4-5)", () => {
    });
 
 describe("outpost pad and beacons (Menu 1 adoption, levels 4-5)", () => {
-   async function drawnBox(asset: (typeof ASSETS)["outpostPad"]) {
+   async function drawnBox(asset: ModelAsset) {
       const { local, node } = await readCharacterGlb(asset.url);
       const geometry = new BufferGeometry();
       geometry.setAttribute("position", new Float32BufferAttribute(local, 3));
