@@ -106,7 +106,7 @@ describe("definition", () => {
       expect(definition.touchLabels).toEqual({ jump: "Dive", action: "Power" });
       expect(ringJumpChallengeMeta.status).toBe("dev");
       expect(ringJumpChallengeMeta.collection).toBe("rollheroes");
-      expect(ringJumpChallengeMeta.order).toBe(56);
+      expect(ringJumpChallengeMeta.order).toBe(58);
       expect(ringJumpChallengeMeta.scoring.kind).toBe("points");
       expect(definition.ResultExtra).toBeDefined();
       expect(definition.runPlayers?.({} as never)).toBe(1);

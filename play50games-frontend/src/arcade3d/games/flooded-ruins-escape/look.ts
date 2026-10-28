@@ -24,6 +24,10 @@ export const COLORS = {
    rockBottom: "#5c4a3a",
    water: "#14b8c4",
    moss: "#3f6b4a",
+   mossLight: "#6f9a63",
+   /** tints over the stone texture (Course drawStone): warm sand to a cooler, darker stone */
+   stoneLight: "#f3ead9",
+   stoneShade: "#bfae95",
    stone: "#a89078",
 } as const;
 

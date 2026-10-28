@@ -8,7 +8,7 @@ never makes the controls feel wrong. Sky Tower Jump is the reference adoption (s
 | File | What |
 |---|---|
 | `orbit.ts` | pure state: yaw (free 360°), pitch (-5°..80°), distance (zoom, clamped per game), smoothing, recenter, auto-follow |
-| `orbitCollision.ts` | pure sphere cast (ray against boxes grown by the camera radius): the camera pulls in front of a platform or wall |
+| `orbitCollision.ts` | pure sphere cast (ray against boxes grown by the camera radius): the camera pulls in front of a platform or wall; a pivot inside a wall's margin (the hero against it) is cast against the wall itself; `collision.squeeze` lets a wall nearer than minDistance bring the camera up to it, `collision.liftTo` (`liftOrbitPitch`) raises a blocked view over the wall |
 | `orbitGestures.ts` | pure input router: mouse drag, one / two fingers, pinch, wheel, camera keys; `applyOrbitInput` |
 | `orbitPrefs.ts` | local prefs (`play50games_m2_camera`: hint seen, auto-follow) behind a never-throwing adapter, and the HUD → camera signals |
 | `OrbitCamera.tsx` | `<OrbitCamera>` (driver + pose + collision + cookie-banner lens shift), `<OrbitDriver>` / `useOrbitDriver`, `useOrbitInput` |

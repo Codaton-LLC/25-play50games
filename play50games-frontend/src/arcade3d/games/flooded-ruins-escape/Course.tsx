@@ -1,25 +1,28 @@
 "use client";
 
 // The drowned temple, drawn from the rules (nothing here decides gameplay). Ledges are m2RuinPlatform
-// fitted so the deck sits on the collider top; chamber floors and tall walls are bevel-free stone
-// boxes in two tones with a moss cap (one instanced draw call each); cracked brick (m2RuinBrickLedge)
+// fitted so the deck sits on the collider top; chamber floors and tall walls are stone boxes with a
+// world-space flagstone texture (three tones, worn edges, moss in the grout) and a moss cap (one
+// instanced draw call each); the walls between the camera and the hero fade to faint stone; cracked brick (m2RuinBrickLedge)
 // vanishes once Riko breaks it; ghost panels are see-through violet; floating crates (m2FlyingCrate)
-// ride their chamber's water (supportTop). Each chamber's water is a surface plus a body at
-// zoneLevel, with a ripple ring when a lever moves it and the card's glowing line on both walls at
-// the level it is heading for. The storm tide rises under everything with a violet foam edge. Stone
+// ride their chamber's water (supportTop). The water (each chamber's and the storm tide under
+// everything) is Water.tsx. Stone
 // levers (m2StoneLever) tilt their handle with the position; bubble spouts (m2RuinWaterSpout) send a
 // bubble column up; steam jets hiss while live; whirlpools turn on the water; cave bats (m2CaveBat)
 // roost and swoop; orbs, secrets, checkpoint lamps, the exit flood gate (m2RuinFloodGateV2I), the Tide
 // Bell (level 5) and Umbra Roller (m2ShadowArmadillo, level 5) from bossPose.
 import { useEffect, useMemo, useRef, type MutableRefObject } from "react";
-import { useFrame } from "@react-three/fiber";
-import { AdditiveBlending, BoxGeometry, Color, DoubleSide, InstancedMesh, Matrix4, MeshStandardMaterial, Object3D, Vector3, type Group, type Mesh, type MeshBasicMaterial } from "three";
+import { useFrame, useThree } from "@react-three/fiber";
+import { BoxGeometry, Color, DoubleSide, InstancedMesh, Matrix4, MeshBasicMaterial, MeshStandardMaterial, Object3D, RepeatWrapping, Vector3, type CanvasTexture, type Group, type Mesh } from "three";
 import { DynamicInstancedModel, InstancedModel, Model } from "@/arcade3d/core/assets";
-import type { InstanceSpot } from "@/arcade3d/core/render";
+import { useCanvasTexture, type InstanceSpot } from "@/arcade3d/core/render";
+import type { AABB } from "@/arcade3d/core/collision";
+import { rayBoxDistance } from "@/arcade3d/menu2/camera/orbitCollision";
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import { useJuice, createJuiceEmitter, type JuiceEmitter } from "@/arcade3d/menu2/juice";
 import { ASSETS, BAT_SCALE, BOSS_SCALE, GLB_SIZE, ORB_SIZE } from "./assets";
-import { COLORS, glowTexture } from "./look";
+import { COLORS, glowTexture, isStormLevel } from "./look";
+import Water from "./Water";
 import { BillboardField, type Billboard } from "./World";
 import {
    BOSS_R,
@@ -27,7 +30,6 @@ import {
    batPos,
    jetLive,
    supportTop,
-   tideY,
    zoneLevel,
    type Course as CourseData,
    type RuinRun,
@@ -84,11 +86,172 @@ function splitBlocks(course: CourseData): Split {
 
 const UNIT_BOX = new BoxGeometry(1, 1, 1);
 
-/** Instanced boxes for blocks: from `bottom` up to `top - inset` (the ledge GLB sits on the rest), tinted per block. */
-function StoneBoxes({ course, ids, color, shade, cap = false }: { course: CourseData; ids: number[]; color: string; shade: string; cap?: boolean }) {
-   const ref = useRef<InstancedMesh>(null);
-   const material = useMemo(() => new MeshStandardMaterial({ color: "#ffffff", roughness: 0.88, metalness: 0.02 }), []);
+/** A small seeded random for the stone texture (drawn once, the same every run). */
+function stoneRng(seed: number): () => number {
+   let s = seed;
+   return () => (s = (s * 16807) % 2147483647) / 2147483647;
+}
+
+/**
+ * Temple paving (tiled in world space over every block face, 4 m a tile of the texture): offset rows
+ * of flagstones in three tones (warm tan, pale sand, cool grey), dark grout, worn light edges and
+ * chipped corners, speckle, and moss creeping out of the grout. Near white overall: the instance
+ * colour tints it per block.
+ */
+function drawStone(g: CanvasRenderingContext2D, w: number, h: number): void {
+   const rnd = stoneRng(9001);
+   const tones = ["#e9dcc6", "#d6c6ab", "#c9c3b8"];
+   g.fillStyle = "#5b4d3d";
+   g.fillRect(0, 0, w, h);
+   const rows = 4;
+   const rh = h / rows;
+   for (let r = 0; r < rows; r++) {
+      const cols = r % 2 ? 3 : 4;
+      const cw = w / cols;
+      const shift = r % 2 ? cw * 0.5 : 0;
+      for (let c = -1; c < cols; c++) {
+         const x = c * cw + shift;
+         const y = r * rh;
+         const gap = 3 + rnd() * 2;
+         const tone = tones[Math.floor(rnd() * tones.length)];
+         g.fillStyle = tone;
+         g.fillRect(x + gap, y + gap, cw - gap * 2, rh - gap * 2);
+         // a soft shade across the slab
+         const grad = g.createLinearGradient(x, y, x + cw, y + rh);
+         grad.addColorStop(0, "rgba(255,250,240,0.10)");
+         grad.addColorStop(1, `rgba(60,45,30,${0.08 + rnd() * 0.1})`);
+         g.fillStyle = grad;
+         g.fillRect(x + gap, y + gap, cw - gap * 2, rh - gap * 2);
+         // worn edges: a light rim on the top/left, a dark lip on the bottom/right
+         g.fillStyle = "rgba(255,248,232,0.28)";
+         g.fillRect(x + gap, y + gap, cw - gap * 2, 3);
+         g.fillRect(x + gap, y + gap, 3, rh - gap * 2);
+         g.fillStyle = "rgba(50,38,26,0.25)";
+         g.fillRect(x + gap, y + rh - gap - 3, cw - gap * 2, 3);
+         g.fillRect(x + cw - gap - 3, y + gap, 3, rh - gap * 2);
+         // chipped corners
+         for (let k = 0; k < 2; k++) {
+            const cx = rnd() < 0.5 ? x + gap : x + cw - gap;
+            const cy = rnd() < 0.5 ? y + gap : y + rh - gap;
+            const s = 5 + rnd() * 9;
+            g.fillStyle = "#6b5a46";
+            g.beginPath();
+            g.moveTo(cx, cy);
+            g.lineTo(cx + (cx > x + cw / 2 ? -s : s), cy);
+            g.lineTo(cx, cy + (cy > y + rh / 2 ? -s : s));
+            g.closePath();
+            g.fill();
+         }
+         // a hairline crack now and then
+         if (rnd() < 0.35) {
+            g.strokeStyle = "rgba(70,56,40,0.5)";
+            g.lineWidth = 1.2;
+            g.beginPath();
+            let px = x + gap + rnd() * (cw - gap * 2);
+            let py = y + gap;
+            g.moveTo(px, py);
+            for (let i = 0; i < 5; i++) {
+               px += (rnd() - 0.5) * 18;
+               py += rh / 6;
+               g.lineTo(px, py);
+            }
+            g.stroke();
+         }
+      }
+   }
+   // speckle
+   for (let i = 0; i < 2600; i++) {
+      const v = rnd();
+      g.fillStyle = v < 0.5 ? `rgba(80,64,46,${0.05 + rnd() * 0.12})` : `rgba(255,250,238,${0.04 + rnd() * 0.1})`;
+      g.fillRect(rnd() * w, rnd() * h, 1 + rnd() * 2, 1 + rnd() * 2);
+   }
+   // moss: clumps along the grout lines and in a few corners
+   const moss = (x: number, y: number, r: number) => {
+      for (let i = 0; i < 9; i++) {
+         const a = rnd() * Math.PI * 2;
+         const d = rnd() * r;
+         const rr = r * (0.25 + rnd() * 0.45);
+         const grad = g.createRadialGradient(x + Math.cos(a) * d, y + Math.sin(a) * d, 0, x + Math.cos(a) * d, y + Math.sin(a) * d, rr);
+         const tone = rnd() < 0.5 ? "93,122,69" : "63,107,74";
+         grad.addColorStop(0, `rgba(${tone},0.85)`);
+         grad.addColorStop(1, `rgba(${tone},0)`);
+         g.fillStyle = grad;
+         g.beginPath();
+         g.arc(x + Math.cos(a) * d, y + Math.sin(a) * d, rr, 0, Math.PI * 2);
+         g.fill();
+      }
+   };
+   for (let i = 0; i < 9; i++) {
+      const r = Math.floor(rnd() * rows);
+      moss(rnd() * w, r * rh, 10 + rnd() * 16);
+   }
+   for (let i = 0; i < 4; i++) moss(rnd() * w, rnd() * h, 14 + rnd() * 10);
+}
+
+/** World-space UVs for the stone map on instanced boxes (no stretching however a block is scaled). */
+function useStoneMaterial(map: CanvasTexture): MeshStandardMaterial {
+   const material = useMemo(() => {
+      map.wrapS = map.wrapT = RepeatWrapping;
+      const m = new MeshStandardMaterial({ color: "#ffffff", roughness: 0.9, metalness: 0.02, map });
+      m.onBeforeCompile = (shader) => {
+         shader.vertexShader = shader.vertexShader
+            .replace("#include <common>", "#include <common>\nvarying vec3 vStonePos;\nvarying vec3 vStoneN;")
+            .replace(
+               "#include <begin_vertex>",
+               `#include <begin_vertex>
+               #ifdef USE_INSTANCING
+                  vStonePos = (modelMatrix * instanceMatrix * vec4(transformed, 1.0)).xyz;
+                  vStoneN = normalize(mat3(modelMatrix) * mat3(instanceMatrix) * objectNormal);
+               #else
+                  vStonePos = (modelMatrix * vec4(transformed, 1.0)).xyz;
+                  vStoneN = normalize(mat3(modelMatrix) * objectNormal);
+               #endif`,
+            );
+         shader.fragmentShader = shader.fragmentShader
+            .replace("#include <common>", "#include <common>\nvarying vec3 vStonePos;\nvarying vec3 vStoneN;")
+            .replace(
+               "#include <map_fragment>",
+               `vec3 stoneN = abs(vStoneN);
+               vec2 stoneUv = stoneN.y > 0.5 ? vStonePos.xz : (stoneN.x > stoneN.z ? vec2(vStonePos.z, vStonePos.y) : vStonePos.xy);
+               vec4 sampledDiffuseColor = texture2D(map, stoneUv * 0.25);
+               // the sides a shade darker than the tops (a third tone with the slabs' own two)
+               float stain = stoneN.y > 0.5 ? 1.0 : 0.86;
+               diffuseColor *= vec4(sampledDiffuseColor.rgb * stain, sampledDiffuseColor.a);`,
+            );
+      };
+      m.customProgramCacheKey = () => "ruinStoneTriplanar";
+      return m;
+   }, [map]);
    useEffect(() => () => material.dispose(), [material]);
+   return material;
+}
+
+/** How a block's box is drawn: from `bottom` up to its top (minus the ledge GLB's deck), or a thin cap on it. */
+function blockBox(s: Support, cap: boolean): { top: number; bottom: number; pad: number } {
+   const ledge = isLedge(s);
+   return {
+      top: cap ? s.top + 0.12 : ledge ? deckY(s.top) + 0.05 : s.top,
+      bottom: cap ? s.top : s.bottom,
+      pad: cap ? 0.06 : ledge ? -0.04 : 0,
+   };
+}
+
+const FADE_MAX = 12;
+const FADE_BOX: AABB = { min: { x: 0, y: 0, z: 0 }, max: { x: 0, y: 0, z: 0 } };
+const ZERO = new Matrix4().makeScale(0, 0, 0);
+
+/**
+ * Instanced boxes for blocks, tinted per block, with the stone texture. With `fade` the blocks
+ * between the camera and the hero (or round the camera, when a tight trench brings it right up to a
+ * wall) leave the solid draw and show as faint stone instead, so a wall never fills the screen.
+ */
+function StoneBoxes({ course, ids, color, shade, cap = false, map, fade }: { course: CourseData; ids: number[]; color: string; shade: string; cap?: boolean; map: CanvasTexture; fade?: RuinRun }) {
+   const ref = useRef<InstancedMesh>(null);
+   const ghost = useRef<InstancedMesh>(null);
+   const material = useStoneMaterial(map);
+   const ghostMat = useMemo(() => new MeshBasicMaterial({ color: "#cdbfa6", transparent: true, opacity: 0.2, depthWrite: false }), []);
+   useEffect(() => () => ghostMat.dispose(), [ghostMat]);
+   const matrices = useMemo(() => ids.map(() => new Matrix4()), [ids]);
    useEffect(() => {
       const m = ref.current;
       if (!m) return;
@@ -97,14 +260,12 @@ function StoneBoxes({ course, ids, color, shade, cap = false }: { course: Course
       const c = new Color();
       ids.forEach((id, k) => {
          const s = course.supports[id];
-         const ledge = isLedge(s);
-         const top = cap ? s.top + 0.12 : ledge ? deckY(s.top) + 0.05 : s.top;
-         const bottom = cap ? s.top : s.bottom;
-         const pad = cap ? 0.06 : ledge ? -0.04 : 0;
+         const { top, bottom, pad } = blockBox(s, cap);
          DUMMY.position.set(s.cx, (top + bottom) / 2, s.cz);
          DUMMY.scale.set(s.hw * 2 + pad, Math.max(0.05, top - bottom), s.hd * 2 + pad);
          DUMMY.rotation.set(0, 0, 0);
          DUMMY.updateMatrix();
+         matrices[k].copy(DUMMY.matrix);
          m.setMatrixAt(k, DUMMY.matrix);
          c.copy(a).lerp(b, ((id * 37) % 10) / 14);
          m.setColorAt(k, c);
@@ -112,11 +273,71 @@ function StoneBoxes({ course, ids, color, shade, cap = false }: { course: Course
       m.instanceMatrix.needsUpdate = true;
       if (m.instanceColor) m.instanceColor.needsUpdate = true;
       m.computeBoundingSphere();
-   }, [course, ids, color, shade, cap]);
+   }, [course, ids, color, shade, cap, matrices]);
+   const camera = useThree((s) => s.camera);
+   const faded = useRef<number[]>([]);
+   const next = useRef<number[]>([]);
+   useFrame(() => {
+      const m = ref.current;
+      const gm = ghost.current;
+      if (!fade || !m || !gm) return;
+      const h = fade.hero;
+      const cx = camera.position.x;
+      const cy = camera.position.y;
+      const cz = camera.position.z;
+      // from the hero's chest to the camera
+      const ox = h.x;
+      const oy = h.y + 0.9;
+      const oz = h.z;
+      let dx = cx - ox;
+      let dy = cy - oy;
+      let dz = cz - oz;
+      const len = Math.sqrt(dx * dx + dy * dy + dz * dz);
+      if (len > 1e-6) {
+         dx /= len;
+         dy /= len;
+         dz /= len;
+      }
+      const list = next.current;
+      list.length = 0;
+      for (let k = 0; k < ids.length && list.length < FADE_MAX; k++) {
+         const s = course.supports[ids[k]];
+         const { top, bottom } = blockBox(s, cap);
+         // only blocks that rise past the hero's feet can hide it
+         if (top < h.y + 0.4) continue;
+         FADE_BOX.min.x = s.cx - s.hw;
+         FADE_BOX.max.x = s.cx + s.hw;
+         FADE_BOX.min.y = bottom;
+         FADE_BOX.max.y = top;
+         FADE_BOX.min.z = s.cz - s.hd;
+         FADE_BOX.max.z = s.cz + s.hd;
+         const near = cx > FADE_BOX.min.x - 0.25 && cx < FADE_BOX.max.x + 0.25 && cy > bottom - 0.25 && cy < top + 0.25 && cz > FADE_BOX.min.z - 0.25 && cz < FADE_BOX.max.z + 0.25;
+         if (near || (len > 1e-6 && rayBoxDistance(ox, oy, oz, dx, dy, dz, len, FADE_BOX, 0) >= 0)) list.push(k);
+      }
+      const prev = faded.current;
+      let same = prev.length === list.length;
+      for (let i = 0; same && i < list.length; i++) same = prev[i] === list[i];
+      if (same) return;
+      for (const k of prev) m.setMatrixAt(k, matrices[k]);
+      for (let i = 0; i < list.length; i++) {
+         const k = list[i];
+         m.setMatrixAt(k, ZERO);
+         gm.setMatrixAt(i, matrices[k]);
+      }
+      m.instanceMatrix.needsUpdate = true;
+      gm.count = list.length;
+      gm.instanceMatrix.needsUpdate = true;
+      gm.visible = list.length > 0;
+      faded.current = list.slice();
+   });
    if (ids.length === 0) return null;
-   return <instancedMesh ref={ref} args={[UNIT_BOX, material, ids.length]} />;
+   return (
+      <>
+         <instancedMesh ref={ref} args={[UNIT_BOX, material, ids.length]} />
+         {fade ? <instancedMesh ref={ghost} args={[UNIT_BOX, ghostMat, FADE_MAX]} count={0} visible={false} frustumCulled={false} renderOrder={4} /> : null}
+      </>
+   );
 }
-
 /** Cracked brick: the brick GLB fitted to the block, gone once broken. */
 function CrackedBricks({ run, ids }: { run: RuinRun; ids: number[] }) {
    const update = (i: number, m: Matrix4) => {
@@ -166,128 +387,6 @@ function Crates({ run, ids, clock }: { run: RuinRun; ids: number[]; clock: Visua
    };
    if (ids.length === 0) return null;
    return <DynamicInstancedModel asset={ASSETS.crate} count={ids.length} update={update} name="crates" />;
-}
-
-/** One chamber's water: the body, the surface, a ripple ring on a lever change, and the target lines on its walls. */
-function Chamber({ run, zi, clock }: { run: RuinRun; zi: number; clock: VisualClock }) {
-   const z = run.course.zones[zi];
-   const body = useRef<Mesh>(null);
-   const surface = useRef<Mesh>(null);
-   const ripple = useRef<Mesh>(null);
-   const lines = useRef<Group>(null);
-   const time = useGameTime();
-   const memo = useRef({ target: Number.NaN, at: -9 });
-   const w = z.maxX - z.minX;
-   const d = z.maxZ - z.minZ;
-   const cx = (z.minX + z.maxX) / 2;
-   const cz = (z.minZ + z.maxZ) / 2;
-   useFrame(() => {
-      const ms = visMs(clock);
-      const y = zoneLevel(run.water, zi, ms);
-      const wet = y > z.floor + 0.02;
-      const target = run.water.target[zi];
-      if (memo.current.target !== target) {
-         if (!Number.isNaN(memo.current.target)) memo.current.at = time.now;
-         memo.current.target = target;
-      }
-      if (body.current) {
-         body.current.visible = wet;
-         body.current.position.y = (z.floor + y) / 2;
-         body.current.scale.y = Math.max(0.01, y - z.floor);
-      }
-      if (surface.current) {
-         surface.current.visible = wet;
-         surface.current.position.y = y + 0.01;
-      }
-      const r = ripple.current;
-      if (r) {
-         const t = time.now - memo.current.at;
-         r.visible = wet && t < 1.4;
-         if (r.visible) {
-            const k = t / 1.4;
-            r.position.y = y + 0.03;
-            r.scale.setScalar(0.3 + k * Math.max(w, d) * 0.5);
-            (r.material as MeshBasicMaterial).opacity = 0.7 * (1 - k);
-         }
-      }
-      const l = lines.current;
-      if (l) {
-         // the glowing line on the walls at the level the chamber is heading for (the card's lever readout)
-         l.position.y = target + 0.02;
-         l.visible = Math.abs(target - y) > 0.05 || time.now - memo.current.at < 3;
-      }
-   });
-   return (
-      <group>
-         <mesh ref={body} position={[cx, z.floor, cz]} visible={false}>
-            <boxGeometry args={[w, 1, d]} />
-            <meshStandardMaterial color="#0c4a5a" transparent opacity={0.45} roughness={0.2} depthWrite={false} />
-         </mesh>
-         <mesh ref={surface} position={[cx, z.floor, cz]} rotation-x={-Math.PI / 2} visible={false} renderOrder={3}>
-            <planeGeometry args={[w, d]} />
-            <meshStandardMaterial color={COLORS.water} transparent opacity={0.72} roughness={0.08} metalness={0.15} depthWrite={false} />
-         </mesh>
-         <mesh ref={ripple} position={[cx, z.floor, cz]} rotation-x={-Math.PI / 2} visible={false} renderOrder={4}>
-            <ringGeometry args={[0.85, 1, 40]} />
-            <meshBasicMaterial color="#e0fbff" transparent opacity={0.6} depthWrite={false} toneMapped={false} />
-         </mesh>
-         <group ref={lines} position={[0, z.floor, 0]}>
-            {[z.minX + 0.03, z.maxX - 0.03].map((x, i) => (
-               <mesh key={i} position={[x, 0, cz]}>
-                  <boxGeometry args={[0.05, 0.06, d]} />
-                  <meshBasicMaterial color="#5eead4" toneMapped={false} />
-               </mesh>
-            ))}
-         </group>
-      </group>
-   );
-}
-
-/** The storm tide: a dark sheet rising under the whole ruin, a violet foam edge that pulses like a heartbeat. */
-function Tide({ run, clock }: { run: RuinRun; clock: VisualClock }) {
-   const group = useRef<Group>(null);
-   const foam = useRef<MeshBasicMaterial>(null);
-   const time = useGameTime();
-   const box = useMemo(() => {
-      let x0 = Infinity;
-      let x1 = -Infinity;
-      let z0 = Infinity;
-      let z1 = -Infinity;
-      for (const s of run.course.supports) {
-         x0 = Math.min(x0, s.cx - s.hw);
-         x1 = Math.max(x1, s.cx + s.hw);
-         z0 = Math.min(z0, s.cz - s.hd);
-         z1 = Math.max(z1, s.cz + s.hd);
-      }
-      return { w: x1 - x0 + 60, d: z1 - z0 + 60, cx: (x0 + x1) / 2, cz: (z0 + z1) / 2 };
-   }, [run]);
-   useFrame(() => {
-      const g = group.current;
-      if (!g) return;
-      const y = tideY(run, visMs(clock));
-      // before it starts it waits far below, out of sight
-      g.position.y = Number.isFinite(y) ? y : run.course.tide.y0 - 4;
-      if (foam.current) {
-         const beat = Math.pow(Math.abs(Math.sin(time.now * 2.6)), 6);
-         foam.current.opacity = Number.isFinite(y) ? 0.35 + 0.35 * beat : 0.15;
-      }
-   });
-   return (
-      <group ref={group} position={[box.cx, run.course.tide.y0, box.cz]}>
-         <mesh position={[0, -6, 0]}>
-            <boxGeometry args={[box.w, 12, box.d]} />
-            <meshStandardMaterial color="#241b4a" transparent opacity={0.6} roughness={0.3} />
-         </mesh>
-         <mesh rotation-x={-Math.PI / 2} position={[0, 0.02, 0]}>
-            <planeGeometry args={[box.w, box.d]} />
-            <meshStandardMaterial color="#3b2f7a" transparent opacity={0.8} roughness={0.12} metalness={0.2} />
-         </mesh>
-         <mesh rotation-x={-Math.PI / 2} position={[0, 0.06, 0]} renderOrder={5}>
-            <planeGeometry args={[box.w, box.d]} />
-            <meshBasicMaterial ref={foam} color="#a78bfa" transparent opacity={0.35} blending={AdditiveBlending} depthWrite={false} toneMapped={false} />
-         </mesh>
-      </group>
-   );
 }
 
 /** Stone levers: the GLB, and a handle that tilts from back (0) to forward (last) with the position. */
@@ -651,6 +750,7 @@ export function Course({ run, clock, won }: { run: RuinRun; clock: VisualClock; 
       m.setPosition(o.x, o.y + (buried ? -0.2 : Math.sin(time.now * 2 + i * 0.7) * 0.1), o.z);
    };
 
+   const stone = useCanvasTexture(512, 512, drawStone);
    const glow = useMemo(() => glowTexture(), []);
    useEffect(() => () => glow.dispose(), [glow]);
    const halos = useMemo<Billboard[]>(() => orbs.map((o) => ({ x: o.x, y: o.y, z: o.z, size: ORB_SIZE * 2.2, r: o.bonus ? 0.6 : 1, g: o.bonus ? 0.9 : 0.86, b: o.bonus ? 1 : 0.42 })), [orbs]);
@@ -669,16 +769,13 @@ export function Course({ run, clock, won }: { run: RuinRun; clock: VisualClock; 
    return (
       <>
          <InstancedModel asset={ASSETS.platform} spots={split.ledges} fallback={null} />
-         <StoneBoxes course={course} ids={split.stone} color={COLORS.rockMid} shade={COLORS.rockBottom} />
-         <StoneBoxes course={course} ids={split.moss} color={COLORS.moss} shade="#2f5238" cap />
+         <StoneBoxes course={course} ids={split.stone} color={COLORS.stoneLight} shade={COLORS.stoneShade} map={stone} fade={run} />
+         <StoneBoxes course={course} ids={split.moss} color={COLORS.mossLight} shade={COLORS.moss} map={stone} cap />
          <CrackedBricks run={run} ids={split.cracked} />
          <GhostPanels course={course} ids={split.ghosts} />
          <GhostPanels course={course} ids={split.faint} color="#94a3b8" pulse={false} />
          <Crates run={run} ids={split.crates} clock={clock} />
-         {course.zones.map((_, zi) => (
-            <Chamber key={zi} run={run} zi={zi} clock={clock} />
-         ))}
-         <Tide run={run} clock={clock} />
+         <Water run={run} clock={clock} storm={isStormLevel(run.level)} />
          <Levers run={run} />
          <Spouts run={run} />
          <Jets run={run} clock={clock} />

@@ -5,7 +5,7 @@ import { PROPOSED_LEVEL_LIMITS } from "./rules";
 // Menu 2 (Color Roll Heroes) game 27, World 2. Status "dev" (preview builds only) until the user signs it off.
 // A points game: rings, orbs, the flow bonus, the landing, the speed bonus and on level 5 Cyclone Ray's
 // hits (README "Scoring"). Each level row carries its own proven limits (PROPOSED_LEVEL_LIMITS in rules.ts).
-// order 56 (55 is cloud-hopper).
+// order 58 (56 plate-surf, 57 zipline-rush).
 const LEVEL_TITLES: Record<LevelId, string> = {
    1: "Wide Rings",
    2: "Moving Rings",
@@ -33,7 +33,7 @@ export const ringJumpChallengeMeta: ArcadeGameMeta = {
    title: "Ring Jump Challenge",
    tagline: "Leap off the column and dive a sea canyon through rings.",
    description: "Leap from a stone column and steer a long free-fall down a sea canyon as a Color Roll Heroes armadillo: thread the rings for points and speed, hit their centres, tuck into a dive to beat the clock, and land on the target pad. Pick Riko, Nami, Kiro, Zuno or Vexa; level 5 ends on Cyclone Ray's tail.",
-   order: 56,
+   order: 58,
    status: "dev",
    collection: "rollheroes",
    difficulty: 2,
