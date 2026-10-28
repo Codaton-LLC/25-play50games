@@ -10,7 +10,7 @@ import { useCameraViews } from "@/arcade3d/core/camera/CameraViews";
 import { playSfx } from "@/arcade3d/core/audio";
 import { FRAME_PRIORITY } from "@/arcade3d/core/frameLoop";
 import { tossAt, useActionPop, useFx, type TossFrame } from "@/arcade3d/core/fx";
-import { TargetBeacon } from "@/arcade3d/core/hud";
+import { TargetBeacon, TargetMarkers } from "@/arcade3d/core/hud";
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import { useInput } from "@/arcade3d/core/input";
 import { useLevel } from "@/arcade3d/core/level";
@@ -184,6 +184,8 @@ function LevelScene() {
    const pop = useActionPop();
    const goal = useRef<FarmGoal>({ bale: -1, x: 0, z: 0 }).current;
    const beacon = useRef({ x: 0, y: 0, z: 0, hidden: true }).current;
+   // the same target for the edge arrow when it is off screen or under a HUD panel
+   const edgeTargets = useMemo(() => [beacon], [beacon]);
    const guide = useRef({ code: -1, bay: false }).current;
    const [toBay, setToBay] = useState(false);
    const flights = useMemo(() => ({
@@ -435,6 +437,7 @@ function LevelScene() {
             height={toBay ? 2 : 1.1}
             label={toBay ? "PARK" : null}
          />
+         <TargetMarkers targets={edgeTargets} color={toBay ? "#4ade80" : COLORS.ring} />
          <Model asset={ASSETS.barn} position={[decor.barn.x, 0, decor.barn.z]} fallback={<BarnFrame />} />
          <Model asset={ASSETS.silo} position={[decor.silo.x, 0, decor.silo.z]} fallback={<SiloPrimitive />} />
          <Model asset={ASSETS.trough} position={[decor.trough.x, 0, decor.trough.z]} fallback={<TroughPrimitive />} />
