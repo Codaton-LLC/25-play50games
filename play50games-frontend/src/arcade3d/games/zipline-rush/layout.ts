@@ -121,7 +121,7 @@ export function scenery(level: LevelId): Scenery {
             const n = 1 + Math.floor(rnd() * 2);
             for (let k = 0; k < n; k++) {
                const s = 0.8 + rnd() * 0.5;
-               pines.push({ x: side * (7.2 + rnd() * 1.4), y: top - 0.6, z: st.cz + (rnd() - 0.5) * st.rz * 1.4, scale: s, rotY: rnd() * 6.28, r: 2.6 * s, h: PINE_H * s });
+               pines.push({ x: side * (7.2 + rnd() * 1.4), y: top - 1.3, z: st.cz + (rnd() - 0.5) * st.rz * 1.4, scale: s, rotY: rnd() * 6.28, r: 2.6 * s, h: PINE_H * s });
             }
          }
       }

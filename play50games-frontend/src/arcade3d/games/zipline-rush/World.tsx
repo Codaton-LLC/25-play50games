@@ -316,10 +316,11 @@ const RAIN_VERT = /* glsl */ `
 uniform float uTime; uniform vec3 uCenter;
 attribute float aSeed;
 void main() {
+   // the wrap is computed from the streak's base point (the same for both ends), so a streak never splits
    vec3 p = position;
    float fall = mod(p.y - uTime * 26.0 - uCenter.y, 40.0);
-   vec3 w = vec3(uCenter.x + mod(p.x - uCenter.x + 30.0, 60.0) - 30.0, uCenter.y - 20.0 + fall + aSeed * 1.4, uCenter.z + mod(p.z - uCenter.z + 30.0, 60.0) - 30.0);
-   w.x += aSeed * 0.35;
+   vec3 w = vec3(uCenter.x + mod(p.x - uCenter.x + 30.0, 60.0) - 30.0, uCenter.y - 20.0 + fall, uCenter.z + mod(p.z - uCenter.z + 30.0, 60.0) - 30.0);
+   w += vec3(0.3, 1.4, 0.0) * aSeed;
    gl_Position = projectionMatrix * viewMatrix * vec4(w, 1.0);
 }`;
 const RAIN_FRAG = /* glsl */ `
@@ -338,7 +339,7 @@ function Rain({ flash }: { flash: { value: number } }) {
          const x = rnd() * 60;
          const y = rnd() * 40;
          const z = rnd() * 60;
-         pos.set([x, y, z, x - 0.12, y + 0, z], i * 6);
+         pos.set([x, y, z, x, y, z], i * 6);
          seed[i * 2] = 0;
          seed[i * 2 + 1] = 1;
       }

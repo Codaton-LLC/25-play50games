@@ -111,7 +111,7 @@ function RunScene({ multi }: { multi: boolean }) {
    const r = group?.runs[0] ?? solo;
    const runs = group?.runs ?? [solo];
    const input = useInput();
-   const orbit = useMemo(() => createOrbit({ yaw: 0, pitch: 0.4, distance: 8.6, minDistance: 4.5, maxDistance: 24 }), [id, multi]); // eslint-disable-line react-hooks/exhaustive-deps
+   const orbit = useMemo(() => createOrbit({ yaw: 0, pitch: 0.48, distance: 8.6, minDistance: 4.5, maxDistance: 24 }), [id, multi]); // eslint-disable-line react-hooks/exhaustive-deps
    const aspect = useThree((s) => s.size.width / s.size.height);
    const intro = useShellIntro();
    const juice = useJuice();
@@ -228,7 +228,7 @@ function RunScene({ multi }: { multi: boolean }) {
       }
    });
    const start = sts[0].start!;
-   const playCamera = useMemo<IntroKeyframe>(() => ({ position: [start.x, start.y + 1.2 + 8.6 * Math.sin(0.4), start.z - 1 + 8.6 * Math.cos(0.4)], lookAt: [start.x, start.y + 1.2, start.z - 1] }), [start]);
+   const playCamera = useMemo<IntroKeyframe>(() => ({ position: [start.x, start.y + 1.2 + 8.6 * Math.sin(0.48), start.z - 1 + 8.6 * Math.cos(0.48)], lookAt: [start.x, start.y + 1.2, start.z - 1] }), [start]);
    const shots = useMemo<IntroKeyframe[]>(() => {
       // a sweep from high over the far end of the course back along the lines to the first tower
       const far = sts[Math.min(sts.length - 1, 2)];
@@ -236,7 +236,7 @@ function RunScene({ multi }: { multi: boolean }) {
       return [
          { position: [34, far.landY + 26, far.cz - 18], lookAt: [0, far.landY, far.cz + 20] },
          { position: [-22, mid.startY + 12, mid.cz + 6], lookAt: [0, mid.startY + 1, mid.cz + 30] },
-         { position: [10, start.y + 9, start.z - 16], lookAt: [start.x, start.y + 1, start.z] },
+         { position: [-2, start.y + 7, start.z - 18], lookAt: [start.x, start.y + 1, start.z] },
       ];
    }, [sts, start]);
    const solids = (out: { min: { x: number; y: number; z: number }; max: { x: number; y: number; z: number } }[]) => {

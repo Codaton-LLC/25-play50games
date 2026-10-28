@@ -249,7 +249,7 @@ function LineGlow({ c, section, lane, u0, u1, color, live, bolts = false, offset
                const jag = i === 0 || i === 18 ? 0 : 1;
                P.set(m.x + 3 * (1 - f) + Math.sin(seed * 12.9898 + i * 78.233) * 0.9 * (1 - f * 0.7) * jag, m.y + 16 * (1 - f), m.z + Math.cos(seed * 4.1 + i * 3.7) * 0.7 * (1 - f) * jag);
                // the ribbon's width across the view
-               SIDE.set(P.x - cam.x, P.y - cam.y, P.z - cam.z).cross(UP).normalize().multiplyScalar(0.09 * (1.4 - f * 0.6));
+               SIDE.set(P.x - cam.x, P.y - cam.y, P.z - cam.z).cross(UP).normalize().multiplyScalar(0.06 * (1.4 - f * 0.6));
                attr.setXYZ(i * 2, P.x - SIDE.x, P.y - SIDE.y, P.z - SIDE.z);
                attr.setXYZ(i * 2 + 1, P.x + SIDE.x, P.y + SIDE.y, P.z + SIDE.z);
             }
@@ -280,6 +280,7 @@ function Storms({ run }: { run: ZipRun }) {
       if (s === 0 || run.ended) return;
       const lane = Math.floor(run.ms / 2400) % 2;
       if (!(lane === 1 || c.night)) return;
+      if (c.id === 1 && s < 2 && lane === 1) return;
       const p = cablePoint(c, s, lane, 0.39);
       at.set(p.x, p.y, p.z);
       juice.stream("hit", at, 30, emitter, { color: "#c4b5fd" });
@@ -288,6 +289,7 @@ function Storms({ run }: { run: ZipRun }) {
    // storms charge for 2.4 s on alternate lanes; the glow warns 0.5 s ahead of a switch
    const live = (lane: number) => () => {
       if (!(lane === 1 || c.night)) return 0;
+      if (c.id === 1 && s < 2 && lane === 1) return 0;
       const beat = run.ms / 2400;
       const on = Math.floor(beat) % 2 === lane;
       const toNext = 1 - (beat - Math.floor(beat));
@@ -463,7 +465,7 @@ function HeroRoutes({ run }: { run: ZipRun }) {
       if (shard.current) {
          shard.current.rotation.y = time.now * 1.6;
          shard.current.position.y = at.shard.y + Math.sin(time.now * 2.5) * 0.15;
-         shard.current.visible = !run.secrets.found[2] && run.section <= 1;
+         shard.current.visible = !run.secrets.found[2] && run.section === 1;
       }
    });
    if (run.cfg.id === 1) return null;
@@ -481,7 +483,7 @@ function HeroRoutes({ run }: { run: ZipRun }) {
          </group>
          <group ref={shard} position={[at.shard.x, at.shard.y, at.shard.z]}>
             <mesh>
-               <octahedronGeometry args={[0.24, 0]} />
+               <octahedronGeometry args={[0.18, 0]} />
                <meshStandardMaterial color="#fde68a" emissive="#f59e0b" emissiveIntensity={1.4} metalness={0.3} roughness={0.2} />
             </mesh>
          </group>
