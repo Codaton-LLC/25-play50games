@@ -34,8 +34,8 @@ export function backdropSpots(c: Course): { rows: InstanceSpot[]; towers: Instan
          { ox: 1, oz: 0, len: hd * 2 + gap * 2, yaw: -Math.PI / 2 },
       ];
       sides.forEach((s, si) => {
-         // sparse: a row every 16 m (the triangle budget), the gaps read as side streets
-         const n = Math.ceil(s.len / 16);
+         // sparse: a row every 22 m (the triangle budget), the gaps read as side streets
+         const n = Math.ceil(s.len / 22);
          for (let k = 0; k < n; k++) {
             const t = -s.len / 2 + (k + 0.5) * (s.len / n);
             const r = hash(k + ring * 31, si);

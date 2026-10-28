@@ -324,10 +324,6 @@ function Plazas({ course, clock }: { course: CityCourse; clock: VisualClock }) {
                      <cylinderGeometry args={[0.2, 0.32, 1.2, 12]} />
                      <meshStandardMaterial color="#e7e0d6" roughness={0.6} />
                   </mesh>
-                  <mesh position={[0, 1.7, 0]}>
-                     <coneGeometry args={[0.55, 1.1, 14, 1, true]} />
-                     <meshBasicMaterial color="#bae6fd" transparent opacity={0.55} depthWrite={false} side={DoubleSide} />
-                  </mesh>
                </group>
             );
          })}
@@ -388,12 +384,11 @@ function Rail({ course, glow }: { course: CityCourse; glow: number }) {
             <boxGeometry args={[len, 0.4, RAIL_HALF_W * 2]} />
             <meshStandardMaterial color={COLORS.rail} roughness={0.5} metalness={0.3} />
          </mesh>
-         {[-1, 1].map((s) => (
-            <mesh key={s} position={[0, r.y + 0.12, s * (RAIL_HALF_W - 0.06)]}>
-               <boxGeometry args={[len, 0.24, 0.12]} />
-               <meshStandardMaterial color="#fecdd3" emissive={COLORS.railGlow} emissiveIntensity={glow} toneMapped={false} />
-            </mesh>
-         ))}
+         {/* the neon trim: one strip under the deck's edge-to-edge lip */}
+         <mesh position={[0, r.y + 0.04, 0]}>
+            <boxGeometry args={[len, 0.12, RAIL_HALF_W * 2 + 0.12]} />
+            <meshStandardMaterial color="#fecdd3" emissive={COLORS.railGlow} emissiveIntensity={glow} toneMapped={false} />
+         </mesh>
          <DynamicInstanced count={pillars.length} update={pillar} name="railPillars">
             <boxGeometry args={[0.6, 1, 0.6]} />
             <meshStandardMaterial color="#94a3b8" roughness={0.7} />
@@ -423,14 +418,6 @@ function Gates({ run, clock }: { run: CityRun; clock: VisualClock }) {
       const yaw = g.hx < g.hz ? Math.PI / 2 : 0;
       place(m, g.x, lift.current[i] * 3.1, g.z, yaw);
    };
-   const bars = (i: number, m: Matrix4, color?: Color) => {
-      const g = c.gates[i];
-      if (!g) return false;
-      const shut = gateShut(g, Math.max(0, clock.ms));
-      const across = g.hx < g.hz;
-      place(m, g.x, 1.3 + lift.current[i] * 3.1, g.z, across ? Math.PI / 2 : 0, STREET_HALF * 2 - 0.4, 1, 1);
-      color?.copy(shut ? REDLIGHT : GREEN);
-   };
    const lights = (i: number, m: Matrix4) => {
       const g = c.gates[i];
       if (!g) return false;
@@ -451,10 +438,6 @@ function Gates({ run, clock }: { run: CityRun; clock: VisualClock }) {
    return (
       <>
          <DynamicInstancedModel asset={ASSETS.gate} count={c.gates.length} update={frames} name="gates" />
-         <DynamicInstanced count={c.gates.length} update={bars} name="gateBars" tinted>
-            <boxGeometry args={[1, 0.22, 0.14]} />
-            <meshBasicMaterial color="#ffffff" toneMapped={false} />
-         </DynamicInstanced>
          <DynamicInstancedModel asset={ASSETS.light} count={c.gates.length} update={lights} name="trafficLights" />
          <DynamicInstanced count={c.gates.length} update={lamps} name="gateLamps" tinted>
             <sphereGeometry args={[0.22, 10, 8]} />

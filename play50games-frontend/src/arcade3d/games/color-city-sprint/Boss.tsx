@@ -115,25 +115,22 @@ export function Boss({ run, clock }: { run: CityRun; clock: VisualClock }) {
                      </group>
                   ))}
                </group>
+               {/* one glow strip each: the tank valves (back) and the headlights (front) */}
                <group ref={valves}>
-                  {[-1, 1].map((s) => (
-                     <mesh key={s} position={[s * hw * 0.45, 1.5, -hl - 0.08]}>
-                        <sphereGeometry args={[0.32, 12, 10]} />
-                        <meshBasicMaterial color="#ef4444" transparent opacity={0.2} depthWrite={false} blending={AdditiveBlending} toneMapped={false} />
-                     </mesh>
-                  ))}
+                  <mesh position={[0, 1.5, -hl - 0.08]}>
+                     <boxGeometry args={[hw * 1.3, 0.45, 0.2]} />
+                     <meshBasicMaterial color="#ef4444" transparent opacity={0.2} depthWrite={false} blending={AdditiveBlending} toneMapped={false} />
+                  </mesh>
                </group>
                <group ref={lights}>
-                  {[-1, 1].map((s) => (
-                     <mesh key={s} position={[s * hw * 0.55, 1.2, hl + 0.1]}>
-                        <sphereGeometry args={[0.4, 12, 10]} />
-                        <meshBasicMaterial color="#fde68a" transparent opacity={0.3} depthWrite={false} blending={AdditiveBlending} toneMapped={false} />
-                     </mesh>
-                  ))}
+                  <mesh position={[0, 1.2, hl + 0.1]}>
+                     <boxGeometry args={[hw * 1.5, 0.5, 0.2]} />
+                     <meshBasicMaterial color="#fde68a" transparent opacity={0.3} depthWrite={false} blending={AdditiveBlending} toneMapped={false} />
+                  </mesh>
                </group>
             </group>
          </group>
-         <DynamicInstancedModel asset={ASSETS.drone} count={4} update={drones} name="drones" />
+         <DynamicInstancedModel asset={ASSETS.drone} count={2} update={drones} name="drones" />
       </>
    );
 }
