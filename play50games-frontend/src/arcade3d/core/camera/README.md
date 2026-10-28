@@ -110,6 +110,9 @@ For a game that already passes a camera yaw in its step input (most Menu 1 3D ga
    });
    ```
 
+   The "default" view is whatever camera the game already draws at `FRAME_PRIORITY.camera`: a
+   `<CameraRig>` or a `<ChaseRig>` (core `chaseCamera.ts`, mars-rover-mission). A game whose own
+   camera is already a chase camera can drop `"chase"` from `views`.
    `target.y` is the pivot height (the chest, about 1.1 m for a person). `heading` follows the
    convention forward = (sin, cos), the one `Math.atan2(vx, vz)` gives.
 2. **Rules input**: pass `yaw: cam.yaw()` where the Scene passed `view.yaw` (or call
