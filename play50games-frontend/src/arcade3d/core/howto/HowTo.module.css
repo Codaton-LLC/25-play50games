@@ -374,9 +374,19 @@
       0 14px 30px rgba(3, 6, 18, 0.6);
 }
 
+/* a portrait game (penalty-hero): an upright phone, kept short so the step text stays in view */
 .phonePortrait {
-   width: min(60%, 190px);
+   width: min(36%, 132px);
    aspect-ratio: 9 / 19.5;
+}
+
+.phonePortrait .hudMock span {
+   width: 14px;
+}
+
+.phonePortrait .pad {
+   width: 36px;
+   height: 36px;
 }
 
 .screen {
@@ -1188,6 +1198,10 @@
       width: min(100%, 210px);
    }
 
+   .sheet .phonePortrait {
+      width: min(26%, 96px);
+   }
+
    /* the step text first, so it is on screen even under the cookie banner; the picture follows */
    .sheetBody {
       display: flex;
@@ -1279,6 +1293,10 @@
 
    .sheet .phone {
       width: min(100%, 250px);
+   }
+
+   .sheet .phonePortrait {
+      width: min(30%, 90px);
    }
 
    .deckLarge .cap {
