@@ -82,13 +82,13 @@ export const DASH_SPOTS: readonly InstanceSpot[] = Array.from({ length: 33 }, (_
 
 /** Parked along the far kerb, nose to +x (the GLBs face +z: rotY PI / 2), a hand's width off the kerb. */
 const PARKED_ROT = Math.PI / 2;
-/** Centre line of the parking lane: the widest car (van, 1.03) keeps 0.06 off the kerb's outer face (-14.62). */
-export const PARKING_Z = -15.2;
+/** Centre line of the parking lane: the widest car (van, 2.00 at real-world scale) keeps 0.08 off the kerb's outer face (-14.62). */
+export const PARKING_Z = -15.7;
 export const CAR_SPOTS: readonly InstanceSpot[] = [
-   { x: -4.4, y: 0, z: PARKING_Z, rotY: PARKED_ROT },
-   { x: 9.4, y: 0, z: PARKING_Z, rotY: PARKED_ROT },
+   { x: -3.9, y: 0, z: PARKING_Z, rotY: PARKED_ROT },
+   { x: 9.0, y: 0, z: PARKING_Z, rotY: PARKED_ROT },
 ];
-export const TAXI_SPOTS: readonly InstanceSpot[] = [{ x: 3.4, y: 0, z: PARKING_Z, rotY: PARKED_ROT }];
+export const TAXI_SPOTS: readonly InstanceSpot[] = [{ x: 2.6, y: 0, z: PARKING_Z, rotY: PARKED_ROT }];
 export const VAN_SPOTS: readonly InstanceSpot[] = [{ x: -9.6, y: 0, z: PARKING_Z, rotY: PARKED_ROT }];
 
 // ---------- park: pigeons on the lawn beyond the far edge ----------

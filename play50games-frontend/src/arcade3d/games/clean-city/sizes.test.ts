@@ -8,7 +8,7 @@ import { readCharacterGlb } from "@/arcade3d/core/rig/robotGlb";
 import { SHARED_ASSETS } from "@/arcade3d/core/sharedAssets";
 import type { ModelAsset } from "@/arcade3d/core/types";
 import { ASSETS } from "./assets";
-import { createLitterStandIns, disposeLitterStandIns } from "./Primitives";
+import { RUNNER_STAND_IN_SCALE, createLitterStandIns, disposeLitterStandIns } from "./Primitives";
 import { LITTER_KINDS } from "./rules";
 
 function bounds(geometry: BufferGeometry): Box3 {
@@ -27,7 +27,7 @@ async function drawnBox(asset: ModelAsset): Promise<Box3> {
 }
 
 describe("clean-city litter stand-ins", () => {
-   it("one part per litter kind, standing on y = 0 at about the drawn size", () => {
+   it("one part per litter kind, standing on y = 0 at about the drawn size (0.33-0.5: knee height on the 1.75 cleaner)", () => {
       const kinds = createLitterStandIns();
       expect(kinds).toHaveLength(LITTER_KINDS.length);
       for (const parts of kinds) {
@@ -35,8 +35,8 @@ describe("clean-city litter stand-ins", () => {
          const box = bounds(parts[0].geometry);
          expect(box.min.y).toBeCloseTo(0, 6);
          const longest = Math.max(box.max.x - box.min.x, box.max.y - box.min.y, box.max.z - box.min.z);
-         expect(longest).toBeGreaterThan(0.6);
-         expect(longest).toBeLessThanOrEqual(1);
+         expect(longest).toBeGreaterThan(0.3);
+         expect(longest).toBeLessThanOrEqual(0.5);
       }
       disposeLitterStandIns(kinds);
    });
@@ -92,7 +92,7 @@ describe("clean-city litter GLBs (group C)", () => {
 });
 
 describe("clean-city cleaner", () => {
-   it("is this game's own cleaner.glb (listed, not the shared runner) drawn 0.95 tall, the runner's old height, near its 0.90 stand-in", async () => {
+   it("is this game's own cleaner.glb (listed, not the shared runner) drawn 1.75 tall (real-world scale), like its stand-in (0.90 x RUNNER_STAND_IN_SCALE)", async () => {
       expect(ASSETS.cleaner.url).toBe("/models/3d/clean-city/cleaner.glb");
       expect(hasModel(ASSETS.cleaner.url)).toBe(true);
       expect(ASSETS.cleaner.url).not.toBe(SHARED_ASSETS.runner.url);
@@ -100,6 +100,7 @@ describe("clean-city cleaner", () => {
       const { cloud } = await readCharacterGlb(ASSETS.cleaner.url);
       let top = 0;
       for (let i = 1; i < cloud.length; i += 3) top = Math.max(top, cloud[i]);
-      expect(top * (ASSETS.cleaner.scale ?? 1)).toBeCloseTo(0.95, 3);
+      expect(top * (ASSETS.cleaner.scale ?? 1)).toBeCloseTo(1.75, 3);
+      expect(0.9 * RUNNER_STAND_IN_SCALE).toBeCloseTo(1.75, 9);
    });
 });

@@ -16,10 +16,10 @@ export const REACH: AABB = {
    min: { x: -SPAWN_HALF, y: 0, z: -SPAWN_HALF },
    max: { x: SPAWN_HALF, y: 0, z: SPAWN_HALF },
 };
-/** The whole 28 x 28 floor, plus room for the tallest prop, from every follow point. */
+/** The whole 28 x 28 floor, plus room for the tallest prop (the 3.6 m street lamp), from every follow point. */
 export const FLOOR: AABB = {
    min: { x: -FLOOR_HALF, y: 0, z: -FLOOR_HALF },
-   max: { x: FLOOR_HALF, y: 2.6, z: FLOOR_HALF },
+   max: { x: FLOOR_HALF, y: 3.61, z: FLOOR_HALF },
 };
 export const FOCUS = followFocus({ lookAt: LOOK_AT, reach: REACH, fraction: FOLLOW });
 export const VIEW: FittedViewOptions = {

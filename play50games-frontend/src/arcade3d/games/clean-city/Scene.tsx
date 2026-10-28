@@ -21,10 +21,10 @@
 //   outside everything the run draws on the floor (decorSpots.ts).
 import { Suspense, memo, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
-import { Euler, Matrix4, Quaternion, Vector3, type Group, type Mesh, type MeshBasicMaterial } from "three";
+import { CustomBlending, Euler, GreaterDepth, Matrix4, Quaternion, Vector3, type Group, type Mesh, type MeshBasicMaterial, type Object3D } from "three";
 import { useCameraViews } from "@/arcade3d/core/camera/CameraViews";
 import { useCameraZoom } from "@/arcade3d/core/useCameraZoom";
-import { phoneOffset, cameraSolids } from "./cameraViews";
+import { CHARACTER_FRAMING, CHARACTER_TARGET_Y, phoneOffset, cameraSolids } from "./cameraViews";
 import CameraRig from "@/arcade3d/core/CameraRig";
 import { playSfx } from "@/arcade3d/core/audio";
 import { useGameTime } from "@/arcade3d/core/gameTime";
@@ -59,7 +59,7 @@ import { Cues } from "./Cues";
 import { CLEANER_SCALE, createCleanerGait, gaitFrameDt, stepCleanerGait } from "./gait";
 import { createPickupMark, localOffset, notePickup, pickupPose, type LocalOffset, type PickupMark } from "./pickup";
 import { cheerWeight, reachWeight } from "./poseWeights";
-import { Beach, BinProp, City, Park, PrimitiveRunner, RUNNER_RING, useLitterStandIns, type RunnerLimbs } from "./Primitives";
+import { Beach, BinProp, City, Park, PrimitiveRunner, RUNNER_RING, RUNNER_STAND_IN_SCALE, useLitterStandIns, type RunnerLimbs } from "./Primitives";
 import {
    LITTER_KINDS,
    NONE,
@@ -112,6 +112,23 @@ const Q = new Quaternion();
 const S = new Vector3();
 const UP = new Vector3(0, 1, 0);
 const FLAT = new Quaternion().setFromAxisAngle(new Vector3(1, 0, 0), -Math.PI / 2);
+
+/**
+ * Draw order among the opaque objects (three sorts them by renderOrder first): the props and the
+ * floor (0), then the litter's x-ray ring (XRAY_ORDER), then the cleaner (CLEANER_ORDER). The x-ray
+ * ring passes only where something already drawn is in front of it (depthFunc GreaterDepth): a
+ * litter spot behind a lamp's lantern, a palm crown or an umbrella canopy (the parts over the
+ * cleaner's head, README "Real-world scale") shows its ring through them; the ground under it never
+ * passes, and the cleaner, drawn after, covers it as usual.
+ */
+export const XRAY_ORDER = 1;
+export const CLEANER_ORDER = 2;
+function orderXray(o: Object3D): void {
+   o.renderOrder = XRAY_ORDER;
+}
+function orderCleaner(o: Object3D): void {
+   o.renderOrder = CLEANER_ORDER;
+}
 
 const clamp01 = (v: number) => (v < 0 ? 0 : v > 1 ? 1 : v);
 const easeOutBack = (k: number) => 1 + 2.70158 * (k - 1) ** 3 + 1.70158 * (k - 1) ** 2;
@@ -181,7 +198,11 @@ function Litter({ run, fx }: { run: CleanRun; fx: LitterFx }) {
    const time = useGameTime();
    const glow = useRef<MeshBasicMaterial>(null);
    const burst = useRef<Mesh>(null);
+   const xray = useRef<Group>(null);
    const standIns = useLitterStandIns();
+   useEffect(() => {
+      xray.current?.traverse(orderXray);
+   }, []);
 
    // before the instance writers (priority 0): which slot each copy is, and the pop clock
    useFrame(() => {
@@ -260,6 +281,13 @@ function Litter({ run, fx }: { run: CleanRun; fx: LitterFx }) {
             <ringGeometry args={[0.42, 0.62, 20]} />
             <meshBasicMaterial color={RUNNER_RING} transparent opacity={0.9} depthWrite={false} />
          </DynamicInstanced>
+         <group ref={xray} name="litter-xray">
+            <DynamicInstanced count={run.level.items} name="litter-rings-xray" update={placeFlat(0.04)}>
+               <ringGeometry args={[0.42, 0.62, 20]} />
+               {/* opaque list (drawn before the cleaner), blended by hand; only where it is hidden */}
+               <meshBasicMaterial color={RUNNER_RING} transparent={false} blending={CustomBlending} opacity={0.6} depthWrite={false} depthFunc={GreaterDepth} />
+            </DynamicInstanced>
+         </group>
          <DynamicInstanced count={run.level.items} name="litter-glow" update={placeFlat(0.025)}>
             <circleGeometry args={[0.72, 18]} />
             <meshBasicMaterial ref={glow} color="#bbf7d0" transparent opacity={0.3} depthWrite={false} />
@@ -365,6 +393,8 @@ function Cleaner({ run }: { run: CleanRun }) {
       const g = root.current;
       const b = body.current;
       if (!g || !b) return;
+      // after the litter's x-ray ring (XRAY_ORDER), so the ring never shows on the cleaner (the GLB loads late: every frame)
+      b.traverse(orderCleaner);
       const r = run.runner;
       const t = time.now;
       const { phase, endReason } = useArcadeStore.getState();
@@ -390,7 +420,7 @@ function Cleaner({ run }: { run: CleanRun }) {
                asset={ASSETS.cleaner}
                pose={pose}
                applyLift={false}
-               fallback={<group ref={standIn}><PrimitiveRunner limbs={limbs} /></group>}
+               fallback={<group ref={standIn} scale={RUNNER_STAND_IN_SCALE}><PrimitiveRunner limbs={limbs} /></group>}
             />
          </group>
       </group>
@@ -450,14 +480,14 @@ export default function Scene() {
    const aspect = useThree((s) => s.size.width / s.size.height);
    const portrait = aspect < 1;
    const offset = phoneOffset(view.offset, aspect);
-   const zoom = useCameraZoom({ min: 1.5 / Math.hypot(...offset), max: Math.max(1, 2 * view.distance / Math.hypot(...offset)) });
+   const zoom = useCameraZoom({ min: 2.8 / Math.hypot(...offset), max: Math.max(1, 2 * view.distance / Math.hypot(...offset)) });
    useEffect(() => { zoom.current = 1; }, [portrait, zoom]);
    const cam = useCameraViews({
       slug: "clean-city", subject: "character", steering: "camera", defaultYaw: view.yaw,
-      framing: { chase: { distance: 3.5, lookUp: 0 }, front: { distance: 3, lookUp: 0 }, free: { distance: 3.5, lookUp: 0 }, top: { distance: 35 } },
+      framing: CHARACTER_FRAMING,
       target: (o) => {
          const r = run.runner;
-         o.x = r.x; o.y = 0.5; o.z = r.z;
+         o.x = r.x; o.y = CHARACTER_TARGET_Y; o.z = r.z;
          o.heading = r.heading; o.vx = r.vx; o.vz = r.vz;
       },
       solids: (out) => cameraSolids(run.map, out, run.level, run.simMs),

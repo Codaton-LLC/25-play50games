@@ -25,21 +25,26 @@ import { CLEANER_LANDMARKS } from "./assets";
 import { CLEANER_SCALE } from "./gait";
 
 /**
- * The stoop at weight 1 (rad): the pelvis tipped forward at the hips, the thighs forward (of
+ * The stoop at weight 1 (rad), deeper since the real-world scale (was hips 0.4, thigh 0.6, knee 1.2,
+ * spine 0.4, chest 0.25): the 1.75 cleaner's hand now comes down to the 0.4-0.45 litter (fingertip at
+ * most 0.42 over the floor, 0.31 for a piece ahead; pickup.test.ts): the pelvis tipped forward at the hips, the thighs forward (of
  * the upright: they take the pelvis's tip back), the knees bent, the spine and the chest further
  * forward, a tip towards the reaching side, the trunk's most turn towards the piece, the head up a little.
  */
-export const STOOP = { hips: 0.4, thigh: 0.6, knee: 1.2, spine: 0.4, chest: 0.25, tilt: 0.16, turn: 0.45, head: -0.2 } as const;
+export const STOOP = { hips: 0.55, thigh: 0.8, knee: 1.45, spine: 0.55, chest: 0.32, tilt: 0.16, turn: 0.45, head: -0.2 } as const;
+// World units (1 unit = 1 m since the real-world scale, README "Real-world scale"): the distances
+// below are the 0.95 cleaner's (0.36, 0.07, 0.04) times 1.75 / 0.95, so the pose is the same on the
+// bigger body; REACH_Y is lower, at the foot of the 0.4-0.45 litter.
 /** The hand aims at this height over the floor at the piece (world units): low on it. */
-export const REACH_Y = 0.15;
+export const REACH_Y = 0.12;
 /** ...but never further out (horizontally, world units) from the shoulder than this... */
-export const REACH_OUT = 0.36;
+export const REACH_OUT = 0.66;
 /** ...and never less than this far below level (rad): the reaching arm points down, never out level. */
 export const REACH_DOWN = 0.9;
 /** The hand may come in this far (world units) past its own shoulder towards the body's middle. */
-export const REACH_IN = 0.07;
+export const REACH_IN = 0.13;
 /** ...and stays at least this far ahead of the shoulder (world units). */
-export const REACH_AHEAD = 0.04;
+export const REACH_AHEAD = 0.074;
 
 export interface LocalOffset {
    /** the piece's offset towards the cleaner's left (+x, world units) */
