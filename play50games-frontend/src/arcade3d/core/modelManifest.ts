@@ -5,6 +5,15 @@
 // Plain data, server-safe.
 
 export const MODEL_MANIFEST: readonly string[] = [
+   "/models/3d/wind-tunnel-escape/m2AirVent.glb",
+   "/models/3d/wind-tunnel-escape/m2AnemometerPost.glb",
+   "/models/3d/wind-tunnel-escape/m2FanLiftPlatform.glb",
+   "/models/3d/wind-tunnel-escape/m2FlyingCrate.glb",
+   "/models/3d/wind-tunnel-escape/m2GaleEngineBoss.glb",
+   "/models/3d/wind-tunnel-escape/m2WindFan.glb",
+   "/models/3d/wind-tunnel-escape/m2WindTubeBg.glb",
+   "/models/3d/wind-tunnel-escape/m2FactoryDrone.glb",
+
    // batch 1 (2026-10-05): Hyper3D Rodin Gen-2.5-Medium, 1500 tris, optimized with tools/hyper3d
    "/models/3d/shared/battery.glb",
    "/models/3d/shared/crate.glb",
@@ -56,7 +65,7 @@ export const MODEL_MANIFEST: readonly string[] = [
    // animated by the core auto-rig
    "/models/3d/clean-city/cleaner.glb",
    // expansion batch 1 (2026-10-08): Rodin Gen-2.5-Medium (image-to-3D from concepts or
-   // text-to-3D, catalog §E.5), optimized with tools/hyper3d to the catalog's caps (1500-3000 tris;
+   // text-to-3D, catalog Â§E.5), optimized with tools/hyper3d to the catalog's caps (1500-3000 tris;
    // monster and penguin 8k with 1024 px textures); default fits in sharedAssets EXPANSION_ASSETS
    "/models/3d/shared/chest.glb",
    "/models/3d/shared/cannon.glb",
