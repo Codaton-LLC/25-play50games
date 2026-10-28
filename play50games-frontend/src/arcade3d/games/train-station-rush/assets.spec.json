@@ -5,6 +5,7 @@
    "assets": [
       { "id": "charStationWorker", "kind": "character", "file": "menu1-train-station-rush/charStationWorker.glb", "budget": { "tris": 20000, "bytes": 1500000 } },
       { "id": "trainCarV2", "kind": "prop", "file": "menu1-train-station-rush/trainCarV2.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "locomotiveFront", "kind": "prop", "file": "menu1-train-station-rush/locomotiveFront.glb", "budget": { "tris": 5000, "bytes": 300000 } },
       { "id": "platformCanopy", "kind": "prop", "file": "menu1-train-station-rush/platformCanopy.glb", "budget": { "tris": 5000, "bytes": 300000 } },
       { "id": "platformSign", "kind": "prop", "file": "menu1-train-station-rush/platformSign.glb", "budget": { "tris": 5000, "bytes": 300000 } },
       { "id": "stationBench", "kind": "prop", "file": "menu1-train-station-rush/stationBench.glb", "budget": { "tris": 5000, "bytes": 300000 } },

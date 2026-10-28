@@ -5,6 +5,7 @@
 import type { ModelAsset } from "@/arcade3d/core/types";
 import type { HumanoidLandmarks } from "@/arcade3d/core/rig";
 import { CHARACTER_BUDGET, EXPANSION_ASSETS, EXPANSION_GLB_SIZE, PROP_BUDGET, REUSED_ASSETS, REUSED_GLB_SIZE } from "@/arcade3d/core/sharedAssets";
+import { LOCO_LEN } from "./looks";
 
 const local = (id: string, fallback: ModelAsset["fallback"], fallbackColor: string): ModelAsset => ({
    id,
@@ -18,6 +19,7 @@ const local = (id: string, fallback: ModelAsset["fallback"], fallbackColor: stri
 export const GLB_SIZE = {
    charStationWorker: { width: 1.8929, height: 1.8214, depth: 0.4527 },
    trainCarV2: { width: 0.2651, height: 0.3254, depth: 1.8957 },
+   locomotiveFront: { width: 0.289, height: 0.394, depth: 1.898 },
    platformCanopy: { width: 1.0027, height: 0.9254, depth: 1.8985 },
    platformSign: { width: 1.8988, height: 1.4142, depth: 0.7072 },
    stationBench: { width: 1.9012, height: 0.7888, depth: 0.7359 },
@@ -52,6 +54,9 @@ const carScale = CAR_WIDTH / GLB_SIZE.trainCarV2.width;
 /** One carriage's length (m) along the track. */
 export const CAR_LENGTH = GLB_SIZE.trainCarV2.depth * carScale;
 export const CAR_HEIGHT = GLB_SIZE.trainCarV2.height * carScale;
+/** The engine: as tall as a carriage, squeezed along the track to the LOCO_LEN the carriages are placed after. */
+const locoScale = CAR_HEIGHT / GLB_SIZE.locomotiveFront.height;
+export const LOCO_WIDTH = GLB_SIZE.locomotiveFront.width * locoScale;
 /** The canopy turned a quarter so its long side spans the island; 2.0 m tall. */
 const canopyScale = CANOPY_WIDTH / GLB_SIZE.platformCanopy.depth;
 export const CANOPY_DEPTH = GLB_SIZE.platformCanopy.width * canopyScale;
@@ -110,6 +115,12 @@ export const ASSETS = {
    },
    /** A long low carriage, 2.0 m wide, along the track (+z); one dynamic pool for every train. */
    car: { ...local("trainCarV2", "box", "#38bdf8"), scale: carScale },
+   /** The white and blue engine (locomotiveFront), CAR_HEIGHT tall, its z squeezed to LOCO_LEN. */
+   loco: {
+      ...local("locomotiveFront", "box", "#0ea5e9"),
+      scale: locoScale,
+      stretch: [1, 1, LOCO_LEN / (GLB_SIZE.locomotiveFront.depth * locoScale)] as const,
+   },
    /**
     * A pitched shelter with benches, its long side across the island, 2.0 m tall. Drawn in one slate
     * material: its own texture reads as green shag at play size (README Known issues).

@@ -14,11 +14,11 @@ number). Carry the bag, or walk the passenger, to that platform's boarding pad w
 | `rules.ts` | pure, seeded: `createRun(seed, level)`, `step(run, input, dt, timeLeftMs)`, the task queue, the follower, the crowd, `earliestWinS`, `PROPOSED_LEVEL_LIMITS` |
 | `meta.ts` | server-safe meta, the five limits (= `PROPOSED_LEVEL_LIMITS` = `arcade-games.json`) |
 | `index.tsx` | `GameDefinition<StationLevel>`: five `LevelSpec`s (clock, light, fog, HUD max, instructions) |
-| `Scene.tsx` | one `useRunFrame`; the worker (auto-rig), trains (carriage GLB pool + code engine pool), travellers (one pool), the plates atlas, the follow camera |
+| `Scene.tsx` | one `useRunFrame`; the worker (auto-rig), trains (carriage and engine GLB pools), travellers (one pool), the plates atlas, the follow camera |
 | `Hud.tsx` | the departures board (`data-arcade-safe-area`): each open task's shape, number, bag or passenger and its train's wait |
 | `looks.ts` | `COLORS`, `PLATFORM_LOOKS`, camera window, island / track / wall spots, the trains' timeline (`trainOffset`), atlas layout |
 | `assets.ts` | the Hyper3D GLBs and their measured fits, `WORKER_LANDMARKS` |
-| `Primitives.tsx` | the engine (code, until a `locomotiveFront` GLB exists) and bevelled stand-ins |
+| `Primitives.tsx` | the code engine (fallback of the `locomotiveFront` GLB) and bevelled stand-ins |
 | `bots.testing.ts` | test bots (oracle, honest human pace, idle, spam) through the real store; tests only |
 | tests | `rules.test.ts` (rules + per-level proof), `bots.test.ts`, `levels.test.ts`, `worker.test.ts`, `assets.test.ts` |
 
@@ -150,7 +150,7 @@ the forearms-forward `carryPose(0)` with a bag (the bag between the forearms), `
   run reaches about 80 % of L5's `maxScore` (L1-L4: 95-99 %; the test floor for L5 is 75 %). A tighter L5 ceiling needs a bound on prompt deliveries
   with two open tasks.
 - `platformCanopy.glb`'s texture reads as green shag at play size: it is drawn in one slate material (`ASSETS.canopy.material`).
-- The engine is a code stand-in: still wanted `locomotiveFront` (`hyper3d-needed.md`); `locomotive.glb` is a whole
+- The engine is `locomotiveFront.glb` (menu1 ADOPT, adopted 2026-10-28): as tall as a carriage, its z squeezed to `LOCO_LEN` (4.6 m) so the carriages keep their door positions; the code engine stays as the fallback. `locomotive.glb` is a whole
   multi-car set and is not used.
 - `travellerNpc.glb` is photoreal with hands in pockets (not a T-pose): unrigged, it waddles; still wanted
   `passengerNpc`. `ticketMachine.glb` has text-like marks (kept at the back wall); still wanted `ticketMachineClean`.
