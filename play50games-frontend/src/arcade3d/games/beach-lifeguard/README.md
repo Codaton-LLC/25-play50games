@@ -19,6 +19,8 @@ A sand strip and a sea that deepens from the shore. An alert rings and a pink ri
 
 Stick / WASD / arrows move (`inputToWorld` at the camera yaw), sand speed 5.0, x 0.62 in the water (split inside the frame that crosses z = 0, on x as well), x 0.85 while carrying. Grab is `actionPressed` (E, Enter, the touch Grab) within 1.20 m of the active swimmer only. On L4-L5 a Grab within 1.2 m of the jet ski mounts it (8.5 m/s on the water, it drops you at the shore and goes back to its dock). Every constant is the same for keyboard and touch; there is no held-button window.
 
+Camera views (core/camera): 📷 / C (T too) cycle Classic → Chase → Front → Top → Free; drag turns the free view, wheel / pinch zoom. `useCameraViews({ subject: "character", steering: "camera" })`, all five views; the pivot is the drawn chest: on the sand `PIVOT` over the feet, easing down to the water line as the swim blends in, at the rider's chest on the jet ski. Solids: the tower and the beach props (`run.solids`), so the camera pulls in front of them in the chase / front / free views. `framing: { top: { distance: 18 } }`: the beach fog starts at `FOG_NEAR = 22` m (`looks.ts` `fogFor`), so the top view stays inside it. `step` gets `cam.yaw()`; in the classic view that is exactly the fitted yaw, so bots, proofs and limits are unchanged. No key conflicts: the game itself uses only WASD / arrows, E / Enter and Space. There was no game `Hud` before this (`Hud.tsx` is new and renders only the 📷 button); Saved and Alert stay the shell's stat chips.
+
 ## Levels
 
 | L | Title | Width | Swim depth | Rescues | Alert | Jet ski | Clock | Lighting | Limits (max / base / pps) | Fastest bot win | Honest clear |

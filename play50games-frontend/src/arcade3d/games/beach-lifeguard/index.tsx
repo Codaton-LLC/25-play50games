@@ -5,6 +5,7 @@
 import type { GameDefinition, LevelSpec } from "@/arcade3d/core/types";
 import { LEVEL_IDS, type LevelId } from "@/arcade3d/types";
 import { ASSETS } from "./assets";
+import Hud from "./Hud";
 import { LEVELS, LEVEL_LINES, type BeachLevel } from "./levels";
 import { FOG_NEAR, FOV } from "./looks";
 import { LIVES } from "./rules";
@@ -37,6 +38,7 @@ const environmentFor = (level: BeachLevel, id: LevelId) => ({
 const definition: GameDefinition<BeachLevel> = {
    slug: "beach-lifeguard",
    Scene,
+   Hud,
    assets: ASSETS,
    durationMs: LEVELS[1].durationMs,
    lives: LIVES,
