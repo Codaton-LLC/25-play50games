@@ -146,6 +146,10 @@ Branch checked: `git branch --show-current` = claude/game-zoo-escape (on top of 
 7. Slot reassignment (a next-stage keeper entering / leaving the window) resets that slot's gait phase: a possible one-frame stride pop. Acceptable?
 8. Thumbnail `public/images/3d/zoo-escape.webp` not captured (no browser); the input script is ready.
 
+## Levels and panda pass (2026-10-28, branch claude/zoo-levels)
+
+Checked: `npx tsc --noEmit` clean; `npx vitest run src/arcade3d/games/zoo-escape src/arcade3d/core/rig`: 25 files, 314 tests pass. Not checked: the browser (the sandboxed dev server was not reachable from Chrome), so the new props, the themes, the night lighting, the jeeps, birds and crowds and the panda's gait on the real canvas, the draw-call count (estimated +10-20 on levels 2-5: one instanced draw per new prop kind, a Water per pond on level 3) and the camera views on the new maps are unverified on screen. The thumbnail stays level 1's.
+
 ## Camera views
 
 Views: default, chase, front, top, free (fences and props block the camera). **C** / **T** or the 📷 button cycles them; drag (or two fingers) looks around and switches to the free view, wheel / pinch zooms, **V** recenters. The rules receive the drawn camera's yaw (the fitted yaw in the default view), so a run in the default view is unchanged; no rules, bots, proofs or scoring were touched. Core docs: `core/camera/README.md`.
