@@ -272,7 +272,7 @@ export function botInput(bot: Bot, run: SwingRun, input: StepInput): void {
    else if (h.mode === "ground" && dist >= 13.2) {
       const standX = P.x - 8;
       steer(input, standX - h.x, P.z - h.z);
-   } else if (!bladeLow && dist < 13.2 && (h.mode === "ground" || aimedAnchor(run, input) >= 0)) input.actionPressed = true;
+   } else if (!bladeLow && dist < 13.2 && (h.mode === "ground" || aimedAnchor(run, input) === aim.hook)) input.actionPressed = true;
 }
 
 function steer(input: StepInput, dx: number, dz: number): void {

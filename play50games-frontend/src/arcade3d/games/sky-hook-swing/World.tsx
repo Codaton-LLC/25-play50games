@@ -107,10 +107,10 @@ export function sceneryOf(course: Course, look: LevelLook, seed = 7) {
       }
    }
    const banks: InstanceSpot[] = [];
-   for (let x = start; x < end; x += 34) {
+   for (let x = start; x < end; x += 48) {
       for (const side of [-1, 1]) {
          const w = 22 + rnd() * 16;
-         banks.push({ x: x + rnd() * 14, y: -16 - rnd() * 3, z: side * (16 + rnd() * 22), sx: w / GLB_SIZE.bank.x, sy: 7 / GLB_SIZE.bank.y, sz: w / GLB_SIZE.bank.z, rotY: Math.PI / 2 + (rnd() - 0.5) * 0.5 });
+         banks.push({ x: x + rnd() * 14, y: -24 - rnd() * 4, z: side * (22 + rnd() * 26), sx: w / GLB_SIZE.bank.x, sy: 7 / GLB_SIZE.bank.y, sz: w / GLB_SIZE.bank.z, rotY: Math.PI / 2 + (rnd() - 0.5) * 0.5 });
       }
    }
    // far islands (the set's own swing islands and windmills), off the run on both sides
@@ -201,6 +201,7 @@ export default function World({ course, level, clock }: { course: Course; level:
             count={scenery.ships.length}
             update={(i, m) => {
                const s = scenery.ships[i];
+               if (!s) return false;
                const t = clock.ms / 1000;
                let x = s.x + t * s.speed;
                x = scenery.start + ((((x - scenery.start) % s.span) + s.span) % s.span);

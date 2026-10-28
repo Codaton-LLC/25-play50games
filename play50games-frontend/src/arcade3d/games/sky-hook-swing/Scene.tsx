@@ -343,9 +343,9 @@ function SoloScene() {
    const fog = useMemo(() => ({ color: look.fog[0], near: look.fog[1], far: look.fog[2] }), [look]);
    return (
       <JuiceLayer>
-         <World course={run.course} level={levelId} clock={clock} />
-         <Docks run={run} clock={clock} aim={aim} fog={fog} />
-         {run.course.boss ? <Galleon run={run} clock={clock} /> : null}
+         <World key={`w${levelId}`} course={run.course} level={levelId} clock={clock} />
+         <Docks key={`d${levelId}`} run={run} clock={clock} aim={aim} fog={fog} />
+         {run.course.boss ? <Galleon key={`g${levelId}`} run={run} clock={clock} /> : null}
          <Hero run={run} anim={anim} hand={hand} />
          <Rope run={run} clock={clock} hand={hand} />
          <Simulation run={run} anim={anim} clock={clock} orbit={orbit} aim={aim} fx={fx} />

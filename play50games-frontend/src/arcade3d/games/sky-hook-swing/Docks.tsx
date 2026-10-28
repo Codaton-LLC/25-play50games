@@ -6,7 +6,7 @@
 // stacks, spark and smoke lines, ghost hulls), secrets and the safety net. Every drawn point is the
 // rules' point: a deck's grass is its `y`, a ring's centre is its hook point.
 import { useEffect, useMemo, useRef } from "react";
-import { useFrame } from "@react-three/fiber";
+import { useFrame, useThree } from "@react-three/fiber";
 import {
    BufferGeometry,
    Color,
@@ -187,6 +187,7 @@ function Rings({ run, clock, aim }: { run: SwingRun; clock: VisualClock; aim: Ai
    const anchors = course.anchors;
    const time = useGameTime();
    const balloons = useMemo(() => anchors.map((a, i) => (hasBalloon(a) ? i : -1)).filter((i) => i >= 0), [anchors]);
+   const camera = useThree((st) => st.camera);
    const place = (i: number, out: { x: number; y: number; z: number }) => anchorAt(anchors[i], clock.ms, run.fallMs, out);
    /** a ring that cannot be hooked any more: a snapped cracked ring, a hull ring the drones cut */
    const gone = (i: number) => run.ringBroken[i] === 1 || (anchors[i].cut && !!run.boss && run.boss.phase >= 1);
@@ -198,6 +199,7 @@ function Rings({ run, clock, aim }: { run: SwingRun; clock: VisualClock; aim: Ai
             tinted
             update={(i, m, color) => {
                const a = anchors[i];
+               if (!a) return false;
                if (a.kind === "drone" && (!run.boss || run.boss.phase !== 1)) return false;
                place(i, P);
                let y = P.y;
@@ -230,7 +232,7 @@ function Rings({ run, clock, aim }: { run: SwingRun; clock: VisualClock; aim: Ai
             count={balloons.length}
             update={(k, m) => {
                const i = balloons[k];
-               if (gone(i)) return false;
+               if (i === undefined || gone(i)) return false;
                place(i, P);
                const len = anchors[i].kind === "ship" ? RING_DROP + 0.6 : RING_DROP;
                m.makeScale(1, len, 1).setPosition(P.x, P.y + RING_R + len / 2, P.z);
@@ -245,6 +247,7 @@ function Rings({ run, clock, aim }: { run: SwingRun; clock: VisualClock; aim: Ai
             update={(k, m) => {
                const i = balloons[k];
                const a = anchors[i];
+               if (!a) return false;
                place(i, P);
                const ship = a.kind === "ship";
                const h = ship ? SHIP_HEIGHT : BALLOON_HEIGHT;
@@ -255,6 +258,9 @@ function Rings({ run, clock, aim }: { run: SwingRun; clock: VisualClock; aim: Ai
                if (run.ringBroken[i]) lift = Math.min(40, Math.max(0, clock.ms - run.hero.hookAt - a.crackMs) / 1000 * 3);
                if (a.cut && run.boss && run.boss.phase >= 1) return false;
                const bob = Math.sin(time.now * 0.9 + i * 1.7) * 0.05;
+               // a balloon right on the camera would fill the screen: it steps out of the shot
+               const by = P.y + RING_R + drop + h * 0.6;
+               if (Math.hypot(camera.position.x - P.x, camera.position.y - by, camera.position.z - P.z) < h * 1.1) return false;
                m.makeRotationY(i * 1.3).scale(DIR.set(s, s, s)).setPosition(P.x, P.y + RING_R + drop + bob + lift, P.z);
             }}
          />
@@ -278,12 +284,12 @@ function Windmills({ run, clock }: { run: SwingRun; clock: VisualClock }) {
          {blades.map((a, i) => (
             <group key={i} position={[a.hubX, a.hubY, a.hubZ]}>
                {/* the mast behind the rotor, down to the island in the clouds */}
-               <mesh position={[0, -9, -1.4]}>
+               <mesh position={[0, -9, -3.4]}>
                   <cylinderGeometry args={[0.45, 0.8, 18, 10]} />
                   <meshStandardMaterial color="#d8c3a0" roughness={0.75} />
                </mesh>
-               <mesh position={[0, 0, -0.7]} rotation={[Math.PI / 2, 0, 0]}>
-                  <cylinderGeometry args={[0.22, 0.22, 1.6, 8]} />
+               <mesh position={[0, 0, -1.7]} rotation={[Math.PI / 2, 0, 0]}>
+                  <cylinderGeometry args={[0.22, 0.22, 3.6, 8]} />
                   <meshStandardMaterial color="#6b4a2e" roughness={0.6} metalness={0.2} />
                </mesh>
                <group ref={(g) => { rotors.current[i] = g; }}>
@@ -304,7 +310,7 @@ function Windmills({ run, clock }: { run: SwingRun; clock: VisualClock }) {
                      </group>
                   ))}
                </group>
-               <group position={[0, -19, -1.4]} scale={mill}>
+               <group position={[0, -19, -3.4]} scale={mill}>
                   <Model asset={ASSETS.windmill} />
                </group>
             </group>
@@ -423,8 +429,8 @@ function Orbs({ run, clock, map, fog, aim }: { run: SwingRun; clock: VisualClock
             count={orbs.length}
             tinted
             update={(i, m, color) => {
-               if (run.collected[i]) return false;
                const o = orbs[i];
+               if (!o || run.collected[i]) return false;
                const bob = Math.sin(time.now * 2.4 + i) * 0.12;
                m.makeRotationY(time.now * 2 + i).scale(DIR.set(1, 1.25, 1)).setPosition(o.x, o.y + bob, o.z);
                color.copy(tints[i]);
@@ -538,23 +544,40 @@ function Blocks({ run, clock }: { run: SwingRun; clock: VisualClock }) {
             const d = b.z1 - b.z0;
             const c: [number, number, number] = [(b.x0 + b.x1) / 2, (b.y0 + b.y1) / 2, (b.z0 + b.z1) / 2];
             if (b.kind === "wall") {
+               // a hull bulkhead: planks in two tones, a gold cap and frame, iron bands with rivets
+               const rows = Math.max(3, Math.round(h / 0.75));
+               const ph = h / rows;
                return (
                   <group key={i} position={c}>
-                     <mesh>
-                        <boxGeometry args={[w, h, d]} />
-                        <meshStandardMaterial color={COLORS.hull} roughness={0.85} />
-                     </mesh>
-                     {[-1, 1].map((s) => (
-                        <mesh key={s} position={[(s * w) / 2, 0, 0]}>
-                           <boxGeometry args={[0.18, h + 0.1, d + 0.2]} />
-                           <meshStandardMaterial color={COLORS.hullTrim} roughness={0.5} metalness={0.4} />
+                     {Array.from({ length: rows }, (_, k) => (
+                        <mesh key={`p${k}`} position={[0, -h / 2 + ph * (k + 0.5), 0]}>
+                           <boxGeometry args={[w - 0.08, ph - 0.05, d]} />
+                           <meshStandardMaterial color={k % 2 ? COLORS.hull : "#8a6440"} roughness={0.85} />
                         </mesh>
                      ))}
-                     {Array.from({ length: Math.floor(h / 0.9) }, (_, k) => (
-                        <mesh key={`p${k}`} position={[0, -h / 2 + 0.45 + k * 0.9, 0]}>
-                           <boxGeometry args={[w + 0.04, 0.06, d + 0.04]} />
-                           <meshStandardMaterial color={COLORS.hullDark} roughness={0.9} />
+                     {[-1, 1].map((s) => (
+                        <mesh key={`s${s}`} position={[0, 0, (s * d) / 2]}>
+                           <boxGeometry args={[w + 0.12, h + 0.12, 0.16]} />
+                           <meshStandardMaterial color={COLORS.hullDark} roughness={0.8} />
                         </mesh>
+                     ))}
+                     <mesh position={[0, h / 2 + 0.12, 0]}>
+                        <boxGeometry args={[w + 0.3, 0.24, d + 0.3]} />
+                        <meshStandardMaterial color={COLORS.hullTrim} roughness={0.4} metalness={0.55} />
+                     </mesh>
+                     {[0.28, 0.72].map((f) => (
+                        <group key={`b${f}`} position={[0, -h / 2 + h * f, 0]}>
+                           <mesh>
+                              <boxGeometry args={[w + 0.06, 0.16, d + 0.06]} />
+                              <meshStandardMaterial color="#3b3f4a" roughness={0.4} metalness={0.7} />
+                           </mesh>
+                           {[-0.3, 0, 0.3].map((t) => (
+                              <mesh key={t} position={[-w / 2 - 0.04, 0, t * d]}>
+                                 <sphereGeometry args={[0.07, 6, 4]} />
+                                 <meshStandardMaterial color="#cbd5e1" roughness={0.3} metalness={0.8} />
+                              </mesh>
+                           ))}
+                        </group>
                      ))}
                   </group>
                );
@@ -583,6 +606,7 @@ function Blocks({ run, clock }: { run: SwingRun; clock: VisualClock }) {
             count={crates.length}
             update={(k, m) => {
                const c = crates[k];
+               if (!c) return false;
                const at = smashedAt.current[c.block];
                let x = c.x;
                let y = c.y;

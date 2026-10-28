@@ -85,8 +85,8 @@ export default function MultiScene() {
    const fog = useMemo(() => ({ color: look.fog[0], near: look.fog[1], far: look.fog[2] }), [look]);
    return (
       <JuiceLayer>
-         <World course={multi.runs[0].course} level={levelId} clock={clock} />
-         <Docks run={multi.runs[0]} clock={clock} aim={aim} fog={fog} />
+         <World key={`w${levelId}`} course={multi.runs[0].course} level={levelId} clock={clock} />
+         <Docks key={`d${levelId}`} run={multi.runs[0]} clock={clock} aim={aim} fog={fog} />
          {multi.runs[0].course.boss ? <Galleon run={multi.runs[0]} clock={clock} /> : null}
          {multi.runs.map((run, i) => (
             <Rope key={`r${i}`} run={run} clock={clock} hand={hands[i]} />

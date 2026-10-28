@@ -237,7 +237,8 @@ class Build {
       this.x += gap;
       this.y = this.base + dy;
       const i = this.island(this.x, this.y, 0, r, "rest", true);
-      this.orb(this.x, this.y + 1.2, 0);
+      // on the arrival side of the deck, so it never hides a hero standing in the middle
+      this.orb(this.x - Math.min(1.8, r * 0.4), this.y + 1.1, 0);
       return i;
    }
 
