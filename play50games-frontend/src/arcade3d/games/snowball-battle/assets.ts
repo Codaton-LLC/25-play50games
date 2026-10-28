@@ -91,12 +91,41 @@ export const SNOWMAN_BIG_SPOTS: readonly VillageSpot[] = [
    { x: 4.2, y: 0, z: -10.6, rotY: -1.9 },
 ];
 
+/** snowFort.glb (Menu 1 adoption, 3000 tris) raw bounds: a low snow wall, feet on y = 0, centred. */
+export const SNOW_FORT_GLB = { width: 1.89, height: 0.399, depth: 1.759 } as const;
+/** Drawn 3.2 m long (about 0.67 m tall): spectator forts built beside the yard, outside the fence. */
+export const SNOW_FORT_WIDTH = 3.2;
+export const SNOW_FORT_SCALE = SNOW_FORT_WIDTH / SNOW_FORT_GLB.width;
+export const SNOW_FORT_DRAWN = {
+   width: SNOW_FORT_WIDTH,
+   height: SNOW_FORT_GLB.height * SNOW_FORT_SCALE,
+   depth: SNOW_FORT_GLB.depth * SNOW_FORT_SCALE,
+} as const;
+const snowFort: ModelAsset = {
+   id: "snowFort",
+   url: "/models/3d/snowball-battle/snowFort.glb",
+   scale: SNOW_FORT_SCALE,
+   fallback: "box",
+   fallbackColor: "#e2e8f0",
+   budget: { ...PROP_BUDGET },
+};
+/** Side forts beyond both long fences (every level), turned so their long face runs along z. */
+export const SNOW_FORT_SPOTS: readonly VillageSpot[] = [
+   { x: -14.9, y: 0, z: -5, rotY: Math.PI / 2 },
+   { x: -14.9, y: 0, z: 1, rotY: Math.PI / 2 + 0.1 },
+   { x: -14.9, y: 0, z: 6.5, rotY: Math.PI / 2 - 0.1 },
+   { x: 14.9, y: 0, z: -4, rotY: Math.PI / 2 - 0.1 },
+   { x: 14.9, y: 0, z: 2, rotY: Math.PI / 2 },
+   { x: 14.9, y: 0, z: 7, rotY: Math.PI / 2 + 0.1 },
+];
+
 export const ASSETS = {
    kid: EXPANSION_CHARACTERS.snowKid,
    pine: EXPANSION_ASSETS.pineTree,
    snowman,
    igloo,
    snowmanBig,
+   snowFort,
 } as const;
 
 export const KID_SCALE = ASSETS.kid.scale ?? 1;
