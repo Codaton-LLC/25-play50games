@@ -9,6 +9,7 @@ import { useMiniGolfLevel } from "./level";
 import { PARS } from "./course";
 import { HUD_FEED } from "./hudFeed";
 import styles from "./Hud.module.css";
+import CameraViewButton from "@/arcade3d/core/camera/CameraViewButton";
 
 function Card() {
    const stats = useArcadeStore((s) => s.stats);
@@ -31,7 +32,7 @@ function Card() {
    );
 }
 
-export default function MiniGolfHud() {
+function GameHud() {
    const fill = useRef<HTMLSpanElement>(null);
    const value = useRef<HTMLSpanElement>(null);
    const timeLeft = useArcadeStore((s) => s.stats.timeLeft);
@@ -67,6 +68,16 @@ export default function MiniGolfHud() {
                Time left {Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, "0")}
             </div>
          )}
+      </>
+   );
+}
+
+/** The game's HUD plus the core 📷 camera-view button (core/camera). */
+export default function MiniGolfHud() {
+   return (
+      <>
+         <CameraViewButton />
+         <GameHud />
       </>
    );
 }
