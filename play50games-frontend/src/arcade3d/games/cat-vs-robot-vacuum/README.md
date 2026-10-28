@@ -60,6 +60,10 @@ Adopted (copied into `public/models/3d`, listed in `modelManifest.ts`, fits in `
 - The goal: a HUD pill ("Eat the gold fish, dodge red" -> "All fish! Nap on the bed"), an edge arrow to the nearest treat and then to the bed.
 - Camera: a 5.3 x 7 m window (was 6 x 9), a closer start on a portrait phone, and the player zoom (wheel, pinch, + / -, `core/useCameraZoom`).
 
+## Camera views (2026-10-28, `kimi/cam-views-cat-dog`)
+
+Core camera views (`core/camera`, adoption in `Scene.tsx` / `Hud.tsx`): 📷 or **C** cycles Classic (the fitted follow camera) / Chase / Front / Top / Free; drag looks around; V recenters. The rules get the drawn camera's yaw (`cam.yaw()`), so WASD / the stick stay screen-relative in every view; bots and proofs are unchanged. Furniture, clutter and the house walls are camera solids; the top view is framed closer (12 m) for the narrow hall and stays inside the fog (22–60 m). On a win the cat turns to face the drawn camera (was the fitted south camera).
+
 ## Known issues
 
 - No playtest yet (gate fork: no build or screenshots). To check: the cat and vacuum facing, the turned sofa / table / shelf facing the lane, the shelf squashed to 1.15 m (stretch 0.70), the bed narrowed to 1.2 m (stretch 0.76), draw calls (estimate ~30, cap 45).

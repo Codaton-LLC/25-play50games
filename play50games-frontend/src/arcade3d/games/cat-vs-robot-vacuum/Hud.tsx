@@ -1,10 +1,11 @@
 "use client";
 
+import CameraViewButton from "@/arcade3d/core/camera/CameraViewButton";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import styles from "./Hud.module.css";
 
 /** The goal right now and the hop state. Treats and the score are the shell's chips; this is not a second clock. */
-export default function Hud() {
+function GameHud() {
    const ready = useArcadeStore((s) => (s.stats.hop ?? 1) > 0);
    const bed = useArcadeStore((s) => (s.stats.goal ?? 0) === 1);
    return (
@@ -12,5 +13,16 @@ export default function Hud() {
          <span className={bed ? styles.goalBed : styles.goal}>{bed ? "All fish! Nap on the bed" : "Eat the gold fish, dodge red"}</span>
          <span className={ready ? styles.ready : styles.cooling}>{ready ? "Hop ready" : "Hop..."}</span>
       </div>
+   );
+}
+
+/** The game's HUD plus the core 📷 camera-view button (core/camera). The goal panel is top-right,
+ * the button bottom-right above the touch Hop, so they never overlap (390 x 844 checked). */
+export default function Hud() {
+   return (
+      <>
+         <CameraViewButton />
+         <GameHud />
+      </>
    );
 }

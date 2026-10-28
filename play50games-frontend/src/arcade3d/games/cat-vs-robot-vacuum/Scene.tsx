@@ -7,6 +7,8 @@ import { BoxGeometry, CircleGeometry, Euler, Matrix4, MeshStandardMaterial, Quat
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 import { DynamicInstancedModel, InstancedModel } from "@/arcade3d/core/assets";
 import CameraRig from "@/arcade3d/core/CameraRig";
+import { useCameraViews } from "@/arcade3d/core/camera/CameraViews";
+import type { AABB } from "@/arcade3d/core/collision";
 import { playSfx, startLoop, type LoopHandle } from "@/arcade3d/core/audio";
 import { FRAME_PRIORITY } from "@/arcade3d/core/frameLoop";
 import { useFx } from "@/arcade3d/core/fx";
@@ -25,7 +27,7 @@ import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { ASSETS, CAT_LANDMARKS } from "./assets";
 import type { CatLevel } from "./levels";
-import { COLORS, DAMPING, FOV, LOOK_AHEAD, ZOOM, aimBounds, decorSpots, lookAtFor, viewFor } from "./looks";
+import { COLORS, DAMPING, FOV, LOOK_AHEAD, ZOOM, aimBounds, decorSpots, lookAtFor, outerWallSpots, viewFor, wallSpots } from "./looks";
 import { useCameraZoom } from "@/arcade3d/core/useCameraZoom";
 import { House } from "./House";
 import { CatFigure, disposeParts, toyParts, treatParts, vacuumParts } from "./Primitives";
@@ -120,6 +122,47 @@ function LevelScene() {
    const decor = useMemo(() => decorSpots(id), [id]);
    const phase = useArcadeStore((s) => s.phase);
    const look = useMemo(() => lookAtFor(config), [config]);
+   const walls = useMemo(() => wallSpots(config).body, [config]);
+   const outerWalls = useMemo(() => outerWallSpots(config).body, [config]);
+   // camera views (core/camera): the rules get the drawn camera's yaw; furniture, clutter and the
+   // house walls pull the chase / front / free camera in front of them (the top view looks over them)
+   const cam = useCameraViews({
+      slug: "cat-vs-robot-vacuum",
+      subject: "character",
+      steering: "camera",
+      defaultYaw: view.yaw,
+      target: (o) => {
+         const c = run.cat;
+         o.x = c.x;
+         o.y = 0.3;
+         o.z = c.z;
+         o.heading = c.yaw;
+         o.vx = c.vx;
+         o.vz = c.vz;
+      },
+      solids: (out: AABB[]) => {
+         let n = 0;
+         const put = (x: number, z: number, hx: number, hz: number, h: number) => {
+            if (n >= out.length) return;
+            const b = out[n++];
+            b.min.x = x - hx;
+            b.max.x = x + hx;
+            b.min.y = 0;
+            b.max.y = h;
+            b.min.z = z - hz;
+            b.max.z = z + hz;
+         };
+         const putBox = (box: AABB) => {
+            put((box.min.x + box.max.x) / 2, (box.min.z + box.max.z) / 2, (box.max.x - box.min.x) / 2, (box.max.z - box.min.z) / 2, box.max.y);
+         };
+         for (const f of run.furniture) putBox(f.box);
+         for (const c of run.clutter) putBox(c);
+         for (const w of walls) put(w.x, w.z, (w.sx ?? 1) / 2, (w.sz ?? 1) / 2, w.sy ?? 1);
+         for (const w of outerWalls) put(w.x, w.z, (w.sx ?? 1) / 2, (w.sz ?? 1) / 2, w.sy ?? 1);
+         return n;
+      },
+      framing: { top: { distance: 12 } },
+   });
    const clutter = useMemo(() => run.clutter.map((box) => ({
       x: (box.min.x + box.max.x) / 2,
       y: CLUTTER_H / 2,
@@ -174,7 +217,7 @@ function LevelScene() {
    useRunFrame((_state, dt) => {
       const { moveX, moveY, jumpPressed } = input.current;
       const store = useArcadeStore.getState();
-      const ev = step(run, { moveX, moveY, jumpPressed, yaw: view.yaw }, dt, store.timeLeftMs ?? 0);
+      const ev = step(run, { moveX, moveY, jumpPressed, yaw: cam.yaw() }, dt, store.timeLeftMs ?? 0);
       // score, lives (the shell ends "lose" at 0), the win and the HUD stats, written only on a change
       syncStore(run, ev, useArcadeStore);
       aim.x = run.cat.x + Math.sin(run.cat.yaw) * LOOK_AHEAD;
@@ -246,7 +289,7 @@ function LevelScene() {
       blendQuadrupedPoses(idlePose, gaitPose, smooth01(0.05, 0.5, speed), p);
    });
 
-   useFrame(() => {
+   useFrame(({ camera: drawn }) => {
       const group = body.current;
       const cat = run.cat;
       const a = anim.current;
@@ -262,7 +305,7 @@ function LevelScene() {
          x = a.fromX + (run.home.x - a.fromX) * e;
          z = a.fromZ + (run.home.z - a.fromZ) * e;
          y = BED_TOP * e + Math.sin(Math.PI * t) * 0.35;
-         const face = Math.atan2(view.offset[0], view.offset[2]);
+         const face = Math.atan2(drawn.position.x - x, drawn.position.z - z);
          yaw = a.fromYaw + wrapAngle(face - a.fromYaw) * e;
       } else if (cat.hop > 0) {
          y = hopOffset(Math.PI * (1 - cat.hop / HOP_S), HOP_H, BODY).y;
