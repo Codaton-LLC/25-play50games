@@ -155,7 +155,12 @@ function LevelScene() {
    const guideCode = useRef(-1);
    const shownAction = useRef<Cue["action"]>(null);
    const [beaconAction, setBeaconAction] = useState<Cue["action"]>(null);
-   useEffect(() => () => GUIDE.reset(), []);
+   useEffect(() => {
+      // the opening hint is up from the countdown on
+      GUIDE.set(cueHint(cueCode(run, nextCue(run, cue)), touch));
+      return () => GUIDE.reset();
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+   }, [run]);
 
    const track = useMemo(() => trackSpots(run), [run]);
    const gates = useMemo(() => gateSpots(run), [run]);
