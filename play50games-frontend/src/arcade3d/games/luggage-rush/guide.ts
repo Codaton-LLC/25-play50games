@@ -86,7 +86,7 @@ export function hintFor(goal: Goal, touch: boolean): HintState {
    const name = FLIGHT_NAMES[goal.flight];
    if (goal.kind === "flip") {
       const how = touch ? `Tap diverter ${goal.diverter + 1}` : `Press ${DIVERTER_KEYS[goal.diverter]} (diverter ${goal.diverter + 1})`;
-      return { text: `${how}: the ${name} bag needs another way`, key: `flip-${goal.diverter}-${goal.flight}`, tone: "warn" };
+      return { text: `${how}: the ${name} bag needs another way`, key: `flip-${goal.diverter}-${goal.flight}`, tone: "info" };
    }
    return { text: `Route set: the ${name} bag rides to chute ${goal.flight + 1} (arrow)`, key: `chute-${goal.flight}`, tone: "ready" };
 }
