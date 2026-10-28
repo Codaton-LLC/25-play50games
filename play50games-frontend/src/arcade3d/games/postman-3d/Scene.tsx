@@ -231,9 +231,24 @@ const Q = new Quaternion();
 const E = new Euler();
 const S = new Vector3(1, 1, 1);
 const HOP: BodyOffset = { y: 0, roll: 0, yaw: 0, squash: 1 };
-/** The houses near the postman as camera solids (core camera views pull the camera in front of them). */
+/** The post office, the van and the houses near the postman as camera solids (core camera views pull the camera in front of them). */
 function houseSolids(run: Run, out: AABB[]): number {
-   let n = 0;
+   // the post office and the van first, then the houses within 30 m
+   const office = out[0];
+   office.min.x = OFFICE_BOX.x - OFFICE_BOX.hx;
+   office.max.x = OFFICE_BOX.x + OFFICE_BOX.hx;
+   office.min.y = 0;
+   office.max.y = OFFICE_HEIGHT;
+   office.min.z = OFFICE_BOX.z - OFFICE_BOX.hz;
+   office.max.z = OFFICE_BOX.z + OFFICE_BOX.hz;
+   const van = out[1];
+   van.min.x = VAN_BOX.minX;
+   van.max.x = VAN_BOX.maxX;
+   van.min.y = 0;
+   van.max.y = 2.2;
+   van.min.z = VAN_BOX.minZ;
+   van.max.z = VAN_BOX.maxZ;
+   let n = 2;
    for (const h of run.houses) {
       if (n >= out.length) break;
       if (Math.abs(h.x - run.hero.x) > 30 || Math.abs(h.z - run.hero.z) > 30) continue;
@@ -247,8 +262,9 @@ function houseSolids(run: Run, out: AABB[]): number {
    }
    return n;
 }
-/** how tall a house blocks the camera (m) */
+/** how tall a house / the post office blocks the camera (m) */
 const HOUSE_HEIGHT = 3.6;
+const OFFICE_HEIGHT = 4.2;
 
 const DOG_TINTS = [new Color("#ffffff"), new Color("#fde68a"), new Color("#a8a29e")];
 
