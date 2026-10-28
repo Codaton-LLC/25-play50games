@@ -348,12 +348,12 @@ function wideRings(c: Draft): void {
    const b1 = [ring(c, 0, t - 16, 12, 5), ring(c, 0, t - 30, 9, 5), ring(c, 0, t - 44, 6, 5), ring(c, 0, t - 58, 3, 5), ring(c, 0, t - 72, 0, 5)];
    for (let k = 0; k + 1 < b1.length; k++) trailBetween(c, b1[k], b1[k + 1], 1);
    // beat 2: offset sideways, steer (an orb trail shows the line)
-   const b2 = [ring(c, 5, t - 92, 2, 4.2), ring(c, -4, t - 112, -3, 4.2), ring(c, 4, t - 132, -7, 4), ring(c, -5, t - 152, -2, 4), ring(c, 3, t - 172, 4, 4)];
+   const b2 = [ring(c, 4, t - 92, 2, 4.2), ring(c, -3, t - 114, -2, 4.2), ring(c, 3, t - 136, -6, 4), ring(c, -4, t - 158, -2, 4), ring(c, 2, t - 180, 3, 4)];
    trailBetween(c, b1[b1.length - 1], b2[0], 1);
    for (let k = 0; k + 1 < b2.length; k++) trailBetween(c, b2[k], b2[k + 1], 2);
    // beat 3: a gap with orbs straight down (diving keeps pace), then the closing trio, then the wide pad
-   c.trioY = t - 184;
-   orbLine(c, 3, t - 176, 4, 0, t - 268, 0, 5);
+   c.trioY = t - 190;
+   orbLine(c, 2, t - 184, 3, 0, t - 268, 0, 5);
    ring(c, 0, t - 272, 0, 5.2, { closeMs: 4300 });
    ring(c, 0, t - 281, 0, 5.2, { closeMs: 4600 });
    ring(c, 0, t - 290, 0, 5.2, { closeMs: 4900 });
@@ -374,24 +374,27 @@ function wideRings(c: Draft): void {
 function movingRings(c: Draft): void {
    const t = c.top;
    ring(c, 0, t - 16, 11, 4.8);
-   // section A: rings sliding side to side
+   orbLine(c, 0, t - 16, 11, 0, t - 34, 6, 2);
+   // section A: rings sliding side to side (no orbs between them: you aim at the ring, not a trail)
    for (let k = 0; k < 6; k++) {
       const y = t - 34 - k * 18;
       ring(c, 0, y, 6 - k * 2, 4.2, { motion: slide(4, 0.6, k * 0.8) });
-      orb(c, 0, y - 9, 5 - k * 2);
    }
+   // a still interlude: three orbs down the middle before the orbiting rings
+   orbLine(c, 0, t - 130, -4, 0, t - 146, 0, 3);
    // section B: rings orbiting the axis
    for (let k = 0; k < 7; k++) {
       const y = t - 146 - k * 15;
       ring(c, 0, y, 0, 3.9, { motion: orbit(6, 0.4, k * 0.6) });
    }
+   // the second interlude: back to the axis for three orbs
+   orbLine(c, 0, t - 240, 0, 0, t - 262, 0, 3);
    // section C: pairs, z slides and tight orbits round offset centres
    for (let k = 0; k < 8; k++) {
-      const y = t - 258 - k * 16;
+      const y = t - 266 - k * 16;
       const cx = k % 2 === 0 ? 2.5 : -2.5;
       if (k % 3 === 2) ring(c, cx, y, -1, 3.6, { motion: orbit(2.5, 1, k) });
       else ring(c, cx, y, 0, 3.6, { motion: slide(3, 0.8, k * 0.7, 0, 1) });
-      orb(c, cx * 0.5, y - 6.5, 0);
    }
    orbLine(c, 0, t - 380, 0, 0, PAD_TOP + 2, 0, 3);
    goldNiche(c, 135, t - 190);
@@ -492,8 +495,9 @@ function perfectStreak(c: Draft): void {
    ring(c, 0, t - 16, 12, 4.6);
    for (let k = 0; k < 4; k++) {
       ring(c, 0, t - 32 - k * 16, 4 - k * 2, 4, { motion: slide(3.5, 0.7, k * 0.9) });
-      orb(c, 0, t - 40 - k * 16, 3 - k * 2);
    }
+   orbLine(c, 0, t - 16, 12, 0, t - 32, 4, 2);
+   orbLine(c, 0, t - 84, -4, 0, t - 100, -4, 2);
    const u = updraft(c, 200, 9, t - 140, t - 100);
    for (let k = 0; k < 4; k++) {
       ring(c, u.x + polarX(k * 90, 2), u.y1 - 4 - k * 9, u.z + polarZ(k * 90, 2), 2.6);

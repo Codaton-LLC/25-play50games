@@ -306,7 +306,7 @@ describe("landing", () => {
    it("a landing pays the landing and the speed bonus (20 points a second under par)", () => {
       const c = courseFor(1);
       const run = falling(1, c.pad.x, c.pad.y + 1, c.pad.z);
-      run.simMs = 20_000;
+      run.simMs = 10_000;
       hold(run, 200, createStepInput());
       expect(run.parts.landing).toBe(PTS.bull);
       expect(run.timeBonus).toBe(timeBonusFor(c, run.finishMs));
@@ -497,11 +497,11 @@ describe("the bound (README 'Server limits')", () => {
 
 /** maxScore, minDurationMs, maxDurationMs, maxPointsPerSec per level (README "Server limits"). */
 const PINNED = [
-   [9801, 6100, 91000, 1607],
-   [12895, 7800, 101000, 1654],
-   [17935, 9700, 121000, 1849],
-   [14953, 11300, 131000, 1324],
-   [16728, 33500, 221000, 500],
+   [9421, 6100, 91000, 1545],
+   [11935, 7800, 101000, 1531],
+   [17755, 9700, 121000, 1831],
+   [14353, 11300, 131000, 1271],
+   [16228, 33500, 221000, 485],
 ];
 
 describe("bots (README 'What the bots reached')", () => {

@@ -989,18 +989,18 @@
     "ring-jump-challenge": {
       "title": "Ring Jump Challenge",
       "kind": "points",
-      "max_score": 9801,
+      "max_score": 9421,
       "min_duration_ms": 6100,
       "max_duration_ms": 91000,
       "base": 0,
-      "max_pps": 1607,
+      "max_pps": 1545,
       "enabled": false,
       "levels": [
-        { "title": "Wide Rings", "max_score": 9801, "min_duration_ms": 6100, "max_duration_ms": 91000, "base": 0, "max_pps": 1607 },
-        { "title": "Moving Rings", "max_score": 12895, "min_duration_ms": 7800, "max_duration_ms": 101000, "base": 0, "max_pps": 1654 },
-        { "title": "Updraft Rings", "max_score": 17935, "min_duration_ms": 9700, "max_duration_ms": 121000, "base": 0, "max_pps": 1849 },
-        { "title": "Fast Route", "max_score": 14953, "min_duration_ms": 11300, "max_duration_ms": 131000, "base": 0, "max_pps": 1324 },
-        { "title": "Perfect Streak", "max_score": 16728, "min_duration_ms": 33500, "max_duration_ms": 221000, "base": 0, "max_pps": 500 }
+        { "title": "Wide Rings", "max_score": 9421, "min_duration_ms": 6100, "max_duration_ms": 91000, "base": 0, "max_pps": 1545 },
+        { "title": "Moving Rings", "max_score": 11935, "min_duration_ms": 7800, "max_duration_ms": 101000, "base": 0, "max_pps": 1531 },
+        { "title": "Updraft Rings", "max_score": 17755, "min_duration_ms": 9700, "max_duration_ms": 121000, "base": 0, "max_pps": 1831 },
+        { "title": "Fast Route", "max_score": 14353, "min_duration_ms": 11300, "max_duration_ms": 131000, "base": 0, "max_pps": 1271 },
+        { "title": "Perfect Streak", "max_score": 16228, "min_duration_ms": 33500, "max_duration_ms": 221000, "base": 0, "max_pps": 485 }
       ]
     }
   }

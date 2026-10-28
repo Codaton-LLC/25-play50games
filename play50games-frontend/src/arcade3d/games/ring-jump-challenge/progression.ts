@@ -17,7 +17,7 @@ export const COMBO: ComboConfig = { windowMs: 2500, gain: 0.25, cap: 3 };
  */
 export const COMBO_BASE = { ring: 60, orb: 20 } as const;
 
-/** The third star: land at or under the level's par time (the card's 35 / 45 / 55 / 60 / 110 s). */
+/** The third star: land at or under the level's par time (README "Stars": a little slower than the honest bot, which dives where it is lined up). */
 export function starSpecFor(level: LevelId, orbTotal: number): StarSpec {
    return { orbTotal, goal: { kind: "time", targetMs: LEVELS[level].parMs } };
 }

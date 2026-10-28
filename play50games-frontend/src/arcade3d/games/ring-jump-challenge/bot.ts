@@ -104,7 +104,7 @@ export function botInput(bot: Bot, run: RingRun, input: StepInput): void {
          z = o.z;
       }
       let d = Math.hypot(x - h.x, z - h.z);
-      const reach = STEER_SPREAD * Math.max(0, t - 0.15);
+      const reach = STEER_SPREAD * t;
       if (id >= 0 && d > reach) {
          // the centre is too far: any point well inside the ring still threads it
          const r = c.rings[id].r * 0.6;
