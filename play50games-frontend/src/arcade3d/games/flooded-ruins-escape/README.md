@@ -34,6 +34,7 @@ the cloud sea. Here you gain height by flooding a chamber, and the question is a
 | `rules.ts` | pure rules: the water's closed forms, movement, swimming and air, levers, the tide, hazards, powers, the boss, the lower bound and `PROPOSED_LEVEL_LIMITS` |
 | `bot.ts` | the honest bot (tests, and `?autoplay=1` on preview builds) |
 | `camera.ts`, `Scene.tsx`, `MultiScene.tsx`, `Course.tsx`, `World.tsx`, `Hero.tsx`, `Hud.tsx`, `StarResult.tsx`, `levelEnd.ts`, `multiplayer.ts` | the orbit camera and intro, the simulation and juice, the drawn temple, the hero, the HUD, stars and progress, local multiplayer |
+| `Water.tsx`, `waterLook.ts` | the water (look only): one shader for every surface (a small swell, two scrolling ripple normal samples, fresnel to the sky, a sun / moon glint, foam along a chamber's walls or, for the tide, from a canvas mask of the blocks it meets at its height), a body darker with depth, bubbles round a swimming hero, a teal tint while the camera is under a surface. Phones (water quality below "full") drop the swell and the second ripple layer and use a 512 px foam mask |
 | `rules.test.ts` | mechanics, the hand-off, the lower bound, the pinned limits, honest, idle and spam bots, the real store, the camera-relative stick |
 | `powers.test.ts` | the five hero roles, and one press with one timing |
 | `layouts.test.ts` | FLOOD, not bounce or glide: the card's twist on each level, and the hero features per level |
@@ -153,7 +154,11 @@ the group, and every player's stick gets its yaw. The storm tide is shared too (
 
 `OrbitCamera` in solo, `OrbitDriver` + `SharedCamera` in multiplayer. The pivot is the hero plus a fixed 1.2 m
 lead towards -z, held while falling (`orbitPivot`). The solids come from `solidBoxes` (every block where it is now: crates at
-their water, broken brick left out). The intro ends on the orbit's first pose (`camera.ts` `playCamera`).
+their water, broken brick left out). A hero against a wall is inside the camera's 0.35 m margin of it, so
+the cast tests the wall itself there (`orbitCollision.ts`): a turn towards it stops at its face. In a narrow
+trench the wall can be nearer than minDistance (1.6 m); `squeeze: 0.3` lets the camera come right up to it
+instead of sitting inside the stone, and `Course.tsx` fades any block still between the camera and the hero
+(or round the camera) to faint stone. The intro ends on the orbit's first pose (`camera.ts` `playCamera`).
 `OrbitHud` gives the touch recenter button and the first-time hint.
 
 ## Models
@@ -164,6 +169,9 @@ Hyper3D props in `public/models/3d/flooded-ruins-escape/`:
 - the floating crates, `m2FlyingCrate`.
 
 From `public/models/3d/menu2/`: the boss `m2ShadowArmadillo`, the cave bats `m2CaveBat`, and the heroes.
+Chamber floors, walls and the bodies under the ledges stay code boxes (instanced, one draw call per set) with a
+canvas flagstone texture (`Course.tsx drawStone` through core `useCanvasTexture`: three slab tones, dark grout,
+worn rims and chipped corners, cracks, moss in the grout), mapped in world space so a long wall never stretches it.
 `assets.test.ts` fits every GLB to its measured bounds, and `core/modelManifest.ts` lists every url.
 
 ## Open issues

@@ -8,7 +8,10 @@ import type { AABB } from "@/arcade3d/core/collision";
 /**
  * Where the segment from (ox, oy, oz) along the unit direction (dx, dy, dz) for `length` m first
  * enters `box` grown by `radius`: the distance along it (0..length), or -1 for no hit. A segment that
- * starts inside the grown box does not count (the hero stands next to that box: it cannot block).
+ * starts inside the box itself does not count (the pivot is in the stone: nothing to pull in front
+ * of). One that starts only inside the grown margin (the hero stands against a wall) is tested
+ * against the box itself, so a turn towards that wall still stops at its face instead of passing
+ * through it.
  */
 export function rayBoxDistance(ox: number, oy: number, oz: number, dx: number, dy: number, dz: number, length: number, box: AABB, radius: number): number {
    let tMin = 0;
@@ -62,17 +65,22 @@ export function rayBoxDistance(ox: number, oy: number, oz: number, dx: number, d
       if (b < tMax) tMax = b;
       if (tMin > tMax) return -1;
    }
-   // starts inside: tMin stayed 0 because every slab already contained the origin
+   // starts inside the grown box: tMin stayed 0 because every slab already contained the origin
    const inside = ox >= x0 && ox <= x1 && oy >= y0 && oy <= y1 && oz >= z0 && oz <= z1;
-   if (inside) return -1;
+   if (inside) return radius > 0 ? rayBoxDistance(ox, oy, oz, dx, dy, dz, length, box, 0) : -1;
    return tMin;
 }
 
 export interface ClipOptions {
    /** the camera's radius (m): how far it keeps from a surface. Default 0.3 */
    radius?: number;
-   /** never closer to the pivot than this (m). Default 1.2 */
+   /** never closer to the pivot than this (m) while that is clear. Default 1.2 */
    minDistance?: number;
+   /**
+    * When a box is nearer than minDistance (the hero against a wall in a narrow trench), the camera
+    * may come in to this (m) rather than sit inside the stone. Default minDistance (never closer).
+    */
+   squeeze?: number;
 }
 
 /**
@@ -93,13 +101,14 @@ export function clipOrbitDistance(
 ): number {
    const radius = options.radius ?? 0.3;
    const minDistance = Math.min(distance, options.minDistance ?? 1.2);
+   const squeeze = Math.min(minDistance, Math.max(0, options.squeeze ?? minDistance));
    let best = distance;
    const n = Math.min(count, boxes.length);
    for (let i = 0; i < n; i++) {
       const t = rayBoxDistance(px, py, pz, dx, dy, dz, best, boxes[i], radius);
       if (t >= 0 && t < best) best = t;
    }
-   return Math.max(minDistance, best);
+   return best >= minDistance ? best : Math.max(squeeze, best);
 }
 
 /**

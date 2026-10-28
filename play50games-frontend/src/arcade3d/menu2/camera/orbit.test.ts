@@ -164,6 +164,21 @@ describe("orbit collision", () => {
       expect(clipOrbitDistance(0, 1, 0, 0, 0, 1, 8, [wall], 0)).toBe(8);
    });
 
+   it("a hero against a wall: a turn towards it stops at its face, never inside the stone", () => {
+      // the pivot 0.2 m from the wall's face (inside its 0.35 m grown margin), the camera turned to it
+      const side: AABB = { min: { x: 0.2, y: -2, z: -6 }, max: { x: 3, y: 8, z: 6 } };
+      expect(rayBoxDistance(0, 1, 0, 1, 0, 0, 8, side, 0.35)).toBeCloseTo(0.2, 9);
+      // the old rule ignored it: the camera went 8 m into the wall
+      expect(clipOrbitDistance(0, 1, 0, 1, 0, 0, 8, [side], 1, { radius: 0.35, minDistance: 1.6 })).toBe(1.6);
+      // with a squeeze the camera comes in to it instead (the game fades what is still in front)
+      expect(clipOrbitDistance(0, 1, 0, 1, 0, 0, 8, [side], 1, { radius: 0.35, minDistance: 1.6, squeeze: 0.25 })).toBeCloseTo(0.25, 9);
+      // a clear view keeps minDistance's floor out of the way
+      expect(clipOrbitDistance(0, 1, 0, -1, 0, 0, 8, [side], 1, { radius: 0.35, minDistance: 1.6, squeeze: 0.25 })).toBe(8);
+      // a wall 1 m away: in to its face (less the radius), not to minDistance
+      const wall1: AABB = { min: { x: 1, y: -2, z: -6 }, max: { x: 3, y: 8, z: 6 } };
+      expect(clipOrbitDistance(0, 1, 0, 1, 0, 0, 8, [wall1], 1, { radius: 0.35, minDistance: 1.6, squeeze: 0.25 })).toBeCloseTo(0.65, 9);
+   });
+
    it("in at once, out slowly", () => {
       expect(stepOrbitClip(8, 3, 1 / 60)).toBe(3);
       const out = stepOrbitClip(3, 8, 1 / 60);

@@ -165,6 +165,10 @@ mesh, the sloped roof's ridge and lip on each slope, Ashback's height), `look.te
 | `Hero.tsx` | the picked hero through menu2/heroAnim (ball-roll while curled, dash, double jump), blob shadow on slopes |
 | `Hud.tsx` | shared HeroPicker, OrbitHud, roll-speed meter (red at banking speed), flow meter, Ashback's bar |
 
-Known gaps: not yet looked at on screen (the slope GLB's stretch, Ashback's facing and scale, the paint decal); Ashback shows the
+Ashback's grey paint (P2) is wet paint, not a film: a canvas decal (`Course.tsx drawPaint`) with a ragged rim, a dark glossy
+body whose roughness breathes, streaks of sheen, paint pooled and dripping off the ramp's low end, and drip strips hanging
+down both side faces (`drawPaintDrips`).
+
+Known gaps: not yet looked at on screen (the slope GLB's stretch, Ashback's facing and scale); Ashback shows the
 shared health bar with phase marks, not a distance meter; water tanks rolling down slopes outside the arena and a landing-shadow
 preview while curled are not drawn; climb steps are separate narrow buildings rather than a fire escape.

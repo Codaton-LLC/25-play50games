@@ -24,6 +24,7 @@ import type { RuinLevel } from "./levels";
 import { COMBO, UMBRA_ROLLER } from "./progression";
 import { MultiplayerHud, MultiplayerButton } from "./MultiplayerHud";
 import { BOSS_HINTS, BOSS_STEPS } from "./moments";
+import stack from "@/arcade3d/menu2/hud/HudStack.module.css";
 import styles from "./Hud.module.css";
 
 function clockText(ms: number): string {
@@ -53,7 +54,7 @@ function Boss() {
    const open = useArcadeStore((s) => BOSS_STEPS[s.stats[STAT.bossStep] ?? 0] === "vulnerable");
    const flash = useArcadeStore((s) => (s.stats[STAT.bossFlash] ?? 0) === 1);
    return (
-      <div className={styles.boss}>
+      <div className={stack.boss}>
          <BossHealthBar
             name={UMBRA_ROLLER.name}
             phaseName={UMBRA_ROLLER.phases[phase]?.name}
@@ -64,7 +65,7 @@ function Boss() {
             flash={flash}
             accent="#a78bfa"
          />
-         {hp > 0 ? <div className={styles.charges}>{BOSS_HINTS[phase] ?? ""}</div> : null}
+         {hp > 0 ? <div className={stack.hint}>{BOSS_HINTS[phase] ?? ""}</div> : null}
       </div>
    );
 }
@@ -99,7 +100,7 @@ export default function Hud() {
          {multiplayer && <MultiplayerHud />}
          {/* the orbit camera's recenter button (touch) and first-time hint (menu2/camera) */}
          <OrbitHud />
-         <div className={styles.left} data-arcade-safe-area="" style={playing ? { display: "none" } : undefined}>
+         <div className={stack.left} data-arcade-safe-area="" style={playing ? { display: "none" } : undefined}>
             <div className={styles.pill} aria-label={`Orbs ${orbs}`}>
                <span className={styles.orb} aria-hidden="true" />
                <span className={styles.value}>{orbs}</span>
@@ -117,7 +118,7 @@ export default function Hud() {
             </div>
             <ComboMeter chain={chain} multiplier={mult / 100} flow={flow / 10} cap={COMBO.cap} />
          </div>
-         <div className={styles.center} data-arcade-safe-area="">
+         <div className={stack.center} data-arcade-safe-area="">
             <div className={styles.banner}>
                <span className={styles.title}>Flooded Ruins Escape</span>
                <span className={styles.level}>

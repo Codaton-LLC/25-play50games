@@ -23,6 +23,7 @@ import ComboMeter from "@/arcade3d/menu2/combo/ComboMeter";
 
 import { MultiplayerHud, MultiplayerButton } from "./MultiplayerHud";
 import { playersStore, usePlayers } from "@/arcade3d/menu2/multiplayer/players";
+import stack from "@/arcade3d/menu2/hud/HudStack.module.css";
 import styles from "./Hud.module.css";
 
 function clockText(ms: number): string {
@@ -79,7 +80,7 @@ export default function Hud() {
          {multiplayer && <MultiplayerHud />}
          {/* the orbit camera's recenter button (touch) and first-time hint (menu2/camera) */}
          <OrbitHud />
-         <div className={styles.left} data-arcade-safe-area="" style={playing ? { display: "none" } : undefined}>
+         <div className={stack.left} data-arcade-safe-area="" style={playing ? { display: "none" } : undefined}>
             <div className={styles.pill} aria-label={`Coins ${orbs}`}>
                <span className={styles.orb} aria-hidden="true" />
                <span className={styles.value}>{orbs}</span>
@@ -106,7 +107,7 @@ export default function Hud() {
             </div>
             <ComboMeter chain={chain} multiplier={mult / 100} flow={flow / 10} cap={COMBO.cap} />
          </div>
-         <div className={styles.center} data-arcade-safe-area="">
+         <div className={stack.center} data-arcade-safe-area="">
             <div className={styles.banner}>
                <span className={styles.title}>Rooftop Roll Climb</span>
                <span className={styles.level}>
@@ -121,16 +122,18 @@ export default function Hud() {
                <span className={styles.value}>{clockText(shown)}</span>
             </div>
             {bossOn ? (
-               <BossHealthBar
-                  name={ASHBACK.name}
-                  phaseName={ASHBACK.phases[Math.min(ASHBACK.phases.length - 1, bossPhase)].name}
-                  hp={bossHp}
-                  maxHp={ASHBACK.maxHp}
-                  marks={phaseMarks(ASHBACK)}
-                  vulnerable={bossOpen}
-                  flash={bossFlash}
-                  accent="#94a3b8"
-               />
+               <div className={stack.boss}>
+                  <BossHealthBar
+                     name={ASHBACK.name}
+                     phaseName={ASHBACK.phases[Math.min(ASHBACK.phases.length - 1, bossPhase)].name}
+                     hp={bossHp}
+                     maxHp={ASHBACK.maxHp}
+                     marks={phaseMarks(ASHBACK)}
+                     vulnerable={bossOpen}
+                     flash={bossFlash}
+                     accent="#94a3b8"
+                  />
+               </div>
             ) : null}
          </div>
       </>

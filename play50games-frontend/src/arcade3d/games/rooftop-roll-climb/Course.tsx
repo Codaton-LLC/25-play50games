@@ -12,9 +12,9 @@
 // relights red once you have landed on it.
 import { Suspense, useEffect, useMemo, useRef, type MutableRefObject } from "react";
 import { useFrame } from "@react-three/fiber";
-import { AdditiveBlending, DoubleSide, ExtrudeGeometry, Matrix4, Shape, Vector3, type Group, type Mesh, type MeshBasicMaterial, type MeshStandardMaterial } from "three";
+import { AdditiveBlending, DoubleSide, ExtrudeGeometry, Matrix4, RepeatWrapping, Shape, Vector3, type CanvasTexture, type Group, type Mesh, type MeshBasicMaterial, type MeshStandardMaterial } from "three";
 import { DynamicInstancedModel, InstancedModel, Model } from "@/arcade3d/core/assets";
-import { Instanced, type InstanceSpot } from "@/arcade3d/core/render";
+import { Instanced, useCanvasTexture, type InstanceSpot } from "@/arcade3d/core/render";
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import type { ModelAsset } from "@/arcade3d/core/types";
 import { ASHBACK_SCALE, ASSETS, GLB_SIZE, ORB_SIZE, SLOPED_ROOF_TOP } from "./assets";
@@ -567,10 +567,146 @@ function AshbackStandIn() {
    );
 }
 
+/** A small seeded random for the paint textures (drawn once, the same every run). */
+function paintRng(seed: number): () => number {
+   let s = seed;
+   return () => (s = (s * 16807) % 2147483647) / 2147483647;
+}
+
+/**
+ * Ashback's wet grey paint as a decal (u along the ramp, the low end at u = 1; v across it): a dark
+ * glossy pool with a ragged edge, a lighter wet rim, light streaks of sheen, thicker paint pooled at
+ * the low end and drips running off it and off both sides. Transparent outside the paint.
+ */
+function drawPaint(g: CanvasRenderingContext2D, w: number, h: number): void {
+   const rnd = paintRng(5150);
+   g.clearRect(0, 0, w, h);
+   // the pool: a ragged outline over the ramp, inset a little from its sides
+   const pts: Array<[number, number]> = [];
+   const n = 72;
+   for (let i = 0; i < n; i++) {
+      const a = (i / n) * Math.PI * 2;
+      const wob = 0.86 + rnd() * 0.12 + 0.05 * Math.sin(a * 7 + 1.3);
+      // a rounded rectangle more than an ellipse: the paint covers most of the ramp
+      const c = Math.cos(a);
+      const sn = Math.sin(a);
+      const k = 1 / Math.pow(Math.pow(Math.abs(c), 4) + Math.pow(Math.abs(sn), 4), 0.25);
+      pts.push([w / 2 + c * k * (w * 0.47) * wob, h / 2 + sn * k * (h * 0.42) * wob]);
+   }
+   const outline = () => {
+      g.beginPath();
+      pts.forEach(([x, y], i) => (i === 0 ? g.moveTo(x, y) : g.lineTo(x, y)));
+      g.closePath();
+   };
+   // a lighter wet rim first, then the dark body inside it
+   g.save();
+   g.shadowColor = "rgba(20,24,30,0.55)";
+   g.shadowBlur = 10;
+   outline();
+   g.fillStyle = "rgba(118,126,138,0.94)";
+   g.fill();
+   g.restore();
+   g.save();
+   g.translate(w / 2, h / 2);
+   g.scale(0.95, 0.88);
+   g.translate(-w / 2, -h / 2);
+   outline();
+   const body = g.createLinearGradient(0, 0, w, 0);
+   body.addColorStop(0, "rgba(76,83,94,0.97)");
+   body.addColorStop(0.7, "rgba(56,62,72,0.98)");
+   body.addColorStop(1, "rgba(36,40,48,0.99)");
+   g.fillStyle = body;
+   g.fill();
+   g.restore();
+   // sheen: soft light streaks along the ramp (the paint is still wet)
+   for (let i = 0; i < 10; i++) {
+      const y = h * (0.2 + rnd() * 0.6);
+      const x0 = w * (0.08 + rnd() * 0.3);
+      const len = w * (0.25 + rnd() * 0.4);
+      const grad = g.createLinearGradient(x0, 0, x0 + len, 0);
+      grad.addColorStop(0, "rgba(235,240,248,0)");
+      grad.addColorStop(0.5, `rgba(235,240,248,${0.2 + rnd() * 0.25})`);
+      grad.addColorStop(1, "rgba(235,240,248,0)");
+      g.fillStyle = grad;
+      g.fillRect(x0, y, len, 2 + rnd() * 4);
+   }
+   // thick blobs where it pooled at the low end
+   for (let i = 0; i < 10; i++) {
+      const x = w * (0.82 + rnd() * 0.1);
+      const y = h * (0.15 + rnd() * 0.7);
+      const r = 8 + rnd() * 14;
+      g.fillStyle = "rgba(34,38,46,0.96)";
+      g.beginPath();
+      g.ellipse(x, y, r * 1.4, r, 0, 0, Math.PI * 2);
+      g.fill();
+      g.fillStyle = "rgba(230,236,245,0.38)";
+      g.beginPath();
+      g.ellipse(x - r * 0.4, y - r * 0.35, r * 0.45, r * 0.22, -0.3, 0, Math.PI * 2);
+      g.fill();
+   }
+   // drips: runs off the low end (towards u = 1) and off both sides (v = 0 and v = 1)
+   const drip = (x: number, y: number, dx: number, dy: number, len: number, wid: number) => {
+      g.strokeStyle = "rgba(44,49,58,0.97)";
+      g.lineCap = "round";
+      g.lineWidth = wid;
+      g.beginPath();
+      g.moveTo(x, y);
+      g.lineTo(x + dx * len, y + dy * len);
+      g.stroke();
+      g.fillStyle = "rgba(40,44,52,0.98)";
+      g.beginPath();
+      g.arc(x + dx * len, y + dy * len, wid * 0.85, 0, Math.PI * 2);
+      g.fill();
+      g.fillStyle = "rgba(230,236,245,0.45)";
+      g.beginPath();
+      g.arc(x + dx * len - wid * 0.25, y + dy * len - wid * 0.25, wid * 0.28, 0, Math.PI * 2);
+      g.fill();
+   };
+   for (let i = 0; i < 9; i++) drip(w * 0.92, h * (0.12 + rnd() * 0.76), 1, 0, w * (0.03 + rnd() * 0.04), 4 + rnd() * 5);
+   for (let i = 0; i < 12; i++) {
+      drip(w * (0.1 + rnd() * 0.8), h * 0.14, 0, -1, h * (0.06 + rnd() * 0.06), 3 + rnd() * 4);
+      drip(w * (0.1 + rnd() * 0.8), h * 0.86, 0, 1, h * (0.06 + rnd() * 0.06), 3 + rnd() * 4);
+   }
+}
+
+/** The paint running down a ramp's side face: drips hanging from the top edge (canvas top = the edge). */
+function drawPaintDrips(g: CanvasRenderingContext2D, w: number, h: number): void {
+   const rnd = paintRng(777);
+   g.clearRect(0, 0, w, h);
+   const lip = g.createLinearGradient(0, 0, 0, h * 0.2);
+   lip.addColorStop(0, "rgba(46,51,60,0.97)");
+   lip.addColorStop(1, "rgba(46,51,60,0)");
+   g.fillStyle = lip;
+   g.fillRect(w * 0.05, 0, w * 0.9, h * 0.2);
+   for (let i = 0; i < 26; i++) {
+      const x = w * (0.06 + rnd() * 0.88);
+      const len = h * (0.2 + rnd() * 0.7);
+      const wid = 3 + rnd() * 6;
+      g.fillStyle = "rgba(46,51,60,0.96)";
+      g.fillRect(x - wid / 2, 0, wid, len - wid);
+      g.beginPath();
+      g.arc(x, len - wid, wid * 0.8, 0, Math.PI * 2);
+      g.fill();
+      g.fillStyle = "rgba(225,232,242,0.4)";
+      g.fillRect(x - wid * 0.3, 2, Math.max(1, wid * 0.2), Math.max(0, len * 0.8 - wid));
+   }
+}
+
+/** One ramp side's drip strip, its face out (+z, or -z with `back`). */
+function PaintDrips({ map, back }: { map: CanvasTexture; back?: boolean }) {
+   return (
+      <mesh rotation-y={back ? Math.PI : 0} renderOrder={2}>
+         <planeGeometry args={[1, 1]} />
+         <meshStandardMaterial map={map} transparent alphaTest={0.05} roughness={0.12} metalness={0.3} depthWrite={false} />
+      </mesh>
+   );
+}
+
 /**
  * Ashback (level 5 solo): where rules placeBoss puts him, facing the side he goes for; curled and
  * spinning while he rams (P3), flashing on a hit, fleeing off the pad on his defeat. His water tank
- * rolls across the pad in P1; in P2 the ramp he sprays turns grey.
+ * rolls across the pad in P1; in P2 the ramp he sprays is coated in wet grey paint (a glossy dark decal
+ * with a sheen, pooled at the low end, dripping off the end and down both sides).
  */
 function Ashback({ run }: { run: RoofRun }) {
    const g = useRef<Group>(null);
@@ -578,6 +714,9 @@ function Ashback({ run }: { run: RoofRun }) {
    const tank = useRef<Group>(null);
    const paint = useRef<Group>(null);
    const paintMesh = useRef<Mesh>(null);
+   const drips = useRef<Group>(null);
+   const paintMap = useCanvasTexture(512, 256, drawPaint);
+   const dripMap = useCanvasTexture(512, 128, drawPaintDrips);
    const time = useGameTime();
    const spin = useRef(0);
    const last = useRef(0);
@@ -623,7 +762,25 @@ function Ashback({ run }: { run: RoofRun }) {
             p.position.set(s.cx, (s.top + s.low) / 2 + 0.05, s.cz);
             // lie on the ramp: tilted about z so it falls towards the slope's dir
             p.rotation.set(0, 0, -Math.atan(sl.grade) * sl.dir);
-            paintMesh.current?.scale.set(Math.hypot(s.hw * 2, s.top - s.low), s.hd * 2, 1);
+            const len = Math.hypot(s.hw * 2, s.top - s.low);
+            paintMesh.current?.scale.set(len, s.hd * 2, 1);
+            // the texture's low end (u = 1) at the slope's low end (+dir)
+            const flip = sl.dir > 0 ? 1 : -1;
+            if (paintMap.repeat.x !== flip) {
+               paintMap.wrapS = RepeatWrapping;
+               paintMap.repeat.x = flip;
+               paintMap.offset.x = flip > 0 ? 0 : 1;
+               paintMap.needsUpdate = true;
+            }
+            const d = drips.current;
+            if (d) {
+               d.scale.set(len, 1, 1);
+               d.children[0]?.position.set(0, -0.2, s.hd + 0.02);
+               d.children[1]?.position.set(0, -0.2, -s.hd - 0.02);
+            }
+            // a slow sheen: the wet paint catches the light as it settles
+            const m = paintMesh.current?.material as MeshStandardMaterial | undefined;
+            if (m) m.roughness = 0.1 + 0.06 * (0.5 + 0.5 * Math.sin(now * 1.7));
          }
       }
    });
@@ -646,8 +803,21 @@ function Ashback({ run }: { run: RoofRun }) {
          <group ref={paint} visible={false}>
             <mesh ref={paintMesh} rotation-x={-Math.PI / 2} renderOrder={2}>
                <planeGeometry args={[1, 1]} />
-               <meshStandardMaterial color="#6b7280" roughness={0.95} transparent opacity={0.85} depthWrite={false} polygonOffset polygonOffsetFactor={-2} />
+               <meshStandardMaterial map={paintMap} transparent alphaTest={0.04} roughness={0.12} metalness={0.3} depthWrite={false} polygonOffset polygonOffsetFactor={-2} />
             </mesh>
+            {/* drips down both side faces of the ramp, hanging from its edge */}
+            <group ref={drips}>
+               <group>
+                  <group scale={[1, 0.4, 1]}>
+                     <PaintDrips map={dripMap} />
+                  </group>
+               </group>
+               <group>
+                  <group scale={[1, 0.4, 1]}>
+                     <PaintDrips map={dripMap} back />
+                  </group>
+               </group>
+            </group>
          </group>
       </>
    );

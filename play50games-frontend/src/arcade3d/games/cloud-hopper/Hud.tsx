@@ -22,6 +22,7 @@ import { GLIDE_MAX_MS, STAT, runTimeMs } from "./rules";
 import type { CloudLevel } from "./levels";
 import { COMBO, GLOOM_NIMBUS } from "./progression";
 import { MultiplayerHud, MultiplayerButton } from "./MultiplayerHud";
+import stack from "@/arcade3d/menu2/hud/HudStack.module.css";
 import styles from "./Hud.module.css";
 
 function clockText(ms: number): string {
@@ -52,7 +53,7 @@ function Boss() {
    const flash = useArcadeStore((s) => (s.stats[STAT.bossFlash] ?? 0) === 1);
    const charges = useArcadeStore((s) => s.stats[STAT.charges] ?? 0);
    return (
-      <div className={styles.boss}>
+      <div className={stack.boss}>
          <BossHealthBar
             name={GLOOM_NIMBUS.name}
             phaseName={GLOOM_NIMBUS.phases[phase]?.name}
@@ -63,7 +64,7 @@ function Boss() {
             flash={flash}
             accent="#a78bfa"
          />
-         {phase === 0 && hp > 0 ? <div className={styles.charges}>{charges > 0 ? `Shock charged x${charges}` : "Glide past the lightning rods"}</div> : null}
+         {phase === 0 && hp > 0 ? <div className={stack.hint}>{charges > 0 ? `Shock charged x${charges}` : "Glide past the lightning rods"}</div> : null}
       </div>
    );
 }
@@ -96,7 +97,7 @@ export default function Hud() {
          {multiplayer && <MultiplayerHud />}
          {/* the orbit camera's recenter button (touch) and first-time hint (menu2/camera) */}
          <OrbitHud />
-         <div className={styles.left} data-arcade-safe-area="" style={playing ? { display: "none" } : undefined}>
+         <div className={stack.left} data-arcade-safe-area="" style={playing ? { display: "none" } : undefined}>
             <div className={styles.pill} aria-label={`Orbs ${orbs}`}>
                <span className={styles.orb} aria-hidden="true" />
                <span className={styles.value}>{orbs}</span>
@@ -128,7 +129,7 @@ export default function Hud() {
             ) : null}
             <ComboMeter chain={chain} multiplier={mult / 100} flow={flow / 10} cap={COMBO.cap} />
          </div>
-         <div className={styles.center} data-arcade-safe-area="">
+         <div className={stack.center} data-arcade-safe-area="">
             <div className={styles.banner}>
                <span className={styles.title}>Cloud Hopper</span>
                <span className={styles.level}>
