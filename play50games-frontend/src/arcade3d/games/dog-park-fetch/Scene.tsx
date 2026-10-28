@@ -6,6 +6,8 @@ import { useFrame, useThree } from "@react-three/fiber";
 import { BoxGeometry, CylinderGeometry, Fog, MeshStandardMaterial, RepeatWrapping, SphereGeometry, Vector3, type Group } from "three";
 import { InstancedModel, Model } from "@/arcade3d/core/assets";
 import CameraRig from "@/arcade3d/core/CameraRig";
+import { useCameraViews } from "@/arcade3d/core/camera/CameraViews";
+import type { AABB } from "@/arcade3d/core/collision";
 import { playSfx } from "@/arcade3d/core/audio";
 import { FRAME_PRIORITY } from "@/arcade3d/core/frameLoop";
 import { SkyDome } from "@/arcade3d/core/env";
@@ -103,6 +105,48 @@ function LevelScene() {
    // the in-lawn bushes are fitted to 1 m wide: the spot's scale is the solid circle's diameter
    const bushFeet = useMemo(() => bushes.map((b) => ({ x: b.x, y: 0, z: b.z, scale: TREE_R * 2 })), [bushes]);
    const targets = useMemo<MarkerTarget[]>(() => [{ x: 0, y: 0, z: 0, hidden: true }], []);
+   // camera views (core/camera): the rules get the drawn camera's yaw; the props and the picket
+   // fence pull the chase / front / free camera in front of them (the top view looks over them).
+   // The fog (fogFor, near >= 18 m) stays past the top view's 15 m, so no override is needed.
+   const cam = useCameraViews({
+      slug: "dog-park-fetch",
+      subject: "character",
+      steering: "camera",
+      defaultYaw: view.yaw,
+      target: (o) => {
+         const d = run.dog;
+         o.x = d.x;
+         o.y = 0.45;
+         o.z = d.z;
+         o.heading = d.yaw;
+         o.vx = d.vx;
+         o.vz = d.vz;
+      },
+      solids: (out: AABB[]) => {
+         let n = 0;
+         const put = (x: number, z: number, hx: number, hz: number, h: number) => {
+            if (n >= out.length) return;
+            const b = out[n++];
+            b.min.x = x - hx;
+            b.max.x = x + hx;
+            b.min.y = 0;
+            b.max.y = h;
+            b.min.z = z - hz;
+            b.max.z = z + hz;
+         };
+         for (const p of props) {
+            const h = p.r === FOUNTAIN_R ? 1.6 : p.r === BENCH_R ? 0.55 : 0.6;
+            put(p.x, p.z, p.r, p.r, h);
+         }
+         const hw = config.width / 2;
+         const hd = config.depth / 2;
+         put(0, -hd, hw, 0.05, 1.1);
+         put(0, hd, hw, 0.05, 1.1);
+         put(-hw, 0, 0.05, hd, 1.1);
+         put(hw, 0, 0.05, hd, 1.1);
+         return n;
+      },
+   });
 
    // Unit geometry and flat materials, built once and disposed with the scene.
    const unitBox = useMemo(() => new BoxGeometry(1, 1, 1), []);
@@ -145,7 +189,7 @@ function LevelScene() {
 
    useRunFrame((_state, dt) => {
       const { moveX, moveY, jumpPressed } = input.current;
-      const ev = frame(run, { moveX, moveY, jumpPressed, yaw: view.yaw }, dt, useArcadeStore);
+      const ev = frame(run, { moveX, moveY, jumpPressed, yaw: cam.yaw() }, dt, useArcadeStore);
       aim.x = Math.min(bounds.max.x, Math.max(bounds.min.x, run.dog.x + Math.sin(run.dog.yaw) * LOOK_AHEAD));
       aim.z = Math.min(bounds.max.z, Math.max(bounds.min.z, run.dog.z + Math.cos(run.dog.yaw) * LOOK_AHEAD));
       if (ev.leap) playSfx("jump");
