@@ -176,7 +176,7 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/beach-lifeguard/sandcastle.glb",
    "/models/3d/beach-lifeguard/rescueJetSki.glb",
    // Menu 1 pizza-kitchen-3d (2026-10-25): the ready menu1-pizza-kitchen-3d GLBs (mushroomBowlR, prepCounterR,
-   // pizzaPeelClean, pizzaBoxClosed; not mushroomBowl / prepCounter / pizzaPeel / pizzaBox / pizzaBoxV2),
+   // pizzaPeelCleanT, pizzaBoxClosed; not mushroomBowl / prepCounter / pizzaPeel / pizzaBox / pizzaBoxV2),
    // copied as optimized; fits measured in games/pizza-kitchen-3d/assets.ts
    "/models/3d/pizza-kitchen-3d/pizzaBase.glb",
    "/models/3d/pizza-kitchen-3d/sauceBowl.glb",
@@ -187,7 +187,7 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/pizza-kitchen-3d/tomato.glb",
    "/models/3d/pizza-kitchen-3d/onion.glb",
    "/models/3d/pizza-kitchen-3d/pizzaOven.glb",
-   "/models/3d/pizza-kitchen-3d/pizzaPeelClean.glb",
+   "/models/3d/pizza-kitchen-3d/pizzaPeelCleanT.glb",
    "/models/3d/pizza-kitchen-3d/prepCounterR.glb",
    "/models/3d/pizza-kitchen-3d/pizzaBoxClosed.glb",
    // Menu 1 burger-delivery-scooter (2026-10-25): the ready menu1-burger-delivery-scooter GLBs (V2 box and
@@ -197,7 +197,7 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/burger-delivery-scooter/deliveryBoxV2.glb",
    "/models/3d/burger-delivery-scooter/burgerBag.glb",
    "/models/3d/burger-delivery-scooter/foodBoxV2.glb",
-   "/models/3d/burger-delivery-scooter/restaurantCounter.glb",
+   "/models/3d/burger-delivery-scooter/restaurantCounterPlainT.glb",
    "/models/3d/burger-delivery-scooter/burgerShopI.glb",
    "/models/3d/burger-delivery-scooter/roadBarrier.glb",
    "/models/3d/shared/trafficCone.glb",
@@ -219,8 +219,8 @@ export const MODEL_MANIFEST: readonly string[] = [
    // adopted as the spec says), optimized GLBs copied in, not re-optimized; the bellboy is a static
    // T-pose for the core auto-rig. sofa and travellerNpc are the shared ready set (also for 31 / 44).
    "/models/3d/hotel-bellboy-rush/charBellboy.glb",
-   "/models/3d/hotel-bellboy-rush/bellboyTrolley.glb",
-   "/models/3d/hotel-bellboy-rush/elevatorDoorV2.glb",
+   "/models/3d/hotel-bellboy-rush/bellboyTrolleyV3T.glb",
+   "/models/3d/hotel-bellboy-rush/elevatorDoorsSliding.glb",
    "/models/3d/hotel-bellboy-rush/hotelRoomDoor.glb",
    "/models/3d/hotel-bellboy-rush/keyCard.glb",
    "/models/3d/hotel-bellboy-rush/receptionDesk.glb",
@@ -262,6 +262,7 @@ export const MODEL_MANIFEST: readonly string[] = [
    // auto-rig. Left out: trainCar.glb (tram proportions), locomotive.glb (a whole train set).
    "/models/3d/train-station-rush/charStationWorker.glb",
    "/models/3d/train-station-rush/trainCarV2.glb",
+   "/models/3d/train-station-rush/locomotiveFront.glb",
    "/models/3d/train-station-rush/platformCanopy.glb",
    "/models/3d/train-station-rush/platformSign.glb",
    "/models/3d/train-station-rush/stationBench.glb",
@@ -394,6 +395,7 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/jungle-bridge-run/ruinGateR.glb",
    "/models/3d/jungle-bridge-run/jungleLogSingle.glb",
    "/models/3d/jungle-bridge-run/jungleFern.glb",
+   "/models/3d/jungle-bridge-run/junglePlant.glb",
    "/models/3d/jungle-bridge-run/volcanoBackdrop.glb",
    "/models/3d/jungle-bridge-run/hangingVine.glb",
    // Menu 1 taxi-rush-3d (2026-10-25): the ready menu1-taxi-rush-3d GLBs and the shared traffic light and
