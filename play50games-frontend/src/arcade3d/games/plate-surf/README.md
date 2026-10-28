@@ -60,15 +60,15 @@ Units: 1 = 1 m; the ride runs along -z; x is the horizontal distance across the 
 (x = 0) to the lip (x = 12, `FACE_W`); the face's height is a smoothstep up to the wave's height (6.5 m on
 level 1, 8 m after). The clock is whole ms with the fraction carried, one ms at a time.
 
-- **Speed along the wave** `v`: starts at 13 m/s, never under 8, never over 24 (`V_MAX`). The face's drag
+- **Speed along the wave** `v`: starts at 13 m/s, never under 9, never over 24 (`V_MAX`). The face's drag
   takes 2 % of it a second (none in the calm side lanes); pulling back brakes (6 m/s²).
 - **Carving:** the stick steers across the face at up to 9 m/s (45 m/s²).
-- **Pumping:** once above the band (x ≥ 7.44, armed), a down-carve that crosses the band's top and then
-  its bottom (x 4.56) within 500 ms adds +1.5 m/s. A slower one is a miss ("carve harder"). One pump per
+- **Pumping:** once above the band (x ≥ 6.96, armed), a down-carve that crosses the band's top and then
+  its bottom (x 5.04) within 600 ms adds +1.5 m/s. A slower one is a miss ("carve harder"). One pump per
   climb.
-- **The curl** starts 30 m behind you and chases at the level's speed (11 / 12 / 12.5 / 15 / 13 m/s; +2
-  in level 5's barrel). It never falls more than 45 m behind. A landed trick pushes it back 1 s. Within
-  0.8 m it swallows you: a heart and a respawn on the last checkpoint (13 m/s, the curl 34 m behind).
+- **The curl** starts 24 m behind you and chases at the level's speed (11 / 12 / 12.5 / 15 / 13 m/s; +2
+  in level 5's barrel). It never falls more than 26 m behind (close enough to hear and, on a slip, to see). A landed trick pushes it back 1 s. Within
+  0.8 m it swallows you: a heart and a respawn on the last checkpoint (13 m/s, the curl 26 m behind).
 - **Airs:** Jump within 1.6 m of the crest launches at 9 m/s (apex 1.69 m, 0.75 s), G 24. In the air the
   stick picks the trick; held 320 ms it lands, landed short of that it is a bail (-4 m/s, the flow
   breaks).
@@ -115,7 +115,31 @@ A **time game**: `score = floor((timeBaseMs − duration_ms) / 10)`. The submitt
 6. **Limits:** the bound less about 4.5 %, rounded down to 100 ms; `timeBaseMs` = `maxDurationMs` = the
    level's clock cap.
 
-TABLE
+| Level | Least finish | Orbs (main) | Flow bound | Least duration | minDurationMs | maxDurationMs = timeBaseMs | maxScore |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| 1 Training Swell | 24 996 | 34 (16) | 2 005 | 14 491 | 13 800 | 120 000 | 10 620 |
+| 2 Rocky Path | 33 329 | 49 (30) | 2 605 | 18 474 | 17 600 | 140 000 | 12 240 |
+| 3 Jump Gates | 37 496 | 49 (31) | 2 935 | 22 311 | 21 300 | 160 000 | 13 870 |
+| 4 Speed Canyon | 43 746 | 51 (30) | 2 685 | 28 311 | 27 000 | 180 000 | 15 300 |
+| 5 Plate Surf Master | 58 329 | 46 (28) | 2 515 | 44 314 | 42 300 | 240 000 | 19 770 |
+
+Level 5's boss floor (10 829 ms to its start line + 19 900 − 2) is under its z floor, so the z floor binds.
+Every level's maxScore is at least level 1's; level 5 is 1.86x. `meta.ts` and `arcade-games.json` ship
+this table; `rules.test.ts` pins it; `registry.sync.test.ts` checks the JSON.
+
+### What the bots reached
+
+| Bot | Result |
+|---|---|
+| Honest bot (Nami, no power; pumps in rhythm, steers onto a main orb only when its pump would miss it, keeps a free line, airs at the lip with a held spin) | wins every level at 30 / 60 / 144 Hz, never swallowed: L1 9 320-9 324 (87.8 %), L2 10 373-10 687 (84.8-87.3 %), L3 12 303-12 328 (88.7-88.9 %), L4 13 620-13 805 (89.0-90.2 %), L5 17 603-17 608 (89.0-89.1 %, King Breaker beaten); every main orb on L1-L4, 22 / 28 on L5 |
+| Every hero, plain and with its power mashed (60 Hz; Riko 30/60/144) | every plain run clears; no mashed finish beats the floor (`proof.test.ts`) |
+| Through the real store, ragged frames | a ranked win inside the limits, the score recomputed from the time |
+| Idle | the curl takes every heart ("lose", unranked) on every level |
+| Spam (200 on L1, 40 per level, any hero, random stick, Jump and power mashed, 4-50 ms frames) | no finish under the floor |
+| Random camera yaws | the z guard holds every ms (`orbit.test.ts`) |
+
+Mutation probes: a 15 % shorter level falls out of the limits window; no level's row matches another
+level's course or timer.
 
 ## Levels (the card)
 
@@ -131,8 +155,8 @@ The star targets are the card's: 50 / 65 / 75 / 85 / 120 s.
 
 ### Boss: King Breaker (level 5, menu2/boss `KING_BREAKER`)
 
-`m2GiantCrabBoss` drawn 5.2 m wide. It rises once you pass 260 m and rides the wave ahead of you (14 m
-lead); while it can be hit it slows to 11 m/s so you can catch it (miss the window and it trails just
+`m2GiantCrabBoss` drawn 5.2 m wide. It rises once you pass 260 m and rides the wave ahead of you (20 m
+lead); while it can be hit (3 s windows in phases 1-2) it slows to 10 m/s so you can catch it (miss the window and it trails just
 behind you). Its eyes glow and the HUD bar pulses while it is open; it rears on the telegraph, slams on
 the attack, flashes on a hit and rolls over on its defeat. 7 hp, one hit per window, a slow-mo-style
 hit-stop on the finish (visual only).
@@ -183,4 +207,20 @@ ArchWall), the spray sheets, the secrets, the finish line, the sand bar and the 
 
 ## Open issues
 
-OPEN
+- **Pump feel needs a human check.** A pump needs a carve from above the band (x ≥ 6.96) down through
+  its bottom (x ≤ 5.04) inside 600 ms. A scripted keyboard test with fixed 0.85 s key holds, starting
+  from the lip, pumped once in four tries: a player has to hold the carve until they pass the glow (the
+  coach line and the band's armed glow say so). The user should play level 1 and judge it.
+- The card's `surfStance` / `carveL` / `carveR` / `trick` clips are built here (`Hero.tsx`
+  `surfStancePose`, `grabPose`, the spin / flip turns) from the shared pose helpers, with a copy of
+  `useHeroAnimator`'s pipeline: they belong in `menu2/heroAnim` (a shared follow-up).
+- The jellies are `m2SlimeBlob` with a glossy jelly-blue material, not translucent (core material
+  overrides have no opacity). The model is 18k triangles, so only the jellies within 55 m are drawn.
+- The co-op lip gates that need two riders airing at once are not built (co-op tandem pump and versus
+  draft are).
+- Each rider has its own curl in multiplayer; the wave draws the trailing rider's.
+- No music stems per combo (shared audio has none yet); the curl's roar is repeated whoosh one-shots.
+- Headless frame times: p50 16.7 ms everywhere, p95 21-41 ms (software-ish GPU under load from other
+  agents); draw calls 13-33, triangles 107-298k at peak (level 4's canyon is the heaviest). A real mid
+  phone check is still to do.
+- No thumbnail yet (`public/images/3d/plate-surf.webp`, meta `thumbnail: null`).
