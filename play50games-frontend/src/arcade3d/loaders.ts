@@ -62,11 +62,11 @@ export const GAME_LOADERS: Record<ArcadeSlug, () => Promise<GameModule>> = {
    "rooftop-roll-climb": () => import("./games/rooftop-roll-climb"),
    "flooded-ruins-escape": () => import("./games/flooded-ruins-escape"),
    "lava-pillar-jump": () => import("./games/lava-pillar-jump"),
-   "temple-lantern-jump": () => import("./games/temple-lantern-jump"),
    "cloud-hopper": () => import("./games/cloud-hopper"),
    "plate-surf": () => import("./games/plate-surf"),
    "zipline-rush": () => import("./games/zipline-rush"),
    "ring-jump-challenge": () => import("./games/ring-jump-challenge"),
    "wind-tunnel-escape": () => import("./games/wind-tunnel-escape"),
    "roll-cannon-jump": () => import("./games/roll-cannon-jump"),
+   "temple-lantern-jump": () => import("./games/temple-lantern-jump"),
 };

@@ -390,6 +390,11 @@ function respawn(run: TempleRun, why: StepEvents["hurt"]): void {
    if (cp.kind === "lantern") run.litUntil[cp.id] = Math.max(run.litUntil[cp.id], ms + GUST_LIT_MS);
 }
 
+/** Sends a hero back to the last lantern (multiplayer: more than 8 m under the highest hero). */
+export function sendBack(run: TempleRun): void {
+   respawn(run, "fall");
+}
+
 function hurtEmber(run: TempleRun, why: StepEvents["hurt"]): void {
    run.ember = Math.max(0, run.ember - HURT_EMBER_MS);
    run.hits += 1;
