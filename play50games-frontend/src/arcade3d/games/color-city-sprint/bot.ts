@@ -13,10 +13,10 @@ import {
    HERO_R,
    RAMP_HALF_W,
    RAMP_LEN,
-   STREET_HALF,
    TRUCK_HALF_L,
    TRUCK_HALF_W,
    VALVE_BACK,
+   blockIndexAt,
    busAt,
    createBusPose,
    gateChangeIn,
@@ -26,7 +26,7 @@ import {
    type Course,
    type Ramp,
 } from "./city";
-import { V_RUN, beaconPoint, beaconQuota, createRun, createStepInput, litBeacon, step, valvePoint, type CityRun, type StepInput } from "./rules";
+import { V_RUN, beaconPoint, beaconQuota, createRun, createStepInput, litBeacon, step, type CityRun, type StepInput } from "./rules";
 import { heroById, type HeroId } from "./heroes";
 import type { LevelId } from "../../types";
 
@@ -244,7 +244,6 @@ function holdForGate(run: CityRun, nx: number, nz: number, input: StepInput): bo
 
 const pt = { x: 0, y: 0, z: 0 };
 const pose = createBusPose();
-const vp = { x: 0, z: 0 };
 
 /** Runs a ramp: approach its foot, then (when `go` says) up it and jump at the lip. */
 function rampRun(bot: Bot, run: CityRun, ri: number, input: StepInput, go: () => boolean): void {
@@ -419,7 +418,21 @@ export function botInput(bot: Bot, run: CityRun, input: StepInput): void {
          if (h.onBus >= 0 && h.grounded) input.jumpPressed = true;
          bot.rampMode = "approach";
          beaconPoint(run, bi, pt);
-         goTo(bot, run, pt.x, pt.z, input);
+         // a main gem within a few metres of the line is worth the detour
+         let tx = pt.x;
+         let tz = pt.z;
+         const dB = Math.hypot(pt.x - h.x, pt.z - h.z);
+         for (let i = 0; i < c.orbs.length; i++) {
+            const o = c.orbs[i];
+            if (run.collected[i] || !o.main || o.y > 2 || blockIndexAt(c, o.x, o.z) >= 0) continue;
+            const dO = Math.hypot(o.x - h.x, o.z - h.z);
+            if (dO < 9 && dO + Math.hypot(pt.x - o.x, pt.z - o.z) < dB + 7) {
+               tx = o.x;
+               tz = o.z;
+               break;
+            }
+         }
+         goTo(bot, run, tx, tz, input);
          if (bot.path.length > 0) holdForGate(run, bot.path[0].x, bot.path[0].z, input);
       }
    }
@@ -437,9 +450,6 @@ export function botInput(bot: Bot, run: CityRun, input: StepInput): void {
       bot.still = 0;
       bot.replanAt = 0;
    }
-   void STREET_HALF;
-   void valvePoint;
-   void vp;
 }
 
 /** Runs a bot until the level ends (tests and the preview's ?autoplay=1). */
