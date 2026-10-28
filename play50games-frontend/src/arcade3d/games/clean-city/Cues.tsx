@@ -10,7 +10,8 @@ import { TargetBeacon } from "@/arcade3d/core/hud";
 import { GUIDE, emptyGoal, gained, hintCode, hintFor, nextGoal } from "./guide";
 import type { CleanRun } from "./rules";
 
-const AT = { x: 0, y: 1.2, z: 0 };
+/** The "+N" pop starts just over the 1.75 cleaner's head. */
+const AT = { x: 0, y: 2.0, z: 0 };
 
 export function Cues({ run }: { run: CleanRun }) {
    const pop = useActionPop();

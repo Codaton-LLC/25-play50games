@@ -34,13 +34,13 @@ describe("festival stall decor", () => {
       expect(existsSync(resolve("public", ASSETS.festivalStall.url.slice(1)))).toBe(true);
    });
 
-   it("fits the real mesh to a grounded stall beside the 0.95-unit cleaner", async () => {
+   it("fits the real mesh to a grounded stall 3 m wide and 2.85 m tall beside the 1.75 m cleaner", async () => {
       const box = await stallBox();
       const size = box.getSize(new Vector3());
       expect(box.min.y).toBeCloseTo(0, 3);
-      expect(size.x).toBeCloseTo(1.61, 2);
-      expect(size.y).toBeCloseTo(1.512, 2);
-      expect(size.z).toBeCloseTo(1.075, 2);
+      expect(size.x).toBeCloseTo(3.03, 2);
+      expect(size.y).toBeCloseTo(2.846, 2);
+      expect(size.z).toBeCloseTo(2.024, 2);
    });
 
    it("keeps all three complete footprints beyond the far play bounds", async () => {
@@ -50,6 +50,8 @@ describe("festival stall decor", () => {
          expect(spot.z + box.max.z).toBeLessThan(-DECOR_KEEP_OUT);
          // Far-side placement keeps tall decor behind the player and litter from the +z camera.
          expect(spot.z + box.max.z).toBeLessThan(-16);
+         // and beyond the far street: past the parked cars (to -16.72) and the centre line (-17.6)
+         expect(spot.z + box.max.z).toBeLessThan(-18);
       }
    });
 });

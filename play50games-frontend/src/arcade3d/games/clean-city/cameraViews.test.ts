@@ -7,7 +7,7 @@ import { MAPS } from "./rules";
 it("keeps landscape fitted and brings portrait closer", () => {
    const fitted: [number, number, number] = [0, 30, 20];
    expect(phoneOffset(fitted, 1.5)).toEqual(fitted);
-   expect(Math.hypot(...phoneOffset(fitted, 0.46))).toBeCloseTo(4);
+   expect(Math.hypot(...phoneOffset(fitted, 0.46))).toBeCloseTo(7.4);
 });
 it("fills the camera solids from only the active map", () => {
    for (let map = 0; map < MAPS.length; map++) {

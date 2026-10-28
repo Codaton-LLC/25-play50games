@@ -199,10 +199,9 @@ describe("clean-city decor: parked cars (city)", () => {
       for (let i = 0; i < boxes.length; i++) for (let j = 0; j < i; j++) expect(boxes[i].intersectsBox(boxes[j])).toBe(false);
    });
 
-   it("are pigeon-crossing's GLBs (listed in the manifest), at life size next to the 0.95 runner", async () => {
-      const runnerHeight = 0.95;
-      const metresPerUnit = 1.75 / runnerHeight;
-      const want = { car: [2.18, 0.91, 0.93], taxi: [2.42, 0.95, 1.06], van: [3.0, 1.03, 1.06] } as const;
+   it("are pigeon-crossing's GLBs (listed in the manifest), at life size next to the 1.75 m cleaner (1 unit = 1 m)", async () => {
+      const metresPerUnit = 1;
+      const want = { car: [4.26, 1.77, 1.49], taxi: [4.72, 1.84, 1.55], van: [5.84, 2.0, 2.06] } as const;
       for (const [name, asset] of kinds) {
          expect(asset.url).toBe(`/models/3d/pigeon-crossing/${name}.glb`);
          expect(hasModel(asset.url), asset.url).toBe(true);
@@ -213,8 +212,9 @@ describe("clean-city decor: parked cars (city)", () => {
          expect(size.x, `${name} width`).toBeCloseTo(width, 1);
          expect(size.y, `${name} height`).toBeCloseTo(height, 1);
          if (name === "car") {
-            expect(size.z * metresPerUnit).toBeGreaterThan(3.7);
-            expect(size.z * metresPerUnit).toBeLessThan(4.3);
+            expect(size.z * metresPerUnit).toBeGreaterThan(4.1);
+            expect(size.z * metresPerUnit).toBeLessThan(4.4);
+            expect(size.y * metresPerUnit).toBeLessThan(1.6);
          }
       }
    });

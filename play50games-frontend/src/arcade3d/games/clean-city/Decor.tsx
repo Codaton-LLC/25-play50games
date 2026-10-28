@@ -57,7 +57,7 @@ function Surround({ color }: { color: string }) {
 // ---------- parked cars (city) ----------
 
 /** Stand-in boxes at the drawn size (w x h x l, long along z like the GLBs), until the GLB loads. */
-const CAR_BOX = { car: [0.91, 0.8, 2.18], taxi: [0.95, 0.9, 2.42], van: [1.03, 1.0, 3.0] } as const;
+const CAR_BOX = { car: [1.77, 1.49, 4.26], taxi: [1.84, 1.55, 4.72], van: [2.0, 2.06, 5.84] } as const;
 const boxSpots = (spots: readonly InstanceSpot[], height: number): InstanceSpot[] => spots.map((s) => ({ ...s, y: height / 2 }));
 const CAR_BOX_SPOTS = boxSpots(CAR_SPOTS, CAR_BOX.car[1]);
 const TAXI_BOX_SPOTS = boxSpots(TAXI_SPOTS, CAR_BOX.taxi[1]);
