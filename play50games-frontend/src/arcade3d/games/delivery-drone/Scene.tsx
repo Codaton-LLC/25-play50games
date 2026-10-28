@@ -5,7 +5,7 @@ import { useThree } from "@react-three/fiber";
 import CameraRig from "@/arcade3d/core/CameraRig";
 import { isMuted, playSfx, startLoop, useMuted, type LoopHandle } from "@/arcade3d/core/audio";
 import { SkyDome } from "@/arcade3d/core/env";
-import { useFx } from "@/arcade3d/core/fx";
+import { useActionPop, useFx } from "@/arcade3d/core/fx";
 import { TargetMarkers } from "@/arcade3d/core/hud";
 import { useInput } from "@/arcade3d/core/input";
 import { inputToWorld, randomSeed } from "@/arcade3d/core/math";
@@ -35,6 +35,7 @@ export default function Scene() {
    const view = useFittedView(fit);
    const input = useInput();
    const fx = useFx();
+   const pop = useActionPop();
    const { config } = useDeliveryLevel();
    const [run] = useState(() =>
       createRun(randomSeed(), typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches, config)
@@ -148,7 +149,7 @@ export default function Scene() {
       if (e.miss || e.hit) {
          playSfx("hit");
          fx.burst("puff", scratch.at, 12);
-         fx.shake(0.12);
+         pop.fail(scratch.at, e.hit ? "Tower contact!" : "Parcel missed! Reload", { shake: 0.12 });
          stat(store, "feedback", e.hit ? 3 : 2);
          scratch.feedbackUntil = run.time + 2;
       }
