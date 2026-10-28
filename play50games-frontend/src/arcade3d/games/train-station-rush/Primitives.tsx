@@ -29,13 +29,13 @@ function useParts(make: () => InstancePart[]): InstancePart[] {
 const mat = (color: string, rough = 0.6, metal = 0, emissive?: string) =>
    new MeshStandardMaterial({ color, roughness: rough, metalness: metal, emissive: emissive ?? "#000000", emissiveIntensity: emissive ? 0.7 : 0 });
 
-/** The engine at the head of every train, nose towards -z (the buffers), origin under its nose on the rails. */
+/** The engine at the head of every train, nose towards -z (the buffers), origin at its middle on the rails (the GLB engine's pivot too). */
 export function useLocoParts(): InstancePart[] {
    return useParts(() => [
-      { geometry: rounded(CAR_WIDTH, CAR_HEIGHT * 0.92, LOCO_LEN - 0.6, 0.18, 0, CAR_HEIGHT * 0.46, LOCO_LEN / 2 + 0.3), material: mat(COLORS.loco, 0.45, 0.2) },
-      { geometry: rounded(CAR_WIDTH * 0.96, CAR_HEIGHT * 0.7, 0.9, 0.3, 0, CAR_HEIGHT * 0.35, 0.45), material: mat(COLORS.locoDark, 0.4, 0.2) },
-      { geometry: rounded(CAR_WIDTH * 0.84, CAR_HEIGHT * 0.22, 0.12, 0.04, 0, CAR_HEIGHT * 0.66, 0.06), material: mat(COLORS.locoWindow, 0.15, 0.4) },
-      { geometry: rounded(CAR_WIDTH + 0.02, 0.12, LOCO_LEN - 0.8, 0.03, 0, CAR_HEIGHT * 0.3, LOCO_LEN / 2 + 0.3), material: mat(COLORS.locoStripe, 0.5, 0, COLORS.locoStripe) },
+      { geometry: rounded(CAR_WIDTH, CAR_HEIGHT * 0.92, LOCO_LEN - 0.6, 0.18, 0, CAR_HEIGHT * 0.46, 0.3), material: mat(COLORS.loco, 0.45, 0.2) },
+      { geometry: rounded(CAR_WIDTH * 0.96, CAR_HEIGHT * 0.7, 0.9, 0.3, 0, CAR_HEIGHT * 0.35, 0.45 - LOCO_LEN / 2), material: mat(COLORS.locoDark, 0.4, 0.2) },
+      { geometry: rounded(CAR_WIDTH * 0.84, CAR_HEIGHT * 0.22, 0.12, 0.04, 0, CAR_HEIGHT * 0.66, 0.06 - LOCO_LEN / 2), material: mat(COLORS.locoWindow, 0.15, 0.4) },
+      { geometry: rounded(CAR_WIDTH + 0.02, 0.12, LOCO_LEN - 0.8, 0.03, 0, CAR_HEIGHT * 0.3, 0.3), material: mat(COLORS.locoStripe, 0.5, 0, COLORS.locoStripe) },
    ]);
 }
 

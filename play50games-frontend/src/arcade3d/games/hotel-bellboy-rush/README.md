@@ -117,8 +117,8 @@ before each Use) wins ≥ 99 % of 200 seeds on every level, idle never clears; m
 | Asset | File | Fit (from the measured raw bounds, `assets.test.ts`) |
 |---|---|---|
 | bellboy | `hotel-bellboy-rush/charBellboy.glb` (18k tris) | 1.74 m tall, auto-rig with `BELLBOY_LANDMARKS` (`bellboy.test.ts`), untinted |
-| trolley | `hotel-bellboy-rush/bellboyTrolley.glb` | 1.55 m tall, long side along the pull |
-| elevator | `hotel-bellboy-rush/elevatorDoorV2.glb` | 2.30 m tall on the door wall |
+| trolley | `hotel-bellboy-rush/bellboyTrolleyV3T.glb` | 1.30 m tall, long side (GLB z) along the pull |
+| elevator | `hotel-bellboy-rush/elevatorDoorsSliding.glb` | 1.5 m wide, 2.30 m tall on the door wall |
 | room doors | `hotel-bellboy-rush/hotelRoomDoor.glb` | 2.10 m, one `InstancedModel` |
 | key card | `hotel-bellboy-rush/keyCard.glb` | 0.50 m beacon over the desk while a bag waits |
 | desk | `hotel-bellboy-rush/receptionDesk.glb` | 2.2 x 0.9 m (its blocker), ~1.0 m tall |
@@ -139,8 +139,6 @@ Draw calls: see the playtest notes in the branch report (`?perf=1`, `window.__ar
 
 ## Known issues
 
-- `elevatorDoorV2.glb` is a single hinged gold door, not a sliding pair (ledger); still wanted: `elevatorDoorsSliding`.
 - `keyCard.glb` has pseudo-text on its face (small on screen); still wanted: `keyCardPlain`.
-- `bellboyTrolley.glb` has wiry bars and a slightly distorted arch; still wanted: `bellboyTrolleyV2`.
 - `travellerNpc.glb` is photoreal with hands in pockets (not a T-pose): decor only; still wanted: `passengerNpc`.
 - The shared sofa is teal-green, a little off the warm palette (untinted GLB).

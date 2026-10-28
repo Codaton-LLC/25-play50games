@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import { hasModel } from "@/arcade3d/core/modelManifest";
 import { readCharacterGlb } from "@/arcade3d/core/rig/robotGlb";
 import { EXPANSION_GLB_SIZE } from "@/arcade3d/core/sharedAssets";
-import { ASSETS, BELLBOY_HEIGHT, DESK_DEPTH, DESK_TOP, DESK_WIDTH, ELEVATOR_HEIGHT, GLB_SIZE, GUEST_HEIGHT, ROOM_DOOR_HEIGHT, SUITCASE_HEIGHT, TROLLEY_HEIGHT } from "./assets";
+import { ASSETS, BELLBOY_HEIGHT, DESK_DEPTH, DESK_TOP, DESK_WIDTH, ELEVATOR_HEIGHT, ELEVATOR_WIDTH, GLB_SIZE, GUEST_HEIGHT, ROOM_DOOR_HEIGHT, SUITCASE_HEIGHT, TROLLEY_HEIGHT } from "./assets";
 import spec from "./assets.spec.json";
 import { DESK, PLANTER_SIZE, SOFA_SIZE } from "./rules";
 
@@ -23,8 +23,8 @@ async function bounds(url: string) {
 
 const BY_ID: Record<keyof typeof GLB_SIZE, string> = {
    charBellboy: ASSETS.bellboy.url,
-   bellboyTrolley: ASSETS.trolley.url,
-   elevatorDoorV2: ASSETS.elevator.url,
+   bellboyTrolleyV3T: ASSETS.trolley.url,
+   elevatorDoorsSliding: ASSETS.elevator.url,
    hotelRoomDoor: ASSETS.door.url,
    keyCard: ASSETS.keyCard.url,
    receptionDesk: ASSETS.desk.url,
@@ -58,8 +58,9 @@ describe("hotel-bellboy-rush GLB fits", () => {
 
    it("draws every model at its size in metres, and the blockers at the rules' boxes", () => {
       expect(GLB_SIZE.charBellboy.height * k(ASSETS.bellboy)).toBeCloseTo(BELLBOY_HEIGHT, 6);
-      expect(GLB_SIZE.bellboyTrolley.height * k(ASSETS.trolley)).toBeCloseTo(TROLLEY_HEIGHT, 6);
-      expect(GLB_SIZE.elevatorDoorV2.height * k(ASSETS.elevator)).toBeCloseTo(ELEVATOR_HEIGHT, 6);
+      expect(GLB_SIZE.bellboyTrolleyV3T.height * k(ASSETS.trolley)).toBeCloseTo(TROLLEY_HEIGHT, 6);
+      expect(GLB_SIZE.elevatorDoorsSliding.height * k(ASSETS.elevator) * ASSETS.elevator.stretch[1]).toBeCloseTo(ELEVATOR_HEIGHT, 6);
+      expect(GLB_SIZE.elevatorDoorsSliding.width * k(ASSETS.elevator)).toBeCloseTo(ELEVATOR_WIDTH, 6);
       expect(GLB_SIZE.hotelRoomDoor.height * k(ASSETS.door)).toBeCloseTo(ROOM_DOOR_HEIGHT, 6);
       expect(GLB_SIZE.travellerNpc.height * k(ASSETS.guest)).toBeCloseTo(GUEST_HEIGHT, 6);
       expect(EXPANSION_GLB_SIZE.suitcase.height * k(ASSETS.suitcase)).toBeCloseTo(SUITCASE_HEIGHT, 6);

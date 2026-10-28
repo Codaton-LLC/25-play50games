@@ -493,7 +493,7 @@ function LevelScene() {
    const placeLoco = (p: number, m: Matrix4) => {
       const off = trainOffset(run, p, run.time);
       if (off < 0) return false;
-      V.set(trackX(run.level, p), -BED_DEPTH + 0.12, NOSE_Z + off);
+      V.set(trackX(run.level, p), -BED_DEPTH + 0.12, NOSE_Z + off + LOCO_LEN / 2);
       Q.identity();
       S.set(1, 1, 1);
       m.compose(V, Q, S);
@@ -613,7 +613,7 @@ function LevelScene() {
             </mesh>
          </group>
          {/* trains, travellers, the tasks at the entrance, the worker */}
-         <DynamicInstanced count={config.platforms} update={placeLoco} parts={locoParts} name="engines" />
+         <DynamicInstancedModel asset={ASSETS.loco} count={config.platforms} update={placeLoco} fallbackParts={locoParts} name="engines" />
          <DynamicInstancedModel asset={ASSETS.car} count={config.platforms * 2} update={placeCar} fallbackParts={carParts} name="cars" />
          <DynamicInstancedModel asset={ASSETS.traveller} count={crowdCount + 3} update={placeTraveller} fallbackParts={travellerParts} name="travellers" />
          {(SPOTS[config.parallel] ?? SPOTS[1]).map((_, slot) => (

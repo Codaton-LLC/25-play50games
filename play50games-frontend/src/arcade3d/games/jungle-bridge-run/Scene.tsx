@@ -151,7 +151,7 @@ function LevelScene() {
    const decor = useMemo(() => {
       const d = decorSpots(id, level);
       const keep = <T,>(a: T[]) => a.slice(0, scaledCount(a.length, quality.decor));
-      return { ...d, rocks: keep(d.rocks), trees: keep(d.trees), ferns: keep(d.ferns), vines: keep(d.vines) };
+      return { ...d, rocks: keep(d.rocks), trees: keep(d.trees), ferns: keep(d.ferns), plants: keep(d.plants), vines: keep(d.vines) };
    }, [id, level, quality.decor]);
    const backdrop = useMemo(() => backdropFor(level), [level]);
    const ahead = visibleAhead(level);
@@ -171,7 +171,7 @@ function LevelScene() {
          if (!spot) return false;
          spotInto(m, spot, decorZ(spot.z, run.z));
       };
-      return { rocks: wrap(decor.rocks), trees: wrap(decor.trees), ferns: wrap(decor.ferns), vines: wrap(decor.vines), stilts: wrap(decor.stilts) };
+      return { rocks: wrap(decor.rocks), trees: wrap(decor.trees), ferns: wrap(decor.ferns), plants: wrap(decor.plants), vines: wrap(decor.vines), stilts: wrap(decor.stilts) };
    }, [decor, run]);
    const trackEnd = finishZ(level);
 
@@ -184,6 +184,7 @@ function LevelScene() {
       rock: useParts(rockParts),
       tree: useParts(treeParts),
       fern: useParts(fernParts),
+      plant: useParts(fernParts),
       hanging: useParts(hangingVineParts),
       vine: useParts(vineBarParts),
       crust: useParts(lavaCrustParts),
@@ -329,6 +330,7 @@ function LevelScene() {
          {decor.rocks.length > 0 && <DynamicInstancedModel asset={ASSETS.rock} count={decor.rocks.length} update={decorUpdate.rocks} fallbackParts={parts.rock} name="rocks" />}
          {decor.trees.length > 0 && <DynamicInstancedModel asset={ASSETS.tree} count={decor.trees.length} update={decorUpdate.trees} fallbackParts={parts.tree} name="trees" />}
          {decor.ferns.length > 0 && <DynamicInstancedModel asset={ASSETS.fern} count={decor.ferns.length} update={decorUpdate.ferns} fallbackParts={parts.fern} name="ferns" />}
+         {decor.plants.length > 0 && <DynamicInstancedModel asset={ASSETS.plant} count={decor.plants.length} update={decorUpdate.plants} fallbackParts={parts.plant} name="plants" />}
          {decor.vines.length > 0 && <DynamicInstancedModel asset={ASSETS.hangingVine} count={decor.vines.length} update={decorUpdate.vines} fallbackParts={parts.hanging} name="hanging" />}
          {backdrop && (
             <group ref={backdropRef} rotation-y={backdrop.rotY} scale={backdrop.scale}>

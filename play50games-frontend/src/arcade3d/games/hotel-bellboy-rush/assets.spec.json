@@ -1,11 +1,11 @@
 {
    "slug": "hotel-bellboy-rush",
    "universe": "play50-toy-world-premium",
-   "notes": "Ready Hyper3D GLBs adopted 2026-10-25 from the local ready folder (menu1-hotel-bellboy-rush/ and shared/). V2 / R versions per the spec: elevatorDoorV2 (not elevatorDoor), serviceBellV2 (not serviceBell), lobbyPlanterR (not lobbyPlanter). Left out: hotel-bellboy-rush/hero.glb. Still wanted (docs/menu1-new/hyper3d-needed.md): elevatorDoorsSliding, keyCardPlain, bellboyTrolleyV2, passengerNpc.",
+   "notes": "Ready Hyper3D GLBs adopted 2026-10-25 from the local ready folder (menu1-hotel-bellboy-rush/ and shared/). V2 / R versions per the spec: elevatorDoorsSliding (not elevatorDoor), serviceBellV2 (not serviceBell), lobbyPlanterR (not lobbyPlanter). Left out: hotel-bellboy-rush/hero.glb. Still wanted (docs/menu1-new/hyper3d-needed.md): elevatorDoorsSliding, keyCardPlain, bellboyTrolleyV2, passengerNpc.",
    "assets": [
       { "id": "charBellboy", "kind": "character", "file": "menu1-hotel-bellboy-rush/charBellboy.glb", "budget": { "tris": 20000, "bytes": 1500000 } },
-      { "id": "bellboyTrolley", "kind": "prop", "file": "menu1-hotel-bellboy-rush/bellboyTrolley.glb", "budget": { "tris": 5000, "bytes": 300000 } },
-      { "id": "elevatorDoorV2", "kind": "prop", "file": "menu1-hotel-bellboy-rush/elevatorDoorV2.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "bellboyTrolleyV3T", "kind": "prop", "file": "menu1-hotel-bellboy-rush/bellboyTrolleyV3T.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "elevatorDoorsSliding", "kind": "prop", "file": "menu1-hotel-bellboy-rush/elevatorDoorsSliding.glb", "budget": { "tris": 5000, "bytes": 300000 } },
       { "id": "hotelRoomDoor", "kind": "prop", "file": "menu1-hotel-bellboy-rush/hotelRoomDoor.glb", "budget": { "tris": 5000, "bytes": 300000 } },
       { "id": "keyCard", "kind": "prop", "file": "menu1-hotel-bellboy-rush/keyCard.glb", "budget": { "tris": 5000, "bytes": 300000 } },
       { "id": "receptionDesk", "kind": "prop", "file": "menu1-hotel-bellboy-rush/receptionDesk.glb", "budget": { "tris": 5000, "bytes": 300000 } },
