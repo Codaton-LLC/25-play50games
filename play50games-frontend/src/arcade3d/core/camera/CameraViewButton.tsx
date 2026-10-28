@@ -9,12 +9,15 @@
 // - a short label with the new view's name after each switch;
 // - once ever (cameraPrefs `hintSeen`), a hint while the first run plays:
 //   "📷 / C: change view; drag to look around". It hides after HINT_MS or on the first switch or turn.
+//   It sits at the top right under the shell chips (hintSpot.ts), stepping past HUD panels and touch
+//   controls, never over the middle of the screen where the hero is.
 // Nothing is shown while no Scene uses camera views, so a game can render it unconditionally.
-import { useEffect, useRef, useState, useSyncExternalStore, type CSSProperties } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type CSSProperties } from "react";
 import { useArcadeStore } from "../useArcadeStore";
 import { useCoarsePointer } from "../TouchControls";
 import { CONTROLS_ATTR } from "../input";
-import { SAFE_AREA_ATTR } from "../safeArea";
+import { SAFE_AREA_ATTR, useSafeArea } from "../safeArea";
+import { cameraHintSpot } from "./hintSpot";
 import { cameraPrefs, cameraTurned, liveViews, markCameraHintSeen, requestViewCycle, serverLiveViews, subscribeLiveViews } from "./cameraPrefs";
 import { VIEW_LABELS, nextView } from "./views";
 import styles from "./CameraViewButton.module.css";
@@ -47,9 +50,31 @@ function Hint({ touch, keyName, oneFinger }: { touch: boolean; keyName: string; 
       if (stage === "on" && (turned > 0 || expired)) setStage("done");
    }, [stage, turned, expired]);
    if (!(stage === "on" && playing && turned === 0 && !expired)) return null;
+   return <HintChip text={hintText(touch, keyName, oneFinger)} />;
+}
+
+/** The chip, placed by hintSpot.ts from the live safe area and its own measured size. */
+function HintChip({ text }: { text: string }) {
+   const area = useSafeArea();
+   const ref = useRef<HTMLDivElement>(null);
+   const [size, setSize] = useState({ w: 0, h: 0 });
+   useLayoutEffect(() => {
+      const el = ref.current;
+      if (!el) return;
+      const w = Math.ceil(el.offsetWidth);
+      const h = Math.ceil(el.offsetHeight);
+      if (w !== size.w || h !== size.h) setSize({ w, h });
+   });
+   const spot = cameraHintSpot(area, size.w, size.h);
    return (
-      <div className={styles.hint} role="status" aria-live="polite">
-         {hintText(touch, keyName, oneFinger)}
+      <div
+         ref={ref}
+         className={styles.hint}
+         style={{ left: spot.left, top: spot.top, visibility: size.w > 0 ? "visible" : "hidden" }}
+         role="status"
+         aria-live="polite"
+      >
+         {text}
       </div>
    );
 }

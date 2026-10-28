@@ -14,6 +14,7 @@ is exactly as before.
 | `views.ts` | pure: view ids, framing per subject, cycle order, follow rules per steering, pose blending |
 | `CameraViews.tsx` | `useCameraViews(...)` inside the Scene: writes the camera in the non-default views, returns `yaw()` for the rules |
 | `CameraViewButton.tsx` | the 📷 button, the view's name after a switch and the one-time hint, in the game's Hud |
+| `hintSpot.ts` | where the one-time hint chip goes (pure; top right under the shell chips, clear of panels and controls) |
 | `orbit.test.ts`, `views.test.ts` | state, follow stability, blending, keys vs. core keys, prefs |
 
 Core never imports `menu2/`. Menu 2 can later import these files instead of its own copies; note the
@@ -42,6 +43,10 @@ first version also turned right with C). A game can pass its own `orbitKeys`.
   📷 button is a touch control and a safe-area panel, so fitted views keep clear of it.
 - First run ever: the hint "📷 / C: change view; drag to look around" (touch: "📷: change view; drag to
   look around") shows once for up to 7 s, then never again (stored by `cameraPrefs`, never by a game).
+  It is a small chip at the top right, just under the shell chips (`hintSpot.ts` `cameraHintSpot`: placed
+  from the live safe area, it steps down past any HUD panel or touch control it would cover and never
+  goes below the middle of the screen), 14 px (13 px on phones), so it never covers the hero in the
+  middle, the joystick, the buttons or the HintLine slot (bottom centre / above the joystick).
 - The last view is remembered per game (`cameraPrefs` `views[slug]`), and a Retry or a new visit starts
   in it.
 
