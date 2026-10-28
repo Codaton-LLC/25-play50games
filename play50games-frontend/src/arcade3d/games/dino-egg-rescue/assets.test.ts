@@ -5,10 +5,15 @@ import { Box3, BufferGeometry, Float32BufferAttribute, Group, Mesh, Vector3 } fr
 import { modelParts } from "@/arcade3d/core/assets";
 import { hasModel } from "@/arcade3d/core/modelManifest";
 import { readCharacterGlb } from "@/arcade3d/core/rig/robotGlb";
+import type { ModelAsset } from "@/arcade3d/core/types";
 import { EXPANSION_GLB_SIZE } from "@/arcade3d/core/sharedAssets";
 import {
    ASSETS,
    DINO_BACK_TOP_ANCHOR,
+   DINO_EGG_HEIGHT,
+   DINO_NEST_DIAMETER,
+   DINO_NEST_HEIGHT,
+   GOLDEN_EGG_HEIGHT,
    LAVA_ROCK_DRAWN,
    LAVA_ROCK_GLB,
    LAVA_ROCK_SPOTS,
@@ -131,5 +136,35 @@ describe("dino-egg-rescue lava rock decor (levels 4-5 only)", () => {
          expect(inValley(spot.x, spot.z, radius), `spot ${spot.x},${spot.z}`).toBe(false);
          expect(nearMainVolcano(spot.x, spot.z, radius), `spot ${spot.x},${spot.z}`).toBe(false);
       }
+   });
+
+   it("fits the Menu 1 egg, golden egg and nest on the floor at their README sizes", async () => {
+      const box = async (asset: ModelAsset) => {
+         const { local, node } = await readCharacterGlb(asset.url);
+         const geometry = new BufferGeometry();
+         geometry.setAttribute("position", new Float32BufferAttribute(local, 3));
+         const mesh = new Mesh(geometry);
+         mesh.position.fromArray(node);
+         const root = new Group();
+         root.add(mesh);
+         const parts = modelParts(root, asset);
+         mesh.updateMatrixWorld(true);
+         const b = new Box3();
+         for (const p of parts) b.union(new Box3().setFromBufferAttribute(geometry.getAttribute("position") as never).applyMatrix4(p.matrix));
+         geometry.dispose();
+         return b;
+      };
+      for (const asset of [ASSETS.dinoEgg, ASSETS.goldenEgg, ASSETS.dinoNest]) {
+         expect(existsSync(resolve("public", asset.url.slice(1))), asset.url).toBe(true);
+         expect(hasModel(asset.url), asset.url).toBe(true);
+      }
+      const egg = await box(ASSETS.dinoEgg);
+      expect(egg.min.y).toBeCloseTo(0, 2);
+      expect(egg.getSize(new Vector3()).y).toBeCloseTo(DINO_EGG_HEIGHT, 2);
+      expect((await box(ASSETS.goldenEgg)).getSize(new Vector3()).y).toBeCloseTo(GOLDEN_EGG_HEIGHT, 2);
+      const nest = await box(ASSETS.dinoNest);
+      expect(nest.min.y).toBeCloseTo(0, 2);
+      expect(nest.getSize(new Vector3()).y).toBeCloseTo(DINO_NEST_HEIGHT, 2);
+      expect(nest.getSize(new Vector3()).x).toBeCloseTo(DINO_NEST_DIAMETER, 2);
    });
 });

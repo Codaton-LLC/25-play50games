@@ -14,7 +14,7 @@ import { Instanced } from "@/arcade3d/core/render/Instanced";
 import type { InstanceSpot } from "@/arcade3d/core/render/useInstanceMatrices";
 import { BlobShadow } from "@/arcade3d/core/render/BlobShadow";
 import { useCanvasTexture } from "@/arcade3d/core/render/useCanvasTexture";
-import { ASSETS, IGLOO_DRAWN, IGLOO_SPOTS, SNOWMAN_BIG_DRAWN, SNOWMAN_BIG_SPOTS, VILLAGE_LEVEL_IDS } from "./assets";
+import { ASSETS, SNOW_FORT_DRAWN, SNOW_FORT_SPOTS, IGLOO_DRAWN, IGLOO_SPOTS, SNOWMAN_BIG_DRAWN, SNOWMAN_BIG_SPOTS, VILLAGE_LEVEL_IDS } from "./assets";
 import { COLORS, SnowmanStandIn, drawSnow } from "./Primitives";
 import { useSnowLevel } from "./useSnowLevel";
 import {
@@ -217,6 +217,18 @@ function Village() {
    );
 }
 
+const SNOW_FORT_FALLBACK_SPOTS = SNOW_FORT_SPOTS.map((s) => ({ ...s, y: SNOW_FORT_DRAWN.height / 2 }));
+
+/** Side-fort stand-in: a low white box at the drawn footprint. */
+function SnowFortFallback() {
+   return (
+      <Instanced spots={SNOW_FORT_FALLBACK_SPOTS}>
+         <boxGeometry args={[SNOW_FORT_DRAWN.width, SNOW_FORT_DRAWN.height, SNOW_FORT_DRAWN.depth]} />
+         <meshStandardMaterial color="#e2e8f0" roughness={0.9} />
+      </Instanced>
+   );
+}
+
 export default function Yard({ run, view }: { run: Run; view: FittedView }) {
    const snow = useCanvasTexture(512, 512, drawSnow);
    const pines = useMemo(() => pineSpots(run.pines), [run]);
@@ -236,6 +248,7 @@ export default function Yard({ run, view }: { run: Run; view: FittedView }) {
          </mesh>
          <Fence path={FENCE} spacing={1.7} height={1.1} color={COLORS.fence} railColor={COLORS.rail} />
          <Forts run={run} />
+         <InstancedModel asset={ASSETS.snowFort} spots={[...SNOW_FORT_SPOTS]} fallback={<SnowFortFallback />} />
          {banks.length > 0 && (
             <Instanced spots={banks}>
                <sphereGeometry args={[1, 8, 6]} />

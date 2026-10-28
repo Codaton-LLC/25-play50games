@@ -1,12 +1,14 @@
 "use client";
 
 import { useMemo, useRef } from "react";
+import { DynamicInstancedModel, Model } from "@/arcade3d/core/assets";
 import { useFrame } from "@react-three/fiber";
-import { BufferGeometry, Float32BufferAttribute, LineDashedMaterial, Line, Color, Quaternion, Vector3 } from "three";
+import { BufferGeometry, Float32BufferAttribute, LineDashedMaterial, Line, Color, Matrix4, MeshStandardMaterial, Quaternion, Vector3 } from "three";
 import type { Group, Mesh } from "three";
 import { DynamicInstanced } from "@/arcade3d/core/render/DynamicInstanced";
 import { BlobShadow } from "@/arcade3d/core/render/BlobShadow";
 import { landingMarker, markerColor, shadowTop, VISUAL_EXTENSION } from "./dropGuide";
+import { PIECE_ASSETS } from "./assets";
 import { cableGeo, steel } from "./Primitives";
 import { FLOOR, PLAN, SLOT_A, SLOT_R, type Run } from "./rules";
 import {
@@ -31,9 +33,22 @@ function slotXZ(index: number): { x: number; z: number } {
    return slot;
 }
 
+const MODEL_KINDS = [0, 1, 2, 3] as const;
+
 /** Placed floors, the piece on the hook, the landing guide and the glowing slot. */
 export function Pieces({ run }: { run: Run }) {
    const parts = useMemo(() => [{ geometry: pieceGeo, material: pieceMat }], []);
+   // stand-ins for the four GLB piece kinds: the coloured rounded box at the piece's size, feet on the origin
+   const standIns = useMemo(
+      () =>
+         MODEL_KINDS.map((kind) => {
+            const size = KIND_SCALE[kind];
+            const material = new MeshStandardMaterial({ color: KIND_COLOR[kind], roughness: 0.65 });
+            return [{ geometry: pieceGeo, material, locals: [new Matrix4().compose(new Vector3(0, size[1] / 2, 0), new Quaternion(), new Vector3(size[0], size[1], size[2]))] }];
+         }),
+      []
+   );
+   const carriedModels = useRef<(Group | null)[]>([]);
    const carried = useRef<Mesh>(null);
    const guide = useRef<Mesh>(null);
    const blob = useRef<Group>(null);
@@ -52,9 +67,15 @@ export function Pieces({ run }: { run: Run }) {
 
    useFrame(() => {
       const step = PLAN[run.planIndex];
+      for (const kind of MODEL_KINDS) {
+         const g = carriedModels.current[kind];
+         if (!g) continue;
+         g.visible = run.carried === kind;
+         if (g.visible) g.position.set(run.hookX, run.hookY - VISUAL_EXTENSION - KIND_SCALE[kind][1], run.hookZ);
+      }
       const mesh = carried.current;
       if (mesh) {
-         if (run.carried < 0) mesh.visible = false;
+         if (run.carried !== 4) mesh.visible = false;
          else {
             mesh.visible = true;
             const size = KIND_SCALE[run.carried];
@@ -112,6 +133,23 @@ export function Pieces({ run }: { run: Run }) {
 
    return (
       <group name="construction-pieces">
+         {MODEL_KINDS.map((kind) => (
+            <DynamicInstancedModel
+               key={kind}
+               asset={PIECE_ASSETS[kind]}
+               count={16}
+               name={`placed-pieces-${kind}`}
+               fallbackParts={standIns[kind]}
+               update={(index, matrix) => {
+                  const piece = run.pieces[index];
+                  if (!piece?.on || piece.kind !== kind) return false;
+                  const at = slotXZ(piece.slot);
+                  pos.set(at.x, piece.floor * FLOOR, at.z);
+                  scl.set(1, 1, 1);
+                  matrix.compose(pos, quat, scl);
+               }}
+            />
+         ))}
          <DynamicInstanced
             count={16}
             tinted
@@ -119,7 +157,7 @@ export function Pieces({ run }: { run: Run }) {
             name="placed-pieces"
             update={(index, matrix, color) => {
                const piece = run.pieces[index];
-               if (!piece?.on) return false;
+               if (!piece?.on || piece.kind !== 4) return false;
                const size = KIND_SCALE[piece.kind];
                const at = slotXZ(piece.slot);
                pos.set(at.x, piece.floor * FLOOR + size[1] / 2, at.z);
@@ -131,6 +169,18 @@ export function Pieces({ run }: { run: Run }) {
          <mesh ref={carried} geometry={pieceGeo} dispose={null} name="carried-piece">
             <meshStandardMaterial color="#ffffff" roughness={0.65} />
          </mesh>
+         {MODEL_KINDS.map((kind) => (
+            <group key={kind} ref={(el) => { carriedModels.current[kind] = el; }} visible={false} name={`carried-piece-${kind}`}>
+               <Model
+                  asset={PIECE_ASSETS[kind]}
+                  fallback={
+                     <mesh geometry={pieceGeo} dispose={null} position-y={KIND_SCALE[kind][1] / 2} scale={[KIND_SCALE[kind][0], KIND_SCALE[kind][1], KIND_SCALE[kind][2]]}>
+                        <meshStandardMaterial color={KIND_COLOR[kind]} roughness={0.65} />
+                     </mesh>
+                  }
+               />
+            </group>
+         ))}
          <mesh ref={ring} geometry={ringGeo} material={slotMat} rotation-x={-Math.PI / 2} dispose={null} name="slot-ring" />
          <mesh ref={guide} geometry={ringGeo} material={guideMat} rotation-x={-Math.PI / 2} dispose={null} name="guide-ring" />
          <group ref={blob} name="hook-shadow">

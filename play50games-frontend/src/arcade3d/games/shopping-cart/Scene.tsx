@@ -18,7 +18,7 @@ import { HumanoidModel, createPose, useHumanoidPose } from "@/arcade3d/core/rig"
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useFittedView } from "@/arcade3d/core/useFittedView";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
-import { ASSETS, BAKERY_DRAWN, BAKERY_FALLBACK_SPOTS, BAKERY_HEIGHT, BAKERY_SPOTS, SCRUBBER_DRAWN, SCRUBBER_FALLBACK_SPOTS, SCRUBBER_HEIGHT, SCRUBBER_SPOTS, SHELF_BAYS } from "./assets";
+import { ASSETS, MARKET_COLORS, MARKET_DRAWN, MARKET_SPOTS, type MarketKind, BAKERY_DRAWN, BAKERY_FALLBACK_SPOTS, BAKERY_HEIGHT, BAKERY_SPOTS, SCRUBBER_DRAWN, SCRUBBER_FALLBACK_SPOTS, SCRUBBER_HEIGHT, SCRUBBER_SPOTS, SHELF_BAYS } from "./assets";
 import { STORE_BOUNDS, viewFor } from "./camera";
 import { Decor } from "./Decor";
 import { COLORS, FLOOR } from "./looks";
@@ -816,6 +816,21 @@ function StoreEnvironment({ run }: { run: RunState }) {
                </Instanced>
             }
          />
+
+         {/* Checkout counters, freezers, a fruit stand and wet-floor cones on the north apron, outside the play box. */}
+         {(Object.keys(MARKET_SPOTS) as MarketKind[]).map((kind) => (
+            <InstancedModel
+               key={kind}
+               asset={ASSETS[kind]}
+               spots={MARKET_SPOTS[kind]}
+               fallback={
+                  <Instanced spots={MARKET_SPOTS[kind].map((p) => ({ ...p, y: MARKET_DRAWN[kind].height / 2 }))} name={`${kind}-fallback`}>
+                     <boxGeometry args={[MARKET_DRAWN[kind].width, MARKET_DRAWN[kind].height, MARKET_DRAWN[kind].depth]} />
+                     <meshStandardMaterial color={MARKET_COLORS[kind]} roughness={0.6} />
+                  </Instanced>
+               }
+            />
+         ))}
 
          {/* Fruit Island Produce Display */}
          <group

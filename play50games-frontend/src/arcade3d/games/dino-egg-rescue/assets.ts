@@ -46,6 +46,23 @@ export const LAVA_ROCK_SPOTS = [
    { x: 17.5, z: 6.5, rotY: 5.1, scale: 1.1 },
 ] as const;
 
+/**
+ * dinoEgg.glb (Menu 1 adoption, 1500 tris) 1.366 x 1.897 x 1.4, floor pivot at y 0, centred. Drawn 0.4 m tall
+ * (the old code egg: 0.15 radius x 1.33 stretch); the golden egg is the same mesh, 0.45 m, in gold.
+ */
+export const DINO_EGG_GLB = { width: 1.366, height: 1.897, depth: 1.4 } as const;
+export const DINO_EGG_HEIGHT = 0.4;
+export const GOLDEN_EGG_HEIGHT = 0.45;
+
+/**
+ * dinoNestV2.glb (Menu 1 adoption, 4484 tris) 1.856 x 0.625 x 1.801, floor pivot, a shallow straw nest. Drawn
+ * 3.6 m across (the old outer radius 1.8) and flattened to ~0.5 m tall so the dino and eggs read over its rim.
+ */
+export const DINO_NEST_GLB = { width: 1.856, height: 0.625, depth: 1.801 } as const;
+export const DINO_NEST_DIAMETER = 3.6;
+export const DINO_NEST_HEIGHT = 0.5;
+const DINO_NEST_SCALE = DINO_NEST_DIAMETER / DINO_NEST_GLB.width;
+
 export const ASSETS = {
    dino: EXPANSION_ASSETS.dino,
    rock: {
@@ -65,6 +82,32 @@ export const ASSETS = {
       stretch: [1, VOLCANO_HEIGHT / (VOLCANO_GLB.height * VOLCANO_SCALE), 1] as const,
       fallback: "cylinder",
       fallbackColor: "#292524",
+      budget: { ...PROP_BUDGET },
+   },
+   dinoEgg: {
+      id: "dinoEgg",
+      url: "/models/3d/dino-egg-rescue/dinoEgg.glb",
+      scale: DINO_EGG_HEIGHT / DINO_EGG_GLB.height,
+      fallback: "sphere",
+      fallbackColor: "#f5e6c8",
+      budget: { ...PROP_BUDGET },
+   },
+   goldenEgg: {
+      id: "goldenEgg",
+      url: "/models/3d/dino-egg-rescue/dinoEgg.glb",
+      scale: GOLDEN_EGG_HEIGHT / DINO_EGG_GLB.height,
+      material: "gold",
+      fallback: "sphere",
+      fallbackColor: "#facc15",
+      budget: { ...PROP_BUDGET },
+   },
+   dinoNest: {
+      id: "dinoNest",
+      url: "/models/3d/dino-egg-rescue/dinoNestV2.glb",
+      scale: DINO_NEST_SCALE,
+      stretch: [1, DINO_NEST_HEIGHT / (DINO_NEST_GLB.height * DINO_NEST_SCALE), 1] as const,
+      fallback: "cylinder",
+      fallbackColor: "#d4a24c",
       budget: { ...PROP_BUDGET },
    },
    lavaRock: {

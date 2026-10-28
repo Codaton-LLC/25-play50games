@@ -17,7 +17,7 @@ import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import { DynamicInstanced, Instanced } from "@/arcade3d/core/render";
 import { Model } from "@/arcade3d/core/assets";
-import { ASSETS, HABITAT_DOME_LEVELS, HABITAT_DOME_SPOTS } from "./assets";
+import { ASSETS, HABITAT_DOME_LEVELS, HABITAT_DOME_SPOTS, OUTPOST_BEACON_SPOTS, OUTPOST_PAD_SPOTS } from "./assets";
 import { PLANET_DECOR, PLANET_LOOKS } from "./looks";
 
 interface DecorProps {
@@ -139,6 +139,17 @@ export function Decor({ planet, level = 1, reducedMotion = false }: DecorProps) 
                name={`habitat-dome-${i}`}
             >
                <Model asset={ASSETS.habitatDome} />
+            </group>
+         ))}
+         {/* Outpost pad and beacon pillars (Menu 1 adoptions, levels 4-5) */}
+         {showDomes && OUTPOST_PAD_SPOTS.map((spot, i) => (
+            <group key={`pad-${i}`} position={[spot.x, spot.y, spot.z]} rotation={[0, spot.rotY, 0]} scale={spot.scale} name={`outpost-pad-${i}`}>
+               <Model asset={ASSETS.outpostPad} />
+            </group>
+         ))}
+         {showDomes && OUTPOST_BEACON_SPOTS.map((spot, i) => (
+            <group key={`beacon-${i}`} position={[spot.x, spot.y, spot.z]} rotation={[0, spot.rotY, 0]} name={`outpost-beacon-${i}`}>
+               <Model asset={ASSETS.outpostBeacon} />
             </group>
          ))}
          {/* Distant mountain peaks / crater ridges */}

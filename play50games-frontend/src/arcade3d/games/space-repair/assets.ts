@@ -17,7 +17,16 @@ export const DISH_DRAWN = {
    depth: DISH_GLB.depth * DISH_SCALE,
 } as const;
 
-export const ASSETS: Record<"astronaut" | "battery" | "station" | "dish", ModelAsset> = {
+/**
+ * solarPanelWing.glb (Menu 1 adoption, 3000 tris) raw bounds 1.871 x 1.020 x 1.647, floor pivot, centred. Drawn 4.5 m
+ * across (scale ~2.4): the distant solar wings beside the outer modules, replacing the flat code boxes.
+ */
+export const SOLAR_WING_GLB = { width: 1.871, height: 1.02, depth: 1.647 } as const;
+export const SOLAR_WING_WIDTH = 4.5;
+export const SOLAR_WING_SCALE = SOLAR_WING_WIDTH / SOLAR_WING_GLB.width;
+
+export const ASSETS: Record<"astronaut" | "battery" | "station" | "dish" | "solarWing", ModelAsset> = {
+   solarWing: { id: "solarPanelWing", url: "/models/3d/space-repair/solarPanelWing.glb", scale: SOLAR_WING_SCALE, fallback: "box", fallbackColor: "#1e3a8a", budget: { tris: 5000, bytes: 300000 } },
    astronaut: { ...EXPANSION_CHARACTERS.astronaut, scale: SUIT_SCALE },
    battery: { ...SHARED_ASSETS.battery, scale: 1 / SHARED_GLB_SIZE.battery.height },
    station: { id: "stationModule", url: "/models/3d/space-repair/stationModule.glb", fallback: "cylinder", fallbackColor: "#e2e8f0", budget: { tris: 3000, bytes: 1500000 } },

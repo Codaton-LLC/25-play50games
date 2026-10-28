@@ -26,6 +26,15 @@ const PALM_XZ = PALM_SIZE.crown / PALM_GLB.width;
 /** How far the palm's trunk base is drawn from its origin along +z (m): the origin goes on the rules' trunk minus this. */
 export const PALM_BASE_Z = PALM_GLB.baseZ * (PALM_SIZE.crown / PALM_GLB.depth);
 
+/**
+ * harbourBuoy.glb (Menu 1 adoption, 1500 tris) 1.307 x 1.908 x 1.377, floor pivot, centred: an orange channel buoy. Drawn
+ * 1.7 m tall (the old code buoy's height), sunk 0.25 m into the water; one model for every channel marker.
+ */
+export const BUOY_GLB = { width: 1.307, height: 1.908, depth: 1.377 } as const;
+export const BUOY_HEIGHT = 1.7;
+export const BUOY_SINK = 0.25;
+const BUOY_SCALE = BUOY_HEIGHT / BUOY_GLB.height;
+
 /** crate.glb 1.880 wide: flotsam 0.8 m across. */
 export const CRATE_SIZE = 0.8;
 const CRATE_GLB_WIDTH = 1.88;
@@ -52,6 +61,14 @@ export const LIGHTHOUSE_STRETCH = [
 ] as const;
 
 export const ASSETS = {
+   harbourBuoy: {
+      id: "harbourBuoy",
+      url: "/models/3d/pirate-cannons/harbourBuoy.glb",
+      scale: BUOY_SCALE,
+      fallback: "cylinder",
+      fallbackColor: "#f97316",
+      budget: { ...PROP_BUDGET },
+   },
    ship: { ...EXPANSION_ASSETS.ship, yOffset: -SHIP_WATERLINE },
    cannon: EXPANSION_ASSETS.cannon,
    barrel: {

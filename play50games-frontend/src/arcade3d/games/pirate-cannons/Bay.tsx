@@ -21,7 +21,7 @@ import { SkyDome, Water } from "@/arcade3d/core/env";
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import { Instanced, type InstanceSpot } from "@/arcade3d/core/render";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
-import { ASSETS, LIGHTHOUSE_AT, PALM_BASE_Z } from "./assets";
+import { ASSETS, BUOY_SINK, LIGHTHOUSE_AT, PALM_BASE_Z } from "./assets";
 import { Decor } from "./Decor";
 import { COLORS, FORT } from "./looks";
 import { PalmPrimitives } from "./Primitives";
@@ -136,6 +136,7 @@ export function Bay({ run }: { run: RunState }) {
    const [reduced] = useState(() => typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
    const parapet = useMemo(parapetSpots, []);
    const buoys = useMemo(buoySpots, []);
+   const buoyModelSpots = useMemo(() => [...buoys.red, ...buoys.white].map((s) => ({ ...s, y: -BUOY_SINK })), [buoys]);
    const mound = useMound();
 
    const fortDepth = FORT.back - FORT.front;
@@ -255,14 +256,22 @@ export function Bay({ run }: { run: RunState }) {
 
          {/* -------------------- The Harbour -------------------- */}
          {/* Channel buoys: red and white channel markers */}
-         <Instanced spots={buoys.red} name="buoys-red">
-            <primitive object={buoyGeo} attach="geometry" />
-            <meshStandardMaterial color={COLORS.buoyRed} roughness={0.5} />
-         </Instanced>
-         <Instanced spots={buoys.white} name="buoys-white">
-            <primitive object={buoyGeo} attach="geometry" />
-            <meshStandardMaterial color={COLORS.buoyWhite} roughness={0.5} />
-         </Instanced>
+         <InstancedModel
+            asset={ASSETS.harbourBuoy}
+            spots={buoyModelSpots}
+            fallback={
+               <>
+                  <Instanced spots={buoys.red} name="buoys-red">
+                     <primitive object={buoyGeo} attach="geometry" />
+                     <meshStandardMaterial color={COLORS.buoyRed} roughness={0.5} />
+                  </Instanced>
+                  <Instanced spots={buoys.white} name="buoys-white">
+                     <primitive object={buoyGeo} attach="geometry" />
+                     <meshStandardMaterial color={COLORS.buoyWhite} roughness={0.5} />
+                  </Instanced>
+               </>
+            }
+         />
 
          {/* Stone harbour mole / breakwater */}
          <mesh position={[SEA.harbourX + 6, 0.4, -61]}>

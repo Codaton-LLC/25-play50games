@@ -6,7 +6,7 @@ import { modelParts } from "@/arcade3d/core/assets";
 import { MODEL_MANIFEST } from "@/arcade3d/core/modelManifest";
 import { readCharacterGlb } from "@/arcade3d/core/rig/robotGlb";
 import { EXPANSION_GLB_SIZE } from "@/arcade3d/core/sharedAssets";
-import { ASSETS, AURORA_CRYSTAL_GLB, AURORA_CRYSTAL_HEIGHT, AURORA_CRYSTAL_LATERAL, BELLY_LIFT, BELLY_ROTATION_Y, FLAG_BOUNDS, GLACIER_CHUNK_GLB, GLACIER_CHUNK_LATERAL, GLACIER_CHUNK_WIDTH, ICE_ARCH_GLB, ICE_ARCH_LATERAL, ICE_ARCH_WIDTH, PENGUIN_SCALE, SNOWMAN_GLB, SNOWMAN_SCALE, bellyClearance } from "./assets";
+import { ICE_BLOCK_SIZE, SNOW_RAMP_DRAWN, ASSETS, AURORA_CRYSTAL_GLB, AURORA_CRYSTAL_HEIGHT, AURORA_CRYSTAL_LATERAL, BELLY_LIFT, BELLY_ROTATION_Y, FLAG_BOUNDS, GLACIER_CHUNK_GLB, GLACIER_CHUNK_LATERAL, GLACIER_CHUNK_WIDTH, ICE_ARCH_GLB, ICE_ARCH_LATERAL, ICE_ARCH_WIDTH, PENGUIN_SCALE, SNOWMAN_GLB, SNOWMAN_SCALE, bellyClearance } from "./assets";
 import { PLAY_BOUNDS } from "./looks";
 import { COURSE } from "./rules";
 
@@ -185,4 +185,25 @@ describe("penguin-slide real GLB fits", () => {
       expect(crystalInner).toBeGreaterThan(COURSE.width + 1);
       expect(glacierInner).toBeGreaterThan(COURSE.width + 1);
    });
+
+describe("penguin-slide ice block and snow ramp (Menu 1 adoption)", () => {
+   it("lists both GLBs and draws them at the README sizes on the snow", async () => {
+      expect(MODEL_MANIFEST).toContain(ASSETS.iceBlock.url);
+      expect(MODEL_MANIFEST).toContain(ASSETS.snowRamp.url);
+      const block = await fittedBox(ASSETS.iceBlock.url, ASSETS.iceBlock);
+      expect(block.min.y).toBeCloseTo(0, 2);
+      expect(block.max.x - block.min.x).toBeCloseTo(ICE_BLOCK_SIZE, 2);
+      expect(block.max.y - block.min.y).toBeCloseTo(ICE_BLOCK_SIZE, 2);
+      const ramp = await fittedBox(ASSETS.snowRamp.url, ASSETS.snowRamp);
+      expect(ramp.min.y).toBeCloseTo(0, 2);
+      expect(ramp.max.x - ramp.min.x).toBeCloseTo(SNOW_RAMP_DRAWN.width, 2);
+      expect(ramp.max.y - ramp.min.y).toBeCloseTo(SNOW_RAMP_DRAWN.height, 2);
+      expect(ramp.max.z - ramp.min.z).toBeCloseTo(SNOW_RAMP_DRAWN.length, 2);
+   });
+   it("covers the rules' collision circle with the ice block and keeps the ramp inside the corridor", () => {
+      expect(ICE_BLOCK_SIZE / 2).toBeGreaterThanOrEqual(0.5);
+      expect(ICE_BLOCK_SIZE / 2).toBeLessThanOrEqual(0.6);
+      expect(SNOW_RAMP_DRAWN.width / 2).toBeLessThan(COURSE.narrow);
+   });
+});
 });
