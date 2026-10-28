@@ -985,6 +985,22 @@
         { "title": "Fading Clouds", "max_score": 17180, "min_duration_ms": 38200, "max_duration_ms": 210000, "time_base_ms": 210000 },
         { "title": "Sky Sprint", "max_score": 20030, "min_duration_ms": 39700, "max_duration_ms": 240000, "time_base_ms": 240000 }
       ]
+    },
+    "color-city-sprint": {
+      "title": "Color City Sprint",
+      "kind": "time",
+      "max_score": 6900,
+      "min_duration_ms": 21000,
+      "max_duration_ms": 90000,
+      "time_base_ms": 90000,
+      "enabled": false,
+      "levels": [
+        { "title": "Red Block", "max_score": 6900, "min_duration_ms": 21000, "max_duration_ms": 90000, "time_base_ms": 90000 },
+        { "title": "Bus Line", "max_score": 9980, "min_duration_ms": 20200, "max_duration_ms": 120000, "time_base_ms": 120000 },
+        { "title": "Rush Hour", "max_score": 11310, "min_duration_ms": 26900, "max_duration_ms": 140000, "time_base_ms": 140000 },
+        { "title": "Night Neon", "max_score": 13880, "min_duration_ms": 41200, "max_duration_ms": 180000, "time_base_ms": 180000 },
+        { "title": "Greyout Avenue", "max_score": 15080, "min_duration_ms": 9200, "max_duration_ms": 160000, "time_base_ms": 160000 }
+      ]
     }
   }
 }
