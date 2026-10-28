@@ -19,9 +19,12 @@
 //   per kind, all three maps mounted, Worlds sets visible from run.map in a useFrame. The park and
 //   the city also carry their decor (Decor.tsx: ground beyond the floor, parked cars, pigeons),
 //   outside everything the run draws on the floor (decorSpots.ts).
-import { memo, useLayoutEffect, useRef, useState } from "react";
-import { useFrame } from "@react-three/fiber";
+import { memo, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useFrame, useThree } from "@react-three/fiber";
 import { Euler, Matrix4, Quaternion, Vector3, type Group, type Mesh, type MeshBasicMaterial } from "three";
+import { useCameraViews } from "@/arcade3d/core/camera/CameraViews";
+import { useCameraZoom } from "@/arcade3d/core/useCameraZoom";
+import { phoneOffset, cameraSolids } from "./cameraViews";
 import CameraRig from "@/arcade3d/core/CameraRig";
 import { playSfx } from "@/arcade3d/core/audio";
 import { useGameTime } from "@/arcade3d/core/gameTime";
@@ -123,7 +126,7 @@ function litterScale(run: CleanRun, fx: LitterFx, slot: number, now: number): nu
 
 // ---------- simulation ----------
 
-const Simulation = memo(function Simulation({ run, fx, yaw }: { run: CleanRun; fx: LitterFx; yaw: number }) {
+const Simulation = memo(function Simulation({ run, fx, yaw }: { run: CleanRun; fx: LitterFx; yaw: () => number }) {
    const input = useInput();
    const time = useGameTime();
    const [scratch] = useState(() => ({ dir: { x: 0, z: 0 }, input: createStepInput() }));
@@ -137,7 +140,7 @@ const Simulation = memo(function Simulation({ run, fx, yaw }: { run: CleanRun; f
 
    useRunFrame((_state, dt) => {
       const now = input.current;
-      inputToWorld(now.moveX, now.moveY, yaw, scratch.dir);
+      inputToWorld(now.moveX, now.moveY, yaw(), scratch.dir);
       scratch.input.moveX = scratch.dir.x;
       scratch.input.moveY = scratch.dir.z;
       const atX = run.runner.x;
@@ -433,15 +436,32 @@ export default function Scene() {
    const [run] = useState(() => createRun(randomSeed(), config));
    const [fx] = useState(() => createFx(run.level.items));
 
+   const aspect = useThree((s) => s.size.width / s.size.height);
+   const portrait = aspect < 1;
+   const offset = phoneOffset(view.offset, aspect);
+   const zoom = useCameraZoom({ min: 1.5 / Math.hypot(...offset), max: Math.max(1, 2 * view.distance / Math.hypot(...offset)) });
+   useEffect(() => { zoom.current = 1; }, [portrait, zoom]);
+   const cam = useCameraViews({
+      slug: "clean-city", subject: "character", steering: "camera", defaultYaw: view.yaw,
+      framing: { chase: { distance: 3.5, lookUp: 0 }, front: { distance: 3, lookUp: 0 }, free: { distance: 3.5, lookUp: 0 }, top: { distance: 35 } },
+      target: (o) => {
+         const r = run.runner;
+         o.x = r.x; o.y = 0.5; o.z = r.z;
+         o.heading = r.heading; o.vx = r.vx; o.vz = r.vz;
+      },
+      solids: (out) => cameraSolids(run.map, out, run.level, run.simMs),
+   });
+
    return (
       <>
-         <Simulation run={run} fx={fx} yaw={view.yaw} />
+         <Simulation run={run} fx={fx} yaw={cam.yaw} />
          <CameraRig
             camera={{ position: view.offset, fov: FOV, lookAt: LOOK_AT }}
             follow={run.runner}
-            followFraction={FOLLOW}
+            followFraction={aspect < 1 ? 1 : FOLLOW}
             bounds={REACH}
-            offset={view.offset}
+            offset={offset}
+            zoom={zoom}
             shift={view.shift}
             damping={DAMPING}
          />

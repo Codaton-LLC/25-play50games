@@ -7,9 +7,10 @@
 import { useEffect, useState } from "react";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { towerHint } from "./hint";
+import CameraViewButton from "@/arcade3d/core/camera/CameraViewButton";
 import styles from "./Hud.module.css";
 
-export default function Hud() {
+function GameHud() {
    const checkpoint = useArcadeStore(s => s.stats.checkpoint ?? 0);
    // the run time the current checkpoint was reached at (the stat changes once per checkpoint)
    const [mark, setMark] = useState({ checkpoint: 0, atMs: 0 });
@@ -23,4 +24,8 @@ export default function Hud() {
          {message !== null && <span className={styles.pill}>{message}</span>}
       </div>
    );
+}
+
+export default function Hud() {
+   return <><CameraViewButton /><GameHud /></>;
 }

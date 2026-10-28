@@ -20,9 +20,12 @@
 // - Levels: the picked level's config comes from useLevel() (wrapped once as useRobotLevel); the
 //   run is made from it with createRun, and the scene is keyed by the level so the start card's
 //   backdrop shows the level that is picked.
-import { useRef, useState } from "react";
-import { useFrame } from "@react-three/fiber";
+import { useEffect, useRef, useState } from "react";
+import { useFrame, useThree } from "@react-three/fiber";
 import type { Group, Mesh, MeshStandardMaterial } from "three";
+import { useCameraViews } from "@/arcade3d/core/camera/CameraViews";
+import { useCameraZoom } from "@/arcade3d/core/useCameraZoom";
+import { phoneOffset } from "./cameraViews";
 import CameraRig from "@/arcade3d/core/CameraRig";
 import { Model } from "@/arcade3d/core/assets";
 import { playSfx } from "@/arcade3d/core/audio";
@@ -296,10 +299,25 @@ function LevelScene() {
       return next;
    });
 
+   const aspect = useThree((s) => s.size.width / s.size.height);
+   const portrait = aspect < 1;
+   const offset = phoneOffset(view.offset, aspect);
+   const zoom = useCameraZoom({ min: 2 / Math.hypot(...offset), max: Math.max(1, 2 * view.distance / Math.hypot(...offset)) });
+   useEffect(() => { zoom.current = 1; }, [portrait, zoom]);
+   const cam = useCameraViews({
+      slug: "robot-collector", subject: "character", steering: "camera", defaultYaw: view.yaw,
+      framing: { chase: { distance: 4.5, lookUp: 0 }, front: { distance: 4, lookUp: 0 }, free: { distance: 4.5, lookUp: 0 }, top: { distance: 30 } },
+      target: (o) => {
+         const r = run.robot;
+         o.x = r.x; o.y = 0.7; o.z = r.z;
+         o.heading = r.heading; o.vx = r.vx; o.vz = r.vz;
+      },
+   });
+
    // the game: move, collect, score, end. Runs only while "playing", before every visual.
    useRunFrame((_state, dt) => {
       const { moveX, moveY } = input.current;
-      inputToWorld(moveX, moveY, view.yaw, dir);
+      inputToWorld(moveX, moveY, cam.yaw(), dir);
       const got = stepRun(run, dir.x, dir.z, dt);
       if (got === 0) return;
       const store = useArcadeStore.getState();
@@ -321,8 +339,9 @@ function LevelScene() {
          <CameraRig
             camera={{ position: view.offset, lookAt: LOOK_AT }}
             follow={run.robot}
-            followFraction={FOLLOW}
-            offset={view.offset}
+            followFraction={aspect < 1 ? 1 : FOLLOW}
+            offset={offset}
+            zoom={zoom}
             shift={view.shift}
             damping={4}
          />
