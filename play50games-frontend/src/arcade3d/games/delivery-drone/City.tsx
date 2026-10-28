@@ -9,7 +9,7 @@ import { scaledCount, useQuality } from "@/arcade3d/core/quality";
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import { hover, type BodyOffset } from "@/arcade3d/core/motion";
 import { advance, createPath, tangentAt } from "@/arcade3d/core/path";
-import { ASSETS, BRICK_FALLBACK, BRICK_HEIGHT, BRICK_SPOTS, GLASS_FALLBACK, GLASS_HEIGHT, GLASS_SPOTS, SKYLINE_FOOTPRINT } from "./assets";
+import { ASSETS, BLOCK_FALLBACK, BLOCK_HEIGHT, BLOCK_SPOTS, BLOCK_WIDTH, TALL_FALLBACK, TALL_HEIGHT, TALL_SPOTS, TALL_WIDTH, BRICK_FALLBACK, BRICK_HEIGHT, BRICK_SPOTS, GLASS_FALLBACK, GLASS_HEIGHT, GLASS_SPOTS, SKYLINE_FOOTPRINT } from "./assets";
 import { CITY, ROUTE, type Run, type City } from "./rules";
 import { mergedBoxes, useMergedPart } from "./Primitives";
 import { COLORS, GROUND_PLANE, PARK } from "./looks";
@@ -530,6 +530,27 @@ export default function CityScene({ run, reduced }: { run: Run; reduced: boolean
                <Instanced spots={BRICK_FALLBACK}>
                   <boxGeometry args={[SKYLINE_FOOTPRINT, BRICK_HEIGHT, SKYLINE_FOOTPRINT]} />
                   <meshStandardMaterial color="#9a3412" roughness={0.85} />
+               </Instanced>
+            }
+         />
+         {/* Hyper3D tower and block row behind the procedural skyline (z -55) */}
+         <InstancedModel
+            asset={ASSETS.cityTall}
+            spots={TALL_SPOTS}
+            fallback={
+               <Instanced spots={TALL_FALLBACK}>
+                  <boxGeometry args={[TALL_WIDTH, TALL_HEIGHT, TALL_WIDTH]} />
+                  <meshStandardMaterial color="#94a3b8" roughness={0.85} />
+               </Instanced>
+            }
+         />
+         <InstancedModel
+            asset={ASSETS.cityBlock}
+            spots={BLOCK_SPOTS}
+            fallback={
+               <Instanced spots={BLOCK_FALLBACK}>
+                  <boxGeometry args={[BLOCK_WIDTH, BLOCK_HEIGHT, BLOCK_WIDTH]} />
+                  <meshStandardMaterial color="#cbd5e1" roughness={0.85} />
                </Instanced>
             }
          />
