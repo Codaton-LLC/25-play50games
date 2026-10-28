@@ -73,3 +73,7 @@ HUD: the shell's chips (score, time, Nectar x/3, Stamina x/100).
 
 - `spiderWeb.glb` has patchy strands (spec: `spiderWebFrame` regeneration is on the still-needed list); the ground ring carries the hazard's footprint until then.
 - The bee is one mesh: wings do not flap (spec: `hover` and bank carry the life).
+
+## Clarity (2026-10-28, visual only)
+
+`guide.ts` (pure, `guide.test.ts`) picks the flower to fly to (nearest with nectar, kept until taken unless another is clearly closer) and says when to bank. Core `TargetBeacon`s: a yellow arrow on that flower while there is room to carry, a green "HIVE" drop-here ring on the hive while anything is carried. The core `HintLine` (new `Hud.tsx`) says "Fly into the glowing nectar (arrow)", "Carrying n / 3: grab more or bank at the hive", "Full load! Fly over the hive (arrow) to bank it" and a sticky red "Stuck in a web! The nectar fell back". A web hit pops "Stuck in a web!" (`useActionPop`, same 0.3 shake); each picked nectar drop flies from its bloom into the bee and each banked one from the bee into the hive (`<Toss>`). Rules, scoring and limits are unchanged.

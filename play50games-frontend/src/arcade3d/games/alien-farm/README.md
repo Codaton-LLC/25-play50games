@@ -212,3 +212,7 @@ TASK P-18-alien-farm | build alien-farm | branch claude/game-alien-farm | allowe
 ## Camera views
 
 Views: default, chase, front, top, free. **C** / **T** or the 📷 button cycles them; drag (or two fingers) looks around and switches to the free view, wheel / pinch zooms, **V** recenters. The rules receive the drawn camera's yaw (the fitted yaw in the default view), so a run in the default view is unchanged; no rules, bots, proofs or scoring were touched. Core docs: `core/camera/README.md`.
+
+## Clarity (2026-10-28, visual only)
+
+`guide.ts` (pure, `guide.test.ts`) marks the crop `guidePlot` picks while the basket has room and the saucer's beam while anything is carried. Core `TargetBeacon`s: a mint arrow on the crop, a drop-here "BEAM" ring under the saucer (the edge `TargetMarkers` stay for off-screen targets). The core `HintLine` (new `Hud.tsx`, the definition's `Hud` was the camera button only) says "Go to the marked crop, press E / tap Pick when its ring is full (gold)", "Carrying n / 4: pick more or ride the beam", "Basket full! Walk into the saucer's beam", and a sticky red line while dazed or in spores; a "Tool cooling…" pill shows after a wasted press. A mistimed press pops "Burst! Too early / Too late" and a refused press "Basket full! / Tool cooling… / Nothing ripe in reach" (`useActionPop`). Picked crops fly from the bed into the farmer's arms, delivered ones up the beam into the saucer (`<Toss>`). Rules, scoring and limits are unchanged.

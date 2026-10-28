@@ -11,18 +11,20 @@ import { DynamicInstanced } from "@/arcade3d/core/render";
 import { playSfx, startLoop, useMuted, type LoopHandle } from "@/arcade3d/core/audio";
 import { SkyDome } from "@/arcade3d/core/env";
 import { FRAME_PRIORITY } from "@/arcade3d/core/frameLoop";
-import { useFx } from "@/arcade3d/core/fx";
+import { Toss, useActionPop, useFx, type TossHandle } from "@/arcade3d/core/fx";
 import { useGameTime } from "@/arcade3d/core/gameTime";
-import { TargetMarkers, type MarkerTarget } from "@/arcade3d/core/hud";
+import { TargetBeacon, TargetMarkers, type MarkerTarget } from "@/arcade3d/core/hud";
 import { useInput } from "@/arcade3d/core/input";
 import { useLevel } from "@/arcade3d/core/level";
 import { inputToWorld, randomSeed } from "@/arcade3d/core/math";
 import { bank, hover, type BodyOffset } from "@/arcade3d/core/motion";
 import { scaledCount, useQuality } from "@/arcade3d/core/quality";
 import { Instanced, useCanvasTexture, type InstanceSpot } from "@/arcade3d/core/render";
+import { useCoarsePointer } from "@/arcade3d/core/TouchControls";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useFittedView } from "@/arcade3d/core/useFittedView";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
+import { GUIDE, beeHint, flowerGoal, hintCode, hiveGoal, nextFlower } from "./guide";
 import { FLAP_TIME, patchWings } from "./wings";
 import { ASSETS, BRANCH_UPRIGHT, FIT } from "./assets";
 import { LEVELS, type BeeLevel } from "./levels";
@@ -73,6 +75,8 @@ function LevelScene() {
    const view = useFittedView(viewFor(id));
    const input = useInput();
    const fx = useFx();
+   const pop = useActionPop();
+   const touch = useCoarsePointer();
    const time = useGameTime();
    const quality = useQuality();
    const muted = useMuted();
@@ -105,6 +109,23 @@ function LevelScene() {
       { x: run.hive.x, y: 1.6, z: run.hive.z, hidden: true, color: COLORS.hive },
       { x: 0, y: 1.15, z: 0, hidden: true, color: COLORS.nectar },
    ]).current;
+
+   // clarity (visual only): a beacon on the flower to fly to and one on the hive while carrying, the hint
+   // line, the web pop and the nectar drops that fly from the bloom to the bee and from the bee to the hive
+   const flowerBeacon = useRef({ x: 0, y: FIT.orbY, z: 0, hidden: true }).current;
+   const hiveBeacon = useRef({ x: run.hive.x, y: FIT.hiveHeight, z: run.hive.z, hidden: true }).current;
+   const guide = useRef({ flower: -1, code: -1 }).current;
+   const hiveTop = useRef({ x: run.hive.x, y: FIT.hiveHeight, z: run.hive.z }).current;
+   const bloom = useRef({ x: 0, y: FIT.orbY, z: 0 }).current;
+   const pickToss = useRef<TossHandle>(null);
+   const dropToss = useRef<TossHandle>(null);
+   useEffect(() => {
+      guide.flower = nextFlower(run, -1);
+      guide.code = hintCode(run, guide.flower);
+      GUIDE.set(beeHint(run, guide.code, touch));
+      return () => GUIDE.reset();
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+   }, [run]);
 
    // static spots, built once per run
    const flowerSpots = useMemo(
@@ -152,6 +173,9 @@ function LevelScene() {
       const ahead = speed > 0.3 ? LOOK_AHEAD / speed : 0;
       aim.x = Math.min(bounds.max.x, Math.max(bounds.min.x, run.bee.x + run.bee.vx * ahead));
       aim.z = Math.min(bounds.max.z, Math.max(bounds.min.z, run.bee.z + run.bee.vz * ahead));
+      let picks = 0;
+      for (const ev of run.events) if (ev === "pickup") picks++;
+      let pick = 0;
       for (const ev of run.events) {
          AT.x = run.bee.x;
          AT.y = run.bee.y;
@@ -159,11 +183,22 @@ function LevelScene() {
          if (ev === "pickup") {
             playSfx("pickup", { volume: 0.4, pitch: 1 + run.carried.length * 0.12 });
             fx.burst("sparkle", AT, 12);
+            // the nectar flies from its bloom into the bee
+            const flower = run.flowers[run.carried[run.carried.length - picks + pick++]];
+            if (flower) {
+               bloom.x = flower.x;
+               bloom.z = flower.z;
+               pickToss.current?.play(bloom, run.bee, { duration: 0.3, height: 0.5, scaleFrom: 1, scaleTo: 0.45 });
+            }
          } else if (ev === "web_hit") {
             playSfx("hit", { volume: 0.45 });
-            fx.shake(0.3);
             fx.burst("puff", AT, 14);
+            AT.y = run.bee.y + 0.5;
+            pop.fail(AT, "Stuck in a web!", { shake: 0.3 });
          } else if (ev === "deposit") {
+            // the carried drops fly from under the bee into the hive
+            const drops = run.lastDeposit >= 75 ? 3 : Math.round(run.lastDeposit / TUNING.pointsPerUnit);
+            for (let k = 0; k < drops; k++) dropToss.current?.play({ x: run.bee.x, y: run.bee.y - 0.3, z: run.bee.z }, hiveTop, { duration: 0.35 + k * 0.06, height: 0.6, scaleFrom: 0.45, scaleTo: 0.3 });
             AT.x = run.hive.x;
             AT.y = FIT.hiveHeight + 0.3;
             AT.z = run.hive.z;
@@ -193,6 +228,19 @@ function LevelScene() {
       }
       const carrying = run.carried.length > 0;
       markers[0].hidden = !carrying;
+      guide.flower = nextFlower(run, guide.flower);
+      const target = run.flowers[guide.flower];
+      flowerBeacon.hidden = !flowerGoal(run, guide.flower);
+      if (target) {
+         flowerBeacon.x = target.x;
+         flowerBeacon.z = target.z;
+      }
+      hiveBeacon.hidden = !hiveGoal(run) || run.over;
+      const code = hintCode(run, guide.flower);
+      if (code !== guide.code) {
+         guide.code = code;
+         GUIDE.set(beeHint(run, code, touch));
+      }
       let best = Infinity;
       markers[1].hidden = true;
       if (!carrying) {
@@ -274,6 +322,14 @@ function LevelScene() {
          />
          <SkyDome top={look.skyTop} bottom={look.skyBottom} />
          <TargetMarkers targets={markers} />
+         <TargetBeacon target={flowerBeacon} variant="pick" color={COLORS.nectar} radius={0.7} height={0.55} />
+         <TargetBeacon target={hiveBeacon} variant="drop-here" radius={TUNING.hiveRadius} height={0.9} label="HIVE" />
+         <Toss ref={pickToss} slots={3} spin={0}>
+            <Model asset={ASSETS.nectarOrb} fallback={<NectarDrop />} />
+         </Toss>
+         <Toss ref={dropToss} slots={3} spin={0}>
+            <Model asset={ASSETS.nectarOrb} fallback={<NectarDrop />} />
+         </Toss>
 
          {/* the lawn reaches past the fog, the garden is a brighter mown rectangle inside a stone kerb */}
          <mesh rotation-x={-Math.PI / 2} position={[0, -0.01, 0]}>
@@ -370,6 +426,16 @@ function Kerb({ halfX, halfZ }: { halfX: number; halfZ: number }) {
             <meshStandardMaterial color={COLORS.kerbTop} roughness={0.7} />
          </Instanced>
       </>
+   );
+}
+
+/** The nectar drop that flies (the GLB is the real one; this stands in until it loads). */
+function NectarDrop() {
+   return (
+      <mesh>
+         <sphereGeometry args={[FIT.orbSize / 2, 12, 8]} />
+         <meshBasicMaterial color={COLORS.nectar} />
+      </mesh>
    );
 }
 

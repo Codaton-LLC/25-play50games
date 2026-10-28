@@ -80,3 +80,7 @@ Tests: `proof.level-N.test.ts` (bots in `testing/bots.ts`, suite in `testing/pro
 - Frisbee flight is a parabola (apex 1.5 m) whose time grows with distance. The seeded landing point is the only randomness in a throw.
 - A mower drop leaves the toy where the dog stood. It can be dropped again, and the patience timer keeps running.
 - The bench is drawn 1.2 m long for its 0.5 m solid circle: its ends overhang the circle by 0.1 m.
+
+## Clarity (2026-10-28, visual only)
+
+`guide.ts` (pure, `guide.test.ts`) follows the active throw: the ring where a toy in the air lands, the toy waiting on the grass, the blanket once it is carried. Core `TargetBeacon`s draw them (they replace the old light column): a "drop-here" ring at the landing spot, a "pick" arrow on the toy, a green "HOME" ring on the blanket. The core `HintLine` (new `Hud.tsx`) says "Frisbee! Run under it, then press Space / tap Jump to catch it", "Run to the toy (arrow)", "Got it! Run back to the blanket (arrow)", and a sticky red "Hurry! The owner is about to fetch it" for the last 4 s of L4-L5's patience. Fail pops (`useActionPop`): "Mower! Toy dropped" (same 0.3 shake), "Too slow! Owner took it n/2". A returned toy flies from the dog's mouth into the owner's hands (`<Toss>`) instead of vanishing. The chase camera (owner beside the blanket), rules, scoring and limits are unchanged.

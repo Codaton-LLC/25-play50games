@@ -12,9 +12,9 @@ import type { AABB } from "@/arcade3d/core/collision";
 import { SkyDome } from "@/arcade3d/core/env";
 import { Water } from "@/arcade3d/core/env/Water";
 import { FRAME_PRIORITY } from "@/arcade3d/core/frameLoop";
-import { useFx } from "@/arcade3d/core/fx";
+import { Toss, useActionPop, useFx, type TossHandle } from "@/arcade3d/core/fx";
 import { useGameTime } from "@/arcade3d/core/gameTime";
-import { TargetMarkers, type MarkerTarget } from "@/arcade3d/core/hud";
+import { TargetBeacon, TargetMarkers, type MarkerTarget } from "@/arcade3d/core/hud";
 import { useInput } from "@/arcade3d/core/input";
 import { useLevel } from "@/arcade3d/core/level";
 import { randomSeed } from "@/arcade3d/core/math";
@@ -22,6 +22,7 @@ import { hover, type BodyOffset } from "@/arcade3d/core/motion";
 import { scaledCount, useQuality } from "@/arcade3d/core/quality";
 import { DynamicInstanced, Instanced, useCanvasTexture, type InstancePart, type InstanceSpot } from "@/arcade3d/core/render";
 import { HumanoidModel, POSE_MASK, blendPoses, carryPose, cheerPose, crawlPose, createPose, gaitPhaseStep, idlePose, sitPose, useHumanoidPose, walkPose, wrapPhase } from "@/arcade3d/core/rig";
+import { useCoarsePointer } from "@/arcade3d/core/TouchControls";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useFittedView } from "@/arcade3d/core/useFittedView";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
@@ -40,6 +41,7 @@ import {
    SwimmerFigure,
    TowerPrimitive,
 } from "./Primitives";
+import { GUIDE, beachHint, hintCode, nextGoal, type Goal } from "./guide";
 import { SAFE_SAND_Z, SAND_DEPTH, SPEED_SAND, TOWER, createRun, step, syncStore, type PropKind, type Run } from "./rules";
 
 const V = new Vector3();
@@ -291,6 +293,8 @@ const SWIM_PITCH = 1.42;
 const PIVOT = LIFEGUARD_LANDMARKS.chestY * LIFEGUARD_SCALE;
 /** Seated on the jet ski: the rider's origin under the ski's (the hips land on its seat). */
 const SKI_SEAT = 0.62 - LIFEGUARD_LANDMARKS.hipY * LIFEGUARD_SCALE;
+/** The rescued swimmer's hop from the arms onto the sand, s. */
+const HOP_S = 0.45;
 const UP = new Vector3(0, 1, 0);
 const Q2 = new Quaternion();
 const Q3 = new Quaternion();
@@ -306,6 +310,8 @@ export default function Scene() {
    const scene = useThree((state) => state.scene);
    const input = useInput();
    const fx = useFx();
+   const pop = useActionPop();
+   const touch = useCoarsePointer();
    const time = useGameTime();
    const [run] = useState<Run>(() => createRun(randomSeed(), config, id));
    // camera views (core/camera): an on-foot hero, the stick is camera-relative (inputToWorld in
@@ -361,7 +367,7 @@ export default function Scene() {
       carriedQ: new Quaternion(),
       tubePos: new Vector3(0, WATER_Y, 0),
       /** swimmer index -> where it stands on the dry sand once rescued */
-      saved: new Map<number, { x: number; z: number; rotY: number }>(),
+      saved: new Map<number, { x: number; y: number; z: number; rotY: number; at: number }>(),
       ripples: Array.from({ length: RIPPLES }, (): Ripple => ({ x: 0, z: 0, born: -99, size: 1, life: 1 })),
       nextRipple: 0,
    }).current;
@@ -388,6 +394,19 @@ export default function Scene() {
       sand.needsUpdate = true;
    }, [sand, config.width]);
    const markers = useRef<MarkerTarget[]>([{ x: 0, y: 0.4, z: 0, hidden: true, color: COLORS.accent }]).current;
+   // clarity (visual only): a beacon on the swimmer in trouble and one on the dry sand while towing,
+   // the hint line, the fail pop and the rescued swimmer's hop from the arms onto the sand
+   const goal = useRef<Goal>({ kind: 0, x: 0, z: 0 }).current;
+   const swimBeacon = useRef({ x: 0, y: WATER_Y + 0.7, z: 0, hidden: true }).current;
+   const shoreBeacon = useRef({ x: 0, y: 0.3, z: SAFE_SAND_Z + 0.3, hidden: true }).current;
+   const guideCode = useRef(-1);
+   const hop = useRef<TossHandle>(null);
+   useEffect(() => {
+      guideCode.current = hintCode(run);
+      GUIDE.set(beachHint(run, guideCode.current, touch));
+      return () => GUIDE.reset();
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+   }, [run]);
 
    useEffect(() => {
       fx.warm("sparks", "splash", "puff", "score", "confetti");
@@ -475,11 +494,24 @@ export default function Scene() {
          // the rescued swimmer stands on the dry sand beside the lifeguard, facing the sea
          const rightX = -Math.cos(h.yaw);
          const rightZ = Math.sin(h.yaw);
-         look.saved.set(activeIndex, { x: h.x + rightX * 0.9, z: Math.max(SAFE_SAND_Z + 0.6, h.z + rightZ * 0.9), rotY: Math.PI + (look.saved.size % 2 ? 0.4 : -0.4) });
+         const spot = { x: h.x + rightX * 0.9, y: 0, z: Math.max(SAFE_SAND_Z + 0.6, h.z + rightZ * 0.9), rotY: Math.PI + (look.saved.size % 2 ? 0.4 : -0.4), at: time.now };
+         look.saved.set(activeIndex, spot);
+         // the swimmer hops from the arms onto the sand instead of appearing there
+         hop.current?.play(look.carriedPos, spot, { duration: HOP_S, height: 0.7, scaleFrom: 1, scaleTo: 1 });
       }
       if (ev.lifeLost) {
          playSfx("buzz");
-         fx.shake(0.25);
+         const lostCarry = wasCarrying && !run.carrying;
+         AT.x = lostCarry || !active ? h.x : active.x;
+         AT.y = 1.4;
+         AT.z = lostCarry || !active ? h.z : active.z;
+         pop.fail(AT, lostCarry ? "Lost them! -1 life" : "Too late! -1 life", { shake: 0.25 });
+      }
+      // the hint line changes only with the step
+      const code = hintCode(run);
+      if (code !== guideCode.current) {
+         guideCode.current = code;
+         GUIDE.set(beachHint(run, code, touch));
       }
    });
 
@@ -604,6 +636,12 @@ export default function Scene() {
          const kk = 1 + Math.sin(now * 6) * 0.06;
          torus.current.scale.set(kk, 1, kk);
       }
+      nextGoal(run, goal);
+      swimBeacon.x = goal.x;
+      swimBeacon.z = goal.z;
+      swimBeacon.hidden = goal.kind !== 1;
+      shoreBeacon.x = goal.x;
+      shoreBeacon.hidden = goal.kind !== 2;
       const m = markers[0];
       if (run.carrying) {
          m.x = h.x;
@@ -623,7 +661,7 @@ export default function Scene() {
       if (!s || (run.carrying && i === run.activeSwimmer)) return false;
       if (s.saved) {
          const spot = look.saved.get(i);
-         if (!spot) return false;
+         if (!spot || time.now - spot.at < HOP_S) return false;
          E.set(0, spot.rotY, 0);
          Q.setFromEuler(E);
          V.set(spot.x, Math.max(0, Math.sin(time.now * 4 + i)) * 0.08, spot.z);
@@ -660,6 +698,11 @@ export default function Scene() {
          <CameraRig camera={{ position: view.offset, fov: FOV, lookAt: [aim.x, aim.y, aim.z] }} follow={aim} bounds={bounds} offset={view.offset} shift={view.shift} damping={DAMPING} />
          <SkyDome top={config.lighting === "sunset" ? "#7c2d12" : "#0ea5e9"} bottom={config.background} />
          <TargetMarkers targets={markers} />
+         <TargetBeacon target={swimBeacon} variant="pick" color={COLORS.accent} radius={1.1} height={1.0} ground={WATER_Y + 0.12} label="GRAB" />
+         <TargetBeacon target={shoreBeacon} variant="drop-here" radius={1.6} height={1.2} label="SAFE" />
+         <Toss ref={hop} spin={0}>
+            <Model asset={ASSETS.swimmer} fallback={<SwimmerFigure />} />
+         </Toss>
 
          {/* sand to the horizon behind the beach and past both ends, wet sand along the shore */}
          <mesh rotation-x={-Math.PI / 2} position={[0, -0.02, SAND_DEPTH + 60]}>
