@@ -67,6 +67,9 @@ export const TRAMP_K = 1.3;
 export const TRAMP_VY_MAX = 16;
 export const TRAMP_KEEP = 0.35;
 export const TRAMP_H_MAX = 4;
+/** a second bounce on one flight keeps this much of the fall speed and spills the hero off at this speed */
+export const TRAMP_SETTLE = 0.7;
+export const TRAMP_SPILL = 3;
 /** a popped balloon bunch: hang this long, then one free re-aim (any yaw) */
 export const BALLOON_MS = 350;
 /** a paint bomb jams a stage cannon this long (Ashbag P2) */
@@ -877,9 +880,20 @@ function flyMs(run: CannonRun, wx: number, wz: number): void {
          const rr = t.r + FOOT;
          if (dx * dx + dz * dz > rr * rr) continue;
          h.y = top;
-         h.vy = Math.min(Math.sqrt(TRAMP_K) * -h.vy, TRAMP_VY_MAX);
-         h.vx *= TRAMP_KEEP;
-         h.vz *= TRAMP_KEEP;
+         if (!h.bounced) {
+            // the first bounce of a flight: up to 1.3x the incoming height
+            h.vy = Math.min(Math.sqrt(TRAMP_K) * -h.vy, TRAMP_VY_MAX);
+            h.vx *= TRAMP_KEEP;
+            h.vz *= TRAMP_KEEP;
+         } else {
+            // bouncing again on the same flight: it settles and spills you off the edge
+            h.vy = Math.min(TRAMP_SETTLE * -h.vy, TRAMP_VY_MAX);
+            const ox = h.x - t.x;
+            const oz = h.z - t.z;
+            const d = Math.hypot(ox, oz);
+            h.vx = d > 0.05 ? (ox / d) * TRAMP_SPILL : TRAMP_SPILL;
+            h.vz = d > 0.05 ? (oz / d) * TRAMP_SPILL : 0;
+         }
          const hs = Math.hypot(h.vx, h.vz);
          if (hs > TRAMP_H_MAX) {
             h.vx *= TRAMP_H_MAX / hs;

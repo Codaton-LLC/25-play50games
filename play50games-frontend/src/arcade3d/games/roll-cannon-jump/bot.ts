@@ -60,11 +60,13 @@ export interface Bot {
    stageCannon: number;
    /** P3 dive in progress */
    diving: boolean;
+   /** when to plan again after a plan found nothing */
+   retryAt: number;
 }
 
 export function createBot(run: CannonRun, frameMs = 1000 / 60): Bot {
    void run;
-   return { frameMs, leg: 0, shot: null, shotFor: NONE, misses: 0, scratch: null, probe: null, stageCannon: NONE, diving: false };
+   return { frameMs, leg: 0, shot: null, shotFor: NONE, misses: 0, scratch: null, probe: null, stageCannon: NONE, diving: false, retryAt: 0 };
 }
 
 const IDLE = createStepInput();
@@ -285,7 +287,13 @@ function legGoal(run: CannonRun, leg: Leg): Goal | null {
    switch (leg.to) {
       case "cannon": {
          const k = c.cannons[leg.i];
-         return { x: k.x, y: k.y, z: k.z, cannon: k.rail ? leg.i : NONE, chain: false, ok: (o) => o.kind === "cannon" && o.index === leg.i };
+         const ok = (o: Outcome) => o.kind === "cannon" && o.index === leg.i;
+         if (leg.via >= 0) {
+            // aim at the trampoline: the bounce carries on into the cannon
+            const t = c.tramps[leg.via];
+            return { x: t.x, y: t.y + HERO_R, z: t.z, cannon: NONE, chain: false, ok };
+         }
+         return { x: k.x, y: k.y, z: k.z, cannon: k.rail ? leg.i : NONE, chain: false, ok };
       }
       case "platform": {
          const p = c.platforms[leg.i];
@@ -309,25 +317,23 @@ export function nextWindow(run: CannonRun): { start: number; end: number; phase:
    const b = run.boss;
    if (!b || run.arenaAt === NONE) return null;
    if (b.step === "defeat" || b.step === "done") return null;
-   const s = { ...b };
-   let ms = run.simMs;
-   if (s.step === "vulnerable") {
-      const len = ASHBAG.phases[s.phase].attacks[0].vulnerableMs;
-      return { start: ms, end: ms + (len - s.stepMs), phase: s.phase, attack: s.attack };
-   }
-   for (let guard = 0; guard < 30000 && s.step !== "vulnerable"; guard++) {
-      stepBoss(s, ASHBAG, 1, BOSS_EV);
-      ms += 1;
-   }
-   const len = ASHBAG.phases[s.phase].attacks[0].vulnerableMs;
-   return { start: ms, end: ms + len, phase: s.phase, attack: s.attack };
+   const atk = ASHBAG.phases[b.phase].attacks[0];
+   const now = run.simMs;
+   if (b.step === "vulnerable") return { start: now, end: now + (atk.vulnerableMs - b.stepMs), phase: b.phase, attack: b.attack };
+   let rest = 0;
+   if (b.step === "intro") rest = ASHBAG.introMs - b.stepMs + atk.telegraphMs + atk.attackMs;
+   else if (b.step === "transition") rest = ASHBAG.transitionMs - b.stepMs + atk.telegraphMs + atk.attackMs;
+   else if (b.step === "telegraph") rest = atk.telegraphMs - b.stepMs + atk.attackMs;
+   else rest = atk.attackMs - b.stepMs;
+   const attack = b.step === "intro" || b.step === "transition" ? 0 : b.attack;
+   return { start: now + rest, end: now + rest + atk.vulnerableMs, phase: b.phase, attack };
 }
 
 /** The boss goal for the window: the pod, the gondola (via its trampoline) or the valve (via the chain). */
 function bossGoal(run: CannonRun, win: { phase: number; attack: number; start: number; end: number }): Goal {
    bossWindowSpot(run, win.phase, win.attack, CENTRE, PART);
    const a = run.course.arena!;
-   if (win.phase === 0) return { x: PART.x, y: PART.y, z: PART.z, cannon: NONE, chain: false, ok: (o) => o.bossHit && o.kind !== "lost" };
+   if (win.phase === 0) return { x: PART.x, y: PART.y, z: PART.z, cannon: NONE, chain: false, ok: (o) => o.bossHit };
    if (win.phase === 1) {
       const t = run.course.tramps[a.tramps[win.attack % a.tramps.length]];
       return { x: t.x, y: t.y + HERO_R, z: t.z, cannon: NONE, chain: false, ok: (o) => o.bossHit };
@@ -336,7 +342,7 @@ function bossGoal(run: CannonRun, win: { phase: number; attack: number; start: n
    return { x: c0.x, y: c0.y, z: c0.z, cannon: NONE, chain: true, ok: (o) => o.defeated };
 }
 
-/** The stage cannon best placed for a boss goal: inside its yaw range, nearest the goal across. */
+/** The stage cannon best placed for a boss goal: inside its yaw range, about 6.5 m off it across. */
 function bestStageCannon(run: CannonRun, gx: number, gz: number, avoid: number): number {
    const a = run.course.arena!;
    let best = NONE;
@@ -346,7 +352,8 @@ function bestStageCannon(run: CannonRun, gx: number, gz: number, avoid: number):
       const c = run.course.cannons[i];
       const yaw = yawTowards(c.x, c.z, gx, gz);
       if (Math.abs(angleDiff(yaw, c.yaw)) > YAW_RANGE - 3 * DEG) continue;
-      const d = Math.hypot(c.x - gx, c.z - gz);
+      // a cannon's shortest shot carries about 4.6 m: prefer one about 6.5 m off the goal
+      const d = Math.abs(Math.hypot(c.x - gx, c.z - gz) - 6.5);
       if (d < bestD) {
          bestD = d;
          best = i;
@@ -423,10 +430,12 @@ export function botInput(bot: Bot, run: CannonRun, input: StepInput): void {
       input.jumpHeld = true;
       return;
    }
-   if (bot.shotFor !== h.aimFrom || !bot.shot) {
+   if (bot.shotFor !== h.aimFrom || (!bot.shot && run.simMs >= bot.retryAt)) {
       bot.shotFor = h.aimFrom;
       bot.shot = makePlan(bot, run, leg);
       bot.misses = 0;
+      // nothing reaches from here yet (a boss window still far off): look again a little later
+      bot.retryAt = run.simMs + 250;
    }
    const shot = bot.shot;
    if (!shot) return;
@@ -536,7 +545,8 @@ function walkFrame(bot: Bot, run: CannonRun, input: StepInput, leg: Leg): void {
       // the shot itself: about 1.4 s (P3: the chain's 4 catches and flights, about 5 s)
       const lead = walk + 400 + (win.phase === 2 ? 5600 : 1400);
       const goAt = win.start - lead;
-      if (od < Infinity && run.simMs + (od * 1000) / 4 + walk + 400 < goAt + 600) {
+      const viaOrb = od < Infinity ? ((od + Math.hypot(P.x - ox, P.z - oz)) * 1000) / 4 : Infinity;
+      if (od < Infinity && run.simMs + viaOrb + 400 + (win.phase === 2 ? 5600 : 1400) < win.end - 400) {
          walkTo(input, run, ox, oz);
          return;
       }

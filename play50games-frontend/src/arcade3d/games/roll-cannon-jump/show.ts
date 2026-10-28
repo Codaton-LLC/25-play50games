@@ -176,6 +176,8 @@ export interface ArenaDef {
 export interface Leg {
    to: "cannon" | "platform" | "balloon" | "finish" | "boss";
    i: number;
+   /** a trampoline the shot bounces on first (the aim point), or -1 */
+   via: number;
 }
 
 export interface Course {
@@ -353,8 +355,8 @@ export class ShowBuilder {
       this.d.crowd.push({ z0, z1, side });
    }
 
-   leg(to: Leg["to"], i = -1): void {
-      this.d.route.push({ to, i });
+   leg(to: Leg["to"], i = -1, via = -1): void {
+      this.d.route.push({ to, i, via });
    }
 }
 

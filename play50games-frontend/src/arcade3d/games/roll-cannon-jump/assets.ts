@@ -1,6 +1,6 @@
 // Roll Cannon Jump's models. The five heroes are the shared Menu 2 armadillos (menu2/heroModels.ts,
-// each its own GLB). This game's props live in public/models/3d/roll-cannon-jump; the trampoline and
-// the floating stands reuse the shared menu2 bouncePad / islandA / islandB GLBs (already on disk).
+// each its own GLB). This game's props live in public/models/3d/roll-cannon-jump; the colour orbs
+// are the shared menu2 scoreOrb.
 // Every GLB is one mesh, feet on y = 0, centred on x and z. GLB_SIZE is the real bounds
 // (assets.test.ts measures each mesh with the repo's own GLB reader).
 import type { HumanoidLandmarks } from "@/arcade3d/core/rig/humanoid";
@@ -27,14 +27,15 @@ export const GLB_SIZE = {
    tent: { x: 1.887, y: 1.5361, z: 1.8779 },
    /** m2SmokeBlimpBoss: Ashbag (front towards +z) */
    boss: { x: 1.8958, y: 1.5166, z: 1.1721 },
-   /** the shared menu2 props this game reuses */
-   bouncePad: { x: 1.8124, y: 0.4998, z: 1.8924, top: 0.3225 },
-   islandA: { x: 1.8922, y: 0.5103, z: 1.9002, top: 0.4647 },
-   islandB: { x: 1.9177, y: 1.439, z: 1.8163, top: 1.4281 },
+   /** the shared menu2 colour orb */
+   orb: { x: 1.766, y: 1.901, z: 1.77 },
 } as const;
 
-/** A colour orb (the menu2 scoreOrb trail) is drawn 0.62 m across, its centre on the rules' pickup point. */
-export const ORB_SIZE = 0.62;
+/** A cannon is drawn this long (m) along its barrel: m2RollCannon scaled by CANNON_LENGTH / GLB_SIZE.cannon.z. */
+export const CANNON_LENGTH = 2.2;
+
+/** A colour orb (the menu2 scoreOrb trail) is drawn 0.66 m tall, its centre on the rules' pickup point. */
+export const ORB_SIZE = 0.66;
 
 /** Ashbag is drawn this wide (m): m2SmokeBlimpBoss scaled by BOSS_WIDTH / GLB_SIZE.boss.x. */
 export const BOSS_WIDTH = 10;
@@ -68,8 +69,6 @@ export const ASSETS: Record<string, ModelAsset> = {
    tent: prop("m2BigTopTentBg", "#4b5563"),
    // the level 5 boss (m2CannonIsle is drawn in its place if it fails)
    boss: { ...prop("m2SmokeBlimpBoss", "#6b7280"), budget: BOSS_BUDGET },
-   // the shared menu2 props: the trampoline pad and the floating stands
-   bouncePad: shared("bouncePad", "#f59e0b"),
-   islandA: shared("islandA", "#6b7280"),
-   islandB: shared("islandB", "#9ca3af"),
+   // the shared menu2 colour orb
+   orb: shared("scoreOrb", "#fbbf24"),
 };

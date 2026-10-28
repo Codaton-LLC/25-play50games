@@ -49,7 +49,7 @@ function l1(b: ShowBuilder): void {
    b.orb(-0.7, 11.2, -36.2);
    b.hoop(0.2, 10.4, -33.5, yawTowards(1.5, -27.5, -3, -45));
    const t1 = b.tramp(-3, 4.6, -53.5, 1.4);
-   b.orb(-3, 8.2, -49.4);
+   b.orb(-3, 6.4, -53.3);
    const c5 = b.cannon(-3, 9.4, -55.8, { at: [0, -66] });
    b.orb(-3, 7.6, -54.4);
    b.finish(0, 9.8, -66, yawTowards(-3, -55.8, 0, -66));
@@ -82,10 +82,9 @@ function l1(b: ShowBuilder): void {
    b.leg("cannon", c2);
    b.leg("cannon", c3);
    b.leg("cannon", c4);
-   b.leg("cannon", c5);
+   b.leg("cannon", c5, t1);
    b.leg("finish");
    void c0;
-   void t1;
 }
 
 // ---------- L2 Angle Practice: lob over tent walls, flat under trapeze banners ----------
@@ -173,7 +172,7 @@ function l3(b: ShowBuilder): void {
    // a smoke jet across the next shot: time it (Kiro flies straight through)
    b.jet(3, -66, 3, 14, 2400, 0.5, 0);
    const c5 = b.cannon(3, 9, -71, { at: [0, -80], rail: { ax: 1, ay: 0, az: 0, travel: 2.2, periodMs: 2800, phase: 0.5 } });
-   b.orb(3, 11.4, -66);
+   b.orb(3, 11.2, -63.4);
    const c6 = b.cannon(0, 9.5, -80, { at: [0, -89] });
    b.orb(1.5, 11, -75.5);
    b.finish(0, 10, -89, 0);
@@ -234,9 +233,9 @@ function l4(b: ShowBuilder): void {
    b.orb(0, 6.5, -100.6);
    b.finish(0, 8, -114, 0);
    b.orb(0, 9, -109.5);
-   // the one-shot line (the card's secret): exactly 100 % from c1 reaches a perch cannon 28 m on
-   const perch = b.cannon(-3.5, 3.2, -52.8, { at: [2, -84] });
-   b.orb(-2, 10.6, -44, {});
+   // the one-shot line (the card's secret): only a 100 % shot from c1 reaches this low perch, 27 m on, which skips the balloon re-aim
+   const perch = b.cannon(-3.5, 3.2, -52.8, { at: [-2, -62] });
+   b.orb(-2, 10.6, -44, { bonus: true });
    // Riko: a cracked board left of c2 hides a cannon straight onto the platform
    const board = b.board(-6.5, 9.2, -64.5, 1.3, 1.3, 0.18);
    b.cannon(-6.5, 9.2, -66, { board, at: [0, -102] });
@@ -260,13 +259,13 @@ function l4(b: ShowBuilder): void {
    b.crowd(-36, -66, 1);
    b.crowd(-72, -104, -1);
    b.leg("cannon", c1);
-   b.leg("cannon", perch);
+   b.leg("balloon", bl);
+   b.leg("cannon", c2);
    b.leg("cannon", c3);
    b.leg("platform", p2);
    b.leg("cannon", c4);
    b.leg("finish");
-   void bl;
-   void c2;
+   void perch;
 }
 
 // ---------- L5 Big Top Finale: everything, then Ashbag ----------
@@ -286,14 +285,14 @@ function l5(b: ShowBuilder): void {
    b.orb(0, 12.6, -37);
    const stageCannons: number[] = [];
    for (const a of [45, 135, 225, 315]) {
-      const r = 4.6;
+      const r = 5.2;
       const x = sx + Math.sin(a * DEG) * r;
       const z = sz + Math.cos(a * DEG) * r;
-      stageCannons.push(b.cannon(x, sy + MOUTH, z, { yaw: Math.atan2(-(x - sx), -(z - sz)) + Math.PI, pitch: 60 * DEG, stage: true }));
+      stageCannons.push(b.cannon(x, sy + MOUTH, z, { at: [sx, sz], pitch: 60 * DEG, stage: true }));
    }
-   // P2's trampolines on their own stands just outside the stage, between the stage cannons
-   const ta = b.tramp(sx + 9.5, sy - 1, sz, 1.4);
-   const tb = b.tramp(sx - 9.5, sy - 1, sz, 1.4);
+   // P2's trampolines on the stage, between the stage cannons (the gondola hangs over one of them)
+   const ta = b.tramp(sx + 2.6, sy + 0.3, sz, 1.1);
+   const tb = b.tramp(sx - 2.6, sy + 0.3, sz, 1.1);
    // the P3 auto-cannon chain on the tent poles, up to the valve
    const chainPts = [
       { x: -8.5, y: 10, z: -47 },
@@ -317,7 +316,7 @@ function l5(b: ShowBuilder): void {
       platform: stage,
       cannons: stageCannons,
       tramps: [ta, tb],
-      podSpots: [0, 120, 240].map((a) => ({ x: sx + Math.sin(a * DEG) * 10, y: 13.5, z: sz + Math.cos(a * DEG) * 10 })),
+      podSpots: [0, 120, 240].map((a) => ({ x: sx + Math.sin(a * DEG) * 5.2, y: 13.5, z: sz + Math.cos(a * DEG) * 5.2 })),
       topSpot: { x: sx, y: 26, z: sz },
       chain,
       circleR: 11,
@@ -325,9 +324,9 @@ function l5(b: ShowBuilder): void {
    };
    // pod rain: each popped pod rains three orbs onto the stage under it
    for (let k = 0; k < 3; k++) {
-      const a = k * 120 * DEG;
+      const a = [0, 120, 240][k] * DEG;
       for (let j = -1; j <= 1; j++) {
-         const r = 3.4 + (j === 0 ? 0.9 : 0);
+         const r = 2.2 + (j === 0 ? 1 : 0);
          const aa = a + j * 0.32;
          b.orb(sx + Math.sin(aa) * r, sy + 0.55, sz + Math.cos(aa) * r, { pod: k });
       }
