@@ -13,7 +13,7 @@ import { BUS_HALF_L, BUS_HALF_W, BUS_ROOF, RAMP_H, RAMP_HALF_W, RAMP_LEN, STREET
 export const GLB_SIZE = {
    barrier: { x: 1.3193, y: 0.8756, z: 1.8988 },
    bus: { x: 0.5829, y: 0.5641, z: 1.9056 },
-   gateV2: { x: 1.8944, y: 1.8354, z: 0.4198 },
+   gate: { x: 1.8944, y: 1.8354, z: 0.4198 },
    gem: { x: 1.8655, y: 1.8676, z: 1.8884 },
    drone: { x: 1.9001, y: 1.8199, z: 0.8567 },
    boss: { x: 1.3426, y: 1.3215, z: 1.8953 },
@@ -39,7 +39,7 @@ const BOSS_SCALE = (TRUCK_HALF_L * 2) / GLB_SIZE.boss.z;
 /** The ramp GLB rises toward its -z end; 5 m long, 2.6 m wide, RAMP_H at the lip. */
 const RAMP_SCALE = RAMP_LEN / GLB_SIZE.ramp.z;
 /** A colour gate spans the street (6 m) and stands 3.4 m. */
-const GATE_SCALE = (STREET_HALF * 2) / GLB_SIZE.gateV2.x;
+const GATE_SCALE = (STREET_HALF * 2) / GLB_SIZE.gate.x;
 /** A hoarding barrier panel is 3 m long (its z), 2.2 m tall, 0.5 m thick. */
 const BARRIER_SCALE = 3 / GLB_SIZE.barrier.z;
 /** A pastel row fills half a block (6 m wide, 3 m deep); its height is stretched per block. */
@@ -65,7 +65,7 @@ export const ASSETS: Record<string, ModelAsset> = {
       scale: RAMP_SCALE,
       stretch: [(RAMP_HALF_W * 2) / (GLB_SIZE.ramp.x * RAMP_SCALE), RAMP_H / (GLB_SIZE.ramp.y * RAMP_SCALE), 1],
    },
-   gate: { ...own("m2ColorGateV2", "#ef4444"), scale: GATE_SCALE, stretch: [1, 3.4 / (GLB_SIZE.gateV2.y * GATE_SCALE), 0.6 / (GLB_SIZE.gateV2.z * GATE_SCALE)] },
+   gate: { ...own("m2ColorGateV2", "#ef4444"), scale: GATE_SCALE, stretch: [1, 3.4 / (GLB_SIZE.gate.y * GATE_SCALE), 0.6 / (GLB_SIZE.gate.z * GATE_SCALE)] },
    barrier: { ...own("m2CityBarrier", "#f59e0b"), scale: BARRIER_SCALE, stretch: [0.5 / (GLB_SIZE.barrier.x * BARRIER_SCALE), 2.2 / (GLB_SIZE.barrier.y * BARRIER_SCALE), 1] },
    pastel: { ...own("m2PastelCityBg", "#f9a8d4"), scale: PASTEL_SCALE },
    tower: reused("/models/3d/rooftop-roll-climb/m2SkylineTower.glb", "m2SkylineTower", "#7dd3fc"),

@@ -1,66 +1,138 @@
 # Color City Sprint (Menu 2, game 15, World 1 Ember Heights)
 
-Status: **dev** (`enabled: false` in `arcade-games.json`). Route-making laps on an open pastel city. Beacons light one at a time; the path you take is painted red, and a later lap is 30% faster on red (`V_RED` 8.5 m/s). Time game. The lead hero is Riko.
+Status: **dev** (`enabled: false` in `arcade-games.json`, registry order 61). Design card:
+`docs/menu2-super/world-1-ember-heights.md` "15 Color City Sprint". Lead hero Riko (`defaultHeroFor`).
+Built by Claude on top of Cursor's unfinished branch (`cursor/m2-color-city-sprint`, 3337925c): the folder
+layout and the Menu 2 wiring were kept; the city, the rules, the proof, the bot, the boss and the whole
+visual layer were rewritten (Cursor's limit proof under-counted corner cuts, see "Score limits").
 
-## Controls
+## The game
 
-- Keyboard: WASD / arrows move, Space jumps, E or Enter uses the power.
-- Touch: joystick + Jump + Power. Same timings as the keyboard.
-- Camera: the shared orbit (`camera.ts` `CITY_ORBIT`, yaw −π/2 so stick-up runs along +x). Drag, wheel, Q / C turn, R / F tilt, V recenters. Movement is camera-relative (`inputToWorld`). Bots leave yaw at 0.
+**Signature: route-making laps.** An open city of blocks between 6 m streets. One beacon is lit at a time
+(a red light pillar over the roofs, an arrow on the ground, an arrow at the screen edge and a mini-map) and
+you pick the line. When you reach it, every street you ran since the last beacon turns red. From lap 2 a
+red street raises your top speed from 6.5 to 8.5 m/s (+30 %) and curls you into the ball; off the red the
+ball coasts, bleeding 3 m/s². Lap 1's choices build lap 2's speed network. A chain of red streets, beacons
+and gems feeds the flow meter (`menu2/combo`). Buildings start drained grey and flash back into colour as
+the streets beside them turn red.
+
+Controls: WASD / arrows (camera-relative), Space jumps, E / Enter is the hero power; touch joystick, Jump,
+Power. Camera: the shared free orbit (`menu2/camera`): drag / two fingers, wheel / pinch, Q / C, R / F, V.
 
 ## Levels
 
-1. **Red Block.** 3×3 intersections, 2 laps, 4 beacons. Beat 1 is a straight avenue, beat 2 is a cone alley against the clear avenue (the alley is shorter), beat 3 is lap 2 on glowing red lanes into the plaza. No bus, gate, sludge or ramp.
-2. **Bus Line.** A bus loops in 9 s. One beacon is collected on the roof. A ramp launches onto the roof (`BUS_ROOF` 3.15 m); a street jump cannot reach it.
-3. **Rush Hour.** Colour gates cycle open 2.2 s / closed 1.8 s. Grey sludge slows to 60% unless Kiro's shield is up. A cut and a ghost shop are shortcuts.
-4. **Night Neon.** Same corners, 3 laps, night lighting. Painting every perimeter street drops the perfect-loop shard.
-5. **Greyout Avenue.** Boss level. Beacons only repaint; the win is beating Greyout.
+| | Name | City | Twist |
+|---|---|---|---|
+| 1 | Red Block | 3 x 3 blocks, 2 laps, 4 beacons | three beats: a beacon straight down the avenue; a beacon behind a choice (the coned lot cuts the corner, the clear avenue goes round); lap 2 on your own red into the plaza. A parked bus and a ramp under the rail. |
+| 2 | Bus Line | 4 x 3 | two buses loop their blocks every 9 s; ramps throw you onto their roofs; one beacon rides a bus (stand on its roof). Buses are solid at street level and shove you aside ("Honk!"). |
+| 3 | Rush Hour | 5 x 5 | six colour gates at the crossings, 4 s green / 4 s red, the cross street green while yours is red (traffic lights with an amber warning); sludge and steam vents. |
+| 4 | Night Neon | 5 x 5, 3 laps | night: only the streetlamps and your red lanes glow. The four beacons sit on one ring; paint every street of it and the perfect-loop sticker lights in the plaza. |
+| 5 | Greyout Avenue | 5 x 5 | the boss (below). The beacons keep cycling and paint lanes; red counts from the start; Greyout Avenue is red and can never be swept. |
 
-## Heroes
+## Hero roles (every level has all five)
 
-Any hero can finish. Gates are shortcuts.
+- **Riko**: the dash (V_RED for 0.5 s, never faster than a red lane) smashes the cracked hoarding of the
+  construction site: the whole block opens as a diagonal cut. The site's shard is inside.
+- **Nami**: the second jump. Off a ramp onto a bus roof (3.4 m, above a plain jump's 3.27 m), then only her
+  second jump reaches the elevated rail (7.4 m): a fast deck (always 8.5 m/s) with two bonus gems and the
+  rooftop sticker at its end.
+- **Kiro**: the shield: sludge, steam vents and Greyout's drones neither slow nor knock him.
+- **Zuno**: the magnet: storm drains and the plaza fountain give up hidden coin trails (3 gems each), and
+  gems come from 6 m.
+- **Vexa**: the phase: the ghost shop (purple glow, glass shop-fronts) lets her through its block (she stays
+  passable until she is out); its shard is inside.
 
-- **Riko** (default): dash is a burst up to `V_RED` (never faster than a red lane) and smashes a cracked hoarding, opening a diagonal cut.
-- **Nami:** a second jump. From a bus roof it reaches the elevated rail (`RAIL_Y` 5.2). A single jump from the roof does not.
-- **Kiro:** shield ignores sludge.
-- **Zuno:** magnet, 6 m, pulls gems out of drains.
-- **Vexa:** phase through the ghost shop only.
+## Boss: Greyout, the Street Sweeper (L5, `progression.ts` GREYOUT, 7 HP)
 
-## Boss — Greyout, the Street Sweeper (7 HP)
+`m2GreySweeperBoss` with code-built roof brush units, tank valves and headlights (`Boss.tsx`).
 
-`progression.ts` `GREYOUT`. One hit per vulnerable window. The rules clock is never scaled; slow-mo is juice only.
+1. **Brushes** (3 hits): it drives to a stop beside a ramp, sweeping the red off every street it crosses,
+   sweeps (touching it hurts), then parks with its front 1 m past the ramp's lip: run up the ramp and jump
+   onto its roof brushes (feet 3.5 m or higher: a plain jump never gets there). Each hit stops the sweeping
+   for 5 s.
+2. **Valves** (2 hits): brushes broken, it drives to a stop on the avenue, sprays sludge behind it and drops
+   two drone cones ahead, then parks: roll down the red avenue into its back valves (curled, so at red-lane
+   speed, moving toward it).
+3. **Ram** (2 hits): it hunts you along your own trail through the plaza (1.2 s behind, faster when it rams).
+   A red gate holds it; in its open window it barges on, and a gate that is red on it slams it (it spins out).
+   On the last hit the whole city repaints red (slow-mo is visual only).
 
-1. **Brushes** (ends at 4/7). Three hits. A jump whose height is at least `BRUSH_Y` 3.75 and whose xz is within 1.7 m of the brush. Each hit stops the erase for 5 s. The bus parks at the ramp lip during the window so the jump can come off the roof.
-2. **Valves** (ends at 2/7). Two hits. Grounded, under 1.6 m, at least 90% of run speed, within 2.3 m of the truck's rear.
-3. **Ram** (ends at 0). Two hits. Lure the truck through the colour gate while the gate is closed, standing on the far side so it commits. A hero still south of the slam point is struck.
+## Score limits (time game)
 
-`bossMinMs()` hits each window on the instant it opens. That clock is the level 5 floor before orb and combo bonuses.
+Submitted duration = finish ms - 200 ms x gems - flow bonus (`finalScore`); the server computes the score
+`floor((timeBaseMs - duration) / 10)`.
 
-## Scoring
+The proof (`rules.ts` header, `travelMetres`):
 
-Submitted duration = finish time − 200 ms × orbs − combo bonus. The server recomputes the score from that duration (`timeBaseMs` is the level timer). Combo window 2800 ms, gain 1/3, cap 2. Bases: beacon 48, lane 28, orb 36, boss hit 24.
+1. **The invariant.** At the end of every simulated ms the hero's horizontal move is clamped to
+   V_RED / 1000 m, whatever moved it (stick, dash, a bus roof carrying it, a bus or the truck shoving it, a
+   collision push). `rules.test.ts` checks it on every ms of random runs on all five levels.
+2. Buildings are solid at every height (a jump never crosses one), and the hero's centre is kept HERO_R out
+   of them. The proof grows each building by HERO_R - 0.3 m only (a margin for a push that is clamped).
+   Lots, plazas, construction sites, ghost shops, cones, ramps, buses and gates are left out (free), which
+   only lowers the bound.
+3. A beacon is taken from up to its reach (1.6 m), so each leg is at least the shortest path round the
+   buildings between the beacon centres minus both reaches (a visibility graph over the building corners,
+   exact for axis-aligned boxes). A bus beacon is taken on its bus's roof within 2.6 m of the bus's centre,
+   which runs its loop: the proof takes the best point on the loop (sampled every 0.5 m, the reach grown by
+   0.25 m) through a small DP. Every lap, in order.
+4. Least finish = least travel / V_RED. Level 5: Greyout's least defeat time (`bossMinMs`: every hit on the
+   first ms of its window), travel ignored.
+5. Least duration = least finish - every gem (incl. hidden coins) x 200 ms - `comboMaxBonus` (beacons
+   (L5: the first 12), every street once, every gem, every hit). minDurationMs = 95 % of it, floored to 100 ms.
 
-The floor is 95% of (least travel − every orb − the max combo), floored to 100 ms.
+Cursor's earlier bound gave each corner turn 2.16 m of cut; the real cut round a block corner is up to
+3.7 m, so its floor was not a lower bound. This one is.
 
-Travel is a state Dijkstra at `V_RED` on every walkable edge, including cuts and ghost shops (the rail is the same length as the street, so it is left out). The first edge off a node pays its full length; a corner turn saves the shortcut across the intersection. Each beacon leg also drops 2 × the pickup radius. A bus beacon is bounded by the street path to the ramp lip, not by boarding a bus that is already there. Horizontal speed, including a bus carry, never exceeds `V_RED`, so the dash cannot beat the bound.
+| Level | timeBaseMs | least travel | minDurationMs | maxScore |
+|---|---:|---:|---:|---:|
+| 1 Red Block | 100000 | 190.2 m | 17100 | 8290 |
+| 2 Bus Line | 130000 | 275.4 m | 26400 | 10360 |
+| 3 Rush Hour | 160000 | 346.8 m | 32900 | 12710 |
+| 4 Night Neon | 200000 | 395.2 m | 38700 | 16130 |
+| 5 Greyout Avenue | 200000 | boss 33.2 s | 26100 | 17390 |
 
-Level 5 ignores travel: the floor is the boss clock minus orbs and combo.
+The same rows are in `meta.ts` (via `PROPOSED_LEVEL_LIMITS`), `arcade-games.json` and the pinned test.
 
-| Level | minDurationMs | maxScore | timeBaseMs |
-|---|---:|---:|---:|
-| 1 Red Block | 21000 | 6900 | 90000 |
-| 2 Bus Line | 20200 | 9980 | 120000 |
-| 3 Rush Hour | 26900 | 11310 | 140000 |
-| 4 Night Neon | 41200 | 13880 | 180000 |
-| 5 Greyout Avenue | 9200 | 15080 | 160000 |
+## What the bots reached
 
-An honest bot is slower than this floor (lap 1 is run speed, and it stays on the centre line). The tests require a win at or above the floor, not 90% of `maxScore`.
+`bot.ts` plays like a careful player with no power: a visibility-graph line round what is solid for it,
+corner cuts, a wait for green, a timed ramp jump onto a moving bus, and all three boss phases. Submitted
+times at 60 fps (Riko): L1 29.8 s, L2 58.8 s, L3 62.3 s, L4 56.1 s, L5 ~39 s; all at 30 / 60 / 144 fps win,
+none under the floor, each at least 65 % of maxScore. With every hero's power mashed, 200 spam runs on L1
+and 30 on each level, nothing beats the floor (`rules.test.ts`, `proof.test.ts`).
 
-Stars: clear, every main orb, and a target time (62 / 54 / 78 / 100 / 22 s). The no-hit badge is Greyout clipping the hero.
+## Stars, secrets, juice
 
-## Known
+- Stars (`menu2/stars`): clear, every main gem (spread so no single lap line gets them all), target time
+  (44 / 58 / 78 / 96 / 92 s). No-hit badge: never bumped, vented, struck.
+- Secrets (`menu2/secrets`): the rooftop sticker (rail, Nami), the ghost-shop shard (Vexa), the hoarding
+  shard (Riko); L4 the perfect loop instead of the hoarding shard.
+- Juice (`menu2/juice`): red paint spray behind a ball on red, a speed ripple into a red lane, dust and a
+  horn on bus-roof landings, a ramp kick, lap-split pops (`Lap 2 · 0:14.2`), "+3 red" on a beacon,
+  buildings flashing back to colour, smash / phase bursts, Greyout's hits, "SLAM!", the final repaint.
 
-- The ramp GLB's high end is assumed to be +z. That was not measured on the mesh.
-- Daily beacon reorder is not implemented. The order is fixed so the proof holds.
-- `m2TrafficLight` was not in the ready set.
-- `m2FactoryDrone.glb` is about 520 KB, so it uses the character budget.
+## Multiplayer (1-4, `multiplayer.ts`)
+
+- **Versus race**: each player's lanes are their own (drawn in their player colour) and only their own red
+  boosts them; gems are shared; first home wins, the rest get the grace time.
+- **Co-op relay**: one shared red network; beacon k is player (k mod n)'s to take (ringed in their colour);
+  a beacon taken moves everyone on; Riko's smashed hoarding opens for all; shield, magnet and phase cover
+  the team.
+- One shared camera (`SharedCamera` with the orbit); multiplayer runs are never ranked.
+
+## Models
+
+`public/models/3d/color-city-sprint/`: m2PastelCityBg (the pastel rows, also the backdrop), m2CityBus,
+m2StreetJumpRamp, m2ColorGateV2 (gates and the ghost shop-fronts), m2CityBarrier (the hoarding),
+m2TrafficCone, m2EnergyGem, m2GreySweeperBoss, m2FactoryDrone (from ready/menu2/shared); reused by url:
+rooftop-roll-climb's m2SkylineTower and m2RooftopBlock, menu2's checkpointBeacon, shared trafficLight.
+m2ColorGate (the stone arch) is in the folder from Cursor's branch and unused here (it reads as fantasy, not
+street). The fits (`assets.ts`) are tested against the measured meshes.
+
+## Open issues
+
+- Level 5 in multiplayer: each player fights their own Greyout; the camera shows player 1's truck.
+- The daily seed that reorders beacons (card's risk fix) is not built: the order is fixed so the proof holds.
+- `registry.sync.test.ts` "every slug in order" expects order = position: it passes once ring-jump (58),
+  wind-tunnel (59) and roll-cannon (60) are in the slice; on this branch alone it fails by design.
