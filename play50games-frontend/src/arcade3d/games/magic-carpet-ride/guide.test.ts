@@ -8,5 +8,6 @@ describe("magic-carpet-ride guide", () => {
       expect(hintFor(0, false).text).toMatch(/palace/);
       expect(hintFor(0, false).tone).toBe("ready");
       expect(hintFor(3, true).text).toMatch(/boost/i);
+      expect(hintFor(-1, false).text).toMatch(/Fly through the rings/);
    });
 });
