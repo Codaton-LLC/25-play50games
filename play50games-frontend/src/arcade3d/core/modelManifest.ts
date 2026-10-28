@@ -425,6 +425,11 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/treasure-island/palmTreeI.glb",
    "/models/3d/treasure-island/rowboat.glb",
    "/models/3d/treasure-island/treasureGem.glb",
+   "/models/3d/dino-egg-rescue/dinoEgg.glb",
+   "/models/3d/dino-egg-rescue/dinoNestV2.glb",
+   "/models/3d/delivery-drone/cardboardParcel.glb",
+   "/models/3d/delivery-drone/cityBuildingTall.glb",
+   "/models/3d/delivery-drone/cityBuildingV2.glb",
    // Menu 1 dog-park-fetch (2026-10-26): the ready menu1-dog-park-fetch GLBs the gate adopts (dogHouse*,
    // dogBone*, agilityHurdle and dogOwnerNpc left out: a dog is baked into each), plus shared civilianNpc
    // as the owner; fits in games/dog-park-fetch/assets.ts.

@@ -655,15 +655,16 @@ export default function Scene() {
                      opacity={0.55}
                   />
                </mesh>
-               {/* 3D Spotted Egg */}
-               <mesh position={[0, 0.18, 0]} scale={[1, 1.33, 1]}>
-                  <sphereGeometry args={[0.15, 16, 16]} />
-                  <meshStandardMaterial
-                     map={eggTexture}
-                     color="#ffffff"
-                     roughness={0.5}
-                  />
-               </mesh>
+               {/* 3D Spotted Egg (Hyper3D dinoEgg; the code egg is the fallback) */}
+               <Model
+                  asset={ASSETS.dinoEgg}
+                  fallback={
+                     <mesh position={[0, 0.18, 0]} scale={[1, 1.33, 1]}>
+                        <sphereGeometry args={[0.15, 16, 16]} />
+                        <meshStandardMaterial map={eggTexture} color="#ffffff" roughness={0.5} />
+                     </mesh>
+                  }
+               />
             </group>
          ))}
 
@@ -683,17 +684,22 @@ export default function Scene() {
                   opacity={0.65}
                />
             </mesh>
-            {/* 3D Golden Egg */}
-            <mesh position={[0, 0.22, 0]} scale={[1, 1.33, 1]}>
-               <sphereGeometry args={[0.18, 16, 16]} />
-               <meshStandardMaterial
-                  color={COLORS.goldenEgg}
-                  emissive={COLORS.goldenEggCore}
-                  emissiveIntensity={1.2}
-                  roughness={0.2}
-                  metalness={0.6}
-               />
-            </mesh>
+            {/* 3D Golden Egg (the dino egg in gold; the code egg is the fallback) */}
+            <Model
+               asset={ASSETS.goldenEgg}
+               fallback={
+                  <mesh position={[0, 0.22, 0]} scale={[1, 1.33, 1]}>
+                     <sphereGeometry args={[0.18, 16, 16]} />
+                     <meshStandardMaterial
+                        color={COLORS.goldenEgg}
+                        emissive={COLORS.goldenEggCore}
+                        emissiveIntensity={1.2}
+                        roughness={0.2}
+                        metalness={0.6}
+                     />
+                  </mesh>
+               }
+            />
          </group>
 
          {/* Screen Edge Target Markers */}

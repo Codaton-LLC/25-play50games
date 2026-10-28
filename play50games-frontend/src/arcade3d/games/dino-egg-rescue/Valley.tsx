@@ -238,24 +238,22 @@ export function Valley({ telegraphLanes }: { telegraphLanes?: readonly boolean[]
 
          {/* Nest at SE (11, 7.5), outer radius 1.8 m */}
          <group position={[NEST.x, 0, NEST.z]}>
-            {/* Warm straw torus rim */}
-            <mesh position={[0, 0.22, 0]} rotation={[Math.PI / 2, 0, 0]}>
-               <torusGeometry args={[1.5, 0.28, 12, 28]} />
-               <meshStandardMaterial
-                  map={strawTexture}
-                  color="#ffffff"
-                  roughness={0.7}
-               />
-            </mesh>
-            {/* Straw floor inside nest */}
-            <mesh position={[0, 0.02, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-               <circleGeometry args={[1.4, 24]} />
-               <meshStandardMaterial
-                  map={strawTexture}
-                  color="#ffffff"
-                  roughness={0.75}
-               />
-            </mesh>
+            {/* Hyper3D straw nest; the torus rim + straw floor are its fallback */}
+            <Model
+               asset={ASSETS.dinoNest}
+               fallback={
+                  <group>
+                     <mesh position={[0, 0.22, 0]} rotation={[Math.PI / 2, 0, 0]}>
+                        <torusGeometry args={[1.5, 0.28, 12, 28]} />
+                        <meshStandardMaterial map={strawTexture} color="#ffffff" roughness={0.7} />
+                     </mesh>
+                     <mesh position={[0, 0.02, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+                        <circleGeometry args={[1.4, 24]} />
+                        <meshStandardMaterial map={strawTexture} color="#ffffff" roughness={0.75} />
+                     </mesh>
+                  </group>
+               }
+            />
             {/* Delivery contact rim indicator */}
             <mesh position={[0, 0.03, 0]} rotation={[-Math.PI / 2, 0, 0]}>
                <ringGeometry args={[1.35, 1.45, 28]} />
