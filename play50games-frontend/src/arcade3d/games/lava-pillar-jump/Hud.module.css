@@ -142,7 +142,6 @@
       transform: none;
    }
 }
-}
 
 /* the start card's local multiplayer entry (menu2/multiplayer; hidden on phones by device.ts) */
 .mpBtn {
