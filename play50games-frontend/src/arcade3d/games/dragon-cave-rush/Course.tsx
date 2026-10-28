@@ -13,7 +13,7 @@ import { useEffect, useMemo, useRef, type MutableRefObject } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { AdditiveBlending, BufferAttribute, BufferGeometry, DoubleSide, Euler, PlaneGeometry, Quaternion, Vector3, type Color, type Matrix4, type Mesh } from "three";
 import { DynamicInstancedModel, Model } from "@/arcade3d/core/assets";
-import { DynamicInstanced } from "@/arcade3d/core/render";
+import { DynamicInstanced, useCanvasTexture } from "@/arcade3d/core/render";
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import { ASSETS, GLB_SIZE, ORB_SIZE, TRACK_LEN, TRACK_SCALE } from "./assets";
 import { COLORS, buildCave, buildFloor, hash2 } from "./look";
@@ -32,6 +32,16 @@ const V = new Vector3();
 const S = new Vector3();
 const Q = new Quaternion();
 const E = new Euler();
+
+/** A soft round glow (white centre fading to clear) for the orb halos and the light beyond the gate. */
+const drawGlow = (ctx: CanvasRenderingContext2D, w: number, h: number) => {
+   const g = ctx.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, w / 2);
+   g.addColorStop(0, "rgba(255,255,255,1)");
+   g.addColorStop(0.35, "rgba(255,255,255,0.55)");
+   g.addColorStop(1, "rgba(255,255,255,0)");
+   ctx.fillStyle = g;
+   ctx.fillRect(0, 0, w, h);
+};
 
 /** One placed copy along the rails. */
 export interface Item {
@@ -136,10 +146,11 @@ function Cave({ course }: { course: CourseData }) {
    return (
       <>
          <mesh geometry={geo.cave} frustumCulled={false}>
-            <meshStandardMaterial vertexColors flatShading roughness={0.92} metalness={0.05} side={DoubleSide} />
+            {/* the vertex colours tinted down: warm rock in the lantern light; level 3 nearly black */}
+            <meshStandardMaterial vertexColors color={course.config.dark ? "#3a3548" : "#b8a49a"} flatShading roughness={0.92} metalness={0.05} side={DoubleSide} />
          </mesh>
          <mesh geometry={geo.floor} frustumCulled={false}>
-            <meshStandardMaterial vertexColors roughness={0.95} />
+            <meshStandardMaterial vertexColors color={course.config.dark ? "#5a5468" : "#ffffff"} roughness={0.95} />
          </mesh>
          {loop ? (
             // the hoard cavern round Cindermaw's loop: a great dome and a floor of embers
@@ -332,13 +343,14 @@ function Orbs({ run }: { run: CaveRun }) {
    };
    const plane = useMemo(() => new PlaneGeometry(1, 1), []);
    useEffect(() => () => plane.dispose(), [plane]);
+   const glow = useCanvasTexture(64, 64, drawGlow);
    const N = Math.min(40, items.length);
    return (
       <>
          <DynamicInstancedModel asset={ASSETS.orb} count={N} update={orb} name="orbs" />
          <DynamicInstanced count={N} update={halo} name="orb-halos" tinted>
             <primitive object={plane} attach="geometry" />
-            <meshBasicMaterial color="#ffffff" transparent opacity={0.4} depthWrite={false} blending={AdditiveBlending} toneMapped={false} />
+            <meshBasicMaterial color="#ffffff" map={glow} transparent opacity={0.7} depthWrite={false} blending={AdditiveBlending} toneMapped={false} />
          </DynamicInstanced>
       </>
    );
@@ -395,6 +407,7 @@ function Landmarks({ run }: { run: CaveRun }) {
    const gk = 11 / GLB_SIZE.gate.y;
    const hk = 5 / GLB_SIZE.hoard.x;
    const bk = 1.6 / GLB_SIZE.bot.y;
+   const glow = useCanvasTexture(64, 64, drawGlow);
    return (
       <>
          {hoard ? (
@@ -413,8 +426,8 @@ function Landmarks({ run }: { run: CaveRun }) {
             <Model asset={ASSETS.gate} />
          </group>
          <mesh position={[gate.x, gate.y + 4.2, gate.z]} rotation-y={gate.h}>
-            <planeGeometry args={[7, 8]} />
-            <meshBasicMaterial color="#ffd8a8" transparent opacity={0.55} toneMapped={false} side={DoubleSide} depthWrite={false} />
+            <planeGeometry args={[9, 9]} />
+            <meshBasicMaterial color="#ffd8a8" map={glow} transparent opacity={0.8} blending={AdditiveBlending} toneMapped={false} side={DoubleSide} depthWrite={false} />
          </mesh>
       </>
    );

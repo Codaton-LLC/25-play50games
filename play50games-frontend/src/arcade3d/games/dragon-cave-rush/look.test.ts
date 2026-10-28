@@ -21,7 +21,17 @@ describe("the cave's look", () => {
          for (const i of m.indices) expect(i).toBeLessThan(n);
          expect(m.indices.length).toBeGreaterThan(1000);
          expect(m.indices.length / 3).toBeLessThan(30_000);
-         expect(buildFloor(c).indices.length % 3).toBe(0);
+         const f = buildFloor(c);
+         expect(f.indices.length % 3).toBe(0);
+         // every floor triangle faces up (else it renders black from the light above)
+         for (let t = 0; t < f.indices.length; t += 3) {
+            const [a, b, d] = [f.indices[t] * 3, f.indices[t + 1] * 3, f.indices[t + 2] * 3];
+            const ux = f.positions[b] - f.positions[a];
+            const uz = f.positions[b + 2] - f.positions[a + 2];
+            const vx = f.positions[d] - f.positions[a];
+            const vz = f.positions[d + 2] - f.positions[a + 2];
+            expect(uz * vx - ux * vz).toBeGreaterThanOrEqual(0); // 0: the clamped first rings at s = 0
+         }
       }
       const l5 = courseFor(5);
       expect(buildCave(l5).indices.length).toBeLessThan(buildCave({ ...l5, loop: null }).indices.length);

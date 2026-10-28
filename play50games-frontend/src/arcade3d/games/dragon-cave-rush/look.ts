@@ -10,7 +10,7 @@ export const COLORS = {
    rock: "#463a35",
    rockWarm: "#6b4a36",
    crystal: "#6d4bb0",
-   floor: "#2c2421",
+   floor: "#4a3a32",
    ember: "#f97316",
    breath: "#fb923c",
    ghost: "#c4b5fd",
@@ -134,7 +134,8 @@ export function buildFloor(c: Course, ring = 2.5, half = 7.5): CaveMesh {
       if (k > 0) {
          const a = (k - 1) * 3;
          const b = k * 3;
-         idx.push(a, b, a + 1, a + 1, b, b + 1, a + 1, b + 1, a + 2, a + 2, b + 1, b + 2);
+         // wound so the normals face up
+         idx.push(a, a + 1, b, a + 1, b + 1, b, a + 1, a + 2, b + 1, a + 2, b + 2, b + 1);
       }
    }
    return { positions: Float32Array.from(pos), colors: Float32Array.from(col), indices: Uint32Array.from(idx) };
