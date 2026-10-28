@@ -1,0 +1,111 @@
+/* The hint slot (HintLine.tsx): a fixed box marked data-arcade-safe-area, laid out in every phase.
+   Its size never changes with the message, so the camera fit is the same with and without a hint.
+   Desktop: bottom centre, clear of the 📷 button (bottom-right, 16 + 44 px). */
+.slot {
+   position: absolute;
+   left: 50%;
+   bottom: calc(env(safe-area-inset-bottom, 0px) + var(--arcade-bottom-obstruction, 0px) + 18px);
+   transform: translateX(-50%);
+   box-sizing: border-box;
+   width: min(520px, calc(100% - 160px));
+   height: 40px;
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   pointer-events: none;
+   z-index: 3;
+}
+
+.top {
+   top: calc(env(safe-area-inset-top, 0px) + 64px);
+   bottom: auto;
+}
+
+/* Touch: a full-width band just above the joystick (core TouchControls: 20 px gap + 132 px) and
+   above the 📷 button over Jump / Action (20 + 72 + 16 + 44 = 152 px), riding the banner's lift. */
+@media (pointer: coarse) {
+   .slot {
+      bottom: calc(env(safe-area-inset-bottom, 0px) + var(--arcade-bottom-obstruction, 0px) + 162px);
+      width: calc(100% - 32px);
+      max-width: 460px;
+   }
+
+   .top {
+      top: calc(env(safe-area-inset-top, 0px) + 64px);
+      bottom: auto;
+   }
+}
+
+.chip {
+   display: inline-flex;
+   align-items: center;
+   gap: 8px;
+   box-sizing: border-box;
+   max-width: 100%;
+   max-height: 100%;
+   padding: 7px 14px;
+   border: 1px solid rgba(255, 255, 255, 0.18);
+   border-radius: 999px;
+   background: rgba(11, 16, 32, 0.8);
+   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+   color: #f8fafc;
+   font-size: 14px;
+   font-weight: 700;
+   line-height: 1.2;
+   opacity: 0;
+   transform: translateY(6px);
+   transition: opacity 0.25s ease-out, transform 0.25s ease-out;
+}
+
+.shown {
+   opacity: 1;
+   transform: translateY(0);
+}
+
+@media (max-width: 480px) {
+   .chip {
+      font-size: 13px;
+      padding: 6px 12px;
+   }
+}
+
+.text {
+   overflow: hidden;
+   white-space: nowrap;
+   text-overflow: ellipsis;
+}
+
+.dot {
+   flex: none;
+   width: 9px;
+   height: 9px;
+   border-radius: 50%;
+   background: var(--hint-tone);
+   box-shadow: 0 0 8px var(--hint-tone);
+}
+
+.info {
+   --hint-tone: #7dd3fc;
+}
+
+.carry {
+   --hint-tone: #fbbf24;
+   border-color: rgba(251, 191, 36, 0.55);
+}
+
+.ready {
+   --hint-tone: #4ade80;
+   border-color: rgba(74, 222, 128, 0.6);
+}
+
+.warn {
+   --hint-tone: #f87171;
+   border-color: rgba(248, 113, 113, 0.7);
+}
+
+@media (prefers-reduced-motion: reduce) {
+   .chip {
+      transition: none;
+      transform: none;
+   }
+}
