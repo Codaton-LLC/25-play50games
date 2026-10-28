@@ -69,4 +69,4 @@ WASD / arrows move, E or Enter uses. Touch: joystick and Action "Use". Scheme `j
 - `toyShelf.glb` has small toys baked onto its shelves and `toyShelfEmpty.glb` is a paper-thin panel, so the shelf is `toyShelfSolidT.glb` (an open frame) squashed to 1.6 m: it reads as a toy-shop unit, but its cubbies are shallower than the real thing. A better empty shelf would let the toys stand inside it.
 - The honest bots do not dodge wind-ups; a touch only costs the carried toys, so the proof stays valid.
 - A toy that is dropped wrong lies 0.55 m off the shelf face, which can be inside the next aisle's wind-up loop. It is a floor toy like any other.
-- No thumbnail yet: `meta.thumbnail` is `null` until `/images/3d/toy-store-night-shift.webp` lands.
+- Thumbnail: `meta.thumbnail` is `/images/3d/<slug>.webp` (capture via tools/thumbs).

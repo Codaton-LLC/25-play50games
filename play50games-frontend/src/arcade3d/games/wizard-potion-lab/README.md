@@ -58,7 +58,7 @@ The wizard is a `HumanoidModel` stand-in (`WizardFigure`, 1.70 m, robe / hat / b
 - Every url under `/models/3d/wizard-potion-lab/` is unlisted, so those fallbacks draw. The cauldron and the mushroom are the live meshes.
 - `wizard-potion-lab/hero.glb` is not used. `shared/gardenMushroom.glb` replaces the expansion mushroom when that PR lands. The shelf source is `shared/bookshelf.glb`.
 - The camera frames the whole lab, so the wizard reads smaller on level 5 than on level 1.
-- No thumbnail yet: `meta.thumbnail` is `null`.
+- Thumbnail: `meta.thumbnail` is `/images/3d/<slug>.webp` (capture via tools/thumbs).
 
 ## What Claude registers
 

@@ -71,4 +71,4 @@ WASD / arrows move, hold E or Enter to work, Space floats. Touch: joystick, Acti
 - The shark GLB shows an open toothy mouth (QA note in the ledger, "friendly-stylised" was asked for). Kept: the user decides whether to regenerate.
 - `filterMachineV3` has no pipes into the sand; the status bead above it (amber, green when checked) carries the state.
 - No glass shader: an emissive frame, a 12% pane and the fog tint. No swim pose in the core: the lead-boot walk, the float and the bubbles carry "underwater".
-- No thumbnail yet: `meta.thumbnail` is `null` until `/images/3d/aquarium-cleaner.webp` lands.
+- Thumbnail: `meta.thumbnail` is `/images/3d/<slug>.webp` (capture via tools/thumbs).

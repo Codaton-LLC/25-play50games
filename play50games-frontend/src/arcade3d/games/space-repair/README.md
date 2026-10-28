@@ -35,7 +35,7 @@ Acceptance checklist (original brief, item by item):
 - [x] 7 Core effects/audio; loop restarts keyed by phase/mute. Browser mute/reduced-motion checks pending.
 - [x] 8 Rules score reconciliation before end(win/lose); real-store boundary/pause/retry tests pass.
 - [x] 9 meta status dev and provisional scoring preserved; proposed limits 4700/37000/122000/400/40 require Claude's paired metadata/backend update.
-- [x] 10 Existing tools/thumbs/inputs/space-repair.mjs present; thumbnail null.
+- [x] 10 Existing tools/thumbs/inputs/space-repair.mjs present; thumbnail wired.
 - [ ] Common final gates: Claude runs full repository tests/build/gamecheck and headless keyboard/two-thumb playthroughs; ready/countdown/Esc/P/tab/pause/resume/over/Retry/Exit; 1280x800/390x844/844x390 screenshots with banner on/off, actual >=24 px silhouettes, contrast/overlays, missing-GLB fallback, mute/reduced motion, mid-phone p95 and Retry x10 resource stability.
 - [ ] Draw calls are an estimate (~32 plus imported mesh/material reserve 13), not measured evidence: verify target <=45, hard game cap 50, <=100k triangles, p95 <=33 ms; include the exact-pose outline and fallback backpack in measurement.
 

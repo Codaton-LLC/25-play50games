@@ -30,7 +30,7 @@ export const submarineTreasureDiveMeta: ArcadeGameMeta = {
    },
    scoring: SCORING,
    levels: LEVELS,
-   thumbnail: null,
+   thumbnail: "/images/3d/submarine-treasure-dive.webp",
    accent: "#22d3ee",
    owner: "cursor",
 };

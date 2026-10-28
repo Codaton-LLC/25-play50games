@@ -33,7 +33,7 @@ export const aquariumCleanerMeta: ArcadeGameMeta = {
    },
    scoring: SCORING,
    levels: LEVELS,
-   thumbnail: null,
+   thumbnail: "/images/3d/aquarium-cleaner.webp",
    accent: "#2dd4bf",
    owner: "kimi",
 };

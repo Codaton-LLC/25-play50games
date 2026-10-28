@@ -70,7 +70,7 @@ The farmer is a seated `HumanoidModel` stand-in (`FarmerFigure`, 1.78 m, `applyL
 - Every url under `/models/3d/farm-tractor-challenge/` is unlisted, so those fallbacks draw. The leafy tree and the barn crate are shared meshes already in the manifest.
 - Leave `hero.glb`. Regen still open for `hayBaleBound`, `grainSiloGround` and `scarecrowPost`. The game loads `hayBale`, `grainSilo` and `scarecrow`. `grainSiloR` is the closer interim silo if Claude swaps the file.
 - Draw calls were not measured on a device. The target is about 30, cap 50.
-- No thumbnail yet: `meta.thumbnail` is `null`.
+- Thumbnail: `meta.thumbnail` is `/images/3d/<slug>.webp` (capture via tools/thumbs).
 
 ## What Claude registers
 

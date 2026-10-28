@@ -30,7 +30,7 @@ export const marsRoverMissionMeta: ArcadeGameMeta = {
    },
    scoring: SCORING,
    levels: LEVELS,
-   thumbnail: null,
+   thumbnail: "/images/3d/mars-rover-mission.webp",
    accent: "#f97316",
    owner: "antigravity",
 };

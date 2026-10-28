@@ -29,7 +29,7 @@ export const beeGardenMeta: ArcadeGameMeta = {
    },
    scoring: PROPOSED_LEVEL_LIMITS[1],
    levels: LEVELS,
-   thumbnail: null,
+   thumbnail: "/images/3d/bee-garden.webp",
    accent: "#fbbf24",
    owner: "antigravity",
 };

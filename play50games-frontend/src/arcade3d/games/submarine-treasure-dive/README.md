@@ -64,7 +64,7 @@ The sub is a bevelled two-tone stand-in with a spinning prop until Claude fits `
 - The sub has no humanoid landmarks. Claude adds that GLB at the gate. This game's hero is the mini sub, not a person.
 - `pearlShell.glb`, the upright hulls, and the broken coral / seaweed shards are not referenced. The wreck id is `shipwreckSidewaysT`. If that mesh still reads wrong, the bevelled box is the hull.
 - Fog hides the far reef. The marker is the guide.
-- No thumbnail yet: `meta.thumbnail` is `null`.
+- Thumbnail: `meta.thumbnail` is `/images/3d/<slug>.webp` (capture via tools/thumbs).
 - Draw calls were not measured in a browser. The scene targets about 35 and stays under 55 by instancing each pool.
 
 ## Status
