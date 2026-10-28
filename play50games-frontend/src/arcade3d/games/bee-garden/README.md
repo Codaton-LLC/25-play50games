@@ -7,6 +7,7 @@ Fly a bee in the horizontal plane (fixed 1.15 m) over one garden, drink the nect
 ## Controls and timing (one set for keyboard and touch)
 
 - WASD / arrows or the joystick through `inputToWorld` (accel 16 m/s², top speed 6.5, drag 0.6/s with no input; with no input the bee also brakes at its accel). Radius 0.30.
+- 📷 or C cycles the camera views (classic / chase / front / top / free); drag the canvas to look around.
 - Hold Space or the touch Boost: 9.5 m/s while stamina > 0, 22 stamina/s. Releasing it, or reaching 0, locks boost for 1.00 s (also while still held). Refill 10/s while not boosting, cap 100. A web hit while boosting also starts the lock.
 - Pickup and deposit are overlaps: a flower within 0.55 m of the bee's centre, the hive pad within 1.6 + 0.3 m.
 - Webs: radius 0.65, a 0.50 s stun (no movement, no stamina change), the carry returns to the exact flowers it came from, 0 points, then 0.4 s to fly out of the web.

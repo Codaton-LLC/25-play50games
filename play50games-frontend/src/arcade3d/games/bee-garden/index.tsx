@@ -5,6 +5,7 @@
 import type { GameDefinition, LevelSpec } from "@/arcade3d/core/types";
 import { LEVEL_IDS, type LevelId } from "@/arcade3d/types";
 import { ASSETS } from "./assets";
+import Hud from "./Hud";
 import { LEVEL_DESCRIPTIONS, LEVELS, type BeeLevel } from "./levels";
 import { FOV, LEVEL_LOOKS } from "./looks";
 import Scene from "./Scene";
@@ -30,6 +31,7 @@ const environmentFor = (id: LevelId) => {
 const definition: GameDefinition<BeeLevel> = {
    slug: "bee-garden",
    Scene,
+   Hud,
    assets: ASSETS,
    durationMs: LEVELS[1].durationMs,
    resultDelayMs: TUNING.resultDelayMs,
