@@ -77,7 +77,7 @@ describe("Menu 2", () => {
       const menu2 = ARCADE_GAMES.slice(50);
       expect(menu2.map((g) => g.slug)).toEqual(MENU2);
       expect(menu2.map((g) => g.order)).toEqual([51, 52, 53, 54, 55, 56, 57, 62]);
-      expect(menu2.map((g) => g.owner)).toEqual(["claude", "cursor", "cursor", "cursor", "cursor", "claude", "codex"]);
+      expect(menu2.map((g) => g.owner)).toEqual(["claude", "cursor", "cursor", "cursor", "cursor", "claude", "codex", "claude"]);
       for (const g of menu2) {
          expect(g.status).toBe("dev");
          expect(g.collection).toBe("rollheroes");

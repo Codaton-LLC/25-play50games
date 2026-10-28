@@ -1053,6 +1053,22 @@
           "max_pps": 0
         }
       ]
+    },
+    "color-door-sprint": {
+      "title": "Color Door Sprint",
+      "kind": "time",
+      "max_score": 7460,
+      "min_duration_ms": 15400,
+      "max_duration_ms": 90000,
+      "time_base_ms": 90000,
+      "enabled": false,
+      "levels": [
+        { "title": "Two Doors", "max_score": 7460, "min_duration_ms": 15400, "max_duration_ms": 90000, "time_base_ms": 90000 },
+        { "title": "Three Doors", "max_score": 9530, "min_duration_ms": 14700, "max_duration_ms": 110000, "time_base_ms": 110000 },
+        { "title": "Fake Door", "max_score": 11680, "min_duration_ms": 13200, "max_duration_ms": 130000, "time_base_ms": 130000 },
+        { "title": "Fast Gates", "max_score": 13770, "min_duration_ms": 12300, "max_duration_ms": 150000, "time_base_ms": 150000 },
+        { "title": "Door Sprint Master", "max_score": 20730, "min_duration_ms": 32700, "max_duration_ms": 240000, "time_base_ms": 240000 }
+      ]
     }
   }
 }
