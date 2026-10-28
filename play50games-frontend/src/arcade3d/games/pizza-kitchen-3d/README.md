@@ -44,7 +44,7 @@ Score sources (constants in `rules.ts`): 230 per ticket at most (150 + 50 + 30),
 
 ## Models
 
-Ready Hyper3D GLBs in `public/models/3d/pizza-kitchen-3d/` (fits in `assets.ts`, checked on the real meshes in `assets.test.ts`): `prepCounterR` (worktop 0.95 m, one per station, stretched to meet at 1.6 m), `pizzaOven` (1.5 m wide on the floor, one per oven), `sauceBowl`, `cheeseBowl`, `mushroomBowlR`, `oliveBowl` (0.5 m), `pepperoni`, `tomato`, `onion` (on the pizza, and as piles in steel bowls), `pizzaBase` (0.6 m), `pizzaPeelClean`, `pizzaBoxClosed`. Left out: `mushroomBowl`, `prepCounter`, `pizzaPeel`, `pizzaBox`, `pizzaBoxV2`. Core: the food-catcher chef (`REUSED_ASSETS.chef`, 1.82 m, auto-rig: walk by `walkStride`, reach on Use, carry with the peel, cheer on a win), the clean-city bin (0.8 m), the shared crate.
+Ready Hyper3D GLBs in `public/models/3d/pizza-kitchen-3d/` (fits in `assets.ts`, checked on the real meshes in `assets.test.ts`): `prepCounterR` (worktop 0.95 m, one per station, stretched to meet at 1.6 m), `pizzaOven` (1.5 m wide on the floor, one per oven), `sauceBowl`, `cheeseBowl`, `mushroomBowlR`, `oliveBowl` (0.5 m), `pepperoni`, `tomato`, `onion` (on the pizza, and as piles in steel bowls), `pizzaBase` (0.6 m), `pizzaPeelCleanT`, `pizzaBoxClosed`. Left out: `mushroomBowl`, `prepCounter`, `pizzaPeel`, `pizzaBox`, `pizzaBoxV2`. Core: the food-catcher chef (`REUSED_ASSETS.chef`, 1.82 m, auto-rig: walk by `walkStride`, reach on Use, carry with the peel, cheer on a win), the clean-city bin (0.8 m), the shared crate.
 
 ## Known issues
 
