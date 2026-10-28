@@ -9,6 +9,7 @@ import { markerBounds, placeMarker } from "@/arcade3d/core/hud/markerPlacement";
 import { useMuted, playSfx, startLoop, type LoopHandle } from "@/arcade3d/core/audio";
 import { SkyDome, Starfield } from "@/arcade3d/core/env";
 import { useFx } from "@/arcade3d/core/fx";
+import { useCameraViews } from "@/arcade3d/core/camera/CameraViews";
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import { TargetMarkers } from "@/arcade3d/core/hud";
 import { useInput } from "@/arcade3d/core/input";
@@ -44,6 +45,19 @@ export default function Scene() {
          typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches,
       ),
    );
+// camera views (core/camera): the rules get the drawn camera's yaw (the fitted yaw in the default view)
+   useCameraViews({
+      slug: "space-repair",
+      subject: "character",
+      steering: "camera",
+      defaultYaw: 0,
+      target: (o) => {
+         const b = run.body;
+         o.x = b.x; o.y = b.y; o.z = b.z; o.heading = run.yaw; o.vx = b.vx; o.vz = b.vz;
+      },
+      views: ["default", "top"],
+   });
+
    const [reduced] = useState(
       () => typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches,
    );

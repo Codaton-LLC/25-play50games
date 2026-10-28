@@ -276,3 +276,7 @@ No frame-loop allocation was added: the level config is captured once at run cre
 The test-only today.rules.fixture.ts freezes the pre-task engine; replay hashes compare
 all serialized simulation state every frame, excluding only the new config and callback.
 The original rules.test.ts stays byte-identical.
+
+## Camera views
+
+Views: default and top (the stick stays screen-fixed). **C** / **T** or the 📷 button cycles them; drag (or two fingers) looks around and switches to the free view, wheel / pinch zooms, **V** recenters. The rules receive the drawn camera's yaw (the fitted yaw in the default view), so a run in the default view is unchanged; no rules, bots, proofs or scoring were touched. Core docs: `core/camera/README.md`.
