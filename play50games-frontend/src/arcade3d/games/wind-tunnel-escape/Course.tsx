@@ -50,9 +50,9 @@ const S = new Vector3();
 const UP = new Vector3(0, 1, 0);
 const P = { x: 0, y: 0, z: 0 };
 
-/** The yaw a fan model (grille facing +z) turns to, to face direction index d. */
+/** The yaw a fan model turns to so its grille (the GLB's -z side, hub cap and blades) faces direction index d. */
 export function fanYaw(d: number): number {
-   return Math.atan2(DIR_X[d], DIR_Z[d]);
+   return Math.atan2(-DIR_X[d], -DIR_Z[d]);
 }
 
 /** The drawn yaw of fan i now: eased through a turn (a tap is 90° clockwise seen from above). */
@@ -182,12 +182,12 @@ function Fans({ run, clock }: { run: WindRun; clock: VisualClock }) {
       const ms = Math.max(0, clock.ms);
       const yaw = drawnYaw(run, i, ms);
       M.makeRotationY(yaw);
-      M2.makeTranslation(0, HUB, FAN_FACE * 0.55);
+      M2.makeTranslation(0, HUB, -FAN_FACE * 0.55);
       M.multiply(M2);
       M2.makeRotationZ(spin.current[i]);
       M.multiply(M2);
       m.copy(M);
-      m.setPosition(V.set(fanX(f, ms), f.y, f.z).add(S.set(0, HUB, FAN_FACE * 0.55).applyAxisAngle(UP, yaw)));
+      m.setPosition(V.set(fanX(f, ms), f.y, f.z).add(S.set(0, HUB, -FAN_FACE * 0.55).applyAxisAngle(UP, yaw)));
       const live = fanLive(run, i, ms);
       if (live) color.set(COLORS.current);
       else if (run.world.on[i]) color.setRGB(0.4, 0.5, 0.6);
@@ -246,7 +246,7 @@ function Fans({ run, clock }: { run: WindRun; clock: VisualClock }) {
    });
    const rotorGeo = useMemo(() => {
       // five blades as a flat star in the grille
-      const g = new CylinderGeometry(0.55, 0.55, 0.04, 5, 1);
+      const g = new CylinderGeometry(0.42, 0.42, 0.03, 5, 1);
       g.rotateX(Math.PI / 2);
       return g;
    }, []);
@@ -257,7 +257,7 @@ function Fans({ run, clock }: { run: WindRun; clock: VisualClock }) {
          {fans.length > 0 ? (
             <DynamicInstanced count={fans.length} update={rotorUpdate} name="rotors" tinted>
                <primitive object={rotorGeo} attach="geometry" />
-               <meshBasicMaterial color="#ffffff" transparent opacity={0.75} toneMapped={false} />
+               <meshBasicMaterial color="#ffffff" transparent opacity={0.42} depthWrite={false} toneMapped={false} />
             </DynamicInstanced>
          ) : null}
          {ventSpots.length > 0 ? <InstancedModel asset={ASSETS.vent} spots={ventSpots} fallback={null} /> : null}
@@ -329,7 +329,7 @@ function Streaks({ run, clock }: { run: WindRun; clock: VisualClock }) {
       const oz = f.z + DIR_Z[d] * FAN_FACE;
       const lat = Math.cos(ang) * rad;
       V.set(ox + DIR_X[d] * p * reach - DIR_Z[d] * lat, f.y + HUB + Math.sin(ang) * rad, oz + DIR_Z[d] * p * reach + DIR_X[d] * lat);
-      Q.setFromAxisAngle(UP, fanYaw(d));
+      Q.setFromAxisAngle(UP, Math.atan2(DIR_X[d], DIR_Z[d]));
       m.compose(V, Q, S.set(0.04, 0.04, 1.6));
       // where currents add, the streaks run near white
       let n = 0;
@@ -373,7 +373,7 @@ function Shocks({ run }: { run: WindRun }) {
    const shocks = run.course.shocks;
    const time = useGameTime();
    const plates = useMemo<InstanceSpot[]>(() => shocks.map((s) => ({ x: (s.x0 + s.x1) / 2, y: s.y0 + 0.04, z: (s.z0 + s.z1) / 2, sx: s.x1 - s.x0, sy: 0.08, sz: s.z1 - s.z0 })), [shocks]);
-   const ARCS = 6;
+   const ARCS = 10;
    const arcs = (k: number, m: Matrix4) => {
       const s = shocks[Math.floor(k / ARCS)];
       const j = k % ARCS;
@@ -390,7 +390,7 @@ function Shocks({ run }: { run: WindRun }) {
       <>
          <Instanced spots={plates} name="shock-plates">
             <primitive object={BOX} attach="geometry" />
-            <meshStandardMaterial color="#14321f" emissive={COLORS.shock} emissiveIntensity={0.45} roughness={0.5} />
+            <meshStandardMaterial color="#0f2419" emissive={COLORS.shock} emissiveIntensity={0.16} roughness={0.35} metalness={0.4} />
          </Instanced>
          <DynamicInstanced count={shocks.length * ARCS} update={arcs} name="shock-arcs">
             <primitive object={BOX} attach="geometry" />
@@ -615,7 +615,7 @@ function Hint({ run }: { run: WindRun }) {
          m.setPosition(fanX(f, run.ms), f.y + 2.8, f.z);
          return;
       }
-      Q.setFromAxisAngle(UP, fanYaw(d));
+      Q.setFromAxisAngle(UP, Math.atan2(DIR_X[d], DIR_Z[d]));
       M.makeRotationFromQuaternion(Q);
       M2.makeRotationX(Math.PI / 2);
       M.multiply(M2);

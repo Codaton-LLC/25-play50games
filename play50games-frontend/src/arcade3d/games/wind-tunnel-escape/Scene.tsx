@@ -33,7 +33,7 @@ import World from "./World";
 import { Course, type VisualClock } from "./Course";
 import { Hero, createHeroAnim, type HeroAnim } from "./Hero";
 import { FOV, FOV_PORTRAIT, WIND_ORBIT, courseSolids, introKeyframes, orbitLookUp, orbitPivot, orbitScale, playCamera } from "./camera";
-import { ORB, STAT, bossVulnerable, createRun, createStepInput, groundUnder, nearestFan, step, type WindRun } from "./rules";
+import { ORB, STAT, bossVulnerable, createRun, createStepInput, gateOpen, groundUnder, nearestFan, step, type WindRun } from "./rules";
 import { pickedHero, subscribeHero } from "./heroes";
 import { createBot, botInput } from "./bot";
 import type { WindLevel } from "./levels";
@@ -338,6 +338,11 @@ export function WindCamera({ run, orbit }: { run: WindRun; orbit: OrbitState }) 
          const h = run.hero;
          if (h.state === "lost") return false;
          orbitPivot(h.x, h.y, h.z, h.vx, h.vz, h.ridingUp, out);
+         // in the Gale Engine's arena the view leans towards the engine (and up), so it stays in frame
+         if (run.world.bossAwake && !gateOpen(run)) {
+            out.z -= 2.5;
+            out.y += 1.2;
+         }
          return true;
       },
       [run],

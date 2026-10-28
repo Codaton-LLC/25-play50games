@@ -1429,7 +1429,7 @@ function progress(run: WindRun, ms: number): void {
       const speed = w.escapeAt >= 0 ? ESCAPE.surgeSpeed : sc.speed;
       w.storm.z -= (speed * STEP_MS) / 1000;
    }
-   run.hint = waiting && ms - w.entered[r] >= HINT_MS ? r : NONE;
+   run.hint = waiting && !inBossFight && ms - w.entered[r] >= HINT_MS ? r : NONE;
    // anemometers: a fan pointing into one spins it and opens its hidden vent
    for (let i = 0; i < c.anemos.length; i++) {
       if (w.anemoOpen[i]) continue;
@@ -1540,7 +1540,8 @@ export function solidBoxes(run: WindRun, out: SolidBox[]): number {
       if (b.look === "housing") continue;
       if (b.kind === "cover" && run.world.broken[i]) continue;
       if (b.kind === "gate" && gateOpen(run)) continue;
-      if (b.kind === "shutter" && !(run.world.bossAwake && !gateOpen(run))) continue;
+      // the arena's shutter is a see-through energy wall: the camera never bumps into it
+      if (b.kind === "shutter") continue;
       put(b);
    }
    for (let i = 0; i < run.course.lifts.length; i++) put(liftBox(run, i));

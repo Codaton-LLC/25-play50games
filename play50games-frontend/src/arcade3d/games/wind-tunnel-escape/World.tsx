@@ -98,21 +98,17 @@ export default function World({ course, levelId }: { course: Course; levelId: nu
       const rnd = createRng(0x77e1 + levelId);
       const r: InstanceSpot[] = [];
       const t: InstanceSpot[] = [];
-      const d = 21;
-      const sy = d / GLB_SIZE.tube.y;
-      const sz = d / GLB_SIZE.tube.z;
+      // great wind tubes running alongside the tunnel, well outside its walls (seen over them), and
+      // fan towers farther out; nothing inside the playable tunnel
+      let side = 1;
       for (const room of course.rooms) {
          const len = room.z0 - room.z1;
-         const mid = (room.floor + room.top) / 2 + 1;
-         for (let k = 0; k < Math.max(1, Math.round(len / 22)); k++) {
-            const z = room.z0 - (len * (k + 0.5)) / Math.max(1, Math.round(len / 22));
-            // ring axis (GLB x) turned onto the run's z; drawn 2 m deep
-            r.push({ x: 0, y: mid - d / 2, z, sx: 2.2 / GLB_SIZE.tube.x, sy, sz, rotY: Math.PI / 2 });
-         }
-         for (const side of [-1, 1]) {
-            if (rnd() < 0.35) continue;
-            const h = 9 + rnd() * 7;
-            t.push({ x: side * (14 + rnd() * 8), y: room.floor - 6, z: room.z0 - rnd() * len, scale: h / GLB_SIZE.tower.y, rotY: side * 0.6 + rnd() * 0.5 });
+         const d = 9 + rnd() * 4;
+         r.push({ x: side * (22 + rnd() * 6), y: room.floor - 9 - rnd() * 3, z: (room.z0 + room.z1) / 2, sx: Math.max(8, len) / GLB_SIZE.tube.x, sy: d / GLB_SIZE.tube.y, sz: d / GLB_SIZE.tube.z, rotY: Math.PI / 2 });
+         side = -side;
+         if (rnd() < 0.7) {
+            const h = 16 + rnd() * 10;
+            t.push({ x: -side * (30 + rnd() * 10), y: room.floor - 10, z: room.z0 - rnd() * len, scale: h / GLB_SIZE.tower.y, rotY: rnd() * 6.28 });
          }
       }
       return { rings: r, towers: t };
@@ -123,7 +119,7 @@ export default function World({ course, levelId }: { course: Course; levelId: nu
          <InstancedModel asset={ASSETS.tube} spots={rings} fallback={null} />
          <InstancedModel asset={ASSETS.tower} spots={towers} fallback={null} />
          <hemisphereLight args={[dusk ? "#c9b8ff" : "#cfe6ff", dusk ? "#2a1d48" : "#25374f", dusk ? 0.75 : 0.85]} />
-         <ambientLight intensity={dusk ? 0.32 : 0.3} />
+         <ambientLight intensity={dusk ? 0.38 : 0.4} />
          <directionalLight position={[10, 30, 14]} intensity={dusk ? 0.85 : 1.15} color={dusk ? "#e4dbff" : "#fff6e8"} />
          <StormLight dusk={dusk} />
       </>

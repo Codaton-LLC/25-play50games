@@ -37,11 +37,11 @@ describe("look", () => {
       expect(lightningFlash(-1)).toBe(0);
    });
 
-   it("a fan's model (grille facing +z) turns to face its direction", () => {
+   it("a fan's model (grille on the GLB's -z side) turns its grille to face its direction", () => {
       for (let d = 0; d < 4; d++) {
          const y = fanYaw(d);
-         expect(Math.sin(y)).toBeCloseTo(DIR_X[d], 6);
-         expect(Math.cos(y)).toBeCloseTo(DIR_Z[d], 6);
+         expect(-Math.sin(y)).toBeCloseTo(DIR_X[d], 6);
+         expect(-Math.cos(y)).toBeCloseTo(DIR_Z[d], 6);
       }
    });
 });
