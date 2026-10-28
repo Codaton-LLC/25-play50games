@@ -15,6 +15,7 @@ import { useInput } from "@/arcade3d/core/input";
 import { inputToWorld, randomSeed } from "@/arcade3d/core/math";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useFittedView } from "@/arcade3d/core/useFittedView";
+import { useCameraViews } from "@/arcade3d/core/camera/CameraViews";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { Crops } from "./Crops";
 import { useLevel } from "@/arcade3d/core/level";
@@ -115,6 +116,19 @@ export default function Scene() {
    // a fresh seed per run: GameShell remounts the Scene on start and retry
    const { config } = useLevel<AlienFarmLevel>();
    const [run] = useState(() => createRun(randomSeed(), config));
+
+   // camera views (core/camera): the rules get the drawn camera's yaw (the fitted yaw in the default view)
+   const cam = useCameraViews({
+      slug: "alien-farm",
+      subject: "character",
+      steering: "camera",
+      defaultYaw: view.yaw,
+      target: (o) => {
+         const f = run.farmer;
+         o.x = f.x; o.y = 0.9; o.z = f.z; o.heading = f.yaw; o.vx = f.vx; o.vz = f.vz;
+      },
+   });
+
    const [reducedMotion] = useState(prefersReducedMotion);
    const [scratch] = useState(() => ({
       step: { dirX: 0, dirZ: 0, press: false } as StepInput,
@@ -134,7 +148,7 @@ export default function Scene() {
    useRunFrame((_state, dt) => {
       const { moveX, moveY, actionPressed, jumpPressed } = input.current;
       const { step, dir, at } = scratch;
-      inputToWorld(moveX, moveY, view.yaw, dir);
+      inputToWorld(moveX, moveY, cam.yaw(), dir);
       step.dirX = dir.x;
       step.dirZ = dir.z;
       // one attempt per frame from either button (E / Enter / Harvest or Space)

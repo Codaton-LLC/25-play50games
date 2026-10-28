@@ -315,3 +315,7 @@ could not catch a physics change). The level bots run one file per level (`rules
 `levels.gate.test.ts` pins the time-left pill, the lip-out turn and rest-in-cup at the level's cup radius,
 and each level's lighting. One mutation survives by design: `min(|cross|, radius)` in `judgeCup` is
 redundant (|cross| <= d <= radius there).
+
+## Camera views
+
+Views: default and top (the aim keeps the course's own yaw). **C** / **T** or the 📷 button cycles them; drag (or two fingers) looks around and switches to the free view, wheel / pinch zooms, **V** recenters. The rules receive the drawn camera's yaw (the fitted yaw in the default view), so a run in the default view is unchanged; no rules, bots, proofs or scoring were touched. Core docs: `core/camera/README.md`.

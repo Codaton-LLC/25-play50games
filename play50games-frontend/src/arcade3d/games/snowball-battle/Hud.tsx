@@ -2,6 +2,7 @@
 
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import styles from "./Hud.module.css";
+import CameraViewButton from "@/arcade3d/core/camera/CameraViewButton";
 
 function Marks({ n, total, kind }: { n: number; total: number; kind: "mitt" | "dot" }) {
    const on = Math.max(0, Math.min(total, n));
@@ -18,7 +19,7 @@ function Marks({ n, total, kind }: { n: number; total: number; kind: "mitt" | "d
    return <span className={styles.group}>{cells}</span>;
 }
 
-export default function Hud() {
+function GameHud() {
    const health = useArcadeStore((s) => s.stats.health ?? 5);
    const ammo = useArcadeStore((s) => s.stats.ammo ?? 0);
    return (
@@ -26,5 +27,15 @@ export default function Hud() {
          <Marks n={health} total={5} kind="mitt" />
          <Marks n={ammo} total={3} kind="dot" />
       </div>
+   );
+}
+
+/** The game's HUD plus the core 📷 camera-view button (core/camera). */
+export default function Hud() {
+   return (
+      <>
+         <CameraViewButton />
+         <GameHud />
+      </>
    );
 }

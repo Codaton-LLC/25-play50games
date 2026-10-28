@@ -8,9 +8,10 @@ import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { liveHud, readNeedle } from "./liveHud";
 import { COLORS } from "./looks";
 import styles from "./Hud.module.css";
+import CameraViewButton from "@/arcade3d/core/camera/CameraViewButton";
 
 const NO_ZONES = [{ start: 0.42, end: 0.58 }];
-export default function Hud() {
+function GameHud() {
    const { config } = useLevel<SpaceRepairLevel>();
    const power = useArcadeStore((s) => s.stats.power ?? 100), remaining = useArcadeStore((s) => s.stats.remaining ?? config.duration);
    const repairs = useArcadeStore((s) => s.stats.repairs ?? 0), docked = useArcadeStore((s) => s.stats.docked ?? -1);
@@ -37,4 +38,14 @@ export default function Hud() {
       </div>
       <div className={styles.feedback} aria-live="polite">{bonus > 0 ? `POWER BONUS +${bonus}` : feedback === 3 ? "MISS · reset & retry" : feedback === 2 ? "PERFECT REPAIR" : feedback === 1 ? "REPAIRED" : feedback === 4 ? "POWER CELL +25" : power < 25 ? "LOW POWER · repair a module" : ""}</div>
    </>;
+}
+
+/** The game's HUD plus the core 📷 camera-view button (core/camera). */
+export default function Hud() {
+   return (
+      <>
+         <CameraViewButton />
+         <GameHud />
+      </>
+   );
 }

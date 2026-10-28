@@ -285,3 +285,7 @@ Modern-look visual polish pass following CLAUDE.md Decision 4:
 ## Horizon line fix (2026-10-25, `claude/penguin-horizon-line`)
 
 A thin grey line sometimes crossed the snow on the right horizon (desk). Causes and fixes: the backing plane was tilted up 0.06 m/m ahead while the glacier falls, so it poked through the far snow (now flat, 40 m down, unlit fog colour, `BASE_PLANE_Y`); the ground ended at ±58 m, inside the fog's far end (camera.tsx sets it to the penguin's depth + 46 m), so its edge showed (now ±160 m); and a wide quad could be drawn in two tones split along its diagonal, with the roll bending it (now one tone per quad, and the roll fades out 25 m outside the corridor). Tests in `ground.test.ts`; no line in 30 desk frames, land and p390 after the fix.
+
+## Camera views
+
+Views: default, front, top (the default is already a chase camera; left/right follow the drawn camera, so in the front view they are mirrored on screen). **C** / **T** or the 📷 button cycles them; drag (or two fingers) looks around and switches to the free view, wheel / pinch zooms, **V** recenters. The rules receive the drawn camera's yaw (the fitted yaw in the default view), so a run in the default view is unchanged; no rules, bots, proofs or scoring were touched. Core docs: `core/camera/README.md`.

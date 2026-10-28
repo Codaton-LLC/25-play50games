@@ -257,3 +257,7 @@ Fixes applied:
 Open questions: None.
 Evidence: play50games-frontend/public/images/3d/dino-egg-rescue.webp (13.0 KB), tools/thumbs/out/dino-egg-rescue.webp
 ```
+
+## Camera views
+
+Views: default, chase, front, top, free. **C** / **T** or the 📷 button cycles them; drag (or two fingers) looks around and switches to the free view, wheel / pinch zooms, **V** recenters. The rules receive the drawn camera's yaw (the fitted yaw in the default view), so a run in the default view is unchanged; no rules, bots, proofs or scoring were touched. Core docs: `core/camera/README.md`.

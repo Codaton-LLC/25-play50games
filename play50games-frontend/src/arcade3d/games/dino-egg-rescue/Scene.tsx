@@ -24,6 +24,8 @@ import { spring, squashStretch, waddle, type BodyOffset, type SpringState } from
 import { useCanvasTexture } from "@/arcade3d/core/render";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useFittedView } from "@/arcade3d/core/useFittedView";
+import { useCameraViews } from "@/arcade3d/core/camera/CameraViews";
+import type { AABB } from "@/arcade3d/core/collision";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { ASSETS, DINO_BACK_TOP_ANCHOR } from "./assets";
 import { VALLEY_BOUNDS, viewFor } from "./camera";
@@ -36,6 +38,7 @@ import {
    DINO,
    EGGS,
    NEST,
+   TREES,
    createDinoRun,
    stepDinoRun,
    type DinoRunState,
@@ -77,6 +80,31 @@ export default function Scene() {
    // Pure deterministic run state, a fresh seed per run (the Scene remounts per runId, so the
    // level config captured here is the one the player picked).
    const [run] = useState<DinoRunState>(() => createDinoRun(randomSeed(), config));
+
+   // camera views (core/camera): the rules get the drawn camera's yaw (the fitted yaw in the default view)
+   const cam = useCameraViews({
+      slug: "dino-egg-rescue",
+      subject: "character",
+      steering: "camera",
+      defaultYaw: view.yaw,
+      target: (o) => {
+         const d = run.dino;
+         o.x = d.x; o.y = 0.5; o.z = d.z; o.heading = d.heading; o.vx = d.vx; o.vz = d.vz;
+      },
+      // the leafy trees' crowns block the chase, front and free cameras
+      solids: (out: AABB[]) => {
+         let n = 0;
+         for (const t of TREES.positions) {
+            if (n >= out.length) break;
+            const o = out[n++];
+            o.min.x = t.x - 1.3; o.min.y = 0.3; o.min.z = t.z - 1.3;
+            o.max.x = t.x + 1.3; o.max.y = 4; o.max.z = t.z + 1.3;
+         }
+         return n;
+      },
+      framing: { chase: { distance: 5 }, front: { distance: 4 }, free: { distance: 6 } },
+   });
+
 
    // Hoisted scratch state for frame inputs & spring oscillation
    const [scratch] = useState(() => ({
@@ -164,7 +192,7 @@ export default function Scene() {
       const { moveX, moveY, jumpPressed, actionPressed } = input.current;
       const { stepInp, dir } = scratch;
 
-      inputToWorld(moveX, moveY, view.yaw, dir);
+      inputToWorld(moveX, moveY, cam.yaw(), dir);
       stepInp.moveX = dir.x;
       stepInp.moveY = dir.z;
       stepInp.actionPressed = !!actionPressed;

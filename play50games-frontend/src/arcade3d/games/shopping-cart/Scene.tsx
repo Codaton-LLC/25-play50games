@@ -17,6 +17,9 @@ import { BlobShadow, DynamicInstanced, Instanced, useCanvasTexture, type CanvasD
 import { HumanoidModel, createPose, useHumanoidPose } from "@/arcade3d/core/rig";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useFittedView } from "@/arcade3d/core/useFittedView";
+import { useCameraViews } from "@/arcade3d/core/camera/CameraViews";
+import type { AABB } from "@/arcade3d/core/collision";
+import { SOLID_OBSTACLES } from "./rules";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { ASSETS, MARKET_COLORS, MARKET_DRAWN, MARKET_SPOTS, type MarketKind, BAKERY_DRAWN, BAKERY_FALLBACK_SPOTS, BAKERY_HEIGHT, BAKERY_SPOTS, SCRUBBER_DRAWN, SCRUBBER_FALLBACK_SPOTS, SCRUBBER_HEIGHT, SCRUBBER_SPOTS, SHELF_BAYS } from "./assets";
 import { STORE_BOUNDS, viewFor } from "./camera";
@@ -45,6 +48,18 @@ import {
 import { useLevel } from "@/arcade3d/core/level";
 import type { ShoppingCartLevel } from "./levels";
 
+/** Copies `src` into the camera hook's box slots. */
+function fillSolids(src: readonly AABB[], out: AABB[]): number {
+   let n = 0;
+   for (const b of src) {
+      if (n >= out.length) break;
+      const o = out[n++];
+      o.min.x = b.min.x; o.min.y = b.min.y; o.min.z = b.min.z;
+      o.max.x = b.max.x; o.max.y = b.max.y; o.max.z = b.max.z;
+   }
+   return n;
+}
+
 export default function Scene() {
    const width = useThree((s) => s.size.width);
    const height = useThree((s) => s.size.height);
@@ -55,6 +70,21 @@ export default function Scene() {
    // Seeded run state created once per run
    const { config, id: levelId } = useLevel<ShoppingCartLevel>();
    const [run] = useState<RunState>(() => createRun(randomSeed(), config));
+
+   // camera views (core/camera): the rules get the drawn camera's yaw (the fitted yaw in the default view)
+   const cam = useCameraViews({
+      slug: "shopping-cart",
+      subject: "vehicle",
+      steering: "camera",
+      defaultYaw: view.yaw,
+      target: (o) => {
+         const c = run.cart;
+         o.x = c.x; o.y = 0.7; o.z = c.z; o.heading = c.heading; o.vx = c.vx; o.vz = c.vz;
+      },
+      solids: (out: AABB[]) => fillSolids(SOLID_OBSTACLES, out),
+      framing: { top: { distance: 12 } },
+   });
+
 
    // Live point for camera look-ahead
    const followTarget = useRef<{ x: number; y: number; z: number }>({
@@ -105,7 +135,7 @@ export default function Scene() {
       const inp = input.current;
 
       // Screen-relative movement
-      inputToWorld(inp.moveX, inp.moveY, view.yaw, WORLD_MOVE);
+      inputToWorld(inp.moveX, inp.moveY, cam.yaw(), WORLD_MOVE);
       STEP_INPUT.moveX = WORLD_MOVE.x;
       STEP_INPUT.moveY = -WORLD_MOVE.z; // up in screen = north (-z in world)
       STEP_INPUT.ride = inp.jump;       // Space or touch Ride button

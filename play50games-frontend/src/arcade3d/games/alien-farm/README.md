@@ -208,3 +208,7 @@ TASK P-18-alien-farm | build alien-farm | branch claude/game-alien-farm | allowe
 7. Bot coverage 32 seeds per bot instead of 256 x 2 modes x 3 rates, to keep the suite near 25 s.
 8. **Done (playtest 2026-10-24):** "night" read near-black, now "sunset". The ufo GLB is fully metallic (no environment map in the arcade) and rendered as a black disc: it now draws with one material override (silver-lavender, metalness 0.3), losing its texture; a re-export with metallicFactor ≈ 0.3 would keep the texture. Waiting beds had a grey ring that read as coral on the plum soil; it now takes the crop's colour, so coral means only a burst.
 9. Core needs: none.
+
+## Camera views
+
+Views: default, chase, front, top, free. **C** / **T** or the 📷 button cycles them; drag (or two fingers) looks around and switches to the free view, wheel / pinch zooms, **V** recenters. The rules receive the drawn camera's yaw (the fitted yaw in the default view), so a run in the default view is unchanged; no rules, bots, proofs or scoring were touched. Core docs: `core/camera/README.md`.

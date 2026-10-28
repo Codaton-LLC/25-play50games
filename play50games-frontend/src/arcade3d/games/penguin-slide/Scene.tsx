@@ -17,6 +17,7 @@ import { BlobShadow } from "@/arcade3d/core/render";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { useFittedView } from "@/arcade3d/core/useFittedView";
+import { useCameraViews } from "@/arcade3d/core/camera/CameraViews";
 import { ASSETS, BELLY_LIFT, BELLY_ROTATION_Y, bellyClearance } from "./assets";
 import { ChaseCamera, VIEW, useReducedMotion } from "./camera";
 import { Decor } from "./Decor";
@@ -104,6 +105,19 @@ function LevelScene() {
    const view = useFittedView(VIEW);
    const reduced = useReducedMotion();
    const [run] = useState(() => createRun(randomSeed(), typeof navigator !== "undefined" && navigator.maxTouchPoints > 0, config));
+
+   // camera views (core/camera): the rules get the drawn camera's yaw (the fitted yaw in the default view)
+   const cam = useCameraViews({
+      slug: "penguin-slide",
+      subject: "vehicle",
+      steering: "camera",
+      defaultYaw: view.yaw,
+      target: (o) => {
+         o.x = run.d; o.y = 0.6; o.z = 0; o.heading = Math.PI; o.vx = 0; o.vz = -run.speed;
+      },
+      views: ["default", "front", "top"],
+   });
+
    const [scratch] = useState(() => ({
       input: { steer: 0, left: false, right: false, jump: false },
       direction: { x: 0, z: 0 },
@@ -136,7 +150,7 @@ function LevelScene() {
    };
 
    useRunFrame((_state, dt) => {
-      inputToWorld(input.current.moveX, 0, view.yaw, scratch.direction);
+      inputToWorld(input.current.moveX, 0, cam.yaw(), scratch.direction);
       scratch.input.steer = scratch.direction.x;
       scratch.input.left = input.current.pressed.left;
       scratch.input.right = input.current.pressed.right;

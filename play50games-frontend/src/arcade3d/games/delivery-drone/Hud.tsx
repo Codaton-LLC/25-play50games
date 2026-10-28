@@ -2,8 +2,9 @@
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import styles from "./Hud.module.css";
 import { useDeliveryLevel } from "./useDeliveryLevel";
+import CameraViewButton from "@/arcade3d/core/camera/CameraViewButton";
 
-export default function Hud() {
+function GameHud() {
    const battery = useArcadeStore((s) => s.stats.battery ?? 100);
    const loading = useArcadeStore((s) => s.stats.loading ?? 0);
    const carrying = useArcadeStore((s) => s.stats.carrying ?? 0);
@@ -17,4 +18,14 @@ export default function Hud() {
       <div aria-live="polite">{loading > 0 ? `Loading ${loading}% — hold still` : carrying ? fragile ? `Fragile — aim for ${config.fragilePrecision}+ precision` : "Follow the blue rooftop beacon" : "Return to depot · hover to reload"}</div>
       <div className={styles.hint}>{feedback === 1 ? "Delivered!" : feedback === 2 ? "Parcel missed — reload" : feedback === 3 ? "Tower contact!" : "Brake early · line up the landing cross"}</div>
    </div>;
+}
+
+/** The game's HUD plus the core 📷 camera-view button (core/camera). */
+export default function Hud() {
+   return (
+      <>
+         <CameraViewButton />
+         <GameHud />
+      </>
+   );
 }

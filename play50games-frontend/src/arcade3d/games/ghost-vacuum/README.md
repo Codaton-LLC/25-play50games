@@ -197,3 +197,7 @@ Visual-only modern-look pass giving Ghost Vacuum a polished, premium mobile-game
   - **Total estimated draw calls**: ~39 steady, ~46 peak (well within the <= 60 budget).
   - Geometries and materials created once in `useMemo` and cleanly disposed on unmount; zero per-frame allocations. No `dispose={null}` on primitive geometry attachments.
 
+
+## Camera views
+
+Views: default, chase, front, top, free (the room walls block the chase, front and free cameras). **C** / **T** or the 📷 button cycles them; drag (or two fingers) looks around and switches to the free view, wheel / pinch zooms, **V** recenters. The rules receive the drawn camera's yaw (the fitted yaw in the default view), so a run in the default view is unchanged; no rules, bots, proofs or scoring were touched. Core docs: `core/camera/README.md`.
