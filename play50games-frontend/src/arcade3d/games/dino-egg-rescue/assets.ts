@@ -1,4 +1,5 @@
 import type { ModelAsset } from "@/arcade3d/core/types";
+import { DINO_LANDMARKS } from "./dinoGait";
 import {
    EXPANSION_ASSETS,
    EXPANSION_GLB_POINTS,
@@ -64,7 +65,8 @@ export const DINO_NEST_HEIGHT = 0.5;
 const DINO_NEST_SCALE = DINO_NEST_DIAMETER / DINO_NEST_GLB.width;
 
 export const ASSETS = {
-   dino: EXPANSION_ASSETS.dino,
+   // the baby triceratops walks on the core quadruped rig (dinoGait.ts DINO_LANDMARKS)
+   dino: { ...EXPANSION_ASSETS.dino, quadruped: { landmarks: DINO_LANDMARKS } },
    rock: {
       ...EXPANSION_ASSETS.rock,
       scale: 1.0,

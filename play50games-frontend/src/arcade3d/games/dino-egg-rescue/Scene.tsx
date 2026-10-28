@@ -12,7 +12,7 @@ import {
    type MeshStandardMaterial,
 } from "three";
 import CameraRig from "@/arcade3d/core/CameraRig";
-import { DynamicInstancedModel, Model } from "@/arcade3d/core/assets";
+import { DynamicInstancedModel, Model, assetScale } from "@/arcade3d/core/assets";
 import { playSfx, startLoop, useMuted, type LoopHandle } from "@/arcade3d/core/audio";
 import { SkyDome } from "@/arcade3d/core/env";
 import { useFx } from "@/arcade3d/core/fx";
@@ -20,7 +20,9 @@ import { useGameTime } from "@/arcade3d/core/gameTime";
 import { TargetMarkers, type MarkerTarget } from "@/arcade3d/core/hud";
 import { useInput } from "@/arcade3d/core/input";
 import { inputToWorld, randomSeed } from "@/arcade3d/core/math";
-import { spring, squashStretch, waddle, type BodyOffset, type SpringState } from "@/arcade3d/core/motion";
+import { spring, squashStretch, type SpringState } from "@/arcade3d/core/motion";
+import { QuadrupedModel, useQuadrupedPose } from "@/arcade3d/core/rig/QuadrupedModel";
+import { blendQuadrupedPoses, createQuadrupedPose, quadrupedCrouch, quadrupedGait, quadrupedIdle, quadrupedPhaseStep } from "@/arcade3d/core/rig/quadrupedPoses";
 import { useCanvasTexture } from "@/arcade3d/core/render";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useFittedView } from "@/arcade3d/core/useFittedView";
@@ -31,6 +33,7 @@ import { ASSETS, DINO_BACK_TOP_ANCHOR } from "./assets";
 import { VALLEY_BOUNDS, viewFor } from "./camera";
 import { Decor } from "./Decor";
 import { COLORS } from "./looks";
+import { DINO_GAIT, DINO_GAIT_OPTIONS, DINO_LANDMARKS, DINO_SCALE as DINO_GLB_SCALE, dinoGait } from "./dinoGait";
 import { DinoPrimitive, useBoulderParts } from "./Primitives";
 import { useDinoLevel } from "./useDinoLevel";
 import {
@@ -57,7 +60,12 @@ const SCRATCH_QUAT = new Quaternion();
 const SCRATCH_AXIS = new Vector3();
 const SCRATCH_SCALE = new Vector3(1, 1, 1);
 const DINO_SCALE = { x: 1, y: 1, z: 1 };
-const DINO_OFFSET: BodyOffset = { y: 0, roll: 0, yaw: 0, squash: 1 };
+/** metres per GLB unit up the dino (its fit stretches y): the rig's trunk lift moves the egg stack by this */
+const DINO_Y_SCALE = assetScale(ASSETS.dino)[1];
+const smooth01 = (a: number, b: number, x: number) => {
+   const t = Math.min(1, Math.max(0, (x - a) / (b - a)));
+   return t * t * (3 - 2 * t);
+};
 const COLOR_READY = new Color(COLORS.dashReady);
 const COLOR_COOLDOWN = new Color(COLORS.dashCooldown);
 
@@ -183,6 +191,33 @@ export default function Scene() {
    const carriedEgg4Ref = useRef<Mesh>(null);
    const carriedGoldenRef = useRef<Group>(null);
 
+   // The dino's gait on the core quadruped rig (dinoGait.ts): a diagonal walk in deep mud, a trot at a
+   // jog, a bounding gallop at full speed; the phase advances by the distance really moved over the
+   // stride (planted feet), idle breathing when still, the head and tail turning into a turn, a crouch
+   // while stunned.
+   const [gait] = useState(() => ({ phase: 0, s01: 0, turn: 0, heading: DINO.startFacing, lastX: DINO.startX, lastZ: DINO.startZ, stun: 0, gait: createQuadrupedPose(), idle: createQuadrupedPose() }));
+   const pose = useQuadrupedPose((out) => {
+      const d = run.dino;
+      const dt = time.delta;
+      const moved = Math.hypot(d.x - gait.lastX, d.z - gait.lastZ);
+      gait.lastX = d.x;
+      gait.lastZ = d.z;
+      const speed = Math.hypot(d.vx, d.vz);
+      gait.s01 += (dinoGait(speed).speed01 - gait.s01) * (1 - Math.exp(-12 * dt));
+      gait.phase = quadrupedPhaseStep(gait.phase, moved < 1 ? moved : 0, Math.max(0.02, gait.s01), DINO_LANDMARKS, DINO_GLB_SCALE, dt, DINO_GAIT.maxHz);
+      let dyaw = (d.heading - gait.heading) % (2 * Math.PI);
+      if (dyaw > Math.PI) dyaw -= 2 * Math.PI;
+      if (dyaw < -Math.PI) dyaw += 2 * Math.PI;
+      gait.heading = d.heading;
+      const turnRate = dt > 0 ? dyaw / dt : 0;
+      gait.turn += (Math.max(-1, Math.min(1, turnRate / 6)) - gait.turn) * (1 - Math.exp(-8 * dt));
+      quadrupedGait(gait.phase, gait.s01, DINO_LANDMARKS, gait.gait, gait.turn, DINO_GAIT_OPTIONS);
+      quadrupedIdle(time.now, DINO_LANDMARKS, gait.idle);
+      blendQuadrupedPoses(gait.idle, gait.gait, smooth01(0.05, 0.6, speed), out);
+      gait.stun += ((d.stunTimer > 0 ? 1 : 0) - gait.stun) * (1 - Math.exp(-dt / 0.06));
+      if (gait.stun > 0.01) quadrupedCrouch(0.06 * gait.stun, 0.3 * gait.stun, DINO_LANDMARKS, out);
+   });
+
    // Fixed pool of ground egg groups
    const regularEggRefs = useRef<(Group | null)[]>([]);
    const goldenEggRef = useRef<Group | null>(null);
@@ -275,17 +310,13 @@ export default function Scene() {
          dinoGroupRef.current.position.set(dino.x, 0, dino.z);
          dinoGroupRef.current.rotation.y = dino.heading;
 
-         // Waddle body motion
-         const speed = Math.hypot(dino.vx, dino.vz);
-         waddle(dino.waddlePhase, Math.min(0.12, speed * 0.025), DINO_OFFSET);
+         // the legs, head and tail walk on the rig (pose above); the dash still squashes the whole body
          if (dino.dashTimer > 0) {
             squashStretch(0.85, DINO_SCALE);
             dinoGroupRef.current.scale.set(DINO_SCALE.x, DINO_SCALE.y, DINO_SCALE.z);
          } else {
             dinoGroupRef.current.scale.set(1, 1, 1);
          }
-         dinoGroupRef.current.position.y = DINO_OFFSET.y;
-         dinoGroupRef.current.rotation.z = DINO_OFFSET.roll;
       }
 
       // World dash cooldown ring
@@ -328,6 +359,8 @@ export default function Scene() {
          spring(scratch.stackSpringZ, targetTiltZ, 75, 12, dt);
          carriedStackRef.current.rotation.z = scratch.stackSpringX.x;
          carriedStackRef.current.rotation.x = scratch.stackSpringZ.x;
+         // the eggs ride the back: it dips and bobs with the rig's trunk
+         carriedStackRef.current.position.y = DINO_BACK_TOP_ANCHOR.y + pose.lift * DINO_Y_SCALE;
 
          const carriedCount = dino.carriedEggs.length;
          if (carriedEgg1Ref.current) carriedEgg1Ref.current.visible = carriedCount >= 1;
@@ -494,7 +527,7 @@ export default function Scene() {
 
          {/* Dino Baby Model */}
          <group ref={dinoGroupRef} position={[DINO.startX, 0, DINO.startZ]}>
-            <Model asset={ASSETS.dino} fallback={<DinoPrimitive />} />
+            <QuadrupedModel asset={ASSETS.dino} pose={pose} fallback={<DinoPrimitive />} />
 
             {/* Egg stack on back anchored to DINO_BACK_TOP_ANCHOR with spring sway */}
             <group
