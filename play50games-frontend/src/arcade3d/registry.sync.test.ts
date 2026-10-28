@@ -17,7 +17,10 @@ const wp = JSON.parse(fs.readFileSync(WP_JSON, "utf8")) as {
 describe("arcade registry", () => {
    it("has every slug exactly once, in order", () => {
       expect(ARCADE_GAMES.map((g) => g.slug)).toEqual([...ARCADE_SLUGS]);
-      expect(ARCADE_GAMES.map((g) => g.order)).toEqual(ARCADE_SLUGS.map((_s, i) => i + 1));
+      // Menu 1 is 1..50 with no gaps; Menu 2 orders only rise (games built in parallel keep their reserved order, e.g. 63 before 59-62 land)
+      const orders = ARCADE_GAMES.map((g) => g.order);
+      expect(orders.slice(0, 50)).toEqual(ARCADE_SLUGS.slice(0, 50).map((_s, i) => i + 1));
+      expect(orders.slice(50).every((o, i, all) => o > 50 && (i === 0 || o > all[i - 1]))).toBe(true);
    });
 
    it("WordPress arcade-games.json has the same games", () => {

@@ -61,6 +61,7 @@ import { ziplineRushMeta } from "./games/zipline-rush/meta";
 import { cloudHopperMeta } from "./games/cloud-hopper/meta";
 import { plateSurfMeta } from "./games/plate-surf/meta";
 import { ringJumpChallengeMeta } from "./games/ring-jump-challenge/meta";
+import { skyHookSwingMeta } from "./games/sky-hook-swing/meta";
 
 export const ARCADE_GAMES: ArcadeGameMeta[] = [
    robotCollectorMeta,
@@ -121,6 +122,7 @@ export const ARCADE_GAMES: ArcadeGameMeta[] = [
    plateSurfMeta,
    ziplineRushMeta,
    ringJumpChallengeMeta,
+   skyHookSwingMeta,
 ].sort((a, b) => a.order - b.order);
 
 export function getGameMeta(slug: string): ArcadeGameMeta | undefined {
