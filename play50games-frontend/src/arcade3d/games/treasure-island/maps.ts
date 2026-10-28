@@ -234,6 +234,32 @@ const RAVINE: ReadonlyArray<readonly [number, number]> = [
    [4.6, -13.5], [4.1, -7.5], [4.8, -2.0], [4.3, 3.5], [4.9, 8.0], [5.8, 13.5],
 ];
 
+/**
+ * Rocks along both rims of a carve (the ravine reads as a cleft, not a river), one every `step` m
+ * on alternating sides, `off` m beyond its half-width, none within `clear` m of a bridge's axis.
+ */
+function rims(points: ReadonlyArray<readonly [number, number]>, half: number, step: number, clear: { x: number; z: number; r: number }, maxAbsZ: number): MapProp[] {
+   const out: MapProp[] = [];
+   let k = 0;
+   for (let i = 1; i < points.length; i++) {
+      const [x0, z0] = points[i - 1];
+      const [x1, z1] = points[i];
+      const len = Math.hypot(x1 - x0, z1 - z0);
+      const nx = -(z1 - z0) / len;
+      const nz = (x1 - x0) / len;
+      for (let t = i === 1 ? 0 : step; t < len; t += step) {
+         k += 1;
+         const side = k % 2 ? 1 : -1;
+         const x = x0 + ((x1 - x0) * t) / len + nx * side * (half + 0.15);
+         const z = z0 + ((z1 - z0) * t) / len + nz * side * (half + 0.15);
+         if (Math.abs(z) > maxAbsZ || Math.hypot(x - clear.x, z - clear.z) < clear.r) continue;
+         const s = 1.0 + ((k * 7) % 5) * 0.12;
+         out.push(boulder(x, z, s, k * 1.3));
+      }
+   }
+   return out;
+}
+
 export const MAP_3: IslandMap = {
    id: 3,
    theme: "cove",
@@ -248,6 +274,7 @@ export const MAP_3: IslandMap = {
    bridges: [{ kind: "rope", x: 4.8, z: -2.0, axis: "x", length: 4.6, half: 0.85, deck: 0.18, sag: 0.32 }],
    gates: [],
    props: [
+      ...rims(RAVINE, 1.25, 1.6, { x: 4.8, z: -2.0, r: 3.0 }, 9.6),
       // the north cliffs, the sea cave arch on the west shore
       cliff(-8.2, -7.9, 4.2, 0.3),
       cliff(-3.6, -9.6, 4.0, 1.4),
@@ -364,7 +391,7 @@ const ringStones = RING.map((a, i) => boulder(PEAK.x + Math.cos(a) * RING_R, PEA
 export const MAP_5: IslandMap = {
    id: 5,
    theme: "peak",
-   hill: { x: PEAK.x, z: PEAK.z, h: 2.6, r: 6.8 },
+   hill: { x: PEAK.x, z: PEAK.z, h: 3.4, r: 7.0 },
    carves: [{ kind: "pool", points: [[-10.4, -3.6]], half: 1.0, depth: 0.5 }],
    bridges: [],
    gates: [

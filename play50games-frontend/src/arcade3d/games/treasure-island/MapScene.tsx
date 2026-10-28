@@ -125,7 +125,8 @@ function Terrain({ map, shape, theme }: { map: IslandMap; shape: IslandShape; th
 // ---------- props ----------
 
 /** How much of a prop sinks into the ground (m per m of height), so a slope never shows its base. */
-const SINK: Partial<Record<PropKind, number>> = { boulder: 0.12, rock: 0.12, cliff: 0.1, bush: 0.05, fern: 0.05, plant: 0.03, shell: 0.25 };
+/** junglePlant.glb stands in a pot: a quarter of it goes under the ground. */
+const SINK: Partial<Record<PropKind, number>> = { boulder: 0.12, rock: 0.12, cliff: 0.1, bush: 0.05, fern: 0.05, plant: 0.24, shell: 0.25 };
 
 /** A ruin block longer than this is drawn as several stones. */
 const BLOCK_STONE = 2.1;

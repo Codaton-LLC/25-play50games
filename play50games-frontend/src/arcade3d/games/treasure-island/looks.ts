@@ -139,7 +139,7 @@ const smooth = (e0: number, e1: number, v: number) => {
    return t * t * (3 - 2 * t);
 };
 
-/** The hill's height at (x, z) (0 without one): a cosine bump, slopes under 35°, so it never hides ground behind it. */
+/** The hill's height at (x, z) (0 without one): a cosine bump, slopes under 40° (h pi / 2r), steeper than nothing the 50° camera looks down at, so it never hides ground behind it. */
 export function hillHeight(x: number, z: number, map: IslandMap): number {
    const hill = map.hill;
    if (!hill) return 0;
@@ -160,11 +160,15 @@ export function terrainHeight(x: number, z: number, map: IslandMap, shape: { rx:
          return b.deck - b.sag * Math.sin(Math.PI * t);
       }
    }
-   let y = groundHeight(rho(x, z, shape)) + hillHeight(x, z, map);
+   const r = rho(x, z, shape);
+   let y = groundHeight(r) + hillHeight(x, z, map);
+   // the carves fade out past the shoreline, so the seabed shows no channel
+   const sea = smooth(1.08, 0.98, r);
+   if (sea <= 0) return y;
    for (const c of map.carves) {
       const d = distToPolyline(x, z, c.points);
       const edge = c.half + BANK;
-      if (d < edge) y -= c.depth * smooth(edge, c.half * 0.55, d);
+      if (d < edge) y -= c.depth * smooth(edge, c.half * 0.55, d) * sea;
    }
    return y;
 }

@@ -11,7 +11,7 @@ import { LEVELS } from "./levels";
 import { treasureIslandMeta as meta } from "./meta";
 import definition from "./index";
 import { mapBot } from "./fairnessSuite";
-import { THEMES } from "./looks";
+import { THEMES, groundAt, hillHeight } from "./looks";
 import {
    DIG,
    DURATION_MS,
@@ -393,5 +393,43 @@ describe("treasure-island levels: the simulation reads every level knob", () => 
          expect(run.shape.rx).toBe(LEVELS[id].rx);
          expect(run.shape.rz).toBe(LEVELS[id].rz);
       }
+   });
+});
+
+describe("treasure-island levels: five different islands", () => {
+   const maps = [LEVELS[2].map!, LEVELS[3].map!, LEVELS[4].map!, LEVELS[5].map!];
+
+   it("each map has its own props, water and mechanic", () => {
+      const kinds = maps.map((m) => new Set(m.props.map((p) => p.kind)));
+      // the landmarks the level names promise
+      expect(kinds[0].has("hut")).toBe(true);
+      expect(maps[0].carves.some((c) => c.kind === "stream")).toBe(true);
+      expect(maps[0].gates.map((g) => g.kind)).toEqual(["log"]);
+      expect(kinds[1].has("cliff") && kinds[1].has("arch")).toBe(true);
+      expect(maps[1].carves.filter((c) => c.kind === "pool").length).toBeGreaterThanOrEqual(4);
+      expect(maps[1].bridges.map((b) => b.kind)).toEqual(["rope"]);
+      expect(kinds[2].has("plant") && kinds[2].has("block") && kinds[2].has("ruinGate")).toBe(true);
+      expect(maps[2].gates.map((g) => [g.kind, g.opensAfter])).toEqual([["vines", 1], ["vines", 3]]);
+      expect(kinds[3].has("wreck") && kinds[3].has("cannon")).toBe(true);
+      expect(maps[3].hill).toBeDefined();
+      expect(maps[3].chestAt).toEqual({ x: maps[3].hill!.x, z: maps[3].hill!.z });
+      // no two maps share their set of prop kinds; the chain is on 3-5 only
+      const sigs = kinds.map((k) => [...k].sort().join());
+      expect(new Set(sigs).size).toBe(4);
+      expect(maps.map((m) => Boolean(m.chain))).toEqual([false, true, true, true]);
+   });
+
+   it("the dock start stands on level 1's sand on every map, and the peak's slopes never hide the ground behind them", () => {
+      for (const id of [2, 3, 4, 5] as const) {
+         const shape = { rx: LEVELS[id].rx, rz: LEVELS[id].rz, map: LEVELS[id].map };
+         // the same beach slope as level 1's at the dock's foot: no carve, hill or bridge reaches it
+         expect(groundAt(START.x, START.z, shape)).toBeCloseTo(groundAt(START.x, START.z), 9);
+      }
+      const peak = LEVELS[5].map!;
+      const hill = peak.hill!;
+      let steepest = 0;
+      for (let d = 0; d < hill.r; d += 0.05) steepest = Math.max(steepest, (hillHeight(hill.x + d + 0.05, hill.z, peak) - hillHeight(hill.x + d, hill.z, peak)) / -0.05);
+      expect(Math.atan(Math.abs(steepest)) * (180 / Math.PI)).toBeLessThan(40);
+      expect(hillHeight(hill.x, hill.z, peak)).toBeCloseTo(hill.h, 6);
    });
 });
