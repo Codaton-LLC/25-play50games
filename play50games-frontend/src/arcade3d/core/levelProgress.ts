@@ -42,6 +42,9 @@ export function levelEntryCleared(meta: ArcadeGameMeta, level: LevelMeta, entry:
    return level.clearScore !== undefined && entry.best >= level.clearScore;
 }
 
+
+/** Preview builds only (NEXT_PUBLIC_ARCADE_UNLOCK_ALL, see flags.ts): every level opens. Read here, not from flags.ts, so tests that mock the flags keep working. */
+const UNLOCK_ALL = process.env.NEXT_PUBLIC_ARCADE_UNLOCK_ALL === "1" || process.env.NEXT_PUBLIC_ARCADE_UNLOCK_ALL === "true";
 /**
  * The tiles' data. `active` false (levels off, or a one-level game) gives level 1 only, with the
  * game's best as today.
@@ -49,7 +52,8 @@ export function levelEntryCleared(meta: ArcadeGameMeta, level: LevelMeta, entry:
 export function levelProgress(
    meta: ArcadeGameMeta,
    entry: LocalScoreEntry | null | undefined,
-   active: boolean = levelsActive(meta)
+   active: boolean = levelsActive(meta),
+   unlockAll: boolean = UNLOCK_ALL
 ): LevelProgressSummary {
    const metas = active ? levelsOf(meta) : levelsOf(meta).slice(0, 1);
    const levels: LevelProgress[] = [];
@@ -64,7 +68,7 @@ export function levelProgress(
          bestDurationMs: stored?.bestDurationMs ?? null,
          plays: stored?.plays ?? 0,
          cleared,
-         unlocked: index === 0 || !!stored || !!previous?.cleared,
+         unlocked: unlockAll || index === 0 || !!stored || !!previous?.cleared,
       });
    });
    const complete = levels.every((level) => (meta.scoring.kind === "time" ? level.bestDurationMs !== null : level.best !== null));
