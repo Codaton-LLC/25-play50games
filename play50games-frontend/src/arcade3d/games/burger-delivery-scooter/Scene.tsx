@@ -160,7 +160,7 @@ function LevelScene() {
 
    useFrame(() => {
       const p = run.player, goal = target(run);
-      if (body.current) { body.current.position.set(p.x, p.y, p.z); body.current.rotation.set(0, p.yaw, -Math.max(-0.25, Math.min(0.25, p.speed * 0.02 * (input.current.moveX || 0)))); }
+      if (body.current) { body.current.position.set(p.x, p.y, p.z); body.current.rotation.set(0, p.yaw, Math.max(-0.25, Math.min(0.25, p.speed * 0.02 * (input.current.moveX || 0)))); }
       const pulse = 1 + Math.sin(time.now * 5) * 0.06;
       if (pad.current) { pad.current.position.set(goal.x, 0.03, goal.z); pad.current.visible = !run.end && run.carrying; pad.current.scale.setScalar(pulse); }
       if (shopRing.current) shopRing.current.scale.setScalar(run.carrying ? 1 : pulse);

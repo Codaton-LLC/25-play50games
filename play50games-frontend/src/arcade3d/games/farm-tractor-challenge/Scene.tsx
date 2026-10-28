@@ -18,7 +18,7 @@ import { HumanoidModel, cheerPose, sitPose, useHumanoidPose } from "@/arcade3d/c
 import { useFittedView } from "@/arcade3d/core/useFittedView";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
-import { ASSETS, GATE_SCALE, SEAT_Y, SEAT_Z } from "./assets";
+import { ASSETS, GATE_SCALE, SEAT_Y, SEAT_Z, TRAILER_BED } from "./assets";
 import type { FarmLevel } from "./levels";
 import {
    COLORS,
@@ -35,7 +35,7 @@ import {
    viewFor,
 } from "./looks";
 import { BarnFrame, FarmerFigure, GatePostPrimitive, ScarecrowPrimitive, SiloPrimitive, TractorPrimitive, TrailerPrimitive, TroughPrimitive } from "./Primitives";
-import { BALE_R, MAX_BALES, createRun, forwardOf, slotWorld, step, type Run } from "./rules";
+import { BALE_R, MAX_BALES, TRAILER_BEHIND, createRun, forwardOf, hitchPoint, step, type Run } from "./rules";
 
 const Q = new Quaternion();
 const V = new Vector3();
@@ -44,6 +44,16 @@ const UP = new Vector3(0, 1, 0);
 const AT = { x: 0, y: 0.8, z: 0 };
 /** The gate leaf stands beside its post, along the fence, so the opening stays 2 x GATE_HALF wide. */
 const GATE_LEAF_OUT = 0.95 * GATE_SCALE + 0.15;
+/** The trailer's drawn yaw eases toward the tractor's heading at this rate (1/s). */
+const TRAILER_TURN = 3;
+/** A load's height on the trailer bed (metres). */
+const CARGO_ON_BED_HEIGHT = 0.72;
+/** Height of the tractor's rear hitch pin (metres). */
+const HITCH_Y = 0.42;
+
+function wrapAngle(a: number): number {
+   return a > Math.PI ? a - Math.PI * 2 : a < -Math.PI ? a + Math.PI * 2 : a;
+}
 
 function disposeParts(parts: InstancePart[]) {
    for (const part of parts) {
@@ -64,6 +74,14 @@ function LevelScene() {
    const aim = useRef({ x: run.tractor.x, y: 0.8, z: run.tractor.z + LOOK_AHEAD }).current;
    const body = useRef<import("three").Group>(null);
    const trailer = useRef<import("three").Group>(null);
+   const drawbar = useRef<import("three").Group>(null);
+   const pin = useRef<import("three").Mesh>(null);
+   /**
+    * The trailer as drawn: its yaw eases toward the tractor's heading and it hangs TRAILER_BEHIND
+    * behind the hitch along that yaw, so the hitch bar is rigid. Once the yaw has caught up (straight
+    * driving, parking) that is the rules' spring point, which the slots and the bay check use.
+    */
+   const towed = useRef({ yaw: run.tractor.yaw, x: run.trailerX.x, z: run.trailerZ.x }).current;
    const bounds = useMemo(() => aimBounds(config), [config]);
    const look = useMemo(() => lookAtFor(config), [config]);
    const decor = useMemo(() => decorAt(config), [config]);
@@ -173,33 +191,50 @@ function LevelScene() {
       }
    });
 
-   useFrame(() => {
+   useFrame((_state, delta) => {
+      // the models face +z, and the tractor drives along (sin yaw, cos yaw): rotation.y is the yaw itself
       const group = body.current;
       if (group) {
          group.position.set(run.tractor.x, 0, run.tractor.z);
-         group.rotation.y = -run.tractor.yaw;
+         group.rotation.y = run.tractor.yaw;
       }
+      towed.yaw = wrapAngle(towed.yaw + wrapAngle(run.tractor.yaw - towed.yaw) * (1 - Math.exp(-TRAILER_TURN * Math.min(delta, 0.1))));
+      const hitch = hitchPoint(run.tractor);
+      towed.x = hitch.x - Math.sin(towed.yaw) * TRAILER_BEHIND;
+      towed.z = hitch.z - Math.cos(towed.yaw) * TRAILER_BEHIND;
       const bed = trailer.current;
       if (bed) {
-         bed.position.set(run.trailerX.x, 0, run.trailerZ.x);
-         bed.rotation.y = -run.tractor.yaw;
+         bed.position.set(towed.x, 0, towed.z);
+         bed.rotation.y = towed.yaw;
+      }
+      // the hitch bar runs from the trailer's drawbar eye to the pin behind the tractor
+      if (pin.current) pin.current.position.set(hitch.x, HITCH_Y, hitch.z);
+      const bar = drawbar.current;
+      if (bar) {
+         const eyeX = towed.x + Math.sin(towed.yaw) * TRAILER_BED.tongueZ;
+         const eyeZ = towed.z + Math.cos(towed.yaw) * TRAILER_BED.tongueZ;
+         bar.position.set(eyeX, TRAILER_BED.tongueY, eyeZ);
+         V.set(hitch.x, HITCH_Y, hitch.z);
+         bar.lookAt(V);
+         bar.scale.set(1, 1, Math.max(0.01, V.distanceTo(bar.position)));
       }
    }, FRAME_PRIORITY.visuals);
 
    const placeCargo = (index: number, matrix: Matrix4) => {
       const bale = run.bales[index];
       if (!bale || bale.state === "delivered") return false;
-      let x = bale.x;
-      let z = bale.z;
-      let yaw = 0;
       if (bale.state === "hitched") {
-         const at = slotWorld(run.trailerX.x, run.trailerZ.x, run.tractor.yaw, bale.slot);
-         x = at.x;
-         z = at.z;
-         yaw = -run.tractor.yaw;
+         // on the drawn trailer's bed: one load in the middle, two front and back
+         const two = config.balesPerTrip > 1;
+         const along = TRAILER_BED.z + (two ? (bale.slot === 0 ? 1 : -1) * TRAILER_BED.length / 4 : 0);
+         V.set(towed.x + Math.sin(towed.yaw) * along, TRAILER_BED.y, towed.z + Math.cos(towed.yaw) * along);
+         Q.setFromAxisAngle(UP, towed.yaw);
+         S.set(TRAILER_BED.width * 0.9, CARGO_ON_BED_HEIGHT, two ? TRAILER_BED.length * 0.46 : Math.min(1.2, TRAILER_BED.length * 0.6));
+         matrix.compose(V, Q, S);
+         return;
       }
-      V.set(x, 0, z);
-      Q.setFromAxisAngle(UP, yaw);
+      V.set(bale.x, 0, bale.z);
+      Q.identity();
       S.set(1.4, 0.82, 1.4);
       matrix.compose(V, Q, S);
    };
@@ -278,6 +313,16 @@ function LevelScene() {
          <group ref={trailer}>
             <Model asset={ASSETS.trailer} fallback={<TrailerPrimitive />} />
          </group>
+         <group ref={drawbar}>
+            <mesh position={[0, 0, 0.5]}>
+               <boxGeometry args={[0.09, 0.08, 1]} />
+               <meshStandardMaterial color={COLORS.hitch} metalness={0.5} roughness={0.4} />
+            </mesh>
+         </group>
+         <mesh ref={pin}>
+            <sphereGeometry args={[0.09, 12, 10]} />
+            <meshStandardMaterial color={COLORS.hitch} metalness={0.5} roughness={0.4} />
+         </mesh>
          <group ref={body}>
             <Model asset={ASSETS.tractor} fallback={<TractorPrimitive />} />
             <group position={[0, SEAT_Y, SEAT_Z]}>
