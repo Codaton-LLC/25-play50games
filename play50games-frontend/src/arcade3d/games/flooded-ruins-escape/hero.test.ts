@@ -5,12 +5,13 @@
 // m2HeroRiko.glb must be re-measured.
 import { beforeAll, describe, expect, it } from "vitest";
 import { BONE, computeSkinWeights } from "@/arcade3d/core/rig/humanoid";
-import { armsDownPose, createPose, gaitPhaseStep, walkStride } from "@/arcade3d/core/rig";
+import { armsDownPose, createPose, walkStride } from "@/arcade3d/core/rig";
+import { createHeroMotion, heroStride } from "@/arcade3d/menu2/heroAnim";
 import { describeCharacter, rigCharacter, type RiggedCharacter } from "@/arcade3d/core/rig/characterChecks";
 import { readCharacterGlb } from "@/arcade3d/core/rig/robotGlb";
 import { ASSETS, RIKO_GLB_HEIGHT, RIKO_LANDMARKS, RIKO_SCALE } from "./assets";
-import { HERO_CADENCE } from "./Hero";
-import { V_RUN } from "./rules";
+import { airRing, createHeroAnim, createMotionMemo, groundUnder, writeHeroMotion } from "./Hero";
+import { AIR_MS, V_RUN, createRun, createStepInput, step, surfaceAt } from "./rules";
 
 const L = RIKO_LANDMARKS;
 
@@ -47,12 +48,12 @@ describe("flooded-ruins-escape m2HeroRiko.glb", () => {
       hipHalfWidth: 0.2,
    });
 
-   it("caps a full run at 5 strides a second (the own stride would buzz at 8)", () => {
+   it("runs on the shared animator's stride: about five strides a second at V_RUN (the walk's own stride would buzz)", () => {
       const own = walkStride(1, L) * RIKO_SCALE;
-      expect(own).toBeGreaterThan(0.7);
-      expect(own).toBeLessThan(V_RUN / HERO_CADENCE);
-      const step = gaitPhaseStep(1, L, RIKO_SCALE, V_RUN, 1, HERO_CADENCE);
-      expect(step).toBeCloseTo(HERO_CADENCE * Math.PI * 2, 6);
+      expect(V_RUN / own).toBeGreaterThan(7);
+      const cadence = V_RUN / (heroStride(1, L) * RIKO_SCALE);
+      expect(cadence).toBeGreaterThan(4);
+      expect(cadence).toBeLessThan(6);
    });
 
    it("its scale draws it 1.45 m tall, feet on y = 0", async () => {
@@ -127,5 +128,91 @@ describe("flooded-ruins-escape m2HeroRiko.glb: the arms", () => {
       }
       // the T-pose reach is 0.75; a hanging arm stays in under half of that
       expect(widest).toBeLessThan(0.55);
+   });
+});
+
+describe("flooded-ruins-escape: the run -> the animator's motion", () => {
+   it("velocity, grounded and the power from the run; one-frame events from the Scene's stamps, once each; the cheer only at the gate", () => {
+      const run = createRun(1, 1, "nami");
+      const anim = createHeroAnim();
+      const m = createHeroMotion();
+      const memo = createMotionMemo();
+      run.hero.vx = 3;
+      writeHeroMotion(m, memo, run, anim, 0);
+      expect(m.vx).toBe(3);
+      expect(m.grounded).toBe(true);
+      expect(m.power).toBeNull();
+      expect(m.rolling).toBe(false);
+      expect(m.celebrating).toBe(false);
+      anim.jumpAt = 1;
+      writeHeroMotion(m, memo, run, anim, 1);
+      expect(m.events.jumped).toBe(true);
+      m.events.jumped = false;
+      writeHeroMotion(m, memo, run, anim, 1.1);
+      expect(m.events.jumped).toBe(false);
+      anim.landAt = 2;
+      writeHeroMotion(m, memo, run, anim, 2);
+      expect(m.events.landed).toBe(true);
+      anim.winAt = 3;
+      writeHeroMotion(m, memo, run, anim, 3.5);
+      expect(m.celebrating).toBe(true);
+   });
+
+   it("a swimmer paddles (the ground cycle, no fall), Riko's dash and the intro's drop are the ball, a loss on the spot is a hit", () => {
+      const run = createRun(1, 1, "nami");
+      Object.assign(run.hero, { grounded: false, swim: true, support: -1, vx: 2, vz: -1 });
+      const m = createHeroMotion();
+      writeHeroMotion(m, createMotionMemo(), run, createHeroAnim(), 0);
+      expect(m.grounded).toBe(true);
+      expect(m.vy).toBe(0);
+      expect(m.rolling).toBe(false);
+      const intro = createHeroAnim();
+      intro.intro = 0.4;
+      writeHeroMotion(m, createMotionMemo(), createRun(1, 1), intro, 0);
+      expect(m.rolling).toBe(true);
+      expect(m.grounded).toBe(false);
+      const riko = createRun(1, 1, "riko");
+      const input = createStepInput();
+      input.actionPressed = true;
+      input.moveZ = -1;
+      step(riko, 20, input);
+      writeHeroMotion(m, createMotionMemo(), riko, createHeroAnim(), 0);
+      expect(m.power).toBe("dash");
+      expect(m.rolling).toBe(true);
+      expect(Math.hypot(m.vx, m.vz)).toBeGreaterThan(V_RUN);
+      const hit = createHeroAnim();
+      const memo = createMotionMemo();
+      writeHeroMotion(m, memo, createRun(1, 1), hit, 0);
+      hit.lostAt = 1;
+      writeHeroMotion(m, memo, createRun(1, 1), hit, 1);
+      expect(m.events.hurt).toBe(true);
+   });
+
+   it("the air ring: hidden on land with a full meter, shown with the head under water, its fill the meter's", () => {
+      const run = createRun(1, 1, "nami");
+      expect(airRing(run).show).toBe(false);
+      expect(airRing(run).fill).toBe(1);
+      run.hero.air = AIR_MS / 4;
+      expect(airRing(run).show).toBe(true);
+      expect(airRing(run).fill).toBeCloseTo(0.25, 9);
+      // a lost hero shows no ring
+      run.hero.state = "lost";
+      expect(airRing(run).show).toBe(false);
+   });
+
+   it("the shadow sits on the block under the hero, or on the chamber's water when it is higher", () => {
+      const run = createRun(1, 1, "nami");
+      const h = run.hero;
+      expect(groundUnder(run, h.x, h.z, h.y, 0)).toBeCloseTo(h.y, 9);
+      // over a chamber whose water is up, the surface (when under the feet) wins over its floor
+      const course = run.course;
+      for (let zi = 0; zi < course.zones.length; zi++) {
+         const z = course.zones[zi];
+         const x = (z.minX + z.maxX) / 2;
+         const zz = (z.minZ + z.maxZ) / 2;
+         const surface = surfaceAt(course, run.water, x, zz, 0);
+         if (!Number.isFinite(surface)) continue;
+         expect(groundUnder(run, x, zz, surface + 5, 0)).toBeGreaterThanOrEqual(surface - 1e-9);
+      }
    });
 });

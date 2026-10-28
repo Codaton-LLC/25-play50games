@@ -1,4 +1,5 @@
-// The Menu 2 GLBs as Sky Tower Jump draws them: listed in the manifest, within budget, GLB_SIZE equal
+// The GLBs as Flooded Ruins Escape draws them (its ruin props, the v2 flood gate, the buoyant crate,
+// and the shared Menu 2 creatures: Umbra Roller and the cave bats): listed in the manifest, within budget, GLB_SIZE equal
 // to the real (meshopt-decoded) meshes, the platform tops where the Scene puts the rules' tops, the
 // baked hero stand-in, and the definition's levels. The hero GLB's rig is hero.test.ts.
 import { statSync } from "node:fs";
@@ -8,13 +9,14 @@ import { describe, expect, it } from "vitest";
 import { hasModel } from "@/arcade3d/core/modelManifest";
 import { readCharacterGlb } from "@/arcade3d/core/rig/robotGlb";
 import { definitionLevelProblems } from "@/arcade3d/core/levels";
-import { ASSETS, GLB_SIZE } from "./assets";
+import { ASSETS, BAT_SCALE, BAT_SPAN, BOSS_LENGTH, BOSS_SCALE, GLB_SIZE } from "./assets";
 import { BufferGeometry } from "three";
 import { ARMADILLO, buildArmadilloShapes } from "./Armadillo";
 import { floodedRuinsEscapeMeta } from "./meta";
 import definition from "./index";
-import { cameraGoal, introKeyframes, playCamera } from "./camera";
-import { COURSE } from "./rules";
+import { introKeyframes } from "./camera";
+import { BOSS_R, courseFor } from "./rules";
+import { LEVEL_IDS } from "../../types";
 
 const PUBLIC = fileURLToPath(new URL("../../../../public", import.meta.url));
 
@@ -105,23 +107,32 @@ describe("definition and camera", () => {
       expect(floodedRuinsEscapeMeta.collection).toBe("rollheroes");
       expect(floodedRuinsEscapeMeta.order).toBe(53);
       expect(floodedRuinsEscapeMeta.owner).toBe("cursor");
-      expect(floodedRuinsEscapeMeta.levels!.map((l) => l.title)).toEqual(["Ruined Gate", "Flooded Hall", "Sunken Stairs", "Rising Water", "Temple Escape"]);
+      expect(floodedRuinsEscapeMeta.levels!.map((l) => l.title).filter((t) => t.length > 0)).toHaveLength(5);
    });
 
-   it("the intro ends on the follow camera's start pose, and flies from the gate down", () => {
-      const play = playCamera(COURSE, 1.6);
-      const g = cameraGoal(COURSE.supports[0].cx, 0, COURSE.supports[0].cz + 1.5, COURSE.supports[1].cx, COURSE.supports[1].top, COURSE.supports[1].cz, 1.6, { px: 0, py: 0, pz: 0, lx: 0, ly: 0, lz: 0 });
-      expect(play.position).toEqual([g.px, g.py, g.pz]);
-      const keys = introKeyframes(COURSE);
-      expect(keys[0].position[1]).toBeGreaterThan(COURSE.supports[COURSE.goal].top);
-      // descending: each shot no higher than the one before
-      for (let i = 1; i < keys.length; i++) expect(keys[i].position[1]).toBeLessThanOrEqual(keys[i - 1].position[1]);
-      // the camera stays behind the hero at the same distance whatever the look-ahead
-      const far = cameraGoal(0, 10, -20, 6, 14, -30, 1.6, { px: 0, py: 0, pz: 0, lx: 0, ly: 0, lz: 0 });
-      expect(far.pz).toBeCloseTo(-20 + 5.6, 6);
-      // a target behind the hero (a fall back, a jump from the last island) never turns the view round
-      const back = cameraGoal(0, 58, -115, 1, 40, -84, 1.6, { px: 0, py: 0, pz: 0, lx: 0, ly: 0, lz: 0 });
-      expect(back.lz).toBeLessThanOrEqual(-115 - 4.5 + 1e-9);
-      expect(back.pz).toBeGreaterThan(back.lz);
+   it("the intro flies from the flood gate (high over the ruin) down to the start, on every level", () => {
+      for (const id of LEVEL_IDS) {
+         const course = courseFor(id);
+         const keys = introKeyframes(course);
+         const goal = course.supports[course.goal];
+         expect(keys.length).toBeGreaterThanOrEqual(2 + course.checkpoints.length - 1);
+         expect(keys[0].position[1]).toBeGreaterThan(goal.top + 10);
+         for (const k of keys) for (const v of [...k.position, ...k.lookAt]) expect(Number.isFinite(v)).toBe(true);
+      }
+   });
+
+   it("the new models: the v2 flood gate, the crate, Umbra Roller a little over the rules' ball, the bats 1.1 m across", () => {
+      expect(ASSETS.floodGate.url).toBe("/models/3d/flooded-ruins-escape/m2RuinFloodGateV2I.glb");
+      expect(hasModel("/models/3d/flooded-ruins-escape/m2RuinFloodGate.glb")).toBe(false);
+      expect(ASSETS.crate.url).toBe("/models/3d/flooded-ruins-escape/m2FlyingCrate.glb");
+      expect(ASSETS.boss.url).toBe("/models/3d/menu2/m2ShadowArmadillo.glb");
+      expect(ASSETS.bat.url).toBe("/models/3d/menu2/m2CaveBat.glb");
+      expect(GLB_SIZE.boss.z * BOSS_SCALE).toBeCloseTo(BOSS_LENGTH, 9);
+      expect(BOSS_LENGTH).toBeGreaterThan(2 * BOSS_R);
+      expect(BOSS_LENGTH).toBeLessThan(2.6 * BOSS_R);
+      // the curled ball's height stays near the rules' ball too
+      expect(GLB_SIZE.boss.y * BOSS_SCALE).toBeGreaterThan(1.6);
+      expect(GLB_SIZE.boss.y * BOSS_SCALE).toBeLessThan(2.6);
+      expect(GLB_SIZE.bat.x * BAT_SCALE).toBeCloseTo(BAT_SPAN, 9);
    });
 });

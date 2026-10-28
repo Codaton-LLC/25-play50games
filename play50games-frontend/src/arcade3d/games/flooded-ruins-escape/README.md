@@ -147,12 +147,12 @@ The rim between the basin and the arena is a checkpoint. Hits come off the submi
 1-4 players on one screen, in co-op or versus, through `MultiScene.tsx` and `multiplayer.ts`. The water,
 the levers, the broken bricks, the orbs and the boss are shared by every hero of the run (`RuinRun`
 water / levers / broken / boss, with one boss owner). The shared camera is the orbit camera turned round
-the group, and every player's stick gets its yaw.
+the group, and every player's stick gets its yaw. The storm tide is shared too (the earliest start), boss ownership passes to the next hero still in when the owner ends, and co-op shares checkpoints and Kiro's, Zuno's and Vexa's powers. Versus is a race in the same shared temple with a finish grace.
 
 ## Camera (menu2/camera)
 
-`OrbitCamera` in solo, `OrbitDriver` + `SharedCamera` in multiplayer. The pivot is the hero plus a lead
-towards the next route block. The solids come from `solidBoxes` (every block where it is now: crates at
+`OrbitCamera` in solo, `OrbitDriver` + `SharedCamera` in multiplayer. The pivot is the hero plus a fixed 1.2 m
+lead towards -z, held while falling (`orbitPivot`). The solids come from `solidBoxes` (every block where it is now: crates at
 their water, broken brick left out). The intro ends on the orbit's first pose (`camera.ts` `playCamera`).
 `OrbitHud` gives the touch recenter button and the first-time hint.
 
@@ -172,3 +172,5 @@ From `public/models/3d/menu2/`: the boss `m2ShadowArmadillo`, the cave bats `m2C
 - The honest bot does not take the hero routes (Riko's cistern tunnel, Nami's nests and so on). Those are covered by `powers.test.ts` scenes.
 - The level 4 bound is loose (see the proof). A tighter one would model the crypt roof's sealed cells for swimmers.
 - Versus "levers flood your rival's side" (the card) is not built: in versus the chambers are shared like in co-op.
+- Co-op: levers are shared but each run's re-arm is its own, so a second hero walking through a lever's trigger pulls it again and can undo a teammate's pull. A rules fix would count a lever only when the hero steers into it.
+- The card's L2 co-op dual-lock doors and the versus mirrored shaft are not built. The underwater music low-pass needs a core audio filter API. `m2AquaOrb` is not in ready/, so orbs are the shared coin. Umbra Roller's roll spins the standing `m2ShadowArmadillo` mesh (not a curled ball): check by eye.
