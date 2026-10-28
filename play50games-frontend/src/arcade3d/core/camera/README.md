@@ -135,7 +135,7 @@ Adopted: train-station-rush, postman-3d, hotel-bellboy-rush, pizza-kitchen-3d (c
 steering), submarine-treasure-dive (vehicle framing, camera steering), burger-delivery-scooter (vehicle,
 vehicle steering); batch 1 (2026-10-28): taxi-rush-3d, farm-tractor-challenge, mars-rover-mission,
 magic-carpet-ride (vehicles, vehicle steering), cat-vs-robot-vacuum, dog-park-fetch (characters, camera
-steering), wizard-potion-lab, haunted-mansion-keys. Waiting (batch 2): firefighter-rescue, beach-lifeguard.
+steering), wizard-potion-lab, haunted-mansion-keys; batch 2 (2026-10-28): firefighter-rescue, beach-lifeguard (characters, camera steering), aquarium-cleaner, bee-garden, toy-store-night-shift (characters, camera steering).
 
 ## Cost
 
