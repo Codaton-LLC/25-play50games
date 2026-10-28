@@ -126,10 +126,10 @@ export const SKY_BODIES: Record<LevelId, readonly SkyBody[]> = {
 
 // ---------- decor (beyond the plain) ----------
 
-const WALL_PIECE = 4;
-const WALL_H = (GLB_SIZE.marsMesaRock.height / GLB_SIZE.marsMesaRock.depth) * WALL_PIECE;
-const WALL_W = (GLB_SIZE.marsMesaRock.width / GLB_SIZE.marsMesaRock.depth) * WALL_PIECE;
-export { WALL_H };
+/** One boundary ledge (m along the plain). Its drawn cross-section is WALL_W wide and WALL_H tall. */
+export const WALL_PIECE = 4;
+export const WALL_H = (GLB_SIZE.marsMesaRock.height / GLB_SIZE.marsMesaRock.depth) * WALL_PIECE;
+export const WALL_W = (GLB_SIZE.marsMesaRock.width / GLB_SIZE.marsMesaRock.depth) * WALL_PIECE;
 
 /** Boundary ledges (marsMesaRock fitted to 1 m along its length), their inner faces on the boundary. */
 export function wallSpots(level: MarsLevel): InstanceSpot[] {

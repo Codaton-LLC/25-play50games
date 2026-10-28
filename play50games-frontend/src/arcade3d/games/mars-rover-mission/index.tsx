@@ -13,7 +13,7 @@ import { RESULT_DELAY_MS } from "./resultDelay";
 import { LIVES } from "./rules";
 
 
-const DRIVE = "Drive with W A S D / arrows or the joystick: left turns left, the camera follows behind.";
+const DRIVE = "Drive with W A S D / arrows or the joystick: left turns left, the camera follows behind. 📷 or C changes the view.";
 
 /** The action line: what to do at a site, and the dead-centre bonus. */
 function actionLine(level: MarsLevel): string {
