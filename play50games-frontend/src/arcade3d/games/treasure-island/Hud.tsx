@@ -7,11 +7,11 @@ import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { hintFor } from "./guide";
 import type { IslandLevel } from "./levels";
 
-/** The core 📷 camera-view button plus the hint line: what the detector ring means, then how many are found. */
+/** The core 📷 camera-view button plus the hint line: the detector ring, then the finds, the gates and the map. */
 export default function Hud() {
-   const total = useLevel<IslandLevel>().config.treasures;
+   const { treasures: total, map } = useLevel<IslandLevel>().config;
    const found = useArcadeStore((s) => s.stats.treasures ?? 0);
-   const hint = hintFor(found, total);
+   const hint = hintFor(found, total, map);
    return (
       <>
          <CameraViewButton />

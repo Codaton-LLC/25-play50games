@@ -4,7 +4,9 @@
 // Pure: no three.js, no React. The rules stay flat (y = 0); only the drawing uses these heights.
 import type { AABB } from "@/arcade3d/core/collision";
 import type { FittedViewOptions } from "@/arcade3d/core/useFittedView";
-import { FIXED, ISLAND, TIDE, clearance, rho, type Island } from "./rules";
+import type { LevelId } from "@/arcade3d/types";
+import type { IslandMap } from "./maps";
+import { FIXED, ISLAND, TIDE, clearance, inBridge, rho, type Island, type IslandShape } from "./rules";
 
 // ---------- unified color palette ----------
 
@@ -115,8 +117,122 @@ export function waterLevel(shore: number): number {
    return (LOW_WATER * (shore - ISLAND.sandFlat)) / (1 - ISLAND.sandFlat);
 }
 
-/** Where a thing standing at (x, z) is drawn: on the sand, or on the sea floor under the water. */
-export const groundAt = (x: number, z: number, shape: { rx: number; rz: number } = ISLAND) => groundHeight(rho(x, z, shape));
+/** Where a thing standing at (x, z) is drawn: on the sand, or on the sea floor under the water; on a map level, its terrain. */
+export const groundAt = (x: number, z: number, shape: IslandShape = ISLAND) => (shape.map ? terrainHeight(x, z, shape.map, shape) : groundHeight(rho(x, z, shape)));
+
+/** Distance from (x, z) to a polyline (or a point). */
+export function distToPolyline(x: number, z: number, points: ReadonlyArray<readonly [number, number]>): number {
+   if (points.length === 1) return Math.hypot(x - points[0][0], z - points[0][1]);
+   let best = Infinity;
+   for (let i = 1; i < points.length; i++) {
+      const d = distanceToSegmentXZ(x, z, points[i - 1][0], points[i - 1][1], points[i][0], points[i][1]);
+      if (d < best) best = d;
+   }
+   return best;
+}
+
+/** How far a carve's bank slopes out beyond its footprint (m, looks). */
+export const BANK = 0.45;
+
+const smooth = (e0: number, e1: number, v: number) => {
+   const t = Math.min(1, Math.max(0, (v - e0) / (e1 - e0)));
+   return t * t * (3 - 2 * t);
+};
+
+/** The hill's height at (x, z) (0 without one): a cosine bump, slopes under 35°, so it never hides ground behind it. */
+export function hillHeight(x: number, z: number, map: IslandMap): number {
+   const hill = map.hill;
+   if (!hill) return 0;
+   const d = Math.hypot(x - hill.x, z - hill.z);
+   return d >= hill.r ? 0 : (hill.h * (1 + Math.cos((Math.PI * d) / hill.r))) / 2;
+}
+
+/**
+ * A map level's drawn ground (the rules stay flat): today's beach slope, plus the hill, minus the
+ * carves (stream, tide pools, ravine: the sea plane shows in them and rises with the tide), and the
+ * bridges' decks on top (a rope bridge sags in the middle).
+ */
+export function terrainHeight(x: number, z: number, map: IslandMap, shape: { rx: number; rz: number }): number {
+   for (const b of map.bridges) {
+      if (inBridge(b, x, z, 0.05)) {
+         const along = b.axis === "z" ? z - b.z : x - b.x;
+         const t = Math.min(1, Math.max(0, along / b.length + 0.5));
+         return b.deck - b.sag * Math.sin(Math.PI * t);
+      }
+   }
+   let y = groundHeight(rho(x, z, shape)) + hillHeight(x, z, map);
+   for (const c of map.carves) {
+      const d = distToPolyline(x, z, c.points);
+      const edge = c.half + BANK;
+      if (d < edge) y -= c.depth * smooth(edge, c.half * 0.55, d);
+   }
+   return y;
+}
+
+// ---------- per-level looks ----------
+
+export interface Theme {
+   /** the stage's environment (index.tsx level environment): background, fog and the core lighting preset */
+   lighting: "day" | "sunset" | "indoor" | "night";
+   background: string;
+   fog: readonly [string, number, number];
+   skyTop: string;
+   skyBottom: string;
+   /** ground: dry sand, its sunlit tone, wet sand, the inland ground and its dark tone */
+   sand: string;
+   sandSun: string;
+   wet: string;
+   grass: string;
+   grassDark: string;
+   /** inland ground starts at this rho (sand outside it) */
+   grassRho: number;
+   path: string;
+   rock: string;
+   mud: string;
+   moss: string;
+   ash: string;
+   /** sea colours under this light */
+   sea: string;
+   deep: string;
+   /** an extra light the core preset does not have: colour, intensity and direction (or none) */
+   accent?: { color: string; intensity: number; position: readonly [number, number, number] };
+   /** lightning flashes (Pirate Peak's storm) */
+   storm?: boolean;
+}
+
+/** One palette and light per level: morning, noon, golden hour, jungle shade, a storm at sunset. */
+export const THEMES: Record<LevelId, Theme> = {
+   1: {
+      lighting: "day", background: "#fde4c4", fog: ["#fde4c4", 42, 100], skyTop: "#60a5fa", skyBottom: "#fde4c4",
+      sand: COLORS.sand, sandSun: COLORS.sandSun, wet: COLORS.wetSand, grass: COLORS.grass, grassDark: COLORS.grassDark, grassRho: ISLAND.grass,
+      path: "#e8c98f", rock: COLORS.rock, mud: "#7c5a3a", moss: "#4d7c0f", ash: "#57534e", sea: COLORS.sea, deep: COLORS.deep,
+      accent: { color: "#ffd8a8", intensity: 0.35, position: [-10, 5, 6] },
+   },
+   2: {
+      lighting: "day", background: "#cdeefc", fog: ["#cdeefc", 45, 110], skyTop: "#0ea5e9", skyBottom: "#e0f7ff",
+      sand: "#f8e3b0", sandSun: "#fff1cf", wet: "#cfa66a", grass: "#4ea320", grassDark: "#2f6f14", grassRho: 0.86,
+      path: "#d9b77a", rock: "#8a837c", mud: "#7a5634", moss: "#3f7d18", ash: "#57534e", sea: "#22c5c0", deep: "#0e7f86",
+   },
+   3: {
+      lighting: "sunset", background: "#f7c873", fog: ["#f7c873", 40, 98], skyTop: "#9a3412", skyBottom: "#fde68a",
+      sand: "#efcf95", sandSun: "#fbe2ac", wet: "#b88c58", grass: "#7c8f3a", grassDark: "#55602a", grassRho: 0.5,
+      path: "#d6b07a", rock: "#8c7b6b", mud: "#6b4f37", moss: "#5d6b2a", ash: "#5b524b", sea: "#1aa39a", deep: "#0b5f63",
+      accent: { color: "#ffcf7a", intensity: 0.45, position: [-9, 3.5, 5] },
+   },
+   4: {
+      lighting: "indoor", background: "#3c5a3a", fog: ["#3c5a3a", 26, 78], skyTop: "#14532d", skyBottom: "#9fc98a",
+      sand: "#d9c08a", sandSun: "#e6d09e", wet: "#a78656", grass: "#2f6b1f", grassDark: "#1d4314", grassRho: 0.9,
+      path: "#8a6a44", rock: "#6f6a5e", mud: "#5c4128", moss: "#2c5a1a", ash: "#4b463f", sea: "#178f84", deep: "#0a4d4a",
+      accent: { color: "#d9f99d", intensity: 0.35, position: [4, 9, 3] },
+   },
+   5: {
+      lighting: "night", background: "#5b4a6b", fog: ["#5b4a6b", 34, 92], skyTop: "#1e1b3a", skyBottom: "#f08a4b",
+      sand: "#d8bf92", sandSun: "#e6cfa2", wet: "#9e8058", grass: "#4b6b2a", grassDark: "#2f4519", grassRho: 0.8,
+      path: "#a8865c", rock: "#6b625b", mud: "#5a4330", moss: "#3c5420", ash: "#4a423f", sea: "#1b7f86", deep: "#0b3f4f",
+      accent: { color: "#ffb070", intensity: 1.1, position: [-12, 4, 4] },
+      storm: true,
+   },
+};
 
 // ---------- the follow camera ----------
 

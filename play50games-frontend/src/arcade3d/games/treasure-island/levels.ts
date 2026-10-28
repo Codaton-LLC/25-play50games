@@ -1,19 +1,19 @@
 // Treasure Island's five levels: pure data, no React (docs/arcade-levels.md §6.3, README "Levels").
-// One island, five configurations. Level 1 is today's game and must never change: 5 treasures,
-// 90 s, tide 70 → 90 s down to shore 0.75, treasures 6 m apart, ellipse 14 × 11, route band 38–56.
-// Those numbers are the rules.ts constants; levels.test.ts pins them and replays createRun.
+// Five islands. Level 1 is today's seeded island and must never change: 5 treasures, 90 s, tide
+// 70 -> 90 s down to shore 0.75, treasures 6 m apart, ellipse 14 x 11, route band 38-56 (the rules.ts
+// constants; levels.test.ts pins them and replays createRun). Levels 2-5 are their own maps (maps.ts):
+// Palm Grove (a stream, two bridges, a fallen log on one), Rocky Cove (a ravine with the only rope
+// bridge, tide pools, cliffs, a sea cave), Jungle Interior (foliage walls, vine gates, the temple),
+// Pirate Peak (the hill, the wreck, cannons, the summit chest behind a rockfall). Levels 3-5 play a
+// chain: a clue, map pieces, then the final chest, which the detector senses only once the map is whole.
 //
-// Ordering (flag at merge): the backlog wanted today's 5-treasure / 90 s game on level 4 and a
-// 2-treasure / 150 s beach on level 1. That re-order is not applied. rules.test.ts pins
-// meta.scoring to today's 2060 / 8500–92000 window and cannot be edited, levels[0] has to equal
-// that window, and a 150 s clock does not fit it. Fewer treasures would also score under level 1.
-// Levels 2–5 are harder variants of today's island. The plan's clue → map piece → final chest,
-// blocked paths and rope bridge are not built (a win is still the Nth dig). Sunset stays.
-//
-// The plan's lower final shore (0.65) is not used either: the dock start is at rho 0.836, and a
-// final shore under about 0.72 puts that start underwater, so the flood fill rejects every island.
-// Pressure is the earlier tide. The clock stays 90 s, so a harder level never scores under level 1.
+// Every level keeps its treasure count, spacing, clock and route band, so the limit proof (README
+// "Levels") and meta.scoring stay as they were: walls, gates and the locked chest only make a route
+// longer, never shorter than the band's floor. The backlog's re-order (a 2-treasure / 150 s beach as
+// level 1) is not applied: rules.test.ts pins meta.scoring to today's window. The plan's lower final
+// shore (0.65) is not used either: the dock start is at rho 0.836 and would be under water.
 import type { LevelId } from "@/arcade3d/types";
+import { MAP_2, MAP_3, MAP_4, MAP_5, type IslandMap } from "./maps";
 
 export interface IslandLevel {
    /** treasures to dig. Level 1 is TREASURE_COUNT. */
@@ -35,6 +35,8 @@ export interface IslandLevel {
    /** fairness band on the ideal route (m), centre to centre. Level 1 is IDEAL_ROUTE. */
    routeMin: number;
    routeMax: number;
+   /** the level's own map (maps.ts); level 1 has none: today's seeded island */
+   map?: IslandMap;
 }
 
 export const LEVELS: Record<LevelId, IslandLevel> = {
@@ -43,25 +45,25 @@ export const LEVELS: Record<LevelId, IslandLevel> = {
       treasures: 5, durationMs: 90_000, tideStartS: 70, tideEndS: 90, finalShore: 0.75,
       spacing: 6, rx: 14, rz: 11, routeMin: 38, routeMax: 56,
    },
-   // Palm Grove: the same island. The tide turns 10 s sooner and finishes at 80 s (no blocked path).
+   // Palm Grove: the grove map. The tide turns 10 s sooner and is in by 80 s.
    2: {
       treasures: 5, durationMs: 90_000, tideStartS: 60, tideEndS: 80, finalShore: 0.75,
-      spacing: 6, rx: 14, rz: 11, routeMin: 38, routeMax: 56,
+      spacing: 6, rx: 14, rz: 11, routeMin: 38, routeMax: 56, map: MAP_2,
    },
-   // Rocky Cove: a sixth treasure. Measured ideal routes of placed islands sit in 40–49 m.
+   // Rocky Cove: a sixth treasure, the clue chain, the ravine and its rope bridge.
    3: {
       treasures: 6, durationMs: 90_000, tideStartS: 55, tideEndS: 75, finalShore: 0.75,
-      spacing: 6, rx: 14, rz: 11, routeMin: 40, routeMax: 56,
+      spacing: 6, rx: 14, rz: 11, routeMin: 40, routeMax: 56, map: MAP_3,
    },
-   // Jungle Interior: the same six, and the tide turns another 5 s sooner.
+   // Jungle Interior: two vine gates, and the tide turns another 5 s sooner.
    4: {
       treasures: 6, durationMs: 90_000, tideStartS: 50, tideEndS: 70, finalShore: 0.75,
-      spacing: 6, rx: 14, rz: 11, routeMin: 40, routeMax: 56,
+      spacing: 6, rx: 14, rz: 11, routeMin: 40, routeMax: 56, map: MAP_4,
    },
-   // Pirate Peak: wider island, treasures 5 m apart, the earliest tide. The plan's 300 s clock is not used.
-   // Measured ideal routes sit in 37–50 m.
+   // Pirate Peak: the wider island, treasures 5 m apart, the earliest tide, the chest on the summit.
+   // The plan's 300 s clock is not used.
    5: {
       treasures: 6, durationMs: 90_000, tideStartS: 45, tideEndS: 65, finalShore: 0.75,
-      spacing: 5, rx: 17, rz: 11, routeMin: 37, routeMax: 56,
+      spacing: 5, rx: 17, rz: 11, routeMin: 37, routeMax: 56, map: MAP_5,
    },
 };
