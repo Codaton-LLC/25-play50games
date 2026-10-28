@@ -7,6 +7,8 @@ import { BufferAttribute, Color, Euler, Fog, Matrix4, MeshBasicMaterial, PlaneGe
 import CameraRig from "@/arcade3d/core/CameraRig";
 import { DynamicInstancedModel, InstancedModel, Model } from "@/arcade3d/core/assets";
 import { playSfx } from "@/arcade3d/core/audio";
+import { useCameraViews } from "@/arcade3d/core/camera/CameraViews";
+import type { AABB } from "@/arcade3d/core/collision";
 import { SkyDome } from "@/arcade3d/core/env";
 import { Water } from "@/arcade3d/core/env/Water";
 import { FRAME_PRIORITY } from "@/arcade3d/core/frameLoop";
@@ -306,6 +308,39 @@ export default function Scene() {
    const fx = useFx();
    const time = useGameTime();
    const [run] = useState<Run>(() => createRun(randomSeed(), config, id));
+   // camera views (core/camera): an on-foot hero, the stick is camera-relative (inputToWorld in
+   // rules.ts), so the chase view only drifts behind the travel. The pivot is the drawn chest: on the
+   // sand at PIVOT over the feet, in the water at the water line, seated on the jet ski. The tower and
+   // the beach props (run.solids) pull the camera in front of them in the chase / front / free views.
+   const cam = useCameraViews({
+      slug: "beach-lifeguard",
+      subject: "character",
+      steering: "camera",
+      defaultYaw: view.yaw,
+      // the beach fog starts at FOG_NEAR = 22 m (looks.ts fogFor); keep the top view's pivot inside it
+      framing: { top: { distance: 18 } },
+      target: (o) => {
+         const h = run.hero;
+         const foot = seabedY(h.z);
+         const origin = run.onJetSki ? WATER_Y - 0.16 + SKI_SEAT : foot + (WATER_Y - 0.06 - PIVOT - foot) * swimBlend(h.z);
+         o.x = h.x;
+         o.y = origin + PIVOT;
+         o.z = h.z;
+         o.heading = h.yaw;
+         o.vx = h.vx;
+         o.vz = h.vz;
+      },
+      solids: (out: AABB[]) => {
+         const n = Math.min(out.length, run.solids.length);
+         for (let i = 0; i < n; i++) {
+            const box = run.solids[i];
+            const dst = out[i];
+            dst.min.x = box.min.x; dst.min.y = box.min.y; dst.min.z = box.min.z;
+            dst.max.x = box.max.x; dst.max.y = box.max.y; dst.max.z = box.max.z;
+         }
+         return n;
+      },
+   });
    const hero = useRef<Group>(null);
    const tilt = useRef<Group>(null);
    const handFloat = useRef<Group>(null);
@@ -401,7 +436,7 @@ export default function Scene() {
       const wasCarrying = run.carrying;
       const activeIndex = run.activeSwimmer;
       const active = run.swimmers[activeIndex];
-      const ev = step(run, { moveX, moveY, actionPressed, yaw: view.yaw }, dt, store.timeLeftMs ?? 0);
+      const ev = step(run, { moveX, moveY, actionPressed, yaw: cam.yaw() }, dt, store.timeLeftMs ?? 0);
       syncStore(run, ev, useArcadeStore);
       const h = run.hero;
       aim.x = Math.min(bounds.max.x, Math.max(bounds.min.x, h.x + h.vx * (LOOK_AHEAD / SPEED_SAND)));
