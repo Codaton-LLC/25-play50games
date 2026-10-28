@@ -6,8 +6,8 @@
    left: calc(env(safe-area-inset-left, 0px) + 12px);
    bottom: calc(12px + env(safe-area-inset-bottom, 0px) + var(--arcade-bottom-obstruction, 0px));
    box-sizing: border-box;
-   width: 112px;
-   height: 44px;
+   width: 124px;
+   height: 48px;
    pointer-events: none;
 }
 
@@ -44,7 +44,7 @@
 }
 
 .caption {
-   font-size: 10px;
+   font-size: 12px;
    font-weight: 700;
    letter-spacing: 0.08em;
    opacity: 0.75;
