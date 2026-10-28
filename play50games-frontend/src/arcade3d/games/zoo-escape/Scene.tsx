@@ -23,21 +23,19 @@ import { BlobShadow } from "@/arcade3d/core/render";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useFittedView } from "@/arcade3d/core/useFittedView";
 import { useCameraViews } from "@/arcade3d/core/camera/CameraViews";
-import { SOLIDS } from "./level";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { ASSETS, PANDA_LANDMARKS, PANDA_SCALE } from "./assets";
 import { PANDA_GAIT, PANDA_GAIT_OPTIONS, pandaGait } from "./pandaGait";
 import { aimAt, stageBounds, viewFor, windowHalf } from "./camera";
 import Keepers, { SLOTS, assignSlots } from "./Keepers";
-import { STAGES, STAGE_KEEPERS } from "./level";
 import { COLORS, pandaPieces, useMerged } from "./Primitives";
+import { THEMES, themeStage } from "./looks";
 import Stage from "./Stage";
 import { CLOCK, STATS, applyToStore, createRun, stepRun, type RunState, type StepInput } from "./rules";
 import { useZooLevel } from "./useZooLevel";
 
 /** A footstep click every 0.55 m. */
 const STEP_M = 0.55;
-const DUSK_SKY = COLORS.fogDusk;
 
 function PandaPrimitive() {
    const geometry = useMerged(pandaPieces);
@@ -160,7 +158,7 @@ function LevelScene() {
          const p = run.panda;
          o.x = p.x; o.y = 0.7; o.z = p.z; o.heading = p.facing; o.vx = p.vx; o.vz = p.vz;
       },
-      solids: (out: AABB[]) => fillSolids(SOLIDS, out),
+      solids: (out: AABB[]) => fillSolids(run.map.solids, out),
    });
 
    const [scratch] = useState(() => ({
@@ -176,11 +174,14 @@ function LevelScene() {
       stage: -1,
       steps: { pitch: 0.7, volume: 0.15 },
       rustle: { pitch: 1.6, volume: 0.25 },
+      squawk: { pitch: 2.2, volume: 0.35 },
    }));
    const bounds = useMemo<AABB>(() => stageBounds(0, hx, hz, { min: { x: 0, y: 0, z: 0 }, max: { x: 0, y: 0, z: 0 } }), [hx, hz]);
    const [markers] = useState<MarkerTarget[]>(() => Array.from({ length: 5 }, () => ({ x: 0, y: 0.5, z: 0, hidden: true })));
-   const dusk = level >= 3;
-   useStageLighting(dusk ? "sunset" : null, 1.5, DUSK_SKY);
+   // the theme's light per stage: level 1 and Central Zoo fade to dusk on stage 3, Night Escape is night throughout
+   const theme = THEMES[run.map.theme];
+   const look = themeStage(theme, Math.max(0, level - 1));
+   useStageLighting(look.lighting, look.lighting === "night" && level <= 1 ? 0.01 : 1.5, theme.sky);
 
    useEffect(() => {
       fx.warm("sparkle", "puff", "confetti", "score");
@@ -201,9 +202,10 @@ function LevelScene() {
       stageBounds(run.stage, hx, hz, bounds);
       aimAt(run.panda.x, run.panda.z, scratch.aim);
       assignSlots(run, scratch.aim, hx, hz, scratch.slots);
-      const gate = STAGES[run.stage].gate;
+      const map = run.map;
+      const gate = map.stages[run.stage].gate;
       markers[0].x = (gate.x0 + gate.x1) / 2; markers[0].z = gate.z; markers[0].hidden = run.over !== null; markers[0].color = COLORS.accent;
-      const ids = STAGE_KEEPERS[run.stage];
+      const ids = map.stageKeepers[run.stage];
       for (let i = 0; i < 3; i++) {
          const t = markers[1 + i];
          const k = i < ids.length ? run.keepers[ids[i]] : null;
@@ -212,7 +214,10 @@ function LevelScene() {
          t.x = k.agent.x; t.z = k.agent.z; t.color = k.meter > 0 ? COLORS.alert : COLORS.cone;
       }
       const l = markers[4];
-      l.x = STAGES[2].bounds.x1; l.z = -31; l.hidden = run.stage !== 2 || run.over !== null; l.color = run.light.meter > 0 ? COLORS.alert : COLORS.cone;
+      const light = map.lights[run.stage];
+      const sb = map.stages[run.stage].bounds;
+      l.x = light ? Math.max(sb.x0, Math.min(sb.x1, light.x)) : 0; l.z = light ? light.z : 0;
+      l.hidden = !light || run.over !== null; l.color = run.light.meter > 0 ? COLORS.alert : COLORS.cone;
    };
    // before play too: the first frame already shows the right keepers and markers
    useFrame(() => { if (useArcadeStore.getState().phase !== "playing") track(); }, -0.3);
@@ -250,6 +255,16 @@ function LevelScene() {
       }
       if (e.rustle) { at.x = p.x; at.y = 0.6; at.z = p.z; fx.burst("puff", at, 10); playSfx("whoosh", scratch.rustle); }
       if (e.alerts) playSfx("pop");
+      if (e.squawk >= 0) {
+         // a bird squawks: feathers, a shout over it, and a keeper is on the way
+         const b = run.map.birds[e.squawk];
+         at.x = b.x; at.y = 0.6; at.z = b.z;
+         fx.burst("puff", at, 12);
+         at.y = 1.6;
+         fx.score(at, "SQUAWK!", { color: "#fca5a5" });
+         playSfx("whoosh", scratch.squawk);
+         playSfx("pop", scratch.squawk);
+      }
       if (e.thrown) playSfx("whoosh");
       if (e.landed) {
          at.x = run.toss.to.x; at.y = 0.1; at.z = run.toss.to.z;
@@ -276,7 +291,7 @@ function LevelScene() {
    return (
       <>
          <CameraRig camera={{ position: view.offset, lookAt: [0, 0, 0] }} follow={scratch.aim} followFraction={1} bounds={bounds} offset={view.offset} shift={view.shift} damping={5} />
-         <Stage run={run} dusk={dusk} reduced={reduced} levelId={id} />
+         <Stage run={run} reduced={reduced} levelId={id} />
          <Panda run={run} />
          <Keepers run={run} slots={scratch.slots} />
          <TargetMarkers targets={markers} size={26} />

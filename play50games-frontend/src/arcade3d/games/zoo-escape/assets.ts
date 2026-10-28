@@ -4,7 +4,7 @@
 // checked on the real meshes in assets.test.ts.
 import type { QuadrupedLandmarks } from "@/arcade3d/core/rig/quadruped";
 import type { ModelAsset } from "@/arcade3d/core/types";
-import { EXPANSION_ASSETS, EXPANSION_CHARACTERS, EXPANSION_GLB_SIZE, PROP_BUDGET, REUSED_ASSETS, REUSED_GLB_SIZE } from "@/arcade3d/core/sharedAssets";
+import { EXPANSION_ASSETS, EXPANSION_CHARACTERS, EXPANSION_GLB_SIZE, PROP_BUDGET, REUSED_ASSETS, REUSED_GLB_SIZE, SHARED_ASSETS } from "@/arcade3d/core/sharedAssets";
 import { COLORS } from "./looks";
 
 /** The panda is drawn 1.15 m long on all fours (Decision Q1), so it reads at 24 px on a landscape phone. */
@@ -124,6 +124,19 @@ export const ZOO_FOUNTAIN_FALLBACK = ZOO_FOUNTAIN_SPOTS.map((s) => ({ ...s, y: Z
 
 const R = REUSED_GLB_SIZE;
 
+/**
+ * Props reused from other games for levels 2-5 (already in the manifest; raw bounds as their games
+ * measured them, checked in assets.test.ts). Each is fitted to a 1 m unit cube (scale by height,
+ * stretch x / z to 1); the spots scale it to the prop's box.
+ */
+export const REUSED_UNIT = {
+   hut: { width: 1.3542, height: 1.9004, depth: 1.7811 },
+   flower: { width: 1.0511, height: 1.9054, depth: 0.5107 },
+   victorianLamp: { width: 0.4007, height: 1.9024, depth: 0.6856 },
+   crate: { width: 1.8797, height: 1.3351, depth: 1.8107 },
+} as const;
+const unitFit = (g: { width: number; height: number; depth: number }) => ({ scale: 1 / g.height, stretch: [g.height / g.width, 1, g.height / g.depth] as const });
+
 export const ASSETS = {
    panda: { ...EXPANSION_ASSETS.panda, scale: PANDA_LENGTH / EXPANSION_GLB_SIZE.panda.depth, quadruped: { landmarks: PANDA_LANDMARKS } },
    keeper: EXPANSION_CHARACTERS.keeper,
@@ -141,5 +154,10 @@ export const ASSETS = {
    tower: { id: "tower", url: "/models/3d/zoo-escape/searchlightTower.glb", scale: TOWER_SCALE, stretch: TOWER_STRETCH, fallback: "cylinder", fallbackColor: COLORS.metalDark, budget: { ...PROP_BUDGET } },
    snack: { id: "snack", url: "/models/3d/zoo-escape/bambooSnack.glb", scale: SNACK_UNIT, fallback: "cylinder", fallbackColor: COLORS.bamboo, budget: { ...PROP_BUDGET } },
    zooRocks: { id: "zooRocks", url: "/models/3d/zoo-escape/zooRocks.glb", scale: ZOO_ROCKS_SCALE, fallback: "sphere", fallbackColor: COLORS.rock, budget: { ...PROP_BUDGET } },
+   // levels 2-5 (reused GLBs): ranger huts / the panda house, crates, flower blooms, the night lamps
+   hut: { id: "hut", url: "/models/3d/beach-lifeguard/beachHut.glb", ...unitFit(REUSED_UNIT.hut), fallback: "box", fallbackColor: "#a16207", budget: { ...PROP_BUDGET } },
+   crate: { ...SHARED_ASSETS.crate, ...unitFit(REUSED_UNIT.crate) },
+   flower: { id: "flower", url: "/models/3d/bee-garden/flowerA.glb", scale: 0.55 / REUSED_UNIT.flower.height, fallback: "cylinder", fallbackColor: "#f43f5e", budget: { ...PROP_BUDGET } },
+   victorianLamp: { id: "victorianLamp", url: "/models/3d/postman-3d/streetLampVictorian.glb", scale: PROP_SIZE.lampHeight / REUSED_UNIT.victorianLamp.height, fallback: "cylinder", fallbackColor: "#1e293b", budget: { ...PROP_BUDGET } },
    zooFountain: { id: "zooFountain", url: "/models/3d/zoo-escape/zooFountain.glb", scale: ZOO_FOUNTAIN_SCALE, rotationY: 0, yOffset: 0, fallback: "cylinder", fallbackColor: COLORS.rock, budget: { ...PROP_BUDGET } },
 } satisfies Record<string, ModelAsset>;
