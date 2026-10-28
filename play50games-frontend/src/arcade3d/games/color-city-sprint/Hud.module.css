@@ -266,9 +266,12 @@
    clip-path: polygon(100% 50%, 20% 10%, 38% 50%, 20% 90%);
 }
 
+/* narrow portrait: the clock sits top right, so the map goes under the left pills */
 @media (max-width: 520px) {
    .map {
-      top: calc(env(safe-area-inset-top, 0px) + 56px);
+      top: calc(env(safe-area-inset-top, 0px) + 292px);
+      right: auto;
+      left: calc(env(safe-area-inset-left, 0px) + 10px);
       width: 96px;
       height: 96px;
       border-radius: 12px;
