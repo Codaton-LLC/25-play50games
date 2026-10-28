@@ -238,7 +238,7 @@ function Sea({ course, levelId }: { course: Course; levelId: LevelId }) {
    }, [sparkle]);
    useFrame(() => {
       sparkle.offset.set((time.now * 0.012) % 1, (time.now * 0.007) % 1);
-      if (mat.current) mat.current.emissiveIntensity = 0.32 + 0.08 * Math.sin(time.now * 1.3);
+      if (mat.current) mat.current.emissiveIntensity = 0.2 + 0.06 * Math.sin(time.now * 1.3);
    });
    const pad = course.pad;
    const padScale = pad.r / COLUMN_TOP_R;
@@ -247,7 +247,7 @@ function Sea({ course, levelId }: { course: Course; levelId: LevelId }) {
       <>
          <mesh rotation-x={-Math.PI / 2} position={[0, 0, 0]}>
             <circleGeometry args={[course.radius + 6, 48]} />
-            <meshStandardMaterial ref={mat} color={look.sea} emissive="#ffffff" emissiveMap={sparkle} emissiveIntensity={0.55} roughness={0.25} metalness={0.1} />
+            <meshStandardMaterial ref={mat} color={look.sea} emissive={look.skyBottom} emissiveMap={sparkle} emissiveIntensity={0.3} roughness={0.25} metalness={0.1} />
          </mesh>
          <InstancedModel asset={ASSETS.rock} spots={rocks} fallback={null} />
          {course.boss ? null : (

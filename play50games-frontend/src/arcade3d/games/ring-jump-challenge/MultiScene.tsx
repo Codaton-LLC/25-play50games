@@ -34,7 +34,7 @@ import type { HeroId } from "./heroes";
 import type { RingLevel } from "./levels";
 
 /** The shared camera: steep (looking down the shaft), and the zoom limit (m) before it holds on the leader. */
-export const MP_CAMERA = { pitch: 1.05, minSpan: 10, maxSpan: 25, padding: 3 } as const;
+export const MP_CAMERA = { pitch: 1.1, minSpan: 8, maxSpan: 14, padding: 2 } as const;
 
 function MultiSimulation({ multi, anims, clock, orbit }: { multi: MultiRun; anims: HeroAnim[]; clock: VisualClock; orbit: OrbitState }) {
    const juice = useJuice();

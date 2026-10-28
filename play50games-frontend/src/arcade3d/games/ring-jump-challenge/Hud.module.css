@@ -367,3 +367,13 @@
       font-size: 0.95rem;
    }
 }
+
+/* phones: the level line and the clock right-aligned against the shell's buttons, clear of its chips */
+@media (max-width: 520px) and (min-height: 461px) {
+   .center {
+      left: auto;
+      right: calc(env(safe-area-inset-right, 0px) + 100px);
+      transform: none;
+      align-items: flex-end;
+   }
+}

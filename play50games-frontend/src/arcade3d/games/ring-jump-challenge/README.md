@@ -173,9 +173,26 @@ arrows steer, Space leaps and (held) dives, E / Enter power. Touch: joystick, Di
 
 Versus (the card's best mode): one shared canyon, the first to thread a ring takes its points, the most
 points wins (landers tie on time; then points). Co-op: powers combine, the team clears when everyone has
-landed. Shared camera looking down the shaft (pitch 60°, 10-25 m span). Level 5: each hero fights its
+landed. Shared camera looking down the shaft (pitch 63°, 8-14 m span, held on the lowest hero in versus, so it never leaves the shaft). Level 5: each hero fights its
 own Ray in the rules; the scene draws player 1's.
+
+## Playtests (headless Chrome over CDP, preview build on :3271)
+
+Every level played by the bot at 1280 x 800 (levels 1-5 in one session through the level tiles),
+level 1 at 390 x 844, 844 x 390 and 768 x 1024 with a two-finger orbit, level 1 by keyboard (Space leap,
+Space held = 40 m/s dive and the FOV opening to 74°, Q turning the camera, E the power, a mouse drag
+turning it), and a 2-player local run (keyboard 1 + 2). 0 console errors or warnings in every run.
+Performance probe (`?perf=1`): at most 28 draw calls and 178k triangles (level 5 with Cyclone Ray),
+26 calls / about 155k triangles elsewhere.
 
 ## Known issues / open
 
-See the gate report in the PR / hand-off.
+- m2NeutralRing has a glowing swirl membrane across its opening (the ready GLB): it reads as a portal you
+  dive through; the rules treat the whole opening as open.
+- m2SpeedBoost is listed and measured but not drawn yet (the speed rings are tinted orange rings).
+- Cyclone Ray's facing was set from the mesh (narrow snout at +z); a closer look at its swim pose and the
+  phase 3 surfacing is worth a check by eye in the browser.
+- The card's 35-110 s star times were replaced by par times from the honest bot (see Stars).
+- Multiplayer: level 5 runs one Ray per hero in the rules but draws player 1's; the lobby/podium flow
+  was only smoke-tested headless (join, ready, dive), not a full race to the podium.
+- No thumbnail yet (`thumbnail: null`, like cloud-hopper).

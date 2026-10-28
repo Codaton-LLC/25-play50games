@@ -5,7 +5,7 @@
 // diving to the sea and surfacing with its tail pad in phase 3. A wing-beat bob, a pulse on the
 // telegraph, a flash and recoil on a hit, its back fin glowing gold once the dive strike is charged,
 // the tail pad's target ring on the water, and the slow-mo finish (visual only, menu2/boss bossTimeScale).
-import { useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import { AdditiveBlending, type Group, type Mesh, type MeshBasicMaterial } from "three";
 import { Model } from "@/arcade3d/core/assets";
@@ -13,6 +13,7 @@ import { useGameTime } from "@/arcade3d/core/gameTime";
 import { stepProgress } from "@/arcade3d/menu2/boss/boss";
 import { ASSETS, BOSS_SCALE, GLB_SIZE } from "./assets";
 import { CYCLONE_RAY } from "./progression";
+import { targetTexture } from "./look";
 import { RAY, TAIL, createRayPose, rayPose, type RingRun } from "./rules";
 
 /** The GLB faces +z (measured: the narrow snout at +z, the fins and the curled tail towards -z). */
@@ -26,6 +27,8 @@ export function CycloneRay({ run, clock }: { run: RingRun; clock: { ms: number }
    const fin = useRef<Mesh>(null);
    const pad = useRef<Mesh>(null);
    const pose = useMemo(createRayPose, []);
+   const target = useMemo(() => targetTexture(), []);
+   useEffect(() => () => target.dispose(), [target]);
    const time = useGameTime();
    const fallback = useMemo(
       () => (
@@ -44,7 +47,7 @@ export function CycloneRay({ run, clock }: { run: RingRun; clock: { ms: number }
       rayPose(run, ms, pose);
       const show = !!b && pose.visible && !(b.step === "done" && b.phase < 2);
       g.visible = show;
-      if (pad.current) pad.current.visible = !!b && b.phase === 2 && (b.step === "vulnerable" || b.step === "attack");
+      if (pad.current) pad.current.visible = !!b && b.phase === 2 && b.step !== "telegraph" && b.step !== "transition";
       if (!show || !b) return;
       const t = time.now;
       const flap = Math.sin(t * 2.2) * 0.35;
@@ -92,8 +95,8 @@ export function CycloneRay({ run, clock }: { run: RingRun; clock: { ms: number }
             <meshBasicMaterial color="#ffe066" transparent opacity={0.5} depthWrite={false} blending={AdditiveBlending} toneMapped={false} />
          </mesh>
          <mesh ref={pad} rotation-x={-Math.PI / 2} visible={false} renderOrder={6}>
-            <ringGeometry args={[run.course.pad.r - 0.5, run.course.pad.r, 40]} />
-            <meshBasicMaterial color="#7ef9ff" transparent opacity={0.85} depthWrite={false} toneMapped={false} />
+            <circleGeometry args={[run.course.pad.r, 40]} />
+            <meshBasicMaterial map={target} transparent opacity={0.92} depthWrite={false} toneMapped={false} />
          </mesh>
       </>
    );
