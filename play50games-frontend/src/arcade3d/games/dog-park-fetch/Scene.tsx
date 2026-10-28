@@ -325,7 +325,7 @@ function LevelScene() {
                   <primitive object={sandMat} attach="material" />
                </Instanced>
                {/* the beach park: water beyond the south fence, visual only, flat and low */}
-               <Water size={[config.width + 60, 40]} position={[0, -0.05, config.depth / 2 + 21]} amplitude={0.05} foamEdge={0.03} />
+               <Water size={[config.width + 60, 40]} position={[0, 0.02, config.depth / 2 + 21]} amplitude={0.012} foamEdge={0.03} />
             </>
          )}
          <Instanced spots={fence} name="fence">
@@ -337,11 +337,11 @@ function LevelScene() {
             <primitive object={fenceMat} attach="material" />
          </Instanced>
          {/* the picnic blanket: home, where every toy goes back */}
-         <mesh position={[pad[0].x, 0.012, pad[0].z]} rotation-x={-Math.PI / 2} rotation-z={0.12}>
+         <mesh position={[pad[0].x, 0.022, pad[0].z]} rotation-x={-Math.PI / 2} rotation-z={0.12}>
             <planeGeometry args={[2.6, 2.2]} />
             <meshStandardMaterial map={blanketMap} roughness={0.9} />
          </mesh>
-         <mesh position={[pad[0].x, 0.02, pad[0].z]} rotation-x={-Math.PI / 2}>
+         <mesh position={[pad[0].x, 0.03, pad[0].z]} rotation-x={-Math.PI / 2}>
             <ringGeometry args={[1.45, 1.55, 48]} />
             <meshBasicMaterial color={COLORS.blanketEdge} transparent opacity={0.6} depthWrite={false} />
          </mesh>

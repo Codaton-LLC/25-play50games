@@ -68,11 +68,11 @@ export function lookAtFor(level: DogLevel): [number, number, number] {
 
 /**
  * Half size of the window the follow camera keeps on screen around its aim: close enough that the
- * dog is a clear size (portrait phone 3.4 x 4.6 m, landscape 6 x 4.6 m). Throws land outside it;
+ * dog is a clear size (portrait phone 3.4 x 4.6 m, landscape 5.2 x 3.8 m). Throws land outside it;
  * the edge arrow and the beacon show where. The player zooms out (or in) with ZOOM.
  */
 export function viewWindow(level: DogLevel, portrait: boolean): { x: number; z: number } {
-   return { x: Math.min(level.width / 2, portrait ? 3.4 : 6), z: Math.min(level.depth / 2, 4.6) };
+   return { x: Math.min(level.width / 2, portrait ? 3.4 : 5.2), z: Math.min(level.depth / 2, portrait ? 4.6 : 3.8) };
 }
 
 const VIEWS = new Map<string, FittedViewOptions>();
