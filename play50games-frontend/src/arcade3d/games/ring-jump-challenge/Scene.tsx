@@ -358,7 +358,7 @@ function RingCamera({ run, orbit }: { run: RingRun; orbit: OrbitState }) {
       },
       [run],
    );
-   const solids = useMemo(() => (out: AABB[]) => (run.hero.mode === "perch" ? 0 : shaftSolids(run.course, run.hero.y, out)), [run]);
+   const solids = useMemo(() => (out: AABB[]) => (run.hero.mode === "perch" || run.hero.y > run.course.top - 25 ? 0 : shaftSolids(run.course, run.hero.y, out)), [run]);
    return <OrbitCamera orbit={orbit} pivot={pivot} travel={travel} solids={solids} lookUp={LOOK_UP} distanceScale={orbitScale(aspect)} pivotDamping={28} collision={WALL_CLIP} />;
 }
 
