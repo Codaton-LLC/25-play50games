@@ -298,13 +298,15 @@ export function buildHall(level: DoorLevel): HallDraft {
          vents.push({ lane: ventLane, z0: fz(0.3), z1: fz(0.52) });
          for (let k = 0; k < 3; k++) orbs.push({ x: laneX(ventLane, lanes), y: orbY, z: fz(0.34 + k * 0.07), kind: "bonus", hidden: false });
       }
-      // main orbs: a slalom across the lanes (never in the vent lane), clear of the lock zone
+      // main orbs, clear of the lock zone: on 2-3 lanes a slalom across the lanes; on 4-5 lanes a line of
+      // three in one of the middle lanes (never more than two lanes from any door, so every one is reachable)
       const count = g === 0 ? 2 : 3;
+      const wide = lanes >= 4;
       for (let k = 0; k < count; k++) {
-         let lane = (g * 2 + k * (lanes > 2 ? 1 : 1)) % lanes;
+         let lane = wide ? 1 + ((g + k * 0) % (lanes - 2)) : (g * 2 + k) % lanes;
+         if (lane === ventLane) lane = wide ? lanes - 1 - lane : (lane + 1) % lanes;
          if (lane === ventLane) lane = (lane + 1) % lanes;
-         if (lane === ventLane) lane = (lane + 1) % lanes;
-         orbs.push({ x: laneX(lane, lanes), y: orbY, z: fz(g === 0 ? 0.35 + k * 0.15 : 0.22 + k * 0.12), kind: "main", hidden: false });
+         orbs.push({ x: laneX(lane, lanes), y: orbY, z: fz(g === 0 ? 0.35 + k * 0.15 : wide ? 0.3 + k * 0.07 : 0.22 + k * 0.12), kind: "main", hidden: false });
       }
       // floor bars and low beams (from L1's last beat), Nami's high orbs over the bars
       const obstacle = id === 1 ? (g === 6 ? "bar" : g === 7 ? "beam" : null) : g >= 1 && g % (id >= 3 ? 1 : 2) === 0 ? (g % 4 === 0 || (id >= 3 && g % 3 === 1) ? "beam" : "bar") : null;

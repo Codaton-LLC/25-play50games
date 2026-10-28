@@ -151,7 +151,7 @@ gold ring burns under him; the HUD bar pulses. 8 hp, one hit per window, a hit-s
 
 ## Stars, flow, secrets, progress
 
-- **Stars:** clear, every main orb, the target time (34 / 33 / 33 / 35 / 78 s, a little slower than the honest bot). **Badge:** no wrong door.
+- **Stars:** clear, every main orb, the target time (34 / 33 / 33 / 33 / 70 s, a little slower than the honest bot). **Badge:** no wrong door.
 - **Flow:** 4.5 s window (a wall every 2-4.5 s), +0.25, x2 cap; orbs 30, true doors 40.
 - **Secrets:** a colour shard behind every level's ghost door (Vexa); Riko's side-corridor shard (L1,
   L3); Nami's sticker in the upper door row (L3, L4, L5).

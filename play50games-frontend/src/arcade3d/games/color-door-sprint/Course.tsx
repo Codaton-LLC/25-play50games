@@ -803,10 +803,12 @@ function Finish({ run }: { run: DoorRun }) {
       g.visible = show;
       g.position.set(0, 0, run.finishGate);
    });
-   const s = (c.half * 2 + 1.5) / 4;
+   // the arch's opening spans the whole hall
+   const sx = (c.half * 2 + 0.4) / 1.6;
+   const sy = Math.min(sx, 3);
    return (
       <group ref={ref}>
-         <group scale={[s, s * 1.1, 1]}>
+         <group scale={[sx, sy, 1.5]}>
             <ArchWall color={LOOKS[c.level].stone} accent="#facc15" />
          </group>
          <group position={[0, 0.02, -4]} scale={1.6}>
