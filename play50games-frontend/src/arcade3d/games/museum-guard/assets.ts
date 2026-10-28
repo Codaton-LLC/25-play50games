@@ -21,6 +21,17 @@ export const DOOR_SCALE = 2.1 / REUSED_GLB_SIZE.door.height;
 /** About 2 m wide. Height follows the GLB. */
 export const BENCH_SCALE = 2 / REUSED_GLB_SIZE.bench.width;
 
+// Measured decoded GLB: 1.557390 x 0.668518 x 1.896267, minY = 0.
+const SARCOPHAGUS_SCALE = 1.4 / 1.896267294883728;
+
+/** Low, tangential wall displays beyond the entire pedestal/play ring, clear of doors and vases. */
+export const SARCOPHAGUS_SPOTS = [3 * Math.PI / 4, -Math.PI / 4].map((angle) => ({
+   x: Math.sin(angle) * 7.2,
+   y: 0,
+   z: Math.cos(angle) * 7.2,
+   rotY: angle + Math.PI / 2,
+}));
+
 const STILL: Record<ExhibitKind, MaterialPreset> = {
    knight: "stone",
    robot: "gold",
@@ -47,6 +58,16 @@ export const ASSETS = {
    dino: { ...EXPANSION_ASSETS.dino, id: "museum-dino", material: STILL.dino },
    door: { ...REUSED_ASSETS.door, id: "museum-door", scale: DOOR_SCALE },
    bench: { ...REUSED_ASSETS.bench, id: "museum-bench", scale: BENCH_SCALE },
+   sarcophagus: {
+      id: "museum-sarcophagus",
+      url: "/models/3d/museum-guard/sarcophagusT.glb",
+      scale: SARCOPHAGUS_SCALE,
+      rotationY: 0,
+      yOffset: 0,
+      fallback: "box",
+      fallbackColor: COLORS.vase,
+      budget: { tris: 3000, bytes: 74380 },
+   },
 } as const satisfies Record<string, ModelAsset>;
 
 /** One asset per pedestal so each clone can take its own glow. Same url as the kind. */

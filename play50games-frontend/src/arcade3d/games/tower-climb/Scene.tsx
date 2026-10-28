@@ -21,13 +21,13 @@ import {
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useFittedView } from "@/arcade3d/core/useFittedView";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
-import { ASSETS, RUNNER_SCALE } from "./assets";
+import { ASSETS, RUNNER_SCALE, STORM_CLOUD_SPOTS } from "./assets";
 import { AREA, FOLLOW_DAMPING, FOV, LOOK_AT, VIEW } from "./camera";
 import type { TowerLevel } from "./levels";
 import { RUNNER_ORDER, RunnerPrimitive, useTowerParts, type TowerParts } from "./Primitives";
 import { CHECKPOINT, MOVING, NONE, POOLS, ROCKET, ROCKET_CAP, RUNNER, SPRING_CAP, STATIC, WIND, WIND_CAP, createRun, createStepInput, readStepInput, step, type TowerRun } from "./rules";
 import { createRunnerGait, stepRunnerGait } from "./runnerGait";
-import { createVisualState, runnerFootY, writeCoin, writeFlag, writeRocket, writeSection, writeSlab, writeSpring, writeSpur, writeWind, type VisualState } from "./visuals";
+import { createVisualState, runnerFootY, writeCoin, writeFlag, writeRocket, writeSection, writeSlab, writeSpring, writeSpur, writeStormCloud, writeWind, type VisualState } from "./visuals";
 
 export const useTowerLevel = () => useLevel<TowerLevel>();
 
@@ -156,6 +156,19 @@ const WindGusts = memo(function WindGusts({ run, parts }: { run: TowerRun; parts
       writeWind(matrix, side * (WIND.xInner + 0.12), y, side < 0);
    }, [run]);
    return <DynamicInstanced count={WIND_CAP} update={update} parts={parts.wind} name="wind-gusts" />;
+});
+
+/**
+ * The storm clouds of levels 4-5 (Storm Tower, Sky Tower): side decor only. Every spot sits
+ * outside the camera guard box (assets.ts STORM_CLOUD_SPOTS), sinking slowly down a 6 m band above
+ * the danger line and wrapping to the top; visual time only, never any gameplay state.
+ */
+const StormClouds = memo(function StormClouds({ run, parts, reduced }: { run: TowerRun; parts: TowerParts; reduced: boolean }) {
+   const time = useGameTime();
+   const update = useCallback((i: number, matrix: Matrix4) =>
+      writeStormCloud(STORM_CLOUD_SPOTS[i], i, run.viewBottomY, time.now, reduced, matrix), [run, time, reduced]);
+   return <DynamicInstancedModel asset={ASSETS.stormCloud} count={STORM_CLOUD_SPOTS.length} update={update}
+      fallbackParts={parts.stormCloud} name="storm-clouds" />;
 });
 
 const Tower = memo(function Tower({ run, parts }: { run: TowerRun; parts: TowerParts }) {
@@ -334,6 +347,7 @@ function LevelScene() {
          {run.springCount > 0 && <SpringPads run={run} parts={parts} />}
          {run.rocketCount > 0 && <Rockets run={run} parts={parts} />}
          {run.windCount > 0 && <WindGusts run={run} parts={parts} />}
+         {(config.id === 4 || config.id === 5) && <StormClouds run={run} parts={parts} reduced={reduced} />}
          <Runner run={run} visual={visual} parts={parts} />
          <DangerStrip run={run} />
          {process.env.NODE_ENV !== "production" && <FitProbe run={run} />}

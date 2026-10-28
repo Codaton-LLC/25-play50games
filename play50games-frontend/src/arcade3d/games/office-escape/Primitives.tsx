@@ -39,6 +39,7 @@ import { modelParts, useModel } from "@/arcade3d/core/assets";
 import { Instanced, useCanvasTexture } from "@/arcade3d/core/render";
 import type { InstanceSpot } from "@/arcade3d/core/render";
 import type { ModelAsset } from "@/arcade3d/core/types";
+import { EXEC_DESK_PATTERN } from "./assets";
 import { LANES, OBSTACLE_TYPES, type ObstacleType } from "./rules";
 
 // ---------- look ----------
@@ -660,6 +661,14 @@ const CABINET_SPOTS = [
    ...along(CORRIDOR.period, -3, (z) => [{ x: -SIDE.cabinet, y: 0.55, z, sx: 0.5, sy: 1.1, sz: 0.62 }]),
    ...along(CORRIDOR.period, -9, (z) => [{ x: SIDE.cabinet, y: 0.55, z, sx: 0.5, sy: 1.1, sz: 0.62 }]),
 ];
+/**
+ * The executive desks (levels 4-5 only): EXEC_DESK_PATTERN (assets.ts) is one desk per 12 m period
+ * per side, so the treadmill wrap stays seamless like the other decor. Drawn by Scene.tsx with core
+ * <InstancedModel> (static spots are fine here: the whole treadmill group slides).
+ */
+export const EXEC_DESK_SPOTS: InstanceSpot[] = EXEC_DESK_PATTERN.flatMap((p) =>
+   along(CORRIDOR.period, p.zOffset, (z) => [{ x: p.x, y: 0, z, rotY: p.rotY }])
+);
 
 /**
  * Floor, walls, ceiling and decor: one 12 m pattern laid out over the covered range. Static; the

@@ -6,7 +6,7 @@
 // the core auto-rig animates them (Scene.tsx, poses.ts).
 import type { HumanoidLandmarks } from "@/arcade3d/core/rig/humanoid";
 import type { ModelAsset } from "@/arcade3d/core/types";
-import { CHARACTER_BUDGET } from "@/arcade3d/core/sharedAssets";
+import { CHARACTER_BUDGET, PROP_BUDGET } from "@/arcade3d/core/sharedAssets";
 
 /**
  * The striker's joints (GLB units: 1.90 x 1.88 x 0.39 T-pose, the arm span the longest side, faces
@@ -114,6 +114,42 @@ export const KEEPER_LANDMARKS: HumanoidLandmarks = {
 
 /** The football's radius (m): BallPrimitive's sphere, and rules.ts BALL_SPOT.y (it rests on the grass). */
 export const BALL_RADIUS = 0.11;
+
+/** finalTrophy.glb raw bounds, measured on the mesh (assets.test.ts): a two-handled cup on a stem and
+ * foot, feet on y = 0, centred on x / z. */
+export const FINAL_TROPHY_GLB = { width: 1.53246, height: 1.89026, depth: 0.95577 } as const;
+/** Drawn 1.5 m tall: the presentation cup set on the grass behind the goal, a head shorter than the 2.44 m goal. */
+export const FINAL_TROPHY_HEIGHT = 1.5;
+const FINAL_TROPHY_SCALE = FINAL_TROPHY_HEIGHT / FINAL_TROPHY_GLB.height;
+export const FINAL_TROPHY_DRAWN = {
+   width: FINAL_TROPHY_GLB.width * FINAL_TROPHY_SCALE,
+   height: FINAL_TROPHY_HEIGHT,
+   depth: FINAL_TROPHY_GLB.depth * FINAL_TROPHY_SCALE,
+} as const;
+/**
+ * Where the cups stand (level 4-5 decor): behind the goal, flanking the boards and by the floodlight
+ * pylons, facing the pitch — every spot and its footprint sits outside PENALTY_FIT_AREA (camera.ts).
+ */
+export const FINAL_TROPHY_SPOTS = [
+   { x: -7.5, y: 0, z: -6, rotY: 0.15 },
+   { x: 7.5, y: 0, z: -6, rotY: -0.15 },
+   { x: -14, y: 0, z: -9.5, rotY: 0.55 },
+   { x: 14, y: 0, z: -9.5, rotY: -0.55 },
+] as const;
+
+/**
+ * The final's presentation cup (level 4-5 decor). Not part of `ASSETS`: ball.test.ts pins that
+ * record to the two characters (the ball stays a primitive), so the trophy ships as its own asset.
+ */
+export const FINAL_TROPHY_ASSET: ModelAsset = {
+   id: "finalTrophy",
+   url: "/models/3d/penalty-hero/finalTrophy.glb",
+   fallback: "cylinder",
+   fallbackColor: "#facc15",
+   // the final's presentation cup, drawn 1.5 m tall on the grass behind the goal (assets.test.ts)
+   scale: FINAL_TROPHY_SCALE,
+   budget: { ...PROP_BUDGET },
+};
 
 export const ASSETS = {
    striker: {

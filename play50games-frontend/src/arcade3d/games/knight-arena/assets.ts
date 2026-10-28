@@ -6,6 +6,13 @@ import {
    PROP_BUDGET,
 } from "../../core/sharedAssets";
 import type { ModelAsset } from "../../core/types";
+import type { InstanceSpot } from "../../core/render";
+
+// Measured GLB bounds: 1.656493 x 1.895201 x 0.674425; translated minY = 0.
+export const TRAINING_DUMMY_SPOTS: readonly InstanceSpot[] = [-2.5, 0, 2.5].map((x) => ({
+   x, y: -0.04, z: -4.6, rotY: Math.atan2(-x, 4.6),
+}));
+export const hasTrainingDecor = (level: number): boolean => level === 4 || level === 5;
 
 export const KNIGHT_HEIGHT = EXPANSION_CHARACTER_HEIGHT.knight; // 1.75 m (Q4 Decision)
 export const DUMMY_HEIGHT = 1.5;
@@ -44,9 +51,20 @@ export type KnightArenaAssetId =
    | "castleTower"
    | "leafyTree"
    | "sword"
-   | "shield";
+   | "shield"
+   | "trainingDummyT";
 
 export const ASSETS: Record<KnightArenaAssetId, ModelAsset> = {
+   trainingDummyT: {
+      id: "trainingDummyT",
+      url: "/models/3d/knight-arena/trainingDummyT.glb",
+      scale: 1.5 / 1.8952014446258545,
+      rotationY: 0,
+      yOffset: 0,
+      fallback: "box",
+      fallbackColor: "#a57548",
+      budget: { ...PROP_BUDGET },
+   },
    knight: EXPANSION_CHARACTERS.knight,
    dummy: EXPANSION_ASSETS.dummy,
    castleTower: EXPANSION_ASSETS.castleTower,
