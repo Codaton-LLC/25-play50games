@@ -49,6 +49,41 @@ export const luggageRushMeta: ArcadeGameMeta = {
       keyboard: "A / left, S / down and D / right flip diverters 1–3; W / up flips diverter 4 after 70 s; or click a diverter",
       touch: "Tap a diverter to flip it",
    },
+   howTo: {
+      keys: [
+         { id: "d13", keys: ["A/S/D", "Left/Down/Right"], label: "Flip diverters 1-3", main: true },
+         { id: "d4", keys: ["W", "Up"], label: "Flip diverter 4" },
+         { id: "click", keys: ["Mouse"], label: "Click a diverter", role: "pointer" },
+      ],
+      touch: [
+         { id: "tap", control: "tap", label: "Tap a diverter to flip it" },
+      ],
+      steps: [
+         { title: "Goal", text: "Send every bag down the chute that matches its colour and symbol." },
+         {
+            title: "Flip",
+            text: "A or Left, S or Down, D or Right flip diverters 1-3. Or click a diverter.",
+            touchText: "Tap a diverter to flip it.",
+            keys: ["d13", "click"],
+            touch: ["tap"],
+         },
+         {
+            title: "Diverter 4",
+            text: "After 70 seconds a fourth diverter opens: W or Up flips it.",
+            touchText: "After 70 seconds a fourth diverter opens: tap it to flip.",
+            keys: ["d4"],
+            touch: ["tap"],
+         },
+         { title: "Watch out", text: "Three missed bags end the run. A gold rim is a VIP: it scores double." },
+         {
+            title: "Tips",
+            text: "+20 a bag, up to x3 in a row: keep the streak. Esc or P pauses.",
+            touchText: "+20 a bag, up to x3 in a row: keep the streak. Tap Pause, top right, to stop.",
+            keys: ["pause"],
+            touch: ["pause"],
+         },
+      ],
+   },
    scoring: SCORING,
    levels: LEVELS,
    thumbnail: "/images/3d/luggage-rush.webp",

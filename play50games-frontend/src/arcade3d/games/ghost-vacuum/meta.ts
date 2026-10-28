@@ -42,6 +42,48 @@ export const ghostVacuumMeta: ArcadeGameMeta = {
       keyboard: "WASD / arrows to move, mouse to aim; hold E, Enter or Space to vacuum",
       touch: "Joystick to move and aim, hold Vacuum to catch stunned ghosts",
    },
+   howTo: {
+      keys: [
+         { id: "move", keys: ["WASD", "Arrows"], label: "Move", main: true, role: "move" },
+         { id: "aim", keys: ["Mouse"], label: "Aim", role: "pointer" },
+         { id: "vac", keys: ["E", "Enter", "Space"], label: "Vacuum", hold: true, main: true },
+      ],
+      touch: [
+         { id: "joystick", control: "joystick", label: "Move & aim" },
+         { id: "vac", control: "action", label: "Vacuum", hold: true },
+      ],
+      steps: [
+         { title: "Goal", text: "Hunt the ghosts in the mansion: stun them with your flashlight, then vacuum them up." },
+         {
+            title: "Move",
+            text: "Use WASD or the arrow keys to explore. Nearby desks reveal hidden ghosts.",
+            touchText: "Push the joystick to explore. Nearby desks reveal hidden ghosts.",
+            keys: ["move"],
+            touch: ["joystick"],
+         },
+         {
+            title: "Stun",
+            text: "Aim the flashlight with the mouse to stun a ghost.",
+            touchText: "The joystick moves and aims the flashlight: point it at a ghost to stun it.",
+            keys: ["aim"],
+            touch: ["joystick"],
+         },
+         {
+            title: "Vacuum",
+            text: "Hold E, Enter or Space to vacuum a stunned ghost. Gold ghosts score extra.",
+            touchText: "Hold Vac to vacuum a stunned ghost nearby. Gold ghosts score extra.",
+            keys: ["vac"],
+            touch: ["vac"],
+         },
+         {
+            title: "Tips",
+            text: "Catch them all, or reach the level's score. Esc or P pauses.",
+            touchText: "Catch them all, or reach the level's score. Tap Pause, top right, to stop.",
+            keys: ["pause"],
+            touch: ["pause"],
+         },
+      ],
+   },
    scoring: SCORING,
    levels: LEVELS,
    thumbnail: "/images/3d/ghost-vacuum.webp",

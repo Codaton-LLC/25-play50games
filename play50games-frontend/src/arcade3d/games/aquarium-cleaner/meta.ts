@@ -31,6 +31,46 @@ export const aquariumCleanerMeta: ArcadeGameMeta = {
       keyboard: "WASD / arrows to move, hold E or Enter to work, Space to float up",
       touch: "Joystick to move + hold Work + Float",
    },
+   howTo: {
+      keys: [
+         { id: "move", keys: ["WASD", "Arrows"], label: "Move", main: true, role: "move" },
+         { id: "work", keys: ["E", "Enter"], label: "Work", hold: true, main: true },
+         { id: "float", keys: ["Space"], label: "Float up" },
+      ],
+      touch: [
+         { id: "joystick", control: "joystick", label: "Move" },
+         { id: "work", control: "action", label: "Work", hold: true },
+         { id: "float", control: "jump", label: "Float up" },
+      ],
+      steps: [
+         { title: "Goal", text: "Clean the tank: scrub algae, fix filters, bin the trash. Finish the list, then stand on the hatch." },
+         {
+            title: "Move",
+            text: "Use WASD or the arrow keys to walk the tank floor.",
+            touchText: "Push the joystick to walk the tank floor.",
+            keys: ["move"],
+            touch: ["joystick"],
+         },
+         {
+            title: "Work",
+            text: "Hold E or Enter: 1 second at an algae patch, 1.5 seconds at a filter. A high patch needs Space to float up while you work.",
+            touchText: "Hold Work: 1 second at an algae patch, 1.5 at a filter. A high patch needs Float while you hold Work.",
+            keys: ["work", "float"],
+            touch: ["work", "float"],
+         },
+         {
+            title: "Watch your air",
+            text: "Your air runs down: refill it in the bubble column. Sharks bite 30 air on later levels. Three lives.",
+         },
+         {
+            title: "Tips",
+            text: "Walk over trash to pick it up, then drop it in the basket. Esc or P pauses.",
+            touchText: "Walk over trash to pick it up, then drop it in the basket. Tap Pause, top right, to stop.",
+            keys: ["pause"],
+            touch: ["pause"],
+         },
+      ],
+   },
    scoring: SCORING,
    levels: LEVELS,
    thumbnail: null,

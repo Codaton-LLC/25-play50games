@@ -29,6 +29,44 @@ export const trainStationRushMeta: ArcadeGameMeta = {
       keyboard: "WASD / arrows to move, E or Enter to use",
       touch: "Joystick to move + Use",
    },
+   howTo: {
+      keys: [
+         { id: "move", keys: ["WASD", "Arrows"], label: "Move", main: true, role: "move" },
+         { id: "use", keys: ["E", "Enter"], label: "Use", main: true },
+      ],
+      touch: [
+         { id: "joystick", control: "joystick", label: "Move" },
+         { id: "use", control: "action", label: "Use" },
+      ],
+      steps: [
+         { title: "Goal", text: "Get each bag onto its train before the train leaves." },
+         {
+            title: "Move",
+            text: "Use WASD or the arrow keys to walk.",
+            touchText: "Push the joystick to walk.",
+            keys: ["move"],
+            touch: ["joystick"],
+         },
+         {
+            title: "Use",
+            text: "Press E or Enter to pick up at the entrance and to hand over on a boarding pad.",
+            touchText: "Tap Use to pick up at the entrance and to hand over on a boarding pad.",
+            keys: ["use"],
+            touch: ["use"],
+         },
+         {
+            title: "Right platform",
+            text: "Each task shows its platform: colour, shape and number. A train that leaves without its task costs a life.",
+         },
+         {
+            title: "Tips",
+            text: "Hand over early: half the wait left pays +50. Esc or P pauses.",
+            touchText: "Hand over early: half the wait left pays +50. Tap Pause, top right, to stop.",
+            keys: ["pause"],
+            touch: ["pause"],
+         },
+      ],
+   },
    scoring: LEVELS[0].scoring,
    levels: LEVELS,
    thumbnail: null,

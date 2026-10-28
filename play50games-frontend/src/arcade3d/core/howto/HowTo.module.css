@@ -1185,15 +1185,60 @@
    }
 
    .sheet .phone {
-      width: min(100%, 240px);
+      width: min(100%, 210px);
    }
 
+   /* the step text first, so it is on screen even under the cookie banner; the picture follows */
    .sheetBody {
-      gap: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding-top: 4px;
    }
 
    .step {
+      order: -1;
       min-height: 0;
+   }
+
+   .stepTitle {
+      font-size: 18px;
+   }
+
+   .stepText {
+      font-size: 14px;
+      line-height: 1.45;
+   }
+
+   .stepNumber {
+      font-size: 22px;
+   }
+
+   .sheetTop {
+      padding-top: 4px;
+   }
+
+   .sheetFoot {
+      padding-top: 6px;
+      padding-bottom: 8px;
+   }
+
+   .navButton {
+      min-height: 44px;
+   }
+
+   .deckLarge .cap {
+      --cap: 34px;
+
+      font-size: 12px;
+   }
+
+   .deckLarge .capSpace {
+      min-width: 104px;
+   }
+
+   .sheet .deck {
+      gap: 10px 12px;
    }
 }
 

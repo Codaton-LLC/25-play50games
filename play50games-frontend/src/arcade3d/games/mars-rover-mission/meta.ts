@@ -28,6 +28,41 @@ export const marsRoverMissionMeta: ArcadeGameMeta = {
       keyboard: "W / up drives, S / down brakes and reverses, A D / arrows steer (the camera follows behind). 📷 or C changes the view",
       touch: "Joystick: push up to drive, left or right to turn",
    },
+   howTo: {
+      keys: [
+         { id: "drive", keys: ["W", "Up"], label: "Drive", main: true, role: "move" },
+         { id: "brake", keys: ["S", "Down"], label: "Brake / reverse", role: "move" },
+         { id: "steer", keys: ["A/D", "Left/Right"], label: "Steer", role: "move" },
+         { id: "view", keys: ["C"], label: "Change view" },
+      ],
+      touch: [
+         { id: "joystick", control: "joystick", label: "Drive & turn" },
+      ],
+      steps: [
+         { title: "Goal", text: "Follow the light to each target ring, do the job, then park on the blue pad by the lander." },
+         {
+            title: "Drive",
+            text: "W or Up drives, S or Down brakes and reverses, A / D steer. The camera follows behind.",
+            touchText: "Push the joystick up to drive, left or right to turn.",
+            keys: ["drive", "brake", "steer"],
+            touch: ["joystick"],
+         },
+         {
+            title: "Stop in the ring",
+            text: "Stop inside the ring: the rover drills, repairs or scans by itself in 1 s. Dead centre = +60.",
+            keys: ["brake"],
+            touch: ["joystick"],
+         },
+         { title: "Watch out", text: "Hitting a rock faster than 3 m/s costs a life. Watch the battery: green pads recharge it." },
+         {
+            title: "Tips",
+            text: "C changes the view. Esc or P pauses.",
+            touchText: "The camera button changes the view. Tap Pause, top right, to stop.",
+            keys: ["pause"],
+            touch: ["pause"],
+         },
+      ],
+   },
    scoring: SCORING,
    levels: LEVELS,
    thumbnail: null,

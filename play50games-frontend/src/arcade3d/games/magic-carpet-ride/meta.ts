@@ -30,6 +30,39 @@ export const magicCarpetRideMeta: ArcadeGameMeta = {
       keyboard: "WASD / arrows: left, right, up and down. 📷 or C changes the view",
       touch: "Joystick to steer",
    },
+   howTo: {
+      keys: [
+         { id: "move", keys: ["WASD", "Arrows"], label: "Fly", main: true, role: "move" },
+         { id: "view", keys: ["C"], label: "Change view" },
+      ],
+      touch: [
+         { id: "joystick", control: "joystick", label: "Fly" },
+      ],
+      steps: [
+         { title: "Goal", text: "Fly the carpet to the end of the route and pass enough of its rings." },
+         {
+            title: "Fly",
+            text: "WASD or the arrow keys fly left, right, up and down. The carpet stays where you leave it.",
+            touchText: "Push the joystick to fly left, right, up and down. The carpet stays where you leave it.",
+            keys: ["move"],
+            touch: ["joystick"],
+         },
+         {
+            title: "Rings & combos",
+            text: "Fly through the rings: rings in a row build a combo. Follow the coin arcs and grab rockets for speed.",
+            keys: ["move"],
+            touch: ["joystick"],
+         },
+         { title: "Watch out", text: "Gulls, balloons, bats, hawks and rocks cost a life." },
+         {
+            title: "Tips",
+            text: "C changes the camera view. Esc or P pauses.",
+            touchText: "The camera button changes the view. Tap Pause, top right, to stop.",
+            keys: ["pause"],
+            touch: ["pause"],
+         },
+      ],
+   },
    scoring: SCORING,
    levels: LEVELS,
    thumbnail: null,

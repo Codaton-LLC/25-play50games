@@ -29,6 +29,41 @@ export const deliveryDroneMeta: ArcadeGameMeta = {
       keyboard: "WASD / arrows to fly, Space, E or Enter to drop",
       touch: "Joystick to fly, tap Drop to release; hover at the depot to reload",
    },
+   howTo: {
+      keys: [
+         { id: "move", keys: ["WASD", "Arrows"], label: "Fly", main: true, role: "move" },
+         { id: "drop", keys: ["Space", "E", "Enter"], label: "Drop", main: true },
+      ],
+      touch: [
+         { id: "joystick", control: "joystick", label: "Fly" },
+         { id: "drop", control: "action", label: "Drop" },
+      ],
+      steps: [
+         { title: "Goal", text: "Deliver every parcel to its rooftop before the battery runs flat." },
+         {
+            title: "Load",
+            text: "Fly with WASD or the arrow keys and hover at the depot for 4 seconds to load a parcel.",
+            touchText: "Push the joystick to fly and hover at the depot for 4 seconds to load a parcel.",
+            keys: ["move"],
+            touch: ["joystick"],
+         },
+         {
+            title: "Drop",
+            text: "Over the blue rooftop, press Space, E or Enter to release.",
+            touchText: "Over the blue rooftop, tap Drop to release.",
+            keys: ["drop"],
+            touch: ["drop"],
+         },
+         { title: "Land it clean", text: "Brake early and line up the landing cross. Wind and fragile parcels come later." },
+         {
+            title: "Tips",
+            text: "Hover at the depot again to reload. Esc or P pauses.",
+            touchText: "Hover at the depot again to reload. Tap Pause, top right, to stop.",
+            keys: ["pause"],
+            touch: ["pause"],
+         },
+      ],
+   },
    scoring: SCORING,
    // a win clears the level; clearScore also clears a route that was almost finished
    levels: [
