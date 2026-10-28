@@ -13,9 +13,9 @@ import { playSfx } from "@/arcade3d/core/audio";
 import { useCameraViews } from "@/arcade3d/core/camera/CameraViews";
 import type { AABB } from "@/arcade3d/core/collision";
 import { FRAME_PRIORITY } from "@/arcade3d/core/frameLoop";
-import { useFx } from "@/arcade3d/core/fx";
+import { Toss, useActionPop, useFx, type TossHandle } from "@/arcade3d/core/fx";
 import { useGameTime } from "@/arcade3d/core/gameTime";
-import { TargetMarkers, type MarkerTarget } from "@/arcade3d/core/hud";
+import { TargetBeacon, TargetMarkers, type MarkerTarget } from "@/arcade3d/core/hud";
 import { useInput } from "@/arcade3d/core/input";
 import { useLevel } from "@/arcade3d/core/level";
 import { randomSeed, turnTowards } from "@/arcade3d/core/math";
@@ -28,6 +28,7 @@ import { useFittedView } from "@/arcade3d/core/useFittedView";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { ASSETS, DIVER_LANDMARKS, DIVER_SCALE } from "./assets";
+import { GUIDE, emptyGoal, hintCode, hintFor, nextGoal } from "./guide";
 import type { AquariumLevel } from "./levels";
 import {
    COLORS, DAMPING, FOLLOW, FOV, GLASS_H, LOOK_AHEAD, coralSpots, frameSpots, lookAtFor, schoolsOf, aimBounds, viewFor,
@@ -35,7 +36,7 @@ import {
 import { TankSurroundings } from "./Tank";
 import { BasketStand, CastleStand, DiverFigure, FilterStand, bottleParts, coralParts, fishParts, rockParts, sharkParts } from "./Primitives";
 import {
-   ALGAE_HOLD_S, COLUMN_R, FLOAT_H, HATCH_R, MAX_SPEED, createRun, nextTarget, step, type Run,
+   ALGAE_HOLD_S, COLUMN_R, FLOAT_H, HATCH_R, MAX_SPEED, createRun, step, type Run,
 } from "./rules";
 
 const E = new Euler();
@@ -201,6 +202,7 @@ function LevelScene() {
    const view = useFittedView(viewFor(id));
    const input = useInput();
    const fx = useFx();
+   const pop = useActionPop();
    const time = useGameTime();
    const quality = useQuality();
    const [run] = useState<Run>(() => createRun(randomSeed(), config));
@@ -251,6 +253,12 @@ function LevelScene() {
    const castle = useMemo(() => run.solids.find((s) => s.kind === "castle"), [run]);
    const marker = useMemo<MarkerTarget[]>(() => [{ x: 0, y: 0.6, z: 0, hidden: true }], []);
    const scratch = useMemo(() => ({ a: createPose() }), []);
+   const goal = useRef(emptyGoal()).current;
+   const pickBeacon = useRef({ x: 0, y: 0.4, z: 0, hidden: true }).current;
+   const dropBeacon = useRef({ x: 0, y: 0.9, z: 0, hidden: true }).current;
+   const guideCode = useRef(-1);
+   const binToss = useRef<TossHandle>(null);
+   const HAND = useRef({ x: 0, y: 0, z: 0 }).current;
 
    const trashParts = useMemo(() => bottleParts(), []);
    const fishP = useMemo(() => fishParts(), []);
@@ -294,9 +302,18 @@ function LevelScene() {
       useArcadeStore.getState().setStat("air", 100);
    }, [fx]);
 
+   useEffect(() => {
+      nextGoal(run, goal);
+      guideCode.current = hintCode(run, goal);
+      GUIDE.set(hintFor(run, goal));
+      return () => GUIDE.reset();
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+   }, [run]);
+
    useRunFrame((_state, dt) => {
       const { moveX, moveY, action, jumpPressed } = input.current;
       const store = useArcadeStore.getState();
+      const carriedBefore = run.carried.length;
       const ev = step(run, { moveX, moveY, action, jumpPressed, yaw: cam.yaw() }, dt, store.timeLeftMs ?? 0);
       if (ev.score) store.addScore(ev.score);
       // the HUD re-renders only when a value changes
@@ -306,12 +323,6 @@ function LevelScene() {
       if (synced.algae !== run.algaeDone) store.setStat("algae", (synced.algae = run.algaeDone));
       if (synced.trash !== run.trashDone) store.setStat("trash", (synced.trash = run.trashDone));
       if (synced.filters !== run.filtersDone) store.setStat("filters", (synced.filters = run.filtersDone));
-      const t = nextTarget(run);
-      marker[0].hidden = !t;
-      if (t) {
-         marker[0].x = t.x;
-         marker[0].z = t.z;
-      }
       aim.x = run.hero.x + Math.sin(run.hero.yaw) * LOOK_AHEAD;
       aim.z = run.hero.z + Math.cos(run.hero.yaw) * LOOK_AHEAD;
       aim.y = 0.9;
@@ -333,18 +344,46 @@ function LevelScene() {
          fx.score(AT, `+${ev.score}`);
          playSfx(ev.task === 3 ? "chime" : "combo");
       }
+      if (ev.bin && carriedBefore > 0) {
+         for (let k = 0; k < carriedBefore; k++) {
+            HAND.x = run.hero.x;
+            HAND.y = run.hero.y + 1.95 + k * 0.5;
+            HAND.z = run.hero.z;
+            binToss.current?.play(HAND, { x: run.basket.x, y: 0.7, z: run.basket.z }, { duration: 0.35 + k * 0.08, height: 0.8, scaleFrom: 1, scaleTo: 0.7 });
+         }
+      }
       if (ev.sharkHit) {
-         fx.shake(0.35);
+         AT.x = run.hero.x; AT.y = 2; AT.z = run.hero.z;
+         pop.fail(AT, "Shark! -30 air", { shake: 0.35 });
          playSfx("hit");
       }
       if (ev.airOut) {
-         fx.shake(0.4);
+         AT.x = run.hero.x; AT.y = 2; AT.z = run.hero.z;
+         pop.fail(AT, "Out of air! -1 life", { shake: 0.4 });
          playSfx("buzz");
       }
       if (ev.lifeLost) store.loseLife();
       if (ev.won) {
          playSfx("win");
          store.end("win");
+      }
+      // the beacon, the work readout and the hint line follow the step; the hint is rebuilt only on a change
+      nextGoal(run, goal);
+      const picking = goal.kind === "trash" || goal.kind === "algae" || goal.kind === "filter" || goal.kind === "column";
+      const dropping = goal.kind === "basket" || goal.kind === "hatch";
+      pickBeacon.hidden = !picking;
+      dropBeacon.hidden = !dropping;
+      const live = picking ? pickBeacon : dropBeacon;
+      marker[0].hidden = goal.kind === "none";
+      marker[0].x = goal.x;
+      marker[0].z = goal.z;
+      live.x = goal.x;
+      live.y = goal.y;
+      live.z = goal.z;
+      const code = hintCode(run, goal);
+      if (code !== guideCode.current) {
+         guideCode.current = code;
+         GUIDE.set(hintFor(run, goal));
       }
       if (run.time - bubbleAt.current > 1.5) {
          bubbleAt.current = run.time;
@@ -451,6 +490,11 @@ function LevelScene() {
             />
          </group>
          <TargetMarkers targets={marker} color={COLORS.accent} />
+         <TargetBeacon target={pickBeacon} variant="pick" color={COLORS.accent} radius={0.8} height={0.9} />
+         <TargetBeacon target={dropBeacon} variant="drop-here" radius={1.0} height={0.9} />
+         <Toss ref={binToss} slots={3} spin={5}>
+            <Model asset={ASSETS.bottle} fallback={<mesh><cylinderGeometry args={[0.1, 0.1, 0.3, 8]} /><meshStandardMaterial color="#38bdf8" /></mesh>} />
+         </Toss>
       </>
    );
 }
