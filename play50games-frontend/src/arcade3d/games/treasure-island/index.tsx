@@ -11,6 +11,7 @@ import { ASSETS } from "./assets";
 import { LEVELS, type IslandLevel } from "./levels";
 import { FOV } from "./looks";
 import { DURATION_MS, TREASURE_COUNT } from "./rules";
+import CameraViewButton from "@/arcade3d/core/camera/CameraViewButton";
 
 const DESCRIPTIONS: Record<LevelId, string> = {
    1: "Five treasures, 90 seconds. The tide turns at 70 s.",
@@ -32,6 +33,7 @@ function instructionsFor(level: IslandLevel): string[] {
 const definition: GameDefinition<IslandLevel> = {
    slug: "treasure-island",
    Scene,
+   Hud: CameraViewButton,
    assets: ASSETS,
    durationMs: DURATION_MS,
    // only the first frame uses this: Scene's CameraRig (core useFittedView, looks.ts viewFor) fits a

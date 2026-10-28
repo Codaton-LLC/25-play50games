@@ -30,6 +30,8 @@ import { RUNNER_LANDMARKS } from "@/arcade3d/core/sharedAssets";
 import { useLevel } from "@/arcade3d/core/level";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useFittedView } from "@/arcade3d/core/useFittedView";
+import { useCameraViews } from "@/arcade3d/core/camera/CameraViews";
+import type { AABB } from "@/arcade3d/core/collision";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { ASSETS, EXPLORER_SCALE } from "./assets";
 import { DetectorRing } from "./Detector";
@@ -320,6 +322,18 @@ function Gull({ run, island, marker }: { run: RunState; island: Island; marker: 
 
 // ---------- the scene ----------
 
+/** Copies `src` into the camera hook's box slots. */
+function fillSolids(src: readonly AABB[], out: AABB[]): number {
+   let n = 0;
+   for (const b of src) {
+      if (n >= out.length) break;
+      const o = out[n++];
+      o.min.x = b.min.x; o.min.y = b.min.y; o.min.z = b.min.z;
+      o.max.x = b.max.x; o.max.y = b.max.y; o.max.z = b.max.z;
+   }
+   return n;
+}
+
 export default function Scene() {
    const width = useThree((s) => s.size.width);
    const height = useThree((s) => s.size.height);
@@ -330,6 +344,20 @@ export default function Scene() {
    const { id, config } = useIslandLevel();
    const [island] = useState(() => generateIsland(randomSeed(), config));
    const [run] = useState(() => createRun(island, config));
+
+   // camera views (core/camera): the rules get the drawn camera's yaw (the fitted yaw in the default view)
+   const cam = useCameraViews({
+      slug: "treasure-island",
+      subject: "character",
+      steering: "camera",
+      defaultYaw: view.yaw,
+      target: (o) => {
+         const e = run.explorer;
+         o.x = e.x; o.y = 1.0; o.z = e.z; o.heading = e.heading; o.vx = e.vx; o.vz = e.vz;
+      },
+      solids: (out: AABB[]) => fillSolids(island.boxes, out),
+   });
+
    const [scratch] = useState(() => ({
       step: { dirX: 0, dirZ: 0, digHeld: false, digPressed: false } as StepInput,
       dir: { x: 0, z: 0 },
@@ -354,7 +382,7 @@ export default function Scene() {
    useRunFrame((_state, dt, time) => {
       const { moveX, moveY, action, jump, actionPressed, jumpPressed } = input.current;
       const { step, dir, at } = scratch;
-      inputToWorld(moveX, moveY, view.yaw, dir);
+      inputToWorld(moveX, moveY, cam.yaw(), dir);
       step.dirX = dir.x;
       step.dirZ = dir.z;
       step.digHeld = action || jump;
