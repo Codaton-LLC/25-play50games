@@ -263,3 +263,7 @@ Evidence: public/images/3d/shopping-cart.webp (9.7 KB), tools/thumbs/out/shoppin
 ## Camera views
 
 Views: default, chase, front, top, free (the shelves and counters block the camera). **C** / **T** or the 📷 button cycles them; drag (or two fingers) looks around and switches to the free view, wheel / pinch zooms, **V** recenters. The rules receive the drawn camera's yaw (the fitted yaw in the default view), so a run in the default view is unchanged; no rules, bots, proofs or scoring were touched. Core docs: `core/camera/README.md`.
+
+## Clarity (2026-10-28, visual only)
+
+`guide.ts` (pure, `guide.test.ts`) picks the item to fetch next: the nearest by `storeDistance`, kept until it is taken unless another is clearly closer (`SWITCH_SHARE` 0.6), then the checkout. A core `TargetBeacon` stands over it (an orange arrow; a green "drop-here" ring with a CHECKOUT label once the list is done). The new `Hud.tsx` shows the shopping list as icons (taken ones ticked and dimmed, the beacon's item ringed), the Ride state ("RIDING: fast, slippery" lit while Space / Ride is held), and the core `HintLine` ("Grab the banana (arrow) · hold Space to go fast", "Next: the fish (arrow) · 3 left", "List done! Drive to the green checkout", a sticky "Bumped a shopper! Wait…" while stunned). A taken product flies on an arc into the basket instead of vanishing; fail pops: "Bumped! Combo lost / Stunned", "Crash! Combo lost / Slowed" (pyramid), "Crash! Combo lost" (a hard wall hit that ends the streak). Rules, scoring and limits are unchanged.

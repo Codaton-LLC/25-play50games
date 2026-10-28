@@ -9,7 +9,9 @@ import CameraRig from "@/arcade3d/core/CameraRig";
 import { InstancedModel, Model } from "@/arcade3d/core/assets";
 import { playSfx, startLoop, type LoopHandle } from "@/arcade3d/core/audio";
 import { SkyDome } from "@/arcade3d/core/env";
-import { useFx } from "@/arcade3d/core/fx";
+import { tossAt, useActionPop, useFx, type TossFrame } from "@/arcade3d/core/fx";
+import { TargetBeacon } from "@/arcade3d/core/hud";
+import { useCoarsePointer } from "@/arcade3d/core/TouchControls";
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import { useInput } from "@/arcade3d/core/input";
 import { inputToWorld, randomSeed } from "@/arcade3d/core/math";
@@ -47,6 +49,10 @@ import {
 } from "./rules";
 import { useLevel } from "@/arcade3d/core/level";
 import type { ShoppingCartLevel } from "./levels";
+import { CHECKOUT, GUIDE, LIST, cartHint, hintCode, nextItem } from "./guide";
+
+/** A taken product flies into the cart for this long (s), then is hidden. */
+const INTO_CART_S = 0.42;
 
 /** Copies `src` into the camera hook's box slots. */
 function fillSolids(src: readonly AABB[], out: AABB[]): number {
@@ -92,6 +98,30 @@ export default function Scene() {
       y: 0,
       z: START_POS.z,
    });
+
+   // clarity (visual only): the beacon on the next item / the checkout, the list panel, the hint, fail pops
+   const pop = useActionPop();
+   const touch = useCoarsePointer();
+   const beacon = useRef({ x: 0, y: 0, z: 0, hidden: true }).current;
+   const guide = useRef({ next: -2, code: -1, combo: 0, checkout: false }).current;
+   const kinds = useMemo(() => run.list.map((item) => item.kind), [run]);
+   const [atCheckout, setAtCheckout] = useState(false);
+   useEffect(() => {
+      // the list is up from the countdown on, so the panel's size (a safe-area rect) is settled before play
+      guide.next = nextItem(run, -1);
+      LIST.set({ kinds, taken: 0, next: guide.next, riding: false });
+      const first = run.list[guide.next];
+      if (first) {
+         beacon.x = first.x;
+         beacon.y = 0.95;
+         beacon.z = first.z;
+         beacon.hidden = false;
+      }
+      return () => {
+         GUIDE.reset();
+         LIST.reset();
+      };
+   }, [run, kinds, guide, beacon]);
 
    // Cart rolling sound loop (P-06) - sync with play/pause phases
    const rollLoop = useRef<LoopHandle | null>(null);
@@ -195,6 +225,34 @@ export default function Scene() {
          fx.burst("puff", { x: cart.x, y: 0.1, z: cart.z }, 8);
       }
 
+      // fail pops: a bump, a toppled pyramid, a hard crash that ends the combo streak
+      const hadCombo = guide.combo > 0;
+      if (events.shopperBumped.length > 0) {
+         pop.fail({ x: cart.x, y: 2, z: cart.z }, hadCombo ? "Bumped! Combo lost" : "Bumped! Stunned", { shake: 0 });
+      } else if (events.pyramidToppled.length > 0) {
+         pop.fail({ x: cart.x, y: 2, z: cart.z }, hadCombo ? "Crash! Combo lost" : "Crash! Slowed", { shake: 0 });
+      } else if (hadCombo && run.combo === 0 && events.pickups.length === 0) {
+         pop.fail({ x: cart.x, y: 2, z: cart.z }, "Crash! Combo lost");
+      }
+      guide.combo = run.combo;
+
+      // the next item (or the checkout): beacon, list panel, hint (rebuilt only on a change)
+      guide.next = nextItem(run, guide.next);
+      const target = guide.next >= 0 ? run.list[guide.next] : null;
+      beacon.x = target ? target.x : CHECKOUT.x;
+      beacon.y = target ? 0.95 : 0.1;
+      beacon.z = target ? target.z : CHECKOUT.z;
+      beacon.hidden = run.won;
+      if ((guide.next < 0) !== guide.checkout) setAtCheckout((guide.checkout = guide.next < 0));
+      let taken = 0;
+      for (let i = 0; i < run.list.length; i++) if (run.list[i].collected) taken |= 1 << i;
+      LIST.set({ kinds, taken, next: guide.next, riding: cart.riding });
+      const code = hintCode(run, guide.next);
+      if (code !== guide.code) {
+         guide.code = code;
+         GUIDE.set(cartHint(run, code, touch));
+      }
+
       if (events.won) {
          rollLoop.current?.set({ volume: 0 });
          playSfx("win");
@@ -254,7 +312,15 @@ export default function Scene() {
          ))}
 
          {/* Shelf Items with glowing 0.8m halos and floating badges */}
-         <ShelfItems items={run.list} />
+         <ShelfItems items={run.list} cart={run.cart} />
+         <TargetBeacon
+            target={beacon}
+            variant={atCheckout ? "drop-here" : "pick"}
+            color={atCheckout ? "#4ade80" : COLORS.halo}
+            radius={atCheckout ? 2.4 : 0.5}
+            height={atCheckout ? 2 : 0.85}
+            label={atCheckout ? "CHECKOUT" : null}
+         />
 
          {/* Instanced Can Pyramids */}
          <InstancedCanPyramids pyramids={run.pyramids} />
@@ -369,7 +435,7 @@ function ShopperComponent({ shopper }: { shopper: RunState["shoppers"][0] }) {
 
 // ---------- Shelf Items with 0.8 m Glow Halo & Bobbing Badges ----------
 
-function ShelfItems({ items }: { items: RunState["list"] }) {
+function ShelfItems({ items, cart }: { items: RunState["list"]; cart: RunState["cart"] }) {
    const time = useGameTime();
 
    // Dynamic instancing for the 0.8 m floor glow halos (1 draw call)
@@ -410,22 +476,42 @@ function ShelfItems({ items }: { items: RunState["list"] }) {
 
          {/* 3D Model items rotating above shelves */}
          {items.map((item, i) => (
-            <ShelfItem key={i} item={item} index={i} />
+            <ShelfItem key={i} item={item} index={i} cart={cart} />
          ))}
       </group>
    );
 }
 
-function ShelfItem({ item, index }: { item: ListItem; index: number }) {
+function ShelfItem({ item, index, cart }: { item: ListItem; index: number; cart: RunState["cart"] }) {
    const groupRef = useRef<Group>(null);
    const asset = ASSETS[item.kind as keyof typeof ASSETS] ?? ASSETS.apple;
    const gameTime = useGameTime();
+   // a taken product flies on an arc into the basket (visual only), then hides
+   const flight = useRef({ t: -1, from: { x: 0, y: 0, z: 0 }, to: { x: 0, y: 0.9, z: 0 } }).current;
+   const pose = useRef<TossFrame>({ x: 0, y: 0, z: 0, scale: 1 }).current;
 
    useFrame(() => {
       const g = groupRef.current;
       if (!g) return;
       if (item.collected) {
-         g.visible = false;
+         if (flight.t < 0) {
+            flight.t = 0;
+            flight.from.x = g.position.x;
+            flight.from.y = g.position.y;
+            flight.from.z = g.position.z;
+         }
+         if (flight.t >= 1) {
+            if (g.visible) g.visible = false;
+            return;
+         }
+         flight.t = Math.min(1, flight.t + gameTime.delta / INTO_CART_S);
+         flight.to.x = cart.x;
+         flight.to.z = cart.z;
+         tossAt(flight.from, flight.to, flight.t, 0.9, 1, 0.35, pose);
+         g.position.set(pose.x, pose.y, pose.z);
+         g.scale.setScalar(pose.scale);
+         g.rotation.y += gameTime.delta * 9;
+         g.visible = flight.t < 1;
          return;
       }
       g.visible = true;
