@@ -19,7 +19,7 @@ const GONE_LIVE = ["museum-guard", "knight-arena", "castle-defender"];
 const MENU1_NEW = ARCADE_SLUGS.slice(30, 50);
 
 /** Menu 2 (Color Roll Heroes): the vertical slice so far, after the 50 Menu 1 games, hidden ("dev") until the user signs off. */
-const MENU2 = ["sky-tower-jump", "rooftop-roll-climb", "flooded-ruins-escape", "lava-pillar-jump", "cloud-hopper"];
+const MENU2 = ["sky-tower-jump", "rooftop-roll-climb", "flooded-ruins-escape", "lava-pillar-jump", "cloud-hopper", "sky-hook-swing"];
 
 describe("registry for 50 Menu 1 games plus Menu 2", () => {
    it("has 50 Menu 1 slugs plus the Menu 2 ones, each with one meta, a unique order and a loader", () => {
