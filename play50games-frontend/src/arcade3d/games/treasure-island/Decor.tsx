@@ -21,7 +21,7 @@ import { useGameTime } from "@/arcade3d/core/gameTime";
 import { useQuality, scaledCount } from "@/arcade3d/core/quality";
 import { DynamicInstanced, Instanced, type InstanceSpot } from "@/arcade3d/core/render";
 import { COLORS, OUTER_BIRDS, OUTER_PALMS, OUTER_ROCKS, SHIPWRECK } from "./looks";
-import { ASSETS, TOTEM_SPOTS } from "./assets";
+import { ASSETS, GEM_SPOTS, ROWBOAT_SPOTS, TOTEM_SPOTS } from "./assets";
 
 export function Decor({ reduced = false, levelId }: { reduced?: boolean; levelId?: number }) {
    const quality = useQuality();
@@ -198,17 +198,45 @@ export function Decor({ reduced = false, levelId }: { reduced?: boolean; levelId
 
          {/* Outer Palms on Distant Atolls */}
          {palmSpots.length > 0 && (
-            <>
-               <Instanced spots={palmSpots} name="outer-palm-trunks">
-                  <primitive object={geo.palmTrunk} attach="geometry" />
-                  <meshStandardMaterial color={COLORS.palmTrunk} roughness={0.9} />
-               </Instanced>
-               <Instanced spots={palmSpots} name="outer-palm-crowns">
-                  <primitive object={geo.palmCrown} attach="geometry" />
-                  <meshStandardMaterial color={COLORS.palm} roughness={0.8} flatShading />
-               </Instanced>
-            </>
+            <InstancedModel
+               asset={ASSETS.palmTreeI}
+               spots={palmSpots}
+               fallback={
+                  <>
+                     <Instanced spots={palmSpots} name="outer-palm-trunks">
+                        <primitive object={geo.palmTrunk} attach="geometry" />
+                        <meshStandardMaterial color={COLORS.palmTrunk} roughness={0.9} />
+                     </Instanced>
+                     <Instanced spots={palmSpots} name="outer-palm-crowns">
+                        <primitive object={geo.palmCrown} attach="geometry" />
+                        <meshStandardMaterial color={COLORS.palm} roughness={0.8} flatShading />
+                     </Instanced>
+                  </>
+               }
+            />
          )}
+
+         {/* Beached rowboats and gems on the distant atolls */}
+         <InstancedModel
+            asset={ASSETS.rowboat}
+            spots={ROWBOAT_SPOTS}
+            fallback={
+               <Instanced spots={ROWBOAT_SPOTS} name="outer-rowboats">
+                  <boxGeometry args={[0.9, 0.5, 2.4]} />
+                  <meshStandardMaterial color={COLORS.woodDark} roughness={0.9} />
+               </Instanced>
+            }
+         />
+         <InstancedModel
+            asset={ASSETS.treasureGem}
+            spots={GEM_SPOTS}
+            fallback={
+               <Instanced spots={GEM_SPOTS} name="outer-gems">
+                  <icosahedronGeometry args={[0.28, 0]} />
+                  <meshStandardMaterial color="#22d3ee" roughness={0.3} flatShading />
+               </Instanced>
+            }
+         />
 
          {/* Jungle Totems on distant atolls (levels 4 & 5 only) */}
          {totemSpots.length > 0 && (

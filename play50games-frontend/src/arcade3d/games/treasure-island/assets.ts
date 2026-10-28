@@ -79,6 +79,40 @@ export const TOTEM_SPOTS: readonly InstanceSpot[] = [
    { x: 2.5, y: 0.05, z: -28, rotY: -0.2 },
 ];
 
+/**
+ * palmTreeI.glb (Menu 1 adoption, 3000 tris) 1.606 x 1.896 x 1.712, floor pivot at y 0, centred on x / z:
+ * a curved ringed trunk, frond crown, coconuts, rock base. Drawn 3.4 m tall (the old code palm was ~3.3 m)
+ * on the distant atolls only; the playable palms keep palm.glb and their footprints.
+ */
+export const PALM_I_GLB = { width: 1.606, height: 1.896, depth: 1.712 } as const;
+export const PALM_I_HEIGHT = 3.4;
+const PALM_I_SCALE = PALM_I_HEIGHT / PALM_I_GLB.height;
+
+/** rowboat.glb 0.904 x 0.589 x 1.896 (bow along z), floor pivot. Drawn 2.4 m long, pulled up on distant beaches. */
+export const ROWBOAT_GLB = { width: 0.904, height: 0.589, depth: 1.896 } as const;
+export const ROWBOAT_LENGTH = 2.4;
+const ROWBOAT_SCALE = ROWBOAT_LENGTH / ROWBOAT_GLB.depth;
+
+/** treasureGem.glb 1.9 x 1.832 x 1.891, floor pivot. Drawn 0.55 m tall: gems glinting on the distant atolls. */
+export const TREASURE_GEM_GLB = { width: 1.9, height: 1.832, depth: 1.891 } as const;
+export const TREASURE_GEM_HEIGHT = 0.55;
+const TREASURE_GEM_SCALE = TREASURE_GEM_HEIGHT / TREASURE_GEM_GLB.height;
+
+/** Rowboats beached on the distant atolls (every level), clear of the palms and the play area. */
+export const ROWBOAT_SPOTS: readonly InstanceSpot[] = [
+   { x: -21, y: 0.05, z: -14.5, rotY: 0.9 },
+   { x: 23.5, y: 0.05, z: -14, rotY: -0.7 },
+   { x: 24.5, y: 0.05, z: 1.5, rotY: 1.9 },
+   { x: -25, y: 0.05, z: 2.5, rotY: 2.6 },
+];
+
+/** Gems lying on the atolls beside the boats. */
+export const GEM_SPOTS: readonly InstanceSpot[] = [
+   { x: -22.4, y: 0.05, z: -14.2, rotY: 0.4 },
+   { x: 24.9, y: 0.05, z: -13.2, rotY: 1.6 },
+   { x: 25.6, y: 0.05, z: 2.6, rotY: 2.2, scale: 0.8 },
+];
+
 export const ASSETS = {
    explorer: { ...SHARED_ASSETS.runner, scale: EXPLORER_SCALE, humanoid: { landmarks: RUNNER_LANDMARKS } },
    chest: EXPANSION_ASSETS.chest,
@@ -103,6 +137,30 @@ export const ASSETS = {
       scale: BEACH_ROCKS_SCALE,
       fallback: "sphere",
       fallbackColor: "#78716c",
+      budget: { ...PROP_BUDGET },
+   },
+   palmTreeI: {
+      id: "palmTreeI",
+      url: "/models/3d/treasure-island/palmTreeI.glb",
+      scale: PALM_I_SCALE,
+      fallback: "cylinder",
+      fallbackColor: "#15803d",
+      budget: { ...PROP_BUDGET },
+   },
+   rowboat: {
+      id: "rowboat",
+      url: "/models/3d/treasure-island/rowboat.glb",
+      scale: ROWBOAT_SCALE,
+      fallback: "box",
+      fallbackColor: "#92400e",
+      budget: { ...PROP_BUDGET },
+   },
+   treasureGem: {
+      id: "treasureGem",
+      url: "/models/3d/treasure-island/treasureGem.glb",
+      scale: TREASURE_GEM_SCALE,
+      fallback: "sphere",
+      fallbackColor: "#22d3ee",
       budget: { ...PROP_BUDGET },
    },
    jungleTotem: {

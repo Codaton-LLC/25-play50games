@@ -10,7 +10,7 @@ import { modelParts } from "@/arcade3d/core/assets";
 import { hasModel } from "@/arcade3d/core/modelManifest";
 import { readCharacterGlb } from "@/arcade3d/core/rig/robotGlb";
 import type { ModelAsset } from "@/arcade3d/core/types";
-import { ASSETS, BEACH_ROCKS_GLB, BEACH_ROCKS_WIDTH, COIN_SIZE, CRAB_WIDTH, CRATE_SIZE, GULL_LENGTH, JUNGLE_TOTEM_GLB, JUNGLE_TOTEM_HEIGHT, PALM_SIZE, TOTEM_SPOTS, UMBRELLA_HEIGHT, palmBaseOffset } from "./assets";
+import { ASSETS, GEM_SPOTS, PALM_I_HEIGHT, ROWBOAT_LENGTH, ROWBOAT_SPOTS, TREASURE_GEM_HEIGHT, BEACH_ROCKS_GLB, BEACH_ROCKS_WIDTH, COIN_SIZE, CRAB_WIDTH, CRATE_SIZE, GULL_LENGTH, JUNGLE_TOTEM_GLB, JUNGLE_TOTEM_HEIGHT, PALM_SIZE, TOTEM_SPOTS, UMBRELLA_HEIGHT, palmBaseOffset } from "./assets";
 import { HAT } from "./Primitives";
 import { inPlayArea, PITCH } from "./looks";
 import { PALM_TRUNK, rho, SIGHT, UMBRELLA_CIRCLE } from "./rules";
@@ -131,6 +131,29 @@ describe("treasure-island models", () => {
          expect(inPlayArea(spot.x, spot.z, 0.5), `totem at (${spot.x}, ${spot.z}) must be outside play area`).toBe(false);
          expect(rho(spot.x, spot.z)).toBeGreaterThanOrEqual(1.5);
          expect(rho(spot.x, spot.z, LEVELS[5])).toBeGreaterThanOrEqual(1.5);
+      }
+   });
+
+   it("fits the Menu 1 palm, rowboat and gem to the floor at their README sizes", async () => {
+      for (const asset of [ASSETS.palmTreeI, ASSETS.rowboat, ASSETS.treasureGem]) {
+         expect(existsSync(resolve("public", asset.url.slice(1))), asset.url).toBe(true);
+         expect(hasModel(asset.url), asset.url).toBe(true);
+      }
+      const palm = new Box3().setFromPoints(await drawn(ASSETS.palmTreeI));
+      expect(palm.min.y).toBeCloseTo(0, 2);
+      expect(palm.max.y).toBeCloseTo(PALM_I_HEIGHT, 2);
+      const boat = new Box3().setFromPoints(await drawn(ASSETS.rowboat));
+      expect(boat.min.y).toBeCloseTo(0, 2);
+      expect(boat.getSize(new Vector3()).z).toBeCloseTo(ROWBOAT_LENGTH, 2);
+      const gem = new Box3().setFromPoints(await drawn(ASSETS.treasureGem));
+      expect(gem.min.y).toBeCloseTo(0, 2);
+      expect(gem.getSize(new Vector3()).y).toBeCloseTo(TREASURE_GEM_HEIGHT, 2);
+   });
+
+   it("keeps the rowboat and gem decor strictly outside the play area", () => {
+      for (const spot of [...ROWBOAT_SPOTS, ...GEM_SPOTS]) {
+         expect(inPlayArea(spot.x, spot.z, 2), `(${spot.x}, ${spot.z})`).toBe(false);
+         expect(rho(spot.x, spot.z)).toBeGreaterThanOrEqual(1.5);
       }
    });
 });

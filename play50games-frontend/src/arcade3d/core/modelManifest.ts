@@ -422,6 +422,9 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/robot-factory/powerCore.glb",
    // zoo-escape extra decor (levels 4-5)
    "/models/3d/zoo-escape/zooFountain.glb",
+   "/models/3d/treasure-island/palmTreeI.glb",
+   "/models/3d/treasure-island/rowboat.glb",
+   "/models/3d/treasure-island/treasureGem.glb",
    // Menu 1 dog-park-fetch (2026-10-26): the ready menu1-dog-park-fetch GLBs the gate adopts (dogHouse*,
    // dogBone*, agilityHurdle and dogOwnerNpc left out: a dog is baked into each), plus shared civilianNpc
    // as the owner; fits in games/dog-park-fetch/assets.ts.
