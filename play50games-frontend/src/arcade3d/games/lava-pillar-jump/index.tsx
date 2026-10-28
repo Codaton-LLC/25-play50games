@@ -45,6 +45,7 @@ const definition: GameDefinition<LavaLevel> = {
       "Geyser vents fire on the beat and throw you twice as high as a jump. Stand on one and wait for it.",
       "Each ember takes 0.4 s off your time. Chain embers and new pillars for a little more. A fall sends you back to the last crystal.",
       "Power (E, Enter, or the Power button) is your hero's ability. The same timing on touch and keyboard.",
+      "Turn the camera: drag the view (or two fingers), mouse wheel / pinch zooms, Q / C turn, R / F tilt, V recenters.",
    ],
    resultDelayMs: 1600,
    finalScore,

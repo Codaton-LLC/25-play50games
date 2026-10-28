@@ -59,7 +59,7 @@ A hit flashes him (hit-stop 90 ms, kick, shake); the defeat is the finish (`fini
 
 Hero cylinder r 0.32 h 1.2; run 6.5 m/s; gravity 30; jump 14 m/s (apex 3.27 m); vent 19.8 m/s (apex 6.53 m). Pillars are rectangles, 1.4 m deep colliders; landing crosses a top downwards with the centre over it (grown by 0.15). A fall 7 m under the last top, or feet in the lava, costs 900 + 600 ms and respawns on the last crystal; if the lava covers that crystal the run ends `"lose"` (unranked). Sinking shelves drop 3.6 s after you land; blinking pillars hold 1.6 s under you. Rocks hit only a grounded hero at the rim (the centre is outside); shield and phase ignore them and the heat gusts. Powers: Riko dash 280 ms at 12.5 m/s (15 s), Nami double jump capped at the flight's apex (10 s), Kiro shield 2.5 s (20 s), Zuno magnet 2.5 s reach 4.2 (20 s), Vexa phase 1.2 s (20 s).
 
-Camera-ready (for `menu2/camera`, built elsewhere): the Scene maps the stick with `inputToWorld(moveX, moveY, cameraYaw)` from a per-frame `cameraYaw` ref (0 = today's fixed follow camera; MultiScene's `CAMERA_YAW`), `StepInput.cameraYaw` carries it (informational; the rules stay world-space), and `rules.ts solidBoxes(course, ms, out?, run?, depth?)` lists the solid pillar tops as AABBs for a camera-collision pass.
+Camera-relative input: `StepInput.yaw` is the orbit camera's drawn yaw; `step()` turns the stick with core `inputToWorld(moveX, moveZ, yaw)` (NaN / Infinity count as 0). Bots and tests leave it 0, so every bot and proof result is unchanged (`orbit.test.ts` checks the honest bot on all five levels, and random-yaw spam against the floor: turning keeps the stick's length).
 
 ## Scoring and the proof
 
@@ -92,6 +92,11 @@ Level 2's floor is under level 1's: its two vent climbs are each a big skip for 
 | Idle | swallowed by a surge before the clock (`"lose"`, unranked) |
 | Spam (random stick, jump and power mashing, random frame times) | never under the floor on any level |
 
+## Camera and hero choice (menu2/camera, menu2/heroes)
+
+- **Free orbit camera** (`menu2/camera`, `Scene.tsx` `LavaCamera`): drag (left or right mouse button, or one finger on the empty canvas / two fingers) to turn and tilt, wheel or pinch to zoom, Q / Z and C / X turn, R / F tilt, V (or the touch recenter button) swings back behind the hero; after 2.5 s without input it follows the travel. Tuning `camera.ts LAVA_ORBIT` (pitch 24 deg, 7.4 m, zoom 4-16 m, farther on portrait). The pivot is the hero's chest led a third of the way to the next pillar, in Kalder's ring towards the golem; it holds while the hero falls out of view. The pillars (`courseSolids`, from `rules.ts solidBoxes`: movers where they are, blinking / sunk / crumbled pillars and inactive boss zones left out, 8 m of basalt under each top) pull the camera in. The heartbeat's FOV breath (+6 deg in a vent flight) stays, in its own frame callback (the orbit never sets the FOV). The intro ends on the orbit's first pose (`playCamera`). Multiplayer: one orbit for the group (`OrbitDriver` + `SharedCamera orbit`), every player's stick relative to it. `Hud.tsx` renders `OrbitHud` (recenter button, first-time hint).
+- **Hero choice** (`menu2/heroes`): `heroes.ts` is `createHeroPick("lava-pillar-jump")`, so the preselected hero is the player's own last pick here, else W1's lead, Riko. The shared `HeroPicker` shows on the start card (with the 2-4 players button), the pause menu and the result screen, hidden in multiplayer. The pick is the next run's option: a running Scene keeps the hero its run started with. The rules' own default (bots, proofs) is still Riko.
+
 ## Multiplayer (menu2/multiplayer, M1 local, 2-4 players)
 
 `multiplayer.ts` (pure, `multiplayer.test.ts`): N runs from the same seed, stepped together; one lava tide for all (a function of rules time); embers shared. **Co-op:** shared crystals (a fallen hero respawns on the highest crystal any friend lit), Kiro's shield, Zuno's magnet and Vexa's phase cover the team, the team clears when every hero is on top. **Versus race:** first to the goal wins (15 s grace); on level 5 each hero fights its own Kalder and the first to bring him down wins. `MultiScene.tsx` draws one animated hero per player with a coloured ring and the shared camera; the heartbeat's drum plays once. `MultiplayerHud.tsx`: the 2-4 players button, the join screen, the chips and the podium. Multiplayer runs never reach the solo board (`runPlayers`).
@@ -99,7 +104,7 @@ Level 2's floor is under level 1's: its two vent climbs are each a big skip for 
 ## Files
 
 `meta.ts`, `index.tsx` (`ResultExtra`, `runPlayers`), `levels.ts`, `pillars.ts` (route, vents, slugs, arena), `rules.ts` (rules, surge, heat, vents, boss, proof, `solidBoxes`), `progression.ts` (combo, stars, secrets, KALDER), `levelEnd.ts`, `StarResult.tsx`, `bot.ts`, `heroes.ts` / `powers.ts`, `Hero.tsx` (`writeHeroMotion` + `AnimatedHero`), `Armadillo.tsx` (stand-in), `Scene.tsx`, `sceneJuice.ts` (heartbeat / vent / crumble / boss juice, boss stats), `Course.tsx` (pillars, heat glow, vent columns, lava + light, rocks + shadows, secrets, golem), `World.tsx`, `camera.ts`, `look.ts`, `Hud.tsx`, `MultiScene.tsx`, `MultiplayerHud.tsx`, `multiplayer.ts`.
-Tests: `rules.test.ts`, `proof.test.ts`, `heartbeat.test.ts` (surge, telegraph, heat, vents, rocks), `progression.test.ts` (stars, flow bound, secret gates, Kalder), `layouts.test.ts` (the sweep, not Rooftop's zigzag), `multiplayer.test.ts`, `powers.test.ts`, `hero.test.ts`, `assets.test.ts`, `look.test.ts`, `livePick.test.ts`.
+Tests: `rules.test.ts`, `proof.test.ts`, `heartbeat.test.ts` (surge, telegraph, heat, vents, rocks), `progression.test.ts` (stars, flow bound, secret gates, Kalder), `layouts.test.ts` (the sweep, not Rooftop's zigzag), `multiplayer.test.ts`, `powers.test.ts`, `hero.test.ts`, `assets.test.ts`, `look.test.ts`, `livePick.test.ts`, `orbit.test.ts` (camera-relative input, first pose, solids, preselected hero).
 
 ## Models
 
