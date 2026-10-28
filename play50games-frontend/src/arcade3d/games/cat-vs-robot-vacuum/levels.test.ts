@@ -63,6 +63,6 @@ describe("cat-vs-robot-vacuum levels", () => {
          expect(PROPOSED_LEVEL_LIMITS[id as LevelId].base).toBeGreaterThan(PROPOSED_LEVEL_LIMITS[1].base);
       }
       expect(PROPOSED_LEVEL_LIMITS[5].maxScore).toBeLessThanOrEqual(3 * PROPOSED_LEVEL_LIMITS[1].maxScore);
-      expect(LEVEL_IDS.map((id) => LEVELS[id].tint)).toEqual(["#fb923c", "#9ca3af", "#57534e", "#fde68a", "#c4b5fd"]);
+      expect(LEVEL_IDS.map((id) => LEVELS[id].tint)).toEqual(["#ffb066", "#ffa95c", "#ffbd7a", "#ff9f52", "#ffd09a"]);
    });
 });

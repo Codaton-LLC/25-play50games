@@ -3,7 +3,7 @@
 // One useRunFrame steps rules.ts. Visuals read the run and animate with useGameTime.
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
-import { BoxGeometry, CylinderGeometry, Fog, MeshStandardMaterial, SphereGeometry, Vector3, type Group } from "three";
+import { BoxGeometry, CylinderGeometry, Fog, MeshStandardMaterial, RepeatWrapping, SphereGeometry, Vector3, type Group } from "three";
 import { InstancedModel, Model } from "@/arcade3d/core/assets";
 import CameraRig from "@/arcade3d/core/CameraRig";
 import { playSfx } from "@/arcade3d/core/audio";
@@ -15,16 +15,19 @@ import { useGameTime } from "@/arcade3d/core/gameTime";
 import { useInput } from "@/arcade3d/core/input";
 import { useLevel } from "@/arcade3d/core/level";
 import { randomSeed } from "@/arcade3d/core/math";
-import { bank, hop as hopOffset, type BodyOffset } from "@/arcade3d/core/motion";
+import { hop as hopOffset, type BodyOffset } from "@/arcade3d/core/motion";
+import { QuadrupedModel, useQuadrupedPose } from "@/arcade3d/core/rig/QuadrupedModel";
+import { blendQuadrupedPoses, createQuadrupedPose, quadrupedGait, quadrupedIdle, quadrupedLeap, quadrupedPhaseStep, quadrupedSit } from "@/arcade3d/core/rig/quadrupedPoses";
+import { useCameraZoom } from "@/arcade3d/core/useCameraZoom";
 import { TargetMarkers, type MarkerTarget } from "@/arcade3d/core/hud/TargetMarkers";
-import { Instanced, type InstanceSpot } from "@/arcade3d/core/render";
+import { BlobShadow, Instanced, useCanvasTexture, type InstanceSpot } from "@/arcade3d/core/render";
 import { useFittedView } from "@/arcade3d/core/useFittedView";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
-import { ASSETS, FIT } from "./assets";
+import { ASSETS, DOG_LANDMARKS, FIT } from "./assets";
 import type { DogLevel } from "./levels";
-import { BENCH_R, FOUNTAIN_R, LEAP_S, MAX_SPEED, TREE_R, blanketOf, createRun, frame, leapHeight, propsOf, toyXZ, type Kind, type Run } from "./rules";
-import { COLORS, DAMPING, FOV, LOOK_AHEAD, aimBounds, blanketSpot, decorSpots, fenceSpots, fogFor, lookAtFor, propSpots, railSpots, sandSpots, stripeSpots, viewFor } from "./looks";
+import { BENCH_R, FOUNTAIN_R, LEAP_S, MAX_SPEED, STUN_S, TREE_R, blanketOf, createRun, frame, leapHeight, propsOf, toyXZ, type Kind, type Run } from "./rules";
+import { COLORS, DAMPING, FOV, LOOK_AHEAD, ZOOM, aimBounds, blanketSpot, decorSpots, drawBlanket, drawGrass, fenceSpots, fogFor, lookAtFor, propSpots, railSpots, sandSpots, stripeSpots, viewFor } from "./looks";
 import { BallPrimitive, DogFigure, FrisbeePrimitive, MowerPrimitive, OwnerFigure, StickPrimitive } from "./Primitives";
 
 const BODY: BodyOffset = { y: 0, roll: 0, yaw: 0, squash: 1 };
@@ -35,6 +38,14 @@ const TOY_REST: Record<Kind, number> = { ball: FIT.ball / 2, stick: 0.05, frisbe
 const TOY_HEIGHT = 0.12;
 const OWNER_HOP_S = 0.45;
 const BENCH_SIZE = { sx: 1.8, sy: 0.5, sz: 0.8 };
+const DOG_SCALE = ASSETS.dog.scale ?? 1;
+/** standing still this long (s) with nothing to fetch, the dog sits */
+const SIT_AFTER_S = 1.2;
+const smooth01 = (a: number, b: number, x: number) => {
+   const t = Math.min(1, Math.max(0, (x - a) / (b - a)));
+   return t * t * (3 - 2 * t);
+};
+const wrapAngle = (a: number) => Math.atan2(Math.sin(a), Math.cos(a));
 
 /** Spots at the feet (y = 0), for the GLB draws. */
 function feet(spots: readonly InstanceSpot[]): InstanceSpot[] {
@@ -57,9 +68,23 @@ function LevelScene() {
    const toyShadow = useRef<Group>(null);
    const toys = useRef<Record<string, Group | null>>({ ball: null, stick: null, frisbee: null });
    const mowerRefs = useRef<(Group | null)[]>([]);
-   const gait = useRef({ phase: 0 });
+   const anim = useRef({ phase: 0, yaw: run.dog.yaw, turn: 0, still: 0, sit: 0 });
+   const idlePose = useMemo(createQuadrupedPose, []);
+   const gaitPose = useMemo(createQuadrupedPose, []);
+   const sitPose = useMemo(createQuadrupedPose, []);
+   const mouth = useRef<Record<string, Group | null>>({ ball: null, stick: null, frisbee: null });
+   const dogFloor = useRef<Group>(null);
+   const beacon = useRef<Group>(null);
+   const zoom = useCameraZoom({ min: ZOOM.min, max: ZOOM.max });
+   const grass = useCanvasTexture(256, 256, drawGrass);
+   const blanketMap = useCanvasTexture(256, 256, drawBlanket);
+   useMemo(() => {
+      grass.wrapS = RepeatWrapping;
+      grass.wrapT = RepeatWrapping;
+      grass.repeat.set(config.width / 4, config.depth / 4);
+      grass.needsUpdate = true;
+   }, [grass, config]);
    const ownerHopAt = useRef(-10);
-   const lastYaw = useRef(run.dog.yaw);
    const bounds = useMemo(() => aimBounds(config, portrait), [config, portrait]);
    const decor = useMemo(() => decorSpots(id), [id]);
    const look = useMemo(() => lookAtFor(config), [config]);
@@ -85,7 +110,7 @@ function LevelScene() {
    const unitSphere = useMemo(() => new SphereGeometry(0.5, 14, 10), []);
    const trunkGeo = useMemo(() => new CylinderGeometry(0.12, 0.16, 1, 8), []);
    const fenceMat = useMemo(() => new MeshStandardMaterial({ color: COLORS.fence, roughness: 0.7 }), []);
-   const stripeMat = useMemo(() => new MeshStandardMaterial({ color: COLORS.stripe, roughness: 0.95 }), []);
+   const stripeMat = useMemo(() => new MeshStandardMaterial({ color: COLORS.stripe, roughness: 0.95, transparent: true, opacity: 0.35, depthWrite: false }), []);
    const sandMat = useMemo(() => new MeshStandardMaterial({ color: COLORS.sand, roughness: 0.95 }), []);
    const padMat = useMemo(() => new MeshStandardMaterial({ color: COLORS.blanket, emissive: COLORS.blanketEdge, emissiveIntensity: 0.12, roughness: 0.8 }), []);
    const fountainMat = useMemo(() => new MeshStandardMaterial({ color: COLORS.fountain, roughness: 0.6 }), []);
@@ -123,7 +148,6 @@ function LevelScene() {
       const ev = frame(run, { moveX, moveY, jumpPressed, yaw: view.yaw }, dt, useArcadeStore);
       aim.x = Math.min(bounds.max.x, Math.max(bounds.min.x, run.dog.x + Math.sin(run.dog.yaw) * LOOK_AHEAD));
       aim.z = Math.min(bounds.max.z, Math.max(bounds.min.z, run.dog.z + Math.cos(run.dog.yaw) * LOOK_AHEAD));
-      gait.current.phase += (Math.hypot(run.dog.vx, run.dog.vz) / MAX_SPEED) * Math.PI * 2 * 1.6 * dt;
       if (ev.leap) playSfx("jump");
       if (ev.thrown >= 0) {
          ownerHopAt.current = run.time;
@@ -155,24 +179,45 @@ function LevelScene() {
       if (ev.won) playSfx("win");
    });
 
+   // the dog's pose: walk -> trot -> gallop by speed with planted paws (core quadruped rig), a leap
+   // for the jump, idle when still and sitting when it waits; knocked over by a mower it sits dazed
+   const pose = useQuadrupedPose((p) => {
+      const dog = run.dog;
+      const a = anim.current;
+      const dt = time.delta;
+      const speed = Math.hypot(dog.vx, dog.vz);
+      const rate = dt > 0 ? wrapAngle(dog.yaw - a.yaw) / dt : 0;
+      a.yaw = dog.yaw;
+      a.turn += (Math.max(-1, Math.min(1, rate / 5)) - a.turn) * Math.min(1, dt * 8);
+      if (dog.leap > 0) {
+         quadrupedLeap(1 - dog.leap / LEAP_S, DOG_LANDMARKS, p);
+         return;
+      }
+      a.still = speed < 0.2 ? a.still + dt : 0;
+      const wantSit = dog.stun > 0 || a.still > SIT_AFTER_S ? 1 : 0;
+      a.sit += (wantSit - a.sit) * Math.min(1, dt * (wantSit ? 4 : 10));
+      const s01 = Math.min(1, speed / MAX_SPEED);
+      a.phase = quadrupedPhaseStep(a.phase, speed * dt, s01, DOG_LANDMARKS, DOG_SCALE, dt, 5.5);
+      quadrupedGait(a.phase, s01, DOG_LANDMARKS, gaitPose, a.turn);
+      quadrupedIdle(time.now, DOG_LANDMARKS, idlePose);
+      blendQuadrupedPoses(idlePose, gaitPose, smooth01(0.05, 0.6, speed), p);
+      if (a.sit > 0.01) {
+         quadrupedSit(1, time.now * (dog.stun > 0 ? 6 : 1), DOG_LANDMARKS, sitPose);
+         blendQuadrupedPoses(p, sitPose, a.sit, p);
+      }
+   });
+
    useFrame(() => {
       const dog = run.dog;
       const group = dogGroup.current;
       if (group) {
-         const speed = Math.hypot(dog.vx, dog.vz);
-         const turn = dog.yaw - lastYaw.current;
-         lastYaw.current = dog.yaw;
-         if (dog.leap > 0) hopOffset(Math.PI * (1 - dog.leap / LEAP_S), 0.12, BODY);
-         else if (speed > 0.6) hopOffset(gait.current.phase, 0.05 * Math.min(1, speed / MAX_SPEED), BODY);
-         else {
-            BODY.y = 0;
-            BODY.roll = 0;
-         }
-         group.position.set(dog.x, BODY.y + leapHeight(LEAP_S - dog.leap), dog.z);
-         group.rotation.set(0, dog.yaw, bank(turn * speed * 6, 0.25));
+         group.position.set(dog.x, dog.leap > 0 ? leapHeight(LEAP_S - dog.leap) : 0, dog.z);
+         group.rotation.set(0, dog.yaw, 0);
       }
+      const ring = dogFloor.current;
+      if (ring) ring.position.set(dog.x, 0, dog.z);
       const body = dogBody.current;
-      if (body) body.visible = !(dog.mercy > 0 && Math.floor(time.now * 12) % 2 === 0);
+      if (body) body.visible = !(dog.mercy > 0 && dog.stun < STUN_S * 0.5 && Math.floor(time.now * 12) % 2 === 0);
       const own = owner.current;
       if (own) {
          const t = run.time - ownerHopAt.current;
@@ -189,8 +234,8 @@ function LevelScene() {
          g.visible = show;
          if (!show || !th) continue;
          if (carried) {
-            // Carried in the muzzle: a point in front of the dog, at mouth height.
-            g.position.set(dog.x + Math.sin(dog.yaw) * 0.42, 0.38, dog.z + Math.cos(dog.yaw) * 0.42);
+            // carried in the mouth: the copy on the dog's head bone shows instead
+            g.visible = false;
          } else {
             const xz = toyXZ(th, TOY);
             const f = Math.min(1, th.t / th.flight);
@@ -198,6 +243,21 @@ function LevelScene() {
             g.position.set(xz.x, TOY_REST[kind] + h, xz.z);
          }
          g.rotation.set(0, th.index * 0.7 + time.now * 2, 0);
+      }
+      for (const kind of ["ball", "stick", "frisbee"] as const) {
+         const m = mouth.current[kind];
+         if (m) m.visible = !!th && carried && th.kind === kind;
+      }
+      // a beacon on a toy waiting on the grass: where to run
+      const b = beacon.current;
+      if (b) {
+         b.visible = !!th && th.state !== "flying" && !carried;
+         if (b.visible && th) {
+            const xz = toyXZ(th, TOY);
+            b.position.set(xz.x, 0, xz.z);
+            const k = 1 + 0.15 * Math.sin(time.now * 6);
+            b.scale.set(k, 1, k);
+         }
       }
       // a shadow on the grass under a toy in the air: where it will come down, and when
       const shadow = toyShadow.current;
@@ -242,6 +302,7 @@ function LevelScene() {
             offset={view.offset}
             shift={view.shift}
             damping={DAMPING}
+            zoom={zoom}
          />
          <SkyDome top={config.lighting === "sunset" ? "#7c2d12" : "#38bdf8"} bottom={config.background} />
          {/* the park grass runs out under the fog; the fenced lawn is a brighter mown rectangle on it */}
@@ -251,7 +312,7 @@ function LevelScene() {
          </mesh>
          <mesh rotation-x={-Math.PI / 2} position={[0, -0.01, 0]}>
             <planeGeometry args={[config.width, config.depth]} />
-            <meshStandardMaterial color={COLORS.lawn} roughness={0.95} />
+            <meshStandardMaterial map={grass} color={COLORS.lawn} roughness={0.95} />
          </mesh>
          <Instanced spots={stripes} name="stripes">
             <primitive object={unitBox} attach="geometry" />
@@ -275,10 +336,15 @@ function LevelScene() {
             <primitive object={unitBox} attach="geometry" />
             <primitive object={fenceMat} attach="material" />
          </Instanced>
-         <Instanced spots={pad} name="blanket">
-            <primitive object={unitCylinder} attach="geometry" />
-            <primitive object={padMat} attach="material" />
-         </Instanced>
+         {/* the picnic blanket: home, where every toy goes back */}
+         <mesh position={[pad[0].x, 0.012, pad[0].z]} rotation-x={-Math.PI / 2} rotation-z={0.12}>
+            <planeGeometry args={[2.6, 2.2]} />
+            <meshStandardMaterial map={blanketMap} roughness={0.9} />
+         </mesh>
+         <mesh position={[pad[0].x, 0.02, pad[0].z]} rotation-x={-Math.PI / 2}>
+            <ringGeometry args={[1.45, 1.55, 48]} />
+            <meshBasicMaterial color={COLORS.blanketEdge} transparent opacity={0.6} depthWrite={false} />
+         </mesh>
          {fountain.length > 0 && (
             <InstancedModel
                asset={ASSETS.fountain}
@@ -319,10 +385,49 @@ function LevelScene() {
          <group ref={owner}>
             <Model asset={ASSETS.owner} fallback={<OwnerFigure />} />
          </group>
+         {/* the player's ring and contact shadow on the grass under the dog */}
+         <group ref={dogFloor}>
+            <BlobShadow radius={0.42} opacity={0.38} />
+            <mesh rotation-x={-Math.PI / 2} position-y={0.016} renderOrder={2}>
+               <ringGeometry args={[0.5, 0.58, 40]} />
+               <meshBasicMaterial color={COLORS.dogRing} transparent opacity={0.85} depthWrite={false} toneMapped={false} />
+            </mesh>
+         </group>
          <group ref={dogGroup}>
             <group ref={dogBody}>
-               <Model asset={ASSETS.dog} tint={config.tint ?? undefined} fallback={<DogFigure />} />
+               <QuadrupedModel
+                  asset={ASSETS.dog}
+                  pose={pose}
+                  tint={config.tint ?? undefined}
+                  fallback={<DogFigure />}
+                  attach={{
+                     mouth: (
+                        <>
+                           <group ref={(g) => { mouth.current.ball = g; }} visible={false}>
+                              <Model asset={ASSETS.ball} fallback={<BallPrimitive />} />
+                           </group>
+                           <group ref={(g) => { mouth.current.stick = g; }} visible={false}>
+                              <Model asset={ASSETS.stick} fallback={<StickPrimitive />} />
+                           </group>
+                           <group ref={(g) => { mouth.current.frisbee = g; }} visible={false} rotation-x={Math.PI / 2 + 0.3}>
+                              <Model asset={ASSETS.frisbee} fallback={<FrisbeePrimitive />} />
+                           </group>
+                        </>
+                     ),
+                  }}
+               />
             </group>
+         </group>
+         {/* the waiting toy's beacon: a soft column of light and a ring on the grass */}
+         <group ref={beacon} visible={false}>
+            <mesh position-y={1.1}>
+               <cylinderGeometry args={[0.18, 0.32, 2.2, 16, 1, true]} />
+               <meshBasicMaterial color={COLORS.target} transparent opacity={0.28} depthWrite={false} toneMapped={false} />
+            </mesh>
+            <mesh rotation-x={-Math.PI / 2} position-y={0.02}>
+               <ringGeometry args={[0.38, 0.5, 32]} />
+               <meshBasicMaterial color={COLORS.target} transparent opacity={0.8} depthWrite={false} toneMapped={false} />
+            </mesh>
          </group>
          <group ref={(g) => { toys.current.ball = g; }}>
             <Model asset={ASSETS.ball} fallback={<BallPrimitive />} />

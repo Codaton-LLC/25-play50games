@@ -1,7 +1,15 @@
-.hop {
+.panel {
    position: absolute;
    top: 74px;
    right: 12px;
+   display: flex;
+   flex-direction: column;
+   align-items: flex-end;
+   gap: 6px;
+   pointer-events: none;
+}
+
+.panel > span {
    padding: 6px 10px;
    border: 1px solid var(--stroke);
    border-radius: 999px;
@@ -9,13 +17,23 @@
    color: #f5f5f4;
    font-size: 13px;
    line-height: 1.2;
-   pointer-events: none;
 }
 
-.ready {
+.panel > .goal {
+   color: #fde047;
+   font-weight: 600;
+}
+
+.panel > .goalBed {
+   color: #4ade80;
+   font-weight: 700;
+   border-color: #4ade80;
+}
+
+.panel > .ready {
    color: #fdba74;
 }
 
-.cooling {
+.panel > .cooling {
    color: #a8a29e;
 }

@@ -7,41 +7,52 @@ import type { LevelId } from "@/arcade3d/types";
 import { LEVELS, type CatLevel } from "./levels";
 import { HALL_HALF, ROOM_LEN } from "./rules";
 
+/**
+ * One palette built for reading at a glance: the floors and walls are cool, light and quiet; the
+ * gameplay objects each own a hue nothing else uses. The cat is the only warm orange, the vacuums
+ * dark graphite with danger red, the treats gold, the toys pink, the bed (the goal) green.
+ */
 export const COLORS = {
-   wall: "#d6d3d1",
-   wallCap: "#fafaf9",
-   floor: "#e7e5e4",
-   outerFloor: "#a8a29e",
-   woodLight: "#d6b48a",
-   woodLightAlt: "#ceaa7f",
-   woodSeam: "#9a7350",
-   woodWarm: "#b07a4f",
-   woodWarmAlt: "#a87249",
-   woodWarmSeam: "#6f4426",
-   parquet: "#6b4f3a",
-   parquetAlt: "#634835",
-   parquetSeam: "#3f2c1f",
-   outerTint: "#d6d3d1",
+   wall: "#e8edf2",
+   wallCap: "#ffffff",
+   floor: "#e2e8f0",
+   outerFloor: "#64748b",
+   // whitewashed oak and a cool grey wood: planks you can see, never louder than the play
+   woodLight: "#d9dde2",
+   woodLightAlt: "#d1d6dc",
+   woodSeam: "#aab2bc",
+   woodWarm: "#c3cad3",
+   woodWarmAlt: "#bcc4ce",
+   woodWarmSeam: "#9099a6",
+   parquet: "#5b6573",
+   parquetAlt: "#556070",
+   parquetSeam: "#3b4350",
+   outerTint: "#cbd5e1",
    tileA: "#f1f5f9",
-   tileB: "#cbd5e1",
-   grout: "#94a3b8",
-   rugField: "#fef3c7",
-   baseboard: "#78716c",
-   outerWall: "#e7e5e4",
-   glow: "#38bdf8",
+   tileB: "#e2e8f0",
+   grout: "#b6c1cd",
+   // the lane rug: a muted blue, low contrast, so the dark vacuums and gold treats on it stand out
+   rugField: "#c9d5e2",
+   baseboard: "#64748b",
+   outerWall: "#eef2f6",
+   glow: "#ff3b3b",
    bay: "#d6cfc4",
-   rug: "#fb923c",
-   rugEdge: "#c2410c",
+   rug: "#aebfd1",
+   rugEdge: "#8ea2b8",
    cat: "#fb923c",
    catDark: "#c2410c",
    catInner: "#fecdd3",
-   vacuum: "#94a3b8",
-   vacuumDark: "#475569",
-   vacuumGlow: "#38bdf8",
-   treat: "#f97316",
-   treatCore: "#fdba74",
-   toy: "#fde68a",
-   toyCore: "#facc15",
+   catRing: "#ffffff",
+   vacuum: "#30353f",
+   vacuumDark: "#1e2229",
+   vacuumGlow: "#ff3b3b",
+   danger: "#ef4444",
+   treat: "#f59e0b",
+   treatCore: "#fde047",
+   treatHalo: "#facc15",
+   toy: "#f472b6",
+   toyCore: "#f9a8d4",
+   toyHalo: "#f472b6",
    sofa: "#78716c",
    sofaCushion: "#a8a29e",
    bed: "#d6d3d1",
@@ -52,7 +63,9 @@ export const COLORS = {
    shelfBoard: "#78716c",
    clutter: "#a16207",
    clutterBand: "#ca8a04",
-   pad: "#fb923c",
+   pad: "#22c55e",
+   padReady: "#4ade80",
+   rim: "#dbeafe",
 } as const;
 
 export const PITCH = (55 * Math.PI) / 180;
@@ -63,8 +76,10 @@ export const FOG_FAR = 60;
 /** a look-ahead along the cat's facing */
 export const LOOK_AHEAD = 1.2;
 export const DAMPING = 4;
-/** The camera keeps this window (half sizes, m) around its aim: the hall's width with its walls and decor strip, 9 m of it. */
-export const VIEW_WINDOW = { x: 3.0, z: 4.5 } as const;
+/** The camera keeps this window (half sizes, m) around its aim: the hall's width and its walls, 7 m of it (the cat a clear size on a phone). */
+export const VIEW_WINDOW = { x: 2.65, z: 3.5 } as const;
+/** the player's zoom (wheel, pinch, + / -): a factor on the fitted camera distance */
+export const ZOOM = { min: 0.6, max: 1.6 } as const;
 
 export function hallBox(level: CatLevel): AABB {
    const zEnd = level.rooms * ROOM_LEN;
