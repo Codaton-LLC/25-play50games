@@ -52,7 +52,7 @@ import {
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useFittedView } from "@/arcade3d/core/useFittedView";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
-import { ASSETS, BELLBOY_LANDMARKS, BELLBOY_SCALE, DESK_TOP } from "./assets";
+import { ASSETS, BELLBOY_LANDMARKS, BELLBOY_SCALE, DESK_TOP, TROLLEY_DECK } from "./assets";
 import type { HotelLevel } from "./levels";
 import {
    ATLAS,
@@ -340,7 +340,7 @@ function Trolley({ run, atlas, quality }: { run: Run; atlas: MeshStandardMateria
       <group ref={root} name="trolley">
          <BlobShadow radius={0.55} opacity={0.26} />
          <Model asset={ASSETS.trolley} fallback={<TrolleyPrimitive />} />
-         <group ref={bag} position={[0, 0.29, 0]} visible={false}>
+         <group ref={bag} position={[0, TROLLEY_DECK, 0]} visible={false}>
             <Model asset={ASSETS.suitcase} rotation-y={Math.PI / 2} fallback={<SuitcasePrimitive />} />
          </group>
          <group ref={card} position={[0, 1.75, 0]} visible={false}>
