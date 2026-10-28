@@ -13,24 +13,23 @@
 //   (the arrow tip sits `height` m above it), the ring lies at `ground`.
 // - Variants: "pick" (arrow + ring pulsing out), "drop-here" (arrow + disc + ring pulsing in: land
 //   here), "danger" (red disc + fast ring, no arrow: keep away). Colours default per variant.
-// - Readable from every camera view (core/camera): the arrow is a cone (the same from any yaw), drawn
-//   over walls (no depth test) with a dark rim, and grows with the camera distance so it never gets
-//   smaller than BEACON_MIN_PX on screen (more on touch screens).
+// - Readable from every camera view (core/camera): the arrow is a camera-facing sprite (a cone seen
+//   from the top view is only a disc) whose tip rests on the spot, drawn over walls (no depth test)
+//   with a dark outline, and it grows with the camera distance so it never gets smaller than
+//   BEACON_MIN_PX on screen (more on touch screens).
 // - Cheap: geometries are shared by every beacon, materials by colour; nothing is allocated per frame.
 //   Reduced motion: no bob, no pulse, a steady ring. Shown only while the run can be seen.
 import { useEffect, useMemo, useRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import {
-   BackSide,
    CanvasTexture,
    CircleGeometry,
-   ConeGeometry,
-   CylinderGeometry,
    MeshBasicMaterial,
    PerspectiveCamera,
    RingGeometry,
    SRGBColorSpace,
    SpriteMaterial,
+   Vector2,
    Vector3,
    type BufferGeometry,
    type Group,
@@ -40,7 +39,7 @@ import { FRAME_PRIORITY } from "../frameLoop";
 import { useGameTime } from "../gameTime";
 import { useCoarsePointer } from "../TouchControls";
 import { useArcadeStore } from "../useArcadeStore";
-import { BEACON_MIN_PX, BEACON_STYLES, beaconLabel, beaconMotion, beaconScale, type BeaconMotion, type BeaconVariant } from "./beacon";
+import { BEACON_ARROW_SIZE, BEACON_MIN_PX, BEACON_STYLES, beaconLabel, beaconMotion, beaconScale, type BeaconMotion, type BeaconVariant } from "./beacon";
 import { useReducedMotion } from "./useReducedMotion";
 
 export interface BeaconTarget {
@@ -70,43 +69,81 @@ export interface TargetBeaconProps {
 
 // ---------- shared geometry (every beacon) ----------
 
-let shared: { cone: BufferGeometry; rim: BufferGeometry; stem: BufferGeometry; ring: BufferGeometry; disc: BufferGeometry } | null = null;
+let shared: { ring: BufferGeometry; disc: BufferGeometry } | null = null;
 
 function geometries() {
    if (shared) return shared;
-   // the arrow points down with its tip at the group origin: cone 0.36 m, stem 0.26 m (BEACON_ARROW_SIZE)
-   const cone = new ConeGeometry(0.2, 0.36, 14).rotateX(Math.PI).translate(0, 0.18, 0);
-   const rim = new ConeGeometry(0.25, 0.46, 14).rotateX(Math.PI).translate(0, 0.19, 0);
-   const stem = new CylinderGeometry(0.07, 0.07, 0.28, 10).translate(0, 0.36 + 0.13, 0);
    const ring = new RingGeometry(0.8, 1, 48).rotateX(-Math.PI / 2);
    const disc = new CircleGeometry(0.8, 40).rotateX(-Math.PI / 2);
-   shared = { cone, rim, stem, ring, disc };
+   shared = { ring, disc };
    return shared;
+}
+
+/** The arrow's world size at scale 1: 0.5 m wide, BEACON_ARROW_SIZE tall (the texture's 4:5). */
+const ARROW_W = BEACON_ARROW_SIZE * 0.8;
+const ARROW_CENTER = new Vector2(0.5, 0);
+
+let arrowMap: CanvasTexture | null = null;
+
+/** A white down arrow with a dark outline (tinted by the material colour), drawn once. */
+function arrowTexture(): CanvasTexture | null {
+   if (arrowMap || typeof document === "undefined") return arrowMap;
+   const canvas = document.createElement("canvas");
+   canvas.width = 128;
+   canvas.height = 160;
+   const ctx = canvas.getContext("2d");
+   if (!ctx) return null;
+   ctx.beginPath();
+   ctx.moveTo(64, 152);
+   ctx.lineTo(10, 86);
+   ctx.lineTo(42, 86);
+   ctx.lineTo(42, 10);
+   ctx.lineTo(86, 10);
+   ctx.lineTo(86, 86);
+   ctx.lineTo(118, 86);
+   ctx.closePath();
+   ctx.lineJoin = "round";
+   ctx.lineWidth = 12;
+   ctx.strokeStyle = "rgba(11,16,32,0.9)";
+   ctx.stroke();
+   ctx.fillStyle = "#ffffff";
+   ctx.fill();
+   arrowMap = new CanvasTexture(canvas);
+   arrowMap.colorSpace = SRGBColorSpace;
+   return arrowMap;
 }
 
 // ---------- shared materials (per colour and role) ----------
 
-type Role = "arrow" | "rim" | "ring" | "pulse" | "disc";
+type Role = "ring" | "pulse" | "disc";
 const materials = new Map<string, MeshBasicMaterial>();
+const arrows = new Map<string, SpriteMaterial>();
 
 function materialFor(role: Role, color: string, variant: BeaconVariant): MeshBasicMaterial {
    const key = `${role}|${color}|${variant}`;
    let m = materials.get(key);
    if (m) return m;
-   const overlay = role === "arrow" || role === "rim";
    m = new MeshBasicMaterial({
-      color: role === "rim" ? "#0b1020" : color,
+      color,
       transparent: true,
-      opacity: role === "rim" ? 0.55 : role === "disc" ? 0.22 : role === "arrow" ? 0.96 : 0.8,
+      opacity: role === "disc" ? 0.22 : 0.8,
       depthWrite: false,
-      depthTest: !overlay,
       toneMapped: false,
-      side: role === "rim" ? BackSide : undefined,
-      polygonOffset: !overlay,
+      polygonOffset: true,
       polygonOffsetFactor: -2,
       polygonOffsetUnits: -2,
    });
    materials.set(key, m);
+   return m;
+}
+
+function arrowFor(color: string): SpriteMaterial | null {
+   let m = arrows.get(color);
+   if (m) return m;
+   const map = arrowTexture();
+   if (!map) return null;
+   m = new SpriteMaterial({ map, color, depthTest: false, depthWrite: false, transparent: true, toneMapped: false });
+   arrows.set(color, m);
    return m;
 }
 
@@ -143,8 +180,7 @@ export function TargetBeacon({ target, variant = "pick", color, radius = 0.7, he
    const g = geometries();
    const mats = useMemo(
       () => ({
-         arrow: materialFor("arrow", tint, variant),
-         rim: materialFor("rim", tint, variant),
+         arrow: arrowFor(tint),
          ring: materialFor("ring", tint, variant),
          pulse: materialFor("pulse", tint, variant),
          disc: materialFor("disc", tint, variant),
@@ -215,10 +251,8 @@ export function TargetBeacon({ target, variant = "pick", color, radius = 0.7, he
          )}
          {style.arrow && (
             <group ref={arrow}>
-               <mesh geometry={g.rim} material={mats.rim} renderOrder={20} />
-               <mesh geometry={g.cone} material={mats.arrow} renderOrder={21} />
-               <mesh geometry={g.stem} material={mats.arrow} renderOrder={21} />
-               {labelMat && <sprite material={labelMat} position={[0, 0.95, 0]} scale={[0.8, 0.35, 1]} renderOrder={22} />}
+               {mats.arrow && <sprite material={mats.arrow} center={ARROW_CENTER} scale={[ARROW_W, BEACON_ARROW_SIZE, 1]} renderOrder={21} />}
+               {labelMat && <sprite material={labelMat} position={[0, BEACON_ARROW_SIZE + 0.25, 0]} scale={[0.8, 0.35, 1]} renderOrder={22} />}
             </group>
          )}
          {!style.arrow && labelMat && (

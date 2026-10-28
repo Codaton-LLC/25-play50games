@@ -24,10 +24,10 @@ export const BEACON_STYLES: Readonly<Record<BeaconVariant, Readonly<BeaconStyle>
    danger: { color: "#f87171", arrow: false, disc: true, pulseHz: 1.6, pulseDir: 1, bob: 0 },
 };
 
-/** The arrow's height in world units at scale 1 (cone + stem), m. */
+/** The arrow sprite's height in world units at scale 1, m. */
 export const BEACON_ARROW_SIZE = 0.62;
 /** Smallest on-screen arrow, CSS px (fine pointer / touch). */
-export const BEACON_MIN_PX = { fine: 26, coarse: 34 } as const;
+export const BEACON_MIN_PX = { fine: 36, coarse: 40 } as const;
 /** Largest distance scale-up (far camera views, the top view). */
 export const BEACON_MAX_SCALE = 3.2;
 
