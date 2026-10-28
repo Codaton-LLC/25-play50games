@@ -3,7 +3,7 @@
 // Hotel Bellboy Rush scene. One useRunFrame steps rules.ts; visuals read the run and animate with
 // useGameTime. The camera follows a fixed window of the hall (looks.ts), so the door numbers stay
 // readable on every level; the doors' numbers are one canvas atlas redrawn when the floor changes.
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { Billboard } from "@react-three/drei";
 import {
@@ -35,7 +35,6 @@ import { BlobShadow, Instanced, useCanvasTexture } from "@/arcade3d/core/render"
 import {
    HumanoidModel,
    POSE_MASK,
-   aimArm,
    blendPoses,
    bodyLift,
    cheerPose,
@@ -43,6 +42,7 @@ import {
    createPose,
    gaitPhaseStep,
    idlePose,
+   setBoneEuler,
    turnBone,
    useHumanoidPose,
    walkPose,
@@ -52,6 +52,7 @@ import {
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useFittedView } from "@/arcade3d/core/useFittedView";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
+import { GRIP_AHEAD, GRIP_LENGTH, HANDLE_AHEAD, HANDLE_Y, TOW, gripPoint, reachArm, toBodyFrame } from "./cart";
 import { nextGoal, type Goal } from "./guide";
 import { ASSETS, BELLBOY_LANDMARKS, BELLBOY_SCALE, DESK_TOP, TROLLEY_DECK } from "./assets";
 import type { HotelLevel } from "./levels";
@@ -260,36 +261,88 @@ function Floors({ level }: { level: HotelLevel }) {
 
 // ---------- the bellboy ----------
 
+/** The hold blends the arms and the trunk above the hips (the walk keeps the legs and the hips). */
+const HOLD_MASK = POSE_MASK.arms.map((v, i) => (i === BONE.spine || i === BONE.chest ? 1 : v));
+const ARM_L = POSE_MASK.arms.map((v, i) => (i === BONE.upperArmL || i === BONE.lowerArmL || i === BONE.clavicleL ? v : 0));
+const ARM_R = POSE_MASK.arms.map((v, i) => (i === BONE.upperArmR || i === BONE.lowerArmR || i === BONE.clavicleR ? v : 0));
+/** A one-arm reach on a pickup or a delivery (s). */
+const REACH_S = 0.7;
+/** Both arms let go of the bar when a grip is further than this share of the arm (the cart was pushed off him). */
+const LET_GO = 1.06;
+const W = { x: 0, y: 0, z: 0 };
+const B = { x: 0, y: 0, z: 0 };
+
 function Bellboy({ run }: { run: Run }) {
    const time = useGameTime();
    const root = useRef<Group>(null);
    const body = useRef<Group>(null);
-   const [gait] = useState(() => ({ phase: 0, amount: 0, pull: 0, cheer: 0, lift: 0, flinch: 0 }));
+   const [gait] = useState(() => ({ phase: 0, amount: 0, hold: 1, cheer: 0, lift: 0, flinch: 0 }));
+   // the one-arm reach: time left, which arm, the world point
+   const [reach] = useState(() => ({ t: 0, side: 1 as 1 | -1, x: 0, y: 0, z: 0, carrying: false, delivered: 0 }));
    const [scratch] = useState(createPose);
-   const [pull] = useState(createPose);
+   const [hold] = useState(createPose);
+   const [arm] = useState(createPose);
 
    const pose = useHumanoidPose((p) => {
       const dt = time.delta;
       const { phase, endReason } = useArcadeStore.getState();
-      const v = phase === "playing" ? Math.hypot(run.hero.vx, run.hero.vz) : 0;
+      const h = run.hero;
+      const v = phase === "playing" ? Math.hypot(h.vx, h.vz) : 0;
       gait.amount += (Math.min(1, v / MAX_SPEED) - gait.amount) * (1 - Math.exp(-12 * dt));
       gait.phase = wrapPhase(gait.phase + gaitPhaseStep(gait.amount, BELLBOY_LANDMARKS, BELLBOY_SCALE, v, dt, MAX_CADENCE));
       walkPose(gait.phase, gait.amount * 0.85, p);
       blendPoses(p, idlePose(time.now, scratch), 1 - Math.min(1, gait.amount * 5), p, POSE_MASK.upper);
-      // the right hand back on the trolley's handle (it trails 1.1 m behind), the left arm swings
-      const tdx = run.trolley.x.x - run.hero.x;
-      const tdz = run.trolley.z.x - run.hero.z;
-      const behind = Math.hypot(tdx, tdz) < 1.8 ? 1 : 0;
-      gait.pull += (behind - gait.pull) * (1 - Math.exp(-6 * dt));
-      if (gait.pull > 0.01) {
-         copyPose(p, pull);
-         aimArm(pull, -1, 0.18, -0.78, -0.6, 0.08, -0.45, -0.9);
-         blendPoses(p, pull, gait.pull, p, POSE_MASK.arms);
-      }
-      // a wrong door: a short flinch back
+      // the legs are final: the body's height (the arms' targets are measured from it)
+      const lift = bodyLift(p, BELLBOY_LANDMARKS) * BELLBOY_SCALE;
       gait.flinch = Math.max(0, gait.flinch - dt * 3);
-      if (run.hero.stun > 0) gait.flinch = 1;
-      if (gait.flinch > 0) turnBone(p, BONE.spine, -0.18 * gait.flinch, 0, 0);
+      if (h.stun > 0) gait.flinch = 1;
+
+      // both hands on the cart's T-grip, low behind his back (cart.ts): the trunk upright, turned a
+      // little with the cart's swing, each arm aimed at its hand's world point by two-bone IK
+      copyPose(p, hold);
+      const swing = Math.atan2(Math.sin(run.trolley.yaw - h.yaw), Math.cos(run.trolley.yaw - h.yaw));
+      setBoneEuler(hold.q, BONE.spine, 0.03 + 0.03 * gait.amount - 0.18 * gait.flinch, 0.08 * swing, 0);
+      setBoneEuler(hold.q, BONE.chest, 0.01, 0.08 * swing, 0);
+      let far = 0;
+      for (let i = 0; i < 2; i++) {
+         const side = i === 0 ? 1 : -1;
+         gripPoint(run.trolley.x.x, run.trolley.z.x, run.trolley.yaw, h.yaw, side, W);
+         toBodyFrame(h.x, h.z, h.yaw, lift, BELLBOY_SCALE, W.x, W.y, W.z, B);
+         // elbows bend back and a little out (an arm reaching behind the back)
+         far = Math.max(far, reachArm(hold, BELLBOY_LANDMARKS, side, B.x, B.y, B.z, 0.45, 0.1, -1));
+      }
+      gait.hold += ((far < LET_GO ? 1 : 0) - gait.hold) * (1 - Math.exp(-10 * dt));
+      blendPoses(p, hold, gait.hold, p, HOLD_MASK);
+      if (gait.hold < 0.999 && gait.flinch > 0) turnBone(p, BONE.spine, -0.18 * gait.flinch * (1 - gait.hold), 0, 0);
+
+      // a pickup (the bag from the desk) or a delivery (the bag to the door): one arm reaches out and back
+      if (run.carrying && !reach.carrying) {
+         reach.t = REACH_S;
+         reach.x = DESK_POINT.x;
+         reach.y = DESK_TOP + 0.15;
+         reach.z = DESK_POINT.z - 0.2;
+      } else if (run.delivered > reach.delivered) {
+         const bag = run.bags[run.next - 1];
+         reach.t = REACH_S;
+         reach.x = DOOR_X - 0.1;
+         reach.y = 1.0;
+         reach.z = bag ? doorZ(bag.index - 1) : h.z;
+      }
+      reach.carrying = run.carrying;
+      reach.delivered = run.delivered;
+      if (reach.t > 0) {
+         if (reach.t === REACH_S) {
+            toBodyFrame(h.x, h.z, h.yaw, lift, BELLBOY_SCALE, reach.x, reach.y, reach.z, B);
+            reach.side = B.x >= 0 ? 1 : -1;
+         }
+         reach.t = Math.max(0, reach.t - dt);
+         toBodyFrame(h.x, h.z, h.yaw, lift, BELLBOY_SCALE, reach.x, reach.y, reach.z, B);
+         copyPose(p, arm);
+         // elbow down and a little back, the arm straight once the point is out of reach
+         reachArm(arm, BELLBOY_LANDMARKS, reach.side, B.x, B.y, B.z, 0.3, -1, -0.3);
+         const k = Math.sin((Math.PI * (REACH_S - reach.t)) / REACH_S);
+         blendPoses(p, arm, k * k, p, reach.side > 0 ? ARM_L : ARM_R);
+      }
       gait.cheer += ((phase === "over" && endReason === "win" ? 1 : 0) - gait.cheer) * (1 - Math.exp(-8 * dt));
       if (gait.cheer > 0.001) blendPoses(p, cheerPose(time.now, scratch), gait.cheer, p);
       gait.lift = bodyLift(p, BELLBOY_LANDMARKS) * BELLBOY_SCALE;
@@ -323,6 +376,7 @@ function Trolley({ run, atlas, quality }: { run: Run; atlas: MeshStandardMateria
    const root = useRef<Group>(null);
    const bag = useRef<Group>(null);
    const card = useRef<Group>(null);
+   const grip = useRef<Group>(null);
    const time = useGameTime();
    const cardGeometry = useMemo(() => labelGeometry([{ c: [0, 0, 0], right: [1, 0, 0], up: [0, 1, 0], w: 0.62, h: 0.31, cell: CARD_CELL }]), []);
    useEffect(() => () => cardGeometry.dispose(), [cardGeometry]);
@@ -331,6 +385,8 @@ function Trolley({ run, atlas, quality }: { run: Run; atlas: MeshStandardMateria
       if (!g) return;
       g.position.set(run.trolley.x.x, 0, run.trolley.z.x);
       g.rotation.y = run.trolley.yaw;
+      // the T-grip swivels on the tow bar and stays square to his back
+      if (grip.current) grip.current.rotation.y = run.hero.yaw - run.trolley.yaw;
       if (bag.current) bag.current.visible = run.carrying;
       if (card.current) {
          card.current.visible = run.carrying;
@@ -341,6 +397,7 @@ function Trolley({ run, atlas, quality }: { run: Run; atlas: MeshStandardMateria
       <group ref={root} name="trolley">
          <BlobShadow radius={0.55} opacity={0.26} />
          <Model asset={ASSETS.trolley} fallback={<TrolleyPrimitive />} />
+         <TowHandle grip={grip} />
          <group ref={bag} position={[0, TROLLEY_DECK, 0]} visible={false}>
             <Model asset={ASSETS.suitcase} rotation-y={Math.PI / 2} fallback={<SuitcasePrimitive />} />
          </group>
@@ -348,6 +405,38 @@ function Trolley({ run, atlas, quality }: { run: Run; atlas: MeshStandardMateria
             <Billboard>
                <mesh geometry={cardGeometry} material={atlas} />
             </Billboard>
+         </group>
+      </group>
+   );
+}
+
+const YOKE = Math.hypot(0.18, 0.16);
+
+/** The brass tow bar on the near crossbar and its swivelling T-grip (cart.ts: the hands hold it). */
+function TowHandle({ grip }: { grip: RefObject<Group> }) {
+   return (
+      <group position={[0, HANDLE_Y, 0]}>
+         {[-1, 1].map((s) => (
+            <mesh key={s} position={[s * 0.09, 0, HANDLE_AHEAD + 0.08]} rotation={[Math.PI / 2, 0, s * Math.atan2(0.18, 0.16)]}>
+               <cylinderGeometry args={[0.011, 0.011, YOKE, 8]} />
+               <meshStandardMaterial color={COLORS.brass} metalness={0.7} roughness={0.3} />
+            </mesh>
+         ))}
+         <mesh position={[0, 0, HANDLE_AHEAD + 0.16 + (TOW - 0.16) / 2]} rotation-x={Math.PI / 2}>
+            <cylinderGeometry args={[0.014, 0.014, TOW - 0.16, 10]} />
+            <meshStandardMaterial color={COLORS.brass} metalness={0.7} roughness={0.3} />
+         </mesh>
+         <group ref={grip} position={[0, 0, GRIP_AHEAD]}>
+            <mesh rotation-z={Math.PI / 2}>
+               <cylinderGeometry args={[0.022, 0.022, GRIP_LENGTH, 12]} />
+               <meshStandardMaterial color={COLORS.wainscot} roughness={0.6} />
+            </mesh>
+            {[-1, 1].map((s) => (
+               <mesh key={s} position={[(s * GRIP_LENGTH) / 2, 0, 0]}>
+                  <sphereGeometry args={[0.03, 12, 8]} />
+                  <meshStandardMaterial color={COLORS.brass} metalness={0.7} roughness={0.3} />
+               </mesh>
+            ))}
          </group>
       </group>
    );
