@@ -1,13 +1,15 @@
 "use client";
 
 // One useRunFrame: input, then rules, then the store. Visuals only read the run.
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useThree, type RootState } from "@react-three/fiber";
 import { Vector3 } from "three";
 import CameraRig from "@/arcade3d/core/CameraRig";
 import { playSfx, startLoop } from "@/arcade3d/core/audio";
 import { SkyDome } from "@/arcade3d/core/env";
-import { useFx } from "@/arcade3d/core/fx";
+import { useActionPop, useFx } from "@/arcade3d/core/fx";
+import { TargetBeacon } from "@/arcade3d/core/hud";
+import { useCoarsePointer } from "@/arcade3d/core/TouchControls";
 import { useInput } from "@/arcade3d/core/input";
 import { randomSeed } from "@/arcade3d/core/math";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
@@ -15,6 +17,7 @@ import { useFittedView, type FittedViewOptions } from "@/arcade3d/core/useFitted
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { Bags } from "./Bags";
 import { Belts } from "./Belts";
+import { GUIDE, emptyGoal, flightColor, hintCode, hintFor, nextGoal } from "./guide";
 import { Hall } from "./Hall";
 import type { LuggageLevel } from "./levels";
 import { COLORS } from "./looks";
@@ -104,6 +107,13 @@ export default function Scene() {
    const [run] = useState(() => createRun(randomSeed(), config));
    const input = useInput();
    const fx = useFx();
+   const pop = useActionPop();
+   const touch = useCoarsePointer();
+   const goal = useRef(emptyGoal()).current;
+   const guideCode = useRef(-1);
+   const flipBeacon = useRef({ x: 0, y: 0.9, z: 0, hidden: true }).current;
+   const chuteBeacon = useRef({ x: 0, y: 0.5, z: 0, hidden: true }).current;
+   const [flightColorNow, setFlightColor] = useState(flightColor(0));
    const phase = useArcadeStore((state) => state.phase);
    const scratch = useMemo(() => ({ v: new Vector3(), flip: { flip: [false, false, false, false] } as StepInput }), []);
 
@@ -116,6 +126,8 @@ export default function Scene() {
       const belt = startLoop("belt", { volume: 0.35 });
       return () => belt.stop();
    }, [phase]);
+
+   useEffect(() => () => GUIDE.reset(), []);
 
    useRunFrame((state, dt, time) => {
       const { pressed, swipe, tapDown } = input.current;
@@ -147,7 +159,7 @@ export default function Scene() {
             fx.burst("puff", scratch.v, 14);
             playSfx(event.overflow ? "thud" : "buzz");
             // small shake on wrong chute, larger shake on overflow
-            fx.shake(event.overflow ? 0.35 : 0.15);
+            pop.fail(scratch.v, event.overflow ? "Overflow! Miss" : "Wrong chute! Miss", { shake: event.overflow ? 0.35 : 0.15 });
          } else if (event.kind === "flip") {
             playSfx("click");
          }
@@ -155,6 +167,20 @@ export default function Scene() {
       store.setStat("strikes", run.strikes);
       store.setStat("combo", comboMult(run.streak < 1 ? 1 : run.streak));
       if (run.lost) store.end("lose");
+      // the beacons and the hint line follow the front bag; the hint is rebuilt only on a change
+      nextGoal(run, goal);
+      flipBeacon.hidden = goal.kind !== "flip";
+      chuteBeacon.hidden = goal.kind !== "chute";
+      const live = goal.kind === "flip" ? flipBeacon : chuteBeacon;
+      live.x = goal.x;
+      live.y = goal.y;
+      live.z = goal.z;
+      const code = hintCode(goal);
+      if (code !== guideCode.current) {
+         guideCode.current = code;
+         GUIDE.set(hintFor(goal, touch));
+         setFlightColor(flightColor(goal.flight));
+      }
    });
 
    return (
@@ -164,6 +190,8 @@ export default function Scene() {
          <Hall />
          <Belts run={run} />
          <Bags run={run} />
+         <TargetBeacon target={flipBeacon} variant="pick" color={flightColorNow} radius={0.7} height={1.0} label="FLIP" />
+         <TargetBeacon target={chuteBeacon} variant="drop-here" color={flightColorNow} radius={0.8} height={1.0} label="CHUTE" />
       </>
    );
 }

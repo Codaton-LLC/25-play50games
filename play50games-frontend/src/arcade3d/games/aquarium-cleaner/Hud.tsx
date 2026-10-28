@@ -2,7 +2,9 @@
 
 import CameraViewButton from "@/arcade3d/core/camera/CameraViewButton";
 import { useLevel } from "@/arcade3d/core/level";
+import { HintLine } from "@/arcade3d/core/hud/HintLine";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
+import { GUIDE } from "./guide";
 import type { AquariumLevel } from "./levels";
 import styles from "./Hud.module.css";
 
@@ -48,6 +50,7 @@ export default function Hud() {
    return (
       <>
          <CameraViewButton />
+         <HintLine signal={GUIDE} />
          <GameHud />
       </>
    );

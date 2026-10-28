@@ -62,6 +62,32 @@ export function viewWindow(level: BeachLevel, portrait = false): { x: number; z:
    return portrait ? { x: Math.min(level.width / 2, 4.5), z: 6 } : { x: Math.min(level.width / 2, 9), z: 7.5 };
 }
 
+/** The swimmer's beacon (arrow, label) stands over it: keep the swimmer this share of the window inside its far edge. */
+export const SWIMMER_INSET = { x: 0.7, zNorth: 0.6 } as const;
+/** The lifeguard may sit this share of the window from the aim (so a pan to the swimmer never loses him). */
+export const HERO_REACH = 0.85;
+
+/**
+ * Pans the aim just far enough that the swimmer in trouble, and its GRAB beacon, sit inside the window
+ * (clear of the shell chips and the screen edge) while the lifeguard stays in it too; the lifeguard wins
+ * when both cannot fit. Writes into `aim` (x, z) and returns it. Pure; the caller clamps to `aimBounds`.
+ */
+export function frameAim(
+   aim: { x: number; z: number },
+   hero: { x: number; z: number },
+   swimmer: { x: number; z: number } | null,
+   window: { x: number; z: number },
+): { x: number; z: number } {
+   if (!swimmer) return aim;
+   const clamp = (v: number, lo: number, hi: number) => (v < lo ? lo : v > hi ? hi : v);
+   const sx = window.x * SWIMMER_INSET.x;
+   aim.x = clamp(clamp(aim.x, swimmer.x - sx, swimmer.x + sx), hero.x - window.x * HERO_REACH, hero.x + window.x * HERO_REACH);
+   // north (-z) is up the screen, where the beacon stands: only ever pan north, never back toward the sand
+   const north = swimmer.z + window.z * SWIMMER_INSET.zNorth;
+   if (aim.z > north) aim.z = Math.max(north, hero.z - window.z * HERO_REACH);
+   return aim;
+}
+
 /** Where the camera may aim: the beach shrunk so the window stays over it, with a little sea and sand to spare. */
 export function aimBounds(level: BeachLevel, portrait = false): AABB {
    const w = viewWindow(level, portrait);
@@ -72,6 +98,9 @@ export function aimBounds(level: BeachLevel, portrait = false): AABB {
    return { min: { x: -hx, y: 0, z: zMin }, max: { x: hx, y: 2, z: zMax } };
 }
 
+/** Height (m) of the fitted box: the swimmer beacon's arrow tip and label reach about 2.7 m over the water. */
+export const BEACON_HEADROOM = 3.4;
+
 const VIEWS = new Map<string, FittedViewOptions>();
 
 /** A window round the aim (the camera follows the lifeguard with it), clear of the HUD and the controls. */
@@ -81,11 +110,13 @@ export function viewFor(id: LevelId, portrait = false): FittedViewOptions {
    if (!view) {
       const w = viewWindow(LEVELS[id], portrait);
       view = {
-         area: { min: { x: -w.x, y: 0, z: -w.z }, max: { x: w.x, y: 1.8, z: w.z } },
+         // the box is tall enough (BEACON_HEADROOM) for the GRAB beacon's arrow and label over a swimmer at the
+         // window's far edge, and the top margin keeps that label clear of the shell chip rows (390 x 844 checked)
+         area: { min: { x: -w.x, y: 0, z: -w.z }, max: { x: w.x, y: BEACON_HEADROOM, z: w.z } },
          pitch: PITCH,
          yaws: [0],
          fov: FOV,
-         margin: { top: 0.04, right: 0.02, bottom: 0.04, left: 0.02 },
+         margin: { top: 0.07, right: 0.02, bottom: 0.04, left: 0.02 },
          padding: 6,
          shift: true,
       };

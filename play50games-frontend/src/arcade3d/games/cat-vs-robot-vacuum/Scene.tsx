@@ -5,18 +5,19 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { BoxGeometry, CircleGeometry, Euler, Matrix4, MeshStandardMaterial, Quaternion, Vector3, type Group } from "three";
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
-import { DynamicInstancedModel, InstancedModel } from "@/arcade3d/core/assets";
+import { DynamicInstancedModel, InstancedModel, Model } from "@/arcade3d/core/assets";
 import CameraRig from "@/arcade3d/core/CameraRig";
 import { useCameraViews } from "@/arcade3d/core/camera/CameraViews";
 import type { AABB } from "@/arcade3d/core/collision";
 import { playSfx, startLoop, type LoopHandle } from "@/arcade3d/core/audio";
 import { FRAME_PRIORITY } from "@/arcade3d/core/frameLoop";
-import { useFx } from "@/arcade3d/core/fx";
+import { Toss, useActionPop, useFx, type TossHandle } from "@/arcade3d/core/fx";
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import { useInput } from "@/arcade3d/core/input";
 import { useLevel } from "@/arcade3d/core/level";
 import { randomSeed } from "@/arcade3d/core/math";
 import { hop as hopOffset, type BodyOffset } from "@/arcade3d/core/motion";
+import { TargetBeacon } from "@/arcade3d/core/hud/TargetBeacon";
 import { TargetMarkers, type MarkerTarget } from "@/arcade3d/core/hud/TargetMarkers";
 import { BlobShadow } from "@/arcade3d/core/render";
 import { QuadrupedModel, useQuadrupedPose } from "@/arcade3d/core/rig/QuadrupedModel";
@@ -26,6 +27,7 @@ import { useFittedView } from "@/arcade3d/core/useFittedView";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { ASSETS, CAT_LANDMARKS } from "./assets";
+import { GUIDE, emptyGoal, hintCode, hintFor, nextGoal } from "./guide";
 import type { CatLevel } from "./levels";
 import { COLORS, DAMPING, FOV, LOOK_AHEAD, ZOOM, aimBounds, decorSpots, lookAtFor, outerWallSpots, viewFor, wallSpots } from "./looks";
 import { useCameraZoom } from "@/arcade3d/core/useCameraZoom";
@@ -54,6 +56,7 @@ const V = new Vector3();
 const S = new Vector3(1, 1, 1);
 const BODY: BodyOffset = { y: 0, roll: 0, yaw: 0, squash: 1 };
 const FLOAT = new Vector3();
+const MOUTH = new Vector3();
 const CAT_SCALE = ASSETS.cat.scale ?? 1;
 /** the bed's mattress top (m): the cat hops up there to sit on a win */
 const BED_TOP = FURN_SIZE.bed.y * 0.72;
@@ -104,6 +107,7 @@ function LevelScene() {
    const view = useFittedView(viewFor(id));
    const input = useInput();
    const fx = useFx();
+   const pop = useActionPop();
    const time = useGameTime();
    const [run] = useState<Run>(() => createRun(randomSeed(), config));
    const aim = useRef({ x: run.cat.x, y: 0.4, z: run.cat.z + LOOK_AHEAD }).current;
@@ -113,6 +117,11 @@ function LevelScene() {
    const idlePose = useMemo(createQuadrupedPose, []);
    const gaitPose = useMemo(createQuadrupedPose, []);
    const targets = useMemo<MarkerTarget[]>(() => [{ x: 0, y: 0.3, z: 0, hidden: true }], []);
+   const goal = useRef(emptyGoal()).current;
+   const treatBeacon = useRef({ x: 0, y: 0.3, z: 0, hidden: true }).current;
+   const bedBeacon = useRef({ x: run.home.x, y: 0.7, z: run.home.z, hidden: true }).current;
+   const guideCode = useRef(-1);
+   const gulp = useRef<TossHandle>(null);
    // a portrait phone fits the hall's width: start a little closer so the cat is a clear size
    const portrait = useThree((state) => state.size.width < state.size.height);
    const zoom = useCameraZoom({ min: ZOOM.min, max: ZOOM.max, initial: portrait ? ZOOM.portrait : 1 });
@@ -205,6 +214,14 @@ function LevelScene() {
    }, [fx]);
 
    useEffect(() => {
+      nextGoal(run, goal);
+      guideCode.current = hintCode(run, goal);
+      GUIDE.set(hintFor(run, goal));
+      return () => GUIDE.reset();
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+   }, [run]);
+
+   useEffect(() => {
       if (phase !== "playing") return;
       const handle = startLoop("vacuum", { volume: 0.05 });
       loop.current = handle;
@@ -239,6 +256,8 @@ function LevelScene() {
          FLOAT.set(t.x, 0.4, t.z);
          fx.burst("sparkle", FLOAT, 10);
          fx.score(FLOAT, `+${ev.score}`);
+         // the fish flies up into the cat's mouth instead of vanishing
+         gulp.current?.play({ x: t.x, y: 0.3, z: t.z }, MOUTH.set(run.cat.x, 0.55, run.cat.z), { duration: 0.28, height: 0.4, scaleFrom: 1, scaleTo: 0.2 });
          playSfx("pickup");
       }
       if (ev.toy >= 0) {
@@ -250,10 +269,22 @@ function LevelScene() {
       if (ev.lifeLost) {
          FLOAT.set(run.cat.x, 0.5, run.cat.z);
          fx.burst("puff", FLOAT, 10);
-         fx.shake(0.3);
+         FLOAT.y = 1.1;
+         pop.fail(FLOAT, run.over === "lose" ? "Vacuumed! Out of lives" : "Vacuumed! -1 life", { shake: 0.3 });
          playSfx("hit");
       }
       if (ev.won) playSfx("win");
+      // the beacon and the hint line follow the step; the hint is rebuilt only on a change
+      nextGoal(run, goal);
+      treatBeacon.hidden = goal.kind !== "treat";
+      bedBeacon.hidden = goal.kind !== "bed";
+      treatBeacon.x = goal.x;
+      treatBeacon.z = goal.z;
+      const code = hintCode(run, goal);
+      if (code !== guideCode.current) {
+         guideCode.current = code;
+         GUIDE.set(hintFor(run, goal));
+      }
    });
 
    // the cat's pose: walk -> trot -> gallop by speed with planted paws (core quadruped rig), idle
@@ -489,6 +520,11 @@ function LevelScene() {
             <QuadrupedModel asset={ASSETS.cat} pose={pose} tint={config.tint} fallback={<CatFigure />} />
          </group>
          <TargetMarkers targets={targets} color={COLORS.treatHalo} />
+         <TargetBeacon target={treatBeacon} variant="pick" color={COLORS.treatHalo} radius={0.45} height={0.8} />
+         <TargetBeacon target={bedBeacon} variant="drop-here" color={COLORS.padReady} radius={1.0} height={0.9} label="BED" />
+         <Toss ref={gulp} slots={2} spin={8}>
+            <Model asset={ASSETS.treat} />
+         </Toss>
       </>
    );
 }
