@@ -8,11 +8,12 @@ import { orbitPosition, type OrbitSettings } from "@/arcade3d/menu2/camera/orbit
 import type { ClipOptions } from "@/arcade3d/menu2/camera/orbitCollision";
 import { guidePoint, type CityRun } from "./rules";
 import type { Course } from "./city";
+import { buildSkyline } from "./skyline";
 
 const DEG = Math.PI / 180;
 
 export function cityOrbit(course: Course): Partial<OrbitSettings> {
-   return { yaw: course.startYaw, pitch: 30 * DEG, distance: 9, minDistance: 4.5, maxDistance: 22 };
+   return { yaw: course.startYaw, pitch: 36 * DEG, distance: 10, minDistance: 4.5, maxDistance: 24 };
 }
 
 export const CITY_COLLISION: ClipOptions = { radius: 0.4, minDistance: 2.4, squeeze: 1.6, liftTo: 62 * DEG };
@@ -63,21 +64,34 @@ export function introKeyframes(course: Course): IntroKeyframe[] {
    const b = course.beacons[0];
    const fx = b.bus >= 0 ? cx : b.x;
    const fz = b.bus >= 0 ? cz : b.z;
+   // high over the city, a sweep across it, then down behind the start looking at the first beacon
+   const bx = Math.sin(course.startYaw);
+   const bz = Math.cos(course.startYaw);
    return [
-      { position: [cx - span * 0.7, span * 0.75, cz + span * 0.8], lookAt: [cx, 0, cz] },
-      { position: [cx + span * 0.55, span * 0.45, cz + span * 0.35], lookAt: [cx, 2, cz] },
-      { position: [fx + (fx - course.startX) * 0.2, 9, fz + (fz - course.startZ) * 0.2 + 2], lookAt: [course.startX, 1.5, course.startZ] },
+      { position: [cx - span * 0.45, span * 0.95, cz + span * 0.55], lookAt: [cx, 0, cz] },
+      { position: [cx + span * 0.35, span * 0.6, cz + span * 0.2], lookAt: [cx, 2, cz] },
+      { position: [course.startX + bx * 14, 12, course.startZ + bz * 14], lookAt: [fx, 1.5, fz] },
    ];
 }
 
-/** Building height for the camera's solids (taller than any drawn block). */
-const SOLID_TOP = 22;
 const SOLID_REACH = 30;
+const heights = new WeakMap<Course, number[]>();
+
+function blockHeights(c: Course): number[] {
+   let h = heights.get(c);
+   if (!h) {
+      h = buildSkyline(c).height;
+      heights.set(c, h);
+   }
+   return h;
+}
 
 /** The solid blocks near the camera (buildings, the closed site, ghost shops), so the orbit tucks in or rises. */
 export function courseSolids(run: CityRun, x: number, z: number, out: AABB[]): number {
    let n = 0;
-   for (const b of run.course.blocks) {
+   const hs = blockHeights(run.course);
+   for (let i = 0; i < run.course.blocks.length; i++) {
+      const b = run.course.blocks[i];
       if (n >= out.length) break;
       if (b.kind === "plaza" || b.kind === "lot" || (b.kind === "site" && run.siteOpen)) continue;
       const mx = (b.x0 + b.x1) / 2;
@@ -87,7 +101,7 @@ export function courseSolids(run: CityRun, x: number, z: number, out: AABB[]): n
       box.min.x = b.x0;
       box.max.x = b.x1;
       box.min.y = 0;
-      box.max.y = b.kind === "site" ? 2.2 : SOLID_TOP;
+      box.max.y = b.kind === "site" ? 2.2 : hs[i] + 0.5;
       box.min.z = b.z0;
       box.max.z = b.z1;
    }

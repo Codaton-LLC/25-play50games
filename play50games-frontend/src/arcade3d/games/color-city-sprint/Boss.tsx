@@ -137,7 +137,7 @@ export function Boss({ run, clock }: { run: CityRun; clock: VisualClock }) {
                </group>
             </group>
          </group>
-         <DynamicInstancedModel asset={ASSETS.drone} count={6} update={drones} name="drones" />
+         <DynamicInstancedModel asset={ASSETS.drone} count={4} update={drones} name="drones" />
       </>
    );
 }

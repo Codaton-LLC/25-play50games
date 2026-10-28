@@ -25,7 +25,8 @@ import {
    type Block,
    type Course as CityCourse,
 } from "./city";
-import { ASSETS, BLOCK_W, BRICK_SCALE, GLB_SIZE, PASTEL_SCALE, TOWER_SCALE } from "./assets";
+import { ASSETS } from "./assets";
+import { buildSkyline, type BuildingSpot } from "./skyline";
 import { COLORS, LOOKS } from "./look";
 import { beaconPoint, litBeacon, ringReady, type CityRun } from "./rules";
 import { SECRETS } from "./progression";
@@ -37,7 +38,7 @@ const UP = new Vector3(0, 1, 0);
 const WHITE = new Color("#ffffff");
 const GREY = new Color("#7d8089");
 const FLASH = new Color("#ffe4d6");
-const RED = new Color(COLORS.lane);
+const RED = new Color("#e11d2a");
 const PINK = new Color(COLORS.leg);
 const GREEN = new Color("#22c55e");
 const AMBER = new Color("#f59e0b");
@@ -55,23 +56,6 @@ function place(m: Matrix4, x: number, y: number, z: number, yaw: number, sx = 1,
    m.compose(pos, quat, scl);
 }
 
-/** A tiny deterministic hash per block (its look never changes between runs). */
-function hash(a: number, b: number, c: number): number {
-   let h = (a * 73856093) ^ (b * 19349663) ^ (c * 83492791);
-   h = (h ^ (h >>> 13)) * 1274126177;
-   return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
-}
-
-interface BuildingSpot {
-   x: number;
-   z: number;
-   yaw: number;
-   sx: number;
-   sy: number;
-   sz: number;
-   block: number;
-}
-
 /** The street edges round a block (its "restored" streets). */
 function blockEdges(c: CityCourse, b: Block): number[] {
    const id = (ix: number, iz: number) => iz * c.nx + ix;
@@ -79,25 +63,7 @@ function blockEdges(c: CityCourse, b: Block): number[] {
 }
 
 function buildCity(c: CityCourse) {
-   const pastel: BuildingSpot[] = [];
-   const tower: BuildingSpot[] = [];
-   const brick: BuildingSpot[] = [];
-   c.blocks.forEach((b, i) => {
-      if (b.kind !== "building" && b.kind !== "ghost") return;
-      const cx = (b.x0 + b.x1) / 2;
-      const cz = (b.z0 + b.z1) / 2;
-      const r = hash(b.bx, b.bz, c.id);
-      const tall = 1.8 + hash(b.bz, b.bx, c.id * 7) * 1.1;
-      if (b.kind === "ghost" || r < 0.55) {
-         const d = GLB_SIZE.pastel.z * PASTEL_SCALE;
-         pastel.push({ x: cx, z: b.z1 - d / 2, yaw: 0, sx: PASTEL_SCALE, sy: PASTEL_SCALE * tall, sz: PASTEL_SCALE, block: i });
-         pastel.push({ x: cx, z: b.z0 + d / 2, yaw: Math.PI, sx: PASTEL_SCALE, sy: PASTEL_SCALE * (tall * 0.85 + 0.2), sz: PASTEL_SCALE, block: i });
-      } else if (r < 0.82) {
-         tower.push({ x: cx, z: cz, yaw: (Math.floor(r * 40) % 4) * (Math.PI / 2), sx: TOWER_SCALE, sy: TOWER_SCALE * (0.85 + tall * 0.35), sz: BLOCK_W / GLB_SIZE.tower.z, block: i });
-      } else {
-         brick.push({ x: cx, z: cz, yaw: (Math.floor(r * 40) % 4) * (Math.PI / 2), sx: BRICK_SCALE, sy: BRICK_SCALE * 2.1, sz: BRICK_SCALE, block: i });
-      }
-   });
+   const { pastel, tower, brick } = buildSkyline(c);
    // pavements: one slab per block (a 1 m ring round the building, inside the street's 3 m)
    const slabs = c.blocks.map((b) => ({ x: (b.x0 + b.x1) / 2, z: (b.z0 + b.z1) / 2, w: b.x1 - b.x0 + 2, kind: b.kind }));
    // dashed centre lines: three dashes per street
@@ -229,16 +195,16 @@ export function Lanes({ run, glow, color, offset = 0, width = 1 }: { run: CityRu
       if (g < 0.01 && !leg) return false;
       const k = leg ? 1 : g;
       // painted streets reach into the crossings (one continuous network)
-      const len = leg ? CELL - 2 * STREET_HALF : (CELL + 2.4) * k;
+      const len = leg ? CELL - 2 * STREET_HALF - 0.6 : (CELL + 2.4) * k;
       const ox = e.horiz ? 0 : offset;
       const oz = e.horiz ? offset : 0;
-      place(m, (e.ax + e.bx) / 2 + ox, leg ? 0.045 : 0.05 + Math.abs(offset) * 0.01, (e.az + e.bz) / 2 + oz, e.horiz ? Math.PI / 2 : 0, (leg ? 1.1 : 2.4 * (0.4 + 0.6 * k)) * width, 1, len);
+      place(m, (e.ax + e.bx) / 2 + ox, leg ? 0.045 : 0.05 + Math.abs(offset) * 0.01, (e.az + e.bz) / 2 + oz, e.horiz ? Math.PI / 2 : 0, (leg ? 0.35 : 2.2 * (0.4 + 0.6 * k)) * width, 1, len);
       tint?.copy(leg ? PINK : own);
    };
    return (
       <DynamicInstanced count={c.edges.length} update={lanes} name="lanes" tinted>
          <boxGeometry args={[1, 0.02, 1]} />
-         <meshStandardMaterial color="#ffffff" emissive={color ?? COLORS.lane} emissiveIntensity={glow} roughness={0.5} />
+         <meshStandardMaterial color="#ffffff" emissive={color ?? "#b91c1c"} emissiveIntensity={glow} roughness={0.6} />
       </DynamicInstanced>
    );
 }
@@ -252,18 +218,18 @@ function Lamps({ run, city, strength }: { run: CityRun; city: ReturnType<typeof 
    const heads = (i: number, m: Matrix4) => {
       const l = city.lamps[i];
       if (!l) return false;
-      place(m, l.x, 4.1, l.z, 0);
+      place(m, l.x, 4.2, l.z, 0);
    };
    void run;
    return (
       <>
          <DynamicInstanced count={city.lamps.length} update={poles} name="lampPoles">
-            <cylinderGeometry args={[0.07, 0.1, 4.2, 6]} />
-            <meshStandardMaterial color="#334155" metalness={0.5} roughness={0.5} />
+            <cylinderGeometry args={[0.07, 0.11, 4.2, 6]} />
+            <meshStandardMaterial color="#9ca3af" metalness={0.4} roughness={0.5} />
          </DynamicInstanced>
          <DynamicInstanced count={city.lamps.length} update={heads} name="lampHeads">
-            <sphereGeometry args={[0.24, 10, 8]} />
-            <meshStandardMaterial color="#fff7d6" emissive="#ffd88a" emissiveIntensity={0.4 + strength * 2.2} toneMapped={false} />
+            <boxGeometry args={[0.34, 0.22, 0.34]} />
+            <meshStandardMaterial color="#fff7d6" emissive="#ffc96b" emissiveIntensity={0.2 + strength * 2.4} toneMapped={false} />
          </DynamicInstanced>
       </>
    );
@@ -295,6 +261,13 @@ function Site({ run, city, clock }: { run: CityRun; city: ReturnType<typeof buil
 
 function Ghosts({ course, clock }: { course: CityCourse; clock: VisualClock }) {
    const ghosts = course.blocks.filter((b) => b.kind === "ghost");
+   const fronts = useMemo(
+      () => course.blocks.filter((b) => b.kind === "ghost").flatMap((b) => [
+         { x: (b.x0 + b.x1) / 2, y: 0, z: b.z0 - 0.05, scale: 0.75 },
+         { x: (b.x0 + b.x1) / 2, y: 0, z: b.z1 + 0.05, rotY: Math.PI, scale: 0.75 },
+      ]),
+      [course],
+   );
    const ref = useRef<Group>(null);
    useFrame(() => {
       const g = ref.current;
@@ -316,12 +289,7 @@ function Ghosts({ course, clock }: { course: CityCourse; clock: VisualClock }) {
             ))}
          </group>
          {/* the glass shop-fronts on its street faces */}
-         {ghosts.map((b, i) => (
-            <group key={i}>
-               <Model asset={ASSETS.gate} position={[(b.x0 + b.x1) / 2, 0, b.z0 - 0.05]} scale={[0.75, 0.75, 0.75]} />
-               <Model asset={ASSETS.gate} position={[(b.x0 + b.x1) / 2, 0, b.z1 + 0.05]} rotation-y={Math.PI} scale={[0.75, 0.75, 0.75]} />
-            </group>
-         ))}
+         <InstancedModel asset={ASSETS.gate} spots={fronts} fallback={null} />
       </>
    );
 }
@@ -368,13 +336,9 @@ function Plazas({ course, clock }: { course: CityCourse; clock: VisualClock }) {
 }
 
 function Ramps({ course }: { course: CityCourse }) {
-   return (
-      <>
-         {course.ramps.map((r, i) => (
-            <Model key={i} asset={ASSETS.ramp} position={[r.x - r.dx * RAMP_LEN * 0.5, 0, r.z - r.dz * RAMP_LEN * 0.5]} rotation-y={Math.atan2(-r.dx, -r.dz)} />
-         ))}
-      </>
-   );
+   const spots = useMemo(() => course.ramps.map((r) => ({ x: r.x - r.dx * RAMP_LEN * 0.5, y: 0, z: r.z - r.dz * RAMP_LEN * 0.5, rotY: Math.atan2(-r.dx, -r.dz) })), [course]);
+   if (spots.length === 0) return null;
+   return <InstancedModel asset={ASSETS.ramp} spots={spots} fallback={null} />;
 }
 
 function Buses({ run }: { run: CityRun }) {
@@ -407,6 +371,17 @@ function Rail({ course, glow }: { course: CityCourse; glow: number }) {
    for (let t = 0; t <= len; t += CELL) pillars.push(t - len / 2 + 0.5);
    // the deck is held from the outer kerb (pillars beside the street, never in it)
    const out = along ? (r.az >= course.maxZ - STREET_HALF - 0.1 ? 1 : -1) : r.ax >= course.maxX - STREET_HALF - 0.1 ? 1 : -1;
+   // pillars and arms in the rail group's frame (x along the deck, z across)
+   const pillar = (i: number, m: Matrix4) => {
+      const p = pillars[i];
+      if (p === undefined) return false;
+      place(m, p, r.y / 2, out * (STREET_HALF + 0.6), 0, 1, r.y, 1);
+   };
+   const arm = (i: number, m: Matrix4) => {
+      const p = pillars[i];
+      if (p === undefined) return false;
+      place(m, p, r.y - 0.45, (out * (STREET_HALF + 0.6)) / 2, 0, 1, 1, STREET_HALF + 0.6);
+   };
    return (
       <group position={[mx, 0, mz]} rotation-y={along ? 0 : Math.PI / 2}>
          <mesh position={[0, r.y - 0.2, 0]}>
@@ -419,18 +394,14 @@ function Rail({ course, glow }: { course: CityCourse; glow: number }) {
                <meshStandardMaterial color="#fecdd3" emissive={COLORS.railGlow} emissiveIntensity={glow} toneMapped={false} />
             </mesh>
          ))}
-         {pillars.map((p, i) => (
-            <group key={i} position={[p, 0, out * (STREET_HALF + 0.6)]}>
-               <mesh position={[0, r.y / 2, 0]}>
-                  <boxGeometry args={[0.6, r.y, 0.6]} />
-                  <meshStandardMaterial color="#94a3b8" roughness={0.7} />
-               </mesh>
-               <mesh position={[0, r.y - 0.45, -out * (STREET_HALF + 0.6) / 2]}>
-                  <boxGeometry args={[0.5, 0.5, STREET_HALF + 0.6]} />
-                  <meshStandardMaterial color="#94a3b8" roughness={0.7} />
-               </mesh>
-            </group>
-         ))}
+         <DynamicInstanced count={pillars.length} update={pillar} name="railPillars">
+            <boxGeometry args={[0.6, 1, 0.6]} />
+            <meshStandardMaterial color="#94a3b8" roughness={0.7} />
+         </DynamicInstanced>
+         <DynamicInstanced count={pillars.length} update={arm} name="railArms">
+            <boxGeometry args={[0.5, 0.5, 1]} />
+            <meshStandardMaterial color="#94a3b8" roughness={0.7} />
+         </DynamicInstanced>
       </group>
    );
 }

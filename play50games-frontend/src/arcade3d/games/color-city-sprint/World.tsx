@@ -26,7 +26,7 @@ export function backdropSpots(c: Course): { rows: InstanceSpot[]; towers: Instan
    const hw = (c.maxX - c.minX) / 2;
    const hd = (c.maxZ - c.minZ) / 2;
    const rowW = GLB_SIZE.pastel.x * PASTEL_SCALE;
-   for (let ring = 0; ring < 2; ring++) {
+   for (let ring = 0; ring < 1; ring++) {
       const gap = 6 + ring * 16;
       const sides = [
          { ox: 0, oz: -1, len: hw * 2 + gap * 2, yaw: 0 },
@@ -41,10 +41,11 @@ export function backdropSpots(c: Course): { rows: InstanceSpot[]; towers: Instan
             const r = hash(k + ring * 31, si);
             const x = cx + (s.ox !== 0 ? s.ox * (hw + gap) : t);
             const z = cz + (s.oz !== 0 ? s.oz * (hd + gap) : t);
-            if (ring === 1 && r < 0.45) {
-               towers.push({ x, y: 0, z, rotY: s.yaw, sx: TOWER_SCALE * 1.1, sy: TOWER_SCALE * (1.4 + r * 1.6), sz: TOWER_SCALE * 1.1 });
+            if (r < 0.3) {
+               // a glass tower set further back
+               towers.push({ x: x + s.ox * 10, y: 0, z: z + s.oz * 10, rotY: s.yaw, sx: TOWER_SCALE, sy: TOWER_SCALE * (1 + r * 1.2), sz: TOWER_SCALE });
             } else {
-               rows.push({ x, y: 0, z, rotY: s.yaw, sx: PASTEL_SCALE, sy: PASTEL_SCALE * (1.7 + r * (ring === 0 ? 0.8 : 1.6)), sz: PASTEL_SCALE });
+               rows.push({ x, y: 0, z, rotY: s.yaw, sx: PASTEL_SCALE, sy: PASTEL_SCALE * (1.1 + r * 0.6), sz: PASTEL_SCALE });
             }
          }
       });

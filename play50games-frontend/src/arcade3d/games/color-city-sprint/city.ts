@@ -305,8 +305,9 @@ export function buildCourse(spec: CitySpec): Course {
       starTargetMs: spec.starTargetMs,
       startX: spec.start.x,
       startZ: spec.start.z,
-      // the orbit's yaw puts the camera at pivot + (sin yaw, cos yaw): behind = away from the beacon
-      startYaw: Math.atan2(spec.start.x - fx, spec.start.z - fz),
+      // the orbit's yaw puts the camera at pivot + (sin yaw, cos yaw): behind the start, back along the
+      // street that leads to the first beacon (an axis, so the camera sits in the street, not a block)
+      startYaw: Math.abs(fx - spec.start.x) >= Math.abs(fz - spec.start.z) ? (fx >= spec.start.x ? -Math.PI / 2 : Math.PI / 2) : fz >= spec.start.z ? Math.PI : 0,
       beacons,
       blocks,
       edges,
