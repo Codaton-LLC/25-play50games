@@ -1,9 +1,12 @@
 "use client";
 
 import { useShallow } from "zustand/react/shallow";
+import { HintLine } from "@/arcade3d/core/hud/HintLine";
 import { useSafeArea } from "@/arcade3d/core/safeArea";
+import { useCoarsePointer } from "@/arcade3d/core/TouchControls";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import styles from "./Hud.module.css";
+import { hintFor } from "./guide";
 import { placeCards, type CardPlacement } from "./layout";
 import { useCastleLevel } from "./useCastleLevel";
 import { comboMultiplier } from "./rules";
@@ -31,7 +34,10 @@ export default function Hud() {
       const s = useArcadeStore.getState();
       if (s.phase === "playing" && s.stats.offer === 1 && !(s.stats.pick > 0)) s.setStat("pick", value);
    };
+   const touch = useCoarsePointer();
+   const hint = hintFor(stats.climb, stats.rock, stats.offer === 1, touch);
    return <>
+      <HintLine text={hint.text} tone={hint.tone} />
       <div className={styles.panel} data-arcade-safe-area>
          <strong>Gate {stats.hp ?? 100}/{stats.maxHP ?? 100}</strong><strong>Wave {stats.wave ?? 1}/{config.counts.length}</strong>
          {comboMultiplier(stats.combo) > 1 && <strong className={styles.combo}>Combo x{comboMultiplier(stats.combo)}</strong>}
