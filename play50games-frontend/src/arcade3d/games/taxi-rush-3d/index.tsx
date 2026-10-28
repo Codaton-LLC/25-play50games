@@ -2,6 +2,7 @@
 
 // Taxi Rush 3D. GameShell owns the clock, the lives, pause and the result.
 // Level 1 is the definition; levels 2-5 swap the grid, traffic, patience and lighting.
+import CameraViewButton from "@/arcade3d/core/camera/CameraViewButton";
 import type { GameDefinition, LevelSpec } from "@/arcade3d/core/types";
 import { LEVEL_IDS, type LevelId } from "@/arcade3d/types";
 import { ASSETS } from "./assets";
@@ -33,6 +34,7 @@ const look = lookAtFor(LEVELS[1]);
 const definition: GameDefinition<TaxiLevel> = {
    slug: "taxi-rush-3d",
    Scene,
+   Hud: CameraViewButton,
    assets: ASSETS,
    durationMs: LEVELS[1].durationMs,
    lives: 3,

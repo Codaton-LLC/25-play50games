@@ -7,6 +7,7 @@ import { AdditiveBlending, Color, Euler, RepeatWrapping, Matrix4, MeshStandardMa
 import { DynamicInstancedModel, InstancedModel, Model } from "@/arcade3d/core/assets";
 import { playSfx, startLoop, type LoopHandle } from "@/arcade3d/core/audio";
 import CameraRig from "@/arcade3d/core/CameraRig";
+import { useCameraViews } from "@/arcade3d/core/camera/CameraViews";
 import { SkyDome } from "@/arcade3d/core/env";
 import { FRAME_PRIORITY } from "@/arcade3d/core/frameLoop";
 import { useFx } from "@/arcade3d/core/fx";
@@ -45,6 +46,32 @@ function LevelScene() {
    const time = useGameTime();
    const quality = useQuality();
    const run = useMemo<Run>(() => createRun(randomSeed(), config), [config]);
+   // The fitted follow camera is already the classic chase view.
+   // TaxiInput has no yaw: the stick always steers the cab itself.
+   useCameraViews({
+      slug: "taxi-rush-3d",
+      subject: "vehicle",
+      steering: "vehicle",
+      defaultYaw: view.yaw,
+      views: ["default", "front", "top", "free"],
+      framing: { top: { distance: 20 } },
+      target: (o) => {
+         o.x = run.x;
+         o.y = 0.8;
+         o.z = run.z;
+         o.heading = run.yaw;
+         o.vx = Math.sin(run.yaw) * run.speed;
+         o.vz = Math.cos(run.yaw) * run.speed;
+      },
+      solids: (out) => {
+         const count = Math.min(out.length, run.buildings.length);
+         for (let i = 0; i < count; i++) {
+            Object.assign(out[i].min, run.buildings[i].min);
+            Object.assign(out[i].max, run.buildings[i].max);
+         }
+         return count;
+      },
+   });
    const aim = useRef({ x: run.x, y: 0.7, z: run.z + LOOK_AHEAD }).current;
    const cab = useRef<Group>(null);
    const rider = useRef<Group>(null);
