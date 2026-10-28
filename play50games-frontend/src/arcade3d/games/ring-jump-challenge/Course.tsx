@@ -30,7 +30,7 @@ import { DynamicInstancedModel, InstancedModel } from "@/arcade3d/core/assets";
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import type { InstanceSpot } from "@/arcade3d/core/render";
 import { ASSETS, GLB_SIZE, ORB_SIZE, RING_FLAT, RING_INNER, WIND_INNER } from "./assets";
-import { COLORS, glowTexture, ringTexture, streakTexture } from "./look";
+import { COLORS, glowTexture, ringTexture, rockTexture, streakTexture } from "./look";
 import { SECRETS } from "./progression";
 import { polarX, polarZ, shaftRadius } from "./canyon";
 import { BLADE_BALL, LANE_HALF, WAKE, nextRing, predictCross, ringOpen, ringPos, type RingRun } from "./rules";
@@ -49,6 +49,7 @@ const DUMMY = new Object3D();
 const P2 = { x: 0, z: 0 };
 const SPIN = new Quaternion();
 const UP = new Vector3(0, 1, 0);
+const STAR_CENTRE = new Matrix4().makeTranslation(0, -GLB_SIZE.star.y * 0.5, 0);
 const WAKE_CENTRE = new Matrix4().makeTranslation(0, -GLB_SIZE.windRing.y * 0.5, 0);
 
 const TINT = {
@@ -80,15 +81,16 @@ function Rings({ run, clock }: { run: RingRun; clock: VisualClock }) {
          const ms = clock.ms < 0 ? 0 : clock.ms;
          // far above or far below the hero: not drawn
          const dy = r.y - run.hero.y;
-         if (dy > 30 || dy < -120) return false;
+         // the camera rides about 8 m over the hero: a ring the hero has passed goes before the camera reaches it
+         if (dy < -120 || dy > (run.missed[i] === 1 ? 3.2 : 2.5)) return false;
          ringPos(r, ms, P2);
          let open = ringOpen(run, r, ms);
          let pop = 1;
          if (run.threaded[i] === 1) {
             if (seen[i] < 0) seen[i] = time.now;
             const t = time.now - seen[i];
-            if (t > 0.45) return false;
-            pop = 1 + t * 0.9;
+            if (t > 0.18) return false;
+            pop = 1 + t * 2;
             color.copy(TINT.threaded);
          } else if (run.missed[i] === 1) {
             color.copy(TINT.missed);
@@ -145,15 +147,17 @@ function Orbs({ run, clock }: { run: RingRun; clock: VisualClock }) {
          const o = c.orbs[i];
          if (!o || run.taken[i] === 1) return false;
          const dy = o.y - run.hero.y;
-         if (dy > 30 || dy < -100) return false;
+         if (dy > 2.5 || dy < -100) return false;
          const magnet = clock.ms < run.hero.magnetUntil;
          const hidden = o.gate === "zuno" && !magnet;
          color.copy(hidden ? TINT.hidden : TINT.orb);
          const k = hidden ? 0.55 : 1;
-         POS.set(o.x, o.y - GLB_SIZE.star.y * 0.5 * s * k + Math.sin(time.now * 2.4 + i) * 0.12, o.z);
-         QUAT.setFromEuler(EULER.set(0, time.now * 2.2 + i, 0));
+         // laid flat, face up (the camera looks down the shaft), spinning
+         POS.set(o.x, o.y + Math.sin(time.now * 2.4 + i) * 0.12, o.z);
+         QUAT.setFromEuler(EULER.set(-Math.PI / 2, time.now * 2.2 + i, 0, "YXZ"));
          SCALE.setScalar(s * k);
          m.compose(POS, QUAT, SCALE);
+         m.multiply(STAR_CENTRE);
       },
       [c, run, clock, time, s],
    );
@@ -188,7 +192,7 @@ function Glows({ run, clock }: { run: RingRun; clock: VisualClock }) {
       const magnet = clock.ms < run.hero.magnetUntil;
       for (let i = 0; i < c.orbs.length; i++) {
          const o = c.orbs[i];
-         if (run.taken[i] === 1 || o.y - hy > 30 || o.y - hy < -100) continue;
+         if (run.taken[i] === 1 || o.y - hy > 2.5 || o.y - hy < -100) continue;
          if (o.gate === "zuno" && !magnet) put(o.x, o.y, o.z, 1.1 + 0.4 * Math.sin(time.now * 3 + i), "#a8926a");
          else put(o.x, o.y, o.z, 2.2, "#ffd76a");
       }
@@ -328,6 +332,8 @@ function Updrafts({ run }: { run: RingRun }) {
 function Ledges({ run }: { run: RingRun }) {
    const c = run.course;
    const ref = useRef<InstancedMesh>(null);
+   const map = useMemo(() => rockTexture(), []);
+   useEffect(() => () => map.dispose(), [map]);
    useEffect(() => {
       const m = ref.current;
       if (!m) return;
@@ -346,7 +352,7 @@ function Ledges({ run }: { run: RingRun }) {
    return (
       <instancedMesh ref={ref} args={[undefined, undefined, c.ledges.length]} frustumCulled={false}>
          <boxGeometry args={[1, 1, 1]} />
-         <meshStandardMaterial color="#b08c68" roughness={0.95} />
+         <meshStandardMaterial map={map} color="#9c8466" roughness={0.95} />
       </instancedMesh>
    );
 }
@@ -519,7 +525,7 @@ function WakeRings({ run }: { run: RingRun }) {
    const update = useMemo(
       () => (i: number, m: Matrix4, color: Color) => {
          const w = run.wake[i];
-         if (!w || !w.alive) return false;
+         if (!w || !w.alive || w.y > run.hero.y + 2.5) return false;
          color.copy(run.wakeChain >= 3 ? gold : cyan);
          POS.set(w.x, w.y, w.z);
          QUAT.copy(FLAT);
@@ -547,14 +553,14 @@ function Lanes({ run }: { run: RingRun }) {
          m.visible = on;
          if (!on || !b) return;
          const th = run.lanes[k];
-         m.position.set(0, run.hero.y - 4, 0);
+         m.position.set(0, run.hero.y - 1.5, 0);
          m.rotation.set(0, -th, 0);
          const mat = m.material as MeshBasicMaterial;
          if (b.step === "telegraph") {
             mat.opacity = 0.12 + 0.12 * Math.abs(Math.sin(time.now * 14));
             m.scale.set(1, 1, 0.5);
          } else {
-            mat.opacity = 0.75 + 0.25 * Math.sin(time.now * 60 + k);
+            mat.opacity = 0.45 + 0.15 * Math.sin(time.now * 60 + k);
             m.scale.set(1, 1, 1);
          }
       });
@@ -565,7 +571,7 @@ function Lanes({ run }: { run: RingRun }) {
       <>
          {[0, 1, 2].map((k) => (
             <mesh key={k} ref={(m) => void (refs.current[k] = m)} visible={false} renderOrder={7}>
-               <boxGeometry args={[R * 2, 34, LANE_HALF * 2]} />
+               <boxGeometry args={[R * 2, 5, LANE_HALF * 2]} />
                <meshBasicMaterial color={COLORS.lightning} transparent opacity={0.3} depthWrite={false} blending={AdditiveBlending} toneMapped={false} />
             </mesh>
          ))}

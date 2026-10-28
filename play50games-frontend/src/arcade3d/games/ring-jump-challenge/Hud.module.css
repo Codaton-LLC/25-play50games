@@ -326,3 +326,44 @@
       animation: none;
    }
 }
+
+/* phones: a lean left column (rings, orbs, power, flow) and the banner without its title, so the
+   level line and the clock sit between the shell's Score chip and its buttons */
+@media (max-width: 520px) {
+   .wide {
+      display: none;
+   }
+   .title {
+      display: none;
+   }
+   .left {
+      top: calc(env(safe-area-inset-top, 0px) + 54px);
+      gap: 6px;
+   }
+   .center {
+      gap: 4px;
+   }
+   .hint {
+      font-size: 0.74rem;
+      max-width: 200px;
+   }
+}
+
+/* short landscape phones: one row on the left (rings, orbs, power, flow), the clock alone on the
+   right (the shell's level chip names the level) */
+@media (max-height: 460px) {
+   .wide,
+   .banner {
+      display: none;
+   }
+   .left {
+      gap: 6px;
+   }
+   .pill {
+      min-width: 0;
+      padding: 3px 10px 3px 6px;
+   }
+   .value {
+      font-size: 0.95rem;
+   }
+}

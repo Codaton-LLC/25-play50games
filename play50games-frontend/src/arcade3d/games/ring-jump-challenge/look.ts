@@ -204,12 +204,12 @@ export function waterTexture(): CanvasTexture {
    let s = 4242;
    const rnd = () => ((s = (s * 16807) % 2147483647) / 2147483647);
    g.clearRect(0, 0, 256, 256);
-   for (let i = 0; i < 140; i++) {
+   for (let i = 0; i < 90; i++) {
       const x = rnd() * 256;
       const y = rnd() * 256;
-      const r = 6 + rnd() * 22;
-      g.strokeStyle = `rgba(255,255,255,${0.12 + rnd() * 0.3})`;
-      g.lineWidth = 1 + rnd() * 2;
+      const r = 3 + rnd() * 9;
+      g.strokeStyle = `rgba(255,255,255,${0.08 + rnd() * 0.2})`;
+      g.lineWidth = 0.8 + rnd() * 1.2;
       g.beginPath();
       g.ellipse(x, y, r, r * (0.4 + rnd() * 0.4), rnd() * Math.PI, 0, Math.PI * 2);
       g.stroke();

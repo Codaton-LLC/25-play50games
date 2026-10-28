@@ -234,11 +234,11 @@ function Sea({ course, levelId }: { course: Course; levelId: LevelId }) {
       [sparkle, target],
    );
    useEffect(() => {
-      sparkle.repeat.set(10, 10);
+      sparkle.repeat.set(16, 16);
    }, [sparkle]);
    useFrame(() => {
       sparkle.offset.set((time.now * 0.012) % 1, (time.now * 0.007) % 1);
-      if (mat.current) mat.current.emissiveIntensity = 0.55 + 0.15 * Math.sin(time.now * 1.3);
+      if (mat.current) mat.current.emissiveIntensity = 0.32 + 0.08 * Math.sin(time.now * 1.3);
    });
    const pad = course.pad;
    const padScale = pad.r / COLUMN_TOP_R;

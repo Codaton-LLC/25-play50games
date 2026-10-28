@@ -125,7 +125,7 @@ export default function Hud() {
                   {orbs}/{course.mainOrbs}
                </span>
             </div>
-            <div className={styles.pill} aria-label={`${left} metres to the sea`}>
+            <div className={`${styles.pill} ${styles.wide}`} aria-label={`${left} metres to the sea`}>
                <svg className={styles.icon} viewBox="0 0 24 24" aria-hidden="true">
                   <path d="M12 3 V17 M6 11 L12 17 L18 11" stroke="#7dd3fc" strokeWidth="2.6" fill="none" strokeLinecap="round" strokeLinejoin="round" />
                   <path d="M4 21 H20" stroke="#22d3ee" strokeWidth="2.4" strokeLinecap="round" />
@@ -134,7 +134,7 @@ export default function Hud() {
                   <span className={styles.depthFill} style={{ width: `${depthFrac * 100}%` }} />
                </span>
             </div>
-            <div className={`${styles.pill} ${fast ? styles.fast : ""}`} aria-label={`Falling at ${speed} metres per second`}>
+            <div className={`${styles.pill} ${styles.wide} ${fast ? styles.fast : ""}`} aria-label={`Falling at ${speed} metres per second`}>
                <svg className={styles.icon} viewBox="0 0 24 24" aria-hidden="true">
                   <path d="M5 4 L9 12 L5 20 M12 4 L16 12 L12 20" stroke={fast ? "#ffb26b" : "#fff"} strokeWidth="2.6" fill="none" strokeLinecap="round" transform="rotate(90 12 12)" />
                </svg>
@@ -145,7 +145,7 @@ export default function Hud() {
                <span className={styles.value}>{powerLeft > 0 ? `${powerLeft}s` : hero.powerLabel}</span>
             </div>
             {streak > 1 ? (
-               <div className={styles.pill} aria-label={`Ring streak ${streak}`}>
+               <div className={`${styles.pill} ${styles.wide}`} aria-label={`Ring streak ${streak}`}>
                   <span className={styles.value}>◎ {streak}</span>
                </div>
             ) : null}

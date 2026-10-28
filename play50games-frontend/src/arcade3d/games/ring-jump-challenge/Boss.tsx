@@ -15,8 +15,10 @@ import { ASSETS, BOSS_SCALE, GLB_SIZE } from "./assets";
 import { CYCLONE_RAY } from "./progression";
 import { RAY, TAIL, createRayPose, rayPose, type RingRun } from "./rules";
 
-/** The GLB's own facing: turned so the head leads the swim (README "Models"). */
-export const BOSS_YAW = Math.PI;
+/** The GLB faces +z (measured: the narrow snout at +z, the fins and the curled tail towards -z). */
+export const BOSS_YAW = 0;
+/** Phase 3: the body floats this far out from the tail pad (the tail end, -z, over the pad). */
+export const TAIL_REACH = 6;
 
 export function CycloneRay({ run, clock }: { run: RingRun; clock: { ms: number } }) {
    const root = useRef<Group>(null);
@@ -46,13 +48,21 @@ export function CycloneRay({ run, clock }: { run: RingRun; clock: { ms: number }
       if (!show || !b) return;
       const t = time.now;
       const flap = Math.sin(t * 2.2) * 0.35;
-      g.position.set(pose.x, pose.y + flap * 0.6, pose.z);
-      // swim heading (+z of the model along the travel), banked when open
-      g.rotation.set(0, Math.atan2(Math.cos(pose.heading), Math.sin(pose.heading)) + BOSS_YAW, pose.bank * Math.PI * 0.85, "YXZ");
+      if (b.phase === 2) {
+         // surfaced: the tail end over the pad, the head out towards the wall, the back awash
+         const d = Math.hypot(pose.x, pose.z) || 1;
+         const ox = pose.x / d;
+         const oz = pose.z / d;
+         g.position.set(pose.x + ox * TAIL_REACH, pose.y - 1.6 + flap * 0.2, pose.z + oz * TAIL_REACH);
+         g.rotation.set(0, Math.atan2(ox, oz) + BOSS_YAW, 0, "YXZ");
+      } else {
+         g.position.set(pose.x, pose.y + flap * 0.6, pose.z);
+         // swim heading (+z of the model along the travel), banked when open
+         g.rotation.set(0, Math.atan2(Math.cos(pose.heading), Math.sin(pose.heading)) + BOSS_YAW, pose.bank * Math.PI * 0.85, "YXZ");
+      }
       let s = 1;
       if (b.step === "telegraph") s = 1 + 0.06 * Math.sin(stepProgress(b, CYCLONE_RAY) * Math.PI * 6);
       if (b.flashMs > 0) s *= 1 + 0.12 * (b.flashMs / CYCLONE_RAY.hitFlashMs);
-      if (b.step === "defeat" || b.step === "done") s *= Math.max(0.2, 1 - Math.max(0, b.defeatMs - 600) / 3000);
       if (body.current) {
          body.current.scale.setScalar(s);
          body.current.rotation.z = flap * 0.15;

@@ -71,10 +71,13 @@ export function introKeyframes(course: Course): IntroKeyframe[] {
    const R = course.radius;
    const top = course.top;
    const pad = course.pad;
-   return [
-      { position: [pad.x + R * 0.6, pad.y + 14, pad.z + R * 0.5], lookAt: [pad.x, pad.y, pad.z] },
-      { position: [-R * 0.5, top * 0.45, R * 0.3], lookAt: [0, top * 0.25, 0] },
-      { position: [R * 0.4, top * 0.8, -R * 0.4], lookAt: [0, top * 0.55, 0] },
-      { position: [0, top + 16, course.startZ + 14], lookAt: [course.startX, top, course.startZ - 6] },
-   ];
+   // two rings on the way up (close shots: the depth fog hides anything far down the shaft)
+   const rings = course.rings.filter((r) => r.main).sort((a, b) => a.y - b.y);
+   const low = rings[Math.floor(rings.length * 0.2)] ?? rings[0];
+   const high = rings[Math.floor(rings.length * 0.7)] ?? rings[rings.length - 1];
+   const shots: IntroKeyframe[] = [{ position: [pad.x + 7, pad.y + 9, pad.z + 11], lookAt: [pad.x, pad.y, pad.z] }];
+   if (low) shots.push({ position: [low.x - R * 0.35, low.y + 14, low.z + R * 0.3], lookAt: [low.x, low.y, low.z] });
+   if (high) shots.push({ position: [high.x + R * 0.35, high.y + 14, high.z - R * 0.3], lookAt: [high.x, high.y, high.z] });
+   shots.push({ position: [0, top + 16, course.startZ + 14], lookAt: [course.startX, top, course.startZ - 6] });
+   return shots;
 }
