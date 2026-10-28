@@ -254,7 +254,7 @@ export default function Hud() {
                      {Math.min(laps, lap + 1)}/{laps}
                   </span>
                   <span className={styles.unit}>
-                     ◆ {Math.min(perLap, (beacons % perLap) + (beacons >= laps * perLap ? perLap : 1))}/{perLap}
+                     ◆ {beacons >= laps * perLap ? perLap : (beacons % perLap) + 1}/{perLap}
                   </span>
                </div>
             )}
