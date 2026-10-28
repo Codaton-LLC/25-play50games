@@ -10,9 +10,9 @@ A friendly 1-vs-3 snowball fight in a fenced schoolyard. You scoop snow, hide on
 
 `meta.ts` will say `scheme: "joystick"`, `touchControls: ["joystick", "action", "tap"]`, `touchLabels: { action: "Scoop" }`.
 
-- `keyboard`: "WASD / arrows to move, mouse to aim; hold E or Enter to scoop, Space to throw".
+- `keyboard`: "WASD / arrows to move, mouse to aim; hold E or Enter to pack a snowball (let go when the ring is green), click or Space to throw; right-drag or Q / X turns the camera".
 - `touch`: "Joystick to move, hold Scoop to pack a snowball, tap a rival to throw".
-- `moveX` / `moveY` → `inputToWorld(moveX, moveY, view.yaw)` (up = away from the camera), magnitude clamped to 1. Scoop is `action` held (E / Enter / Scoop). A fine pointer throws with `aimFired(input, { jump: true })` (Space) and a click's `tapDown` does nothing. A coarse pointer throws with `tapDown` on a rival and has no Jump button. One event per throw. Esc / P and a hidden tab pause in the shell. `setStat` keys `time` / `ammo` / `rivals` (labels Time, Ammo, Rivals) feed the shell chips; the mittens sit in `Hud` under those chips.
+- `moveX` / `moveY` → `inputToWorld(moveX, moveY, view.yaw)` (up = away from the camera), magnitude clamped to 1. Scoop is `action` held (E / Enter / Scoop). A fine pointer throws with `aimFired(input, { jump: true })` (Space) or a left click on the canvas (its `tapDown`), both at the highlighted rival. A coarse pointer throws with `tapDown` on a rival and has no Jump button. One event per throw. Esc / P and a hidden tab pause in the shell. `setStat` keys `time` / `ammo` / `rivals` (labels Time, Ammo, Rivals) feed the shell chips; the mittens sit in `Hud` under those chips.
 - Changed from the stub ("hold E to scoop, Space to throw" / "hold Action"): the button is labelled Scoop, and the mouse aim is part of the keyboard line. Changed from the core adoption note that lists this game as aim-drag: no `input.drag`, no `stepAxisAim`, no `TrajectoryDots`. The director's call is auto-target; a drag lob is the free aim that call rejects.
 
 ## Rules
@@ -199,4 +199,14 @@ The user approved this design and asked Claude to settle every open question wit
 
 ## Camera views
 
-Views: default, chase, front, top, free (the throw aim uses the drawn camera). **C** / **T** or the 📷 button cycles them; drag (or two fingers) looks around and switches to the free view, wheel / pinch zooms, **V** recenters. The rules receive the drawn camera's yaw (the fitted yaw in the default view), so a run in the default view is unchanged; no rules, bots, proofs or scoring were touched. Core docs: `core/camera/README.md`.
+Views: default, chase, front, top, free (the throw aim uses the drawn camera). **C** / **T** or the 📷 button cycles them; a right or middle drag (`mouseButtons: [2, 1]`: a left click throws, so it never turns the camera), **Q / Z / X**, or two fingers look around and switch to the free view, wheel / pinch zooms, **V** recenters. The rules receive the drawn camera's yaw (the fitted yaw in the default view), so a run in the default view is unchanged; no rules, bots, proofs or scoring were touched. Core docs: `core/camera/README.md`.
+
+## Aim and scoop feedback (2026-10-28)
+
+User report: the mouse could not throw or aim, and the scoop timing was invisible. Visual and input only; `rules.ts` gameplay, the bots, the proofs, `meta.scoring` and `arcade-games.json` are unchanged (the one rules addition, `missReason`, is read-only).
+
+- **Click to throw.** On a fine pointer a left click on the canvas (`tapDown`) is a throw press like Space, at the same auto-target (the 38° cone round the mouse aim, line of sight). The camera turns with a right or middle drag only (core/camera `mouseButtons: [2, 1]`), so a click never also turns it. Free throws were rejected: the director's call is auto-target (Controls), and a click with no target pops instead.
+- **Aim.** `Aim.tsx`: a reticle on the ground under the mouse, a dotted arc of the rules' lob (`feedback.ts` `aimArc`: hand at y 1.00, rules flight time, no lead) to the highlighted rival (green) or to the reticle (grey), shown while a ball is packed. The highlighted rival gets the core `TargetBeacon` (green arrow + ring) on every device, so keyboard and touch players see the auto-target too.
+- **No throw, no silence.** A click / Space that does not throw pops "No target in range" (no rival in the cone), "Blocked by cover" (a rival in the cone behind a fort or the snowman) or "No snowball: hold E" (`rules.missReason`). Scooping and the 0.40 s throw gap stay silent.
+- **Scoop meter.** `ScoopMeter.tsx`: while E / Enter / Scoop is held, a ring over the player's head (≥ 128 CSS px) fills over 1.50 s: grey "HOLD…" under 0.50 s, green "LET GO!" from 0.50 s ("HANDS FULL" at 3), orange from 1.38 s, red "ROLLER!" at 1.50 s. A snowball grows in the right hand (`attach.handR`) and stays there while one is packed. Releases pop "+1 snowball", "Too short", "Hands full (3)" or "Roller!"; a new ammo dot bounces in (`Hud.module.css`, reduced motion: none). The HintLine says "Hold E to pack, let go when the ring is green" (touch: Scoop) and "Hands full (3)" at 3.
+- Draw calls: + reticle 1, arc 1, beacon ≤ 4, meter 1, hand ball 1 (≤ 8, inside the 60 cap).

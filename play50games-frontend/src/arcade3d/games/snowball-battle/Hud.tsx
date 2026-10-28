@@ -1,5 +1,6 @@
 "use client";
 
+import { useCoarsePointer } from "@/arcade3d/core/TouchControls";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { HintLine } from "@/arcade3d/core/hud/HintLine";
 import { hintFor } from "./guide";
@@ -13,8 +14,8 @@ function Marks({ n, total, kind }: { n: number; total: number; kind: "mitt" | "d
       const full = i < on;
       cells.push(
          <span
-            key={i}
-            className={kind === "mitt" ? (full ? styles.mitt : `${styles.mitt} ${styles.empty}`) : (full ? styles.dot : `${styles.dot} ${styles.dotOff}`)}
+            key={`${i}-${full ? 1 : 0}`}
+            className={kind === "mitt" ? (full ? styles.mitt : `${styles.mitt} ${styles.empty}`) : (full ? `${styles.dot} ${styles.dotNew}` : `${styles.dot} ${styles.dotOff}`)}
          />,
       );
    }
@@ -24,7 +25,8 @@ function Marks({ n, total, kind }: { n: number; total: number; kind: "mitt" | "d
 function GameHud() {
    const health = useArcadeStore((s) => s.stats.health ?? 5);
    const ammo = useArcadeStore((s) => s.stats.ammo ?? 0);
-   const hint = hintFor(ammo, health);
+   const touch = useCoarsePointer();
+   const hint = hintFor(ammo, health, touch);
    return (
       <>
          <HintLine text={hint.text} tone={hint.tone} />
