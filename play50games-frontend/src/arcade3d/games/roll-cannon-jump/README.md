@@ -183,6 +183,10 @@ camera (the card: one tent). Never ranked.
   `islandB` entries were dropped (unused).
 - **Camera:** while aiming the hero sits low in the frame (the pivot leads 3.4 m along the barrel so
   the next cannon shows); the orbit can be tilted / zoomed. A real phone has not been tried.
+- **Short landscape (844 x 390):** the shared HudStack puts the left pills in one row; while aiming
+  the power pill slides under the title banner and the hero / flow pills are covered. Playtests
+  (headless, 2026-10-28): every level won by the bot at 1280 x 800, 390 x 844 (two-finger orbit),
+  768 x 1024 and 844 x 390, 0 console errors, at most 50 draw calls and 195k triangles a frame.
 - **Juice not built:** music per world, a drumroll sample (the aim ticks use `click`), the 0.3 s
   slow-mo on a perfect shot is a 130 ms hit-stop (the juice cap is 140 ms).
 - The card's "the stick sets yaw and pitch" became rate turning (held keys turn the barrel), so a
