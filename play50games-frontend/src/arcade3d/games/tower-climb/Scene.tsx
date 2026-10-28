@@ -39,6 +39,8 @@ const subscribeMotion = (changed: () => void) => {
 };
 const readMotion = () => window.matchMedia(MOTION_QUERY).matches;
 const noMotion = () => false;
+/** The coin pop text, built once (the frame callbacks allocate nothing). */
+const COIN_POP = `+${COIN_POINTS}`;
 
 const Simulation = memo(function Simulation({ run, visual }: { run: TowerRun; visual: VisualState }) {
    const input = useInput();
@@ -56,7 +58,7 @@ const Simulation = memo(function Simulation({ run, visual }: { run: TowerRun; vi
       if (events.coin !== NONE) {
          playSfx("pickup");
          fxPos.set(run.player.x, run.player.y + 1.2, 0);
-         pop.good(fxPos, `+${COIN_POINTS}`);
+         pop.good(fxPos, COIN_POP);
       }
       if (events.checkpoint !== NONE) {
          visual.checkpointMs = run.timeMs;
@@ -86,7 +88,7 @@ const Simulation = memo(function Simulation({ run, visual }: { run: TowerRun; vi
          store.setStat("fallen", 1);
          playSfx("hit");
          fxPos.set(run.player.x, run.player.y + 1.2, 0);
-         pop.fail(fxPos, "You fell!", { shake: 0.2 });
+         pop.fail(fxPos, "You fell!");
       }
       if (events.ended) store.end(events.ended);
    });
