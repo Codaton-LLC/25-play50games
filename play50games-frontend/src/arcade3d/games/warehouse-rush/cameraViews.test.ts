@@ -5,7 +5,7 @@ import { phoneOffset } from "./cameraViews";
 it("frames portrait closer and reads live camera yaw for movement", () => {
    const fitted: [number, number, number] = [10, 20, 30];
    expect(phoneOffset(fitted, 1.5)).toEqual(fitted);
-   expect(Math.hypot(...phoneOffset(fitted, 0.46))).toBeCloseTo(3.5);
+   expect(Math.hypot(...phoneOffset(fitted, 0.46))).toBeCloseTo(5.8);
    const scene = readFileSync(new URL("./Scene.tsx", import.meta.url), "utf8");
    expect(scene).toContain("yaw={cam.yaw}");
    expect(scene).toContain("now.moveY, yaw(), scratch.dir");

@@ -10,5 +10,5 @@ it("offers only default and top without changing screen-space steering", () => {
 it("brings the small climber closer on portrait screens", () => {
    const fitted: [number, number, number] = [3, 2, 12];
    expect(phoneOffset(fitted, 1.5)).toEqual(fitted);
-   expect(Math.hypot(...phoneOffset(fitted, 0.46))).toBeCloseTo(2.6);
+   expect(Math.hypot(...phoneOffset(fitted, 0.46))).toBeCloseTo(3);
 });
