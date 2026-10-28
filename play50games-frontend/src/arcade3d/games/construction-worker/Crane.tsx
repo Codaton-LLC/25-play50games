@@ -4,6 +4,8 @@ import { useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import { Vector3 } from "three";
 import type { Group, Mesh } from "three";
+import { Model } from "@/arcade3d/core/assets";
+import { ASSETS, JIB_DRAWN } from "./assets";
 import { JIB_Y } from "./rules";
 import type { Run } from "./rules";
 import {
@@ -31,7 +33,7 @@ const DIR = new Vector3();
 export function Crane({ run }: { run: Run }) {
    const jib = useRef<Group>(null);
    const cable = useRef<Mesh>(null);
-   const hook = useRef<Mesh>(null);
+   const hook = useRef<Group>(null);
    const trolley = useRef<Mesh>(null);
 
    useFrame(() => {
@@ -55,7 +57,7 @@ export function Crane({ run }: { run: Run }) {
       }
 
       const block = hook.current;
-      if (block) block.position.set(run.hookX, run.hookY + 0.6, run.hookZ);
+      if (block) block.position.set(run.hookX, run.hookY, run.hookZ);
 
       const car = trolley.current;
       if (car) car.position.set(0, -0.05, trolleyZ);
@@ -65,11 +67,16 @@ export function Crane({ run }: { run: Run }) {
       <group name="construction-crane">
          <mesh geometry={mastGeo} material={craneLatticeMat} dispose={null} name="crane-mast" />
          <group ref={jib} name="crane-jib-group">
-            <mesh geometry={jibGeo} material={jibMat} dispose={null} name="crane-jib" />
+            {/* Hyper3D lattice jib (centre of its z span at the code jib's); the code truss is the fallback */}
+            <group position={[0, JIB_DRAWN.yMin, JIB_DRAWN.zMin + JIB_DRAWN.length / 2]}>
+               <Model asset={ASSETS.craneJib} fallback={<mesh geometry={jibGeo} material={jibMat} dispose={null} name="crane-jib" position={[0, -JIB_DRAWN.yMin, -(JIB_DRAWN.zMin + JIB_DRAWN.length / 2)]} />} />
+            </group>
             <mesh ref={trolley} geometry={trolleyGeo} material={trolleyMat} dispose={null} name="crane-trolley" />
          </group>
          <mesh ref={cable} geometry={cableGeo} material={steel} dispose={null} name="crane-cable" />
-         <mesh ref={hook} geometry={hookGeo} material={hookMat} dispose={null} name="crane-hook" />
+         <group ref={hook} name="crane-hook">
+            <Model asset={ASSETS.craneHook} fallback={<mesh geometry={hookGeo} material={hookMat} dispose={null} position-y={0.6} />} />
+         </group>
       </group>
    );
 }

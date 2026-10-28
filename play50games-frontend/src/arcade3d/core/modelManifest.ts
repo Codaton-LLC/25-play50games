@@ -448,6 +448,12 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/monster-kitchen/potionJar.glb",
    "/models/3d/monster-kitchen/slimeCube.glb",
    "/models/3d/monster-kitchen/stoveHearth.glb",
+   "/models/3d/construction-worker/buildColumn.glb",
+   "/models/3d/construction-worker/buildSlab.glb",
+   "/models/3d/construction-worker/buildWall.glb",
+   "/models/3d/construction-worker/buildWindow.glb",
+   "/models/3d/construction-worker/craneHook.glb",
+   "/models/3d/construction-worker/craneJibI.glb",
    // Menu 1 dog-park-fetch (2026-10-26): the ready menu1-dog-park-fetch GLBs the gate adopts (dogHouse*,
    // dogBone*, agilityHurdle and dogOwnerNpc left out: a dog is baked into each), plus shared civilianNpc
    // as the owner; fits in games/dog-park-fetch/assets.ts.
