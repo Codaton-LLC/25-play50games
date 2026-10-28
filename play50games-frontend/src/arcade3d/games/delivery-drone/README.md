@@ -230,3 +230,7 @@ Visual-only modern-look pass (TASK P-83-look-drone) for a polished, premium mobi
 | Core FX (active bursts) | 1–3 | Sparkle / puff / confetti pools (1-2) + score sprite (1) |
 | **Total typical frame** | **~38–46** | **Well within <= 60 budget** |
 | **Total worst-case frame** | **~52–56** | All chunks visible + active delivery bursts + score popup |
+
+## Camera views
+
+Views: default, chase, front, top, free (the drone's camera collides with the buildings). **C** / **T** or the 📷 button cycles them; drag (or two fingers) looks around and switches to the free view, wheel / pinch zooms, **V** recenters. The rules receive the drawn camera's yaw (the fitted yaw in the default view), so a run in the default view is unchanged; no rules, bots, proofs or scoring were touched. Core docs: `core/camera/README.md`.
