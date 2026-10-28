@@ -29,6 +29,46 @@ export const beachLifeguardMeta: ArcadeGameMeta = {
       keyboard: "WASD / arrows to move, E or Enter to grab",
       touch: "Joystick to move + Grab",
    },
+   howTo: {
+      keys: [
+         { id: "move", keys: ["WASD", "Arrows"], label: "Move", main: true, role: "move" },
+         { id: "grab", keys: ["E", "Enter"], label: "Grab", main: true },
+      ],
+      touch: [
+         { id: "joystick", control: "joystick", label: "Move" },
+         { id: "grab", control: "action", label: "Grab" },
+      ],
+      steps: [
+         { title: "Goal", text: "Rescue every swimmer in trouble and carry them back to dry sand." },
+         {
+            title: "Move",
+            text: "Use WASD or the arrow keys to run. You wade slower in the water.",
+            touchText: "Push the joystick to run. You wade slower in the water.",
+            keys: ["move"],
+            touch: ["joystick"],
+         },
+         {
+            title: "Grab",
+            text: "Reach the swimmer in the pink ring and press E or Enter.",
+            touchText: "Reach the swimmer in the pink ring and tap Grab.",
+            keys: ["grab"],
+            touch: ["grab"],
+         },
+         {
+            title: "Bring them in",
+            text: "A rescue counts on the dry sand past the white line. Three missed alerts end the run.",
+            keys: ["move"],
+            touch: ["joystick"],
+         },
+         {
+            title: "Tips",
+            text: "Grab next to the jet ski to ride it: fast on the water, it stops at the shore. Esc or P pauses.",
+            touchText: "Grab next to the jet ski to ride it: fast on the water, it stops at the shore. Tap Pause, top right, to stop.",
+            keys: ["pause"],
+            touch: ["pause"],
+         },
+      ],
+   },
    scoring: SCORING,
    levels: LEVELS,
    thumbnail: "/images/3d/beach-lifeguard.webp",

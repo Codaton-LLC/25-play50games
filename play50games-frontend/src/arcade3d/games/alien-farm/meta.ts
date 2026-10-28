@@ -29,6 +29,46 @@ export const alienFarmMeta: ArcadeGameMeta = {
       keyboard: "WASD / arrows to move; press E, Enter or Space to harvest at peak glow; enter the beam to deliver",
       touch: "Joystick to move; tap Pick at peak glow; enter the beam to deliver",
    },
+   howTo: {
+      keys: [
+         { id: "move", keys: ["WASD", "Arrows"], label: "Move", main: true, role: "move" },
+         { id: "pick", keys: ["E", "Enter", "Space"], label: "Harvest", main: true },
+      ],
+      touch: [
+         { id: "joystick", control: "joystick", label: "Move" },
+         { id: "pick", control: "action", label: "Harvest" },
+      ],
+      steps: [
+         { title: "Goal", text: "Harvest glowing crops and beam them up to the saucer. 100 seconds: score all you can." },
+         {
+            title: "Move",
+            text: "Use WASD or the arrow keys to walk the field.",
+            touchText: "Push the joystick to walk the field.",
+            keys: ["move"],
+            touch: ["joystick"],
+         },
+         {
+            title: "Harvest on gold",
+            text: "Press E, Enter or Space when a crop's ring is full. Gold = perfect; too early or late loses the crop.",
+            touchText: "Tap Pick when a crop's ring is full. Gold = perfect; too early or late loses the crop.",
+            keys: ["pick"],
+            touch: ["pick"],
+         },
+         {
+            title: "Deliver",
+            text: "Carry up to 4 crops into the saucer's beam: a full load pays the most. Spores slow you down.",
+            keys: ["move"],
+            touch: ["joystick"],
+         },
+         {
+            title: "Tips",
+            text: "A wasted press cools the tool for 0.6 s: wait for the ring. Esc or P pauses.",
+            touchText: "A wasted press cools the tool for 0.6 s: wait for the ring. Tap Pause, top right, to stop.",
+            keys: ["pause"],
+            touch: ["pause"],
+         },
+      ],
+   },
    scoring: SCORING_L1,
    levels: [
       { id: 1, title: "Starter Plot", scoring: SCORING_L1, clearScore: 2000 },

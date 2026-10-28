@@ -30,6 +30,41 @@ export const hauntedMansionKeysMeta: ArcadeGameMeta = {
       keyboard: "WASD / arrows to move, E or Enter to use",
       touch: "Joystick to move + Use",
    },
+   howTo: {
+      keys: [
+         { id: "move", keys: ["WASD", "Arrows"], label: "Move", main: true, role: "move" },
+         { id: "use", keys: ["E", "Enter"], label: "Use", hold: true, main: true },
+      ],
+      touch: [
+         { id: "joystick", control: "joystick", label: "Move" },
+         { id: "use", control: "action", label: "Use", hold: true },
+      ],
+      steps: [
+         { title: "Goal", text: "Find the keys, unlock the doors and escape the haunted mansion." },
+         {
+            title: "Move",
+            text: "Use WASD or the arrow keys to move.",
+            touchText: "Push the joystick to move.",
+            keys: ["move"],
+            touch: ["joystick"],
+         },
+         {
+            title: "Use",
+            text: "Hold E or Enter within 1.2 m to pick up keys, open doors and pull levers.",
+            touchText: "Hold Use within 1.2 m to pick up keys, open doors and pull levers.",
+            keys: ["use"],
+            touch: ["use"],
+         },
+         { title: "Match the key", text: "Each locked door matches a key's shape and colour. Patrolling armour costs a life. Three lives." },
+         {
+            title: "Tips",
+            text: "Wall levers open shortcut doors. Esc or P pauses.",
+            touchText: "Wall levers open shortcut doors. Tap Pause, top right, to stop.",
+            keys: ["pause"],
+            touch: ["pause"],
+         },
+      ],
+   },
    scoring: SCORING,
    levels: LEVELS,
    thumbnail: "/images/3d/haunted-mansion-keys.webp",

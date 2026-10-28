@@ -39,6 +39,41 @@ export const towerClimbMeta: ArcadeGameMeta = {
       keyboard: "A/D or Left/Right to move; Space, W or Up to jump",
       touch: "Joystick + Jump button, or swipe up"
    },
+   howTo: {
+      keys: [
+         { id: "move", keys: ["A/D", "Left/Right"], label: "Run", main: true, role: "move" },
+         { id: "jump", keys: ["Space", "W", "Up"], label: "Jump", main: true },
+      ],
+      touch: [
+         { id: "joystick", control: "joystick", label: "Run" },
+         { id: "jump", control: "jump", label: "Jump" },
+      ],
+      steps: [
+         { title: "Goal", text: "Climb the tower as high as you can. There are no respawns." },
+         {
+            title: "Run",
+            text: "A / D or Left / Right to run.",
+            touchText: "Push the joystick left or right to run.",
+            keys: ["move"],
+            touch: ["joystick"],
+         },
+         {
+            title: "Jump",
+            text: "Space, W or Up jumps, once per press.",
+            touchText: "Tap Jump, or swipe up.",
+            keys: ["jump"],
+            touch: ["jump"],
+         },
+         { title: "Watch out", text: "Orange spurs crack and fall after contact. Follow the cyan and violet slabs." },
+         {
+            title: "Tips",
+            text: "Yellow flags mark safe checkpoint ledges. Esc or P pauses.",
+            touchText: "Yellow flags mark safe checkpoint ledges. Tap Pause, top right, to stop.",
+            keys: ["pause"],
+            touch: ["pause"],
+         },
+      ],
+   },
    scoring: SCORING_L1,
    levels: LEVELS,
    thumbnail: "/images/3d/tower-climb.webp",

@@ -3,7 +3,7 @@
    first and last tile snapped clear of the card edge; every tile is at least 44 px tall; a long
    title wraps to two lines. */
 .levels {
-   margin-top: 16px;
+   margin: 16px 0 14px;
 }
 
 .row {
@@ -22,10 +22,10 @@
 
 .tile {
    display: flex;
-   flex: 1 0 92px;
+   flex: 1 0 100px;
    flex-direction: column;
    gap: 2px;
-   min-width: 92px;
+   min-width: 100px;
    min-height: 44px;
    padding: 8px 10px;
    border: 1px solid var(--stroke);

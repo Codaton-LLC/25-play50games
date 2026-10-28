@@ -4,7 +4,8 @@
 // - Overlay: a full-screen dialog whose panel never outgrows the free area (the overlay's padding
 //   keeps the notch and the cookie banner clear), so a tall panel scrolls inside itself and its
 //   frame and buttons stay on screen. The mouse wheel over the backdrop beside it scrolls the panel.
-// - StartCard: back link, title, tagline, instructions, controls, best score, Play, top 10. On a
+// - StartCard: back link, title, tagline, instructions, controls (core/howto: the keyboard or phone
+//   illustration and the "How to play" wizard), best score, Play, top 10. On a
 //   short screen (a landscape phone, a portrait phone under the cookie banner) the card scrolls and
 //   Play stays pinned to its bottom, above the banner, or to its top once the top 10 is scrolled up,
 //   so Play is always on screen. It opens scrolled to the top (title first); Play takes the focus
@@ -28,6 +29,7 @@ import { scrollPanelFromBackdrop } from "./overlayScroll";
 import BestScoreBadge from "../ui/BestScoreBadge";
 import LeaderboardTable from "../ui/LeaderboardTable";
 import LevelTiles from "./LevelTiles";
+import ControlsPanel from "./howto/ControlsPanel";
 import type { LevelProgressSummary } from "./levelProgress";
 import styles from "./GameShell.module.css";
 
@@ -263,16 +265,20 @@ export function StartCard({ meta, definition, coarse, exitHref, leaderboard, onP
             </ul>
          )}
 
-         <dl className={styles.controls}>
-            <div className={coarse ? styles.controlDim : undefined}>
-               <dt>Keyboard</dt>
-               <dd>{meta.controls.keyboard}. Esc or P pauses.</dd>
-            </div>
-            <div className={coarse ? undefined : styles.controlDim}>
-               <dt>Touch</dt>
-               <dd>{meta.controls.touch}</dd>
-            </div>
-         </dl>
+         <ControlsPanel
+            title={meta.title}
+            coarse={coarse}
+            portrait={meta.orientation === "portrait"}
+            source={{
+               controls: meta.controls,
+               howTo: meta.howTo,
+               touchControls: definition.touchControls,
+               touchLabels: definition.touchLabels,
+               instructions,
+               description: meta.description,
+               levels: !!levels,
+            }}
+         />
 
          {/* with levels the tiles show the bests and the total instead */}
          {!levels && (

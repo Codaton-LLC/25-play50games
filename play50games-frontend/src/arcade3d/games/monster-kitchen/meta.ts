@@ -49,6 +49,42 @@ export const monsterKitchenMeta: ArcadeGameMeta = {
       keyboard: "Left / right to turn the wheel, Space or Enter to toss, or click an ingredient",
       touch: "Swipe to turn the wheel, tap ◀ ▶ to turn one slot, tap an ingredient to toss",
    },
+   howTo: {
+      keys: [
+         { id: "turn", keys: ["Left/Right", "A/D"], label: "Turn wheel", main: true, role: "move" },
+         { id: "toss", keys: ["Space", "Enter"], label: "Toss", main: true },
+         { id: "click", keys: ["Mouse"], label: "Click to toss", role: "pointer" },
+      ],
+      touch: [
+         { id: "swipe", control: "swipe", label: "Swipe to turn the wheel" },
+         { id: "tap", control: "tap", label: "Tap an ingredient to toss" },
+      ],
+      steps: [
+         { title: "Goal", text: "Cook what each monster's bubble asks, in order, before it storms off." },
+         {
+            title: "Turn the wheel",
+            text: "Left / Right or A / D turns the ingredient wheel.",
+            touchText: "Swipe to turn the wheel, or tap the arrow buttons for one slot.",
+            keys: ["turn"],
+            touch: ["swipe"],
+         },
+         {
+            title: "Toss",
+            text: "Space or Enter tosses the front ingredient into the cauldron. Or click an ingredient.",
+            touchText: "Tap an ingredient to toss it into the cauldron.",
+            keys: ["toss", "click"],
+            touch: ["tap"],
+         },
+         { title: "Watch out", text: "A wrong toss burps: the order restarts and patience drops." },
+         {
+            title: "Tips",
+            text: "Later the wheel drifts on its own: keep the next ingredient at the front. Esc or P pauses.",
+            touchText: "Later the wheel drifts on its own: keep the next ingredient at the front. Tap Pause, top right, to stop.",
+            keys: ["pause"],
+            touch: ["pause"],
+         },
+      ],
+   },
    scoring: SCORING,
    levels: LEVELS,
    thumbnail: "/images/3d/monster-kitchen.webp",

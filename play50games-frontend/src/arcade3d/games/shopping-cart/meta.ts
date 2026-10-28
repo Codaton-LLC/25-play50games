@@ -74,6 +74,46 @@ export const shoppingCartMeta: ArcadeGameMeta = {
       keyboard: "WASD / arrows to steer, hold Space to ride",
       touch: "Joystick to steer, hold Ride to ride",
    },
+   howTo: {
+      keys: [
+         { id: "steer", keys: ["WASD", "Arrows"], label: "Steer", main: true, role: "move" },
+         { id: "ride", keys: ["Space"], label: "Ride", hold: true, main: true },
+      ],
+      touch: [
+         { id: "joystick", control: "joystick", label: "Steer" },
+         { id: "ride", control: "jump", label: "Ride", hold: true },
+      ],
+      steps: [
+         { title: "Goal", text: "Grab everything on your shopping list, then dash to the checkout before the clock runs out." },
+         {
+            title: "Steer",
+            text: "Use WASD or the arrow keys to steer the runaway cart through the aisles.",
+            touchText: "Push the joystick to steer the runaway cart through the aisles.",
+            keys: ["steer"],
+            touch: ["joystick"],
+         },
+         {
+            title: "Ride",
+            text: "Hold Space to ride the cart and drift faster.",
+            touchText: "Hold Ride to ride the cart and drift faster.",
+            keys: ["ride"],
+            touch: ["ride"],
+         },
+         {
+            title: "Watch out",
+            text: "Dodge shoppers, spills and can pyramids. Steer round them, not through them.",
+            keys: ["steer"],
+            touch: ["joystick"],
+         },
+         {
+            title: "Tips",
+            text: "Esc or P pauses the run. Clear a level to unlock the next store.",
+            touchText: "Tap Pause, top right, any time. Clear a level to unlock the next store.",
+            keys: ["pause"],
+            touch: ["pause"],
+         },
+      ],
+   },
    scoring: { ...PROPOSED_LEVEL_LIMITS[1] },
    levels: [
       { id: 1, title: "Mini Market", scoring: PROPOSED_LEVEL_LIMITS[1], clearScore: 1200 },

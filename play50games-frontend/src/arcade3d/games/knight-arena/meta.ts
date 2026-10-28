@@ -36,6 +36,41 @@ export const knightArenaMeta: ArcadeGameMeta = {
       keyboard: "Arrows / WASD to strike, Space to spin",
       touch: "Swipe to strike, Action to spin",
    },
+   howTo: {
+      keys: [
+         { id: "strike", keys: ["Arrows", "WASD"], label: "Strike", main: true, role: "move" },
+         { id: "spin", keys: ["Space", "E"], label: "Spin", main: true },
+      ],
+      touch: [
+         { id: "swipe", control: "swipe", label: "Swipe to strike" },
+         { id: "spin", control: "action", label: "Spin" },
+      ],
+      steps: [
+         { title: "Goal", text: "Strike the training dummies on the beat and build your combo." },
+         {
+            title: "Strike",
+            text: "Press the arrow (or WASD) that matches the dummy's arrow as the ring closes.",
+            touchText: "Swipe in the direction of the dummy's arrow as the ring closes.",
+            keys: ["strike"],
+            touch: ["swipe"],
+         },
+         {
+            title: "Spin",
+            text: "At a full Spin meter, press Space or E to sweep every active target (+50).",
+            touchText: "At a full Spin meter, tap Spin to sweep every active target (+50).",
+            keys: ["spin"],
+            touch: ["spin"],
+         },
+         { title: "Watch out", text: "Shield dummies take two beat hits in a row. Leave the red tomato decoys: -50." },
+         {
+            title: "Tips",
+            text: "Hit on the beat to keep the combo climbing. Esc or P pauses.",
+            touchText: "Hit on the beat to keep the combo climbing. Tap Pause, top right, to stop.",
+            keys: ["pause"],
+            touch: ["pause"],
+         },
+      ],
+   },
    scoring: SCORING,
    levels: [
       { id: 1, title: "Basic Training", scoring: SCORING, clearScore: 4400 },

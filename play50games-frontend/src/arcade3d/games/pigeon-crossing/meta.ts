@@ -16,6 +16,40 @@ export const pigeonCrossingMeta: ArcadeGameMeta = {
       keyboard: "Arrows / WASD: one hop per press",
       touch: "Swipe in any direction; tap hops forward"
    },
+   howTo: {
+      keys: [
+         { id: "hop", keys: ["Arrows", "WASD"], label: "Hop", main: true, role: "move" },
+      ],
+      touch: [
+         { id: "swipe", control: "swipe", label: "Swipe to hop that way" },
+         { id: "tap", control: "tap", label: "Tap to hop forward" },
+      ],
+      steps: [
+         { title: "Goal", text: "Hop the pigeon across every street section to the next level." },
+         {
+            title: "Hop",
+            text: "Arrows or WASD: one hop per press.",
+            touchText: "Swipe in any direction to hop that way.",
+            keys: ["hop"],
+            touch: ["swipe"],
+         },
+         {
+            title: "Hop forward",
+            text: "Keep pressing forward. You can queue one hop while in the air.",
+            touchText: "Tap anywhere to hop forward. You can queue one hop in the air.",
+            keys: ["hop"],
+            touch: ["tap"],
+         },
+         { title: "Watch out", text: "Cars, vans and convoys are deadly. Watch the gaps and wait on the grass." },
+         {
+            title: "Tips",
+            text: "The centre grass is always safe. Esc or P pauses.",
+            touchText: "The centre grass is always safe. Tap Pause, top right, to stop.",
+            keys: ["pause"],
+            touch: ["pause"],
+         },
+      ],
+   },
    scoring: {
       kind: "points",
       maxScore: 50000,

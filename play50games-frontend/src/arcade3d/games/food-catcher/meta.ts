@@ -44,6 +44,33 @@ export const foodCatcherMeta: ArcadeGameMeta = {
       keyboard: "Left / right arrows to move",
       touch: "Hold and drag left / right"
    },
+   howTo: {
+      keys: [
+         { id: "move", keys: ["Left/Right"], label: "Move", main: true, role: "move" },
+      ],
+      touch: [
+         { id: "drag", control: "drag", label: "Hold and drag left / right" },
+      ],
+      steps: [
+         { title: "Goal", text: "Slide the chef and catch the good food." },
+         {
+            title: "Move",
+            text: "Use the Left and Right arrow keys to slide.",
+            touchText: "Hold and drag left or right to slide.",
+            keys: ["move"],
+            touch: ["drag"],
+         },
+         { title: "Combo", text: "Five catches in a row score double.", keys: ["move"], touch: ["drag"] },
+         { title: "Watch out", text: "Socks and tins cost a life. Three and you are out." },
+         {
+            title: "Tips",
+            text: "Golden treats score extra. Esc or P pauses.",
+            touchText: "Golden treats score extra. Tap Pause, top right, to stop.",
+            keys: ["pause"],
+            touch: ["pause"],
+         },
+      ],
+   },
    scoring: SCORING_L1,
    levels: LEVELS,
    thumbnail: "/images/3d/food-catcher.webp",

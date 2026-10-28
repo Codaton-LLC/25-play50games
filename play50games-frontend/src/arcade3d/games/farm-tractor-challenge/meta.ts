@@ -30,6 +30,38 @@ export const farmTractorChallengeMeta: ArcadeGameMeta = {
       keyboard: "WASD / arrows to drive",
       touch: "Joystick to drive",
    },
+   howTo: {
+      keys: [
+         { id: "move", keys: ["WASD", "Arrows"], label: "Drive", main: true, role: "move" },
+      ],
+      touch: [
+         { id: "joystick", control: "joystick", label: "Drive" },
+      ],
+      steps: [
+         { title: "Goal", text: "Hitch the bales and haul them into the barn bay." },
+         {
+            title: "Drive",
+            text: "Use WASD or the arrow keys to drive. There is no other button.",
+            touchText: "Push the joystick to drive. There is no other button.",
+            keys: ["move"],
+            touch: ["joystick"],
+         },
+         {
+            title: "Hitch slowly",
+            text: "Roll slowly into a bale to hitch it, then stop in the barn bay until the load counts.",
+            keys: ["move"],
+            touch: ["joystick"],
+         },
+         { title: "Watch out", text: "A fast hit bumps the bale and costs a life. Fences bump above a crawl." },
+         {
+            title: "Tips",
+            text: "Ease off early: a crawl is always safe. Esc or P pauses.",
+            touchText: "Ease off early: a crawl is always safe. Tap Pause, top right, to stop.",
+            keys: ["pause"],
+            touch: ["pause"],
+         },
+      ],
+   },
    scoring: SCORING,
    levels: LEVELS,
    thumbnail: "/images/3d/farm-tractor-challenge.webp",

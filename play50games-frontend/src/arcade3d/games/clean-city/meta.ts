@@ -28,6 +28,33 @@ export const cleanCityMeta: ArcadeGameMeta = {
       keyboard: "WASD / arrows to move",
       touch: "Joystick to move"
    },
+   howTo: {
+      keys: [
+         { id: "move", keys: ["WASD", "Arrows"], label: "Move", main: true, role: "move" },
+      ],
+      touch: [
+         { id: "joystick", control: "joystick", label: "Move" },
+      ],
+      steps: [
+         { title: "Goal", text: "Clean the park, the city and the beach: pick up every piece of litter." },
+         {
+            title: "Move",
+            text: "Use WASD or the arrow keys to walk.",
+            touchText: "Push the joystick to walk.",
+            keys: ["move"],
+            touch: ["joystick"],
+         },
+         { title: "Pick up", text: "Walk into litter to pick it up: +50 a piece.", keys: ["move"], touch: ["joystick"] },
+         { title: "Beat the clock", text: "Clear all three maps before time runs out; every second left pays extra." },
+         {
+            title: "Tips",
+            text: "Plan a loop: later levels add moving bins that slow you. Esc or P pauses.",
+            touchText: "Plan a loop: later levels add moving bins that slow you. Tap Pause, top right, to stop.",
+            keys: ["pause"],
+            touch: ["pause"],
+         },
+      ],
+   },
    scoring: {
       kind: "points",
       maxScore: 4940,

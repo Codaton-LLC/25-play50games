@@ -28,6 +28,41 @@ export const submarineTreasureDiveMeta: ArcadeGameMeta = {
       keyboard: "WASD / arrows to steer, hold E or Enter to dive",
       touch: "Joystick to steer + hold Dive",
    },
+   howTo: {
+      keys: [
+         { id: "move", keys: ["WASD", "Arrows"], label: "Steer", main: true, role: "move" },
+         { id: "dive", keys: ["E", "Enter"], label: "Dive", hold: true, main: true },
+      ],
+      touch: [
+         { id: "joystick", control: "joystick", label: "Steer" },
+         { id: "dive", control: "action", label: "Dive", hold: true },
+      ],
+      steps: [
+         { title: "Goal", text: "Find every treasure on the sea floor, then land on the dock before the battery dies." },
+         {
+            title: "Steer",
+            text: "Use WASD or the arrow keys to steer the sub.",
+            touchText: "Push the joystick to steer the sub.",
+            keys: ["move"],
+            touch: ["joystick"],
+         },
+         {
+            title: "Dive",
+            text: "Hold E or Enter to sink, let go to rise. Scoop a treasure only on the sea floor.",
+            touchText: "Hold Dive to sink, let go to rise. Scoop a treasure only on the sea floor.",
+            keys: ["dive"],
+            touch: ["dive"],
+         },
+         { title: "Watch out", text: "Coral heads are solid. Jellyfish cost battery." },
+         {
+            title: "Tips",
+            text: "Follow the ping to the next treasure. Esc or P pauses.",
+            touchText: "Follow the ping to the next treasure. Tap Pause, top right, to stop.",
+            keys: ["pause"],
+            touch: ["pause"],
+         },
+      ],
+   },
    scoring: SCORING,
    levels: LEVELS,
    thumbnail: "/images/3d/submarine-treasure-dive.webp",

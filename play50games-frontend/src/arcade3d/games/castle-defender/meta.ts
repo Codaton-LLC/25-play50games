@@ -29,6 +29,50 @@ export const castleDefenderMeta: ArcadeGameMeta = {
       keyboard: "Click the field to fire; arrows / WASD aim, Space fires; E / Enter drops a rock; 1 / 2 chooses an upgrade",
       touch: "Tap the field to fire, tap Rock to clear a ladder, tap an upgrade card to choose",
    },
+   howTo: {
+      keys: [
+         { id: "click", keys: ["Mouse"], label: "Click to fire", main: true, role: "pointer" },
+         { id: "aim", keys: ["Arrows", "WASD"], label: "Aim", role: "move" },
+         { id: "fire", keys: ["Space"], label: "Fire", main: true },
+         { id: "rock", keys: ["E", "Enter"], label: "Drop a rock" },
+         { id: "upgrade", keys: ["1/2"], label: "Pick upgrade" },
+      ],
+      touch: [
+         { id: "tap", control: "tap", label: "Tap the field to fire" },
+         { id: "rock", control: "action", label: "Drop a rock" },
+      ],
+      steps: [
+         { title: "Goal", text: "Hold the castle gate through every goblin wave." },
+         {
+            title: "Fire",
+            text: "Click the field to fire, or aim with the arrows / WASD and press Space.",
+            touchText: "Tap the field to fire: the shot snaps to the nearest goblin.",
+            keys: ["click", "aim", "fire"],
+            touch: ["tap"],
+         },
+         {
+            title: "Drop a rock",
+            text: "E or Enter drops a rock on an erected ladder. It reloads in 8 seconds.",
+            touchText: "Tap Rock to clear an erected ladder. It reloads in 8 seconds.",
+            keys: ["rock"],
+            touch: ["rock"],
+         },
+         {
+            title: "Upgrades",
+            text: "Between waves choose an upgrade with 1 or 2. Hit shields from behind.",
+            touchText: "Between waves tap an upgrade card. Hit shields from behind.",
+            keys: ["upgrade"],
+            touch: ["tap"],
+         },
+         {
+            title: "Tips",
+            text: "Runners are fast: shoot them first. Esc or P pauses.",
+            touchText: "Runners are fast: shoot them first. Tap Pause, top right, to stop.",
+            keys: ["pause"],
+            touch: ["pause"],
+         },
+      ],
+   },
    scoring: SCORING,
    // a level clears on a win (every wave survived); no clearScore
    levels: [

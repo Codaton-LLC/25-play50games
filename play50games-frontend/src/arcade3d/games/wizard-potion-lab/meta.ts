@@ -30,6 +30,41 @@ export const wizardPotionLabMeta: ArcadeGameMeta = {
       keyboard: "WASD / arrows to move, E or Enter to use",
       touch: "Joystick to move + Use",
    },
+   howTo: {
+      keys: [
+         { id: "move", keys: ["WASD", "Arrows"], label: "Move", main: true, role: "move" },
+         { id: "use", keys: ["E", "Enter"], label: "Use", main: true },
+      ],
+      touch: [
+         { id: "joystick", control: "joystick", label: "Move" },
+         { id: "use", control: "action", label: "Use" },
+      ],
+      steps: [
+         { title: "Goal", text: "Brew the open recipes, one ingredient at a time." },
+         {
+            title: "Move",
+            text: "Use WASD or the arrow keys to move.",
+            touchText: "Push the joystick to move.",
+            keys: ["move"],
+            touch: ["joystick"],
+         },
+         {
+            title: "Use",
+            text: "Press E or Enter to pick up an ingredient (you carry one), then at the cauldron to add it.",
+            touchText: "Tap Use to pick up an ingredient (you carry one), then at the cauldron to add it.",
+            keys: ["use"],
+            touch: ["use"],
+         },
+         { title: "Watch out", text: "Only the next step of an open recipe goes in. A wrong ingredient stuns you and costs a life." },
+         {
+            title: "Tips",
+            text: "A recipe with no wrong add scores more. Esc or P pauses.",
+            touchText: "A recipe with no wrong add scores more. Tap Pause, top right, to stop.",
+            keys: ["pause"],
+            touch: ["pause"],
+         },
+      ],
+   },
    scoring: SCORING,
    levels: LEVELS,
    thumbnail: "/images/3d/wizard-potion-lab.webp",

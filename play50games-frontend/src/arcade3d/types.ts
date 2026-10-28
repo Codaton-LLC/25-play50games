@@ -137,6 +137,54 @@ export interface LevelMeta {
    clearScore?: number;
 }
 
+/**
+ * One keyboard hint on the start card's keyboard illustration (core/howto, core/README.md "How to
+ * play"). `keys` are alternatives drawn with "or" between them; each is a cap spec:
+ * "WASD" / "Arrows" (the inverted-T cluster), "Left/Right", "A/D", "1-5" (a row of caps), "Space",
+ * "Enter", "Esc", "Mouse", or any single key ("E", "P").
+ */
+export interface HowToKey {
+   /** what the wizard steps point at, e.g. "move" */
+   id: string;
+   keys: string[];
+   /** the caption under the caps: one to three words, e.g. "Steer" */
+   label: string;
+   /** drawn with a HOLD tag */
+   hold?: boolean;
+   /** drawn in the game's accent (the movement keys and the main action) */
+   main?: boolean;
+   /** "move" feeds the wizard's Move step; omitted = derived from the keys */
+   role?: "move" | "action" | "pointer" | "pause";
+}
+
+/** One on-screen control on the phone illustration. Button texts come from GameDefinition.touchLabels. */
+export interface HowToTouch {
+   id: string;
+   control: "joystick" | "jump" | "action" | "tap" | "swipe" | "drag";
+   /** the caption next to the control, e.g. "Steer", "Tap a pile" */
+   label: string;
+   hold?: boolean;
+}
+
+/** One wizard step. `touchText` replaces `text` while the Touch view is shown. */
+export interface HowToStep {
+   title: string;
+   text: string;
+   touchText?: string;
+   /** HowToKey ids lit in this step */
+   keys?: string[];
+   /** HowToTouch ids lit in this step ("pause" lights the HUD's Pause) */
+   touch?: string[];
+}
+
+/** A game's structured "How to play" (ArcadeGameMeta.howTo). Omitted = derived from the controls text. */
+export interface HowTo {
+   keys: HowToKey[];
+   touch: HowToTouch[];
+   /** 3-5 steps: goal, move, main action, avoid / win, tips */
+   steps: HowToStep[];
+}
+
 export interface ArcadeGameMeta {
    slug: ArcadeSlug;
    title: string;
@@ -150,6 +198,12 @@ export interface ArcadeGameMeta {
    difficulty: 1 | 2 | 3;
    orientation: "any" | "landscape" | "portrait";
    controls: { scheme: ControlScheme; keyboard: string; touch: string };
+   /**
+    * The start card's keyboard / touch illustrations and its "How to play" wizard. Omitted = derived
+    * from `controls`, the definition's touchControls / touchLabels and its instructions
+    * (core/howto/howTo.ts). The shell always adds Esc / P = Pause.
+    */
+   howTo?: HowTo;
    scoring: ScoringRules;
    /** /images/3d/<slug>.webp once it exists */
    thumbnail: string | null;
