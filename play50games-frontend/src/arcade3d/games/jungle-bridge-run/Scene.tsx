@@ -158,6 +158,12 @@ function LevelScene() {
    useEffect(() => {
       // the opening hint is up from the countdown on
       GUIDE.set(cueHint(cueCode(run, nextCue(run, cue)), touch));
+      beacon.x = cue.x;
+      beacon.y = 0.05;
+      beacon.z = cue.z;
+      beacon.hidden = !cue.obstacle;
+      shownAction.current = cue.action;
+      setBeaconAction(cue.action);
       return () => GUIDE.reset();
       // eslint-disable-next-line react-hooks/exhaustive-deps
    }, [run]);
