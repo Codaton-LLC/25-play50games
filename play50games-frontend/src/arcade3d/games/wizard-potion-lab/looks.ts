@@ -4,7 +4,8 @@ import type { InstanceSpot } from "@/arcade3d/core/render";
 import type { FittedViewOptions } from "@/arcade3d/core/useFittedView";
 import type { LevelId } from "@/arcade3d/types";
 import { LEVELS, type WizardLevel } from "./levels";
-import type { Ingredient } from "./rules";
+import { TABLE_HEIGHT } from "./assets";
+import { CAULDRON_BODY, SHELF_R, TABLE_R, type Ingredient, type Run } from "./rules";
 
 export const COLORS = {
    floor: "#4b46a8",
@@ -148,6 +149,31 @@ export function wallBoxes(walls: readonly InstanceSpot[], out: AABB[]): number {
       b.min.z = w.z - hz; b.max.z = w.z + hz;
    }
    return n;
+}
+
+/** Tops (m) of the round obstacles for the camera solids. The cauldron and the shelves are not measured: a box to these heights. */
+const CAULDRON_TOP = 1.0;
+const SHELF_TOP = 1.6;
+
+/**
+ * The round obstacles rules.ts pushes the hero off (resolve), as boxes for the camera solids: the
+ * cauldron at the centre, every shelf, the table. Each box is the circle's bounds.
+ */
+export function obstacleBoxes(run: Run): AABB[] {
+   const boxes: AABB[] = [];
+   const add = (x: number, z: number, r: number, top: number) => {
+      boxes.push({ min: { x: x - r, y: 0, z: z - r }, max: { x: x + r, y: top, z: z + r } });
+   };
+   add(0, 0, CAULDRON_BODY, CAULDRON_TOP);
+   for (const shelf of run.shelves) add(shelf.x, shelf.z, SHELF_R, SHELF_TOP);
+   add(run.table.x, run.table.z, TABLE_R, TABLE_HEIGHT);
+   return boxes;
+}
+
+/** The top view's distance (m): the default 15 m, or half the fog's start where the lab is smaller, so the top view stays inside the clear part of the fog. */
+export const TOP_DISTANCE = 15;
+export function topDistanceFor(level: WizardLevel): number {
+   return Math.min(TOP_DISTANCE, fogFor(level)[1] * 0.5);
 }
 
 export function wallCapSpots(walls: readonly InstanceSpot[]): InstanceSpot[] {

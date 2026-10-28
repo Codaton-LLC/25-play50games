@@ -41,7 +41,7 @@ import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { ASSETS, WIZARD_LANDMARKS, WIZARD_SCALE } from "./assets";
 import { publishLab } from "./Hud";
 import { LEVELS, type WizardLevel } from "./levels";
-import { COLORS, DAMPING, FOLLOW, FOV, INGREDIENT_LOOK, candleSpots, aimBounds, drawFlagstones, labDecor, lookAtFor, runeSpots, viewFor, wallBoxes, wallCapSpots, wallSpots } from "./looks";
+import { COLORS, DAMPING, FOLLOW, FOV, INGREDIENT_LOOK, candleSpots, aimBounds, drawFlagstones, labDecor, lookAtFor, obstacleBoxes, runeSpots, topDistanceFor, viewFor, wallBoxes, wallCapSpots, wallSpots } from "./looks";
 import { BallPrimitive, BookPrimitive, CauldronPrimitive, TablePrimitive, WizardFigure } from "./Primitives";
 import {
    MAX_SPEED,
@@ -204,12 +204,23 @@ function LevelScene() {
    const time = useGameTime();
    const quality = useQuality();
    const [run] = useState<Run>(() => createRun(randomSeed(), level));
-   // camera views (core/camera): the rules get the drawn camera's yaw; the lab's wall ring blocks the camera
+   const aim = useRef({ x: run.hero.x, y: 0.6, z: run.hero.z }).current;
+   const body = useRef<Group>(null);
+   const gait = useRef({ phase: 0 });
+   const bounds = useMemo(() => aimBounds(level), [level]);
+   const look = useMemo(() => lookAtFor(), []);
+   const walls = useMemo(() => wallSpots(level), [level]);
+   const caps = useMemo(() => wallCapSpots(walls), [walls]);
+   // camera views (core/camera): the rules get the drawn camera's yaw; the lab wall ring, the cauldron,
+   // the shelves and the table block the camera; the top view is set inside the fog's clear part
+   const obstacles = useMemo(() => obstacleBoxes(run), [run]);
+   const topFraming = useMemo(() => ({ top: { distance: topDistanceFor(level) } }), [level]);
    const cam = useCameraViews({
       slug: "wizard-potion-lab",
       subject: "character",
       steering: "camera",
       defaultYaw: view.yaw,
+      framing: topFraming,
       target: (o) => {
          const h = run.hero;
          o.x = h.x;
@@ -219,15 +230,18 @@ function LevelScene() {
          o.vx = h.vx;
          o.vz = h.vz;
       },
-      solids: (out: AABB[]) => wallBoxes(walls, out),
+      solids: (out: AABB[]) => {
+         let n = wallBoxes(walls, out);
+         for (const b of obstacles) {
+            if (n >= out.length) break;
+            const slot = out[n++];
+            slot.min.x = b.min.x; slot.max.x = b.max.x;
+            slot.min.y = b.min.y; slot.max.y = b.max.y;
+            slot.min.z = b.min.z; slot.max.z = b.max.z;
+         }
+         return n;
+      },
    });
-   const aim = useRef({ x: run.hero.x, y: 0.6, z: run.hero.z }).current;
-   const body = useRef<Group>(null);
-   const gait = useRef({ phase: 0 });
-   const bounds = useMemo(() => aimBounds(level), [level]);
-   const look = useMemo(() => lookAtFor(), []);
-   const walls = useMemo(() => wallSpots(level), [level]);
-   const caps = useMemo(() => wallCapSpots(walls), [walls]);
    const candles = useMemo(() => candleSpots(level, quality.decor), [level, quality.decor]);
    const runes = useMemo(() => runeSpots(level, quality.decor), [level, quality.decor]);
    const shelfSpots = useMemo(
