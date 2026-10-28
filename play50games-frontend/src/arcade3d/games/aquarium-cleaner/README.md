@@ -63,7 +63,7 @@ Juice: bubbles from the helmet every 1.5 s, sparkle + score popup per task, spla
 
 ## Controls
 
-WASD / arrows move, hold E or Enter to work, Space floats. Touch: joystick, Action "Work", Jump "Float". Scheme `joystick`. `touchControls: ["joystick", "action", "jump"]`. Game HUD: the task list with icons and ticks plus the air meter (`data-arcade-safe-area`). Stat chips: Tasks (done / total), Air 0-100. A `TargetMarkers` arrow points to the nearest open task, the basket when carrying, and the hatch when the list is done.
+WASD / arrows move, hold E or Enter to work, Space floats. Touch: joystick, Action "Work", Jump "Float". Scheme `joystick`. `touchControls: ["joystick", "action", "jump"]`. 📷 or C cycles the camera views (classic / chase / front / top / free); drag the canvas to look around. Game HUD: the task list with icons and ticks plus the air meter (`data-arcade-safe-area`). Stat chips: Tasks (done / total), Air 0-100. A `TargetMarkers` arrow points to the nearest open task, the basket when carrying, and the hatch when the list is done.
 
 ## Known issues
 

@@ -6,6 +6,7 @@ import { useFrame } from "@react-three/fiber";
 import { AdditiveBlending, Euler, Matrix4, Quaternion, RepeatWrapping, Vector3, type Group } from "three";
 import CameraRig from "@/arcade3d/core/CameraRig";
 import { DynamicInstancedModel, InstancedModel, Model } from "@/arcade3d/core/assets";
+import { useCameraViews } from "@/arcade3d/core/camera/CameraViews";
 import { DynamicInstanced } from "@/arcade3d/core/render";
 import { playSfx, startLoop, useMuted, type LoopHandle } from "@/arcade3d/core/audio";
 import { SkyDome } from "@/arcade3d/core/env";
@@ -77,6 +78,23 @@ function LevelScene() {
    const muted = useMuted();
    const phase = useArcadeStore((s) => s.phase);
    const [run] = useState<RunState>(() => createRun(randomSeed(), level, id));
+   // camera views (core/camera): the rules map the stick with the drawn camera's yaw. The garden
+   // has no walls and every obstacle (branches, hive) sits below the views' camera height, so no solids.
+   const cam = useCameraViews({
+      slug: "bee-garden",
+      subject: "character",
+      steering: "camera",
+      defaultYaw: view.yaw,
+      target: (o) => {
+         const b = run.bee;
+         o.x = b.x;
+         o.y = b.y;
+         o.z = b.z;
+         o.heading = b.heading;
+         o.vx = b.vx;
+         o.vz = b.vz;
+      },
+   });
    const bee = useRef<Group>(null);
    const body = useRef<BodyOffset>({ y: 0, roll: 0, yaw: 0, squash: 1 }).current;
    const hum = useRef<LoopHandle | null>(null);
@@ -126,7 +144,7 @@ function LevelScene() {
 
    useRunFrame((_state, dt) => {
       const { moveX, moveY, jump } = input.current;
-      inputToWorld(moveX, moveY, view.yaw, dir);
+      inputToWorld(moveX, moveY, cam.yaw(), dir);
       stepRun(run, { dirX: dir.x, dirZ: dir.z, jump }, dt, useArcadeStore);
       hum.current?.set({ pitch: run.boosting ? 1.4 : 1, volume: run.stunTimer > 0 ? 0.08 : 0.18 });
       // the camera aims ahead of the bee along its velocity

@@ -62,7 +62,7 @@ The shelves are painted cream (a material override: the GLB's olive texture read
 
 ## Controls
 
-WASD / arrows move, E or Enter uses. Touch: joystick and Action "Use". Scheme `joystick`. `touchControls: ["joystick", "action"]`, no jump. A `TargetMarkers` arrow points to the shelf for the carried toy, else to the nearest toy on the floor.
+WASD / arrows move, E or Enter uses. Touch: joystick and Action "Use". Scheme `joystick`. `touchControls: ["joystick", "action"]`, no jump. 📷 or C cycles the camera views (classic / chase / front / top / free); drag the canvas to look around. A `TargetMarkers` arrow points to the shelf for the carried toy, else to the nearest toy on the floor.
 
 ## Known issues
 

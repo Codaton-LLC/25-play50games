@@ -10,6 +10,8 @@ import {
 import { DynamicInstancedModel, InstancedModel, Model } from "@/arcade3d/core/assets";
 import CameraRig from "@/arcade3d/core/CameraRig";
 import { playSfx } from "@/arcade3d/core/audio";
+import { useCameraViews } from "@/arcade3d/core/camera/CameraViews";
+import type { AABB } from "@/arcade3d/core/collision";
 import { FRAME_PRIORITY } from "@/arcade3d/core/frameLoop";
 import { useFx } from "@/arcade3d/core/fx";
 import { useGameTime } from "@/arcade3d/core/gameTime";
@@ -30,7 +32,7 @@ import { ASSETS, GUARD_LANDMARKS, GUARD_SCALE, TOY_ASSETS } from "./assets";
 import { SIGN_ATLAS_W, SIGN_CELL, drawSigns } from "./glyphs";
 import { CATEGORIES, type Category, type ToyLevel } from "./levels";
 import {
-   BACK, COLORS, DAMPING, FOLLOW, FOV, TORCH, aimBounds, aimFor, shelfTrimSpots, decorOf, lookAtFor, signBaseSpots, signSpots, slotSpot, tileSpots, viewFor, wallSpots,
+   BACK, COLORS, DAMPING, FOLLOW, FOV, SIDE_H, TORCH, WALL_H, aimBounds, aimFor, shelfTrimSpots, decorOf, lookAtFor, signBaseSpots, signSpots, slotSpot, tileSpots, viewFor, wallSpots,
 } from "./looks";
 import { BinStand, GuardFigure, shelfParts, toyParts, windupCarParts, windupRobotParts } from "./Primitives";
 import { MAX_SPEED, SHELF_H, createRun, nextTarget, step, type Run } from "./rules";
@@ -139,6 +141,40 @@ function LevelScene() {
    const fx = useFx();
    const time = useGameTime();
    const [run] = useState<Run>(() => createRun(randomSeed(), config));
+   // camera views (core/camera): the rules get the drawn camera's yaw; the store's back and side
+   // walls (the right one a low counter) keep the chase / front / free camera out of the masonry
+   const cam = useCameraViews({
+      slug: "toy-store-night-shift",
+      subject: "character",
+      steering: "camera",
+      defaultYaw: view.yaw,
+      target: (o) => {
+         const h = run.hero;
+         o.x = h.x;
+         o.y = 1.1;
+         o.z = h.z;
+         o.heading = h.yaw;
+         o.vx = h.vx;
+         o.vz = h.vz;
+      },
+      solids: (out: AABB[]) => {
+         const t = 0.3;
+         let n = 0;
+         const wall = (cx: number, cz: number, sx: number, sz: number, h: number) => {
+            const b = out[n++];
+            b.min.x = cx - sx / 2;
+            b.max.x = cx + sx / 2;
+            b.min.y = 0;
+            b.max.y = h;
+            b.min.z = cz - sz / 2;
+            b.max.z = cz + sz / 2;
+         };
+         wall(0, -run.hz - BACK - t / 2, run.hx * 2 + t * 2, t, WALL_H);
+         wall(-run.hx - t / 2, -BACK / 2, t, run.hz * 2 + BACK, WALL_H);
+         wall(run.hx + t / 2, -BACK / 2, t, run.hz * 2 + BACK, SIDE_H);
+         return n;
+      },
+   });
    const aim = useRef(aimFor(config, run.hero.x, run.hero.z, run.hero.yaw, { x: 0, y: 0.9, z: 0 })).current;
    const body = useRef<Group>(null);
    const torch = useRef<Group>(null);
@@ -194,7 +230,7 @@ function LevelScene() {
    useRunFrame((_state, dt) => {
       const { moveX, moveY, actionPressed } = input.current;
       const store = useArcadeStore.getState();
-      const ev = step(run, { moveX, moveY, use: actionPressed, yaw: view.yaw }, dt, store.timeLeftMs ?? 0);
+      const ev = step(run, { moveX, moveY, use: actionPressed, yaw: cam.yaw() }, dt, store.timeLeftMs ?? 0);
       if (ev.score) store.addScore(ev.score);
       // the HUD only hears about a change (no store write per frame)
       if (synced.shelved !== run.placed) store.setStat("shelved", (synced.shelved = run.placed));

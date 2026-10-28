@@ -1,5 +1,6 @@
 "use client";
 
+import CameraViewButton from "@/arcade3d/core/camera/CameraViewButton";
 import { useLevel } from "@/arcade3d/core/level";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import type { AquariumLevel } from "./levels";
@@ -12,7 +13,7 @@ const ICONS = {
 };
 
 /** The task list (scrub, trash, gear) with ticks, and the air meter. The clock and score are the shell's. */
-export default function Hud() {
+function GameHud() {
    const { config } = useLevel<AquariumLevel>();
    const algae = useArcadeStore((s) => s.stats.algae ?? 0);
    const trash = useArcadeStore((s) => s.stats.trash ?? 0);
@@ -39,5 +40,15 @@ export default function Hud() {
          </div>
          {tasks >= total && total > 0 && <div className={styles.exit}>Go to the hatch</div>}
       </div>
+   );
+}
+
+/** The game's HUD plus the core 📷 camera-view button (core/camera). */
+export default function Hud() {
+   return (
+      <>
+         <CameraViewButton />
+         <GameHud />
+      </>
    );
 }

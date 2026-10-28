@@ -10,6 +10,8 @@ import {
 import { DynamicInstancedModel, InstancedModel, Model } from "@/arcade3d/core/assets";
 import CameraRig from "@/arcade3d/core/CameraRig";
 import { playSfx } from "@/arcade3d/core/audio";
+import { useCameraViews } from "@/arcade3d/core/camera/CameraViews";
+import type { AABB } from "@/arcade3d/core/collision";
 import { FRAME_PRIORITY } from "@/arcade3d/core/frameLoop";
 import { useFx } from "@/arcade3d/core/fx";
 import { useGameTime } from "@/arcade3d/core/gameTime";
@@ -202,6 +204,40 @@ function LevelScene() {
    const time = useGameTime();
    const quality = useQuality();
    const [run] = useState<Run>(() => createRun(randomSeed(), config));
+   // camera views (core/camera): the rules get the drawn camera's yaw; the three glass walls keep
+   // the chase / front / free camera inside the tank
+   const cam = useCameraViews({
+      slug: "aquarium-cleaner",
+      subject: "character",
+      steering: "camera",
+      defaultYaw: view.yaw,
+      target: (o) => {
+         const h = run.hero;
+         o.x = h.x;
+         o.y = h.y + 1.1;
+         o.z = h.z;
+         o.heading = h.yaw;
+         o.vx = h.vx;
+         o.vz = h.vz;
+      },
+      solids: (out: AABB[]) => {
+         const t = 0.15;
+         let n = 0;
+         const wall = (minX: number, maxX: number, minZ: number, maxZ: number) => {
+            const b = out[n++];
+            b.min.x = minX;
+            b.max.x = maxX;
+            b.min.y = 0;
+            b.max.y = GLASS_H;
+            b.min.z = minZ;
+            b.max.z = maxZ;
+         };
+         wall(-run.hx - t, -run.hx, -run.hz, run.hz);
+         wall(run.hx, run.hx + t, -run.hz, run.hz);
+         wall(-run.hx - t, run.hx + t, -run.hz - t, -run.hz);
+         return n;
+      },
+   });
    const aim = useRef({ x: run.hero.x, y: 0.9, z: run.hero.z }).current;
    const body = useRef<Group>(null);
    const gait = useRef({ phase: 0, amount: 0, visYaw: 0, scrub: 0 }).current;
@@ -261,7 +297,7 @@ function LevelScene() {
    useRunFrame((_state, dt) => {
       const { moveX, moveY, action, jumpPressed } = input.current;
       const store = useArcadeStore.getState();
-      const ev = step(run, { moveX, moveY, action, jumpPressed, yaw: view.yaw }, dt, store.timeLeftMs ?? 0);
+      const ev = step(run, { moveX, moveY, action, jumpPressed, yaw: cam.yaw() }, dt, store.timeLeftMs ?? 0);
       if (ev.score) store.addScore(ev.score);
       // the HUD re-renders only when a value changes
       const air = Math.round(Math.max(0, run.hero.air));
