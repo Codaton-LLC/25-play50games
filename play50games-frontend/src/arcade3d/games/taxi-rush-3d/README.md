@@ -67,3 +67,11 @@ Camera: a chase camera (pitch 48°, yaw 0.35, 3 m look-ahead along the travel di
 - Facing of the GLBs is assumed +z (cab nose, shop and house fronts toward the street); check in the playtest.
 - `travellerNpc` is photoreal with hands in pockets (spec: `passengerNpc` still needed).
 - A head-on car that meets a cab stopped in its lane waits for it; the cab passes it on the inside of the street (the bots do the same).
+
+## Camera views
+
+Tap 📷 or press **C** (**T** also cycles): Classic (the existing fitted follow camera) / Front / Top / Free. A separate chase view is omitted because Classic already follows the vehicle. WASD / arrows and the joystick keep steering the vehicle in every view.
+
+Drag on empty canvas (one or two fingers on touch) to orbit in Free; wheel / pinch zooms. Q / Z turn left, X turns right, R / F tilt, V recenters. No camera keys conflict with game controls. The core camera button stays at the bottom right, clear of the shell chips and joystick.
+
+Both subject and steering are `vehicle`. Camera collision uses the existing building AABBs. Top distance is 20 m (below the 45 m fog start). No fitted-pitch labels or view-based scene culling need adjustment. Browser checks, including 390 × 844 with the cookie banner, are left to Claude.

@@ -99,3 +99,11 @@ The slug is already on main (registry, loader, stub meta). Status stays `dev`. D
 ```
 
 2. Copy the GLBs named in `assets.spec.json` to `public/models/3d/farm-tractor-challenge/` and add them to `core/modelManifest.ts`. Leave `hero.glb`. Then fit scales. The tree and the barn crate are already shared.
+
+## Camera views
+
+Tap 📷 or press **C** (**T** also cycles): Classic (the existing fitted follow camera) / Front / Top / Free. A separate chase view is omitted because Classic already follows the vehicle. WASD / arrows and the joystick keep steering the vehicle in every view.
+
+Drag on empty canvas (one or two fingers on touch) to orbit in Free; wheel / pinch zooms. Q / Z turn left, X turns right, R / F tilt, V recenters. No camera keys conflict with game controls. The core camera button stays at the bottom right, clear of the shell chips and joystick and the top-left Load panel.
+
+Both subject and steering are `vehicle`. Camera collision uses the existing tree AABBs plus boxes around the fence segments and gate posts. Top distance is 18 m (below the mud level’s 22 m fog start). No fitted-pitch labels or view-based scene culling need adjustment. Browser checks, including 390 × 844 with the cookie banner, are left to Claude.

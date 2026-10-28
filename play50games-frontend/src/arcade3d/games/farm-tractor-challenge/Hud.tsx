@@ -1,5 +1,6 @@
 "use client";
 
+import CameraViewButton from "@/arcade3d/core/camera/CameraViewButton";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import styles from "./Hud.module.css";
 
@@ -8,9 +9,12 @@ export default function Hud() {
    const loaded = useArcadeStore((s) => s.stats.loaded ?? 0);
    const size = useArcadeStore((s) => s.stats.load ?? 1);
    return (
-      <div className={styles.load} data-arcade-safe-area>
-         <span>Load</span>
-         <strong>{loaded}/{size}</strong>
-      </div>
+      <>
+         <CameraViewButton />
+         <div className={styles.load} data-arcade-safe-area>
+            <span>Load</span>
+            <strong>{loaded}/{size}</strong>
+         </div>
+      </>
    );
 }

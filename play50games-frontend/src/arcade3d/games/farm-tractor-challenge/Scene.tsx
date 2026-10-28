@@ -6,6 +6,7 @@ import { useFrame } from "@react-three/fiber";
 import { CylinderGeometry, MeshStandardMaterial, Quaternion, RingGeometry, Vector3, type Matrix4 } from "three";
 import { DynamicInstancedModel, InstancedModel, Model } from "@/arcade3d/core/assets";
 import CameraRig from "@/arcade3d/core/CameraRig";
+import { useCameraViews } from "@/arcade3d/core/camera/CameraViews";
 import { playSfx } from "@/arcade3d/core/audio";
 import { FRAME_PRIORITY } from "@/arcade3d/core/frameLoop";
 import { useFx } from "@/arcade3d/core/fx";
@@ -71,6 +72,43 @@ function LevelScene() {
    const fx = useFx();
    const time = useGameTime();
    const run = useMemo<Run>(() => createRun(randomSeed(), config), [config]);
+   const cameraSolids = useMemo(() => [
+      ...run.treeBoxes,
+      ...run.segs.map((s) => ({
+         min: { x: Math.min(s.ax, s.bx) - 0.09, y: 0, z: Math.min(s.az, s.bz) - 0.09 },
+         max: { x: Math.max(s.ax, s.bx) + 0.09, y: 1.05, z: Math.max(s.az, s.bz) + 0.09 },
+      })),
+      ...run.posts.map((p) => ({
+         min: { x: p.x - 0.42, y: 0, z: p.z - 0.42 },
+         max: { x: p.x + 0.42, y: 1.8, z: p.z + 0.42 },
+      })),
+   ], [run]);
+   // Keep the fitted follow camera as classic; top stays below the mud farm's fog start (22 m).
+   const cam = useCameraViews({
+      slug: "farm-tractor-challenge",
+      subject: "vehicle",
+      steering: "vehicle",
+      defaultYaw: view.yaw,
+      views: ["default", "front", "top", "free"],
+      framing: { top: { distance: 18 } },
+      target: (o) => {
+         const t = run.tractor;
+         o.x = t.x;
+         o.y = 1.1;
+         o.z = t.z;
+         o.heading = t.yaw;
+         o.vx = Math.sin(t.yaw) * t.speed;
+         o.vz = Math.cos(t.yaw) * t.speed;
+      },
+      solids: (out) => {
+         const count = Math.min(out.length, cameraSolids.length);
+         for (let i = 0; i < count; i++) {
+            Object.assign(out[i].min, cameraSolids[i].min);
+            Object.assign(out[i].max, cameraSolids[i].max);
+         }
+         return count;
+      },
+   });
    const aim = useRef({ x: run.tractor.x, y: 0.8, z: run.tractor.z + LOOK_AHEAD }).current;
    const body = useRef<import("three").Group>(null);
    const trailer = useRef<import("three").Group>(null);
@@ -147,7 +185,7 @@ function LevelScene() {
    useRunFrame((_state, dt) => {
       const { moveX, moveY } = input.current;
       const store = useArcadeStore.getState();
-      const ev = step(run, { moveX, moveY, yaw: view.yaw }, dt, store.timeLeftMs ?? 0);
+      const ev = step(run, { moveX, moveY, yaw: cam.yaw() }, dt, store.timeLeftMs ?? 0);
       if (ev.score) store.addScore(ev.score);
       let loaded = 0;
       for (const bale of run.bales) if (bale.trip === run.trip && bale.state === "hitched") loaded += 1;
