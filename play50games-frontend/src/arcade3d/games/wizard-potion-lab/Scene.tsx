@@ -23,6 +23,8 @@ import {
 import { DynamicInstancedModel, InstancedModel, Model } from "@/arcade3d/core/assets";
 import { playSfx, startLoop } from "@/arcade3d/core/audio";
 import CameraRig from "@/arcade3d/core/CameraRig";
+import type { AABB } from "@/arcade3d/core/collision";
+import { useCameraViews } from "@/arcade3d/core/camera/CameraViews";
 import { FRAME_PRIORITY } from "@/arcade3d/core/frameLoop";
 import { useFx } from "@/arcade3d/core/fx";
 import { useGameTime } from "@/arcade3d/core/gameTime";
@@ -39,7 +41,7 @@ import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { ASSETS, WIZARD_LANDMARKS, WIZARD_SCALE } from "./assets";
 import { publishLab } from "./Hud";
 import { LEVELS, type WizardLevel } from "./levels";
-import { COLORS, DAMPING, FOLLOW, FOV, INGREDIENT_LOOK, candleSpots, aimBounds, drawFlagstones, labDecor, lookAtFor, runeSpots, viewFor, wallCapSpots, wallSpots } from "./looks";
+import { COLORS, DAMPING, FOLLOW, FOV, INGREDIENT_LOOK, candleSpots, aimBounds, drawFlagstones, labDecor, lookAtFor, runeSpots, viewFor, wallBoxes, wallCapSpots, wallSpots } from "./looks";
 import { BallPrimitive, BookPrimitive, CauldronPrimitive, TablePrimitive, WizardFigure } from "./Primitives";
 import {
    MAX_SPEED,
@@ -202,6 +204,23 @@ function LevelScene() {
    const time = useGameTime();
    const quality = useQuality();
    const [run] = useState<Run>(() => createRun(randomSeed(), level));
+   // camera views (core/camera): the rules get the drawn camera's yaw; the lab's wall ring blocks the camera
+   const cam = useCameraViews({
+      slug: "wizard-potion-lab",
+      subject: "character",
+      steering: "camera",
+      defaultYaw: view.yaw,
+      target: (o) => {
+         const h = run.hero;
+         o.x = h.x;
+         o.y = 1.1;
+         o.z = h.z;
+         o.heading = h.yaw;
+         o.vx = h.vx;
+         o.vz = h.vz;
+      },
+      solids: (out: AABB[]) => wallBoxes(walls, out),
+   });
    const aim = useRef({ x: run.hero.x, y: 0.6, z: run.hero.z }).current;
    const body = useRef<Group>(null);
    const gait = useRef({ phase: 0 });
@@ -278,7 +297,7 @@ function LevelScene() {
    useRunFrame((_state, dt) => {
       const { moveX, moveY, actionPressed } = input.current;
       const store = useArcadeStore.getState();
-      const ev = step(run, { moveX, moveY, actionPressed, yaw: view.yaw }, dt, store.timeLeftMs ?? 0);
+      const ev = step(run, { moveX, moveY, actionPressed, yaw: cam.yaw() }, dt, store.timeLeftMs ?? 0);
       if (ev.score) store.addScore(ev.score);
       aim.x = run.hero.x;
       aim.z = run.hero.z;

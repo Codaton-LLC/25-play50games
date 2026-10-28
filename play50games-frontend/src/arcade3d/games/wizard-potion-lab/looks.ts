@@ -127,6 +127,29 @@ export function wallSpots(level: WizardLevel): InstanceSpot[] {
    return spots;
 }
 
+/**
+ * The wall ring as axis-aligned boxes for the camera collision (core/camera). A segment is turned
+ * by rotY, so its box is the bounds of its turned footprint (a little wider than the wall at the
+ * diagonals, which only makes the camera stop a touch earlier).
+ */
+export function wallBoxes(walls: readonly InstanceSpot[], out: AABB[]): number {
+   let n = 0;
+   for (const w of walls) {
+      if (n >= out.length) break;
+      const a = w.rotY ?? 0;
+      const half = (w.sx ?? 1) / 2;
+      const thick = (w.sz ?? 1) / 2;
+      const hx = half * Math.abs(Math.cos(a)) + thick * Math.abs(Math.sin(a));
+      const hz = half * Math.abs(Math.sin(a)) + thick * Math.abs(Math.cos(a));
+      const hy = (w.sy ?? 1) / 2;
+      const b = out[n++];
+      b.min.x = w.x - hx; b.max.x = w.x + hx;
+      b.min.y = w.y - hy; b.max.y = w.y + hy;
+      b.min.z = w.z - hz; b.max.z = w.z + hz;
+   }
+   return n;
+}
+
 export function wallCapSpots(walls: readonly InstanceSpot[]): InstanceSpot[] {
    return walls.map((spot) => ({ ...spot, y: 2.35, sy: 0.1 }));
 }
