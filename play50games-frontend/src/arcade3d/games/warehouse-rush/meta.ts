@@ -39,6 +39,47 @@ export const warehouseRushMeta: ArcadeGameMeta = {
       keyboard: "WASD to move, E / Space to pick up and drop",
       touch: "Joystick + Action button",
    },
+   howTo: {
+      keys: [
+         { id: "move", keys: ["WASD"], label: "Drive", main: true, role: "move" },
+         { id: "act", keys: ["E", "Space"], label: "Lift / drop", main: true },
+      ],
+      touch: [
+         { id: "joystick", control: "joystick", label: "Drive" },
+         { id: "act", control: "action", label: "Lift / drop" },
+      ],
+      steps: [
+         { title: "Goal", text: "Fill the orders: the right box colour into the right zone in 60 seconds." },
+         {
+            title: "Drive",
+            text: "Use WASD to drive the robot.",
+            touchText: "Push the joystick to drive the robot.",
+            keys: ["move"],
+            touch: ["joystick"],
+         },
+         {
+            title: "Lift",
+            text: "At a box of the order's colour, press E or Space to lift it.",
+            touchText: "At a box of the order's colour, tap Action to lift it.",
+            keys: ["act"],
+            touch: ["act"],
+         },
+         {
+            title: "Drop",
+            text: "Drive into its zone and press again: +50. Wrong zone: -20.",
+            touchText: "Drive into its zone and tap Action again: +50. Wrong zone: -20.",
+            keys: ["act"],
+            touch: ["act"],
+         },
+         {
+            title: "Tips",
+            text: "One box at a time: read the order at the top first. Esc or P pauses.",
+            touchText: "One box at a time: read the order at the top first. Tap Pause, top right, to stop.",
+            keys: ["pause"],
+            touch: ["pause"],
+         },
+      ],
+   },
    scoring: SCORING,
    levels: LEVELS,
    thumbnail: "/images/3d/warehouse-rush.webp",

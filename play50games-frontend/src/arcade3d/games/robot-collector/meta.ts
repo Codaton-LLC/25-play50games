@@ -46,6 +46,38 @@ export const robotCollectorMeta: ArcadeGameMeta = {
       keyboard: "WASD / arrows to move",
       touch: "Joystick to move"
    },
+   howTo: {
+      keys: [
+         { id: "move", keys: ["WASD", "Arrows"], label: "Move", main: true, role: "move" },
+      ],
+      touch: [
+         { id: "joystick", control: "joystick", label: "Move" },
+      ],
+      steps: [
+         { title: "Goal", text: "Collect every battery before the clock runs out." },
+         {
+            title: "Move",
+            text: "Use WASD or the arrow keys to drive the robot.",
+            touchText: "Push the joystick to drive the robot.",
+            keys: ["move"],
+            touch: ["joystick"],
+         },
+         {
+            title: "Grab in pairs",
+            text: "Batteries light up two at a time: grab both and the next pair appears.",
+            keys: ["move"],
+            touch: ["joystick"],
+         },
+         { title: "Watch out", text: "Oil patches slow you down; conveyor belts carry you along their arrows." },
+         {
+            title: "Tips",
+            text: "Finish early: every second left pays +10. Esc or P pauses.",
+            touchText: "Finish early: every second left pays +10. Tap Pause, top right, to stop.",
+            keys: ["pause"],
+            touch: ["pause"],
+         },
+      ],
+   },
    scoring: SCORING_L1,
    levels: LEVELS,
    thumbnail: "/images/3d/robot-collector.webp",

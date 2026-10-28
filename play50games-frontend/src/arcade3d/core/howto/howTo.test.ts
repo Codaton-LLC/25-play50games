@@ -154,9 +154,15 @@ describe("resolveHowTo: every game works on day one", () => {
       });
    }
 
-   it("the five showcase games carry their own howTo", () => {
-      const own = ARCADE_GAMES.filter((meta) => meta.howTo).map((meta) => meta.slug);
-      expect(own).toEqual(expect.arrayContaining(["shopping-cart", "construction-worker", "taxi-rush-3d", "dog-park-fetch", "mini-golf"]));
+   it("every Menu 1 game carries its own howTo (the derivation is the fallback for new games and Menu 2)", () => {
+      expect(ARCADE_GAMES.filter((meta) => !meta.howTo).map((meta) => meta.slug)).toEqual([]);
+   });
+
+   it("every explicit howTo uses real control kinds and ends on the pause tip", () => {
+      for (const meta of ARCADE_GAMES) {
+         for (const t of meta.howTo?.touch ?? []) expect(["joystick", "jump", "action", "tap", "swipe", "drag"]).toContain(t.control);
+         expect(meta.howTo?.steps.at(-1)?.keys, meta.slug).toEqual([PAUSE_ID]);
+      }
    });
 
    it("derives goal, move, main action, win and tips from the text when there is no howTo", () => {

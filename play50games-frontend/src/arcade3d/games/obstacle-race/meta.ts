@@ -24,6 +24,35 @@ export const obstacleRaceMeta: ArcadeGameMeta = {
       keyboard: "WASD to move, Space to jump",
       touch: "Joystick + Jump button"
    },
+   howTo: {
+      keys: [
+         { id: "move", keys: ["WASD"], label: "Move", main: true, role: "move" },
+         { id: "jump", keys: ["Space"], label: "Jump", main: true },
+      ],
+      touch: [
+         { id: "joystick", control: "joystick", label: "Move" },
+         { id: "jump", control: "jump", label: "Jump" },
+      ],
+      steps: [
+         { title: "Goal", text: "Race to the finish arch. Your finish time is your score." },
+         { title: "Move", text: "Use WASD to run.", touchText: "Push the joystick to run.", keys: ["move"], touch: ["joystick"] },
+         {
+            title: "Jump",
+            text: "Space jumps the bar, the platforms and onto the moving blocks.",
+            touchText: "Tap Jump to clear the bar, the platforms and the moving blocks.",
+            keys: ["jump"],
+            touch: ["jump"],
+         },
+         { title: "Watch out", text: "A fall sends you back to the last checkpoint, and the clock runs on." },
+         {
+            title: "Tips",
+            text: "Cross the beam slowly: a fall costs more than a pause. Esc or P pauses.",
+            touchText: "Cross the beam slowly: a fall costs more than a pause. Tap Pause, top right, to stop.",
+            keys: ["pause"],
+            touch: ["pause"],
+         },
+      ],
+   },
    scoring: {
       kind: "time",
       maxScore: 28150,
