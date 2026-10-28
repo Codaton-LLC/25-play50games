@@ -1,13 +1,45 @@
-import { LEVEL_IDS, type ArcadeGameMeta, type LevelId } from "../../types";
-import { LEVELS } from "./levels";
-import { limitsFor } from "./rules";
-const scoring = (id: LevelId) => ({ ...limitsFor(id), base: 0, maxPointsPerSec: 0, unitLabel: "time", display: "time" as const });
+import { LEVEL_IDS, type ArcadeGameMeta, type LevelId, type ScoringRules } from "../../types";
+import { PROPOSED_LEVEL_LIMITS } from "./rules";
+
+// Plain data only (server-safe). scoring must match WP includes/arcade-games.json (registry.sync.test.ts).
+// Menu 2 (Color Roll Heroes) game 41, World 2 Sky & Sea. Status "dev" (preview builds only) until the
+// user signs it off. A time game: the finish time minus the orb and flow bonus is the score (README
+// "Scoring"). Each level row carries its own proven limits (PROPOSED_LEVEL_LIMITS in rules.ts).
+// order 91 (50 Menu 1 games + card index 41).
+const LEVEL_TITLES: Record<LevelId, string> = {
+   1: "Gentle Wind",
+   2: "Cross Wind",
+   3: "Vertical Lift",
+   4: "Moving Fans",
+   5: "Storm Tunnel",
+};
+
+const scoring = (id: LevelId): ScoringRules => ({
+   ...PROPOSED_LEVEL_LIMITS[id],
+   base: 0,
+   maxPointsPerSec: 0,
+   unitLabel: "time",
+   display: "time",
+});
+
 export const windTunnelEscapeMeta: ArcadeGameMeta = {
-   slug: "wind-tunnel-escape", title: "Wind Tunnel Escape", order: 91,
-   tagline: "Build the current. Outrun the storm.",
-   description: "Redirect industrial fans, ride the currents you create, and escape a violet storm. Solve crosswinds and lift shafts, jam the Gale Engine, then reach open sky.",
-   collection: "rollheroes", status: "dev", difficulty: 3, orientation: "any", owner: "codex",
-   controls: { scheme: "platformer", keyboard: "WASD / arrows move, Space jumps, E / Enter rotates a nearby fan or uses your power. Hold Jump + Action to toggle a fan.", touch: "Joystick, Jump and Fan / Power. Hold Jump + Fan to toggle. Two fingers orbit; pinch zooms." },
-   scoring: scoring(1), levels: LEVEL_IDS.map((id) => ({ id, title: LEVELS[id].name, scoring: scoring(id) })),
-   thumbnail: null, accent: "#54cce7",
+   slug: "wind-tunnel-escape",
+   title: "Wind Tunnel Escape",
+   tagline: "Turn the fans, ride your own currents, outrun the storm.",
+   description: "Escape a storm tunnel as a Color Roll Heroes armadillo: turn the fans and switch the vents so the currents chain across gaps and up shafts, ride them out, and stay ahead of the violet storm front. Pick Riko, Nami, Kiro, Zuno or Vexa, then jam the Gale Engine and ring the Tide Bell in the open sky.",
+   order: 91,
+   status: "dev",
+   collection: "rollheroes",
+   difficulty: 3,
+   orientation: "any",
+   controls: {
+      scheme: "platformer",
+      keyboard: "WASD or arrows to move, Space to jump, E or Enter next to a fan: tap to turn it, hold to switch it off / on (vents: tap); away from fans E is the hero power",
+      touch: "Joystick, Jump and the Fan / Power button (tap turns, hold switches); two fingers turn the camera, pinch zooms",
+   },
+   scoring: scoring(1),
+   levels: LEVEL_IDS.map((id) => ({ id, title: LEVEL_TITLES[id], scoring: scoring(id) })),
+   thumbnail: null,
+   accent: "#38bdf8",
+   owner: "claude",
 };

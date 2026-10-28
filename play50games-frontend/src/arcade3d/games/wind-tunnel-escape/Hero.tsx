@@ -1,27 +1,194 @@
 "use client";
+
+// The Menu 2 hero in the tunnel: the picked hero's own GLB animated by the shared Menu 2 animator
+// (menu2/heroAnim: useHeroAnimator + <AnimatedHero>), the code stand-in (Armadillo.tsx) as the
+// fallback. Every frame the run (rules.ts) and the Scene's moments (HeroAnim) become the animator's
+// HeroMotion: velocity, grounded, the power that is up, the ball (the signature roll: riding a current
+// the hero curls into the armoured ball and tumbles with it; the intro drop; a fall), the cheer at the
+// exit, and one-frame events (jump, Nami's air jump = the somersault, land, a hit). The lean into the
+// current, the pop-in on respawn, the shrink of a fall and the blob shadow stay here.
 import { useMemo, useRef, type MutableRefObject } from "react";
 import { useFrame } from "@react-three/fiber";
-import type { Group } from "three";
-import { AnimatedHero, createHeroMotion, useHeroAnimator } from "../../menu2/heroAnim";
-import { FRAME_PRIORITY } from "../../core/frameLoop";
-import type { WindRun } from "./rules";
+import { type Group, type Mesh, type MeshBasicMaterial } from "three";
+import { FRAME_PRIORITY } from "@/arcade3d/core/frameLoop";
+import { useGameTime } from "@/arcade3d/core/gameTime";
+import { AnimatedHero, HS, createHeroMotion, useHeroAnimator, type HeroAnimator, type HeroMotion } from "@/arcade3d/menu2/heroAnim";
+import { ArmadilloStandIn, createArmadilloPose, type ArmadilloPose } from "./Armadillo";
+import { V_JUMP, V_RUN, type WindRun } from "./rules";
+import { V_DASH } from "./heroes";
 
-export function Hero({ run: r, intro }: { run: WindRun; intro?: MutableRefObject<number> }) {
+/** Moments the Scene stamps (useGameTime().now) for the animation. */
+export interface HeroAnim {
+   landAt: number;
+   jumpAt: number;
+   airJumpAt: number;
+   hitAt: number;
+   lostAt: number;
+   spawnAt: number;
+   winAt: number;
+   /** the intro's landing timeline 0..1 (1 = standing), NaN when no intro runs */
+   intro: number;
+}
+
+export function createHeroAnim(): HeroAnim {
+   return { landAt: -9, jumpAt: -9, airJumpAt: -9, hitAt: -9, lostAt: -9, spawnAt: -9, winAt: Number.POSITIVE_INFINITY, intro: Number.NaN };
+}
+
+/** The intro's drop: the hero falls this far onto the start pad, curled up. */
+export const INTRO_DROP = 22;
+
+export interface MotionMemo {
+   jumpAt: number;
+   airJumpAt: number;
+   landAt: number;
+   hitAt: number;
+   fallSpeed: number;
+}
+
+export function createMotionMemo(): MotionMemo {
+   return { jumpAt: -9, airJumpAt: -9, landAt: -9, hitAt: -9, fallSpeed: 0 };
+}
+
+/** The hero rides curled up as a ball: in a current (not on Nami's hop out of one). */
+export function rollsInCurrent(run: WindRun): boolean {
+   const h = run.hero;
+   return h.state === "play" && h.riding > 0 && run.ms > h.hopUntil && run.ms > h.dashUntil;
+}
+
+/** The animator's motion for this frame (pure: no three.js; hero.test.ts drives it). */
+export function writeHeroMotion(m: HeroMotion, memo: MotionMemo, run: WindRun, anim: HeroAnim, now: number, yaw = 0): void {
+   const h = run.hero;
+   const ms = run.ms;
+   m.vx = h.vx;
+   m.vz = h.vz;
+   m.vy = h.vy;
+   const dashing = h.dashUntil >= ms;
+   if (dashing) {
+      m.vx = h.dashX * V_DASH;
+      m.vz = h.dashZ * V_DASH;
+   }
+   m.grounded = h.grounded && h.state === "play";
+   m.power = dashing ? "dash" : h.shieldUntil >= ms ? "shield" : h.magnetUntil >= ms ? "magnet" : h.phaseUntil >= ms ? "phase" : null;
+   const introDrop = !Number.isNaN(anim.intro) && anim.intro < 0.97;
+   m.rolling = h.state === "lost" || introDrop || rollsInCurrent(run);
+   if (introDrop) {
+      m.vy = -18 * (1 - anim.intro);
+      m.grounded = false;
+   }
+   m.celebrating = now - anim.winAt >= 0;
+   m.defeated = false;
+   if (anim.airJumpAt !== memo.airJumpAt) {
+      memo.airJumpAt = anim.airJumpAt;
+      m.events.airJumped = true;
+      memo.jumpAt = anim.jumpAt;
+   } else if (anim.jumpAt !== memo.jumpAt) {
+      memo.jumpAt = anim.jumpAt;
+      m.events.jumped = true;
+   }
+   if (anim.landAt !== memo.landAt) {
+      memo.landAt = anim.landAt;
+      m.events.landed = true;
+      m.events.landSpeed = memo.fallSpeed;
+   }
+   if (anim.hitAt !== memo.hitAt) {
+      memo.hitAt = anim.hitAt;
+      m.events.hurt = true;
+      m.events.hurtX = -Math.sin(yaw);
+      m.events.hurtZ = -Math.cos(yaw);
+   }
+   if (!h.grounded) memo.fallSpeed = Math.max(0, -m.vy);
+}
+
+function standInPose(a: HeroAnimator, out: ArmadilloPose): void {
+   const w = a.state.weights;
+   out.run = a.state.runAmount * w[HS.run];
+   out.phase = a.state.phase;
+   out.tuck = w[HS.rise] + w[HS.takeoff] + w[HS.flip] + w[HS.fall] * 0.5;
+   out.roll = a.body.ball;
+   out.spin = a.body.spin;
+   out.time = a.state.clock;
+   out.cheer = w[HS.cheer];
+}
+
+export function Hero({ run, anim, ground }: { run: WindRun; anim: HeroAnim; ground: MutableRefObject<number> }) {
+   const time = useGameTime();
    const root = useRef<Group>(null);
+   const lean = useRef<Group>(null);
+   const shadow = useRef<Mesh>(null);
    const motion = useMemo(createHeroMotion, []);
-   const anim = useHeroAnimator(r.heroId, motion, { topSpeed: 7, jumpSpeed: 9, yaw: Math.PI });
+   const memo = useMemo(createMotionMemo, []);
+   const standIn = useRef<ArmadilloPose>(createArmadilloPose());
+   const animator = useHeroAnimator(run.heroId, motion, { topSpeed: V_RUN, jumpSpeed: V_JUMP, yaw: Math.PI });
+   const fallback = useMemo(() => <ArmadilloStandIn pose={standIn} />, []);
+   const tiltX = useRef(0);
+   const tiltZ = useRef(0);
+
    useFrame(() => {
-      const h = r.hero;
-      const k = intro?.current ?? 1;
-      if (root.current) root.current.position.set(h.x, h.y + (1 - k) ** 2 * 14, h.z);
-      motion.vx = h.vx; motion.vy = h.vy; motion.vz = h.vz;
-      motion.grounded = h.grounded; motion.rolling = k < 0.95 || (r.heroId === "riko" && r.powerUntil > r.ms);
-      motion.celebrating = r.end === "win"; motion.defeated = r.end === "lose";
-      motion.power = r.powerUntil > r.ms ? ({ riko: "dash", nami: null, kiro: "shield", zuno: "magnet", vexa: "phase" } as const)[r.heroId] : null;
-      motion.events.jumped = r.events.jump;
-      motion.events.airJumped = r.events.jump && h.jumps > 1;
-      motion.events.landed = r.events.land; motion.events.landSpeed = 5;
-      motion.events.hurt = r.events.hit;
+      writeHeroMotion(motion, memo, run, anim, time.now, animator.body.yaw);
    }, FRAME_PRIORITY.camera + 0.1);
-   return <group ref={root}><AnimatedHero animator={anim} /></group>;
+
+   useFrame((_s, delta) => {
+      const g = root.current;
+      if (!g) return;
+      const h = run.hero;
+      const now = time.now;
+      standInPose(animator, standIn.current);
+      let y = h.y;
+      let visible = true;
+      let s = 1;
+      if (!Number.isNaN(anim.intro)) {
+         const k = anim.intro;
+         if (k <= 0.001) visible = false;
+         y += INTRO_DROP * (1 - k) * (1 - k);
+      }
+      if (h.state === "lost") s = Math.max(0, 1 - (now - anim.lostAt) / 0.9);
+      else if (h.state === "spawn") {
+         const t = Math.min(1, (now - anim.spawnAt) / 0.45);
+         s = t < 1 ? Math.sin(t * Math.PI * 0.5) * (1 + 0.25 * Math.sin(t * Math.PI)) : 1;
+      }
+      const tw = now - anim.winAt;
+      if (tw >= 0 && tw < 2) animator.body.yaw += animator.dt * 6 * (1 - tw / 2);
+      // a flicker while invulnerable after a hit
+      const blink = h.invulnUntil > run.ms && h.state === "play" && Math.floor(now * 14) % 2 === 0;
+      g.visible = visible && s > 0.001 && !blink;
+      g.position.set(h.x, y, h.z);
+      g.scale.setScalar(Math.max(0.001, s));
+      // leaning into the current's push (eased)
+      const riding = h.riding > 0 && h.state === "play";
+      const wantX = riding ? Math.max(-0.35, Math.min(0.35, -h.vz * 0.03)) : 0;
+      const wantZ = riding ? Math.max(-0.35, Math.min(0.35, h.vx * 0.03)) : 0;
+      const k = 1 - Math.exp(-7 * Math.min(0.1, delta));
+      tiltX.current += (wantX - tiltX.current) * k;
+      tiltZ.current += (wantZ - tiltZ.current) * k;
+      if (lean.current) {
+         lean.current.rotation.x = tiltX.current;
+         lean.current.rotation.z = tiltZ.current;
+      }
+      const sh = shadow.current;
+      if (sh) {
+         const top = ground.current;
+         const above = y - top;
+         sh.visible = visible && h.state !== "lost" && Number.isFinite(top) && above < 14;
+         sh.position.set(h.x, top + 0.03, h.z);
+         const ks = Math.max(0.35, 1 - above / 10);
+         sh.scale.set(ks, ks, ks);
+         (sh.material as MeshBasicMaterial).opacity = 0.34 * ks;
+      }
+   });
+
+   return (
+      <>
+         <group ref={root}>
+            <group ref={lean} position={[0, 0.7, 0]}>
+               <group position={[0, -0.7, 0]}>
+                  <AnimatedHero animator={animator} fallback={fallback} />
+               </group>
+            </group>
+         </group>
+         <mesh ref={shadow} rotation-x={-Math.PI / 2} renderOrder={1}>
+            <circleGeometry args={[0.5, 24]} />
+            <meshBasicMaterial color="#0b1424" transparent opacity={0.3} depthWrite={false} />
+         </mesh>
+      </>
+   );
 }
