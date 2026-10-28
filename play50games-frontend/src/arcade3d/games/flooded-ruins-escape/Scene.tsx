@@ -229,9 +229,10 @@ function Simulation({ run, anim, clock, won, orbit }: { run: RuinRun; anim: Hero
    return null;
 }
 
-// in a narrow trench a turn towards the wall brings the camera right up to it (squeeze) rather than into
-// the stone; Course fades whatever wall is still in front
-const RUIN_COLLISION = { radius: 0.35, minDistance: 1.6, squeeze: 0.3 };
+// in a narrow trench a turn towards a wall raises the camera to look over it (liftTo), and what is
+// still too close brings the camera right up to it (squeeze) rather than into the stone; Course fades
+// whatever wall is still in front
+const RUIN_COLLISION = { radius: 0.35, minDistance: 1.6, squeeze: 0.3, liftTo: (72 * Math.PI) / 180 };
 
 /**
  * The shared Menu 2 orbit camera (menu2/camera) round the hero: the pivot leads a little along the

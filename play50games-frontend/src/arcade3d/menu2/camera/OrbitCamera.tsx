@@ -25,7 +25,7 @@ import { arcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { clearLensShift, stepLensShift, type LensState } from "@/arcade3d/core/view";
 import { orbitDirection, orbitRecenter, stepOrbit, yawBehind, type OrbitState } from "./orbit";
 import { applyOrbitInput, createGestureFrame, createOrbitGestures, type OrbitGestureOptions, type OrbitGestures, type OrbitPointerKind } from "./orbitGestures";
-import { clipOrbitDistance, stepOrbitClip, type ClipOptions } from "./orbitCollision";
+import { clipOrbitDistance, liftOrbitPitch, stepOrbitClip, type ClipOptions } from "./orbitCollision";
 import { noteOrbitTurned, orbitPrefs, orbitRecenterRequests } from "./orbitPrefs";
 
 /** The driver runs just before the camera writers (after the simulation, before CameraRig / SharedCamera). */
@@ -212,6 +212,8 @@ export function OrbitCamera({ orbit, travel, behind, input, pivot, lookUp = 0, d
    );
    const placed = useRef(false);
    const drawn = useRef(Number.NaN);
+   // the extra pitch (radians) a blocked view rises by (collision.liftTo), eased
+   const lift = useRef(0);
    const cover = useSafeArea((a) => {
       let c = 0;
       for (const r of a.obstructions) c = Math.max(c, a.height - r.top);
@@ -239,13 +241,19 @@ export function OrbitCamera({ orbit, travel, behind, input, pivot, lookUp = 0, d
          at.y += (raw.y - at.y) * k;
          at.z += (raw.z - at.z) * k;
       }
-      orbitDirection(orbit.viewYaw, orbit.viewPitch, dir);
       const want = orbit.viewDistance * distanceScale;
       let target = want;
-      if (solids) {
-         const n = Math.min(ORBIT_SOLIDS_MAX, solids(boxes));
-         target = clipOrbitDistance(at.x, at.y, at.z, dir.x, dir.y, dir.z, want, boxes, n, collision);
+      let pitch = orbit.viewPitch;
+      const n = solids ? Math.min(ORBIT_SOLIDS_MAX, solids(boxes)) : 0;
+      if (solids && collision?.liftTo !== undefined) {
+         // a wall right behind the camera: rise to look over it (up quickly, back down slowly)
+         const goal = liftOrbitPitch(at.x, at.y, at.z, orbit.viewYaw, orbit.viewPitch, want, boxes, n, collision) - orbit.viewPitch;
+         const rate = goal > lift.current ? 8 : 2;
+         lift.current = placed.current ? lift.current + (goal - lift.current) * (1 - Math.exp(-rate * dt)) : goal;
+         pitch = orbit.viewPitch + lift.current;
       }
+      orbitDirection(orbit.viewYaw, pitch, dir);
+      if (solids) target = clipOrbitDistance(at.x, at.y, at.z, dir.x, dir.y, dir.z, want, boxes, n, collision);
       drawn.current = placed.current ? stepOrbitClip(drawn.current, target, dt) : target;
       placed.current = true;
       const d = drawn.current;

@@ -94,6 +94,24 @@
    }
 }
 
+/* narrow columns (the phone HUD stack): the phase drops under the name rather than cut it short */
+@media (max-width: 720px) {
+   .head {
+      flex-wrap: wrap;
+      row-gap: 0;
+      column-gap: 8px;
+      margin-bottom: 4px;
+   }
+
+   .name {
+      font-size: 0.86rem;
+   }
+
+   .phase {
+      font-size: 0.64rem;
+   }
+}
+
 @media (prefers-reduced-motion: reduce) {
    .open {
       animation: none;

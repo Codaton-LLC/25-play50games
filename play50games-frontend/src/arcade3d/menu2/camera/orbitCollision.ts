@@ -4,6 +4,7 @@
 // a hair early). The camera then sits just in front of the first hit, so a platform or wall between
 // the camera and the hero never hides the hero. `stepOrbitClip` eases the result: in at once, out slowly.
 import type { AABB } from "@/arcade3d/core/collision";
+import { orbitDirection } from "./orbit";
 
 /**
  * Where the segment from (ox, oy, oz) along the unit direction (dx, dy, dz) for `length` m first
@@ -81,6 +82,12 @@ export interface ClipOptions {
     * may come in to this (m) rather than sit inside the stone. Default minDistance (never closer).
     */
    squeeze?: number;
+   /**
+    * When the view is blocked closer than minDistance, the camera may rise (pitch up, radians) to at
+    * most this pitch to see over the wall instead of squeezing against it (OrbitCamera, liftOrbitPitch).
+    * Default none.
+    */
+   liftTo?: number;
 }
 
 /**
@@ -118,4 +125,45 @@ export function clipOrbitDistance(
 export function stepOrbitClip(current: number, target: number, dt: number, rate = 3): number {
    if (!Number.isFinite(current) || target <= current) return target;
    return current + (target - current) * (1 - Math.exp(-rate * Math.max(0, dt)));
+}
+
+const LIFT_DIR = { x: 0, y: 0, z: 0 };
+
+/**
+ * The pitch to draw at when a wall blocks the view: `pitch` itself while the view is clear to at
+ * least max(minDistance, 0.6 x distance); otherwise the lowest pitch up to `liftTo` (in `steps`) that
+ * is, or failing that the one that sees farthest. Pure; no allocation.
+ */
+export function liftOrbitPitch(
+   px: number,
+   py: number,
+   pz: number,
+   yaw: number,
+   pitch: number,
+   distance: number,
+   boxes: readonly AABB[],
+   count: number,
+   options: ClipOptions,
+   steps = 8,
+): number {
+   const liftTo = options.liftTo;
+   if (liftTo === undefined || !(liftTo > pitch)) return pitch;
+   const enough = Math.min(distance, Math.max(options.minDistance ?? 1.2, distance * 0.6));
+   const clearAt = (p: number) => {
+      orbitDirection(yaw, p, LIFT_DIR);
+      return clipOrbitDistance(px, py, pz, LIFT_DIR.x, LIFT_DIR.y, LIFT_DIR.z, distance, boxes, count, options);
+   };
+   let best = clearAt(pitch);
+   if (best >= enough) return pitch;
+   let bestPitch = pitch;
+   for (let i = 1; i <= steps; i++) {
+      const p = pitch + ((liftTo - pitch) * i) / steps;
+      const d = clearAt(p);
+      if (d >= enough) return p;
+      if (d > best + 1e-6) {
+         best = d;
+         bestPitch = p;
+      }
+   }
+   return bestPitch;
 }

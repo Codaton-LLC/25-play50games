@@ -22,7 +22,7 @@ import {
    wrapAngle,
    yawBehind,
 } from "./orbit";
-import { clipOrbitDistance, rayBoxDistance, stepOrbitClip } from "./orbitCollision";
+import { clipOrbitDistance, liftOrbitPitch, rayBoxDistance, stepOrbitClip } from "./orbitCollision";
 import { MOUSE_DEAD_PX, ORBIT_KEYS, TOUCH_DEAD_PX, applyOrbitInput, createGestureFrame, createOrbitGestures } from "./orbitGestures";
 import {
    ORBIT_PREFS_KEY,
@@ -177,6 +177,21 @@ describe("orbit collision", () => {
       // a wall 1 m away: in to its face (less the radius), not to minDistance
       const wall1: AABB = { min: { x: 1, y: -2, z: -6 }, max: { x: 3, y: 8, z: 6 } };
       expect(clipOrbitDistance(0, 1, 0, 1, 0, 0, 8, [wall1], 1, { radius: 0.35, minDistance: 1.6, squeeze: 0.25 })).toBeCloseTo(0.65, 9);
+   });
+
+   it("a wall right behind the camera: liftTo raises the view over it", () => {
+      // a 3 m wall 1 m to the side (+x), the camera turned to it (yaw 90°), pitch 20°
+      const wall: AABB = { min: { x: 1, y: -2, z: -6 }, max: { x: 3, y: 3, z: 6 } };
+      const opts = { radius: 0.35, minDistance: 1.6, squeeze: 0.3, liftTo: 75 * DEG };
+      const yaw = Math.PI / 2;
+      const up = liftOrbitPitch(0, 1, 0, yaw, 20 * DEG, 8, [wall], 1, opts);
+      expect(up).toBeGreaterThan(20 * DEG);
+      expect(up).toBeLessThanOrEqual(75 * DEG + 1e-9);
+      const dir = orbitDirection(yaw, up, { x: 0, y: 0, z: 0 });
+      expect(clipOrbitDistance(0, 1, 0, dir.x, dir.y, dir.z, 8, [wall], 1, opts)).toBeGreaterThanOrEqual(8 * 0.6 - 1e-9);
+      // a clear view keeps its pitch; no liftTo, no lift
+      expect(liftOrbitPitch(0, 1, 0, -yaw, 20 * DEG, 8, [wall], 1, opts)).toBe(20 * DEG);
+      expect(liftOrbitPitch(0, 1, 0, yaw, 20 * DEG, 8, [wall], 1, { radius: 0.35, minDistance: 1.6 })).toBe(20 * DEG);
    });
 
    it("in at once, out slowly", () => {

@@ -603,7 +603,7 @@ function drawPaint(g: CanvasRenderingContext2D, w: number, h: number): void {
    g.shadowColor = "rgba(20,24,30,0.55)";
    g.shadowBlur = 10;
    outline();
-   g.fillStyle = "rgba(118,126,138,0.94)";
+   g.fillStyle = "rgba(150,158,170,0.94)";
    g.fill();
    g.restore();
    g.save();
@@ -612,9 +612,9 @@ function drawPaint(g: CanvasRenderingContext2D, w: number, h: number): void {
    g.translate(-w / 2, -h / 2);
    outline();
    const body = g.createLinearGradient(0, 0, w, 0);
-   body.addColorStop(0, "rgba(76,83,94,0.97)");
-   body.addColorStop(0.7, "rgba(56,62,72,0.98)");
-   body.addColorStop(1, "rgba(36,40,48,0.99)");
+   body.addColorStop(0, "rgba(112,119,130,0.97)");
+   body.addColorStop(0.7, "rgba(92,99,110,0.98)");
+   body.addColorStop(1, "rgba(70,76,86,0.99)");
    g.fillStyle = body;
    g.fill();
    g.restore();
@@ -635,7 +635,7 @@ function drawPaint(g: CanvasRenderingContext2D, w: number, h: number): void {
       const x = w * (0.82 + rnd() * 0.1);
       const y = h * (0.15 + rnd() * 0.7);
       const r = 8 + rnd() * 14;
-      g.fillStyle = "rgba(34,38,46,0.96)";
+      g.fillStyle = "rgba(66,72,82,0.96)";
       g.beginPath();
       g.ellipse(x, y, r * 1.4, r, 0, 0, Math.PI * 2);
       g.fill();
@@ -646,26 +646,31 @@ function drawPaint(g: CanvasRenderingContext2D, w: number, h: number): void {
    }
    // drips: runs off the low end (towards u = 1) and off both sides (v = 0 and v = 1)
    const drip = (x: number, y: number, dx: number, dy: number, len: number, wid: number) => {
-      g.strokeStyle = "rgba(44,49,58,0.97)";
-      g.lineCap = "round";
-      g.lineWidth = wid;
+      // a run that narrows from the pool's edge to a round bead at its tip
+      const nx = -dy;
+      const ny = dx;
+      const ex = x + dx * len;
+      const ey = y + dy * len;
+      g.fillStyle = "rgba(78,85,96,0.97)";
       g.beginPath();
-      g.moveTo(x, y);
-      g.lineTo(x + dx * len, y + dy * len);
-      g.stroke();
-      g.fillStyle = "rgba(40,44,52,0.98)";
+      g.moveTo(x + nx * wid, y + ny * wid);
+      g.quadraticCurveTo(x + dx * len * 0.5 + nx * wid * 0.3, y + dy * len * 0.5 + ny * wid * 0.3, ex + nx * wid * 0.35, ey + ny * wid * 0.35);
+      g.lineTo(ex - nx * wid * 0.35, ey - ny * wid * 0.35);
+      g.quadraticCurveTo(x + dx * len * 0.5 - nx * wid * 0.3, y + dy * len * 0.5 - ny * wid * 0.3, x - nx * wid, y - ny * wid);
+      g.closePath();
+      g.fill();
       g.beginPath();
-      g.arc(x + dx * len, y + dy * len, wid * 0.85, 0, Math.PI * 2);
+      g.arc(ex, ey, wid * 0.55, 0, Math.PI * 2);
       g.fill();
       g.fillStyle = "rgba(230,236,245,0.45)";
       g.beginPath();
-      g.arc(x + dx * len - wid * 0.25, y + dy * len - wid * 0.25, wid * 0.28, 0, Math.PI * 2);
+      g.arc(ex - wid * 0.18, ey - wid * 0.18, wid * 0.2, 0, Math.PI * 2);
       g.fill();
    };
-   for (let i = 0; i < 9; i++) drip(w * 0.92, h * (0.12 + rnd() * 0.76), 1, 0, w * (0.03 + rnd() * 0.04), 4 + rnd() * 5);
-   for (let i = 0; i < 12; i++) {
-      drip(w * (0.1 + rnd() * 0.8), h * 0.14, 0, -1, h * (0.06 + rnd() * 0.06), 3 + rnd() * 4);
-      drip(w * (0.1 + rnd() * 0.8), h * 0.86, 0, 1, h * (0.06 + rnd() * 0.06), 3 + rnd() * 4);
+   for (let i = 0; i < 9; i++) drip(w * 0.9, h * (0.12 + rnd() * 0.76), 1, 0, w * (0.03 + rnd() * 0.05), 3 + rnd() * 3);
+   for (let i = 0; i < 10; i++) {
+      drip(w * (0.1 + rnd() * 0.8), h * 0.16, 0, -1, h * (0.04 + rnd() * 0.07), 2 + rnd() * 2.5);
+      drip(w * (0.1 + rnd() * 0.8), h * 0.84, 0, 1, h * (0.04 + rnd() * 0.07), 2 + rnd() * 2.5);
    }
 }
 
@@ -674,15 +679,15 @@ function drawPaintDrips(g: CanvasRenderingContext2D, w: number, h: number): void
    const rnd = paintRng(777);
    g.clearRect(0, 0, w, h);
    const lip = g.createLinearGradient(0, 0, 0, h * 0.2);
-   lip.addColorStop(0, "rgba(46,51,60,0.97)");
-   lip.addColorStop(1, "rgba(46,51,60,0)");
+   lip.addColorStop(0, "rgba(84,91,102,0.97)");
+   lip.addColorStop(1, "rgba(84,91,102,0)");
    g.fillStyle = lip;
    g.fillRect(w * 0.05, 0, w * 0.9, h * 0.2);
    for (let i = 0; i < 26; i++) {
       const x = w * (0.06 + rnd() * 0.88);
       const len = h * (0.2 + rnd() * 0.7);
       const wid = 3 + rnd() * 6;
-      g.fillStyle = "rgba(46,51,60,0.96)";
+      g.fillStyle = "rgba(84,91,102,0.96)";
       g.fillRect(x - wid / 2, 0, wid, len - wid);
       g.beginPath();
       g.arc(x, len - wid, wid * 0.8, 0, Math.PI * 2);
