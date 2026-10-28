@@ -147,3 +147,24 @@ roll meets him while he is open.
 `rules.test.ts` (skyline, slope momentum, jumps and falls, the bound, the limits, the bots), `proof.test.ts` (every hero's power at
 30/60/144 Hz, idle and spam on every level, mutation probes), `layouts.test.ts` (it plays differently from Lava Pillar Jump and Sky
 Tower Jump), `progression.test.ts` (stars, flow bound, secrets and their gates, Ashback), plus the UI tests listed below.
+
+UI tests: `orbit.test.ts` (bot unchanged at yaw 0, camera-relative stick, intro ends on the orbit's first pose, Riko preselected),
+`multiplayer.test.ts`, `hero.test.ts` (menu2/heroAnim motion: curl, rolled leap), `assets.test.ts` (every GLB fitted to its real
+mesh, the sloped roof's ridge and lip on each slope, Ashback's height), `look.test.ts`, `livePick.test.ts`, `powers.test.ts`.
+
+## Files and look
+
+| File | What |
+|---|---|
+| `levels.ts`, `roofs.ts` | the five level specs and the generated skylines (blocks, slopes, streets, movers, chimneys, arcs, secrets, the L5 arena) |
+| `rules.ts`, `bot.ts`, `progression.ts` | pure rules + the proof, the honest bot, stars / combo / secrets / Ashback config |
+| `levelEnd.ts`, `StarResult.tsx` | stars, no-hit and secrets into menu2/progress; the star screen on the result card |
+| `multiplayer.ts`, `MultiScene.tsx`, `MultiplayerHud.tsx` | local 1-4 players (versus race, co-op with shared coins, checkpoints and ally powers; L5 is a plain finish on the pad) |
+| `Scene.tsx`, `sceneJuice.ts`, `camera.ts` | simulation, menu2/juice (dust and kick on landing, ember trail at ≥ 10 m/s, +8° FOV in a rolled leap, banked-leap and skylight bursts, Ashback's hits and slow-mo defeat), the menu2 orbit camera, the intro |
+| `Course.tsx`, `World.tsx` | roofs (`m2RooftopBlock`), slanted tin roofs (`m2SlopedRoofI`, a bevelled code wedge with a lip as fallback; wet tin darker and glossy), gondolas and crane slabs, chimney updrafts, neon arcs, skylights, ghost billboards, water towers, neon strips that relight red once landed on, Ashback (`m2ShadowArmadillo`, tank, grey paint) |
+| `Hero.tsx` | the picked hero through menu2/heroAnim (ball-roll while curled, dash, double jump), blob shadow on slopes |
+| `Hud.tsx` | shared HeroPicker, OrbitHud, roll-speed meter (red at banking speed), flow meter, Ashback's bar |
+
+Known gaps: not yet looked at on screen (the slope GLB's stretch, Ashback's facing and scale, the paint decal); Ashback shows the
+shared health bar with phase marks, not a distance meter; water tanks rolling down slopes outside the arena and a landing-shadow
+preview while curled are not drawn; climb steps are separate narrow buildings rather than a fire escape.

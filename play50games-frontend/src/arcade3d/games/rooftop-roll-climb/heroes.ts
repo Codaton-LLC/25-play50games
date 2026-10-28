@@ -1,6 +1,8 @@
 // The five Color Roll Heroes (CLAUDE.md decision 5). One mesh (Riko); the other colours are a
 // material tint. Powers and cooldowns are the plan's table. The picked hero is a run option: the
-// overlay writes it here and the next createRun copies it. Not localStorage.
+// picker (menu2/heroes HeroPicker) writes it here and the next createRun copies it.
+import { createHeroPick } from "@/arcade3d/menu2/heroes/heroPick";
+
 export type HeroId = "riko" | "nami" | "kiro" | "zuno" | "vexa";
 export type PowerId = "dash" | "doubleJump" | "shield" | "magnet" | "phase";
 
@@ -44,25 +46,26 @@ export const V_DASH = 12.5;
 /** Orb pickup radius while Zuno's magnet is up (m). */
 export const MAGNET_REACH = 4.2;
 
-let picked: HeroId = "riko";
+// The pick is the shared Menu 2 hero pick (menu2/heroes): it starts as the player's own last pick in
+// this game, else the world's lead hero (Rooftop Roll Climb is in W1 Ember Heights: Riko). The shared
+// module remembers it; this file never touches storage.
+const pick = createHeroPick("rooftop-roll-climb");
 
-/** The hero the next run starts as. The overlay sets it; Scene passes it into createRun. */
+/** The hero the next run starts as. The picker sets it; Scene passes it into createRun when a run starts. */
 export function pickedHero(): HeroId {
-   return picked;
+   return pick.get();
 }
 
-const listeners = new Set<() => void>();
-
-/** Calls `fn` whenever the pick changes (the Scene re-makes its run, so the intro shows the picked hero). */
+/** Calls `fn` whenever the pick changes (on the start card the Scene re-makes its run, so the intro shows the picked hero). */
 export function subscribeHero(fn: () => void): () => void {
-   listeners.add(fn);
-   return () => {
-      listeners.delete(fn);
-   };
+   return pick.subscribe(fn);
 }
 
 export function selectHero(id: HeroId): void {
-   if (picked === id) return;
-   picked = id;
-   for (const fn of listeners) fn();
+   pick.set(id);
+}
+
+/** Tests: forget the cached pick (the next pickedHero() reads the stored pick or the default again). */
+export function resetHeroPick(): void {
+   pick.reset();
 }
