@@ -6,14 +6,16 @@ Drive a cab on a street grid. Stop in the gold pad to pick a rider up, stop in t
 
 ## Rules (`rules.ts`, pure and seeded)
 
-- Street-vehicle integrator in fixed 1/120 s steps (`createFixedStep`), so 30 / 60 / 144 Hz drive the same: top speed 9, accel 12, brake 18, reverse 3, drag 0.4, steer 2.2 rad/s × `clamp(|v| / 2, 0.35, 1)`, throttle / brake dead zone 0.2, radius 1.15.
-- Grid: 14 m blocks, 6 m streets, building boxes inset 0.4 m. Pads sit on the vertical streets' centres between junctions, ≥ 16 m apart.
-- A stop completes after 0.50 s inside the pad (2.2 m) under 0.5 m/s, on any device.
+Real metres (modern pass 2026-10-28): the game was designed round a 2.8 m cab, so every length, speed and acceleration is that design times `U = 1.625` m per design unit. The cab is a 4.55 m car next to a 1.75 m rider, and a run is the same run in seconds: an exact similarity, so the timings, scores and limit proofs below are unchanged (the bots scale their own numbers by `U` too). The design values are in brackets.
+
+- Street-vehicle integrator in fixed 1/120 s steps (`createFixedStep`), so 30 / 60 / 144 Hz drive the same: top speed 14.6 m/s (9), accel 19.5 (12), brake 29.25 (18), reverse 4.875 (3), drag 0.65 (0.4), steer 2.2 rad/s × `clamp(|v| / 3.25, 0.35, 1)`, throttle / brake dead zone 0.2, radius 1.87 m (1.15).
+- Grid: 22.75 m blocks (14), 9.75 m streets (6), building boxes inset 0.65 m (0.4). Pads sit on the vertical streets' centres between junctions, ≥ 26 m apart (16).
+- A stop completes after 0.50 s inside the pad (3.575 m, 2.2) under 0.81 m/s (0.5), on any device.
 - Patience starts at 1 when a fare appears and falls `patienceDrain` per second; at 0 the fare is missed (a life) and the next fare starts. No fare past the quota.
-- Traffic: `traffic` cars on the one-way perimeter loop at `trafficSpeed`, stopping at their red lights, behind each other, and for a cab ahead of them going their way or stopped in their lane.
-- Lights: `lights` junctions, north–south green 4 s / red 4 s, offset 1.7 s per light. Crossing a red stop line above 1 m/s spends a life.
-- A wall or a car hit above 3 m/s spends a life and bounces the cab (−0.3 × speed); a slower touch only nudges. 0.8 s lock after a hit. Three lives.
-- Score: +100 per drop-off, +60 if it stopped within 1.2 m of the pad centre, +40 if patience was still above 0.5; on the win +5 per full second left.
+- Traffic: `traffic` cars on the one-way perimeter loop (clockwise seen from above) at `trafficSpeed`, stopping at their red lights (nose on the stop line), behind each other, and for a cab ahead of them going their way or stopped in their lane. A car's progress runs along the street centrelines as before (its timing, gaps and stops are measured there), but its body drives and collides in the right-hand lane, `LANE` = 1.2 m right of the centreline (the loop's inner lane; the body box is 5.04 × 2.28 m round a 4.3 × 1.85 m hatchback). At the four corners the lane turns on a quarter arc of `TURN_R` = 3.675 m that starts on the stop line: the half street of progress either side of the corner is spread over the arc, so a car slows through its turn, its heading follows the arc and it never slides sideways. The car's `yaw` is in the run; the body box round a turning car is the box round its turned rectangle.
+- Lights: `lights` junctions, north–south green 4 s / red 4 s, offset 1.7 s per light. Crossing a red stop line above 1.625 m/s (1) spends a life.
+- A wall or a car hit above 4.875 m/s (3) spends a life and bounces the cab (−0.3 × speed); a slower touch only nudges. 0.8 s lock after a hit. Three lives.
+- Score: +100 per drop-off, +60 if it stopped within 1.95 m (1.2) of the pad centre, +40 if patience was still above 0.5; on the win +5 per full second left.
 
 ## Levels
 

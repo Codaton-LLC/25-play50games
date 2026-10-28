@@ -19,6 +19,7 @@ import {
    RADIUS,
    RED_SPEED,
    TOP_SPEED,
+   U,
    activePad,
    createRun,
    idleInput,
@@ -155,9 +156,9 @@ function startNode(run: Run): Node {
    const n = nodeOf(run, run.x, run.z);
    const bx = run.level.blocksX;
    const bz = run.level.blocksZ;
-   const onRow = (j: number) => Math.abs(run.z - streetZ(j)) < HALF_STREET + 0.4;
-   const onCol = (i: number) => Math.abs(run.x - streetX(i)) < HALF_STREET + 0.4;
-   const nearNode = Math.hypot(streetX(n.i) - run.x, streetZ(n.j) - run.z) < HALF_STREET + 0.5;
+   const onRow = (j: number) => Math.abs(run.z - streetZ(j)) < HALF_STREET + 0.4 * U;
+   const onCol = (i: number) => Math.abs(run.x - streetX(i)) < HALF_STREET + 0.4 * U;
+   const nearNode = Math.hypot(streetX(n.i) - run.x, streetZ(n.j) - run.z) < HALF_STREET + 0.5 * U;
    if (nearNode) return n;
    if (onRow(0)) return { i: Math.min(bx, Math.floor((run.x - HALF_STREET) / PITCH) + 1), j: 0 };
    if (onRow(bz)) return { i: Math.max(0, Math.ceil((run.x - HALF_STREET) / PITCH) - 1), j: bz };
@@ -168,7 +169,7 @@ function startNode(run: Run): Node {
 
 /** Distance along the cab's heading to the first building (grown by the radius) or the city edge. */
 function rayToWalls(run: Run, fx: number, fz: number): number {
-   let best = 60;
+   let best = 60 * U;
    const slab = (o: number, d: number, lo: number, hi: number): [number, number] => {
       if (Math.abs(d) < 1e-9) return o >= lo && o <= hi ? [-Infinity, Infinity] : [Infinity, -Infinity];
       const a = (lo - o) / d;
@@ -194,13 +195,13 @@ function offRoute(run: Run, mem: Memory): boolean {
    if (!mem.plan) return true;
    const pts = mem.plan.pts;
    const b = pts[mem.seg];
-   if (mem.seg === 0) return Math.hypot(b.x - run.x, b.z - run.z) > 30;
+   if (mem.seg === 0) return Math.hypot(b.x - run.x, b.z - run.z) > 30 * U;
    const a = pts[mem.seg - 1];
    const lx = b.x - a.x;
    const lz = b.z - a.z;
    const l2 = lx * lx + lz * lz || 1;
    const t = clamp(((run.x - a.x) * lx + (run.z - a.z) * lz) / l2, 0, 1);
-   return Math.hypot(a.x + lx * t - run.x, a.z + lz * t - run.z) > 6;
+   return Math.hypot(a.x + lx * t - run.x, a.z + lz * t - run.z) > 6 * U;
 }
 
 interface Memory {
@@ -224,7 +225,7 @@ function drive(run: Run, input: TaxiInput, dt: number, style: Style, rng: () => 
    if (!pad) return;
    const key = `${run.fare}:${run.phase}`;
    // on the pad's own street segment: straight for the pad
-   const onPadLeg = Math.abs(run.x - pad.x) < HALF_STREET + 0.4 && Math.abs(run.z - pad.z) < PITCH / 2 + 0.5;
+   const onPadLeg = Math.abs(run.x - pad.x) < HALF_STREET + 0.4 * U && Math.abs(run.z - pad.z) < PITCH / 2 + 0.5 * U;
    if (onPadLeg) {
       if (!mem.plan || mem.plan.key !== `${key}:pad`) {
          mem.plan = { pts: [{ x: pad.x, z: pad.z, corner: false }], key: `${key}:pad` };
@@ -245,7 +246,7 @@ function drive(run: Run, input: TaxiInput, dt: number, style: Style, rng: () => 
       const lz = b.z - a.z;
       const l = Math.hypot(lx, lz) || 1;
       const ahead = ((b.x - run.x) * lx + (b.z - run.z) * lz) / l;
-      if (ahead < (b.corner ? 1.2 : 0.6) || Math.hypot(b.x - run.x, b.z - run.z) < 1.0) mem.seg++;
+      if (ahead < (b.corner ? 1.2 : 0.6) * U || Math.hypot(b.x - run.x, b.z - run.z) < 1.0 * U) mem.seg++;
       else break;
    }
    const fx = Math.sin(run.yaw);
@@ -260,18 +261,18 @@ function drive(run: Run, input: TaxiInput, dt: number, style: Style, rng: () => 
       const along = dx * fx + dz * fz;
       const side = Math.abs(dx * fz - dz * fx);
       const facing = car.axis === 1 ? car.dir * fz < 0.2 : car.dir * fx < 0.2;
-      if (along > -1 && along < 14 && side < 2.0 && facing) passing = true;
+      if (along > -1 * U && along < 14 * U && side < 2.0 * U && facing) passing = true;
    }
    if (passing) {
       const vertical = Math.abs(fz) >= Math.abs(fx);
       if (vertical) {
          const i = Math.round((run.x - HALF_STREET) / PITCH);
          const inside = i === 0 ? 1 : i === run.level.blocksX ? -1 : run.x >= streetX(i) ? 1 : -1;
-         target = { x: streetX(i) + inside * 2.05, z: target.z, corner: target.corner };
+         target = { x: streetX(i) + inside * 2.05 * U, z: target.z, corner: target.corner };
       } else {
          const j = Math.round((run.z - HALF_STREET) / PITCH);
          const inside = j === 0 ? 1 : j === run.level.blocksZ ? -1 : run.z >= streetZ(j) ? 1 : -1;
-         target = { x: target.x, z: streetZ(j) + inside * 2.05, corner: target.corner };
+         target = { x: target.x, z: streetZ(j) + inside * 2.05 * U, corner: target.corner };
       }
    }
    const toPad = Math.hypot(pad.x - run.x, pad.z - run.z);
@@ -291,34 +292,34 @@ function drive(run: Run, input: TaxiInput, dt: number, style: Style, rng: () => 
    input.moveX = -clamp(err / 0.45, -1, 1);
 
    // speed plan
-   const cornerV = oracle ? 4.2 : 3.8;
-   const decel = oracle ? 11 : 9;
+   const cornerV = (oracle ? 4.2 : 3.8) * U;
+   const decel = (oracle ? 11 : 9) * U;
    let want = TOP_SPEED;
    let d = Math.hypot(target.x - run.x, target.z - run.z);
    for (let k = mem.seg; k < pts.length; k++) {
       if (k > mem.seg) d += Math.hypot(pts[k].x - pts[k - 1].x, pts[k].z - pts[k - 1].z);
       if (pts[k].corner) {
-         want = Math.min(want, Math.sqrt(cornerV * cornerV + 2 * decel * Math.max(0, d - 1.5)));
+         want = Math.min(want, Math.sqrt(cornerV * cornerV + 2 * decel * Math.max(0, d - 1.5 * U)));
          break;
       }
    }
    // the pad: stop on its centre, the last metres under the strike speed
-   want = Math.min(want, Math.sqrt(2 * decel * Math.max(0, toPad - 0.35)));
-   if (toPad < 7) want = Math.min(want, oracle ? 2.9 : 2.6);
-   if (Math.abs(err) > 0.9) want = Math.min(want, 2.2);
-   if (passing) want = Math.min(want, 2.0);
+   want = Math.min(want, Math.sqrt(2 * decel * Math.max(0, toPad - 0.35 * U)));
+   if (toPad < 7 * U) want = Math.min(want, (oracle ? 2.9 : 2.6) * U);
+   if (Math.abs(err) > 0.9) want = Math.min(want, 2.2 * U);
+   if (passing) want = Math.min(want, 2.0 * U);
    // red stop lines ahead: cross under 1 m/s
    for (const stop of run.stops) {
       const ahead = stop.axis === 1 ? (stop.coord - run.z) * stop.into : (stop.coord - run.x) * stop.into;
-      if (ahead < -0.2 || ahead > 14) continue;
+      if (ahead < -0.2 * U || ahead > 14 * U) continue;
       const span = stop.axis === 1 ? run.x : run.z;
-      if (span < stop.span0 - 1.5 || span > stop.span1 + 1.5) continue;
+      if (span < stop.span0 - 1.5 * U || span > stop.span1 + 1.5 * U) continue;
       const toward = stop.axis === 1 ? fz * stop.into : fx * stop.into;
       if (toward < 0.3) continue;
-      const eta = ahead / Math.max(1, Math.abs(run.speed));
+      const eta = ahead / Math.max(1 * U, Math.abs(run.speed));
       if (!signalRed(stop.light, run.time, stop.ns) && !signalRed(stop.light, run.time + eta + 0.4, stop.ns)) continue;
       const crawl = RED_SPEED * 0.6;
-      want = Math.min(want, Math.sqrt(crawl * crawl + 2 * decel * Math.max(0, ahead - 0.35)));
+      want = Math.min(want, Math.sqrt(crawl * crawl + 2 * decel * Math.max(0, ahead - 0.35 * U)));
    }
    // cars near the cab's way: under the strike speed (a touch then only nudges)
    for (const car of run.cars) {
@@ -326,26 +327,26 @@ function drive(run: Run, input: TaxiInput, dt: number, style: Style, rng: () => 
       const dz = car.z - run.z;
       const along = dx * fx + dz * fz;
       const side = Math.abs(dx * fz - dz * fx);
-      const reach = RADIUS + Math.max(CAR_W, CAR_L) + 0.6;
-      if (along > -1 && along < 9 && side < reach) want = Math.min(want, oracle ? 2.8 : 2.2);
-      if (Math.hypot(dx, dz) < 6.5) want = Math.min(want, oracle ? 2.8 : 2.4);
+      const reach = RADIUS + Math.max(CAR_W, CAR_L) + 0.6 * U;
+      if (along > -1 * U && along < 9 * U && side < reach) want = Math.min(want, (oracle ? 2.8 : 2.2) * U);
+      if (Math.hypot(dx, dz) < 6.5 * U) want = Math.min(want, (oracle ? 2.8 : 2.4) * U);
       // a car ahead in the cab's lane going the same way: stay behind it
       const sameWay = car.axis === 1 ? car.dir * fz > 0.5 : car.dir * fx > 0.5;
-      if (sameWay && along > 0 && side < RADIUS + CAR_W + 0.2) want = Math.min(want, Math.sqrt(2 * decel * Math.max(0, along - RADIUS - CAR_L - 1.2)));
+      if (sameWay && along > 0 && side < RADIUS + CAR_W + 0.2 * U) want = Math.min(want, Math.sqrt(2 * decel * Math.max(0, along - RADIUS - CAR_L - 1.2 * U)));
    }
    // walls ahead (buildings grown by the cab's radius, the city edge): reach them under the strike speed
    const wall = rayToWalls(run, fx, fz);
-   want = Math.min(want, Math.sqrt(2.6 * 2.6 + 2 * decel * Math.max(0, wall - 0.4)));
+   want = Math.min(want, Math.sqrt(2.6 * U * 2.6 * U + 2 * decel * Math.max(0, wall - 0.4 * U)));
    // stuck against something: back up a little
-   if (Math.abs(run.speed) < 0.15 && want > 1 && toPad > 2.2) mem.stuck += dt;
+   if (Math.abs(run.speed) < 0.15 * U && want > 1 * U && toPad > 2.2 * U) mem.stuck += dt;
    else mem.stuck = 0;
    if (mem.stuck > 1.2) {
       mem.stuck = 0;
       mem.backUp = 0.7;
    }
    const sp = run.speed;
-   if (sp < want - 0.15) input.moveY = -1;
-   else if (sp > want + 0.15) input.moveY = sp > 0.3 ? 1 : 0;
+   if (sp < want - 0.15 * U) input.moveY = -1;
+   else if (sp > want + 0.15 * U) input.moveY = sp > 0.3 * U ? 1 : 0;
 }
 
 export interface PlayResult {

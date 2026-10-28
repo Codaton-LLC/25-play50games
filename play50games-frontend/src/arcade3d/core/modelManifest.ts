@@ -406,6 +406,10 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/taxi-rush-3d/townhouseBlock.glb",
    "/models/3d/taxi-rush-3d/cornerShop.glb",
    "/models/3d/taxi-rush-3d/busStop.glb",
+   // taxi-rush-3d modern pass (2026-10-28): taxiCab re-optimized from the raw Rodin file (1024 px textures),
+   // its baked wheels cut out for spinning code wheels; trafficCar = the pigeon-crossing car without its
+   // wheels and with its red paint made grey so per-copy tints colour it.
+   "/models/3d/taxi-rush-3d/trafficCar.glb",
    // snowball-battle village decor (2026-10-25): extra Hyper3D props drawn only on levels 4-5
    // (Ice Village, Championship Arena), behind the yard's far fence
    "/models/3d/snowball-battle/igloo.glb",
