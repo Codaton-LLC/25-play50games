@@ -28,3 +28,13 @@
    border-radius: inherit;
    background: #f97316;
 }
+
+/* under 35: red, so the state reads without the hint line */
+.low {
+   border-color: rgba(248, 113, 113, 0.8);
+   color: #fecaca;
+}
+
+.low .fill {
+   background: #ef4444;
+}

@@ -3,12 +3,12 @@
 // Crazy Shopping Cart GameDefinition: loaded lazily by arcade3d/loaders.ts.
 import type { GameDefinition, LevelSpec } from "@/arcade3d/core/types";
 import { LEVEL_IDS, type LevelId } from "@/arcade3d/types";
+import Hud from "./Hud";
 import Scene from "./Scene";
 import { ASSETS } from "./assets";
 import { COLORS, FOG } from "./looks";
 import { LEVELS, type ShoppingCartLevel } from "./levels";
 import { DURATION_MS, LIST_COUNT } from "./rules";
-import CameraViewButton from "@/arcade3d/core/camera/CameraViewButton";
 
 function instructionsFor(level: ShoppingCartLevel): string[] {
    return [
@@ -29,7 +29,7 @@ const DESCRIPTIONS: Record<LevelId, string> = {
 const definition: GameDefinition<ShoppingCartLevel> = {
    slug: "shopping-cart",
    Scene,
-   Hud: CameraViewButton,
+   Hud,
    assets: ASSETS,
    durationMs: DURATION_MS,
    camera: { position: [0, 16, 18], fov: 45, lookAt: [0, 0, 0] },

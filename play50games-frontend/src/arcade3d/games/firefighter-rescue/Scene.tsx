@@ -10,7 +10,9 @@ import { playSfx } from "@/arcade3d/core/audio";
 import { useCameraViews } from "@/arcade3d/core/camera/CameraViews";
 import type { AABB } from "@/arcade3d/core/collision";
 import { FRAME_PRIORITY } from "@/arcade3d/core/frameLoop";
-import { useFx } from "@/arcade3d/core/fx";
+import { useActionPop, useFx } from "@/arcade3d/core/fx";
+import { TargetBeacon, TargetMarkers } from "@/arcade3d/core/hud";
+import { useCoarsePointer } from "@/arcade3d/core/TouchControls";
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import { useInput } from "@/arcade3d/core/input";
 import { useLevel } from "@/arcade3d/core/level";
@@ -50,6 +52,7 @@ import {
    viewFor,
    wallSpots,
 } from "./looks";
+import { GUIDE, heroInSmoke, hintCode, nextTarget, targetHint, type Target } from "./guide";
 import { firefighterPose } from "./poses";
 import { ExitSignPrimitive, ExtinguisherPrimitive, FirefighterFigure, HoseReelPrimitive, HydrantPrimitive, TruckPrimitive } from "./Primitives";
 import {
@@ -205,6 +208,29 @@ function LevelScene() {
    );
    const doorOpen = useRef<number[]>([]).current;
    const sprayAt = useRef(0);
+   // clarity (visual only): the beacon over the current target, the hint line, fail / info pops
+   const pop = useActionPop();
+   const touch = useCoarsePointer();
+   const goal = useRef<Target>({ kind: 0, index: -1, x: 0, z: 0 }).current;
+   const beacon = useRef({ x: 0, y: 0, z: 0, hidden: true }).current;
+   // the same target for the edge arrow when it is off screen or under a HUD panel
+   const edgeTargets = useMemo(() => [beacon], [beacon]);
+   const guideCode = useRef(-1);
+   const lastHold = useRef({ kind: 0, time: 0, index: -1, follower: -1, popAt: -10, goalKind: 0 as Target["kind"] }).current;
+   const [goalKind, setGoalKind] = useState<Target["kind"]>(0);
+   useEffect(() => {
+      // the first target is up from the countdown on
+      nextTarget(run, goal);
+      beacon.x = goal.x;
+      beacon.y = goal.kind === 1 ? 0.7 : 1.3;
+      beacon.z = goal.z;
+      beacon.hidden = goal.kind === 0;
+      lastHold.goalKind = goal.kind;
+      setGoalKind(goal.kind);
+      GUIDE.set(targetHint(hintCode(run, goal, false), touch));
+      return () => GUIDE.reset();
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+   }, [run]);
    // the sofa faces the hall from either side; the cabinet stands with its back to the hall wall
    const sofas = useMemo(() => spotsOf(run.furniture, "sofa", (item) => (item.x > 0 ? Math.PI : 0)), [run]);
    const beds = useMemo(() => spotsOf(run.furniture, "bed"), [run]);
@@ -323,10 +349,46 @@ function LevelScene() {
          fx.burst("puff", AT, 8);
          fx.shake(0.25);
          playSfx("hit");
+         AT.y = 2;
+         pop.fail(AT, "Hit by debris! -1 life", { shake: 0 });
       }
       if (ev.breathBreak) {
          fx.shake(0.15);
          playSfx("buzz");
+         AT.x = run.hero.x; AT.y = 2; AT.z = run.hero.z;
+         pop.fail(AT, "Out of breath! -1 life", { shake: 0 });
+      }
+      // a spray let go before the fire was out: the hold starts again, say so
+      if (lastHold.kind === 1 && lastHold.time > 0.15 && run.holdKind !== 1 && ev.fire < 0 && !run.over && run.time - lastHold.popAt > 1) {
+         const fire = run.fires[lastHold.index];
+         if (fire && !fire.out) {
+            lastHold.popAt = run.time;
+            AT.x = fire.x; AT.y = 1.3; AT.z = fire.z;
+            pop.fail(AT, "Keep holding!", { shake: 0 });
+         }
+      }
+      // a neighbour starts to follow
+      if (run.follower >= 0 && lastHold.follower < 0) {
+         const civ = run.civilians[run.follower];
+         AT.x = civ.x; AT.y = 1.6; AT.z = civ.z;
+         pop.info(AT, "Follow me!");
+      }
+      lastHold.kind = run.holdKind;
+      lastHold.time = run.holdTime;
+      lastHold.index = run.holdIndex;
+      lastHold.follower = run.follower;
+
+      // the current target: beacon + hint (rebuilt only when it changes)
+      nextTarget(run, goal);
+      beacon.x = goal.x;
+      beacon.y = goal.kind === 1 ? 0.7 : goal.kind === 2 ? 1.3 : 0.1;
+      beacon.z = goal.z;
+      beacon.hidden = goal.kind === 0 || run.over !== null;
+      if (goal.kind !== lastHold.goalKind) setGoalKind((lastHold.goalKind = goal.kind));
+      const code = hintCode(run, goal, heroInSmoke(run));
+      if (code !== guideCode.current) {
+         guideCode.current = code;
+         GUIDE.set(targetHint(code, touch));
       }
       if (ev.lifeLost) store.loseLife();
       if (ev.won) {
@@ -466,6 +528,15 @@ function LevelScene() {
          {run.debris.length > 0 && (
             <DynamicInstancedModel asset={ASSETS.debris} count={run.debris.length * 2} update={placeDebris} fallbackParts={debrisParts} name="debris" />
          )}
+         <TargetBeacon
+            target={beacon}
+            variant={goalKind === 3 ? "drop-here" : "pick"}
+            color={goalKind === 1 ? "#fb923c" : goalKind === 2 ? "#38bdf8" : "#4ade80"}
+            radius={goalKind === 3 ? 1.1 : 0.6}
+            height={goalKind === 3 ? 1.8 : 0.9}
+            label={goalKind === 3 ? "EXIT" : null}
+         />
+         <TargetMarkers targets={edgeTargets} color={goalKind === 1 ? "#fb923c" : goalKind === 2 ? "#38bdf8" : "#4ade80"} />
          <DynamicInstancedModel asset={ASSETS.civilian} count={5} update={placeCiv} fallbackParts={civParts} name="civilians" />
          <group ref={body}>
             <BlobShadow radius={0.42} opacity={0.28} />

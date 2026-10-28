@@ -657,6 +657,25 @@ useRunFrame(() => { needle.current = needlePosition(time.play, 1.6); if (input.c
 <TimingRing source={() => needle.current} zones={ZONES} label="SPACE" />     // in definition.Hud
 ```
 
+### Clarity: `TargetBeacon`, `HintLine`, `useActionPop`, `<Toss>` (2026-10-28)
+
+The player must always see which item to pick, what state they are in and whether an action worked. `TargetMarkers` only points at targets that are off screen; these four cover the rest. All are visual: they read the run, never change it.
+
+- `<TargetBeacon target variant color radius height ground label noRing>` (in the Scene): a bobbing down arrow and a soft pulsing ground ring over the CURRENT target. `target` (`{ x, y, z, hidden? }`, y = the item's height) is read every frame. Variants: `"pick"` (arrow + ring pulsing out, default yellow), `"drop-here"` (arrow + disc + ring pulsing in, default green), `"danger"` (red disc + fast ring, no arrow). The arrow is a camera-facing sprite with a dark outline drawn over walls (no depth test), so it reads from every camera view (a cone would be a disc from the top view), and it grows with the camera distance so it is never under `BEACON_MIN_PX` (36 px, 40 px on touch screens) on screen (`beaconScale`). Geometries are shared by every beacon, materials by colour + variant; no allocation per frame; reduced motion: no bob, no pulse. Shown only in countdown / playing / paused. Pure: `beacon.ts` (`beaconMotion`, `beaconScale`, `beaconLabel`, `BEACON_STYLES`).
+- `<HintLine signal | text tone placement>` (in `definition.Hud`): one contextual hint chip. Up for the first `HINT_FIRST_MS` (8 s) of a run and for `HINT_AGAIN_MS` (4 s) whenever its key changes, then it fades; `sticky` keeps it up. Tones `info` / `carry` / `ready` / `warn` (a coloured dot and border). The slot is a fixed box marked `data-arcade-safe-area`, laid out in every phase (the camera fit never changes when a hint comes or goes): touch above the joystick and the 📷 button (bottom 162 px, full width minus 32 px), desktop bottom centre clear of the 📷 corner; `placement="top"` puts it under the shell chips. 14 px, 13 px at <= 480 px wide. The Scene writes the hint through a module-level `createHudSignal<HintState>(EMPTY_HINT, sameHint)` (listeners run only on a real change, so set it when the step changes, not every frame with a new object); the Hud reads it with `useHudSignal`. Pure: `hud/hintTiming.ts` (`nextHintMark`, `hintVisible`, `createHudSignal`).
+- `useActionPop()` (`fx/actionPop.ts`): `good(at, "+100")`, `fail(at, "Too fast!", { shake? })`, `info(at, "Follow me!")` on top of `useFx().score`; the fail pop is rose red with a small puff and a 0.12 shake (`POP_STYLES`).
+- `<Toss ref slots spin onLand>{model}</Toss>` (`fx/Toss.tsx`): an item flies on an arc from where it was to a live point (`ref.current.play(from, to, { duration, height, scaleFrom, scaleTo })`) instead of vanishing: a key into the hand, a bale onto the trailer, a product into the cart. On the pause-safe clock, hidden between flights. A game that animates its own copies uses the pure `tossAt` / `stepToss` (`fx/tossArc.ts`).
+
+```tsx
+const GUIDE = createHudSignal<HintState>(EMPTY_HINT, sameHint);                // games/<slug>/guide.ts
+<TargetBeacon target={next} variant={carrying ? "drop-here" : "pick"} color={COLORS.accent} />  // Scene
+if (changed) GUIDE.set({ text: carrying ? "Carrying: drive to the checkout" : "Grab the milk (arrow)", key, tone: carrying ? "carry" : "info" });
+pop.fail(at, "Wrong item -1s");
+<HintLine signal={GUIDE} />                                                      // Hud
+```
+
+Pair a beacon with `<TargetMarkers targets={[beacon]}>` in a follow-camera game: the edge arrow takes over while the target is off screen or under a HUD panel (the beacon is drawn in the world and a DOM panel can cover it). Tests: `hud/clarity.test.ts`. Adopted by batch A (haunted-mansion-keys, firefighter-rescue, jungle-bridge-run, shopping-cart, farm-tractor-challenge), each with a pure `guide.ts` + `guide.test.ts`.
+
 ### Adoption (P-05)
 
 Nothing here changes an existing game: the aim drag is opt-in per definition, `digit` is new, `update`'s third argument and `tint` / `material` / `attach` are optional, and the kit and HUD pieces mount only where a game renders them. The new games adopt them as they land: aim-drag games (pirate-cannons, mini-golf, castle-defender, snowball-battle) set `input: { drag: true }` + `stepKeyboardAim` + `<TrajectoryDots>`; museum-guard uses `material` statues, `<Pedestal>` and `<Flashlight>` with its `inViewCone` rules; luggage-rush and robot-factory `<Conveyor>` + per-copy tint; zoo-escape, construction-worker and knight-arena `<Fence>`; treasure-island, construction-worker, snowball-battle, knight-arena and space-repair dress the runner with `attach`; delivery-drone `<Parcel>` + `<TargetMarkers>`; space-repair `<TimingRing>`; treasure-island `<Gem>`. Pile, upgrade and slot choices read `digit` (with a tap for touch).

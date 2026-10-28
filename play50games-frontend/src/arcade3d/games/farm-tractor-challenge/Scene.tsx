@@ -1,7 +1,7 @@
 "use client";
 
 // One useRunFrame steps rules.ts. Visuals read the run and animate with useGameTime.
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
 import { CylinderGeometry, MeshStandardMaterial, Quaternion, RingGeometry, Vector3, type Matrix4 } from "three";
 import { DynamicInstancedModel, InstancedModel, Model } from "@/arcade3d/core/assets";
@@ -9,7 +9,8 @@ import CameraRig from "@/arcade3d/core/CameraRig";
 import { useCameraViews } from "@/arcade3d/core/camera/CameraViews";
 import { playSfx } from "@/arcade3d/core/audio";
 import { FRAME_PRIORITY } from "@/arcade3d/core/frameLoop";
-import { useFx } from "@/arcade3d/core/fx";
+import { tossAt, useActionPop, useFx, type TossFrame } from "@/arcade3d/core/fx";
+import { TargetBeacon, TargetMarkers } from "@/arcade3d/core/hud";
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import { useInput } from "@/arcade3d/core/input";
 import { useLevel } from "@/arcade3d/core/level";
@@ -36,6 +37,7 @@ import {
    viewFor,
 } from "./looks";
 import { BarnFrame, FarmerFigure, GatePostPrimitive, ScarecrowPrimitive, SiloPrimitive, TractorPrimitive, TrailerPrimitive, TroughPrimitive } from "./Primitives";
+import { BAY_RING, GUIDE, bumpAtBale, farmHint, hintCode, nextGoal, type FarmGoal } from "./guide";
 import { BALE_R, MAX_BALES, TRAILER_BEHIND, createRun, forwardOf, hitchPoint, step, type Run } from "./rules";
 
 const Q = new Quaternion();
@@ -51,6 +53,11 @@ const TRAILER_TURN = 3;
 const CARGO_ON_BED_HEIGHT = 0.72;
 /** Height of the tractor's rear hitch pin (metres). */
 const HITCH_Y = 0.42;
+/** A hitched load swings onto the bed, and a delivered one into the barn, over this long (s). */
+const LOAD_FLIGHT_S = 0.45;
+const FLY: TossFrame = { x: 0, y: 0, z: 0, scale: 1 };
+const FROM = { x: 0, y: 0, z: 0 };
+const TO = { x: 0, y: 0, z: 0 };
 
 function wrapAngle(a: number): number {
    return a > Math.PI ? a - Math.PI * 2 : a < -Math.PI ? a + Math.PI * 2 : a;
@@ -173,6 +180,32 @@ function LevelScene() {
       disposeParts(ringParts);
    }, [cargoParts, ringParts]);
 
+   // clarity (visual only): the beacon on the next bale / the bay, the hint line, load flights, fail pops
+   const pop = useActionPop();
+   const goal = useRef<FarmGoal>({ bale: -1, x: 0, z: 0 }).current;
+   const beacon = useRef({ x: 0, y: 0, z: 0, hidden: true }).current;
+   // the same target for the edge arrow when it is off screen or under a HUD panel
+   const edgeTargets = useMemo(() => [beacon], [beacon]);
+   const guide = useRef({ code: -1, bay: false }).current;
+   const [toBay, setToBay] = useState(false);
+   const flights = useMemo(() => ({
+      hitchAt: new Array<number>(MAX_BALES).fill(-1),
+      deliverAt: new Array<number>(MAX_BALES).fill(-1),
+      bedX: new Float32Array(MAX_BALES),
+      bedZ: new Float32Array(MAX_BALES),
+   }), []);
+   useEffect(() => {
+      // the first bale is up from the countdown on
+      nextGoal(run, goal);
+      beacon.x = goal.x;
+      beacon.y = 1;
+      beacon.z = goal.z;
+      beacon.hidden = false;
+      GUIDE.set(farmHint(run, hintCode(run, goal)));
+      return () => GUIDE.reset();
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+   }, [run]);
+
    const pose = useHumanoidPose((p) => {
       if (run.over === "win") cheerPose(time.now, p);
       else sitPose(1, p);
@@ -221,6 +254,20 @@ function LevelScene() {
          fx.burst("puff", AT, 8);
          fx.shake(0.22);
          playSfx("hit");
+         AT.y = 2.6;
+         pop.fail(AT, bumpAtBale(run) ? "Too fast for the bale! -1 life" : "Bump! -1 life", { shake: 0 });
+      }
+      // the next bale or the bay: beacon + hint (rebuilt only on a change)
+      nextGoal(run, goal);
+      beacon.x = goal.x;
+      beacon.y = goal.bale >= 0 ? 1 : 0.1;
+      beacon.z = goal.z;
+      beacon.hidden = run.over !== null;
+      if ((goal.bale < 0) !== guide.bay) setToBay((guide.bay = goal.bale < 0));
+      const code = hintCode(run, goal);
+      if (code !== guide.code) {
+         guide.code = code;
+         GUIDE.set(farmHint(run, code));
       }
       if (ev.lifeLost) store.loseLife();
       if (ev.won) {
@@ -260,7 +307,29 @@ function LevelScene() {
 
    const placeCargo = (index: number, matrix: Matrix4) => {
       const bale = run.bales[index];
-      if (!bale || bale.state === "delivered") return false;
+      if (!bale) return false;
+      if (bale.state === "field") {
+         flights.hitchAt[index] = -1;
+         flights.deliverAt[index] = -1;
+      }
+      if (bale.state === "delivered") {
+         // a delivered load is lifted off the bed into the barn, then gone
+         if (flights.deliverAt[index] < 0) flights.deliverAt[index] = time.now;
+         const k = (time.now - flights.deliverAt[index]) / LOAD_FLIGHT_S;
+         if (k >= 1 || flights.hitchAt[index] < 0) return false;
+         FROM.x = flights.bedX[index];
+         FROM.y = TRAILER_BED.y;
+         FROM.z = flights.bedZ[index];
+         TO.x = decor.barn.x;
+         TO.y = 1;
+         TO.z = decor.barn.z;
+         tossAt(FROM, TO, k, 1.4, 1, 0.3, FLY);
+         V.set(FLY.x, FLY.y, FLY.z);
+         Q.setFromAxisAngle(UP, towed.yaw + k * 2);
+         S.set(1.1 * FLY.scale, 0.72 * FLY.scale, 1.1 * FLY.scale);
+         matrix.compose(V, Q, S);
+         return;
+      }
       if (bale.state === "hitched") {
          // on the drawn trailer's bed: one load in the middle, two front and back
          const two = config.balesPerTrip > 1;
@@ -268,6 +337,23 @@ function LevelScene() {
          V.set(towed.x + Math.sin(towed.yaw) * along, TRAILER_BED.y, towed.z + Math.cos(towed.yaw) * along);
          Q.setFromAxisAngle(UP, towed.yaw);
          S.set(TRAILER_BED.width * 0.9, CARGO_ON_BED_HEIGHT, two ? TRAILER_BED.length * 0.46 : Math.min(1.2, TRAILER_BED.length * 0.6));
+         flights.bedX[index] = V.x;
+         flights.bedZ[index] = V.z;
+         // just hitched: the load swings from the field onto the bed instead of jumping there
+         if (flights.hitchAt[index] < 0) flights.hitchAt[index] = time.now;
+         const k = (time.now - flights.hitchAt[index]) / LOAD_FLIGHT_S;
+         if (k < 1) {
+            FROM.x = bale.x;
+            FROM.y = 0;
+            FROM.z = bale.z;
+            TO.x = V.x;
+            TO.y = V.y;
+            TO.z = V.z;
+            tossAt(FROM, TO, k, 1.2, 1, 1, FLY);
+            V.set(FLY.x, FLY.y, FLY.z);
+            const e = 1 - (1 - k) * (1 - k);
+            S.set(1.4 + (S.x - 1.4) * e, 0.82 + (S.y - 0.82) * e, 1.4 + (S.z - 1.4) * e);
+         }
          matrix.compose(V, Q, S);
          return;
       }
@@ -343,6 +429,15 @@ function LevelScene() {
          )}
          <DynamicInstancedModel asset={config.cargo === "crate" ? ASSETS.appleCrate : ASSETS.hay} count={MAX_BALES} update={placeCargo} fallbackParts={cargoParts} name="cargo" />
          <DynamicInstanced count={MAX_BALES} update={placeRing} parts={ringParts} name="rings" />
+         <TargetBeacon
+            target={beacon}
+            variant={toBay ? "drop-here" : "pick"}
+            color={toBay ? "#4ade80" : COLORS.ring}
+            radius={toBay ? BAY_RING : BALE_R + 0.6}
+            height={toBay ? 2 : 1.1}
+            label={toBay ? "PARK" : null}
+         />
+         <TargetMarkers targets={edgeTargets} color={toBay ? "#4ade80" : COLORS.ring} />
          <Model asset={ASSETS.barn} position={[decor.barn.x, 0, decor.barn.z]} fallback={<BarnFrame />} />
          <Model asset={ASSETS.silo} position={[decor.silo.x, 0, decor.silo.z]} fallback={<SiloPrimitive />} />
          <Model asset={ASSETS.trough} position={[decor.trough.x, 0, decor.trough.z]} fallback={<TroughPrimitive />} />

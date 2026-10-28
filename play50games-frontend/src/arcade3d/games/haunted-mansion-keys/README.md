@@ -98,3 +98,7 @@ handle that flips), `grandfatherClock`, `paintingFrame`, `armourStand`; shared `
   browser; the door's frame depth is squashed to 0.22 m.
 - Rodin's key GLB is upright; it spins on its pedestal.
 - About 1 seed in 7 on L3–L5 gets a two-wing shortcut (the lever skips two keys); the limits include it.
+
+## Clarity (2026-10-28, visual only)
+
+`guide.ts` (pure, `guide.test.ts`) picks the next step: the first key whose door is still shut, then that door once the key is held, then the exit (the exit door first whenever its key is held). A core `TargetBeacon` stands over it in the key's own colour (a green "drop-here" ring with an EXIT label once the exit is open); the core `HintLine` says it ("Find the red ◆ key (follow the arrow)", "Got the red ◆ key: go to its door", "hold E / hold Use to unlock", "Exit open!"), for 8 s at the start and 4 s on every new step. A taken key flies into the detective's hand and from the hand into its lock (`<Toss>`); a Use at a locked door without its key pops "Locked: need the … key", an armour hit pops "Caught! -1 life". The key ring title is 12 px. Rules, scoring and limits are unchanged.
