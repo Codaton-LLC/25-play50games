@@ -17,9 +17,9 @@ export const BEACON_TOP = 4;
 /** A bus beacon: stand on that bus's roof within this many metres of its centre. */
 export const BUS_PICK_R = 2.6;
 
-/** The bus: 7 m long, 2.4 m wide, its roof a deck you stand on (a plain jump falls short of it). */
-export const BUS_HALF_L = 3.5;
-export const BUS_HALF_W = 1.2;
+/** The bus: 8.5 m long, 2.6 m wide, its roof a deck you stand on (a plain jump falls short of it). */
+export const BUS_HALF_L = 4.25;
+export const BUS_HALF_W = 1.3;
 export const BUS_ROOF = 3.4;
 
 /** A street ramp: 5 m long, rising to RAMP_H at its lip. A jump off the lip clears a bus roof. */
@@ -29,17 +29,14 @@ export const RAMP_H = 1.4;
 /** The rail deck's half width. */
 export const RAIL_HALF_W = 1.3;
 
-/** Greyout (the level 5 sweeper truck): 7.2 m long, 2.8 m wide; brush units on its front corners. */
-export const TRUCK_HALF_L = 3.6;
-export const TRUCK_HALF_W = 1.4;
-export const TRUCK_ROOF = 3.3;
-export const BRUSH_FWD = 3;
-export const BRUSH_SIDE = 1;
-/** A hit on a brush: the hero's feet at this height or more (a plain jump peaks at 3.27 m). */
+/** Greyout (the level 5 sweeper truck): 6.4 m long, 3.4 m wide, 3.8 m tall; its brush units on the roof. */
+export const TRUCK_HALF_L = 3.2;
+export const TRUCK_HALF_W = 1.7;
+export const TRUCK_ROOF = 3.8;
+/** A hit on the roof brushes: over the roof with the feet at this height or more (a plain jump peaks at 3.27 m). */
 export const BRUSH_HIT_Y = 3.5;
-export const BRUSH_HIT_R = 1.7;
 /** The valves sit on its back. */
-export const VALVE_BACK = 3.9;
+export const VALVE_BACK = 3.5;
 export const VALVE_HIT_R = 1.8;
 
 /** Colour gates: 8 s cycle, green the first half (phase 0) or the second (phase 1). */

@@ -370,21 +370,32 @@ function bossPlay(bot: Bot, run: CityRun, input: StepInput): void {
    let next = at(bot.lapCorner);
    // the truck held or spun out on the street ahead: lap the other way
    if (!t.moving && Math.abs(t.x - (h.x + next.x) / 2) + Math.abs(t.z - (h.z + next.z) / 2) < CELL / 2 && Math.hypot(t.x - h.x, t.z - h.z) < CELL) {
-      bot.lapDir = -bot.lapDir;
+      bot.lapDir = bot.lapDir === 1 ? -1 : 1;
       bot.lapCorner += bot.lapDir;
       next = at(bot.lapCorner);
    }
    let k = 1;
    for (const g of c.gates) {
-      // a gate on the street ahead: arrive so it shuts about a second after you pass (the truck's lag)
+      // a gate on the street ahead: pass it about half a second before it turns red (the truck, a
+      // second behind, barges under the red bar); if it would be red on arrival, lap the other way
       const ahead = Math.abs(g.x - next.x) + Math.abs(g.z - next.z) < CELL / 2 + 0.1 && Math.abs(g.x - h.x) + Math.abs(g.z - h.z) < CELL;
-      if (!ahead || b.step !== "vulnerable") continue;
+      const before = (g.x - h.x) * (next.x - h.x) + (g.z - h.z) * (next.z - h.z) > 0;
+      if (!ahead || !before) continue;
       const d = Math.hypot(g.x - h.x, g.z - h.z);
-      const shutIn = gateShut(g, run.simMs) ? Number.POSITIVE_INFINITY : gateChangeIn(g, run.simMs);
-      const want = shutIn - 1000;
-      if (want > 0 && want < GATE_GREEN) {
+      const eta = (d / V_RUN) * 1000;
+      const shut = gateShut(g, run.simMs);
+      const shutIn = shut ? 0 : gateChangeIn(g, run.simMs);
+      if (shut || shutIn < eta + 150) {
+         if (d < 4.5) {
+            bot.lapDir = bot.lapDir === 1 ? -1 : 1;
+            bot.lapCorner += bot.lapDir;
+         }
+         continue;
+      }
+      if (b.step === "vulnerable" || b.step === "attack") {
+         const want = shutIn - 500;
          const need = (d / Math.max(0.2, want)) * 1000;
-         if (need < V_RUN) k = Math.max(0.55, need / V_RUN);
+         if (need < V_RUN) k = Math.max(0.6, need / V_RUN);
       }
    }
    goTo(bot, run, next.x, next.z, input, -1, k);

@@ -18,10 +18,7 @@ import { createBoss, createBossEvents, hitBoss, stepBoss, type BossEvents, type 
 import { collectSecret, createSecretTracker, type SecretTracker } from "../../menu2/secrets/secrets";
 import {
    BEACON_TOP,
-   BRUSH_FWD,
-   BRUSH_HIT_R,
    BRUSH_HIT_Y,
-   BRUSH_SIDE,
    BUS_HALF_L,
    BUS_HALF_W,
    BUS_PICK_R,
@@ -251,6 +248,8 @@ export interface CityRun {
    trailHead: number;
    /** trail samples taken so far */
    trailCount: number;
+   /** phase 3's open window (the truck ignores red gates and gets slammed) */
+   bossOpen: boolean;
    /** local co-op relay: this player may not take the lit beacon (the other player's turn) */
    beaconLocked: boolean;
    ended: "win" | "timeup" | null;
@@ -311,7 +310,7 @@ export function createRun(seed: number, level: LevelId = 1, heroId: HeroId = DEF
       truck: { x: spawn.x, z: spawn.z, yaw: 0, path: [], pathLen: 0, stop: 0, spinUntil: -1, pauseUntil: -1, cursor: 0, moving: false },
       drones: [], puddles: [], erasePause: 0,
       trailX: new Float32Array(TRAIL_N).fill(course.startX), trailZ: new Float32Array(TRAIL_N).fill(course.startZ), trailHead: 0, trailCount: 0,
-      beaconLocked: false, ended: null, finishMs: 0, events: makeEvents(),
+      bossOpen: false, beaconLocked: false, ended: null, finishMs: 0, events: makeEvents(),
       buses: course.buses.map(() => createBusPose()), wish: { x: 0, z: 0 }, scratch: { x: 0, z: 0 },
       passage: { phase: false, insideGhost: -1, siteOpen: false }, near: new Int16Array(8),
    };
@@ -492,15 +491,6 @@ function drive(run: CityRun, k: number): void {
    }
 }
 
-/** The brush units' centres (front corners, on the roof). */
-export function brushPoint(t: Truck, side: -1 | 1, out: { x: number; z: number }): { x: number; z: number } {
-   const fx = Math.sin(t.yaw);
-   const fz = Math.cos(t.yaw);
-   out.x = t.x + fx * BRUSH_FWD + fz * BRUSH_SIDE * side;
-   out.z = t.z + fz * BRUSH_FWD - fx * BRUSH_SIDE * side;
-   return out;
-}
-
 export function valvePoint(t: Truck, out: { x: number; z: number }): { x: number; z: number } {
    out.x = t.x - Math.sin(t.yaw) * VALVE_BACK;
    out.z = t.z - Math.cos(t.yaw) * VALVE_BACK;
@@ -546,8 +536,8 @@ function chase(run: CityRun, delayMs: number, speed: number): void {
       const nz = d > 1e-9 ? t.z + (dz / d) * go : t.z;
       for (const g of c.gates) {
          if (!gateShut(g, ms)) continue;
-         // a red gate holds it back
-         if (truckUnderGate(t, g, nx, nz) && !truckUnderGate(t, g)) return;
+         // a red gate holds it back, except in its open window: then it barges in and the bar slams it
+         if (!run.bossOpen && truckUnderGate(t, g, nx, nz) && !truckUnderGate(t, g)) return;
       }
       if (go > 1e-6) {
          t.moving = true;
@@ -600,9 +590,10 @@ function stepBossMs(run: CityRun, ev: StepEvents): void {
       // phase 3: it hunts your trail through the plaza; a red gate holds it, and a gate that shuts on it slams it
       if (be.telegraph && boss.attack === 0) t.cursor = run.trailCount - 40;
       if (ms >= t.spinUntil && ms >= t.pauseUntil) {
+         run.bossOpen = step === "vulnerable";
          if (step === "attack") chase(run, 450, 10);
-         else if (step === "vulnerable") chase(run, 1000, 7.5);
-         else chase(run, 1000, 6);
+         else if (step === "vulnerable") chase(run, 1200, 6);
+         else chase(run, 1200, 5.5);
       }
    }
    // phase 1: its brushes sweep the red off the streets it drives over (a brush hit stops it for 5 s)
@@ -630,7 +621,7 @@ function stepBossMs(run: CityRun, ev: StepEvents): void {
 
    if (step === "defeat" || step === "done") return;
    // contact: the truck's body pushes the hero out; its sweep (phase 1), its hunt (phase 3) and the drones strike
-   const inside = h.y < TRUCK_ROOF && inBox(h.x, h.z, t.x, t.z, t.yaw, TRUCK_HALF_L, TRUCK_HALF_W, HERO_R + 0.2);
+   const inside = h.y < TRUCK_ROOF - 0.5 && inBox(h.x, h.z, t.x, t.z, t.yaw, TRUCK_HALF_L, TRUCK_HALF_W, HERO_R + 0.2);
    if (inside) {
       const fx = Math.sin(t.yaw);
       const fz = Math.cos(t.yaw);
@@ -655,12 +646,8 @@ function stepBossMs(run: CityRun, ev: StepEvents): void {
    if (step !== "vulnerable") return;
    let hit = false;
    if (phase === 0) {
-      for (const side of [-1, 1] as const) {
-         brushPoint(t, side, bp);
-         const dx = h.x - bp.x;
-         const dz = h.z - bp.z;
-         if (h.y >= BRUSH_HIT_Y && h.y <= BRUSH_HIT_Y + 2 && dx * dx + dz * dz <= BRUSH_HIT_R * BRUSH_HIT_R) hit = true;
-      }
+      // off a ramp onto its roof brush units (a plain jump never gets this high)
+      hit = h.y >= BRUSH_HIT_Y && h.y <= BRUSH_HIT_Y + 2.5 && inBox(h.x, h.z, t.x, t.z, t.yaw, TRUCK_HALF_L, TRUCK_HALF_W, 0.3);
       if (hit) {
          run.erasePause = ms + ERASE_PAUSE;
          // bounced off the brushes, back the way you came
@@ -685,8 +672,8 @@ function stepBossMs(run: CityRun, ev: StepEvents): void {
       }
    } else if (ms >= t.spinUntil) {
       for (const g of c.gates) {
-         // the gate shuts this very ms with the truck under its bar
-         if (!gateShut(g, ms) || gateShut(g, ms - 1)) continue;
+         // a red bar comes down on it (it shut on the truck, or the truck barged under it)
+         if (!gateShut(g, ms)) continue;
          if (truckUnderGate(t, g)) {
             hit = true;
             ev.slam = true;
@@ -836,7 +823,7 @@ function stepMs(run: CityRun, input: StepInput, ev: StepEvents): void {
    }
    if (run.boss && run.boss.step !== "done") {
       const t = run.truck;
-      if (h.y < TRUCK_ROOF && inBox(nx, nz, t.x, t.z, t.yaw, TRUCK_HALF_L, TRUCK_HALF_W, HERO_R)) {
+      if (h.y < TRUCK_ROOF - 0.5 && inBox(nx, nz, t.x, t.z, t.yaw, TRUCK_HALF_L, TRUCK_HALF_W, HERO_R)) {
          const fx = Math.sin(t.yaw);
          const fz = Math.cos(t.yaw);
          const dx = nx - t.x;
@@ -1251,11 +1238,11 @@ export function proposeLimits(_id: LevelId, c: Course): LevelLimits {
 
 /** The shipped limits (meta.ts, arcade-games.json and the pinned test agree with these). */
 export const PROPOSED_LEVEL_LIMITS: Record<LevelId, LevelLimits> = {
-   1: { kind: "time", maxScore: 0, minDurationMs: 0, maxDurationMs: 0, timeBaseMs: 0 },
-   2: { kind: "time", maxScore: 0, minDurationMs: 0, maxDurationMs: 0, timeBaseMs: 0 },
-   3: { kind: "time", maxScore: 0, minDurationMs: 0, maxDurationMs: 0, timeBaseMs: 0 },
-   4: { kind: "time", maxScore: 0, minDurationMs: 0, maxDurationMs: 0, timeBaseMs: 0 },
-   5: { kind: "time", maxScore: 0, minDurationMs: 0, maxDurationMs: 0, timeBaseMs: 0 },
+   1: { kind: "time", maxScore: 8290, minDurationMs: 17100, maxDurationMs: 100000, timeBaseMs: 100000 },
+   2: { kind: "time", maxScore: 10360, minDurationMs: 26400, maxDurationMs: 130000, timeBaseMs: 130000 },
+   3: { kind: "time", maxScore: 12710, minDurationMs: 32900, maxDurationMs: 160000, timeBaseMs: 160000 },
+   4: { kind: "time", maxScore: 16130, minDurationMs: 38700, maxDurationMs: 200000, timeBaseMs: 200000 },
+   5: { kind: "time", maxScore: 17390, minDurationMs: 26100, maxDurationMs: 200000, timeBaseMs: 200000 },
 };
 
 export function runTimeMs(playMs: number, orbs: number, comboMs = 0): number {

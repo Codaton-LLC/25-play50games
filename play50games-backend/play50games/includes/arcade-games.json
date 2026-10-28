@@ -1005,17 +1005,17 @@
     "color-city-sprint": {
       "title": "Color City Sprint",
       "kind": "time",
-      "max_score": 6900,
-      "min_duration_ms": 21000,
-      "max_duration_ms": 90000,
-      "time_base_ms": 90000,
+      "max_score": 8290,
+      "min_duration_ms": 17100,
+      "max_duration_ms": 100000,
+      "time_base_ms": 100000,
       "enabled": false,
       "levels": [
-        { "title": "Red Block", "max_score": 6900, "min_duration_ms": 21000, "max_duration_ms": 90000, "time_base_ms": 90000 },
-        { "title": "Bus Line", "max_score": 9980, "min_duration_ms": 20200, "max_duration_ms": 120000, "time_base_ms": 120000 },
-        { "title": "Rush Hour", "max_score": 11310, "min_duration_ms": 26900, "max_duration_ms": 140000, "time_base_ms": 140000 },
-        { "title": "Night Neon", "max_score": 13880, "min_duration_ms": 41200, "max_duration_ms": 180000, "time_base_ms": 180000 },
-        { "title": "Greyout Avenue", "max_score": 15080, "min_duration_ms": 9200, "max_duration_ms": 160000, "time_base_ms": 160000 }
+        { "title": "Red Block", "max_score": 8290, "min_duration_ms": 17100, "max_duration_ms": 100000, "time_base_ms": 100000 },
+        { "title": "Bus Line", "max_score": 10360, "min_duration_ms": 26400, "max_duration_ms": 130000, "time_base_ms": 130000 },
+        { "title": "Rush Hour", "max_score": 12710, "min_duration_ms": 32900, "max_duration_ms": 160000, "time_base_ms": 160000 },
+        { "title": "Night Neon", "max_score": 16130, "min_duration_ms": 38700, "max_duration_ms": 200000, "time_base_ms": 200000 },
+        { "title": "Greyout Avenue", "max_score": 17390, "min_duration_ms": 26100, "max_duration_ms": 200000, "time_base_ms": 200000 }
       ]
     }
   }

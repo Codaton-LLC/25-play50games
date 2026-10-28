@@ -90,7 +90,7 @@ export interface CitySpec {
    ring: [number, number][] | null;
    /** level 5: Greyout Avenue, streets that start red and cannot be swept (between these nodes, in order) */
    avenue: [number, number][] | null;
-   /** level 5: where Greyout parks for each brush window (one per ramp, the ramp facing its brushes) */
+   /** level 5: where Greyout parks for each brush window (one per ramp: its front 1 m past the ramp's lip, facing it) */
    brushStops: { x: number; z: number; yaw: number; ramp: number }[];
    /** level 5: where Greyout parks for each valve window (on the avenue) */
    valveStops: { x: number; z: number; yaw: number }[];
@@ -361,9 +361,9 @@ export const LEVELS: Record<LevelId, CitySpec> = {
       avenue: [[0, 2], [5, 2]],
       // each faces its ramp: the brushes (its front) toward the ramp's lip
       brushStops: [
-         { x: 13.3, z: 12, yaw: -Math.PI / 2, ramp: 0 },
-         { x: 46.7, z: 36, yaw: Math.PI / 2, ramp: 1 },
-         { x: 24, z: 46.7, yaw: 0, ramp: 2 },
+         { x: 11.2, z: 12, yaw: -Math.PI / 2, ramp: 0 },
+         { x: 48.8, z: 36, yaw: Math.PI / 2, ramp: 1 },
+         { x: 24, z: 48.8, yaw: 0, ramp: 2 },
       ],
       valveStops: [
          { x: 42, z: 24, yaw: Math.PI / 2 },
