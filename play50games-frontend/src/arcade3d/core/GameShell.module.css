@@ -423,6 +423,19 @@
    text-transform: uppercase;
 }
 
+/* phones: the chip labels were 10px; 12px keeps Score / Time / Level / Lives readable (390 x 844 checked) */
+@media (max-width: 640px) {
+   .chipLabel {
+      font-size: 12px;
+      letter-spacing: 0.04em;
+   }
+
+   .chip {
+      min-width: 54px;
+      padding: 4px 8px;
+   }
+}
+
 .chipValue {
    font-size: 16px;
    font-weight: 800;
