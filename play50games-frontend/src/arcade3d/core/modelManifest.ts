@@ -197,6 +197,16 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/cloud-hopper/m2SkyStar.glb",
    "/models/3d/cloud-hopper/m2StormCloud.glb",
    "/models/3d/cloud-hopper/m2WindRing.glb",
+   // Menu 2 game 37 (Plate Surf): its props from ready/menu2/plate-surf, plus m2GiantCrabBoss and m2SlimeBlob (shared), m2NeutralRing (ring-jump-challenge)
+   "/models/3d/plate-surf/m2AquaOrb.glb",
+   "/models/3d/plate-surf/m2GiantCrabBoss.glb",
+   "/models/3d/plate-surf/m2MarkerBuoy.glb",
+   "/models/3d/plate-surf/m2NeutralRing.glb",
+   "/models/3d/plate-surf/m2SeaCliffBg.glb",
+   "/models/3d/plate-surf/m2SeaGullDiver.glb",
+   "/models/3d/plate-surf/m2SeaRock.glb",
+   "/models/3d/plate-surf/m2SlimeBlob.glb",
+   "/models/3d/plate-surf/m2SurfPlateI.glb",
    // P-121 dev adoptions (2026-10-25): V2 replacements and Group D variety whose QA verdict
    // starts with OK. Optimized GLBs copied in; not re-optimized. Live games are untouched.
    "/models/3d/shopping-cart/supermarketShelfV2.glb",

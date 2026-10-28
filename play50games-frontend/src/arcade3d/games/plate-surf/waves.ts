@@ -268,6 +268,7 @@ const L2: Script = (p, H) => {
    p.lip(690);
    p.checkpoint(710);
    p.pump(722, 4, 17);
+   p.lane("ghost", 728, 778, 3);
    p.secret("reef", 270, (LANE.x0 + LANE.x1) / 2, ORB_UP + 0.2);
    p.secret("pearl", 785, 9.6, faceY(9.6, H) + ORB_UP, "speed");
 };

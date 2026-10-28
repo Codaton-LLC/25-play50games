@@ -775,7 +775,8 @@ function playMs(run: SurfRun, mx: number, mz: number, trick: TrickKind): void {
       const dv = target - h.vx;
       const step = CARVE_ACC / 1000;
       h.vx += dv > step ? step : dv < -step ? -step : dv;
-      if (mz > 0.25) h.v = Math.max(V_MIN, h.v - (BRAKE * mz) / 1000);
+      // pulling back (towards the camera's side of the ride, more back than across) brakes
+      if (mz > 0.5 && mz > Math.abs(mx)) h.v = Math.max(V_MIN, h.v - (BRAKE * mz) / 1000);
       if (h.inLane === NONE) h.v = Math.max(V_MIN, h.v - (DRAG_K * h.v) / 1000);
       h.x += h.vx / 1000;
       if (h.x < b.lo) {
