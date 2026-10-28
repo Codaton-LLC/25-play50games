@@ -34,7 +34,7 @@ import World from "./World";
 import { Course, type VisualClock } from "./Course";
 import { Hero, createHeroAnim, groundUnder, type HeroAnim } from "./Hero";
 import { CLOUD_ORBIT, FOV, FOV_PORTRAIT, courseSolids, introKeyframes, orbitLookUp, orbitPivot, orbitScale, playCamera } from "./camera";
-import { ORB, STAT, createRun, createStepInput, step, type CloudRun } from "./rules";
+import { ORB, STAT, bossVulnerable, createRun, createStepInput, step, type CloudRun } from "./rules";
 import { pickedHero, subscribeHero } from "./heroes";
 import { createBot, botInput } from "./bot";
 import type { CloudLevel } from "./levels";
@@ -59,7 +59,7 @@ export function publishBoss(run: CloudRun): void {
    const b = run.boss;
    if (!b) return;
    const store = useArcadeStore.getState();
-   const open = b.step === "vulnerable" ? 1 : 0;
+   const open = bossVulnerable(run) ? 1 : 0;
    const flash = b.flashMs > 0 ? 1 : 0;
    if (store.stats[STAT.bossHp] !== b.hp) store.setStat(STAT.bossHp, b.hp);
    if (store.stats[STAT.bossPhase] !== b.phase) store.setStat(STAT.bossPhase, b.phase);

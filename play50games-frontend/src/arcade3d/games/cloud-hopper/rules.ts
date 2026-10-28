@@ -232,6 +232,18 @@ export function bossMinMs(): number {
    return Infinity;
 }
 
+/**
+ * Gloom Nimbus can be hit right now (its eye glints turn gold, the HUD bar pulses): its vulnerable
+ * window, and only when that window can land a hit. In the chase (phase 0) the eyes stay violet unless
+ * the hero carries a lightning-rod charge to spend in it; later phases need the eye ring open ahead.
+ * The step alone is not enough: the chase cycles telegraph -> attack -> vulnerable even with no charge.
+ */
+export function bossVulnerable(run: Pick<CloudRun, "boss" | "charges" | "eye">): boolean {
+   const b = run.boss;
+   if (!b || b.step !== "vulnerable" || b.hp <= 0) return false;
+   return b.phase === 0 ? run.charges > 0 : run.eye.live;
+}
+
 const BOSS_MIN_MS = bossMinMs();
 
 /** The proven least finish ms: the z floor, and on level 5 the boss's least defeat time too. */

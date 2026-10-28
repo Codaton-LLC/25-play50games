@@ -21,7 +21,7 @@ import { ASSETS, BOSS_SCALE, GLB_SIZE, ORB_SIZE } from "./assets";
 import { COLORS, glowTexture } from "./look";
 import { BillboardField, type Billboard } from "./World";
 import { GLOOM_NIMBUS, SECRETS } from "./progression";
-import { FEATHER, cloudTop, cloudX, pulseOn, strikeLive, type Cloud, type Course as CourseData, type CloudRun } from "./rules";
+import { FEATHER, bossVulnerable, cloudTop, cloudX, pulseOn, strikeLive, type Cloud, type Course as CourseData, type CloudRun } from "./rules";
 
 /** The visual clock (ms of rules time), written by Scene every frame. */
 export interface VisualClock {
@@ -313,7 +313,8 @@ function Boss({ run, clock }: { run: CloudRun; clock: VisualClock }) {
       const lean = b.step === "attack" ? 0.22 : b.step === "telegraph" ? -0.1 * stepProgress(b, GLOOM_NIMBUS) : 0;
       g.rotation.x += (lean - recoil.current * 0.35 - g.rotation.x) * (1 - Math.exp(-6 * dt));
       g.rotation.z = sink * 0.5 + Math.sin(time.now * 0.9 + b.phase) * 0.05 * (1 + b.phase) + recoil.current * 0.12 * Math.sin(time.now * 40);
-      const open = b.step === "vulnerable";
+      // gold only while it can be hit (a chase window with no charge stays violet)
+      const open = bossVulnerable(run);
       eyes.current.forEach((m) => {
          if (!m) return;
          const mm = m.material as MeshBasicMaterial;
@@ -350,7 +351,7 @@ function Boss({ run, clock }: { run: CloudRun; clock: VisualClock }) {
             {[-0.32, 0, 0.32].map((dx, i) => (
                <mesh key={i} ref={(m) => {
                   eyes.current[i] = m;
-               }} position={[dx * 0.94, GLB_SIZE.boss.y * (i === 1 ? 0.6 : 0.565), GLB_SIZE.boss.z * 0.5]}>
+               }} position={[dx * 0.68, GLB_SIZE.boss.y * (i === 1 ? 0.6 : 0.565), GLB_SIZE.boss.z * 0.5]}>
                   {/* small glints inside the GLB's own three eye sockets (0.09 covered the face as 1 m discs) */}
                   <sphereGeometry args={[0.045, 12, 10]} />
                   <meshBasicMaterial color="#7c3aed" toneMapped={false} />

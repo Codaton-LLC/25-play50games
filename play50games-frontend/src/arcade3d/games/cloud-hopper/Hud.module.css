@@ -1,16 +1,6 @@
 /* Sky Tower Jump HUD (concept board style): deep navy pills with a light edge, bold white numbers,
    a gold level line. Under the shell's chip row on the left; the banner centred at the top, clear of
    the shell's Mute / Pause on the right. */
-.left {
-   position: absolute;
-   top: calc(env(safe-area-inset-top, 0px) + 58px);
-   left: calc(env(safe-area-inset-left, 0px) + 10px);
-   display: flex;
-   flex-direction: column;
-   gap: 8px;
-   pointer-events: none;
-}
-
 .pill,
 .clock {
    display: inline-flex;
@@ -46,18 +36,6 @@
    width: 24px;
    height: 24px;
    flex: none;
-}
-
-.center {
-   position: absolute;
-   top: calc(env(safe-area-inset-top, 0px) + 8px);
-   left: 50%;
-   transform: translateX(-50%);
-   display: flex;
-   flex-direction: column;
-   align-items: center;
-   gap: 6px;
-   pointer-events: none;
 }
 
 .banner {
@@ -195,9 +173,6 @@
 
 /* narrow phones: a smaller banner between the left pills and the shell's buttons */
 @media (max-width: 520px) {
-   .center {
-      top: calc(env(safe-area-inset-top, 0px) + 6px);
-   }
    .banner {
       padding: 4px 12px 5px;
       border-radius: 12px;
@@ -218,22 +193,6 @@
    .orb {
       width: 22px;
       height: 22px;
-   }
-}
-
-/* short landscape phones: everything in one top row, right of the shell's level chip */
-@media (max-height: 460px) {
-   .left {
-      top: calc(env(safe-area-inset-top, 0px) + 8px);
-      left: calc(env(safe-area-inset-left, 0px) + 76px);
-      flex-direction: row;
-   }
-   .center {
-      flex-direction: row;
-      top: calc(env(safe-area-inset-top, 0px) + 6px);
-      left: auto;
-      right: calc(env(safe-area-inset-right, 0px) + 112px);
-      transform: none;
    }
 }
 
@@ -276,16 +235,3 @@
    transition: width 80ms linear;
 }
 
-.boss {
-   width: min(340px, calc(100vw - 32px));
-   pointer-events: none;
-}
-
-.charges {
-   margin-top: 4px;
-   text-align: center;
-   color: #fde047;
-   font-size: 0.78rem;
-   font-weight: 800;
-   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
-}

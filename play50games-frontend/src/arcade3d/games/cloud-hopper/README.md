@@ -157,7 +157,8 @@ The sunset star targets are the card's: 60 / 80 / 95 / 110 / 150 s (the honest b
 ### Boss: Gloom Nimbus (level 5, menu2/boss `GLOOM_NIMBUS`)
 
 Drawn as its own Hyper3D High model `m2GloomNimbusBoss` (15k tris, 0.6 MB, the character budget),
-11 m wide (`assets.ts BOSS_SCALE`), with three eye glints that turn gold while it is open; it turns to
+11 m wide (`assets.ts BOSS_SCALE`), with three eye glints that turn gold only while it can be hit (`rules.ts bossVulnerable`: a chase
+window needs a lightning-rod charge, a later one the eye ring ahead; tested); it turns to
 face the hero, leans back on the telegraph and in on the attack, recoils on a hit and rolls as it
 sinks on its defeat. `m2StormCloud` at the same width is its fallback. 7 hp, three phases, one hit per open window, a slow-mo-style hit-stop on the
 finish (visual only).
@@ -210,8 +211,9 @@ the eye ring, hail shadows, secret markers.
   **straggler teleport** are not built.
 - A respawn re-forms every cloud and returns every feather; in multiplayer that resets the shared sky
   for everyone.
-- The boss GLB's eye glints are placed from its bounds, not from its drawn face: check them against
-  the model in a browser.
+- The boss GLB's eye glints sit in its three sockets: the side ones at x = ±0.32 × 0.68 in GLB units
+  (`Course.tsx`). 0.94 put them outside the sockets, and 0.85 still left them on the sockets' outer rims in
+  a headless close-up of the face on L5 (2026-10-28), so they moved to 0.68, the measured socket centres.
 - Music stems per combo and the sunset sky tint over time are not built (the HUD clock is the sun).
 - Gloom Nimbus's "swallows clouds" and "sinks the last clouds, drops feathers" are flavour not built:
   the chase is a line behind you and the burst is a third ring.
