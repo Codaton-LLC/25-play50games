@@ -1,6 +1,6 @@
 // Plate Surf's GLBs: listed in the manifest, on disk, within their budgets, GLB_SIZE equal to the
 // real (meshopt-decoded) meshes with their feet on y = 0, the plate's deck height, and the definition's levels.
-import { statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
@@ -12,6 +12,19 @@ import { plateSurfMeta } from "./meta";
 import definition from "./index";
 
 const PUBLIC = fileURLToPath(new URL("../../../../public", import.meta.url));
+
+/** The GLB's triangle count from its JSON chunk (indices / 3 per primitive). */
+function glbTriangles(file: string): number {
+   const bytes = readFileSync(file);
+   const len = bytes.readUInt32LE(12);
+   const json = JSON.parse(bytes.subarray(20, 20 + len).toString("utf8")) as {
+      meshes: Array<{ primitives: Array<{ indices?: number; attributes: { POSITION: number } }> }>;
+      accessors: Array<{ count: number }>;
+   };
+   let tris = 0;
+   for (const m of json.meshes) for (const p of m.primitives) tris += json.accessors[p.indices ?? p.attributes.POSITION].count / 3;
+   return tris;
+}
 
 function bounds(cloud: Float32Array) {
    const min = [Infinity, Infinity, Infinity];
@@ -27,10 +40,11 @@ function bounds(cloud: Float32Array) {
 
 describe("plate-surf models", () => {
    for (const [key, asset] of Object.entries(ASSETS)) {
-      it(`${key}: listed, on disk, within its byte budget`, () => {
+      it(`${key}: listed, on disk, within its byte and triangle budgets`, () => {
          expect(hasModel(asset.url), asset.url).toBe(true);
-         const bytes = statSync(path.join(PUBLIC, asset.url)).size;
-         expect(bytes).toBeLessThanOrEqual(asset.budget.bytes);
+         const file = path.join(PUBLIC, asset.url);
+         expect(statSync(file).size).toBeLessThanOrEqual(asset.budget.bytes);
+         expect(glbTriangles(file)).toBeLessThanOrEqual(asset.budget.tris);
       });
    }
 

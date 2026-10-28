@@ -9,9 +9,9 @@
 // shadow telegraph), Kiro's violet storm spray, the checkpoint beacons (menu2's checkpointBeacon), the
 // secrets, the finish line and the lagoon's sand bar, and on level 5 King Breaker (m2GiantCrabBoss),
 // its claw shadow, its bubble mines and the Tide Bell.
-import { useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
-import { AdditiveBlending, Color, DoubleSide, Matrix4, Object3D, type Group, type Mesh, type MeshBasicMaterial, type MeshStandardMaterial } from "three";
+import { AdditiveBlending, Color, DoubleSide, Matrix4, MeshBasicMaterial as BasicMaterial, Object3D, type Group, type Mesh, type MeshBasicMaterial, type MeshStandardMaterial } from "three";
 import { DynamicInstancedModel, InstancedModel, Model } from "@/arcade3d/core/assets";
 import { Instanced, type InstanceSpot } from "@/arcade3d/core/render";
 import { useGameTime } from "@/arcade3d/core/gameTime";
@@ -32,7 +32,7 @@ export const REACH = {
    orb: { ahead: 95, behind: 12 },
    rock: { ahead: 120, behind: 18 },
    jelly: { ahead: 55, behind: 10 },
-   gull: { ahead: 100, behind: 15 },
+   gull: { ahead: 70, behind: 12 },
 } as const;
 
 /** z is within reach of the rider at hz (the ride runs along -z: ahead is smaller z). */
@@ -150,19 +150,31 @@ function Rocks({ run }: { run: SurfRun }) {
    );
 }
 
+/** The crack lines on a reef wall (x, y, length, angle), metres round its middle. */
+const CRACKS: ReadonlyArray<readonly [number, number, number, number]> = [
+   [-1.5, 0.2, 0.9, 0.7],
+   [-0.9, 0.45, 0.8, -0.5],
+   [-0.3, 0.2, 0.9, 0.6],
+   [0.4, 0.35, 1.0, -0.3],
+   [1.1, 0.1, 0.8, 0.8],
+   [1.6, 0.5, 0.6, -0.6],
+   [0.1, -0.15, 0.7, 0.2],
+];
+
 /** Riko's cracked reef walls: a pile of rocks across each lane mouth with glowing cracks; they burst once dashed. */
 function CrackedWalls({ run }: { run: SurfRun }) {
    const c = run.course;
    const walls = useMemo(() => c.lanes.map((l, i) => ({ l, i })).filter((w) => w.l.kind === "cracked"), [c]);
    const per = 3;
-   const glow = useRef<(Mesh | null)[]>([]);
+   const glow = useRef<(Group | null)[]>([]);
+   const crackMat = useMemo(() => new BasicMaterial({ color: "#fb923c", transparent: true, opacity: 0.8, depthWrite: false, blending: AdditiveBlending, toneMapped: false }), []);
+   useEffect(() => () => crackMat.dispose(), [crackMat]);
    const time = useGameTime();
    useFrame(() => {
+      crackMat.opacity = 0.6 + 0.35 * Math.sin(time.now * 4);
       walls.forEach((w, k) => {
-         const m = glow.current[k];
-         if (!m) return;
-         m.visible = run.laneOpen[w.i] === 0;
-         (m.material as MeshBasicMaterial).opacity = 0.55 + 0.3 * Math.sin(time.now * 4 + k);
+         const g = glow.current[k];
+         if (g) g.visible = run.laneOpen[w.i] === 0;
       });
    });
    if (walls.length === 0) return null;
@@ -181,12 +193,20 @@ function CrackedWalls({ run }: { run: SurfRun }) {
             }}
          />
          {walls.map((w, k) => (
-            <mesh key={k} ref={(el) => {
+            // glowing cracks zig-zagging across the rocks' face (the card's "cracked reef wall")
+            <group
+               key={k}
+               ref={(el) => {
                   glow.current[k] = el;
-               }} position={[(LANE.x0 + LANE.x1) / 2, 0.9, w.l.z0 + 0.6]}>
-               <planeGeometry args={[LANE.x1 - LANE.x0, 1.6]} />
-               <meshBasicMaterial color="#fb923c" transparent opacity={0.6} depthWrite={false} blending={AdditiveBlending} toneMapped={false} />
-            </mesh>
+               }}
+               position={[(LANE.x0 + LANE.x1) / 2, 0.75, w.l.z0 + 0.95]}
+            >
+               {CRACKS.map(([x, y, len, rot], j) => (
+                  <mesh key={j} position={[x, y, 0]} rotation-z={rot} material={crackMat}>
+                     <boxGeometry args={[len, 0.07, 0.04]} />
+                  </mesh>
+               ))}
+            </group>
          ))}
       </>
    );
@@ -359,7 +379,7 @@ function Sprays({ run }: { run: SurfRun }) {
          at.x = sp.x0 + u * (FACE_W + 1 - sp.x0);
          at.y = faceY(Math.min(at.x, FACE_W), c.H) + 0.3 + w * 2.6;
          at.z = sp.z1 + ((t * 0.37 + u * 0.6 + w * 0.3) % 1) * (sp.z0 - sp.z1);
-         juice.stream("aura", at, 70, emitters[k], { color: k % 2 ? HAZARD.glow : HAZARD.violet, vx: -2.5, vy: 2, size: 2.2 });
+         juice.stream("aura", at, 70, emitters[k], { color: k % 2 ? HAZARD.glow : HAZARD.violet, vx: -2.5, vy: 2, size: 1.6 });
       });
    });
    return (

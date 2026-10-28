@@ -98,11 +98,11 @@ export function Wave({ run, clock, view }: { run: SurfRun; clock: VisualClock; v
       at.x = FACE_W - 2.5 + Math.sin(t * 7.1) * 1.5;
       at.y = run.course.H + 0.6;
       at.z = run.curlZ + 2;
-      juice.stream("trail", at, lite ? 18 : 36, spray, { color: "#ffffff", vy: 3, vx: -2.5, size: 2.4 });
+      juice.stream("pickup", at, lite ? 24 : 48, spray, { color: "#f0fbff", vy: 3, vx: -2.5, size: 1.8 });
       at.x = 3 + Math.sin(t * 5.3) * 2.5;
       at.y = 1.2;
       at.z = run.curlZ + 6;
-      juice.stream("trail", at, lite ? 10 : 20, lipSpray, { color: "#f8fdff", vy: 2, size: 2.8 });
+      juice.stream("pickup", at, lite ? 14 : 28, lipSpray, { color: "#f8fdff", vy: 2, size: 2 });
    });
 
    const len = WAVE_AHEAD + WAVE_BEHIND;

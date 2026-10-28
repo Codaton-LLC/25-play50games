@@ -73,8 +73,8 @@ export const KING_BREAKER: BossConfig = {
    defeatMs: 2400,
    slowMo: { scale: 0.25, durationMs: 1600 },
    phases: [
-      { id: "claw", name: "Claw", endsAt: 4 / 7, attacks: [{ id: "slam", telegraphMs: 1200, attackMs: 600, vulnerableMs: 2600 }] },
-      { id: "bubbles", name: "Bubbles", endsAt: 1 / 7, attacks: [{ id: "mines", telegraphMs: 1000, attackMs: 1400, vulnerableMs: 2600 }] },
+      { id: "claw", name: "Claw", endsAt: 4 / 7, attacks: [{ id: "slam", telegraphMs: 1200, attackMs: 600, vulnerableMs: 3000 }] },
+      { id: "bubbles", name: "Bubbles", endsAt: 1 / 7, attacks: [{ id: "mines", telegraphMs: 1000, attackMs: 1400, vulnerableMs: 3000 }] },
       { id: "barrel", name: "Barrel", endsAt: 0, attacks: [{ id: "block", telegraphMs: 900, attackMs: 900, vulnerableMs: 3200 }] },
    ],
 };

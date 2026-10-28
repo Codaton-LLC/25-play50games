@@ -142,11 +142,11 @@ function Simulation({ run, anim, clock, won, orbit }: { run: SurfRun; anim: Hero
          tail.x = h.x - Math.sign(h.vx) * 0.3;
          tail.y = h.y + 0.15;
          tail.z = h.z + 0.7;
-         juice.stream("trail", tail, 14 + Math.abs(h.vx) * 6, spray, { color: "#f4fdff", vx: -h.vx * 0.45, vy: 2.8, vz: 1.5, size: 1.6 });
+         juice.stream("pickup", tail, 24 + Math.abs(h.vx) * 9, spray, { color: "#e0f7ff", vx: -h.vx * 0.45, vy: 2.8, vz: 1.5, size: 1.4 });
       }
       if (ev.pumped) {
          anim.pumpAt = now;
-         juice.burst("trail", feet, 22, { color: "#ffffff", vy: 3.5, vx: -h.vx * 0.4, size: 1.8 });
+         juice.burst("pickup", feet, 30, { color: "#e0f7ff", vy: 3.5, vx: -h.vx * 0.4, size: 1.5 });
          juice.burst("pickup", feet, 8, { color: heroAccent(run.heroId) });
          juice.popup(chest, `+${(1.5).toFixed(1)}`, { color: "#a5f3fc", size: 0.05 });
          juice.kick(0, -1, 0, 0.8);

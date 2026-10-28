@@ -53,7 +53,7 @@ export const V_MIN = 9;
 export const V_MAX = 24;
 /** a pump (the card: +1.5 m/s): a down-carve from above the band through it within PUMP_WINDOW_MS */
 export const PUMP_GAIN = 1.5;
-export const PUMP_WINDOW_MS = 500;
+export const PUMP_WINDOW_MS = 600;
 /** the face's drag: this fraction of the speed is lost per second while riding (none in the calm lanes) */
 export const DRAG_K = 0.02;
 /** steering across the face (m/s, m/s²); pulling back on the stick brakes (m/s²) */
@@ -88,7 +88,7 @@ export const JELLY_R = 0.8;
 export const GULL = { r: 1.7, telegraph: 0.45, dive: 0.8 } as const;
 export const MINE_R = 1.2;
 /** King Breaker: its lead ahead of you, its slow ride while open, its fastest move, its reach, where it rests */
-export const CRAB = { lead: 14, slow: 11, chase: 60, hitR: 2.8, lipX: FACE_W - 1.2, midX: 6, barrelR: 2.4, start: 40, exitGap: 28 } as const;
+export const CRAB = { lead: 20, slow: 10, chase: 60, hitR: 2.8, lipX: FACE_W - 1.2, midX: 6, barrelR: 2.4, start: 40, exitGap: 28 } as const;
 /** the boss hit needs: phase 2 a trick in progress at this speed, phase 3 a carve at this speed */
 export const BOSS_SPEED = { eyes: 16, barrel: 17 } as const;
 /** level 5: with the boss up the beach is held this far off, and the curl that far behind */
