@@ -3,9 +3,11 @@
 import { describe, expect, it } from "vitest";
 import { QBONE, QUAD_BONE_COUNT, QUAD_BONE_PARENT, QUAD_LEGS, computeQuadrupedWeights, quadrupedJoints, type QuadrupedLandmarks } from "./quadruped";
 import {
+   DIAGONAL_WALK,
    blendQuadrupedPoses,
    createQuadrupedPose,
    quadrupedAnkles,
+   quadrupedCrouch,
    quadrupedGait,
    quadrupedGaitMix,
    quadrupedIdle,
@@ -200,5 +202,49 @@ describe("quadruped poses", () => {
       const out = blendQuadrupedPoses(a, b, 0.25, createQuadrupedPose());
       for (let i = 0; i < out.rot.length; i++) expect(out.rot[i]).toBeCloseTo(a.rot[i] + (b.rot[i] - a.rot[i]) * 0.25, 6);
       expect(out.lift).toBeCloseTo(a.lift + (b.lift - a.lift) * 0.25, 9);
+   });
+   it("options: the diagonal walk lands the diagonal pairs a quarter apart, blends into the trot, and the paws stay planted", () => {
+      const walk = quadrupedGaitMix(0.15, LM, DIAGONAL_WALK);
+      expect([...walk.offsets]).toEqual([...DIAGONAL_WALK]);
+      // HL then FR a quarter later, HR then FL: diagonal pairs
+      expect((walk.offsets[1] - walk.offsets[2]) % 1).toBeCloseTo(0.25, 9);
+      expect(walk.offsets[0] - walk.offsets[3]).toBeCloseTo(0.25, 9);
+      const half = quadrupedGaitMix(0.4, LM, DIAGONAL_WALK);
+      for (let l = 0; l < 4; l++) expect(half.offsets[l]).toBeGreaterThanOrEqual(Math.min(DIAGONAL_WALK[l], [0.5, 1, 0, 0.5][l]) - 1e-9);
+      const pose = createQuadrupedPose();
+      const stride = quadrupedStride(0.15, LM);
+      const prev: Array<number | null> = [null, null, null, null];
+      for (let k = 0; k <= 48; k++) {
+         const f = k / 48;
+         const ankles = quadrupedAnkles(quadrupedGait(f * Math.PI * 2, 0.15, LM, pose, 0, { walkOffsets: DIAGONAL_WALK, pawFold: 0.4 }), LM);
+         for (let l = 0; l < 4; l++) {
+            const c = (((f - DIAGONAL_WALK[l]) % 1) + 1) % 1;
+            if (c >= walk.duty - 1e-6) { prev[l] = null; continue; }
+            const ground = ankles[l * 2] + stride * f;
+            if (prev[l] !== null) expect(Math.abs(ground - prev[l]!)).toBeLessThan(1e-4);
+            prev[l] = ground;
+         }
+      }
+      // no options: the plain gait, exactly
+      const a = quadrupedGait(1.3, 0.2, LM, createQuadrupedPose());
+      const b = quadrupedGait(1.3, 0.2, LM, createQuadrupedPose(), 0, {});
+      expect([...b.rot]).toEqual([...a.rot]);
+      expect(b.lift).toBe(a.lift);
+   });
+
+   it("crouch lowers the trunk with every paw kept on its spot", () => {
+      for (const speed of [0, 0.15, 0.6]) {
+         const pose = speed === 0 ? quadrupedIdle(1.2, LM, createQuadrupedPose()) : quadrupedGait(2.1, speed, LM, createQuadrupedPose());
+         const before = Float32Array.from(quadrupedAnkles(pose, LM));
+         const lift = pose.lift;
+         quadrupedCrouch(0.08, 0.2, LM, pose);
+         expect(pose.lift).toBeLessThanOrEqual(lift - 0.08 + 1e-9);
+         const after = quadrupedAnkles(pose, LM);
+         for (let i = 0; i < 8; i++) expect(after[i]).toBeCloseTo(before[i], 4);
+      }
+      const same = quadrupedGait(1, 0.3, LM, createQuadrupedPose());
+      const rot = [...same.rot];
+      quadrupedCrouch(0, 0, LM, same);
+      expect([...same.rot]).toEqual(rot);
    });
 });

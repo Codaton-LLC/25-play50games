@@ -8,7 +8,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import type { Group } from "three";
 import CameraRig from "@/arcade3d/core/CameraRig";
-import { Model } from "@/arcade3d/core/assets";
 import { playSfx, startLoop, useMuted } from "@/arcade3d/core/audio";
 import type { AABB } from "@/arcade3d/core/collision";
 import { useFx } from "@/arcade3d/core/fx";
@@ -17,14 +16,17 @@ import { TargetMarkers, type MarkerTarget } from "@/arcade3d/core/hud";
 import { useInput } from "@/arcade3d/core/input";
 import { useStageLighting } from "@/arcade3d/core/lighting";
 import { inputToWorld, randomSeed } from "@/arcade3d/core/math";
-import { hop, squashStretch, waddle, type BodyOffset } from "@/arcade3d/core/motion";
+import { hop, type BodyOffset } from "@/arcade3d/core/motion";
+import { QuadrupedModel, useQuadrupedPose } from "@/arcade3d/core/rig/QuadrupedModel";
+import { blendQuadrupedPoses, createQuadrupedPose, quadrupedCrouch, quadrupedGait, quadrupedIdle, quadrupedPhaseStep } from "@/arcade3d/core/rig/quadrupedPoses";
 import { BlobShadow } from "@/arcade3d/core/render";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useFittedView } from "@/arcade3d/core/useFittedView";
 import { useCameraViews } from "@/arcade3d/core/camera/CameraViews";
 import { SOLIDS } from "./level";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
-import { ASSETS } from "./assets";
+import { ASSETS, PANDA_LANDMARKS, PANDA_SCALE } from "./assets";
+import { PANDA_GAIT, PANDA_GAIT_OPTIONS, pandaGait } from "./pandaGait";
 import { aimAt, stageBounds, viewFor, windowHalf } from "./camera";
 import Keepers, { SLOTS, assignSlots } from "./Keepers";
 import { STAGES, STAGE_KEEPERS } from "./level";
@@ -33,9 +35,8 @@ import Stage from "./Stage";
 import { CLOCK, STATS, applyToStore, createRun, stepRun, type RunState, type StepInput } from "./rules";
 import { useZooLevel } from "./useZooLevel";
 
-/** The panda's waddle: one swing per 0.55 m. */
+/** A footstep click every 0.55 m. */
 const STEP_M = 0.55;
-const CROUCH = 0.82;
 const DUSK_SKY = COLORS.fogDusk;
 
 function PandaPrimitive() {
@@ -47,22 +48,53 @@ function PandaPrimitive() {
    );
 }
 
+const smooth01 = (a: number, b: number, x: number) => {
+   const t = Math.min(1, Math.max(0, (x - a) / (b - a)));
+   return t * t * (3 - 2 * t);
+};
+
+/**
+ * The panda on the core quadruped rig (pandaGait.ts): a diagonal walk / trot on planted paws (the
+ * phase advances by the distance really moved over the stride), idle breathing when still, a low
+ * crouched walk while sneaking, the head nodding with the steps and turning into a turn; a hop on a
+ * toss and out through the exit, flattened while caught.
+ */
 function Panda({ run }: { run: RunState }) {
    const time = useGameTime();
    const root = useRef<Group>(null);
    const body = useRef<Group>(null);
-   const [m] = useState(() => ({ phase: 0, crouch: 1, hop: -1, winAt: -1, lastX: run.panda.x, lastZ: run.panda.z, squash: 1 }));
-   const [off] = useState<BodyOffset>(() => ({ y: 0, roll: 0, yaw: 0, squash: 1 }));
+   const [m] = useState(() => ({ phase: 0, s01: 0, crouch: 0, turn: 0, facing: run.panda.facing, hop: -1, winAt: -1, lastX: run.panda.x, lastZ: run.panda.z, squash: 1 }));
    const [hopOff] = useState<BodyOffset>(() => ({ y: 0, roll: 0, yaw: 0, squash: 1 }));
-   const [scale] = useState(() => ({ x: 1, y: 1, z: 1 }));
+   const [poses] = useState(() => ({ gait: createQuadrupedPose(), idle: createQuadrupedPose() }));
+   const pose = useQuadrupedPose((out) => {
+      const p = run.panda;
+      const dt = time.delta;
+      const moved = Math.hypot(p.x - m.lastX, p.z - m.lastZ);
+      m.lastX = p.x; m.lastZ = p.z;
+      // a respawn teleports: no step for it
+      const metres = moved < 1 ? moved : 0;
+      const playing = useArcadeStore.getState().phase === "playing";
+      const speed = playing && !run.card ? p.speed : 0;
+      const target = pandaGait(speed, p.sneaking).speed01;
+      m.s01 += (target - m.s01) * (1 - Math.exp(-12 * dt));
+      m.phase = quadrupedPhaseStep(m.phase, metres, Math.max(0.02, m.s01), PANDA_LANDMARKS, PANDA_SCALE, dt, PANDA_GAIT.maxHz);
+      let dyaw = (p.facing - m.facing) % (2 * Math.PI);
+      if (dyaw > Math.PI) dyaw -= 2 * Math.PI;
+      if (dyaw < -Math.PI) dyaw += 2 * Math.PI;
+      m.facing = p.facing;
+      const turnRate = dt > 0 ? dyaw / dt : 0;
+      m.turn += (Math.max(-1, Math.min(1, turnRate / 6)) - m.turn) * (1 - Math.exp(-8 * dt));
+      quadrupedGait(m.phase, m.s01, PANDA_LANDMARKS, poses.gait, m.turn, PANDA_GAIT_OPTIONS);
+      quadrupedIdle(time.now, PANDA_LANDMARKS, poses.idle);
+      blendQuadrupedPoses(poses.idle, poses.gait, smooth01(0.05, 0.6, speed), out);
+      m.crouch += ((p.sneaking && !run.over ? 1 : 0) - m.crouch) * (1 - Math.exp(-dt / 0.08));
+      quadrupedCrouch(PANDA_GAIT.crouch * m.crouch, PANDA_GAIT.dip * m.crouch, PANDA_LANDMARKS, out);
+   });
    useFrame(() => {
       const g = root.current, b = body.current;
       if (!g || !b) return;
       const p = run.panda;
       const dt = time.delta;
-      const moved = Math.hypot(p.x - m.lastX, p.z - m.lastZ);
-      m.lastX = p.x; m.lastZ = p.z;
-      if (moved < 1) m.phase += (moved / STEP_M) * Math.PI;
       if (run.events.thrown) m.hop = time.now;
       const x = p.x;
       let z = p.z;
@@ -74,23 +106,19 @@ function Panda({ run }: { run: RunState }) {
          hop(t * 9, 0.28, hopOff);
       } else if (m.hop >= 0 && time.now - m.hop < 0.3) hop(((time.now - m.hop) / 0.3) * Math.PI, 0.25, hopOff);
       else { hopOff.y = 0; hopOff.squash = 1; }
-      const amount = Math.min(1, p.speed / 3.2);
-      waddle(m.phase, 0.12 * amount, off);
-      m.crouch += ((p.sneaking ? CROUCH : 1) - m.crouch) * (1 - Math.exp(-dt / 0.05));
       const flat = run.over === "lose" ? 0.55 : run.card > 0 ? 0.7 : 1;
       m.squash += (flat - m.squash) * (1 - Math.exp(-14 * dt));
-      squashStretch(m.crouch * hopOff.squash * m.squash, scale);
       g.position.set(x, 0, z);
       g.rotation.y = p.facing;
-      b.position.y = off.y + hopOff.y;
-      b.rotation.set(0, off.yaw, off.roll);
-      b.scale.set(scale.x, scale.y, scale.z);
+      b.position.y = hopOff.y;
+      const sy = hopOff.squash * m.squash;
+      b.scale.set(1 / Math.sqrt(sy), sy, 1 / Math.sqrt(sy));
    });
    return (
       <group ref={root} name="panda">
          <BlobShadow radius={0.5} y={0.03} />
          <group ref={body}>
-            <Model asset={ASSETS.panda} fallback={<PandaPrimitive />} />
+            <QuadrupedModel asset={ASSETS.panda} pose={pose} fallback={<PandaPrimitive />} />
          </group>
       </group>
    );

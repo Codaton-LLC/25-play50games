@@ -2,12 +2,42 @@
 // the keeper and the bamboo are this game's (Hyper3D, imported), the rest is shared or reused. Every
 // fit is derived from the measured GLB bounds (GLB units, feet on y = 0, centred on x / z) and
 // checked on the real meshes in assets.test.ts.
+import type { QuadrupedLandmarks } from "@/arcade3d/core/rig/quadruped";
 import type { ModelAsset } from "@/arcade3d/core/types";
 import { EXPANSION_ASSETS, EXPANSION_CHARACTERS, EXPANSION_GLB_SIZE, PROP_BUDGET, REUSED_ASSETS, REUSED_GLB_SIZE } from "@/arcade3d/core/sharedAssets";
 import { COLORS } from "./looks";
 
 /** The panda is drawn 1.15 m long on all fours (Decision Q1), so it reads at 24 px on a landscape phone. */
 export const PANDA_LENGTH = 1.15;
+/** panda.glb raw bounds (GLB units, faces +z, paws on y = 0), measured on the mesh (panda.test.ts). */
+export const PANDA_GLB = { width: 1.1989, height: 1.6446, depth: 1.8992 } as const;
+/** Metres per GLB unit. */
+export const PANDA_SCALE = PANDA_LENGTH / PANDA_GLB.depth;
+
+/**
+ * The panda's joints for the core quadruped rig (no skeleton in the GLB), measured on panda.glb
+ * (zzprobe slices 2026-10-28: paw columns, belly line, head block). A chubby, short-legged panda:
+ * the paws are big flat pads (0.4 across), the belly hangs at y 0.3 and the head is half the body,
+ * so the legs are short columns swinging from inside the trunk and the swing paw folds only a
+ * little (Scene: pawFold). The tail is the small tuft at the rump. Checked in panda.test.ts.
+ */
+export const PANDA_LANDMARKS: QuadrupedLandmarks = {
+   front: { top: [0.33, 0.48, 0.4], knee: [0.35, 0.27, 0.43], ankle: [0.37, 0.1, 0.45], toeZ: 0.63, radius: 0.19, bend: 1 },
+   hind: { top: [0.3, 0.5, -0.52], knee: [0.29, 0.28, -0.66], ankle: [0.3, 0.1, -0.62], toeZ: -0.43, radius: 0.19, bend: -1 },
+   bellyY: 0.3,
+   thighBlend: 0.22,
+   neck: [0.15, 0.85],
+   head: [0.3, 1.0],
+   mouth: [0, 1.0, 0.92],
+   tail: [
+      [0, 0.7, -0.8],
+      [0, 0.75, -0.87],
+      [0, 0.8, -0.92],
+      [0, 0.84, -0.98],
+   ],
+   tailRadius: 0.11,
+};
+
 /** The keeper's default fit: 1.75 m (Decision Q6). */
 export const KEEPER_SCALE = EXPANSION_CHARACTERS.keeper.scale ?? 1;
 
@@ -95,7 +125,7 @@ export const ZOO_FOUNTAIN_FALLBACK = ZOO_FOUNTAIN_SPOTS.map((s) => ({ ...s, y: Z
 const R = REUSED_GLB_SIZE;
 
 export const ASSETS = {
-   panda: { ...EXPANSION_ASSETS.panda, scale: PANDA_LENGTH / EXPANSION_GLB_SIZE.panda.depth },
+   panda: { ...EXPANSION_ASSETS.panda, scale: PANDA_LENGTH / EXPANSION_GLB_SIZE.panda.depth, quadruped: { landmarks: PANDA_LANDMARKS } },
    keeper: EXPANSION_CHARACTERS.keeper,
    rock: EXPANSION_ASSETS.rock,
    leafyTree: EXPANSION_ASSETS.leafyTree,
