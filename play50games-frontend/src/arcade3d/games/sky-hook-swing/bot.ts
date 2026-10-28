@@ -113,7 +113,9 @@ function aimOf(run: SwingRun, bot: Bot): Aim {
          const az = P.z;
          anchorPoint(run, after, run.simMs, P);
          const gap = Math.hypot(P.x - ax, P.z - az);
-         if (gap <= 16) return { hook: after, x: P.x, y: P.y, z: P.z, r: 11, kind: "air" };
+         // the turret run: land first and wait for the turret's open window
+         const turretRun = !!run.boss && run.boss.phase === 0 && course.anchors[after].cut;
+         if (gap <= 16 && !turretRun) return { hook: after, x: P.x, y: P.y, z: P.z, r: 11, kind: "air" };
          const islands = course.islands;
          let deckI = -1;
          for (let i = 0; i < islands.length; i++) {
@@ -130,6 +132,19 @@ function aimOf(run: SwingRun, bot: Bot): Aim {
    }
    if (next >= 0) {
       anchorPoint(run, next, run.simMs, P);
+      if (h.mode === "air" && run.boss && run.boss.phase === 0 && course.anchors[next].cut) {
+         // the turret run: come down on the deck before the hull ring, then wait for the window
+         let deckI = -1;
+         for (let i = 0; i < course.islands.length; i++) {
+            const s = course.islands[i];
+            if (!s.cp || s.x > P.x || s.x < h.x - 8) continue;
+            if (deckI < 0 || s.x > course.islands[deckI].x) deckI = i;
+         }
+         if (deckI >= 0) {
+            const s = course.islands[deckI];
+            return { hook: -1, x: s.x, y: s.y, z: s.z, r: s.r, kind: "deck" };
+         }
+      }
       return { hook: next, x: P.x, y: P.y, z: P.z, r: 11, kind: "air" };
    }
    return deck;
@@ -151,14 +166,19 @@ function wallAhead(run: SwingRun, gx: number): boolean {
 function wantLength(run: SwingRun, aim: Aim): number {
    anchorPoint(run, run.hero.anchor, run.simMs, P);
    if (wallAhead(run, aim.x)) return 4.4;
+   // a deck right under the swing: reel down onto it
+   if (aim.kind === "deck" && Math.hypot(aim.x - P.x, aim.z - P.z) < aim.r + 2.5) return Math.min(11.8, P.y - aim.y + 0.05);
    const dx = Math.hypot(aim.x - P.x, aim.z - P.z);
    if (dx > 18) return 9.5;
    if (dx > 14) return 8;
    return 6.4;
 }
 
-function bossReady(run: SwingRun): boolean {
+/** On the galleon's turret run the bot waits on a deck for the turret's open window. Never in the air. */
+function bossReady(run: SwingRun, hook = -1): boolean {
    if (!run.boss) return true;
+   if (run.hero.mode === "air") return true;
+   if (run.boss.phase === 0 && hook >= 0 && !run.course.anchors[hook].cut) return true;
    return run.boss.step === "vulnerable";
 }
 
@@ -196,14 +216,18 @@ export function botInput(bot: Bot, run: SwingRun, input: StepInput): void {
       input.moveX = Math.max(-1, Math.min(1, d * 2.2));
       const wantL = wantLength(run, aim);
       input.moveZ = h.L > wantL + 0.35 ? -1 : h.L < wantL - 0.35 ? 1 : 0;
-      if (!bossReady(run) && run.boss && run.boss.phase < 2) return;
+      // a weak swing: pump it (reel in through the bottom, out at the ends), like a player would
+      if (Math.abs(h.omega) * h.L < 7 && run.simMs - h.hookAt > 900 && !h.peak) input.moveZ = Math.abs(h.theta) < 0.3 ? -1 : 1;
+      if (!bossReady(run) && run.boss && run.boss.phase < 2 && (run.boss.phase > 0 || run.course.anchors[h.anchor].cut)) return;
+      // stalled on one ring: let go at the next forward climb (any deck beats a stall)
+      const stalled = run.simMs - h.hookAt > 4500 && h.peak && h.vx > 2;
       const k = h.peak ? PEAK_BONUS : 1;
       V.x = h.vx * k;
       V.y = h.vy * k;
       V.z = h.vz * k;
       const wind = gustAt(run.course, run.simMs);
       const toward = V.x * (aim.x - h.x) + V.z * (aim.z - h.z) > 0.5;
-      const go = h.peak && toward && pointReach(h.x, h.y, h.z, V.x, V.y, V.z, aim, wind);
+      const go = (h.peak && toward && pointReach(h.x, h.y, h.z, V.x, V.y, V.z, aim, wind)) || stalled;
       if (go) {
          input.actionPressed = true;
          bot.skip = h.anchor;
@@ -220,7 +244,7 @@ export function botInput(bot: Bot, run: SwingRun, input: StepInput): void {
       if (h.mode === "ground" && Math.hypot(aim.x - h.x, aim.z - h.z) < aim.r - 0.4) return;
       return;
    }
-   if (run.boss && !bossReady(run)) {
+   if (run.boss && !bossReady(run, aim.hook)) {
       anchorPoint(run, aim.hook, run.simMs, P);
       if (h.mode === "ground") {
          const deck = run.course.islands[h.support];
@@ -248,7 +272,7 @@ export function botInput(bot: Bot, run: SwingRun, input: StepInput): void {
    else if (h.mode === "ground" && dist >= 13.2) {
       const standX = P.x - 8;
       steer(input, standX - h.x, P.z - h.z);
-   } else if (!bladeLow && dist < 13.2) input.actionPressed = true;
+   } else if (!bladeLow && dist < 13.2 && (h.mode === "ground" || aimedAnchor(run, input) >= 0)) input.actionPressed = true;
 }
 
 function steer(input: StepInput, dx: number, dz: number): void {

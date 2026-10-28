@@ -4,6 +4,7 @@ import { FALL_Y, ORB, createRun, createStepInput, step } from "./rules";
 
 function place(run: ReturnType<typeof createRun>, x: number, y: number, z: number, mode: "ground" | "air" | "swing" = "air"): void {
    const h = run.hero;
+   run.simMs = Math.max(run.simMs, 60_000);
    h.x = x;
    h.y = y;
    h.z = z;

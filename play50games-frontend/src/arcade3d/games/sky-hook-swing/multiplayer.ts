@@ -71,6 +71,7 @@ export function createMultiRun(seed: number, level: LevelId, heroes: readonly He
       r.lockOwner = first.lockOwner;
       r.hero.x += (i - (n - 1) / 2) * START_SPACING;
       r.hero.z += i === 0 ? 0 : 0.4;
+      r.startX = r.hero.x;
       r.multi = true;
       r.versus = versus;
       r.seat = i;

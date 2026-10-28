@@ -1074,17 +1074,17 @@
     "sky-hook-swing": {
       "title": "Sky Hook Swing",
       "kind": "time",
-      "max_score": 9870,
-      "min_duration_ms": 1300,
+      "max_score": 9690,
+      "min_duration_ms": 3100,
       "max_duration_ms": 100000,
       "time_base_ms": 100000,
       "enabled": false,
       "levels": [
-        { "title": "Single Swing", "max_score": 9870, "min_duration_ms": 1300, "max_duration_ms": 100000, "time_base_ms": 100000 },
-        { "title": "Double Swing", "max_score": 13800, "min_duration_ms": 2000, "max_duration_ms": 140000, "time_base_ms": 140000 },
-        { "title": "Moving Anchors", "max_score": 17770, "min_duration_ms": 2300, "max_duration_ms": 180000, "time_base_ms": 180000 },
-        { "title": "Long Gaps", "max_score": 19750, "min_duration_ms": 2500, "max_duration_ms": 200000, "time_base_ms": 200000 },
-        { "title": "Sky Swing Master", "max_score": 23080, "min_duration_ms": 9200, "max_duration_ms": 240000, "time_base_ms": 240000 }
+        { "title": "Single Swing", "max_score": 9690, "min_duration_ms": 3100, "max_duration_ms": 100000, "time_base_ms": 100000 },
+        { "title": "Double Swing", "max_score": 13320, "min_duration_ms": 6800, "max_duration_ms": 140000, "time_base_ms": 140000 },
+        { "title": "Moving Anchors", "max_score": 17600, "min_duration_ms": 4000, "max_duration_ms": 180000, "time_base_ms": 180000 },
+        { "title": "Long Gaps", "max_score": 19280, "min_duration_ms": 7200, "max_duration_ms": 200000, "time_base_ms": 200000 },
+        { "title": "Sky Swing Master", "max_score": 23310, "min_duration_ms": 6900, "max_duration_ms": 240000, "time_base_ms": 240000 }
       ]
     }
   }

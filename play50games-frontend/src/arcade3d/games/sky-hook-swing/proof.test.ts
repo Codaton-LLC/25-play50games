@@ -1,11 +1,14 @@
 // Every hero clears every level with the plain bot. A mashed power, and random spam, never beat the floor.
 import { describe, expect, it } from "vitest";
 import { createRng } from "@/arcade3d/core/math";
+import { advanceRunClock, playedFrameDt } from "@/arcade3d/core/frameLoop";
+import { computeTimeScore, isRankedRun, normalizeRun } from "@/arcade3d/core/scores";
+import { createArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { LEVEL_IDS, type LevelId } from "@/arcade3d/types";
 import { createBot, botInput } from "./bot";
 import { HEROES, type HeroId } from "./heroes";
 import { LEVELS } from "./levels";
-import { bossMinMs, courseFor, createRun, createStepInput, minDurationMsOf, proposeLimits, PROPOSED_LEVEL_LIMITS, runTimeMs, step, travelFloorMs, type SwingRun } from "./rules";
+import { STAT, V_X_CAP, bossMinMs, courseFor, createRun, createStepInput, finalScore, minDurationMsOf, proposeLimits, PROPOSED_LEVEL_LIMITS, reachX, runTimeMs, step, travelFloorMs, type SwingRun } from "./rules";
 import { skyHookSwingMeta } from "./meta";
 import type { Course } from "./course";
 
@@ -101,4 +104,86 @@ describe("the limits read this level", () => {
          expect(accepts(level, minDurationMsOf(longer))).toBe(false);
       });
    }
+});
+
+describe("through the real store", () => {
+   for (const level of LEVEL_IDS) {
+      it(`level ${level}: the honest bot with ragged frames is a ranked win inside the level's row, the score from the time`, () => {
+         const store = createArcadeStore();
+         store.getState().configure({ durationMs: LEVELS[level].durationMs, resultDelayMs: 1100 });
+         store.getState().markReady();
+         store.getState().start();
+         const run = createRun(5, level, HEROES[level % 5].id);
+         const bot = createBot(run);
+         const input = createStepInput();
+         const rng = createRng(11 + level);
+         for (let f = 0; f < 80_000 && store.getState().phase !== "over"; f++) {
+            advanceRunClock(store, rng() < 0.05 ? 0.05 + rng() * 0.2 : 1 / 60);
+            const dt = playedFrameDt(store.getState());
+            if (dt <= 0) continue;
+            botInput(bot, run, input);
+            const ev = step(run, dt * 1000, input);
+            if (ev.finished) {
+               store.getState().setStat(STAT.orbs, run.orbs);
+               store.getState().setStat(STAT.finishMs, run.finishMs);
+               store.getState().setStat(STAT.comboMs, run.combo.bonusTotal);
+               store.getState().end("win");
+            } else if (ev.timeup) store.getState().end("timeup");
+         }
+         const s = store.getState();
+         expect(s.endReason).toBe("win");
+         expect(run.simMs).toBeLessThanOrEqual(s.elapsedMs + 1);
+         const fin = finalScore(s);
+         const rules = skyHookSwingMeta.levels![level - 1].scoring;
+         const sent = normalizeRun({ slug: "sky-hook-swing", score: fin.score, durationMs: fin.durationMs, finishedAt: "2026-10-28T00:00:00Z" }, rules);
+         expect(isRankedRun(rules, s.endReason)).toBe(true);
+         expect(sent.durationMs).toBe(submitted(run));
+         expect(sent.durationMs).toBeGreaterThanOrEqual(rules.minDurationMs);
+         expect(sent.score).toBe(computeTimeScore(rules, sent.durationMs));
+         expect(sent.score).toBeLessThanOrEqual(rules.maxScore);
+         // the honest run never touches the reach bound
+         expect(run.finishMs).toBeGreaterThan(travelFloorMs(run.course) * 1.4);
+      }, 60_000);
+   }
+});
+
+describe("the reach bound", () => {
+   it("x never passes startX + V_X_CAP * t, under spam with random camera yaws and frame times, on every level", () => {
+      for (const level of LEVEL_IDS) {
+         for (let seed = 1; seed <= 12; seed++) {
+            const rng = createRng(seed * 31 + level * 7);
+            const run = createRun(seed, level, HEROES[seed % 5].id);
+            const input = createStepInput();
+            for (let f = 0; f < 4000 && run.ended === null; f++) {
+               input.moveX = rng() * 2 - 1;
+               input.moveZ = rng() * 2 - 1;
+               input.yaw = (rng() - 0.5) * Math.PI * 2;
+               input.jumpPressed = rng() < 0.3;
+               input.actionPressed = rng() < 0.25;
+               step(run, 1 + rng() * 49, input);
+               expect(run.hero.x).toBeLessThanOrEqual(reachX(run) + 1e-9);
+            }
+         }
+      }
+      expect(V_X_CAP).toBe(22);
+   });
+
+   it("honest bots never come near it: the best pace from the start stays under 80 % of V_X_CAP", () => {
+      for (const level of LEVEL_IDS) {
+         for (const hero of HEROES) {
+            const run = createRun(2, level, hero.id);
+            const bot = createBot(run);
+            const input = createStepInput();
+            const rng = createRng(level * 5 + 3);
+            let worst = 0;
+            for (let f = 0; f < 200_000 && run.ended === null; f++) {
+               botInput(bot, run, input);
+               step(run, rng() < 0.05 ? 50 : 1000 / 60, input);
+               if (run.simMs > 100) worst = Math.max(worst, (run.hero.x - run.startX) / (run.simMs / 1000));
+            }
+            expect(run.ended, `${hero.id} L${level}`).toBe("win");
+            expect(worst, `${hero.id} L${level}`).toBeLessThan(0.8 * V_X_CAP);
+         }
+      }
+   }, 120_000);
 });

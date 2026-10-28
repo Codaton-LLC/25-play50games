@@ -31,9 +31,18 @@ export const CONE = (35 * Math.PI) / 180;
 export const COS_CONE = Math.cos(CONE);
 export const REEL = 5.5;
 export const STEER = 2.4;
+/** the swing plane turns at most this fast sideways (m/s at the hero), so steering never outruns the rope */
+export const STEER_V = 4.5;
 export const V_CAP = 22;
 export const PEAK_BONUS = 1.25;
 export const V_FREE_CAP = V_CAP * PEAK_BONUS;
+/**
+ * The proof's pace: the hero's x never passes startX + V_X_CAP * t (rules ms), in every mode. It is an
+ * average from the start, not a top speed: a peak release flies at up to 27.5 m/s for a moment, but the
+ * fastest bot run (Riko dashing out of every release) averages 16.8 m/s at its best moment, so honest
+ * play stays well under it (proof.test.ts pins under 80 %). The clamp is the guarantee.
+ */
+export const V_X_CAP = V_CAP;
 export const HOOK_MIN_MS = 160;
 export const PEAK_MIN = 5.2;
 export const ORB = { pickup: 1.15, bonusMs: 80 } as const;
@@ -144,6 +153,8 @@ export interface SwingRun {
    level: LevelId;
    heroId: HeroId;
    seed: number;
+   /** where the reach bound starts (the start deck's x, or a multiplayer seat's x) */
+   startX: number;
    simMs: number;
    remainder: number;
    hero: Hero;
@@ -155,6 +166,10 @@ export interface SwingRun {
    /** 1 once this anchor has paid a flow link */
    hookedCombo: Uint8Array;
    broken: Uint8Array;
+   /** inside a ghost hull (the panels let the hero back out) */
+   inHull: boolean;
+   /** 1 once a cracked ring has snapped; mended on the next checkpoint or respawn */
+   ringBroken: Uint8Array;
    orbs: number;
    mainOrbs: number;
    combo: ComboState;
@@ -224,12 +239,14 @@ export function createRun(seed: number, level: LevelId = 1, heroId: HeroId = DEF
    const start = course.islands[0];
    const nA = course.anchors.length;
    return {
-      course, level, heroId, seed, simMs: 0, remainder: 0,
+      course, level, heroId, seed, startX: start.x, simMs: 0, remainder: 0,
       hero: freshHero(start.x, start.y, start.z, 0),
       jumpLatch: NONE, powerReadyAt: 0, checkpoint: 0, respawns: 0,
       collected: new Uint8Array(course.orbs.length),
       hookedCombo: new Uint8Array(nA),
       broken: new Uint8Array(course.blocks.length),
+      ringBroken: new Uint8Array(nA),
+      inHull: false,
       orbs: 0, mainOrbs: 0,
       combo: createCombo(),
       secrets: createSecretTracker(SECRETS[level]),
@@ -285,6 +302,7 @@ export function canAim(run: SwingRun, index: number): boolean {
    const a = run.course.anchors[index];
    if (!a) return false;
    if (anchorLocked(run, index)) return false;
+   if (run.ringBroken[index]) return false;
    if (a.kind === "drone" && (!run.boss || run.boss.phase !== 1)) return false;
    if (a.kind === "fall" && run.fallMs < 0) return false;
    if (a.cut && run.boss && run.boss.phase >= 1) return false;
@@ -320,7 +338,7 @@ export function aimedAnchor(run: SwingRun, input: StepInput): number {
       const dy = py - h.y;
       const dz = pz - h.z;
       const dist = hypot3(dx, dy, dz);
-      if (dist > HOOK_RANGE || dist < 0.75) return;
+      if (dist > HOOK_RANGE || dist < 0.75 || dy < dist * 0.06) return;
       const inv = 1 / dist;
       const dot = dx * inv * ax + dy * inv * ayy + dz * inv * az;
       if (dot > bestDot || (dot >= bestDot && dist < bestDist)) {
@@ -361,9 +379,31 @@ function magnetOn(h: Hero, ms: number): boolean {
    return h.magnetUntil >= ms;
 }
 
+/** inside a ghost hull (a phased-in Vexa), `grow` m past its inner faces */
+export function insideHull(course: Course, x: number, y: number, z: number, grow = 0): boolean {
+   for (const b of course.hulls) {
+      if (x > b.x0 - grow && x < b.x1 + grow && y > b.y0 - grow && y < b.y1 + grow && z > b.z0 - grow && z < b.z1 + grow) return true;
+   }
+   return false;
+}
+
+/** Once inside a hull the ghost panels stay open until the hero is clear of the panels again. */
+function updateHull(run: SwingRun): void {
+   const h = run.hero;
+   const cy = h.y + 0.55;
+   if (insideHull(run.course, h.x, cy, h.z)) run.inHull = true;
+   else if (run.inHull && !insideHull(run.course, h.x, cy, h.z, HULL_SHELL)) run.inHull = false;
+}
+
+/** a hull panel's thickness plus the body's radius: past this the hero is clear of the panels */
+const HULL_SHELL = 0.3 + BODY_R + 0.05;
+
 function blockSolid(run: SwingRun, b: Block, i: number): boolean {
    if (b.kind === "crate" && run.broken[i]) return false;
-   if (b.kind === "ghost" && phasing(run.hero, run.simMs)) return false;
+   if (b.kind === "ghost") {
+      const h = run.hero;
+      if (phasing(h, run.simMs) || run.inHull) return false;
+   }
    return true;
 }
 
@@ -483,6 +523,7 @@ function land(run: SwingRun, index: number, ev: StepEvents): void {
    ev.landed = true;
    ev.landedOn = index;
    if (s.cp) {
+      run.ringBroken.fill(0);
       if (run.checkpoint !== index) ev.checkpoint = index;
       run.checkpoint = index;
       if (index === run.course.finish && !run.course.boss) win(run, ev);
@@ -521,19 +562,12 @@ function release(run: SwingRun, boost: boolean, ev: StepEvents): void {
 function hook(run: SwingRun, index: number, ev: StepEvents): void {
    const h = run.hero;
    anchorPoint(run, index, run.simMs, P);
-   let dx = h.x - P.x;
-   let dy = h.y - P.y;
-   let dz = h.z - P.z;
-   let dist = hypot3(dx, dy, dz);
-   if (dist < 0.8) dist = 0.8;
-   const L = clamp(dist, L_MIN, L_MAX);
-   const k = L / dist;
-   h.x = P.x + dx * k;
-   h.y = P.y + dy * k;
-   h.z = P.z + dz * k;
-   dx = h.x - P.x;
-   dy = h.y - P.y;
-   dz = h.z - P.z;
+   // the rope takes the hero where they are (no snap): a rope past 12 m or under 3 m is reeled
+   // to the range by swingStep at the reel speed ("the rope snaps tight")
+   const dx = h.x - P.x;
+   const dy = h.y - P.y;
+   const dz = h.z - P.z;
+   const L = Math.max(0.75, hypot3(dx, dy, dz));
    const horiz = Math.hypot(dx, dz) || 0.001;
    h.phi = Math.atan2(dx, dz);
    h.theta = Math.atan2(horiz, -dy);
@@ -633,6 +667,7 @@ function swingStep(run: SwingRun, dt: number, input: StepInput, edge: boolean, e
          return;
       }
       if (a.crackMs > 0 && run.simMs - h.hookAt > a.crackMs) {
+         run.ringBroken[index] = 1;
          release(run, false, ev);
          ev.snapped = true;
          return;
@@ -649,16 +684,21 @@ function swingStep(run: SwingRun, dt: number, input: StepInput, edge: boolean, e
    const avy = dt > 0 ? (P.y - Q.y) / dt : 0;
    const avz = dt > 0 ? (P.z - Q.z) / dt : 0;
    let lDot = 0;
+   let phiDot = 0;
    if (!h.heavyHold) {
       const reel = input.moveZ < -0.35 ? -1 : input.moveZ > 0.35 ? 1 : 0;
-      const next = clamp(h.L + reel * REEL * dt, L_MIN, L_MAX);
+      let next = h.L + reel * REEL * dt;
+      if (next > L_MAX) next = Math.max(L_MAX, Math.min(next, h.L) - REEL * dt);
+      else if (next < L_MIN) next = Math.min(L_MIN, Math.max(next, h.L) + REEL * dt);
       lDot = dt > 0 ? (next - h.L) / dt : 0;
       h.L = next;
       const wind = gustAt(run.course, run.simMs);
       const tx0 = Math.cos(h.theta) * Math.sin(h.phi);
       const acc = -(G / h.L) * Math.sin(h.theta) - (2 * lDot * h.omega) / h.L + (wind * tx0) / h.L;
       h.omega += acc * dt;
-      h.phi += clamp(finite(input.moveX), -1, 1) * STEER * dt;
+      const turn = Math.min(STEER, STEER_V / Math.max(0.5, h.L * Math.abs(Math.sin(h.theta))));
+      phiDot = clamp(finite(input.moveX), -1, 1) * turn;
+      h.phi += phiDot * dt;
       const sp = Math.abs(h.omega) * h.L;
       if (sp > V_CAP) h.omega *= V_CAP / sp;
       h.theta += h.omega * dt;
@@ -673,14 +713,16 @@ function swingStep(run: SwingRun, dt: number, input: StepInput, edge: boolean, e
    h.x = P.x + h.L * s * Math.sin(h.phi);
    h.y = P.y - h.L * c;
    h.z = P.z + h.L * s * Math.cos(h.phi);
+   // the swing plane's turn moves the hero sideways round the anchor (released with the rest)
+   const side = phiDot * h.L * s;
    if (index === -2) {
-      h.vx = h.omega * h.L * tx + lDot * s * Math.sin(h.phi) + run.tether.vx;
+      h.vx = h.omega * h.L * tx + lDot * s * Math.sin(h.phi) + side * Math.cos(h.phi) + run.tether.vx;
       h.vy = h.omega * h.L * ty + lDot * -c + run.tether.vy;
-      h.vz = h.omega * h.L * tz + lDot * s * Math.cos(h.phi) + run.tether.vz;
+      h.vz = h.omega * h.L * tz + lDot * s * Math.cos(h.phi) - side * Math.sin(h.phi) + run.tether.vz;
    } else {
-      h.vx = h.omega * h.L * tx + lDot * s * Math.sin(h.phi) + avx;
+      h.vx = h.omega * h.L * tx + lDot * s * Math.sin(h.phi) + side * Math.cos(h.phi) + avx;
       h.vy = h.omega * h.L * ty + lDot * -c + avy;
-      h.vz = h.omega * h.L * tz + lDot * s * Math.cos(h.phi) + avz;
+      h.vz = h.omega * h.L * tz + lDot * s * Math.cos(h.phi) - side * Math.sin(h.phi) + avz;
    }
    const speed = Math.abs(h.omega) * h.L;
    h.peak = !h.heavyHold && h.omega * h.theta > 0 && Math.abs(h.theta) >= 0.5 && Math.abs(h.theta) <= 1.52 && speed >= PEAK_MIN;
@@ -892,11 +934,26 @@ function noteBossHit(run: SwingRun, ev: StepEvents): void {
    const result = hitBoss(b, GUST_GALLEON, 1, run.bossEv);
    if (result === "ignored") return;
    ev.bossHit = true;
-   if (result === "phase") ev.bossPhase = true;
+   if (result === "phase") {
+      ev.bossPhase = true;
+      // the cut hull rings are behind now: the respawn moves up with the fight
+      const cp = run.course.phaseCp[b.phase] ?? -1;
+      if (cp >= 0 && run.course.islands[cp].x > run.course.islands[run.checkpoint].x) run.checkpoint = cp;
+   }
    if (result === "defeated") {
       ev.bossDefeated = true;
       win(run, ev);
    }
+}
+
+/** The proof's guard: x never passes startX + V_X_CAP * t. Never reached in honest play. */
+export function reachX(run: SwingRun): number {
+   return run.startX + (V_X_CAP * run.simMs) / 1000;
+}
+
+function clampReach(run: SwingRun): void {
+   const limit = reachX(run);
+   if (run.hero.x > limit) run.hero.x = limit;
 }
 
 function substep(run: SwingRun, dtMs: number, input: StepInput, edge: boolean, ev: StepEvents): void {
@@ -910,11 +967,14 @@ function substep(run: SwingRun, dtMs: number, input: StepInput, edge: boolean, e
          h.x = s.x;
          h.y = s.y;
          h.z = s.z;
+         clampReach(run);
          h.vx = h.vy = h.vz = 0;
          h.mode = "spawn";
          h.timer = 0;
          h.support = run.checkpoint;
          h.anchor = NONE;
+         run.ringBroken.fill(0);
+         run.inHull = false;
          run.respawns += 1;
          ev.respawned = true;
       }
@@ -928,9 +988,11 @@ function substep(run: SwingRun, dtMs: number, input: StepInput, edge: boolean, e
       }
       return;
    }
+   if (run.course.hulls.length > 0) updateHull(run);
    if (h.mode === "swing") swingStep(run, dt, input, edge, ev);
    else if (h.mode === "air") airStep(run, dt, input, edge, ev);
    else groundStep(run, dt, input, edge, ev);
+   clampReach(run);
    if (run.ended) return;
    if (h.y < FALL_Y || Math.abs(h.z) > 34 || h.x < -30 || h.x > run.course.islands[run.course.finish].x + 40) lose(run, ev, false);
 }
@@ -987,9 +1049,9 @@ export function bossMinMs(): number {
 
 const BOSS_MIN = bossMinMs();
 
-/** No run covers the docks faster than the free-flight cap. Horizontal speed is clamped to V_FREE_CAP. */
+/** No run covers the docks faster than the reach bound: x <= startX + V_X_CAP * t in every mode (clampReach). */
 export function travelFloorMs(course: Course): number {
-   return (course.span / V_FREE_CAP) * 1000;
+   return (course.span / V_X_CAP) * 1000;
 }
 
 export function minFinishMs(course: Course): number {
