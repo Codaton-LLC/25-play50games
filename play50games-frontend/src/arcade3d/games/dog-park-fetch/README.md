@@ -31,7 +31,9 @@ The dog's tint is the level's tint (L1 untinted). The owner is never tinted.
 
 ## Controls
 
-WASD / arrows run. Space jumps (leap). Touch: joystick and Jump. Scheme `joystick`. The same leap length and catch window run on both devices. The shell owns pause. HUD: the shell's score and clock, plus the stat chip Fetched (max = throws). There is no custom HUD. `resultDelayMs` 900. The target arrow (`TargetMarkers`) points at the toy while it is out, and at the blanket while the dog carries it.
+WASD / arrows run. Space jumps (leap). Touch: joystick and Jump. Scheme `joystick`. The same leap length and catch window run on both devices. The shell owns pause. HUD: the shell's score and clock, plus the stat chip Fetched (max = throws) and the 📷 camera-view button (`Hud.tsx`; the game has no HUD of its own). `resultDelayMs` 900. The target arrow (`TargetMarkers`) points at the toy while it is out, and at the blanket while the dog carries it.
+
+Camera views (core/camera, `kimi/cam-views-cat-dog`): 📷 or **C** cycles Classic (the fitted follow camera) / Chase / Front / Top / Free; drag looks around; V recenters. The rules get the drawn camera's yaw (`cam.yaw()`), so WASD / the stick stay screen-relative in every view; bots and proofs are unchanged. The props (fountain, benches, bushes) and the picket fence are camera solids; the fog (`fogFor`, near ≥ 18 m) stays past the top view (15 m), so no framing override was needed.
 
 ## Server limits (one proof per level, gate 2026-10-26)
 
