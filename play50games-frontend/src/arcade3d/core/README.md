@@ -157,6 +157,10 @@ useRunFrame(() => {
 - A follow camera: build `focus` with `followFocus` from the same `lookAt`, `followFraction` and `bounds` you give `CameraRig`.
 - The fov is the canvas camera's (`definition.camera.fov`). If the Scene's `CameraRig` sets another fov, pass the same `fov` to `useFittedView`.
 
+### Chase camera for vehicles: `ChaseRig` (`chaseCamera.ts`)
+
+`<ChaseRig target={run.vehicle} options={{ distance, height, lookAhead, lookHeight, yawRate, followRate, clearance }} ground={heightAt} yawOffset={orbit} fov={55} />` puts the canvas camera behind a vehicle's heading (yaw 0 = +z) and swings it round after the heading with a lag, so a vehicle steered by its own left/right is camera-relative: left on the stick turns the picture left. It never dips under `ground(x, z) + clearance`, widens the lens on a portrait screen (`chaseFov`: keeps a minimum horizontal fov) and pulls back there (`portraitPullback`), clears any lens shift left by an earlier rig, and runs at `FRAME_PRIORITY.camera`. `yawOffset` (a live `{ value }`) orbits it, e.g. after a win. Pure math in `chaseCamera.ts` (`stepChase`, `angleDelta`), tested in `chaseCamera.test.ts`. Used by mars-rover-mission.
+
 ### Fixed-eye cameras: `EyeRig`, `useEyeShift`, `fitEyeShift`
 
 **When:** `CameraRig` + `useFittedView` for a camera that looks *at* the play area from outside and may move back until the area fits (top-down, follow cameras). `EyeRig` for a first-person eye that must stay where it is (a guard at a fixed post, a turret): the camera never moves back; what must stay visible is kept clear of the HUD and the controls by a lens shift only.
