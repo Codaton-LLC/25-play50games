@@ -23,6 +23,7 @@ import {
    maximumRows, viewGate, type StreetCache, type Horizon,
    createPigeonPose, writePigeonPose, placePigeon,
 } from "./camera";
+import { Cues } from "./Cues";
 import { useStreetGate } from "./Hud";
 import { StreetDecor } from "./Decor";
 import { COLORS, PigeonPrimitive, useStreetParts, type StreetParts } from "./Primitives";
@@ -221,6 +222,7 @@ export default function Scene() {
          <SideCover layout={layout} />
          <StreetDecor run={run} horizon={layout.horizon} parts={parts} level={config.id} />
          <Pigeon run={run} layout={layout} />
+         <Cues run={run} />
       </>
    );
 }

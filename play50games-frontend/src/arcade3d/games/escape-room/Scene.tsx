@@ -12,6 +12,7 @@ import { useCameraZoom } from "@/arcade3d/core/useCameraZoom";
 import { phoneOffset } from "./cameraViews";
 import CameraRig from "@/arcade3d/core/CameraRig";
 import { playSfx } from "@/arcade3d/core/audio";
+import { useActionPop } from "@/arcade3d/core/fx";
 import type { AABB } from "@/arcade3d/core/collision";
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import { useInput } from "@/arcade3d/core/input";
@@ -111,6 +112,7 @@ const Simulation = memo(function Simulation({ run, yaw }: { run: EscapeRun; yaw:
    const input = useInput();
    const camera = useThree((s) => s.camera) as PerspectiveCamera;
    const height = useThree((s) => s.size.height);
+   const pop = useActionPop();
    const [scratch] = useState(() => ({ dir: { x: 0, z: 0 }, input: createStepInput(), hint: -1, mask: -1, found: -1 }));
 
    useLayoutEffect(() => {
@@ -176,6 +178,8 @@ const Simulation = memo(function Simulation({ run, yaw }: { run: EscapeRun; yaw:
       if (hint !== scratch.hint) {
          scratch.hint = hint;
          store.setStat("hint", hint);
+         // the result of a failed try, over the explorer (the checklist says it too)
+         if (hint === 1 || hint === 2) pop.fail({ x: run.player.x, y: 1.7, z: run.player.z }, hint === 1 ? "Locked: find all three first" : "Empty: nothing here", { shake: 0 });
       }
       if (ev.ended === "win") {
          if (run.level.id !== 1) store.setStat("finishMs", run.finishMs);

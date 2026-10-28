@@ -4,8 +4,10 @@
 // one element marked data-arcade-safe-area, and it is a fixed box (Hud.module.css) so a map
 // change never moves the camera fit.
 import CameraViewButton from "@/arcade3d/core/camera/CameraViewButton";
+import { HintLine } from "@/arcade3d/core/hud/HintLine";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useCleanLevel } from "./useCleanLevel";
+import { GUIDE } from "./guide";
 import styles from "./Hud.module.css";
 
 const NAMES = ["Park", "City", "Beach"] as const;
@@ -17,9 +19,12 @@ function MapHud() {
    const map = useArcadeStore((s) => s.stats.map ?? 1);
    const name = NAMES[map - 1] ?? NAMES[0];
    return (
+      <>
+      <HintLine signal={GUIDE} />
       <div className={styles.panel} data-arcade-safe-area="" role="status" aria-live="polite">
          <div className={styles.pill}>{config.delivery && delivering ? "Return to pad" : config.matching ? ({ 0: "Bottle / bag", 2: "Can / banana" } as Record<number, string>)[kind] ?? name : name}</div>
       </div>
+      </>
    );
 }
 

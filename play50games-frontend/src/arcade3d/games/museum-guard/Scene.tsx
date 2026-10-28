@@ -6,7 +6,7 @@ import type { Group, Mesh, MeshBasicMaterial, Object3D } from "three";
 import { createAxisAim, followRelativeDrag, type AxisAimOptions } from "@/arcade3d/core/aim";
 import { InstancedModel, Model } from "@/arcade3d/core/assets";
 import { playSfx, startLoop, useMuted } from "@/arcade3d/core/audio";
-import { useFx } from "@/arcade3d/core/fx";
+import { useActionPop, useFx } from "@/arcade3d/core/fx";
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import { TargetMarkers } from "@/arcade3d/core/hud";
 import { useInput } from "@/arcade3d/core/input";
@@ -22,6 +22,7 @@ import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useEyeShift } from "@/arcade3d/core/useEyeShift";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { ASSETS, EXHIBIT_LOOK, SARCOPHAGUS_SPOTS, statueAsset } from "./assets";
+import { GUIDE, hintCode, hintFor } from "./guide";
 import { useMuseumLevel } from "./useMuseumLevel";
 import { SoftBeam } from "./Beam";
 import Gallery from "./Gallery";
@@ -161,9 +162,17 @@ export default function Scene() {
    const statues = useMemo(() => INDEXES.map((i) => statueAsset(run.exhibits[i].kind, i)), [run]);
    const input = useInput();
    const fx = useFx();
+   const pop = useActionPop();
+   const hintCodeRef = useRef(-1);
    const time = useGameTime();
    const muted = useMuted();
    const coarse = useCoarsePointer();
+   useEffect(() => {
+      hintCodeRef.current = hintCode(run);
+      GUIDE.set(hintFor(hintCodeRef.current, coarse));
+      return () => GUIDE.reset();
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+   }, [run]);
    const width = useThree((s) => s.size.width);
    const height = useThree((s) => s.size.height);
    const safe = useSafeArea();
@@ -239,6 +248,11 @@ export default function Scene() {
          useArcadeStore.getState()
       );
       if (!dragging) aim.current.x = run.yaw;
+      const code = hintCode(run);
+      if (code !== hintCodeRef.current) {
+         hintCodeRef.current = code;
+         GUIDE.set(hintFor(code, coarseRef.current));
+      }
       yawRef.current = run.yaw;
       if (run.phase !== phaseRef.current) {
          phaseRef.current = run.phase;
@@ -261,7 +275,7 @@ export default function Scene() {
          }
          if (ex.justAlarm) {
             playSfx("alarm", { volume: 0.7 });
-            fx.shake(0.4);
+            pop.fail({ x: ex.x, y: 1.6, z: ex.z }, run.alarms > 0 ? `ALARM! ${run.alarms} left` : "ALARM! Night over", { shake: 0.4 });
          }
       }
       if (run.outcome && !ended.current) {

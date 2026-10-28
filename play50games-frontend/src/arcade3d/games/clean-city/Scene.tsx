@@ -55,6 +55,7 @@ import { EXTRA_BINS, HAZARDS, HAZARD_RADIUS } from "./levels";
 import { ASSETS, CLEANER_LANDMARKS, FESTIVAL_STALL_SPOTS } from "./assets";
 import { DAMPING, FOLLOW, FOV, LOOK_AT, REACH, VIEW } from "./camera";
 import { CityDecor, ParkDecor } from "./Decor";
+import { Cues } from "./Cues";
 import { CLEANER_SCALE, createCleanerGait, gaitFrameDt, stepCleanerGait } from "./gait";
 import { createPickupMark, localOffset, notePickup, pickupPose, type LocalOffset, type PickupMark } from "./pickup";
 import { cheerWeight, reachWeight } from "./poseWeights";
@@ -483,6 +484,7 @@ export default function Scene() {
          <LevelProps run={run} />
          <Litter run={run} fx={fx} />
          <Cleaner run={run} />
+         <Cues run={run} />
       </>
    );
 }
