@@ -47,6 +47,34 @@ export const LIQUID_Y = CAULDRON_RIM_Y - 0.03;
 /** The monster's head anchor (GLB units, before the fit): the cap right above the eyes (profile y 1.6-1.7). */
 export const MONSTER_HEAD_ANCHOR_GLB = { x: 0, y: 1.66, z: 0.02 };
 
+/**
+ * Menu 1 adoptions (measured on the meshes, floor pivot, centred on x / z; Rodin's longest side ~1.9):
+ * monsterEyeball 1.903 x 1.676 x 0.442 and slimeCube 1.894 x 1.726 x 1.899 (1500 tris): the wheel's eyeball and slime-cube
+ * ingredients, drawn INGREDIENT_LONGEST / 0.34 m. lazySusan 1.902 x 0.144 x 1.899 (3000 tris): the turntable, drawn the
+ * rules' disc diameter (2 x WHEEL.discR = 1.9 m) and flattened to a 0.05 m slab. monsterTopHat 1.525 x 1.14 x 1.901:
+ * the greedy monster's hat, 0.36 m across its brim. potionJar 1.08 x 1.889 x 1.207: the shelf and wall jars, 0.26 m tall.
+ * stoveHearth 1.815 x 1.453 x 1.902 (3000 tris): a dome oven, 1.1 m tall, floor decor on levels 4-5 beside the cave wall.
+ */
+export const EYEBALL_GLB = { width: 1.903, height: 1.676, depth: 0.442 } as const;
+export const SLIME_CUBE_GLB = { width: 1.894, height: 1.726, depth: 1.899 } as const;
+export const LAZY_SUSAN_GLB = { width: 1.902, height: 0.144, depth: 1.899 } as const;
+export const LAZY_SUSAN_DIAMETER = 1.9;
+export const LAZY_SUSAN_THICKNESS = 0.05;
+const LAZY_SUSAN_SCALE = LAZY_SUSAN_DIAMETER / LAZY_SUSAN_GLB.width;
+export const TOP_HAT_GLB = { width: 1.525, height: 1.14, depth: 1.901 } as const;
+export const TOP_HAT_BRIM = 0.36;
+export const POTION_JAR_GLB = { width: 1.08, height: 1.889, depth: 1.207 } as const;
+export const POTION_JAR_HEIGHT = 0.26;
+export const STOVE_HEARTH_GLB = { width: 1.815, height: 1.453, depth: 1.902 } as const;
+export const STOVE_HEARTH_HEIGHT = 1.1;
+const STOVE_HEARTH_SCALE = STOVE_HEARTH_HEIGHT / STOVE_HEARTH_GLB.height;
+export const STOVE_HEARTH_DRAWN = { width: STOVE_HEARTH_GLB.width * STOVE_HEARTH_SCALE, depth: STOVE_HEARTH_GLB.depth * STOVE_HEARTH_SCALE } as const;
+/** Dome ovens on the cave floor, levels 4-5 only, outside PLAY_BOUNDS (x <= -3.2 or x >= 1.8). */
+export const STOVE_HEARTH_SPOTS = [
+   { x: -5.1, z: 2.7, rotY: 0.5 },
+   { x: 5.0, z: 1.2, rotY: -0.6 },
+] as const;
+
 export const ASSETS = {
    // 1.4 m tall, faces +z; tinted per type in the Scene
    monster: EXPANSION_ASSETS.monster,
@@ -61,6 +89,21 @@ export const ASSETS = {
    tinCan: { ...SHARED_ASSETS.tinCan, scale: INGREDIENT_LONGEST / TIN_CAN_GLB_LONGEST },
    // 0.35 m long, head +z
    fish: EXPANSION_ASSETS.fish,
+   eyeball: { id: "monsterEyeball", url: "/models/3d/monster-kitchen/monsterEyeball.glb", scale: INGREDIENT_LONGEST / EYEBALL_GLB.width, fallback: "sphere", fallbackColor: "#f8fafc", budget: { ...PROP_BUDGET } },
+   slime: { id: "slimeCube", url: "/models/3d/monster-kitchen/slimeCube.glb", scale: 0.34 / SLIME_CUBE_GLB.width, fallback: "box", fallbackColor: "#4ade80", budget: { ...PROP_BUDGET } },
+   lazySusan: {
+      id: "lazySusan",
+      url: "/models/3d/monster-kitchen/lazySusan.glb",
+      scale: LAZY_SUSAN_SCALE,
+      stretch: [1, LAZY_SUSAN_THICKNESS / (LAZY_SUSAN_GLB.height * LAZY_SUSAN_SCALE), 1] as const,
+      yOffset: -LAZY_SUSAN_THICKNESS / 2,
+      fallback: "cylinder",
+      fallbackColor: "#92400e",
+      budget: { ...PROP_BUDGET },
+   },
+   topHat: { id: "monsterTopHat", url: "/models/3d/monster-kitchen/monsterTopHat.glb", scale: TOP_HAT_BRIM / TOP_HAT_GLB.depth, fallback: "cylinder", fallbackColor: "#1f2937", budget: { ...PROP_BUDGET } },
+   potionJar: { id: "potionJar", url: "/models/3d/monster-kitchen/potionJar.glb", scale: POTION_JAR_HEIGHT / POTION_JAR_GLB.height, fallback: "cylinder", fallbackColor: "#67e8f9", budget: { ...PROP_BUDGET } },
+   stoveHearth: { id: "stoveHearth", url: "/models/3d/monster-kitchen/stoveHearth.glb", scale: STOVE_HEARTH_SCALE, fallback: "sphere", fallbackColor: "#78716c", budget: { ...PROP_BUDGET } },
    // 0.5 m shelf/floor decor, instanced
    mushroom: EXPANSION_ASSETS.mushroom,
    // 0.6 m display cake on the floor (levels 4 and 5 only, Decor reads the level); feet (GLB y 0) on the ground
