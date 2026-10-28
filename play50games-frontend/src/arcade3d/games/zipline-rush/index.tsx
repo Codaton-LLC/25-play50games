@@ -12,7 +12,7 @@ const definition: GameDefinition<ZipLevel> = {
    slug: "zipline-rush", Scene, Hud, ResultExtra: StarResult, assets: ASSETS,
    camera: { position: [-1.25, 26.75, 8.8], lookAt: [-1.25, 23, -1], fov: 55 },
    environment: { background: LOOKS[1].background, fog: LOOKS[1].fog, lighting: LOOKS[1].lighting },
-   touchControls: ["joystick", "jump", "action"], touchLabels: { jump: "Release", action: "Power" },
+   touchControls: ["joystick", "jump", "action"], touchLabels: { jump: "Jump", action: "Power" },
    clockChip: false, intro: true, resultDelayMs: 2200, runPlayers: () => sessionRunPlayers(),
    instructions: [
       "Jump to grab the trolley. Hold Down / S to tuck (+40%); Up / W to brake (−60%). Read the green speed band: 6–8 m/s is a bullseye.",
