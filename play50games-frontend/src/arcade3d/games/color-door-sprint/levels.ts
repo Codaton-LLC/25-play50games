@@ -23,9 +23,9 @@ export interface DoorLevel {
 }
 
 export const LEVELS: Record<LevelId, DoorLevel> = {
-   1: { id: 1, name: "Two Doors", durationMs: 90_000, speed: 10, lanes: 2, walls: 8, starTargetMs: 32_000, boss: false },
-   2: { id: 2, name: "Three Doors", durationMs: 110_000, speed: 12, lanes: 3, walls: 10, starTargetMs: 36_000, boss: false },
-   3: { id: 3, name: "Fake Door", durationMs: 130_000, speed: 14, lanes: 3, walls: 12, starTargetMs: 38_000, boss: false },
-   4: { id: 4, name: "Fast Gates", durationMs: 150_000, speed: 16, lanes: 5, walls: 14, starTargetMs: 40_000, boss: false },
-   5: { id: 5, name: "Door Sprint Master", durationMs: 240_000, speed: 18, lanes: 4, walls: 5, starTargetMs: 95_000, boss: true },
+   1: { id: 1, name: "Two Doors", durationMs: 90_000, speed: 10, lanes: 2, walls: 8, starTargetMs: 34_000, boss: false },
+   2: { id: 2, name: "Three Doors", durationMs: 110_000, speed: 12, lanes: 3, walls: 10, starTargetMs: 33_000, boss: false },
+   3: { id: 3, name: "Fake Door", durationMs: 130_000, speed: 14, lanes: 3, walls: 12, starTargetMs: 33_000, boss: false },
+   4: { id: 4, name: "Fast Gates", durationMs: 150_000, speed: 16, lanes: 5, walls: 14, starTargetMs: 35_000, boss: false },
+   5: { id: 5, name: "Door Sprint Master", durationMs: 240_000, speed: 18, lanes: 4, walls: 5, starTargetMs: 78_000, boss: true },
 };

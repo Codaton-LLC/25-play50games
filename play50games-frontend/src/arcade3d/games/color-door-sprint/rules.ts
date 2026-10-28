@@ -1128,6 +1128,12 @@ function bossMs(run: DoorRun): void {
       hz.z = h.z - Math.max(8, (h.v || c.speed) * 1.1);
       hz.lane = h.lane;
       hz.live = true;
+      // never on a wall's plane: the fire comes between two walls
+      for (let w = run.nextWall; w < run.wallCount; w++) {
+         const wz = run.wallZ[w];
+         if (wz < hz.z - 8) break;
+         if (Math.abs(hz.z - wz) < 6) hz.z = wz + 7 < h.z - 4 ? wz + 7 : wz - 7;
+      }
    }
    if (wasAlive && !bossAlive(run)) {
       // the doors swing open: the finish gate comes up ahead (never past the static finish)
