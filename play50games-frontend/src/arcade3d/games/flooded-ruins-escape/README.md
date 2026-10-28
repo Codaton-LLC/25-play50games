@@ -156,9 +156,9 @@ the group, and every player's stick gets its yaw. The storm tide is shared too (
 lead towards -z, held while falling (`orbitPivot`). The solids come from `solidBoxes` (every block where it is now: crates at
 their water, broken brick left out). A hero against a wall is inside the camera's 0.35 m margin of it, so
 the cast tests the wall itself there (`orbitCollision.ts`): a turn towards it stops at its face. In a narrow
-trench the wall can be nearer than minDistance (1.6 m); `squeeze: 0.3` lets the camera come right up to it
-instead of sitting inside the stone, and `Course.tsx` fades any block still between the camera and the hero
-(or round the camera) to faint stone. The intro ends on the orbit's first pose (`camera.ts` `playCamera`).
+trench a blocked view rises to look over the wall (`liftTo` 72°, `liftOrbitPitch`); the camera never comes
+nearer than 2.2 m (the pivot leads the hero by 1.2 m, so nearer would put the camera inside the hero), and
+`Course.tsx` fades any block still round the camera or between it and the hero to faint stone. The intro ends on the orbit's first pose (`camera.ts` `playCamera`).
 `OrbitHud` gives the touch recenter button and the first-time hint.
 
 ## Models
