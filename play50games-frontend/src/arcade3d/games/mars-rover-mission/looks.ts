@@ -1,11 +1,11 @@
-// Mars Rover Mission: one palette, the follow view, fog per level and the decor spots. Pure: no React, no three.js.
-import type { AABB } from "@/arcade3d/core/collision";
+// Mars Rover Mission: one palette, the chase camera, fog and sky per level and the decor spots.
+// Pure: no React, no three.js.
+import type { ChaseOptions } from "@/arcade3d/core/chaseCamera";
 import { createRng } from "@/arcade3d/core/math";
 import type { InstanceSpot } from "@/arcade3d/core/render";
-import type { FittedViewOptions } from "@/arcade3d/core/useFittedView";
 import type { LevelId } from "@/arcade3d/types";
 import { GLB_SIZE } from "./assets";
-import { LEVELS, type MarsLevel } from "./levels";
+import type { MarsLevel, MissionKind } from "./levels";
 
 export const COLORS = {
    /** rust / ochre regolith, not a saturated red */
@@ -13,12 +13,10 @@ export const COLORS = {
    groundDark: "#8a3b1e",
    groundLight: "#c2703d",
    groundDust: "#d08a55",
-   tracks: "#7c2d12",
+   cliff: "#7c3418",
+   cliffLight: "#c47a45",
+   tracks: "#5b210c",
    accent: "#f97316",
-   skyTop: "#7c2d12",
-   skyBottom: "#fdba74",
-   spaceTop: "#020617",
-   spaceBottom: "#1e1b4b",
    basePad: "#38bdf8",
    basePadActive: "#22d3ee",
    siteRing: "#f97316",
@@ -26,92 +24,114 @@ export const COLORS = {
    siteRingScanned: "#22c55e",
    chargerPad: "#22c55e",
    chargerPadActive: "#86efac",
-   lane: "#8a3b1e",
+   lane: "#6b2a10",
    rock: "#b45309",
    boulder: "#7c2d12",
    mesa: "#9a3412",
    rover: "#ea580c",
    roverWheel: "#1c1917",
+   roverTread: "#3f3a36",
    roverMetal: "#cbd5e1",
    sampleGlow: "#fbbf24",
+   crystal: "#2dd4bf",
+   scanBeam: "#67e8f9",
+   repairBeam: "#fb923c",
+   crevasse: "#140603",
+   crevasseRim: "#6b2a10",
+   dust: "#c98a5a",
+   headlight: "#fff4dc",
 } as const;
 
-export const PITCH = (46 * Math.PI) / 180;
-export const FOV = 48;
-export const LOOK_AHEAD = 3.5;
-export const DAMPING = 4;
-
-export function plainBounds(level: MarsLevel): AABB {
-   return { min: { x: -level.width / 2, y: 0, z: -level.depth / 2 }, max: { x: level.width / 2, y: 2, z: level.depth / 2 } };
-}
-
-/** Half size of the window the follow camera keeps on screen around its aim (a phone in portrait fits its width). */
-export const VIEW_WINDOW = { x: 6.5, z: 6 } as const;
-
-const VIEWS = new Map<LevelId, FittedViewOptions>();
-
-export function viewFor(id: LevelId): FittedViewOptions {
-   let view = VIEWS.get(id);
-   if (!view) {
-      view = {
-         area: { min: { x: -VIEW_WINDOW.x, y: 0, z: -VIEW_WINDOW.z }, max: { x: VIEW_WINDOW.x, y: 2, z: VIEW_WINDOW.z } },
-         pitch: PITCH,
-         yaws: [0],
-         fov: FOV,
-         margin: { top: 0.04, right: 0.02, bottom: 0.04, left: 0.02 },
-         padding: 6,
-         shift: true,
-      };
-      VIEWS.set(id, view);
-   }
-   return view;
-}
-
-/** Where the camera may aim: the plain shrunk by most of the window, so the walls frame the view. */
-export function aimBounds(level: MarsLevel): AABB {
-   const hx = Math.max(0, level.width / 2 - VIEW_WINDOW.x + 2);
-   const hz = Math.max(0, level.depth / 2 - VIEW_WINDOW.z + 2);
-   return { min: { x: -hx, y: 0, z: -hz }, max: { x: hx, y: 2, z: hz } };
-}
-
-/** Dust-coloured fog per level (the level's spec background stays behind the sky dome). */
-export const FOG_COLOR: Record<LevelId, string> = { 1: "#e0a173", 2: "#d68f5c", 3: "#b8693a", 4: "#b8693a", 5: "#1e1b4b" };
-/** Where the fog may start at the nearest (m) and how deep it is: L4's dust storm is the shortest. */
-export const FOG_NEAR_MIN: Record<LevelId, number> = { 1: 26, 2: 26, 3: 24, 4: 12, 5: 30 };
-export const FOG_SPAN: Record<LevelId, number> = { 1: 54, 2: 54, 3: 40, 4: 18, 5: 60 };
-
-/**
- * Fog from the fitted camera: it starts past the aim (camera distance + half the window), so the rover and
- * the near half of the view are never fogged on any screen (a portrait phone fits from farther back), and
- * keeps the level's depth: L4's dust storm thickens quickest.
- */
-export function fogRange(id: LevelId, distance: number): { near: number; far: number } {
-   const near = Math.max(FOG_NEAR_MIN[id], distance + VIEW_WINDOW.z * 0.5);
-   return { near, far: near + FOG_SPAN[id] };
-}
-
-/** The environment's fog (before the camera is fitted; the Scene moves it with fogRange). */
-export function fogFor(_level: MarsLevel, id: LevelId): [string, number, number] {
-   return [FOG_COLOR[id], FOG_NEAR_MIN[id], FOG_NEAR_MIN[id] + FOG_SPAN[id]];
-}
-
-export const SKY: Record<LevelId, { top: string; bottom: string }> = {
-   1: { top: "#9a3412", bottom: "#fdba74" },
-   2: { top: "#9a3412", bottom: "#fb923c" },
-   3: { top: "#431407", bottom: "#f97316" },
-   4: { top: "#7c2d12", bottom: "#c2410c" },
-   5: { top: COLORS.spaceTop, bottom: COLORS.spaceBottom },
+/** The colour of each mission's objective pillar, ring tint and HUD dot. */
+export const MISSION_COLOR: Record<MissionKind, string> = {
+   crystal: "#2dd4bf",
+   beacon: "#f97316",
+   panel: "#38bdf8",
+   relic: "#c084fc",
 };
 
-// ---------- decor (outside the plain; nothing stands between the camera and the rover) ----------
+/** The chase camera (desk; a portrait phone pulls back and widens: core chaseCamera). */
+export const CHASE: ChaseOptions = { distance: 7.4, height: 3.7, lookAhead: 4.5, lookHeight: 0.9, yawRate: 2.6, followRate: 7, clearance: 1.6 };
+export const FOV = 55;
+/** the win orbit's speed (rad/s) */
+export const ORBIT_SPEED = 0.45;
 
-/** The south wall is on the camera's side: it stays this low. */
-export const SOUTH_WALL_H = 0.5;
+/** Linear fog per level (m from the camera): the haze that the sky's horizon colour fades into. L4's storm closes in. */
+export const FOG: Record<LevelId, { color: string; near: number; far: number }> = {
+   1: { color: "#e3a678", near: 34, far: 130 },
+   2: { color: "#dc9564", near: 30, far: 120 },
+   3: { color: "#c9774a", near: 26, far: 105 },
+   4: { color: "#b8693a", near: 16, far: 62 },
+   5: { color: "#1a1430", near: 24, far: 105 },
+};
+/** L4's dust storm at the end of the clock: the fog this close. */
+export const STORM_FOG_END = { near: 8, far: 30 } as const;
+
+/** The fog at a share (0..1) of the clock gone: constant, except the storm, which closes in. */
+export function fogAt(id: LevelId, level: MarsLevel, share: number): { near: number; far: number } {
+   const f = FOG[id];
+   if (!level.storm) return { near: f.near, far: f.far };
+   const k = Math.min(1, Math.max(0, share)) ** 1.3;
+   return { near: f.near + (STORM_FOG_END.near - f.near) * k, far: f.far + (STORM_FOG_END.far - f.far) * k };
+}
+
+/** The environment's fog before the Scene takes it over. */
+export function fogFor(_level: MarsLevel, id: LevelId): [string, number, number] {
+   return [FOG[id].color, FOG[id].near, FOG[id].far];
+}
+
+/** Sky: the dome's zenith and horizon (the horizon = the fog, so the far ground melts into the haze). */
+export const SKY: Record<LevelId, { top: string; bottom: string; exponent: number }> = {
+   1: { top: "#a2542c", bottom: FOG[1].color, exponent: 0.55 },
+   2: { top: "#94461f", bottom: FOG[2].color, exponent: 0.55 },
+   3: { top: "#2b1d3d", bottom: FOG[3].color, exponent: 0.45 },
+   4: { top: "#5a2410", bottom: FOG[4].color, exponent: 0.7 },
+   5: { top: "#03030c", bottom: FOG[5].color, exponent: 0.5 },
+};
+
+/** What hangs in each level's sky (directions from the camera; y up, -z = north, where the rover heads first). */
+export interface SkyBody {
+   kind: "sun" | "earth" | "moon";
+   dir: readonly [number, number, number];
+   /** angular size: world size at the sky radius (m) */
+   size: number;
+   color: string;
+   /** 0..1 */
+   opacity: number;
+}
+
+export const SKY_BODIES: Record<LevelId, readonly SkyBody[]> = {
+   1: [
+      { kind: "sun", dir: [0.55, 0.62, -0.6], size: 34, color: "#fff7e6", opacity: 0.9 },
+      { kind: "moon", dir: [-0.5, 0.42, -0.75], size: 7, color: "#e7d5c4", opacity: 0.55 },
+   ],
+   2: [
+      { kind: "sun", dir: [-0.6, 0.58, -0.55], size: 34, color: "#fff7e6", opacity: 0.9 },
+      { kind: "moon", dir: [0.45, 0.35, -0.82], size: 6, color: "#e7d5c4", opacity: 0.5 },
+      { kind: "moon", dir: [-0.15, 0.55, -0.82], size: 4, color: "#e7d5c4", opacity: 0.4 },
+   ],
+   3: [
+      // a Martian sunset is blue around the sun
+      { kind: "sun", dir: [-0.35, 0.12, -0.94], size: 44, color: "#bfdbfe", opacity: 1 },
+      { kind: "earth", dir: [0.42, 0.38, -0.82], size: 6, color: "#93c5fd", opacity: 0.95 },
+      { kind: "moon", dir: [0.1, 0.5, -0.86], size: 8, color: "#d6c3b0", opacity: 0.7 },
+   ],
+   4: [{ kind: "sun", dir: [0.3, 0.35, -0.89], size: 40, color: "#fde2b8", opacity: 0.45 }],
+   5: [
+      { kind: "earth", dir: [-0.38, 0.4, -0.83], size: 13, color: "#60a5fa", opacity: 1 },
+      { kind: "moon", dir: [0.48, 0.5, -0.72], size: 11, color: "#cbd5e1", opacity: 0.95 },
+      { kind: "moon", dir: [0.05, 0.72, -0.69], size: 6, color: "#cbd5e1", opacity: 0.85 },
+   ],
+};
+
+// ---------- decor (beyond the plain) ----------
+
 const WALL_PIECE = 4;
 const WALL_H = (GLB_SIZE.marsMesaRock.height / GLB_SIZE.marsMesaRock.depth) * WALL_PIECE;
 const WALL_W = (GLB_SIZE.marsMesaRock.width / GLB_SIZE.marsMesaRock.depth) * WALL_PIECE;
+export { WALL_H };
 
-/** Boundary wall pieces (marsMesaRock fitted to 1 m along its length), their inner faces on the boundary. */
+/** Boundary ledges (marsMesaRock fitted to 1 m along its length), their inner faces on the boundary. */
 export function wallSpots(level: MarsLevel): InstanceSpot[] {
    const hx = level.width / 2;
    const hz = level.depth / 2;
@@ -120,53 +140,66 @@ export function wallSpots(level: MarsLevel): InstanceSpot[] {
    for (let i = 0; i < nx; i++) {
       const x = -hx - WALL_PIECE + (i + 0.5) * ((level.width + 2 * WALL_PIECE) / nx);
       spots.push({ x, y: 0, z: -hz - WALL_W / 2, rotY: Math.PI / 2, scale: WALL_PIECE });
-      spots.push({ x, y: 0, z: hz + WALL_W / 2, rotY: Math.PI / 2, sx: WALL_PIECE, sy: (SOUTH_WALL_H / WALL_H) * WALL_PIECE, sz: WALL_PIECE });
+      spots.push({ x, y: 0, z: hz + WALL_W / 2, rotY: -Math.PI / 2, scale: WALL_PIECE });
    }
    const nz = Math.ceil(level.depth / WALL_PIECE);
    for (let i = 0; i < nz; i++) {
       const z = -hz + (i + 0.5) * (level.depth / nz);
       spots.push({ x: -hx - WALL_W / 2, y: 0, z, rotY: 0, scale: WALL_PIECE });
-      spots.push({ x: hx + WALL_W / 2, y: 0, z, rotY: 0, scale: WALL_PIECE });
+      spots.push({ x: hx + WALL_W / 2, y: 0, z, rotY: Math.PI, scale: WALL_PIECE });
    }
    return spots;
 }
 
-/** Distant mesas (marsMesaTall fitted to 1 m) beyond the north, east and west walls. Seeded per level. */
+/** Distant mesas (marsMesaTall fitted to 1 m) on the plateau beyond the cliffs, all round. Seeded per level. */
 export function mesaSpots(level: MarsLevel, id: LevelId): InstanceSpot[] {
    const rng = createRng(9100 + id);
    const hx = level.width / 2;
    const hz = level.depth / 2;
    const spots: InstanceSpot[] = [];
-   for (let i = 0; i < 14; i++) {
-      const side = i % 3;
-      const d = WALL_W + 6 + rng() * 16;
-      const t = rng() * 2 - 1;
-      const x = side === 0 ? t * (hx + 10) : side === 1 ? -hx - d : hx + d;
-      const z = side === 0 ? -hz - d : t * hz - 4;
-      spots.push({ x, y: 0, z, rotY: rng() * Math.PI * 2, scale: 10 + rng() * 10 });
+   for (let i = 0; i < 16; i++) {
+      const a = (i / 16) * Math.PI * 2 + rng() * 0.3;
+      const d = 26 + rng() * 26;
+      const x = Math.sin(a) * (hx + d);
+      const z = -Math.cos(a) * (hz + d);
+      spots.push({ x, y: 0, z, rotY: rng() * Math.PI * 2, scale: 14 + rng() * 14 });
    }
    return spots;
 }
 
-/** The base camp south of the south wall (outside the plain, on the camera's side but below every sightline). */
-export function campSpots(level: MarsLevel) {
+/** The base camp: the habitat, the antenna and crates just south of the south ledge; the astronaut by the lander. */
+export function campSpots(level: MarsLevel, lander: { x: number; z: number }) {
    const hz = level.depth / 2;
-   const back = hz + WALL_W + 1.5;
+   const back = hz + WALL_W + 2;
    return {
-      base: { x: 9, z: back + 2.5, rotY: Math.PI / 2, scale: 6 },
-      antenna: { x: -7, z: back + 1.5, rotY: 0.4, scale: 3.6 },
+      base: { x: 8, z: back + 3, rotY: Math.PI / 2, scale: 6 },
+      antenna: { x: -12, z: back + 2, rotY: 0.4, scale: 3.6 },
       crates: [
-         { x: 4.5, y: 0, z: back + 0.6, rotY: 0.3, scale: 1.0 },
-         { x: 5.8, y: 0, z: back + 1.1, rotY: -0.5, scale: 0.8 },
-         { x: -3.5, y: 0, z: back + 0.8, rotY: 1.1, scale: 0.9 },
+         { x: 3.5, y: 0, z: back + 0.8, rotY: 0.3, scale: 1.0 },
+         { x: 4.8, y: 0, z: back + 1.4, rotY: -0.5, scale: 0.8 },
+         { x: -2.5, y: 0, z: back + 1.0, rotY: 1.1, scale: 0.9 },
       ] as InstanceSpot[],
-      capsule: { x: -13, z: back + 3, rotY: 0, scale: 2.6 },
-      astronaut: { x: 1.5, z: back + 0.6 },
+      /** just outside the south boundary, beside the lander: she cheers the delivery */
+      astronaut: { x: lander.x + 2.2, z: hz + 0.7 },
    };
 }
 
-/** A faint, narrow dust trail down each boulder lane (16 % opacity), so the danger reads before a boulder comes. */
+/** The L5 ancient site beyond the north cliff: a great arch and lantern pillars along the ridge. */
+export function ruinSpots(level: MarsLevel) {
+   const hx = level.width / 2;
+   const hz = level.depth / 2;
+   return {
+      arch: { x: -6, z: -hz - 22, rotY: 0, scale: 13 },
+      pillars: [
+         { x: -14, y: 0, z: -hz - 17, rotY: 0.2, scale: 3.4 },
+         { x: 2, y: 0, z: -hz - 17, rotY: -0.3, scale: 3.4 },
+         { x: hx + 15, y: 0, z: -hz + 6, rotY: 1.2, scale: 3 },
+         { x: -hx - 15, y: 0, z: -hz + 10, rotY: -1, scale: 3 },
+      ] as InstanceSpot[],
+   };
+}
+
+/** A dust chute down each boulder lane (16 % opacity), so the danger reads before a boulder comes. */
 export function laneSpots(level: MarsLevel, lanes: readonly { x: number }[]): InstanceSpot[] {
-   // a faint, narrow dust trail (the boulder's own width is 1.7 m)
-   return lanes.map((l) => ({ x: l.x, y: 0.012, z: 0, sx: 1.1, sy: 1, sz: level.depth - 1 }));
+   return lanes.map((l) => ({ x: l.x, y: 0.03, z: 0, sx: 1.4, sy: 1, sz: level.depth - 1 }));
 }
