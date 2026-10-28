@@ -1,5 +1,6 @@
-// The orbit camera. The docks run toward +x, so the camera starts on the -x side of the hero
-// (yaw -π/2): screen-up walks +x. The intro flies the course, then lands on that same pose.
+// The orbit camera. The docks run toward +x; the camera starts behind and to the left of the hero
+// (a three-quarter view: yaw -π/2 + 0.8), so a swing reads as an arc with depth and screen-up walks
+// along the docks and a little toward the far side. The intro flies the course, then lands on that pose.
 import type { IntroKeyframe } from "@/arcade3d/core/intro";
 import { orbitPosition, type OrbitSettings } from "@/arcade3d/menu2/camera/orbit";
 import type { Course } from "./course";
@@ -7,11 +8,11 @@ import type { Course } from "./course";
 const DEG = Math.PI / 180;
 
 export const SWING_ORBIT: Partial<OrbitSettings> = {
-   yaw: -Math.PI / 2,
-   pitch: 24 * DEG,
-   distance: 9,
+   yaw: -Math.PI / 2 + 0.8,
+   pitch: 20 * DEG,
+   distance: 11,
    minDistance: 5,
-   maxDistance: 18,
+   maxDistance: 22,
 };
 
 export const FOV = 52;
@@ -43,6 +44,9 @@ export function playCamera(course: Course, aspect: number): IntroKeyframe {
    const c = orbitPosition(p.x, p.y, p.z, SWING_ORBIT.yaw ?? 0, SWING_ORBIT.pitch ?? 0, (SWING_ORBIT.distance ?? 9) * orbitScale(aspect), { x: 0, y: 0, z: 0 });
    return { position: [c.x, c.y, c.z], lookAt: [p.x, p.y + orbitLookUp(aspect), p.z] };
 }
+
+/** The shared multiplayer camera: a side view with depth (the card), from the near side. */
+export const MP_YAW = 0.3;
 
 /** Establishing shot of the pad, then back along the checkpoints, ending before playCamera. */
 export function introKeyframes(course: Course): IntroKeyframe[] {

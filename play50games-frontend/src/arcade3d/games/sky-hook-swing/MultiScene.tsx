@@ -12,9 +12,11 @@ import { playersStore, usePlayers } from "@/arcade3d/menu2/multiplayer/players";
 import { PlayerInputLatch, playerInputFor } from "@/arcade3d/menu2/multiplayer/MultiplayerInput";
 import { SharedCamera } from "@/arcade3d/menu2/multiplayer/SharedCamera";
 import World from "./World";
-import Docks, { Rope, type VisualClock } from "./Docks";
+import Docks, { Rope, type AimState, type VisualClock } from "./Docks";
+import Galleon from "./Galleon";
 import { Hero, createHeroAnim } from "./Hero";
-import { FOV } from "./camera";
+import { FOV, MP_YAW } from "./camera";
+import { levelLook } from "./look";
 import { createStepInput, type StepInput } from "./rules";
 import { createMultiRun, leaderIndex, stepMulti, type MultiRun } from "./multiplayer";
 import type { HeroId } from "./heroes";
@@ -33,7 +35,7 @@ function MultiSimulation({ multi, clock, points }: { multi: MultiRun; clock: Vis
          const s = inputs[i];
          s.moveX = p.moveX;
          s.moveZ = p.moveY;
-         s.yaw = -Math.PI / 2;
+         s.yaw = MP_YAW;
          s.jumpPressed = p.jumpPressed;
          s.jumpHeld = p.jump;
          s.actionPressed = p.actionPressed;
@@ -77,21 +79,26 @@ export default function MultiScene() {
    const anims = useMemo(() => multi.runs.map(() => createHeroAnim()), [multi]);
    const clock = useMemo<VisualClock>(() => ({ ms: 0 }), [multi]);
    const points = useMemo(() => multi.runs.map(() => ({ x: 0, y: 0, z: 0 })), [multi]);
+   const hands = useMemo(() => multi.runs.map(() => ({ x: 0, y: 0, z: 0 })), [multi]);
+   const aim = useMemo<AimState>(() => ({ index: -1 }), []);
+   const look = levelLook(levelId);
+   const fog = useMemo(() => ({ color: look.fog[0], near: look.fog[1], far: look.fog[2] }), [look]);
    return (
       <JuiceLayer>
-         <World course={multi.runs[0].course} />
-         <Docks run={multi.runs[0]} clock={clock} />
-         {multi.runs.slice(1).map((run, i) => (
-            <Rope key={i} run={run} clock={clock} />
+         <World course={multi.runs[0].course} level={levelId} clock={clock} />
+         <Docks run={multi.runs[0]} clock={clock} aim={aim} fog={fog} />
+         {multi.runs[0].course.boss ? <Galleon run={multi.runs[0]} clock={clock} /> : null}
+         {multi.runs.map((run, i) => (
+            <Rope key={`r${i}`} run={run} clock={clock} hand={hands[i]} />
          ))}
          {multi.runs.map((run, i) => (
-            <Hero key={i} run={run} anim={anims[i]} />
+            <Hero key={i} run={run} anim={anims[i]} hand={hands[i]} />
          ))}
          <MultiSimulation multi={multi} clock={clock} points={points} />
          <SharedCamera
             points={points}
             fov={FOV}
-            yaw={-Math.PI / 2}
+            yaw={MP_YAW}
             pitch={MP_CAMERA.pitch}
             minSpan={MP_CAMERA.minSpan}
             maxSpan={MP_CAMERA.maxSpan}

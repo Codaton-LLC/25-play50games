@@ -5,7 +5,7 @@
 // peak flash with a short hit-stop. Local multiplayer renders MultiScene.
 import { useEffect, useMemo, useRef, useSyncExternalStore } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
-import type { PerspectiveCamera } from "three";
+import { Vector3, type PerspectiveCamera } from "three";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { useInput } from "@/arcade3d/core/input";
@@ -25,17 +25,18 @@ import type { LevelId } from "@/arcade3d/types";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePlayers } from "@/arcade3d/menu2/multiplayer/players";
 import World from "./World";
-import Docks, { type VisualClock } from "./Docks";
+import Docks, { Rope, type AimState, type VisualClock } from "./Docks";
+import Galleon from "./Galleon";
 import { Hero, createHeroAnim, type HeroAnim } from "./Hero";
 import { FOV, FOV_PORTRAIT, SWING_ORBIT, introKeyframes, orbitLookUp, orbitPivot, orbitScale, playCamera } from "./camera";
-import { ORB, STAT, createRun, createStepInput, step, type SwingRun } from "./rules";
+import { ORB, STAT, createRun, createStepInput, peekAim, step, type SwingRun } from "./rules";
 import { pickedHero, subscribeHero } from "./heroes";
 import { createBot, botInput } from "./bot";
 import type { SwingLevel } from "./levels";
 import { COMBO, GUST_GALLEON, SECRETS } from "./progression";
 import { levelEndStats } from "./levelEnd";
 import MultiScene from "./MultiScene";
-import { COLORS } from "./look";
+import { COLORS, levelLook } from "./look";
 
 function autoplayRequested(): boolean {
    if (!ARCADE_PREVIEW || typeof window === "undefined") return false;
@@ -58,7 +59,14 @@ function publishBoss(run: SwingRun): void {
    if (store.stats[STAT.bossFlash] !== flash) store.setStat(STAT.bossFlash, flash);
 }
 
-function Simulation({ run, anim, clock, orbit }: { run: SwingRun; anim: HeroAnim; clock: VisualClock; orbit: OrbitState }) {
+/** Camera extras the simulation triggers: the peak release's FOV kick, and the pull-back on a big arc. */
+export interface CameraFx {
+   fov: number;
+   pull: number;
+}
+
+function Simulation({ run, anim, clock, orbit, aim, fx }: { run: SwingRun; anim: HeroAnim; clock: VisualClock; orbit: OrbitState; aim: AimState; fx: CameraFx }) {
+   const lastTheta = useRef(0);
    const input = useInput();
    const juice = useJuice();
    const time = useGameTime();
@@ -99,7 +107,18 @@ function Simulation({ run, anim, clock, orbit }: { run: SwingRun; anim: HeroAnim
             juice.burst("pickup", chest, 16, { color: COLORS.peak });
             juice.hitStop(50);
             juice.shake(0.16);
+            fx.fov = 7;
          }
+      }
+      // a whoosh through the bottom of a fast arc
+      if (h.mode === "swing") {
+         if (Math.sign(h.theta) !== Math.sign(lastTheta.current) && Math.abs(h.omega) * h.L > 9) playSfx("whoosh", { volume: 0.25, pitch: 0.7 + Math.min(0.5, Math.abs(h.omega) * h.L * 0.02) });
+         lastTheta.current = h.theta;
+      }
+      if (ev.snapped) {
+         juice.burst("hit", chest, 14, { color: COLORS.cracked });
+         juice.shake(0.2);
+         playSfx("thud", { volume: 0.5, pitch: 0.7 });
       }
       if (h.peak && !wasPeak.current) {
          juice.burst("aura", chest, 10, { color: COLORS.peak });
@@ -148,8 +167,15 @@ function Simulation({ run, anim, clock, orbit }: { run: SwingRun; anim: HeroAnim
       const rope = Math.round(h.L * 10);
       if (store.stats[STAT.rope] !== rope) store.setStat(STAT.rope, rope);
       if (store.stats[STAT.peak] !== (h.peak ? 1 : 0)) store.setStat(STAT.peak, h.peak ? 1 : 0);
+      const modeStat = h.mode === "ground" || h.mode === "spawn" ? 0 : h.mode === "air" ? 1 : h.mode === "swing" ? 2 : 3;
+      if (store.stats[STAT.mode] !== modeStat) store.setStat(STAT.mode, modeStat);
+      const xStat = Math.round(h.x);
+      if (store.stats[STAT.distance] !== xStat) store.setStat(STAT.distance, xStat);
       if (ev.bossHit) {
+         // a turret knocked off goes up in confetti-blue
          juice.burst("hit", chest, 24, { color: "#93c5fd" });
+         juice.burst("checkpoint", chest, 40, { color: "#60a5fa" });
+         juice.burst("pickup", chest, 30, { color: "#bfdbfe" });
          juice.shake(0.28);
          juice.hitStop(70);
          playSfx("thud", { pitch: 1.15 });
@@ -167,6 +193,12 @@ function Simulation({ run, anim, clock, orbit }: { run: SwingRun; anim: HeroAnim
       }
       if (ev.respawned) anim.spawnAt = now;
       publishBoss(run);
+      // the auto-target highlight: the ring a press would take now (the card's mobile aim fix)
+      aim.index = bot ? -1 : peekAim(run, i.moveX, i.moveY, orbit.viewYaw);
+      // the camera pulls back on a big, fast arc
+      const speed = Math.hypot(h.vx, h.vy, h.vz);
+      const wantPull = h.mode === "swing" || h.mode === "air" ? Math.min(1, Math.max(0, (speed - 8) / 14)) * (h.mode === "swing" ? Math.min(1, h.L / 10) : 0.8) : 0;
+      fx.pull += (wantPull - fx.pull) * Math.min(1, dt * 1.6);
       const heroStat = run.heroId === "nami" ? 1 : run.heroId === "kiro" ? 2 : run.heroId === "zuno" ? 3 : run.heroId === "vexa" ? 4 : 0;
       if (store.stats[STAT.hero] !== heroStat) store.setStat(STAT.hero, heroStat);
       const powerLeft = Math.max(0, Math.ceil((run.powerReadyAt - run.simMs) / 1000));
@@ -197,15 +229,32 @@ function Simulation({ run, anim, clock, orbit }: { run: SwingRun; anim: HeroAnim
    return null;
 }
 
-function SwingCamera({ run, orbit }: { run: SwingRun; orbit: OrbitState }) {
+const FWD = new Vector3();
+
+function SwingCamera({ run, orbit, fx }: { run: SwingRun; orbit: OrbitState; fx: CameraFx }) {
    const camera = useThree((s) => s.camera) as PerspectiveCamera;
    const size = useThree((s) => s.size);
    const aspect = size.width / Math.max(1, size.height);
    const lead = useRef(0);
+   const base = aspect < 1 ? FOV_PORTRAIT : FOV;
    useEffect(() => {
-      camera.fov = aspect < 1 ? FOV_PORTRAIT : FOV;
+      camera.fov = base;
       camera.updateProjectionMatrix();
-   }, [camera, aspect]);
+   }, [camera, base]);
+   // after the orbit placed the camera: the FOV kick eases back, the pull-back eases out
+   useFrame((_s, delta) => {
+      const dt = Math.min(0.1, delta);
+      fx.fov *= Math.exp(-dt * 4);
+      const fov = base + fx.fov;
+      if (Math.abs(camera.fov - fov) > 0.01) {
+         camera.fov = fov;
+         camera.updateProjectionMatrix();
+      }
+      if (fx.pull > 0.001) {
+         camera.getWorldDirection(FWD);
+         camera.position.addScaledVector(FWD, -fx.pull * 5);
+      }
+   }, FRAME_PRIORITY.camera + 0.02);
    const pivot = useMemo(
       () => (out: { x: number; y: number; z: number }) => {
          const h = run.hero;
@@ -287,13 +336,20 @@ function SoloScene() {
    const anim = useMemo(createHeroAnim, [run]);
    const clock = useMemo<VisualClock>(() => ({ ms: 0 }), [run]);
    const orbit = useMemo(() => createOrbit(SWING_ORBIT), [run]);
+   const aim = useMemo<AimState>(() => ({ index: -1 }), [run]);
+   const fx = useMemo<CameraFx>(() => ({ fov: 0, pull: 0 }), [run]);
+   const hand = useMemo(() => ({ x: 0, y: 0, z: 0 }), [run]);
+   const look = levelLook(levelId);
+   const fog = useMemo(() => ({ color: look.fog[0], near: look.fog[1], far: look.fog[2] }), [look]);
    return (
       <JuiceLayer>
-         <World course={run.course} />
-         <Docks run={run} clock={clock} />
-         <Hero run={run} anim={anim} />
-         <Simulation run={run} anim={anim} clock={clock} orbit={orbit} />
-         <SwingCamera run={run} orbit={orbit} />
+         <World course={run.course} level={levelId} clock={clock} />
+         <Docks run={run} clock={clock} aim={aim} fog={fog} />
+         {run.course.boss ? <Galleon run={run} clock={clock} /> : null}
+         <Hero run={run} anim={anim} hand={hand} />
+         <Rope run={run} clock={clock} hand={hand} />
+         <Simulation run={run} anim={anim} clock={clock} orbit={orbit} aim={aim} fx={fx} />
+         <SwingCamera run={run} orbit={orbit} fx={fx} />
          <SlowMo run={run} />
          <IntroCamera run={run} anim={anim} />
       </JuiceLayer>

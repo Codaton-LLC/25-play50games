@@ -12,6 +12,7 @@ export interface Island {
    x: number;
    y: number;
    z: number;
+   /** half the deck's side: decks are squares along the axes (the sky platform's slab) */
    r: number;
    kind: IslandKind;
    /** a checkpoint. Landing anywhere else between checkpoints breaks the sky chain. */
@@ -332,6 +333,11 @@ class Build {
       if (sticker) this.secrets.push({ x, y: y + 1.1, z, r: 1.2 });
    }
 
+   /** a co-op heavy ring beside the line (it swings for one hero; in co-op it needs two ropes) */
+   heavy(at: number, side: number): void {
+      this.ring({ x: at, y: this.y + 10.4, z: side * 3.4, kind: "heavy" }, false);
+   }
+
    /** the card's compass shard: by a ring beyond the normal hook range (a peak release plus a reel-in) */
    compass(at: number, side: number): void {
       this.secrets.push({ x: at, y: this.y + 14.2, z: side * 9, r: 1.3 });
@@ -366,6 +372,7 @@ function level1(): Course {
    b.ledge(b.islands.length - 1, 1);
    b.wall();
    b.hull(b.x - 2, -1, true);
+   b.heavy(b.x + 9, 1);
    b.chain3();
    b.magnets(b.x - 20);
    b.gap();
@@ -389,6 +396,7 @@ function level2(): Course {
    b.crates(b.x - 10, 1);
    b.chain3();
    b.hull(b.x - 3, 1, true);
+   b.heavy(b.x + 9, 1);
    b.magnets(b.x - 12);
    b.gap();
    b.sparks(b.x - 15, -1);
@@ -418,6 +426,7 @@ function level3(): Course {
    b.ledge(b.islands.length - 1, 1);
    blade(b, 1.2);
    b.hull(b.x - 2, -1, true);
+   b.heavy(b.x + 9, 1);
    b.gap("ship", { amp: 3, period: 7, phase: 2.1 }, 24, 5.2);
    b.magnets(b.x - 15);
    b.crates(b.x - 9, 1);
@@ -442,6 +451,7 @@ function level4(): Course {
    b.magnets(b.x - 19);
    b.wall();
    b.hull(b.x - 2, 1, false);
+   b.heavy(b.x + 9, 1);
    b.gap("cracked", { crackMs: 3000 }, 28, 5.6);
    b.compass(b.x - 16, -1);
    b.crates(b.x - 9, -1);

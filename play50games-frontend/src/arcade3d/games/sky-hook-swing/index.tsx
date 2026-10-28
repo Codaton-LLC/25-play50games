@@ -6,8 +6,7 @@ import { sessionRunPlayers } from "@/arcade3d/menu2/multiplayer/leaderboard";
 import { ASSETS } from "./assets";
 import { FOV } from "./camera";
 import { LEVELS, type SwingLevel } from "./levels";
-import { COLORS, levelEnvironment } from "./look";
-import { FOG } from "./World";
+import { levelEnvironment } from "./look";
 import { finalScore } from "./rules";
 import Scene from "./Scene";
 import Hud from "./Hud";
@@ -28,29 +27,28 @@ const definition: GameDefinition<SwingLevel> = {
    ResultExtra: StarResult,
    assets: ASSETS,
    camera: { position: [-12, 6, 8], fov: FOV, lookAt: [0, 3, 0] },
-   environment: { background: COLORS.background, fog: [FOG.color, FOG.near, FOG.far], lighting: "day" },
+   environment: levelEnvironment(1),
    touchControls: ["joystick", "jump", "action"],
    touchLabels: { action: "Hook" },
    hudStats: [],
    clockChip: false,
    intro: true,
    instructions: [
-      "Aim the stick at a grapple ring and press Hook. Up on the stick reels in, down reels out. Hook again to release.",
+      "Aim the stick at a grapple ring (the glowing one is the one Hook takes) and press Hook. Up on the stick reels in, down reels out. Hook again to release.",
       "Release while the ring flashes green for a faster fling. Chain four releases without touching down to fill the flow meter.",
       "A safety net catches the first gap. Landing off a checkpoint breaks the sky chain.",
       "Power: Riko dashes and smashes crates, Nami jumps again after a release, Kiro shields sparks and smoke, Zuno pulls orbs from under the arc, Vexa phases through ghost panels.",
-      "Turn the camera with a drag, Q and C, or the on-screen control. Screen-up walks along the docks.",
+      "Turn the camera with a drag (two fingers on a phone), Q and C, or the on-screen control. Screen-up walks along the docks.",
    ],
    resultDelayMs: 1100,
    finalScore,
    runPlayers: () => sessionRunPlayers(),
    levels: LEVEL_IDS.map((id): LevelSpec<SwingLevel> => {
-      const dusk = levelEnvironment(id);
       return {
          id,
          description: DESCRIPTIONS[id],
          config: LEVELS[id],
-         ...(dusk ? { environment: dusk } : {}),
+         environment: levelEnvironment(id),
       };
    }),
 };

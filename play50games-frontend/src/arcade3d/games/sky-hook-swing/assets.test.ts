@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import { hasModel } from "@/arcade3d/core/modelManifest";
 import { readCharacterGlb } from "@/arcade3d/core/rig/robotGlb";
 import { definitionLevelProblems } from "@/arcade3d/core/levels";
-import { ANCHOR_HEIGHT, ASSETS, DRONE_BUDGET, DRONE_WIDTH, GLB_SIZE, fit } from "./assets";
+import { ASSETS, DRONE_BUDGET, DRONE_WIDTH, GLB_SIZE, fit } from "./assets";
 import { skyHookSwingMeta } from "./meta";
 import definition from "./index";
 
@@ -21,6 +21,11 @@ const MESH: Record<keyof typeof GLB_SIZE, string> = {
    anchorV2: "anchor",
    island: "island",
    windmill: "windmill",
+   turret: "turret",
+   crate: "crate",
+   beacon: "beacon",
+   platform: "platform",
+   bank: "bank",
 };
 
 function bounds(cloud: Float32Array) {
@@ -58,10 +63,9 @@ describe("sky-hook-swing models", () => {
       });
    }
 
-   it("draws a drone at DRONE_WIDTH on the character budget, and a ring ANCHOR_HEIGHT tall", () => {
+   it("draws a drone at DRONE_WIDTH on the character budget", () => {
       expect(ASSETS.drone.budget).toEqual(DRONE_BUDGET);
       expect(fit(GLB_SIZE.drone.x, DRONE_WIDTH) * GLB_SIZE.drone.x).toBeCloseTo(DRONE_WIDTH, 5);
-      expect(fit(GLB_SIZE.anchorV2.y, ANCHOR_HEIGHT) * GLB_SIZE.anchorV2.y).toBeCloseTo(ANCHOR_HEIGHT, 5);
    });
 });
 

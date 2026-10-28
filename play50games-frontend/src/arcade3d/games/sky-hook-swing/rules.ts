@@ -357,6 +357,23 @@ export function aimedAnchor(run: SwingRun, input: StepInput): number {
    return best;
 }
 
+const PEEK = createStepInput();
+
+/** The ring a press would take now (the HUD's auto-target highlight). Changes nothing in the run. */
+export function peekAim(run: SwingRun, moveX: number, moveZ: number, yaw: number): number {
+   const h = run.hero;
+   if (h.mode !== "ground" && h.mode !== "air") return NONE;
+   const fx = h.faceX;
+   const fz = h.faceZ;
+   PEEK.moveX = moveX;
+   PEEK.moveZ = moveZ;
+   PEEK.yaw = yaw;
+   const i = aimedAnchor(run, PEEK);
+   h.faceX = fx;
+   h.faceZ = fz;
+   return i;
+}
+
 function capFree(h: Hero): void {
    const s = Math.hypot(h.vx, h.vz);
    if (s > V_FREE_CAP) {
@@ -460,7 +477,7 @@ function islandAt(course: Course, x: number, z: number, y: number): number {
       if (s.y > y + 0.25 || s.y < top) continue;
       const dx = x - s.x;
       const dz = z - s.z;
-      if (dx * dx + dz * dz <= s.r * s.r) {
+      if (Math.abs(dx) <= s.r && Math.abs(dz) <= s.r) {
          best = i;
          top = s.y;
       }
@@ -478,7 +495,7 @@ function crossedDeck(course: Course, x: number, z: number, y0: number, y1: numbe
       if (y0 < s.y - 0.25 || y1 > s.y + 0.35 || s.y < top) continue;
       const dx = x - s.x;
       const dz = z - s.z;
-      if (dx * dx + dz * dz <= s.r * s.r) {
+      if (Math.abs(dx) <= s.r && Math.abs(dz) <= s.r) {
          best = i;
          top = s.y;
       }
@@ -1118,6 +1135,8 @@ export const STAT = {
    power: "power",
    rope: "rope",
    peak: "peak",
+   /** 0 ground, 1 air, 2 on the rope, 3 falling (the HUD's coach and rope meter) */
+   mode: "mode",
    comboMs: "comboMs",
    comboChain: "comboChain",
    comboMult: "comboMult",
