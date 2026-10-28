@@ -3,6 +3,9 @@
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { PerspectiveCamera, Vector3, type Group, type Matrix4, type Mesh } from "three";
+import { useCameraViews } from "@/arcade3d/core/camera/CameraViews";
+import { useCameraZoom } from "@/arcade3d/core/useCameraZoom";
+import { CAMERA_VIEWS, phoneOffset } from "./cameraViews";
 import CameraRig from "@/arcade3d/core/CameraRig";
 import { DynamicInstancedModel } from "@/arcade3d/core/assets";
 import { playSfx } from "@/arcade3d/core/audio";
@@ -84,12 +87,30 @@ const Simulation = memo(function Simulation({ run, visual }: { run: TowerRun; vi
 
 const TowerCamera = memo(function TowerCamera({ run }: { run: TowerRun }) {
    const view = useFittedView(VIEW);
+   const aspect = useThree((s) => s.size.width / s.size.height);
+   const portrait = aspect < 1;
+   const offset = phoneOffset(view.offset, aspect);
+   const zoom = useCameraZoom({ min: 1.3 / Math.hypot(...offset), max: Math.max(1, 2 * view.distance / Math.hypot(...offset)) });
+   useEffect(() => { zoom.current = 1; }, [portrait, zoom]);
+   const [target] = useState(() => ({ x: 0, y: 0, z: 0 }));
+   useFrame(() => {
+      target.x = run.player.x;
+      target.y = run.player.y + RUNNER.height / 2;
+   }, FRAME_PRIORITY.camera - 0.01);
+   useCameraViews({
+      slug: "tower-climb", subject: "character", steering: "camera", defaultYaw: view.yaw,
+      views: CAMERA_VIEWS, framing: { top: { distance: 5, lookUp: 0 } },
+      target: (o) => {
+         o.x = run.player.x; o.y = run.player.y + RUNNER.height / 2; o.z = 0;
+         o.heading = 0; o.vx = 0; o.vz = 0;
+      },
+   });
    const active = useThree(s => s.camera);
    useLayoutEffect(() => {
       if (active instanceof PerspectiveCamera) { active.near = 0.1; active.far = 400; active.updateProjectionMatrix(); }
    }, [active]);
-   const camera = useMemo(() => ({ position: view.offset, lookAt: LOOK_AT, fov: FOV }), [view.offset]);
-   return <CameraRig camera={camera} follow={run.cameraTarget} followFraction={1} offset={view.offset} shift={view.shift} damping={FOLLOW_DAMPING} />;
+   const camera = useMemo(() => ({ position: offset, lookAt: LOOK_AT, fov: FOV }), [offset[0], offset[1], offset[2]]);
+   return <CameraRig camera={camera} follow={aspect < 1 ? target : run.cameraTarget} followFraction={1} offset={offset} zoom={zoom} shift={view.shift} damping={FOLLOW_DAMPING} />;
 });
 
 const SlabPool = memo(function SlabPool({ run, kind, parts }: { run: TowerRun; kind: number; parts: TowerParts }) {

@@ -141,6 +141,10 @@ steering), submarine-treasure-dive (vehicle framing, camera steering), burger-de
 vehicle steering); batch 1 (2026-10-28): taxi-rush-3d, farm-tractor-challenge, mars-rover-mission,
 magic-carpet-ride (vehicles, vehicle steering), cat-vs-robot-vacuum, dog-park-fetch (characters, camera
 steering), wizard-potion-lab, haunted-mansion-keys; batch 2 (2026-10-28): firefighter-rescue, beach-lifeguard (characters, camera steering), aquarium-cleaner, bee-garden, toy-store-night-shift (characters, camera steering). Batch 3: alien-farm, delivery-drone, dino-egg-rescue, ghost-vacuum, penguin-slide (default / front / top), shopping-cart, snowball-battle, treasure-island, zoo-escape, mini-golf, space-repair (default / top).
+Live Menu 1: clean-city, escape-room, robot-collector, warehouse-rush (character, camera steering);
+tower-climb (default + top, existing screen-space steering). Portrait defaults follow the hero closely;
+landscape defaults retain the fitted overview. These games also use `useCameraZoom` on their default
+rig for pinch / wheel zoom; the shared view hook owns zoom in the other views.
 
 ## Cost
 

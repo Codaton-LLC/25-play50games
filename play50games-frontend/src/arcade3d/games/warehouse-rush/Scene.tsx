@@ -22,6 +22,9 @@
 import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { MeshBasicMaterial, PlaneGeometry, Vector3, type Camera, type Group, type Matrix4, type Mesh, type Sprite, type SpriteMaterial } from "three";
+import { useCameraViews } from "@/arcade3d/core/camera/CameraViews";
+import { useCameraZoom } from "@/arcade3d/core/useCameraZoom";
+import { phoneOffset } from "./cameraViews";
 import CameraRig from "@/arcade3d/core/CameraRig";
 import { useModel } from "@/arcade3d/core/assets";
 import { playSfx } from "@/arcade3d/core/audio";
@@ -241,7 +244,7 @@ function publish(run: WarehouseRun, pub: Published): void {
 // ---------- the game ----------
 
 /** Feeds dt and the mapped input into rules.step() and reports what happened. Renders nothing. */
-const Simulation = memo(function Simulation({ run, fx, pub, yaw }: { run: WarehouseRun; fx: Fx; pub: Published; yaw: number }) {
+const Simulation = memo(function Simulation({ run, fx, pub, yaw }: { run: WarehouseRun; fx: Fx; pub: Published; yaw: () => number }) {
    const input = useInput();
    const time = useGameTime();
    const [scratch] = useState(() => ({ dir: { x: 0, z: 0 }, input: createStepInput() }));
@@ -249,7 +252,7 @@ const Simulation = memo(function Simulation({ run, fx, pub, yaw }: { run: Wareho
    useRunFrame((_state, dt) => {
       const now = input.current;
       // screen-relative: up is away from the camera, whatever the yaw
-      inputToWorld(now.moveX, now.moveY, yaw, scratch.dir);
+      inputToWorld(now.moveX, now.moveY, yaw(), scratch.dir);
       scratch.input.moveX = scratch.dir.x;
       scratch.input.moveY = scratch.dir.z;
       scratch.input.actionPressed = now.actionPressed || now.jumpPressed;
@@ -461,7 +464,7 @@ function BoxSlot({ slot, look }: { slot: BoxSlotRefs; look: BoxLook }) {
    );
 }
 
-const Boxes = memo(function Boxes({ run, fx, yaw }: { run: WarehouseRun; fx: Fx; yaw: number }) {
+const Boxes = memo(function Boxes({ run, fx, yaw }: { run: WarehouseRun; fx: Fx; yaw: () => number }) {
    const time = useGameTime();
    const look = useBoxLook();
    const [slots] = useState<BoxSlotRefs[]>(() =>
@@ -491,7 +494,7 @@ const Boxes = memo(function Boxes({ run, fx, yaw }: { run: WarehouseRun; fx: Fx;
       g.rotation.y = turn;
       g.scale.setScalar(scale);
       // the lid letter reads upright from the camera, whatever the box's turn
-      if (slot.spin) slot.spin.rotation.y = yaw - turn;
+      if (slot.spin) slot.spin.rotation.y = yaw() - turn;
    };
 
    useFrame(() => {
@@ -820,6 +823,20 @@ function LevelScene() {
       r.robot.heading = view.yaw; // face the camera on the start pad (heading is looks only)
       return r;
    });
+   const aspect = useThree((s) => s.size.width / s.size.height);
+   const portrait = aspect < 1;
+   const offset = phoneOffset(view.offset, aspect);
+   const zoom = useCameraZoom({ min: 1.7 / Math.hypot(...offset), max: Math.max(1, 2 * view.distance / Math.hypot(...offset)) });
+   useEffect(() => { zoom.current = 1; }, [portrait, zoom]);
+   const cam = useCameraViews({
+      slug: "warehouse-rush", subject: "character", steering: "camera", defaultYaw: view.yaw,
+      framing: { chase: { distance: 4, lookUp: 0 }, front: { distance: 3.5, lookUp: 0 }, free: { distance: 4, lookUp: 0 }, top: { distance: 28 } },
+      target: (o) => {
+         const r = run.robot;
+         o.x = r.x; o.y = 0.6; o.z = r.z;
+         o.heading = r.heading; o.vx = r.vx; o.vz = r.vz;
+      },
+   });
    const [fx] = useState(createFx);
    const [pub] = useState<Published>(() => ({ score: 0, delivered: 0, order: NONE, carry: 0, drops: 0, delta: 0, left: -1 }));
 
@@ -839,11 +856,11 @@ function LevelScene() {
 
    return (
       <>
-         <Simulation run={run} fx={fx} pub={pub} yaw={view.yaw} />
-         <CameraRig camera={{ position: view.offset, lookAt: LOOK_AT }} offset={view.offset} shift={view.shift} />
+         <Simulation run={run} fx={fx} pub={pub} yaw={cam.yaw} />
+         <CameraRig camera={{ position: offset, lookAt: LOOK_AT }} follow={aspect < 1 ? run.robot : { x: 0, y: 0, z: 0 }} offset={offset} zoom={zoom} shift={view.shift} />
          <Warehouse layout={run.layout} yaw={view.yaw} level={config} run={run} />
          <Robot run={run} fx={fx} lamp={config.lamp} />
-         <Boxes run={run} fx={fx} yaw={view.yaw} />
+         <Boxes run={run} fx={fx} yaw={cam.yaw} />
          <OrderMarkers run={run} fx={fx} />
          <TargetZone run={run} />
          <Popup fx={fx} />
