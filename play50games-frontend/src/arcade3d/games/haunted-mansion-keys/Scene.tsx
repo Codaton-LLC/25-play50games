@@ -11,7 +11,7 @@ import { useCameraViews } from "@/arcade3d/core/camera/CameraViews";
 import { playSfx } from "@/arcade3d/core/audio";
 import { FRAME_PRIORITY } from "@/arcade3d/core/frameLoop";
 import { Toss, useActionPop, useFx, type TossHandle } from "@/arcade3d/core/fx";
-import { TargetBeacon } from "@/arcade3d/core/hud";
+import { TargetBeacon, TargetMarkers } from "@/arcade3d/core/hud";
 import { useCoarsePointer } from "@/arcade3d/core/TouchControls";
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import { useInput } from "@/arcade3d/core/input";
@@ -120,6 +120,8 @@ function LevelScene() {
    const touch = useCoarsePointer();
    const goal = useRef<Objective>({ kind: "key", index: 0, x: 0, y: 0, z: 0 }).current;
    const beacon = useRef({ x: 0, y: 0, z: 0, hidden: true }).current;
+   // the same target for the edge arrow when it is off screen or under a HUD panel
+   const edgeTargets = useMemo(() => [beacon], [beacon]);
    const hand = useRef({ x: run.hero.x, y: 1.1, z: run.hero.z }).current;
    const guideCode = useRef(-1);
    const lockedPopAt = useRef(-10);
@@ -455,6 +457,7 @@ function LevelScene() {
             height={look.kind === "exit" ? 1.6 : look.kind === "door" ? 1.2 : 0.9}
             label={look.kind === "exit" ? "EXIT" : null}
          />
+         <TargetMarkers targets={edgeTargets} color={look.kind === "exit" ? EXIT_GREEN : KEY_COLORS[look.index]} />
          {run.keys.map((k) => (
             <Toss key={k.id} ref={(t: TossHandle | null) => { keyTosses.current[k.id] = t; }} spin={8}>
                <ShapePlate shape={k.shape} color={k.color} size={0.26} />
