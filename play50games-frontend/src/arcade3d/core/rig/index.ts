@@ -71,10 +71,12 @@ export {
    type QuadrupedLeg,
 } from "./quadruped";
 export {
+   DIAGONAL_WALK,
    blendQuadrupedPoses,
    copyQuadrupedPose,
    createQuadrupedPose,
    quadrupedAnkles,
+   quadrupedCrouch,
    quadrupedGait,
    quadrupedGaitMix,
    quadrupedIdle,
@@ -84,6 +86,7 @@ export {
    quadrupedSit,
    quadrupedStand,
    quadrupedStride,
+   type QuadrupedGaitOptions,
    type QuadrupedPose,
 } from "./quadrupedPoses";
 export { applyQuadrupedPose, buildQuadrupedTemplate, cloneQuadruped, createMouthGroup, disposeQuadruped, quadrupedTemplate, type QuadrupedRig, type QuadrupedTemplate } from "./quadrupedSkinning";

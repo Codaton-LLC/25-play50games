@@ -3,14 +3,12 @@
 // Every gameplay number lives here or in level.ts and is pinned in rules.test.ts.
 import { clampToBounds, circlesOverlapXZ, distanceToBoxXZ, resolveSphereAabb, sphereAabbOverlap, type AABB } from "@/arcade3d/core/collision";
 import { hasLineOfSightXZ, inViewCone, investigate, stepPatrol, type Agent, type Box, type PatrolOptions, type PatrolState } from "@/arcade3d/core/ai";
-import { createPath, type Path } from "@/arcade3d/core/path";
+import type { Path } from "@/arcade3d/core/path";
 import { launchForTime } from "@/arcade3d/core/ballistics";
 import { rngNext, turnTowards } from "@/arcade3d/core/math";
 import type { LevelId, ScoringRules } from "@/arcade3d/types";
 import { LEVELS, type ZooLevel } from "./levels";
-import {
-   BARS, BAR_DROP, BLOCKERS, BUSHES, CORNER_WAIT, CYCLES, KEEPERS, MAP, ROUTE_SPEED, SNACK_CANDIDATES, SOLIDS, STAGES, STAGE_KEEPERS, TOWER, stageAt, type StageIndex,
-} from "./level";
+import { BAR_DROP, CORNER_WAIT, LIGHT_1, MAP_1, ROUTE_SPEED, stageOf, type Jeep, type Searchlight, type StageIndex, type ZooMap } from "./level";
 
 const DEG = Math.PI / 180;
 
@@ -34,10 +32,13 @@ export const SUSPICION = { catchS: 1.35, decay: 0.5 } as const;
 export const TOSS = { perStage: 2, distance: 4, march: 0.1, clearance: 0.3, flight: 0.6, launchHeight: 0.6, gravity: 9.81, lureRange: 10 } as const;
 export const CATCH = { penalty: 5, max: 3, cardS: 1.2, graceS: 1.0 } as const;
 export const CLOCK = { startS: 180 } as const;
-export const SEARCHLIGHT = { x: TOWER.x, z: TOWER.z, baseYaw: -Math.PI / 2, sweep: 0.95, period: 9, halfAngle: 12 * DEG, range: 14, radioRange: 12 } as const;
+/** Level 1's searchlight (level.ts LIGHT_1); every map lists its own (ZooMap.lights). */
+export const SEARCHLIGHT: Readonly<Searchlight> = LIGHT_1;
+/** Birds (Bird Garden): a panda walking (not sneaking, > 0.2 m/s) within `range` squawks the bird; the nearest calm keeper of the stage within `alertRange` comes to look; then the bird settles for `cooldown` s. */
+export const BIRDS = { range: 1.6, cooldown: 4, alertRange: 12 } as const;
 export const SNACK = { perStage: 4, reach: 0.8, minGap: 3 } as const;
 export const SCORE = { win: 1000, perSecond: 10, snack: 50, catch: 100 } as const;
-export const SNACK_COUNT = SNACK.perStage * STAGES.length;
+export const SNACK_COUNT = SNACK.perStage * 3;
 
 /**
  * The proven server limits (README "Server limits and why they hold"). meta.scoring keeps the
@@ -66,10 +67,11 @@ export const PROPOSED_LEVEL_LIMITS: Record<LevelId, ScoringRules> = { 1: PROPOSE
 
 export type Kind = "seen" | "heard" | "bamboo" | "radio";
 const PRIORITY: Record<Kind, number> = { bamboo: 1, heard: 2, radio: 2, seen: 3 };
-export type CatchReason = "seen" | "light" | "found" | "bump";
+export type CatchReason = "seen" | "light" | "found" | "bump" | "jeep";
 export type EndKind = "win" | "lose" | "timeup";
 
-export const ROUTES: readonly Path[] = KEEPERS.map((k) => createPath(k.route, { closed: true }));
+/** Level 1's routes (every map has its own: ZooMap.routes). */
+export const ROUTES: readonly Path[] = MAP_1.routes;
 
 const PATROL: PatrolOptions = { speed: KEEPER.speed, wait: KEEPER.wait, lookAngle: KEEPER.lookAngle, lookSpeed: KEEPER.lookSpeed };
 const INVESTIGATE: Record<Kind, PatrolOptions> = {
@@ -84,6 +86,10 @@ export interface Keeper {
    inv: Record<Kind, PatrolOptions>;
    index: number;
    stage: StageIndex;
+   /** its map's route, zone (investigations are clamped into it) and stage cycle */
+   route: Path;
+   zone: AABB;
+   cycle: number;
    agent: Agent;
    patrol: PatrolState;
    /** seeded schedule offset (s) */
@@ -120,15 +126,36 @@ export interface RunEvents {
    lured: number;
    heard: number;
    alerts: number;
+   /** the bird that squawked this step (-1 none) */
+   squawk: number;
    rustle: boolean;
    bar: number;
    cardEnd: boolean;
    end: EndKind | null;
 }
 
+export interface JeepState {
+   x: number;
+   z: number;
+   yaw: number;
+}
+
+export interface BirdState {
+   /** seconds until it can squawk again */
+   cool: number;
+   /** seconds since its last squawk (drawing: the flap) */
+   since: number;
+}
+
 export interface RunState {
    /** the level this run was built from; level 1 is the module constants */
    level: ZooLevel;
+   /** the level's map */
+   map: ZooMap;
+   /** schedule phase per stage: its first keeper's offset (its searchlight and jeeps run on it) */
+   phases: number[];
+   jeeps: JeepState[];
+   birds: BirdState[];
    seed: number;
    time: number;
    timeLeft: number;
@@ -164,8 +191,8 @@ export interface StepInput {
 // ---------- keepers ----------
 
 /** Puts a keeper where its undisturbed patrol is at schedule time tau (s): on corner 0 at tau = 0, starting its wait. */
-export function placeOnSchedule(agent: Agent, patrol: PatrolState, keeper: number, tau: number): void {
-   const pts = KEEPERS[keeper].route;
+export function placeOnSchedule(agent: Agent, patrol: PatrolState, keeper: number, tau: number, map: ZooMap = MAP_1): void {
+   const pts = map.keepers[keeper].route;
    const first = pts[0];
    const last = pts[pts.length - 1];
    agent.x = first.x; agent.y = 0; agent.z = first.z; agent.vx = 0; agent.vy = 0; agent.vz = 0;
@@ -175,16 +202,20 @@ export function placeOnSchedule(agent: Agent, patrol: PatrolState, keeper: numbe
    patrol.mode = "patrol";
    patrol.lookYaw = agent.yaw;
    patrol.lookPhase = 0;
-   const c = CYCLES[KEEPERS[keeper].stage];
+   const c = map.cycles[map.keepers[keeper].stage];
    const t = ((tau % c) + c) % c;
-   if (t > 0) stepPatrol(agent, patrol, ROUTES[keeper], t, PATROL);
+   if (t > 0) stepPatrol(agent, patrol, map.routes[keeper], t, PATROL);
 }
 
-function newKeeper(index: number, offset: number): Keeper {
+function newKeeper(index: number, offset: number, map: ZooMap): Keeper {
    const agent: Agent = { x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, yaw: 0 };
    const patrol: PatrolState = { index: 1, wait: 0, mode: "patrol", target: { x: 0, y: 0, z: 0 } };
-   placeOnSchedule(agent, patrol, index, offset);
-   return { inv: INVESTIGATE, index, stage: KEEPERS[index].stage, agent, patrol, offset, meter: 0, seeing: false, lastSeen: { x: 0, y: 0, z: 0 }, kind: null, hearCooldown: 0 };
+   placeOnSchedule(agent, patrol, index, offset, map);
+   const def = map.keepers[index];
+   return {
+      inv: INVESTIGATE, index, stage: def.stage, route: map.routes[index], zone: def.zone, cycle: map.cycles[def.stage],
+      agent, patrol, offset, meter: 0, seeing: false, lastSeen: { x: 0, y: 0, z: 0 }, kind: null, hearCooldown: 0,
+   };
 }
 
 const SCRATCH = { p: { x: 0, y: 0, z: 0 }, one: [null as unknown as Box], o: { x: 0, y: 0, z: 0 }, d: { x: 0, y: 0, z: 0 } };
@@ -192,7 +223,7 @@ const SCRATCH = { p: { x: 0, y: 0, z: 0 }, one: [null as unknown as Box], o: { x
 /** Sends a keeper to `point` (clamped into its zone) unless it is on a more important lead. */
 export function sendKeeper(k: Keeper, point: { x: number; z: number }, kind: Kind): boolean {
    if (k.kind && PRIORITY[kind] < PRIORITY[k.kind]) return false;
-   const zone = KEEPERS[k.index].zone;
+   const zone = k.zone;
    SCRATCH.p.x = point.x; SCRATCH.p.y = 0; SCRATCH.p.z = point.z;
    clampToBounds(SCRATCH.p, zone, 0, SCRATCH.p);
    SCRATCH.p.y = 0;
@@ -202,7 +233,7 @@ export function sendKeeper(k: Keeper, point: { x: number; z: number }, kind: Kin
 }
 
 function stepKeeper(k: Keeper, dt: number): void {
-   stepPatrol(k.agent, k.patrol, ROUTES[k.index], dt, k.patrol.mode === "investigate" && k.kind ? k.inv[k.kind] : PATROL);
+   stepPatrol(k.agent, k.patrol, k.route, dt, k.patrol.mode === "investigate" && k.kind ? k.inv[k.kind] : PATROL);
    if (k.patrol.mode !== "investigate") k.kind = null;
    if (k.hearCooldown > 0) k.hearCooldown = Math.max(0, k.hearCooldown - dt);
 }
@@ -212,7 +243,7 @@ function stepKeeper(k: Keeper, dt: number): void {
 const containsXZ = (b: AABB, x: number, z: number) => x >= b.min.x && x <= b.max.x && z >= b.min.z && z <= b.max.z;
 
 /** hasLineOfSightXZ over every blocker except the boxes holding the eye (a keeper standing in a bush, the tower). */
-export function clearSight(eye: { x: number; y: number; z: number }, target: { x: number; y: number; z: number }, blockers: readonly Box[] = BLOCKERS): boolean {
+export function clearSight(eye: { x: number; y: number; z: number }, target: { x: number; y: number; z: number }, blockers: readonly Box[] = MAP_1.blockers): boolean {
    const one = SCRATCH.one;
    for (let i = 0; i < blockers.length; i++) {
       const b = blockers[i];
@@ -224,29 +255,69 @@ export function clearSight(eye: { x: number; y: number; z: number }, target: { x
 }
 
 /** Does a keeper (feet, yaw) of `stage` see the point? (cone ∧ sight; hiding is the caller's) */
-export function keeperSees(feet: { x: number; y: number; z: number }, yaw: number, stage: StageIndex, p: { x: number; y: number; z: number }): boolean {
-   return inViewCone(feet, yaw, VISION.halfAngle, VISION.range[stage], p) && clearSight(feet, p);
+export function keeperSees(feet: { x: number; y: number; z: number }, yaw: number, stage: StageIndex, p: { x: number; y: number; z: number }, map: ZooMap = MAP_1): boolean {
+   return inViewCone(feet, yaw, VISION.halfAngle, map.vision[stage], p) && clearSight(feet, p, map.blockers);
 }
 
-export const searchlightYaw = (time: number, phase: number) => SEARCHLIGHT.baseYaw + SEARCHLIGHT.sweep * Math.sin((2 * Math.PI * (time + phase)) / SEARCHLIGHT.period);
-const TOWER_EYE = { x: SEARCHLIGHT.x, y: 0, z: SEARCHLIGHT.z };
-export function searchlightSees(yaw: number, p: { x: number; y: number; z: number }): boolean {
-   return inViewCone(TOWER_EYE, yaw, SEARCHLIGHT.halfAngle, SEARCHLIGHT.range, p) && clearSight(TOWER_EYE, p);
+export const searchlightYaw = (time: number, phase: number, light: Searchlight = LIGHT_1) => light.baseYaw + light.sweep * Math.sin((2 * Math.PI * (time + phase)) / light.period);
+const TOWER_EYE = { x: 0, y: 0, z: 0 };
+export function searchlightSees(yaw: number, p: { x: number; y: number; z: number }, light: Searchlight = LIGHT_1, map: ZooMap = MAP_1): boolean {
+   TOWER_EYE.x = light.x; TOWER_EYE.z = light.z;
+   return inViewCone(TOWER_EYE, yaw, light.halfAngle, light.range, p) && clearSight(TOWER_EYE, p, map.blockers);
+}
+
+/** The stage whose searchlight the run sweeps on `stage`: its own, else the last stage that has one (-1 none). */
+export function lightStageFor(map: ZooMap, stage: StageIndex): number {
+   if (map.lights[stage]) return stage;
+   for (let s = map.lights.length - 1; s >= 0; s--) if (map.lights[s]) return s;
+   return -1;
 }
 
 /** The bush whose box holds the point (-1 = none). */
-export function bushAt(x: number, z: number): number {
-   for (let i = 0; i < BUSHES.length; i++) if (containsXZ(BUSHES[i].box, x, z)) return i;
+export function bushAt(x: number, z: number, map: ZooMap = MAP_1): number {
+   const bushes = map.bushes;
+   for (let i = 0; i < bushes.length; i++) if (containsXZ(bushes[i].box, x, z)) return i;
    return -1;
+}
+
+// ---------- jeeps ----------
+
+/** Where a jeep is at schedule time t (s; once round its loop per `cycle`), written into `out`: centre and heading (0 = +z). */
+export function jeepPose(j: Jeep, cycle: number, t: number, out: JeepState): JeepState {
+   const pts = j.route;
+   let total = 0;
+   for (let i = 0; i < pts.length; i++) { const a = pts[i], b = pts[(i + 1) % pts.length]; total += Math.hypot(b.x - a.x, b.z - a.z); }
+   let d = ((((t / cycle) % 1) + 1) % 1) * total;
+   for (let i = 0; i < pts.length; i++) {
+      const a = pts[i], b = pts[(i + 1) % pts.length];
+      const len = Math.hypot(b.x - a.x, b.z - a.z);
+      if (d <= len || i === pts.length - 1) {
+         const k = len > 0 ? Math.min(1, d / len) : 0;
+         out.x = a.x + (b.x - a.x) * k; out.z = a.z + (b.z - a.z) * k;
+         out.yaw = Math.atan2(b.x - a.x, b.z - a.z);
+         return out;
+      }
+      d -= len;
+   }
+   return out;
+}
+
+/** A jeep's body box at its pose (its loop is axis-aligned, so the box is too), written into `out`. */
+export function jeepBox(j: Jeep, pose: JeepState, out: AABB): AABB {
+   const alongX = Math.abs(Math.sin(pose.yaw)) > 0.5;
+   const hx = (alongX ? j.length : j.width) / 2, hz = (alongX ? j.width : j.length) / 2;
+   out.min.x = pose.x - hx; out.max.x = pose.x + hx; out.min.z = pose.z - hz; out.max.z = pose.z + hz;
+   out.min.y = 0; out.max.y = 1.8;
+   return out;
 }
 
 // ---------- the run ----------
 
 /** Seeded keeper offset steps (k in 0..5 each) and the 4 snack picks per stage. */
-export function seedLayout(seed: number): { offsets: number[]; snacks: number[][] } {
+export function seedLayout(seed: number, map: ZooMap = MAP_1): { offsets: number[]; snacks: number[][] } {
    const rng = { s: seed };
-   const offsets = KEEPERS.map(() => Math.floor(rngNext(rng) * KEEPER.offsets));
-   const snacks = SNACK_CANDIDATES.map((cands) => {
+   const offsets = map.keepers.map(() => Math.floor(rngNext(rng) * KEEPER.offsets));
+   const snacks = map.snacks.map((cands) => {
       const order = cands.map((_, i) => i);
       for (let i = order.length - 1; i > 0; i--) {
          const j = Math.floor(rngNext(rng) * (i + 1));
@@ -273,27 +344,35 @@ export function investigateFor(level: ZooLevel): Record<Kind, PatrolOptions> {
    };
 }
 
-export function createRun(seed: number, layout = seedLayout(seed), level: ZooLevel = LEVELS[1]): RunState {
-   const keepers = KEEPERS.map((def, i) => newKeeper(i, (CYCLES[def.stage] * layout.offsets[i]) / KEEPER.offsets));
+export function createRun(seed: number, layoutIn?: { offsets: number[]; snacks: number[][] }, level: ZooLevel = LEVELS[1]): RunState {
+   const map = level.map;
+   const layout = layoutIn ?? seedLayout(seed, map);
+   const keepers = map.keepers.map((def, i) => newKeeper(i, (map.cycles[def.stage] * layout.offsets[i]) / KEEPER.offsets, map));
    const inv = investigateFor(level);
    for (const k of keepers) k.inv = inv;
    const snacks: Snack[] = [];
    layout.snacks.forEach((picks, s) => {
-      for (const i of picks) snacks.push({ x: SNACK_CANDIDATES[s][i].x, z: SNACK_CANDIDATES[s][i].z, stage: s as StageIndex, eaten: false });
+      for (const i of picks) snacks.push({ x: map.snacks[s][i].x, z: map.snacks[s][i].z, stage: s as StageIndex, eaten: false });
    });
-   const lightKeeper = STAGE_KEEPERS[2][0];
-   const start = STAGES[0].start;
+   const phases = [0, 1, 2].map((s) => (map.stageKeepers[s].length ? keepers[map.stageKeepers[s][0]].offset : 0));
+   const ls = lightStageFor(map, 0);
+   const start = map.stages[0].start;
+   const jeeps = map.jeeps.map((j) => jeepPose(j, map.cycles[j.stage], phases[j.stage], { x: 0, z: 0, yaw: 0 }));
    return {
       level,
+      map,
+      phases,
+      jeeps,
+      birds: map.birds.map(() => ({ cool: 0, since: 99 })),
       seed,
       time: 0,
       timeLeft: CLOCK.startS,
-      panda: { x: start.x, y: 0, z: start.z, vx: 0, vz: 0, facing: Math.PI, speed: 0, sneaking: false, hidden: bushAt(start.x, start.z) },
+      panda: { x: start.x, y: 0, z: start.z, vx: 0, vz: 0, facing: Math.PI, speed: 0, sneaking: false, hidden: bushAt(start.x, start.z, map) },
       stage: 0,
       reached: 0,
-      bars: STAGES.map(() => false),
+      bars: map.stages.map(() => false),
       keepers,
-      light: { yaw: SEARCHLIGHT.baseYaw, meter: 0, seeing: false, lastSeen: { x: 0, y: 0, z: 0 }, phase: keepers[lightKeeper].offset },
+      light: { yaw: ls >= 0 ? map.lights[ls]!.baseYaw : 0, meter: 0, seeing: false, lastSeen: { x: 0, y: 0, z: 0 }, phase: ls >= 0 ? phases[ls] : 0 },
       snacks,
       eaten: 0,
       catches: 0,
@@ -305,7 +384,7 @@ export function createRun(seed: number, layout = seedLayout(seed), level: ZooLev
       lastCatch: null,
       lastCatcher: -2,
       over: null,
-      events: { snack: -1, caught: null, catcher: -1, stage: -1, thrown: false, landed: false, lured: -1, heard: -1, alerts: 0, rustle: false, bar: -1, cardEnd: false, end: null },
+      events: { snack: -1, caught: null, catcher: -1, stage: -1, thrown: false, landed: false, lured: -1, heard: -1, alerts: 0, squawk: -1, rustle: false, bar: -1, cardEnd: false, end: null },
    };
 }
 
@@ -316,27 +395,30 @@ export function finalScore(run: Pick<RunState, "eaten" | "catches" | "over" | "t
 }
 
 function clearEvents(e: RunEvents) {
-   e.snack = -1; e.caught = null; e.catcher = -1; e.stage = -1; e.thrown = false; e.landed = false; e.lured = -1; e.heard = -1; e.alerts = 0; e.rustle = false; e.bar = -1; e.cardEnd = false; e.end = null;
+   e.snack = -1; e.caught = null; e.catcher = -1; e.stage = -1; e.thrown = false; e.landed = false; e.lured = -1; e.heard = -1; e.alerts = 0; e.squawk = -1; e.rustle = false; e.bar = -1; e.cardEnd = false; e.end = null;
 }
 
 // ---------- movement ----------
 
 function overlapsSolid(run: RunState, x: number, z: number, r: number): boolean {
    const p = SCRATCH.o;
+   const { solids, bars } = run.map;
    p.x = x; p.y = 0.5; p.z = z;
-   for (let i = 0; i < SOLIDS.length; i++) if (sphereAabbOverlap(p, r, SOLIDS[i])) return true;
-   for (let i = 0; i < BARS.length; i++) if (run.bars[i] && sphereAabbOverlap(p, r, BARS[i])) return true;
+   for (let i = 0; i < solids.length; i++) if (sphereAabbOverlap(p, r, solids[i])) return true;
+   for (let i = 0; i < bars.length; i++) if (run.bars[i] && sphereAabbOverlap(p, r, bars[i])) return true;
    return false;
 }
 
-const MAP_BOX: AABB = { min: { x: MAP.x0, y: -10, z: MAP.z0 }, max: { x: MAP.x1, y: 10, z: MAP.z1 } };
+const MAP_BOX: AABB = { min: { x: 0, y: -10, z: 0 }, max: { x: 0, y: 10, z: 0 } };
 
 function resolve(run: RunState, p: { x: number; y: number; z: number }) {
+   const { solids, bars, box } = run.map;
    for (let pass = 0; pass < 2; pass++) {
-      for (let i = 0; i < SOLIDS.length; i++) resolveSphereAabb(p, PANDA.radius, SOLIDS[i], p);
-      for (let i = 0; i < BARS.length; i++) if (run.bars[i]) resolveSphereAabb(p, PANDA.radius, BARS[i], p);
+      for (let i = 0; i < solids.length; i++) resolveSphereAabb(p, PANDA.radius, solids[i], p);
+      for (let i = 0; i < bars.length; i++) if (run.bars[i]) resolveSphereAabb(p, PANDA.radius, bars[i], p);
       p.y = 0.5;
    }
+   MAP_BOX.min.x = box.x0; MAP_BOX.min.z = box.z0; MAP_BOX.max.x = box.x1; MAP_BOX.max.z = box.z1;
    clampToBounds(p, MAP_BOX, PANDA.radius, p);
    p.y = 0.5;
 }
@@ -378,30 +460,44 @@ export function movePanda(run: RunState, input: StepInput, dt: number): void {
 
 // ---------- toss ----------
 
-function freeForBundle(stage: StageIndex, x: number, z: number): boolean {
-   const b = STAGES[stage].bounds;
+function freeForBundle(stage: StageIndex, x: number, z: number, map: ZooMap): boolean {
+   const b = map.stages[stage].bounds;
    const c = TOSS.clearance;
    if (x < b.x0 + c || x > b.x1 - c || z < b.z0 + c || z > b.z1 - c) return false;
-   for (let i = 0; i < SOLIDS.length; i++) if (distanceToBoxXZ(x, z, SOLIDS[i]) < c) return false;
+   const solids = map.solids;
+   for (let i = 0; i < solids.length; i++) if (distanceToBoxXZ(x, z, solids[i]) < c) return false;
    return true;
 }
 
 /** Where a bundle thrown from (x, z) along `facing` lands: the last free point of the 4 m segment (0.1 m march). */
-export function tossLanding(stage: StageIndex, x: number, z: number, facing: number, out: { x: number; z: number }): { x: number; z: number } {
+export function tossLanding(stage: StageIndex, x: number, z: number, facing: number, out: { x: number; z: number }, map: ZooMap = MAP_1): { x: number; z: number } {
    const sx = Math.sin(facing), sz = Math.cos(facing);
    out.x = x; out.z = z;
    const steps = Math.round(TOSS.distance / TOSS.march);
    for (let i = 1; i <= steps; i++) {
       const px = x + sx * TOSS.march * i, pz = z + sz * TOSS.march * i;
-      if (!freeForBundle(stage, px, pz)) break;
+      if (!freeForBundle(stage, px, pz, map)) break;
       out.x = px; out.z = pz;
    }
    return out;
 }
 
+/** The nearest calm keeper of the run's stage within `range` of (x, z) (-1 none): it investigates there as `kind`. */
+function callKeeper(run: RunState, x: number, z: number, range: number, kind: Kind): number {
+   let best = -1, bestD = Infinity;
+   for (const i of run.map.stageKeepers[run.stage]) {
+      const k = run.keepers[i];
+      if (k.meter > 0 || (k.kind && PRIORITY[k.kind] > PRIORITY[kind])) continue;
+      const d = Math.hypot(k.agent.x - x, k.agent.z - z);
+      if (d <= range && d < bestD) { best = i; bestD = d; }
+   }
+   if (best >= 0) sendKeeper(run.keepers[best], { x, z }, kind);
+   return best;
+}
+
 function lure(run: RunState, x: number, z: number): number {
    let best = -1, bestD = Infinity;
-   for (const i of STAGE_KEEPERS[run.stage]) {
+   for (const i of run.map.stageKeepers[run.stage]) {
       const k = run.keepers[i];
       if (k.meter > 0 || (k.kind && PRIORITY[k.kind] > PRIORITY.bamboo)) continue;
       const d = Math.hypot(k.agent.x - x, k.agent.z - z);
@@ -417,7 +513,7 @@ function stepToss(run: RunState, wantToss: boolean, dt: number): void {
       run.bundlesLeft--;
       t.active = true; t.t = 0;
       t.from.x = pd.x; t.from.y = TOSS.launchHeight; t.from.z = pd.z;
-      const land = tossLanding(run.stage, pd.x, pd.z, pd.facing, SCRATCH.p);
+      const land = tossLanding(run.stage, pd.x, pd.z, pd.facing, SCRATCH.p, run.map);
       t.to.x = land.x; t.to.y = 0; t.to.z = land.z;
       launchForTime(t.from, t.to, TOSS.flight, { gravity: TOSS.gravity }, t.v);
       e.thrown = true;
@@ -440,18 +536,36 @@ export function hears(a: { x: number; z: number }, pd: { x: number; z: number; s
    return pd.speed > PANDA.moving && Math.hypot(a.x - pd.x, a.z - pd.z) <= (pd.sneaking ? HEARING.sneak : HEARING.walk);
 }
 
+const JEEP_BOX: AABB = { min: { x: 0, y: 0, z: 0 }, max: { x: 0, y: 0, z: 0 } };
+
 function detect(run: RunState, dt: number): void {
-   const pd = run.panda, e = run.events;
+   const pd = run.panda, e = run.events, map = run.map;
    const active = run.grace <= 0;
-   const hiddenBox = pd.hidden >= 0 ? BUSHES[pd.hidden].box : null;
-   for (const i of STAGE_KEEPERS[run.stage]) {
+   const hiddenBox = pd.hidden >= 0 ? map.bushes[pd.hidden].box : null;
+   if (active) {
+      for (let j = 0; j < map.jeeps.length && !e.caught; j++) {
+         if (map.jeeps[j].stage !== run.stage) continue;
+         if (distanceToBoxXZ(pd.x, pd.z, jeepBox(map.jeeps[j], run.jeeps[j], JEEP_BOX)) <= PANDA.radius) { e.caught = "jeep"; e.catcher = -3; }
+      }
+      for (let b = 0; b < map.birds.length; b++) {
+         const bird = map.birds[b], st = run.birds[b];
+         if (bird.stage !== run.stage || st.cool > 0) continue;
+         if (pd.speed > PANDA.moving && !pd.sneaking && Math.hypot(bird.x - pd.x, bird.z - pd.z) <= BIRDS.range) {
+            st.cool = BIRDS.cooldown; st.since = 0;
+            e.squawk = b;
+            const k = callKeeper(run, bird.x, bird.z, BIRDS.alertRange, "heard");
+            if (k >= 0) e.heard = k;
+         }
+      }
+   }
+   for (const i of map.stageKeepers[run.stage]) {
       const k = run.keepers[i];
       const a = k.agent;
       if (active && !e.caught) {
          if (circlesOverlapXZ(a, KEEPER.radius, pd, PANDA.radius)) { e.caught = "bump"; e.catcher = i; }
          else if (hiddenBox && distanceToBoxXZ(a.x, a.z, hiddenBox) <= KEEPER.radius) { e.caught = "found"; e.catcher = i; }
       }
-      const sees = active && pd.hidden < 0 && keeperSees(a, a.yaw, run.stage, pd);
+      const sees = active && pd.hidden < 0 && keeperSees(a, a.yaw, run.stage, pd, map);
       const was = k.meter;
       if (sees) {
          k.meter = Math.min(1, k.meter + dt / run.level.catchS);
@@ -468,9 +582,10 @@ function detect(run: RunState, dt: number): void {
          if (sendKeeper(k, pd, "heard")) e.heard = i;
       }
    }
-   if (run.stage === 2) {
+   const light = map.lights[run.stage];
+   if (light) {
       const l = run.light;
-      const sees = active && pd.hidden < 0 && searchlightSees(l.yaw, pd);
+      const sees = active && pd.hidden < 0 && searchlightSees(l.yaw, pd, light, map);
       if (sees) {
          l.meter = Math.min(1, l.meter + dt / run.level.catchS);
          l.lastSeen.x = pd.x; l.lastSeen.z = pd.z;
@@ -478,10 +593,10 @@ function detect(run: RunState, dt: number): void {
       } else {
          if (l.seeing && l.meter > 0 && l.meter < 1) {
             let best = -1, bestD = Infinity;
-            for (const i of STAGE_KEEPERS[2]) {
+            for (const i of map.stageKeepers[run.stage]) {
                const a = run.keepers[i].agent;
                const d = Math.hypot(a.x - l.lastSeen.x, a.z - l.lastSeen.z);
-               if (d <= SEARCHLIGHT.radioRange && d < bestD) { best = i; bestD = d; }
+               if (d <= light.radioRange && d < bestD) { best = i; bestD = d; }
             }
             if (best >= 0) sendKeeper(run.keepers[best], l.lastSeen, "radio");
          }
@@ -493,13 +608,14 @@ function detect(run: RunState, dt: number): void {
 
 function resetStage(run: RunState): void {
    const s = run.stage;
-   const start = STAGES[s].start;
+   const map = run.map;
+   const start = map.stages[s].start;
    const pd = run.panda;
    pd.x = start.x; pd.z = start.z; pd.vx = 0; pd.vz = 0; pd.speed = 0; pd.facing = Math.PI;
-   pd.hidden = bushAt(pd.x, pd.z);
-   for (const i of STAGE_KEEPERS[s]) {
+   pd.hidden = bushAt(pd.x, pd.z, map);
+   for (const i of map.stageKeepers[s]) {
       const k = run.keepers[i];
-      placeOnSchedule(k.agent, k.patrol, i, run.time + k.offset);
+      placeOnSchedule(k.agent, k.patrol, i, run.time + k.offset, map);
       k.meter = 0; k.seeing = false; k.kind = null; k.hearCooldown = 0;
    }
    run.light.meter = 0; run.light.seeing = false;
@@ -530,7 +646,14 @@ export function stepRun(run: RunState, input: StepInput, dt: number): void {
    run.timeLeft -= dt;
    if (run.timeLeft <= 0) { run.timeLeft = 0; run.over = "timeup"; e.end = "timeup"; return; }
    for (const k of run.keepers) stepKeeper(k, dt);
-   run.light.yaw = searchlightYaw(run.time, run.light.phase);
+   const map = run.map;
+   const ls = lightStageFor(map, run.stage);
+   if (ls >= 0) {
+      run.light.phase = run.phases[ls];
+      run.light.yaw = searchlightYaw(run.time, run.light.phase, map.lights[ls]!);
+   }
+   for (let j = 0; j < map.jeeps.length; j++) jeepPose(map.jeeps[j], map.cycles[map.jeeps[j].stage], run.time + run.phases[map.jeeps[j].stage], run.jeeps[j]);
+   for (const b of run.birds) { if (b.cool > 0) b.cool = Math.max(0, b.cool - dt); b.since += dt; }
 
    if (run.card > 0) {
       run.card -= dt;
@@ -541,12 +664,13 @@ export function stepRun(run: RunState, input: StepInput, dt: number): void {
 
    const pd = run.panda;
    movePanda(run, input, dt);
-   const hidden = bushAt(pd.x, pd.z);
+   const hidden = bushAt(pd.x, pd.z, map);
    if (hidden >= 0 && hidden !== pd.hidden) e.rustle = true;
    pd.hidden = hidden;
 
-   if (pd.z <= STAGES[2].gate.z) { run.over = "win"; e.end = "win"; return; }
-   const stage = stageAt(pd.z);
+   const stages = map.stages;
+   if (pd.z <= stages[2].gate.z) { run.over = "win"; e.end = "win"; return; }
+   const stage = stageOf(map, pd.z);
    if (stage !== run.stage) {
       run.stage = stage;
       run.toss.active = false;
@@ -557,8 +681,8 @@ export function stepRun(run: RunState, input: StepInput, dt: number): void {
       run.bundlesLeft = run.level.bundles;
       e.stage = stage;
    }
-   for (let g = 0; g < STAGES.length; g++) {
-      if (!run.bars[g] && pd.z <= STAGES[g].gate.z - BAR_DROP) { run.bars[g] = true; e.bar = g; }
+   for (let g = 0; g < stages.length; g++) {
+      if (!run.bars[g] && pd.z <= stages[g].gate.z - BAR_DROP) { run.bars[g] = true; e.bar = g; }
    }
 
    for (let i = 0; i < run.snacks.length; i++) {
@@ -584,7 +708,7 @@ export interface StoreLike {
 /** Store stats: the HUD chips (index.tsx hudStats) and the caught card's reason (0 = no card). */
 export const STATS = { time: "time", snacks: "snacks", catches: "catches", bamboo: "bamboo", card: "card" } as const;
 /** The caught card's reason as a store stat (1-based), for the DOM Hud. */
-export const CARD_CODES: Record<CatchReason, number> = { seen: 1, light: 2, found: 3, bump: 4 };
+export const CARD_CODES: Record<CatchReason, number> = { seen: 1, light: 2, found: 3, bump: 4, jeep: 5 };
 
 /**
  * This step's events into the store: the live score on every snack and catch, the HUD stats when

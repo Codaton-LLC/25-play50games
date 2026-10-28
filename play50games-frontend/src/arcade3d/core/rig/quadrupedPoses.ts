@@ -318,8 +318,23 @@ export interface QuadrupedGaitMix {
 
 const MIX: QuadrupedGaitMix = { walk: 1, trot: 0, gallop: 0, duty: 0.64, sweep: 0, offsets: [0, 0, 0, 0] };
 
+/**
+ * Optional gait tweaks (all default to the plain gait):
+ * - `walkOffsets`: the walk's landing times (QUAD_LEGS order FL, FR, HL, HR, cycle fractions);
+ *   DIAGONAL_WALK is a diagonal-sequence walk (HL, FR, HR, FL: each diagonal pair lands close
+ *   together), written so it blends into the trot without wrapping.
+ * - `pawFold`: scales how far a swinging paw folds (tilts toes down); a big flat paw looks better at 0.3-0.5.
+ */
+export interface QuadrupedGaitOptions {
+   walkOffsets?: readonly [number, number, number, number];
+   pawFold?: number;
+}
+
+/** A diagonal-sequence walk (HL 0, FR 0.25, HR 0.5, FL 0.75), FR written as 1.25 so it blends into the trot's 1.0. */
+export const DIAGONAL_WALK = [0.75, 1.25, 0, 0.5] as const;
+
 /** The blend of the three gaits at speed01 (walk to 0.3, trot 0.5-0.7, gallop from 0.9). Returns a shared object. */
-export function quadrupedGaitMix(speed01: number, lm: QuadrupedLandmarks): QuadrupedGaitMix {
+export function quadrupedGaitMix(speed01: number, lm: QuadrupedLandmarks, walkOffsets: readonly number[] = OFFSETS.walk): QuadrupedGaitMix {
    const s = Math.min(1, Math.max(0, speed01));
    const toTrot = smooth(0.3, 0.5, s);
    const gallop = smooth(0.7, 0.9, s);
@@ -332,7 +347,7 @@ export function quadrupedGaitMix(speed01: number, lm: QuadrupedLandmarks): Quadr
    // slow steps are short: the cadence stays lively at a stroll
    const amount = 0.35 + 0.65 * smooth(0, 0.25, s);
    MIX.sweep = (walk * SWEEP.walk + trot * SWEEP.trot + gallop * SWEEP.gallop) * amount * geometry(lm).legLen;
-   for (let l = 0; l < 4; l++) MIX.offsets[l] = walk * OFFSETS.walk[l] + trot * OFFSETS.trot[l] + gallop * OFFSETS.gallop[l];
+   for (let l = 0; l < 4; l++) MIX.offsets[l] = walk * walkOffsets[l] + trot * OFFSETS.trot[l] + gallop * OFFSETS.gallop[l];
    return MIX;
 }
 
@@ -394,9 +409,10 @@ function tail(g: Geo, out: QuadrupedPose, sway: number, wave: number, pitch: num
  * (one cycle = 2π). `turn` (-1..1, + = turning left) turns the head into the turn and the tail
  * out of it.
  */
-export function quadrupedGait(phase: number, speed01: number, lm: QuadrupedLandmarks, out: QuadrupedPose, turn = 0): QuadrupedPose {
+export function quadrupedGait(phase: number, speed01: number, lm: QuadrupedLandmarks, out: QuadrupedPose, turn = 0, options?: QuadrupedGaitOptions): QuadrupedPose {
    const g = geometry(lm);
-   const m = quadrupedGaitMix(speed01, lm);
+   const m = quadrupedGaitMix(speed01, lm, options?.walkOffsets);
+   const fold = options?.pawFold ?? 1;
    const { walk, trot, gallop, duty, sweep } = m;
    const L = g.legLen;
    const f = frac(phase / TAU);
@@ -439,7 +455,7 @@ export function quadrupedGait(phase: number, speed01: number, lm: QuadrupedLandm
          const u = (c - duty) / (1 - duty);
          dz = -sweep / 2 + sweep * (0.5 - 0.5 * Math.cos(Math.PI * u));
          const arc = Math.sin(Math.PI * u);
-         tilt = (leg.front ? 0.75 : 0.45) * arc * moving;
+         tilt = (leg.front ? 0.75 : 0.45) * arc * moving * fold;
          // the toes clear the ground: the ankle rises by the tilted toes' drop on top of the arc
          dy = lift * arc + leg.toeLen * Math.sin(tilt) * 1.1;
       }
@@ -526,6 +542,30 @@ export function quadrupedLeap(f: number, lm: QuadrupedLandmarks, out: QuadrupedP
       legTop(g, out, l);
       solveLeg(g, l, restZ + dz, restY + dy, TOPP, leg.front ? 0.5 * top : 0.6 * (1 - x), out);
    }
+   return out;
+}
+
+const CROUCH_ANKLES = new Float32Array(8);
+
+/**
+ * Crouches a finished pose (a gait, idle): the trunk drops by `drop` (GLB units) with the paws kept
+ * on their spots (every leg re-planted on its ankle point and paw tilt), and the neck dips by `dip`
+ * rad (+ = head down) so the animal sneaks low. drop 0 leaves the pose as it is.
+ */
+export function quadrupedCrouch(drop: number, dip: number, lm: QuadrupedLandmarks, out: QuadrupedPose): QuadrupedPose {
+   if (drop <= 0 && dip === 0) return out;
+   const g = geometry(lm);
+   const a = quadrupedAnkles(out, lm, CROUCH_ANKLES);
+   const r = out.rot;
+   for (let l = 0; l < 4; l++) {
+      const spec = QUAD_LEGS[l];
+      legTop(g, out, l);
+      target(l, a[l * 2], a[l * 2 + 1], r[spec.paw * 3] + TOPP + r[spec.upper * 3] + r[spec.lower * 3]);
+   }
+   out.lift -= Math.max(0, drop);
+   r[QBONE.neck * 3] += dip;
+   r[QBONE.head * 3] -= dip * 0.5;
+   plantAll(g, out);
    return out;
 }
 

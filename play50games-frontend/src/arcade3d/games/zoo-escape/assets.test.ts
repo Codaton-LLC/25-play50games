@@ -8,7 +8,7 @@ import { modelParts } from "@/arcade3d/core/assets";
 import { hasModel } from "@/arcade3d/core/modelManifest";
 import { readCharacterGlb } from "@/arcade3d/core/rig/robotGlb";
 import type { ModelAsset } from "@/arcade3d/core/types";
-import { ASSETS, BAMBOO_GLB, BRIDGE_GLB, BRIDGE_Y_OFFSET, BUSH_GLB, KEEPER_SCALE, KIOSK_GLB, PANDA_LENGTH, PROP_SIZE, SNACK_GLB, TOWER_GLB, ZOO_FOUNTAIN_DRAWN, ZOO_FOUNTAIN_GLB, ZOO_FOUNTAIN_SPOTS, ZOO_FOUNTAIN_WIDTH, ZOO_ROCK_SPOTS, ZOO_ROCKS_DRAWN, ZOO_ROCKS_GLB, ZOO_ROCKS_WIDTH } from "./assets";
+import { ASSETS, REUSED_UNIT, BAMBOO_GLB, BRIDGE_GLB, BRIDGE_Y_OFFSET, BUSH_GLB, KEEPER_SCALE, KIOSK_GLB, PANDA_LENGTH, PROP_SIZE, SNACK_GLB, TOWER_GLB, ZOO_FOUNTAIN_DRAWN, ZOO_FOUNTAIN_GLB, ZOO_FOUNTAIN_SPOTS, ZOO_FOUNTAIN_WIDTH, ZOO_ROCK_SPOTS, ZOO_ROCKS_DRAWN, ZOO_ROCKS_GLB, ZOO_ROCKS_WIDTH } from "./assets";
 import { DECOR, inPlayArea } from "./looks";
 
 async function drawnBox(asset: ModelAsset): Promise<Box3> {
@@ -200,6 +200,23 @@ describe("adopted batch-5 prop GLBs", () => {
          for (const rock of ZOO_ROCK_SPOTS) {
             expect(Math.hypot(spot.x - rock.x, spot.z - rock.z)).toBeGreaterThan(fountainR + 1.1);
          }
+      }
+   });
+   it("fits the reused level props (hut, crate, flower, Victorian lamp) from their measured GLB bounds", async () => {
+      for (const [key, size] of [["hut", REUSED_UNIT.hut], ["crate", REUSED_UNIT.crate], ["flower", REUSED_UNIT.flower], ["victorianLamp", REUSED_UNIT.victorianLamp]] as const) {
+         const asset = ASSETS[key];
+         expect(hasModel(asset.url), key).toBe(true);
+         const raw = await rawBox(asset);
+         expect(raw.max.y - raw.min.y, key).toBeCloseTo(size.height, 1);
+         expect(raw.max.x - raw.min.x, key).toBeCloseTo(size.width, 1);
+         expect(raw.max.z - raw.min.z, key).toBeCloseTo(size.depth, 1);
+      }
+      // hut and crate draw a 1 m unit cube the spots scale to the prop boxes
+      for (const key of ["hut", "crate"] as const) {
+         const drawn = await drawnBox(ASSETS[key]);
+         expect(drawn.max.y - drawn.min.y, key).toBeCloseTo(1, 1);
+         expect(drawn.max.x - drawn.min.x, key).toBeCloseTo(1, 1);
+         expect(drawn.max.z - drawn.min.z, key).toBeCloseTo(1, 1);
       }
    });
 });

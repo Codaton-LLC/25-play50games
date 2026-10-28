@@ -6,11 +6,11 @@
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { CATCH, STATS } from "./rules";
 import { useZooLevel } from "./useZooLevel";
+import { THEMES } from "./looks";
 import styles from "./Hud.module.css";
 import CameraViewButton from "@/arcade3d/core/camera/CameraViewButton";
 
-const REASONS = ["", "Spotted by a keeper!", "Caught in the searchlight!", "Found in the bush!", "Bumped into a keeper!"];
-const STAGE_NAMES = ["", "The enclosure", "Stage 2: the visitor plaza", "Stage 3: the parking lot at dusk"];
+const REASONS = ["", "Spotted by a keeper!", "Caught in the searchlight!", "Found in your hiding spot!", "Bumped into a keeper!", "Run over by the safari jeep!"];
 
 function GameHud() {
    const card = useArcadeStore((s) => s.stats[STATS.card] ?? 0);
@@ -23,7 +23,7 @@ function GameHud() {
       <>
          {live && level >= 2 && level <= 3 && (
             <div key={level} className={styles.toast} role="status">
-               {STAGE_NAMES[level]}
+               {THEMES[config.map.theme].stageNames[level - 1]}
             </div>
          )}
          {live && card > 0 && (

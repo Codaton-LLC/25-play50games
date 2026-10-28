@@ -266,3 +266,122 @@ export function contrastRatio(a: string, b: string): number {
    const lo = Math.min(lum(a), lum(b));
    return (hi + 0.05) / (lo + 0.05);
 }
+
+// ---------- per-level themes (drawing only; level.ts / maps.ts pick one per map) ----------
+
+export interface Theme {
+   /** the lighting preset per stage (null = the definition's day light) and the sky / fog colour while it is on */
+   lighting: readonly (LightingPreset | null)[];
+   sky: string;
+   skyTop: readonly string[];
+   skyBottom: readonly string[];
+   /** ground per stage: base colour and the canvas mottling tones */
+   ground: readonly { base: string; tones: readonly string[]; paved?: boolean }[];
+   /** outer ground beyond the stages */
+   outer: string;
+   path: string;
+   /** fence look: wooden rails, savanna poles, aviary nets, iron railings */
+   fence: { post: string; rail: string; style: "rail" | "net" | "iron" };
+   /** the stage toasts (stages 2 and 3) */
+   stageNames: readonly [string, string, string];
+   /** lamp heads / halos glow from this stage on (99 = never) */
+   lampsFrom: number;
+}
+
+const DAY_SKY = [COLORS.skyTop, COLORS.skyTop, COLORS.skyTop] as const;
+const DAY_HORIZON = [COLORS.skyBottom, COLORS.skyBottom, COLORS.skyBottom] as const;
+
+export const THEMES: Record<"enclosure" | "safari" | "garden" | "central" | "night", Theme> = {
+   // level 1: today's look (stage 3 at dusk)
+   enclosure: {
+      lighting: [null, null, "sunset"],
+      sky: COLORS.fogDusk,
+      skyTop: [COLORS.skyTop, COLORS.skyTop, COLORS.skyDuskTop],
+      skyBottom: [COLORS.skyBottom, COLORS.skyBottom, COLORS.skyDuskBottom],
+      ground: [
+         { base: COLORS.grass, tones: [COLORS.grassSun, COLORS.grassShade, COLORS.grassDeep, COLORS.earth] },
+         { base: COLORS.paving, tones: [COLORS.path], paved: true },
+         { base: COLORS.asphalt, tones: [], paved: true },
+      ],
+      outer: COLORS.grass,
+      path: COLORS.path,
+      fence: { post: COLORS.post, rail: COLORS.rail, style: "rail" },
+      stageNames: ["The enclosure", "Stage 2: the visitor plaza", "Stage 3: the parking lot at dusk"],
+      lampsFrom: 2,
+   },
+   // level 2: golden savanna under a hot afternoon sky, dusty tracks
+   safari: {
+      lighting: [null, null, null],
+      sky: "#fde68a",
+      skyTop: ["#38bdf8", "#38bdf8", "#38bdf8"],
+      skyBottom: ["#fde68a", "#fde68a", "#fde68a"],
+      ground: [
+         { base: "#c9a94a", tones: ["#e0c068", "#a88a36", "#b8963e", "#8a6a2c"] },
+         { base: "#bf9c45", tones: ["#d8b65e", "#9c7e33", "#a8873a"] },
+         { base: "#b59547", tones: ["#cdaa58", "#8f7434", "#a1843d"] },
+      ],
+      outer: "#b8963e",
+      path: "#c08a52",
+      fence: { post: "#6b4423", rail: "#8b5a2b", style: "rail" },
+      stageNames: ["The savanna paddock", "Stage 2: the safari track", "Stage 3: the ranger camp"],
+      lampsFrom: 99,
+   },
+   // level 3: lush lawns, gravel walks, aviary nets, ponds
+   garden: {
+      lighting: [null, null, null],
+      sky: "#bbf7d0",
+      skyTop: ["#0ea5e9", "#0ea5e9", "#0ea5e9"],
+      skyBottom: ["#d9f99d", "#d9f99d", "#d9f99d"],
+      ground: [
+         { base: "#3f9d4f", tones: ["#5cc46b", "#2f7d3e", "#78d07f", "#a3e635"] },
+         { base: "#3a9449", tones: ["#57bd66", "#2b7339", "#86efac"] },
+         { base: "#35904a", tones: ["#4fb563", "#286e37", "#6ee7b7"] },
+      ],
+      outer: "#3a9449",
+      path: "#e7dcc8",
+      fence: { post: "#334155", rail: "#cbd5e1", style: "net" },
+      stageNames: ["The aviary walk", "Stage 2: the flamingo ponds", "Stage 3: swan lake"],
+      lampsFrom: 99,
+   },
+   // level 4: paved plazas and the main gate; the last stage at dusk
+   central: {
+      lighting: [null, null, "sunset"],
+      sky: COLORS.fogDusk,
+      skyTop: [COLORS.skyTop, COLORS.skyTop, COLORS.skyDuskTop],
+      skyBottom: [COLORS.skyBottom, COLORS.skyBottom, COLORS.skyDuskBottom],
+      ground: [
+         { base: "#d6c4a8", tones: ["#e9dcc5", "#c2ad8d"], paved: true },
+         { base: "#e2d3bb", tones: ["#cdb796", "#f1e6d2"], paved: true },
+         { base: "#c9b79a", tones: ["#b7a283", "#ddd0b8"], paved: true },
+      ],
+      outer: COLORS.grass,
+      path: "#b45309",
+      fence: { post: "#1f2937", rail: "#374151", style: "iron" },
+      stageNames: ["The panda house terrace", "Stage 2: the central plaza", "Stage 3: the main gate at dusk"],
+      lampsFrom: 2,
+   },
+   // level 5: night on every stage, lamps lit, searchlights sweeping
+   night: {
+      lighting: ["night", "night", "night"],
+      sky: "#0b1020",
+      skyTop: ["#020617", "#020617", "#020617"],
+      skyBottom: ["#1e1b4b", "#1e1b4b", "#1e1b4b"],
+      ground: [
+         { base: "#1f4d33", tones: ["#2a6142", "#173d29", "#30573a"] },
+         { base: "#3b4252", tones: ["#4a5263"], paved: true },
+         { base: "#1e2533", tones: [], paved: true },
+      ],
+      outer: "#173d29",
+      path: "#64748b",
+      fence: { post: "#1f2937", rail: "#475569", style: "iron" },
+      stageNames: ["The panda house at night", "Stage 2: the moonlit plaza", "Stage 3: the back gate"],
+      lampsFrom: 0,
+   },
+};
+
+/** The sky dome colours and the lighting preset of a theme's stage. */
+export const themeStage = (theme: Theme, stage: number) => ({
+   lighting: theme.lighting[stage] ?? null,
+   top: theme.skyTop[stage] ?? DAY_SKY[0],
+   bottom: theme.skyBottom[stage] ?? DAY_HORIZON[0],
+});
