@@ -57,8 +57,11 @@ first version also turned right with C). A game can pass its own `orbitKeys`.
 
 - Switches blend in 0.65 s round the hero (yaw the short way, pitch, distance, look point, lens shift),
   so chase → front swings past the hero's side, never through it.
-- Camera collision: with `solids`, any non-default view pulls the camera in front of the first box
-  between the hero and the camera (in at once, out slowly).
+- Camera collision: with `solids`, the chase, front and free views pull the camera in front of the
+  first box between the hero and the camera (in at once, out slowly). `VIEW_COLLISION`: a box the ray
+  meets within 1 m of the pivot is beside the hero (a wall it leans on, a parked van) and does not
+  count, and the camera stays at least 2.2 m out, so it never ends up inside the hero's head. The top
+  view looks down past every wall and ignores the solids.
 - The cookie banner: non-default views lift the picture above it with the same lens shift as the
   Menu 2 orbit. The default view keeps the game's own fitted shift.
 

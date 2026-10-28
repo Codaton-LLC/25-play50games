@@ -3,6 +3,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { inputToWorld } from "@/arcade3d/core/math";
 import { createOrbit, orbitDirection, orbitSnap, stepOrbit, wrapAngle } from "./orbit";
+import { clipOrbitDistance } from "./orbitCollision";
 import {
    CAMERA_PREFS_KEY,
    cameraPrefs,
@@ -195,6 +196,18 @@ describe("camera prefs and signals", () => {
       noteCameraTurned();
       noteCameraTurned();
       expect(cameraTurned()).toBe(1);
+   });
+});
+
+describe("view collision", () => {
+   it("a box right beside the hero does not pull the camera into its head; one further back does", () => {
+      const van = { min: { x: -2, y: 0, z: 0.5 }, max: { x: 2, y: 2.2, z: 4 } }; // starts 0.5 m behind the hero
+      const dir = orbitDirection(0, 22 * DEG, { x: 0, y: 0, z: 0 });
+      const opts = { radius: 0.3, minDistance: 2.2, ignoreNear: 1 };
+      expect(clipOrbitDistance(0, 1.1, 0, dir.x, dir.y, dir.z, 6, [van], 1, opts)).toBe(6);
+      expect(clipOrbitDistance(0, 1.1, 0, dir.x, dir.y, dir.z, 6, [van], 1)).toBeLessThan(1.3); // Menu 2's default: every box
+      const wall = { min: { x: -2, y: 0, z: 3 }, max: { x: 2, y: 4, z: 3.3 } };
+      expect(clipOrbitDistance(0, 1.1, 0, dir.x, dir.y, dir.z, 6, [wall], 1, opts)).toBeCloseTo((3 - 0.3) / Math.cos(22 * DEG), 6);
    });
 });
 

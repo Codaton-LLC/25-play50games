@@ -62,6 +62,8 @@ import {
 export const CAMERA_VIEWS_PRIORITY = FRAME_PRIORITY.camera + 0.005;
 /** Puts the rig's pose back, after the simulation and before CameraRig. */
 export const CAMERA_VIEWS_RESTORE_PRIORITY = FRAME_PRIORITY.camera - 0.005;
+/** The views' collision: a box right beside the hero never pulls the camera into its head. */
+export const VIEW_COLLISION: ClipOptions = { radius: 0.3, minDistance: 2.2, ignoreNear: 1 };
 /** Most boxes the collision considers per frame. */
 export const VIEW_SOLIDS_MAX = 256;
 
@@ -423,13 +425,14 @@ export function useCameraViews(options: CameraViewsOptions): CameraViewsHandle {
          return;
       }
 
-      // collision: a solid between the pivot and the camera pulls it in (not in the default view)
+      // collision: a solid between the pivot and the camera pulls it in (not in the default view, nor
+      // in the top view, which looks down past every wall)
       orbitDirection(s.drawn.yaw, s.drawn.pitch, s.dir);
       let d = s.drawn.distance;
-      if (o.solids && s.view !== "default") {
+      if (o.solids && s.view !== "default" && s.view !== "top") {
          if (s.boxes.length === 0) for (let i = 0; i < VIEW_SOLIDS_MAX; i++) s.boxes.push({ min: { x: 0, y: 0, z: 0 }, max: { x: 0, y: 0, z: 0 } });
          const n = Math.min(VIEW_SOLIDS_MAX, o.solids(s.boxes));
-         const clipped = clipOrbitDistance(p.x, p.y, p.z, s.dir.x, s.dir.y, s.dir.z, d, s.boxes, n, o.collision);
+         const clipped = clipOrbitDistance(p.x, p.y, p.z, s.dir.x, s.dir.y, s.dir.z, d, s.boxes, n, o.collision ?? VIEW_COLLISION);
          s.clip = Number.isFinite(s.clip) ? stepOrbitClip(s.clip, clipped, dt) : clipped;
          d = Math.min(d, s.clip);
       }

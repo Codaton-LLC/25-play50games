@@ -73,6 +73,12 @@ export interface ClipOptions {
    radius?: number;
    /** never closer to the pivot than this (m). Default 1.2 */
    minDistance?: number;
+   /**
+    * a box the ray enters closer to the pivot than this (m) is beside the hero (it stands against a
+    * wall or a parked van), not between the hero and the camera: it does not pull the camera in.
+    * Default 0 (every box counts, as in Menu 2)
+    */
+   ignoreNear?: number;
 }
 
 /**
@@ -93,11 +99,12 @@ export function clipOrbitDistance(
 ): number {
    const radius = options.radius ?? 0.3;
    const minDistance = Math.min(distance, options.minDistance ?? 1.2);
+   const near = options.ignoreNear ?? 0;
    let best = distance;
    const n = Math.min(count, boxes.length);
    for (let i = 0; i < n; i++) {
       const t = rayBoxDistance(px, py, pz, dx, dy, dz, best, boxes[i], radius);
-      if (t >= 0 && t < best) best = t;
+      if (t >= near && t < best) best = t;
    }
    return Math.max(minDistance, best);
 }
