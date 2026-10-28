@@ -1106,47 +1106,17 @@
     "robot-factory-run": {
       "title": "Robot Factory Run",
       "kind": "time",
-      "max_score": 8570,
-      "min_duration_ms": 4300,
+      "max_score": 8280,
+      "min_duration_ms": 7200,
       "max_duration_ms": 90000,
       "time_base_ms": 90000,
       "enabled": false,
       "levels": [
-        {
-          "title": "Assembly Start",
-          "max_score": 8570,
-          "min_duration_ms": 4300,
-          "max_duration_ms": 90000,
-          "time_base_ms": 90000
-        },
-        {
-          "title": "Conveyor Hall",
-          "max_score": 10074,
-          "min_duration_ms": 9260,
-          "max_duration_ms": 110000,
-          "time_base_ms": 110000
-        },
-        {
-          "title": "Robot Arms",
-          "max_score": 11074,
-          "min_duration_ms": 9260,
-          "max_duration_ms": 120000,
-          "time_base_ms": 120000
-        },
-        {
-          "title": "Laser Line",
-          "max_score": 13078,
-          "min_duration_ms": 9220,
-          "max_duration_ms": 140000,
-          "time_base_ms": 140000
-        },
-        {
-          "title": "Factory Overdrive",
-          "max_score": 22373,
-          "min_duration_ms": 16270,
-          "max_duration_ms": 240000,
-          "time_base_ms": 240000
-        }
+        { "title": "Assembly Start", "max_score": 8280, "min_duration_ms": 7200, "max_duration_ms": 90000, "time_base_ms": 90000 },
+        { "title": "Conveyor Hall", "max_score": 9650, "min_duration_ms": 13500, "max_duration_ms": 110000, "time_base_ms": 110000 },
+        { "title": "Robot Arms", "max_score": 11170, "min_duration_ms": 8300, "max_duration_ms": 120000, "time_base_ms": 120000 },
+        { "title": "Laser Line", "max_score": 12910, "min_duration_ms": 10900, "max_duration_ms": 140000, "time_base_ms": 140000 },
+        { "title": "Factory Overdrive", "max_score": 22490, "min_duration_ms": 15100, "max_duration_ms": 240000, "time_base_ms": 240000 }
       ]
     }
   }

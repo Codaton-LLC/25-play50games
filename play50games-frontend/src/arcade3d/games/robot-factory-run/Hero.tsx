@@ -1,39 +1,93 @@
 "use client";
+
+// The picked hero on the factory floor, animated by the shared Menu 2 animator (menu2/heroAnim):
+// walk / run with the belt's push, jump, Nami's flip, the roll-drop (the armoured ball), a hit's
+// recoil, the cheer at the exit; the intro drops it in curled up. A blob shadow follows it.
 import { useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
-import type { Group } from "three";
-import { AnimatedHero, createHeroMotion, useHeroAnimator } from "../../menu2/heroAnim";
-import { FRAME_PRIORITY } from "../../core/frameLoop";
-import { useShellIntro } from "../../core/intro";
-import type { FactoryRun } from "./rules";
-export function Hero({ run }: {
-   run: FactoryRun;
-}) {
+import type { Group, Mesh, MeshBasicMaterial } from "three";
+import { FRAME_PRIORITY } from "@/arcade3d/core/frameLoop";
+import { useGameTime } from "@/arcade3d/core/gameTime";
+import { AnimatedHero, createHeroMotion, useHeroAnimator, type HeroMotion } from "@/arcade3d/menu2/heroAnim";
+import { V_JUMP, V_WALK, groundAt, type FactoryRun } from "./rules";
+
+export interface HeroAnim {
+   winAt: number;
+   intro: number;
+}
+
+export function createHeroAnim(): HeroAnim {
+   return { winAt: Number.POSITIVE_INFINITY, intro: Number.NaN };
+}
+
+/** The animator's motion for this frame (pure: assets.test.ts drives it). */
+export function writeHeroMotion(m: HeroMotion, run: FactoryRun, anim: HeroAnim, now: number): void {
+   const h = run.hero;
+   const e = run.events;
+   const ms = run.simMs;
+   m.vx = h.vx;
+   m.vy = h.vy;
+   m.vz = h.vz;
+   m.grounded = h.grounded;
+   m.power = ms <= h.dashUntil ? "dash" : ms <= h.shieldUntil ? "shield" : ms <= h.magnetUntil ? "magnet" : ms <= h.phaseUntil ? "phase" : null;
+   m.rolling = h.dropping || (!Number.isNaN(anim.intro) && anim.intro < 0.97);
+   m.celebrating = now >= anim.winAt;
+   m.defeated = false;
+   if (e.airJumped) m.events.airJumped = true;
+   else if (e.jumped) m.events.jumped = true;
+   if (e.landed) {
+      m.events.landed = true;
+      m.events.landSpeed = h.dropping ? 14 : 6;
+   }
+   if (e.hurt) {
+      m.events.hurt = true;
+      m.events.hurtX = h.vx;
+      m.events.hurtZ = h.vz;
+   }
+}
+
+export function Hero({ run, anim }: { run: FactoryRun; anim: HeroAnim }) {
+   const time = useGameTime();
    const root = useRef<Group>(null);
+   const shadow = useRef<Mesh>(null);
    const motion = useMemo(createHeroMotion, []);
-   const anim = useHeroAnimator(run.heroId, motion, { topSpeed: 6.4, jumpSpeed: 8 });
-   const intro = useShellIntro();
+   const animator = useHeroAnimator(run.heroId, motion, { topSpeed: V_WALK + 2.5, jumpSpeed: V_JUMP, yaw: Math.PI });
    useFrame(() => {
-      const h = run.hero;
-      const e = run.events;
-      const landing = intro?.session && !intro.ready ? intro.hero.current : 1;
-      motion.vx = h.vx;
-      motion.vz = h.vz;
-      motion.vy = h.vy;
-      motion.grounded = h.grounded && landing >= 0.97;
-      motion.rolling = h.roll || landing < 0.97;
-      motion.celebrating = run.ended === "win";
-      motion.defeated = run.ended === "lose";
-      motion.power = h.powerUntil > run.simMs ? ({ riko: "dash", nami: "doubleJump", kiro: "shield", zuno: "magnet", vexa: "phase" } as const)[run.heroId] : null;
-      motion.events.jumped = e.jump;
-      motion.events.airJumped = e.jump && !h.airJump;
-      motion.events.landed = e.land;
-      motion.events.landSpeed = 8;
-      motion.events.hurt = e.hit;
-      if (root.current) {
-         root.current.position.set(h.x, h.y + 8 * (1 - landing) ** 2, h.z);
-         root.current.visible = landing > 0.001;
-      }
+      writeHeroMotion(motion, run, anim, time.now);
    }, FRAME_PRIORITY.camera + 0.1);
-   return <group ref={root}><AnimatedHero animator={anim}/></group>;
+   useFrame(() => {
+      const g = root.current;
+      if (!g) return;
+      const h = run.hero;
+      let y = h.y;
+      let visible = true;
+      if (!Number.isNaN(anim.intro)) {
+         const k = anim.intro;
+         if (k <= 0.001) visible = false;
+         y += 14 * (1 - k) * (1 - k);
+      }
+      g.visible = visible;
+      g.position.set(h.x, y, h.z);
+      const sh = shadow.current;
+      if (sh) {
+         const top = groundAt(run, h.x, h.z, h.y + 0.05);
+         const above = y - top;
+         sh.visible = visible && above < 10;
+         sh.position.set(h.x, top + 0.05, h.z);
+         const k = Math.max(0.35, 1 - above / 6);
+         sh.scale.setScalar(k);
+         (sh.material as MeshBasicMaterial).opacity = 0.4 * k;
+      }
+   });
+   return (
+      <>
+         <group ref={root}>
+            <AnimatedHero animator={animator} />
+         </group>
+         <mesh ref={shadow} rotation-x={-Math.PI / 2} renderOrder={1}>
+            <circleGeometry args={[0.45, 24]} />
+            <meshBasicMaterial color="#0d0b0a" transparent opacity={0.4} depthWrite={false} />
+         </mesh>
+      </>
+   );
 }

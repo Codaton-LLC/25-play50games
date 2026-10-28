@@ -1,19 +1,55 @@
-import type { ModelAsset } from "../../core/types";
-import { heroModelAsset } from "../../menu2/heroModels";
+// Robot Factory Run's models (public/models/3d/robot-factory-run, from ready/menu2/robot-factory-run
+// and the shared Menu 2 set). The heroes are menu2/heroModels. Every GLB is one mesh, feet on y = 0,
+// centred on x and z; GLB_SIZE is the measured bounds (assets.test.ts re-measures them).
+import { heroModelAsset } from "@/arcade3d/menu2/heroModels";
+import type { ModelAsset } from "@/arcade3d/core/types";
+import { CHARACTER_BUDGET, PROP_BUDGET } from "@/arcade3d/core/sharedAssets";
+
+export const GLB_SIZE = {
+   conveyor: { x: 1.9, y: 0.568, z: 0.802 },
+   turntable: { x: 1.857, y: 0.614, z: 1.901 },
+   crate: { x: 1.885, y: 1.229, z: 1.832 },
+   hall: { x: 1.92, y: 1.265, z: 0.288 },
+   press: { x: 1.198, y: 1.903, z: 1.142 },
+   laser: { x: 1.903, y: 1.551, z: 0.844 },
+   arm: { x: 0.738, y: 1.897, z: 1.775 },
+   catwalk: { x: 0.741, y: 0.342, z: 1.898 },
+   tread: { x: 1.748, y: 1.906, z: 1.004 },
+   patrol: { x: 1.567, y: 1.897, z: 0.802 },
+   drone: { x: 1.9, y: 1.82, z: 0.857 },
+   boss: { x: 1.689, y: 1.9, z: 0.936 },
+   cell: { x: 0.992, y: 1.895, z: 0.997 },
+   gem: { x: 1.865, y: 1.868, z: 1.888 },
+} as const;
+
+/** M-8 stands this tall (m). */
+export const BOSS_HEIGHT = 6.2;
+/** a power cell is drawn this tall; an orb (the energy gem) this wide */
+export const CELL_HEIGHT = 0.75;
+export const ORB_SIZE = 0.55;
+
+const prop = (id: string, color: string, budget = PROP_BUDGET): ModelAsset => ({
+   id,
+   url: `/models/3d/robot-factory-run/${id}.glb`,
+   fallback: "box",
+   fallbackColor: color,
+   budget,
+});
+
 export const ASSETS: Record<string, ModelAsset> = {
    hero: heroModelAsset("riko"),
-   conveyor: { id: "m2Conveyor", url: "/models/3d/robot-factory-run/m2Conveyor.glb", scale: 1.052631579, fallback: "box", fallbackColor: "#dc6650", budget: { tris: 3000, bytes: 152992 } },
-   turntable: { id: "m2ConveyorTurntable", url: "/models/3d/robot-factory-run/m2ConveyorTurntable.glb", scale: 1.052077854, fallback: "box", fallbackColor: "#dc6650", budget: { tris: 3000, bytes: 109152 } },
-   crate: { id: "m2FactoryCrate", url: "/models/3d/robot-factory-run/m2FactoryCrate.glb", scale: 0.689655172, fallback: "box", fallbackColor: "#dc6650", budget: { tris: 1500, bytes: 85484 } },
-   hall: { id: "m2FactoryHallBg", url: "/models/3d/robot-factory-run/m2FactoryHallBg.glb", scale: 12.506513809, fallback: "box", fallbackColor: "#dc6650", budget: { tris: 3000, bytes: 150172 } },
-   press: { id: "m2HydraulicPress", url: "/models/3d/robot-factory-run/m2HydraulicPress.glb", scale: 1.471361009, fallback: "box", fallbackColor: "#dc6650", budget: { tris: 3000, bytes: 147604 } },
-   laser: { id: "m2LaserGate", url: "/models/3d/robot-factory-run/m2LaserGate.glb", scale: 1.261166579, fallback: "box", fallbackColor: "#dc6650", budget: { tris: 1500, bytes: 85532 } },
-   arm: { id: "m2RobotArm", url: "/models/3d/robot-factory-run/m2RobotArm.glb", scale: 1.370585134, fallback: "box", fallbackColor: "#dc6650", budget: { tris: 1500, bytes: 127472 } },
-   catwalk: { id: "m2SteelCatwalk", url: "/models/3d/robot-factory-run/m2SteelCatwalk.glb", scale: 1.053740780, fallback: "box", fallbackColor: "#dc6650", budget: { tris: 3000, bytes: 122208 } },
-   tread: { id: "m2TreadBot", url: "/models/3d/robot-factory-run/m2TreadBot.glb", scale: 0.682056663, fallback: "box", fallbackColor: "#dc6650", budget: { tris: 3000, bytes: 189108 } },
-   patrol: { id: "m2PatrolBot", url: "/models/3d/robot-factory-run/m2PatrolBot.glb", scale: 0.790722193, fallback: "box", fallbackColor: "#dc6650", budget: { tris: 18000, bytes: 486060 } },
-   drone: { id: "m2FactoryDrone", url: "/models/3d/robot-factory-run/m2FactoryDrone.glb", scale: 0.736842105, fallback: "box", fallbackColor: "#dc6650", budget: { tris: 18000, bytes: 521660 } },
-   boss: { id: "m2MegaRobotBoss", url: "/models/3d/robot-factory-run/m2MegaRobotBoss.glb", scale: 2.526315789, fallback: "box", fallbackColor: "#dc6650", budget: { tris: 18000, bytes: 577896 } },
-   cell: { id: "m2PowerCell", url: "/models/3d/robot-factory-run/m2PowerCell.glb", scale: 0.448548813, fallback: "box", fallbackColor: "#dc6650", budget: { tris: 1500, bytes: 49704 } },
-   gem: { id: "m2EnergyGem", url: "/models/3d/robot-factory-run/m2EnergyGem.glb", scale: 0.238221281, fallback: "box", fallbackColor: "#dc6650", budget: { tris: 1500, bytes: 77824 } },
+   conveyor: prop("m2Conveyor", "#6b7280"),
+   turntable: prop("m2ConveyorTurntable", "#9ca3af"),
+   crate: prop("m2FactoryCrate", "#78716c"),
+   hall: prop("m2FactoryHallBg", "#44403c"),
+   press: prop("m2HydraulicPress", "#a8a29e"),
+   laser: prop("m2LaserGate", "#ef4444"),
+   arm: prop("m2RobotArm", "#f97316"),
+   catwalk: prop("m2SteelCatwalk", "#9ca3af"),
+   tread: prop("m2TreadBot", "#57534e", CHARACTER_BUDGET),
+   patrol: prop("m2PatrolBot", "#57534e", CHARACTER_BUDGET),
+   drone: prop("m2FactoryDrone", "#57534e", CHARACTER_BUDGET),
+   boss: prop("m2MegaRobotBoss", "#57534e", CHARACTER_BUDGET),
+   cell: prop("m2PowerCell", "#ef4444"),
+   gem: prop("m2EnergyGem", "#f87171"),
 };
