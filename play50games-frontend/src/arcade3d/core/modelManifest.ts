@@ -220,6 +220,17 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/plate-surf/m2SeaRock.glb",
    "/models/3d/plate-surf/m2SlimeBlob.glb",
    "/models/3d/plate-surf/m2SurfPlateI.glb",
+   // Menu 2 game 27 (Ring Jump Challenge): the canyon set from ~/.play50/hyper3d/ready/menu2/ring-jump-challenge
+   // (Cyclone Ray, the L5 boss, included), m2SeaRock from plate-surf and the root spikedBall
+   "/models/3d/ring-jump-challenge/m2ColumnPlatform.glb",
+   "/models/3d/ring-jump-challenge/m2CycloneRayBoss.glb",
+   "/models/3d/ring-jump-challenge/m2NeutralRing.glb",
+   "/models/3d/ring-jump-challenge/m2NeutralStar.glb",
+   "/models/3d/ring-jump-challenge/m2SeaRock.glb",
+   "/models/3d/ring-jump-challenge/m2SpeedBoost.glb",
+   "/models/3d/ring-jump-challenge/m2SpringPad.glb",
+   "/models/3d/ring-jump-challenge/m2StoneRingBg.glb",
+   "/models/3d/ring-jump-challenge/spikedBall.glb",
    // Menu 2 game 43 (Roll Cannon Jump, W1): the big-top cannon set from ready/menu2/roll-cannon-jump
    "/models/3d/roll-cannon-jump/m2BalloonBunch.glb",
    "/models/3d/roll-cannon-jump/m2BigTopTentBg.glb",

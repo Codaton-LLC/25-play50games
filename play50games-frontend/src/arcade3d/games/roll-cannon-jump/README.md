@@ -173,8 +173,8 @@ camera (the card: one tent). Never ranked.
   for free, so it is 2-5 s under the bot in ms (L5's arena run-in only 2.6 s); in points the bot still
   reaches 86-95 %. A tighter bound would need walls in the flight model.
 - **Order 60:** `registry.sync.test.ts` now asks for strictly rising orders after the 50 Menu 1 games
-  (it asked for orders = positions), because ring-jump-challenge (58) and wind-tunnel-escape (59) are
-  not on the slice yet. Revert to the strict form once they land.
+  (it asked for orders = positions), because wind-tunnel-escape (59) is not built yet
+  (ring-jump-challenge 58 is in; wind-tunnel-escape 59 is not on the slice yet). Revert to the strict form once it lands.
 - **Multiplayer level 5:** each player fights their own Ashbag; the scene draws player 1's show (its
   boss, its aim preview and power ring). The card's co-op "catcher" (a friend in a moving cannon
   firing you on) and the two-hero gate are not built; versus uses one lane, not mirrored lanes.
