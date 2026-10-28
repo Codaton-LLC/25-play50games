@@ -66,4 +66,5 @@ export const GAME_LOADERS: Record<ArcadeSlug, () => Promise<GameModule>> = {
    "plate-surf": () => import("./games/plate-surf"),
    "zipline-rush": () => import("./games/zipline-rush"),
    "ring-jump-challenge": () => import("./games/ring-jump-challenge"),
+   "robot-factory-run": () => import("./games/robot-factory-run"),
 };

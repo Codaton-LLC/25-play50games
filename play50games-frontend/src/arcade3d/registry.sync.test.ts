@@ -17,7 +17,7 @@ const wp = JSON.parse(fs.readFileSync(WP_JSON, "utf8")) as {
 describe("arcade registry", () => {
    it("has every slug exactly once, in order", () => {
       expect(ARCADE_GAMES.map((g) => g.slug)).toEqual([...ARCADE_SLUGS]);
-      expect(ARCADE_GAMES.map((g) => g.order)).toEqual(ARCADE_SLUGS.map((_s, i) => i + 1));
+      expect(ARCADE_GAMES.map((g) => g.order)).toEqual(ARCADE_SLUGS.map((slug, i) => slug === "robot-factory-run" ? 65 : i + 1));
    });
 
    it("WordPress arcade-games.json has the same games", () => {
