@@ -259,7 +259,7 @@ TASK P-18-museum-guard | build museum-guard | branch cursor/game-museum-guard | 
 - `looks.ts`, `looks.test.ts` — palette, eye band, radar rects
 - `assets.ts`, `assets.test.ts` — GLB fits on the real meshes
 - `Scene.tsx`, `Gallery.tsx`, `Primitives.tsx`, `Hud.tsx`, `Hud.module.css`
-- `index.tsx`, `meta.ts` (controls text only; scoring and `status: "dev"` unchanged; thumbnail null)
+- `index.tsx`, `meta.ts` (controls text only; scoring and `status: "dev"` unchanged; thumbnail wired)
 - `tools/thumbs/inputs/museum-guard.mjs`
 - `assets.spec.json` left as the bust recipe; the bust is not loaded
 

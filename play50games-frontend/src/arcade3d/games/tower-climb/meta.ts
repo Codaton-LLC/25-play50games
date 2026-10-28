@@ -29,7 +29,7 @@ export const towerClimbMeta: ArcadeGameMeta = {
    slug: "tower-climb",
    title: "Tower Climb",
    tagline: "Jump higher. Do not look down.",
-   description: "Climb a tower of moving and falling platforms, grab coins and reach checkpoints.",
+   description: "Climb a tower of moving and falling platforms, grab coins and reach checkpoints. Jump higher and do not look down.",
    order: 7,
    status: "live",
    difficulty: 2,

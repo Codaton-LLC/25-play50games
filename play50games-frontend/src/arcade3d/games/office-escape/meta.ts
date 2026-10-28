@@ -18,7 +18,7 @@ export const officeEscapeMeta: ArcadeGameMeta = {
    slug: "office-escape",
    title: "Office Escape",
    tagline: "Late for the meeting. Run!",
-   description: "Sprint through the office, jump desks and dodge chairs. It gets faster every 20 seconds.",
+   description: "Sprint through the office, jump desks and dodge rolling chairs on the way to the big meeting. It gets faster every 20 seconds.",
    order: 3,
    status: "live",
    difficulty: 1,

@@ -14,7 +14,7 @@ export const obstacleRaceMeta: ArcadeGameMeta = {
    slug: "obstacle-race",
    title: "Obstacle Race",
    tagline: "Spinning bars, moving blocks, one finish line.",
-   description: "Race through a physics obstacle course. Beat your best time and climb the leaderboard.",
+   description: "Race through a physics obstacle course of spinning bars and moving blocks to the finish line. Beat your best time and climb the leaderboard.",
    order: 10,
    status: "live",
    difficulty: 2,
