@@ -1,9 +1,9 @@
 {
    "slug": "toy-store-night-shift",
    "universe": "play50-toy-world-premium",
-   "notes": "Adopted from menu1-toy-store-night-shift/ and shared/ (2026-10-25). Not used: toyShelf (small toys are baked onto its shelves), toyShelfEmpty (a paper-thin panel), toyBlocks (letters A / B on its faces). The shelf is toyShelfSolidT, the blocks are toyBlocksPlainT. The shared crate is the warehouse decor.",
+   "notes": "The night guard (charNightGuard) was dropped 2026-10-28: the hero is the rigged toy robot. Adopted from menu1-toy-store-night-shift/ and shared/ (2026-10-25). Not used: toyShelf (small toys are baked onto its shelves), toyShelfEmpty (a paper-thin panel), toyBlocks (letters A / B on its faces). The shelf is toyShelfSolidT, the blocks are toyBlocksPlainT. The shared crate is the warehouse decor.",
    "assets": [
-      { "id": "charNightGuard", "kind": "character", "file": "menu1-toy-store-night-shift/charNightGuard.glb", "budget": { "tris": 20000, "bytes": 1500000 } },
+      { "id": "toyRobotHero", "kind": "character", "rigged": true, "file": "hyper3d/raw-rig/toyRobotRigged.glb", "notes": "Hyper3D rigging of the toyRobot generation (52-bone skeleton, six baked clips). Skin reduced to 4 influences a vertex (three.js reads JOINTS_0 only), clips resampled, then tools/hyper3d import + optimize (rigged: no weld/simplify): 18000 tris, 1024 WebP, 901 KB.", "budget": { "tris": 20000, "bytes": 1500000 } },
       { "id": "toyShelfSolidT", "kind": "prop", "file": "menu1-toy-store-night-shift/toyShelfSolidT.glb", "budget": { "tris": 5000, "bytes": 300000 } },
       { "id": "teddyBear", "kind": "prop", "file": "menu1-toy-store-night-shift/teddyBear.glb", "budget": { "tris": 5000, "bytes": 300000 } },
       { "id": "toyCar", "kind": "prop", "file": "menu1-toy-store-night-shift/toyCar.glb", "budget": { "tris": 5000, "bytes": 300000 } },

@@ -2,14 +2,13 @@
 // Every fit comes from the measured GLB bounds below (Rodin makes the longest side about 1.9);
 // assets.test.ts checks the drawn size on the real meshes. Props stand on y = 0, centred on x / z.
 import type { ModelAsset } from "@/arcade3d/core/types";
-import type { HumanoidLandmarks } from "@/arcade3d/core/rig/humanoid";
 import { CHARACTER_BUDGET, PROP_BUDGET, SHARED_ASSETS, SHARED_GLB_SIZE } from "@/arcade3d/core/sharedAssets";
 import type { Category } from "./levels";
 import { SHELF_DEPTH, SHELF_H, SHELF_LEN } from "./rules";
 
 /** Measured GLB bounds (width x height x depth, GLB units). */
 export const GLB_SIZE = {
-   guard: { x: 1.884, y: 1.898, z: 0.53 },
+   hero: { x: 1.636, y: 1.894, z: 0.71 },
    teddy: { x: 1.74, y: 1.9, z: 1.388 },
    car: { x: 1.071, y: 0.725, z: 1.897 },
    airplane: { x: 1.89, y: 0.773, z: 1.477 },
@@ -24,8 +23,13 @@ export const GLB_SIZE = {
    binPlush: { x: 1.605, y: 1.9, z: 1.659 },
 } as const;
 
-export const GUARD_HEIGHT = 1.8;
-export const GUARD_SCALE = GUARD_HEIGHT / GLB_SIZE.guard.y;
+/**
+ * The tidy-up robot (toyRobotHero.glb: the toyRobot generation rigged by Hyper3D, a real 52-bone
+ * skeleton and six baked clips, so `rigged: true` and no core auto-rig). 1.894 GLB units tall in
+ * its bind pose, drawn 1.20 m: a toy a head shorter than the 1.6 m shelves.
+ */
+export const HERO_HEIGHT = 1.2;
+export const HERO_SCALE = HERO_HEIGHT / GLB_SIZE.hero.y;
 
 /** What each toy kind draws at: its biggest side in metres. */
 export const TOY_SIZE = { teddy: 0.55, car: 0.6, airplane: 0.7, ball: 0.4, blocks: 0.5, train: 0.65, robot: 0.55 } as const;
@@ -33,46 +37,6 @@ export const WINDUP_SIZE = 0.95;
 export const BIN_WIDTH = 1.0;
 export const BIN_PLUSH_WIDTH = 0.95;
 export const CRATE_WIDTH = 1.1;
-
-/**
- * The guard's joints (GLB units: 1.884 x 1.898 x 0.53 T-pose, faces +z; a uniform with a belt and
- * a cap). The estimate from the mesh, except hemY = crotchY: nothing bridges the legs (the wide
- * trousers read as a hem otherwise).
- */
-export const GUARD_LANDMARKS: HumanoidLandmarks = {
-   shoulderY: 1.2845,
-   shoulderX: 0.3094,
-   shoulderZ: -0.0494,
-   armRadius: 0.0771,
-   clavicleX: 0.1547,
-   elbowX: 0.5308,
-   wristX: 0.7523,
-   armSpread: 0.2135,
-   crotchY: 0.7513,
-   hipY: 0.8284,
-   hipX: 0.1872,
-   hipZ: -0.1045,
-   kneeY: 0.4142,
-   ankleY: 0.1697,
-   toeZ: 0.1929,
-   heelZ: -0.2335,
-   legDepth: 0.1239,
-   legOuterX: 0.3196,
-   hemY: 0.7513,
-   spineY: 0.9652,
-   chestY: 1.1021,
-   neckY: 1.4512,
-   headY: 1.5066,
-   spineZ: -0.0363,
-   shoulderBlend: 0.0463,
-   elbowBlend: 0.0385,
-   hipBlend: 0.0828,
-   kneeBlend: 0.0621,
-   ankleBlend: 0.0431,
-   crotchBlend: 0.0879,
-   spineBlend: 0.0411,
-   neckBlend: 0.0277,
-};
 
 const local = (
    id: string,
@@ -90,7 +54,7 @@ export const SHELF_STRETCH_Y = SHELF_H / (GLB_SIZE.shelf.y * SHELF_SCALE);
 export const SHELF_STRETCH_Z = SHELF_DEPTH / (GLB_SIZE.shelf.z * SHELF_SCALE);
 
 export const ASSETS = {
-   guard: local("charNightGuard", "capsule", "#1e3a8a", { scale: GUARD_SCALE, humanoid: { landmarks: GUARD_LANDMARKS } }, CHARACTER_BUDGET),
+   hero: local("toyRobotHero", "capsule", "#f8fafc", { scale: HERO_SCALE, rigged: true }, CHARACTER_BUDGET),
    // painted cream (one material, no texture): the olive GLB texture read as a flat monotone; the row trims carry the colour
    shelf: local("toyShelfSolidT", "box", "#fdf6ec", { scale: SHELF_SCALE, stretch: [1, SHELF_STRETCH_Y, SHELF_STRETCH_Z], material: { color: "#fdf6ec", roughness: 0.6 } }),
    teddy: local("teddyBear", "sphere", "#f59e0b", { scale: fit(TOY_SIZE.teddy, GLB_SIZE.teddy) }),
@@ -100,7 +64,8 @@ export const ASSETS = {
    blocks: local("toyBlocksPlainT", "box", "#a855f7", { scale: fit(TOY_SIZE.blocks, GLB_SIZE.blocks) }),
    train: local("toyTrain", "box", "#14b8a6", { scale: fit(TOY_SIZE.train, GLB_SIZE.train) }),
    robot: local("toyRobotProp", "capsule", "#eab308", { scale: fit(TOY_SIZE.robot, GLB_SIZE.robot) }),
-   windupRobot: local("toyRobot", "capsule", "#f472b6", { scale: WINDUP_SIZE / GLB_SIZE.windupRobot.y }),
+   // the hero's own mesh (unrigged), tinted per copy in the scene (COLORS.windupTint) so a wild wind-up never reads as the hero
+   windupRobot: local("toyRobot", "capsule", "#b91c1c", { scale: WINDUP_SIZE / GLB_SIZE.windupRobot.y }),
    windupCar: local("toyCar", "box", "#f472b6", { id: "toyCarWindup", scale: WINDUP_SIZE / GLB_SIZE.windupCar.z }),
    bin: local("toyBin", "cylinder", "#60a5fa", { scale: BIN_WIDTH / GLB_SIZE.bin.x }),
    binPlush: local("toyBinPlush", "cylinder", "#ef4444", { scale: BIN_PLUSH_WIDTH / GLB_SIZE.binPlush.x }),

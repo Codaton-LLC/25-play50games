@@ -4,7 +4,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import {
-   BufferGeometry, DoubleSide, Euler, Matrix4, MeshBasicMaterial, PlaneGeometry, Quaternion, Vector3,
+   BufferGeometry, Color, DoubleSide, Euler, Matrix4, MeshBasicMaterial, PlaneGeometry, Quaternion, Vector3,
    type Group,
 } from "three";
 import { DynamicInstancedModel, InstancedModel, Model } from "@/arcade3d/core/assets";
@@ -22,20 +22,18 @@ import { useLevel } from "@/arcade3d/core/level";
 import { randomSeed, turnTowards } from "@/arcade3d/core/math";
 import { hop, waddle, type BodyOffset } from "@/arcade3d/core/motion";
 import { Instanced, useCanvasTexture } from "@/arcade3d/core/render";
-import {
-   HumanoidModel, POSE_MASK, blendPoses, carryPose, cheerPose, createPose, gaitPhaseStep, idlePose, useHumanoidPose, walkPose, wrapPhase,
-} from "@/arcade3d/core/rig";
 import { useFittedView } from "@/arcade3d/core/useFittedView";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
-import { ASSETS, GUARD_LANDMARKS, GUARD_SCALE, TOY_ASSETS } from "./assets";
+import { ASSETS, HERO_HEIGHT, TOY_ASSETS } from "./assets";
 import { SIGN_ATLAS_W, SIGN_CELL, drawSigns } from "./glyphs";
 import { CATEGORIES, type Category, type ToyLevel } from "./levels";
 import {
    BACK, COLORS, DAMPING, FOLLOW, FOV, SIDE_H, TORCH, WALL_H, aimBounds, aimFor, shelfTrimSpots, decorOf, lookAtFor, signBaseSpots, signSpots, slotSpot, tileSpots, viewFor, wallSpots,
 } from "./looks";
-import { BinStand, GuardFigure, shelfParts, toyParts, windupCarParts, windupRobotParts } from "./Primitives";
-import { MAX_SPEED, SHELF_H, createRun, nextTarget, step, type Run } from "./rules";
+import HeroRobot, { type HeroCues } from "./HeroRobot";
+import { BinStand, shelfParts, toyParts, windupCarParts, windupRobotParts } from "./Primitives";
+import { SHELF_H, createRun, nextTarget, step, type Run } from "./rules";
 
 const E = new Euler();
 const Q = new Quaternion();
@@ -43,6 +41,10 @@ const V = new Vector3();
 const S = new Vector3(1, 1, 1);
 const AT = { x: 0, y: 0.5, z: 0 };
 const WOFF: BodyOffset = { y: 0, roll: 0, yaw: 0, squash: 1 };
+const WINDUP_TINT = new Color(COLORS.windupTint);
+/** A carried toy rides over the robot's head, between its raised hands; a second one on top. */
+const CARRY_Y = HERO_HEIGHT - 0.02;
+const CARRY_STEP = 0.45;
 
 /** Toys of one kind not on a shelf yet. */
 function leftOf(run: Run, cat: Category): number {
@@ -86,7 +88,7 @@ function Signs({ run }: { run: Run }) {
    );
 }
 
-/** The carried toy's plate over the guard's head: faces the camera, shows the top toy's kind. */
+/** The carried toy's plate over the robot's head (above the carried toys): faces the camera, shows the top toy's kind. */
 function CarryPlate({ run }: { run: Run }) {
    const atlas = useCanvasTexture(SIGN_ATLAS_W, SIGN_CELL, drawAtlas);
    const mat = useMemo(() => new MeshBasicMaterial({ map: atlas, transparent: true, toneMapped: false, depthTest: false }), [atlas]);
@@ -101,7 +103,7 @@ function CarryPlate({ run }: { run: Run }) {
       const top = run.carried.length > 0 ? run.toys[run.carried[run.carried.length - 1]].cat : null;
       g.visible = top !== null;
       if (top === null) return;
-      g.position.set(run.hero.x, 2.55, run.hero.z);
+      g.position.set(run.hero.x, CARRY_Y + 1.0 + CARRY_STEP * (run.carried.length - 1), run.hero.z);
       g.quaternion.copy(camera.quaternion);
       CATEGORIES.forEach((c, i) => {
          const m = meshes.current[i];
@@ -180,7 +182,8 @@ function LevelScene() {
    const aim = useRef(aimFor(config, run.hero.x, run.hero.z, run.hero.yaw, { x: 0, y: 0.9, z: 0 })).current;
    const body = useRef<Group>(null);
    const torch = useRef<Group>(null);
-   const gait = useRef({ phase: 0, amount: 0, visYaw: 0 }).current;
+   const gait = useRef({ visYaw: 0 }).current;
+   const cues = useRef<HeroCues>({ pointAt: -1, stunAt: -1 });
    const bounds = useMemo(() => aimBounds(config), [config]);
    const look = useMemo(() => lookAtFor(), []);
    const tiles = useMemo(() => tileSpots(config), [config]);
@@ -188,7 +191,6 @@ function LevelScene() {
    const decor = useMemo(() => decorOf(run), [run]);
    const shelfSpots = useMemo(() => run.shelves.map((s) => ({ x: s.x, y: 0, z: s.z })), [run]);
    const marker = useMemo<MarkerTarget[]>(() => [{ x: 0, y: 0.6, z: 0, hidden: true }], []);
-   const scratch = useMemo(() => ({ a: createPose() }), []);
    const shelfP = useMemo(() => shelfParts(), []);
    const byCat = useMemo(() => {
       const out = {} as Record<Category, number[]>;
@@ -211,19 +213,6 @@ function LevelScene() {
    const robots = useMemo(() => run.windups.filter((w) => w.kind === "robot"), [run]);
    const cars = useMemo(() => run.windups.filter((w) => w.kind === "car"), [run]);
    const synced = useRef({ shelved: -1, carrying: -1, left: false }).current;
-
-   const pose = useHumanoidPose((p) => {
-      const speed = Math.hypot(run.hero.vx, run.hero.vz);
-      const target = Math.min(1, speed / MAX_SPEED) * 0.75;
-      gait.amount += (target - gait.amount) * (1 - Math.exp(-12 * time.delta));
-      gait.phase = wrapPhase(gait.phase + gaitPhaseStep(gait.amount, GUARD_LANDMARKS, GUARD_SCALE, speed, time.delta, 4));
-      if (run.over === "win") cheerPose(time.now, p);
-      else {
-         if (gait.amount > 0.03) walkPose(gait.phase, gait.amount, p);
-         else idlePose(time.now, p);
-         if (run.carried.length > 0) blendPoses(p, carryPose(0.05, scratch.a), 1, p, POSE_MASK.arms);
-      }
-   });
 
    useEffect(() => {
       fx.warm("puff", "sparkle", "splash", "score");
@@ -259,18 +248,21 @@ function LevelScene() {
          fx.burst("sparkle", AT, 14);
          fx.score(AT, `+${ev.score}`);
          playSfx("chime");
+         cues.current.pointAt = time.now;
       }
       if (ev.wrong) {
          AT.x = run.hero.x; AT.y = 1; AT.z = run.hero.z;
          fx.burst("puff", AT, 6);
          fx.shake(0.2);
          playSfx("buzz");
+         cues.current.stunAt = time.now;
       }
       if (ev.hit) {
          AT.x = run.hero.x; AT.y = 1; AT.z = run.hero.z;
          fx.burst("splash", AT, 8);
          fx.shake(0.3);
          playSfx("hit");
+         cues.current.stunAt = time.now;
       }
       if (ev.won) {
          playSfx("win");
@@ -301,7 +293,7 @@ function LevelScene() {
          E.set(0, t.spin * 0.2, 0);
       } else if (t.state === 1) {
          const k = run.carried.indexOf(index);
-         V.set(run.hero.x + Math.sin(gait.visYaw) * 0.42, 0.92 + k * 0.5, run.hero.z + Math.cos(gait.visYaw) * 0.42);
+         V.set(run.hero.x + Math.sin(gait.visYaw) * 0.04, CARRY_Y + k * CARRY_STEP, run.hero.z + Math.cos(gait.visYaw) * 0.04);
          E.set(0, gait.visYaw, 0);
       } else {
          V.set(t.x, 0.05 + (Math.sin(time.now * 2.2 + t.spin) + 1) * 0.025, t.z);
@@ -311,12 +303,14 @@ function LevelScene() {
       S.set(1, 1, 1);
       m.compose(V, Q, S);
    };
-   const placeWindup = (list: typeof robots, isRobot: boolean) => (i: number, m: Matrix4) => {
+   const placeWindup = (list: typeof robots, isRobot: boolean) => (i: number, m: Matrix4, color?: Color) => {
       const w = list[i];
       if (!w) return false;
       const k = run.windups.indexOf(w);
       windupYaw[k] = turnTowards(windupYaw[k] ?? w.yaw, w.yaw, Math.min(1, time.delta * 5));
       const ph = time.now * run.level.windupSpeed * 3.2 + k;
+      // every wild wind-up is tinted (the robots are the hero's own mesh, the cars the toy-car kind's)
+      color?.copy(WINDUP_TINT);
       if (isRobot) waddle(ph, 0.3, WOFF);
       else hop(ph * 0.6, 0.05, WOFF);
       E.set(WOFF.roll, windupYaw[k] + WOFF.yaw, 0);
@@ -386,14 +380,14 @@ function LevelScene() {
          {CATEGORIES.map((c) => (byCat[c]?.length ? (
             <DynamicInstancedModel key={c} asset={TOY_ASSETS[c]} count={byCat[c].length} update={placeToy(c)} fallbackParts={toyP[c]} name={`toys-${c}`} />
          ) : null))}
-         {robots.length > 0 && <DynamicInstancedModel asset={ASSETS.windupRobot} count={robots.length} update={placeWindup(robots, true)} fallbackParts={robotP} name="windup-robots" />}
-         {cars.length > 0 && <DynamicInstancedModel asset={ASSETS.windupCar} count={cars.length} update={placeWindup(cars, false)} fallbackParts={carP} name="windup-cars" />}
+         {robots.length > 0 && <DynamicInstancedModel asset={ASSETS.windupRobot} count={robots.length} update={placeWindup(robots, true)} fallbackParts={robotP} name="windup-robots" tinted />}
+         {cars.length > 0 && <DynamicInstancedModel asset={ASSETS.windupCar} count={cars.length} update={placeWindup(cars, false)} fallbackParts={carP} name="windup-cars" tinted />}
          <group ref={torch}>
             <Flashlight halfAngle={TORCH.halfAngle} range={TORCH.range} height={1.2} light={false} color={COLORS.torch} opacity={config.lighting === "night" ? 0.45 : 0.1} />
          </group>
          <group ref={body}>
-            <HumanoidModel asset={ASSETS.guard} pose={pose} fallback={<GuardFigure />} />
-            {/* night levels: a dim warm fill that walks with the guard, so he keeps his colours (mounted for the whole run: no recompile) */}
+            <HeroRobot run={run} cues={cues} />
+            {/* night levels: a dim warm fill that walks with the robot, so it keeps its colours (mounted for the whole run: no recompile) */}
             {config.lighting === "night" && <pointLight position={[0, 2.2, 0.6]} intensity={5} distance={7} decay={1.6} color={COLORS.lantern} />}
          </group>
          <CarryPlate run={run} />

@@ -7,7 +7,7 @@ import { BACK, FOG, FOV, ROW_TRIMS, WALL_H, WINDOW, aimBounds, shelfTrimSpots, d
 import { SHELF_H, createRun, standable } from "./rules";
 
 describe("toy store looks", () => {
-   it("keeps decor behind the walkable floor, so it can never hide or clip the guard", () => {
+   it("keeps decor behind the walkable floor, so it can never hide or clip the robot", () => {
       for (const id of LEVEL_IDS) {
          for (let seed = 0; seed < 20; seed++) {
             const run = createRun(seed, LEVELS[id]);
@@ -39,7 +39,7 @@ describe("toy store looks", () => {
       }
    });
 
-   it("fits a window round the guard and scrolls only where the store is bigger than it", () => {
+   it("fits a window round the robot and scrolls only where the store is bigger than it", () => {
       for (const id of LEVEL_IDS) {
          const win = windowBox(LEVELS[id]);
          const aim = aimBounds(LEVELS[id]);
@@ -62,7 +62,7 @@ describe("toy store looks", () => {
       }
    });
 
-   it("the wall on the portrait camera's side (+x, yaw pi/2) is a low counter, so it never hides the guard", () => {
+   it("the wall on the portrait camera's side (+x, yaw pi/2) is a low counter, so it never hides the robot", () => {
       for (const id of LEVEL_IDS) {
          const { walls, trims } = wallSpots(LEVELS[id]);
          const right = walls.filter((w) => w.x > 0 && (w.sx ?? 1) < 1);

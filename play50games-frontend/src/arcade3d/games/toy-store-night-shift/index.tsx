@@ -12,8 +12,8 @@ import { FOV, fog, lookAtFor } from "./looks";
 import Scene from "./Scene";
 
 const LINES = [
-   "WASD or the stick walks. Press Use next to a toy to pick it up.",
-   "Read the shelf signs: the colour, the shape and the toy picture say which toys go there. Press Use at the matching shelf.",
+   "At night the toys came alive and wrecked the store. You are the tidy-up robot: put every toy back on its shelf before morning.",
+   "WASD or the stick walks. Press Use next to a toy to lift it, then Use at the shelf whose sign (colour, shape, picture) matches it.",
    "A wrong shelf drops the toy back and stuns you for half a second.",
 ];
 
@@ -25,10 +25,10 @@ function stats(level: ToyLevel): GameDefinition["hudStats"] {
 }
 
 function instructionsFor(id: LevelId): string[] {
-   if (id === 2) return [LINES[0], LINES[1], "A wind-up robot rolls the aisles. A hit knocks the toy out of your hands."];
-   if (id === 3) return [LINES[0], "Two shelves take each kind: either one is right.", "Wind-ups patrol the aisles in the dark. Your torch lights the floor ahead."];
-   if (id === 4) return [LINES[0], "You can carry two toys. Use drops the top one: a wrong top toy blocks the one under it.", "Three wind-ups patrol the aisles."];
-   if (id === 5) return [LINES[0], "Carry two. Seven kinds, eighteen toys, four wind-ups. Only your torch and the emergency strips are lit.", LINES[2]];
+   if (id === 2) return [LINES[1], LINES[2], "A wild red wind-up robot runs the aisles. A bump knocks the toy out of your hands."];
+   if (id === 3) return [LINES[1], "Two shelves take each kind: either one is right.", "Wild wind-ups run the dark aisles. Your lamp lights the floor ahead."];
+   if (id === 4) return [LINES[1], "You can lift two toys. Use drops the top one: a wrong top toy blocks the one under it.", "Three wild wind-ups run the aisles."];
+   if (id === 5) return [LINES[1], "Lift two. Seven kinds, eighteen toys, four wild wind-ups. Only your lamp and the emergency strips are lit.", LINES[2]];
    return LINES;
 }
 

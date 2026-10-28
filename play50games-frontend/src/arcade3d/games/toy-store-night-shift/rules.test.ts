@@ -14,7 +14,7 @@ const calm = (r: Run): Run => {
 };
 const use = (): ToyInput => ({ ...idleInput(), use: true });
 
-/** Puts the guard at the front of shelf `s`, 0.8 m off its face. */
+/** Puts the robot at the front of shelf `s`, 0.8 m off its face. */
 function atShelf(run: Run, s: number): void {
    const shelf = run.shelves[s];
    run.hero.x = shelf.x;
@@ -253,7 +253,7 @@ describe("toy store use, drop, stun and carry", () => {
       expect(run.ev.wrong).toBe(false);
    });
 
-   it("a wind-up hit drops every carried toy where the guard stands, pays 0, and has a 0.80 s mercy", () => {
+   it("a wind-up hit drops every carried toy where the robot stands, pays 0, and has a 0.80 s mercy", () => {
       const run = createRun(9, LEVELS[4]);
       pick(run, 0);
       pick(run, 1);
