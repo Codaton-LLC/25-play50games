@@ -207,6 +207,17 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/plate-surf/m2SeaRock.glb",
    "/models/3d/plate-surf/m2SlimeBlob.glb",
    "/models/3d/plate-surf/m2SurfPlateI.glb",
+   // Menu 2 game 15 (Color City Sprint): its props from ready/menu2/color-city-sprint, plus m2FactoryDrone (shared)
+   "/models/3d/color-city-sprint/m2CityBarrier.glb",
+   "/models/3d/color-city-sprint/m2CityBus.glb",
+   "/models/3d/color-city-sprint/m2ColorGate.glb",
+   "/models/3d/color-city-sprint/m2ColorGateV2.glb",
+   "/models/3d/color-city-sprint/m2EnergyGem.glb",
+   "/models/3d/color-city-sprint/m2FactoryDrone.glb",
+   "/models/3d/color-city-sprint/m2GreySweeperBoss.glb",
+   "/models/3d/color-city-sprint/m2PastelCityBg.glb",
+   "/models/3d/color-city-sprint/m2StreetJumpRamp.glb",
+   "/models/3d/color-city-sprint/m2TrafficCone.glb",
    // P-121 dev adoptions (2026-10-25): V2 replacements and Group D variety whose QA verdict
    // starts with OK. Optimized GLBs copied in; not re-optimized. Live games are untouched.
    "/models/3d/shopping-cart/supermarketShelfV2.glb",
