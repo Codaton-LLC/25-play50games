@@ -57,6 +57,23 @@ const GLACIER_CHUNK_SCALE = GLACIER_CHUNK_WIDTH / GLACIER_CHUNK_GLB.width;
 export const AURORA_CRYSTAL_LOCAL = 26;
 export const GLACIER_CHUNK_LOCAL = 44;
 
+/**
+ * iceBlock.glb (Menu 1 adoption, 1500 tris) 1.894 x 1.903 x 1.887, floor pivot, centred: the ice-block obstacle. Drawn a
+ * 1.1 m cube, covering the rules' 0.6 m collision circle (ice radius 0.6) the way the code block did.
+ */
+export const ICE_BLOCK_GLB = { width: 1.894, height: 1.903, depth: 1.887 } as const;
+export const ICE_BLOCK_SIZE = 1.1;
+const ICE_BLOCK_SCALE = ICE_BLOCK_SIZE / ICE_BLOCK_GLB.width;
+
+/**
+ * snowRamp.glb (Menu 1 adoption, 3000 tris) 1.899 x 0.533 x 1.825, floor pivot, centred. It rises toward its -z, so it is
+ * turned half a turn (the track runs +z): the high lip is the launch edge. Drawn 1.7 m wide x 3.0 m long x 0.9 m tall at
+ * the lip, the code runway's 1.6 x 3 footprint.
+ */
+export const SNOW_RAMP_GLB = { width: 1.899, height: 0.533, depth: 1.825 } as const;
+export const SNOW_RAMP_DRAWN = { width: 1.7, length: 3, height: 0.9 } as const;
+const SNOW_RAMP_SCALE = SNOW_RAMP_DRAWN.width / SNOW_RAMP_GLB.width;
+
 export const ASSETS = {
    penguin: { ...EXPANSION_ASSETS.penguin, scale: PENGUIN_SCALE },
    fish: { ...EXPANSION_ASSETS.fish, scale: 0.6 / EXPANSION_GLB_SIZE.fish.depth },
@@ -68,6 +85,25 @@ export const ASSETS = {
       scale: SNOWMAN_SCALE,
       fallback: "sphere",
       fallbackColor: "#fff5ed",
+      budget: { ...PROP_BUDGET },
+   },
+   iceBlock: {
+      id: "iceBlock",
+      url: "/models/3d/penguin-slide/iceBlock.glb",
+      scale: ICE_BLOCK_SCALE,
+      stretch: [1, ICE_BLOCK_SIZE / (ICE_BLOCK_GLB.height * ICE_BLOCK_SCALE), 1] as const,
+      fallback: "box",
+      fallbackColor: "#bae6fd",
+      budget: { ...PROP_BUDGET },
+   },
+   snowRamp: {
+      id: "snowRamp",
+      url: "/models/3d/penguin-slide/snowRamp.glb",
+      scale: SNOW_RAMP_SCALE,
+      stretch: [1, SNOW_RAMP_DRAWN.height / (SNOW_RAMP_GLB.height * SNOW_RAMP_SCALE), SNOW_RAMP_DRAWN.length / (SNOW_RAMP_GLB.depth * SNOW_RAMP_SCALE)] as const,
+      rotationY: Math.PI,
+      fallback: "box",
+      fallbackColor: "#e0f2fe",
       budget: { ...PROP_BUDGET },
    },
    iceArch: {

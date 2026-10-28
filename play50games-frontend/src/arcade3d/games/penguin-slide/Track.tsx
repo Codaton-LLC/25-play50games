@@ -283,10 +283,10 @@ export default function Track({ run, level }: { run: Run; level: LevelId }) {
             </>
          )}
          <DynamicInstancedModel name="time-flags" asset={ASSETS.flag} count={12} update={flag} fallbackParts={flagParts} />
-         <DynamicInstanced count={15} update={(i, m) => obstacle("ice", i, m)} parts={iceParts} name="ice-blocks" />
+         <DynamicInstancedModel asset={ASSETS.iceBlock} count={15} update={(i, m) => obstacle("ice", i, m)} fallbackParts={iceParts} name="ice-blocks" />
          <DynamicInstancedModel asset={ASSETS.snowman} count={15} update={(i, m) => obstacle("snowman", i, m)} fallbackParts={snowmanParts} name="snowmen" />
          <DynamicInstanced count={15} update={(i, m) => obstacle("crack", i, m)} parts={crackParts} name="cracks" />
-         <DynamicInstanced count={3} update={ramp} parts={rampParts} name="spin-ramps" />
+         <DynamicInstancedModel asset={ASSETS.snowRamp} count={3} update={ramp} fallbackParts={rampParts} name="spin-ramps" />
          <DynamicInstanced count={12} update={gatePost} parts={gatePostParts} name="gate-posts" />
       </group>
    );

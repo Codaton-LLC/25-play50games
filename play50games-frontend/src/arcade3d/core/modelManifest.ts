@@ -440,6 +440,8 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/space-repair/solarPanelWing.glb",
    "/models/3d/rocket-landing/landingBeacon.glb",
    "/models/3d/rocket-landing/landingPadV2.glb",
+   "/models/3d/penguin-slide/iceBlock.glb",
+   "/models/3d/penguin-slide/snowRamp.glb",
    // Menu 1 dog-park-fetch (2026-10-26): the ready menu1-dog-park-fetch GLBs the gate adopts (dogHouse*,
    // dogBone*, agilityHurdle and dogOwnerNpc left out: a dog is baked into each), plus shared civilianNpc
    // as the owner; fits in games/dog-park-fetch/assets.ts.
