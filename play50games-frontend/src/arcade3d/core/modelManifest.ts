@@ -187,6 +187,19 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/lava-pillar-jump/m2VolcanoBg.glb",
    // World 1's guardian, Kalder the Magma Golem (Lava Pillar Jump level 5 boss), shared by menu2/
    "/models/3d/menu2/m2MagmaGolemBoss.glb",
+   "/models/3d/zipline-rush/m2SeaGullDiver.glb",
+   "/models/3d/zipline-rush/m2AquaOrb.glb",
+   "/models/3d/zipline-rush/m2SeaRock.glb",
+   "/models/3d/zipline-rush/m2ZiplineTower.glb",
+   // the pulley trolley with its T-grip (image-to-3D; the text-to-3D m2ZiplineTrolley was a wheeled cart)
+   "/models/3d/zipline-rush/m2ZiplineTrolleyI.glb",
+   "/models/3d/zipline-rush/m2TreetopDeck.glb",
+   "/models/3d/zipline-rush/m2LandingMat.glb",
+   "/models/3d/zipline-rush/m2ForestCanopyBg.glb",
+   "/models/3d/zipline-rush/m2VoltEelBoss.glb",
+   // plate-surf's sea set, reused by Zipline Rush (ready/menu2/plate-surf)
+   "/models/3d/zipline-rush/m2SeaCliffBg.glb",
+   "/models/3d/zipline-rush/m2MarkerBuoy.glb",
    // Menu 2 game 05 (Cloud Hopper): cloud props from ~/.play50/hyper3d/ready/menu2/cloud-hopper
    "/models/3d/cloud-hopper/m2CloudBank.glb",
    "/models/3d/cloud-hopper/m2CloudCastleBg.glb",
