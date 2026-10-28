@@ -16,7 +16,7 @@ export function cityOrbit(course: Course): Partial<OrbitSettings> {
    return { yaw: course.startYaw, pitch: 36 * DEG, distance: 10, minDistance: 4.5, maxDistance: 24 };
 }
 
-export const CITY_COLLISION: ClipOptions = { radius: 0.4, minDistance: 2.4, squeeze: 1.6, liftTo: 62 * DEG };
+export const CITY_COLLISION: ClipOptions = { radius: 0.35, minDistance: 1.4, squeeze: 0.45, liftTo: 64 * DEG };
 
 export const FOV = 50;
 export const FOV_PORTRAIT = 60;

@@ -184,7 +184,7 @@ function Simulation({ run, anim, clock, won, orbit }: { run: CityRun; anim: Hero
       if (ev.lap) {
          const split = run.simMs - lapAt.current;
          lapAt.current = run.simMs;
-         juice.popup({ x: chest.x, y: chest.y + 0.8, z: chest.z }, `Lap ${run.lap + 1} · ${lapText(split)}`, { color: "#ef4444", size: 0.09 });
+         juice.popup({ x: chest.x, y: chest.y + 0.8, z: chest.z }, `Lap ${run.lap + 1} - ${lapText(split)}`, { color: "#ef4444", size: 0.09 });
          juice.hitStop(50);
          playSfx("chime", { pitch: 1.35 });
       }
@@ -230,7 +230,7 @@ function Simulation({ run, anim, clock, won, orbit }: { run: CityRun; anim: Hero
       }
       if (ev.bossDefeated) {
          juice.burst("checkpoint", chest, 110, { color: COLORS.lane });
-         juice.popup({ x: chest.x, y: chest.y + 1, z: chest.z }, "The city turns red!", { color: "#fecaca", size: 0.09 });
+         juice.popup({ x: chest.x, y: chest.y + 1, z: chest.z }, "City repainted!", { color: "#fecaca", size: 0.09 });
          juice.shake(0.45);
       }
       publishRun(run);

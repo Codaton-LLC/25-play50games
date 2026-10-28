@@ -7,7 +7,7 @@
 import { useMemo } from "react";
 import { InstancedModel } from "@/arcade3d/core/assets";
 import type { InstanceSpot } from "@/arcade3d/core/render";
-import { ASSETS, GLB_SIZE, PASTEL_SCALE, TOWER_SCALE } from "./assets";
+import { ASSETS, PASTEL_SCALE, TOWER_SCALE } from "./assets";
 import { LOOKS } from "./look";
 import type { Course } from "./city";
 
@@ -25,9 +25,8 @@ export function backdropSpots(c: Course): { rows: InstanceSpot[]; towers: Instan
    const cz = (c.minZ + c.maxZ) / 2;
    const hw = (c.maxX - c.minX) / 2;
    const hd = (c.maxZ - c.minZ) / 2;
-   const rowW = GLB_SIZE.pastel.x * PASTEL_SCALE;
    for (let ring = 0; ring < 1; ring++) {
-      const gap = 6 + ring * 16;
+      const gap = 12 + ring * 16;
       const sides = [
          { ox: 0, oz: -1, len: hw * 2 + gap * 2, yaw: 0 },
          { ox: 0, oz: 1, len: hw * 2 + gap * 2, yaw: Math.PI },
@@ -35,7 +34,8 @@ export function backdropSpots(c: Course): { rows: InstanceSpot[]; towers: Instan
          { ox: 1, oz: 0, len: hd * 2 + gap * 2, yaw: -Math.PI / 2 },
       ];
       sides.forEach((s, si) => {
-         const n = Math.ceil(s.len / (rowW + 1));
+         // sparse: a row every 16 m (the triangle budget), the gaps read as side streets
+         const n = Math.ceil(s.len / 16);
          for (let k = 0; k < n; k++) {
             const t = -s.len / 2 + (k + 0.5) * (s.len / n);
             const r = hash(k + ring * 31, si);

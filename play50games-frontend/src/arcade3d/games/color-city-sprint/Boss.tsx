@@ -112,10 +112,6 @@ export function Boss({ run, clock }: { run: CityRun; clock: VisualClock }) {
                               roughness={0.9}
                            />
                         </mesh>
-                        <mesh position={[0, 0.16, 0]}>
-                           <cylinderGeometry args={[0.18, 0.18, 0.2, 8]} />
-                           <meshStandardMaterial color="#334155" metalness={0.6} />
-                        </mesh>
                      </group>
                   ))}
                </group>

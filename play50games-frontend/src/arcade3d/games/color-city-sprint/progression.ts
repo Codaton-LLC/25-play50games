@@ -32,7 +32,7 @@ export function starSpecFor(level: LevelId, orbTotal: number): StarSpec {
  */
 const BASE: readonly SecretSpec[] = [
    { id: "rail-sticker", kind: "sticker", name: "Rooftop sticker", hero: "nami" },
-   { id: "shop-shard", kind: "shard", name: "Ghost-shop shard", hero: "vexa" },
+   { id: "shop-shard", kind: "shard", name: "Shop shard", hero: "vexa" },
    { id: "site-shard", kind: "shard", name: "Hoarding shard", hero: "riko" },
 ];
 
