@@ -3,6 +3,8 @@
 // Recipe rows. The shell draws Score, Time and (from level 2) Lives. Shapes match the shelf meshes.
 import { useSyncExternalStore } from "react";
 import CameraViewButton from "@/arcade3d/core/camera/CameraViewButton";
+import { HintLine } from "@/arcade3d/core/hud/HintLine";
+import { GUIDE } from "./guide";
 import { INGREDIENT_LOOK } from "./looks";
 import type { Ingredient, Run } from "./rules";
 import styles from "./Hud.module.css";
@@ -94,12 +96,13 @@ function Card() {
    );
 }
 
-/** The recipe card plus the core 📷 camera-view button (core/camera). */
+/** The recipe card, the hint line (guide.ts) and the core 📷 camera-view button (core/camera). */
 export default function Hud() {
    return (
       <>
          <CameraViewButton />
          <Card />
+         <HintLine signal={GUIDE} />
       </>
    );
 }
