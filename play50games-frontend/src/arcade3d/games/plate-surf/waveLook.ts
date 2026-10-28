@@ -20,7 +20,7 @@ import { BAND, FACE_W } from "./waves";
 import { GREY, type SurfLook } from "./look";
 
 /** How far behind the crest the back of the wave runs down to the sea (m). */
-export const BACK_W = 14;
+export const BACK_W = 8;
 /** The wave mesh spans x from just in front of the trough to the back's foot. */
 export const WAVE_X0 = -2.5;
 export const WAVE_X1 = FACE_W + BACK_W;
@@ -77,7 +77,9 @@ const PROFILE = /* glsl */ `
       if (x <= 0.0) return 0.0;
       if (x <= uW) { float t = x / uW; return uH * t * t * (3.0 - 2.0 * t); }
       float b = clamp((x - uW) / uBackW, 0.0, 1.0);
-      return uH * (1.0 - b * b * (3.0 - 2.0 * b));
+      // a feathered crest just behind the lip (visual only: the rider is never past x = uW)
+      float crest = x < uW + 2.4 ? sin(3.14159 * (x - uW) / 2.4) * 0.55 : 0.0;
+      return uH * (1.0 - b * b * (3.0 - 2.0 * b)) + crest;
    }
 `;
 
@@ -178,13 +180,13 @@ const WAVE_FRAG = /* glsl */ `
       float inBand = smoothstep(uBandX.x - 0.5, uBandX.x + 0.2, bx) * (1.0 - smoothstep(uBandX.y - 0.2, uBandX.y + 0.5, bx));
       float edge = (1.0 - smoothstep(0.0, 0.35, abs(bx - uBandX.x))) + (1.0 - smoothstep(0.0, 0.35, abs(bx - uBandX.y)));
       float near = 1.0 - smoothstep(18.0, 70.0, abs(vWorld.z - uHeroZ));
-      float glow = (inBand * 0.16 + edge * 0.5) * uBand * near * (1.0 - vBroken);
+      float glow = (inBand * 0.22 + edge * 0.14) * uBand * near * (1.0 - vBroken);
       col = mix(col, uBandColor, clamp(glow, 0.0, 0.8));
       // foam: the lip line, the trough, and the whitewater behind the curl
       float lipFoam = 1.0 - smoothstep(0.0, 0.7, abs(vWorld.x - uW));
-      float troughFoam = 1.0 - smoothstep(-0.6, 1.4, vWorld.x);
+      float troughFoam = 1.0 - smoothstep(-1.2, 0.6, vWorld.x);
       float breakup = n1.x * 0.35 + n2.y * 0.25 + 0.15 * sin(uTime * 2.1 + p.x * 3.1 + p.y * 1.7);
-      float foam = max(max(lipFoam * 0.85, troughFoam * 0.7), vBroken);
+      float foam = max(max(lipFoam * 0.85, troughFoam * 0.45), vBroken);
       float f = smoothstep(0.3, 0.75, foam + breakup * foam);
       col = mix(col, uFoam, f * 0.92);
       gl_FragColor = vec4(col, 1.0);

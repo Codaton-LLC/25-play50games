@@ -52,7 +52,8 @@ const prop = (id: string, color: string, budget: { tris: number; bytes: number }
 
 export const ASSETS: Record<string, ModelAsset> = {
    hero: heroModelAsset("nami"),
-   orb: prop("m2AquaOrb", "#38bdf8"),
+   // the disc rendered dark under the bay's light: a bright aqua glaze (one shared material)
+   orb: { ...prop("m2AquaOrb", "#38bdf8"), material: { color: "#67e8f9", roughness: 0.25, metalness: 0.1, emissive: "#0891b2" } },
    plate: { ...prop("m2SurfPlateI", "#f8fafc"), fallback: "box" },
    buoy: prop("m2MarkerBuoy", "#f97316"),
    rock: { ...prop("m2SeaRock", "#64748b"), fallback: "box" },

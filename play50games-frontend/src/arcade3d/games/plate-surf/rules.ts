@@ -69,7 +69,7 @@ export const BUFFER_MS = 130;
 export const TRICK_MS = 320;
 export const BAIL_LOSS = 4;
 /** the curl: where it starts behind you, how close swallows you, how far back it ever falls, a respawn's gap, a landed trick's buffer (s) */
-export const CURL = { startGap: 30, catch: 0.8, maxGap: 45, respawnGap: 34, trickS: 1 } as const;
+export const CURL = { startGap: 24, catch: 0.8, maxGap: 26, respawnGap: 26, trickS: 1 } as const;
 /** hearts: a wipeout (the curl, a rock) costs one; each checkpoint gives one back */
 export const HEARTS = 3;
 export const LOST_MS = 1100;

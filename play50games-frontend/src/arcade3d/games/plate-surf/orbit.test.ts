@@ -79,7 +79,7 @@ describe("the camera", () => {
       for (const level of LEVEL_IDS) {
          const c = createRun(1, level).course;
          for (const aspect of [1.6, 0.46]) {
-            const p = orbitPivot(SPAWN_X, groundY(c, SPAWN_X), c.startZ, 13, { x: 0, y: 0, z: 0 });
+            const p = orbitPivot(SPAWN_X, groundY(c, SPAWN_X), c.startZ, 13, { x: 0, y: 0, z: 0 }, Math.max(0, Math.min(1, (1.2 - aspect) / 0.7)));
             const want = orbitPosition(p.x, p.y, p.z, SURF_ORBIT.yaw!, SURF_ORBIT.pitch!, SURF_ORBIT.distance! * orbitScale(aspect), { x: 0, y: 0, z: 0 });
             const got = playCamera(c, aspect);
             expect(got.position[0]).toBeCloseTo(want.x, 6);

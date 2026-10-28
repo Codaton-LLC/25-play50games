@@ -40,8 +40,9 @@ export function orbitLookUp(aspect: number): number {
  * The orbit's pivot: the rider's chest, led down the line (more at speed), pulled a little towards
  * the middle of the face so the trough and the lip both stay in the picture.
  */
-export function orbitPivot(hx: number, hy: number, hz: number, v: number, out: { x: number; y: number; z: number }): { x: number; y: number; z: number } {
-   out.x = hx * 0.7 + (FACE_W / 2) * 0.3;
+export function orbitPivot(hx: number, hy: number, hz: number, v: number, out: { x: number; y: number; z: number }, portrait = 0): { x: number; y: number; z: number } {
+   // on a portrait screen a little towards the lip (the narrow view keeps the air orbs and gates in it)
+   out.x = hx * 0.7 + (FACE_W / 2) * 0.3 + portrait * 1.4;
    out.y = hy + 1.0;
    out.z = hz - 2.5 - Math.max(0, v - 10) * 0.15;
    return out;
@@ -61,8 +62,13 @@ export const FOV = 55;
 export const FOV_PORTRAIT = 66;
 
 /** The orbit camera's first pose at the start (the intro ends on it). */
+/** 0 on a landscape screen, 1 on a phone held upright (the same ramp as orbitScale). */
+export function portraitAmount(aspect: number): number {
+   return Math.max(0, Math.min(1, (1.2 - aspect) / 0.7));
+}
+
 export function playCamera(course: Course, aspect: number, H = course.H): IntroKeyframe {
-   const p = orbitPivot(SPAWN_X, faceYAt(SPAWN_X, H), course.startZ, 13, { x: 0, y: 0, z: 0 });
+   const p = orbitPivot(SPAWN_X, faceYAt(SPAWN_X, H), course.startZ, 13, { x: 0, y: 0, z: 0 }, portraitAmount(aspect));
    const c = orbitPosition(p.x, p.y, p.z, SURF_ORBIT.yaw ?? 0, SURF_ORBIT.pitch ?? 0, (SURF_ORBIT.distance ?? 7) * orbitScale(aspect), { x: 0, y: 0, z: 0 });
    return { position: [c.x, c.y, c.z], lookAt: [p.x, p.y + orbitLookUp(aspect), p.z] };
 }
@@ -113,9 +119,11 @@ export function courseSolids(run: SurfRun, x: number, y: number, z: number, out:
 export function introKeyframes(course: Course): IntroKeyframe[] {
    const H = course.H;
    const mid = (course.startZ + course.finishZ) / 2;
+   // the curl breaking behind the start, seen from out over the trough ahead; past its lip; down to the rider
+   void mid;
    return [
-      { position: [-40, 34, course.startZ - 140], lookAt: [FACE_W / 2, H, course.startZ - 40] },
-      { position: [-22, 16, Math.max(mid, course.startZ - 90)], lookAt: [FACE_W, H * 0.8, course.startZ - 20] },
-      { position: [-10, H + 4, course.startZ + 26], lookAt: [FACE_W / 2, H * 0.6, course.startZ] },
+      { position: [-34, 16, course.startZ - 70], lookAt: [FACE_W * 0.6, H * 0.7, course.startZ + 30] },
+      { position: [-12, H + 2, course.startZ + 6], lookAt: [FACE_W * 0.5, H * 0.75, course.startZ + 34] },
+      { position: [FACE_W * 0.3, H + 6, course.startZ + 12], lookAt: [FACE_W * 0.5, H * 0.5, course.startZ - 10] },
    ];
 }

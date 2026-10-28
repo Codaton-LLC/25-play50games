@@ -139,12 +139,12 @@ export function surfStancePose(crouch: number, lean: number, out: HumanoidPose):
    const c = clamp01(crouch);
    for (let side = 1; side >= -1; side -= 2) {
       // the thigh forward (a squat) and out (the wide stance); the knee folds back
-      setBoneEuler(out.q, side > 0 ? BONE.upperLegL : BONE.upperLegR, -(0.5 + 0.35 * c), 0, side * (0.36 + 0.06 * c));
-      setBoneEuler(out.q, side > 0 ? BONE.lowerLegL : BONE.lowerLegR, 0.85 + 0.7 * c, 0, 0);
+      setBoneEuler(out.q, side > 0 ? BONE.upperLegL : BONE.upperLegR, -(0.22 + 0.3 * c), 0, side * (0.34 + 0.06 * c));
+      setBoneEuler(out.q, side > 0 ? BONE.lowerLegL : BONE.lowerLegR, 0.4 + 0.6 * c, 0, 0);
       levelFoot(out, side);
    }
    // the trunk leans in over the knees, rocked by the carve
-   setBoneEuler(out.q, BONE.spine, 0.28 + 0.12 * c + 0.18 * lean, 0.12, 0);
+   setBoneEuler(out.q, BONE.spine, 0.12 + 0.12 * c + 0.16 * lean, 0.12, 0);
    setBoneEuler(out.q, BONE.chest, 0.06, 0.18, -0.05 * lean);
    // the head looks down the line (the hero's left)
    setBoneEuler(out.q, BONE.neck, -0.12, 0.5, 0);
@@ -265,7 +265,7 @@ export function Hero({ run, anim, shadowY }: { run: SurfRun; anim: HeroAnim; sha
       const riding = h.grounded && h.state === "play" && Number.isNaN(anim.intro) ? 1 : !h.grounded && h.state === "play" ? 0.55 : 0;
       look.weight += (riding - look.weight) * ease(8);
       const pump = Math.max(0, 1 - (now - anim.pumpAt) / 0.35);
-      look.crouch = 0.3 + 0.35 * (h.v / V_MAX) + 0.35 * pump;
+      look.crouch = 0.12 + 0.3 * (h.v / V_MAX) + 0.45 * pump;
       look.lean += (Math.max(-1, Math.min(1, h.vx / 7)) - look.lean) * ease(9);
       const grabbing = !h.grounded && h.trick === 3 ? 1 : 0;
       look.grab += (grabbing - look.grab) * ease(14);

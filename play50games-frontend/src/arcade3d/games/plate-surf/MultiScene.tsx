@@ -227,7 +227,7 @@ export default function MultiScene() {
    return (
       <JuiceLayer>
          <Wave run={multi.view} clock={clock} view={centre} />
-         <World course={multi.view.course} seed={20261028} />
+         <World course={multi.view.course} seed={20261028} view={centre} />
          <Course run={multi.view} clock={clock} won={won} />
          {multi.runs.map((r, i) => (
             <Hero key={i} run={r} anim={anims[i]} />

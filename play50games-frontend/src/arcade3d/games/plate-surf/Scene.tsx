@@ -34,7 +34,7 @@ import World from "./World";
 import { Wave, type VisualClock } from "./Wave";
 import { Course } from "./Course";
 import { Hero, createHeroAnim, type HeroAnim } from "./Hero";
-import { FOV, FOV_PORTRAIT, SURF_ORBIT, courseSolids, introKeyframes, orbitLookUp, orbitPivot, orbitScale, orbitTravel, playCamera } from "./camera";
+import { FOV, FOV_PORTRAIT, SURF_ORBIT, portraitAmount, courseSolids, introKeyframes, orbitLookUp, orbitPivot, orbitScale, orbitTravel, playCamera } from "./camera";
 import { ORB, STAT, TRICK_NAMES, bossAlive, bossVulnerable, createRun, createStepInput, curlGap, groundY, step, type SurfRun } from "./rules";
 import { pickedHero, subscribeHero } from "./heroes";
 import { createBot, botInput } from "./bot";
@@ -60,7 +60,9 @@ export const TRICK_ICONS = ["", "↻", "⇅", "✋"] as const;
 /** A short buzz on phones for a pump (the card's risk fix); never throws. */
 function buzz(ms: number): void {
    try {
-      if (typeof navigator !== "undefined" && "vibrate" in navigator) navigator.vibrate(ms);
+      // only after the player touched the page (Chrome blocks it before and logs an error)
+      const n = typeof navigator !== "undefined" ? (navigator as Navigator & { userActivation?: { hasBeenActive: boolean } }) : null;
+      if (n && "vibrate" in n && n.userActivation?.hasBeenActive) n.vibrate(ms);
    } catch {
       // no vibration here
    }
@@ -140,11 +142,11 @@ function Simulation({ run, anim, clock, won, orbit }: { run: SurfRun; anim: Hero
          tail.x = h.x - Math.sign(h.vx) * 0.3;
          tail.y = h.y + 0.15;
          tail.z = h.z + 0.7;
-         juice.stream("dust", tail, 10 + Math.abs(h.vx) * 5, spray, { color: "#ffffff", vx: -h.vx * 0.5, vy: 2.6, vz: 2 });
+         juice.stream("trail", tail, 14 + Math.abs(h.vx) * 6, spray, { color: "#f4fdff", vx: -h.vx * 0.45, vy: 2.8, vz: 1.5, size: 1.6 });
       }
       if (ev.pumped) {
          anim.pumpAt = now;
-         juice.burst("dust", feet, 16, { color: "#ffffff", vy: 3, vx: -h.vx * 0.4 });
+         juice.burst("trail", feet, 22, { color: "#ffffff", vy: 3.5, vx: -h.vx * 0.4, size: 1.8 });
          juice.burst("pickup", feet, 8, { color: heroAccent(run.heroId) });
          juice.popup(chest, `+${(1.5).toFixed(1)}`, { color: "#a5f3fc", size: 0.05 });
          juice.kick(0, -1, 0, 0.8);
@@ -355,10 +357,10 @@ function SurfCamera({ run, orbit }: { run: SurfRun; orbit: OrbitState }) {
       () => (out: { x: number; y: number; z: number }) => {
          const h = run.hero;
          if (h.state === "lost") return false;
-         orbitPivot(h.x, Math.max(h.y, groundY(run.course, h.x)), h.z, h.v, out);
+         orbitPivot(h.x, Math.max(h.y, groundY(run.course, h.x)), h.z, h.v, out, portraitAmount(aspect));
          return true;
       },
-      [run],
+      [run, aspect],
    );
    const travel = useMemo(
       () => (out: { x: number; z: number }) => {
@@ -442,7 +444,7 @@ function SoloScene() {
    return (
       <JuiceLayer>
          <Wave run={run} clock={clock} />
-         <World course={run.course} seed={20261028} />
+         <World course={run.course} seed={20261028} view={run.hero} />
          {/* keyed by level: the pools are sized once per mount */}
          <Course key={levelId} run={run} clock={clock} won={won} />
          <Hero run={run} anim={anim} shadowY={ground} />

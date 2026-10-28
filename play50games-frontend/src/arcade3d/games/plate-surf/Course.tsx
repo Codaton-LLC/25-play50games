@@ -17,6 +17,7 @@ import { Instanced, type InstanceSpot } from "@/arcade3d/core/render";
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import { ArchWall, ARCH_WALL_SIZE } from "@/arcade3d/menu2/props";
 import { stepProgress } from "@/arcade3d/menu2/boss/boss";
+import { createJuiceEmitter, useJuice } from "@/arcade3d/menu2/juice";
 import { ASSETS, BUOY_HEIGHT, CRAB_SCALE, GLB_SIZE, GULL_SPAN, JELLY_WIDTH, ORB_SIZE } from "./assets";
 import { COLORS, HAZARD } from "./look";
 import { FACE_W, LANE, faceSlope, faceY } from "./waves";
@@ -321,9 +322,24 @@ function Sprays({ run }: { run: SurfRun }) {
    const c = run.course;
    const refs = useRef<(Mesh | null)[]>([]);
    const time = useGameTime();
+   const juice = useJuice();
+   const emitters = useMemo(() => c.sprays.map(createJuiceEmitter), [c]);
+   const at = useMemo(() => ({ x: 0, y: 0, z: 0 }), []);
    useFrame(() => {
+      const t = time.now;
       refs.current.forEach((m, k) => {
-         if (m) (m.material as MeshBasicMaterial).opacity = 0.42 + 0.14 * Math.sin(time.now * 9 + k * 2) + 0.06 * Math.sin(time.now * 23 + k);
+         if (m) (m.material as MeshBasicMaterial).opacity = 0.16 + 0.07 * Math.sin(t * 9 + k * 2) + 0.04 * Math.sin(t * 23 + k);
+      });
+      // the spray itself: violet droplets blown off the lip along the whole stretch (near the rider only)
+      c.sprays.forEach((sp, k) => {
+         const hz = run.hero.z;
+         if (hz < sp.z1 - 10 || hz > sp.z0 + 90) return;
+         const u = (Math.sin(t * 37.1 + k) * 0.5 + 0.5);
+         const w = (Math.sin(t * 23.7 + k * 3) * 0.5 + 0.5);
+         at.x = sp.x0 + u * (FACE_W + 1 - sp.x0);
+         at.y = faceY(Math.min(at.x, FACE_W), c.H) + 0.3 + w * 2.6;
+         at.z = sp.z1 + ((t * 0.37 + u * 0.6 + w * 0.3) % 1) * (sp.z0 - sp.z1);
+         juice.stream("aura", at, 70, emitters[k], { color: k % 2 ? HAZARD.glow : HAZARD.violet, vx: -2.5, vy: 2, size: 2.2 });
       });
    });
    return (
@@ -567,20 +583,20 @@ function Boss({ run }: { run: SurfRun }) {
          m.scale.setScalar(0.6 + 0.4 * rise);
       }
    });
-   const ew = 0.32 * (5.2 / 1.9);
    return (
       <>
          <group ref={root}>
             <group ref={body}>
                <Model asset={ASSETS.crab} />
-            </group>
-            <group ref={eyes} position={[0, GLB_SIZE.crab.y * CRAB_SCALE * 0.82, GLB_SIZE.crab.z * CRAB_SCALE * 0.42]}>
-               {[-1, 1].map((sd) => (
-                  <mesh key={sd} position={[sd * ew, 0, 0]}>
-                     <sphereGeometry args={[0.32, 14, 10]} />
-                     <meshBasicMaterial color="#fde047" transparent opacity={0.85} blending={AdditiveBlending} depthWrite={false} toneMapped={false} />
-                  </mesh>
-               ))}
+               {/* its eye stalks (GLB units: the body group carries CRAB_SCALE) */}
+               <group ref={eyes} position={[0, GLB_SIZE.crab.y * 0.86, GLB_SIZE.crab.z * 0.36]}>
+                  {[-1, 1].map((sd) => (
+                     <mesh key={sd} position={[sd * 0.17, 0, 0]}>
+                        <sphereGeometry args={[0.09, 14, 10]} />
+                        <meshBasicMaterial color="#fde047" transparent opacity={0.9} blending={AdditiveBlending} depthWrite={false} toneMapped={false} />
+                     </mesh>
+                  ))}
+               </group>
             </group>
          </group>
          <mesh ref={slam} visible={false}>

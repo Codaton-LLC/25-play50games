@@ -244,7 +244,7 @@ describe("the curl", () => {
       expect(curlGap(run)).toBeLessThanOrEqual(CURL.maxGap + 1e-6);
       const t = createRun(1);
       ride(t, FACE_W - 0.5, 18);
-      t.curlZ = t.hero.z + 20;
+      t.curlZ = t.hero.z + 8;
       step(t, 16, input({ jumpPressed: true }));
       let before = Number.NaN;
       for (let f = 0; f < 200 && !t.events.trick; f++) {
@@ -463,7 +463,7 @@ describe("the lower bound (README 'Server limits')", () => {
 /** minDurationMs, maxDurationMs, timeBaseMs, maxScore per level (README table). */
 const PINNED = [
    [13800, 120000, 120000, 10620],
-   [18400, 140000, 140000, 12160],
+   [17600, 140000, 140000, 12240],
    [21300, 160000, 160000, 13870],
    [27000, 180000, 180000, 15300],
    [42300, 240000, 240000, 19770],
