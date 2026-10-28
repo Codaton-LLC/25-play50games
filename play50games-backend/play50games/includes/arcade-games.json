@@ -1002,6 +1002,58 @@
         { "title": "Plate Surf Master", "max_score": 19770, "min_duration_ms": 42300, "max_duration_ms": 240000, "time_base_ms": 240000 }
       ]
     },
+    "zipline-rush": {
+      "title": "Zipline Rush",
+      "kind": "points",
+      "max_score": 1460,
+      "min_duration_ms": 6200,
+      "max_duration_ms": 151000,
+      "base": 1460,
+      "max_pps": 0,
+      "enabled": false,
+      "levels": [
+        {
+          "title": "Training Line",
+          "max_score": 1460,
+          "min_duration_ms": 6200,
+          "max_duration_ms": 151000,
+          "base": 1460,
+          "max_pps": 0
+        },
+        {
+          "title": "Twin Lines",
+          "max_score": 1780,
+          "min_duration_ms": 9300,
+          "max_duration_ms": 181000,
+          "base": 1780,
+          "max_pps": 0
+        },
+        {
+          "title": "Moving Landing",
+          "max_score": 2100,
+          "min_duration_ms": 12500,
+          "max_duration_ms": 211000,
+          "base": 2100,
+          "max_pps": 0
+        },
+        {
+          "title": "Lighthouse Night",
+          "max_score": 2420,
+          "min_duration_ms": 15500,
+          "max_duration_ms": 241000,
+          "base": 2420,
+          "max_pps": 0
+        },
+        {
+          "title": "Zipline Master",
+          "max_score": 3990,
+          "min_duration_ms": 16900,
+          "max_duration_ms": 301000,
+          "base": 3990,
+          "max_pps": 0
+        }
+      ]
+    },
     "color-city-sprint": {
       "title": "Color City Sprint",
       "kind": "time",
