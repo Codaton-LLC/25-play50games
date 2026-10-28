@@ -259,3 +259,7 @@ Open questions for Claude or the user: None.
 Known issues / follow-ups: None.
 Evidence: public/images/3d/shopping-cart.webp (9.7 KB), tools/thumbs/out/shopping-cart.webp
 ```
+
+## Camera views
+
+Views: default, chase, front, top, free (the shelves and counters block the camera). **C** / **T** or the 📷 button cycles them; drag (or two fingers) looks around and switches to the free view, wheel / pinch zooms, **V** recenters. The rules receive the drawn camera's yaw (the fitted yaw in the default view), so a run in the default view is unchanged; no rules, bots, proofs or scoring were touched. Core docs: `core/camera/README.md`.
