@@ -1,8 +1,10 @@
 "use client";
 import CameraViewButton from "../../core/camera/CameraViewButton";
+import { HintLine } from "../../core/hud/HintLine";
 import { useLevel } from "../../core/level";
 import { useArcadeStore } from "../../core/useArcadeStore";
 import type { BurgerLevel } from "./levels";
+import { GUIDE } from "./guide";
 import styles from "./Hud.module.css";
 function GameHud() {
    const carrying = useArcadeStore((s) => s.stats.carrying ?? 0);
@@ -24,6 +26,7 @@ export default function Hud() {
       <>
          <CameraViewButton />
          <GameHud />
+         <HintLine signal={GUIDE} />
       </>
    );
 }
