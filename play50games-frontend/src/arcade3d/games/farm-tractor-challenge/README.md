@@ -10,7 +10,7 @@ Street-vehicle integrator. Stick up is forward (`moveY` −1). Top speed 6, acce
 
 A trip's bales wear the tint ring. Overlap at incoming speed under 2 hitches one into the next free trailer slot (the speed is read before drag). At 2 or above the bale stays and a life is spent. A full trailer ignores a further slow overlap. Unarmed bales do not hitch. Slots never exceed `balesPerTrip`.
 
-The trailer is a critically damped spring (`SPRING_K` 26) toward a point 1.15 + 2.4 m behind the tractor. It never writes the tractor. Two slot offsets sit on that point.
+The trailer is a critically damped spring (`SPRING_K` 26) toward a point 1.15 + 2.4 m behind the tractor. It never writes the tractor. Two slot offsets sit on that point. Drawn (`Scene.tsx`): `farmTrailer.glb` 2.4 m behind the hitch along its own yaw (the spring point once the yaw has caught up, so the bar stays rigid), 2.8 m long and 1.2 m wide (`TRAILER_LENGTH`, sides squashed to 0.8), its yaw easing toward the tractor's heading (`TRAILER_TURN` 3/s); a hitch bar runs from the GLB's drawbar eye to a pin at `hitchPoint`, and the hitched loads sit on the measured bed (`TRAILER_BED`, checked on the real mesh in `assets.test.ts`), one in the middle or two front and back. The slot offsets stay the rules' (bay check). Steering: stick right lowers the yaw (the tractor faces (sin yaw, cos yaw), and +x is the driver's left); the models are drawn with `rotation.y = yaw`.
 
 Mud rects multiply accel, top speed and reverse by 0.55 while the tractor circle overlaps them. Speed above the mud top bleeds with the brake. Mud never covers a bale or the bay (200 seeds).
 

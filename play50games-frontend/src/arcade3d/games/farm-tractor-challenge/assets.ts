@@ -29,7 +29,24 @@ type Size = { x: number; y: number; z: number };
 export const FARMER_HEIGHT = 1.78;
 export const FARMER_SCALE = FARMER_HEIGHT / GLB_SIZE.farmer.y;
 export const TRACTOR_LENGTH = 2.3;
-export const TRAILER_LENGTH = 2.1;
+/** The trailer is drawn as wide as the tractor (1.2 m) so the cargo reads on it; the drawbar is part of the length. */
+export const TRAILER_LENGTH = 2.8;
+/** Lower sides (the GLB at its fitted length is a 1.28 m tall wagon, taller than the bales on it). */
+export const TRAILER_SQUASH = 0.8;
+const TRAILER_SCALE = TRAILER_LENGTH / GLB_SIZE.trailer.z;
+/**
+ * The trailer's load bed, measured on farmTrailer.glb (GLB units: bed floor top 0.405 up, the box from
+ * z -0.945 to 0.54, 0.774 wide inside; the drawbar eye at z +0.945, 0.324 up; it faces +z), in metres
+ * in the trailer's frame once drawn. assets.test.ts checks it on the real mesh.
+ */
+export const TRAILER_BED = {
+   y: 0.405 * TRAILER_SCALE * TRAILER_SQUASH,
+   z: ((-0.945 + 0.54) / 2) * TRAILER_SCALE,
+   length: (0.54 + 0.945) * TRAILER_SCALE,
+   width: 0.774 * TRAILER_SCALE,
+   tongueY: 0.324 * TRAILER_SCALE * TRAILER_SQUASH,
+   tongueZ: TRAILER_LENGTH / 2,
+} as const;
 export const BARN_WIDTH = 7;
 export const BARN_SQUASH = 0.75;
 export const SILO_WIDTH = 1.8;
@@ -95,7 +112,7 @@ const unitBox = (s: Size): Partial<ModelAsset> => ({ stretch: [1 / s.x, 1 / s.y,
 export const ASSETS = {
    farmer: local("charFarmer", "capsule", "#f1d0b4", { scale: FARMER_SCALE, humanoid: { landmarks: FARMER_LANDMARKS } }, CHARACTER_BUDGET),
    tractor: local("tractor", "box", "#eab308", { scale: TRACTOR_LENGTH / GLB_SIZE.tractor.z }),
-   trailer: local("farmTrailer", "box", "#78716c", { scale: TRAILER_LENGTH / GLB_SIZE.trailer.z }),
+   trailer: local("farmTrailer", "box", "#78716c", { scale: TRAILER_SCALE, stretch: [1, TRAILER_SQUASH, 1] }),
    hay: local("hayBaleBound", "cylinder", "#eab308", unitBox(GLB_SIZE.hay)),
    appleCrate: local("appleCrate", "box", "#c2410c", unitBox(GLB_SIZE.crate)),
    barn: local("barn", "box", "#b45309", { scale: BARN_WIDTH / GLB_SIZE.barn.x, stretch: [1, BARN_SQUASH, 1] }),

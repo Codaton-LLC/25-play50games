@@ -3,7 +3,8 @@ import { definitionLevelProblems, levelEnvironment, levelHudStats, levelInstruct
 import { levelMetaProblems } from "@/arcade3d/levelMeta";
 import { LEVEL_IDS, type LevelId } from "@/arcade3d/types";
 import definition from "./index";
-import { LEVELS, LEVEL_LINES, LEVEL_TITLES } from "./levels";
+import { LEVELS, LEVEL_LINES, LEVEL_TITLES, MISSION_WORDS } from "./levels";
+import { RESULT_DELAY_MS } from "./resultDelay";
 import { marsRoverMissionMeta } from "./meta";
 import { fogFor } from "./looks";
 import { PROPOSED_LEVEL_LIMITS, createRun, objectiveCeiling } from "./rules";
@@ -23,7 +24,8 @@ describe("mars-rover-mission levels", () => {
       expect(marsRoverMissionMeta.scoring).toEqual(PROPOSED_LEVEL_LIMITS[1]);
       expect(definition.touchControls).toEqual(["joystick"]);
       expect(definition.lives).toBe(3);
-      expect(definition.resultDelayMs).toBe(900);
+      expect(definition.resultDelayMs).toBe(RESULT_DELAY_MS);
+      expect(definition.Hud).toBeDefined();
 
       for (const id of LEVEL_IDS) {
          const level = LEVELS[id];
@@ -40,6 +42,10 @@ describe("mars-rover-mission levels", () => {
 
          const stats = levelHudStats(definition, id);
          expect(stats?.find((stat) => stat.key === "samples")?.max).toBe(level.sites);
+         expect(stats?.find((stat) => stat.key === "samples")?.label).toBe(MISSION_WORDS[level.mission].chip);
+         // the start card states the mission: its count and the lander
+         expect(LEVEL_LINES[id]).toMatch(/^Mission: /);
+         expect(LEVEL_LINES[id]).toContain(String(level.sites));
          expect(stats?.find((stat) => stat.key === "battery")?.max).toBe(100);
       }
 
@@ -52,7 +58,7 @@ describe("mars-rover-mission levels", () => {
          const [, n, f] = fogFor(LEVELS[id], id);
          expect(f - n).toBeGreaterThan(fogFor(LEVELS[4], 4)[2] - fogFor(LEVELS[4], 4)[1]);
       }
-      expect(LEVELS[5].lighting).toBe("space");
+      expect(LEVELS[5].lighting).toBe("night");
    });
 
    it("difficulty never drops; every level pays at least level 1; L5 <= 3 x L1", () => {
@@ -83,5 +89,13 @@ describe("mars-rover-mission levels", () => {
          for (const b of run.boulders) expect(b.speed).toBe(LEVELS[id].boulderSpeed);
          expect(PROPOSED_LEVEL_LIMITS[id].base).toBe(objectiveCeiling(LEVELS[id].sites));
       }
+   });
+
+   it("one mission per level, hazards build up: sliding rocks from L3, the storm on L4, crevasses and headlights from L4", () => {
+      expect(LEVEL_IDS.map((id) => LEVELS[id].mission)).toEqual(["crystal", "beacon", "crystal", "panel", "relic"]);
+      expect(LEVEL_IDS.map((id) => LEVELS[id].crevasses)).toEqual([0, 0, 0, 2, 3]);
+      expect(LEVEL_IDS.map((id) => LEVELS[id].storm)).toEqual([false, false, false, true, false]);
+      expect(LEVEL_IDS.map((id) => LEVELS[id].headlights)).toEqual([false, false, false, true, true]);
+      for (let id = 2; id <= 5; id++) expect(LEVELS[id as LevelId].crevasses).toBeGreaterThanOrEqual(LEVELS[(id - 1) as LevelId].crevasses);
    });
 });

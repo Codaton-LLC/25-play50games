@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { createInputController } from "@/arcade3d/core/inputController";
 import { LEVEL_IDS, type LevelId } from "@/arcade3d/types";
 import { LEVELS } from "./levels";
 import {
@@ -261,5 +262,46 @@ describe("taxi pads, patience and lights", () => {
       expect(a.yaw).toBeCloseTo(b.yaw, 4);
       expect(a.speed).toBeCloseTo(b.speed, 4);
       expect(Math.hypot(a.x - c.x, a.z - c.z)).toBeLessThan(0.05);
+   });
+});
+
+// Steering direction on screen. A heading (sin yaw, cos yaw) has its driver's LEFT at (cos yaw, -sin yaw)
+// (three.js is right-handed, y up: facing +z, +x is on the left). A left turn rotates the heading
+// towards that side, so cross(before, after).y > 0, and the vehicle drifts to its own left.
+type Drive = "KeyA" | "ArrowLeft" | "KeyD" | "ArrowRight" | "stickLeft" | "stickRight";
+const DRIVES: readonly Drive[] = ["KeyA", "ArrowLeft", "stickLeft", "KeyD", "ArrowRight", "stickRight"];
+const isLeft = (d: Drive) => d === "KeyA" || d === "ArrowLeft" || d === "stickLeft";
+function pressDrive(d: Drive) {
+   const pad = createInputController();
+   if (d === "stickLeft") pad.setJoystick(-1, -1);
+   else if (d === "stickRight") pad.setJoystick(1, -1);
+   else {
+      pad.keyDown("KeyW");
+      pad.keyDown(d);
+   }
+   pad.latch();
+   return pad.state.current;
+}
+function turnOf(yaw0: number, x0: number, z0: number, yaw1: number, x1: number, z1: number) {
+   const turn = Math.sin(yaw0) * Math.cos(yaw1) - Math.cos(yaw0) * Math.sin(yaw1);
+   const side = (x1 - x0) * Math.cos(yaw0) - (z1 - z0) * Math.sin(yaw0);
+   return { turn: -turn, side };
+}
+
+describe("taxi steering", () => {
+   it.each(DRIVES)("%s turns the cab to the driver's matching side (keys and joystick)", (d) => {
+      const run = createRun(3, LEVELS[1]);
+      for (const car of run.cars) {
+         car.pin = true;
+         car.x = -40;
+         car.z = -40;
+      }
+      const input = pressDrive(d);
+      const yaw0 = run.yaw, x0 = run.x, z0 = run.z;
+      for (let i = 0; i < 40; i++) step(run, { moveX: input.moveX, moveY: input.moveY }, 1 / 60, 100_000);
+      const { turn, side } = turnOf(yaw0, x0, z0, run.yaw, run.x, run.z);
+      const sign = isLeft(d) ? 1 : -1;
+      expect(turn * sign).toBeGreaterThan(0.05);
+      expect(side * sign).toBeGreaterThan(0);
    });
 });
