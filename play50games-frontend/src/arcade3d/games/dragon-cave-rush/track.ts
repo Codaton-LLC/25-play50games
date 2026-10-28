@@ -292,7 +292,7 @@ const SCRIPTS: Record<LevelId, Script> = {
       ghost(b, 392, 30, 1, true);
       hazard(b, "rock", 410);
       shortcut(b, 382, 22, -1);
-      kiroLava(b, 404, -1);
+      kiroLava(b, 300, 1);
       lantern(b, 430);
       straight(b, 40);
       // beat 3: the hoard, the egg; Cindermaw wakes

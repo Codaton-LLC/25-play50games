@@ -183,6 +183,8 @@ export interface Cart {
    /** tipped onto two wheels by a wrong lean (a second derails) */
    tilted: boolean;
    tiltUntil: number;
+   /** the sharp curve that tipped it */
+   tiltSeg: number;
 }
 
 export interface StepInput {
@@ -372,6 +374,7 @@ export function createRun(seed: number, level: LevelId = 1, heroId: HeroId = DEF
          boostUntil: -1,
          tilted: false,
          tiltUntil: -1,
+         tiltSeg: -1,
       },
       collected: new Uint8Array(course.orbs.length),
       broken: new Uint8Array(course.barricades.length),
@@ -700,6 +703,7 @@ function substep(run: CaveRun, ms: number, input: StepInput, first: boolean): vo
       if (seg.sharp && !c.tilted && c.s > seg.s0 + seg.len * 0.5 && run.curveGood < run.curveMs * LEAN_BAD && ms > c.tiltUntil) {
          c.tilted = true;
          c.tiltUntil = ms + 1500;
+         c.tiltSeg = segIndex;
          ev.tilted = true;
       }
    }
@@ -715,7 +719,7 @@ function substep(run: CaveRun, ms: number, input: StepInput, first: boolean): vo
             run.leaned[run.curveIndex] = 1;
             link(run, ms, COMBO_BASE_MS.lean);
          }
-      } else if (done.sharp && share < LEAN_BAD && c.tilted && ms > c.tiltUntil - 1400) {
+      } else if (done.sharp && share < LEAN_BAD && c.tilted && c.tiltSeg !== run.curveIndex) {
          // the second wrong lean in a row: derailed
          lose(run);
       }
