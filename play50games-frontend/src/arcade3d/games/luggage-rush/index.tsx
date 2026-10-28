@@ -5,6 +5,7 @@
 // Levels: one LevelSpec per meta.ts level, built from levels.ts (core/README.md "Levels").
 import type { GameDefinition, LevelSpec } from "@/arcade3d/core/types";
 import { LEVEL_IDS, type LevelId } from "@/arcade3d/types";
+import Hud from "./Hud";
 import Scene from "./Scene";
 import { ASSETS } from "./assets";
 import { LEVELS, type LuggageLevel } from "./levels";
@@ -39,6 +40,7 @@ function instructionsFor(level: LuggageLevel): string[] {
 const definition: GameDefinition<LuggageLevel> = {
    slug: "luggage-rush",
    Scene,
+   Hud,
    assets: ASSETS,
    durationMs: DURATION_MS,
    resultDelayMs: RESULT_DELAY_MS,
