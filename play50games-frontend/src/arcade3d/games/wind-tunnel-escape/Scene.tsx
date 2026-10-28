@@ -340,8 +340,8 @@ export function WindCamera({ run, orbit }: { run: WindRun; orbit: OrbitState }) 
          orbitPivot(h.x, h.y, h.z, h.vx, h.vz, h.ridingUp, out);
          // in the Gale Engine's arena the view leans towards the engine (and up), so it stays in frame
          if (run.world.bossAwake && !gateOpen(run)) {
-            out.z -= 2.5;
-            out.y += 1.2;
+            out.z -= 0.8;
+            out.y += 1.4;
          }
          return true;
       },

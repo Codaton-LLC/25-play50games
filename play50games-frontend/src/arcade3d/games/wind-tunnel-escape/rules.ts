@@ -1537,7 +1537,6 @@ export function solidBoxes(run: WindRun, out: SolidBox[]): number {
    const blocks = run.course.blocks;
    for (let i = 0; i < blocks.length; i++) {
       const b = blocks[i];
-      if (b.look === "housing") continue;
       if (b.kind === "cover" && run.world.broken[i]) continue;
       if (b.kind === "gate" && gateOpen(run)) continue;
       // the arena's shutter is a see-through energy wall: the camera never bumps into it
