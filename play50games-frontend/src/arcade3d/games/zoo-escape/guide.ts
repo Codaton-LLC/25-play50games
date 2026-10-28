@@ -9,6 +9,6 @@ export interface Hint {
 
 export function hintFor(catches: number, maxCatches: number, bamboo: number): Hint {
    if (maxCatches - catches <= 1) return { text: "Last chance: one more catch and the escape is over. Sneak and hide", tone: "warn" };
-   const toss = bamboo > 0 ? ", toss bamboo (E / Toss) to lure a keeper" : "";
-   return { text: `Stay out of the flashlight cones: hold Sneak past keepers, hide in bushes${toss}`, tone: "info" };
+   const toss = bamboo > 0 ? ", Toss bamboo to lure a keeper" : "";
+   return { text: `Avoid the flashlight cones: hold Sneak, hide in bushes${toss}`, tone: "info" };
 }
