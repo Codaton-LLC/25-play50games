@@ -141,8 +141,8 @@ function LevelScene() {
          const hw = config.width / 2;
          const hd = config.depth / 2;
          put(0, -hd, hw, 0.05, 1.1);
-         // no south fence: the dog starts at the blanket with the owner right behind it, and a chase camera
-         // clipped to that fence would sit inside the owner (the pickets are low; the camera looks over them)
+         // no south fence solid: the dog starts at the blanket 1.8 m from it, so a camera clipped to it
+         // (min 2.2 m out) would sit right at the owner; the pickets are low and the camera looks over them
          put(-hw, 0, 0.05, hd, 1.1);
          put(hw, 0, 0.05, hd, 1.1);
          return n;
@@ -267,7 +267,7 @@ function LevelScene() {
       if (own) {
          const t = run.time - ownerHopAt.current;
          const lift = t >= 0 && t < OWNER_HOP_S ? hopOffset(Math.PI * (t / OWNER_HOP_S), 0.15, BODY).y : 0;
-         own.position.set(run.blanket.x, lift, run.blanket.z + 0.9);
+         own.position.set(run.blanket.x + OWNER_SIDE, lift, run.blanket.z + 0.3);
          own.rotation.set(0, Math.PI, 0);
       }
       const th = run.active;
@@ -519,6 +519,10 @@ function DecorFallback({ spots, geometry, material, flat = false }: { spots: rea
       </Instanced>
    );
 }
+
+// the owner stands beside the blanket, not behind the dog: the chase camera sits behind the dog,
+// so an owner there would fill the screen
+const OWNER_SIDE = 2.3;
 
 export default function Scene() {
    return <LevelScene />;
