@@ -16,8 +16,8 @@ const LEVELS: readonly LevelMeta[] = [
 export const marsRoverMissionMeta: ArcadeGameMeta = {
    slug: "mars-rover-mission",
    title: "Mars Rover Mission",
-   tagline: "Scan. Sample. Return.",
-   description: "Drive a rover across the red planet, stop at each scan site to take a sample and make it back to base with charge to spare.",
+   tagline: "Drill. Scan. Bring it home.",
+   description: "One mission per level on the red planet: drill crystals, scan beacons, repair solar panels, then drive back to the lander before the battery or the clock runs out.",
    order: 43,
    status: "dev",
    collection: "adventure",
@@ -25,8 +25,8 @@ export const marsRoverMissionMeta: ArcadeGameMeta = {
    orientation: "any",
    controls: {
       scheme: "steer",
-      keyboard: "W / up drives, S / down brakes, A D / arrows steer",
-      touch: "Joystick: push up to drive, sideways to steer",
+      keyboard: "W / up drives, S / down brakes and reverses, A D / arrows steer (the camera follows behind)",
+      touch: "Joystick: push up to drive, left or right to turn",
    },
    scoring: SCORING,
    levels: LEVELS,
