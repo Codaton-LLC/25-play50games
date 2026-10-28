@@ -1,0 +1,1320 @@
+/* "How to play": the start card's controls block, its keyboard and phone illustrations and the
+   wizard (core/README.md "How to play"). Navy like the card, the game's accent (--game-accent, set
+   by GameShell from meta.accent) on the main keys and the lit ones. Only transform and opacity
+   animate; prefers-reduced-motion stops every loop and keeps the highlight. */
+
+.block {
+   --deck-ink: #e8edf8;
+   --cap-top: #263152;
+   --cap-bottom: #1b2440;
+   --cap-edge: #0a1022;
+   --accent-soft: color-mix(in srgb, var(--game-accent, var(--accent)) 22%, transparent);
+
+   margin: 0 0 16px;
+}
+
+.head {
+   display: flex;
+   align-items: center;
+   justify-content: space-between;
+   gap: 12px;
+   margin-bottom: 10px;
+}
+
+.eyebrow {
+   margin: 0;
+   color: var(--muted);
+   font-size: 11px;
+   font-weight: 700;
+   letter-spacing: 0.1em;
+   text-transform: uppercase;
+}
+
+/* Keyboard | Touch: a two-segment switch with a sliding thumb */
+.toggle {
+   position: relative;
+   display: inline-grid;
+   grid-template-columns: 1fr 1fr;
+   flex: none;
+   padding: 3px;
+   border: 1px solid var(--stroke);
+   border-radius: 999px;
+   background: rgba(6, 10, 24, 0.55);
+}
+
+.toggle::before {
+   content: "";
+   position: absolute;
+   top: 3px;
+   bottom: 3px;
+   left: 3px;
+   width: calc(50% - 3px);
+   border-radius: 999px;
+   background: rgba(255, 255, 255, 0.1);
+   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+   transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.toggle[data-mode="touch"]::before {
+   transform: translateX(100%);
+}
+
+.toggleButton {
+   position: relative;
+   display: inline-flex;
+   align-items: center;
+   justify-content: center;
+   gap: 6px;
+   min-width: 44px;
+   min-height: 44px;
+   padding: 0 14px;
+   border: 0;
+   border-radius: 999px;
+   background: transparent;
+   color: var(--muted);
+   font: inherit;
+   font-size: 13px;
+   font-weight: 700;
+   cursor: pointer;
+   transition: color 0.2s ease;
+}
+
+.toggleButton svg {
+   width: 16px;
+   height: 16px;
+}
+
+.toggleButton[aria-pressed="true"] {
+   color: var(--text);
+}
+
+.toggleButton:focus-visible,
+.howButton:focus-visible,
+.navButton:focus-visible,
+.skip:focus-visible,
+.dot:focus-visible {
+   outline: 3px solid #fff;
+   outline-offset: 2px;
+}
+
+/* the illustration's tray */
+.stage {
+   position: relative;
+   padding: 16px 14px 14px;
+   border: 1px solid rgba(255, 255, 255, 0.08);
+   border-radius: 16px;
+   background:
+      radial-gradient(120% 90% at 50% 0%, color-mix(in srgb, var(--game-accent, var(--accent)) 9%, transparent), transparent 70%),
+      rgba(5, 9, 22, 0.6);
+   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+   overflow: hidden;
+}
+
+.stageIn {
+   animation: stageIn 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes stageIn {
+   from {
+      opacity: 0;
+      transform: translateY(6px);
+   }
+}
+
+/* ---------- keyboard ---------- */
+
+.deck {
+   display: flex;
+   flex-wrap: wrap;
+   align-items: flex-end;
+   justify-content: center;
+   gap: 16px 20px;
+   margin: 0;
+   padding: 0;
+   list-style: none;
+}
+
+.group {
+   display: flex;
+   flex-direction: column;
+   align-items: center;
+   gap: 8px;
+   min-width: 0;
+   transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.deck[data-focus] .group:not([data-lit]) {
+   opacity: 0.32;
+}
+
+.caps {
+   display: flex;
+   flex-wrap: wrap;
+   align-items: flex-end;
+   justify-content: center;
+   gap: 6px;
+}
+
+.alt {
+   display: inline-flex;
+   align-items: flex-end;
+   gap: 6px;
+}
+
+.or {
+   align-self: center;
+   padding: 0 2px;
+   color: var(--muted);
+   font-size: 11px;
+   font-style: italic;
+   opacity: 0.8;
+}
+
+.row {
+   display: inline-flex;
+   gap: 5px;
+}
+
+.cluster {
+   display: inline-grid;
+   grid-template-columns: repeat(3, auto);
+   gap: 5px;
+}
+
+.clusterCell[data-pos="top"] {
+   grid-column: 2;
+}
+
+.clusterCell:not([data-pos]) {
+   grid-row: 2;
+}
+
+.cap {
+   --cap: 38px;
+
+   display: inline-grid;
+   place-items: center;
+   min-width: var(--cap);
+   height: var(--cap);
+   padding: 0 7px;
+   border: 1px solid rgba(255, 255, 255, 0.09);
+   border-radius: 9px;
+   background: linear-gradient(180deg, var(--cap-top), var(--cap-bottom));
+   box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.14),
+      inset 0 -2px 0 rgba(0, 0, 0, 0.18),
+      0 3px 0 var(--cap-edge),
+      0 6px 12px rgba(3, 6, 18, 0.55);
+   color: var(--deck-ink);
+   font-size: 13px;
+   font-weight: 800;
+   line-height: 1;
+   letter-spacing: 0.01em;
+   transform: translateY(0);
+   transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.capWord {
+   font-size: 11px;
+   font-weight: 700;
+   letter-spacing: 0.04em;
+}
+
+.capSpace {
+   min-width: 132px;
+   align-items: end;
+   padding-bottom: 7px;
+}
+
+.groupMain .cap {
+   border-color: color-mix(in srgb, var(--game-accent, var(--accent)) 55%, transparent);
+   background: linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--game-accent, var(--accent)) 30%, var(--cap-top)),
+      color-mix(in srgb, var(--game-accent, var(--accent)) 14%, var(--cap-bottom))
+   );
+   box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.2),
+      inset 0 -2px 0 rgba(0, 0, 0, 0.18),
+      0 3px 0 color-mix(in srgb, var(--game-accent, var(--accent)) 30%, var(--cap-edge)),
+      0 6px 14px rgba(3, 6, 18, 0.55);
+   color: #fff;
+}
+
+/* resting card: the main keys tap one after another, slowly */
+.deck:not([data-focus]) .groupMain .cap {
+   animation: idleTap 4.8s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+   animation-delay: calc(var(--i, 0) * 0.18s);
+}
+
+@keyframes idleTap {
+   0%,
+   12%,
+   100% {
+      transform: translateY(0);
+   }
+   6% {
+      transform: translateY(2px);
+   }
+}
+
+/* the wizard's lit keys: pressed in a pulse, with an accent halo */
+.group[data-lit] .cap {
+   animation: press 1.5s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+   animation-delay: calc(var(--i, 0) * 0.12s);
+}
+
+@keyframes press {
+   0%,
+   60%,
+   100% {
+      transform: translateY(0);
+   }
+   20%,
+   35% {
+      transform: translateY(2px);
+      box-shadow:
+         inset 0 1px 0 rgba(255, 255, 255, 0.2),
+         0 1px 0 var(--cap-edge),
+         0 0 0 4px var(--accent-soft),
+         0 3px 8px rgba(3, 6, 18, 0.5);
+   }
+}
+
+.caption {
+   display: inline-flex;
+   align-items: center;
+   gap: 6px;
+   max-width: 15ch;
+   color: var(--text);
+   font-size: 12px;
+   font-weight: 700;
+   line-height: 1.25;
+   text-align: center;
+}
+
+.groupQuiet .caption {
+   color: var(--muted);
+   font-weight: 600;
+}
+
+.hold {
+   flex: none;
+   padding: 2px 5px;
+   border-radius: 5px;
+   background: var(--accent-soft);
+   color: var(--game-accent, var(--accent));
+   font-size: 9px;
+   font-weight: 800;
+   letter-spacing: 0.08em;
+   text-transform: uppercase;
+}
+
+.specMouse {
+   display: inline-grid;
+   place-items: center;
+   height: 44px;
+}
+
+.mouse {
+   width: 26px;
+   height: 38px;
+}
+
+.mouseBody {
+   fill: var(--cap-bottom);
+   stroke: rgba(255, 255, 255, 0.3);
+   stroke-width: 1.5;
+}
+
+.mouseLine {
+   fill: none;
+   stroke: rgba(255, 255, 255, 0.2);
+   stroke-width: 1.2;
+}
+
+.mouseButton {
+   fill: color-mix(in srgb, var(--game-accent, var(--accent)) 60%, transparent);
+}
+
+.mouseWheel {
+   fill: rgba(255, 255, 255, 0.55);
+}
+
+.deckLarge .cap {
+   --cap: 44px;
+
+   font-size: 15px;
+}
+
+.deckLarge .capSpace {
+   min-width: 168px;
+}
+
+.deckLarge .caption {
+   font-size: 13px;
+}
+
+/* ---------- phone ---------- */
+
+.phoneWrap {
+   display: grid;
+   gap: 12px;
+   justify-items: center;
+}
+
+.phone {
+   width: min(100%, 360px);
+   aspect-ratio: 19.5 / 9;
+   padding: 7px;
+   border-radius: 26px;
+   background: linear-gradient(160deg, #2a3350, #121933);
+   box-shadow:
+      inset 0 0 0 1px rgba(255, 255, 255, 0.12),
+      0 14px 30px rgba(3, 6, 18, 0.6);
+}
+
+.phonePortrait {
+   width: min(60%, 190px);
+   aspect-ratio: 9 / 19.5;
+}
+
+.screen {
+   position: relative;
+   width: 100%;
+   height: 100%;
+   overflow: hidden;
+   border-radius: 20px;
+   background:
+      radial-gradient(80% 70% at 50% 110%, color-mix(in srgb, var(--game-accent, var(--accent)) 30%, transparent), transparent 70%),
+      linear-gradient(180deg, #1a2547 0%, #101a36 55%, #0c1530 100%);
+}
+
+/* a horizon line so it reads as a game, not a blank screen */
+.screen::before {
+   content: "";
+   position: absolute;
+   left: -10%;
+   right: -10%;
+   top: 52%;
+   height: 60%;
+   background: repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.05) 0 1px, transparent 1px 34px);
+   transform: perspective(120px) rotateX(55deg);
+   transform-origin: top;
+}
+
+.hudMock {
+   position: absolute;
+   top: 9%;
+   left: 6%;
+   display: flex;
+   gap: 4px;
+}
+
+.hudMock span {
+   width: 30px;
+   height: 12px;
+   border-radius: 6px;
+   background: rgba(255, 255, 255, 0.12);
+}
+
+.pauseMock {
+   position: absolute;
+   top: 8%;
+   right: 5%;
+   display: grid;
+   place-items: center;
+   width: 22px;
+   height: 22px;
+   border-radius: 7px;
+   background: rgba(255, 255, 255, 0.14);
+   color: var(--text);
+}
+
+.stick {
+   position: absolute;
+   left: 6%;
+   bottom: 9%;
+   width: 31%;
+   max-width: 92px;
+   aspect-ratio: 1;
+   border: 2px solid rgba(255, 255, 255, 0.22);
+   border-radius: 50%;
+   background: radial-gradient(circle at 50% 50%, rgba(125, 211, 252, 0.16), rgba(11, 16, 32, 0.45) 70%);
+}
+
+.phonePortrait .stick {
+   width: 42%;
+}
+
+.stickKnob {
+   position: absolute;
+   top: 50%;
+   left: 50%;
+   width: 46%;
+   aspect-ratio: 1;
+   border: 2px solid rgba(255, 255, 255, 0.55);
+   border-radius: 50%;
+   background: rgba(125, 211, 252, 0.55);
+   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.35);
+   transform: translate(-50%, -50%);
+   animation: knob 3.2s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+
+@keyframes knob {
+   0%,
+   100% {
+      transform: translate(-50%, -50%);
+   }
+   20% {
+      transform: translate(-50%, -82%);
+   }
+   45% {
+      transform: translate(-18%, -50%);
+   }
+   70% {
+      transform: translate(-82%, -50%);
+   }
+}
+
+.pads {
+   position: absolute;
+   right: 5%;
+   bottom: 9%;
+   display: flex;
+   align-items: flex-end;
+   gap: 8px;
+}
+
+.pad {
+   display: grid;
+   place-items: center;
+   width: 44px;
+   height: 44px;
+   overflow: hidden;
+   border: 2px solid rgba(255, 255, 255, 0.35);
+   border-radius: 50%;
+   background: rgba(11, 16, 32, 0.6);
+   color: var(--text);
+   font-size: 9px;
+   font-weight: 800;
+   letter-spacing: 0.02em;
+   text-align: center;
+}
+
+/* lit controls on the phone: the accent ring and a press */
+.stick[data-lit],
+.pad[data-lit],
+.pauseMock[data-lit] {
+   border-color: var(--game-accent, var(--accent));
+   box-shadow: 0 0 0 4px var(--accent-soft);
+}
+
+.pad[data-lit],
+.pauseMock[data-lit] {
+   animation: padPress 1.5s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+}
+
+@keyframes padPress {
+   0%,
+   60%,
+   100% {
+      transform: scale(1);
+   }
+   25% {
+      transform: scale(0.9);
+   }
+}
+
+.phoneWrap[data-focus] .stick:not([data-lit]),
+.phoneWrap[data-focus] .pad:not([data-lit]),
+.phoneWrap[data-focus] .gestureSpot:not([data-lit]),
+.phoneWrap[data-focus] .legendItem:not([data-lit]) {
+   opacity: 0.3;
+}
+
+.gestureSpot {
+   position: absolute;
+   top: 22%;
+   left: 38%;
+   width: 24%;
+   height: 52%;
+   transition: opacity 0.3s ease;
+}
+
+.gesture {
+   position: absolute;
+   inset: 0;
+}
+
+.finger {
+   position: absolute;
+   top: 50%;
+   left: 50%;
+   width: 22px;
+   height: 22px;
+   margin: -11px 0 0 -11px;
+   border: 2px solid rgba(255, 255, 255, 0.85);
+   border-radius: 50%;
+   background: rgba(255, 255, 255, 0.28);
+}
+
+.ripple {
+   position: absolute;
+   top: 50%;
+   left: 50%;
+   width: 18px;
+   height: 18px;
+   margin: -9px 0 0 -9px;
+   border: 2px solid var(--game-accent, var(--accent));
+   border-radius: 50%;
+   animation: ripple 1.6s ease-out infinite;
+}
+
+@keyframes ripple {
+   from {
+      opacity: 0.9;
+      transform: scale(1);
+   }
+   to {
+      opacity: 0;
+      transform: scale(2.6);
+   }
+}
+
+.gesture[data-kind="tap"] .finger {
+   animation: tapFinger 1.6s ease-out infinite;
+}
+
+@keyframes tapFinger {
+   0%,
+   100% {
+      transform: scale(1);
+   }
+   12% {
+      transform: scale(0.8);
+   }
+}
+
+.gesture[data-kind="swipe"] .finger {
+   animation: swipeFinger 1.8s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+}
+
+.swipeTrail {
+   position: absolute;
+   top: 50%;
+   left: -40%;
+   right: -40%;
+   height: 2px;
+   margin-top: -1px;
+   border-radius: 2px;
+   background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--game-accent, var(--accent)) 70%, transparent), transparent);
+}
+
+@keyframes swipeFinger {
+   0% {
+      opacity: 0;
+      transform: translateX(-140%);
+   }
+   15%,
+   75% {
+      opacity: 1;
+   }
+   100% {
+      opacity: 0;
+      transform: translateX(140%);
+   }
+}
+
+.gesture[data-kind="drag"] .finger {
+   animation: dragFinger 2.2s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+}
+
+.dragLine {
+   position: absolute;
+   top: 50%;
+   left: 50%;
+   width: 2px;
+   height: 70%;
+   margin-left: -1px;
+   background: linear-gradient(180deg, color-mix(in srgb, var(--game-accent, var(--accent)) 80%, transparent), transparent);
+   transform-origin: top;
+   animation: dragLine 2.2s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+}
+
+@keyframes dragFinger {
+   0%,
+   10% {
+      transform: translateY(0);
+   }
+   60%,
+   75% {
+      transform: translateY(160%);
+   }
+   85%,
+   100% {
+      opacity: 0;
+      transform: translateY(0);
+   }
+}
+
+@keyframes dragLine {
+   0%,
+   10% {
+      transform: scaleY(0);
+   }
+   60%,
+   75% {
+      transform: scaleY(1);
+   }
+   85%,
+   100% {
+      transform: scaleY(0);
+   }
+}
+
+.legend {
+   display: flex;
+   flex-wrap: wrap;
+   justify-content: center;
+   gap: 6px 8px;
+   width: 100%;
+   margin: 0;
+   padding: 0;
+   list-style: none;
+}
+
+.legendItem {
+   display: inline-flex;
+   align-items: center;
+   gap: 7px;
+   min-height: 32px;
+   padding: 4px 10px 4px 6px;
+   border: 1px solid var(--stroke);
+   border-radius: 999px;
+   background: rgba(255, 255, 255, 0.03);
+   font-size: 12px;
+   line-height: 1.25;
+   transition: opacity 0.3s ease, border-color 0.3s ease;
+}
+
+.legendItem[data-lit] {
+   border-color: color-mix(in srgb, var(--game-accent, var(--accent)) 60%, transparent);
+   background: var(--accent-soft);
+}
+
+.legendName {
+   color: var(--text);
+   font-weight: 800;
+}
+
+.legendText {
+   display: inline-flex;
+   align-items: center;
+   gap: 5px;
+   color: var(--muted);
+}
+
+.glyph {
+   flex: none;
+   width: 20px;
+   height: 20px;
+   border: 2px solid rgba(255, 255, 255, 0.4);
+   border-radius: 50%;
+   background: rgba(11, 16, 32, 0.6);
+}
+
+.glyph[data-control="joystick"] {
+   background: radial-gradient(circle, rgba(125, 211, 252, 0.7) 0 30%, rgba(11, 16, 32, 0.6) 32%);
+}
+
+.glyph[data-control="jump"],
+.glyph[data-control="action"] {
+   border-color: var(--game-accent, var(--accent));
+}
+
+.glyph[data-control="tap"],
+.glyph[data-control="swipe"],
+.glyph[data-control="drag"] {
+   border-style: dashed;
+   background: rgba(255, 255, 255, 0.2);
+}
+
+.glyph[data-control="pause"] {
+   border-radius: 6px;
+   background:
+      linear-gradient(90deg, transparent 30%, rgba(255, 255, 255, 0.7) 30% 43%, transparent 43% 57%, rgba(255, 255, 255, 0.7) 57% 70%, transparent 70%) center / 100% 50% no-repeat,
+      rgba(11, 16, 32, 0.6);
+}
+
+/* ---------- the start card's "How to play" button ---------- */
+
+.howButton {
+   display: flex;
+   align-items: center;
+   gap: 12px;
+   width: 100%;
+   min-height: 52px;
+   margin-top: 10px;
+   padding: 8px 14px 8px 8px;
+   border: 1px solid var(--stroke);
+   border-radius: 14px;
+   background: rgba(255, 255, 255, 0.035);
+   color: var(--text);
+   font: inherit;
+   text-align: left;
+   cursor: pointer;
+   transition: border-color 0.2s ease, background-color 0.2s ease, transform 0.12s ease;
+}
+
+.howButton:hover {
+   border-color: color-mix(in srgb, var(--game-accent, var(--accent)) 50%, transparent);
+   background: rgba(255, 255, 255, 0.06);
+}
+
+.howButton:active {
+   transform: scale(0.98);
+}
+
+.howIcon {
+   display: grid;
+   flex: none;
+   place-items: center;
+   width: 36px;
+   height: 36px;
+   border-radius: 10px;
+   background: var(--accent-soft);
+   color: var(--game-accent, var(--accent));
+}
+
+.howIcon svg {
+   width: 18px;
+   height: 18px;
+}
+
+.howText {
+   display: grid;
+   flex: 1;
+   min-width: 0;
+}
+
+.howTitle {
+   font-size: 15px;
+   font-weight: 800;
+}
+
+.howSub {
+   overflow: hidden;
+   color: var(--muted);
+   font-size: 12px;
+   text-overflow: ellipsis;
+   white-space: nowrap;
+}
+
+.howArrow {
+   flex: none;
+   width: 18px;
+   height: 18px;
+   color: var(--muted);
+   transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.howButton:hover .howArrow {
+   transform: translateX(3px);
+}
+
+/* ---------- the wizard ---------- */
+
+.wizard {
+   /* fixed, so the start card's scrolling panel does not clip it: its containing block is the
+      overlay (backdrop-filter), which covers the stage */
+   position: fixed;
+   inset: 0;
+   z-index: 30;
+   display: flex;
+   padding: var(--overlay-pad-top, 16px) var(--overlay-pad-right, 16px) var(--overlay-pad-bottom, 16px) var(--overlay-pad-left, 16px);
+   background: rgba(6, 10, 24, 0.72);
+   -webkit-backdrop-filter: blur(6px);
+   backdrop-filter: blur(6px);
+   animation: fadeIn 0.25s ease;
+}
+
+@keyframes fadeIn {
+   from {
+      opacity: 0;
+   }
+}
+
+.sheet {
+   --deck-ink: #e8edf8;
+   --cap-top: #263152;
+   --cap-bottom: #1b2440;
+   --cap-edge: #0a1022;
+   --accent-soft: color-mix(in srgb, var(--game-accent, var(--accent)) 22%, transparent);
+
+   display: flex;
+   flex-direction: column;
+   width: 100%;
+   max-width: 600px;
+   max-height: 100%;
+   margin: auto;
+   overflow-y: auto;
+   overscroll-behavior: contain;
+   border: 1px solid var(--stroke);
+   border-radius: 22px;
+   background: rgb(13, 19, 38);
+   box-shadow: 0 30px 70px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+   touch-action: pan-y;
+   animation: sheetIn 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes sheetIn {
+   from {
+      opacity: 0;
+      transform: translateY(14px) scale(0.98);
+   }
+}
+
+.sheetTop {
+   display: flex;
+   align-items: center;
+   gap: 10px;
+   padding: 10px 8px 0 20px;
+}
+
+.progress {
+   flex: 1;
+   height: 4px;
+   overflow: hidden;
+   border-radius: 999px;
+   background: rgba(255, 255, 255, 0.08);
+}
+
+.progressFill {
+   display: block;
+   width: 100%;
+   height: 100%;
+   border-radius: inherit;
+   background: var(--game-accent, var(--accent));
+   transform-origin: left;
+   transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.counter {
+   color: var(--muted);
+   font-size: 12px;
+   font-weight: 700;
+   font-variant-numeric: tabular-nums;
+}
+
+.skip {
+   min-width: 44px;
+   min-height: 44px;
+   padding: 0 12px;
+   border: 0;
+   border-radius: 10px;
+   background: transparent;
+   color: var(--muted);
+   font: inherit;
+   font-size: 14px;
+   font-weight: 700;
+   cursor: pointer;
+}
+
+.skip:hover {
+   color: var(--text);
+}
+
+.sheetBody {
+   display: grid;
+   gap: 16px;
+   padding: 8px 20px 4px;
+}
+
+.sheetGame {
+   margin: 0;
+   overflow: hidden;
+   color: var(--muted);
+   font-size: 13px;
+   font-weight: 700;
+   text-overflow: ellipsis;
+   white-space: nowrap;
+}
+
+.step {
+   display: grid;
+   grid-template-columns: auto 1fr;
+   grid-template-rows: auto 1fr;
+   gap: 6px 14px;
+   align-content: start;
+   align-items: baseline;
+   min-height: 96px;
+}
+
+.stepIn[data-dir="next"] {
+   animation: stepNext 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.stepIn[data-dir="back"] {
+   animation: stepBack 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes stepNext {
+   from {
+      opacity: 0;
+      transform: translateX(18px);
+   }
+}
+
+@keyframes stepBack {
+   from {
+      opacity: 0;
+      transform: translateX(-18px);
+   }
+}
+
+.stepNumber {
+   grid-row: span 2;
+   color: var(--game-accent, var(--accent));
+   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+   font-size: 28px;
+   font-weight: 800;
+   line-height: 1;
+   letter-spacing: -0.04em;
+}
+
+.stepTitle {
+   margin: 0;
+   font-size: 20px;
+   font-weight: 800;
+   line-height: 1.2;
+   letter-spacing: -0.01em;
+}
+
+.stepText {
+   max-width: 60ch;
+   margin: 0;
+   color: var(--muted);
+   font-size: 15px;
+   line-height: 1.55;
+}
+
+.sheetFoot {
+   position: sticky;
+   bottom: 0;
+   display: grid;
+   grid-template-columns: 1fr auto 1fr;
+   align-items: center;
+   gap: 12px;
+   padding: 12px 20px 18px;
+   background: rgb(13, 19, 38);
+}
+
+.dots {
+   display: flex;
+   gap: 2px;
+}
+
+.dot {
+   display: grid;
+   place-items: center;
+   width: 28px;
+   height: 44px;
+   padding: 0;
+   border: 0;
+   background: transparent;
+   cursor: pointer;
+}
+
+.dot::before {
+   content: "";
+   width: 8px;
+   height: 8px;
+   border-radius: 999px;
+   background: rgba(255, 255, 255, 0.22);
+   transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.3s ease;
+}
+
+.dot[aria-current="step"]::before {
+   background: var(--game-accent, var(--accent));
+   transform: scaleX(2.2);
+}
+
+.navButton {
+   display: inline-flex;
+   align-items: center;
+   justify-content: center;
+   gap: 6px;
+   min-height: 48px;
+   padding: 0 18px;
+   border-radius: 12px;
+   font: inherit;
+   font-size: 15px;
+   font-weight: 800;
+   cursor: pointer;
+   transition: transform 0.12s ease, background-color 0.15s ease, opacity 0.2s ease;
+}
+
+.navButton svg {
+   width: 16px;
+   height: 16px;
+}
+
+.navButton:active {
+   transform: scale(0.97);
+}
+
+.back {
+   justify-self: start;
+   border: 1px solid var(--stroke);
+   background: rgba(255, 255, 255, 0.04);
+   color: var(--text);
+}
+
+.back:disabled {
+   opacity: 0;
+   pointer-events: none;
+}
+
+.next {
+   justify-self: end;
+   border: 0;
+   background: var(--game-accent, var(--accent));
+   color: #0b1020;
+}
+
+.next:hover {
+   filter: brightness(1.08);
+}
+
+.keyHint {
+   margin: 0;
+   padding: 0 20px 14px;
+   color: var(--muted);
+   font-size: 12px;
+   text-align: center;
+   opacity: 0.8;
+}
+
+.keyHint kbd {
+   padding: 1px 5px;
+   border: 1px solid var(--stroke);
+   border-bottom-width: 2px;
+   border-radius: 5px;
+   font: inherit;
+   font-size: 11px;
+}
+
+/* ---------- small screens ---------- */
+
+/* phones: the wizard's switch shows its icons only, Back is an arrow, the dots tighten */
+@media (max-width: 480px) {
+   .sheet .toggleButton {
+      padding: 0 12px;
+   }
+
+   .sheet .toggleButton span,
+   .navText {
+      display: none;
+   }
+
+   .back {
+      width: 48px;
+      padding: 0;
+   }
+
+   /* too narrow for 44 px dots: they become a plain progress row (Back, Next and swipes turn the page) */
+   .dot {
+      width: 16px;
+      pointer-events: none;
+   }
+
+   .sheetFoot {
+      gap: 8px;
+   }
+}
+
+@media (max-width: 380px) {
+   .cap {
+      --cap: 34px;
+
+      font-size: 12px;
+   }
+
+   .capSpace {
+      min-width: 108px;
+   }
+
+   .deck {
+      gap: 14px 14px;
+   }
+
+   .toggleButton {
+      padding: 0 10px;
+   }
+
+   .toggleButton span {
+      display: none;
+   }
+
+   .sheetBody,
+   .sheetFoot {
+      padding-left: 16px;
+      padding-right: 16px;
+   }
+
+   .stepNumber {
+      font-size: 24px;
+   }
+
+   .dot {
+      width: 14px;
+   }
+}
+
+/* short portrait phones (an SE, or any phone under the cookie banner): the wizard keeps the step
+   text on screen by dropping the legend and the game line and shrinking the picture */
+@media (max-height: 700px) and (orientation: portrait) {
+   .sheet .legend,
+   .sheetGame {
+      display: none;
+   }
+
+   .sheet .stage {
+      padding: 10px;
+   }
+
+   .sheet .phone {
+      width: min(100%, 240px);
+   }
+
+   .sheetBody {
+      gap: 12px;
+   }
+
+   .step {
+      min-height: 0;
+   }
+}
+
+@media (pointer: coarse) {
+   .keyHint {
+      display: none;
+   }
+}
+
+/* short screens (landscape phones): the illustration beside the step text, the legend dropped */
+@media (max-height: 520px) {
+   .block {
+      margin-bottom: 12px;
+   }
+
+   .stage {
+      padding: 12px;
+   }
+
+   .sheetBody {
+      grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+      align-items: center;
+      gap: 8px 16px;
+      padding-top: 0;
+   }
+
+   .sheetGame {
+      display: none;
+   }
+
+   .sheet .toggleButton span {
+      display: none;
+   }
+
+   .sheet .stage {
+      padding: 10px;
+   }
+
+   .sheet .phone {
+      width: min(100%, 250px);
+   }
+
+   .deckLarge .cap {
+      --cap: 36px;
+
+      font-size: 13px;
+   }
+
+   .deckLarge .capSpace {
+      min-width: 120px;
+   }
+
+   .sheet .deck {
+      gap: 10px 14px;
+   }
+
+   .step {
+      min-height: 0;
+   }
+
+   .stepTitle {
+      font-size: 18px;
+   }
+
+   .stepText {
+      font-size: 14px;
+   }
+
+   .sheetFoot {
+      padding-top: 6px;
+      padding-bottom: 8px;
+   }
+
+   .navButton {
+      min-height: 44px;
+   }
+
+   .keyHint {
+      display: none;
+   }
+
+   .sheet .legend {
+      display: none;
+   }
+
+}
+
+@media (prefers-reduced-motion: reduce) {
+   .stageIn,
+   .wizard,
+   .sheet,
+   .stepIn[data-dir],
+   .deck:not([data-focus]) .groupMain .cap,
+   .group[data-lit] .cap,
+   .pad[data-lit],
+   .pauseMock[data-lit],
+   .stickKnob,
+   .ripple,
+   .gesture .finger,
+   .dragLine {
+      animation: none;
+   }
+
+   .toggle::before,
+   .progressFill,
+   .howArrow,
+   .group,
+   .legendItem {
+      transition: none;
+   }
+
+   /* the lit key stays visibly pressed instead of pulsing */
+   .group[data-lit] .cap {
+      transform: translateY(2px);
+      box-shadow:
+         inset 0 1px 0 rgba(255, 255, 255, 0.2),
+         0 1px 0 var(--cap-edge),
+         0 0 0 4px var(--accent-soft);
+   }
+
+   .dragLine {
+      transform: scaleY(1);
+   }
+}

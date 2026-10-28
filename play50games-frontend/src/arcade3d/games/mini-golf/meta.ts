@@ -20,6 +20,40 @@ export const miniGolfMeta: ArcadeGameMeta = {
       keyboard: "Drag to aim and putt, or arrows to aim and hold Space, release to putt",
       touch: "Pull back from anywhere, release to putt",
    },
+   howTo: {
+      keys: [
+         { id: "drag", keys: ["Mouse"], label: "Drag to aim", main: true, role: "pointer" },
+         { id: "aim", keys: ["Arrows"], label: "Aim & power", role: "move" },
+         { id: "putt", keys: ["Space"], label: "Release to putt", hold: true, main: true },
+         { id: "enter", keys: ["Enter"], label: "Putt shown power" },
+      ],
+      touch: [{ id: "drag", control: "drag", label: "Pull back, release to putt" }],
+      steps: [
+         { title: "Goal", text: "Six toy holes with ramps, tunnels and a windmill. Sink each one in as few strokes as you can." },
+         {
+            title: "Pull back",
+            text: "Press anywhere and drag back, away from where the ball should go. The longer the pull, the harder the putt.",
+            touchText: "Touch anywhere and pull back, away from where the ball should go. The longer the pull, the harder the putt.",
+            keys: ["drag"],
+            touch: ["drag"],
+         },
+         {
+            title: "Release to putt",
+            text: "Let go to putt. Or use the keys: the arrows aim and set power, hold Space and release, or press Enter.",
+            touchText: "Lift your finger to putt.",
+            keys: ["drag", "aim", "putt", "enter"],
+            touch: ["drag"],
+         },
+         { title: "Win", text: "Every stroke counts: the fewer strokes on each hole, the higher your score." },
+         {
+            title: "Tips",
+            text: "Time your putt through the windmill's gap. Esc or P pauses.",
+            touchText: "Time your putt through the windmill's gap. Tap Pause, top right, to stop.",
+            keys: ["pause"],
+            touch: ["pause"],
+         },
+      ],
+   },
    scoring: {
       kind: "points",
       maxScore: 4100,

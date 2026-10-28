@@ -139,6 +139,8 @@ describe("tile titles", () => {
       expect(title).not.toContain("ellipsis");
       expect(title).toContain("-webkit-line-clamp: 2");
       expect(hasLongWord("Royal Defense")).toBe(false);
+      // a hyphen is a line break: "Closing-Time" wraps at it and keeps the normal size
+      expect(hasLongWord("Closing-Time Rush")).toBe(false);
       expect(hasLongWord("Championship Course")).toBe(true);
       const race = withLevels(obstacleRaceMeta);
       const named = { ...race, levels: race.levels!.map((l, i) => (i === 4 ? { ...l, title: "Championship Course" } : l)) };

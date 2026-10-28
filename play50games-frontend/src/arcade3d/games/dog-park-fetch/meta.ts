@@ -30,6 +30,41 @@ export const dogParkFetchMeta: ArcadeGameMeta = {
       keyboard: "WASD / arrows to run, Space to jump",
       touch: "Joystick to run + Jump",
    },
+   howTo: {
+      keys: [
+         { id: "run", keys: ["WASD", "Arrows"], label: "Run", main: true, role: "move" },
+         { id: "jump", keys: ["Space"], label: "Jump", main: true },
+      ],
+      touch: [
+         { id: "joystick", control: "joystick", label: "Run" },
+         { id: "jump", control: "jump", label: "Jump" },
+      ],
+      steps: [
+         { title: "Goal", text: "Fetch the balls, sticks and frisbees and bring each one back to the blanket." },
+         {
+            title: "Run",
+            text: "Use WASD or the arrow keys to run. Run into a toy to pick it up.",
+            touchText: "Push the joystick to run. Run into a toy to pick it up.",
+            keys: ["run"],
+            touch: ["joystick"],
+         },
+         {
+            title: "Jump",
+            text: "Press Space to catch a frisbee in the air: jump low, just before it lands.",
+            touchText: "Tap Jump to catch a frisbee in the air: jump low, just before it lands.",
+            keys: ["jump"],
+            touch: ["jump"],
+         },
+         { title: "Watch out", text: "A mower knocks you down. Keep clear of its path and bring the toy home.", keys: ["run"], touch: ["joystick"] },
+         {
+            title: "Tips",
+            text: "Esc or P pauses the run. Clear a level to unlock the next park.",
+            touchText: "Tap Pause, top right, any time. Clear a level to unlock the next park.",
+            keys: ["pause"],
+            touch: ["pause"],
+         },
+      ],
+   },
    scoring: SCORING,
    levels: LEVELS,
    thumbnail: null,
