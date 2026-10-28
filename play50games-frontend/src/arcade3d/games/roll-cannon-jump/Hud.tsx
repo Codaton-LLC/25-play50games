@@ -1,6 +1,6 @@
 "use client";
 
-// The game HUD: orbs, shots against par, the power meter (the ring's pulse while aiming), the hero
+// The game HUD: orbs, shots against par, the power meter (the ring's pulse, only while aiming), the hero
 // power and the flow meter on the left; the title and the level in a banner at the top centre with
 // the show clock (finish time so far, orb and flow bonus taken off), and on level 5 Ashbag's health
 // bar with a hint for the phase. The shell keeps Mute / Pause; its clock chip is off (index.tsx).
@@ -96,14 +96,16 @@ export default function Hud() {
                   {shots}/{par}
                </span>
             </div>
-            <div className={styles.pill} aria-label={aiming ? `Power ${pulse} percent` : "Power ring"}>
+            {aiming ? (
+            <div className={styles.pill} aria-label={`Power ${pulse} percent`}>
                <svg className={styles.icon} viewBox="0 0 24 24" aria-hidden="true">
                   <circle cx="12" cy="12" r="8" fill="none" stroke="#fde68a" strokeWidth="3" />
                </svg>
                <span className={styles.power}>
-                  <span className={`${styles.powerFill} ${pulse >= 100 ? styles.powerHot : ""}`} style={{ width: `${aiming ? frac * 100 : 0}%` }} />
+                  <span className={`${styles.powerFill} ${pulse >= 100 ? styles.powerHot : ""}`} style={{ width: `${frac * 100}%` }} />
                </span>
             </div>
+            ) : null}
             <div className={styles.pill} aria-label={`${hero.name} ${hero.powerLabel}${powerLeft > 0 ? `, ready in ${powerLeft} seconds` : ", ready"}`}>
                <span className={styles.swatch} style={{ background: hero.color }} aria-hidden="true" />
                <span className={styles.value}>{powerLeft > 0 ? `${powerLeft}s` : hero.powerLabel}</span>
