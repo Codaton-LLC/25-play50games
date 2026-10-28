@@ -209,7 +209,7 @@ export interface Course {
    bell: { x: number; y: number; z: number };
    arena: ArenaDef | null;
    bot: BotStep[];
-   /** where each room's steps start in `bot` (a respawn replays its room)
+   /** where each room's steps start in `bot` (a respawn replays its room) */
    botStart: number[];
    /** decor: tube rings along the tunnel (z centres), fan towers outside */
    rings: number[];
