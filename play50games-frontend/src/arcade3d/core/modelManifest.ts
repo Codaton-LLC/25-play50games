@@ -197,6 +197,16 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/cloud-hopper/m2SkyStar.glb",
    "/models/3d/cloud-hopper/m2StormCloud.glb",
    "/models/3d/cloud-hopper/m2WindRing.glb",
+   // Menu 2 game 45 (Sky Hook Swing): dock props from ~/.play50/hyper3d/ready/menu2/sky-hook-swing
+   "/models/3d/sky-hook-swing/m2AirshipBg.glb",
+   "/models/3d/sky-hook-swing/m2FactoryDrone.glb",
+   "/models/3d/sky-hook-swing/m2GrappleRingPost.glb",
+   "/models/3d/sky-hook-swing/m2GrappleRingPostV2.glb",
+   "/models/3d/sky-hook-swing/m2LandingTargetPad.glb",
+   "/models/3d/sky-hook-swing/m2SwingAnchor.glb",
+   "/models/3d/sky-hook-swing/m2SwingAnchorV2.glb",
+   "/models/3d/sky-hook-swing/m2SwingIsland.glb",
+   "/models/3d/sky-hook-swing/m2WindmillIsland.glb",
    // P-121 dev adoptions (2026-10-25): V2 replacements and Group D variety whose QA verdict
    // starts with OK. Optimized GLBs copied in; not re-optimized. Live games are untouched.
    "/models/3d/shopping-cart/supermarketShelfV2.glb",
