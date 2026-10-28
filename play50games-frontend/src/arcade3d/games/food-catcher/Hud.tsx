@@ -4,6 +4,8 @@
 // It stays mounted and laid out for the whole run and is only made invisible under a 5 combo:
 // its rect (data-arcade-safe-area) never changes, so the camera fit never moves mid-run.
 // Screen readers get the change from a separate live region whose text actually changes.
+import { HintLine } from "@/arcade3d/core/hud/HintLine";
+import { GUIDE } from "./guide";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { COMBO_DOUBLE_AT } from "./rules";
 import styles from "./Hud.module.css";
@@ -12,6 +14,7 @@ export default function FoodHud() {
    const doubled = useArcadeStore((s) => (s.stats.combo ?? 0) >= COMBO_DOUBLE_AT);
    return (
       <>
+         <HintLine signal={GUIDE} />
          <p className={doubled ? styles.badge : `${styles.badge} ${styles.off}`} data-arcade-safe-area aria-hidden="true">
             2× combo
          </p>

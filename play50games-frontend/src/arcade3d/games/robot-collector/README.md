@@ -263,3 +263,10 @@ Browser (production build with the flags on and the API mock, headless Chrome ov
 
 - The cookie banner is detected by a 1 s poll (core `useBottomObstruction`), so the camera eases to its new fit up to a second after the banner opens or closes.
 - Core gaps: none open.
+
+
+## Clarity
+
+Added a Hud with safe-area HintLine for collected count, oil slowdown and conveyor state. A stable TargetBeacon chooses the nearest active battery and retains it until collected. Success pops use the existing battery points; oil entry and timeout get failure feedback without any invented penalty. Toss flies newly collected battery models to a live robot point (two slots). Check by eye: both batteries in a pair, next-wave marker, final pickup, paused Toss, oil/conveyors on later levels and 390px joystick clearance.
+
+Visuals only: guide helpers read the run without mutation; guide tests compare JSON before/after on all five levels. Rules, score calculations and level configuration are unchanged. Shared HintLine uses 13px phone text and reserves space above touch controls; existing HUD text is at least 12px.

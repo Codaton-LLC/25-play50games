@@ -20,7 +20,11 @@
 // - Levels: the picked level's config comes from useLevel() (wrapped once as useRobotLevel); the
 //   run is made from it with createRun, and the scene is keyed by the level so the start card's
 //   backdrop shows the level that is picked.
-import { useRef, useState } from "react";
+import { TargetBeacon } from "@/arcade3d/core/hud/TargetBeacon";
+import { useActionPop } from "@/arcade3d/core/fx/actionPop";
+import { GUIDE, hintFor, nextTarget } from "./guide";
+import { Toss, type TossHandle } from "@/arcade3d/core/fx/Toss";
+import { useEffect, useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
 import type { Group, Mesh, MeshStandardMaterial } from "three";
 import CameraRig from "@/arcade3d/core/CameraRig";
@@ -288,6 +292,12 @@ function LevelScene() {
    const view = useFittedView(VIEW);
    const input = useInput();
    const { config, meta } = useRobotLevel();
+   const pop = useActionPop();
+   const toss = useRef<TossHandle>(null);
+   const targetIndex = useRef(-1);
+   const beacon = useRef({ x: 0, y: 0.5, z: 0, hidden: true }).current;
+   const hand = useRef({ x: 0, y: 1, z: 0 }).current;
+   const wasSlowed = useRef(false);
    // a new seed every run: GameShell remounts the Scene (and its game time) on start and retry
    const [dir] = useState({ x: 0, z: 0 });
    const [run] = useState<Run>(() => {
@@ -296,12 +306,39 @@ function LevelScene() {
       return next;
    });
 
+   useEffect(() => { GUIDE.set(hintFor(run)); }, [run]);
+   const endShown = useRef(false);
+   useFrame(() => {
+      const state = useArcadeStore.getState();
+      if (state.phase === "over" && state.endReason === "timeup" && !endShown.current) {
+         endShown.current = true;
+         pop.fail({ x: run.robot.x, y: 1.8, z: run.robot.z }, "Time up");
+      }
+   });
+   const shownTaken = useRef(new Array<boolean>(run.layout.batteries.length).fill(false));
+
    // the game: move, collect, score, end. Runs only while "playing", before every visual.
    useRunFrame((_state, dt) => {
       const { moveX, moveY } = input.current;
       inputToWorld(moveX, moveY, view.yaw, dir);
       const got = stepRun(run, dir.x, dir.z, dt);
+      GUIDE.set(hintFor(run));
+      targetIndex.current = nextTarget(run, targetIndex.current);
+      const battery = run.layout.batteries[targetIndex.current];
+      beacon.hidden = !battery;
+      if (battery) { beacon.x = battery.x; beacon.z = battery.z; }
+      hand.x = run.robot.x; hand.z = run.robot.z;
+      const at = { x: run.robot.x, y: 1.8, z: run.robot.z };
+      if (run.slowed && !wasSlowed.current) pop.fail(at, "Oil: slowed", { shake: 0 });
+      wasSlowed.current = run.slowed;
+      for (const b of run.layout.batteries) {
+         if (run.progress.taken[b.index] && !shownTaken.current[b.index]) {
+            shownTaken.current[b.index] = true;
+            toss.current?.play({ x: b.x, y: 0.5, z: b.z }, hand, { duration: 0.35, height: 0.6, scaleTo: 0.2 });
+         }
+      }
       if (got === 0) return;
+      pop.good(at, `+${got * BATTERY_POINTS}`);
       const store = useArcadeStore.getState();
       store.addScore(got * BATTERY_POINTS);
       store.setStat("batteries", run.progress.collected);
@@ -330,6 +367,8 @@ function LevelScene() {
          <HazardMarks level={config} />
          <Robot run={run} lamp={config.lamp} />
          <Batteries run={run} />
+         <TargetBeacon target={beacon} radius={0.55} />
+         <Toss ref={toss} slots={2}><Model asset={ASSETS.battery} /></Toss>
       </>
    );
 }

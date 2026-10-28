@@ -24,6 +24,10 @@
 // - The finish arch is the group D GLB fitted to the rules' ARCH (assets.ts), with
 //   FinishArchPrimitive as its fallback. It fades while a runner who jumped over the line cheers
 //   behind it, and a runner cheering by a post keeps that arm out of its leg (finishLooks.ts).
+import { TargetBeacon } from "@/arcade3d/core/hud/TargetBeacon";
+import { useActionPop } from "@/arcade3d/core/fx/actionPop";
+import { GUIDE, hintFor, nextTarget } from "./guide";
+import { TargetMarkers } from "@/arcade3d/core/hud/TargetMarkers";
 import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { flushSync, useFrame, useThree } from "@react-three/fiber";
 import { Color, type Group, type Material, type Matrix4, type Mesh, type MeshStandardMaterial, type Texture } from "three";
@@ -176,8 +180,13 @@ const REAIM_PRIORITY = -0.2;
 /** Feeds dt and input into rules.step() and reports what happened. Renders nothing. */
 const Simulation = memo(function Simulation({ run, fx, follow }: { run: ObstacleRun; fx: Fx; follow: Follow }) {
    const input = useInput();
+   const pop = useActionPop();
+   const beacon = useRef(nextTarget(run)).current;
+   const [beaconGround, setBeaconGround] = useState(beacon.y + 0.03);
    const time = useGameTime();
    const [scratch] = useState(() => ({ step: createStepInput(), dir: { x: 0, z: 0 } }));
+
+   useEffect(() => { GUIDE.set(hintFor(run)); }, [run]);
 
    useRunFrame((_state, dt) => {
       const { moveX, moveY, jumpPressed } = input.current;
@@ -188,6 +197,15 @@ const Simulation = memo(function Simulation({ run, fx, follow }: { run: Obstacle
       inp.moveZ = scratch.dir.z;
       inp.jumpPressed = jumpPressed;
       const ev = step(run, dt * 1000, inp);
+      GUIDE.set(hintFor(run));
+      Object.assign(beacon, nextTarget(run));
+      if (ev.checkpoint !== NONE) setBeaconGround(beacon.y + 0.03);
+      const at = { x: run.runner.x, y: run.runner.y + 1.8, z: run.runner.z };
+      if (ev.knocked) pop.fail(at, "Bar hit!");
+      else if (ev.lost && !fx.flung) pop.fail(at, "Fell! Back to checkpoint");
+      if (ev.checkpoint !== NONE) pop.good(at, `Checkpoint ${ev.checkpoint}/3`);
+      if (ev.finished) pop.good(at, "Finished!");
+      if (ev.timeup) pop.fail(at, "Time up");
 
       const t = time.now;
       const r = run.runner;
@@ -233,7 +251,10 @@ const Simulation = memo(function Simulation({ run, fx, follow }: { run: Obstacle
       if (!follow.hold) followPoint(run, follow);
    });
 
-   return null;
+   return <>
+      <TargetBeacon target={beacon} variant="drop-here" radius={0.8} ground={beaconGround} />
+      <TargetMarkers targets={[beacon]} />
+   </>;
 });
 
 /**

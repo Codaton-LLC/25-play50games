@@ -606,3 +606,10 @@ The 5-levels system is built and proven; this game is the pilot for the rollout 
 (a) `src/arcade3d/registry.sync.test.ts` fails until Claude copies `PROPOSED_LEVEL_LIMITS` into this game's `levels` in `arcade-games.json` (expected at merge; the failure reads "levels: server has none, meta.ts has 5").
 (b) The L4/L5 lighting presets were chosen as `night` / `sunset` with plain dark backgrounds (`#0f172a` / `#431f30`, fog 40–100); the user can re-pick.
 (c) L2 keeps L1's obstacle speeds (the plan's "static obstacle set"): its difficulty is the longer course only.
+
+
+## Clarity
+
+Added a Hud with safe-area HintLine for movement/jump, checkpoint progress, recovery and finish. A green TargetBeacon and off-screen TargetMarkers follow the next checkpoint then finish. Pops mark checkpoints, finish, bar hits, falls and time limit. No item hand-off occurs. Check by eye: off-screen edge arrow, elevated checkpoint rings, fall-to-respawn camera cuts, bar hit without duplicate fall pop and 390px / short landscape controls.
+
+Visuals only: guide helpers read the run without mutation; guide tests compare JSON before/after on all five levels. Rules, score calculations and level configuration are unchanged. Shared HintLine uses 13px phone text and reserves space above touch controls; existing HUD text is at least 12px.

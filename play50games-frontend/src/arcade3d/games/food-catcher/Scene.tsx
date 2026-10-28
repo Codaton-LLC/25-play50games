@@ -8,7 +8,10 @@
 // The chef GLB is a static T-pose: <HumanoidModel> (core/rig) rigs it in code and useHumanoidPose
 // drives its limbs (poses.ts: the idle, a walk by its speed with the feet on the ground, the lean
 // into the run in its spine, a reach up on a catch). ChefPrimitive stays as the fallback.
-import { memo, useMemo, useRef, useState } from "react";
+import { TargetBeacon } from "@/arcade3d/core/hud/TargetBeacon";
+import { useActionPop } from "@/arcade3d/core/fx/actionPop";
+import { GUIDE, hintFor, nextTarget } from "./guide";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { Raycaster, Vector2, type Camera, type Group } from "three";
 import CameraRig from "@/arcade3d/core/CameraRig";
@@ -94,6 +97,10 @@ const Simulation = memo(function Simulation({ run, scratch }: { run: ViewRun; sc
    const input = useInput();
    const camera = useThree((state) => state.camera);
    const time = useGameTime();
+   const pop = useActionPop();
+   const beacon = useRef({ x: 0, y: 0, z: ITEM_Z, hidden: true }).current;
+
+   useEffect(() => { GUIDE.set(hintFor(run)); }, [run]);
 
    useRunFrame((_state, dt) => {
       const pointer = input.current.pointer;
@@ -101,7 +108,20 @@ const Simulation = memo(function Simulation({ run, scratch }: { run: ViewRun; sc
       const stepInput = scratch.input;
       stepInput.targetX = pointer.down ? projectFingerX(pointer.x, pointer.y, camera, scratch) : null;
       stepInput.dir = moveX < -0.5 ? -1 : moveX > 0.5 ? 1 : 0;
+      const oldScore = run.score;
       const ev = step(run, dt * 1000, stepInput);
+      GUIDE.set(hintFor(run));
+      const next = nextTarget(run);
+      beacon.hidden = next < 0 || !!run.ended;
+      if (next >= 0) {
+         const item = run.items[next];
+         beacon.x = item.x;
+         beacon.y = itemY(item.bornMs, run.elapsedMs, item.speed);
+      }
+      const at = { x: run.chefX, y: 1.9, z: CHEF_Z };
+      if (ev.caught > 0) pop.good(at, run.score > oldScore ? `+${run.score - oldScore}` : `Caught ${ev.caught}`);
+      if (ev.badCaught > 0) pop.fail(at, "Bad catch! -1 life");
+      else if (ev.missed > 0) pop.fail(at, ev.dropLives > 0 ? "Dropped food! -1 life" : "Dropped food", { shake: 0 });
       const store = useArcadeStore.getState();
       if (ev.caught > 0 || ev.missed > 0 || ev.badCaught > 0 || ev.lifeLost || ev.ended) {
          store.setScore(run.score);
@@ -123,7 +143,7 @@ const Simulation = memo(function Simulation({ run, scratch }: { run: ViewRun; sc
       if (ev.ended) store.end(ev.ended);
    });
 
-   return null;
+   return <TargetBeacon target={beacon} noRing height={0.22} />;
 });
 
 const Chef = memo(function Chef({ run }: { run: ViewRun }) {
