@@ -515,7 +515,9 @@ function driveCab(run: Run, h: number): void {
    run.speed = speed;
    const raw = Math.abs(speed) / 2;
    const scale = raw < 0.35 ? 0.35 : raw > 1 ? 1 : raw;
-   run.yaw += run.moveX * STEER * scale * h;
+   // the cab faces (sin yaw, cos yaw) and a growing yaw turns it towards +x, which is the
+   // driver's LEFT (three.js is right-handed, y up): so right on the stick (moveX > 0) lowers the yaw
+   run.yaw -= run.moveX * STEER * scale * h;
    if (run.yaw > Math.PI) run.yaw -= Math.PI * 2;
    else if (run.yaw < -Math.PI) run.yaw += Math.PI * 2;
    run.x += Math.sin(run.yaw) * speed * h;

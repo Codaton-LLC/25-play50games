@@ -378,7 +378,11 @@ function inMud(run: Run): boolean {
    return false;
 }
 
-/** Coast, throttle and steer. `throttle` +1 is forward (stick up). Positive steer turns right. */
+/**
+ * Coast, throttle and steer. `throttle` +1 is forward (stick up). Positive steer (stick right) turns
+ * the tractor to the driver's right. It faces (sin yaw, cos yaw), and a growing yaw turns it towards
+ * +x = the driver's LEFT (three.js is right-handed, y up), so steering right lowers the yaw.
+ */
 function integrateTractor(run: Run, moveX: number, moveY: number, dt: number): void {
    const body = run.tractor;
    const throttle = clamp(-moveY, -1, 1);
@@ -405,7 +409,7 @@ function integrateTractor(run: Run, moveX: number, moveY: number, dt: number): v
    const crawling = Math.abs(body.speed) < 0.12;
    const turnSign = crawling ? 1 : Math.sign(body.speed);
    const turnScale = crawling ? 0.5 : 1;
-   body.yaw += steerIn * TRACTOR.steer * turnSign * turnScale * dt;
+   body.yaw -= steerIn * TRACTOR.steer * turnSign * turnScale * dt;
    if (body.yaw > Math.PI) body.yaw -= Math.PI * 2;
    else if (body.yaw < -Math.PI) body.yaw += Math.PI * 2;
    body.x += Math.sin(body.yaw) * body.speed * dt;
