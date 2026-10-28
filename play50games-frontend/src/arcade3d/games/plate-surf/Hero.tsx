@@ -144,7 +144,7 @@ export function surfStancePose(crouch: number, lean: number, out: HumanoidPose):
       levelFoot(out, side);
    }
    // the trunk leans in over the knees, rocked by the carve
-   setBoneEuler(out.q, BONE.spine, 0.12 + 0.12 * c + 0.16 * lean, 0.12, 0);
+   setBoneEuler(out.q, BONE.spine, 0.1 + 0.1 * c + 0.06 * lean, 0.12, 0);
    setBoneEuler(out.q, BONE.chest, 0.06, 0.18, -0.05 * lean);
    // the head looks down the line (the hero's left)
    setBoneEuler(out.q, BONE.neck, -0.12, 0.5, 0);

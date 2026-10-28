@@ -88,7 +88,7 @@ export const JELLY_R = 0.8;
 export const GULL = { r: 1.7, telegraph: 0.45, dive: 0.8 } as const;
 export const MINE_R = 1.2;
 /** King Breaker: its lead ahead of you, its slow ride while open, its fastest move, its reach, where it rests */
-export const CRAB = { lead: 20, slow: 10, chase: 60, hitR: 2.8, lipX: FACE_W - 1.2, midX: 6, barrelR: 2.4, start: 40, exitGap: 28 } as const;
+export const CRAB = { lead: 20, slow: 10, chase: 60, hitR: 2.8, lipX: FACE_W - 1.2, rideX: 7.5, midX: 6, barrelR: 2.4, start: 40, exitGap: 28 } as const;
 /** the boss hit needs: phase 2 a trick in progress at this speed, phase 3 a carve at this speed */
 export const BOSS_SPEED = { eyes: 16, barrel: 17 } as const;
 /** level 5: with the boss up the beach is held this far off, and the curl that far behind */
@@ -1079,8 +1079,9 @@ function bossMs(run: SurfRun): void {
       crab.z += d > m ? m : d < -m ? -m : d;
    }
    if (crab.z < c.finishZ + CRAB.exitGap) crab.z = c.finishZ + CRAB.exitGap;
+   // the barrel: the face's middle; phases 1-2: up on the lip while it can be hit, lower on the face while it attacks
    if (b.phase === 2) crab.x = CRAB.midX;
-   else crab.x = CRAB.lipX;
+   else crab.x = b.step === "vulnerable" ? CRAB.lipX : CRAB.rideX;
    // phase 2 burrows: it shows only while it surfaces (the vulnerable window)
    crab.up = b.step !== "done" && !(b.phase === 1 && b.step !== "vulnerable" && b.step !== "transition");
 }
