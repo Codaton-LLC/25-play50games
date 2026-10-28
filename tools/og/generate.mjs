@@ -77,6 +77,7 @@ const TITLES = {
    "flooded-ruins-escape": "Flooded Ruins Escape",
    "lava-pillar-jump": "Lava Pillar Jump",
    "cloud-hopper": "Cloud Hopper",
+   "ring-jump-challenge": "Ring Jump Challenge",
 };
 
 /** One entry per thumbnail in public/images/3d, in filename order. */

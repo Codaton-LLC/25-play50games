@@ -197,6 +197,17 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/cloud-hopper/m2SkyStar.glb",
    "/models/3d/cloud-hopper/m2StormCloud.glb",
    "/models/3d/cloud-hopper/m2WindRing.glb",
+   // Menu 2 game 27 (Ring Jump Challenge): the canyon set from ~/.play50/hyper3d/ready/menu2/ring-jump-challenge
+   // (Cyclone Ray, the L5 boss, included), m2SeaRock from plate-surf and the root spikedBall
+   "/models/3d/ring-jump-challenge/m2ColumnPlatform.glb",
+   "/models/3d/ring-jump-challenge/m2CycloneRayBoss.glb",
+   "/models/3d/ring-jump-challenge/m2NeutralRing.glb",
+   "/models/3d/ring-jump-challenge/m2NeutralStar.glb",
+   "/models/3d/ring-jump-challenge/m2SeaRock.glb",
+   "/models/3d/ring-jump-challenge/m2SpeedBoost.glb",
+   "/models/3d/ring-jump-challenge/m2SpringPad.glb",
+   "/models/3d/ring-jump-challenge/m2StoneRingBg.glb",
+   "/models/3d/ring-jump-challenge/spikedBall.glb",
    // P-121 dev adoptions (2026-10-25): V2 replacements and Group D variety whose QA verdict
    // starts with OK. Optimized GLBs copied in; not re-optimized. Live games are untouched.
    "/models/3d/shopping-cart/supermarketShelfV2.glb",
