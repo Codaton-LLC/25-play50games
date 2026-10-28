@@ -24,9 +24,9 @@ import CameraRig from "@/arcade3d/core/CameraRig";
 import { useCameraViews } from "@/arcade3d/core/camera/CameraViews";
 import { playSfx, startLoop, type LoopHandle } from "@/arcade3d/core/audio";
 import { FRAME_PRIORITY } from "@/arcade3d/core/frameLoop";
-import { useFx } from "@/arcade3d/core/fx";
+import { Toss, useActionPop, useFx, type TossHandle } from "@/arcade3d/core/fx";
 import { useGameTime } from "@/arcade3d/core/gameTime";
-import { TargetMarkers } from "@/arcade3d/core/hud";
+import { TargetBeacon, TargetMarkers } from "@/arcade3d/core/hud";
 import { useInput } from "@/arcade3d/core/input";
 import { useLevel } from "@/arcade3d/core/level";
 import { randomSeed } from "@/arcade3d/core/math";
@@ -36,15 +36,16 @@ import { useFittedView } from "@/arcade3d/core/useFittedView";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { ASSETS, WRECK_SQUASH } from "./assets";
+import { GUIDE, canScoop, emptyGoal, hintCode, hintFor, nextGoal } from "./guide";
 import type { SubLevel } from "./levels";
 import { COLORS, DAMPING, FLOOR_PAD, FOLLOW, FOV, LOOK_AHEAD, lookAtFor, seaBounds, viewFor } from "./looks";
 import { ColumnPrimitive, DockPrimitive, SubModel } from "./Primitives";
 import {
    CRUISE_Y,
+   DOCK_R,
    FLOOR_Y,
    MAX_SPEED,
    createRun,
-   guide,
    isLow,
    step,
    type BoxSolid,
@@ -57,6 +58,8 @@ const E = new Euler();
 const Q = new Quaternion();
 const V = new Vector3();
 const S = new Vector3(1, 1, 1);
+const TOSS_ASSETS = { chest: ASSETS.chest, amphora: ASSETS.amphora, shell: ASSETS.pearlShell, coins: ASSETS.coin } as const;
+const TOSS_KINDS = Object.keys(TOSS_ASSETS) as Array<keyof typeof TOSS_ASSETS>;
 const AT = { x: 0, y: 1, z: 0 };
 
 function circleSpots(items: readonly CircleSolid[], yOf: (item: CircleSolid) => number, sizeOf: (item: CircleSolid) => number): InstanceSpot[] {
@@ -77,6 +80,7 @@ function LevelScene() {
    }, [scene, view.distance]);
    const input = useInput();
    const fx = useFx();
+   const pop = useActionPop();
    const time = useGameTime();
    const quality = useQuality();
    const [run] = useState<Run>(() => createRun(randomSeed(), config));
@@ -107,6 +111,13 @@ function LevelScene() {
    const bounds = useMemo(() => seaBounds(config), [config]);
    const look = useMemo(() => lookAtFor(config), [config]);
    const markers = useRef([{ x: run.dock.x, y: 1.2, z: run.dock.z }]).current;
+   const goal = useRef(emptyGoal()).current;
+   const pickBeacon = useRef({ x: 0, y: 0.5, z: 0, hidden: true }).current;
+   const dockBeacon = useRef({ x: run.dock.x, y: 0.6, z: run.dock.z, hidden: true }).current;
+   const guideCode = useRef(-1);
+   const scoop = useRef(-1);
+   const tosses = useRef<Record<string, TossHandle | null>>({}).current;
+   const HAND = useRef({ x: 0, y: 0, z: 0 }).current;
 
    const rocksA = useMemo(() => run.circles.filter((c, i) => c.kind === "rock" && i % 2 === 0), [run]);
    const rocksB = useMemo(() => run.circles.filter((c, i) => c.kind === "rock" && i % 2 === 1), [run]);
@@ -245,6 +256,14 @@ function LevelScene() {
       return () => handle.stop();
    }, [fx]);
 
+   useEffect(() => {
+      nextGoal(run, goal);
+      guideCode.current = hintCode(run, goal);
+      GUIDE.set(hintFor(run, goal));
+      return () => GUIDE.reset();
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+   }, [run]);
+
    useRunFrame((_state, dt) => {
       const { moveX, moveY, action } = input.current;
       const store = useArcadeStore.getState();
@@ -258,10 +277,21 @@ function LevelScene() {
       aim.x = Math.min(bounds.max.x, Math.max(bounds.min.x, run.sub.x + lx * LOOK_AHEAD));
       aim.z = Math.min(bounds.max.z, Math.max(bounds.min.z, run.sub.z + lz * LOOK_AHEAD));
       aim.y = 0.55;
-      const ping = guide(run);
-      markers[0].x = ping.x;
+      nextGoal(run, goal);
+      markers[0].x = goal.x;
       markers[0].y = 1.1;
-      markers[0].z = ping.z;
+      markers[0].z = goal.z;
+      pickBeacon.hidden = goal.kind !== "treasure";
+      dockBeacon.hidden = goal.kind !== "dock";
+      pickBeacon.x = goal.x;
+      pickBeacon.z = goal.z;
+      const code = hintCode(run, goal);
+      if (code !== guideCode.current) {
+         guideCode.current = code;
+         GUIDE.set(hintFor(run, goal));
+      }
+      const scooping = canScoop(run) ? 1 : 0;
+      if (scoop.current !== scooping) store.setStat("scoop", (scoop.current = scooping));
       const hum = loop.current;
       if (hum) hum.set({ pitch: 0.75 + Math.min(1, speed / MAX_SPEED) * 0.7, volume: 0.05 + Math.min(1, speed / MAX_SPEED) * 0.12 });
       if (ev.pickup >= 0) {
@@ -271,6 +301,12 @@ function LevelScene() {
          AT.z = t?.z ?? run.sub.z;
          fx.burst("sparkle", AT, 12);
          fx.score(AT, ev.clean ? "+200" : "+150");
+         if (t) {
+            HAND.x = run.sub.x;
+            HAND.y = run.sub.y + 0.2;
+            HAND.z = run.sub.z;
+            tosses[t.kind]?.play({ x: t.x, y: 0.4, z: t.z }, HAND, { duration: 0.4, height: 0.9, scaleFrom: 1, scaleTo: 0.3 });
+         }
          playSfx("pickup");
       }
       if (ev.jelly) {
@@ -278,14 +314,16 @@ function LevelScene() {
          AT.y = run.sub.y;
          AT.z = run.sub.z;
          fx.burst("sparks", AT, 8);
-         fx.shake(0.28);
+         AT.y = run.sub.y + 1.4;
+         pop.fail(AT, "Jellyfish! -8 battery", { shake: 0.28 });
          playSfx("zap");
       } else if (ev.bump) {
          AT.x = run.sub.x;
          AT.y = run.sub.y;
          AT.z = run.sub.z;
          fx.burst("splash", AT, 6);
-         fx.shake(0.16);
+         AT.y = run.sub.y + 1.4;
+         pop.fail(AT, "Bump! -4 battery", { shake: 0.16 });
          playSfx("thud");
       }
       if (isLow(run.sub.y) && run.time - bubbleAt.current > 0.28) {
@@ -546,6 +584,13 @@ function LevelScene() {
             <BlobShadow radius={0.85} opacity={0.38} color="#134e4a" />
          </group>
          <TargetMarkers targets={markers} color={COLORS.accent} />
+         <TargetBeacon target={pickBeacon} variant="pick" color={COLORS.accent} radius={0.9} height={1.0} />
+         <TargetBeacon target={dockBeacon} variant="drop-here" radius={DOCK_R * 0.7} height={1.0} label="DOCK" />
+         {TOSS_KINDS.map((kind) => (
+            <Toss key={kind} ref={(h) => { tosses[kind] = h; }} spin={5}>
+               <Model asset={TOSS_ASSETS[kind]} />
+            </Toss>
+         ))}
       </>
    );
 }
