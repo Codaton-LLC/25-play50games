@@ -132,7 +132,7 @@ function Walls({ run, clock, visited }: { run: WallRun; clock: VisualClock; visi
       walls.forEach((w, i) => {
          if (w.kind === "ghost") return;
          const len = w.a1 - w.a0;
-         const n = Math.max(1, Math.floor(len / 5));
+         const n = Math.max(1, Math.floor(len / 8));
          const y = w.kind === "upper" || w.kind === "low" || w.kind === "shaft" ? (w.y0 + w.y1) / 2 : w.y0 + 4.2;
          for (let k = 0; k < n; k++) out.push({ wall: i, a: w.a0 + (k + 0.5) * (len / n), y });
       });
@@ -209,10 +209,10 @@ export function faceTiles(b: { x0: number; x1: number; y0: number; y1: number; z
    const th = fit(GLB_SIZE.wall.z, 0.3);
    const faces: Array<[number, number, number, number, number]> = [
       // [centre x, centre z, length, rotY, along x?]
-      [(b.x0 + b.x1) / 2, b.z1 - 0.12, b.x1 - b.x0, 0, 1],
-      [(b.x0 + b.x1) / 2, b.z0 + 0.12, b.x1 - b.x0, Math.PI, 1],
-      [b.x1 - 0.12, (b.z0 + b.z1) / 2, b.z1 - b.z0, Math.PI / 2, 0],
-      [b.x0 + 0.12, (b.z0 + b.z1) / 2, b.z1 - b.z0, -Math.PI / 2, 0],
+      [(b.x0 + b.x1) / 2, b.z1 + 0.02, b.x1 - b.x0, 0, 1],
+      [(b.x0 + b.x1) / 2, b.z0 - 0.02, b.x1 - b.x0, Math.PI, 1],
+      [b.x1 + 0.02, (b.z0 + b.z1) / 2, b.z1 - b.z0, Math.PI / 2, 0],
+      [b.x0 - 0.02, (b.z0 + b.z1) / 2, b.z1 - b.z0, -Math.PI / 2, 0],
    ];
    for (const [cx, cz, len, rot, alongX] of faces) {
       const n = Math.max(1, Math.round(len / TILE_W));
@@ -239,7 +239,7 @@ function Columns({ run }: { run: WallRun }) {
       return out;
    }, [run.course]);
    const corners = useMemo(
-      () => run.course.corners.map((b) => ({ x: (b.x0 + b.x1) / 2, y: (b.y0 + b.y1) / 2, z: (b.z0 + b.z1) / 2, sx: b.x1 - b.x0, sy: b.y1 - b.y0, sz: b.z1 - b.z0 })),
+      () => run.course.corners.map((b) => ({ x: (b.x0 + b.x1) / 2, y: (b.y0 + b.y1) / 2, z: (b.z0 + b.z1) / 2, sx: b.x1 - b.x0 - 0.3, sy: b.y1 - b.y0, sz: b.z1 - b.z0 - 0.3 })),
       [run.course],
    );
    const caps = useMemo(() => corners.map((c) => ({ x: c.x, y: c.y + c.sy / 2 + 0.15, z: c.z, sx: c.sx + 0.4, sy: 0.3, sz: c.sz + 0.4 })), [corners]);
@@ -407,14 +407,14 @@ function Blocks({ run }: { run: WallRun }) {
             return (
                <group key={i} ref={(g) => { refs.current[i] = g; }}>
                   <group position={[(b.x0 + b.x1) / 2, (b.y0 + b.y1) / 2, (b.z0 + b.z1) / 2]}>
-                     <mesh>
+                     <mesh scale={b.kind === "cracked" ? [0.9, 1, 0.9] : [1, 1, 1]}>
                         <boxGeometry args={[w, h, d]} />
-                        <meshStandardMaterial color={b.kind === "gate" ? "#8a7550" : "#c2a275"} roughness={0.9} />
+                        <meshStandardMaterial color={b.kind === "gate" ? "#8a7550" : "#6b5537"} roughness={0.9} />
                      </mesh>
                      {b.kind === "cracked"
                         ? [0, 1, 2].map((k) => (
                              <mesh key={k} position={[0, (k - 1) * h * 0.25, 0]} rotation={[0, 0, (k - 1) * 0.6 + 0.3]}>
-                                <boxGeometry args={[w * 1.01, 0.06, d * 1.01]} />
+                                <boxGeometry args={[w * 1.12, 0.07, d * 1.12]} />
                                 <meshStandardMaterial color="#3b2a1a" emissive="#f97316" emissiveIntensity={0.35} />
                              </mesh>
                           ))

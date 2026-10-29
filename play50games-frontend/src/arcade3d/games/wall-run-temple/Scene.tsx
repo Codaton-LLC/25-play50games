@@ -276,7 +276,7 @@ function WallCamera({ run, orbit }: { run: WallRun; orbit: OrbitState }) {
    );
    const travel = useMemo(() => (out: { x: number; z: number }) => travelHeading(run, out), [run]);
    const solids = useMemo(() => cameraSolids(run), [run]);
-   return <OrbitCamera orbit={orbit} pivot={pivot} travel={travel} solids={solids} collision={{ radius: 0.35, minDistance: 2.4 }} lookUp={orbitLookUp(aspect)} distanceScale={orbitScale(aspect)} />;
+   return <OrbitCamera orbit={orbit} pivot={pivot} travel={travel} solids={solids} collision={{ radius: 0.35, minDistance: 2.4, liftTo: 1.0 }} lookUp={orbitLookUp(aspect)} distanceScale={orbitScale(aspect)} />;
 }
 
 /**
