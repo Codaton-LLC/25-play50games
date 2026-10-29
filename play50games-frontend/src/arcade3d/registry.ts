@@ -64,6 +64,7 @@ import { plateSurfMeta } from "./games/plate-surf/meta";
 import { ringJumpChallengeMeta } from "./games/ring-jump-challenge/meta";
 import { windTunnelEscapeMeta } from "./games/wind-tunnel-escape/meta";
 import { rollCannonJumpMeta } from "./games/roll-cannon-jump/meta";
+import { colorCitySprintMeta } from "./games/color-city-sprint/meta";
 import { templeLanternJumpMeta } from "./games/temple-lantern-jump/meta";
 import { dragonCaveRushMeta } from "./games/dragon-cave-rush/meta";
 import { skyHookSwingMeta } from "./games/sky-hook-swing/meta";
@@ -130,6 +131,7 @@ export const ARCADE_GAMES: ArcadeGameMeta[] = [
    ringJumpChallengeMeta,
    windTunnelEscapeMeta,
    rollCannonJumpMeta,
+   colorCitySprintMeta,
    templeLanternJumpMeta,
    dragonCaveRushMeta,
    colorDoorSprintMeta,

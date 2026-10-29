@@ -1183,6 +1183,22 @@
         { "title": "Fast Combo", "max_score": 14341, "min_duration_ms": 3400, "max_duration_ms": 181000, "base": 0, "max_pps": 4218 },
         { "title": "Accuracy Master", "max_score": 15239, "min_duration_ms": 25000, "max_duration_ms": 241000, "base": 0, "max_pps": 610 }
       ]
+    },
+    "color-city-sprint": {
+      "title": "Color City Sprint",
+      "kind": "time",
+      "max_score": 8290,
+      "min_duration_ms": 17100,
+      "max_duration_ms": 100000,
+      "time_base_ms": 100000,
+      "enabled": false,
+      "levels": [
+        { "title": "Red Block", "max_score": 8290, "min_duration_ms": 17100, "max_duration_ms": 100000, "time_base_ms": 100000 },
+        { "title": "Bus Line", "max_score": 10360, "min_duration_ms": 26400, "max_duration_ms": 130000, "time_base_ms": 130000 },
+        { "title": "Rush Hour", "max_score": 12710, "min_duration_ms": 32900, "max_duration_ms": 160000, "time_base_ms": 160000 },
+        { "title": "Night Neon", "max_score": 16130, "min_duration_ms": 38700, "max_duration_ms": 200000, "time_base_ms": 200000 },
+        { "title": "Greyout Avenue", "max_score": 17390, "min_duration_ms": 26100, "max_duration_ms": 200000, "time_base_ms": 200000 }
+      ]
     }
   }
 }

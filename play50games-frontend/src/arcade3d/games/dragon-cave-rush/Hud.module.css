@@ -389,3 +389,15 @@
    background: rgba(41, 37, 36, 0.78);
    border: 2px solid rgba(251, 146, 60, 0.4);
 }
+
+/* narrow phones: the warnings wrap inside the screen instead of running off its edge */
+@media (max-width: 520px) {
+   .breath,
+   .tilt,
+   .sleep {
+      white-space: normal;
+      max-width: min(240px, 62vw);
+      text-align: center;
+      font-size: 0.78rem;
+   }
+}
