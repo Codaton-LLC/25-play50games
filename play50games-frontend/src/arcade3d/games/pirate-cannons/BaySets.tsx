@@ -21,10 +21,11 @@ export const BACKGROUND_SHIPS: Record<BayTheme["ships"], ReadonlyArray<{ x: numb
       { x: 30, y: 0, z: -80, rotY: 2.9, scale: 1 },
    ],
    fleet: [
-      { x: -60, y: 0, z: -125, rotY: -Math.PI / 2, scale: 1.2 },
-      { x: -25, y: 0, z: -135, rotY: -Math.PI / 2, scale: 1.1 },
-      { x: 15, y: 0, z: -128, rotY: -Math.PI / 2, scale: 1.2 },
-      { x: 50, y: 0, z: -140, rotY: -Math.PI / 2, scale: 1 },
+      // on the horizon, just inside the top of the fitted view
+      { x: -30, y: 0, z: -84, rotY: -Math.PI / 2, scale: 1.1 },
+      { x: -10, y: 0, z: -88, rotY: -Math.PI / 2, scale: 1 },
+      { x: 12, y: 0, z: -85, rotY: -Math.PI / 2, scale: 1.1 },
+      { x: 34, y: 0, z: -90, rotY: -Math.PI / 2, scale: 1 },
    ],
    flagship: [{ x: 2, y: 0, z: -79, rotY: -Math.PI / 2 + 0.2, scale: 2.2 }],
 };
