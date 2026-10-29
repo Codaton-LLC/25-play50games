@@ -110,6 +110,12 @@ plain bot. With each hero's power mashed, and in 200 spam runs on L1 plus 30 on 
 jump, power, frame times and hero), nothing beats the floor (`rules.test.ts`, `proof.test.ts`). An idle run
 times out unranked.
 
+## Playtest (headless Chrome, `next dev` on :3307)
+
+All five levels at 1280 x 800 and 390 x 844, played by the honest bot through the preview's `?autoplay=1`,
+with a mouse drag or two-finger orbit mid-run. Every run won with 0 console errors. Budget: at most
+36 draw calls and about 344k triangles (L3 desktop, the busiest). p50 frame time was 16.7 ms.
+
 ## Stars, secrets, juice
 
 - Stars (`menu2/stars`): clear the level, collect every main orb, and beat the target time (55, 75, 90, 105
@@ -141,4 +147,6 @@ walls and toyboxes are code-built. `assets.test.ts` tests the fits against the m
 - Level 5 in multiplayer: each player fights their own Jack, and the camera shows player 1's.
 - The bot never uses a power, so it takes about a third to a half of the main orbs. The "all orbs" star is
   proven reachable by the placement tests (`layouts.test.ts`), not by a bot run.
+- L5 framing: the follow camera stays on the hero at the chain starters, so Jack is often off-screen
+  during his windows. The player has to orbit to watch him. A boss-aware camera framing is a follow-up.
 - At 144 fps the L5 bot misses some of Jack's windows and wins in 69 s (still inside the limits).
