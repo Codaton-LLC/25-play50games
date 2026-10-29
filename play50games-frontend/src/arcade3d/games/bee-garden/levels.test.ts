@@ -37,8 +37,10 @@ describe("bee-garden levels: declarations", () => {
       }
       expect(definition.durationMs).toBe(LEVELS[1].durationMs);
       expect(LEVEL_IDS.map((id) => LEVELS[id].lighting)).toEqual(["day", "day", "day", "sunset", "day"]);
+      expect(LEVEL_IDS.map((id) => LEVEL_LOOKS[id].scenery)).toEqual(["flower", "vegetable", "greenhouse", "forest", "giant"]);
       // the greenhouse's closer fog is its glass
       expect(LEVEL_LOOKS[3].fogFar).toBeLessThan(LEVEL_LOOKS[2].fogFar);
+      expect(LEVEL_LOOKS[3].fogNear).toBeLessThan(LEVEL_LOOKS[2].fogNear);
    });
 
    it("level 1 is the spec's base garden", () => {
