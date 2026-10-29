@@ -164,11 +164,11 @@ function Pools({ pools, look }: { pools: readonly Pool[]; look: FarmLook }) {
       <group name="marsh-pools">
          <Instanced spots={rims} name="pool-rims">
             <primitive object={geo.rim} attach="geometry" />
-            <meshStandardMaterial color={look.furrow} roughness={0.9} />
+            <meshBasicMaterial color="#5eead4" toneMapped={false} />
          </Instanced>
          <Instanced spots={water} name="pool-water">
             <primitive object={geo.disc} attach="geometry" />
-            <meshStandardMaterial color="#0f766e" emissive="#14b8a6" emissiveIntensity={0.35} roughness={0.15} metalness={0.2} transparent opacity={0.88} />
+            <meshStandardMaterial color="#0e7490" emissive="#0d9488" emissiveIntensity={0.55} roughness={0.15} metalness={0.2} transparent opacity={0.9} />
          </Instanced>
          <Instanced spots={reeds} name="pool-reeds">
             <primitive object={geo.reed} attach="geometry" />
@@ -347,7 +347,7 @@ export function FarmScene({ level }: { level: AlienFarmLevel }) {
          <Beds look={look} />
          <Pools pools={level.pools} look={look} />
          <Scenery look={look} reduced={reduced} />
-         <Decor look={look} />
+         <Decor look={look} pools={level.pools} />
       </group>
    );
 }

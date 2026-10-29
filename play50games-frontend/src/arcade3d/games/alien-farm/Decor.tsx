@@ -17,6 +17,7 @@ import { Instanced, type InstanceSpot } from "@/arcade3d/core/render";
 import { ASSETS, METEORITE_SCALE, METEORITE_SPOTS } from "./assets";
 import { COLORS, LOOKS, decorOf, hillHeight, type DecorSpot, type FarmLook } from "./looks";
 import { CratePrimitives, RockPrimitives } from "./Primitives";
+import type { Pool } from "./levels";
 
 function asSpots(list: readonly DecorSpot[]): InstanceSpot[] {
    return list.map((s) => ({
@@ -30,7 +31,7 @@ function asSpots(list: readonly DecorSpot[]): InstanceSpot[] {
    }));
 }
 
-export function Decor({ look = LOOKS.starter }: { look?: FarmLook }) {
+export function Decor({ look = LOOKS.starter, pools = [] }: { look?: FarmLook; pools?: readonly Pool[] }) {
    const quality = useQuality();
 
    const geo = useMemo(() => {
@@ -79,9 +80,10 @@ export function Decor({ look = LOOKS.starter }: { look?: FarmLook }) {
    }, [quality.decor]);
 
    const plants = useMemo(() => {
-      const list = decorOf("plant");
+      // no plant standing in a marsh pool
+      const list = decorOf("plant").filter((s) => pools.every((p) => Math.hypot(s.x - p.x, s.z - p.z) > p.r + 0.3));
       return asSpots(list.slice(0, scaledCount(list.length, quality.decor)));
-   }, [quality.decor]);
+   }, [quality.decor, pools]);
 
    const silos = useMemo(() => asSpots(decorOf("silo")), []);
    const rocks = useMemo(() => asSpots(decorOf("rock")), []);

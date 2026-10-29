@@ -97,7 +97,7 @@ export const LOOKS: Record<FarmTheme, FarmLook> = {
    // a teal bioluminescent marsh: dark water pools, glowing reeds and mushrooms
    marsh: {
       lighting: "sunset", background: "#022c22", fog: "#064e3b", fogNear: 26, fogFar: 70,
-      skyTop: "#021b17", skyBottom: "#0f766e", soil: "#14532d", bed: "#166534", bedSoil: "#052e16",
+      skyTop: "#021b17", skyBottom: "#0f766e", soil: "#1f5f3a", bed: "#166534", bedSoil: "#052e16",
       furrow: "#134e4a", channel: "#a3e635", hillTint: "#86efac", spire: "#15803d",
       plantCap: "#bef264", plantGlow: "#d9f99d", stars: 400, scenery: "marsh",
    },
