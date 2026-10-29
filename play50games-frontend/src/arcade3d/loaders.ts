@@ -66,5 +66,13 @@ export const GAME_LOADERS: Record<ArcadeSlug, () => Promise<GameModule>> = {
    "plate-surf": () => import("./games/plate-surf"),
    "zipline-rush": () => import("./games/zipline-rush"),
    "ring-jump-challenge": () => import("./games/ring-jump-challenge"),
+   "wind-tunnel-escape": () => import("./games/wind-tunnel-escape"),
+   "roll-cannon-jump": () => import("./games/roll-cannon-jump"),
+   "robot-factory-run": () => import("./games/robot-factory-run"),
+   "color-city-sprint": () => import("./games/color-city-sprint"),
+   "temple-lantern-jump": () => import("./games/temple-lantern-jump"),
+   "dragon-cave-rush": () => import("./games/dragon-cave-rush"),
+   "color-door-sprint": () => import("./games/color-door-sprint"),
+   "sky-hook-swing": () => import("./games/sky-hook-swing"),
    "mine-tunnel-run": () => import("./games/mine-tunnel-run"),
 };
