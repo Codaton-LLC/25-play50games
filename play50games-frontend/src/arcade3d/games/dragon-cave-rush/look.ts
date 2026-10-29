@@ -10,7 +10,7 @@ export const COLORS = {
    rock: "#463a35",
    rockWarm: "#6b4a36",
    crystal: "#6d4bb0",
-   floor: "#4a3a32",
+   floor: "#3a2c25",
    ember: "#f97316",
    breath: "#fb923c",
    ghost: "#c4b5fd",

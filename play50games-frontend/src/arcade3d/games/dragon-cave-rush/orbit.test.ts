@@ -3,7 +3,7 @@
 import { describe, expect, it } from "vitest";
 import { orbitPosition } from "@/arcade3d/menu2/camera/orbit";
 import { LEVEL_IDS } from "@/arcade3d/types";
-import { CAVE_ORBIT, PIVOT_UP, introKeyframes, orbitPivot, orbitScale, playCamera, yawAt } from "./camera";
+import { CAVE_ORBIT, INTRO_STEP, PIVOT_UP, introKeyframes, orbitPivot, orbitScale, playCamera, yawAt } from "./camera";
 import { courseFor } from "./rules";
 import { centreAt } from "./track";
 
@@ -32,9 +32,27 @@ describe("the orbit camera", () => {
       expect((cam.x - pv.x) * fx + (cam.z - pv.z) * fz).toBeLessThan(-5);
    });
 
-   it("a portrait screen stands the camera farther back; the intro has 4 shots", () => {
+   it("a portrait screen stands the camera farther back", () => {
       expect(orbitScale(390 / 844)).toBeGreaterThan(1.2);
       expect(orbitScale(1280 / 800)).toBe(1);
-      for (const id of LEVEL_IDS) expect(introKeyframes(courseFor(id))).toHaveLength(4);
+   });
+
+   it("the intro dollies down the cave inside the tunnel: shots at most INTRO_STEP m apart, each over the rails", () => {
+      for (const id of LEVEL_IDS) {
+         const c = courseFor(id);
+         const keys = introKeyframes(c).slice(c.loop ? 1 : 0);
+         expect(keys.length).toBeGreaterThanOrEqual(6);
+         for (let i = 0; i < keys.length; i++) {
+            const [x, , z] = keys[i].position;
+            // the nearest centre-line sample is within the tunnel's half width (9 m) less a margin
+            let best = Infinity;
+            for (let j = 0; j < c.samples.length; j += 4) best = Math.min(best, Math.hypot(c.samples[j] - x, c.samples[j + 2] - z));
+            expect(best).toBeLessThan(3);
+            if (i > 0) {
+               const [px, , pz] = keys[i - 1].position;
+               expect(Math.hypot(x - px, z - pz)).toBeLessThanOrEqual(INTRO_STEP + 1);
+            }
+         }
+      }
    });
 });

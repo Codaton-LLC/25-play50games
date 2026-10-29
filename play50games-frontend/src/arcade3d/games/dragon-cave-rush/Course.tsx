@@ -82,8 +82,8 @@ function WindowPool({
    items,
    run,
    count,
-   behind = 25,
-   ahead = 170,
+   behind = 15,
+   ahead = 110,
    hide,
    pose,
    tinted = false,
@@ -155,6 +155,15 @@ function Cave({ course }: { course: CourseData }) {
          {loop ? (
             // the hoard cavern round Cindermaw's loop: a great dome and a floor of embers
             <group position={[loop.centre.x, course.samples[Math.round(loop.s0 / 0.5) * 4 + 1], loop.centre.z]}>
+               {/* Cindermaw's hoard heaped in the middle of her loop, crystal clusters round it */}
+               <group scale={14 / GLB_SIZE.hoard.x} position={[0, -0.4, 0]}>
+                  <Model asset={ASSETS.hoard} />
+               </group>
+               {[0, 1, 2, 3, 4, 5].map((i) => (
+                  <group key={i} position={[Math.cos(i * 1.047) * 13, -0.4, Math.sin(i * 1.047) * 13]} rotation-y={i * 1.9} scale={(3.2 + (i % 3)) / GLB_SIZE.cluster.x}>
+                     <Model asset={ASSETS.cluster} />
+                  </group>
+               ))}
                <mesh>
                   <sphereGeometry args={[loop.radius + 22, 28, 16, 0, Math.PI * 2, 0, Math.PI * 0.58]} />
                   <meshStandardMaterial color={COLORS.rock} roughness={0.95} flatShading side={DoubleSide} />
@@ -326,7 +335,7 @@ function Orbs({ run }: { run: CaveRun }) {
    const orb = (i: number, m: Matrix4) => {
       if (i === 0) start.current = lowerBound(items, run.cart.s - 10);
       const it = items[start.current + i];
-      if (!it || it.s > run.cart.s + 160 || run.collected[it.ref]) return false;
+      if (!it || it.s > run.cart.s + 110 || run.collected[it.ref]) return false;
       E.set(0, time.now * 2.2 + it.ref, 0);
       Q.setFromEuler(E);
       m.compose(V.set(it.x, it.y - (GLB_SIZE.orb.y * k) / 2 + Math.sin(time.now * 2 + it.ref) * 0.1, it.z), Q, S.set(k, k, k));
@@ -335,7 +344,7 @@ function Orbs({ run }: { run: CaveRun }) {
    const halo = (i: number, m: Matrix4, color: Color) => {
       if (i === 0) start2.current = lowerBound(items, run.cart.s - 10);
       const it = items[start2.current + i];
-      if (!it || it.s > run.cart.s + 160 || run.collected[it.ref]) return false;
+      if (!it || it.s > run.cart.s + 110 || run.collected[it.ref]) return false;
       const sz = ORB_SIZE * (2.3 + Math.sin(time.now * 3 + it.ref) * 0.2);
       m.compose(V.set(it.x, it.y + Math.sin(time.now * 2 + it.ref) * 0.1, it.z), camera.quaternion, S.set(sz, sz, sz));
       const b = c.orbs[it.ref].bonus;
@@ -344,7 +353,7 @@ function Orbs({ run }: { run: CaveRun }) {
    const plane = useMemo(() => new PlaneGeometry(1, 1), []);
    useEffect(() => () => plane.dispose(), [plane]);
    const glow = useCanvasTexture(64, 64, drawGlow);
-   const N = Math.min(40, items.length);
+   const N = Math.min(28, items.length);
    return (
       <>
          <DynamicInstancedModel asset={ASSETS.orb} count={N} update={orb} name="orbs" />
@@ -450,7 +459,7 @@ function BossTrack({ run, clock }: { run: CaveRun; clock: VisualClock }) {
          Q.setFromEuler(E);
          const s = live ? 1 + Math.sin(time.now * 6 + k) * 0.06 : 0.7;
          m.compose(V.set(P.x, P.y + 2.8, P.z), Q, S.set(s * 1.6, s * 1.6, s * 1.6));
-         color.set(live ? "#c4b5fd" : "#3f3f46");
+         color.set(live ? "#a78bfa" : "#27272a");
       } else if (e.kind === "plate") {
          E.set(-Math.PI / 2, 0, 0);
          Q.setFromEuler(E);
@@ -475,8 +484,8 @@ function BossTrack({ run, clock }: { run: CaveRun; clock: VisualClock }) {
    return (
       <>
          <DynamicInstanced count={ev.length} update={update} name="boss-track" tinted>
-            <torusGeometry args={[0.8, 0.12, 8, 24]} />
-            <meshBasicMaterial color="#ffffff" toneMapped={false} />
+            <torusGeometry args={[0.8, 0.07, 8, 32]} />
+            <meshBasicMaterial color="#ffffff" transparent opacity={0.9} blending={AdditiveBlending} depthWrite={false} toneMapped={false} />
          </DynamicInstanced>
          <DynamicInstanced count={3} update={fire} name="fireballs">
             <sphereGeometry args={[0.6, 12, 10]} />
@@ -512,7 +521,7 @@ export function Course({ run, clock }: { run: CaveRun; clock: VisualClock; won?:
    return (
       <>
          <Cave course={c} />
-         <WindowPool asset={ASSETS.track} items={rails.rails} run={run} count={130} name="rails" tinted />
+         <WindowPool asset={ASSETS.track} items={rails.rails} run={run} count={110} name="rails" tinted />
          <WindowPool asset={ASSETS.scaffold} items={rails.legs} run={run} count={12} name="scaffold" />
          <Marks run={run} pits={rails.pits} />
          <WindowPool asset={ASSETS.cluster} items={decor.clusters} run={run} count={14} name="clusters" />
@@ -524,7 +533,7 @@ export function Course({ run, clock }: { run: CaveRun; clock: VisualClock; won?:
          <WindowPool asset={ASSETS.arch} items={hz.beams} run={run} count={3} name="beams" />
          <WindowPool asset={ASSETS.crystal} items={hz.crystals} run={run} count={4} pose={crystalPose} name="crystals" />
          <WindowPool asset={ASSETS.lavafall} items={hz.lavas} run={run} count={4} name="lavafalls" />
-         <WindowPool asset={ASSETS.bat} items={batItems} run={run} count={3} pose={batPose} name="bats" />
+         <WindowPool asset={ASSETS.bat} items={batItems} run={run} count={2} pose={batPose} name="bats" />
          <LavaStreams run={run} clock={clock} />
          <Barricades run={run} />
          <Orbs run={run} />

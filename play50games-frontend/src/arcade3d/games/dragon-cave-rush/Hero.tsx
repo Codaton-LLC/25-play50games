@@ -223,17 +223,18 @@ export function Dragon({ run, cart }: { run: CaveRun; cart: CartPose }) {
          scale = DRAGON_BOSS;
          const ph = boss.phase;
          if (ph === 0) {
-            // beside you on the outer track, flying
-            lanePoint(c, run.cart.s - 2, 9, 4.5, P);
+            // beside you, a little ahead, over the outer track (in view of the chase camera)
+            lanePoint(c, run.cart.s + 12, 10, 4.5, P);
          } else if (ph === 1) {
             // ahead of you, turned back to throw fireballs down the track
             lanePoint(c, run.cart.s + 26, 0, 6, P);
          } else {
-            // hovering over the middle of the loop
+            // hovering over the inside of the loop, ahead of you (the collar locks in view)
             const base = c.samples[Math.round(loop.s0 / 0.5) * 4 + 1];
-            P.x = loop.centre.x;
+            lanePoint(c, run.cart.s + 22, 0, 0, P);
+            P.x += (loop.centre.x - P.x) * 0.4;
+            P.z += (loop.centre.z - P.z) * 0.4;
             P.y = base + 7 + Math.sin(now * 1.2) * 0.6;
-            P.z = loop.centre.z;
          }
          tx = P.x;
          ty = P.y;
