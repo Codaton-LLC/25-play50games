@@ -70,10 +70,16 @@ export const ARCADE_SLUGS = [
    "color-city-sprint",
    "color-door-sprint",
    "sky-hook-swing",
+   "mine-tunnel-run",
    "robot-factory-run",
    "dragon-cave-rush",
    "temple-lantern-jump",
+   "jungle-vine-jump",
+   "temple-coin-rush",
+   "wall-run-temple",
    "tightrope-path",
+   "ice-peak-jumper",
+   "toy-room-run",
 ] as const;
 
 export type ArcadeSlug = (typeof ARCADE_SLUGS)[number];

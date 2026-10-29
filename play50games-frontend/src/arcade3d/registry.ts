@@ -59,6 +59,7 @@ import { floodedRuinsEscapeMeta } from "./games/flooded-ruins-escape/meta";
 import { lavaPillarJumpMeta } from "./games/lava-pillar-jump/meta";
 import { ziplineRushMeta } from "./games/zipline-rush/meta";
 import { colorDoorSprintMeta } from "./games/color-door-sprint/meta";
+import { templeCoinRushMeta } from "./games/temple-coin-rush/meta";
 import { cloudHopperMeta } from "./games/cloud-hopper/meta";
 import { plateSurfMeta } from "./games/plate-surf/meta";
 import { robotFactoryRunMeta } from "./games/robot-factory-run/meta";
@@ -67,9 +68,14 @@ import { windTunnelEscapeMeta } from "./games/wind-tunnel-escape/meta";
 import { rollCannonJumpMeta } from "./games/roll-cannon-jump/meta";
 import { colorCitySprintMeta } from "./games/color-city-sprint/meta";
 import { templeLanternJumpMeta } from "./games/temple-lantern-jump/meta";
+import { toyRoomRunMeta } from "./games/toy-room-run/meta";
+import { jungleVineJumpMeta } from "./games/jungle-vine-jump/meta";
+import { icePeakJumperMeta } from "./games/ice-peak-jumper/meta";
 import { dragonCaveRushMeta } from "./games/dragon-cave-rush/meta";
 import { skyHookSwingMeta } from "./games/sky-hook-swing/meta";
 import { tightropePathMeta } from "./games/tightrope-path/meta";
+import { wallRunTempleMeta } from "./games/wall-run-temple/meta";
+import { mineTunnelRunMeta } from "./games/mine-tunnel-run/meta";
 
 export const ARCADE_GAMES: ArcadeGameMeta[] = [
    robotCollectorMeta,
@@ -135,10 +141,16 @@ export const ARCADE_GAMES: ArcadeGameMeta[] = [
    robotFactoryRunMeta,
    colorCitySprintMeta,
    templeLanternJumpMeta,
+   toyRoomRunMeta,
+   jungleVineJumpMeta,
+   icePeakJumperMeta,
    dragonCaveRushMeta,
    colorDoorSprintMeta,
    skyHookSwingMeta,
    tightropePathMeta,
+   wallRunTempleMeta,
+   templeCoinRushMeta,
+   mineTunnelRunMeta,
 ].sort((a, b) => a.order - b.order);
 
 export function getGameMeta(slug: string): ArcadeGameMeta | undefined {
