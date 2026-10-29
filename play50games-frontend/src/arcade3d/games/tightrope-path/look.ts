@@ -39,7 +39,7 @@ const LOOKS: Record<LevelId, LevelLook> = {
    1: { lighting: "day", background: "#cfe3d6", fog: "#cfe3d6", fogNear: 30, fogFar: 110, skyTop: "#7fb8d8", skyBottom: "#e2efe6", mist: 0.5, torches: false },
    2: { lighting: "day", background: "#c3dccb", fog: "#c3dccb", fogNear: 28, fogFar: 100, skyTop: "#6fa9cf", skyBottom: "#d9ebdf", mist: 0.55, torches: false },
    3: { lighting: "sunset", background: "#f0c48a", fog: "#e9bb88", fogNear: 26, fogFar: 95, skyTop: "#e48b5a", skyBottom: "#f7d7a4", mist: 0.45, torches: false },
-   4: { lighting: "night", background: "#101a2c", fog: "#16223a", fogNear: 3, fogFar: 14, skyTop: "#0b1424", skyBottom: "#1e2c48", mist: 0.35, torches: true },
+   4: { lighting: "night", background: "#101a2c", fog: "#16223a", fogNear: 4, fogFar: 17, skyTop: "#0b1424", skyBottom: "#1e2c48", mist: 0.35, torches: true },
    5: { lighting: "day", background: "#7d8790", fog: "#7d8790", fogNear: 24, fogFar: 90, skyTop: "#4f5967", skyBottom: "#a3abb2", mist: 0.6, torches: true },
 };
 

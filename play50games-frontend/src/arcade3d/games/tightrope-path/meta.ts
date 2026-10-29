@@ -36,7 +36,7 @@ export const tightropePathMeta: ArcadeGameMeta = {
    controls: {
       scheme: "platformer",
       keyboard: "W / Up walks (hold to sprint), A / D or the arrows push against the lean (camera-relative), Space jumps, hold E or Enter to crouch (its press fires the hero power); drag, Q / C turn and the wheel zooms the camera",
-      touch: "Joystick walks and balances, Jump, hold Crouch (its press fires the hero power); two fingers turn the camera, pinch zooms",
+      touch: "Joystick walks and balances, Jump, hold Duck to crouch (its press fires the hero power); two fingers turn the camera, pinch zooms",
    },
    scoring: scoring(1),
    levels: LEVEL_IDS.map((id) => ({ id, title: LEVEL_TITLES[id], scoring: scoring(id) })),

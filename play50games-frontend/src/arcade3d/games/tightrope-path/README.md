@@ -82,6 +82,23 @@ and the flow bonus. Each level row is `proposeLimits(courseFor(level))`:
 m2RockPillarBg, m2SwingSandbag. Shared from `menu2/`: plankBridge, checkpointBeacon,
 m2ShadowArmadillo (Umbra) and scoreOrb. No turtle / ninja / shell files.
 
+## Bots (seed 1, 60 fps; finish / submitted time)
+
+L1 22.6-24.4 s, L2 32.2-38.0 s, L3 44.3-50.3 s, L4 42.0-47.8 s, L5 45.4-47.3 s (Umbra down) for the
+five heroes, 0 falls; every hero clears every level at 30 / 60 / 144 fps (`rules.test.ts`,
+`proof.test.ts`). Limits rows (min / max duration ms, maxScore): L1 13900 / 150000 / 13610,
+L2 15900 / 200000 / 18410, L3 19400 / 240000 / 22060, L4 20100 / 280000 / 25990,
+L5 20400 / 360000 / 33960.
+
+## Playtest (headless Chrome over CDP, next dev :3323, `?autoplay=1`, unlock-all)
+
+All five levels at 1280 x 800 and 390 x 844 with a two-finger orbit on the phone; 0 console errors.
+Fixed from it: the hero faced the camera (the heading was applied twice); the lean meter sat on the
+phone's Crouch button (now above the buttons, the button reads "Duck"); towers moved out of the
+camera's way; level 4's night got a warm lamp over the hero and a little less fog. The headless
+renderer is slow (the bot is ~6 s into a level after 70 s), so Umbra's joust was checked in the
+rules tests, not on screen.
+
 ## Known issues / open
 
 - The card's hidden canopy shortcut behind the bird is not built: the bird gives the sticker only.

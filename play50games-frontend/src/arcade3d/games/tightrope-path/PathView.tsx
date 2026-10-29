@@ -332,7 +332,8 @@ function Towers({ course }: { course: Course }) {
             .map((l, i) => {
                const m = mid(l);
                const side = i % 2 ? 1 : -1;
-               const off = l.kind === "pillar" ? 4.2 : 3.6;
+               // out past the camera's reach behind the hero (it orbits up to 6 m), the rope's towers a little closer
+               const off = l.kind === "pillar" ? 7.5 : 5;
                return { x: m.x - l.dz * side * off, y: m.y - 4.5, z: m.z + l.dx * side * off, rot: rotOf(l) };
             }),
       [course],

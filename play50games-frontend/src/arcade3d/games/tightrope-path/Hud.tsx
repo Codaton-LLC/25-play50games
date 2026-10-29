@@ -37,7 +37,7 @@ const HINT_TEXT: Record<number, string> = {
    [HINT.lean]: "Leaning! Push the other way to bring the needle back",
    [HINT.gap]: "A gap: jump across",
    [HINT.gust]: "Wind coming (the leaves fly first): brace against it",
-   [HINT.bag]: "Sandbag! Hold Action to crouch under it, or wait for it to pass",
+   [HINT.bag]: "Sandbag! Hold Duck (E) to crouch under it, or wait for it to pass",
    [HINT.dash]: "Riko: Action at the cracked rope's start to dash across",
    [HINT.ghost]: "Vexa: Action now to phase onto the ghost bridge",
    [HINT.stomp]: "Crouch to ride his stomp, then jump to stomp back while he wobbles",
@@ -207,7 +207,11 @@ export default function Hud() {
                </svg>
                <span className={styles.value}>{clockText(tenths * 100)}</span>
             </div>
-            {config?.boss && !playing ? <Boss /> : null}
+            {config?.boss && !playing ? (
+               <div className={styles.bossCenter}>
+                  <Boss />
+               </div>
+            ) : null}
             {hint > 0 && !playing ? (
                <div className={styles.hint} role="status">
                   {HINT_TEXT[hint]}
@@ -215,6 +219,11 @@ export default function Hud() {
             ) : null}
          </div>
          {!playing ? <LeanMeter /> : null}
+         {config?.boss && !playing ? (
+            <div className={styles.bossDock} data-arcade-safe-area="">
+               <Boss />
+            </div>
+         ) : null}
       </>
    );
 }

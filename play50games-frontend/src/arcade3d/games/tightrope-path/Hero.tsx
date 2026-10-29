@@ -14,6 +14,7 @@ import { Model } from "@/arcade3d/core/assets";
 import { AnimatedHero, createHeroMotion, useHeroAnimator, type HeroMotion } from "@/arcade3d/menu2/heroAnim";
 import { ASSETS, POLE_LEN, POLE_SCALE } from "./assets";
 import { V_SPRINT, heroPoint, type TightRun } from "./rules";
+import { COLORS, levelLook } from "./look";
 
 export interface HeroAnim {
    winAt: number;
@@ -29,10 +30,10 @@ export const INTRO_DROP = 10;
 /** The animator's motion for this frame (pure: no three.js). */
 export function writeHeroMotion(m: HeroMotion, run: TightRun, anim: HeroAnim, now: number): void {
    const h = run.hero;
-   const l = run.course.links[h.link];
+   // the hero's group is already turned along the link: the animator works in that frame (+z forward)
    const v = h.air ? h.airV : h.v;
-   m.vx = l.dx * v;
-   m.vz = l.dz * v;
+   m.vx = 0;
+   m.vz = v;
    m.vy = h.air ? h.vy : h.fallMs >= 0 ? -10 : 0;
    m.grounded = !h.air && h.fallMs < 0;
    const ms = run.simMs;
@@ -61,8 +62,8 @@ export function Hero({ run, anim }: { run: TightRun; anim: HeroAnim }) {
 
    useFrame(() => {
       writeHeroMotion(motion, run, anim, time.now);
-      const l = run.course.links[run.hero.link];
-      animator.body.yaw = turnTowards(animator.body.yaw, Math.atan2(l.dx, l.dz), 0.2);
+      // local forward: the root group carries the link's heading
+      animator.body.yaw = turnTowards(animator.body.yaw, 0, 0.2);
    }, FRAME_PRIORITY.camera + 0.1);
 
    useFrame((_s, dt) => {
@@ -113,11 +114,29 @@ export function Hero({ run, anim }: { run: TightRun; anim: HeroAnim }) {
                </group>
             </group>
          </group>
+         {levelLook(run.level).lighting === "night" ? <HeroLamp run={run} /> : null}
          <mesh ref={bubble} visible={false}>
             <sphereGeometry args={[1, 20, 14]} />
             <meshBasicMaterial color="#86efac" transparent opacity={0.22} depthWrite={false} toneMapped={false} />
          </mesh>
       </>
+   );
+}
+
+/** Night (level 4): a warm lamp over the hero lights the next few metres of rope (the card: 8 m of sight). */
+function HeroLamp({ run }: { run: TightRun }) {
+   const ref = useRef<Group>(null);
+   const at = useMemo(() => ({ x: 0, y: 0, z: 0 }), []);
+   useFrame(() => {
+      const g = ref.current;
+      if (!g) return;
+      heroPoint(run, at);
+      g.position.set(at.x, at.y + 2.2, at.z);
+   });
+   return (
+      <group ref={ref}>
+         <pointLight color={COLORS.torch} intensity={9} distance={9} decay={1.4} />
+      </group>
    );
 }
 

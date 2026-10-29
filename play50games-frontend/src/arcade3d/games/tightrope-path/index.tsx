@@ -33,7 +33,7 @@ const definition: GameDefinition<TightLevel> = {
    camera: { position: [0, 17, 7], fov: FOV, lookAt: [0, 14, -2] },
    environment: levelEnvironment(1),
    touchControls: ["joystick", "jump", "action"],
-   touchLabels: { jump: "Jump", action: "Crouch" },
+   touchLabels: { jump: "Jump", action: "Duck" },
    hudStats: [],
    clockChip: false,
    intro: true,
