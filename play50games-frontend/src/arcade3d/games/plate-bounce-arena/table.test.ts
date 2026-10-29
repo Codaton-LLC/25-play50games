@@ -42,7 +42,9 @@ describe("tables", () => {
                const b = solid[j];
                const gap = Math.hypot(a.x - b.x, a.z - b.z) - a.r - b.r;
                // bank targets stand shoulder to shoulder on purpose
-               if ("bank" in a && "bank" in b && a.bank === b.bank && a.bank >= 0) continue;
+               const ba = (a as { bank?: number }).bank ?? -1;
+               const bb = (b as { bank?: number }).bank ?? -1;
+               if (ba >= 0 && ba === bb) continue;
                expect(gap, `L${id} ${i}-${j}`).toBeGreaterThan(2 * BALL_R * 0.9);
             }
          }
