@@ -70,8 +70,10 @@ export const ARCADE_SLUGS = [
    "color-city-sprint",
    "color-door-sprint",
    "sky-hook-swing",
+   "robot-factory-run",
    "dragon-cave-rush",
    "temple-lantern-jump",
+   "jungle-vine-jump",
    "toy-room-run",
 ] as const;
 
