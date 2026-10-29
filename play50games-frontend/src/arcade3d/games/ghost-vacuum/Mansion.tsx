@@ -23,6 +23,21 @@ import { DynamicInstanced, type InstancePart } from "@/arcade3d/core/render";
 import { ASSETS } from "./assets";
 import { COLORS } from "./looks";
 import { active, ROOMS, WALLS, type Run } from "./rules";
+import RoomDressing from "./RoomDressing";
+
+import type { RoomKind } from "./levels";
+
+/** Each level's interior light and wallpaper (the room kinds of levels 2-4; level 5 keeps today's). */
+const INTERIOR: Record<"living" | "library" | "kitchen" | "attic" | "mansion", { ambient: string; intensity: number; wall: string }> = {
+   living: { ambient: "#c7d2fe", intensity: 0.82, wall: COLORS.wall },
+   library: { ambient: "#ffd9a8", intensity: 0.86, wall: "#4f6b57" },
+   kitchen: { ambient: "#e0f2fe", intensity: 1.0, wall: "#93b4c4" },
+   attic: { ambient: "#d6c3a5", intensity: 0.7, wall: "#7a6a5a" },
+   mansion: { ambient: "#c7d2fe", intensity: 0.82, wall: COLORS.wall },
+};
+const interiorOf = (rooms: readonly RoomKind[]) => (rooms.every((k) => k === rooms[0]) ? INTERIOR[rooms[0]] : INTERIOR.mansion);
+/** The host a hidden ghost shakes in: a desk (living room, library), a counter (kitchen) or a trunk (attic). */
+const hostOf = (kind: RoomKind) => (kind === "kitchen" ? "counter" : kind === "attic" ? "trunk" : "desk");
 
 const chairs = ROOMS.map((r) => ({ x: r.x, y: 0, z: r.north * 5.5 }));
 
@@ -82,6 +97,9 @@ function FurnitureFallback() {
 }
 
 export default function Mansion({ run }: { run: Run }) {
+   const rooms = run.level.rooms;
+   const interior = interiorOf(rooms);
+
    const quality = useQuality(), time = useGameTime(), icons = useRef<Array<Group | null>>([]);
    const [reduced] = useState(() => typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
    const hidden = (i: number) => run.ghosts.some((g) => g.room === i && g.mode === "hidden");
@@ -179,7 +197,7 @@ export default function Mansion({ run }: { run: Run }) {
    return (
       <group name="mansion">
          {/* Spooky cool moonlit interior fill with high ghost readability */}
-         <ambientLight intensity={0.82} color="#c7d2fe" />
+         <ambientLight intensity={interior.intensity} color={interior.ambient} />
 
          {/* 1. Floor: Readable warm Victorian oak parquet base (>= 3:1 contrast against ghosts) */}
          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} name="mansion-floor-border">
@@ -214,11 +232,11 @@ export default function Mansion({ run }: { run: Run }) {
          {/* 3. Mansion Walls (Victorian lilac-plum wallpaper, as bright as main) */}
          <DynamicInstanced count={WALLS.length * 2} update={(i, m) => wall(i, m, false)} name="walls-solid">
             <boxGeometry />
-            <meshStandardMaterial color={COLORS.wall} roughness={0.75} />
+            <meshStandardMaterial color={interior.wall} roughness={0.75} />
          </DynamicInstanced>
          <DynamicInstanced count={WALLS.length * 2} update={(i, m) => wall(i, m, true)} name="walls-faded">
             <boxGeometry />
-            <meshStandardMaterial color={COLORS.wallFaded} roughness={0.75} transparent opacity={0.15} depthWrite={false} />
+            <meshStandardMaterial color={interior.wall} roughness={0.75} transparent opacity={0.15} depthWrite={false} />
          </DynamicInstanced>
 
          {/* 4. Furniture: Desks & Chairs */}
@@ -226,15 +244,42 @@ export default function Mansion({ run }: { run: Run }) {
             asset={ASSETS.desk}
             count={4}
             update={(i, m) => {
+               if (hostOf(rooms[i]) !== "desk") return false;
                const r = ROOMS[i];
                const shake = hidden(i) && !reduced && quality.tier !== "low" ? Math.sin(time.now * 18 + i) * 0.025 : 0;
                m.makeTranslation(r.x + shake, 0, r.z);
             }}
          />
+         {/* the kitchen's host is a work counter, the attic's a steamer trunk (the same 1.6 x 0.8 box) */}
+         {rooms.some((k) => k === "kitchen") && (
+            <DynamicInstancedModel
+               asset={ASSETS.counter}
+               count={4}
+               update={(i, m) => {
+                  if (hostOf(rooms[i]) !== "counter") return false;
+                  const r = ROOMS[i];
+                  const shake = hidden(i) && !reduced && quality.tier !== "low" ? Math.sin(time.now * 18 + i) * 0.025 : 0;
+                  m.makeScale(1.6, 1.0, 0.8).setPosition(r.x + shake, 0, r.z);
+               }}
+            />
+         )}
+         {rooms.some((k) => k === "attic") && (
+            <DynamicInstancedModel
+               asset={ASSETS.trunkBox}
+               count={4}
+               update={(i, m) => {
+                  if (hostOf(rooms[i]) !== "trunk") return false;
+                  const r = ROOMS[i];
+                  const shake = hidden(i) && !reduced && quality.tier !== "low" ? Math.sin(time.now * 18 + i) * 0.035 : 0;
+                  m.makeScale(1.6, 0.75, 0.8).setPosition(r.x + shake, 0, r.z);
+               }}
+            />
+         )}
+         <RoomDressing level={run.level} />
          <InstancedModel asset={ASSETS.chair} spots={chairs} fallback={<FurnitureFallback />} />
 
          {/* 5. Library Books (leather bound with aged parchment pages) */}
-         {[0, 1, 2, 3].map((i) => (
+         {hostOf(rooms[0]) === "desk" && [0, 1, 2, 3].map((i) => (
             <Model
                key={i}
                asset={ASSETS.book}
@@ -282,6 +327,7 @@ export default function Mansion({ run }: { run: Run }) {
             asset={ASSETS.candelabra}
             count={4}
             update={(i, m) => {
+               if (hostOf(rooms[i]) !== "desk") return false;
                const r = ROOMS[i];
                m.makeTranslation(r.x, 0.6, r.z + 0.3);
             }}

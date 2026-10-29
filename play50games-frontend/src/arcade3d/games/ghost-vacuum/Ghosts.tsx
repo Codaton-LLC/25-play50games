@@ -7,7 +7,7 @@ import { DynamicInstancedModel } from "@/arcade3d/core/assets";
 import { DynamicInstanced, type InstancePart } from "@/arcade3d/core/render";
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import { useQuality } from "@/arcade3d/core/quality";
-import { active, type Run } from "./rules";
+import { active, faded, type Run } from "./rules";
 import { ASSETS } from "./assets";
 import { createSuckLook, FLOAT, suckIn, suckLook, suckMatrix, SUCK, type SuckShared } from "./suck";
 
@@ -143,6 +143,8 @@ void main() {
             body.setMatrixAt(g.id, r.looks[g.id]);
             const tint = r.tints[g.id].copy(g.kind === "gold" ? GOLD : WHITE);
             if (g.mode === "stunned" || g.mode === "pulling") tint.multiplyScalar(1.3);
+            // library habit: slipped into the shelves, the ghost is a faint shimmer the light cannot catch
+            if (faded(run, g)) tint.multiplyScalar(0.22);
             // The additive crown/outlines keep the plain gold (a tint past 1 would burn them white).
             body.setColorAt(g.id, g.kind === "gold" ? r.tint.copy(CROWN).multiplyScalar(g.mode === "stunned" || g.mode === "pulling" ? 1.3 : 1) : tint);
             r.params.setXYZ(g.id, g.kind === "gold" ? 1 : g.kind === "big" ? 2 : 0, 0, g.lit || g.mode === "stunned" || g.mode === "pulling" ? 1 : 0);
