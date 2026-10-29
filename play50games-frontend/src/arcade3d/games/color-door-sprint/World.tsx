@@ -117,7 +117,7 @@ export default function World({ course, view, offsetX = 0, outer = true }: { cou
       <>
          {outer ? (
             <mesh ref={skyMesh} material={skyMat} renderOrder={-1}>
-               <sphereGeometry args={[400, 24, 12]} />
+               <sphereGeometry args={[170, 40, 20]} />
             </mesh>
          ) : null}
          <mesh ref={floor} rotation-x={-Math.PI / 2} receiveShadow>

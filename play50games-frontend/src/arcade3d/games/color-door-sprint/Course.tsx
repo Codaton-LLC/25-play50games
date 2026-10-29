@@ -349,7 +349,7 @@ function Glyphs({ run, lamps }: { run: DoorRun; lamps: LampSpot[] }) {
                   }
                   const spot = lamps[i - doorCount];
                   if (!spot || !spot.on || spot.color !== si) return false;
-                  color.copy(WHITE);
+                  color.copy(GLOWS[spot.color]).lerp(WHITE, 0.4);
                   if (spot.dim) color.multiplyScalar(0.25);
                   return place(spot.x, spot.y - 0.95, spot.z + 0.02, 0.62, 0.62, 1);
                }}
@@ -447,7 +447,7 @@ function Lamps({ run, spots }: { run: DoorRun; spots: LampSpot[] }) {
                if (!s?.on) return false;
                color.copy(COLORS[s.color]).lerp(WHITE, 0.15);
                if (s.dim) color.multiplyScalar(0.22);
-               return place(s.x, s.y + 0.35, s.z + 0.05, 0.6, 0.6, 0.6);
+               return place(s.x, s.y + 0.32, s.z + 0.05, 0.36, 0.42, 0.36);
             }}
          />
          <Pool
