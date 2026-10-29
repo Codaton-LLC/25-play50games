@@ -753,6 +753,16 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/wall-run-temple/m2TempleWallV2.glb",
    "/models/3d/wall-run-temple/m2WallRunMarker.glb",
    "/models/3d/wall-run-temple/m2WallSpikePanel.glb",
+   // Menu 2 game 42 (Magnet Coin Lab): ready/menu2/magnet-coin-lab (m2SilverCoin left out: the coins are drawn in code)
+   "/models/3d/magnet-coin-lab/m2HorseshoeMagnet.glb",
+   "/models/3d/magnet-coin-lab/m2LabDrone.glb",
+   "/models/3d/magnet-coin-lab/m2LabMachineBg.glb",
+   "/models/3d/magnet-coin-lab/m2LabPlatform.glb",
+   "/models/3d/magnet-coin-lab/m2LabPlatformV2.glb",
+   "/models/3d/magnet-coin-lab/m2MagnetPad.glb",
+   "/models/3d/magnet-coin-lab/m2MetalBlockV2.glb",
+   "/models/3d/magnet-coin-lab/m2PolarityGate.glb",
+   "/models/3d/magnet-coin-lab/m2ToyPiggyBank.glb",
 ];
 
 const LISTED: ReadonlySet<string> = new Set(MODEL_MANIFEST);

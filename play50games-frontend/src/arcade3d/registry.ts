@@ -61,6 +61,7 @@ import { ziplineRushMeta } from "./games/zipline-rush/meta";
 import { colorDoorSprintMeta } from "./games/color-door-sprint/meta";
 import { templeCoinRushMeta } from "./games/temple-coin-rush/meta";
 import { colorRailGrindMeta } from "./games/color-rail-grind/meta";
+import { magnetCoinLabMeta } from "./games/magnet-coin-lab/meta";
 import { cloudHopperMeta } from "./games/cloud-hopper/meta";
 import { plateSurfMeta } from "./games/plate-surf/meta";
 import { robotFactoryRunMeta } from "./games/robot-factory-run/meta";
@@ -159,6 +160,7 @@ export const ARCADE_GAMES: ArcadeGameMeta[] = [
    templeCoinRushMeta,
    mineTunnelRunMeta,
    colorRailGrindMeta,
+   magnetCoinLabMeta,
    spinPoleClimbMeta,
    templeGongTimingMeta,
 ].sort((a, b) => a.order - b.order);

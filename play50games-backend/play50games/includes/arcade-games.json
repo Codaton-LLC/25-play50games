@@ -1393,6 +1393,22 @@
         { "title": "Fast Rhythm", "max_score": 14790, "min_duration_ms": 41800, "max_duration_ms": 46517, "base": 400, "max_pps": 358 },
         { "title": "Perfect Timing", "max_score": 28600, "min_duration_ms": 64700, "max_duration_ms": 242000, "base": 5720, "max_pps": 318 }
       ]
+    },
+    "magnet-coin-lab": {
+      "title": "Magnet Coin Lab",
+      "kind": "time",
+      "max_score": 17990,
+      "min_duration_ms": 100,
+      "max_duration_ms": 180000,
+      "time_base_ms": 180000,
+      "enabled": false,
+      "levels": [
+        { "title": "Basic Magnet", "max_score": 17990, "min_duration_ms": 100, "max_duration_ms": 180000, "time_base_ms": 180000 },
+        { "title": "Two Poles", "max_score": 23990, "min_duration_ms": 100, "max_duration_ms": 240000, "time_base_ms": 240000 },
+        { "title": "Moving Metal", "max_score": 29990, "min_duration_ms": 100, "max_duration_ms": 300000, "time_base_ms": 300000 },
+        { "title": "Drone Lab", "max_score": 31990, "min_duration_ms": 100, "max_duration_ms": 320000, "time_base_ms": 320000 },
+        { "title": "Scrap Magnus", "max_score": 34500, "min_duration_ms": 15000, "max_duration_ms": 360000, "time_base_ms": 360000 }
+      ]
     }
   }
 }

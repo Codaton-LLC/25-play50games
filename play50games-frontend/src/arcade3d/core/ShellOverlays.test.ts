@@ -169,13 +169,13 @@ describe("HUD chips", () => {
       expect(labels(chips({ clock: true }))).toEqual(["Score", "Time", "Found"]);
    });
 
-   it("decides by meta.scoring.kind: the time games (candy-world-runner, cloud-hopper, color-city-sprint, color-door-sprint, color-rail-grind, dragon-cave-rush, escape-room, flooded-ruins-escape, haunted-mansion-keys, ice-peak-jumper, jungle-vine-jump, lava-pillar-jump, mine-tunnel-run, obstacle-race, plate-surf, robot-factory-run, roll-cannon-jump, rooftop-roll-climb, sky-hook-swing, sky-tower-jump, spin-pole-climb, temple-lantern-jump, tightrope-path, toy-room-run, wall-run-temple, wind-tunnel-escape) hide it, every points game keeps it", () => {
+   it("decides by meta.scoring.kind: the time games (candy-world-runner, cloud-hopper, color-city-sprint, color-door-sprint, color-rail-grind, dragon-cave-rush, escape-room, flooded-ruins-escape, haunted-mansion-keys, ice-peak-jumper, jungle-vine-jump, lava-pillar-jump, magnet-coin-lab, mine-tunnel-run, obstacle-race, plate-surf, robot-factory-run, roll-cannon-jump, rooftop-roll-climb, sky-hook-swing, sky-tower-jump, spin-pole-climb, temple-lantern-jump, tightrope-path, toy-room-run, wall-run-temple, wind-tunnel-escape) hide it, every points game keeps it", () => {
       expect(hudShowsScore(escapeRoomMeta.scoring.kind)).toBe(false);
       expect(hudShowsScore(obstacleRaceMeta.scoring.kind)).toBe(false);
       expect(hudShowsScore(robotCollectorMeta.scoring.kind)).toBe(true);
-      expect(ARCADE_GAMES).toHaveLength(78);
+      expect(ARCADE_GAMES).toHaveLength(79);
       const hidden = ARCADE_GAMES.filter((meta) => !hudShowsScore(meta.scoring.kind)).map((meta) => meta.slug);
-      expect(hidden.sort()).toEqual(["candy-world-runner", "cloud-hopper", "color-city-sprint", "color-door-sprint", "color-rail-grind", "dragon-cave-rush", "escape-room", "flooded-ruins-escape", "haunted-mansion-keys", "ice-peak-jumper", "jungle-vine-jump", "lava-pillar-jump", "mine-tunnel-run", "obstacle-race", "plate-surf", "robot-factory-run", "roll-cannon-jump", "rooftop-roll-climb", "sky-hook-swing", "sky-tower-jump", "spin-pole-climb", "temple-lantern-jump", "tightrope-path", "toy-room-run", "wall-run-temple", "wind-tunnel-escape"]);
+      expect(hidden.sort()).toEqual(["candy-world-runner", "cloud-hopper", "color-city-sprint", "color-door-sprint", "color-rail-grind", "dragon-cave-rush", "escape-room", "flooded-ruins-escape", "haunted-mansion-keys", "ice-peak-jumper", "jungle-vine-jump", "lava-pillar-jump", "magnet-coin-lab", "mine-tunnel-run", "obstacle-race", "plate-surf", "robot-factory-run", "roll-cannon-jump", "rooftop-roll-climb", "sky-hook-swing", "sky-tower-jump", "spin-pole-climb", "temple-lantern-jump", "tightrope-path", "toy-room-run", "wall-run-temple", "wind-tunnel-escape"]);
    });
 
    it("GameShell hands the game's own meta.scoring to the HUD, which hands it on to HudChips untouched", () => {

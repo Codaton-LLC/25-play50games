@@ -84,6 +84,7 @@ export const GAME_LOADERS: Record<ArcadeSlug, () => Promise<GameModule>> = {
    "temple-coin-rush": () => import("./games/temple-coin-rush"),
    "mine-tunnel-run": () => import("./games/mine-tunnel-run"),
    "color-rail-grind": () => import("./games/color-rail-grind"),
+   "magnet-coin-lab": () => import("./games/magnet-coin-lab"),
    "spin-pole-climb": () => import("./games/spin-pole-climb"),
    "temple-gong-timing": () => import("./games/temple-gong-timing"),
 };
