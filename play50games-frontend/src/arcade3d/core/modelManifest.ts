@@ -591,6 +591,18 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/temple-lantern-jump/m2TempleLedge.glb",
    "/models/3d/temple-lantern-jump/m2TempleTowerBg.glb",
    "/models/3d/temple-lantern-jump/m2WoodenBalconyV2.glb",
+   // Menu 2 game 18 (Toy Room Run): its toys from ready/menu2/toy-room-run (m2JackBoxBoss is its L5 boss)
+   "/models/3d/toy-room-run/m2BookStack.glb",
+   "/models/3d/toy-room-run/m2GiantPencil.glb",
+   "/models/3d/toy-room-run/m2JackBoxBoss.glb",
+   "/models/3d/toy-room-run/m2KeyboardKeyV2.glb",
+   "/models/3d/toy-room-run/m2SpinningTop.glb",
+   "/models/3d/toy-room-run/m2ToyBlocks.glb",
+   "/models/3d/toy-room-run/m2ToyCastleBg.glb",
+   "/models/3d/toy-room-run/m2ToyDomino.glb",
+   "/models/3d/toy-room-run/m2ToyDrum.glb",
+   "/models/3d/toy-room-run/m2ToyRaceCar.glb",
+   "/models/3d/toy-room-run/m2WindUpKey.glb",
 ];
 
 const LISTED: ReadonlySet<string> = new Set(MODEL_MANIFEST);

@@ -44,7 +44,7 @@ import {
    pushOutOf,
    topAt,
    type Course,
-} from "./course";
+} from "./room";
 import { BOXES, LANDING } from "./levels";
 import { DASH_BOOST, DASH_CHARGES, DEFAULT_HERO, POWER_MS, heroById, type HeroId } from "./heroes";
 import { COMBO, COMBO_BASE_MS, JACK, SECRETS } from "./progression";

@@ -4,7 +4,7 @@
 // for its throw, and on level 5 starts the right chain for each of Jack's windows. `mash` adds the
 // hero power whenever it is ready (the proof's power-mashing check); it never changes the line.
 import { BOXES } from "./levels";
-import { DRUM_R, PIECE_SPACING, type Course } from "./course";
+import { DRUM_R, PIECE_SPACING, type Course } from "./room";
 import { createRun, createStepInput, step, type StepInput, type ToyRun } from "./rules";
 import { heroById, type HeroId } from "./heroes";
 import type { LevelId } from "../../types";
