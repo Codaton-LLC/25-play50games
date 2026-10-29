@@ -8,7 +8,6 @@ import { useEffect, useMemo, useRef, type MutableRefObject } from "react";
 import { useFrame } from "@react-three/fiber";
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 import {
-   AdditiveBlending,
    Color,
    DoubleSide,
    InstancedMesh,
@@ -80,7 +79,6 @@ export function Grid({ world, focusRow }: { world: World; focusRow: MutableRefOb
          }),
       [look]
    );
-   const glow = useMemo(() => new MeshStandardMaterial({ color: "#000", emissive: new Color(look.ore), emissiveIntensity: 0.6, transparent: true, opacity: 0.0, blending: AdditiveBlending }), [look]);
    useEffect(
       () => () => {
          tex.dispose();
@@ -89,9 +87,8 @@ export function Grid({ world, focusRow }: { world: World; focusRow: MutableRefOb
          Object.values(materials).forEach((m) => m.dispose());
          backMaterial.dispose();
          water.dispose();
-         glow.dispose();
       },
-      [tex, geometry, backGeometry, materials, backMaterial, water, glow]
+      [tex, geometry, backGeometry, materials, backMaterial, water]
    );
    const cap = world.w * (VIEW_ROWS * 2 + 3);
    const meshes = useRef<Partial<Record<Kind, InstancedMesh | null>>>({});

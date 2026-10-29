@@ -46,8 +46,9 @@ function Boulders({ world, focus }: { world: World; focus: MutableRefObject<numb
 
 function Beetles({ world, focus }: { world: World; focus: MutableRefObject<number> }) {
    const time = useGameTime();
+   const lists = useMemo(() => ({ walk: world.beetles.filter((x) => !x.tunneller), dig: world.beetles.filter((x) => x.tunneller) }), [world]);
    const draw = (tunneller: boolean) => (i: number, matrix: Matrix4) => {
-      const b = world.beetles.filter((x) => x.tunneller === tunneller)[i];
+      const b = (tunneller ? lists.dig : lists.walk)[i];
       if (!b) return false;
       if (!b.alive && (b.deadMs < 0 || b.deadMs > 700)) return false;
       const k = b.moving ? Math.min(1, b.t / b.dur) : 1;
