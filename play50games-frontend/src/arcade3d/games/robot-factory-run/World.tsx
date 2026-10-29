@@ -17,6 +17,7 @@ import type { FactoryRun } from "./rules";
 
 const HALF_W = (W * TILE) / 2 + 4;
 const HALF_D = (H * TILE) / 2 + 4;
+const ROOF_Y = 28;
 const SCALE = new Vector3();
 
 function concrete(): CanvasTexture {
@@ -119,15 +120,15 @@ export default function World({ run }: { run: FactoryRun }) {
                <meshStandardMaterial ref={x === 0 ? furnace : undefined} color="#1a1210" emissive={COLORS.red} emissiveIntensity={0.5} />
             </mesh>
          ))}
-         {/* roof girders and lamps */}
+         {/* roof girders and lamps: above the highest orbit camera (24 m x 1.55 portrait at 44 deg ~ 26 m), so they never cut the view */}
          {girders.map((z) => (
             <group key={z}>
-               <mesh position={[0, 10, z]}>
+               <mesh position={[0, ROOF_Y, z]}>
                   <boxGeometry args={[HALF_W * 2, 0.5, 0.35]} />
                   <meshStandardMaterial color={COLORS.steel} metalness={0.6} roughness={0.5} />
                </mesh>
                {[-6, 6].map((x) => (
-                  <group key={x} position={[x, 9, z]}>
+                  <group key={x} position={[x, ROOF_Y - 1, z]}>
                      <mesh>
                         <coneGeometry args={[0.7, 0.6, 16, 1, true]} />
                         <meshStandardMaterial color={COLORS.dark} metalness={0.5} />

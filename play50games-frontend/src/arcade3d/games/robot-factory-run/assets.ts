@@ -28,7 +28,7 @@ export const BOSS_HEIGHT = 6.2;
 export const CELL_HEIGHT = 0.75;
 export const ORB_SIZE = 0.55;
 
-const prop = (id: string, color: string, budget = PROP_BUDGET): ModelAsset => ({
+const prop = (id: string, color: string, budget: ModelAsset["budget"] = PROP_BUDGET): ModelAsset => ({
    id,
    url: `/models/3d/robot-factory-run/${id}.glb`,
    fallback: "box",
