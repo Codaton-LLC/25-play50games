@@ -33,7 +33,7 @@ import { usePlayers } from "@/arcade3d/menu2/multiplayer/players";
 import World from "./World";
 import { Course } from "./Course";
 import { Hero, createHeroAnim, type HeroAnim } from "./Hero";
-import { DOOR_ORBIT, FOV, FOV_PORTRAIT, courseSolids, introKeyframes, orbitLookUp, orbitPivot, orbitScale, orbitTravel, playCamera } from "./camera";
+import { DOOR_ORBIT, FOV, FOV_PORTRAIT, portraitAmount, courseSolids, introKeyframes, orbitLookUp, orbitPivot, orbitScale, orbitTravel, playCamera } from "./camera";
 import { DOOR_COLORS } from "./halls";
 import { ORB, STAT, WALL, bossVulnerable, createRun, createStepInput, distanceOf, lampInView, step, type DoorRun, type StepEvents } from "./rules";
 import { pickedHero, subscribeHero } from "./heroes";
@@ -300,9 +300,11 @@ function DoorCamera({ run, orbit }: { run: DoorRun; orbit: OrbitState }) {
       () => (out: { x: number; y: number; z: number }) => {
          const h = run.hero;
          orbitPivot(h.x, h.y, h.z, h.v, out, Math.cos(orbit.viewYaw));
+         // an upright phone sees a narrow slice: keep the whole door wall in it (the hall's middle)
+         out.x *= 1 - 0.5 * portraitAmount(aspect);
          return true;
       },
-      [run, orbit],
+      [run, orbit, aspect],
    );
    const travel = useMemo(() => (out: { x: number; z: number }) => orbitTravel(run.hero.v, out), [run]);
    const solids = useMemo(() => (out: AABB[]) => courseSolids(run, camera.position.z, out), [run, camera]);

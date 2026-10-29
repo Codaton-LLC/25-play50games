@@ -63,6 +63,8 @@ export function orbitTravel(v: number, out: { x: number; z: number }): { x: numb
 export function playCamera(course: Course, aspect: number): IntroKeyframe {
    const lane = Math.floor((course.lanes - 1) / 2);
    const p = orbitPivot(laneX(lane, course.lanes), 0, course.startZ, course.speed, { x: 0, y: 0, z: 0 });
+   // the Scene's pivot: an upright phone keeps the hall's middle
+   p.x *= 1 - 0.5 * portraitAmount(aspect);
    const c = orbitPosition(p.x, p.y, p.z, DOOR_ORBIT.yaw ?? 0, DOOR_ORBIT.pitch ?? 0, (DOOR_ORBIT.distance ?? 7) * orbitScale(aspect, course.lanes), { x: 0, y: 0, z: 0 });
    return { position: [c.x, c.y, c.z], lookAt: [p.x, p.y + orbitLookUp(aspect), p.z] };
 }

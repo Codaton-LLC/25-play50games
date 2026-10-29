@@ -8,7 +8,7 @@ import type { AABB } from "@/arcade3d/core/collision";
 import { orbitPosition } from "@/arcade3d/menu2/camera/orbit";
 import { defaultHeroFor, memoryHeroStorage, setHeroPickStorage } from "@/arcade3d/menu2/heroes/heroPick";
 import { LEVEL_IDS } from "@/arcade3d/types";
-import { DOOR_ORBIT, courseSolids, introKeyframes, orbitLookUp, orbitPivot, orbitScale, playCamera } from "./camera";
+import { DOOR_ORBIT, portraitAmount, courseSolids, introKeyframes, orbitLookUp, orbitPivot, orbitScale, playCamera } from "./camera";
 import { createRun, createStepInput, step } from "./rules";
 import { DEFAULT_HERO, pickedHero, resetHeroPick, selectHero } from "./heroes";
 import { laneX } from "./halls";
@@ -51,6 +51,7 @@ describe("the camera", () => {
          for (const aspect of [1.6, 0.46]) {
             const lane = Math.floor((c.lanes - 1) / 2);
             const p = orbitPivot(laneX(lane, c.lanes), 0, c.startZ, c.speed, { x: 0, y: 0, z: 0 });
+            p.x *= 1 - 0.5 * portraitAmount(aspect);
             const want = orbitPosition(p.x, p.y, p.z, DOOR_ORBIT.yaw!, DOOR_ORBIT.pitch!, DOOR_ORBIT.distance! * orbitScale(aspect, c.lanes), { x: 0, y: 0, z: 0 });
             const got = playCamera(c, aspect);
             expect(got.position[0]).toBeCloseTo(want.x, 6);
