@@ -10,13 +10,14 @@ number). Carry the bag, or walk the passenger, to that platform's boarding pad w
 
 | File | What |
 |---|---|
-| `levels.ts` | `StationLevel` and the five configs from the spec, titles, start-card lines, `passengerCount` |
-| `rules.ts` | pure, seeded: `createRun(seed, level)`, `step(run, input, dt, timeLeftMs)`, the task queue, the follower, the crowd, `earliestWinS`, `PROPOSED_LEVEL_LIMITS` |
+| `levels.ts` | `StationLevel` and the five configs from the spec (incl. `theme`), titles, start-card lines, `passengerCount` |
+| `rules.ts` | pure, seeded: `createRun(seed, level)`, `step(run, input, dt, timeLeftMs)`, the task queue, the follower, the crowd, per-theme `solidsFor`, `earliestWinS`, `PROPOSED_LEVEL_LIMITS` |
 | `meta.ts` | server-safe meta, the five limits (= `PROPOSED_LEVEL_LIMITS` = `arcade-games.json`) |
 | `index.tsx` | `GameDefinition<StationLevel>`: five `LevelSpec`s (clock, light, fog, HUD max, instructions) |
-| `Scene.tsx` | one `useRunFrame`; the worker (auto-rig), trains (carriage and engine GLB pools), travellers (one pool), the plates atlas, the follow camera |
+| `Scene.tsx` | one `useRunFrame`; the worker (auto-rig), trains (carriage and engine GLB pools), travellers (one pool), the plates atlas, the follow camera, theme materials |
+| `Decor.tsx` | apron scenery outside the walkable station (buildings, trees, signals, pillars, boards, neon) |
 | `Hud.tsx` | the departures board (`data-arcade-safe-area`): each open task's shape, number, bag or passenger and its train's wait |
-| `looks.ts` | `COLORS`, `PLATFORM_LOOKS`, camera window, island / track / wall spots, the trains' timeline (`trainOffset`), atlas layout |
+| `looks.ts` | `COLORS`, `LOOKS` per theme, `PLATFORM_LOOKS`, camera window, island / track / wall / apron spots, the trains' timeline (`trainOffset`), atlas layout |
 | `assets.ts` | the Hyper3D GLBs and their measured fits, `WORKER_LANDMARKS` |
 | `Primitives.tsx` | the code engine (fallback of the `locomotiveFront` GLB) and bevelled stand-ins |
 | `bots.testing.ts` | test bots (oracle, honest human pace, idle, spam) through the real store; tests only |
@@ -51,16 +52,18 @@ number). Carry the bag, or walk the passenger, to that platform's boarding pad w
 
 ## Levels
 
-| L | Title | platforms | tasks | passengers | open at once | arrive / dwell | crowd | clock | light |
-|---|---|---:|---:|---:|---:|---|---:|---:|---|
-| 1 | 2 Platforms | 2 | 4 | 0 | 1 | 4 / 22 s | 0 | 120 s | day |
-| 2 | 4 Platforms | 4 | 6 | 2 | 1 | 4 / 22 s | 0 | 150 s | day |
-| 3 | Central Station | 4 | 8 | 3 | 1 | 3 / 20 s | 6 | 180 s | indoor |
-| 4 | Rush Hour | 4 | 10 | 4 | 2 | 3 / 24 s | 8 | 180 s | sunset |
-| 5 | Mega Station | 6 | 12 | 6 | 2 | 3 / 24 s | 10 | 210 s | night |
+| L | Title | theme | platforms | tasks | passengers | open at once | arrive / dwell | crowd | clock | light |
+|---|---|---|---:|---:|---:|---:|---|---:|---:|---|
+| 1 | 2 Platforms | local | 2 | 4 | 0 | 1 | 4 / 22 s | 0 | 120 s | day |
+| 2 | 4 Platforms | quad | 4 | 6 | 2 | 1 | 4 / 22 s | 0 | 150 s | day |
+| 3 | Central Station | central | 4 | 8 | 3 | 1 | 3 / 20 s | 6 | 180 s | indoor |
+| 4 | Rush Hour | rush | 4 | 10 | 4 | 2 | 3 / 24 s | 8 | 180 s | sunset |
+| 5 | Mega Station | mega | 6 | 12 | 6 | 2 | 3 / 24 s | 10 | 210 s | night |
 
-Level 1 is the spec's base game. Difficulty is monotone (platforms, tasks, passengers, tasks open at once and the crowd
-never drop; the clock per task shrinks 30 → 25 → 22.5 → 18 → 17.5 s). Only a win clears a level (`clearScore` omitted).
+Level 1 is the spec's base game (same solids, same bright palette). Each later level has its own floor / wall /
+fog palette, concourse prop layout and apron scenery (`looks.ts` / `Decor.tsx`); play twists stay the ramp above
+(passengers L2, crowd L3, two tasks L4, six platforms L5). Difficulty is monotone. Only a win clears a level
+(`clearScore` omitted).
 
 ## Server limits and why they hold
 
@@ -109,11 +112,12 @@ Bot runs (40 seeds, 60 Hz; the 200-seed clear rate is asserted in `levels.test.t
 
 ## Look
 
-- One palette (`looks.ts COLORS`): platform `#cbd5e1`, edge strip `#facc15`, track bed `#57534e`, accent `#38bdf8`,
-  terrazzo concourse, slate walls. Platform looks: blue circle, green square, orange triangle, purple diamond, red
-  star, teal drop, always with the number (pad plates, sign plates, the tags over waiting tasks, the HUD board).
-- Lighting from the core preset per level (day, day, indoor, sunset, night) + fog in the level's colour; the yellow
-  edge strips and the lamp heads glow at night.
+- Base accents on `COLORS`; each theme overrides floor / wall / edge / door / fog via `LOOKS` (local / quad /
+  central / rush / mega). Platform looks: blue circle, green square, orange triangle, purple diamond, red star,
+  teal drop, always with the number (pad plates, sign plates, the tags over waiting tasks, the HUD board).
+- Lighting from the core preset per level (day, day, indoor, sunset, night) + theme fog; edge strips and lamp
+  heads glow at night / sunset / indoor. Apron scenery (buildings, trees, signals, pillars, boards, neon) sits
+  outside the walkable station (`APRON_GAP`).
 - Track beds sit 0.55 m below the floor (looks only): rails, sleepers and red buffers; trains slide in (ease-out over
   `arriveS`) and pull out accelerating; two `trainCarV2` carriages behind a code engine per train.
 - Camera: a follow window (`useFittedView` + `CameraRig`, `shift: true`, pitch 58°, from past the platforms' ends

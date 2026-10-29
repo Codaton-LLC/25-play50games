@@ -1,14 +1,14 @@
 "use client";
 
 // Train Station Rush. GameShell owns the clock, the lives, pause and the result.
-// Level 1 is the definition; levels 2-5 swap platforms, tasks, passengers, the timetable, the crowd,
-// the clock and the light (levels.ts).
+// Level 1 is the definition; levels 2-5 swap theme (look + apron + solids), platforms, tasks,
+// passengers, the timetable, the crowd, the clock and the light (levels.ts).
 import type { GameDefinition, LevelSpec } from "@/arcade3d/core/types";
 import { LEVEL_IDS } from "@/arcade3d/types";
 import { ASSETS } from "./assets";
 import Hud from "./Hud";
 import { LEVELS, LEVEL_LINES, passengerCount, type StationLevel } from "./levels";
-import { FOV, restLook } from "./looks";
+import { FOV, fogOf, restLook } from "./looks";
 import Scene from "./Scene";
 
 const MOVE = "WASD or the stick walks. E, Enter or Use picks up at the entrance and hands over on a boarding pad.";
@@ -28,7 +28,7 @@ const stats = (level: StationLevel): GameDefinition["hudStats"] => [{ key: "deli
 
 const environmentFor = (level: StationLevel) => ({
    background: level.background,
-   fog: [level.background, 26, 60] as [string, number, number],
+   fog: fogOf(level),
    lighting: level.lighting,
 });
 

@@ -1,11 +1,12 @@
-// One palette, the platform looks (colour + shape + number, never colour alone), the follow camera,
-// the station's static spots, the trains' timeline and the label atlas layout. Pure: no React, no
-// three.js. Decor boxes are unit cubes scaled by their spot (sx / sy / sz), never sized and scaled again.
+// Base palette, per-level station looks (theme → floor / wall / fog + apron scenery), the platform
+// looks (colour + shape + number), the follow camera, the station's static spots, the trains'
+// timeline and the label atlas layout. Pure: no React, no three.js. Decor boxes are unit cubes
+// scaled by their spot (sx / sy / sz), never sized and scaled again.
 import type { AABB } from "@/arcade3d/core/collision";
 import type { InstanceSpot } from "@/arcade3d/core/render";
 import type { FittedViewOptions } from "@/arcade3d/core/useFittedView";
 import type { LevelId } from "@/arcade3d/types";
-import type { StationLevel } from "./levels";
+import type { StationLevel, StationTheme } from "./levels";
 import { CONCOURSE_DEPTH, STATION_END, TRACK_W, concourseHalf, islandX, trackX, type Run } from "./rules";
 
 export const COLORS = {
@@ -38,7 +39,83 @@ export const COLORS = {
    suitcase: "#0f766e",
    backpack: "#0e7490",
    doorGlow: "#bae6fd",
+   // apron set pieces (Decor.tsx)
+   building: "#64748b",
+   buildingDark: "#334155",
+   buildingWarm: "#78716c",
+   glass: "#7dd3fc",
+   tree: "#166534",
+   treeTrunk: "#78350f",
+   signal: "#ef4444",
+   neon: "#38bdf8",
 } as const;
+
+/** Floor / wall tones and apron scenery for one station theme. Gameplay accents stay on COLORS. */
+export interface StationLook {
+   concourse: string;
+   concourseTile: string;
+   concourseLine: string;
+   platform: string;
+   platformSide: string;
+   edge: string;
+   trackBed: string;
+   ballast: string;
+   wall: string;
+   doorGlow: string;
+   fogNear: number;
+   fogFar: number;
+   /** apron set pieces outside the walkable station (Decor.tsx) */
+   scenery: "sparse" | "yards" | "hall" | "sunset" | "city";
+}
+
+export const LOOKS: Record<StationTheme, StationLook> = {
+   // 2 Platforms: today's bright terrazzo branch station.
+   local: {
+      concourse: COLORS.concourse, concourseTile: COLORS.concourseTile, concourseLine: COLORS.concourseLine,
+      platform: COLORS.platform, platformSide: COLORS.platformSide, edge: COLORS.edge,
+      trackBed: COLORS.trackBed, ballast: COLORS.ballast, wall: COLORS.wall, doorGlow: COLORS.doorGlow,
+      fogNear: 26, fogFar: 60, scenery: "sparse",
+   },
+   // 4 Platforms: cooler day wash, greyer platforms, yard apron.
+   quad: {
+      concourse: "#dbeafe", concourseTile: "#bfdbfe", concourseLine: "#93c5fd",
+      platform: "#94a3b8", platformSide: "#475569", edge: "#fde047",
+      trackBed: "#44403c", ballast: "#292524", wall: "#1e3a5f", doorGlow: "#e0f2fe",
+      fogNear: 28, fogFar: 64, scenery: "yards",
+   },
+   // Central Station: warm indoor marble hall, slate walls, ticket-hall apron.
+   central: {
+      concourse: "#e7e5e4", concourseTile: "#d6d3d1", concourseLine: "#a8a29e",
+      platform: "#a8a29e", platformSide: "#57534e", edge: "#fbbf24",
+      trackBed: "#3f3f46", ballast: "#27272a", wall: "#1c1917", doorGlow: "#fef3c7",
+      fogNear: 18, fogFar: 48, scenery: "hall",
+   },
+   // Rush Hour: warm sunset platforms, amber edge strips.
+   rush: {
+      concourse: "#fed7aa", concourseTile: "#fdba74", concourseLine: "#fb923c",
+      platform: "#d6d3d1", platformSide: "#78716c", edge: "#f97316",
+      trackBed: "#44403c", ballast: "#1c1917", wall: "#7c2d12", doorGlow: "#ffedd5",
+      fogNear: 22, fogFar: 55, scenery: "sunset",
+   },
+   // Mega Station: cool night slate, bright edge glow, city apron.
+   mega: {
+      concourse: "#334155", concourseTile: "#1e293b", concourseLine: "#475569",
+      platform: "#64748b", platformSide: "#334155", edge: "#facc15",
+      trackBed: "#1c1917", ballast: "#0a0a0a", wall: "#020617", doorGlow: "#38bdf8",
+      fogNear: 16, fogFar: 42, scenery: "city",
+   },
+};
+
+export const lookFor = (level: StationLevel): StationLook => LOOKS[level.theme];
+
+/** Shell fog: level background colour with the theme's near / far. */
+export const fogOf = (level: StationLevel): [string, number, number] => {
+   const look = LOOKS[level.theme];
+   return [level.background, look.fogNear, look.fogFar];
+};
+
+/** Apron decor stands at least this far past the walkable station edge. */
+export const APRON_GAP = 2.2;
 
 export type PlatformShape = "circle" | "square" | "triangle" | "diamond" | "star" | "drop";
 
@@ -147,11 +224,119 @@ export function trackSpots(level: StationLevel): { rails: InstanceSpot[]; sleepe
 /** Walls: the tall entrance wall behind the concourse, low side walls (unit cubes). */
 export function wallSpots(level: StationLevel): InstanceSpot[] {
    const half = concourseHalf(level);
+   const look = LOOKS[level.theme];
+   // Central Station: taller hall walls; Mega: taller night facade.
+   const backH = look.scenery === "hall" ? 5.6 : look.scenery === "city" ? 5.2 : 4.4;
+   const sideH = look.scenery === "hall" || look.scenery === "city" ? 1.4 : 1;
    return [
-      { x: 0, y: 2.2, z: -0.25, sx: half * 2 + 0.6, sy: 4.4, sz: 0.5 },
-      { x: -half - 0.15, y: 0.5, z: CONCOURSE_DEPTH / 2, sx: 0.3, sy: 1, sz: CONCOURSE_DEPTH + 0.4 },
-      { x: half + 0.15, y: 0.5, z: CONCOURSE_DEPTH / 2, sx: 0.3, sy: 1, sz: CONCOURSE_DEPTH + 0.4 },
+      { x: 0, y: backH / 2, z: -0.25, sx: half * 2 + 0.6, sy: backH, sz: 0.5 },
+      { x: -half - 0.15, y: sideH / 2, z: CONCOURSE_DEPTH / 2, sx: 0.3, sy: sideH, sz: CONCOURSE_DEPTH + 0.4 },
+      { x: half + 0.15, y: sideH / 2, z: CONCOURSE_DEPTH / 2, sx: 0.3, sy: sideH, sz: CONCOURSE_DEPTH + 0.4 },
    ];
+}
+
+// ---------- apron scenery (visual only; never inside the walkable station) ----------
+
+export interface StationDecor {
+   buildings: InstanceSpot[];
+   trees: InstanceSpot[];
+   signals: InstanceSpot[];
+   pillars: InstanceSpot[];
+   boards: InstanceSpot[];
+   neon: InstanceSpot[];
+}
+
+/** True when a point sits on the walkable station (concourse or an island), plus margin. */
+export function inPlayStation(level: StationLevel, x: number, z: number, margin = 0): boolean {
+   const half = concourseHalf(level) + margin;
+   if (z >= -margin && z <= CONCOURSE_DEPTH + margin && Math.abs(x) <= half) return true;
+   for (let k = 0; k < level.platforms / 2; k++) {
+      const [x0, x1] = islandX(level, k);
+      if (x >= x0 - margin && x <= x1 + margin && z >= CONCOURSE_DEPTH - margin && z <= STATION_END + margin) return true;
+   }
+   return false;
+}
+
+/** Seeded apron props for one level. Every spot is outside the walkable station by APRON_GAP. */
+export function decorSpots(level: StationLevel): StationDecor {
+   const look = LOOKS[level.theme];
+   const out: StationDecor = { buildings: [], trees: [], signals: [], pillars: [], boards: [], neon: [] };
+   const gap = APRON_GAP;
+   const half = concourseHalf(level);
+   const farZ = STATION_END + gap;
+
+   if (look.scenery === "sparse") {
+      // a couple of trees past the platforms so L1 is not a void, still the open branch station
+      out.trees.push({ x: -half - gap - 1.2, y: 0, z: CONCOURSE_DEPTH + 4, rotY: 0.3, scale: 1.4 });
+      out.trees.push({ x: half + gap + 1.2, y: 0, z: CONCOURSE_DEPTH + 6, rotY: -0.4, scale: 1.5 });
+      out.signals.push({ x: 0, y: 0, z: farZ + 1.5, rotY: 0, sx: 0.35, sy: 3.2, sz: 0.35 });
+      return out;
+   }
+
+   if (look.scenery === "yards") {
+      // signal boxes and trees framing the four-platform yard
+      for (const side of [-1, 1] as const) {
+         out.buildings.push({ x: side * (half + gap + 2.2), y: 0, z: CONCOURSE_DEPTH + 3, rotY: side > 0 ? -0.2 : 0.2, sx: 3.2, sy: 2.4, sz: 2.4 });
+         out.buildings.push({ x: side * (half + gap + 2.0), y: 0, z: CONCOURSE_DEPTH + 9, rotY: 0, sx: 2.6, sy: 2.0, sz: 2.2 });
+         out.trees.push({ x: side * (half + gap + 0.9), y: 0, z: 3.5, rotY: side * 0.5, scale: 1.3 });
+         out.signals.push({ x: side * (half + gap + 0.6), y: 0, z: farZ + 0.8, rotY: 0, sx: 0.3, sy: 3.4, sz: 0.3 });
+      }
+      out.trees.push({ x: -3, y: 0, z: farZ + 2.2, rotY: 0.7, scale: 1.6 });
+      out.trees.push({ x: 4, y: 0, z: farZ + 1.8, rotY: -0.3, scale: 1.4 });
+      return out;
+   }
+
+   if (look.scenery === "hall") {
+      // ticket-hall pillars flanking the entrance wall, departure boards, city blocks behind
+      out.pillars.push({ x: -2.6, y: 0, z: -gap - 0.4, rotY: 0, sx: 0.55, sy: 4.2, sz: 0.55 });
+      out.pillars.push({ x: 2.6, y: 0, z: -gap - 0.4, rotY: 0, sx: 0.55, sy: 4.2, sz: 0.55 });
+      out.pillars.push({ x: -half - gap - 0.3, y: 0, z: 3.5, rotY: 0, sx: 0.5, sy: 3.8, sz: 0.5 });
+      out.pillars.push({ x: half + gap + 0.3, y: 0, z: 3.5, rotY: 0, sx: 0.5, sy: 3.8, sz: 0.5 });
+      out.boards.push({ x: 0, y: 3.4, z: -gap - 0.55, rotY: 0, sx: 4.8, sy: 1.4, sz: 0.18 });
+      for (const side of [-1, 1] as const) {
+         out.buildings.push({ x: side * (half + gap + 3.0), y: 0, z: 2, rotY: 0, sx: 4.0, sy: 5.5, sz: 3.2 });
+         out.buildings.push({ x: side * (half + gap + 2.6), y: 0, z: 10, rotY: 0.1 * side, sx: 3.4, sy: 4.2, sz: 2.8 });
+      }
+      out.buildings.push({ x: -4, y: 0, z: -gap - 3.5, rotY: 0, sx: 5.0, sy: 6.0, sz: 2.5 });
+      out.buildings.push({ x: 5, y: 0, z: -gap - 3.2, rotY: 0, sx: 4.2, sy: 5.2, sz: 2.4 });
+      return out;
+   }
+
+   if (look.scenery === "sunset") {
+      // warm low buildings and platform signals past the tracks for Rush Hour
+      for (const side of [-1, 1] as const) {
+         out.buildings.push({ x: side * (half + gap + 2.4), y: 0, z: 4, rotY: 0, sx: 3.6, sy: 2.2, sz: 2.8 });
+         out.buildings.push({ x: side * (half + gap + 2.8), y: 0, z: 12, rotY: 0.15 * side, sx: 4.0, sy: 1.8, sz: 3.0 });
+         out.signals.push({ x: side * (half * 0.35), y: 0, z: farZ + 1.2, rotY: 0, sx: 0.28, sy: 3.6, sz: 0.28 });
+         out.trees.push({ x: side * (half + gap + 1.0), y: 0, z: CONCOURSE_DEPTH + 1.5, rotY: side * 0.4, scale: 1.2 });
+      }
+      out.boards.push({ x: 0, y: 2.8, z: -gap - 0.4, rotY: 0, sx: 3.6, sy: 0.9, sz: 0.14 });
+      return out;
+   }
+
+   // city: dense night skyline behind and beside the mega terminal, neon strips
+   for (let i = -3; i <= 3; i++) {
+      const h = 4.5 + (Math.abs(i) % 3) * 1.4 + (i === 0 ? 2.2 : 0);
+      out.buildings.push({ x: i * 3.4, y: 0, z: -gap - 3.8, rotY: 0, sx: 2.8, sy: h, sz: 2.6 });
+   }
+   for (const side of [-1, 1] as const) {
+      for (let k = 0; k < 4; k++) {
+         out.buildings.push({
+            x: side * (half + gap + 2.5 + (k % 2) * 1.2),
+            y: 0,
+            z: 2 + k * 4.2,
+            rotY: 0,
+            sx: 3.0 + (k % 2),
+            sy: 3.8 + k * 0.7,
+            sz: 2.4,
+         });
+      }
+      out.neon.push({ x: side * (half + gap + 0.5), y: 2.4, z: CONCOURSE_DEPTH / 2, rotY: 0, sx: 0.12, sy: 0.18, sz: CONCOURSE_DEPTH * 0.7 });
+      out.signals.push({ x: side * (half * 0.55), y: 0, z: farZ + 1.0, rotY: 0, sx: 0.32, sy: 4.0, sz: 0.32 });
+   }
+   out.boards.push({ x: 0, y: 3.6, z: -gap - 0.5, rotY: 0, sx: 5.6, sy: 1.6, sz: 0.2 });
+   out.neon.push({ x: 0, y: 4.6, z: -gap - 0.35, rotY: 0, sx: 5.0, sy: 0.12, sz: 0.12 });
+   return out;
 }
 
 // ---------- trains ----------

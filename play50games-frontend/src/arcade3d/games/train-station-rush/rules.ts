@@ -117,16 +117,8 @@ export interface Solid {
    rotY: number;
 }
 
-/** Concourse benches, ticket machines and a luggage trolley; two lamps and a canopy on every island, a sign behind every pad. */
-export function solidsFor(level: StationLevel): Solid[] {
-   const half = concourseHalf(level);
-   const out: Solid[] = [
-      { kind: "ticket", x: -3.4, z: 0.45, hx: 0.46, hz: 0.44, rotY: 0 },
-      { kind: "ticket", x: 3.4, z: 0.45, hx: 0.46, hz: 0.44, rotY: 0 },
-      { kind: "bench", x: -half + 0.4, z: 5.5, hx: 0.38, hz: 0.95, rotY: Math.PI / 2 },
-      { kind: "bench", x: half - 0.4, z: 5.5, hx: 0.38, hz: 0.95, rotY: -Math.PI / 2 },
-      { kind: "trolley", x: -half + 1.2, z: 1.0, hx: 0.52, hz: 0.3, rotY: Math.PI / 2 },
-   ];
+/** Island lamps, canopy and pad signs (shared by every theme; always clear of the walk lane). */
+function islandSolids(level: StationLevel, out: Solid[]): void {
    for (let k = 0; k < level.platforms / 2; k++) {
       const [x0, x1] = islandX(level, k);
       const cx = (x0 + x1) / 2;
@@ -134,8 +126,91 @@ export function solidsFor(level: StationLevel): Solid[] {
       out.push({ kind: "lamp", x: cx, z: PAD_Z + 2.1, hx: 0.18, hz: 0.18, rotY: 0 });
       out.push({ kind: "canopy", x: cx, z: STATION_END - 1, hx: 1.9, hz: 0.55, rotY: 0 });
    }
-   // each platform's sign stands behind its pad, facing the camera
    for (let p = 0; p < level.platforms; p++) out.push({ kind: "sign", x: platformX(level, p), z: PAD_Z + 2.8, hx: 0.6, hz: 0.22, rotY: 0 });
+}
+
+/**
+ * Concourse benches, ticket machines and luggage trolleys (theme layout) plus island lamps / canopy /
+ * signs. Level 1 (`local`) is today's layout and must not change. Props stay on the far sides and the
+ * back wall so the start, entrance spots, pad approaches and the bot's edge lane stay clear.
+ */
+export function solidsFor(level: StationLevel): Solid[] {
+   const half = concourseHalf(level);
+   const out: Solid[] = [];
+   const theme = level.theme;
+
+   if (theme === "local") {
+      // 2 Platforms: today's compact branch (pinned by looks.test.ts / levels.test.ts).
+      out.push(
+         { kind: "ticket", x: -3.4, z: 0.45, hx: 0.46, hz: 0.44, rotY: 0 },
+         { kind: "ticket", x: 3.4, z: 0.45, hx: 0.46, hz: 0.44, rotY: 0 },
+         { kind: "bench", x: -half + 0.4, z: 5.5, hx: 0.38, hz: 0.95, rotY: Math.PI / 2 },
+         { kind: "bench", x: half - 0.4, z: 5.5, hx: 0.38, hz: 0.95, rotY: -Math.PI / 2 },
+         { kind: "trolley", x: -half + 1.2, z: 1.0, hx: 0.52, hz: 0.3, rotY: Math.PI / 2 },
+      );
+   } else if (theme === "quad") {
+      // 4 Platforms: tickets further out, benches in two pairs, trolley on the opposite side.
+      out.push(
+         { kind: "ticket", x: -4.6, z: 0.45, hx: 0.46, hz: 0.44, rotY: 0 },
+         { kind: "ticket", x: 4.6, z: 0.45, hx: 0.46, hz: 0.44, rotY: 0 },
+         { kind: "bench", x: -half + 0.4, z: 3.8, hx: 0.38, hz: 0.95, rotY: Math.PI / 2 },
+         { kind: "bench", x: half - 0.4, z: 3.8, hx: 0.38, hz: 0.95, rotY: -Math.PI / 2 },
+         { kind: "bench", x: -half + 0.4, z: 6.2, hx: 0.38, hz: 0.95, rotY: Math.PI / 2 },
+         { kind: "bench", x: half - 0.4, z: 6.2, hx: 0.38, hz: 0.95, rotY: -Math.PI / 2 },
+         { kind: "trolley", x: half - 1.2, z: 1.0, hx: 0.52, hz: 0.3, rotY: -Math.PI / 2 },
+      );
+   } else if (theme === "central") {
+      // Central Station: ticket-hall row of machines, waiting benches both sides, two trolleys.
+      out.push(
+         { kind: "ticket", x: -5.6, z: 0.45, hx: 0.46, hz: 0.44, rotY: 0 },
+         { kind: "ticket", x: -3.8, z: 0.45, hx: 0.46, hz: 0.44, rotY: 0 },
+         { kind: "ticket", x: 3.8, z: 0.45, hx: 0.46, hz: 0.44, rotY: 0 },
+         { kind: "ticket", x: 5.6, z: 0.45, hx: 0.46, hz: 0.44, rotY: 0 },
+         { kind: "bench", x: -half + 0.4, z: 3.4, hx: 0.38, hz: 0.95, rotY: Math.PI / 2 },
+         { kind: "bench", x: -half + 0.4, z: 5.8, hx: 0.38, hz: 0.95, rotY: Math.PI / 2 },
+         { kind: "bench", x: half - 0.4, z: 3.4, hx: 0.38, hz: 0.95, rotY: -Math.PI / 2 },
+         { kind: "bench", x: half - 0.4, z: 5.8, hx: 0.38, hz: 0.95, rotY: -Math.PI / 2 },
+         { kind: "trolley", x: -half + 1.4, z: 1.1, hx: 0.52, hz: 0.3, rotY: Math.PI / 2 },
+         { kind: "trolley", x: half - 1.4, z: 1.1, hx: 0.52, hz: 0.3, rotY: -Math.PI / 2 },
+      );
+   } else if (theme === "rush") {
+      // Rush Hour: denser side waiting (three benches a side, clear of the z≈7.3 edge lane) and carts both ends.
+      out.push(
+         { kind: "ticket", x: -4.2, z: 0.45, hx: 0.46, hz: 0.44, rotY: 0 },
+         { kind: "ticket", x: 4.2, z: 0.45, hx: 0.46, hz: 0.44, rotY: 0 },
+         { kind: "bench", x: -half + 0.4, z: 2.8, hx: 0.38, hz: 0.95, rotY: Math.PI / 2 },
+         { kind: "bench", x: -half + 0.4, z: 4.4, hx: 0.38, hz: 0.95, rotY: Math.PI / 2 },
+         { kind: "bench", x: -half + 0.4, z: 5.6, hx: 0.38, hz: 0.95, rotY: Math.PI / 2 },
+         { kind: "bench", x: half - 0.4, z: 2.8, hx: 0.38, hz: 0.95, rotY: -Math.PI / 2 },
+         { kind: "bench", x: half - 0.4, z: 4.4, hx: 0.38, hz: 0.95, rotY: -Math.PI / 2 },
+         { kind: "bench", x: half - 0.4, z: 5.6, hx: 0.38, hz: 0.95, rotY: -Math.PI / 2 },
+         { kind: "trolley", x: -half + 1.3, z: 1.0, hx: 0.52, hz: 0.3, rotY: Math.PI / 2 },
+         { kind: "trolley", x: half - 1.3, z: 1.0, hx: 0.52, hz: 0.3, rotY: -Math.PI / 2 },
+         { kind: "trolley", x: -half + 1.3, z: 2.4, hx: 0.52, hz: 0.3, rotY: Math.PI / 2 },
+      );
+   } else {
+      // Mega Station: ticket bank along the back wall, dense side seating, carts both ends (no mid-island lamps).
+      out.push(
+         { kind: "ticket", x: -7.2, z: 0.45, hx: 0.46, hz: 0.44, rotY: 0 },
+         { kind: "ticket", x: -5.2, z: 0.45, hx: 0.46, hz: 0.44, rotY: 0 },
+         { kind: "ticket", x: -3.4, z: 0.45, hx: 0.46, hz: 0.44, rotY: 0 },
+         { kind: "ticket", x: 3.4, z: 0.45, hx: 0.46, hz: 0.44, rotY: 0 },
+         { kind: "ticket", x: 5.2, z: 0.45, hx: 0.46, hz: 0.44, rotY: 0 },
+         { kind: "ticket", x: 7.2, z: 0.45, hx: 0.46, hz: 0.44, rotY: 0 },
+         { kind: "bench", x: -half + 0.4, z: 2.8, hx: 0.38, hz: 0.95, rotY: Math.PI / 2 },
+         { kind: "bench", x: -half + 0.4, z: 4.4, hx: 0.38, hz: 0.95, rotY: Math.PI / 2 },
+         { kind: "bench", x: -half + 0.4, z: 5.6, hx: 0.38, hz: 0.95, rotY: Math.PI / 2 },
+         { kind: "bench", x: half - 0.4, z: 2.8, hx: 0.38, hz: 0.95, rotY: -Math.PI / 2 },
+         { kind: "bench", x: half - 0.4, z: 4.4, hx: 0.38, hz: 0.95, rotY: -Math.PI / 2 },
+         { kind: "bench", x: half - 0.4, z: 5.6, hx: 0.38, hz: 0.95, rotY: -Math.PI / 2 },
+         { kind: "trolley", x: -half + 1.4, z: 1.0, hx: 0.52, hz: 0.3, rotY: Math.PI / 2 },
+         { kind: "trolley", x: half - 1.4, z: 1.0, hx: 0.52, hz: 0.3, rotY: -Math.PI / 2 },
+         { kind: "trolley", x: -half + 1.4, z: 2.4, hx: 0.52, hz: 0.3, rotY: Math.PI / 2 },
+         { kind: "trolley", x: half - 1.4, z: 2.4, hx: 0.52, hz: 0.3, rotY: -Math.PI / 2 },
+      );
+   }
+
+   islandSolids(level, out);
    return out;
 }
 
