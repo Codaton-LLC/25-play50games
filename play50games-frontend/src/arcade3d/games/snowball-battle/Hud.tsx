@@ -25,8 +25,9 @@ function Marks({ n, total, kind }: { n: number; total: number; kind: "mitt" | "d
 function GameHud() {
    const health = useArcadeStore((s) => s.stats.health ?? 5);
    const ammo = useArcadeStore((s) => s.stats.ammo ?? 0);
+   const ground = useArcadeStore((s) => s.stats.ground ?? 0);
    const touch = useCoarsePointer();
-   const hint = hintFor(ammo, health, touch);
+   const hint = hintFor(ammo, health, touch, ground);
    return (
       <>
          <HintLine text={hint.text} tone={hint.tone} />
