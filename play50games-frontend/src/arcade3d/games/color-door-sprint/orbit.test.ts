@@ -71,12 +71,14 @@ describe("the camera", () => {
       expect(pose.lookAt[2]).toBeLessThan(pose.position[2]);
    });
 
-   it("courseSolids gives the floor box under the camera", () => {
+   it("courseSolids gives the floor box and the two side walls", () => {
       const r = createRun(1, 2);
       const out: AABB[] = Array.from({ length: 8 }, () => ({ min: { x: 0, y: 0, z: 0 }, max: { x: 0, y: 0, z: 0 } }));
       const n = courseSolids(r, -100, out);
-      expect(n).toBe(1);
+      expect(n).toBe(3);
       expect(out[0].max.y).toBeLessThanOrEqual(0);
+      expect(out[1].min.x).toBeGreaterThanOrEqual(r.course.half);
+      expect(out[2].max.x).toBeLessThanOrEqual(-r.course.half);
    });
 });
 

@@ -1171,7 +1171,7 @@ export interface SolidBox {
    maxZ: number;
 }
 
-/** The hall's side walls and floor near z (the camera stays inside the hall, over the floor). */
+/** The hall's floor and side walls near z (the camera stays inside the hall, over the floor). */
 export function hallBoxes(course: Course, z: number, reach: number, out: SolidBox[]): number {
    let n = 0;
    const put = (minX: number, maxX: number, minY: number, maxY: number) => {
@@ -1185,6 +1185,9 @@ export function hallBoxes(course: Course, z: number, reach: number, out: SolidBo
       n += 1;
    };
    put(-60, 60, -20, -0.05);
+   // the side walls (4 m high): the camera stays inside the hall at eye height, and may rise over them
+   put(course.half, course.half + 3, -20, 4);
+   put(-course.half - 3, -course.half, -20, 4);
    return n;
 }
 
@@ -1241,7 +1244,12 @@ export function badgeHits(run: DoorRun): number {
    return run.wrong;
 }
 
-/** The lamp a player can read now: the nearest one ahead within LAMP_VIEW m (static lamps, then the arena's). */
+/**
+ * The lamp a player can read now (the HUD's rule card copies it): the next wall's own lamp once it is
+ * within LAMP_VIEW m (or passed). An echo wall's rule hung two walls early, so while the next wall is
+ * an echo wall the card shows the echo lamp of the wall after it (marked "after next") once that one
+ * is in view, and never the next wall's own rule (that one the player remembers).
+ */
 export const LAMP_VIEW = 48;
 export function lampInView(run: DoorRun, out: { color: number; mode: number; echo: boolean; wall: number }): { color: number; mode: number; echo: boolean; wall: number } {
    const h = run.hero;
@@ -1250,21 +1258,20 @@ export function lampInView(run: DoorRun, out: { color: number; mode: number; ech
    out.mode = 0;
    out.echo = false;
    out.wall = NONE;
-   let best = Infinity;
-   const from = Math.max(0, run.nextWall - 1);
-   for (let w = from; w < Math.min(run.wallCount, from + 4); w++) {
-      if (run.result[w] !== WALL.pending) continue;
-      const lamp = w < c.walls.length ? c.lamps[w] : null;
-      const z = lamp ? lamp.z : run.wallZ[w] + 15;
-      const d = h.z - z;
-      if (d < -1.5 || d > LAMP_VIEW || d >= best) continue;
-      best = d;
-      out.wall = w;
-      out.color = cueColorAt(run, w, run.simMs);
-      const def = wallDef(run, w);
-      out.mode = run.wallMode[w] === MODE_CODE.not ? 2 : def && def.dim ? 1 : 0;
-      out.echo = !!lamp && lamp.echo;
-   }
+   const w = run.nextWall;
+   if (w >= run.wallCount || run.result[w] !== WALL.pending) return out;
+   const lampZ = (q: number) => (q < c.walls.length ? c.lamps[q].z : run.wallZ[q] + 15);
+   const isEcho = (q: number) => q < c.walls.length && c.lamps[q].echo;
+   let show = NONE;
+   if (!isEcho(w)) {
+      if (h.z - lampZ(w) <= LAMP_VIEW) show = w;
+   } else if (w + 1 < run.wallCount && isEcho(w + 1) && h.z - lampZ(w + 1) <= LAMP_VIEW) show = w + 1;
+   if (show === NONE) return out;
+   out.wall = show;
+   out.color = cueColorAt(run, show, run.simMs);
+   const def = wallDef(run, show);
+   out.mode = run.wallMode[show] === MODE_CODE.not ? 2 : def && def.dim ? 1 : 0;
+   out.echo = isEcho(show);
    return out;
 }
 

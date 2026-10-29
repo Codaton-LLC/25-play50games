@@ -40,6 +40,7 @@ import {
    doorAt,
    finalScore,
    laneDirection,
+   lampInView,
    minDurationMsOf,
    minFinishMs,
    progressFloorMs,
@@ -251,6 +252,27 @@ describe("read and commit", () => {
       r2.hero.z = courseFor(1).walls[1].z + 20;
       putLane(r2, shut);
       expect(runTo(r2, 1)).toBe(WALL.wrong);
+   });
+
+   it("the HUD's rule card copies the next wall's lamp once in view; on an echo wall it shows only the lamp of the wall after next", () => {
+      const out = { color: 0, mode: 0, echo: false, wall: 0 };
+      const run = createRun(3, 1);
+      run.hero.z = run.course.lamps[0].z + 100;
+      expect(lampInView(run, out).wall).toBe(-1);
+      run.hero.z = run.course.lamps[0].z + 20;
+      expect(lampInView(run, out).wall).toBe(0);
+      expect(out.color).toBe(run.ruleColor[0]);
+      const c4 = courseFor(4);
+      const e = c4.walls.findIndex((w, i) => w.echo && c4.walls[i + 1]?.echo);
+      const r4 = createRun(3, 4);
+      r4.nextWall = e;
+      r4.hero.z = c4.walls[e].z + 10;
+      const shown = lampInView(r4, out);
+      expect(shown.wall).not.toBe(e);
+      if (shown.wall >= 0) {
+         expect(shown.wall).toBe(e + 1);
+         expect(shown.echo).toBe(true);
+      }
    });
 
    it("lane presses are camera-relative: a camera turned round (yaw π) swaps left and right; a side view keeps the press", () => {

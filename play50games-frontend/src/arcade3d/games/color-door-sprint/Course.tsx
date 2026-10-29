@@ -372,7 +372,7 @@ interface LampSpot {
 }
 
 const LAMP_SLOTS = 5;
-export const LAMP_Y = 6.2;
+export const LAMP_Y = 4.3;
 
 function lampsOf(run: DoorRun, out: LampSpot[], now: number): void {
    const c = run.course;
@@ -571,9 +571,9 @@ function Hazards({ run }: { run: DoorRun }) {
    const geo = useMemo(() => new RoundedBoxGeometry(1, 1, 1, 2, 0.08), []);
    const hot = useMemo(() => new MeshStandardMaterial({ color: "#7f1d1d", emissive: "#f97316", emissiveIntensity: 1.1, roughness: 0.4 }), []);
    const beam = useMemo(() => new MeshStandardMaterial({ color: "#3f3f46", emissive: "#facc15", emissiveIntensity: 0.35, roughness: 0.5, metalness: 0.4 }), []);
-   const cone = useMemo(() => new ConeGeometry(0.35, 1, 10, 1, true), []);
+   const cone = useMemo(() => new ConeGeometry(0.22, 1, 10, 1, true), []);
    const flame = useMemo(() => new MeshBasicMaterial({ color: "#fb923c", transparent: true, opacity: 0.8, blending: AdditiveBlending, depthWrite: false, toneMapped: false }), []);
-   const grate = useMemo(() => new MeshStandardMaterial({ color: "#1c1917", emissive: look.ember, emissiveIntensity: 0.5, roughness: 0.7 }), [look]);
+   const grate = useMemo(() => new MeshStandardMaterial({ color: "#1c1917", emissive: look.ember, emissiveIntensity: 0.18, roughness: 0.8, metalness: 0.4 }), [look]);
    useEffect(
       () => () => {
          [geo, cone].forEach((g) => g.dispose());
@@ -641,15 +641,15 @@ function Hazards({ run }: { run: DoorRun }) {
                   const k = i % 4;
                   const z = v.z0 - ((k + 0.5) / 4) * (v.z0 - v.z1);
                   const hgt = 1.3 + 0.5 * Math.sin(time.now * 11 + i * 1.7);
-                  return place(laneX(v.lane, c.lanes) + (k % 2 ? 0.35 : -0.35), hgt / 2, z, 1, hgt, 1, 0, Math.PI);
+                  return place(laneX(v.lane, c.lanes) + (k % 2 ? 0.35 : -0.35), hgt / 2, z, 1, hgt, 1);
                }
                // Flicker's fire: flames along the wave or the lane
                const hz = run.hazard;
                if (!hz.live) return false;
                const k = i - c.vents.length * 4;
                const hgt = 1.4 + 0.5 * Math.sin(time.now * 13 + k);
-               if (hz.kind === 2) return place(laneX(hz.lane, c.lanes), hgt / 2, hz.z - k, 1.3, hgt, 1.3, 0, Math.PI);
-               if (hz.kind === 0) return place(-c.half + ((k + 0.5) / 6) * width, hgt * 0.4, hz.z, 1.2, hgt * 0.8, 1.2, 0, Math.PI);
+               if (hz.kind === 2) return place(laneX(hz.lane, c.lanes), hgt / 2, hz.z - k, 1.3, hgt, 1.3);
+               if (hz.kind === 0) return place(-c.half + ((k + 0.5) / 6) * width, hgt * 0.4, hz.z, 1.2, hgt * 0.8, 1.2);
                return place(-c.half + ((k + 0.5) / 6) * width, 1.3, hz.z, 1, 0.8, 1, 0, 0, 0);
             }}
          />
