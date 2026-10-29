@@ -108,7 +108,7 @@ export default function World({ level, length }: { level: LevelId; length: numbe
          {/* the candy-floss meadow below the road */}
          <mesh rotation-x={-Math.PI / 2} position={[0, -1.2, -length / 2]}>
             <planeGeometry args={[220, length + 300]} />
-            <meshStandardMaterial color={level === 3 ? "#e0f2fe" : level === 5 ? "#fde68a" : "#fce7f3"} roughness={0.95} />
+            <meshStandardMaterial color={level === 3 ? "#bfdbfe" : level === 5 ? "#fcd34d" : "#fbcfe8"} roughness={0.95} />
          </mesh>
          <Sprinkles />
          <hemisphereLight args={["#fff1f2", level === 3 ? "#bfdbfe" : "#fbcfe8", light.hemi]} />

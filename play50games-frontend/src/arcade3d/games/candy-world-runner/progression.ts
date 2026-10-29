@@ -15,7 +15,7 @@ export const COMBO_BASE_MS = { orb: 30, size: 60 } as const;
 
 /** The third star: the card's "no size miss" (at most 1 wrong-size hit; 0 on level 5). */
 export function starSpecFor(level: LevelId, orbTotal: number): StarSpec {
-   return { orbTotal, goal: { kind: "atMost", target: LEVELS[level].maxMisses, label: LEVELS[level].maxMisses === 0 ? "No size miss" : "At most 1 size miss" } };
+   return { orbTotal, goal: { kind: "atMost", target: LEVELS[level].maxMisses, label: "Size misses" } };
 }
 
 /**

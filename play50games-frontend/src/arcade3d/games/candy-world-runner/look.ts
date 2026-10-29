@@ -7,7 +7,7 @@ export const COLORS = {
    skyTop: "#f9a8d4",
    skyMid: "#fbcfe8",
    skyBottom: "#fff7ed",
-   road: "#fbcfe8",
+   road: "#f9a8d4",
    roadEdge: "#f472b6",
    laneLine: "#fff7ed",
    ice: "#bae6fd",

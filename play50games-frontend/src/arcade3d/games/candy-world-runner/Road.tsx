@@ -123,15 +123,13 @@ function BridgeLook({ run, index }: { run: CandyRun; index: number }) {
    useFrame(() => {
       if (g.current) g.current.position.y = run.bridgeCracked[index] ? -0.25 : 0.02;
    });
-   const n = Math.ceil((br.s1 - br.s0) / 1.0);
-   const k = (LANE_W - 0.2) / GLB_SIZE.choco.x;
+   // one chocolate bar stretched along the bridge (one draw call), its segments marked by the bar's own grooves
+   const len = br.s1 - br.s0;
    return (
       <group ref={g}>
-         {Array.from({ length: n }, (_, i) => (
-            <group key={i} position={[laneX(br.lane), 0, -(br.s0 + i * ((br.s1 - br.s0) / n))]} scale={[k, 1.6, 0.95 / GLB_SIZE.choco.z]}>
-               <Model asset={ASSETS.choco} />
-            </group>
-         ))}
+         <group position={[laneX(br.lane), 0, -(br.s0 + br.s1) / 2]} rotation-y={Math.PI / 2} scale={[len / GLB_SIZE.choco.x, 1.6, (LANE_W - 0.2) / GLB_SIZE.choco.z]}>
+            <Model asset={ASSETS.choco} />
+         </group>
       </group>
    );
 }
@@ -207,7 +205,7 @@ function makeSign(text: string, bg: string): CanvasTexture {
       ctx.beginPath();
       ctx.arc(30, 32, text === "BIG" ? 18 : 9, 0, Math.PI * 2);
       ctx.fill();
-      ctx.font = "bold 26px sans-serif";
+      ctx.font = text === "BIG" ? "bold 26px sans-serif" : "bold 20px sans-serif";
       ctx.textAlign = "left";
       ctx.textBaseline = "middle";
       ctx.fillText(text, 54, 34);

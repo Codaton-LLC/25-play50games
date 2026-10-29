@@ -393,3 +393,13 @@
    height: 100%;
    background: #f472b6;
 }
+
+/* narrow phones: the size sign wraps inside the screen instead of running off its edge */
+@media (max-width: 520px) {
+   .sign {
+      white-space: normal;
+      max-width: min(220px, 58vw);
+      text-align: center;
+      font-size: 0.8rem;
+   }
+}
