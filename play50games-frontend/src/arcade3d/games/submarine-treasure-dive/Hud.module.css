@@ -32,3 +32,22 @@
 .low {
    background: #f97316;
 }
+
+.ready {
+   color: #4ade80;
+}
+
+.wait {
+   opacity: 0.8;
+}
+
+/* two rows of stat chips on a phone: sit below them (as the aquarium task list does) */
+@media (max-width: 520px) {
+   .battery {
+      top: 128px;
+      right: 8px;
+      min-width: 120px;
+      padding: 6px 8px;
+      font-size: 12px;
+   }
+}

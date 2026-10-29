@@ -124,7 +124,7 @@ export const readiness = (run: RunState): number => (run.phase === "aim" ? Math.
 
 export function createRun(seed: number, level: MiniGolfLevel | Hole[] = LEVELS[1]): RunState {
    const config = Array.isArray(level) ? LEVELS[1] : level;
-   const course = Array.isArray(level) ? level : generateCourse(seed, config.holes);
+   const course = Array.isArray(level) ? level : generateCourse(seed, config.holes, config.course);
    // Preserve the original course data exactly; level overrides belong only to harder variants.
    if (!Array.isArray(level)) for (const hole of course) {
       if (config.vMax !== BALL.vMax) hole.vMax = config.vMax;

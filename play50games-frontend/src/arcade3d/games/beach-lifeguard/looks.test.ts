@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { fitView } from "@/arcade3d/core/view";
 import { LEVEL_IDS } from "@/arcade3d/types";
 import { LEVELS } from "./levels";
-import { END_GAP, FOG_NEAR, FOV, SOUTH_DECOR_MAX_H, aimBounds, beachBox, decorSpots, fogFor, viewFor, viewWindow } from "./looks";
+import { END_GAP, FOG_NEAR, FOV, SOUTH_DECOR_MAX_H, aimBounds, beachBox, decorSpots, fogFor, frameAim, viewFor, viewWindow } from "./looks";
 import { SAND_DEPTH } from "./rules";
 
 describe("beach-lifeguard decor and camera", () => {
@@ -55,5 +55,19 @@ describe("beach-lifeguard decor and camera", () => {
          expect(distances[0]).toBeLessThan(old * 0.6);
          expect(viewWindow(level, true).x * 2).toBeLessThanOrEqual(9);
       }
+   });
+
+   it("frameAim pans north to the swimmer in trouble, keeps the lifeguard in the window, and leaves a near swimmer alone", () => {
+      const w = viewWindow(LEVELS[1], false);
+      const near = frameAim({ x: 0, z: -4 }, { x: 0, z: -3 }, { x: 1, z: -6 }, w);
+      expect(near).toEqual({ x: 0, z: -4 });
+      const far = frameAim({ x: 0, z: -4 }, { x: 0, z: -3 }, { x: 0, z: -10 }, w);
+      expect(far.z).toBeCloseTo(-10 + w.z * 0.6, 6);
+      // the lifeguard stays in the window even when the swimmer is far north
+      const lost = frameAim({ x: 0, z: 2 }, { x: 0, z: 8 }, { x: 0, z: -10 }, w);
+      expect(8 - lost.z).toBeLessThanOrEqual(w.z * 0.85 + 1e-9);
+      const side = frameAim({ x: 0, z: -4 }, { x: 0, z: -3 }, { x: 8, z: -6 }, viewWindow(LEVELS[1], true));
+      expect(side.x).toBeGreaterThan(0);
+      expect(frameAim({ x: 1, z: 2 }, { x: 0, z: 0 }, null, w)).toEqual({ x: 1, z: 2 });
    });
 });

@@ -52,8 +52,9 @@ export const TIME_BONUS = 5;
 const SHIFT_LIMITS: ScoringRules = { kind: "points", maxScore: 6100, minDurationMs: 9000, maxDurationMs: 242000, base: 0, maxPointsPerSec: 150, unitLabel: "pts", display: "int" };
 export const PROPOSED_LEVEL_LIMITS: Record<LevelId, ScoringRules> = { 1: SHIFT_LIMITS, 2: SHIFT_LIMITS, 3: SHIFT_LIMITS, 4: SHIFT_LIMITS, 5: SHIFT_LIMITS };
 
-export const PILE_A = [-0.45, -0.15, 0, 0.15, 0.45] as const;
-export const SLOT_A = [-0.45, -0.15, 0.15, 0.45] as const;
+/** Level 1's yard (levels.ts TODAY): every level carries its own pileR / pileA / slotA. */
+export const PILE_A = LEVELS[1].pileA;
+export const SLOT_A = LEVELS[1].slotA;
 export const PIECE_NAME = ["Slab", "Pillar", "Wall", "Window", "Roof"] as const;
 const POINTS = [100, 60, 30, 0] as const;
 const STAB_HIT = [0, -3, -6, -12] as const;
@@ -153,6 +154,7 @@ export const CUE_CHEER = 32;
 export const CUE_WIN = 64;
 
 const scratch = { x: 0, z: 0, raw: 0 };
+const gustDir = { x: 1, z: 0 };
 const tick = { run: null as unknown as Run, rot: 0, radial: 0, gust: 0 };
 
 function onTick(h: number): void {
@@ -165,12 +167,26 @@ export function polar(radius: number, angle: number, out: { x: number; z: number
    return out;
 }
 
-export function pileAt(index: number, out: { x: number; z: number }): { x: number; z: number } {
-   return polar(PILE_R, PILE_A[index] ?? 0, out);
+/** Pile `index` (= piece kind) on the level's yard (level 1 by default). */
+export function pileAt(index: number, out: { x: number; z: number }, level: CraneLevel = LEVELS[1]): { x: number; z: number } {
+   return polar(level.pileR, level.pileA[index] ?? 0, out);
 }
 
-export function slotAt(index: number, out: { x: number; z: number }): { x: number; z: number } {
-   return polar(SLOT_R, SLOT_A[index] ?? 0, out);
+/** Slot `index` of the level's building on the 9.5 m ring (level 1 by default). */
+export function slotAt(index: number, out: { x: number; z: number }, level: CraneLevel = LEVELS[1]): { x: number; z: number } {
+   return polar(SLOT_R, level.slotA[index] ?? 0, out);
+}
+
+/**
+ * The gust's direction (unit xz) for the gust that blows at windy time `towerTime`: the level's first
+ * direction, turned by windTurn per gust period. Level 1: always +x.
+ */
+export function gustDirection(level: CraneLevel, towerTime: number, out: { x: number; z: number }): { x: number; z: number } {
+   const k = Math.max(0, Math.floor(towerTime / level.gustPeriod));
+   const a = level.windDir + k * level.windTurn;
+   out.x = a === 0 ? 1 : Math.cos(a);
+   out.z = a === 0 ? 0 : Math.sin(a);
+   return out;
 }
 
 /** Energy of both pendulum axes about angle 0 (zero pivot acceleration). */
@@ -193,6 +209,7 @@ export function pivotAccel(
    radAcc: number,
    wind: number,
    out: { x: number; z: number; raw: number },
+   windZ = 0,
 ): { x: number; z: number; raw: number } {
    const s = Math.sin(angle);
    const c = Math.cos(angle);
@@ -200,6 +217,7 @@ export function pivotAccel(
    let x = radAcc * s + angAcc * radius * c - w2r * s;
    let z = radAcc * c - angAcc * radius * s - w2r * c;
    x += wind;
+   z += windZ;
    const raw = Math.hypot(x, z);
    if (raw > ACCEL_CAP) {
       const scale = ACCEL_CAP / raw;
@@ -272,9 +290,10 @@ export function swingSpeed(run: Run): number {
 export function pileUnder(run: Run): number {
    let best = -1;
    let bestD = PICK_R;
-   for (let i = 0; i < PILE_A.length; i++) {
-      const px = PILE_R * Math.sin(PILE_A[i]);
-      const pz = PILE_R * Math.cos(PILE_A[i]);
+   const { pileA, pileR } = run.level;
+   for (let i = 0; i < pileA.length; i++) {
+      const px = pileR * Math.sin(pileA[i]);
+      const pz = pileR * Math.cos(pileA[i]);
       const d = Math.hypot(run.hookX - px, run.hookZ - pz);
       if (d <= bestD) {
          best = i;
@@ -297,8 +316,9 @@ export function predictLanding(run: Readonly<Run>, step: PlanStep, out: { x: num
    const bottom = run.hookY - PIECE_H;
    const fall = Math.max(0, bottom - slotTop);
    const t = Math.sqrt((2 * fall) / GRAVITY);
-   const sx = SLOT_R * Math.sin(SLOT_A[step.slot]);
-   const sz = SLOT_R * Math.cos(SLOT_A[step.slot]);
+   const a = run.level.slotA[step.slot];
+   const sx = SLOT_R * Math.sin(a);
+   const sz = SLOT_R * Math.cos(a);
    out.x = run.hookX + run.bobVx * t;
    out.z = run.hookZ + run.bobVz * t;
    return Math.hypot(out.x - sx, out.z - sz);
@@ -388,8 +408,15 @@ function integrate(run: Run, rot: number, radial: number, gust: number, dt: numb
    if (run.radius <= RADIUS_MIN && run.vr < 0) run.vr = 0;
    const angAcc = (run.omega - prevW) / dt;
    const radAcc = (run.vr - prevVr) / dt;
-   const wind = gust ? run.level.wind : 0;
-   pivotAccel(run.angle, run.radius, run.omega, angAcc, radAcc, wind, scratch);
+   // the gust's direction turns per gust on some levels (gustDirection); level 1 is +x only
+   let windX = 0;
+   let windZ = 0;
+   if (gust) {
+      gustDirection(run.level, run.towerTime, gustDir);
+      windX = run.level.wind * gustDir.x;
+      windZ = run.level.wind * gustDir.z;
+   }
+   pivotAccel(run.angle, run.radius, run.omega, angAcc, radAcc, windX, scratch, windZ);
    run.rawAccel = Math.max(run.rawAccel, scratch.raw);
    run.cappedAccel = Math.max(run.cappedAccel, Math.hypot(scratch.x, scratch.z));
    stepPendulum2D(run.swing, dt, PEND, scratch);

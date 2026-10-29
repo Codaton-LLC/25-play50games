@@ -6,15 +6,16 @@
 import { useEffect, useRef } from "react";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useMiniGolfLevel } from "./level";
-import { PARS } from "./course";
+import { SPEC_PARS, courseSpecs } from "./course";
 import { HUD_FEED } from "./hudFeed";
 import styles from "./Hud.module.css";
+import CameraViewButton from "@/arcade3d/core/camera/CameraViewButton";
 
 function Card() {
    const stats = useArcadeStore((s) => s.stats);
    const hole = stats.hole ?? 1;
    const { config } = useMiniGolfLevel();
-   const pars = config.holes === 9 ? [...PARS, 3, 3, 3] : PARS;
+   const pars = courseSpecs(config.holes, config.course).map((spec) => SPEC_PARS[spec]);
    return (
       <div className={styles.card} style={config.holes === 9 ? { gridTemplateColumns: "repeat(9, 1fr)" } : undefined} aria-label="Scorecard">
          {pars.map((par, i) => {
@@ -31,7 +32,7 @@ function Card() {
    );
 }
 
-export default function MiniGolfHud() {
+function GameHud() {
    const fill = useRef<HTMLSpanElement>(null);
    const value = useRef<HTMLSpanElement>(null);
    const timeLeft = useArcadeStore((s) => s.stats.timeLeft);
@@ -67,6 +68,16 @@ export default function MiniGolfHud() {
                Time left {Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, "0")}
             </div>
          )}
+      </>
+   );
+}
+
+/** The game's HUD plus the core 📷 camera-view button (core/camera). */
+export default function MiniGolfHud() {
+   return (
+      <>
+         <CameraViewButton />
+         <GameHud />
       </>
    );
 }

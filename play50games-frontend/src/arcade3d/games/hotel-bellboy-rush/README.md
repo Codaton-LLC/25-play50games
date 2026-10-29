@@ -14,13 +14,14 @@ desk, ride the elevator pad when the bag is for another floor, and Use the door 
 | `rules.ts` | pure, seeded: `createRun(seed, level)`, `step(run, input, dt, timeLeftMs)`, the bag queue, `earliestWinS`, `PROPOSED_LEVEL_LIMITS` |
 | `meta.ts` | server-safe meta, the five limits (= `PROPOSED_LEVEL_LIMITS` = `arcade-games.json`) |
 | `index.tsx` | `GameDefinition<HotelLevel>`: five `LevelSpec`s (clock, light, fog, HUD maxima, instructions) |
-| `Scene.tsx` | one `useRunFrame`, the bellboy (auto-rig), trolley, decor, the label atlas, the follow camera |
+| `Scene.tsx` | one `useRunFrame`, the bellboy (auto-rig), trolley + tow handle, decor, the label atlas, the follow camera |
+| `cart.ts` | pure: the cart's measured handle geometry, the hitch, the grips, and `reachArm` (two-bone IK onto `aimArm`) |
 | `Hud.tsx` | the key card panel (`data-arcade-safe-area`): room, colour band, next step, the bag's 30 s clock |
 | `looks.ts` | `COLORS`, `FLOOR_COLORS`, camera window, wall / trim / sconce / frame spots, label atlas layout |
 | `assets.ts` | the ten Hyper3D GLBs and their measured fits, `BELLBOY_LANDMARKS` |
 | `Primitives.tsx` | bevelled two-tone stand-ins (only drawn if a GLB fails) |
 | `bots.testing.ts` | test bots (oracle, honest human pace, idle, spam) through the real store; tests only |
-| tests | `rules.test.ts` (rules + per-level proof), `bots.test.ts`, `levels.test.ts`, `bellboy.test.ts`, `assets.test.ts` |
+| tests | `rules.test.ts` (rules + per-level proof), `bots.test.ts`, `levels.test.ts`, `bellboy.test.ts`, `assets.test.ts`, `cart.test.ts` (cart follow + grip IK) |
 
 ## Rules
 
@@ -42,8 +43,12 @@ desk, ride the elevator pad when the bag is for another floor, and Use the door 
   bag is for another floor than the last (exactly one ride per bag). The same room never comes twice in a row.
 - Score: +80 per delivered bag, +40 more if its 30 s clock is above half, and on the win +5 per full second left.
   Each bag pays once. Win: `bags` deliveries. Lose: 3 wrong doors (lives 0). Time-up: the shell clock.
-- The trolley trails 1.1 m behind on a critically damped spring and is clamped inside the corridor. It is looks
-  only: it never moves the bellboy (test).
+- The trolley is looks only: it never moves the bellboy (test). He pulls it behind him by a brass tow bar (`cart.ts`,
+  `stepTrolley`): its T-grip hangs on a hitch 0.36 m behind his centre on a stiff spring (no lag at a steady walk, at
+  most `TROLLEY_LAG` 0.12 m on a start or a stop), the cart heads from its rear axle to the grip (a trailer: it pivots,
+  never slides sideways), at most 0.9 rad off his heading (a turn on the spot carries it round him), its far end turns
+  about the grip to clear walls and decor, and its centre stays inside the corridor. Straight behind him its centre is
+  `TROLLEY_GAP` 1.18 m back (`cart.test.ts`).
 
 ## Levels
 
@@ -117,8 +122,8 @@ before each Use) wins ≥ 99 % of 200 seeds on every level, idle never clears; m
 | Asset | File | Fit (from the measured raw bounds, `assets.test.ts`) |
 |---|---|---|
 | bellboy | `hotel-bellboy-rush/charBellboy.glb` (18k tris) | 1.74 m tall, auto-rig with `BELLBOY_LANDMARKS` (`bellboy.test.ts`), untinted |
-| trolley | `hotel-bellboy-rush/bellboyTrolley.glb` | 1.55 m tall, long side along the pull |
-| elevator | `hotel-bellboy-rush/elevatorDoorV2.glb` | 2.30 m tall on the door wall |
+| trolley | `hotel-bellboy-rush/bellboyTrolleyV3T.glb` | 1.30 m tall, long side (GLB z) along the pull |
+| elevator | `hotel-bellboy-rush/elevatorDoorsSliding.glb` | 1.5 m wide, 2.30 m tall on the door wall |
 | room doors | `hotel-bellboy-rush/hotelRoomDoor.glb` | 2.10 m, one `InstancedModel` |
 | key card | `hotel-bellboy-rush/keyCard.glb` | 0.50 m beacon over the desk while a bag waits |
 | desk | `hotel-bellboy-rush/receptionDesk.glb` | 2.2 x 0.9 m (its blocker), ~1.0 m tall |
@@ -129,8 +134,19 @@ before each Use) wins ≥ 99 % of 200 seeds on every level, idle never clears; m
 | suitcase | core `EXPANSION_ASSETS.suitcase` | 0.80 m on the trolley deck while loaded |
 
 The bellboy: walk by distance over `walkStride` (`gaitPhaseStep`, cadence cap 3.2/s), the idle's upper body when
-still, the right hand aimed back at the trolley handle (`aimArm`, blended), a spine flinch on a wrong door, `cheerPose`
-on the win, `applyLift={false}` with the group raised by `bodyLift`.
+still; both hands on the cart's T-grip low behind his back, walking and standing: each frame `reachArm` (`cart.ts`)
+solves a two-bone IK from the pose's own hips, spine and chest to that hand's world point on the grip and hands the
+upper arm and forearm directions to `aimArm` (elbows bent back and a little out, 75-97 % of the arm's length), blended
+with the arms and the trunk above the hips over the walk's legs; the grip swivels on the tow bar and stays square to
+his back. If the cart is pushed off the hitch (a wall) both arms let go and come back once it is in reach. On a pickup
+or a delivery the arm on the desk's or the door's side reaches out and back (0.7 s). A spine flinch on a wrong door,
+`cheerPose` on the win, `applyLift={false}` with the group raised by `bodyLift`.
+
+Why pulled and why a tow bar: pushed, the cart would sink about a metre into the wall at every door (he walks up to
+them); pulled, it always has the floor he came over. The GLB's deck overhangs its crossbars by 0.21 m at shin height,
+so a grip on the crossbar itself (within arm's reach) would leave the deck 0.15 m behind his heels, inside every stride
+(the run's back heel reaches 0.56 m); the 0.45 m tow bar keeps it 0.60 m back. The cart is one mesh (no separate
+wheels), so nothing spins.
 
 ## Performance
 
@@ -139,8 +155,10 @@ Draw calls: see the playtest notes in the branch report (`?perf=1`, `window.__ar
 
 ## Known issues
 
-- `elevatorDoorV2.glb` is a single hinged gold door, not a sliding pair (ledger); still wanted: `elevatorDoorsSliding`.
 - `keyCard.glb` has pseudo-text on its face (small on screen); still wanted: `keyCardPlain`.
-- `bellboyTrolley.glb` has wiry bars and a slightly distorted arch; still wanted: `bellboyTrolleyV2`.
 - `travellerNpc.glb` is photoreal with hands in pockets (not a T-pose): decor only; still wanted: `passengerNpc`.
 - The shared sofa is teal-green, a little off the warm palette (untinted GLB).
+
+## Clarity (2026-10-28, visual only)
+
+The key card's hint ("Take the bag at the desk", "Elevator to floor 2", "Door 203") is the hint line, so no second `HintLine` is added. `guide.ts` (pure, `guide.test.ts`) picks the goal for two core `TargetBeacon`s: a gold "BAG" arrow on the reception desk while the trolley is empty and a green "UP" ring on the elevator pad while the carried bag is for another floor. The right DOOR is never marked: reading the key card and the door numbers is the game. A wrong door pops "Wrong door! -1 life" (`useActionPop`, same 0.22 shake); the bag hops from the desk onto the trolley and, on a correct door, from the trolley to the door (`<Toss>`, 0.4 s). The card's "Key card" label is 12 px. Rules, scoring and limits are unchanged.

@@ -17,7 +17,7 @@ import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import { DynamicInstanced, Instanced } from "@/arcade3d/core/render";
 import { Model } from "@/arcade3d/core/assets";
-import { ASSETS, HABITAT_DOME_LEVELS, HABITAT_DOME_SPOTS } from "./assets";
+import { ASSETS, HABITAT_DOME_LEVELS, HABITAT_DOME_SPOTS, OUTPOST_BEACON_SPOTS, OUTPOST_PAD_SPOTS } from "./assets";
 import { PLANET_DECOR, PLANET_LOOKS } from "./looks";
 
 interface DecorProps {
@@ -62,6 +62,15 @@ export function Decor({ planet, level = 1, reducedMotion = false }: DecorProps) 
       // Lava: basalt hexagonal column
       const lavaProp = new CylinderGeometry(0.32, 0.38, 1.5, 6).translate(0, 0.75, 0);
 
+      // Crater: low rim mound; Mars: tall layered butte; Cavern: crystal shard; Gale: leaning slab;
+      // Precision: beacon mast with a glowing head; Dock: antenna tower
+      const craterProp = new CylinderGeometry(0.75, 1.15, 0.45, 8).translate(0, 0.22, 0);
+      const marsProp = mergeGeometries([new CylinderGeometry(0.5, 0.75, 1.6, 6).translate(0, 0.8, 0), new CylinderGeometry(0.3, 0.5, 0.8, 6).translate(0, 2, 0)]) ?? new ConeGeometry(0.5, 2, 6);
+      const cavernProp = mergeGeometries([new OctahedronGeometry(0.45, 0).scale(0.6, 1.8, 0.6).translate(0, 0.8, 0), new OctahedronGeometry(0.3, 0).scale(0.6, 1.6, 0.6).translate(0.35, 0.45, 0.1)]) ?? crystalA;
+      const galeProp = new IcosahedronGeometry(0.6, 0).scale(1.6, 0.7, 0.8).rotateZ(0.35).translate(0, 0.35, 0);
+      const beaconProp = mergeGeometries([new CylinderGeometry(0.05, 0.08, 2.2, 6).translate(0, 1.1, 0), new SphereGeometry(0.18, 8, 6).translate(0, 2.3, 0)]) ?? stem;
+      const dockProp = mergeGeometries([new CylinderGeometry(0.12, 0.22, 2.6, 4).translate(0, 1.3, 0), new ConeGeometry(0.45, 0.25, 8).rotateX(Math.PI).translate(0, 2.6, 0)]) ?? stem;
+
       // 4. Celestial bodies
       const celestialSphere = new SphereGeometry(1, 16, 12);
       const celestialRing = new RingGeometry(1.3, 2.1, 32);
@@ -77,6 +86,12 @@ export function Decor({ planet, level = 1, reducedMotion = false }: DecorProps) 
          iceProp,
          jungleProp,
          lavaProp,
+         craterProp,
+         marsProp,
+         cavernProp,
+         galeProp,
+         beaconProp,
+         dockProp,
          celestialSphere,
          celestialRing,
          drifter,
@@ -96,6 +111,12 @@ export function Decor({ planet, level = 1, reducedMotion = false }: DecorProps) 
          case 2: return geo.iceProp;
          case 3: return geo.jungleProp;
          case 4: return geo.lavaProp;
+         case 5: case 6: return geo.craterProp;
+         case 7: case 8: return geo.marsProp;
+         case 9: return geo.cavernProp;
+         case 10: return geo.galeProp;
+         case 11: return geo.beaconProp;
+         case 12: return geo.dockProp;
          default: return geo.moonProp;
       }
    }, [planet, geo]);
@@ -123,7 +144,7 @@ export function Decor({ planet, level = 1, reducedMotion = false }: DecorProps) 
       m.compose(scratch.p, scratch.q, scratch.s);
    };
 
-   const isEmissive = planet === 2 || planet === 4;
+   const isEmissive = planet === 2 || planet === 4 || planet === 9 || planet === 11 || planet === 12;
 
    // Habitat dome outposts only on the cavern / precision-themed levels (levels 4-5)
    const showDomes = (HABITAT_DOME_LEVELS as readonly number[]).includes(level);
@@ -139,6 +160,17 @@ export function Decor({ planet, level = 1, reducedMotion = false }: DecorProps) 
                name={`habitat-dome-${i}`}
             >
                <Model asset={ASSETS.habitatDome} />
+            </group>
+         ))}
+         {/* Outpost pad and beacon pillars (Menu 1 adoptions, levels 4-5) */}
+         {showDomes && OUTPOST_PAD_SPOTS.map((spot, i) => (
+            <group key={`pad-${i}`} position={[spot.x, spot.y, spot.z]} rotation={[0, spot.rotY, 0]} scale={spot.scale} name={`outpost-pad-${i}`}>
+               <Model asset={ASSETS.outpostPad} />
+            </group>
+         ))}
+         {showDomes && OUTPOST_BEACON_SPOTS.map((spot, i) => (
+            <group key={`beacon-${i}`} position={[spot.x, spot.y, spot.z]} rotation={[0, spot.rotY, 0]} name={`outpost-beacon-${i}`}>
+               <Model asset={ASSETS.outpostBeacon} />
             </group>
          ))}
          {/* Distant mountain peaks / crater ridges */}
@@ -161,7 +193,7 @@ export function Decor({ planet, level = 1, reducedMotion = false }: DecorProps) 
                emissive={isEmissive ? look.propColor : undefined}
                emissiveIntensity={isEmissive ? 0.35 : 0}
                flatShading
-               roughness={planet === 2 ? 0.3 : 0.8}
+               roughness={planet === 2 || planet === 9 ? 0.3 : 0.8}
             />
          </Instanced>
 

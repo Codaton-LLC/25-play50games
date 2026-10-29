@@ -1,10 +1,12 @@
 "use client";
 
 import { useCraneLevel } from "./useCraneLevel";
+import type { CraneLevel } from "./levels";
 import { useEffect, useRef, useState } from "react";
 import { useThree } from "@react-three/fiber";
 import { Plane, Raycaster, Vector2, Vector3, type Camera } from "three";
 import CameraRig from "@/arcade3d/core/CameraRig";
+import { useCameraViews } from "@/arcade3d/core/camera/CameraViews";
 import { useFittedView } from "@/arcade3d/core/useFittedView";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { useInput } from "@/arcade3d/core/input";
@@ -14,46 +16,46 @@ import { playSfx, startLoop, useMuted, type LoopHandle } from "@/arcade3d/core/a
 import { randomSeed } from "@/arcade3d/core/math";
 import { SkyDome } from "@/arcade3d/core/env";
 import { useStageLighting } from "@/arcade3d/core/lighting";
-import { COLORS, LOOK, viewFor } from "./looks";
+import { COLORS, LOOK, THEMES, viewFor } from "./looks";
 import { Crane } from "./Crane";
 import { Site } from "./Site";
 import { Pieces } from "./Pieces";
+import { Cues } from "./Cues";
+import { landingMarker } from "./dropGuide";
 import {
    createRun,
    CUE_COLLAPSE,
-   CUE_DROP,
-   CUE_MISS,
    CUE_PICKUP,
    CUE_WIN,
    CUE_WRONG,
-   FLOOR,
-   PILE_A,
-   PILE_R,
+   dropRadius,
    PLAN,
+   pileAt,
+   pileUnder,
    roofHeight,
    stepRun,
    swingMagnitude,
    type CraneInput,
 } from "./rules";
 
-const THUD = [1.3, 1.1, 0.9];
-const POINTS = [100, 60, 30];
 const raycaster = new Raycaster();
 const ndc = new Vector2();
 const ground = new Plane(new Vector3(0, 1, 0), 0);
 const hit = new Vector3();
 const at = { x: 0, y: 0, z: 0 };
-const landPos = { x: 0, y: 0, z: 0 };
+const marker = { x: 0, y: 0, z: 0 };
+const pileXZ = { x: 0, z: 0 };
+const wrongAt = { x: 0, y: 0, z: 0 };
 
-function pileFromPointer(camera: Camera, pointer: { x: number; y: number }): number {
+function pileFromPointer(camera: Camera, pointer: { x: number; y: number }, level: CraneLevel): number {
    ndc.set(pointer.x, pointer.y);
    raycaster.setFromCamera(ndc, camera);
    if (!raycaster.ray.intersectPlane(ground, hit)) return -1;
    let best = -1;
    let bestD = 1.15;
-   for (let i = 0; i < PILE_A.length; i++) {
-      const x = PILE_R * Math.sin(PILE_A[i]);
-      const z = PILE_R * Math.cos(PILE_A[i]);
+   for (let i = 0; i < level.pileA.length; i++) {
+      const x = level.pileR * Math.sin(level.pileA[i]);
+      const z = level.pileR * Math.cos(level.pileA[i]);
       const d = Math.hypot(hit.x - x, hit.z - z);
       if (d < bestD) {
          best = i;
@@ -78,8 +80,25 @@ function LevelScene() {
    const phase = useArcadeStore((s) => s.phase);
    const muted = useMuted();
 
-   // Core preset lighting and warm daylight construction mood
-   useStageLighting("day", 1, COLORS.skyBottom, COLORS.fog);
+   // camera views (core/camera): default (the fitted rig), top and free. The jib turns with the
+   // stick in screen-free polar terms, so no view changes the controls; one-finger drags stay off
+   // because a tap picks a pile
+   useCameraViews({
+      slug: "construction-worker",
+      subject: "character",
+      steering: "camera",
+      defaultYaw: view.yaw,
+      target: (o) => {
+         o.x = 0; o.y = 2.5; o.z = 7.5; o.heading = Math.PI; o.vx = 0; o.vz = 0;
+      },
+      views: ["default", "top", "free"],
+      framing: { top: { distance: 22 }, free: { distance: 18, pitch: (30 * Math.PI) / 180, lookUp: 0.5 } },
+      oneFinger: false,
+   });
+
+   // the level's light: its core preset, sky and fog (looks.ts THEMES)
+   const theme = THEMES[config.site];
+   useStageLighting(theme.lighting, 1, theme.skyBottom, theme.fog);
 
    useEffect(() => {
       fx.warm("sparkle", "puff", "confetti", "score");
@@ -98,7 +117,7 @@ function LevelScene() {
       const digit = live.digit;
       let pick = -1;
       if (digit !== null && digit >= 1 && digit <= 5) pick = digit - 1;
-      else if (live.tap) pick = pileFromPointer(camera, live.pointer);
+      else if (live.tap) pick = pileFromPointer(camera, live.pointer, run.level);
       const carried = run.carried >= 0;
       const order = command.current;
       order.rot = live.moveX;
@@ -114,6 +133,15 @@ function LevelScene() {
       store.setStat("building", (step?.building ?? 2) + 1);
       store.setStat("swing", Math.round(swingMagnitude(run.swing) * 5.5 * 10) / 10);
       store.setStat("piece", (step?.kind ?? 4) + 1);
+      // HUD cues (not shell chips): what is on the hook, the pile under it, the dwell, the drop gate,
+      // the predicted landing rating, the wrong-pile lock and the cheer
+      store.setStat("carry", run.carried + 1);
+      store.setStat("hover", run.carried < 0 ? pileUnder(run) + 1 : 0);
+      store.setStat("armed", run.armed >= 0 ? 1 : 0);
+      store.setStat("gate", step && run.radius >= dropRadius(step.building) ? 1 : 0);
+      store.setStat("rate", run.carried >= 0 ? landingMarker(run, marker) : 3);
+      store.setStat("lock", run.lock > 0 ? 1 : 0);
+      store.setStat("cheer", run.cheer > 0 ? 1 : 0);
       LOOK.y = 0.35 * roofHeight(run);
 
       const pace = Math.min(1, Math.abs(run.omega) / 0.9 + Math.abs(run.vr) / 2.5);
@@ -130,23 +158,18 @@ function LevelScene() {
          playSfx("pickup");
          fx.burst("sparkle", at, 10);
       }
-      if (run.cue & CUE_DROP) {
-         playSfx("thud", { pitch: THUD[run.dropRating] ?? 1 });
-         if (run.dropRating === 0) playSfx("chime", { pitch: 1 + Math.min(3, run.streak) * 0.06 });
-         fx.score(at, `+${POINTS[run.dropRating] ?? 0}`);
-
-         // Juicy landing feedback: dust puff on every placement, short sparkle on perfect
-         const placedStep = PLAN[run.planIndex - 1];
-         landPos.x = run.landX;
-         landPos.y = (placedStep?.floor ?? 0) * FLOOR + 0.1;
-         landPos.z = run.landZ;
-         fx.burst("puff", landPos, 14);
-         if (run.dropRating === 0) {
-            fx.burst("sparkle", landPos, 18);
+      // the landing (thud, puff, rating text, the miss sound) plays when the drawn piece lands (Pieces)
+      if (run.cue & CUE_WRONG) {
+         playSfx("buzz");
+         const pile = pileUnder(run);
+         if (pile >= 0) {
+            pileAt(pile, pileXZ, run.level);
+            wrongAt.x = pileXZ.x * 0.55;
+            wrongAt.y = 1.6;
+            wrongAt.z = pileXZ.z;
+            fx.score(wrongAt, "Wrong pile! -1 s", { color: COLORS.rateMiss, size: height > width * 1.2 ? 0.05 : 0.07 });
          }
       }
-      if (run.cue & CUE_MISS) playSfx("hit");
-      if (run.cue & CUE_WRONG) playSfx("buzz");
       if (run.cue & CUE_COLLAPSE) {
          playSfx("boom");
          fx.shake(0.6);
@@ -168,11 +191,23 @@ function LevelScene() {
             shift={view.shift}
             damping={6}
          />
-         <SkyDome top={COLORS.skyTop} bottom={COLORS.skyBottom} />
+         <SkyDome top={theme.skyTop} bottom={theme.skyBottom} />
+         {theme.flood && <FloodLights />}
          <Site run={run} levelId={id} />
          <Crane run={run} />
          <Pieces run={run} />
+         <Cues run={run} />
       </>
+   );
+}
+
+/** The night shift's work lights: two warm floods on poles behind the mast, aimed at the building. */
+function FloodLights() {
+   return (
+      <group name="flood-lights">
+         <directionalLight position={[-6, 14, -4]} intensity={1.3} color="#fde68a" />
+         <pointLight position={[0, 7, 9]} intensity={18} distance={16} decay={1.6} color="#fef3c7" />
+      </group>
    );
 }
 

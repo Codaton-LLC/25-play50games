@@ -9,7 +9,9 @@ import { DynamicInstancedModel, Model } from "@/arcade3d/core/assets";
 import { playSfx } from "@/arcade3d/core/audio";
 import { SkyDome, Water } from "@/arcade3d/core/env";
 import { FRAME_PRIORITY } from "@/arcade3d/core/frameLoop";
-import { useFx } from "@/arcade3d/core/fx";
+import { Toss, useActionPop, useFx, type TossHandle } from "@/arcade3d/core/fx";
+import { TargetBeacon } from "@/arcade3d/core/hud";
+import { useCoarsePointer } from "@/arcade3d/core/TouchControls";
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import { useInput } from "@/arcade3d/core/input";
 import { useLevel } from "@/arcade3d/core/level";
@@ -42,6 +44,7 @@ import {
    useParts,
    vineBarParts,
 } from "./Primitives";
+import { GUIDE, cueCode, cueHint, hitText, nextCue, type Cue } from "./guide";
 import { LANE_X, LAVA_ON, LAVA_PERIOD, createRun, finishZ, isLavaActive, logXAt, step, syncStore, type LogObstacle, type Run, type RunnerInput } from "./rules";
 
 const V = new Vector3();
@@ -141,6 +144,29 @@ function LevelScene() {
    const backdropRef = useRef<Group>(null);
    const gait = useRef({ phase: 0 }).current;
    const runnerInput = useRef<RunnerInput>({}).current;
+   // clarity (visual only): the cue beacon on the obstacle ahead, the hint line, gem flights, fail pops
+   const pop = useActionPop();
+   const touch = useCoarsePointer();
+   const cue = useRef<Cue>({ obstacle: null, lane: -1, action: null, x: 0, z: 0 }).current;
+   const beacon = useRef({ x: 0, y: 0, z: 0, hidden: true }).current;
+   const runnerAt = useRef({ x: 0, y: 1, z: 0 }).current;
+   const gemToss = useRef<TossHandle>(null);
+   const gemSeen = useRef<boolean[]>([]).current;
+   const guideCode = useRef(-1);
+   const shownAction = useRef<Cue["action"]>(null);
+   const [beaconAction, setBeaconAction] = useState<Cue["action"]>(null);
+   useEffect(() => {
+      // the opening hint is up from the countdown on
+      GUIDE.set(cueHint(cueCode(run, nextCue(run, cue)), touch));
+      beacon.x = cue.x;
+      beacon.y = 0.05;
+      beacon.z = cue.z;
+      beacon.hidden = !cue.obstacle;
+      shownAction.current = cue.action;
+      setBeaconAction(cue.action);
+      return () => GUIDE.reset();
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+   }, [run]);
 
    const track = useMemo(() => trackSpots(run), [run]);
    const gates = useMemo(() => gateSpots(run), [run]);
@@ -151,7 +177,7 @@ function LevelScene() {
    const decor = useMemo(() => {
       const d = decorSpots(id, level);
       const keep = <T,>(a: T[]) => a.slice(0, scaledCount(a.length, quality.decor));
-      return { ...d, rocks: keep(d.rocks), trees: keep(d.trees), ferns: keep(d.ferns), vines: keep(d.vines) };
+      return { ...d, rocks: keep(d.rocks), trees: keep(d.trees), ferns: keep(d.ferns), plants: keep(d.plants), vines: keep(d.vines) };
    }, [id, level, quality.decor]);
    const backdrop = useMemo(() => backdropFor(level), [level]);
    const ahead = visibleAhead(level);
@@ -171,7 +197,7 @@ function LevelScene() {
          if (!spot) return false;
          spotInto(m, spot, decorZ(spot.z, run.z));
       };
-      return { rocks: wrap(decor.rocks), trees: wrap(decor.trees), ferns: wrap(decor.ferns), vines: wrap(decor.vines), stilts: wrap(decor.stilts) };
+      return { rocks: wrap(decor.rocks), trees: wrap(decor.trees), ferns: wrap(decor.ferns), plants: wrap(decor.plants), vines: wrap(decor.vines), stilts: wrap(decor.stilts) };
    }, [decor, run]);
    const trackEnd = finishZ(level);
 
@@ -184,6 +210,7 @@ function LevelScene() {
       rock: useParts(rockParts),
       tree: useParts(treeParts),
       fern: useParts(fernParts),
+      plant: useParts(fernParts),
       hanging: useParts(hangingVineParts),
       vine: useParts(vineBarParts),
       crust: useParts(lavaCrustParts),
@@ -211,10 +238,19 @@ function LevelScene() {
       AT.z = run.z;
       if (ev.jump) playSfx("jump", { volume: 0.4 });
       if (ev.slide) playSfx("whoosh", { volume: 0.4 });
+      runnerAt.x = run.x;
+      runnerAt.y = 1 + run.y;
+      runnerAt.z = run.z;
       if (ev.gemCollected) {
          playSfx("pickup", { volume: 0.45 });
          fx.burst("sparkle", AT, 12);
          fx.score(AT, "+20", { color: COLORS.gem });
+         // the gem flies into the runner's hands instead of vanishing
+         for (const g of run.gems) {
+            if (!g.collected || gemSeen[g.id]) continue;
+            gemSeen[g.id] = true;
+            gemToss.current?.play({ x: g.x, y: g.y + 0.25, z: g.z }, runnerAt, { duration: 0.3, height: 0.5, scaleFrom: 1.1, scaleTo: 0.3 });
+         }
       }
       if (ev.sectionCleared) {
          playSfx("chime", { volume: 0.5 });
@@ -225,6 +261,20 @@ function LevelScene() {
          playSfx(run.lastHit === "gap" || run.lastHit === "bridge" ? "splash" : "hit", { volume: 0.5 });
          fx.shake(0.35);
          fx.burst(run.lastHit === "lava" ? "sparks" : "splash", AT, 14);
+         AT.y = 2.4;
+         pop.fail(AT, hitText(run.lastHit, run.lives > 0), { shake: 0 });
+      }
+      // the obstacle ahead: beacon + hint (rebuilt only when it changes)
+      nextCue(run, cue);
+      beacon.x = cue.x;
+      beacon.y = 0.05;
+      beacon.z = cue.z;
+      beacon.hidden = !cue.obstacle || run.over !== false || run.respawning;
+      if (cue.action !== shownAction.current) setBeaconAction((shownAction.current = cue.action));
+      const code = cueCode(run, cue);
+      if (code !== guideCode.current) {
+         guideCode.current = code;
+         GUIDE.set(cueHint(code, touch));
       }
       if (ev.won) {
          playSfx("win");
@@ -329,12 +379,28 @@ function LevelScene() {
          {decor.rocks.length > 0 && <DynamicInstancedModel asset={ASSETS.rock} count={decor.rocks.length} update={decorUpdate.rocks} fallbackParts={parts.rock} name="rocks" />}
          {decor.trees.length > 0 && <DynamicInstancedModel asset={ASSETS.tree} count={decor.trees.length} update={decorUpdate.trees} fallbackParts={parts.tree} name="trees" />}
          {decor.ferns.length > 0 && <DynamicInstancedModel asset={ASSETS.fern} count={decor.ferns.length} update={decorUpdate.ferns} fallbackParts={parts.fern} name="ferns" />}
+         {decor.plants.length > 0 && <DynamicInstancedModel asset={ASSETS.plant} count={decor.plants.length} update={decorUpdate.plants} fallbackParts={parts.plant} name="plants" />}
          {decor.vines.length > 0 && <DynamicInstancedModel asset={ASSETS.hangingVine} count={decor.vines.length} update={decorUpdate.vines} fallbackParts={parts.hanging} name="hanging" />}
          {backdrop && (
             <group ref={backdropRef} rotation-y={backdrop.rotY} scale={backdrop.scale}>
                <Model asset={backdrop.kind === "volcano" ? ASSETS.volcano : ASSETS.waterfall} />
             </group>
          )}
+
+         {/* clarity: "take this lane" or "jump / slide here" on the obstacle ahead; the gem's flight */}
+         <TargetBeacon
+            target={beacon}
+            variant={beaconAction === "go" ? "pick" : "danger"}
+            color={beaconAction === "go" ? COLORS.accent : "#f97316"}
+            radius={0.85}
+            height={1.3}
+            label={beaconAction === "jump" ? "JUMP" : beaconAction === "slide" ? "SLIDE" : "GO"}
+         />
+         <Toss ref={gemToss} slots={3} spin={10}>
+            {parts.gem.map((part, i) => (
+               <mesh key={i} geometry={part.geometry} material={part.material} />
+            ))}
+         </Toss>
 
          <group ref={body}>
             <BlobShadow radius={0.4} />

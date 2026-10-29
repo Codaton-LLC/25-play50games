@@ -6,7 +6,8 @@ import { modelParts } from "@/arcade3d/core/assets";
 import { hasModel } from "@/arcade3d/core/modelManifest";
 import { readCharacterGlb } from "@/arcade3d/core/rig/robotGlb";
 import { ASTRONAUT_LANDMARKS, SHARED_GLB_SIZE } from "@/arcade3d/core/sharedAssets";
-import { ASSETS, DISH_DRAWN, DISH_GLB, DISH_HEIGHT, DISH_LEVELS, DISH_SCALE, DISH_SPOTS, fitStationScene, SUIT_HEIGHT, SUIT_SCALE } from "./assets";
+import { decorOf } from "./looks";
+import { SOLAR_WING_WIDTH, ASSETS, DISH_DRAWN, DISH_GLB, DISH_HEIGHT, DISH_LEVELS, DISH_SCALE, DISH_SPOTS, fitStationScene, SUIT_HEIGHT, SUIT_SCALE } from "./assets";
 import { PLAY_BOUNDS } from "./looks";
 
 async function meshFixture(url: string) {
@@ -106,4 +107,29 @@ describe("adopted satelliteDish decor (levels 4-5 only)", () => {
          expect(spot.y).toBe(0);
       }
    });
+
+describe("adopted solarPanelWing decor (Menu 1)", () => {
+   it("is listed, on disk, drawn 4.5 m across and kept far outside the play bounds", async () => {
+      expect(hasModel(ASSETS.solarWing.url)).toBe(true);
+      expect(existsSync(resolve("public", ASSETS.solarWing.url.slice(1)))).toBe(true);
+      const { local, node } = await readCharacterGlb(ASSETS.solarWing.url);
+      const geometry = new BufferGeometry();
+      geometry.setAttribute("position", new Float32BufferAttribute(local, 3));
+      const mesh = new Mesh(geometry);
+      mesh.position.fromArray(node);
+      const root = new Group();
+      root.add(mesh);
+      const parts = modelParts(root, ASSETS.solarWing);
+      const box = new Box3();
+      for (let i = 0; i < local.length; i += 3) box.expandByPoint(new Vector3(local[i], local[i + 1], local[i + 2]).applyMatrix4(parts[0].matrix));
+      geometry.dispose();
+      expect(box.min.y).toBeCloseTo(0, 2);
+      expect(box.max.x - box.min.x).toBeCloseTo(SOLAR_WING_WIDTH, 2);
+      const reach = Math.hypot(box.max.x - box.min.x, box.max.z - box.min.z) / 2;
+      for (const w of decorOf("distantSolarWing")) {
+         const outside = Math.abs(w.x) - reach > PLAY_BOUNDS.maxX || Math.abs(w.z) - reach > PLAY_BOUNDS.maxZ;
+         expect(outside, `${w.x},${w.z}`).toBe(true);
+      }
+   });
+});
 });

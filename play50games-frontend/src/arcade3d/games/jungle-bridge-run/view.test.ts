@@ -57,6 +57,7 @@ describe("jungle-bridge-run triangle budget", () => {
                tris.rock * d.rocks.length +
                tris.tree * d.trees.length +
                tris.fern * d.ferns.length +
+               tris.plant * d.plants.length +
                tris.hangingVine * d.vines.length +
                tris.volcano * backdrop;
             worst = Math.max(worst, total);

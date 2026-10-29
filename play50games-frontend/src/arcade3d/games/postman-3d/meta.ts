@@ -20,7 +20,7 @@ export const postman3dMeta: ArcadeGameMeta = {
    },
    scoring: PROPOSED_LEVEL_LIMITS[1],
    levels: LEVEL_IDS.map((id) => ({ id, title: LEVEL_TITLES[id], scoring: PROPOSED_LEVEL_LIMITS[id] })),
-   thumbnail: null,
+   thumbnail: "/images/3d/postman-3d.webp",
    accent: "#ef4444",
    owner: "claude",
 };

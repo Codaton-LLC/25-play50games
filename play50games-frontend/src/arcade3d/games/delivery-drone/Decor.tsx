@@ -6,7 +6,7 @@ import { Water } from "@/arcade3d/core/env";
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import { scaledCount, useQuality } from "@/arcade3d/core/quality";
 import { DynamicInstanced, Instanced, type InstanceSpot } from "@/arcade3d/core/render";
-import { COLORS, OUTER_BUILDING_SPOTS, OUTER_CLOUDS, OUTER_TREE_SPOTS, RIVER, type DecorSpot } from "./looks";
+import { COLORS, OUTER_BUILDING_SPOTS, OUTER_CLOUDS, OUTER_TREE_SPOTS, RIVER, THEMES, type DecorSpot, type Theme } from "./looks";
 
 function buildingSpotsForTone(spots: readonly DecorSpot[], tone: number): InstanceSpot[] {
    return spots
@@ -40,7 +40,7 @@ function treeSpots(spots: readonly DecorSpot[], tone: number): InstanceSpot[] {
  * Distant skyline, river with core Water, quayside, avenue trees, and distant drifting clouds.
  * All meshes are placed strictly outside the 60m x 60m play area so they never occlude gameplay.
  */
-export function Decor({ reduced }: { reduced: boolean }) {
+export function Decor({ reduced, theme = THEMES.training }: { reduced: boolean; theme?: Theme }) {
    const quality = useQuality();
    const time = useGameTime();
 
@@ -104,8 +104,8 @@ export function Decor({ reduced }: { reduced: boolean }) {
          <Water
             size={[RIVER.width, RIVER.depth]}
             position={[RIVER.x, RIVER.y, RIVER.z]}
-            color={COLORS.water}
-            deep={COLORS.waterDeep}
+            color={theme.windowsGlow ? "#1e3a8a" : COLORS.water}
+            deep={theme.windowsGlow ? "#0f172a" : COLORS.waterDeep}
             foam={COLORS.foam}
             amplitude={reduced ? 0 : 0.04}
             wavelength={5}
@@ -123,7 +123,7 @@ export function Decor({ reduced }: { reduced: boolean }) {
          {buildingsTone0.length > 0 && (
             <Instanced spots={buildingsTone0} name="skyline-tone-0">
                <primitive object={geo.building} attach="geometry" />
-               <meshStandardMaterial color={COLORS.skylineTowerA} roughness={0.8} />
+               <meshStandardMaterial color={theme.skyline[0]} roughness={0.8} />
             </Instanced>
          )}
 
@@ -131,7 +131,7 @@ export function Decor({ reduced }: { reduced: boolean }) {
          {buildingsTone1.length > 0 && (
             <Instanced spots={buildingsTone1} name="skyline-tone-1">
                <primitive object={geo.building} attach="geometry" />
-               <meshStandardMaterial color={COLORS.skylineTowerB} roughness={0.8} />
+               <meshStandardMaterial color={theme.skyline[1]} roughness={0.8} />
             </Instanced>
          )}
 
@@ -139,7 +139,7 @@ export function Decor({ reduced }: { reduced: boolean }) {
          {buildingsTone2.length > 0 && (
             <Instanced spots={buildingsTone2} name="skyline-tone-2">
                <primitive object={geo.building} attach="geometry" />
-               <meshStandardMaterial color={COLORS.skylineTowerC} roughness={0.8} />
+               <meshStandardMaterial color={theme.skyline[2]} roughness={0.8} />
             </Instanced>
          )}
 
@@ -168,10 +168,12 @@ export function Decor({ reduced }: { reduced: boolean }) {
          )}
 
          {/* Distant low-poly drifting clouds (far behind / to the sides of play area) */}
-         <DynamicInstanced count={OUTER_CLOUDS.length} update={placeCloud} name="outer-clouds">
-            <primitive object={geo.cloud} attach="geometry" />
-            <meshStandardMaterial color={COLORS.cloud} flatShading roughness={1} />
-         </DynamicInstanced>
+         {theme.clouds && (
+            <DynamicInstanced count={OUTER_CLOUDS.length} update={placeCloud} name="outer-clouds">
+               <primitive object={geo.cloud} attach="geometry" />
+               <meshStandardMaterial color={theme.lighting === "sunset" ? "#fed7aa" : COLORS.cloud} flatShading roughness={1} />
+            </DynamicInstanced>
+         )}
       </group>
    );
 }

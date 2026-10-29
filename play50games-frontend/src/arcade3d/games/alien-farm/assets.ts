@@ -7,6 +7,7 @@ import {
    EXPANSION_CHARACTER_GLB_HEIGHT,
    EXPANSION_CHARACTERS,
    EXPANSION_GLB_SIZE,
+   PROP_BUDGET,
    SHARED_ASSETS,
    SHARED_GLB_SIZE,
 } from "@/arcade3d/core/sharedAssets";
@@ -36,12 +37,33 @@ export const UFO_GLB_SIZE = { width: 1.89, height: 1.049, depth: 1.898 } as cons
 export const UFO_DIAMETER = 2.8;
 export const UFO_SCALE = UFO_DIAMETER / Math.max(UFO_GLB_SIZE.width, UFO_GLB_SIZE.depth);
 
+/**
+ * meteorite.glb (Menu 1 adoption, 1500 tris) 1.123 x 0.937 x 1.913, floor pivot, centred: a dark rock with a green glowing
+ * pocket. Drawn 2.7 m long (the long side is z) as crashed-meteor decor beyond the beds, outside the play area.
+ */
+export const METEORITE_GLB = { width: 1.123, height: 0.937, depth: 1.913 } as const;
+export const METEORITE_LENGTH = 2.7;
+export const METEORITE_SCALE = METEORITE_LENGTH / METEORITE_GLB.depth;
+export const METEORITE_SPOTS = [
+   { x: -14.6, z: 4.6, rotY: 0.7 },
+   { x: 14.2, z: -5.2, rotY: -1.1 },
+   { x: -13.8, z: -9.8, rotY: 2.2 },
+] as const;
+
 export const ASSETS = {
    alien: { ...EXPANSION_CHARACTERS.alien, scale: ALIEN_SCALE },
    glowPod: { ...EXPANSION_ASSETS.glowPod, scale: GLOW_POD_SCALE, material: { color: "#bbf7d0", roughness: 0.7, emissive: "#052e16" } },
    gourd: { ...EXPANSION_ASSETS.gourd, scale: GOURD_SCALE, material: { color: "#a5f3fc", roughness: 0.7, emissive: "#083344" } },
    rock: { ...EXPANSION_ASSETS.rock, scale: ROCK_SCALE, material: { color: "#7c3aed", roughness: 0.9 } },
    crate: { ...SHARED_ASSETS.crate, scale: CRATE_SCALE },
+   meteorite: {
+      id: "meteorite",
+      url: "/models/3d/alien-farm/meteorite.glb",
+      scale: METEORITE_SCALE,
+      fallback: "sphere",
+      fallbackColor: "#3f3f46",
+      budget: { ...PROP_BUDGET },
+   },
    ufo: {
       id: "ufo",
       url: "/models/3d/alien-farm/ufo.glb",

@@ -2,16 +2,18 @@
 
 // Taxi Rush 3D. GameShell owns the clock, the lives, pause and the result.
 // Level 1 is the definition; levels 2-5 swap the grid, traffic, patience and lighting.
+import CameraViewButton from "@/arcade3d/core/camera/CameraViewButton";
 import type { GameDefinition, LevelSpec } from "@/arcade3d/core/types";
 import { LEVEL_IDS, type LevelId } from "@/arcade3d/types";
 import { ASSETS } from "./assets";
 import { LEVELS, LEVEL_LINES, type TaxiLevel } from "./levels";
 import { FOV, fogFor, lookAtFor } from "./looks";
+import { U } from "./rules";
 import Scene from "./Scene";
 
 const LINES = [
    "WASD or the stick drives. There is no button.",
-   "Stop inside the gold pad, under half a metre a second, for half a second.",
+   "Stop inside the gold pad (green for the drop-off) and hold still for half a second.",
    "Red lights and a hard hit cost a life. Three lives. Patience is the fare meter.",
 ];
 
@@ -33,11 +35,12 @@ const look = lookAtFor(LEVELS[1]);
 const definition: GameDefinition<TaxiLevel> = {
    slug: "taxi-rush-3d",
    Scene,
+   Hud: CameraViewButton,
    assets: ASSETS,
    durationMs: LEVELS[1].durationMs,
    lives: 3,
    resultDelayMs: 900,
-   camera: { position: [0, 18, 22], fov: FOV, lookAt: look },
+   camera: { position: [0, 18 * U, 22 * U], fov: FOV, lookAt: look },
    environment: {
       background: LEVELS[1].background,
       fog: fogFor(LEVELS[1]),

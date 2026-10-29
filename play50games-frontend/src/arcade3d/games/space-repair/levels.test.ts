@@ -2,14 +2,14 @@ import { createHash } from "node:crypto";
 import { describe, expect, it, vi } from "vitest";
 import { createArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { capScore, withinServerLimits } from "@/arcade3d/core/limits";
-import { fixedFrames, randomFrames, simulateRun } from "@/arcade3d/core/testing/botHarness";
+import { createGrid, findPath, fixedFrames, freeGrid, randomFrames, simulateRun } from "@/arcade3d/core/testing/botHarness";
 import { definitionLevelProblems, isLevelCleared, levelHudStats } from "@/arcade3d/core/levels";
 import { levelMetaProblems, scoringFor } from "@/arcade3d/levelMeta";
 import { rngNext } from "@/arcade3d/core/math";
 import { LEVEL_IDS } from "@/arcade3d/types";
 import { LEVELS } from "./levels";
 import { spaceRepairMeta as meta } from "./meta";
-import { createRun, stepRun, MODULES, PROPOSED_LEVEL_LIMITS, BREAKS, REPAIR, CLOCK, DEBRIS, type Controls, type Run } from "./rules";
+import { createRun, stepRun, stationOf, clearance, STATIONS, MODULES, SOLIDS, DEBRIS_PATH, PROPOSED_LEVEL_LIMITS, BREAKS, REPAIR, CLOCK, DEBRIS, type Controls, type Run } from "./rules";
 import * as today from "./today.rules.fixture";
 import definition from "./index";
 
@@ -23,6 +23,7 @@ function bot(policy: Policy, seed: number) {
    const metrics = { trips: 0, travel: 0, services: 0, service: 0, topSpeed: 0 };
    let tripAt = 0, serviceAt = 0;
    const drive = (r: Run, dt: number): Controls => {
+      const MODULES = stationOf(r.level).modules;
       controls.x = 0; controls.z = 0; controls.repair = false; frames++;
       metrics.topSpeed = Math.max(metrics.topSpeed, Math.hypot(r.body.vx, r.body.vz));
       if (policy === "Idle") return controls;
@@ -150,7 +151,7 @@ describe("space-repair five level declarations", () => {
          expect(m.period).toBe(r.level.periods[stage]);
          expect((m.zones[0].end - m.zones[0].start) * 360).toBeCloseTo(r.level.arcs[stage], 9);
          expect(r.debris[0].s - before).toBeCloseTo(r.level.speeds[Math.floor((t - 0.001) / 40)] * 0.001, 8);
-         const target = r.modules.indexOf(m); r.body.x = MODULES[target].dx; r.body.z = MODULES[target].dz;
+         const target = r.modules.indexOf(m), MODULES = stationOf(r.level).modules; r.body.x = MODULES[target].dx; r.body.z = MODULES[target].dz;
          r.docked = target; r.needleAge = 0;
          stepRun(r, { x: 0, z: 0, repair: true }, 0.001);
          expect(r.events.miss).toBe(true); expect(m.lockUntil - r.time).toBeCloseTo(r.level.lock, 9);
@@ -194,4 +195,45 @@ for (const id of LEVEL_IDS) describe(`space-repair L${id} store proof`, () => {
       }
       console.info(`SPACE_LEVEL_${id}`, JSON.stringify(results));
    }, 300000);
+});
+
+describe("space-repair levels: five different stations (fairness per level)", () => {
+   it("level 1 is today's bay; levels 2-5 each fly their own station", () => {
+      expect(LEVELS[1].station).toBeUndefined();
+      expect(stationOf(LEVELS[1])).toBe(STATIONS.bay);
+      expect(STATIONS.bay.modules).toBe(MODULES); expect(STATIONS.bay.solids).toBe(SOLIDS); expect(STATIONS.bay.debris).toBe(DEBRIS_PATH);
+      const kinds = LEVEL_IDS.map((id) => stationOf(LEVELS[id]).kind);
+      expect(new Set(kinds).size).toBe(5);
+      // the docks really move: every level's service discs differ from every other level's
+      for (let a = 0; a < 5; a++) for (let b = a + 1; b < 5; b++) {
+         const A = stationOf(LEVELS[LEVEL_IDS[a]]).modules, B = stationOf(LEVELS[LEVEL_IDS[b]]).modules;
+         expect(A.some((m, i) => Math.hypot(m.dx - B[i].dx, m.dz - B[i].dz) > 0.5), `levels ${a + 1}/${b + 1}`).toBe(true);
+      }
+   });
+   for (const id of LEVEL_IDS) it(`L${id}: every dock is reachable, chords and debris stay clear, the start dock is free`, () => {
+      const st = stationOf(LEVELS[id]), grid = createGrid({ cell: 0.25, halfX: 10, halfZ: 10 });
+      const free = freeGrid(grid, (x, z) => clearance(x, z, st) >= 0.45);
+      const start = createRun(1, LEVELS[id]).body;
+      expect([start.x, start.z]).toEqual([st.modules[0].dx, st.modules[0].dz]);
+      for (const p of st.modules) {
+         // the suit fits on the whole disc; the pod fits the numbered label plane; the cell is inside
+         expect(clearance(p.dx, p.dz, st)).toBeGreaterThan(0.6);
+         expect(Math.max(Math.abs(p.x), Math.abs(p.z)) + 0.7).toBeLessThan(6);
+         expect(findPath(grid, free, grid.node(start.x, start.z), grid.node(p.dx, p.dz)).length).toBeGreaterThan(0);
+         const cx = p.dx + 1.3 * Math.cos(p.angle), cz = p.dz - 1.3 * Math.sin(p.angle);
+         expect(Math.max(Math.abs(cx), Math.abs(cz))).toBeLessThan(10);
+         // adjacent docks (the ticket order) are joined by a straight clear chord, no longer than 5.2 m
+         const next = st.modules[(p.id + 1) % 8];
+         expect(Math.hypot(next.dx - p.dx, next.dz - p.dz)).toBeLessThan(5.2);
+         for (let k = 0; k <= 100; k++) expect(clearance(p.dx + (next.dx - p.dx) * k / 100, p.dz + (next.dz - p.dz) * k / 100, st)).toBeGreaterThan(0.45);
+      }
+      // debris never reaches a docked suit and stays in the arena
+      for (let k = 0; k < 720; k++) {
+         const t = k * Math.PI / 360, x = st.debrisRadii[0] * Math.sin(t), z = st.debrisRadii[1] * Math.cos(t);
+         expect(Math.max(Math.abs(x), Math.abs(z)) + DEBRIS.bodyRadius).toBeLessThanOrEqual(10);
+         for (const p of st.modules) expect(Math.hypot(x - p.dx, z - p.dz) - 0.6 - 0.45 - DEBRIS.bodyRadius).toBeGreaterThan(0.06);
+      }
+      // pods never overlap one another or the hub
+      for (const a of st.modules) for (const b of st.modules) if (a.id < b.id) expect(Math.hypot(a.x - b.x, a.z - b.z)).toBeGreaterThan(1.6);
+   });
 });

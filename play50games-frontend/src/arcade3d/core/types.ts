@@ -15,6 +15,7 @@
 import type { ComponentType } from "react";
 import type { ArcadeGameMeta, ArcadeSlug, LevelId } from "../types";
 import type { HumanoidLandmarks } from "./rig/humanoid";
+import type { QuadrupedLandmarks } from "./rig/quadruped";
 import type { MaterialOverride } from "./materials";
 
 export type RunPhase = "loading" | "ready" | "countdown" | "playing" | "paused" | "over";
@@ -182,6 +183,13 @@ export interface ModelAsset {
     * "Characters: the auto-rig").
     */
    humanoid?: { landmarks?: Partial<HumanoidLandmarks> };
+   /**
+    * A static four-legged animal (Hyper3D Rodin: standing on four paws, facing +z, no skeleton).
+    * <QuadrupedModel pose> (core/rig) skins it with a code-built skeleton and animates it (walk,
+    * trot, gallop with planted paws, idle, sit, leap). `landmarks` are measured once on the GLB
+    * (core/README.md "Animals: the quadruped rig"). <Model> draws it static, as modelled.
+    */
+   quadruped?: { landmarks: QuadrupedLandmarks };
    /**
     * Draw this GLB with another look, e.g. a statue: "stone" | "bronze" | "gold" | "bone" or
     * { color, roughness?, metalness?, emissive? }. Every mesh gets ONE shared material per look (no

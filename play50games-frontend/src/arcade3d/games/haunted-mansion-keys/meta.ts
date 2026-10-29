@@ -32,7 +32,7 @@ export const hauntedMansionKeysMeta: ArcadeGameMeta = {
    },
    scoring: SCORING,
    levels: LEVELS,
-   thumbnail: null,
+   thumbnail: "/images/3d/haunted-mansion-keys.webp",
    accent: "#c4b5fd",
    owner: "antigravity",
 };

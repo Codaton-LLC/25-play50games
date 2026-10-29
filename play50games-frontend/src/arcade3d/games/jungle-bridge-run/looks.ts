@@ -201,6 +201,8 @@ export interface DecorSpots {
    /** trees on the canyon rims (1 m tall: scale = height) */
    trees: InstanceSpot[];
    ferns: InstanceSpot[];
+   /** potted plants on the canyon rims (1 m tall: scale = height), outside DECOR_CLEAR_X */
+   plants: InstanceSpot[];
    /** hanging vines on the canyon walls (background only) */
    vines: InstanceSpot[];
    /** wooden stilts under the deck (a unit box: sx/sy/sz) */
@@ -222,7 +224,9 @@ export function decorZ(baseZ: number, runnerZ: number): number {
 export function decorSpots(id: LevelId, level: JungleLevel): DecorSpots {
    void level;
    const rng = createRng(7000 + id);
-   const out: DecorSpots = { rocks: [], trees: [], ferns: [], vines: [], stilts: [] };
+   // its own sequence, so the other decor keeps its seeded places
+   const plantRng = createRng(9100 + id);
+   const out: DecorSpots = { rocks: [], trees: [], ferns: [], plants: [], vines: [], stilts: [] };
    for (const side of [-1, 1]) {
       for (let z = side < 0 ? 0 : 6; z < DECOR_PERIOD; z += 12) {
          // the canyon wall: a rock rising from the water to just under the deck's level (top <= -0.5),
@@ -233,6 +237,7 @@ export function decorSpots(id: LevelId, level: JungleLevel): DecorSpots {
          const rim = WATER_Y + h * 0.9;
          out.trees.push({ x: side * (cx + 1 + rng() * 3), y: rim - 0.4, z: z + rng() * 6, rotY: rng() * Math.PI * 2, scale: 6 + rng() * 4 });
          if (rng() < 0.6) out.ferns.push({ x: side * (cx - 1 + rng() * 2), y: rim, z: z + 3 + rng() * 4, rotY: rng() * Math.PI * 2, scale: 1.2 + rng() * 0.8 });
+         if (plantRng() < 0.5) out.plants.push({ x: side * (cx + 0.5 + plantRng() * 2), y: rim, z: z + 6 + plantRng() * 4, rotY: plantRng() * Math.PI * 2, scale: 1.5 + plantRng() * 0.7 });
          if (rng() < 0.45) out.vines.push({ x: side * (11 + rng() * 2), y: rim - 4, z: z + rng() * 5, rotY: rng() * Math.PI * 2, scale: 4 + rng() * 2 });
          // river rocks
          if (rng() < 0.5) out.rocks.push({ x: side * (4 + rng() * 6), y: WATER_Y - 0.4, z: z + rng() * 8, rotY: rng() * Math.PI * 2, scale: 1.2 + rng() * 1.5 });

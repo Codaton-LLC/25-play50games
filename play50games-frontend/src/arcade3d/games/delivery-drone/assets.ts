@@ -33,6 +33,32 @@ export const GLASS_SPOTS = SKYLINE_X.filter((_, i) => i % 2 === 1).map((x, i) =>
 export const BRICK_FALLBACK = BRICK_SPOTS.map((s) => ({ ...s, y: BRICK_HEIGHT / 2 }));
 export const GLASS_FALLBACK = GLASS_SPOTS.map((s) => ({ ...s, y: GLASS_HEIGHT / 2 }));
 
+/**
+ * Menu 1 adoptions (measured, floor pivot, centred on x / z):
+ * cityBuildingTall.glb 1.261 x 1.893 x 1.150 (3000 tris), cityBuildingV2.glb 1.888 x 1.654 x 1.876 (3000 tris),
+ * cardboardParcel.glb 1.896 x 1.036 x 1.869 (1500 tris). The two towers stand in a back row at z -55, between the
+ * z -48 and z -62 procedural rows (their footprints are 6.5 / 8 m wide and cannot reach it): the Tall tower drawn
+ * 4.6 m across and stretched up to ~11.7 m, the V2 block 6.0 m across and 8 m tall. The parcel is the 0.4 m
+ * cube's size (0.4 x 0.3 x 0.4 drawn, the box hit box is unchanged).
+ */
+export const TALL_GLB = { width: 1.261, height: 1.893, depth: 1.15 } as const;
+export const BLOCK_GLB = { width: 1.888, height: 1.654, depth: 1.876 } as const;
+export const PARCEL_GLB = { width: 1.896, height: 1.036, depth: 1.869 } as const;
+export const BACK_ROW_Z = -55;
+export const TALL_WIDTH = 4.6;
+export const TALL_HEIGHT = 11.7;
+export const BLOCK_WIDTH = 6;
+export const BLOCK_HEIGHT = 8;
+export const PARCEL_DRAWN = { width: 0.4, height: 0.3 } as const;
+const tallScale = TALL_WIDTH / TALL_GLB.width;
+const blockScale = BLOCK_WIDTH / BLOCK_GLB.width;
+const parcelScale = PARCEL_DRAWN.width / PARCEL_GLB.width;
+const BACK_X = [-78, -65, -52, -39, -26, -13, 0, 13, 26, 39, 52, 65, 78] as const;
+export const TALL_SPOTS = BACK_X.filter((_, i) => i % 2 === 0).map((x, i) => ({ x, y: 0, z: BACK_ROW_Z, rotY: i % 2 ? Math.PI : 0 }));
+export const BLOCK_SPOTS = BACK_X.filter((_, i) => i % 2 === 1).map((x, i) => ({ x, y: 0, z: BACK_ROW_Z, rotY: i % 2 ? Math.PI / 2 : 0 }));
+export const TALL_FALLBACK = TALL_SPOTS.map((s) => ({ ...s, y: TALL_HEIGHT / 2 }));
+export const BLOCK_FALLBACK = BLOCK_SPOTS.map((s) => ({ ...s, y: BLOCK_HEIGHT / 2 }));
+
 export const ASSETS = {
    drone: { ...EXPANSION_ASSETS.drone, scale: DRONE_SCALE, yOffset: -DRONE_HOOK.y * DRONE_SCALE },
    car: { ...REUSED_ASSETS.car, scale: 1.6 / 1.9 },
@@ -41,6 +67,33 @@ export const ASSETS = {
    pigeon: { ...REUSED_ASSETS.pigeon, scale: 0.6 / 0.99 },
    crate: { ...SHARED_ASSETS.crate, scale: 0.8 / 1.88 },
    tree: { ...EXPANSION_ASSETS.leafyTree, scale: 3 / EXPANSION_GLB_SIZE.leafyTree.height },
+   cityTall: {
+      id: "cityTall",
+      url: "/models/3d/delivery-drone/cityBuildingTall.glb",
+      scale: tallScale,
+      stretch: [1, TALL_HEIGHT / (TALL_GLB.height * tallScale), 1] as const,
+      fallback: "box",
+      fallbackColor: "#94a3b8",
+      budget: { ...PROP_BUDGET },
+   },
+   cityBlock: {
+      id: "cityBlock",
+      url: "/models/3d/delivery-drone/cityBuildingV2.glb",
+      scale: blockScale,
+      stretch: [1, BLOCK_HEIGHT / (BLOCK_GLB.height * blockScale), 1] as const,
+      fallback: "box",
+      fallbackColor: "#cbd5e1",
+      budget: { ...PROP_BUDGET },
+   },
+   parcel: {
+      id: "parcel",
+      url: "/models/3d/delivery-drone/cardboardParcel.glb",
+      scale: parcelScale,
+      stretch: [1, PARCEL_DRAWN.height / (PARCEL_GLB.height * parcelScale), 1] as const,
+      fallback: "box",
+      fallbackColor: "#b98955",
+      budget: { ...PROP_BUDGET },
+   },
    brick: {
       id: "brick",
       url: "/models/3d/delivery-drone/cityBrickApartment.glb",

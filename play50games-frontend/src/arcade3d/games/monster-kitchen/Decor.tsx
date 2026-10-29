@@ -10,10 +10,10 @@ import {
 } from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { scaledCount, useQuality } from "@/arcade3d/core/quality";
-import { Model } from "@/arcade3d/core/assets";
+import { InstancedModel, Model } from "@/arcade3d/core/assets";
 import { Instanced, type InstanceSpot } from "@/arcade3d/core/render";
 import type { LevelId } from "@/arcade3d/types";
-import { ASSETS } from "./assets";
+import { ASSETS, STOVE_HEARTH_SPOTS } from "./assets";
 import { COLORS, SLIME_CAKE_SPOTS, decorOf, type DecorSpot } from "./looks";
 
 function asSpots(list: readonly DecorSpot[]): InstanceSpot[] {
@@ -193,15 +193,16 @@ export function Decor({ levelId }: { levelId: LevelId }) {
             </Instanced>
          )}
          {jarSpots.length > 0 && (
-            <Instanced spots={jarSpots} name="decor-jars">
-               <primitive object={geo.jar} attach="geometry" />
-               <meshStandardMaterial
-                  color={COLORS.jarGlass}
-                  roughness={0.2}
-                  transparent
-                  opacity={0.88}
-               />
-            </Instanced>
+            <InstancedModel
+               asset={ASSETS.potionJar}
+               spots={jarSpots}
+               fallback={
+                  <Instanced spots={jarSpots} name="decor-jars">
+                     <primitive object={geo.jar} attach="geometry" />
+                     <meshStandardMaterial color={COLORS.jarGlass} roughness={0.2} transparent opacity={0.88} />
+                  </Instanced>
+               }
+            />
          )}
          {pumpkinSpots.length > 0 && (
             <Instanced spots={pumpkinSpots} name="decor-pumpkins">
@@ -215,6 +216,10 @@ export function Decor({ levelId }: { levelId: LevelId }) {
                <meshStandardMaterial color={COLORS.garlic} roughness={0.6} />
             </Instanced>
          )}
+         {feast &&
+            STOVE_HEARTH_SPOTS.map((s, i) => (
+               <Model key={i} asset={ASSETS.stoveHearth} position={[s.x, 0, s.z]} rotation-y={s.rotY} name={`decor-stove-hearth-${i}`} />
+            ))}
          {feast &&
             SLIME_CAKE_SPOTS.map((s, i) => (
                <Model

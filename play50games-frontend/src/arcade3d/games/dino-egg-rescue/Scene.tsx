@@ -12,7 +12,7 @@ import {
    type MeshStandardMaterial,
 } from "three";
 import CameraRig from "@/arcade3d/core/CameraRig";
-import { DynamicInstancedModel, Model } from "@/arcade3d/core/assets";
+import { DynamicInstancedModel, Model, assetScale } from "@/arcade3d/core/assets";
 import { playSfx, startLoop, useMuted, type LoopHandle } from "@/arcade3d/core/audio";
 import { SkyDome } from "@/arcade3d/core/env";
 import { useFx } from "@/arcade3d/core/fx";
@@ -20,23 +20,28 @@ import { useGameTime } from "@/arcade3d/core/gameTime";
 import { TargetMarkers, type MarkerTarget } from "@/arcade3d/core/hud";
 import { useInput } from "@/arcade3d/core/input";
 import { inputToWorld, randomSeed } from "@/arcade3d/core/math";
-import { spring, squashStretch, waddle, type BodyOffset, type SpringState } from "@/arcade3d/core/motion";
+import { spring, squashStretch, type SpringState } from "@/arcade3d/core/motion";
+import { QuadrupedModel, useQuadrupedPose } from "@/arcade3d/core/rig/QuadrupedModel";
+import { blendQuadrupedPoses, createQuadrupedPose, quadrupedCrouch, quadrupedGait, quadrupedIdle, quadrupedPhaseStep } from "@/arcade3d/core/rig/quadrupedPoses";
 import { useCanvasTexture } from "@/arcade3d/core/render";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useFittedView } from "@/arcade3d/core/useFittedView";
+import { useCameraViews } from "@/arcade3d/core/camera/CameraViews";
+import type { AABB } from "@/arcade3d/core/collision";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { ASSETS, DINO_BACK_TOP_ANCHOR } from "./assets";
 import { VALLEY_BOUNDS, viewFor } from "./camera";
 import { Decor } from "./Decor";
-import { COLORS } from "./looks";
+import { COLORS, THEME_LOOKS } from "./looks";
+import { DINO_GAIT, DINO_GAIT_OPTIONS, DINO_LANDMARKS, DINO_SCALE as DINO_GLB_SCALE, dinoGait } from "./dinoGait";
 import { DinoPrimitive, useBoulderParts } from "./Primitives";
 import { useDinoLevel } from "./useDinoLevel";
 import {
    BOULDERS,
    DINO,
    EGGS,
-   NEST,
    createDinoRun,
+   obstacleDistance,
    stepDinoRun,
    type DinoRunState,
    type GroundEgg,
@@ -54,7 +59,12 @@ const SCRATCH_QUAT = new Quaternion();
 const SCRATCH_AXIS = new Vector3();
 const SCRATCH_SCALE = new Vector3(1, 1, 1);
 const DINO_SCALE = { x: 1, y: 1, z: 1 };
-const DINO_OFFSET: BodyOffset = { y: 0, roll: 0, yaw: 0, squash: 1 };
+/** metres per GLB unit up the dino (its fit stretches y): the rig's trunk lift moves the egg stack by this */
+const DINO_Y_SCALE = assetScale(ASSETS.dino)[1];
+const smooth01 = (a: number, b: number, x: number) => {
+   const t = Math.min(1, Math.max(0, (x - a) / (b - a)));
+   return t * t * (3 - 2 * t);
+};
 const COLOR_READY = new Color(COLORS.dashReady);
 const COLOR_COOLDOWN = new Color(COLORS.dashCooldown);
 
@@ -78,6 +88,33 @@ export default function Scene() {
    // level config captured here is the one the player picked).
    const [run] = useState<DinoRunState>(() => createDinoRun(randomSeed(), config));
 
+   // camera views (core/camera): the rules get the drawn camera's yaw (the fitted yaw in the default view)
+   const cam = useCameraViews({
+      slug: "dino-egg-rescue",
+      subject: "character",
+      steering: "camera",
+      defaultYaw: view.yaw,
+      target: (o) => {
+         const d = run.dino;
+         o.x = d.x; o.y = 0.5; o.z = d.z; o.heading = d.heading; o.vx = d.vx; o.vz = d.vz;
+      },
+      // the trees' crowns, the pines and the basalt spires block the chase, front and free cameras
+      solids: (out: AABB[]) => {
+         let n = 0;
+         for (const t of run.map.obstacles) {
+            if (n >= out.length) break;
+            if (t.kind !== "tree" && t.kind !== "pine" && t.kind !== "spire") continue;
+            const half = t.kind === "spire" ? t.r + 0.3 : 1.3;
+            const o = out[n++];
+            o.min.x = t.ax - half; o.min.y = 0.3; o.min.z = t.az - half;
+            o.max.x = t.ax + half; o.max.y = t.kind === "spire" ? 2.6 * (t.r / 0.7) : 4; o.max.z = t.az + half;
+         }
+         return n;
+      },
+      framing: { chase: { distance: 5 }, front: { distance: 4 }, free: { distance: 6 } },
+   });
+
+
    // Hoisted scratch state for frame inputs & spring oscillation
    const [scratch] = useState(() => ({
       stepInp: {
@@ -89,6 +126,7 @@ export default function Scene() {
       dir: { x: 0, z: 0 },
       stackSpringX: { x: 0, v: 0 } as SpringState,
       stackSpringZ: { x: 0, v: 0 } as SpringState,
+      vents: [0, 0, 0, 0, 0, 0] as number[],
    }));
 
    // Fallback parts for boulder dynamic instancing
@@ -155,6 +193,33 @@ export default function Scene() {
    const carriedEgg4Ref = useRef<Mesh>(null);
    const carriedGoldenRef = useRef<Group>(null);
 
+   // The dino's gait on the core quadruped rig (dinoGait.ts): a diagonal walk in deep mud, a trot at a
+   // jog, a bounding gallop at full speed; the phase advances by the distance really moved over the
+   // stride (planted feet), idle breathing when still, the head and tail turning into a turn, a crouch
+   // while stunned.
+   const [gait] = useState(() => ({ phase: 0, s01: 0, turn: 0, heading: run.map.startFacing, lastX: run.map.nest.x, lastZ: run.map.nest.z, stun: 0, gait: createQuadrupedPose(), idle: createQuadrupedPose() }));
+   const pose = useQuadrupedPose((out) => {
+      const d = run.dino;
+      const dt = time.delta;
+      const moved = Math.hypot(d.x - gait.lastX, d.z - gait.lastZ);
+      gait.lastX = d.x;
+      gait.lastZ = d.z;
+      const speed = Math.hypot(d.vx, d.vz);
+      gait.s01 += (dinoGait(speed).speed01 - gait.s01) * (1 - Math.exp(-12 * dt));
+      gait.phase = quadrupedPhaseStep(gait.phase, moved < 1 ? moved : 0, Math.max(0.02, gait.s01), DINO_LANDMARKS, DINO_GLB_SCALE, dt, DINO_GAIT.maxHz);
+      let dyaw = (d.heading - gait.heading) % (2 * Math.PI);
+      if (dyaw > Math.PI) dyaw -= 2 * Math.PI;
+      if (dyaw < -Math.PI) dyaw += 2 * Math.PI;
+      gait.heading = d.heading;
+      const turnRate = dt > 0 ? dyaw / dt : 0;
+      gait.turn += (Math.max(-1, Math.min(1, turnRate / 6)) - gait.turn) * (1 - Math.exp(-8 * dt));
+      quadrupedGait(gait.phase, gait.s01, DINO_LANDMARKS, gait.gait, gait.turn, DINO_GAIT_OPTIONS);
+      quadrupedIdle(time.now, DINO_LANDMARKS, gait.idle);
+      blendQuadrupedPoses(gait.idle, gait.gait, smooth01(0.05, 0.6, speed), out);
+      gait.stun += ((d.stunTimer > 0 ? 1 : 0) - gait.stun) * (1 - Math.exp(-dt / 0.06));
+      if (gait.stun > 0.01) quadrupedCrouch(0.06 * gait.stun, 0.3 * gait.stun, DINO_LANDMARKS, out);
+   });
+
    // Fixed pool of ground egg groups
    const regularEggRefs = useRef<(Group | null)[]>([]);
    const goldenEggRef = useRef<Group | null>(null);
@@ -164,7 +229,7 @@ export default function Scene() {
       const { moveX, moveY, jumpPressed, actionPressed } = input.current;
       const { stepInp, dir } = scratch;
 
-      inputToWorld(moveX, moveY, view.yaw, dir);
+      inputToWorld(moveX, moveY, cam.yaw(), dir);
       stepInp.moveX = dir.x;
       stepInp.moveY = dir.z;
       stepInp.actionPressed = !!actionPressed;
@@ -214,11 +279,21 @@ export default function Scene() {
          SCRATCH_POS.set(run.dino.x, 0.5, run.dino.z);
          fx.burst("debris", SCRATCH_POS, 20);
       }
+      // a vent bursting into an eruption
+      for (let i = 0; i < run.ventStates.length; i++) {
+         const now = run.ventStates[i];
+         if (now === 2 && scratch.vents[i] !== 2) {
+            const v = run.map.vents[i];
+            SCRATCH_POS.set(v.x, 0.6, v.z);
+            fx.burst(run.map.theme === "volcano" ? "debris" : "puff", SCRATCH_POS, 18);
+         }
+         scratch.vents[i] = now;
+      }
       if (events.eggDelivered) {
          const pts = events.eggDelivered.points;
          const pitch = 1.0 + events.eggDelivered.regularCount * 0.2;
          playSfx("chime", { pitch });
-         SCRATCH_POS.set(NEST.x, 1.2, NEST.z);
+         SCRATCH_POS.set(run.map.nest.x, 1.2, run.map.nest.z);
          fx.score(SCRATCH_POS, `+${pts}`, { color: COLORS.goldenEgg });
          fx.burst("sparkle", SCRATCH_POS, 28);
       }
@@ -244,20 +319,26 @@ export default function Scene() {
 
       // Dino group transform
       if (dinoGroupRef.current) {
-         dinoGroupRef.current.position.set(dino.x, 0, dino.z);
+         // a dash over a fallen log is a little hop
+         let hop = 0;
+         if (dino.dashTimer > 0) {
+            for (const o of run.map.obstacles) {
+               if (o.low && obstacleDistance(dino.x, dino.z, o) < 0.9) {
+                  hop = 0.45 * Math.sin((Math.PI * (DINO.dashDuration - dino.dashTimer)) / DINO.dashDuration);
+                  break;
+               }
+            }
+         }
+         dinoGroupRef.current.position.set(dino.x, hop, dino.z);
          dinoGroupRef.current.rotation.y = dino.heading;
 
-         // Waddle body motion
-         const speed = Math.hypot(dino.vx, dino.vz);
-         waddle(dino.waddlePhase, Math.min(0.12, speed * 0.025), DINO_OFFSET);
+         // the legs, head and tail walk on the rig (pose above); the dash still squashes the whole body
          if (dino.dashTimer > 0) {
             squashStretch(0.85, DINO_SCALE);
             dinoGroupRef.current.scale.set(DINO_SCALE.x, DINO_SCALE.y, DINO_SCALE.z);
          } else {
             dinoGroupRef.current.scale.set(1, 1, 1);
          }
-         dinoGroupRef.current.position.y = DINO_OFFSET.y;
-         dinoGroupRef.current.rotation.z = DINO_OFFSET.roll;
       }
 
       // World dash cooldown ring
@@ -300,6 +381,8 @@ export default function Scene() {
          spring(scratch.stackSpringZ, targetTiltZ, 75, 12, dt);
          carriedStackRef.current.rotation.z = scratch.stackSpringX.x;
          carriedStackRef.current.rotation.x = scratch.stackSpringZ.x;
+         // the eggs ride the back: it dips and bobs with the rig's trunk
+         carriedStackRef.current.position.y = DINO_BACK_TOP_ANCHOR.y + pose.lift * DINO_Y_SCALE;
 
          const carriedCount = dino.carriedEggs.length;
          if (carriedEgg1Ref.current) carriedEgg1Ref.current.visible = carriedCount >= 1;
@@ -409,9 +492,9 @@ export default function Scene() {
 
       // 3. Nest marker (when carrying any egg)
       if (dino.carriedEggs.length > 0 || dino.carriedGolden) {
-         markerTargets[2].x = NEST.x;
+         markerTargets[2].x = run.map.nest.x;
          markerTargets[2].y = 0.3;
-         markerTargets[2].z = NEST.z;
+         markerTargets[2].z = run.map.nest.z;
          markerTargets[2].hidden = false;
          markerTargets[2].color = COLORS.dashReady;
       } else {
@@ -441,8 +524,8 @@ export default function Scene() {
       <group name="dino-egg-rescue-scene">
          {/* SkyDome gradient: deep sunset twilight into glowing orange horizon */}
          <SkyDome
-            top={COLORS.skyTop}
-            bottom={COLORS.skyBottom}
+            top={THEME_LOOKS[run.map.theme].skyTop}
+            bottom={THEME_LOOKS[run.map.theme].skyBottom}
             exponent={0.7}
             offset={0.05}
          />
@@ -459,14 +542,14 @@ export default function Scene() {
          />
 
          {/* Valley Terrain, Mud, Trees, Nest, Volcano, 0.8 s lane telegraph */}
-         <Valley telegraphLanes={run.laneTelegraph} />
+         <Valley telegraphLanes={run.laneTelegraph} ventStates={run.ventStates} />
 
          {/* Prehistoric Jungle Surroundings Decor outside play bounds */}
          <Decor reduced={preferences.reduced} />
 
          {/* Dino Baby Model */}
-         <group ref={dinoGroupRef} position={[DINO.startX, 0, DINO.startZ]}>
-            <Model asset={ASSETS.dino} fallback={<DinoPrimitive />} />
+         <group ref={dinoGroupRef} position={[run.map.nest.x, 0, run.map.nest.z]}>
+            <QuadrupedModel asset={ASSETS.dino} pose={pose} fallback={<DinoPrimitive />} />
 
             {/* Egg stack on back anchored to DINO_BACK_TOP_ANCHOR with spring sway */}
             <group
@@ -558,7 +641,7 @@ export default function Scene() {
          <mesh
             ref={dashRingRef}
             rotation={[-Math.PI / 2, 0, 0]}
-            position={[DINO.startX, 0.03, DINO.startZ]}
+            position={[run.map.nest.x, 0.03, run.map.nest.z]}
          >
             <ringGeometry args={[0.82, 0.9, 32]} />
             <meshStandardMaterial
@@ -573,7 +656,7 @@ export default function Scene() {
          {/* Stun Halo (stars ring above dino) */}
          <group
             ref={stunHaloRef}
-            position={[DINO.startX, 1.05, DINO.startZ]}
+            position={[run.map.nest.x, 1.05, run.map.nest.z]}
             visible={false}
          >
             <mesh position={[0.3, 0, 0]}>
@@ -609,7 +692,7 @@ export default function Scene() {
          {/* Post-Stun Grace Halo (shield wireframe) */}
          <mesh
             ref={graceHaloRef}
-            position={[DINO.startX, 0.45, DINO.startZ]}
+            position={[run.map.nest.x, 0.45, run.map.nest.z]}
             visible={false}
          >
             <sphereGeometry args={[0.85, 16, 16]} />
@@ -655,15 +738,16 @@ export default function Scene() {
                      opacity={0.55}
                   />
                </mesh>
-               {/* 3D Spotted Egg */}
-               <mesh position={[0, 0.18, 0]} scale={[1, 1.33, 1]}>
-                  <sphereGeometry args={[0.15, 16, 16]} />
-                  <meshStandardMaterial
-                     map={eggTexture}
-                     color="#ffffff"
-                     roughness={0.5}
-                  />
-               </mesh>
+               {/* 3D Spotted Egg (Hyper3D dinoEgg; the code egg is the fallback) */}
+               <Model
+                  asset={ASSETS.dinoEgg}
+                  fallback={
+                     <mesh position={[0, 0.18, 0]} scale={[1, 1.33, 1]}>
+                        <sphereGeometry args={[0.15, 16, 16]} />
+                        <meshStandardMaterial map={eggTexture} color="#ffffff" roughness={0.5} />
+                     </mesh>
+                  }
+               />
             </group>
          ))}
 
@@ -683,17 +767,22 @@ export default function Scene() {
                   opacity={0.65}
                />
             </mesh>
-            {/* 3D Golden Egg */}
-            <mesh position={[0, 0.22, 0]} scale={[1, 1.33, 1]}>
-               <sphereGeometry args={[0.18, 16, 16]} />
-               <meshStandardMaterial
-                  color={COLORS.goldenEgg}
-                  emissive={COLORS.goldenEggCore}
-                  emissiveIntensity={1.2}
-                  roughness={0.2}
-                  metalness={0.6}
-               />
-            </mesh>
+            {/* 3D Golden Egg (the dino egg in gold; the code egg is the fallback) */}
+            <Model
+               asset={ASSETS.goldenEgg}
+               fallback={
+                  <mesh position={[0, 0.22, 0]} scale={[1, 1.33, 1]}>
+                     <sphereGeometry args={[0.18, 16, 16]} />
+                     <meshStandardMaterial
+                        color={COLORS.goldenEgg}
+                        emissive={COLORS.goldenEggCore}
+                        emissiveIntensity={1.2}
+                        roughness={0.2}
+                        metalness={0.6}
+                     />
+                  </mesh>
+               }
+            />
          </group>
 
          {/* Screen Edge Target Markers */}

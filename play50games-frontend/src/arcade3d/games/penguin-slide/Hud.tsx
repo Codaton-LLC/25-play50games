@@ -5,6 +5,9 @@ import { TimingRing } from "@/arcade3d/core/hud";
 import { useSafeArea, type SafeArea } from "@/arcade3d/core/safeArea";
 import { AIR } from "./rules";
 import styles from "./Hud.module.css";
+import CameraViewButton from "@/arcade3d/core/camera/CameraViewButton";
+import { HintLine } from "@/arcade3d/core/hud/HintLine";
+import { GUIDE } from "./guide";
 
 const LANDING_ZONE = [{ start: 1 - AIR.tolerance / 360, end: AIR.tolerance / 360 }];
 const rotation = () => ((useArcadeStore.getState().stats.yaw ?? 0) % 360 + 360) % 360 / 360;
@@ -15,7 +18,7 @@ const panelTop = (area: SafeArea) => {
    return bottom + 8;
 };
 
-export default function Hud() {
+function GameHud() {
    const assist = useArcadeStore((s) => s.stats.assist ?? 0);
    const time = useArcadeStore((s) => s.stats.time ?? 30);
    const air = useArcadeStore((s) => s.stats.air ?? 0);
@@ -26,4 +29,15 @@ export default function Hud() {
       {air > 0 && <><TimingRing source={rotation} zones={LANDING_ZONE} size={40} label="↑" needleColor="var(--text)" />
          <span className={alignment ? styles.aligned : styles.turn}>{alignment ? "Aligned — land straight" : "Turn to face forward"}</span></>}
    </aside>;
+}
+
+/** The game's HUD plus the core 📷 camera-view button (core/camera). */
+export default function Hud() {
+   return (
+      <>
+         <CameraViewButton />
+         <HintLine signal={GUIDE} />
+         <GameHud />
+      </>
+   );
 }

@@ -7,15 +7,15 @@ import Hud from "./Hud";
 import { ASSETS } from "./assets";
 import { FOV } from "./camera";
 import { LEVELS, type DroneLevel } from "./levels";
-import { COLORS } from "./looks";
+import { COLORS, THEMES } from "./looks";
 
 /** one line under the level tiles */
 const DESCRIPTIONS: Record<LevelId, string> = {
-   1: "Twelve rooftop drops. Wind after a minute; fragile parcels from the ninth.",
-   2: "Thirteen drops on tighter pads, with the wind arriving sooner.",
-   3: "Fourteen drops. Pigeons fill the streets early and the gusts are stronger.",
-   4: "Fifteen drops. Fragile cargo, hard gusts and a faster battery drain.",
-   5: "Sixteen drops on the densest route. The sky stays bright; the pressure is the route.",
+   1: "Twelve rooftop drops over the training city. Wind after a minute; fragile parcels from the ninth.",
+   2: "Low houses and pocket parks; apartment towers crowd the depot, so turns are tight.",
+   3: "Golden hour downtown: tall offices, billboards and a skyscraper cluster in the north-east.",
+   4: "Two walls of towers make wind canyons. Watch the windsocks; fragile cargo and hard gusts.",
+   5: "Night delivery: lit windows, street lamps, sixteen drops and the fastest battery drain.",
 };
 
 function instructionsFor(level: DroneLevel): string[] {
@@ -56,6 +56,7 @@ const definition: GameDefinition<DroneLevel> = {
          description: DESCRIPTIONS[id],
          config: level,
          hudStats: hudFor(level),
+         ...(id === 1 ? {} : { environment: { background: THEMES[level.map.theme].skyBottom, lighting: THEMES[level.map.theme].lighting } }),
          ...(id === 1 ? {} : { instructions: instructionsFor(level) }),
       };
    }),

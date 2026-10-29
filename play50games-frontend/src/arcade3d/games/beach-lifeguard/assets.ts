@@ -92,8 +92,10 @@ export const ASSETS = {
       ...local("charLifeguard", LIFEGUARD_SCALE, "capsule", "#dc2626", CHARACTER_BUDGET),
       humanoid: { landmarks: LIFEGUARD_LANDMARKS },
    },
-   // unrigged (spec): stands in the water to the chest and bobs
-   swimmer: { ...local("beachgoerNpc", FIT.swimmer / GLB_SIZE.beachgoerNpc.height, "capsule", "#38bdf8", CHARACTER_BUDGET), yOffset: -FIT.swimmerSink },
+   // unrigged, arms down (no T-pose to auto-rig): stands in the water to the chest and bobs (the scene sinks
+   // it by FIT.swimmerSink), lies on its back on the rescue tube while towed, across the lifeguard's arms on
+   // the sand, and stands on the dry sand once saved
+   swimmer: local("beachgoerNpc", FIT.swimmer / GLB_SIZE.beachgoerNpc.height, "capsule", "#38bdf8", CHARACTER_BUDGET),
    tower: local("lifeguardTower", FIT.tower / GLB_SIZE.lifeguardTower.height, "box", "#ef4444"),
    rescueFloat: local("rescueFloat", FIT.float / GLB_SIZE.rescueFloat.depth, "cylinder", "#ef4444"),
    jetSki: local("rescueJetSki", FIT.jetSki / GLB_SIZE.rescueJetSki.depth, "box", "#0284c7"),

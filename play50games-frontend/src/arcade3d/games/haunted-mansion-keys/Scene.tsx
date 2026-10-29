@@ -6,9 +6,13 @@ import { useFrame, useThree } from "@react-three/fiber";
 import { BoxGeometry, Color, Euler, Fog, Matrix4, MeshStandardMaterial, Quaternion, RepeatWrapping, Vector3, type Group, type MeshStandardMaterial as Mat } from "three";
 import { DynamicInstancedModel, InstancedModel, Model } from "@/arcade3d/core/assets";
 import CameraRig from "@/arcade3d/core/CameraRig";
+import type { AABB } from "@/arcade3d/core/collision";
+import { useCameraViews } from "@/arcade3d/core/camera/CameraViews";
 import { playSfx } from "@/arcade3d/core/audio";
 import { FRAME_PRIORITY } from "@/arcade3d/core/frameLoop";
-import { useFx } from "@/arcade3d/core/fx";
+import { Toss, useActionPop, useFx, type TossHandle } from "@/arcade3d/core/fx";
+import { TargetBeacon, TargetMarkers } from "@/arcade3d/core/hud";
+import { useCoarsePointer } from "@/arcade3d/core/TouchControls";
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import { useInput } from "@/arcade3d/core/input";
 import { useLevel } from "@/arcade3d/core/level";
@@ -20,7 +24,7 @@ import { useFittedView } from "@/arcade3d/core/useFittedView";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { ASSETS, DETECTIVE_LANDMARKS, DETECTIVE_SCALE, FIT } from "./assets";
 import type { MansionLevel } from "./levels";
-import { COLORS, DAMPING, FOV, LOOK_AHEAD, aimBounds, capSpots, fogFor, groundsSpots, paintingSpots, propSpots, viewFor, wallSpots } from "./looks";
+import { COLORS, DAMPING, FOV, LOOK_AHEAD, aimBounds, cameraSolidList, capSpots, fogFor, groundsSpots, paintingSpots, propSpots, viewFor, wallSpots } from "./looks";
 import {
    ArmourStandPrimitive,
    BookshelfPrimitive,
@@ -32,7 +36,8 @@ import {
    ShapePlate,
    TablePrimitive,
 } from "./Primitives";
-import { HERO_SPEED, KEY_COLORS, PEDESTAL_TOP, ROOM_D, ROOM_W, createRun, step, type Run } from "./rules";
+import { GUIDE, keyName, lockedDoorInReach, nextObjective, objectiveHint, type Objective } from "./guide";
+import { ACTION_RANGE, HERO_SPEED, KEY_COLORS, PEDESTAL_TOP, ROOM_D, ROOM_W, createRun, step, type Run } from "./rules";
 
 const E = new Euler();
 const Q = new Quaternion();
@@ -40,6 +45,7 @@ const V = new Vector3();
 const S = new Vector3(1, 1, 1);
 const AT = { x: 0, y: 0.6, z: 0 };
 const KEY_TINTS = KEY_COLORS.map((c) => new Color(c));
+const EXIT_GREEN = "#4ade80";
 
 /** Dark oak planks, one board per 64 px. */
 function drawPlanks(ctx: CanvasRenderingContext2D, w: number, h: number) {
@@ -72,6 +78,34 @@ function LevelScene() {
    const time = useGameTime();
    const input = useInput();
    const [run] = useState<Run>(() => createRun(randomSeed(), config));
+   // camera views (core/camera): the rules get the drawn camera's yaw; the walls and the furniture block the camera
+   const cameraSolids = useMemo(() => cameraSolidList(run.walls, run.solids), [run]);
+   const cam = useCameraViews({
+      slug: "haunted-mansion-keys",
+      subject: "character",
+      steering: "camera",
+      defaultYaw: view.yaw,
+      target: (o) => {
+         const h = run.hero;
+         o.x = h.x;
+         o.y = 1.1;
+         o.z = h.z;
+         o.heading = h.yaw;
+         o.vx = h.vx;
+         o.vz = h.vz;
+      },
+      solids: (out: AABB[]) => {
+         let n = 0;
+         for (const w of cameraSolids) {
+            if (n >= out.length) break;
+            const b = out[n++];
+            b.min.x = w.min.x; b.max.x = w.max.x;
+            b.min.y = w.min.y; b.max.y = w.max.y;
+            b.min.z = w.min.z; b.max.z = w.max.z;
+         }
+         return n;
+      },
+   });
    const body = useRef<Group>(null);
    const armourBody = useRef<Group>(null);
    const keyBadges = useRef<(Group | null)[]>([]);
@@ -81,6 +115,29 @@ function LevelScene() {
    const gait = useRef({ phase: 0, amount: 0 }).current;
    const [scratch] = useState(createPose);
    const synced = useRef({ keys: -1, mask: -1 }).current;
+   // clarity (visual only): the beacon over the next step, the hint line, the key flights, fail pops
+   const pop = useActionPop();
+   const touch = useCoarsePointer();
+   const goal = useRef<Objective>({ kind: "key", index: 0, x: 0, y: 0, z: 0 }).current;
+   const beacon = useRef({ x: 0, y: 0, z: 0, hidden: true }).current;
+   // the same target for the edge arrow when it is off screen or under a HUD panel
+   const edgeTargets = useMemo(() => [beacon], [beacon]);
+   const hand = useRef({ x: run.hero.x, y: 1.1, z: run.hero.z }).current;
+   const guideCode = useRef(-1);
+   const lockedPopAt = useRef(-10);
+   const keyTosses = useRef<(TossHandle | null)[]>([]);
+   const [look, setLook] = useState<{ kind: Objective["kind"]; index: number }>({ kind: "key", index: 0 });
+   useEffect(() => {
+      // the first step is up from the countdown on
+      nextObjective(run, goal);
+      beacon.x = goal.x;
+      beacon.y = goal.y;
+      beacon.z = goal.z;
+      beacon.hidden = false;
+      GUIDE.set(objectiveHint(run, goal, touch));
+      return () => GUIDE.reset();
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+   }, [run]);
 
    const bounds = useMemo(() => aimBounds(config, portrait), [config, portrait]);
    // the fog starts past the aim at whatever distance the camera was fitted to (looks.ts fogFor)
@@ -141,7 +198,7 @@ function LevelScene() {
    useRunFrame((_state, dt) => {
       const { moveX, moveY, action, actionPressed } = input.current;
       const store = useArcadeStore.getState();
-      const ev = step(run, { moveX, moveY, action, actionPressed, yaw: view.yaw }, dt, store.timeLeftMs ?? 0);
+      const ev = step(run, { moveX, moveY, action, actionPressed, yaw: cam.yaw() }, dt, store.timeLeftMs ?? 0);
 
       let mask = 0;
       for (let i = 0; i < run.heldKeys.length; i++) if (run.heldKeys[i]) mask |= 1 << i;
@@ -151,6 +208,8 @@ function LevelScene() {
       aim.x = Math.min(bounds.max.x, Math.max(bounds.min.x, run.hero.x + Math.sin(run.hero.yaw) * LOOK_AHEAD));
       aim.z = Math.min(bounds.max.z, Math.max(bounds.min.z, run.hero.z + Math.cos(run.hero.yaw) * LOOK_AHEAD));
 
+      hand.x = run.hero.x;
+      hand.z = run.hero.z;
       if (ev.keyPickup >= 0) {
          const k = run.keys[ev.keyPickup];
          AT.x = k.x;
@@ -159,6 +218,8 @@ function LevelScene() {
          fx.burst("sparks", AT, 14);
          fx.score(AT, "KEY", { color: k.color });
          playSfx("pickup");
+         // the key flies into the detective's hand (the key ring badge lights as it lands)
+         keyTosses.current[k.id]?.play(AT, hand, { duration: 0.42, height: 0.7, scaleFrom: 1.2, scaleTo: 0.5 });
       }
       if (ev.doorOpen >= 0) {
          const d = run.doors[ev.doorOpen];
@@ -167,6 +228,20 @@ function LevelScene() {
          AT.z = d.z;
          fx.burst("puff", AT, 10);
          playSfx(d.isExit ? "chime" : "whoosh");
+         // the key goes from the hand into the lock
+         if (d.kind === "locked" && d.keyIndex >= 0) keyTosses.current[d.keyIndex]?.play(hand, AT, { duration: 0.38, height: 0.4, scaleFrom: 0.6, scaleTo: 0.9 });
+      }
+      // a Use at a locked door without its key does nothing in the rules: say why
+      if (input.current.actionPressed && run.time - lockedPopAt.current > 1.2) {
+         const need = lockedDoorInReach(run);
+         if (need >= 0) {
+            lockedPopAt.current = run.time;
+            AT.x = run.hero.x;
+            AT.y = 2;
+            AT.z = run.hero.z;
+            pop.fail(AT, `Locked: need the ${keyName(need)}`, { shake: 0 });
+            playSfx("buzz", { volume: 0.4 });
+         }
       }
       if (ev.leverPulled && run.lever) {
          AT.x = run.lever.x;
@@ -183,8 +258,25 @@ function LevelScene() {
          fx.burst("puff", AT, 12);
          fx.shake(0.3);
          playSfx("hit");
+         AT.y = 2;
+         pop.fail(AT, run.lives !== null ? "Caught! -1 life" : "Caught!", { shake: 0 });
       }
       if (ev.lifeLost) store.loseLife();
+
+      // the next step: beacon + hint (the hint is rebuilt only when the step or "in reach" changes)
+      nextObjective(run, goal);
+      beacon.x = goal.x;
+      beacon.y = goal.y;
+      beacon.z = goal.z;
+      beacon.hidden = run.over !== null;
+      const near = Math.hypot(goal.x - run.hero.x, goal.z - run.hero.z) <= ACTION_RANGE ? 1 : 0;
+      const code = (goal.kind === "key" ? 0 : goal.kind === "door" ? 1 : 2) * 100 + (goal.index + 1) * 2 + near;
+      if (code !== guideCode.current) {
+         if (Math.floor(code / 2) !== Math.floor(guideCode.current / 2)) setLook({ kind: goal.kind, index: goal.index });
+         guideCode.current = code;
+         GUIDE.set(objectiveHint(run, goal, touch));
+      }
+
       if (ev.won) {
          const exit = run.rooms[run.rooms.length - 1];
          AT.x = exit.cx;
@@ -355,6 +447,26 @@ function LevelScene() {
                <meshStandardMaterial ref={exitGlow} color={COLORS.exitGlow} emissive={COLORS.exitGlow} emissiveIntensity={0.15} roughness={0.5} />
             </mesh>
          </group>
+
+         {/* clarity: the next step's beacon, and one flying copy per key (pickup and unlock) */}
+         <TargetBeacon
+            target={beacon}
+            variant={look.kind === "exit" ? "drop-here" : "pick"}
+            color={look.kind === "exit" ? EXIT_GREEN : KEY_COLORS[look.index]}
+            radius={look.kind === "exit" ? 1.2 : look.kind === "door" ? 0.8 : 0.55}
+            height={look.kind === "exit" ? 1.6 : look.kind === "door" ? 1.2 : 0.9}
+            label={look.kind === "exit" ? "EXIT" : null}
+         />
+         <TargetMarkers targets={edgeTargets} color={look.kind === "exit" ? EXIT_GREEN : KEY_COLORS[look.index]} />
+         {run.keys.map((k) => (
+            <Toss key={k.id} ref={(t: TossHandle | null) => { keyTosses.current[k.id] = t; }} spin={8}>
+               <ShapePlate shape={k.shape} color={k.color} size={0.26} />
+               <mesh position={[0, -0.18, 0]}>
+                  <cylinderGeometry args={[0.03, 0.03, 0.26, 8]} />
+                  <meshStandardMaterial color={k.color} emissive={k.color} emissiveIntensity={0.6} metalness={0.4} roughness={0.35} />
+               </mesh>
+            </Toss>
+         ))}
 
          <group ref={body}>
             <HumanoidModel asset={ASSETS.detective} pose={pose} fallback={<DetectiveFigure />} />

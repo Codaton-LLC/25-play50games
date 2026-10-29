@@ -6,25 +6,31 @@ import { createRng } from "@/arcade3d/core/math";
 import type { ScoringRules, LevelId } from "@/arcade3d/types";
 import type { TaxiLevel } from "./levels";
 
-export const BLOCK = 14;
-export const STREET = 6;
+/**
+ * World scale: metres per design unit. The game was designed round a 2.8 m cab; every length, speed and
+ * acceleration here is that design times U, so the cab is a real 4.55 m car next to a 1.75 m rider, and a
+ * run is the same run in seconds (an exact similarity: the same timings, scores and limit proofs).
+ */
+export const U = 1.625;
+export const BLOCK = 14 * U;
+export const STREET = 6 * U;
 export const PITCH = BLOCK + STREET;
-export const INSET = 0.4;
+export const INSET = 0.4 * U;
 export const HALF_STREET = STREET / 2;
-export const TOP_SPEED = 9;
-export const ACCEL = 12;
-export const BRAKE = 18;
-export const REVERSE = 3;
+export const TOP_SPEED = 9 * U;
+export const ACCEL = 12 * U;
+export const BRAKE = 18 * U;
+export const REVERSE = 3 * U;
 export const STEER = 2.2;
-export const RADIUS = 1.15;
-export const DRAG = 0.4;
+export const RADIUS = 1.15 * U;
+export const DRAG = 0.4 * U;
 export const DEAD = 0.2;
-export const STRIKE = 3;
-export const PAD_R = 2.2;
-export const CLOSE_R = 1.2;
+export const STRIKE = 3 * U;
+export const PAD_R = 2.2 * U;
+export const CLOSE_R = 1.2 * U;
 export const DWELL_S = 0.5;
-export const STOP_SPEED = 0.5;
-export const RED_SPEED = 1;
+export const STOP_SPEED = 0.5 * U;
+export const RED_SPEED = 1 * U;
 /** One physical hit (wall, car, red light) spends one life, then this lock. Patience ignores it. */
 export const HIT_LOCK_S = 0.8;
 export const GREEN_S = 4;
@@ -36,10 +42,17 @@ export const DROP_POINTS = 100;
 export const CLOSE_POINTS = 60;
 export const CALM_POINTS = 40;
 export const TIME_POINTS = 5;
-export const CAR_W = 0.7;
-export const CAR_L = 1.55;
-const STOP_GAP = HALF_STREET + CAR_L + 0.35;
-const CAR_GAP = CAR_L * 2 + 2.4;
+export const CAR_W = 0.7 * U;
+export const CAR_L = 1.55 * U;
+/** Pads stand at least this far apart. */
+export const PAD_SPACING = 16 * U;
+const CAR_GAP = CAR_L * 2 + 2.4 * U;
+/** Half the paved road between the kerbs; the rest of the street (and the inset) is pavement the cab may still mount. */
+export const ROAD_HALF = 3.25;
+/** The corner turn's radius: the turn starts on the corner's stop line. */
+export const TURN_R = HALF_STREET;
+/** A car waits at a red light with its nose on the stop line (its centre this far from the junction centre). */
+const STOP_GAP = HALF_STREET + CAR_L + 0.35 * U;
 
 export interface TaxiInput {
    moveX: number;
@@ -63,8 +76,17 @@ export interface Car {
    s: number;
    x: number;
    z: number;
+   /** heading: the car faces (sin yaw, cos yaw), like the cab */
+   yaw: number;
+   /** the street axis it is nearest to (0 = along x) and its sense along it */
    axis: 0 | 1;
    dir: 1 | -1;
+   /** in a corner turn (0 on a straight, else the turn's progress 0..1) */
+   turn: number;
+   /** metres driven (wheel spin) */
+   odo: number;
+   /** current speed (m/s): 0 while it waits */
+   v: number;
    hx: number;
    hz: number;
    ox: number;
@@ -89,6 +111,7 @@ export interface TaxiEvent {
 
 interface Fare { pick: number; drop: number }
 
+/** One centreline segment of the traffic loop, between two junctions. */
 interface Seg {
    x0: number;
    z0: number;
@@ -98,6 +121,14 @@ interface Seg {
    s0: number;
    axis: 0 | 1;
    dir: 1 | -1;
+}
+
+/** A corner of the loop: its progress s at the corner junction, the lane arc's centre and start angle. */
+interface Corner {
+   s: number;
+   cx: number;
+   cz: number;
+   a0: number;
 }
 
 interface StopLine {
@@ -120,6 +151,7 @@ export interface Run {
    lightAt: Int16Array;
    stops: StopLine[];
    segs: Seg[];
+   corners: Corner[];
    loopLength: number;
    cars: Car[];
    fare: number;
@@ -208,7 +240,7 @@ function buildingsOf(level: TaxiLevel): AABB[] {
          const z0 = STREET + r * PITCH + INSET;
          boxes.push({
             min: { x: x0, y: 0, z: z0 },
-            max: { x: x0 + BLOCK - INSET * 2, y: 10, z: z0 + BLOCK - INSET * 2 },
+            max: { x: x0 + BLOCK - INSET * 2, y: 10 * U, z: z0 + BLOCK - INSET * 2 },
          });
       }
    }
@@ -257,7 +289,18 @@ function buildFares(pads: Pad[], rides: number, sx: number, sz: number): { pads:
    return { pads, fares };
 }
 
-function buildLoop(level: TaxiLevel): { segs: Seg[]; loopLength: number } {
+/**
+ * The traffic loop: the one-way perimeter streets (one lane, on the centreline), clockwise seen from above
+ * (+x along the first street, then +z). A car's progress `s` runs along the centrelines through every
+ * junction (its timing, gaps and red-light stops are measured there). At each of the four corners it turns
+ * on a quarter arc of TURN_R that starts on the corner's stop line: the HALF_STREET of progress either side
+ * of the corner junction is spread over the arc, so a car slows through its turn, faces along it and never
+ * slides sideways.
+ *
+ * (A right-hand lane beside the centreline was tried: the careful-driver bot then cleared only 195 / 200
+ * seeds on L4 and 184 / 200 on L5, under the proofs' 99 %, so two-lane traffic needs new score proofs.)
+ */
+function buildLoop(level: TaxiLevel): { segs: Seg[]; corners: Corner[]; loopLength: number } {
    const bx = level.blocksX;
    const bz = level.blocksZ;
    const pts: { x: number; z: number }[] = [];
@@ -278,26 +321,70 @@ function buildLoop(level: TaxiLevel): { segs: Seg[]; loopLength: number } {
       segs.push({ x0: a.x, z0: a.z, x1: b.x, z1: b.z, len, s0: acc, axis, dir });
       acc += len;
    }
-   return { segs, loopLength: acc };
+   // the corners: where a segment's direction differs from the one before it (the turn is always to the right)
+   const corners: Corner[] = [];
+   for (let i = 0; i < segs.length; i++) {
+      const prev = segs[(i + segs.length - 1) % segs.length];
+      const seg = segs[i];
+      if (prev.axis === seg.axis && prev.dir === seg.dir) continue;
+      const inX = prev.axis === 0 ? prev.dir : 0;
+      const inZ = prev.axis === 1 ? prev.dir : 0;
+      const outX = seg.axis === 0 ? seg.dir : 0;
+      const outZ = seg.axis === 1 ? seg.dir : 0;
+      // the arc starts TURN_R before the corner junction, its centre to the right of the way in
+      const ax = seg.x0 - TURN_R * inX;
+      const az = seg.z0 - TURN_R * inZ;
+      const rx = -inZ;
+      const rz = inX;
+      corners.push({ s: seg.s0, cx: ax + TURN_R * rx, cz: az + TURN_R * rz, a0: Math.atan2(-rx, -rz) });
+   }
+   return { segs, corners, loopLength: acc };
 }
 
-function placeOnLoop(segs: Seg[], loopLength: number, s: number, car: Car): void {
-   let d = s % loopLength;
-   if (d < 0) d += loopLength;
-   for (let i = 0; i < segs.length; i++) {
-      const seg = segs[i];
-      if (d <= seg.len || i === segs.length - 1) {
-         const t = seg.len > 0 ? Math.min(1, d / seg.len) : 0;
-         car.x = seg.x0 + (seg.x1 - seg.x0) * t;
-         car.z = seg.z0 + (seg.z1 - seg.z0) * t;
-         car.axis = seg.axis;
-         car.dir = seg.dir;
-         car.hx = seg.axis === 0 ? CAR_L : CAR_W;
-         car.hz = seg.axis === 0 ? CAR_W : CAR_L;
-         return;
+/** Place a car at loop progress s: its lane position, heading, nearest axis and the box round its body. */
+function placeOnLoop(run: Pick<Run, "segs" | "corners" | "loopLength">, s: number, car: Car): void {
+   let d = s % run.loopLength;
+   if (d < 0) d += run.loopLength;
+   car.turn = 0;
+   for (let k = 0; k < run.corners.length; k++) {
+      const c = run.corners[k];
+      let off = d - c.s;
+      if (off > run.loopLength / 2) off -= run.loopLength;
+      else if (off < -run.loopLength / 2) off += run.loopLength;
+      if (off > -HALF_STREET && off < HALF_STREET) {
+         const t = (off + HALF_STREET) / (2 * HALF_STREET);
+         const a = c.a0 - t * (Math.PI / 2);
+         car.x = c.cx + Math.sin(a) * TURN_R;
+         car.z = c.cz + Math.cos(a) * TURN_R;
+         car.yaw = a - Math.PI / 2;
+         car.turn = Math.max(1e-6, t);
+         break;
       }
-      d -= seg.len;
    }
+   if (car.turn === 0) {
+      let seg = run.segs[run.segs.length - 1];
+      for (let i = 0; i < run.segs.length; i++) {
+         if (d <= run.segs[i].s0 + run.segs[i].len) {
+            seg = run.segs[i];
+            break;
+         }
+      }
+      const t = seg.len > 0 ? Math.min(1, Math.max(0, (d - seg.s0) / seg.len)) : 0;
+      car.x = seg.x0 + (seg.x1 - seg.x0) * t;
+      car.z = seg.z0 + (seg.z1 - seg.z0) * t;
+      car.yaw = Math.atan2(seg.axis === 0 ? seg.dir : 0, seg.axis === 1 ? seg.dir : 0);
+   }
+   while (car.yaw <= -Math.PI) car.yaw += Math.PI * 2;
+   while (car.yaw > Math.PI) car.yaw -= Math.PI * 2;
+   const fx = Math.sin(car.yaw);
+   const fz = Math.cos(car.yaw);
+   const ax = Math.abs(fx);
+   const az = Math.abs(fz);
+   car.axis = ax >= az ? 0 : 1;
+   car.dir = (car.axis === 0 ? fx : fz) >= 0 ? 1 : -1;
+   // the box round the turned body (exact on the straights)
+   car.hx = ax * CAR_L + az * CAR_W;
+   car.hz = az * CAR_L + ax * CAR_W;
 }
 
 function distToNext(segs: Seg[], loopLength: number, s: number, out: Run["ahead"]): void {
@@ -366,6 +453,7 @@ export function createRun(seed: number, level: TaxiLevel): Run {
       lightAt,
       stops,
       segs: loop.segs,
+      corners: loop.corners,
       loopLength: loop.loopLength,
       cars: [],
       fare: 0,
@@ -389,7 +477,7 @@ export function createRun(seed: number, level: TaxiLevel): Run {
       clock: createFixedStep(TICK_S),
       tick: () => {},
       ev: freshEvent(),
-      marker: { x: 0, y: 0.45, z: 0, hidden: false },
+      marker: { x: 0, y: 0.45 * U, z: 0, hidden: false },
       hop: 0,
       riderX: 0,
       riderZ: 0,
@@ -408,9 +496,13 @@ export function createRun(seed: number, level: TaxiLevel): Run {
    for (let k = 0; k < count; k++) {
       const car: Car = {
          s: ((k + 0.35 + rng() * 0.3) / count) * loop.loopLength,
-         x: 0, z: 0, axis: 0, dir: 1, hx: CAR_W, hz: CAR_L, ox: 0, oz: 0, ohx: CAR_W, ohz: CAR_L, pin: false,
+         x: 0, z: 0, yaw: 0, axis: 0, dir: 1, turn: 0, odo: 0, v: 0, hx: CAR_W, hz: CAR_L, ox: 0, oz: 0, ohx: CAR_W, ohz: CAR_L, pin: false,
       };
-      placeOnLoop(loop.segs, loop.loopLength, car.s, car);
+      placeOnLoop(run, car.s, car);
+      car.ox = car.x;
+      car.oz = car.z;
+      car.ohx = car.hx;
+      car.ohz = car.hz;
       run.cars.push(car);
    }
    const pad = activePad(run);
@@ -513,9 +605,11 @@ function driveCab(run: Run, h: number): void {
    if (speed > TOP_SPEED) speed = TOP_SPEED;
    else if (speed < -REVERSE) speed = -REVERSE;
    run.speed = speed;
-   const raw = Math.abs(speed) / 2;
+   const raw = Math.abs(speed) / (2 * U);
    const scale = raw < 0.35 ? 0.35 : raw > 1 ? 1 : raw;
-   run.yaw += run.moveX * STEER * scale * h;
+   // the cab faces (sin yaw, cos yaw) and a growing yaw turns it towards +x, which is the
+   // driver's LEFT (three.js is right-handed, y up): so right on the stick (moveX > 0) lowers the yaw
+   run.yaw -= run.moveX * STEER * scale * h;
    if (run.yaw > Math.PI) run.yaw -= Math.PI * 2;
    else if (run.yaw < -Math.PI) run.yaw += Math.PI * 2;
    run.x += Math.sin(run.yaw) * speed * h;
@@ -548,7 +642,8 @@ function pushWalls(run: Run): boolean {
 }
 
 function moveCars(run: Run, h: number): void {
-   const stride = run.level.blocksX + 1;
+   const cabX = Math.sin(run.yaw);
+   const cabZ = Math.cos(run.yaw);
    for (let i = 0; i < run.cars.length; i++) {
       const car = run.cars[i];
       car.ox = car.x;
@@ -556,15 +651,12 @@ function moveCars(run: Run, h: number): void {
       car.ohx = car.hx;
       car.ohz = car.hz;
       if (car.pin) continue;
+      let cruise = run.level.trafficSpeed;
+      // a red light at the next junction: wait with the nose on the stop line
       const ahead = run.ahead;
       distToNext(run.segs, run.loopLength, car.s, ahead);
-      let cruise = run.level.trafficSpeed;
-      const ni = Math.round((ahead.x - HALF_STREET) / PITCH);
-      const nj = Math.round((ahead.z - HALF_STREET) / PITCH);
-      if (ni >= 0 && nj >= 0 && ni <= run.level.blocksX && nj <= run.level.blocksZ) {
-         const lit = run.lightAt[nj * stride + ni];
-         if (lit >= 0 && signalRed(lit, run.time, ahead.axis === 1) && ahead.dist <= STOP_GAP && ahead.dist >= 0.45) cruise = 0;
-      }
+      const light = lightIndexAt(run, Math.round((ahead.x - HALF_STREET) / PITCH), Math.round((ahead.z - HALF_STREET) / PITCH));
+      if (light >= 0 && signalRed(light, run.time, ahead.axis === 1) && ahead.dist <= STOP_GAP && ahead.dist >= 0.45 * U) cruise = 0;
       let gap = Infinity;
       for (let k = 0; k < run.cars.length; k++) {
          if (k === i || run.cars[k].pin) continue;
@@ -573,14 +665,21 @@ function moveCars(run: Run, h: number): void {
          if (g < gap) gap = g;
       }
       if (gap < CAR_GAP) cruise = 0;
-      const taxiLateral = car.axis === 1 ? Math.abs(car.x - run.x) : Math.abs(car.z - run.z);
-      const taxiAhead = car.axis === 1 ? (run.z - car.z) * car.dir : (run.x - car.x) * car.dir;
-      const sameWay = car.axis === 1 ? Math.cos(run.yaw) * car.dir > 0.2 : Math.sin(run.yaw) * car.dir > 0.2;
-      const parked = Math.abs(run.speed) < 0.8;
-      if ((sameWay || parked) && taxiLateral < 1.8 && taxiAhead > -0.4 && taxiAhead < CAR_GAP) cruise = 0;
+      // the cab ahead in its lane, going its way or stopped: wait behind it
+      const fx = Math.sin(car.yaw);
+      const fz = Math.cos(car.yaw);
+      const rx = run.x - car.x;
+      const rz = run.z - car.z;
+      const taxiLateral = Math.abs(rx * fz - rz * fx);
+      const taxiAhead = rx * fx + rz * fz;
+      const sameWay = cabX * fx + cabZ * fz > 0.2;
+      const parked = Math.abs(run.speed) < 0.8 * U;
+      if ((sameWay || parked) && taxiLateral < 1.8 * U && taxiAhead > -0.4 * U && taxiAhead < CAR_GAP) cruise = 0;
+      car.v = cruise;
       car.s += cruise * h;
+      car.odo += cruise * h;
       if (car.s >= run.loopLength) car.s -= run.loopLength;
-      placeOnLoop(run.segs, run.loopLength, car.s, car);
+      placeOnLoop(run, car.s, car);
    }
 }
 
@@ -607,16 +706,16 @@ function hitCars(run: Run, x0: number, z0: number): void {
       const t = sweptAabbXZ(run.boxA, run.delta, run.boxB, run.sweep);
       if (t === null) continue;
       if (Math.abs(run.speed) > STRIKE) {
-         run.x = x0 + cdx * t + run.sweep.normalX * 0.05;
-         run.z = z0 + cdz * t + run.sweep.normalZ * 0.05;
+         run.x = x0 + cdx * t + run.sweep.normalX * 0.05 * U;
+         run.z = z0 + cdz * t + run.sweep.normalZ * 0.05 * U;
          spendLife(run, "hit");
          run.speed *= -0.3;
       } else {
          const push = car.axis === 1 ? (run.x >= car.ox ? 1 : -1) : 0;
          const pushZ = car.axis === 0 ? (run.z >= car.oz ? 1 : -1) : 0;
-         run.x += push * 0.18;
-         run.z += pushZ * 0.18;
-         if (Math.abs(run.speed) > 0.2) run.speed *= 0.35;
+         run.x += push * 0.18 * U;
+         run.z += pushZ * 0.18 * U;
+         if (Math.abs(run.speed) > 0.2 * U) run.speed *= 0.35;
       }
       return;
    }
@@ -636,7 +735,7 @@ function checkLights(run: Run, x0: number, z0: number, h: number): void {
       const denom = a1 - a0;
       const frac = denom === 0 ? 0 : (stop.coord - a0) / denom;
       const span = b0 + (b1 - b0) * frac;
-      if (span < stop.span0 - 0.05 || span > stop.span1 + 0.05) continue;
+      if (span < stop.span0 - 0.05 * U || span > stop.span1 + 0.05 * U) continue;
       if (!signalRed(stop.light, run.time + h * frac, stop.ns)) continue;
       spendLife(run, "red");
       return;
@@ -653,7 +752,7 @@ function integrate(run: Run, h: number): void {
    if (bumped && Math.abs(run.speed) > STRIKE) {
       spendLife(run, "hit");
       run.speed *= -0.3;
-   } else if (bumped && Math.abs(run.speed) > 0.3) {
+   } else if (bumped && Math.abs(run.speed) > 0.3 * U) {
       run.speed *= 0.2;
    }
    moveCars(run, h);
@@ -701,7 +800,7 @@ export function step(run: Run, input: TaxiInput, dt: number, timeLeftMs: number)
    return run.ev;
 }
 
-/** Every street node is reachable, and every pad sits on a centreline at least 16 m from the others. */
+/** Every street node is reachable, and every pad sits on a centreline at least PAD_SPACING from the others. */
 export function padsReachable(run: Run): boolean {
    const w = run.level.blocksX + 1;
    const h = run.level.blocksZ + 1;
@@ -728,29 +827,46 @@ export function padsReachable(run: Run): boolean {
          if (pad.x >= box.min.x && pad.x <= box.max.x && pad.z >= box.min.z && pad.z <= box.max.z) return false;
       }
       for (let b = a + 1; b < run.pads.length; b++) {
-         if (Math.hypot(pad.x - run.pads[b].x, pad.z - run.pads[b].z) < 16) return false;
+         if (Math.hypot(pad.x - run.pads[b].x, pad.z - run.pads[b].z) < PAD_SPACING) return false;
       }
    }
    return true;
 }
 
-/** Cars stay on the centreline loop, so their body never enters a building. */
+/** Cars stay on their lane loop, so their body (the turned rectangle, corners included) never enters a building. */
 export function carsClearBuildings(run: Run): boolean {
    const car: Car = {
-      s: 0, x: 0, z: 0, axis: 0, dir: 1, hx: CAR_W, hz: CAR_L, ox: 0, oz: 0, ohx: CAR_W, ohz: CAR_L, pin: false,
+      s: 0, x: 0, z: 0, yaw: 0, axis: 0, dir: 1, turn: 0, odo: 0, v: 0, hx: CAR_W, hz: CAR_L, ox: 0, oz: 0, ohx: CAR_W, ohz: CAR_L, pin: false,
    };
    const box: AABB = { min: { x: 0, y: 0, z: 0 }, max: { x: 0, y: 0, z: 0 } };
    for (let i = 0; i < run.segs.length; i++) {
       const seg = run.segs[i];
       const steps = Math.max(1, Math.ceil(seg.len / 0.5));
       for (let s = 0; s <= steps; s++) {
-         placeOnLoop(run.segs, run.loopLength, seg.s0 + (seg.len * s) / steps, car);
+         placeOnLoop(run, seg.s0 + (seg.len * s) / steps, car);
          aabbFromCenter({ x: car.x, y: 1, z: car.z }, { x: car.hx, y: 1, z: car.hz }, box);
          for (let b = 0; b < run.buildings.length; b++) {
-            if (aabbOverlap(box, run.buildings[b])) return false;
+            if (aabbOverlap(box, run.buildings[b]) && bodyHitsBox(car, run.buildings[b])) return false;
          }
       }
    }
+   return true;
+}
+
+/** Separating axes: the car's turned body rectangle against an axis-aligned box (ground plane). */
+function bodyHitsBox(car: Car, box: AABB): boolean {
+   const fx = Math.sin(car.yaw);
+   const fz = Math.cos(car.yaw);
+   const bx = (box.max.x - box.min.x) / 2;
+   const bz = (box.max.z - box.min.z) / 2;
+   const dx = (box.min.x + box.max.x) / 2 - car.x;
+   const dz = (box.min.z + box.max.z) / 2 - car.z;
+   // the box's axes
+   if (Math.abs(dx) > bx + Math.abs(fx) * CAR_L + Math.abs(fz) * CAR_W) return false;
+   if (Math.abs(dz) > bz + Math.abs(fz) * CAR_L + Math.abs(fx) * CAR_W) return false;
+   // the car's axes (forward, side)
+   if (Math.abs(dx * fx + dz * fz) > CAR_L + bx * Math.abs(fx) + bz * Math.abs(fz)) return false;
+   if (Math.abs(dx * fz - dz * fx) > CAR_W + bx * Math.abs(fz) + bz * Math.abs(fx)) return false;
    return true;
 }
 
@@ -758,11 +874,11 @@ export function carsClearBuildings(run: Run): boolean {
 export function carPoint(run: Run, index: number, extra: number, out: { x: number; z: number }): void {
    const car = run.cars[index];
    const saved = car.s;
-   placeOnLoop(run.segs, run.loopLength, saved + extra, car);
+   placeOnLoop(run, saved + extra, car);
    out.x = car.x;
    out.z = car.z;
    car.s = saved;
-   placeOnLoop(run.segs, run.loopLength, saved, car);
+   placeOnLoop(run, saved, car);
 }
 
 const POINTS = { kind: "points", unitLabel: "pts", display: "int", minDurationMs: 4000 } as const;

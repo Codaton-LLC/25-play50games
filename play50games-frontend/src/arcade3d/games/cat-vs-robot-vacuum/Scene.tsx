@@ -2,26 +2,35 @@
 
 // One useRunFrame steps rules.ts. Visuals read the run and animate with useGameTime.
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useFrame } from "@react-three/fiber";
+import { useFrame, useThree } from "@react-three/fiber";
 import { BoxGeometry, CircleGeometry, Euler, Matrix4, MeshStandardMaterial, Quaternion, Vector3, type Group } from "three";
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 import { DynamicInstancedModel, InstancedModel, Model } from "@/arcade3d/core/assets";
 import CameraRig from "@/arcade3d/core/CameraRig";
+import { useCameraViews } from "@/arcade3d/core/camera/CameraViews";
+import type { AABB } from "@/arcade3d/core/collision";
 import { playSfx, startLoop, type LoopHandle } from "@/arcade3d/core/audio";
 import { FRAME_PRIORITY } from "@/arcade3d/core/frameLoop";
-import { useFx } from "@/arcade3d/core/fx";
+import { Toss, useActionPop, useFx, type TossHandle } from "@/arcade3d/core/fx";
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import { useInput } from "@/arcade3d/core/input";
 import { useLevel } from "@/arcade3d/core/level";
 import { randomSeed } from "@/arcade3d/core/math";
-import { hop as hopOffset, waddle, type BodyOffset } from "@/arcade3d/core/motion";
+import { hop as hopOffset, type BodyOffset } from "@/arcade3d/core/motion";
+import { TargetBeacon } from "@/arcade3d/core/hud/TargetBeacon";
+import { TargetMarkers, type MarkerTarget } from "@/arcade3d/core/hud/TargetMarkers";
+import { BlobShadow } from "@/arcade3d/core/render";
+import { QuadrupedModel, useQuadrupedPose } from "@/arcade3d/core/rig/QuadrupedModel";
+import { blendQuadrupedPoses, createQuadrupedPose, quadrupedGait, quadrupedIdle, quadrupedLeap, quadrupedPhaseStep, quadrupedSit } from "@/arcade3d/core/rig/quadrupedPoses";
 import { DynamicInstanced, Instanced, type InstancePart } from "@/arcade3d/core/render";
 import { useFittedView } from "@/arcade3d/core/useFittedView";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
-import { ASSETS } from "./assets";
+import { ASSETS, CAT_LANDMARKS } from "./assets";
+import { GUIDE, emptyGoal, hintCode, hintFor, nextGoal } from "./guide";
 import type { CatLevel } from "./levels";
-import { COLORS, DAMPING, FOV, LOOK_AHEAD, aimBounds, decorSpots, lookAtFor, viewFor } from "./looks";
+import { COLORS, DAMPING, FOV, LOOK_AHEAD, ZOOM, aimBounds, decorSpots, lookAtFor, outerWallSpots, viewFor, wallSpots } from "./looks";
+import { useCameraZoom } from "@/arcade3d/core/useCameraZoom";
 import { House } from "./House";
 import { CatFigure, disposeParts, toyParts, treatParts, vacuumParts } from "./Primitives";
 import {
@@ -47,6 +56,16 @@ const V = new Vector3();
 const S = new Vector3(1, 1, 1);
 const BODY: BodyOffset = { y: 0, roll: 0, yaw: 0, squash: 1 };
 const FLOAT = new Vector3();
+const MOUTH = new Vector3();
+const CAT_SCALE = ASSETS.cat.scale ?? 1;
+/** the bed's mattress top (m): the cat hops up there to sit on a win */
+const BED_TOP = FURN_SIZE.bed.y * 0.72;
+const WIN_LEAP_S = 0.5;
+const smooth01 = (a: number, b: number, x: number) => {
+   const t = Math.min(1, Math.max(0, (x - a) / (b - a)));
+   return t * t * (3 - 2 * t);
+};
+const wrapAngle = (a: number) => Math.atan2(Math.sin(a), Math.cos(a));
 
 /** One kind of furniture: the GLB at each centre, or two bevelled boxes (body and top) per piece. */
 function FurnMeshes({ kind, items, color, trim }: { kind: FurnKind; items: readonly Furniture[]; color: string; trim: string }) {
@@ -88,18 +107,71 @@ function LevelScene() {
    const view = useFittedView(viewFor(id));
    const input = useInput();
    const fx = useFx();
+   const pop = useActionPop();
    const time = useGameTime();
    const [run] = useState<Run>(() => createRun(randomSeed(), config));
    const aim = useRef({ x: run.cat.x, y: 0.4, z: run.cat.z + LOOK_AHEAD }).current;
    const body = useRef<Group>(null);
-   const figure = useRef<Group>(null);
-   const gait = useRef({ phase: 0 });
+   const floor = useRef<Group>(null);
+   const anim = useRef({ phase: 0, yaw: run.cat.yaw, turn: 0, winAt: -1, fromX: 0, fromZ: 0, fromYaw: 0, goal: -1 });
+   const idlePose = useMemo(createQuadrupedPose, []);
+   const gaitPose = useMemo(createQuadrupedPose, []);
+   const targets = useMemo<MarkerTarget[]>(() => [{ x: 0, y: 0.3, z: 0, hidden: true }], []);
+   const goal = useRef(emptyGoal()).current;
+   const treatBeacon = useRef({ x: 0, y: 0.3, z: 0, hidden: true }).current;
+   const bedBeacon = useRef({ x: run.home.x, y: 0.7, z: run.home.z, hidden: true }).current;
+   const guideCode = useRef(-1);
+   const gulp = useRef<TossHandle>(null);
+   // a portrait phone fits the hall's width: start a little closer so the cat is a clear size
+   const portrait = useThree((state) => state.size.width < state.size.height);
+   const zoom = useCameraZoom({ min: ZOOM.min, max: ZOOM.max, initial: portrait ? ZOOM.portrait : 1 });
    const loop = useRef<LoopHandle | null>(null);
    const loopAt = useRef(0);
    const bounds = useMemo(() => aimBounds(config), [config]);
    const decor = useMemo(() => decorSpots(id), [id]);
    const phase = useArcadeStore((s) => s.phase);
    const look = useMemo(() => lookAtFor(config), [config]);
+   const walls = useMemo(() => wallSpots(config).body, [config]);
+   const outerWalls = useMemo(() => outerWallSpots(config).body, [config]);
+   // camera views (core/camera): the rules get the drawn camera's yaw; furniture, clutter and the
+   // house walls pull the chase / front / free camera in front of them (the top view looks over them)
+   const cam = useCameraViews({
+      slug: "cat-vs-robot-vacuum",
+      subject: "character",
+      steering: "camera",
+      defaultYaw: view.yaw,
+      target: (o) => {
+         const c = run.cat;
+         o.x = c.x;
+         o.y = 0.3;
+         o.z = c.z;
+         o.heading = c.yaw;
+         o.vx = c.vx;
+         o.vz = c.vz;
+      },
+      solids: (out: AABB[]) => {
+         let n = 0;
+         const put = (x: number, z: number, hx: number, hz: number, h: number) => {
+            if (n >= out.length) return;
+            const b = out[n++];
+            b.min.x = x - hx;
+            b.max.x = x + hx;
+            b.min.y = 0;
+            b.max.y = h;
+            b.min.z = z - hz;
+            b.max.z = z + hz;
+         };
+         const putBox = (box: AABB) => {
+            put((box.min.x + box.max.x) / 2, (box.min.z + box.max.z) / 2, (box.max.x - box.min.x) / 2, (box.max.z - box.min.z) / 2, box.max.y);
+         };
+         for (const f of run.furniture) putBox(f.box);
+         for (const c of run.clutter) putBox(c);
+         for (const w of walls) put(w.x, w.z, (w.sx ?? 1) / 2, (w.sz ?? 1) / 2, w.sy ?? 1);
+         for (const w of outerWalls) put(w.x, w.z, (w.sx ?? 1) / 2, (w.sz ?? 1) / 2, w.sy ?? 1);
+         return n;
+      },
+      framing: { top: { distance: 12 } },
+   });
    const clutter = useMemo(() => run.clutter.map((box) => ({
       x: (box.min.x + box.max.x) / 2,
       y: CLUTTER_H / 2,
@@ -125,7 +197,7 @@ function LevelScene() {
       disposeParts(vacuumPool);
    }, [treatPool, toyPool, vacuumPool]);
    const padGeometry = useMemo(() => new CircleGeometry(HOME_R * 0.9, 24), []);
-   const padMaterial = useMemo(() => new MeshStandardMaterial({ color: COLORS.pad, emissive: COLORS.pad, emissiveIntensity: 0.35, transparent: true, opacity: 0.35, depthWrite: false }), []);
+   const padMaterial = useMemo(() => new MeshStandardMaterial({ color: COLORS.pad, emissive: COLORS.pad, emissiveIntensity: 0.35, transparent: true, opacity: 0.3, depthWrite: false }), []);
    useEffect(() => () => {
       padGeometry.dispose();
       padMaterial.dispose();
@@ -142,6 +214,14 @@ function LevelScene() {
    }, [fx]);
 
    useEffect(() => {
+      nextGoal(run, goal);
+      guideCode.current = hintCode(run, goal);
+      GUIDE.set(hintFor(run, goal));
+      return () => GUIDE.reset();
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+   }, [run]);
+
+   useEffect(() => {
       if (phase !== "playing") return;
       const handle = startLoop("vacuum", { volume: 0.05 });
       loop.current = handle;
@@ -154,14 +234,13 @@ function LevelScene() {
    useRunFrame((_state, dt) => {
       const { moveX, moveY, jumpPressed } = input.current;
       const store = useArcadeStore.getState();
-      const ev = step(run, { moveX, moveY, jumpPressed, yaw: view.yaw }, dt, store.timeLeftMs ?? 0);
+      const ev = step(run, { moveX, moveY, jumpPressed, yaw: cam.yaw() }, dt, store.timeLeftMs ?? 0);
       // score, lives (the shell ends "lose" at 0), the win and the HUD stats, written only on a change
       syncStore(run, ev, useArcadeStore);
       aim.x = run.cat.x + Math.sin(run.cat.yaw) * LOOK_AHEAD;
       aim.z = run.cat.z + Math.cos(run.cat.yaw) * LOOK_AHEAD;
       aim.x = Math.min(bounds.max.x, Math.max(bounds.min.x, aim.x));
       aim.z = Math.min(bounds.max.z, Math.max(bounds.min.z, aim.z));
-      gait.current.phase += (Math.hypot(run.cat.vx, run.cat.vz) / 0.9) * Math.PI * 2 * dt;
       const speed = Math.hypot(run.cat.vx, run.cat.vz);
       if (loop.current && run.time - loopAt.current > 0.25) {
          loopAt.current = run.time;
@@ -177,6 +256,8 @@ function LevelScene() {
          FLOAT.set(t.x, 0.4, t.z);
          fx.burst("sparkle", FLOAT, 10);
          fx.score(FLOAT, `+${ev.score}`);
+         // the fish flies up into the cat's mouth instead of vanishing
+         gulp.current?.play({ x: t.x, y: 0.3, z: t.z }, MOUTH.set(run.cat.x, 0.55, run.cat.z), { duration: 0.28, height: 0.4, scaleFrom: 1, scaleTo: 0.2 });
          playSfx("pickup");
       }
       if (ev.toy >= 0) {
@@ -188,25 +269,121 @@ function LevelScene() {
       if (ev.lifeLost) {
          FLOAT.set(run.cat.x, 0.5, run.cat.z);
          fx.burst("puff", FLOAT, 10);
-         fx.shake(0.3);
+         FLOAT.y = 1.1;
+         pop.fail(FLOAT, run.over === "lose" ? "Vacuumed! Out of lives" : "Vacuumed! -1 life", { shake: 0.3 });
          playSfx("hit");
       }
       if (ev.won) playSfx("win");
+      // the beacon and the hint line follow the step; the hint is rebuilt only on a change
+      nextGoal(run, goal);
+      treatBeacon.hidden = goal.kind !== "treat";
+      bedBeacon.hidden = goal.kind !== "bed";
+      treatBeacon.x = goal.x;
+      treatBeacon.z = goal.z;
+      const code = hintCode(run, goal);
+      if (code !== guideCode.current) {
+         guideCode.current = code;
+         GUIDE.set(hintFor(run, goal));
+      }
    });
 
-   useFrame(() => {
+   // the cat's pose: walk -> trot -> gallop by speed with planted paws (core quadruped rig), idle
+   // when still, a leap for the hop, and on a win a hop onto the bed to sit there
+   const pose = useQuadrupedPose((p) => {
+      const cat = run.cat;
+      const a = anim.current;
+      const dt = time.delta;
+      const speed = Math.hypot(cat.vx, cat.vz);
+      const rate = dt > 0 ? wrapAngle(cat.yaw - a.yaw) / dt : 0;
+      a.yaw = cat.yaw;
+      a.turn += (Math.max(-1, Math.min(1, rate / 5)) - a.turn) * Math.min(1, dt * 8);
+      if (run.over === "win") {
+         if (a.winAt < 0) {
+            a.winAt = time.now;
+            a.fromX = cat.x;
+            a.fromZ = cat.z;
+            a.fromYaw = cat.yaw;
+         }
+         const t = (time.now - a.winAt) / WIN_LEAP_S;
+         if (t < 1) quadrupedLeap(t, CAT_LANDMARKS, p);
+         else quadrupedSit(Math.min(1, (t - 1) * 3), time.now, CAT_LANDMARKS, p);
+         return;
+      }
+      if (cat.hop > 0) {
+         quadrupedLeap(1 - cat.hop / HOP_S, CAT_LANDMARKS, p);
+         return;
+      }
+      const s01 = Math.min(1, speed / MAX_SPEED);
+      a.phase = quadrupedPhaseStep(a.phase, speed * dt, s01, CAT_LANDMARKS, CAT_SCALE, dt, 5.5);
+      quadrupedGait(a.phase, s01, CAT_LANDMARKS, gaitPose, a.turn);
+      quadrupedIdle(time.now, CAT_LANDMARKS, idlePose);
+      blendQuadrupedPoses(idlePose, gaitPose, smooth01(0.05, 0.5, speed), p);
+   });
+
+   useFrame(({ camera: drawn }) => {
       const group = body.current;
       const cat = run.cat;
+      const a = anim.current;
       if (!group) return;
-      const moving = Math.hypot(cat.vx, cat.vz) > 0.3;
-      if (cat.hop > 0) hopOffset(Math.PI * (1 - cat.hop / HOP_S), HOP_H, BODY);
-      else if (moving) waddle(gait.current.phase, Math.min(1, Math.hypot(cat.vx, cat.vz) / MAX_SPEED) * 0.35, BODY);
-      else {
-         BODY.y = 0; BODY.roll = 0; BODY.yaw = 0; BODY.squash = 1;
+      let x = cat.x;
+      let z = cat.z;
+      let y = 0;
+      let yaw = cat.yaw;
+      if (run.over === "win" && a.winAt >= 0) {
+         // a hop from where it stood onto the middle of the bed, turning to face the camera
+         const t = Math.min(1, (time.now - a.winAt) / WIN_LEAP_S);
+         const e = t * t * (3 - 2 * t);
+         x = a.fromX + (run.home.x - a.fromX) * e;
+         z = a.fromZ + (run.home.z - a.fromZ) * e;
+         y = BED_TOP * e + Math.sin(Math.PI * t) * 0.35;
+         const face = Math.atan2(drawn.position.x - x, drawn.position.z - z);
+         yaw = a.fromYaw + wrapAngle(face - a.fromYaw) * e;
+      } else if (cat.hop > 0) {
+         y = hopOffset(Math.PI * (1 - cat.hop / HOP_S), HOP_H, BODY).y;
       }
-      group.position.set(cat.x, BODY.y, cat.z);
-      group.rotation.set(0, cat.yaw + BODY.yaw, BODY.roll);
+      group.position.set(x, y, z);
+      group.rotation.set(0, yaw, 0);
       group.visible = !(cat.mercy > 0 && Math.floor(time.now * 12) % 2 === 0);
+      const ring = floor.current;
+      if (ring) {
+         const onBed = run.over === "win" && a.winAt >= 0 && time.now - a.winAt > WIN_LEAP_S * 0.6;
+         ring.position.set(x, onBed ? BED_TOP : 0, z);
+         ring.scale.setScalar(onBed ? 1 : 1 - Math.min(0.4, y));
+      }
+      // the arrow: to the nearest treat left, then to the bed
+      let best = -1;
+      let bestD = Infinity;
+      for (let i = 0; i < run.treats.length; i++) {
+         const t = run.treats[i];
+         if (t.got) continue;
+         const d = (t.x - cat.x) ** 2 + (t.z - cat.z) ** 2;
+         if (d < bestD) {
+            bestD = d;
+            best = i;
+         }
+      }
+      const mark = targets[0];
+      mark.hidden = run.over !== null;
+      if (best >= 0) {
+         mark.x = run.treats[best].x;
+         mark.z = run.treats[best].z;
+         mark.color = COLORS.treatHalo;
+      } else {
+         mark.x = run.home.x;
+         mark.z = run.home.z;
+         mark.color = COLORS.padReady;
+      }
+      const goal = best >= 0 ? 0 : 1;
+      if (goal !== a.goal) {
+         a.goal = goal;
+         if (run.over === null) useArcadeStore.getState().setStat("goal", goal);
+      }
+      // the bed's ring: calm while treats are left, bright and pulsing once it is the goal
+      const ready = best < 0;
+      padMaterial.opacity = ready ? 0.55 + 0.25 * Math.sin(time.now * 6) : 0.3;
+      padMaterial.emissiveIntensity = ready ? 0.9 : 0.35;
+      padMaterial.color.set(ready ? COLORS.padReady : COLORS.pad);
+      padMaterial.emissive.set(ready ? COLORS.padReady : COLORS.pad);
    }, FRAME_PRIORITY.visuals);
 
    const placeTreat = (index: number, matrix: Matrix4) => {
@@ -214,25 +391,55 @@ function LevelScene() {
       if (!treat || treat.got) return false;
       E.set(0, time.now * 2 + index, 0);
       Q.setFromEuler(E);
-      V.set(treat.x, 0.05 + Math.sin(time.now * 4 + index) * 0.03, treat.z);
+      V.set(treat.x, 0.08 + Math.sin(time.now * 4 + index) * 0.04, treat.z);
       matrix.compose(V, Q, S);
    };
    const placeToy = (index: number, matrix: Matrix4) => {
       const toy = run.toys[index];
       if (!toy || toy.got) return false;
-      E.set(0, 0, 0);
+      E.set(0, Math.sin(time.now * 1.5 + index) * 0.6, 0);
       Q.setFromEuler(E);
-      V.set(toy.x, 0, toy.z);
+      V.set(toy.x, Math.abs(Math.sin(time.now * 3 + index)) * 0.06, toy.z);
       matrix.compose(V, Q, S);
+   };
+   // a glowing disc under every pickup: gold for treats, pink for toys
+   const halo = (x: number, z: number, index: number, size: number, matrix: Matrix4) => {
+      E.set(-Math.PI / 2, 0, 0);
+      Q.setFromEuler(E);
+      V.set(x, 0.015, z);
+      const k = size * (1 + 0.12 * Math.sin(time.now * 5 + index));
+      FLOAT.set(k, k, k);
+      matrix.compose(V, Q, FLOAT);
+   };
+   const placeTreatHalo = (index: number, matrix: Matrix4) => {
+      const treat = run.treats[index];
+      if (!treat || treat.got) return false;
+      halo(treat.x, treat.z, index, 0.24, matrix);
+   };
+   const placeToyHalo = (index: number, matrix: Matrix4) => {
+      const toy = run.toys[index];
+      if (!toy || toy.got) return false;
+      halo(toy.x, toy.z, index, 0.3, matrix);
    };
    const placeGlow = (index: number, matrix: Matrix4) => {
       const vacuum = run.vacuums[index];
-      if (!vacuum || vacuum.mode === "return") return false;
+      if (!vacuum || vacuum.mode === "return" || vacuum.docked) return false;
       E.set(Math.PI / 2, 0, 0);
       Q.setFromEuler(E);
       V.set(vacuum.agent.x, 0.19, vacuum.agent.z);
       const pulse = vacuum.mode === "chase" ? 1.08 + Math.sin(time.now * 14) * 0.06 : 1;
       FLOAT.set(pulse, pulse, pulse);
+      matrix.compose(V, Q, FLOAT);
+   };
+   // a red danger zone on the floor round a vacuum that can hurt (none while it drives back harmless)
+   const placeAura = (index: number, matrix: Matrix4) => {
+      const vacuum = run.vacuums[index];
+      if (!vacuum || vacuum.mode === "return" || vacuum.docked) return false;
+      E.set(-Math.PI / 2, 0, 0);
+      Q.setFromEuler(E);
+      V.set(vacuum.agent.x, 0.012, vacuum.agent.z);
+      const k = vacuum.mode === "chase" ? 1.15 + Math.sin(time.now * 12) * 0.08 : 1 + Math.sin(time.now * 3 + index) * 0.04;
+      FLOAT.set(k, k, k);
       matrix.compose(V, Q, FLOAT);
    };
    const placeVacuum = (index: number, matrix: Matrix4) => {
@@ -253,6 +460,7 @@ function LevelScene() {
             offset={view.offset}
             shift={view.shift}
             damping={DAMPING}
+            zoom={zoom}
          />
          {/* room floors, rugs, the hall's walls and the rest of the house (House.tsx): no void at any edge */}
          <House id={id} />
@@ -278,6 +486,20 @@ function LevelScene() {
                }
             />
          )}
+         {/* a cool rim light from the far end: every object gets a bright edge against the floor */}
+         <directionalLight position={[0, 5, -8]} intensity={0.7} color={COLORS.rim} />
+         <DynamicInstanced count={run.treats.length} update={placeTreatHalo} name="treat-halo">
+            <circleGeometry args={[1, 24]} />
+            <meshBasicMaterial color={COLORS.treatHalo} transparent opacity={0.45} depthWrite={false} toneMapped={false} />
+         </DynamicInstanced>
+         <DynamicInstanced count={run.toys.length} update={placeToyHalo} name="toy-halo">
+            <circleGeometry args={[1, 24]} />
+            <meshBasicMaterial color={COLORS.toyHalo} transparent opacity={0.4} depthWrite={false} toneMapped={false} />
+         </DynamicInstanced>
+         <DynamicInstanced count={run.vacuums.length} update={placeAura} name="vacuum-aura">
+            <ringGeometry args={[VAC_R * 1.05, VAC_R * 1.75, 32]} />
+            <meshBasicMaterial color={COLORS.danger} transparent opacity={0.38} depthWrite={false} toneMapped={false} />
+         </DynamicInstanced>
          <DynamicInstancedModel asset={ASSETS.treat} count={run.treats.length} update={placeTreat} fallbackParts={treatPool} name="treats" />
          <DynamicInstancedModel asset={ASSETS.toy} count={run.toys.length} update={placeToy} fallbackParts={toyPool} name="toys" />
          <DynamicInstancedModel asset={ASSETS.vacuum} count={run.vacuums.length} update={placeVacuum} fallbackParts={vacuumPool} name="vacuums" />
@@ -286,11 +508,23 @@ function LevelScene() {
             <torusGeometry args={[VAC_R * 0.92, 0.025, 6, 28]} />
             <meshBasicMaterial color={COLORS.glow} toneMapped={false} />
          </DynamicInstanced>
-         <group ref={body}>
-            <group ref={figure}>
-               <Model asset={ASSETS.cat} tint={config.tint} fallback={<CatFigure />} />
-            </group>
+         {/* the player's ring and contact shadow on the floor under the cat */}
+         <group ref={floor}>
+            <BlobShadow radius={0.32} opacity={0.4} />
+            <mesh rotation-x={-Math.PI / 2} position-y={0.016} renderOrder={2}>
+               <ringGeometry args={[0.34, 0.4, 40]} />
+               <meshBasicMaterial color={COLORS.catRing} transparent opacity={0.85} depthWrite={false} toneMapped={false} />
+            </mesh>
          </group>
+         <group ref={body}>
+            <QuadrupedModel asset={ASSETS.cat} pose={pose} tint={config.tint} fallback={<CatFigure />} />
+         </group>
+         <TargetMarkers targets={targets} color={COLORS.treatHalo} />
+         <TargetBeacon target={treatBeacon} variant="pick" color={COLORS.treatHalo} radius={0.45} height={0.8} />
+         <TargetBeacon target={bedBeacon} variant="drop-here" color={COLORS.padReady} radius={1.0} height={0.9} label="BED" />
+         <Toss ref={gulp} slots={2} spin={8}>
+            <Model asset={ASSETS.treat} />
+         </Toss>
       </>
    );
 }

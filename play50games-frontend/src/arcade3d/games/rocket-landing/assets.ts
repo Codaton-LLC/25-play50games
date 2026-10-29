@@ -75,6 +75,28 @@ export const HABITAT_DOME_SPOTS = [
 ] as const;
 
 /**
+ * Menu 1 adoptions, drawn with the habitat domes on levels 4-5 only, all outside the play area.
+ * landingBeacon.glb 1.026 x 1.905 x 1.055 (1500 tris): a banded beacon pillar, drawn 1.6 m tall beside the domes and the
+ * outpost pad's corners. landingPadV2.glb 1.672 x 0.287 x 1.910 (3000 tris): a flat hex pad with a green ring and no
+ * centre cone, drawn 4 m wide (0.6 m thick, sunk 0.25 m into the ground) as the distant outpost pad.
+ */
+export const BEACON_GLB = { width: 1.026, height: 1.905, depth: 1.055 } as const;
+export const BEACON_HEIGHT = 1.6;
+export const BEACON_SCALE = BEACON_HEIGHT / BEACON_GLB.height;
+export const OUTPOST_PAD_GLB = { width: 1.672, height: 0.287, depth: 1.91 } as const;
+export const OUTPOST_PAD_WIDTH = 4;
+export const OUTPOST_PAD_SCALE = OUTPOST_PAD_WIDTH / OUTPOST_PAD_GLB.width;
+export const OUTPOST_PAD_SPOTS = [{ x: -4.5, y: -0.25, z: -9, rotY: 0.3, scale: 1 }] as const;
+/** Beacon pillars at the domes' shoulders and around the outpost pad. */
+export const OUTPOST_BEACON_SPOTS = [
+   { x: -12.2, y: 0, z: -6.6, rotY: 0 },
+   { x: 14.2, y: 0, z: -7.2, rotY: 0.8 },
+   { x: 21.4, y: 0, z: 0.2, rotY: 1.6 },
+   { x: -6.8, y: 0, z: -10.2, rotY: 0 },
+   { x: -2.2, y: 0, z: -10.2, rotY: 0 },
+] as const;
+
+/**
  * The beacons ride in the pad group, whose scale.x is the planet's pad width (4-6), so they would
  * be drawn 4-6 times wider than deep: thin floating bars. Each beacon cancels that stretch with
  * this x scale, so it stays a small round light; its position still follows the rim.
@@ -110,6 +132,23 @@ export const ASSETS = {
       yOffset: -0.2,
       fallback: "box",
       fallbackColor: "#334155",
+      budget: { ...PROP_BUDGET },
+   },
+   outpostBeacon: {
+      id: "landingBeacon",
+      url: "/models/3d/rocket-landing/landingBeacon.glb",
+      scale: BEACON_SCALE,
+      fallback: "cylinder",
+      fallbackColor: "#94a3b8",
+      budget: { ...PROP_BUDGET },
+   },
+   outpostPad: {
+      id: "landingPadV2",
+      url: "/models/3d/rocket-landing/landingPadV2.glb",
+      scale: OUTPOST_PAD_SCALE,
+      stretch: [1, 0.6 / (OUTPOST_PAD_GLB.height * OUTPOST_PAD_SCALE), 1] as const,
+      fallback: "cylinder",
+      fallbackColor: "#475569",
       budget: { ...PROP_BUDGET },
    },
    habitatDome: {

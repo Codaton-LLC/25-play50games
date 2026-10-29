@@ -10,6 +10,7 @@ import { resolveSphereAabb, type AABB } from "@/arcade3d/core/collision";
 import { createRng, inputToWorld, turnTowards } from "@/arcade3d/core/math";
 import { spring, type SpringState } from "@/arcade3d/core/motion";
 import type { LevelId, ScoringRules } from "@/arcade3d/types";
+import { AXLE_BACK, CART_GAP, GRIP_AHEAD, HITCH_STIFFNESS, REAR_BACK, REAR_RADIUS, clampSwing, hitchPoint } from "./cart";
 import { LEVELS, type HotelLevel } from "./levels";
 
 // ---------- tuning (the scoring proof in README cites these) ----------
@@ -37,9 +38,11 @@ export const USE_RANGE = 1.3;
 export const RIDE_S = 1;
 /** a wrong door locks movement for this much play time */
 export const STUN_S = 0.4;
-export const TROLLEY_GAP = 1.1;
+/** His centre to the cart's centre when it is straight behind him (cart.ts: the hitch plus the bar). */
+export const TROLLEY_GAP = CART_GAP;
 export const TROLLEY_RADIUS = 0.45;
-export const TROLLEY_STIFFNESS = 60;
+/** A start or a stop may leave the bar this far off the hitch (m); the spring takes it back. */
+export const TROLLEY_LAG = 0.12;
 
 /** The reception desk against the lobby's end wall. Its point is the middle of its front edge. */
 export const DESK: AABB = { min: { x: -1.1, y: 0, z: 0 }, max: { x: 1.1, y: 3, z: 0.9 } };
@@ -119,7 +122,11 @@ export interface Run {
    level: HotelLevel;
    length: number;
    hero: { x: number; z: number; vx: number; vz: number; yaw: number; stun: number; ride: number };
-   trolley: { x: SpringState; z: SpringState; yaw: number };
+   /**
+    * The cart (looks only): its centre (x.x, z.x; .v its velocity) and heading, the bar's offset from
+    * the hitch (ox, oz: springs to 0) and the hitch's last point and velocity (hx, hz, hvx, hvz).
+    */
+   trolley: { x: SpringState; z: SpringState; yaw: number; ox: SpringState; oz: SpringState; hx: number; hz: number; hvx: number; hvz: number };
    floor: number;
    bags: Bag[];
    /** the bag on the trolley or the next one at the desk */
@@ -215,7 +222,17 @@ export function createRun(seed: number, level: HotelLevel = LEVELS[1]): Run {
       level,
       length,
       hero: { x: START.x, z: START.z, vx: 0, vz: 0, yaw: 0, stun: 0, ride: 0 },
-      trolley: { x: { x: START.x, v: 0 }, z: { x: START.z - TROLLEY_GAP, v: 0 }, yaw: 0 },
+      trolley: {
+         x: { x: START.x, v: 0 },
+         z: { x: START.z - TROLLEY_GAP, v: 0 },
+         yaw: 0,
+         ox: { x: 0, v: 0 },
+         oz: { x: 0, v: 0 },
+         hx: START.x,
+         hz: START.z - TROLLEY_GAP + GRIP_AHEAD,
+         hvx: 0,
+         hvz: 0,
+      },
       floor: 1,
       bags: bagQueue(seed, level),
       next: 0,
@@ -386,22 +403,70 @@ function use(run: Run, target: Target | null, timeLeftMs: number): void {
 
 const DIR = { x: 0, z: 0 };
 const TROLLEY = { x: 0, z: 0 };
+const HITCH_AT = { x: 0, z: 0 };
+const REAR = { x: 0, z: 0 };
 
-/** The trolley trails TROLLEY_GAP behind the bellboy on a critically damped spring. Looks only. */
+/**
+ * The cart (looks only, it never moves the bellboy): its T-grip hangs on the hitch behind him
+ * (cart.ts) on a stiff critically damped spring that only his starts, stops and turns disturb (no lag
+ * at a steady walk); it heads from its rear axle to the bar, so it pivots instead of sliding sideways,
+ * at most MAX_SWING off his heading; its far end turns about the bar to clear walls and decor, and its
+ * centre is kept inside the corridor.
+ */
 export function stepTrolley(run: Run, dt: number): void {
    const h = run.hero;
-   const tx = h.x - Math.sin(h.yaw) * TROLLEY_GAP;
-   const tz = h.z - Math.cos(h.yaw) * TROLLEY_GAP;
-   spring(run.trolley.x, tx, TROLLEY_STIFFNESS, -1, dt);
-   spring(run.trolley.z, tz, TROLLEY_STIFFNESS, -1, dt);
-   TROLLEY.x = run.trolley.x.x;
-   TROLLEY.z = run.trolley.z.x;
+   const t = run.trolley;
+   hitchPoint(h.x, h.z, h.yaw, HITCH_AT);
+   if (dt > 0) {
+      // the bar's offset lives in the hitch's moving frame: only the hitch's acceleration pushes it
+      const hvx = (HITCH_AT.x - t.hx) / dt;
+      const hvz = (HITCH_AT.z - t.hz) / dt;
+      const before = Math.hypot(t.ox.x, t.oz.x);
+      t.ox.v -= hvx - t.hvx;
+      t.oz.v -= hvz - t.hvz;
+      spring(t.ox, 0, HITCH_STIFFNESS, -1, dt);
+      spring(t.oz, 0, HITCH_STIFFNESS, -1, dt);
+      const cap = Math.min(1, Math.max(TROLLEY_LAG, before));
+      const lag = Math.hypot(t.ox.x, t.oz.x);
+      if (lag > cap) {
+         t.ox.x *= cap / lag;
+         t.oz.x *= cap / lag;
+      }
+      t.hvx = hvx;
+      t.hvz = hvz;
+   }
+   t.hx = HITCH_AT.x;
+   t.hz = HITCH_AT.z;
+   const bx = HITCH_AT.x + t.ox.x;
+   const bz = HITCH_AT.z + t.oz.x;
+   // the heading: from the rear axle to the bar, never more than MAX_SWING off his
+   const ax = t.x.x - Math.sin(t.yaw) * AXLE_BACK;
+   const az = t.z.x - Math.cos(t.yaw) * AXLE_BACK;
+   let yaw = Math.hypot(bx - ax, bz - az) > 1e-6 ? Math.atan2(bx - ax, bz - az) : t.yaw;
+   yaw = clampSwing(yaw, h.yaw);
+   // the far end scrapes along walls: it turns about the bar
+   for (let k = 0; k < 3; k++) {
+      REAR.x = bx - Math.sin(yaw) * (GRIP_AHEAD + REAR_BACK);
+      REAR.z = bz - Math.cos(yaw) * (GRIP_AHEAD + REAR_BACK);
+      const rx = REAR.x;
+      const rz = REAR.z;
+      collide(run, REAR, REAR_RADIUS);
+      if (REAR.x === rx && REAR.z === rz) break;
+      yaw = Math.atan2(bx - REAR.x, bz - REAR.z);
+   }
+   TROLLEY.x = bx - Math.sin(yaw) * GRIP_AHEAD;
+   TROLLEY.z = bz - Math.cos(yaw) * GRIP_AHEAD;
    collide(run, TROLLEY, TROLLEY_RADIUS);
-   run.trolley.x.x = TROLLEY.x;
-   run.trolley.z.x = TROLLEY.z;
-   const dx = h.x - TROLLEY.x;
-   const dz = h.z - TROLLEY.z;
-   if (dx * dx + dz * dz > 0.04) run.trolley.yaw = turnTowards(run.trolley.yaw, Math.atan2(dx, dz), Math.min(1, dt * 10));
+   if (dt > 0) {
+      t.x.v = (TROLLEY.x - t.x.x) / dt;
+      t.z.v = (TROLLEY.z - t.z.x) / dt;
+   }
+   t.x.x = TROLLEY.x;
+   t.z.x = TROLLEY.z;
+   t.yaw = yaw;
+   // a push-out leaves the bar off the hitch: the spring brings it back
+   t.ox.x = TROLLEY.x + Math.sin(yaw) * GRIP_AHEAD - HITCH_AT.x;
+   t.oz.x = TROLLEY.z + Math.cos(yaw) * GRIP_AHEAD - HITCH_AT.z;
 }
 
 /**

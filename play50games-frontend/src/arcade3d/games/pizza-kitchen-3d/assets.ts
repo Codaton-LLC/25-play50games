@@ -15,7 +15,7 @@ export const GLB_SIZE = {
    tomato: { width: 1.8987, height: 1.1992, depth: 1.0057 },
    onion: { width: 1.8946, height: 1.2886, depth: 1.0336 },
    pizzaOven: { width: 1.8882, height: 1.568, depth: 1.4866 },
-   pizzaPeelClean: { width: 1.9012, height: 0.0638, depth: 0.7531 },
+   pizzaPeelCleanT: { width: 1.894, height: 0.073, depth: 1.119 },
    prepCounterR: { width: 1.5933, height: 1.8967, depth: 1.1 },
    pizzaBoxClosed: { width: 1.859, height: 0.5537, depth: 1.9015 },
 } as const;
@@ -77,6 +77,6 @@ export const ASSETS = {
    pepperoniPile: { ...local("pepperoni", FIT.pile, "cylinder", "#b91c1c"), id: "pepperoniPile" },
    tomatoPile: { ...local("tomato", FIT.pile, "sphere", "#f43f5e"), id: "tomatoPile" },
    onionPile: { ...local("onion", FIT.pile, "sphere", "#c084fc"), id: "onionPile" },
-   peel: local("pizzaPeelClean", FIT.peel, "box", "#a16207"),
+   peel: local("pizzaPeelCleanT", FIT.peel, "box", "#a16207"),
    box: local("pizzaBoxClosed", FIT.box, "box", "#f5f5f4"),
 } satisfies Record<string, ModelAsset>;

@@ -65,3 +65,7 @@ All listed `menu1-jungle-bridge-run` GLBs are adopted (`templePillarV2`, `ruinGa
 - Not yet seen in a browser at the gate: the deck's top height (`FIT.deckTop`, from the mesh profile), the gate's opening, the log's roll, the explorer's slide lean.
 - A slide is a lean, not a crouch (no slide pose in core).
 - The rolling log is visual on its own lane band; the hit box is its 1.2 m length.
+
+## Clarity (2026-10-28, visual only)
+
+`guide.ts` (pure, `guide.test.ts`) finds the next obstacle within 24 m. A core `TargetBeacon` marks it: a "GO" arrow on the clear lane before a pillar or a lava vent and on a rope bridge's planked lane, an orange "JUMP" / "SLIDE" danger ring on the runner's lane at a gap, a log or a vine. The new `Hud.tsx` is the core `HintLine` ("Gap ahead: jump! (Space / swipe up)", "Pillar ahead: A / D to the arrow's lane", "Clear lane: keep running"). A taken gem flies into the runner instead of vanishing (`<Toss>`); a hit pops "Fell! / Crash! / Burned! / Slide next time! -1 life". Rules, scoring and limits are unchanged; the hint slot is a safe-area panel, so the fitted camera keeps the runner clear of it.

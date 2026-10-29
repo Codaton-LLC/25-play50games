@@ -8,10 +8,12 @@ import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeom
 import { DynamicInstancedModel, InstancedModel, Model } from "../../core/assets";
 import { playSfx, startLoop, useMuted, type LoopHandle } from "../../core/audio";
 import CameraRig from "../../core/CameraRig";
+import { useCameraViews } from "../../core/camera/CameraViews";
+import type { AABB } from "../../core/collision";
 import { FRAME_PRIORITY } from "../../core/frameLoop";
-import { useFx } from "../../core/fx";
+import { Toss, useActionPop, useFx, type TossHandle } from "../../core/fx";
 import { useGameTime } from "../../core/gameTime";
-import { TargetMarkers, type MarkerTarget } from "../../core/hud";
+import { TargetBeacon, TargetMarkers, type MarkerTarget } from "../../core/hud";
 import { useInput } from "../../core/input";
 import { useLevel } from "../../core/level";
 import { randomSeed } from "../../core/math";
@@ -21,8 +23,9 @@ import { useArcadeStore } from "../../core/useArcadeStore";
 import { useFittedView } from "../../core/useFittedView";
 import { useRunFrame } from "../../core/useRunFrame";
 import { ASSETS, FIT, GLB_SIZE } from "./assets";
+import { GUIDE, burgerHint, hintCode, nextGoal, type Goal } from "./guide";
 import type { BurgerLevel } from "./levels";
-import { CAMERA, CAR_TINTS, COLORS as C, DAMPING, FOV, LOOK_AHEAD, aimBounds, blockSpots, dressing, laneDashes, shopSpot, viewFor, type BlockSpot } from "./looks";
+import { BUILDING_HEIGHT, CAMERA, CAR_TINTS, COLORS as C, DAMPING, FOV, LOOK_AHEAD, aimBounds, blockSpots, dressing, laneDashes, shopSpot, viewFor, type BlockSpot } from "./looks";
 import { PAD_RADIUS, PAD_SECONDS, createRun, stepRun, target, type Run } from "./rules";
 
 // one bevelled unit box for every code-built body (indexed, never merged with anything)
@@ -92,13 +95,61 @@ function LevelScene() {
    const { id, config } = useLevel<BurgerLevel>();
    const [run] = useState<Run>(() => createRun(randomSeed(), id, config));
    const view = useFittedView(viewFor());
-   const input = useInput(), fx = useFx(), time = useGameTime(), muted = useMuted();
+   // camera views (core/camera): the stick steers the scooter itself (rules.ts), so chase and front
+   // lock onto its heading; the town blocks pull the camera in front of them
+   useCameraViews({
+      slug: "burger-delivery-scooter",
+      subject: "vehicle",
+      steering: "vehicle",
+      defaultYaw: view.yaw,
+      target: (o) => {
+         const p = run.player;
+         o.x = p.x;
+         o.y = p.y + 0.9;
+         o.z = p.z;
+         o.heading = p.yaw;
+         o.vx = Math.sin(p.yaw) * p.speed;
+         o.vz = Math.cos(p.yaw) * p.speed;
+      },
+      solids: (out: AABB[]) => {
+         let n = 0;
+         const p = run.player;
+         for (const b of run.buildings) {
+            if (n >= out.length) break;
+            if (Math.abs(b.x - p.x) > b.hx + 30 || Math.abs(b.z - p.z) > b.hz + 30) continue;
+            const box = out[n++];
+            box.min.x = b.x - b.hx;
+            box.max.x = b.x + b.hx;
+            box.min.y = 0;
+            box.max.y = BUILDING_HEIGHT;
+            box.min.z = b.z - b.hz;
+            box.max.z = b.z + b.hz;
+         }
+         return n;
+      },
+   });
+   const input = useInput(), fx = useFx(), pop = useActionPop(), time = useGameTime(), muted = useMuted();
    const phase = useArcadeStore((s) => s.phase);
    const body = useRef<Group>(null), pad = useRef<Mesh>(null), shopRing = useRef<Mesh>(null);
    const engine = useRef<LoopHandle | null>(null);
    const aim = useRef({ x: run.player.x, y: 0.6, z: run.player.z }).current;
    const bounds = useMemo(() => aimBounds(config), [config]);
    const markers = useRef<MarkerTarget[]>([{ x: run.shop.x, y: 1, z: run.shop.z, color: C.target }]).current;
+   // clarity (visual only): a beacon on the shop / the active door, the hint line, fail pops, the bag
+   // flying counter -> box at the shop and box -> door at the customer
+   const goal = useRef<Goal>({ kind: 0, x: 0, z: 0 }).current;
+   const shopBeacon = useRef({ x: run.shop.x, y: 0.2, z: run.shop.z, hidden: true }).current;
+   const doorBeacon = useRef({ x: run.shop.x, y: 0.2, z: run.shop.z, hidden: true }).current;
+   const guideCode = useRef(-1);
+   const bagToss = useRef<TossHandle>(null);
+   const tossFrom = useRef({ x: 0, y: 0, z: 0 }).current;
+   const tossTo = useRef({ x: 0, y: 0, z: 0 }).current;
+   const boxPoint = useRef({ x: 0, y: 1.1, z: 0 }).current;
+   useEffect(() => {
+      guideCode.current = hintCode(run);
+      GUIDE.set(burgerHint(run, guideCode.current));
+      return () => GUIDE.reset();
+   }, [run]);
    const synced = useRef({ score: -1, orders: -1, quality: -1, carrying: -1, average: -1, stop: -1 }).current;
    const layout = useMemo(() => {
       const shopAt = shopSpot(run, FIT.shopWidth, GLB_SIZE.burgerShopI.depth * (FIT.shopWidth / GLB_SIZE.burgerShopI.width));
@@ -130,6 +181,7 @@ function LevelScene() {
    }, [phase, muted]);
 
    useRunFrame((_, dt) => {
+      const goalBefore = target(run);
       const score = run.score, misses = run.misses, quality = run.quality, carrying = run.carrying, delivered = run.delivered;
       stepRun(run, input.current, dt);
       const store = useArcadeStore.getState();
@@ -140,9 +192,23 @@ function LevelScene() {
          fx.score(AT, "+" + (run.score - score), { color: C.bag }); fx.burst("sparkle", AT, 16);
          playSfx(run.delivered > delivered && run.end === "win" ? "win" : "chime");
       }
-      for (let i = misses; i < run.misses; i++) { store.loseLife(); playSfx("lose"); fx.shake(0.3); }
-      if (run.quality < quality - 1) { AT.x = p.x; AT.y = 0.8; AT.z = p.z; fx.shake(0.15); fx.burst("puff", AT, 10); playSfx("hit"); }
-      if (!carrying && run.carrying) playSfx("pickup");
+      boxPoint.x = p.x - Math.sin(p.yaw) * 0.72; boxPoint.z = p.z - Math.cos(p.yaw) * 0.72;
+      for (let i = misses; i < run.misses; i++) { store.loseLife(); playSfx("lose"); AT.x = p.x; AT.y = 1.6; AT.z = p.z; pop.fail(AT, "Burgers ruined! -1 life", { shake: 0.3 }); }
+      if (run.quality < quality - 1 && run.misses === misses) { AT.x = p.x; AT.y = 0.8; AT.z = p.z; pop.fail(AT, "Bump! -" + Math.round(quality - run.quality), { shake: 0.15 }); fx.burst("puff", AT, 10); playSfx("hit"); }
+      if (!carrying && run.carrying) {
+         playSfx("pickup");
+         tossFrom.x = layout.counter.x; tossFrom.y = FIT.counterHeight + 0.2; tossFrom.z = layout.counter.z;
+         bagToss.current?.play(tossFrom, boxPoint, { duration: 0.4, height: 0.8, scaleFrom: 1, scaleTo: 0.8 });
+      } else if (carrying && !run.carrying) {
+         tossFrom.x = boxPoint.x; tossFrom.y = boxPoint.y; tossFrom.z = boxPoint.z;
+         tossTo.x = goalBefore.x; tossTo.y = 0.5; tossTo.z = goalBefore.z;
+         bagToss.current?.play(tossFrom, tossTo, { duration: 0.4, height: 0.9, scaleFrom: 1, scaleTo: 0.6 });
+      }
+      const code = hintCode(run);
+      if (code !== guideCode.current) { guideCode.current = code; GUIDE.set(burgerHint(run, code)); }
+      nextGoal(run, goal);
+      shopBeacon.hidden = goal.kind !== 1; doorBeacon.hidden = goal.kind !== 2;
+      shopBeacon.x = goal.x; shopBeacon.z = goal.z; doorBeacon.x = goal.x; doorBeacon.z = goal.z;
       if (run.end === "win") { AT.x = p.x; AT.y = 2; AT.z = p.z; fx.burst("confetti", AT, 36); }
       // the HUD only when a value changes
       const q = Math.floor(run.quality), avg = run.delivered ? Math.round(run.qualitySum / run.delivered) : 100, stop = Math.round((run.dwell / PAD_SECONDS) * 20) / 20;
@@ -160,7 +226,7 @@ function LevelScene() {
 
    useFrame(() => {
       const p = run.player, goal = target(run);
-      if (body.current) { body.current.position.set(p.x, p.y, p.z); body.current.rotation.set(0, p.yaw, -Math.max(-0.25, Math.min(0.25, p.speed * 0.02 * (input.current.moveX || 0)))); }
+      if (body.current) { body.current.position.set(p.x, p.y, p.z); body.current.rotation.set(0, p.yaw, Math.max(-0.25, Math.min(0.25, p.speed * 0.02 * (input.current.moveX || 0)))); }
       const pulse = 1 + Math.sin(time.now * 5) * 0.06;
       if (pad.current) { pad.current.position.set(goal.x, 0.03, goal.z); pad.current.visible = !run.end && run.carrying; pad.current.scale.setScalar(pulse); }
       if (shopRing.current) shopRing.current.scale.setScalar(run.carrying ? 1 : pulse);
@@ -179,6 +245,9 @@ function LevelScene() {
    return <>
       <CameraRig camera={{ position: view.offset, fov: FOV, lookAt: [aim.x, aim.y, aim.z] }} follow={aim} bounds={bounds} offset={view.offset} shift={view.shift} damping={DAMPING} />
       <TargetMarkers targets={markers} color={C.target} />
+      <TargetBeacon target={shopBeacon} variant="pick" color={C.shop} radius={PAD_RADIUS + 0.2} height={1.2} label="SHOP" />
+      <TargetBeacon target={doorBeacon} variant="drop-here" radius={PAD_RADIUS + 0.2} height={1.2} label="DROP" />
+      <Toss ref={bagToss} spin={0}><group scale={0.28}><Model asset={ASSETS.bag} fallback={<Parts parts={BAG} />} /></group></Toss>
       {/* sidewalk ground to the fog, asphalt streets, lane dashes */}
       <mesh rotation-x={-Math.PI / 2} position={[0, -0.02, 0]}><circleGeometry args={[170, 48]} /><meshStandardMaterial color={C.sidewalk} roughness={0.95} /></mesh>
       <Instanced spots={layout.roads}><boxGeometry /><meshStandardMaterial color={C.road} roughness={0.9} /></Instanced>

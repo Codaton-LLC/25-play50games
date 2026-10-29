@@ -14,6 +14,7 @@
       { "id": "jungleLog", "kind": "prop", "file": "menu1-jungle-bridge-run/jungleLog.glb", "budget": { "tris": 5000, "bytes": 300000 } },
       { "id": "hangingVine", "kind": "prop", "file": "menu1-jungle-bridge-run/hangingVine.glb", "budget": { "tris": 5000, "bytes": 300000 } },
       { "id": "jungleFern", "kind": "prop", "file": "menu1-jungle-bridge-run/jungleFern.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "junglePlant", "kind": "prop", "file": "menu1-jungle-bridge-run/junglePlant.glb", "budget": { "tris": 5000, "bytes": 300000 } },
       { "id": "volcanoBackdrop", "kind": "prop", "file": "menu1-jungle-bridge-run/volcanoBackdrop.glb", "budget": { "tris": 5000, "bytes": 300000 } }
    ]
 }

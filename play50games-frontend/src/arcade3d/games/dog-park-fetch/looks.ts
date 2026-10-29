@@ -9,9 +9,13 @@ import { LEVELS, type DogLevel } from "./levels";
 import { blanketOf, type Prop } from "./rules";
 
 export const COLORS = {
-   lawn: "#65a30d",
-   parkGrass: "#4d7c0f",
-   stripe: "#84cc16",
+   // a rich, quiet lawn (the grass texture carries the detail), mowing stripes only a shade lighter
+   lawn: "#ffffff",
+   lawnBase: "#4f8a2b",
+   lawnDark: "#457a25",
+   lawnLight: "#5b9832",
+   parkGrass: "#3f6f22",
+   stripe: "#9ccc65",
    path: "#d6d3d1",
    blanket: "#f59e0b",
    blanketEdge: "#fde68a",
@@ -35,11 +39,17 @@ export const COLORS = {
    tree: "#166534",
    trunk: "#78350f",
    target: "#fbbf24",
+   dogRing: "#ffffff",
+   gingham: "#dc2626",
+   ginghamLight: "#fca5a5",
+   ginghamWhite: "#fff7ed",
 } as const;
 
 export const PITCH = (55 * Math.PI) / 180;
 export const FOV = 46;
-export const LOOK_AHEAD = 2;
+export const LOOK_AHEAD = 1.4;
+/** the player's zoom (wheel, pinch, + / -): a factor on the fitted camera distance */
+export const ZOOM = { min: 0.55, max: 1.8 } as const;
 export const DAMPING = 4;
 /** Fog depth past its start; the start follows the fitted camera distance (fogFor). */
 export const FOG_DEPTH = 45;
@@ -57,11 +67,12 @@ export function lookAtFor(level: DogLevel): [number, number, number] {
 }
 
 /**
- * Half size of the window the follow camera keeps on screen around its aim. A phone in portrait gets
- * 5 x 7 m (the dog stays readable); landscape 8 x 7 m, which on L1 is most of the lawn.
+ * Half size of the window the follow camera keeps on screen around its aim: close enough that the
+ * dog is a clear size (portrait phone 3.4 x 4.6 m, landscape 5.2 x 3.8 m). Throws land outside it;
+ * the edge arrow and the beacon show where. The player zooms out (or in) with ZOOM.
  */
 export function viewWindow(level: DogLevel, portrait: boolean): { x: number; z: number } {
-   return { x: Math.min(level.width / 2, portrait ? 5 : 8), z: Math.min(level.depth / 2, 7) };
+   return { x: Math.min(level.width / 2, portrait ? 3.4 : 5.2), z: Math.min(level.depth / 2, portrait ? 4.6 : 3.8) };
 }
 
 const VIEWS = new Map<string, FittedViewOptions>();
@@ -202,4 +213,54 @@ export function blanketSpot(level: DogLevel): InstanceSpot {
 
 export function propSpots(props: readonly Prop[]): InstanceSpot[] {
    return props.map((p) => ({ x: p.x, y: 0, z: p.z, sx: p.r * 2, sy: 0.6, sz: p.r * 2 }));
+}
+
+// ---------- canvas textures (drawn once) ----------
+
+/** Lawn grass: a mottled base with short blade strokes, tiled every 4 m. */
+export function drawGrass(ctx: CanvasRenderingContext2D, w: number, h: number): void {
+   ctx.fillStyle = COLORS.lawnBase;
+   ctx.fillRect(0, 0, w, h);
+   const rng = createRng(4141);
+   for (let i = 0; i < 90; i++) {
+      ctx.globalAlpha = 0.18;
+      ctx.fillStyle = rng() < 0.5 ? COLORS.lawnDark : COLORS.lawnLight;
+      const r = 8 + rng() * 22;
+      ctx.beginPath();
+      ctx.arc(rng() * w, rng() * h, r, 0, Math.PI * 2);
+      ctx.fill();
+   }
+   ctx.globalAlpha = 0.5;
+   ctx.lineWidth = 1;
+   for (let i = 0; i < 1400; i++) {
+      const x = rng() * w;
+      const y = rng() * h;
+      ctx.strokeStyle = rng() < 0.5 ? COLORS.lawnDark : COLORS.lawnLight;
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(x + (rng() - 0.5) * 3, y - 3 - rng() * 4);
+      ctx.stroke();
+   }
+   ctx.globalAlpha = 1;
+}
+
+/** The picnic blanket: red gingham with a cream border. */
+export function drawBlanket(ctx: CanvasRenderingContext2D, w: number, h: number): void {
+   ctx.fillStyle = COLORS.ginghamWhite;
+   ctx.fillRect(0, 0, w, h);
+   const n = 8;
+   const s = (w - 24) / n;
+   for (let i = 0; i < n; i++) {
+      ctx.fillStyle = COLORS.ginghamLight;
+      ctx.fillRect(12 + i * s, 12, s / 2, h - 24);
+      ctx.fillRect(12, 12 + i * s, w - 24, s / 2);
+   }
+   for (let i = 0; i < n; i++)
+      for (let j = 0; j < n; j++) {
+         ctx.fillStyle = COLORS.gingham;
+         ctx.fillRect(12 + i * s, 12 + j * s, s / 2, s / 2);
+      }
+   ctx.strokeStyle = COLORS.gingham;
+   ctx.lineWidth = 6;
+   ctx.strokeRect(6, 6, w - 12, h - 12);
 }

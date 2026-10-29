@@ -12,7 +12,7 @@ import { readCharacterGlb } from "@/arcade3d/core/rig/robotGlb";
 import { EXPANSION_GLB_POINTS } from "@/arcade3d/core/sharedAssets";
 import type { ModelAsset } from "@/arcade3d/core/types";
 import { AIM } from "./aim";
-import { ASSETS, BARREL_HEIGHT, CRATE_SIZE, LIGHTHOUSE_AT, LIGHTHOUSE_FOOTPRINT, LIGHTHOUSE_GLB, LIGHTHOUSE_HEIGHT, PALM_SIZE, SHIP_WATERLINE } from "./assets";
+import { ASSETS, BUOY_HEIGHT, BARREL_HEIGHT, CRATE_SIZE, LIGHTHOUSE_AT, LIGHTHOUSE_FOOTPRINT, LIGHTHOUSE_GLB, LIGHTHOUSE_HEIGHT, PALM_SIZE, SHIP_WATERLINE } from "./assets";
 import { cannonMatrix } from "./cannonPose";
 import { FORT, SEA_BOX } from "./looks";
 import { CANNON, SEA, SHIPS, SHIP_TYPES, WORLD, ballAt, launchState, muzzleAt } from "./rules";
@@ -127,4 +127,14 @@ describe("pirate-cannons lighthouse", () => {
       expect(LIGHTHOUSE_AT.z - half).toBeGreaterThan(-63);
       expect(LIGHTHOUSE_AT.z + half).toBeLessThan(-59);
    });
+
+describe("pirate-cannons harbour buoy (Menu 1 adoption)", () => {
+   it("is listed, on disk and drawn 1.7 m tall standing on y 0", async () => {
+      expect(hasModel(ASSETS.harbourBuoy.url)).toBe(true);
+      expect(existsSync(resolve("public", ASSETS.harbourBuoy.url.slice(1)))).toBe(true);
+      const box = new Box3().setFromPoints(await drawn(ASSETS.harbourBuoy));
+      expect(box.min.y).toBeCloseTo(0, 2);
+      expect(box.getSize(new Vector3()).y).toBeCloseTo(BUOY_HEIGHT, 2);
+   });
+});
 });

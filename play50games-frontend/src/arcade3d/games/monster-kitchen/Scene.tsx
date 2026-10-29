@@ -25,6 +25,7 @@ import { useKitchenLevel } from "./useKitchenLevel";
 import { Cauldron } from "./Cauldron";
 import { Chef } from "./Chef";
 import { Decor } from "./Decor";
+import { KitchenSets } from "./KitchenSets";
 import { hudButtons, hudOrders, publishHand } from "./Hud";
 import { HATCH_X, HATCH_Z, Kitchen } from "./Kitchen";
 import { LEVEL_LOOKS } from "./looks";
@@ -247,6 +248,7 @@ export default function Scene() {
          <SkyDome top={levelLook.skyTop} bottom={levelLook.skyBottom} />
          <Kitchen />
          <Decor levelId={levelId} />
+         <KitchenSets levelId={levelId} />
          <Wheel run={run} look={look} />
          <Cauldron look={look} />
          <Monsters run={run} windows={windows} />

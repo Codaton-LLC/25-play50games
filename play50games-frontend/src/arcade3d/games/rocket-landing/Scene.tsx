@@ -16,7 +16,7 @@ import {
 import { Model } from "@/arcade3d/core/assets";
 import { isMuted, playSfx, startLoop, useMuted, type LoopHandle } from "@/arcade3d/core/audio";
 import { SkyDome, Starfield } from "@/arcade3d/core/env";
-import { useFx } from "@/arcade3d/core/fx";
+import { useActionPop, useFx } from "@/arcade3d/core/fx";
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import { TargetMarkers } from "@/arcade3d/core/hud";
 import { useInput } from "@/arcade3d/core/input";
@@ -30,7 +30,7 @@ import { Decor } from "./Decor";
 import { COLORS, PLANET_LOOKS } from "./looks";
 import Planet, { PlanetLighting } from "./Planet";
 import { RocketPrimitive } from "./Primitives";
-import { BODY, PLANETS, createRun, crashContact, landingSafe, padVx, padX, stepRun } from "./rules";
+import { BODY, createRun, worldOf, crashContact, landingSafe, padVx, padX, stepRun } from "./rules";
 import { useRocketLevel } from "./useRocketLevel";
 
 /** seconds the crash flash takes to grow and fade */
@@ -38,7 +38,7 @@ const FLASH_SECONDS = 0.5;
 const GOOD = new Color("#6ee7b7"), BAD = new Color("#fda4af");
 
 export default function Scene() {
-   const input = useInput(), time = useGameTime(), fx = useFx(), quality = useQuality();
+   const input = useInput(), time = useGameTime(), fx = useFx(), pop = useActionPop(), quality = useQuality();
    const phase = useArcadeStore((s) => s.phase), muted = useMuted();
    const { config } = useRocketLevel();
    const loop = useRef<LoopHandle | null>(null), root = useRef<Group>(null), flame = useRef<Group>(null), flash = useRef<Mesh>(null);
@@ -89,7 +89,7 @@ export default function Scene() {
          crashContact(run, scratch.at);
          fx.burst("sparks", scratch.at, 28);
          fx.burst("sparkle", scratch.boom, 28); fx.burst("debris", scratch.boom, 20); fx.burst("smoke", scratch.boom, 12);
-         fx.shake(0.6); playSfx("boom"); store.loseLife();
+         pop.fail(scratch.at, "Crash! -1 life", { shake: 0.6 }); playSfx("boom"); store.loseLife();
       }
       if (ev.award) {
          store.addScore(ev.award); playSfx("thud"); playSfx("chime");
@@ -114,7 +114,7 @@ export default function Scene() {
       const stats = store.stats;
       const safe = landingSafe(run, run.attemptTime) ? 1 : 0;
       if (stats.landingSafe !== safe) store.setStat("landingSafe", safe);
-      const fuel = Math.floor(100 * run.fuel / PLANETS[run.planet].fuel),
+      const fuel = Math.floor(100 * run.fuel / worldOf(run).fuel),
             vx = Math.round(10 * (b.vx - padVx(run.layouts[run.planet], run.planet, run.attemptTime, run.level?.padAmplitude))),
             vy = Math.round(10 * b.vy),
             tilt = Math.round(b.angle * 180 / Math.PI);
@@ -168,7 +168,7 @@ export default function Scene() {
       markers[0].x = padX(run.layouts[run.planet], run.planet, run.attemptTime, run.level?.padAmplitude);
    });
 
-   const look = PLANET_LOOKS[run.planet] ?? PLANET_LOOKS[0];
+   const lookIndex = worldOf(run).look, look = PLANET_LOOKS[lookIndex] ?? PLANET_LOOKS[0];
 
    return <>
       <RocketCamera run={run} />
@@ -179,7 +179,7 @@ export default function Scene() {
       {/* Rim light catching rocket and stage silhouette from behind */}
       <directionalLight position={[-4, 8, -6]} intensity={0.85} color="#e0f2fe" />
       {/* Instanced scenery outside the play area: distant peaks, rocks, thematic props, moon */}
-      <Decor planet={run.planet} level={run.level?.id ?? 1} reducedMotion={reducedMotion} />
+      <Decor planet={lookIndex} level={run.level?.id ?? 1} reducedMotion={reducedMotion} />
       {/* Ground terrain, pad, cavern roof, lighting */}
       <PlanetLighting run={run} />
       <Planet run={run} />

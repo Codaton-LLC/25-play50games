@@ -19,7 +19,7 @@ import { arrive, flee, separate, type Agent } from "@/arcade3d/core/ai/steering"
 import { hasLineOfSightXZ, inViewCone } from "@/arcade3d/core/ai/vision";
 import { inputToWorld, rngNext, turnTowards, type RngState } from "@/arcade3d/core/math";
 import type { LevelId, ScoringRules } from "@/arcade3d/types";
-import { LEVELS, type SnowLevel } from "./levels";
+import { ARENAS, LEVELS, type Arena, type SnowLevel, type Zone } from "./levels";
 
 export const POCKET_OUT = 0.45;
 export const SCOOP_S = 0.5;
@@ -79,6 +79,13 @@ export const SCORE = {
 } as const;
 
 export const PINE = { count: 10, trunk: 0.3, gap: 2.2, bandX: 9.2, bandZ: 6.6 } as const;
+
+/** Ice (levels.ts Arena.ice): accel and brake scale down, so a kid slides. Top speed is unchanged. */
+export const ICE = { accel: 0.22, brake: 0.12 } as const;
+/** Deep snow (Arena.drifts): top speed scales down. */
+export const DRIFT = { speed: 0.6 } as const;
+/** A ground zone keeps this far from the start, from every fort's box and from the snowman's (m past r). */
+export const ZONE_CLEAR = { start: 1, box: 0.9 } as const;
 
 /** Proven limits. meta.scoring equals this block (190 pps, any-hit clear at 10.9 s). */
 export const PROPOSED_LIMITS: ScoringRules = {
@@ -186,7 +193,7 @@ export function runScore(hits: number, outs: number, won: boolean, playerTags: n
 
 export type KidState = "play" | "cover" | "ready" | "peek" | "windup" | "recover" | "relocate" | "stagger" | "knockdown";
 export type EndName = "win" | "lose" | "timeup";
-export type FxKind = "scoop" | "throw" | "tag" | "hurt" | "crumble" | "splat" | "down";
+export type FxKind = "scoop" | "throw" | "tag" | "hurt" | "crumble" | "splat" | "down" | "rebuild";
 
 export interface FortState { x: number; z: number; hp: number }
 export interface PineState { x: number; z: number; scale: number; rotY: number }
@@ -250,6 +257,8 @@ export interface StepInput {
 
 export interface Run {
    seed: number;
+   /** per fort: seconds spent at 0 HP (Arena.rebuild packs it back up) */
+   downT: number[];
    coarse: boolean;
    /** the level this run was built from; level 1 matches the module constants */
    level: SnowLevel;
@@ -284,9 +293,7 @@ const BALLS = 10;
 const EVENTS = 24;
 const GRAV: BallisticParams = { gravity: GRAVITY, wind: { x: 0, z: 0 } };
 
-const BASE_FORTS: readonly (readonly [number, number])[] = [
-   [0, -5.2], [6.4, -3.3], [7.5, 1.5], [3.4, 4.9], [-3.4, 4.9], [-7.5, 1.5], [-6.4, -3.3],
-];
+const BASE_FORTS: readonly (readonly [number, number])[] = ARENAS[1].forts;
 const BASE_PINES: readonly (readonly [number, number])[] = [
    [10.6, 0], [-10.6, 0], [11.1, 3.6], [11.1, -3.6], [-11.1, 3.6], [-11.1, -3.6],
    [0, 7.5], [5.5, 7.6], [-5.5, 7.6], [0, -7.5],
@@ -556,16 +563,16 @@ function peekPocketsCovered(yard: Yard): boolean {
    return true;
 }
 
-function baseYard(hp: number = FORT.hp): Yard {
+function baseYard(hp: number = FORT.hp, forts: readonly (readonly [number, number])[] = BASE_FORTS): Yard {
    return {
-      forts: BASE_FORTS.map(([x, z]) => ({ x, z, hp })),
+      forts: forts.map(([x, z]) => ({ x, z, hp })),
       pines: BASE_PINES.map(([x, z], i) => ({ x, z, scale: 0.9 + (i % 3) * 0.15, rotY: i * 0.7 })),
    };
 }
 
-function jitterYard(rng: RngState, hp: number): Yard {
+function jitterYard(rng: RngState, hp: number, forts: readonly (readonly [number, number])[]): Yard {
    return {
-      forts: BASE_FORTS.map(([x, z]) => ({
+      forts: forts.map(([x, z]) => ({
          x: x + (rngNext(rng) * 2 - 1) * 0.22,
          z: z + (rngNext(rng) * 2 - 1) * 0.22,
          hp,
@@ -579,17 +586,74 @@ function jitterYard(rng: RngState, hp: number): Yard {
    };
 }
 
-export function generateYard(seed: number, hp: number = FORT.hp): { yard: Yard; fallback: boolean } {
-   const rng: RngState = { s: seed >>> 0 };
-   for (let attempt = 0; attempt < 40; attempt++) {
-      const yard = jitterYard(rng, hp);
-      if (checkYard(yard) === null) return { yard, fallback: false };
+/** null when no ice or drift touches the start, a fort's box or the snowman's (so every pocket is plain snow). */
+export function checkZones(yard: Yard, arena: Arena): string | null {
+   const zones = arena.ice.concat(arena.drifts);
+   for (let i = 0; i < zones.length; i++) {
+      const zone = zones[i];
+      if (Math.hypot(zone.x - YARD.startX, zone.z - YARD.startZ) < zone.r + ZONE_CLEAR.start) return "zone-start";
+      writeBox(STILL, 0, 0, YARD.snowHalf, YARD.snowHeight);
+      if (distanceToBoxXZ(zone.x, zone.z, STILL) < zone.r + ZONE_CLEAR.box) return "zone-snowman";
+      for (let f = 0; f < yard.forts.length; f++) {
+         writeBox(STILL, yard.forts[f].x, yard.forts[f].z, FORT.half, 1);
+         if (distanceToBoxXZ(zone.x, zone.z, STILL) < zone.r + ZONE_CLEAR.box) return "zone-fort";
+      }
    }
-   return { yard: baseYard(hp), fallback: true };
+   return null;
 }
 
-export function fallbackYard(): Yard {
-   return baseYard();
+/**
+ * null when every fort pocket (cover and peek, all four faces) leaves a kid clear of every trunk and
+ * inside the yard. Levels 2-5 require it (generateYard); level 1's yards are today's and stay as they are.
+ */
+export function checkPockets(yard: Yard): string | null {
+   for (let f = 0; f < yard.forts.length; f++) {
+      pocketsOf(yard.forts[f].x, yard.forts[f].z, 0);
+      for (let p = 0; p < 4; p++) {
+         const x = POCKETS[p * 4];
+         const z = POCKETS[p * 4 + 1];
+         if (x < YARD.minX + YARD.inset + KID.radius || x > YARD.maxX - YARD.inset - KID.radius) return "pocket-edge";
+         if (z < YARD.minZ + YARD.inset + KID.radius || z > YARD.maxZ - YARD.inset - KID.radius) return "pocket-edge";
+         for (let i = 0; i < yard.pines.length; i++) {
+            const pine = yard.pines[i];
+            if (Math.hypot(x - pine.x, z - pine.z) < KID.radius + PINE.trunk + 0.1) return "pocket-pine";
+         }
+      }
+   }
+   return null;
+}
+
+export function generateYard(seed: number, hp: number = FORT.hp, arena: Arena = ARENAS[1]): { yard: Yard; fallback: boolean } {
+   const rng: RngState = { s: seed >>> 0 };
+   for (let attempt = 0; attempt < 40; attempt++) {
+      const yard = jitterYard(rng, hp, arena.forts);
+      if (checkYard(yard) !== null || checkZones(yard, arena) !== null) continue;
+      if (arena !== ARENAS[1] && checkPockets(yard) !== null) continue;
+      return { yard, fallback: false };
+   }
+   return { yard: baseYard(hp, arena.forts), fallback: true };
+}
+
+/** The un-jittered yard. With no arena it is level 1's (the rules.test fixtures). */
+export function fallbackYard(arena: Arena = ARENAS[1], hp: number = FORT.hp): Yard {
+   return baseYard(hp, arena.forts);
+}
+
+function inZone(zones: readonly Zone[], x: number, z: number): boolean {
+   for (let i = 0; i < zones.length; i++) {
+      const zone = zones[i];
+      const dx = x - zone.x;
+      const dz = z - zone.z;
+      if (dx * dx + dz * dz < zone.r * zone.r) return true;
+   }
+   return false;
+}
+
+/** The ground under a point: "ice", "drift" or "snow". */
+export function groundAt(level: SnowLevel, x: number, z: number): "ice" | "drift" | "snow" {
+   if (inZone(level.arena.ice, x, z)) return "ice";
+   if (inZone(level.arena.drifts, x, z)) return "drift";
+   return "snow";
 }
 
 function park(kid: Kid): void {
@@ -654,7 +718,7 @@ function northernFort(yard: Yard): number {
 }
 
 export function createRun(seed: number, coarse: boolean, level: SnowLevel = LEVELS[1]): Run {
-   const generated = generateYard(seed, level.fortHp);
+   const generated = generateYard(seed, level.fortHp, level.arena);
    const yard = generated.yard;
    const kids = [kid(0), kid(1), kid(2), kid(3)];
    const player = kids[0];
@@ -679,7 +743,7 @@ export function createRun(seed: number, coarse: boolean, level: SnowLevel = LEVE
    const balls = Array.from({ length: BALLS }, emptyBall);
    const events = Array.from({ length: EVENTS }, () => ({ kind: "splat" as FxKind, x: 0, y: 0, z: 0, n: 0 }));
    return {
-      seed, coarse, level, fallback: generated.fallback, time: 0,
+      seed, downT: yard.forts.map(() => 0), coarse, level, fallback: generated.fallback, time: 0,
       forts: yard.forts, pines: yard.pines, kids, balls,
       hits: 0, outs: 0, playerTags: 0, bank: 0, score: 0, scoreDelta: 0, endReason: null,
       scooping: false, scoopT: 0, scoopLock: false, throwCd: 0, campFort: -1, campT: 0,
@@ -759,11 +823,12 @@ function face(kid: Kid, x: number, z: number, dt: number): void {
    kid.yaw = turnTowards(kid.yaw, yaw, turnFrac(kid.yaw, yaw, KID.turn, dt));
 }
 
-function topSpeed(run: Run): number {
-   return run.level.speed;
+function topSpeed(run: Run, kid: Kid): number {
+   const drifts = run.level.arena.drifts;
+   return drifts.length > 0 && inZone(drifts, kid.x, kid.z) ? run.level.speed * DRIFT.speed : run.level.speed;
 }
 
-function accelerate(kid: Kid, desX: number, desZ: number, dt: number, speed: number): void {
+function accelerate(run: Run, kid: Kid, desX: number, desZ: number, dt: number, speed: number): void {
    const desLen = Math.hypot(desX, desZ);
    let tx = 0;
    let tz = 0;
@@ -777,7 +842,9 @@ function accelerate(kid: Kid, desX: number, desZ: number, dt: number, speed: num
    const err = Math.hypot(dx, dz);
    if (err < 1e-8) return;
    const speeding = tx * kid.vx + tz * kid.vz >= kid.vx * kid.vx + kid.vz * kid.vz - 1e-6;
-   const rate = speeding ? KID.accel : KID.brake;
+   const ice = run.level.arena.ice;
+   const slick = ice.length > 0 && inZone(ice, kid.x, kid.z);
+   const rate = speeding ? KID.accel * (slick ? ICE.accel : 1) : KID.brake * (slick ? ICE.brake : 1);
    const step = Math.min(err, rate * dt);
    kid.vx += (dx / err) * step;
    kid.vz += (dz / err) * step;
@@ -794,13 +861,13 @@ function fillSep(run: Run): void {
 }
 
 function steerToward(run: Run, kid: Kid, x: number, z: number, slow: number, dt: number, fleeFrom: boolean): void {
-   const speed = topSpeed(run);
+   const speed = topSpeed(run, kid);
    TARGET.x = x; TARGET.y = 0; TARGET.z = z;
    if (fleeFrom) flee(kid, TARGET, speed, STEER);
    else arrive(kid, TARGET, speed, slow, STEER);
    fillSep(run);
    separate(kid, SEP, AI.separateRadius, AI.separateSpeed, SEP_OUT);
-   accelerate(kid, STEER.x + kid.vx + SEP_OUT.x, STEER.z + kid.vz + SEP_OUT.z, dt, speed);
+   accelerate(run, kid, STEER.x + kid.vx + SEP_OUT.x, STEER.z + kid.vz + SEP_OUT.z, dt, speed);
    const sp = Math.hypot(kid.vx, kid.vz);
    if (sp > 0.15) face(kid, kid.x + kid.vx, kid.z + kid.vz, dt);
 }
@@ -903,7 +970,7 @@ function separateCircles(run: Run): void {
 
 function integrate(run: Run, kid: Kid, h: number): void {
    if (!living(kid)) return;
-   const cap = topSpeed(run);
+   const cap = topSpeed(run, kid);
    const sp = Math.hypot(kid.vx, kid.vz);
    if (sp > cap) {
       kid.vx = (kid.vx / sp) * cap;
@@ -977,6 +1044,29 @@ export function highlightOf(run: Run, yaw: number): number {
       }
    }
    return best;
+}
+
+export type MissReason = "ammo" | "blocked" | "none";
+
+/**
+ * Why a desktop throw press at `yaw` would not throw (read-only, for the Scene's feedback pop; it
+ * changes nothing). null = it throws, or it is a silent wait (scooping, the 0.40 s gap, the run is
+ * over). "ammo": no snowball packed. "blocked": a rival is in the cone but a fort or the snowman is in
+ * the way. "none": no rival in the cone.
+ */
+export function missReason(run: Run, yaw: number): MissReason | null {
+   const player = run.kids[0];
+   if (run.endReason || run.scooping || run.throwCd > 0) return null;
+   if (player.ammo <= 0) return "ammo";
+   if (highlightOf(run, yaw) >= 0) return null;
+   PA.x = player.x; PA.y = 0; PA.z = player.z;
+   for (let i = 1; i < run.kids.length; i++) {
+      const rival = run.kids[i];
+      if (!living(rival)) continue;
+      PB.x = rival.x; PB.y = 0; PB.z = rival.z;
+      if (inViewCone(PA, yaw, THROW.halfAngle, THROW.range, PB)) return "blocked";
+   }
+   return "none";
 }
 
 function allocBall(run: Run): Ball | null {
@@ -1605,6 +1695,28 @@ function updateCamp(run: Run, h: number): void {
    }
 }
 
+/** Arena.rebuild: a fort at 0 HP is packed back to full once nobody stands where its walls go. */
+function updateRebuild(run: Run, h: number): void {
+   const after = run.level.arena.rebuild;
+   if (after <= 0) return;
+   for (let i = 0; i < run.forts.length; i++) {
+      const fort = run.forts[i];
+      if (fort.hp >= 1) { run.downT[i] = 0; continue; }
+      run.downT[i] += h;
+      if (run.downT[i] < after) continue;
+      writeBox(STILL, fort.x, fort.z, FORT.half, 1);
+      let blocked = false;
+      for (let k = 0; k < run.kids.length; k++) {
+         const kid = run.kids[k];
+         if (living(kid) && distanceToBoxXZ(kid.x, kid.z, STILL) < KID.radius + 0.05) { blocked = true; break; }
+      }
+      if (blocked) continue;
+      fort.hp = run.level.fortHp;
+      run.downT[i] = 0;
+      pushEvent(run, "rebuild", fort.x, fortHeight(fort.hp), fort.z, fort.hp);
+   }
+}
+
 function inputScoop(run: Run, input: StepInput, h: number): void {
    const player = run.kids[0];
    if (!input.scoop) {
@@ -1652,8 +1764,8 @@ function movePlayer(run: Run, input: StepInput, h: number): void {
    let mz = DIR.z;
    const mag = Math.hypot(mx, mz);
    if (mag > 1) { mx /= mag; mz /= mag; }
-   const speed = topSpeed(run);
-   accelerate(player, mx * speed, mz * speed, h, speed);
+   const speed = topSpeed(run, player);
+   accelerate(run, player, mx * speed, mz * speed, h, speed);
    if (mag > 0.2) {
       const yaw = Math.atan2(mx, mz);
       player.yaw = turnTowards(player.yaw, yaw, turnFrac(player.yaw, yaw, KID.turn, h));
@@ -1674,6 +1786,7 @@ function onSub(h: number): void {
    if (run.throwCd > 0) run.throwCd = Math.max(0, run.throwCd - h);
    inputScoop(run, INPUT, h);
    updateCamp(run, h);
+   updateRebuild(run, h);
    if (!SHOT) {
       SHOT = true;
       tryThrow(run, INPUT);

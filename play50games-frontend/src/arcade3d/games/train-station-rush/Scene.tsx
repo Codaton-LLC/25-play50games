@@ -3,7 +3,7 @@
 // Train Station Rush scene. One useRunFrame steps rules.ts; visuals read the run and animate with
 // useGameTime. The camera follows the worker along the station (looks.ts); trains are two pools (the
 // carriage GLB and the code engine), travellers one pool, every plate one canvas atlas.
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { Billboard } from "@react-three/drei";
 import {
@@ -23,11 +23,12 @@ import {
 } from "three";
 import { DynamicInstancedModel, InstancedModel, Model } from "@/arcade3d/core/assets";
 import CameraRig from "@/arcade3d/core/CameraRig";
+import { useCameraViews } from "@/arcade3d/core/camera/CameraViews";
 import { playSfx } from "@/arcade3d/core/audio";
 import { FRAME_PRIORITY } from "@/arcade3d/core/frameLoop";
-import { useFx } from "@/arcade3d/core/fx";
+import { useActionPop, useFx } from "@/arcade3d/core/fx";
 import { useGameTime } from "@/arcade3d/core/gameTime";
-import { TargetMarkers } from "@/arcade3d/core/hud";
+import { TargetBeacon, TargetMarkers } from "@/arcade3d/core/hud";
 import { useInput } from "@/arcade3d/core/input";
 import { useLevel } from "@/arcade3d/core/level";
 import { randomSeed } from "@/arcade3d/core/math";
@@ -53,6 +54,7 @@ import { useFittedView } from "@/arcade3d/core/useFittedView";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { ASSETS, CAR_LENGTH, WORKER_LANDMARKS, WORKER_SCALE } from "./assets";
 import type { StationLevel } from "./levels";
+import Decor from "./Decor";
 import {
    ATLAS,
    BED_DEPTH,
@@ -67,14 +69,17 @@ import {
    cellUv,
    islandSpots,
    lookBounds,
+   lookFor,
    platformLook,
    restLook,
+   setPieceSpots,
    trackSpots,
    trainOffset,
    viewFor,
    wallSpots,
    type LabelQuad,
    type PlatformShape,
+   type StationLook,
 } from "./looks";
 import { BackpackPrimitive, ClockPrimitive, PropsPrimitive, SuitcasePrimitive, WorkerFigure, useCarParts, useLocoParts, useTravellerParts } from "./Primitives";
 import {
@@ -198,13 +203,13 @@ function stationQuads(level: StationLevel): LabelQuad[] {
    return out;
 }
 
-function drawTerrazzo(ctx: CanvasRenderingContext2D, w: number, h: number) {
-   ctx.fillStyle = COLORS.concourse;
+function drawTerrazzo(ctx: CanvasRenderingContext2D, w: number, h: number, look: StationLook) {
+   ctx.fillStyle = look.concourse;
    ctx.fillRect(0, 0, w, h);
-   ctx.fillStyle = COLORS.concourseTile;
+   ctx.fillStyle = look.concourseTile;
    ctx.fillRect(0, 0, w / 2, h / 2);
    ctx.fillRect(w / 2, h / 2, w / 2, h / 2);
-   ctx.strokeStyle = COLORS.concourseLine;
+   ctx.strokeStyle = look.concourseLine;
    ctx.lineWidth = 2;
    ctx.strokeRect(1, 1, w - 2, h - 2);
    for (let i = 0; i < 90; i++) {
@@ -320,14 +325,33 @@ function Waiting({ run, slot, atlas }: { run: Run; slot: number; atlas: MeshStan
 
 function LevelScene() {
    const { id, config } = useStationLevel();
+   const look = lookFor(config);
    const portrait = useThree((s) => s.size.height > s.size.width);
    const view = useFittedView(viewFor(id, portrait));
+   const [run] = useState<Run>(() => createRun(randomSeed(), config));
+   // camera views (core/camera): the rules get the drawn camera's yaw
+   const cam = useCameraViews({
+      slug: "train-station-rush",
+      subject: "character",
+      steering: "camera",
+      defaultYaw: view.yaw,
+      target: (o) => {
+         const h = run.hero;
+         o.x = h.x;
+         o.y = 1.1;
+         o.z = h.z;
+         o.heading = h.yaw;
+         o.vx = h.vx;
+         o.vz = h.vz;
+      },
+   });
    const input = useInput();
    const fx = useFx();
+   const pop = useActionPop();
+   const padBeacon = useRef({ x: 0, y: 0.5, z: 0, hidden: true }).current;
    const time = useGameTime();
    const quality = useQuality();
    const gl = useThree((s) => s.gl);
-   const [run] = useState<Run>(() => createRun(randomSeed(), config));
    const rest = restLook(portrait);
    const bounds = useMemo(() => lookBounds(config, portrait), [config, portrait]);
    const aim = useRef({ x: 0, y: LOOK_Y, z: rest[2] }).current;
@@ -340,14 +364,15 @@ function LevelScene() {
    const sleepers = useMemo(() => tracks.sleepers.filter((_, i) => i % (quality.decor < 0.75 ? 2 : 1) === 0), [tracks, quality.decor]);
    const walls = useMemo(() => wallSpots(config), [config]);
    const beds = useMemo(() => Array.from({ length: config.platforms }, (_, p) => ({ x: trackX(config, p), y: -BED_DEPTH, z: (CONCOURSE_DEPTH + STATION_END + 30) / 2, sx: 2.4, sy: 0.02, sz: STATION_END + 30 - CONCOURSE_DEPTH })), [config]);
-   const { canopies, signs, benches, tickets, lamps } = useMemo(() => {
+   const pieces = useMemo(() => setPieceSpots(config), [config]);
+   const { canopies, signs, benches, tickets, lamps, trolleys } = useMemo(() => {
       const of = (kind: Solid["kind"]) => run.solids.filter((s) => s.kind === kind).map((s) => ({ x: s.x, y: 0, z: s.z, rotY: s.rotY }));
-      return { canopies: of("canopy"), signs: of("sign"), benches: of("bench"), tickets: of("ticket"), lamps: of("lamp") };
+      return { canopies: of("canopy"), signs: of("sign"), benches: of("bench"), tickets: of("ticket"), lamps: of("lamp"), trolleys: of("trolley") };
    }, [run]);
    const lampGlow = useMemo(() => lamps.map((l) => ({ x: l.x, y: 2.62, z: l.z, sx: 0.36, sy: 0.12, sz: 0.36 })), [lamps]);
-   const trolley = run.solids.find((s) => s.kind === "trolley")!;
    const pads = useMemo(() => Array.from({ length: config.platforms }, (_, p) => padPoint(config, p)), [config]);
-   const terrazzo = useCanvasTexture(256, 256, drawTerrazzo);
+   const drawFloor = useCallback((ctx: CanvasRenderingContext2D, w: number, h: number) => drawTerrazzo(ctx, w, h, look), [look]);
+   const terrazzo = useCanvasTexture(256, 256, drawFloor);
    useMemo(() => {
       terrazzo.wrapS = terrazzo.wrapT = RepeatWrapping;
       terrazzo.repeat.set(half, CONCOURSE_DEPTH / 2);
@@ -388,7 +413,7 @@ function LevelScene() {
    useRunFrame((_state, dt) => {
       const { moveX, moveY, actionPressed } = input.current;
       const store = useArcadeStore.getState();
-      const ev = step(run, { moveX, moveY, actionPressed, yaw: view.yaw }, dt, store.timeLeftMs ?? 0);
+      const ev = step(run, { moveX, moveY, actionPressed, yaw: cam.yaw() }, dt, store.timeLeftMs ?? 0);
       if (ev.score) store.addScore(ev.score);
       store.setStat("delivered", run.delivered);
       store.setStat("dwell", run.level.dwellS);
@@ -411,7 +436,10 @@ function LevelScene() {
          const pad = padPoint(run.level, held.platform);
          markers[0].x = pad.x;
          markers[0].z = pad.z;
+         padBeacon.x = pad.x;
+         padBeacon.z = pad.z;
       }
+      padBeacon.hidden = !held;
       if (ev.took >= 0) {
          AT.x = run.hero.x; AT.y = 1.3; AT.z = run.hero.z;
          fx.burst("sparkle", AT, 10);
@@ -428,11 +456,16 @@ function LevelScene() {
          const pad = padPoint(run.level, run.tasks[ev.missed].platform);
          AT.x = pad.x; AT.y = 1; AT.z = pad.z;
          fx.burst("puff", AT, 10);
-         fx.shake(0.2);
+         AT.y = 1.6;
+         pop.fail(AT, "Train left! -1 life", { shake: 0.2 });
          playSfx("alarm");
       }
       if (ev.opened >= 0) playSfx("click", { volume: 0.4 });
-      if (ev.buzz) playSfx("buzz", { volume: 0.5 });
+      if (ev.buzz) {
+         playSfx("buzz", { volume: 0.5 });
+         AT.x = run.hero.x; AT.y = 1.6; AT.z = run.hero.z;
+         pop.fail(AT, "Not here: hands full, wrong pad or no train", { shake: 0 });
+      }
       if (ev.lifeLost) store.loseLife();
       if (ev.won) store.end("win");
       if (ev.lost && useArcadeStore.getState().phase !== "over") store.end("lose");
@@ -476,7 +509,7 @@ function LevelScene() {
    const placeLoco = (p: number, m: Matrix4) => {
       const off = trainOffset(run, p, run.time);
       if (off < 0) return false;
-      V.set(trackX(run.level, p), -BED_DEPTH + 0.12, NOSE_Z + off);
+      V.set(trackX(run.level, p), -BED_DEPTH + 0.12, NOSE_Z + off + LOCO_LEN / 2);
       Q.identity();
       S.set(1, 1, 1);
       m.compose(V, Q, S);
@@ -522,6 +555,7 @@ function LevelScene() {
             damping={DAMPING}
          />
          <TargetMarkers targets={markers} color={COLORS.accent} />
+         <TargetBeacon target={padBeacon} variant="drop-here" radius={1.1} height={1.0} label="DROP" />
          {/* ground: the concourse, the bed below everything, the islands */}
          <mesh rotation-x={-Math.PI / 2} position={[0, 0, CONCOURSE_DEPTH / 2]}>
             <planeGeometry args={[half * 2, CONCOURSE_DEPTH]} />
@@ -529,23 +563,23 @@ function LevelScene() {
          </mesh>
          <mesh rotation-x={-Math.PI / 2} position={[0, -BED_DEPTH - 0.02, (STATION_END + 40) / 2]}>
             <planeGeometry args={[half * 2 + 30, STATION_END + 40]} />
-            <meshStandardMaterial color={COLORS.ballast} roughness={1} />
+            <meshStandardMaterial color={look.ballast} roughness={1} />
          </mesh>
          <Instanced spots={beds} name="beds">
             <boxGeometry args={[1, 1, 1]} />
-            <meshStandardMaterial color={COLORS.trackBed} roughness={0.95} />
+            <meshStandardMaterial color={look.trackBed} roughness={0.95} />
          </Instanced>
          <Instanced spots={islands.tops} name="islands">
             <boxGeometry args={[1, 1, 1]} />
-            <meshStandardMaterial color={COLORS.platform} roughness={0.7} />
+            <meshStandardMaterial color={look.platform} roughness={0.7} />
          </Instanced>
          <Instanced spots={islands.sides} name="island-sides">
             <boxGeometry args={[1, 1, 1]} />
-            <meshStandardMaterial color={COLORS.platformSide} roughness={0.8} />
+            <meshStandardMaterial color={look.platformSide} roughness={0.8} />
          </Instanced>
          <Instanced spots={islands.edges} name="edges">
             <boxGeometry args={[1, 1, 1]} />
-            <meshStandardMaterial color={COLORS.edge} emissive={COLORS.edge} emissiveIntensity={config.lighting === "night" ? 0.5 : 0.15} roughness={0.5} />
+            <meshStandardMaterial color={look.edge} emissive={look.edge} emissiveIntensity={config.lighting === "night" ? 0.55 : config.lighting === "sunset" ? 0.35 : 0.15} roughness={0.5} />
          </Instanced>
          <Instanced spots={tracks.rails} name="rails">
             <boxGeometry args={[1, 1, 1]} />
@@ -561,26 +595,72 @@ function LevelScene() {
          </Instanced>
          <Instanced spots={walls} name="walls">
             <boxGeometry args={[1, 1, 1]} />
-            <meshStandardMaterial color={COLORS.wall} roughness={0.8} />
+            <meshStandardMaterial color={look.wall} roughness={0.8} />
          </Instanced>
          {/* the entrance: glowing doors in the back wall */}
          <mesh position={[0, 1.4, 0.02]}>
             <planeGeometry args={[4.2, 2.8]} />
-            <meshStandardMaterial color={COLORS.doorGlow} emissive={COLORS.doorGlow} emissiveIntensity={config.lighting === "night" ? 0.9 : 0.45} />
+            <meshStandardMaterial color={look.doorGlow} emissive={look.doorGlow} emissiveIntensity={config.lighting === "night" ? 0.9 : config.lighting === "indoor" ? 0.65 : 0.45} />
          </mesh>
-         <Model asset={ASSETS.clock} position={[0, 2.95, 0.05]} fallback={<ClockPrimitive />} />
+         {/* Clocks: one over the doors; Central Station adds a ticket-hall pair; Mega lifts the main clock */}
+         <Model asset={ASSETS.clock} position={[0, config.theme === "central" || config.theme === "mega" ? 3.55 : 2.95, 0.05]} fallback={<ClockPrimitive />} />
+         {config.theme === "central" ? (
+            <>
+               <Model asset={ASSETS.clock} position={[-4.8, 2.6, 0.05]} fallback={<ClockPrimitive />} />
+               <Model asset={ASSETS.clock} position={[4.8, 2.6, 0.05]} fallback={<ClockPrimitive />} />
+            </>
+         ) : null}
          <InstancedModel asset={ASSETS.ticket} spots={tickets} fallback={<PropsPrimitive kind="ticket" spots={tickets} />} />
          <InstancedModel asset={ASSETS.bench} spots={benches} fallback={<PropsPrimitive kind="bench" spots={benches} />} />
-         <Model asset={ASSETS.trolley} position={[trolley.x, 0, trolley.z]} rotation-y={trolley.rotY} fallback={<PropsPrimitive kind="bench" spots={[{ x: 0, y: 0, z: 0 }]} />} />
+         {trolleys.map((t, i) => (
+            <Model key={i} asset={ASSETS.trolley} position={[t.x, 0, t.z]} rotation-y={t.rotY} fallback={<PropsPrimitive kind="bench" spots={[{ x: 0, y: 0, z: 0 }]} />} />
+         ))}
          <InstancedModel asset={ASSETS.canopy} spots={canopies} fallback={<PropsPrimitive kind="canopy" spots={canopies} />} />
          <InstancedModel asset={ASSETS.sign} spots={signs} fallback={<PropsPrimitive kind="sign" spots={signs} />} />
          <InstancedModel asset={ASSETS.lamp} spots={lamps} fallback={<PropsPrimitive kind="lamp" spots={lamps} />} />
-         {config.lighting === "night" || config.lighting === "sunset" ? (
+         {config.lighting === "night" || config.lighting === "sunset" || config.lighting === "indoor" ? (
             <Instanced spots={lampGlow} name="lamp-glow">
                <boxGeometry args={[1, 1, 1]} />
-               <meshStandardMaterial color={COLORS.glow} emissive={COLORS.glow} emissiveIntensity={1.6} />
+               <meshStandardMaterial color={COLORS.glow} emissive={COLORS.glow} emissiveIntensity={config.lighting === "indoor" ? 1.1 : config.lighting === "sunset" ? 1.4 : 1.6} />
             </Instanced>
          ) : null}
+         {/* Per-theme set pieces: hall roof, sunset lanterns, mega gantries (visual only) */}
+         {pieces.roofs.length > 0 ? (
+            <Instanced spots={pieces.roofs} name="set-roofs">
+               <boxGeometry args={[1, 1, 1]} />
+               <meshStandardMaterial
+                  color={look.scenery === "hall" ? "#d6d3d1" : look.scenery === "city" ? "#1e293b" : "#94a3b8"}
+                  roughness={look.scenery === "hall" ? 0.35 : 0.7}
+                  metalness={look.scenery === "hall" ? 0.15 : 0.05}
+                  transparent={look.scenery === "hall"}
+                  opacity={look.scenery === "hall" ? 0.55 : 1}
+               />
+            </Instanced>
+         ) : null}
+         {pieces.beams.length > 0 ? (
+            <Instanced spots={pieces.beams} name="set-beams">
+               <boxGeometry args={[1, 1, 1]} />
+               <meshStandardMaterial color={look.scenery === "hall" ? "#a8a29e" : COLORS.buildingDark} roughness={0.65} />
+            </Instanced>
+         ) : null}
+         {pieces.lanterns.length > 0 ? (
+            <Instanced spots={pieces.lanterns} name="set-lanterns">
+               <boxGeometry args={[1, 1, 1]} />
+               <meshStandardMaterial
+                  color={look.scenery === "hall" ? "#fef3c7" : "#fdba74"}
+                  emissive={look.scenery === "hall" ? "#fde68a" : "#f97316"}
+                  emissiveIntensity={look.scenery === "hall" ? 1.1 : 1.5}
+                  roughness={0.4}
+               />
+            </Instanced>
+         ) : null}
+         {pieces.gantries.length > 0 ? (
+            <Instanced spots={pieces.gantries} name="set-gantries">
+               <boxGeometry args={[1, 1, 1]} />
+               <meshStandardMaterial color="#0f172a" metalness={0.55} roughness={0.4} emissive={COLORS.neon} emissiveIntensity={0.25} />
+            </Instanced>
+         ) : null}
+         <Decor level={config} />
          {/* pads and plates */}
          {pads.map((pad, p) => (
             <mesh key={p} rotation-x={-Math.PI / 2} position={[pad.x, 0.016, pad.z]}>
@@ -596,7 +676,7 @@ function LevelScene() {
             </mesh>
          </group>
          {/* trains, travellers, the tasks at the entrance, the worker */}
-         <DynamicInstanced count={config.platforms} update={placeLoco} parts={locoParts} name="engines" />
+         <DynamicInstancedModel asset={ASSETS.loco} count={config.platforms} update={placeLoco} fallbackParts={locoParts} name="engines" />
          <DynamicInstancedModel asset={ASSETS.car} count={config.platforms * 2} update={placeCar} fallbackParts={carParts} name="cars" />
          <DynamicInstancedModel asset={ASSETS.traveller} count={crowdCount + 3} update={placeTraveller} fallbackParts={travellerParts} name="travellers" />
          {(SPOTS[config.parallel] ?? SPOTS[1]).map((_, slot) => (

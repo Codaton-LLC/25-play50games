@@ -9,5 +9,5 @@ export default [
    { tap: "ArrowLeft" },
    { tap: "Space" },
    { wait: 420 },
-   { zoom: 1.3, at: [0.5, 0.6] },
+   { zoom: 2, at: [0.5, 0.85] },
 ];

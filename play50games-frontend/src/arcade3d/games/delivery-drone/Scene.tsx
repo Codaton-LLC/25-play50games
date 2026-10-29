@@ -4,19 +4,21 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useThree } from "@react-three/fiber";
 import CameraRig from "@/arcade3d/core/CameraRig";
 import { isMuted, playSfx, startLoop, useMuted, type LoopHandle } from "@/arcade3d/core/audio";
-import { SkyDome } from "@/arcade3d/core/env";
-import { useFx } from "@/arcade3d/core/fx";
+import { SkyDome, Starfield } from "@/arcade3d/core/env";
+import { useActionPop, useFx } from "@/arcade3d/core/fx";
 import { TargetMarkers } from "@/arcade3d/core/hud";
 import { useInput } from "@/arcade3d/core/input";
 import { inputToWorld, randomSeed } from "@/arcade3d/core/math";
 import { useArcadeStore, type ArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useFittedView } from "@/arcade3d/core/useFittedView";
+import { useCameraViews } from "@/arcade3d/core/camera/CameraViews";
+import type { AABB } from "@/arcade3d/core/collision";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { BOUNDS, DRONE, ROUTE, createRun, roofAt, stepRun } from "./rules";
 import City from "./City";
 import Drone from "./Drone";
 import { FittedFog, viewFor } from "./camera";
-import { COLORS } from "./looks";
+import { COLORS, THEMES } from "./looks";
 import { useDeliveryLevel } from "./useDeliveryLevel";
 
 function stat(store: ArcadeStore, key: string, value: number): void {
@@ -33,10 +35,34 @@ export default function Scene() {
    const view = useFittedView(fit);
    const input = useInput();
    const fx = useFx();
+   const pop = useActionPop();
    const { config } = useDeliveryLevel();
+   const theme = THEMES[config.map.theme];
    const [run] = useState(() =>
       createRun(randomSeed(), typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches, config)
    );
+// camera views (core/camera): the rules get the drawn camera's yaw (the fitted yaw in the default view)
+   const cam = useCameraViews({
+      slug: "delivery-drone",
+      subject: "vehicle",
+      steering: "camera",
+      defaultYaw: view.yaw,
+      target: (o) => {
+         const d = run.drone;
+         o.x = d.x; o.y = d.y; o.z = d.z; o.heading = d.heading; o.vx = d.vx; o.vz = d.vz;
+      },
+      solids: (out: AABB[]) => {
+         let n = 0;
+         for (const b of run.city.buildings) {
+            if (n >= out.length) break;
+            const o = out[n++];
+            o.min.x = b.box.min.x; o.min.y = b.box.min.y; o.min.z = b.box.min.z;
+            o.max.x = b.box.max.x; o.max.y = b.tower ? run.level.map.towerVisual : b.box.max.y; o.max.z = b.box.max.z;
+         }
+         return n;
+      },
+   });
+
    const [reduced] = useState(
       () => typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches
    );
@@ -68,7 +94,7 @@ export default function Scene() {
    useRunFrame((_state, dt) => {
       const i = input.current;
       const d = run.drone;
-      inputToWorld(i.moveX, i.moveY, view.yaw, scratch.dir);
+      inputToWorld(i.moveX, i.moveY, cam.yaw(), scratch.dir);
       scratch.step.dirX = scratch.dir.x;
       scratch.step.dirZ = scratch.dir.z;
       scratch.step.drop = i.actionPressed || i.jumpPressed;
@@ -124,7 +150,7 @@ export default function Scene() {
       if (e.miss || e.hit) {
          playSfx("hit");
          fx.burst("puff", scratch.at, 12);
-         fx.shake(0.12);
+         pop.fail(scratch.at, e.hit ? "Tower contact!" : "Parcel missed! Reload", { shake: 0.12 });
          stat(store, "feedback", e.hit ? 3 : 2);
          scratch.feedbackUntil = run.time + 2;
       }
@@ -178,8 +204,9 @@ export default function Scene() {
             offset={view.offset}
             shift={view.shift}
          />
-         <FittedFog distance={view.distance} />
-         <SkyDome top={COLORS.skyTop} bottom={COLORS.skyBottom} />
+         <FittedFog distance={view.distance} color={theme.fog} />
+         <SkyDome top={theme.skyTop} bottom={theme.skyBottom} />
+         {theme.stars && <Starfield count={600} upperOnly />}
          <City run={run} reduced={reduced} />
          <Drone run={run} reduced={reduced} />
          <TargetMarkers targets={scratch.markers} color={COLORS.padActive} />

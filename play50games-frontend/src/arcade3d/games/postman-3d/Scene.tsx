@@ -7,10 +7,13 @@ import { BoxGeometry, BufferAttribute, CapsuleGeometry, Color, DoubleSide, Euler
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 import { DynamicInstancedModel, InstancedModel, Model } from "@/arcade3d/core/assets";
 import CameraRig from "@/arcade3d/core/CameraRig";
+import { useCameraViews } from "@/arcade3d/core/camera/CameraViews";
+import type { AABB } from "@/arcade3d/core/collision";
 import { playSfx } from "@/arcade3d/core/audio";
 import { FRAME_PRIORITY } from "@/arcade3d/core/frameLoop";
-import { useFx } from "@/arcade3d/core/fx";
+import { Toss, useActionPop, useFx, type TossHandle } from "@/arcade3d/core/fx";
 import { useGameTime } from "@/arcade3d/core/gameTime";
+import { TargetBeacon } from "@/arcade3d/core/hud";
 import { TargetMarkers } from "@/arcade3d/core/hud/TargetMarkers";
 import { useInput } from "@/arcade3d/core/input";
 import { Parcel } from "@/arcade3d/core/kit";
@@ -22,12 +25,14 @@ import { BlobShadow, Instanced, useCanvasTexture, type InstancePart, type Instan
 import { HumanoidModel, POSE_MASK, blendPoses, carryPose, cheerPose, createPose, gaitPhaseStep, idlePose, reachPose, useHumanoidPose, walkPose, wrapPhase } from "@/arcade3d/core/rig";
 import type { ModelAsset } from "@/arcade3d/core/types";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
+import { useCoarsePointer } from "@/arcade3d/core/TouchControls";
 import { useFittedView } from "@/arcade3d/core/useFittedView";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { ASSETS, FIT, POSTMAN_LANDMARKS, POSTMAN_SCALE } from "./assets";
+import { GUIDE, hintCode, nextGoal as guideGoal, postHint, type Goal } from "./guide";
 import type { PostLevel } from "./levels";
-import { CAMERA, COLORS, FOV, HOUSE_COLORS, LOOK_AHEAD, PITCH, VIEW, decorSpots, fogFor, lampSpots } from "./looks";
-import { FENCE_CENTER, FENCE_LEN, OFFICE, OFFICE_BOX, ROAD_HALF, SPEED, STREET_GAP, VAN_BOX, ZEBRA_X, createRun, nextItem, step, syncStore, targetFor, type Run } from "./rules";
+import { CAMERA, COLORS, FOV, HOUSE_COLORS, LOOK_AHEAD, PITCH, VIEW, decorSpots, fogFor, glbFenceHouses, lampSpots } from "./looks";
+import { FENCE_CENTER, FENCE_LEN, HOUSE_HX, HOUSE_HZ, OFFICE, OFFICE_BOX, ROAD_HALF, SPEED, STREET_GAP, VAN_BOX, ZEBRA_X, createRun, nextItem, step, syncStore, targetFor, type Run } from "./rules";
 
 /** Unit boxes (12 triangles; `rounded` = bevelled, for the bigger fallback pieces), sized only by their spots. */
 function Boxes({ spots, color, emissive, rounded }: { spots: InstanceSpot[]; color: string; emissive?: number; rounded?: boolean }) {
@@ -120,6 +125,9 @@ function Neighborhood({ run, id }: { run: Run; id: Parameters<typeof decorSpots>
       const midX = (b.max.x + b.min.x) / 2;
       const roads: InstanceSpot[] = [], lines: InstanceSpot[] = [], paving: InstanceSpot[] = [], kerbs: InstanceSpot[] = [], paths: InstanceSpot[] = [], zebra: InstanceSpot[] = [];
       const fences: InstanceSpot[] = [], posts: InstanceSpot[] = [], doors: InstanceSpot[] = [], frames: InstanceSpot[] = [], boxes: InstanceSpot[] = [];
+      // the GLB picket fences (the +x fence of the fenced houses) and their code fallback boxes
+      const glbHouses = glbFenceHouses(run.houses);
+      const glbFences: InstanceSpot[] = [], glbFallback: InstanceSpot[] = [];
       for (let street = 0; street < run.level.streets; street++) {
          const z = street * STREET_GAP;
          roads.push({ x: midX, y: 0.015, z, sx: width, sy: 0.03, sz: ROAD_HALF * 2 });
@@ -141,11 +149,16 @@ function Neighborhood({ run, id }: { run: Run; id: Parameters<typeof decorSpots>
          for (const side of [-1, 1]) {
             const cx = h.x + side * FENCE_CENTER;
             const z = h.mailZ + h.side * 0.6;
-            for (const y of [0.22, 0.46]) fences.push({ x: cx, y, z, sx: FENCE_LEN, sy: 0.06, sz: 0.05 });
-            for (let i = 0; i <= 8; i++) posts.push({ x: cx - FENCE_LEN / 2 + (i * FENCE_LEN) / 8, y: FIT.fenceHeight / 2, z, sx: 0.07, sy: FIT.fenceHeight, sz: 0.07 });
+            // a GLB house's +x fence is the picket GLB; its code boxes only show if the GLB does not load
+            const glb = side > 0 && glbHouses.has(h);
+            const fenceOut = glb ? glbFallback : fences;
+            const postOut = glb ? glbFallback : posts;
+            for (const y of [0.22, 0.46]) fenceOut.push({ x: cx, y, z, sx: FENCE_LEN, sy: 0.06, sz: 0.05 });
+            for (let i = 0; i <= 8; i++) postOut.push({ x: cx - FENCE_LEN / 2 + (i * FENCE_LEN) / 8, y: FIT.fenceHeight / 2, z, sx: 0.07, sy: FIT.fenceHeight, sz: 0.07 });
+            if (glb) glbFences.push({ x: cx, y: FIT.fenceHeight / 2, z });
          }
       }
-      return { roads, lines, paving, kerbs, paths, zebra, fences, posts, doors, frames, boxes };
+      return { roads, lines, paving, kerbs, paths, zebra, fences, posts, doors, frames, boxes, glbFences, glbFallback };
    }, [run]);
    const houses = useMemo(
       () =>
@@ -200,6 +213,9 @@ function Neighborhood({ run, id }: { run: Run; id: Parameters<typeof decorSpots>
          <Props asset={ASSETS.mailbox} spots={decor.boxes} size={[0.5, FIT.mailboxHeight, 0.4]} color={COLORS.accent} />
          <Boxes spots={decor.fences} color={COLORS.white} />
          <Boxes spots={decor.posts} color={COLORS.white} />
+         {decor.glbFences.length > 0 && (
+            <InstancedModel asset={ASSETS.picketFence} spots={decor.glbFences} fallback={<Boxes spots={decor.glbFallback} color={COLORS.white} />} />
+         )}
          <Props asset={ASSETS.lamp} spots={lamps} size={[0.15, FIT.lampHeight, 0.15]} color={COLORS.navy} />
          <Instanced spots={lampGlow}>
             <sphereGeometry args={[1, 10, 8]} />
@@ -229,6 +245,41 @@ const Q = new Quaternion();
 const E = new Euler();
 const S = new Vector3(1, 1, 1);
 const HOP: BodyOffset = { y: 0, roll: 0, yaw: 0, squash: 1 };
+/** The post office, the van and the houses near the postman as camera solids (core camera views pull the camera in front of them). */
+function houseSolids(run: Run, out: AABB[]): number {
+   // the post office and the van first, then the houses within 30 m
+   const office = out[0];
+   office.min.x = OFFICE_BOX.x - OFFICE_BOX.hx;
+   office.max.x = OFFICE_BOX.x + OFFICE_BOX.hx;
+   office.min.y = 0;
+   office.max.y = OFFICE_HEIGHT;
+   office.min.z = OFFICE_BOX.z - OFFICE_BOX.hz;
+   office.max.z = OFFICE_BOX.z + OFFICE_BOX.hz;
+   const van = out[1];
+   van.min.x = VAN_BOX.minX;
+   van.max.x = VAN_BOX.maxX;
+   van.min.y = 0;
+   van.max.y = 2.2;
+   van.min.z = VAN_BOX.minZ;
+   van.max.z = VAN_BOX.maxZ;
+   let n = 2;
+   for (const h of run.houses) {
+      if (n >= out.length) break;
+      if (Math.abs(h.x - run.hero.x) > 30 || Math.abs(h.z - run.hero.z) > 30) continue;
+      const b = out[n++];
+      b.min.x = h.x - HOUSE_HX;
+      b.max.x = h.x + HOUSE_HX;
+      b.min.y = 0;
+      b.max.y = HOUSE_HEIGHT;
+      b.min.z = h.z - HOUSE_HZ;
+      b.max.z = h.z + HOUSE_HZ;
+   }
+   return n;
+}
+/** how tall a house / the post office blocks the camera (m) */
+const HOUSE_HEIGHT = 3.6;
+const OFFICE_HEIGHT = 4.2;
+
 const DOG_TINTS = [new Color("#ffffff"), new Color("#fde68a"), new Color("#a8a29e")];
 
 function LevelScene() {
@@ -239,10 +290,39 @@ function LevelScene() {
    const time = useGameTime();
    const fx = useFx();
    const view = useFittedView(VIEW);
+   // camera views (core/camera): the rules get the drawn camera's yaw, the houses block the camera
+   const cam = useCameraViews({
+      slug: "postman-3d",
+      subject: "character",
+      steering: "camera",
+      defaultYaw: view.yaw,
+      target: (o) => {
+         const h = run.hero;
+         o.x = h.x;
+         o.y = h.y + 1.1;
+         o.z = h.z;
+         o.heading = h.yaw;
+         o.vx = h.vx;
+         o.vz = h.vz;
+      },
+      solids: (out) => houseSolids(run, out),
+   });
    const scene = useThree((s) => s.scene);
    const hero = useRef<Group>(null);
    const parcel = useRef<Group>(null);
-   const ring = useRef<Group>(null);
+   const pop = useActionPop();
+   const touch = useCoarsePointer();
+   // clarity (visual only): a beacon on the current mailbox / door (or the post office), the hint line,
+   // the fail pops and the letter / parcel flying from the hand to the box / door
+   const goal = useRef<Goal>({ kind: 0, x: 0, z: 0, item: -1 }).current;
+   const dropBeacon = useRef({ x: 0, y: 1.0, z: 0, hidden: true }).current;
+   const officeBeacon = useRef({ x: OFFICE.x, y: 1.4, z: OFFICE.z, hidden: true }).current;
+   const guideCode = useRef(-1);
+   const letterToss = useRef<TossHandle>(null);
+   const parcelToss = useRef<TossHandle>(null);
+   const hand = useRef({ x: 0, y: 1, z: 0 }).current;
+   const dest = useRef({ x: 0, y: 1, z: 0 }).current;
+   const tmp = useRef({ x: 0, z: 0 }).current;
    const aim = useRef({ x: OFFICE.x, y: 0.8, z: OFFICE.z - LOOK_AHEAD }).current;
    const target = useRef([{ x: OFFICE.x, y: 1.2, z: OFFICE.z, hidden: false, color: COLORS.accent }]).current;
    const anim = useRef({ reachUntil: 0, messageUntil: 0, phase: 0 }).current;
@@ -335,11 +415,17 @@ function LevelScene() {
       publish();
       fx.warm("puff", "sparks", "score", "confetti");
    }, [publish, fx]);
+   useEffect(() => {
+      guideCode.current = hintCode(run);
+      GUIDE.set(postHint(run, guideCode.current, touch, config.markers));
+      return () => GUIDE.reset();
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+   }, [run]);
 
    useRunFrame((_s, dt) => {
       controls.moveX = input.current.moveX;
       controls.moveY = input.current.moveY;
-      controls.yaw = view.yaw;
+      controls.yaw = cam.yaw();
       controls.actionPressed = input.current.actionPressed;
       const e = step(run, controls, dt);
       syncStore(run, useArcadeStore);
@@ -359,11 +445,21 @@ function LevelScene() {
       at.y = 1.4;
       at.z = run.hero.z;
       if (e.delivered >= 0) {
+         const done = run.items[e.delivered];
+         targetFor(run, done, tmp);
+         hand.x = run.hero.x + Math.sin(run.hero.yaw) * 0.35;
+         hand.y = 1.0;
+         hand.z = run.hero.z + Math.cos(run.hero.yaw) * 0.35;
+         dest.x = tmp.x;
+         dest.z = tmp.z;
+         dest.y = done.kind === "letter" ? 1.0 : 0.6;
+         (done.kind === "letter" ? letterToss : parcelToss).current?.play(hand, dest, { duration: 0.35, height: 0.6, scaleFrom: 1, scaleTo: 0.6 });
          fx.burst("puff", at, 10);
          fx.score(at, `+${e.score}`, { color: COLORS.accent });
          playSfx(e.score > 100 ? "combo" : "chime");
          anim.reachUntil = time.now + 0.35;
       }
+      if (e.wrong) pop.fail(at, "Wrong address or item!", { shake: 0.1 });
       if (e.wrong || e.refill) {
          useArcadeStore.getState().setStat("message", e.wrong ? 1 : 2);
          anim.messageUntil = time.now + 1.5;
@@ -375,10 +471,22 @@ function LevelScene() {
       }
       if (e.hit) {
          playSfx("hit");
-         fx.shake(0.2);
+         pop.fail(at, e.lifeLost ? "Car! -1 life" : "Dog! Ouch", { shake: 0.2 });
          fx.burst("sparks", at, 8);
       }
       if (run.over === "win") fx.burst("confetti", at, 30);
+      // the hint line changes only with the step
+      const code = hintCode(run);
+      if (code !== guideCode.current) {
+         guideCode.current = code;
+         GUIDE.set(postHint(run, code, touch, config.markers));
+      }
+      guideGoal(run, goal);
+      dropBeacon.x = goal.x;
+      dropBeacon.z = goal.z;
+      dropBeacon.y = goal.kind === 2 ? 0.8 : 1.0;
+      dropBeacon.hidden = !config.markers || (goal.kind !== 1 && goal.kind !== 2);
+      officeBeacon.hidden = !config.markers || goal.kind !== 3;
    });
 
    useFrame(() => {
@@ -389,10 +497,6 @@ function LevelScene() {
          hero.current.visible = h.mercy === 0 || Math.floor(time.now * 12) % 2 === 0;
       }
       if (parcel.current) parcel.current.visible = run.carrying;
-      if (ring.current) {
-         ring.current.position.set(target[0].x, 0.09, target[0].z);
-         ring.current.visible = !target[0].hidden;
-      }
    }, FRAME_PRIORITY.visuals);
 
    const updateCar = (i: number, m: Matrix4) => {
@@ -444,14 +548,19 @@ function LevelScene() {
          {config.markers && (
             <>
                <TargetMarkers targets={target} color={COLORS.accent} />
-               <group ref={ring}>
-                  <mesh rotation={[-Math.PI / 2, 0, 0]}>
-                     <ringGeometry args={[0.7, 0.85, 32]} />
-                     <meshBasicMaterial color={COLORS.accent} transparent opacity={0.75} side={DoubleSide} depthWrite={false} />
-                  </mesh>
-               </group>
             </>
          )}
+         <TargetBeacon target={dropBeacon} variant="drop-here" radius={0.9} height={1.0} label="HERE" />
+         <TargetBeacon target={officeBeacon} variant="pick" color={COLORS.accent} radius={1.4} height={1.2} label="POST" />
+         <Toss ref={letterToss} spin={7}>
+            <mesh>
+               <boxGeometry args={[0.32, 0.05, 0.22]} />
+               <meshStandardMaterial color={COLORS.cream} />
+            </mesh>
+         </Toss>
+         <Toss ref={parcelToss} spin={3}>
+            <Parcel size={[0.5, 0.35, 0.4]} />
+         </Toss>
       </>
    );
 }

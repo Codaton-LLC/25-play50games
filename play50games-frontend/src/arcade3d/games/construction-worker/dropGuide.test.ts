@@ -4,7 +4,7 @@ import { landingMarker, markerColor, shadowTop, VISUAL_EXTENSION } from "./dropG
 
 describe("drop guide", () => {
    it("uses four distinct rating colours", () => {
-      expect([0, 1, 2, 3].map(markerColor)).toEqual(["#fbbf24", "#34d399", "#f8fafc", "#fb7185"]);
+      expect([0, 1, 2, 3].map(markerColor)).toEqual(["#22c55e", "#86efac", "#facc15", "#ef4444"]);
    });
    it("matches scoring prediction and actual drops over deterministic random states", () => {
       let seed = 42;

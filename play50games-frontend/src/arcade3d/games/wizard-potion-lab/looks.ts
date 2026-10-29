@@ -3,8 +3,9 @@ import type { AABB } from "@/arcade3d/core/collision";
 import type { InstanceSpot } from "@/arcade3d/core/render";
 import type { FittedViewOptions } from "@/arcade3d/core/useFittedView";
 import type { LevelId } from "@/arcade3d/types";
-import { LEVELS, type WizardLevel } from "./levels";
-import type { Ingredient } from "./rules";
+import { LEVELS, type LabTheme, type WizardLevel } from "./levels";
+import { TABLE_HEIGHT } from "./assets";
+import { CAULDRON_BODY, SHELF_R, TABLE_R, type Ingredient, type Run } from "./rules";
 
 export const COLORS = {
    floor: "#4b46a8",
@@ -34,6 +35,35 @@ export const COLORS = {
    rune: "#c4b5fd",
    brewIdle: "#4c1d95",
 } as const;
+
+/**
+ * One room per level (levels.ts `theme`). The ingredients, the cauldron, the beacons and the HUD keep
+ * COLORS / INGREDIENT_LOOK everywhere; the floor, walls, glow and the props round the room change.
+ */
+export interface LabLook {
+   /** multiplies the flagstone texture */
+   floorTint: string;
+   floorGlow: string;
+   floorIn: string;
+   wall: string;
+   wallTrim: string;
+   rune: string;
+   glow: string;
+   /** the theme's props (Room.tsx) */
+   props: "none" | "mushrooms" | "crystals" | "forest" | "tower";
+}
+
+export const LAB_THEMES: Record<LabTheme, LabLook> = {
+   beginner: { floorTint: "#ffffff", floorGlow: COLORS.floor, floorIn: COLORS.floorIn, wall: COLORS.wall, wallTrim: COLORS.wallTrim, rune: COLORS.rune, glow: COLORS.glow, props: "none" },
+   // a damp cellar: mossy flagstones, green glow, giant glowing mushrooms over the walls
+   mushroom: { floorTint: "#9ccf8a", floorGlow: "#2f6b3a", floorIn: "#3f7d43", wall: "#4a3b2c", wallTrim: "#6b5440", rune: "#bef264", glow: "#84cc16", props: "mushrooms" },
+   // an ice-crystal cave: icy floor, cyan glow, crystal spires, a crystal rail under the sliding ingredient
+   crystal: { floorTint: "#a9dcff", floorGlow: "#1e5a8a", floorIn: "#2b78b0", wall: "#334a6b", wallTrim: "#7dd3fc", rune: "#a5f3fc", glow: "#22d3ee", props: "crystals" },
+   // a lab grown into the forest: warm wood floor, amber glow, trees over the walls, drifting leaves
+   forest: { floorTint: "#d9a66b", floorGlow: "#7a4a22", floorIn: "#8f5a2b", wall: "#4d3a24", wallTrim: "#65a30d", rune: "#fcd34d", glow: "#f59e0b", props: "forest" },
+   // the master's tower: midnight floor with gold runes, gold trim, books orbiting over the walls
+   master: { floorTint: "#7a6fc0", floorGlow: "#24185e", floorIn: "#4c3aa8", wall: "#2e2a4f", wallTrim: "#eab308", rune: "#fde047", glow: "#c084fc", props: "tower" },
+};
 
 /** HUD shape and stand-in, one per shelf mesh, in TYPES order. */
 export const INGREDIENT_LOOK: Record<Ingredient, { shape: "circle" | "square" | "triangle" | "diamond" | "star" | "drop"; color: string }> = {
@@ -125,6 +155,54 @@ export function wallSpots(level: WizardLevel): InstanceSpot[] {
       });
    }
    return spots;
+}
+
+/**
+ * The wall ring as axis-aligned boxes for the camera collision (core/camera). A segment is turned
+ * by rotY, so its box is the bounds of its turned footprint (a little wider than the wall at the
+ * diagonals, which only makes the camera stop a touch earlier).
+ */
+export function wallBoxes(walls: readonly InstanceSpot[], out: AABB[]): number {
+   let n = 0;
+   for (const w of walls) {
+      if (n >= out.length) break;
+      const a = w.rotY ?? 0;
+      const half = (w.sx ?? 1) / 2;
+      const thick = (w.sz ?? 1) / 2;
+      const hx = half * Math.abs(Math.cos(a)) + thick * Math.abs(Math.sin(a));
+      const hz = half * Math.abs(Math.sin(a)) + thick * Math.abs(Math.cos(a));
+      const hy = (w.sy ?? 1) / 2;
+      const b = out[n++];
+      b.min.x = w.x - hx; b.max.x = w.x + hx;
+      b.min.y = w.y - hy; b.max.y = w.y + hy;
+      b.min.z = w.z - hz; b.max.z = w.z + hz;
+   }
+   return n;
+}
+
+/** Tops (m) of the round obstacles for the camera solids. The cauldron and the shelves are not measured: a box to these heights. */
+const CAULDRON_TOP = 1.0;
+const SHELF_TOP = 1.6;
+
+/**
+ * The round obstacles rules.ts pushes the hero off (resolve), as boxes for the camera solids: the
+ * cauldron at the centre, every shelf, the table. Each box is the circle's bounds.
+ */
+export function obstacleBoxes(run: Run): AABB[] {
+   const boxes: AABB[] = [];
+   const add = (x: number, z: number, r: number, top: number) => {
+      boxes.push({ min: { x: x - r, y: 0, z: z - r }, max: { x: x + r, y: top, z: z + r } });
+   };
+   add(0, 0, CAULDRON_BODY, CAULDRON_TOP);
+   for (const shelf of run.shelves) add(shelf.x, shelf.z, SHELF_R, SHELF_TOP);
+   add(run.table.x, run.table.z, TABLE_R, TABLE_HEIGHT);
+   return boxes;
+}
+
+/** The top view's distance (m): the default 15 m, or half the fog's start where the lab is smaller, so the top view stays inside the clear part of the fog. */
+export const TOP_DISTANCE = 15;
+export function topDistanceFor(level: WizardLevel): number {
+   return Math.min(TOP_DISTANCE, fogFor(level)[1] * 0.5);
 }
 
 export function wallCapSpots(walls: readonly InstanceSpot[]): InstanceSpot[] {

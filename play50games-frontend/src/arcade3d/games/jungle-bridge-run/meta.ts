@@ -33,7 +33,7 @@ export const jungleBridgeRunMeta: ArcadeGameMeta = {
    },
    scoring: SCORING,
    levels: LEVELS,
-   thumbnail: null,
+   thumbnail: "/images/3d/jungle-bridge-run.webp",
    accent: "#22c55e",
    owner: "antigravity",
 };

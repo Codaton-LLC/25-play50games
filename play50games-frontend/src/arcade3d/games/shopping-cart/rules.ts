@@ -20,7 +20,7 @@ import { stepPatrol, type PatrolOptions, type PatrolState } from "@/arcade3d/cor
 import type { Agent } from "@/arcade3d/core/ai/steering";
 import type { LevelId } from "@/arcade3d/types";
 import { PRODUCT_KINDS, type ProductKind } from "./assets";
-import { LEVELS, type ShoppingCartLevel } from "./levels";
+import { LEVELS, type MoverSpec, type SetPiece, type ShoppingCartLevel } from "./levels";
 import { PROPOSED_LEVEL_LIMITS, PROPOSED_LIMITS, shoppingCartMeta } from "./meta";
 
 export const DURATION_MS = LEVELS[1].durationMs;
@@ -78,6 +78,25 @@ export const SOLID_OBSTACLES: readonly AABB[] = [
    FREEZER_ROW,
    ...CHECKOUT_COUNTERS,
 ] as const;
+
+/** The west checkout lane between counters 1 and 2: a closing level shuts it with this shutter. */
+export const LANE_GATE: AABB = { min: { x: -3.2, y: 0, z: 8.0 }, max: { x: -1.0, y: 1.2, z: 9.8 } };
+
+/** A set piece's rules box (its drawn footprint). */
+export function pieceBox(piece: SetPiece): AABB {
+   return {
+      min: { x: piece.x - piece.w / 2, y: 0, z: piece.z - piece.d / 2 },
+      max: { x: piece.x + piece.w / 2, y: piece.h, z: piece.z + piece.d / 2 },
+   };
+}
+
+/** Every solid of a level from the start (the shelves, counters, island, freezers, then its set pieces). */
+export function solidsFor(level: ShoppingCartLevel): AABB[] {
+   return [...SOLID_OBSTACLES, ...level.store.pieces.map(pieceBox)];
+}
+
+/** Floor machines on patrol: stun on contact like a shopper, radius MOVER_RADIUS. */
+export const MOVER_RADIUS = 0.6;
 
 // 24 shelf slots (6 per shelf: 3 west face, 3 east face at z -5.0, -1.5, 2.0)
 export const SHELF_SLOTS: readonly { x: number; y: number; z: number; shelfIndex: number }[] = [
@@ -219,6 +238,16 @@ export interface ShopperNPC {
    active: boolean;
 }
 
+export interface Mover {
+   kind: MoverSpec["kind"];
+   agent: Agent;
+   patrolState: PatrolState;
+   route: Path;
+   graceTimer: number;
+   speed: number;
+   wait: number;
+}
+
 export interface StepEvents {
    pickups: Array<{ kind: ProductKind; score: number; combo: number; x: number; z: number }>;
    listCompleted: boolean;
@@ -243,6 +272,14 @@ export interface RunState {
    won: boolean;
    timedOut: boolean;
    playTimeS: number;
+   /**
+    * Levels 2-5 only (absent on level 1, so its run serializes exactly as before): the level's solids
+    * (SOLID_OBSTACLES + set pieces, + LANE_GATE once the lane shuts), its floor machines, and whether the
+    * west lane has shut.
+    */
+   solids?: AABB[];
+   movers?: Mover[];
+   laneClosed?: boolean;
 }
 
 export interface StepInput {
@@ -523,7 +560,55 @@ export function createRun(seed: number, activeLevel: ShoppingCartLevel = LEVELS[
       won: false,
       timedOut: false,
       playTimeS: 0,
+      ...arenaState(activeLevel),
    };
+}
+
+function arenaState(level: ShoppingCartLevel): Pick<RunState, "solids" | "movers" | "laneClosed"> {
+   const store = level.store;
+   if (!store || (store.pieces.length === 0 && store.movers.length === 0 && store.closeLaneAt <= 0)) return {};
+   return {
+      solids: solidsFor(level),
+      laneClosed: false,
+      movers: store.movers.map((spec) => {
+         const [a, b] = spec.path;
+         return {
+            kind: spec.kind,
+            agent: { x: a[0], y: 0, z: a[1], vx: 0, vy: 0, vz: 0, yaw: Math.atan2(b[0] - a[0], b[1] - a[1]) },
+            patrolState: { index: 0, wait: 0.5, mode: "patrol", target: { x: b[0], y: 0, z: b[1] } },
+            route: createPath(spec.path.map(([x, z]) => ({ x, y: 0, z })), { closed: false }),
+            graceTimer: 0,
+            speed: spec.speed,
+            wait: spec.wait,
+         };
+      }),
+   };
+}
+
+/** True when the cart's proxy box overlaps `box` (a shutter never closes on the cart). */
+function cartOverlaps(cart: CartState, box: AABB): boolean {
+   return cart.x + CART.proxyHalfZ > box.min.x && cart.x - CART.proxyHalfZ < box.max.x
+      && cart.z + CART.proxyHalfZ > box.min.z && cart.z - CART.proxyHalfZ < box.max.z;
+}
+
+/** The ground under the cart is wet: rules SPILLS plus the level's own. */
+export function inSpillAt(level: ShoppingCartLevel, x: number, z: number, playTimeS: number): boolean {
+   for (const spill of SPILLS) {
+      if (playTimeS >= spill.spawnS) {
+         const dx = x - spill.x;
+         const dz = z - spill.z;
+         if (dx * dx + dz * dz <= spill.radius * spill.radius) return true;
+      }
+   }
+   const extra = level.store?.spills;
+   if (extra) for (let i = 0; i < extra.length; i++) {
+      const spill = extra[i];
+      if (playTimeS < spill.spawnS) continue;
+      const dx = x - spill.x;
+      const dz = z - spill.z;
+      if (dx * dx + dz * dz <= spill.radius * spill.radius) return true;
+   }
+   return false;
 }
 
 const SWEEP_HIT: SweepHit = { time: 0, normalX: 0, normalZ: 0 };
@@ -578,16 +663,13 @@ export function stepRun(
    }
 
    // 1. Spills check: is cart in any active puddle?
-   let inSpill = false;
-   for (const spill of SPILLS) {
-      if (playTimeS >= spill.spawnS) {
-         const dx = cart.x - spill.x;
-         const dz = cart.z - spill.z;
-         if (dx * dx + dz * dz <= spill.radius * spill.radius) {
-            inSpill = true;
-            break;
-         }
-      }
+   const inSpill = inSpillAt(level, cart.x, cart.z, playTimeS);
+
+   // Closing time: the west lane's shutter comes down once the cart is clear of it
+   const solids: readonly AABB[] = run.solids ?? SOLID_OBSTACLES;
+   if (run.solids && !run.laneClosed && level.store.closeLaneAt > 0 && playTimeS >= level.store.closeLaneAt && !cartOverlaps(cart, LANE_GATE)) {
+      run.solids.push(LANE_GATE);
+      run.laneClosed = true;
    }
    if (inSpill && cart.speed > 2.0) {
       STEP_EVENTS.spillSkid = true;
@@ -682,8 +764,8 @@ export function stepRun(
       SWEEP_DELTA.x = stepDx;
       SWEEP_DELTA.z = stepDz;
 
-      for (let i = 0; i < SOLID_OBSTACLES.length; i++) {
-         const obs = SOLID_OBSTACLES[i];
+      for (let i = 0; i < solids.length; i++) {
+         const obs = solids[i];
          const t = sweptAabbXZ(PROXY_BOX, SWEEP_DELTA, obs, SWEEP_HIT);
          if (t !== null) {
             let nx = SWEEP_HIT.normalX;
@@ -739,8 +821,8 @@ export function stepRun(
    }
 
    // Residual box-obstacle penetration push-out
-   for (let i = 0; i < SOLID_OBSTACLES.length; i++) {
-      const obs = SOLID_OBSTACLES[i];
+   for (let i = 0; i < solids.length; i++) {
+      const obs = solids[i];
       const boxMinX = cart.x - halfX;
       const boxMaxX = cart.x + halfX;
       const boxMinZ = cart.z - halfZ;
@@ -832,6 +914,23 @@ export function stepRun(
          const push = minDist - sDist;
          shopper.agent.x += (sDx / sDist) * push;
          shopper.agent.z += (sDz / sDist) * push;
+      }
+   }
+
+   // 5b. Floor machines (levels 3-5): the same bump as a shopper
+   if (run.movers) for (let i = 0; i < run.movers.length; i++) {
+      const mover = run.movers[i];
+      if (mover.graceTimer > 0) mover.graceTimer = Math.max(0, mover.graceTimer - dt);
+      stepPatrol(mover.agent, mover.patrolState, mover.route, dt, { speed: mover.speed, wait: mover.wait });
+      if (mover.graceTimer <= 0 && circlesOverlapXZ(cart, CART.radius, mover.agent, MOVER_RADIUS)) {
+         cart.stunTimer = 1.0;
+         cart.targetSpeed = 0;
+         cart.vx = 0;
+         cart.vz = 0;
+         cart.speed = 0;
+         mover.graceTimer = 1.5;
+         run.combo = 0;
+         STEP_EVENTS.shopperBumped.push({ x: mover.agent.x, z: mover.agent.z });
       }
    }
 

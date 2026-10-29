@@ -23,23 +23,29 @@ import {
 import { DynamicInstancedModel, InstancedModel, Model } from "@/arcade3d/core/assets";
 import { playSfx, startLoop } from "@/arcade3d/core/audio";
 import CameraRig from "@/arcade3d/core/CameraRig";
+import type { AABB } from "@/arcade3d/core/collision";
+import { useCameraViews } from "@/arcade3d/core/camera/CameraViews";
 import { FRAME_PRIORITY } from "@/arcade3d/core/frameLoop";
-import { useFx } from "@/arcade3d/core/fx";
+import { Toss, useActionPop, useFx, type TossHandle } from "@/arcade3d/core/fx";
 import { useGameTime } from "@/arcade3d/core/gameTime";
+import { TargetBeacon } from "@/arcade3d/core/hud";
 import { useInput } from "@/arcade3d/core/input";
+import Room from "./Room";
 import { useLevel } from "@/arcade3d/core/level";
 import { randomSeed } from "@/arcade3d/core/math";
 import { useQuality } from "@/arcade3d/core/quality";
 import { Instanced, useCanvasTexture, type InstancePart } from "@/arcade3d/core/render";
 import { HumanoidModel, aimArm, cheerPose, gaitPhaseStep, idlePose, useHumanoidPose, walkPose, wrapPhase } from "@/arcade3d/core/rig";
 import { CAULDRON_INNER_RADIUS_GLB, EXPANSION_GLB_POINTS } from "@/arcade3d/core/sharedAssets";
+import { useCoarsePointer } from "@/arcade3d/core/TouchControls";
 import { useFittedView } from "@/arcade3d/core/useFittedView";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { ASSETS, WIZARD_LANDMARKS, WIZARD_SCALE } from "./assets";
+import { GUIDE, hintCode, labHint, nextGoal, type Goal } from "./guide";
 import { publishLab } from "./Hud";
 import { LEVELS, type WizardLevel } from "./levels";
-import { COLORS, DAMPING, FOLLOW, FOV, INGREDIENT_LOOK, candleSpots, aimBounds, drawFlagstones, labDecor, lookAtFor, runeSpots, viewFor, wallCapSpots, wallSpots } from "./looks";
+import { LAB_THEMES, COLORS, DAMPING, FOLLOW, FOV, INGREDIENT_LOOK, candleSpots, aimBounds, drawFlagstones, labDecor, lookAtFor, obstacleBoxes, runeSpots, topDistanceFor, viewFor, wallBoxes, wallCapSpots, wallSpots } from "./looks";
 import { BallPrimitive, BookPrimitive, CauldronPrimitive, TablePrimitive, WizardFigure } from "./Primitives";
 import {
    MAX_SPEED,
@@ -58,6 +64,8 @@ const V = new Vector3();
 const S = new Vector3(1, 1, 1);
 const UP = new Vector3(0, 1, 0);
 const AT = { x: 0, y: 1, z: 0 };
+const HAND = { x: 0, y: 0.8, z: 0 };
+const POT = { x: 0, y: 0.85, z: 0 };
 const P = { x: 0, z: 0 };
 const POT_SCALE = ASSETS.cauldron.scale ?? 1;
 const DISC_R = CAULDRON_INNER_RADIUS_GLB * POT_SCALE;
@@ -199,6 +207,8 @@ function LevelScene() {
    const view = useFittedView(viewFor(id));
    const input = useInput();
    const fx = useFx();
+   const pop = useActionPop();
+   const touch = useCoarsePointer();
    const time = useGameTime();
    const quality = useQuality();
    const [run] = useState<Run>(() => createRun(randomSeed(), level));
@@ -206,9 +216,41 @@ function LevelScene() {
    const body = useRef<Group>(null);
    const gait = useRef({ phase: 0 });
    const bounds = useMemo(() => aimBounds(level), [level]);
+   const room = LAB_THEMES[level.theme];
    const look = useMemo(() => lookAtFor(), []);
    const walls = useMemo(() => wallSpots(level), [level]);
    const caps = useMemo(() => wallCapSpots(walls), [walls]);
+   // camera views (core/camera): the rules get the drawn camera's yaw; the lab wall ring, the cauldron,
+   // the shelves and the table block the camera; the top view is set inside the fog's clear part
+   const obstacles = useMemo(() => obstacleBoxes(run), [run]);
+   const topFraming = useMemo(() => ({ top: { distance: topDistanceFor(level) } }), [level]);
+   const cam = useCameraViews({
+      slug: "wizard-potion-lab",
+      subject: "character",
+      steering: "camera",
+      defaultYaw: view.yaw,
+      framing: topFraming,
+      target: (o) => {
+         const h = run.hero;
+         o.x = h.x;
+         o.y = 1.1;
+         o.z = h.z;
+         o.heading = h.yaw;
+         o.vx = h.vx;
+         o.vz = h.vz;
+      },
+      solids: (out: AABB[]) => {
+         let n = wallBoxes(walls, out);
+         for (const b of obstacles) {
+            if (n >= out.length) break;
+            const slot = out[n++];
+            slot.min.x = b.min.x; slot.max.x = b.max.x;
+            slot.min.y = b.min.y; slot.max.y = b.max.y;
+            slot.min.z = b.min.z; slot.max.z = b.max.z;
+         }
+         return n;
+      },
+   });
    const candles = useMemo(() => candleSpots(level, quality.decor), [level, quality.decor]);
    const runes = useMemo(() => runeSpots(level, quality.decor), [level, quality.decor]);
    const shelfSpots = useMemo(
@@ -265,6 +307,21 @@ function LevelScene() {
       if (run.reach > 0 || atPot) aimArm(p, -1, 0.04, -0.42, 0.88, 0.02, -0.7, 0.62);
    });
 
+   // clarity (visual only): a beacon on the shelf to take from, then on the cauldron; the hint line;
+   // the fail pop; the added ingredient flies from the hand into the pot
+   const goal = useRef<Goal>({ kind: 0, x: 0, z: 0, type: null }).current;
+   const shelfBeacon = useRef({ x: 0, y: 0.92, z: 0, hidden: true }).current;
+   const potBeacon = useRef({ x: 0, y: 0.9, z: 0, hidden: true }).current;
+   const guideCode = useRef(-1);
+   const toss = useRef<TossHandle>(null);
+   const tossMat = useRef<MeshStandardMaterial>(null);
+   useEffect(() => {
+      guideCode.current = hintCode(run);
+      GUIDE.set(labHint(run, guideCode.current, touch));
+      return () => GUIDE.reset();
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+   }, [run]);
+
    useEffect(() => {
       fx.warm("puff", "sparks", "smoke", "score");
       const loop = startLoop("bubbling", { volume: 0.18 });
@@ -278,7 +335,7 @@ function LevelScene() {
    useRunFrame((_state, dt) => {
       const { moveX, moveY, actionPressed } = input.current;
       const store = useArcadeStore.getState();
-      const ev = step(run, { moveX, moveY, actionPressed, yaw: view.yaw }, dt, store.timeLeftMs ?? 0);
+      const ev = step(run, { moveX, moveY, actionPressed, yaw: cam.yaw() }, dt, store.timeLeftMs ?? 0);
       if (ev.score) store.addScore(ev.score);
       aim.x = run.hero.x;
       aim.z = run.hero.z;
@@ -287,6 +344,14 @@ function LevelScene() {
       aim.z = Math.min(bounds.max.z, Math.max(bounds.min.z, aim.z));
       if (ev.picked) playSfx("pickup");
       if (ev.added) {
+         if (run.brew) {
+            tossMat.current?.color.copy(BREW[run.brew]);
+            tossMat.current?.emissive.copy(BREW[run.brew]);
+         }
+         HAND.x = run.hero.x + Math.sin(run.hero.yaw) * 0.46;
+         HAND.y = 0.78;
+         HAND.z = run.hero.z + Math.cos(run.hero.yaw) * 0.46;
+         toss.current?.play(HAND, POT, { duration: 0.3, height: 0.5, scaleFrom: 1, scaleTo: 0.5 });
          AT.x = 0; AT.y = 0.7; AT.z = 0;
          fx.burst("puff", AT, 12);
          playSfx("pop");
@@ -300,7 +365,7 @@ function LevelScene() {
       if (ev.wrong) {
          AT.x = 0; AT.y = 0.8; AT.z = 0;
          fx.burst("smoke", AT, 8);
-         fx.shake(0.22);
+         pop.fail(AT, ev.lifeLost ? "Wrong! -1 life" : "Wrong ingredient!", { shake: 0.22 });
          playSfx("buzz");
       }
       if (ev.lifeLost) store.loseLife();
@@ -309,6 +374,16 @@ function LevelScene() {
          store.end("win");
       }
       if (ev.lost) playSfx("lose");
+      const code = hintCode(run);
+      if (code !== guideCode.current) {
+         guideCode.current = code;
+         GUIDE.set(labHint(run, code, touch));
+      }
+      nextGoal(run, goal);
+      shelfBeacon.x = goal.x;
+      shelfBeacon.z = goal.z;
+      shelfBeacon.hidden = goal.kind !== 1 && goal.kind !== 3;
+      potBeacon.hidden = goal.kind !== 2;
       publishLab(run);
    });
 
@@ -335,31 +410,31 @@ function LevelScene() {
             shift={view.shift}
             damping={DAMPING}
          />
-         <pointLight position={[0, 2.2, 0]} color={COLORS.glow} intensity={4} distance={level.radius * 1.4} decay={2} />
+         <pointLight position={[0, 2.2, 0]} color={room.glow} intensity={4} distance={level.radius * 1.4} decay={2} />
          <mesh rotation-x={-Math.PI / 2} position={[0, 0, 0]}>
             <planeGeometry args={[span, span]} />
             <meshStandardMaterial color={level.background} roughness={0.95} />
          </mesh>
          <mesh rotation-x={-Math.PI / 2} position={[0, 0.012, 0]}>
             <circleGeometry args={[level.radius - 0.05, 48]} />
-            <meshStandardMaterial map={flagstones} color="#ffffff" emissive={COLORS.floor} emissiveMap={flagstones} emissiveIntensity={level.lighting === "night" ? 0.7 : 0.35} roughness={0.88} />
+            <meshStandardMaterial map={flagstones} color={room.floorTint} emissive={room.floorGlow} emissiveMap={flagstones} emissiveIntensity={level.lighting === "night" ? 0.7 : 0.35} roughness={0.88} />
          </mesh>
          <mesh rotation-x={-Math.PI / 2} position={[0, 0.02, 0]}>
             <ringGeometry args={[level.radius - 0.55, level.radius - 0.2, 48]} />
-            <meshStandardMaterial color={COLORS.floorIn} roughness={0.8} />
+            <meshStandardMaterial color={room.floorIn} roughness={0.8} />
          </mesh>
          <Instanced spots={walls} name="walls">
             <boxGeometry args={[1, 1, 1]} />
-            <meshStandardMaterial color={COLORS.wall} emissive={COLORS.wall} emissiveIntensity={level.lighting === "night" ? 0.4 : 0.15} roughness={0.86} />
+            <meshStandardMaterial color={room.wall} emissive={room.wall} emissiveIntensity={level.lighting === "night" ? 0.4 : 0.15} roughness={0.86} />
          </Instanced>
          <Instanced spots={caps} name="wall-caps">
             <boxGeometry args={[1, 1, 1]} />
-            <meshStandardMaterial color={COLORS.wallTrim} roughness={0.65} />
+            <meshStandardMaterial color={room.wallTrim} emissive={room.wallTrim} emissiveIntensity={0.15} roughness={0.65} />
          </Instanced>
          {runes.length > 0 && (
             <Instanced spots={runes} name="runes">
                <boxGeometry args={[1, 1, 1]} />
-               <meshStandardMaterial color={COLORS.rune} emissive={COLORS.glow} emissiveIntensity={0.4} roughness={0.4} />
+               <meshStandardMaterial color={room.rune} emissive={room.glow} emissiveIntensity={0.5} roughness={0.4} />
             </Instanced>
          )}
          <InstancedModel
@@ -398,7 +473,8 @@ function LevelScene() {
          <InstancedModel asset={ASSETS.shelf} spots={decor.shelves} fallback={null} />
          <InstancedModel asset={ASSETS.cauldron} spots={decor.cauldrons} fallback={null} />
          <InstancedModel asset={ASSETS.candle} spots={decor.candles} fallback={null} />
-         <pointLight position={[0, 1.7, 0]} intensity={level.lighting === "night" ? 12 : level.lighting === "sunset" ? 4 : 0} distance={9} decay={1.5} color={COLORS.glow} />
+         <pointLight position={[0, 1.7, 0]} intensity={level.lighting === "night" ? 12 : level.lighting === "sunset" ? 4 : 0} distance={9} decay={1.5} color={room.glow} />
+         <Room level={level} run={run} yaw={view.yaw} />
          <Model asset={ASSETS.cauldron} fallback={<CauldronPrimitive />} />
          <mesh position={[0, DISC_Y, 0]} rotation-x={-Math.PI / 2}>
             <circleGeometry args={[DISC_R, 20]} />
@@ -414,6 +490,14 @@ function LevelScene() {
             <Model asset={ASSETS.ball} position={[-0.28, 0.78, -0.04]} fallback={<BallPrimitive />} />
          </group>
          <IngredientPools run={run} parts={parts} />
+         <TargetBeacon target={shelfBeacon} variant="pick" color={COLORS.accent} radius={0.7} height={0.75} ground={0.05} />
+         <TargetBeacon target={potBeacon} variant="drop-here" radius={1.0} height={0.9} ground={0.05} label="ADD" />
+         <Toss ref={toss} spin={5}>
+            <mesh>
+               <sphereGeometry args={[0.13, 10, 8]} />
+               <meshStandardMaterial ref={tossMat} color={COLORS.glow} emissive={COLORS.glow} emissiveIntensity={0.6} roughness={0.35} />
+            </mesh>
+         </Toss>
          <group ref={body}>
             <pointLight position={[0, 2.4, 0.8]} intensity={level.lighting === "night" ? 9 : level.lighting === "sunset" ? 3 : 0} distance={7} decay={1.6} color="#ddd6fe" />
             <HumanoidModel asset={ASSETS.wizard} pose={pose} fallback={<WizardFigure />} />

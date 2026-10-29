@@ -1,9 +1,9 @@
 // Toy Store Night Shift rules. Pure and deterministic: no three.js, React, DOM, Math.random or Date.
 // Scene.tsx calls step() from one useRunFrame. Same seed + level + inputs = same run.
 //
-// A store of shelf rows (aisles). The night guard picks up the scattered toys (Use) and drops each
-// one on the shelf of its kind. Wind-up robots and cars patrol loops round the rows and knock the
-// carried toys out of his hands. No lives: the clock is the shell's.
+// A store of shelf rows (aisles). The tidy-up robot picks up the scattered toys (Use) and drops each
+// one on the shelf of its kind. Wild wind-up robots and cars patrol loops round the rows and knock
+// the carried toys out of its hands. No lives: the clock is the shell's.
 import { stepPatrol, type PatrolState } from "@/arcade3d/core/ai/patrol";
 import { createPath, type Path } from "@/arcade3d/core/path";
 import { createRng, inputToWorld, turnTowards } from "@/arcade3d/core/math";
@@ -533,7 +533,7 @@ export function step(run: Run, input: ToyInput, dt: number, timeLeftMs = 0): Ste
    if (run.mercy <= 0) {
       for (const w of run.windups) {
          if (Math.hypot(h.x - w.x, h.z - w.z) > WINDUP_HIT) continue;
-         // everything carried falls where the guard stands
+         // everything carried falls where the robot stands
          run.carried.forEach((index, k) => {
             const t = run.toys[index];
             t.state = 0;

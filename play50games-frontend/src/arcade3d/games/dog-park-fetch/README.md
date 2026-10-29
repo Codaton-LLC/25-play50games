@@ -31,7 +31,9 @@ The dog's tint is the level's tint (L1 untinted). The owner is never tinted.
 
 ## Controls
 
-WASD / arrows run. Space jumps (leap). Touch: joystick and Jump. Scheme `joystick`. The same leap length and catch window run on both devices. The shell owns pause. HUD: the shell's score and clock, plus the stat chip Fetched (max = throws). There is no custom HUD. `resultDelayMs` 900. The target arrow (`TargetMarkers`) points at the toy while it is out, and at the blanket while the dog carries it.
+WASD / arrows run. Space jumps (leap). Touch: joystick and Jump. Scheme `joystick`. The same leap length and catch window run on both devices. The shell owns pause. HUD: the shell's score and clock, plus the stat chip Fetched (max = throws) and the 📷 camera-view button (`Hud.tsx`; the game has no HUD of its own). `resultDelayMs` 900. The target arrow (`TargetMarkers`) points at the toy while it is out, and at the blanket while the dog carries it.
+
+Camera views (core/camera, `kimi/cam-views-cat-dog`): 📷 or **C** cycles Classic (the fitted follow camera) / Chase / Front / Top / Free; drag looks around; V recenters. The rules get the drawn camera's yaw (`cam.yaw()`), so WASD / the stick stay screen-relative in every view; bots and proofs are unchanged. The props (fountain, benches, bushes) and the picket fence are camera solids; the fog (`fogFor`, near ≥ 18 m) stays past the top view (15 m), so no framing override was needed.
 
 ## Server limits (one proof per level, gate 2026-10-26)
 
@@ -60,6 +62,12 @@ Tests: `proof.level-N.test.ts` (bots in `testing/bots.ts`, suite in `testing/pro
 - Left out: `dogHouse*`, `dogBone*`, `agilityHurdle` (dogs baked in, spec), `dogOwnerNpc` (a dog baked in at its feet), shared `picketFence` (80+ copies x 1.5k tris round the lawn: the code fence instead).
 - Triangles a frame (every copy at full decor): 96k / 109k / 123k / 124k / 147k on L1-L5 (test cap 300k).
 
+## Polish (2026-10-28, `claude/m1-animals`)
+
+- The dog runs like a dog on the core quadruped rig (`DOG_LANDMARKS` in `assets.ts`, checked on the real mesh in `dog.test.ts`): walk, trot and gallop by speed with planted paws, head nod and a wagging raised tail; idle when still and it sits after 1.2 s of waiting; a leap for the jump; it sits dazed while a mower has stunned it. The carried toy is held in its mouth (`attach.mouth`). Rodin's second, low curled tail is folded away.
+- Camera: a closer window (portrait 6.8 x 9.2 m, landscape 10.4 x 7.6 m; was 10 x 14 / 16 x 14) and the player zoom (wheel, pinch, + / -, `core/useCameraZoom`, `ZOOM` 0.55-1.8). The edge arrow and a beacon (a light column and ring) on the waiting toy show throws outside the view.
+- Look: a grass texture with quiet mowing stripes (they were loud lime bands), a red gingham picnic blanket instead of the orange disc, a white ring and contact shadow under the dog; the L4 sea drawn above the park grass (it showed as a blue shard).
+
 ## Not built (spec items left out)
 
 - Festival bunting (L5) and tree shade (L3).
@@ -72,3 +80,7 @@ Tests: `proof.level-N.test.ts` (bots in `testing/bots.ts`, suite in `testing/pro
 - Frisbee flight is a parabola (apex 1.5 m) whose time grows with distance. The seeded landing point is the only randomness in a throw.
 - A mower drop leaves the toy where the dog stood. It can be dropped again, and the patience timer keeps running.
 - The bench is drawn 1.2 m long for its 0.5 m solid circle: its ends overhang the circle by 0.1 m.
+
+## Clarity (2026-10-28, visual only)
+
+`guide.ts` (pure, `guide.test.ts`) follows the active throw: the ring where a toy in the air lands, the toy waiting on the grass, the blanket once it is carried. Core `TargetBeacon`s draw them (they replace the old light column): a "drop-here" ring at the landing spot, a "pick" arrow on the toy, a green "HOME" ring on the blanket. The core `HintLine` (new `Hud.tsx`) says "Frisbee! Run under it, then press Space / tap Jump to catch it", "Run to the toy (arrow)", "Got it! Run back to the blanket (arrow)", and a sticky red "Hurry! The owner is about to fetch it" for the last 4 s of L4-L5's patience. Fail pops (`useActionPop`): "Mower! Toy dropped" (same 0.3 shake), "Too slow! Owner took it n/2". A returned toy flies from the dog's mouth into the owner's hands (`<Toss>`) instead of vanishing. The chase camera (owner beside the blanket), rules, scoring and limits are unchanged.

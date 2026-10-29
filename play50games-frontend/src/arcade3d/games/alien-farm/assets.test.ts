@@ -6,7 +6,8 @@ import { modelParts } from "@/arcade3d/core/assets";
 import { hasModel } from "@/arcade3d/core/modelManifest";
 import { readCharacterGlb } from "@/arcade3d/core/rig/robotGlb";
 import type { ModelAsset } from "@/arcade3d/core/types";
-import { ALIEN_HEIGHT, ASSETS, CRATE_WIDTH, CROP_HEIGHT, ROCK_WIDTH, UFO_DIAMETER, UFO_GLB_SIZE } from "./assets";
+import { inPlayArea } from "./looks";
+import { METEORITE_LENGTH, METEORITE_SPOTS, ALIEN_HEIGHT, ASSETS, CRATE_WIDTH, CROP_HEIGHT, ROCK_WIDTH, UFO_DIAMETER, UFO_GLB_SIZE } from "./assets";
 
 const PUBLIC_DIR = path.resolve(__dirname, "../../../../public");
 
@@ -81,4 +82,22 @@ describe("alien-farm assets", () => {
       expect(Math.max(ufo.size.x, ufo.size.z)).toBeCloseTo(UFO_DIAMETER, 2);
       expect(ufo.box.min.y).toBeCloseTo(0, 2);
    });
+
+describe("alien-farm meteorite decor (Menu 1 adoption)", () => {
+   it("draws the meteorite 2.7 m long on the ground and keeps every spot outside the play area", async () => {
+      expect(hasModel(ASSETS.meteorite.url)).toBe(true);
+      const { box, size, tris } = await measureAsset(ASSETS.meteorite);
+      expect(tris).toBeLessThanOrEqual(ASSETS.meteorite.budget!.tris);
+      expect(box.min.y).toBeCloseTo(0, 2);
+      expect(size.z).toBeCloseTo(METEORITE_LENGTH, 2);
+      for (const s of METEORITE_SPOTS) {
+         // the longest reach (half the length) clear of the beds
+         for (const a of [0, Math.PI / 2, Math.PI, -Math.PI / 2]) {
+            const r = METEORITE_LENGTH / 2;
+            expect(inPlayArea(s.x + Math.cos(a) * r, s.z + Math.sin(a) * r), `${s.x},${s.z}`).toBe(false);
+         }
+         expect(inPlayArea(s.x, s.z)).toBe(false);
+      }
+   });
+});
 });

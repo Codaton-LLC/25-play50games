@@ -3,6 +3,7 @@
 import type { GameDefinition, LevelSpec } from "@/arcade3d/core/types";
 import { LEVEL_IDS, type LevelId } from "@/arcade3d/types";
 import { ASSETS } from "./assets";
+import Hud from "./Hud";
 import { LEVELS, LEVEL_LINES, type JungleLevel } from "./levels";
 import { CAMERA_OFFSET, FOV, LOOK_AHEAD_Z, fogConfigFor } from "./looks";
 import Scene from "./Scene";
@@ -31,6 +32,7 @@ function instructionsFor(id: LevelId): string[] {
 const definition: GameDefinition<JungleLevel> = {
    slug: "jungle-bridge-run",
    Scene,
+   Hud,
    assets: ASSETS,
    durationMs: LEVELS[1].durationMs,
    lives: 3,

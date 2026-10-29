@@ -55,6 +55,10 @@ import { hasModel } from "./modelManifest";
 import { useInstanceMatrices, type InstanceSpot } from "./render/useInstanceMatrices";
 import { DynamicInstanced } from "./render/DynamicInstanced";
 import type { InstancePart, InstanceUpdate } from "./render/dynamicInstances";
+import { flapMaterial, type FlapClock, type WingFlap } from "./render/wingFlap";
+import { useFrame } from "@react-three/fiber";
+import { useGameTime } from "./gameTime";
+import { FRAME_PRIORITY } from "./frameLoop";
 import { cloneHumanoid, disposeHumanoid, humanoidTemplate, type HumanoidRig } from "./rig/skinning";
 import { MATERIAL_CACHE, applyLook, lookMaterials, overrideKey, type LookUse, type MaterialOverride } from "./materials";
 
@@ -488,6 +492,20 @@ export interface DynamicInstancedModelProps {
    name?: string;
    /** set when `update` tints copies: the instance colours are allocated at mount (DynamicInstanced `tinted`) */
    tinted?: boolean;
+   /**
+    * Birds, bats: the GLB's wings (spread along its x) beat in a vertex shader (render/wingFlap.ts),
+    * each copy at its own phase, on the run's pause-safe clock. Keep the object stable. GLB only.
+    */
+   flap?: WingFlap;
+}
+
+/** Advances a pool's flap clock on the run's pause-safe clock. */
+function FlapTicker({ clock }: { clock: FlapClock }) {
+   const time = useGameTime();
+   useFrame(() => {
+      clock.value = time.now;
+   }, FRAME_PRIORITY.visuals);
+   return null;
 }
 
 function DynamicFallback({ asset, count, update, fallbackParts, name, tinted }: DynamicInstancedModelProps) {
@@ -518,11 +536,28 @@ function DynamicInstancedModelContent(props: DynamicInstancedModelProps) {
       [source, rigged, scale, stretch, rotationY, yOffset]
    );
    const looked = useLookedParts(glbParts, asset.material);
+   const flap = props.flap;
+   const clock = useMemo<FlapClock>(() => ({ value: 0 }), []);
+   const flapped = useMemo<InstancePart[] | null>(
+      () => (flap && looked.parts ? looked.parts.map((part) => ({ ...part, material: Array.isArray(part.material) ? part.material.map((m) => flapMaterial(m, part.geometry, flap, clock)) : flapMaterial(part.material, part.geometry, flap, clock) })) : null),
+      [flap, looked.parts, clock]
+   );
+   useEffect(
+      () => () => {
+         if (flapped) for (const part of flapped) for (const m of ([] as Material[]).concat(part.material)) m.dispose();
+      },
+      [flapped]
+   );
    if (!looked.ready) return null;
-   const parts = looked.parts;
+   const parts = flapped ?? looked.parts;
    // rigged models are characters, not pooled props: they get the fallback too
    if (!parts || parts.length === 0) return <DynamicFallback {...props} />;
-   return <DynamicInstanced count={count} update={update} parts={parts} name={name} tinted={props.tinted} />;
+   return (
+      <>
+         {flapped && <FlapTicker clock={clock} />}
+         <DynamicInstanced count={count} update={update} parts={parts} name={name} tinted={props.tinted} />
+      </>
+   );
 }
 
 /**

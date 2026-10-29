@@ -32,7 +32,7 @@ export const farmTractorChallengeMeta: ArcadeGameMeta = {
    },
    scoring: SCORING,
    levels: LEVELS,
-   thumbnail: null,
+   thumbnail: "/images/3d/farm-tractor-challenge.webp",
    accent: "#eab308",
    owner: "kimi",
 };

@@ -8,7 +8,8 @@ import {
    withinServerLimits as fitsLimits,
 } from "@/arcade3d/core/limits";
 import type { LevelId, ScoringRules } from "@/arcade3d/types";
-import { EXTRA_MUD, LEVELS, type DinoLevel } from "./levels";
+import { LEVELS, type DinoLevel } from "./levels";
+import { MAP_1, VENT, WATER, type Obstacle, type ValleyMap, type WaterBox } from "./maps";
 import dinoEggRescueMeta from "./meta";
 
 // ---------- constants and layout ----------
@@ -118,18 +119,16 @@ export const EGGS = {
    },
 } as const;
 
-/** Today's three pits, or those plus EXTRA_MUD when the level asks for five. Stable arrays, no per-frame copy. */
-const MUD_FIVE: readonly { id: number; x: number; z: number }[] = [...MUD.patches, ...EXTRA_MUD];
-
+/** The level's mud pits (its map's; level 1: today's MUD.patches, the same array). */
 export function mudFor(level: DinoLevel): readonly { id: number; x: number; z: number }[] {
-   return level.mudPatches <= MUD.patches.length ? MUD.patches : MUD_FIVE;
+   return level.map === MAP_1 ? MUD.patches : level.map.mud;
 }
 
-/** The four gullies with this level's speeds and unlock times. Geometry stays BOULDER_LANES. */
+/** The four gullies of this level's map with its speeds and unlock times (level 1: BOULDER_LANES). */
 export function lanesFor(level: DinoLevel): BoulderLane[] {
    const lanes: BoulderLane[] = [];
-   for (let i = 0; i < BOULDER_LANES.length; i++) {
-      const lane = BOULDER_LANES[i];
+   for (let i = 0; i < level.map.lanes.length; i++) {
+      const lane = level.map.lanes[i];
       lanes.push({
          id: lane.id,
          startX: lane.startX,
@@ -197,6 +196,34 @@ export function laneEdgeClearance(
    return centerDist - radius - BOULDERS.contactBandHalfWidth;
 }
 
+/** Distance from (px, pz) to an obstacle's surface (negative inside). */
+export function obstacleDistance(px: number, pz: number, o: Obstacle): number {
+   return pointToSegmentDistanceXZ(px, pz, o.ax, o.az, o.bx, o.bz) - o.r;
+}
+
+/** True when (x, z) is in a water box (grown by `margin`). */
+export function inWaterBox(x: number, z: number, w: WaterBox, margin = 0): boolean {
+   return x >= w.x0 - margin && x <= w.x1 + margin && z >= w.z0 - margin && z <= w.z1 + margin;
+}
+
+/** The water box the dino wades in at (x, z), or null (dry ground, or a bridge). */
+export function wadingIn(map: ValleyMap, x: number, z: number): WaterBox | null {
+   for (const b of map.bridges) if (x >= b.x0 && x <= b.x1 && z >= b.z0 && z <= b.z1) return null;
+   for (const w of map.water) if (inWaterBox(x, z, w)) return w;
+   return null;
+}
+
+/** A vent's state at time t: 0 quiet, 1 glowing (warning), 2 erupting. */
+export function ventState(v: { periodS: number; offsetS: number }, t: number): 0 | 1 | 2 {
+   const c = (((t + v.offsetS) % v.periodS) + v.periodS) % v.periodS;
+   if (c >= v.periodS - VENT.eruptS) return 2;
+   if (c >= v.periodS - VENT.eruptS - VENT.warnS) return 1;
+   return 0;
+}
+
+/** How far past its rim (centre distance beyond the vent's radius) an erupting vent still hits the dino. */
+export const VENT_REACH = 0.3;
+
 // ---------- data structures ----------
 
 export interface DinoEntity {
@@ -256,6 +283,8 @@ export interface GameEvents {
    goldenPicked: boolean;
    eggDelivered: EggDeliveredEvent | null;
    boulderHit: boolean;
+   /** a vent's eruption hit the dino (boulderHit is set too: the same stun and scatter) */
+   ventHit: boolean;
    eggsScattered: number;
    goldenSpawned: boolean;
 }
@@ -264,6 +293,8 @@ export interface DinoRunState {
    seed: number;
    /** The level this run was built from. Level 1 matches the module constants. */
    level: DinoLevel;
+   /** the level's valley (level.map) */
+   map: ValleyMap;
    lanes: readonly BoulderLane[];
    mud: readonly { x: number; z: number }[];
    rng: RngState;
@@ -284,6 +315,8 @@ export interface DinoRunState {
    events: GameEvents;
    eggDeliveredRecord: EggDeliveredEvent;
    laneTelegraph: [boolean, boolean, boolean, boolean];
+   /** each vent's state this step (ventState): 0 quiet, 1 glowing, 2 erupting */
+   ventStates: number[];
 }
 
 // ---------- valid ground placement ----------
@@ -292,7 +325,7 @@ export function isValidGroundSpot(
    x: number,
    z: number,
    margin = 0.3,
-   patches: readonly { x: number; z: number }[] = MUD.patches
+   map: ValleyMap = MAP_1
 ): boolean {
    // 1. In bounds
    if (
@@ -305,82 +338,157 @@ export function isValidGroundSpot(
    }
 
    // 2. Clear of nest zone
-   if (Math.hypot(x - NEST.x, z - NEST.z) < NEST.radius + margin) {
+   if (Math.hypot(x - map.nest.x, z - map.nest.z) < NEST.radius + margin) {
       return false;
    }
 
    // 3. Clear of mud pits
-   for (const mud of patches) {
+   for (const mud of map.mud) {
       if (Math.hypot(x - mud.x, z - mud.z) < MUD.radius + margin) {
          return false;
       }
    }
 
-   // 4. Clear of tree trunks
-   for (const tree of TREES.positions) {
-      if (Math.hypot(x - tree.x, z - tree.z) < TREES.trunkRadius + margin) {
+   // 4. Clear of trunks, rocks, logs and fences
+   for (const o of map.obstacles) {
+      if (obstacleDistance(x, z, o) < margin) {
          return false;
       }
    }
 
-   return true;
+   // 5. Out of the water and off the vents
+   for (const w of map.water) if (inWaterBox(x, z, w, margin)) return false;
+   for (const v of map.vents) if (Math.hypot(x - v.x, z - v.z) < v.r + margin) return false;
+
+   // 6. The dino can stand close enough to pick it up (not in a pocket between a trunk and the wall)
+   return dinoReaches(x, z, map);
+}
+
+/**
+ * True when a free dino position (clear of every solid, inside the clamp) lies within the pick-up
+ * radius of (x, z): the spot pushed out of the solids and clamped settles close enough.
+ */
+export function dinoReaches(x: number, z: number, map: ValleyMap): boolean {
+   const minX = VALLEY_BOUNDS.min.x + DINO.radius;
+   const maxX = VALLEY_BOUNDS.max.x - DINO.radius;
+   const minZ = VALLEY_BOUNDS.min.z + DINO.radius;
+   const maxZ = VALLEY_BOUNDS.max.z - DINO.radius;
+   let px = Math.max(minX, Math.min(maxX, x));
+   let pz = Math.max(minZ, Math.min(maxZ, z));
+   for (let pass = 0; pass < 4; pass++) {
+      for (const o of map.obstacles) {
+         const abx = o.bx - o.ax;
+         const abz = o.bz - o.az;
+         const len2 = abx * abx + abz * abz;
+         const k = len2 > 1e-12 ? Math.max(0, Math.min(1, ((px - o.ax) * abx + (pz - o.az) * abz) / len2)) : 0;
+         const cx = o.ax + k * abx;
+         const cz = o.az + k * abz;
+         const d = Math.hypot(px - cx, pz - cz);
+         const min = o.r + DINO.radius + 0.01;
+         if (d < min) {
+            const nx = d > 1e-6 ? (px - cx) / d : 1;
+            const nz = d > 1e-6 ? (pz - cz) / d : 0;
+            px = cx + nx * min;
+            pz = cz + nz * min;
+         }
+      }
+      px = Math.max(minX, Math.min(maxX, px));
+      pz = Math.max(minZ, Math.min(maxZ, pz));
+   }
+   for (const o of map.obstacles) if (obstacleDistance(px, pz, o) < DINO.radius) return false;
+   return Math.hypot(px - x, pz - z) <= EGGS.pickupRadius - 0.1;
 }
 
 /** Pushes or clamps an invalid spot into the nearest valid free ground spot. */
 export function pushToValidGroundSpot(
    p: { x: number; z: number },
    margin = 0.3,
-   patches: readonly { x: number; z: number }[] = MUD.patches
+   map: ValleyMap = MAP_1
 ): { x: number; z: number } {
-   let x = Math.max(
-      VALLEY_BOUNDS.min.x + margin,
-      Math.min(VALLEY_BOUNDS.max.x - margin, p.x)
-   );
-   let z = Math.max(
-      VALLEY_BOUNDS.min.z + margin,
-      Math.min(VALLEY_BOUNDS.max.z - margin, p.z)
-   );
+   const clampX = (v: number) => Math.max(VALLEY_BOUNDS.min.x + margin, Math.min(VALLEY_BOUNDS.max.x - margin, v));
+   const clampZ = (v: number) => Math.max(VALLEY_BOUNDS.min.z + margin, Math.min(VALLEY_BOUNDS.max.z - margin, v));
+   let x = clampX(p.x);
+   let z = clampZ(p.z);
 
-   // Push out of nest zone
-   const nestDist = Math.hypot(x - NEST.x, z - NEST.z);
-   const minNestDist = NEST.radius + margin;
-   if (nestDist < minNestDist) {
-      const angle = nestDist > 1e-6 ? Math.atan2(z - NEST.z, x - NEST.x) : Math.PI;
-      x = NEST.x + Math.cos(angle) * minNestDist;
-      z = NEST.z + Math.sin(angle) * minNestDist;
+   // a push out of one thing can land in the next: a few passes settle it (level 1: one)
+   for (let pass = 0; pass < 4; pass++) {
+      // Push out of nest zone
+      const nestDist = Math.hypot(x - map.nest.x, z - map.nest.z);
+      const minNestDist = NEST.radius + margin;
+      if (nestDist < minNestDist) {
+         const angle = nestDist > 1e-6 ? Math.atan2(z - map.nest.z, x - map.nest.x) : Math.PI;
+         x = map.nest.x + Math.cos(angle) * minNestDist;
+         z = map.nest.z + Math.sin(angle) * minNestDist;
+      }
+
+      // Push out of mud pits
+      for (const mud of map.mud) {
+         const dist = Math.hypot(x - mud.x, z - mud.z);
+         const minDist = MUD.radius + margin;
+         if (dist < minDist) {
+            const angle = dist > 1e-6 ? Math.atan2(z - mud.z, x - mud.x) : 0;
+            x = mud.x + Math.cos(angle) * minDist;
+            z = mud.z + Math.sin(angle) * minDist;
+         }
+      }
+
+      // Push out of trunks, rocks, logs and fences (from the nearest point of the segment)
+      for (const o of map.obstacles) {
+         const minDist = o.r + margin;
+         const abx = o.bx - o.ax;
+         const abz = o.bz - o.az;
+         const len2 = abx * abx + abz * abz;
+         const k = len2 > 1e-12 ? Math.max(0, Math.min(1, ((x - o.ax) * abx + (z - o.az) * abz) / len2)) : 0;
+         const cx = o.ax + k * abx;
+         const cz = o.az + k * abz;
+         const dist = Math.hypot(x - cx, z - cz);
+         if (dist < minDist) {
+            const angle = dist > 1e-6 ? Math.atan2(z - cz, x - cx) : 0;
+            x = cx + Math.cos(angle) * minDist;
+            z = cz + Math.sin(angle) * minDist;
+         }
+      }
+
+      // Out of the water: to the nearer bank
+      for (const w of map.water) {
+         if (!inWaterBox(x, z, w, margin)) continue;
+         const north = z - (w.z0 - margin);
+         const south = w.z1 + margin - z;
+         const west = w.x0 - margin > VALLEY_BOUNDS.min.x + margin ? x - (w.x0 - margin) : Infinity;
+         const east = w.x1 + margin < VALLEY_BOUNDS.max.x - margin ? w.x1 + margin - x : Infinity;
+         const best = Math.min(north, south, west, east);
+         if (best === north) z = w.z0 - margin - 1e-6;
+         else if (best === south) z = w.z1 + margin + 1e-6;
+         else if (best === west) x = w.x0 - margin - 1e-6;
+         else x = w.x1 + margin + 1e-6;
+      }
+
+      // Off the vents
+      for (const v of map.vents) {
+         const dist = Math.hypot(x - v.x, z - v.z);
+         const minDist = v.r + margin;
+         if (dist < minDist) {
+            const angle = dist > 1e-6 ? Math.atan2(z - v.z, x - v.x) : 0;
+            x = v.x + Math.cos(angle) * minDist;
+            z = v.z + Math.sin(angle) * minDist;
+         }
+      }
+
+      x = clampX(x);
+      z = clampZ(z);
+      if (isValidGroundSpot(x, z, margin - 1e-6, map)) return { x, z };
    }
 
-   // Push out of mud pits
-   for (const mud of patches) {
-      const dist = Math.hypot(x - mud.x, z - mud.z);
-      const minDist = MUD.radius + margin;
-      if (dist < minDist) {
-         const angle = dist > 1e-6 ? Math.atan2(z - mud.z, x - mud.x) : 0;
-         x = mud.x + Math.cos(angle) * minDist;
-         z = mud.z + Math.sin(angle) * minDist;
+   // still boxed in (a pit against the wall pushes back into itself): the nearest free spot on rings
+   for (let r = 0.25; r <= 12; r += 0.25) {
+      const n = Math.max(8, Math.ceil((2 * Math.PI * r) / 0.25));
+      for (let i = 0; i < n; i++) {
+         const a = (2 * Math.PI * i) / n;
+         const cx = x + Math.cos(a) * r;
+         const cz = z + Math.sin(a) * r;
+         if (isValidGroundSpot(cx, cz, margin, map)) return { x: cx, z: cz };
       }
    }
-
-   // Push out of trees
-   for (const tree of TREES.positions) {
-      const dist = Math.hypot(x - tree.x, z - tree.z);
-      const minDist = TREES.trunkRadius + margin;
-      if (dist < minDist) {
-         const angle = dist > 1e-6 ? Math.atan2(z - tree.z, x - tree.x) : 0;
-         x = tree.x + Math.cos(angle) * minDist;
-         z = tree.z + Math.sin(angle) * minDist;
-      }
-   }
-
-   x = Math.max(
-      VALLEY_BOUNDS.min.x + margin,
-      Math.min(VALLEY_BOUNDS.max.x - margin, x)
-   );
-   z = Math.max(
-      VALLEY_BOUNDS.min.z + margin,
-      Math.min(VALLEY_BOUNDS.max.z - margin, z)
-   );
-
    return { x, z };
 }
 
@@ -388,22 +496,23 @@ export function pushToValidGroundSpot(
 export function sampleEggSpot(
    rng: RngState,
    t: number,
-   patches: readonly { x: number; z: number }[] = MUD.patches
+   map: ValleyMap = MAP_1
 ): { x: number; z: number } {
    const baseR = 6.0 + (10.0 * t) / 90.0;
    for (let attempt = 0; attempt < 64; attempt++) {
       const r = baseR + (rngNext(rng) * 3.0 - 1.5);
-      // Nest is SE at (11, 7.5); valley lies predominantly towards -x (W) and -z (N).
-      // Sample angle across the valley quadrant (roughly 110 deg to 250 deg)
-      const angle = Math.PI * 0.65 + rngNext(rng) * Math.PI * 0.9;
-      const candX = NEST.x + Math.cos(angle) * r;
-      const candZ = NEST.z + Math.sin(angle) * r;
-      if (isValidGroundSpot(candX, candZ, 0.4, patches)) {
+      // The map's arc from the nest across the valley (level 1: the nest is SE at (11, 7.5) and the
+      // valley lies towards -x (W) and -z (N): roughly 110 deg to 250 deg)
+      const arc = map.eggArc;
+      const angle = Math.PI * arc.a0 + rngNext(rng) * Math.PI * arc.span;
+      const candX = map.nest.x + Math.cos(angle) * r;
+      const candZ = map.nest.z + Math.sin(angle) * r;
+      if (isValidGroundSpot(candX, candZ, 0.4, map)) {
          return { x: candX, z: candZ };
       }
    }
-   // Fallback: guaranteed valid spot clamped
-   return pushToValidGroundSpot({ x: NEST.x - baseR, z: NEST.z - baseR * 0.5 }, 0.4, patches);
+   // Fallback: guaranteed valid spot clamped (level 1: nest + baseR * (-1, -0.5))
+   return pushToValidGroundSpot({ x: map.nest.x + baseR * map.eggArc.fx, z: map.nest.z + baseR * map.eggArc.fz }, 0.4, map);
 }
 
 /** Samples a valid golden egg spot within 8 m of the dino. */
@@ -411,19 +520,19 @@ export function sampleGoldenEggSpot(
    rng: RngState,
    dinoX: number,
    dinoZ: number,
-   patches: readonly { x: number; z: number }[] = MUD.patches
+   map: ValleyMap = MAP_1
 ): { x: number; z: number } {
    for (let attempt = 0; attempt < 64; attempt++) {
       const r = 3.0 + rngNext(rng) * 5.0; // 3 to 8 m
       const angle = rngNext(rng) * Math.PI * 2;
       const candX = dinoX + Math.cos(angle) * r;
       const candZ = dinoZ + Math.sin(angle) * r;
-      if (isValidGroundSpot(candX, candZ, 0.4, patches)) {
+      if (isValidGroundSpot(candX, candZ, 0.4, map)) {
          return { x: candX, z: candZ };
       }
    }
    // Fallback: clamped spot around dino
-   return pushToValidGroundSpot({ x: dinoX + 4.0, z: dinoZ - 3.0 }, 0.4, patches);
+   return pushToValidGroundSpot({ x: dinoX + 4.0, z: dinoZ - 3.0 }, 0.4, map);
 }
 
 // ---------- factory ----------
@@ -431,13 +540,14 @@ export function sampleGoldenEggSpot(
 export function createDinoRun(seed: number, level: DinoLevel = LEVELS[1]): DinoRunState {
    const rng: RngState = { s: (seed >>> 0) || 1 };
    const mud = mudFor(level);
+   const map = level.map;
    const dino: DinoEntity = {
-      x: DINO.startX,
+      x: map.nest.x,
       y: 0,
-      z: DINO.startZ,
+      z: map.nest.z,
       vx: 0,
       vz: 0,
-      heading: DINO.startFacing,
+      heading: map.startFacing,
       dashTimer: 0,
       dashCooldown: 0,
       stunTimer: 0,
@@ -450,7 +560,7 @@ export function createDinoRun(seed: number, level: DinoLevel = LEVELS[1]): DinoR
    // initial regular eggs at t = 0 (level 1: 4)
    const groundEggs: GroundEgg[] = [];
    for (let i = 0; i < level.initialSupply; i++) {
-      const pt = sampleEggSpot(rng, 0, mud);
+      const pt = sampleEggSpot(rng, 0, map);
       groundEggs.push({
          id: i + 1,
          x: pt.x,
@@ -463,6 +573,7 @@ export function createDinoRun(seed: number, level: DinoLevel = LEVELS[1]): DinoR
    return {
       seed,
       level,
+      map,
       lanes: lanesFor(level),
       mud,
       rng,
@@ -487,6 +598,7 @@ export function createDinoRun(seed: number, level: DinoLevel = LEVELS[1]): DinoR
          goldenPicked: false,
          eggDelivered: null,
          boulderHit: false,
+         ventHit: false,
          eggsScattered: 0,
          goldenSpawned: false,
       },
@@ -496,11 +608,63 @@ export function createDinoRun(seed: number, level: DinoLevel = LEVELS[1]): DinoR
          points: 0,
       },
       laneTelegraph: [false, false, false, false],
+      ventStates: map.vents.map(() => 0),
    };
 }
 
 /** Same run factory, the name the level system uses. Defaults to today's game (level 1). */
 export const createRun = createDinoRun;
+
+/** A boulder or a vent hit the dino: stun, drop and scatter the stack (grace follows the stun). */
+function hitDino(run: DinoRunState, events: GameEvents): void {
+   const dino = run.dino;
+   // Boulder hit!
+   events.boulderHit = true;
+   dino.stunTimer = DINO.stunDuration;
+   dino.vx = 0;
+   dino.vz = 0;
+
+   // Scatter carried eggs outward 1.5 m
+   const droppedEggs = [...dino.carriedEggs];
+   const droppedGolden = dino.carriedGolden;
+   dino.carriedEggs = [];
+   dino.carriedGolden = false;
+
+   const totalToScatter = droppedEggs.length + (droppedGolden ? 1 : 0);
+   events.eggsScattered = totalToScatter;
+
+   if (totalToScatter > 0) {
+      let eggIdx = 0;
+      for (const regId of droppedEggs) {
+         const angle = dino.heading + (Math.PI * 2 * eggIdx) / totalToScatter;
+         const candX = dino.x + Math.cos(angle) * EGGS.scatterDistance;
+         const candZ = dino.z + Math.sin(angle) * EGGS.scatterDistance;
+         const valid = pushToValidGroundSpot({ x: candX, z: candZ }, 0.4, run.map);
+         run.groundEggs.push({
+            id: regId,
+            x: valid.x,
+            z: valid.z,
+            isGolden: false,
+            active: true,
+         });
+         eggIdx++;
+      }
+      if (droppedGolden) {
+         const angle = dino.heading + (Math.PI * 2 * eggIdx) / totalToScatter;
+         const candX = dino.x + Math.cos(angle) * EGGS.scatterDistance;
+         const candZ = dino.z + Math.sin(angle) * EGGS.scatterDistance;
+         const valid = pushToValidGroundSpot({ x: candX, z: candZ }, 0.4, run.map);
+         run.groundEggs.push({
+            id: run.nextEggId++,
+            x: valid.x,
+            z: valid.z,
+            isGolden: true,
+            active: true,
+            despawnTimer: EGGS.goldenDespawnS,
+         });
+      }
+   }
+}
 
 // ---------- simulation step ----------
 
@@ -516,6 +680,7 @@ export function stepDinoRun(
    events.goldenPicked = false;
    events.eggDelivered = null;
    events.boulderHit = false;
+   events.ventHit = false;
    events.eggsScattered = 0;
    events.goldenSpawned = false;
 
@@ -539,7 +704,7 @@ export function stepDinoRun(
    if (run.goldenSpawnIndex < goldenTimes.length) {
       const scheduledT = goldenTimes[run.goldenSpawnIndex];
       if (t >= scheduledT) {
-         const spot = sampleGoldenEggSpot(rng, dino.x, dino.z, run.mud);
+         const spot = sampleGoldenEggSpot(rng, dino.x, dino.z, run.map);
          run.groundEggs.push({
             id: run.nextEggId++,
             x: spot.x,
@@ -564,7 +729,7 @@ export function stepDinoRun(
             if (e.active && !e.isGolden) groundRegularCount++;
          }
          if (groundRegularCount < run.level.maxGroundEggs) {
-            const spot = sampleEggSpot(rng, tickTime, run.mud);
+            const spot = sampleEggSpot(rng, tickTime, run.map);
             run.groundEggs.push({
                id: run.nextEggId++,
                x: spot.x,
@@ -724,7 +889,8 @@ export function stepDinoRun(
             break;
          }
       }
-      const mudMult = inMud ? MUD.speedMultiplier : 1.0;
+      const wading = run.map.water.length > 0 ? wadingIn(run.map, dino.x, dino.z) : null;
+      const mudMult = inMud ? MUD.speedMultiplier : wading ? WATER.speedMultiplier : 1.0;
       const stackMult = run.level.stackMultipliers[dino.carriedEggs.length];
       const isDashing = dino.dashTimer > 0;
       const maxAllowedSpeed =
@@ -767,21 +933,38 @@ export function stepDinoRun(
       dino.vz = 0;
    }
 
-   // 9. Integration: p + v * dt, tree push-out, valley bounds clamp
+   // 9. Integration: p + v * dt (+ the river's current while wading), solid push-out, valley bounds clamp
    dino.x += dino.vx * dt;
    dino.z += dino.vz * dt;
+   if (run.map.water.length > 0) {
+      const current = wadingIn(run.map, dino.x, dino.z);
+      if (current) {
+         dino.x += current.flowX * dt;
+         dino.z += current.flowZ * dt;
+      }
+   }
 
-   // Tree obstacle push-out against 0.256 m trunk
-   for (const tree of TREES.positions) {
-      const dx = dino.x - tree.x;
-      const dz = dino.z - tree.z;
+   // Solid push-out (level 1: the 0.256 m trunks); a dash hops a low log
+   const hopping = dino.dashTimer > 0;
+   const solids = run.map.obstacles;
+   for (let i = 0; i < solids.length; i++) {
+      const o = solids[i];
+      if (o.low && hopping) continue;
+      const abx = o.bx - o.ax;
+      const abz = o.bz - o.az;
+      const len2 = abx * abx + abz * abz;
+      const k = len2 > 1e-12 ? Math.max(0, Math.min(1, ((dino.x - o.ax) * abx + (dino.z - o.az) * abz) / len2)) : 0;
+      const cx = o.ax + k * abx;
+      const cz = o.az + k * abz;
+      const dx = dino.x - cx;
+      const dz = dino.z - cz;
       const dist = Math.hypot(dx, dz);
-      const minDist = TREES.trunkRadius + DINO.radius;
+      const minDist = o.r + DINO.radius;
       if (dist < minDist) {
          const nx = dist > 1e-6 ? dx / dist : 1;
          const nz = dist > 1e-6 ? dz / dist : 0;
-         dino.x = tree.x + nx * minDist;
-         dino.z = tree.z + nz * minDist;
+         dino.x = cx + nx * minDist;
+         dino.z = cz + nz * minDist;
       }
    }
 
@@ -805,62 +988,30 @@ export function stepDinoRun(
       }
    }
 
-   // 11. Boulder collisions with dino
+   // 11. Boulder collisions and vent eruptions (the same hit: stun, scatter, then grace)
    const isInvulnerable = dino.dashTimer > 0 || dino.graceTimer > 0;
+   for (let i = 0; i < run.map.vents.length; i++) run.ventStates[i] = ventState(run.map.vents[i], t);
    if (!isInvulnerable && dino.stunTimer <= 0) {
+      let hit = false;
       for (const boulder of run.boulders) {
          if (!boulder.active) continue;
          const touchDist = BOULDERS.radius + DINO.radius; // 0.5 + 0.55 = 1.05
          if (Math.hypot(dino.x - boulder.x, dino.z - boulder.z) <= touchDist) {
-            // Boulder hit!
-            events.boulderHit = true;
-            dino.stunTimer = DINO.stunDuration;
-            dino.vx = 0;
-            dino.vz = 0;
-
-            // Scatter carried eggs outward 1.5 m
-            const droppedEggs = [...dino.carriedEggs];
-            const droppedGolden = dino.carriedGolden;
-            dino.carriedEggs = [];
-            dino.carriedGolden = false;
-
-            const totalToScatter = droppedEggs.length + (droppedGolden ? 1 : 0);
-            events.eggsScattered = totalToScatter;
-
-            if (totalToScatter > 0) {
-               let eggIdx = 0;
-               for (const regId of droppedEggs) {
-                  const angle = dino.heading + (Math.PI * 2 * eggIdx) / totalToScatter;
-                  const candX = dino.x + Math.cos(angle) * EGGS.scatterDistance;
-                  const candZ = dino.z + Math.sin(angle) * EGGS.scatterDistance;
-                  const valid = pushToValidGroundSpot({ x: candX, z: candZ }, 0.4, run.mud);
-                  run.groundEggs.push({
-                     id: regId,
-                     x: valid.x,
-                     z: valid.z,
-                     isGolden: false,
-                     active: true,
-                  });
-                  eggIdx++;
-               }
-               if (droppedGolden) {
-                  const angle = dino.heading + (Math.PI * 2 * eggIdx) / totalToScatter;
-                  const candX = dino.x + Math.cos(angle) * EGGS.scatterDistance;
-                  const candZ = dino.z + Math.sin(angle) * EGGS.scatterDistance;
-                  const valid = pushToValidGroundSpot({ x: candX, z: candZ }, 0.4, run.mud);
-                  run.groundEggs.push({
-                     id: run.nextEggId++,
-                     x: valid.x,
-                     z: valid.z,
-                     isGolden: true,
-                     active: true,
-                     despawnTimer: EGGS.goldenDespawnS,
-                  });
-               }
-            }
+            hit = true;
             break;
          }
       }
+      if (!hit) {
+         for (let i = 0; i < run.map.vents.length; i++) {
+            const v = run.map.vents[i];
+            if (run.ventStates[i] === 2 && Math.hypot(dino.x - v.x, dino.z - v.z) <= v.r + VENT_REACH) {
+               hit = true;
+               events.ventHit = true;
+               break;
+            }
+         }
+      }
+      if (hit) hitDino(run, events);
    }
 
    // 12. Egg pickups
@@ -888,7 +1039,7 @@ export function stepDinoRun(
    }
 
    // 13. Nest delivery
-   const distToNest = Math.hypot(dino.x - NEST.x, dino.z - NEST.z);
+   const distToNest = Math.hypot(dino.x - run.map.nest.x, dino.z - run.map.nest.z);
    if (distToNest <= NEST.deliveryRadius) {
       const regCount = dino.carriedEggs.length;
       const goldCount = dino.carriedGolden ? 1 : 0;

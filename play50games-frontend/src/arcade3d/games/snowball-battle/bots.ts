@@ -99,6 +99,20 @@ function standOf(run: Run, rival: Kid, player: Kid): { x: number; z: number } {
 /** Oracle (reaction 0, any wind-up, range 18) and witness (0.20 s, first 0.90 s, range 12). */
 export function fighter(opts: BrainOpts): (run: Run) => StepInput {
    const seen = [0, 0, 0, 0];
+   // a person walks round a fort or the snowman that blocks the straight line; so does the bot
+   const stuck = { x: 0, z: 0, t: 0, detour: 0, sx: 0, sz: 0 };
+   const stall = { t: 0 };
+   const walk = (run: Run, input: StepInput): StepInput => {
+      const p = run.kids[0];
+      if (stuck.detour > run.time) return { ...input, moveX: stuck.sx, moveY: stuck.sz };
+      if (Math.hypot(p.x - stuck.x, p.z - stuck.z) > 0.15) { stuck.x = p.x; stuck.z = p.z; stuck.t = run.time; return input; }
+      if (run.time - stuck.t < 0.6 || Math.hypot(input.moveX, input.moveY) < 0.5) return input;
+      stuck.detour = run.time + 0.7;
+      stuck.t = run.time;
+      stuck.sx = -input.moveY;
+      stuck.sz = input.moveX;
+      return { ...input, moveX: stuck.sx, moveY: stuck.sz };
+   };
    return (run: Run) => {
       const player = run.kids[0];
       const rivals = livingRivals(run);
@@ -163,6 +177,7 @@ export function fighter(opts: BrainOpts): (run: Run) => StepInput {
             fire: !opts.coarse, tapId: opts.coarse ? throwId : -1,
          };
       }
+      const threatSeen = rivals.some((kid) => kid.state === "windup");
       const seeFocus = focus ? lineOfSight(run.forts, player.x, player.z, focus.x, focus.z) : false;
       const threat = rivals.some((kid) => kid.state === "peek" || kid.state === "windup");
       const want = threat ? 1 : 3;
@@ -170,9 +185,23 @@ export function fighter(opts: BrainOpts): (run: Run) => StepInput {
       if (!focus) return zero(aim, packing);
       const stand = standOf(run, focus, player);
       if (packing && (seeFocus || player.ammo < 1)) return zero(aim, true);
-      if (!seeFocus) return toward(player.x, player.z, stand.x, stand.z, aim, false, false, -1);
-      if (Math.hypot(player.x - stand.x, player.z - stand.z) < 1.2) return zero(aim, false);
-      return toward(player.x, player.z, stand.x, stand.z, aim, false, false, -1);
+      if (!seeFocus) return walk(run, toward(player.x, player.z, stand.x, stand.z, aim, false, false, -1));
+      if (Math.hypot(player.x - stand.x, player.z - stand.z) < 1.2) {
+         // a line that only grazes a fort corner can flicker; after 3 s with no wind-up, a person steps off it
+         if (stall.t === 0 || threatSeen) stall.t = run.time;
+         if (run.time - stall.t > 3 && focus) {
+            stall.t = run.time;
+            const dx = focus.x - player.x;
+            const dz = focus.z - player.z;
+            const len = Math.hypot(dx, dz) || 1;
+            stuck.detour = run.time + 0.8;
+            stuck.sx = -dz / len;
+            stuck.sz = dx / len;
+         }
+         return stuck.detour > run.time ? walk(run, zero(aim, false)) : zero(aim, false);
+      }
+      stall.t = 0;
+      return walk(run, toward(player.x, player.z, stand.x, stand.z, aim, false, false, -1));
    };
 }
 

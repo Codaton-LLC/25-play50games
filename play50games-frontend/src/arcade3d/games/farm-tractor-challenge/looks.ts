@@ -29,6 +29,7 @@ export const COLORS = {
    hub: "#a8a29e",
    trailer: "#78716c",
    trailerBed: "#57534e",
+   hitch: "#3f3f46",
    fence: "#a16207",
    fencePost: "#78350f",
    silo: "#e7e5e4",

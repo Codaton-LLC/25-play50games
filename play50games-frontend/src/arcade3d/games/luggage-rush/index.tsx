@@ -5,6 +5,7 @@
 // Levels: one LevelSpec per meta.ts level, built from levels.ts (core/README.md "Levels").
 import type { GameDefinition, LevelSpec } from "@/arcade3d/core/types";
 import { LEVEL_IDS, type LevelId } from "@/arcade3d/types";
+import Hud from "./Hud";
 import Scene from "./Scene";
 import { ASSETS } from "./assets";
 import { LEVELS, type LuggageLevel } from "./levels";
@@ -14,10 +15,10 @@ import { DURATION_MS, RESULT_DELAY_MS, STRIKE_LIMIT } from "./rules";
 /** One line under the level tiles. */
 const DESCRIPTIONS: Record<LevelId, string> = {
    1: "120 seconds on the training belt. Three misses end the shift.",
-   2: "150 seconds and a faster belt. The later chutes open a little sooner.",
-   3: "180 seconds. Bags arrive faster and all four chutes open earlier.",
-   4: "Rush hour: the belt steps up every 10 seconds and more bags are heavy.",
-   5: "200 seconds on the fastest belt, with every chute open early.",
+   2: "Two Destinations: two airliners at the gates, 150 seconds, a faster belt.",
+   3: "Four Destinations at sunset: four gates, 180 seconds, bags arrive faster.",
+   4: "Rush Hour at night under blinking apron lights: the belt steps up every 10 s, more heavy bags.",
+   5: "International Hub: widebodies, the tower, 200 seconds on the fastest belt.",
 };
 
 /** Lighting only. Fog and the hall colours stay the game's; level 1 keeps the definition. */
@@ -39,6 +40,7 @@ function instructionsFor(level: LuggageLevel): string[] {
 const definition: GameDefinition<LuggageLevel> = {
    slug: "luggage-rush",
    Scene,
+   Hud,
    assets: ASSETS,
    durationMs: DURATION_MS,
    resultDelayMs: RESULT_DELAY_MS,

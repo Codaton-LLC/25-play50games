@@ -14,9 +14,10 @@ import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js
 import { InstancedModel } from "@/arcade3d/core/assets";
 import { scaledCount, useQuality } from "@/arcade3d/core/quality";
 import { Instanced, type InstanceSpot } from "@/arcade3d/core/render";
-import { ASSETS } from "./assets";
-import { COLORS, decorOf, type DecorSpot } from "./looks";
+import { ASSETS, METEORITE_SCALE, METEORITE_SPOTS } from "./assets";
+import { COLORS, LOOKS, decorOf, hillHeight, type DecorSpot, type FarmLook } from "./looks";
 import { CratePrimitives, RockPrimitives } from "./Primitives";
+import type { Pool } from "./levels";
 
 function asSpots(list: readonly DecorSpot[]): InstanceSpot[] {
    return list.map((s) => ({
@@ -30,7 +31,7 @@ function asSpots(list: readonly DecorSpot[]): InstanceSpot[] {
    }));
 }
 
-export function Decor() {
+export function Decor({ look = LOOKS.starter, pools = [] }: { look?: FarmLook; pools?: readonly Pool[] }) {
    const quality = useQuality();
 
    const geo = useMemo(() => {
@@ -79,12 +80,14 @@ export function Decor() {
    }, [quality.decor]);
 
    const plants = useMemo(() => {
-      const list = decorOf("plant");
+      // no plant standing in a marsh pool
+      const list = decorOf("plant").filter((s) => pools.every((p) => Math.hypot(s.x - p.x, s.z - p.z) > p.r + 0.3));
       return asSpots(list.slice(0, scaledCount(list.length, quality.decor)));
-   }, [quality.decor]);
+   }, [quality.decor, pools]);
 
    const silos = useMemo(() => asSpots(decorOf("silo")), []);
    const rocks = useMemo(() => asSpots(decorOf("rock")), []);
+   const meteorites = useMemo<InstanceSpot[]>(() => METEORITE_SPOTS.map((s) => ({ x: s.x, y: hillHeight(s.x, s.z) - 0.05, z: s.z, rotY: s.rotY })), []);
    const crates = useMemo(() => asSpots(decorOf("crate")), []);
 
    return (
@@ -93,7 +96,7 @@ export function Decor() {
          {spires.length > 0 && (
             <Instanced spots={spires} name="rock-spires">
                <primitive object={geo.spire} attach="geometry" />
-               <meshStandardMaterial color={COLORS.spire} roughness={0.8} flatShading />
+               <meshStandardMaterial color={look.spire} roughness={0.8} flatShading />
             </Instanced>
          )}
 
@@ -107,9 +110,9 @@ export function Decor() {
                <Instanced spots={plants} name="plant-caps">
                   <primitive object={geo.plantCap} attach="geometry" />
                   <meshStandardMaterial
-                     color={COLORS.plantCap}
+                     color={look.plantCap}
                      roughness={0.4}
-                     emissive={COLORS.plantGlow}
+                     emissive={look.plantGlow}
                      emissiveIntensity={0.55}
                   />
                </Instanced>
@@ -137,6 +140,16 @@ export function Decor() {
 
          {/* Rocks & crates outside the play area */}
          <InstancedModel asset={ASSETS.rock} spots={rocks} fallback={<RockPrimitives spots={rocks} />} />
+         <InstancedModel
+            asset={ASSETS.meteorite}
+            spots={meteorites}
+            fallback={
+               <Instanced spots={meteorites.map((m) => ({ ...m, y: m.y + 0.4, sx: 0.6, sy: 0.45, sz: 1.2 }))} name="meteorite-fallback">
+                  <icosahedronGeometry args={[1, 0]} />
+                  <meshStandardMaterial color="#3f3f46" roughness={0.9} flatShading />
+               </Instanced>
+            }
+         />
          <InstancedModel asset={ASSETS.crate} spots={crates} fallback={<CratePrimitives spots={crates} />} />
       </group>
    );

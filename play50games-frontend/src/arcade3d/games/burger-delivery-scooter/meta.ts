@@ -38,7 +38,7 @@ export const burgerDeliveryScooterMeta: ArcadeGameMeta = {
    },
    scoring: LIMITS[0],
    levels: LEVELS,
-   thumbnail: null,
+   thumbnail: "/images/3d/burger-delivery-scooter.webp",
    accent: "#fb7185",
    owner: "claude",
 };

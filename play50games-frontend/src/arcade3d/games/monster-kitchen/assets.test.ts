@@ -28,6 +28,7 @@ import {
    TIN_CAN_GLB_LONGEST,
 } from "./assets";
 import { PLAY_BOUNDS, SLIME_CAKE_SPOTS, inPlayArea } from "./looks";
+import { LAZY_SUSAN_DIAMETER, LAZY_SUSAN_THICKNESS, POTION_JAR_HEIGHT, STOVE_HEARTH_DRAWN, STOVE_HEARTH_HEIGHT, STOVE_HEARTH_SPOTS, TOP_HAT_BRIM } from "./assets";
 
 /** Decode the real meshopt vertices in root space, without textures, fetch or a DOM. */
 async function bounds(url: string): Promise<Box3> {
@@ -162,4 +163,41 @@ describe("slimeCake decor GLB (drawn only on levels 4 and 5)", () => {
          expect(clear, `spot ${spot.x},${spot.z}`).toBe(true);
       }
    });
+
+describe("Menu 1 adoptions (wheel, hat, jars, hearth)", () => {
+   const drawn = async (asset: (typeof ASSETS)[keyof typeof ASSETS]) => {
+      const b = await bounds(asset.url);
+      const s = (asset.scale ?? 1) as number;
+      const st = ((asset as { stretch?: readonly number[] }).stretch ?? [1, 1, 1]) as readonly number[];
+      const k = new Vector3(s * st[0], s * st[1], s * st[2]);
+      return { size: b.getSize(new Vector3()).multiply(k), minY: b.min.y * k.y + ((asset as { yOffset?: number }).yOffset ?? 0) };
+   };
+   it("lists all six GLBs and has them on disk", () => {
+      for (const asset of [ASSETS.eyeball, ASSETS.slime, ASSETS.lazySusan, ASSETS.topHat, ASSETS.potionJar, ASSETS.stoveHearth]) {
+         expect(hasModel(asset.url), asset.url).toBe(true);
+         expect(existsSync(resolve("public", asset.url.slice(1))), asset.url).toBe(true);
+      }
+   });
+   it("draws the ingredients, wheel, hat, jar and hearth at their README sizes", async () => {
+      expect((await drawn(ASSETS.eyeball)).size.x).toBeCloseTo(0.36, 2);
+      expect((await drawn(ASSETS.slime)).size.x).toBeCloseTo(0.34, 2);
+      const wheel = await drawn(ASSETS.lazySusan);
+      expect(wheel.size.x).toBeCloseTo(LAZY_SUSAN_DIAMETER, 2);
+      expect(wheel.size.y).toBeCloseTo(LAZY_SUSAN_THICKNESS, 3);
+      // the slab's top sits where the wood disc's did (+0.025), so the ingredients keep their height
+      expect(wheel.minY + wheel.size.y).toBeCloseTo(0.025, 3);
+      expect((await drawn(ASSETS.topHat)).size.z).toBeCloseTo(TOP_HAT_BRIM, 2);
+      expect((await drawn(ASSETS.potionJar)).size.y).toBeCloseTo(POTION_JAR_HEIGHT, 2);
+      const hearth = await drawn(ASSETS.stoveHearth);
+      expect(hearth.minY).toBeCloseTo(0, 2);
+      expect(hearth.size.y).toBeCloseTo(STOVE_HEARTH_HEIGHT, 2);
+   });
+   it("keeps the hearth decor outside the play bounds", () => {
+      const r = Math.hypot(STOVE_HEARTH_DRAWN.width, STOVE_HEARTH_DRAWN.depth) / 2;
+      for (const spot of STOVE_HEARTH_SPOTS) {
+         expect(inPlayArea(spot.x, spot.z)).toBe(false);
+         expect(spot.x + r < PLAY_BOUNDS.xMin || spot.x - r > PLAY_BOUNDS.xMax, `${spot.x},${spot.z}`).toBe(true);
+      }
+   });
+});
 });

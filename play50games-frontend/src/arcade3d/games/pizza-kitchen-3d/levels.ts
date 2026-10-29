@@ -2,6 +2,8 @@
 // ovens, bake windows, patience and the box step change. Plain data: no three.js, no React.
 import type { LevelId } from "@/arcade3d/types";
 
+export type KitchenTheme = "cheese" | "trattoria" | "rush" | "diner" | "patio";
+
 export interface PizzaLevel {
    orders: number;
    /** 0..5 from pepperoni, mushroom, olive, tomato, onion */
@@ -17,14 +19,16 @@ export interface PizzaLevel {
    durationMs: number;
    lighting: "indoor" | "sunset" | "night";
    background: string;
+   /** the room (looks.ts KITCHENS, Decor.tsx): floor, walls, counters and the props round the line */
+   theme: KitchenTheme;
 }
 
 export const LEVELS: Record<LevelId, PizzaLevel> = {
-   1: { orders: 3, toppingTypes: 0, maxToppings: 0, parallel: 1, ovens: 1, bakeS: 5, goldenS: 5, patienceS: 0, boxStep: false, durationMs: 120_000, lighting: "indoor", background: "#fef3c7" },
-   2: { orders: 4, toppingTypes: 2, maxToppings: 2, parallel: 1, ovens: 1, bakeS: 5, goldenS: 4, patienceS: 0, boxStep: false, durationMs: 150_000, lighting: "indoor", background: "#fde68a" },
-   3: { orders: 6, toppingTypes: 3, maxToppings: 2, parallel: 2, ovens: 2, bakeS: 6, goldenS: 4, patienceS: 0, boxStep: false, durationMs: 180_000, lighting: "indoor", background: "#fdba74" },
-   4: { orders: 8, toppingTypes: 4, maxToppings: 2, parallel: 2, ovens: 2, bakeS: 6, goldenS: 3.5, patienceS: 45, boxStep: false, durationMs: 180_000, lighting: "sunset", background: "#fb923c" },
-   5: { orders: 10, toppingTypes: 5, maxToppings: 2, parallel: 2, ovens: 2, bakeS: 6, goldenS: 3, patienceS: 40, boxStep: true, durationMs: 210_000, lighting: "night", background: "#431407" },
+   1: { orders: 3, toppingTypes: 0, maxToppings: 0, parallel: 1, ovens: 1, bakeS: 5, goldenS: 5, patienceS: 0, boxStep: false, durationMs: 120_000, lighting: "indoor", background: "#fef3c7", theme: "cheese" },
+   2: { orders: 4, toppingTypes: 2, maxToppings: 2, parallel: 1, ovens: 1, bakeS: 5, goldenS: 4, patienceS: 0, boxStep: false, durationMs: 150_000, lighting: "indoor", background: "#fde68a", theme: "trattoria" },
+   3: { orders: 6, toppingTypes: 3, maxToppings: 2, parallel: 2, ovens: 2, bakeS: 6, goldenS: 4, patienceS: 0, boxStep: false, durationMs: 180_000, lighting: "indoor", background: "#fdba74", theme: "rush" },
+   4: { orders: 8, toppingTypes: 4, maxToppings: 2, parallel: 2, ovens: 2, bakeS: 6, goldenS: 3.5, patienceS: 45, boxStep: false, durationMs: 180_000, lighting: "sunset", background: "#fb923c", theme: "diner" },
+   5: { orders: 10, toppingTypes: 5, maxToppings: 2, parallel: 2, ovens: 2, bakeS: 6, goldenS: 3, patienceS: 40, boxStep: true, durationMs: 210_000, lighting: "night", background: "#431407", theme: "patio" },
 };
 
 export const LEVEL_TITLES: Record<LevelId, string> = {
@@ -37,8 +41,8 @@ export const LEVEL_TITLES: Record<LevelId, string> = {
 
 export const LEVEL_LINES: Record<LevelId, string> = {
    1: "Sauce, cheese, oven, serve.",
-   2: "Toppings in ticket order.",
-   3: "Two ovens, two tickets.",
-   4: "Tickets do not wait forever.",
-   5: "Box it before it goes out.",
+   2: "A cosy trattoria: toppings in ticket order.",
+   3: "The restaurant fills up: two ovens, two tickets, a full dining room.",
+   4: "A sunset diner with a big wall clock: tickets do not wait forever.",
+   5: "The night patio by the wood-fired ovens: box it before it goes out.",
 };

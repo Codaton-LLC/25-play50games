@@ -51,7 +51,19 @@ Approved provisional limits, applied to `meta.ts` in P-15: **maxScore 3600; dura
 
 ### Levels
 
-Level 1 is today's 12-delivery route, so the tests and the approved limits stay put. Levels 2–5 are the same city with more drops and the plan's hazard knobs (tighter pads, earlier and stronger wind, more pigeons, fragile cargo, a faster drain). The plan's 3-drop tutorial is not level 1: that would make every later level worth fewer points than today, and it would break the tests that pin `ROUTE.count` at 12. Night lighting and colliding traffic are not built (fog, sky and `lighting: "day"` are fixed; only pigeons collide), so level 5 stays in daylight. Loading stays 4 s, the express window stays 10 s and the depot disc stays 1.5 m on every level, for keyboard and touch alike. A level clears on a win, or at its `clearScore`.
+Level 1 is today's 12-delivery route, so the tests and the approved limits stay put. Levels 2–5 add drops and the plan's hazard knobs (tighter pads, earlier and stronger wind, more pigeons, fragile cargo, a faster drain), and each level is its own district (below). The plan's 3-drop tutorial is not level 1: that would make every later level worth fewer points than today, and it would break the tests that pin `ROUTE.count` at 12. Colliding traffic is not built; only pigeons and towers collide. Loading stays 4 s, the express window stays 10 s and the depot disc stays 1.5 m on every level, for keyboard and touch alike. A level clears on a win, or at its `clearScore`.
+
+**Districts (2026-10-29).** Each level has its own map and look: `levels.ts` `MAPS` (open cells, roof mix, preferred tower cells, drawn tower height) and `looks.ts` `THEMES` (lighting preset, sky, fog, street and block palette, rooftop props, open-cell style, lamps, stars). The rules read only the map: open cells have no building (no collision, no roof), roofs stay 2 / 5 / 8 m, towers stay 16 m walls (the drawn height is taller on later levels; the camera views use the drawn height as solids). Level 1's map draws the same random numbers as before, so its cities are today's.
+
+| Level | District | Layout | Look |
+|---|---|---|---|
+| 1 Training Rooftop | today's city | mixed 2/5/8 m blocks, 8 towers anywhere | day, blue sky, offices with solar panels |
+| 2 Residential Blocks | suburb | mostly 2 m houses, four pocket parks (cells 9, 14, 49, 54), apartment towers prefer the four corners round the depot: tight turns home, and flying low over houses brings the pigeons (4–10 m) into the drone's height | warm morning sky, pastel houses with stepped tile roofs and chimneys, lawns with trees and benches |
+| 3 Downtown | business district | mostly 8 m offices, a civic square north of the depot (cells 19, 20), towers prefer the north-east block (rows 0–2, cols 5–7), drawn 24 m | sunset preset, violet-to-orange sky, glass and steel facades, rooftop billboards, a billboard on every tower, fountain plaza |
+| 4 Windy Towers | wind canyons | towers prefer cols 1 and 6 (two walls along the avenues), drawn 28 m | grey storm sky, concrete facades, orange windsocks on the roofs, brighter white wind streaks |
+| 5 Night Delivery | night city | towers prefer the diagonals, two lit plazas beside the depot (cells 26, 29), drawn 20 m | night preset, stars, glowing windows (a third dark), street lamps with light pools, pads and beacons unchanged (bright) |
+
+Fairness per level (`districts.test.ts`): open cells stay empty, roofs come from the level's mix, the preferred cells carry most towers, every city is valid (the flood fill reaches every pad from the depot), the depot is clear and a parcel loads in 4 s. The bot proofs (`rules.levels*.test.ts`) re-ran on the new districts: human clears 100 / 99 / 100 / 100 / 100 of 100 seeds (level 2's one miss is seed 80, a battery loss after 5 drops), oracle best 3496 / 3790 / 4086 / 4367 / 4667. Limits unchanged: the proof (n drops need 4n s of loading, so score ≤ 300n ≤ 75t) does not depend on the map.
 
 One perfect drop is `DELIVERY_CAP` = 150 + 100 + 50 = 300 (`ROUTE.base`, `ROUTE.precision`, `ROUTE.expressPoints`). n drops need n × `ROUTE.loading` = 4n seconds of depot time, so the score is at most 300n = 75t. That is inside `base 300 + 75 × t` on every level, and `maxScore` is 300 × the delivery count. The earliest empty battery, before any recharge, is `(battery − BATTERY.damage) / (drain + BATTERY.damage)` (`earliestLossSeconds`). It stays above 20 s, so `minDurationMs` stays 20000. `maxDurationMs` is the ceiling plus 2 s.
 
@@ -63,7 +75,7 @@ One perfect drop is `DELIVERY_CAP` = 150 + 100 + 50 = 300 (`ROUTE.base`, `ROUTE.
 | 4 | Windy Towers | 15 | 240 s | 10 | 1.00 | 2.5 from 30 s | 3 / 6 / 8 at 30 / 70 s | from drop 6, precision 50 | 1.25, battery 160 | 4500 | 1200 |
 | 5 | Night Delivery | 16 | 270 s | 11 | 1.00 | 2.5 from 20 s | 4 / 6 / 8 at 20 / 60 s | from drop 5, precision 50 | 1.5, battery 230 | 4800 | 1400 |
 
-Level 1's loss bound is 24.25 s, the same `97 − 4t` proof as above. Level 4's bound is 157 / 4.25 = 36.94 s. Level 5's bound is 227 / 4.5 = 50.44 s. Level 5's maxScore 4800 is 1.33 × level 1, inside the 3× guard. `clearScore` sits under the worst score the cautious route bot posted on seeds 0–99 of that level (1334, 2140, 2131, 1340, 1592), so a bad city still unlocks the next one. It does not rise with the level: wind and a faster drain make the worst city score less, and the unlock has to stay reachable. The human route bot is what `rules.levels*.test.ts` (one file per level) measures; those clear rates are the ones in the handoff.
+Level 1's loss bound is 24.25 s, the same `97 − 4t` proof as above. Level 4's bound is 157 / 4.25 = 36.94 s. Level 5's bound is 227 / 4.5 = 50.44 s. Level 5's maxScore 4800 is 1.33 × level 1, inside the 3× guard. `clearScore` sits under the worst score the cautious route bot posted on seeds 0–99 of that level before the districts (1334, 2140, 2131, 1340, 1592), so a bad city still unlocks the next one. On the districts the worst scores are 1334, 1326, 2930, 2928, 1878: level 2 clears 99 of 100 (the test floor), the rest 100. It does not rise with the level: wind and a faster drain make the worst city score less, and the unlock has to stay reachable. The human route bot is what `rules.levels*.test.ts` (one file per level) measures; those clear rates are the ones in the handoff.
 
 ## Run end
 
@@ -163,7 +175,7 @@ Fix1 bot counts: expert/novice, 48 seeds each in both damping modes (32 at 60 fp
 Bot reports: terminal reasons, score/duration extrema, per-distance-band delivery times, substep cable clamp seconds/fractions per axis, peak/final energy. No measured values claimed.
 Scoring: sum(150 + precision + express 50), successful pads only; fragile requires precision >=40; express <=10 s; twelve single-use awards, no terminal bonus.
 Limits: max 3600; duration 20000–182000 ms; base 300; 75 points/s. Proof: n parcels require 4n s loading, score <=300n<=75t; twelve awards cap 3600; battery >=97-4t gives loss >=24.25 s; win >=48 s; ceiling 180 s.
-Evidence: screenshots 1280x800 / 390x844 banner open / 844x390 and tools/perf JSON are pending; thumbnail null.
+Evidence: screenshots 1280x800 / 390x844 banner open / 844x390 and tools/perf JSON are pending; thumbnail wired.
 Acceptance [x]: folder implementation; pure seeded rules/core helpers; keyboard/touch bindings in code; dev status; approved meta limits; TypeScript.
 Acceptance [ ]: executed tests/build/gamecheck; legal bot timing and score proof measurements; three-size playtests; real model fit results; fallback playtest; <=70 target / <=80 cap calls; mid-phone p95; Retry x10 GPU/heap stability; screenshot/perf evidence.
 Known limitations: full Vitest game-suite duration remains pending Claude; standalone checks do not measure Vitest overhead. Vehicle fits and phone readability require actual validation. Server catalog pairing belongs to Claude's merge.
@@ -230,3 +242,7 @@ Visual-only modern-look pass (TASK P-83-look-drone) for a polished, premium mobi
 | Core FX (active bursts) | 1–3 | Sparkle / puff / confetti pools (1-2) + score sprite (1) |
 | **Total typical frame** | **~38–46** | **Well within <= 60 budget** |
 | **Total worst-case frame** | **~52–56** | All chunks visible + active delivery bursts + score popup |
+
+## Camera views
+
+Views: default, chase, front, top, free (the drone's camera collides with the buildings). **C** / **T** or the 📷 button cycles them; drag (or two fingers) looks around and switches to the free view, wheel / pinch zooms, **V** recenters. The rules receive the drawn camera's yaw (the fitted yaw in the default view), so a run in the default view is unchanged; no rules, bots, proofs or scoring were touched. Core docs: `core/camera/README.md`.

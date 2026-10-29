@@ -3,8 +3,8 @@
 // The lazy Susan and the eight ingredient slots. The rules index (run.rotation, an integer mod 8) is
 // the truth the Scene picks against; the drawn disc eases toward it (0.18 s per slot, shortest way
 // round), and every ingredient pool places its copies on the eased ring: one copy per slot holding its
-// kind, plus copy 8, the single toss in flight on the rules' fixed parabola. Six pools are GLBs (one
-// draw call each); the eyeball and the slime cube are procedural parts. No setState, no allocation in
+// kind, plus copy 8, the single toss in flight on the rules' fixed parabola. Eight pools are GLBs (one
+// draw call each, the eyeball and the slime cube fall back to procedural parts. No setState, no allocation in
 // the frame callbacks. A selector (a ring plus a bobbing arrow, green when an order needs that
 // ingredient, red when it would burp) rides under the ingredient Space / Enter tosses: it sits on that
 // ingredient's DRAWN spot, so mid-turn it travels in with it and never marks the wrong item.
@@ -12,8 +12,7 @@
 import { useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import { Color, Matrix4, Quaternion, Vector3, type Group, type Mesh, type MeshBasicMaterial } from "three";
-import { DynamicInstancedModel } from "@/arcade3d/core/assets";
-import { DynamicInstanced } from "@/arcade3d/core/render";
+import { DynamicInstancedModel, Model } from "@/arcade3d/core/assets";
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import { ASSETS } from "./assets";
 import { COLORS } from "./looks";
@@ -52,7 +51,7 @@ const IDLE = new Color(COLORS.idle);
 const SELECT_Y = WHEEL.y + 0.035;
 const SELECT = { x: WHEEL.x, y: WHEEL.y, z: WHEEL.z + WHEEL.ringR };
 
-const GLB_KINDS = ["apple", "banana", "burger", "sock", "tinCan", "fish"] as const satisfies readonly IngredientKind[];
+const GLB_KINDS = ["apple", "banana", "burger", "sock", "tinCan", "fish", "eyeball", "slime"] as const satisfies readonly IngredientKind[];
 
 /** Where slot k stands on the drawn wheel, and the yaw that faces it outward (writes into SPOT). */
 function slotSpot(slot: number, rot: number): number {
@@ -129,42 +128,34 @@ export function Wheel({ run, look }: { run: RunState; look: WheelLook }) {
    return (
       <group name="wheel-and-ingredients">
          <group ref={root} position={[WHEEL.x, WHEEL.y, WHEEL.z]}>
-            {/* Rich polished wood turntable disc */}
-            <mesh>
-               <cylinderGeometry args={[WHEEL.discR, WHEEL.discR, 0.05, 32]} />
-               <meshStandardMaterial
-                  color={COLORS.wheelWood}
-                  roughness={0.45}
-                  metalness={0.06}
-               />
-            </mesh>
-            {/* Polished copper/brass bevel rim */}
-            <mesh rotation-x={Math.PI / 2} position-y={0.012}>
-               <torusGeometry args={[WHEEL.discR - 0.008, 0.028, 12, 36]} />
-               <meshStandardMaterial
-                  color={COLORS.copperHighlight}
-                  metalness={0.82}
-                  roughness={0.25}
-               />
-            </mesh>
-            {/* Inlaid radial brass ring */}
-            <mesh rotation-x={-Math.PI / 2} position-y={0.026}>
-               <ringGeometry args={[0.68, 0.72, 32]} />
-               <meshStandardMaterial
-                  color={COLORS.wheelBrass}
-                  metalness={0.75}
-                  roughness={0.3}
-               />
-            </mesh>
-            {/* Central brass pivot medallion */}
-            <mesh position-y={0.03}>
-               <cylinderGeometry args={[0.16, 0.18, 0.035, 24]} />
-               <meshStandardMaterial
-                  color={COLORS.brass}
-                  metalness={0.85}
-                  roughness={0.25}
-               />
-            </mesh>
+            {/* The Hyper3D lazy Susan turntable; the wood disc, brass rim, ring and medallion are its fallback */}
+            <Model
+               asset={ASSETS.lazySusan}
+               fallback={
+                  <group>
+                     {/* Rich polished wood turntable disc */}
+                     <mesh>
+                        <cylinderGeometry args={[WHEEL.discR, WHEEL.discR, 0.05, 32]} />
+                        <meshStandardMaterial color={COLORS.wheelWood} roughness={0.45} metalness={0.06} />
+                     </mesh>
+                     {/* Polished copper/brass bevel rim */}
+                     <mesh rotation-x={Math.PI / 2} position-y={0.012}>
+                        <torusGeometry args={[WHEEL.discR - 0.008, 0.028, 12, 36]} />
+                        <meshStandardMaterial color={COLORS.copperHighlight} metalness={0.82} roughness={0.25} />
+                     </mesh>
+                     {/* Inlaid radial brass ring */}
+                     <mesh rotation-x={-Math.PI / 2} position-y={0.026}>
+                        <ringGeometry args={[0.68, 0.72, 32]} />
+                        <meshStandardMaterial color={COLORS.wheelBrass} metalness={0.75} roughness={0.3} />
+                     </mesh>
+                     {/* Central brass pivot medallion */}
+                     <mesh position-y={0.03}>
+                        <cylinderGeometry args={[0.16, 0.18, 0.035, 24]} />
+                        <meshStandardMaterial color={COLORS.brass} metalness={0.85} roughness={0.25} />
+                     </mesh>
+                  </group>
+               }
+            />
          </group>
 
          <mesh
@@ -194,21 +185,10 @@ export function Wheel({ run, look }: { run: RunState; look: WheelLook }) {
                asset={ASSETS[kind]}
                count={WHEEL.slots + 1}
                update={(i, m) => placeCopy(run, look, kind, i, m)}
+               fallbackParts={kind === "eyeball" ? eyeballParts : kind === "slime" ? slimeParts : undefined}
                name={`ingredient-${kind}`}
             />
          ))}
-         <DynamicInstanced
-            count={WHEEL.slots + 1}
-            update={(i, m) => placeCopy(run, look, "eyeball", i, m)}
-            parts={eyeballParts}
-            name="ingredient-eyeball"
-         />
-         <DynamicInstanced
-            count={WHEEL.slots + 1}
-            update={(i, m) => placeCopy(run, look, "slime", i, m)}
-            parts={slimeParts}
-            name="ingredient-slime"
-         />
       </group>
    );
 }

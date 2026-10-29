@@ -12,7 +12,8 @@ import { rigCharacter, type RiggedCharacter } from "@/arcade3d/core/rig/characte
 import { readCharacterGlb } from "@/arcade3d/core/rig/robotGlb";
 import type { ModelAsset } from "@/arcade3d/core/types";
 import { CLEANER_LANDMARKS, REUSED_ASSETS } from "@/arcade3d/core/sharedAssets";
-import { ASSETS, MIXER_GLB, MIXER_HEIGHT, MIXER_SPOTS, WORKER_GLB_HEIGHT, WORKER_HAT, WORKER_HEIGHT, WORKER_LANDMARKS, WORKER_SCALE } from "./assets";
+import { KIND_SCALE } from "./Primitives";
+import { HOOK_HEIGHT, JIB_DRAWN, PIECE_ASSETS, PIECE_DRAWN, ASSETS, MIXER_GLB, MIXER_HEIGHT, MIXER_SPOTS, WORKER_GLB_HEIGHT, WORKER_HAT, WORKER_HEIGHT, WORKER_LANDMARKS, WORKER_SCALE } from "./assets";
 import { inWorkArea } from "./looks";
 import { workerPose } from "./poses";
 import { PILE_A, PILE_R, SLOT_A, SLOT_R } from "./rules";
@@ -184,4 +185,49 @@ describe("construction-worker models", () => {
          expect(Math.hypot(spot.x - 2.6, spot.z - 5.35), "clear of worker").toBeGreaterThan(1);
       }
    });
+
+describe("Menu 1 building pieces, hook and jib", () => {
+   async function drawn(asset: ModelAsset): Promise<Box3> {
+      const { local, node } = await readCharacterGlb(asset.url);
+      const geometry = new BufferGeometry();
+      geometry.setAttribute("position", new Float32BufferAttribute(local, 3));
+      const mesh = new Mesh(geometry);
+      mesh.position.fromArray(node);
+      const root = new Group();
+      root.add(mesh);
+      const parts = modelParts(root, asset);
+      const box = new Box3(), v = new Vector3();
+      for (let i = 0; i < local.length; i += 3) box.expandByPoint(v.set(local[i], local[i + 1], local[i + 2]).applyMatrix4(parts[0].matrix));
+      geometry.dispose();
+      return box;
+   }
+   it("lists the six GLBs in the manifest and on disk", () => {
+      for (const asset of [...PIECE_ASSETS, ASSETS.craneHook, ASSETS.craneJib]) {
+         expect(hasModel(asset.url), asset.url).toBe(true);
+         expect(existsSync(resolve("public", asset.url.slice(1))), asset.url).toBe(true);
+      }
+   });
+   it("draws each piece exactly at the stand-in box's size, resting on y 0", async () => {
+      expect(PIECE_DRAWN.map((s) => [...s])).toEqual(KIND_SCALE.slice(0, 4).map((s) => [...s]));
+      for (let kind = 0; kind < 4; kind++) {
+         const box = await drawn(PIECE_ASSETS[kind]);
+         const size = box.getSize(new Vector3());
+         expect(box.min.y, `kind ${kind}`).toBeCloseTo(0, 2);
+         expect(size.x).toBeCloseTo(PIECE_DRAWN[kind][0], 2);
+         expect(size.y).toBeCloseTo(PIECE_DRAWN[kind][1], 2);
+         expect(size.z).toBeCloseTo(PIECE_DRAWN[kind][2], 2);
+      }
+   });
+   it("draws the hook block 1.2 m tall and the jib over the code jib's reach", async () => {
+      const hook = await drawn(ASSETS.craneHook);
+      expect(hook.min.y).toBeCloseTo(0, 2);
+      expect(hook.max.y - hook.min.y).toBeCloseTo(HOOK_HEIGHT, 2);
+      const jib = (await drawn(ASSETS.craneJib)).getSize(new Vector3());
+      expect(jib.z).toBeCloseTo(JIB_DRAWN.length, 2);
+      expect(jib.y).toBeCloseTo(JIB_DRAWN.height, 2);
+      expect(jib.x).toBeCloseTo(JIB_DRAWN.width, 2);
+      // the front of the drawn jib reaches the farthest trolley radius (RADIUS_MAX 9.6) and the code jib's end
+      expect(JIB_DRAWN.zMin + JIB_DRAWN.length).toBeGreaterThanOrEqual(9.6);
+   });
+});
 });

@@ -5,8 +5,9 @@ import { useFrame } from "@react-three/fiber";
 import type { Group } from "three";
 import { Model } from "@/arcade3d/core/assets";
 import { playSfx } from "@/arcade3d/core/audio";
-import { SkyDome, SnowFall } from "@/arcade3d/core/env";
-import { SCORE_LIFE, useFx } from "@/arcade3d/core/fx";
+import { SkyDome, SnowFall, Starfield } from "@/arcade3d/core/env";
+import { Aurora } from "./Aurora";
+import { SCORE_LIFE, useActionPop, useFx } from "@/arcade3d/core/fx";
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import { TargetMarkers } from "@/arcade3d/core/hud";
 import { useInput } from "@/arcade3d/core/input";
@@ -17,10 +18,12 @@ import { BlobShadow } from "@/arcade3d/core/render";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { useFittedView } from "@/arcade3d/core/useFittedView";
+import { useCameraViews } from "@/arcade3d/core/camera/CameraViews";
 import { ASSETS, BELLY_LIFT, BELLY_ROTATION_Y, bellyClearance } from "./assets";
 import { ChaseCamera, VIEW, useReducedMotion } from "./camera";
+import { GUIDE, hintCode, hintFor } from "./guide";
 import { Decor } from "./Decor";
-import { COLORS } from "./looks";
+import { COLORS, THEMES } from "./looks";
 import { PenguinPrimitive } from "./Primitives";
 import { Terrain } from "./Terrain";
 import Track from "./Track";
@@ -98,12 +101,29 @@ function Penguin({ run, reduced }: { run: Run; reduced: boolean }) {
 
 function LevelScene() {
    const { config, id } = useSlideLevel();
+   // the level's place: sky, snow, scenery (looks.ts THEMES); light and fog come from its environment
+   const theme = THEMES[config.site];
    const input = useInput();
    const fx = useFx();
+   const pop = useActionPop();
+   const guideCode = useRef(-1);
    const time = useGameTime();
    const view = useFittedView(VIEW);
    const reduced = useReducedMotion();
    const [run] = useState(() => createRun(randomSeed(), typeof navigator !== "undefined" && navigator.maxTouchPoints > 0, config));
+
+   // camera views (core/camera): the rules get the drawn camera's yaw (the fitted yaw in the default view)
+   const cam = useCameraViews({
+      slug: "penguin-slide",
+      subject: "vehicle",
+      steering: "camera",
+      defaultYaw: view.yaw,
+      target: (o) => {
+         o.x = run.d; o.y = 0.6; o.z = 0; o.heading = Math.PI; o.vx = 0; o.vz = -run.speed;
+      },
+      views: ["default", "front", "top"],
+   });
+
    const [scratch] = useState(() => ({
       input: { steer: 0, left: false, right: false, jump: false },
       direction: { x: 0, z: 0 },
@@ -127,6 +147,12 @@ function LevelScene() {
       store.setStat("crashes", 0);
    }, [fx, run]);
 
+   useEffect(() => {
+      guideCode.current = hintCode(run);
+      GUIDE.set(hintFor(guideCode.current));
+      return () => GUIDE.reset();
+   }, [run]);
+
    const popup = (text: string): boolean => {
       if (time.now >= scratch.popupA) scratch.popupA = time.now + SCORE_LIFE;
       else if (time.now >= scratch.popupB) scratch.popupB = time.now + SCORE_LIFE;
@@ -136,7 +162,7 @@ function LevelScene() {
    };
 
    useRunFrame((_state, dt) => {
-      inputToWorld(input.current.moveX, 0, view.yaw, scratch.direction);
+      inputToWorld(input.current.moveX, 0, cam.yaw(), scratch.direction);
       scratch.input.steer = scratch.direction.x;
       scratch.input.left = input.current.pressed.left;
       scratch.input.right = input.current.pressed.right;
@@ -196,7 +222,7 @@ function LevelScene() {
       // Crash splash & camera shake
       if (run.events.crash) {
          fx.burst("splash", scratch.at, 22);
-         fx.shake(0.25);
+         pop.fail(scratch.at, run.end === "lose" ? "Crash! Out of lives" : `Crash! ${run.crashes} of 3`, { shake: 0.25 });
          playSfx("hit");
       }
 
@@ -211,6 +237,12 @@ function LevelScene() {
             fx.burst("snow", scratch.sprayPoint, sprayCount);
             scratch.snowAt = time.play;
          }
+      }
+
+      const code = hintCode(run);
+      if (code !== guideCode.current) {
+         guideCode.current = code;
+         GUIDE.set(hintFor(code));
       }
 
       // TODO(P-06): startLoop("slide") and the new carve/ramp/gate cues after that API merges.
@@ -231,11 +263,13 @@ function LevelScene() {
    return (
       <>
          <ChaseCamera run={run} reduced={reduced} view={view} />
-         <SkyDome top={COLORS.skyTop} bottom={COLORS.skyBottom} />
-         <SnowFall count={reduced ? 60 : 300} area={[28, 16, 70]} />
-         <Terrain run={run} reduced={reduced} />
-         <Decor run={run} reduced={reduced} />
-         <Track run={run} level={id} />
+         <SkyDome top={theme.skyTop} bottom={theme.skyBottom} />
+         {theme.stars && <Starfield count={reduced ? 300 : 700} upperOnly color="#e0f2fe" />}
+         {theme.aurora && <Aurora reduced={reduced} />}
+         {theme.snow > 0 && <SnowFall count={Math.round((reduced ? 60 : 300) * theme.snow)} area={[28, 16, 70]} />}
+         <Terrain run={run} reduced={reduced} theme={theme} />
+         <Decor run={run} reduced={reduced} theme={theme} />
+         <Track run={run} level={id} theme={theme} />
          <Penguin run={run} reduced={reduced} />
          <TargetMarkers targets={marker} color={COLORS.gateRing} />
       </>

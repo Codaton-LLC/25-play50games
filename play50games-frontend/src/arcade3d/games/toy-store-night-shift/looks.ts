@@ -36,28 +36,53 @@ export const COLORS = {
    bin: "#60a5fa",
    binPlush: "#ef4444",
    crate: "#b45309",
-   guard: "#1e3a8a",
-   guardTrim: "#fbbf24",
-   skin: "#f1d0b4",
+   hero: "#f8fafc",
+   heroDark: "#64748b",
+   heroVisor: "#38bdf8",
+   /** the wild wind-ups, tinted per copy: the robots are the hero's own mesh and the cars the toy-car kind's, so neither reads as the hero or a toy to shelve */
+   windupTint: "#c2410c",
 } as const;
 
 export const PITCH = (58 * Math.PI) / 180;
 export const YAWS = [0, Math.PI / 2] as const;
 export const FOV = 48;
 export const FOLLOW = 1;
-export const LOOK_AHEAD = 0.6;
+export const LOOK_AHEAD = 0.4;
 export const DAMPING = 4;
-/** What must stay on screen around the guard (m): a bigger store scrolls under the camera. Small enough that a portrait phone (the other yaw: d across its width) sees the guard clearly. */
+/** What must stay on screen around the robot (m): a bigger store scrolls under the camera. Small enough that a portrait phone (the other yaw: d across its width) sees the robot clearly. */
 export const WINDOW = { w: 12, d: 7 } as const;
 export const WALL_H = 2.6;
 /** The +x side (the portrait camera's side) is a low counter. */
 export const SIDE_H = 0.7;
 /** The back wall stands this far behind the walkable floor: a display strip for the bins and crates. */
 export const BACK = 1.4;
-/** The guard's torch: half the cone, range. */
+/** The robot's lamp: half the cone, range. */
 export const TORCH = { halfAngle: 0.62, range: 6 } as const;
 
-/** Fog starts past the farthest fitted camera (a 390 x 844 phone: about 30 m + the window), so it only hides the far floor. */
+/**
+ * The follow camera sits this close to the aim (m along its view line) at this pitch: the fitted window
+ * (viewFor) only picks the yaw and the lens shift (where the aim sits on screen, clear of the HUD panel and
+ * the controls). Close enough that the robot's silhouette is about 1/5 of the screen height on a 390 x 844
+ * phone (0.19) and 1/7 on a 1280 x 800 desktop (0.145); the old 12 x 7 m window drew it at about 3 % / 8 %.
+ * The next toy or shelf may be off screen: the edge arrow (TargetMarkers) and the beacon point to it, and
+ * the player zoom (ZOOM: wheel, pinch, + / -) goes out to the whole old overview.
+ */
+export const FOLLOW_CAM = {
+   portrait: { distance: 6.4, pitch: (50 * Math.PI) / 180 },
+   landscape: { distance: 8.4, pitch: (52 * Math.PI) / 180 },
+} as const;
+
+/** The player zoom: a factor on the follow distance (1 = FOLLOW_CAM). Out to about the old fitted overview on a phone (33 m). */
+export const ZOOM = { min: 0.75, max: 5.4 } as const;
+
+/** The follow camera's offset from the aim for a canvas of this aspect (w / h) at the fitted yaw (0 = from +z, pi/2 = from +x). */
+export function followOffset(yaw: number, aspect: number): [number, number, number] {
+   const { distance, pitch } = aspect < 1 ? FOLLOW_CAM.portrait : FOLLOW_CAM.landscape;
+   const flat = distance * Math.cos(pitch);
+   return [Math.sin(yaw) * flat, distance * Math.sin(pitch), Math.cos(yaw) * flat];
+}
+
+/** Fog starts past the farthest camera (the fitted overview / full zoom out on a 390 x 844 phone: about 33 m + the window), so it only hides the far floor. */
 export const FOG = { near: 60, far: 150 } as const;
 
 export function fog(level: ToyLevel): [string, number, number] {
@@ -75,12 +100,12 @@ export function windowBox(level: ToyLevel): AABB {
    return { min: { x: -w, y: 0, z: -d }, max: { x: w, y: 2.4, z: d } };
 }
 
-/** How far inside the walls the aim may go: the guard stays near the middle of the fitted window. */
-export const AIM_INSET = 1.0;
+/** How far inside the walls the aim may go: about the robot's radius, so the close follow camera keeps the robot on screen even against a wall. */
+export const AIM_INSET = 0.4;
 
 /**
  * Where the camera aim may go: the walkable store shrunk by AIM_INSET (not by half the window), so the
- * guard is never pushed to a window edge (under the HUD panel or the controls). Past the walls the view
+ * robot is never pushed to a window edge (under the HUD panel or the controls). Past the walls the view
  * shows the dark outside ground and the walls.
  */
 export function aimBounds(level: ToyLevel): AABB {
@@ -88,7 +113,7 @@ export function aimBounds(level: ToyLevel): AABB {
    return { min: { x: -(hx - AIM_INSET), y: 0, z: -(hz - AIM_INSET) }, max: { x: hx - AIM_INSET, y: 2.4, z: hz - AIM_INSET } };
 }
 
-/** The follow aim for a guard at (x, z) facing yaw: LOOK_AHEAD in front of him, clamped to aimBounds. Writes `out`. */
+/** The follow aim for the robot at (x, z) facing yaw: LOOK_AHEAD in front of it, clamped to aimBounds. Writes `out`. */
 export function aimFor(level: ToyLevel, x: number, z: number, yaw: number, out: { x: number; y: number; z: number }) {
    const b = aimBounds(level);
    out.x = Math.min(b.max.x, Math.max(b.min.x, x + Math.sin(yaw) * LOOK_AHEAD));
@@ -102,7 +127,7 @@ export const ROW_TRIMS = ["#f472b6", "#60a5fa", "#facc15", "#34d399", "#a78bfa"]
 
 const VIEWS = new Map<LevelId, FittedViewOptions>();
 
-/** The window round the guard in frame. Portrait picks the other yaw. */
+/** The window round the robot in frame. Portrait picks the other yaw. */
 export function viewFor(id: LevelId): FittedViewOptions {
    let view = VIEWS.get(id);
    if (!view) {
@@ -143,7 +168,7 @@ export function wallSpots(level: ToyLevel): { walls: InstanceSpot[]; trims: Inst
    const walls: InstanceSpot[] = [
       { x: 0, y: h / 2, z: -hz - BACK - t / 2, sx: hx * 2 + t * 2, sy: h, sz: t },
       { x: -hx - t / 2, y: h / 2, z: -BACK / 2, sx: t, sy: h, sz: hz * 2 + BACK },
-      // the portrait camera (yaw pi/2) looks in from +x: that side is a low counter, never a wall in front of the guard
+      // the portrait camera (yaw pi/2) looks in from +x: that side is a low counter, never a wall in front of the robot
       { x: hx + t / 2, y: SIDE_H / 2, z: -BACK / 2, sx: t, sy: SIDE_H, sz: hz * 2 + BACK },
    ];
    const trims: InstanceSpot[] = [

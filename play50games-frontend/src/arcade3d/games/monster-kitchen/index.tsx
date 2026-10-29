@@ -21,11 +21,11 @@ const BASE_INSTRUCTIONS = [
 
 /** One line under the level tiles. */
 const DESCRIPTIONS: Record<LevelId, string> = {
-   1: "90 seconds. The second monster waits until late in the shift.",
-   2: "The second hatch opens sooner, and the orders grow longer.",
-   3: "Both hatches, and the wheel starts drifting while you cook.",
-   4: "Night rush: monsters lose patience faster, and a wrong toss costs more.",
-   5: "The full feast: two hatches, a fast drift and short patience.",
+   1: "The cave Snack Bar, 90 seconds. The second monster waits until late in the shift.",
+   2: "The Monster Café (tables, bakery, menu board): the second hatch opens sooner, orders grow longer.",
+   3: "The Busy Kitchen (prep counters, pizza ovens): both hatches, and the wheel drifts while you cook.",
+   4: "Dinner Rush by lantern light: monsters lose patience faster, and a wrong toss costs more.",
+   5: "The Grand Feast (banquet table, bunting): two hatches, a fast drift and short patience.",
 };
 
 /** Replaces the start-card lines when the level adds a mechanic. Level 1 keeps BASE_INSTRUCTIONS. */

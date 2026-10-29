@@ -3,7 +3,9 @@
 // The wind vane (README "Accessibility": an arrow plus a number). The Scene writes the wave's wind
 // to the store stats once per wave (windDeg: the screen angle, counter-clockwise from right, up =
 // out to sea; wind10: m/s² x 10), so this re-renders once per wave, never per frame.
+import { HintLine } from "@/arcade3d/core/hud/HintLine";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
+import { GUIDE } from "./guide";
 import styles from "./Hud.module.css";
 
 export default function WindHud() {
@@ -11,6 +13,8 @@ export default function WindHud() {
    const wind10 = useArcadeStore((s) => s.stats.wind10 ?? 0);
    const strength = (wind10 / 10).toFixed(1);
    return (
+      <>
+      <HintLine signal={GUIDE} />
       <div className={styles.panel} data-arcade-safe-area="" role="status" aria-live="polite" aria-label={`Wind ${strength} metres per second squared`}>
          <div className={styles.pill}>
             <svg className={styles.arrow} viewBox="-12 -12 24 24" style={{ transform: `rotate(${-deg}deg)` }} aria-hidden="true">
@@ -22,5 +26,6 @@ export default function WindHud() {
             </span>
          </div>
       </div>
+      </>
    );
 }
