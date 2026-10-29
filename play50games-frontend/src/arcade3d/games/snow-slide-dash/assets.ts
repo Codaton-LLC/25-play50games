@@ -20,7 +20,10 @@ export const ASSETS: Record<string, ModelAsset> = {
    rock: prop("m2SnowRock", 1.8 / GLB_SIZE.rock[1]),
    gate: { ...prop("m2IceGate", 1), stretch: [8 / GLB_SIZE.gate[0], 4.3 / GLB_SIZE.gate[1], 1.2 / GLB_SIZE.gate[2]] },
    ramp: { ...prop("m2SnowJumpRamp", 1), stretch: [6.5 / GLB_SIZE.ramp[0], 1.2 / GLB_SIZE.ramp[1], 4 / GLB_SIZE.ramp[2]] },
-   star: prop("m2FrostStar", 0.7 / GLB_SIZE.star[1]),
+   // Bright emissive gold so the gate stars read against white snow and at night (the raw GLB is dark at play size).
+   star: { ...prop("m2FrostStar", 1.1 / GLB_SIZE.star[1]), material: { color: "#ffe27a", emissive: "#a86f00", roughness: 0.35, metalness: 0.1 } },
+   // Pale racing-line markers on L1/L2: a small, glowing ice-blue star, never a dark speck.
+   lineMarker: { ...prop("m2FrostStar", 0.22 / GLB_SIZE.star[1]), id: "m2FrostStarLine", material: { color: "#e0f7ff", emissive: "#3b8fb0", roughness: 0.4, metalness: 0 } },
    snowman: prop("m2Snowman", 2.4 / GLB_SIZE.snowman[1]),
    cabin: prop("m2SnowCabinBg", 12 / GLB_SIZE.cabin[0]),
    sled: prop("m2ToySled", 2.8 / GLB_SIZE.sled[2]),

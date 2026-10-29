@@ -28,7 +28,10 @@ export default function Hud() {
    const hero = HEROES[stats[STAT.hero] ?? HEROES.findIndex((h) => h.id === pick)];
    const d = stats[STAT.distance] ?? 0;
    const hint = level === 1 ? d < 85 ? "Steer through the pines" : d < 180 ? "Thread three ice gates" : "Ramps launch you · hold left/right to spin, release aligned"
-      : level === 2 ? "Packed snow is fast · powder grips" : level === 3 ? "Pre-aim before blue ice · no steering on ice" : level === 4 ? "Carve through hats · link both ramps" : "Chain gates to keep the avalanche behind";
+      : level === 2 ? "Packed snow is fast · powder grips" : level === 3 ? "Pre-aim before blue ice · no steering on ice" : level === 4 ? "Carve through hats · link both ramps"
+      : (stats[STAT.bossPhase] ?? 0) === 0 ? "Chain gates to keep the avalanche behind"
+      : (stats[STAT.bossPhase] ?? 0) === 1 ? "Land clean ramp tricks, then pass a gate to fire frost stars"
+      : "Final cliff: two full spins, land centred on Big Drift";
    return <>
       <HeroPicker heroes={HEROES} value={pick} onPick={selectHero} hidden={multiplayer} extra={phase === "ready" ? <MultiplayerButton /> : null} />
       <OrbitHud />
@@ -47,7 +50,7 @@ export default function Hud() {
             <div className={styles.clock}>{(ms / 1000).toFixed(1)} <small>/ {l.starTargetMs / 1000} s</small></div>
             {level === 5 && <div className={stack.boss}>
                <BossHealthBar name="Big Drift" phaseName={BIG_DRIFT.phases[stats[STAT.bossPhase] ?? 0].name} hp={stats[STAT.bossHp] ?? 5} maxHp={5} marks={phaseMarks(BIG_DRIFT)} vulnerable={stats[STAT.bossOpen] === 1} flash={stats[STAT.bossFlash] === 1} accent="#facc15" />
-               <div className={stack.hint}>Gap {stats[STAT.gap] ?? 110} m · Frost stars {stats[STAT.charges] ?? 0}</div>
+               <div className={`${stack.hint} ${styles.teach}`}>Gap {stats[STAT.gap] ?? 110} m · Frost stars {stats[STAT.charges] ?? 0}</div>
             </div>}
             <div className={`${stack.hint} ${styles.teach}`}>{hint}</div>
          </div>

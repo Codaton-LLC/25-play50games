@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useMemo, useRef } from "react";
-import { useFrame } from "@react-three/fiber";
+import { useFrame, useThree } from "@react-three/fiber";
 import { BufferGeometry, Float32BufferAttribute, PlaneGeometry, type Group, type Matrix4 } from "three";
 import { DynamicInstancedModel, Model } from "../../core/assets";
 import { Instanced } from "../../core/render/Instanced";
@@ -49,7 +49,9 @@ export function Course({ run: r, runs = [r] }: { run: SnowRun; runs?: SnowRun[] 
    useEffect(() => () => ice.dispose(), [ice]);
    const time = useGameTime();
    const avalanche = useRef<Group>(null);
-   const near = (d: number) => runs.some((p) => Math.abs(d - p.distance) < 155);
+   const camera = useThree((s) => s.camera);
+   // Draw near any hero, and near the camera too, so the intro fly-through shows the real course.
+   const near = (d: number) => runs.some((p) => Math.abs(d - p.distance) < 155) || Math.abs(d + camera.position.z) < 120;
    const at = (m: Matrix4, x: number, d: number, y = 0) => { m.makeRotationX(-Math.atan(0.11)); m.setPosition(x, heightAt(d) + y, -d); return true; };
    const obstacles = useMemo(() => ({
       pine: r.course.obstacles.filter((o) => o.kind === "pine"),
@@ -115,7 +117,7 @@ export function Course({ run: r, runs = [r] }: { run: SnowRun; runs?: SnowRun[] 
       <DynamicInstancedModel asset={ASSETS.star} count={5} update={(i, m) => {
          const route = r.course.routes[i]; return !r.routeDone[i] && near(route.d) && at(m, route.x, route.d + 8, 1.3);
       }} />
-      {r.level <= 2 && <DynamicInstancedModel asset={{ ...ASSETS.star, scale: 0.06 }} count={lines.length} update={(i, m) => near(lines[i].d) && at(m, lines[i].x, lines[i].d, 0.04)} />}
+      {r.level <= 2 && <DynamicInstancedModel asset={ASSETS.lineMarker} count={lines.length} update={(i, m) => near(lines[i].d) && at(m, lines[i].x, lines[i].d, 0.04)} />}
       {r.level === 3 && <DynamicInstancedModel asset={ASSETS.crack} count={6} update={(i, m) => {
          const d = r.distance - 24 - i * 5; m.makeRotationZ(Math.sin(time.now * 3 + i) * 0.3); m.setPosition((i % 3 - 1) * 5, heightAt(d) - i * 0.6, -d); return d > 140;
       }} />}
