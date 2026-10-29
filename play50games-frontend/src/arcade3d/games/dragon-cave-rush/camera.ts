@@ -72,14 +72,17 @@ export function playCamera(course: Course, aspect: number): IntroKeyframe {
    return { position: [cam.x, cam.y, cam.z], lookAt: [p.x, p.y + orbitLookUp(aspect), p.z] };
 }
 
+/** The fly-through samples the rails about this often (m), so the spline between shots stays inside the tunnel. */
+export const INTRO_STEP = 20;
+
 /**
- * The fly-through: from in front of the skull gate (or over the hoard loop on level 5), back along the
- * cave at a few points (each shot inside the tunnel, a little to the side and above the rails), to the
- * start (then playCamera).
+ * The fly-through: a dolly back down the cave, from the skull gate (on level 5 first a high shot over
+ * Cindermaw's hoard loop) to the start, looking ahead along the rails all the way, then playCamera.
+ * Shots every INTRO_STEP m on the rails: core/intro's spline runs straight-ish between shots, and
+ * a long chord across a curve would leave the tunnel and show it from outside.
  */
 export function introKeyframes(course: Course): IntroKeyframe[] {
    const shots: IntroKeyframe[] = [];
-   const L = course.finishS;
    const at = (s: number, d: number, up: number) => {
       lanePoint(course, Math.max(0, Math.min(course.length, s)), d, up, P);
       return [P.x, P.y, P.z] as [number, number, number];
@@ -87,16 +90,52 @@ export function introKeyframes(course: Course): IntroKeyframe[] {
    if (course.loop) {
       const lp = course.loop;
       const base = course.samples[Math.round(lp.s0 / 0.5) * 4 + 1];
-      shots.push({ position: [lp.centre.x + lp.radius * 0.9, base + 18, lp.centre.z + lp.radius * 0.9], lookAt: [lp.centre.x, base + 2, lp.centre.z] });
-   } else {
-      shots.push({ position: at(L - 14, 3.5, 3.2), lookAt: at(L + 4, 0, 2.2) });
+      shots.push({ position: [lp.centre.x + lp.radius * 0.5, base + 16, lp.centre.z + lp.radius * 0.5], lookAt: [lp.centre.x, base + 2, lp.centre.z] });
    }
-   const marks = [0.62, 0.32, 0.08];
-   let side = -1;
-   for (const f of marks) {
-      const s = (course.loop ? course.loop.s0 : L) * f;
-      shots.push({ position: at(s - 10, side * 4, 4.2), lookAt: at(s + 8, 0, 1.2) });
-      side = -side;
+   const from = course.loop ? course.loop.s0 + 10 : course.finishS - 6;
+   const n = Math.max(6, Math.min(80, Math.ceil(from / INTRO_STEP)));
+   for (let k = 0; k < n; k++) {
+      const s = from * (1 - k / n);
+      shots.push({ position: at(s - 6, 0, 3.4), lookAt: at(s + 12, 0, 1.4) });
    }
    return shots;
+}
+
+/** The camera stays inside this ellipse of the cave's cross-section (m: half width, centre height, half height, floor). */
+export const TUBE = { halfWidth: 7.6, centreY: 1.8, halfHeight: 6.4, floor: 0.6 } as const;
+
+const C = { x: 0, y: 0, z: 0, h: 0 };
+
+/** Is (x, y, z) inside the cave's tunnel near s (the centre line's cross-section at the point's own s)? Open over the level 5 loop. */
+export function insideTube(c: Course, s: number, x: number, y: number, z: number): boolean {
+   if (c.loop && s > c.loop.s0 + 4 && s < c.loop.s1 - 4) return y > lanePoint(c, s, 0, 0, C).y + TUBE.floor;
+   lanePoint(c, Math.max(0, s), 0, 0, C);
+   // the point's own place along the rails: step from s by its offset along the forward
+   const fx = -Math.sin(C.h);
+   const fz = -Math.cos(C.h);
+   const along = (x - C.x) * fx + (z - C.z) * fz;
+   if (Math.abs(along) > 0.5) lanePoint(c, Math.max(0, s + along), 0, 0, C);
+   const lat = (x - C.x) * Math.cos(C.h) - (z - C.z) * Math.sin(C.h);
+   const up = y - C.y;
+   if (up < TUBE.floor) return false;
+   const ex = lat / TUBE.halfWidth;
+   const ey = (up - TUBE.centreY) / TUBE.halfHeight;
+   return ex * ex + ey * ey < 1;
+}
+
+/**
+ * Pulls a camera at `cam` towards the pivot `at` (along their ray) until it is inside the tunnel, so a
+ * turned or zoomed-out orbit never looks at the cave from outside. Returns the kept fraction 0.15..1.
+ */
+export function tubeFraction(c: Course, s: number, at: { x: number; y: number; z: number }, cam: { x: number; y: number; z: number }): number {
+   const p = (t: number) => insideTube(c, s, at.x + (cam.x - at.x) * t, at.y + (cam.y - at.y) * t, at.z + (cam.z - at.z) * t);
+   if (p(1)) return 1;
+   let lo = 0.15;
+   let hi = 1;
+   for (let i = 0; i < 12; i++) {
+      const mid = (lo + hi) / 2;
+      if (p(mid)) lo = mid;
+      else hi = mid;
+   }
+   return lo;
 }
