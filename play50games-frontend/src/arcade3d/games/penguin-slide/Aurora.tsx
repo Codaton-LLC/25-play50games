@@ -9,10 +9,12 @@ import { AdditiveBlending, DoubleSide, PlaneGeometry, type Mesh } from "three";
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import { useCanvasTexture } from "@/arcade3d/core/render";
 
+// low over the far end of the slope: the chase camera looks 25° down, so the top of its frame is
+// about level with the camera; the glacier falls away ahead, so the ribbons rise over its far edge
 const RIBBONS = [
-   { x: -40, y: 34, z: -120, w: 150, h: 34, tilt: 0.12, phase: 0 },
-   { x: 30, y: 42, z: -135, w: 170, h: 30, tilt: -0.08, phase: 2.1 },
-   { x: 0, y: 52, z: -150, w: 190, h: 26, tilt: 0.04, phase: 4.2 },
+   { x: -45, y: 2, z: -130, w: 130, h: 18, tilt: 0.1, phase: 0 },
+   { x: 40, y: 5, z: -145, w: 140, h: 16, tilt: -0.07, phase: 2.1 },
+   { x: 0, y: 8, z: -160, w: 170, h: 14, tilt: 0.03, phase: 4.2 },
 ] as const;
 
 export function Aurora({ reduced }: { reduced: boolean }) {
@@ -65,7 +67,7 @@ export function Aurora({ reduced }: { reduced: boolean }) {
                   meshes.current[i] = m;
                }}
                position={[r.x, r.y, r.z]}
-               rotation={[0.25, 0, r.tilt]}
+               rotation={[0.1, 0, r.tilt]}
                scale={[r.w, r.h, 1]}
                geometry={copies[i]}
                frustumCulled={false}
