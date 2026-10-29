@@ -2,7 +2,7 @@
 import type { AABB } from "@/arcade3d/core/collision";
 import type { FittedViewOptions } from "@/arcade3d/core/useFittedView";
 import type { LevelId } from "@/arcade3d/types";
-import { LEVELS, type PizzaLevel } from "./levels";
+import { LEVELS, type KitchenTheme, type PizzaLevel } from "./levels";
 import { TUNING, kitchenHalf } from "./rules";
 
 export const COLORS = {
@@ -31,6 +31,34 @@ export const COLORS = {
    hatchTop: "#86efac",
    skin: "#d6a277",
 } as const;
+
+/**
+ * One room per level (levels.ts `theme`): floor tiles, walls, counters, ovens and the props round
+ * the line (Decor.tsx). Stations, pizzas, the oven ring and the hatch keep COLORS everywhere.
+ */
+export interface KitchenLook {
+   tile: string;
+   tileAlt: string;
+   grout: string;
+   wall: string;
+   skirting: string;
+   wood: string;
+   darkWood: string;
+   oven: string;
+   decor: "none" | "trattoria" | "rush" | "diner" | "patio";
+}
+
+export const KITCHENS: Record<KitchenTheme, KitchenLook> = {
+   cheese: { tile: COLORS.tile, tileAlt: COLORS.tileAlt, grout: COLORS.grout, wall: COLORS.wall, skirting: COLORS.skirting, wood: COLORS.wood, darkWood: COLORS.darkWood, oven: COLORS.oven, decor: "none" },
+   // terracotta floor, warm brick wall, herb shelf, hanging garlic and chillies
+   trattoria: { tile: "#c2410c", tileAlt: "#ea580c", grout: "#7c2d12", wall: "#e9c9a1", skirting: "#7c2d12", wood: "#92400e", darkWood: "#5c2a0a", oven: "#44403c", decor: "trattoria" },
+   // a busy restaurant: black-and-white floor, red wall, ticket rail, menu board, a full dining room
+   rush: { tile: "#f8fafc", tileAlt: "#1f2937", grout: "#6b7280", wall: "#b91c1c", skirting: "#111827", wood: "#e5e7eb", darkWood: "#374151", oven: "#1f2937", decor: "rush" },
+   // a retro diner at sunset: mint and cream floor, pastel wall, the sunset window and a big clock
+   diner: { tile: "#99f6e4", tileAlt: "#fef9c3", grout: "#0f766e", wall: "#fbcfe8", skirting: "#0f766e", wood: "#f472b6", darkWood: "#9d174d", oven: "#134e4a", decor: "diner" },
+   // the night patio: dark stone, brick wall, wood-fired dome ovens, string lights
+   patio: { tile: "#6b6560", tileAlt: "#57534e", grout: "#292524", wall: "#a8452a", skirting: "#292524", wood: "#78350f", darkWood: "#451a03", oven: "#9a3412", decor: "patio" },
+};
 
 export const FOV = 42;
 export const PITCH = (60 * Math.PI) / 180;
