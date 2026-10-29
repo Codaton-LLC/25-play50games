@@ -68,4 +68,5 @@ export const GAME_LOADERS: Record<ArcadeSlug, () => Promise<GameModule>> = {
    "ring-jump-challenge": () => import("./games/ring-jump-challenge"),
    "wind-tunnel-escape": () => import("./games/wind-tunnel-escape"),
    "roll-cannon-jump": () => import("./games/roll-cannon-jump"),
+   "temple-lantern-jump": () => import("./games/temple-lantern-jump"),
 };

@@ -1102,6 +1102,22 @@
         { "title": "Long Distance", "max_score": 12070, "min_duration_ms": 4300, "max_duration_ms": 125000, "time_base_ms": 125000 },
         { "title": "Big Top Finale", "max_score": 17600, "min_duration_ms": 24000, "max_duration_ms": 200000, "time_base_ms": 200000 }
       ]
+    },
+    "temple-lantern-jump": {
+      "title": "Temple Lantern Jump",
+      "kind": "time",
+      "max_score": 17870,
+      "min_duration_ms": 1300,
+      "max_duration_ms": 180000,
+      "time_base_ms": 180000,
+      "enabled": false,
+      "levels": [
+        { "title": "Temple Gate", "max_score": 17870, "min_duration_ms": 1300, "max_duration_ms": 180000, "time_base_ms": 180000 },
+        { "title": "Lantern Hall", "max_score": 20740, "min_duration_ms": 2600, "max_duration_ms": 210000, "time_base_ms": 210000 },
+        { "title": "Balcony Climb", "max_score": 23610, "min_duration_ms": 3900, "max_duration_ms": 240000, "time_base_ms": 240000 },
+        { "title": "Night Temple", "max_score": 26480, "min_duration_ms": 5200, "max_duration_ms": 270000, "time_base_ms": 270000 },
+        { "title": "Golden Roof", "max_score": 33570, "min_duration_ms": 24300, "max_duration_ms": 360000, "time_base_ms": 360000 }
+      ]
     }
   }
 }

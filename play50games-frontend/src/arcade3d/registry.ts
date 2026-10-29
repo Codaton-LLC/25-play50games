@@ -63,6 +63,7 @@ import { plateSurfMeta } from "./games/plate-surf/meta";
 import { ringJumpChallengeMeta } from "./games/ring-jump-challenge/meta";
 import { windTunnelEscapeMeta } from "./games/wind-tunnel-escape/meta";
 import { rollCannonJumpMeta } from "./games/roll-cannon-jump/meta";
+import { templeLanternJumpMeta } from "./games/temple-lantern-jump/meta";
 
 export const ARCADE_GAMES: ArcadeGameMeta[] = [
    robotCollectorMeta,
@@ -125,6 +126,7 @@ export const ARCADE_GAMES: ArcadeGameMeta[] = [
    ringJumpChallengeMeta,
    windTunnelEscapeMeta,
    rollCannonJumpMeta,
+   templeLanternJumpMeta,
 ].sort((a, b) => a.order - b.order);
 
 export function getGameMeta(slug: string): ArcadeGameMeta | undefined {
