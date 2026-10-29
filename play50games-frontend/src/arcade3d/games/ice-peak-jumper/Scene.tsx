@@ -261,8 +261,9 @@ function SoloScene() {
    return (
       <JuiceLayer>
          <World run={run} course={run.course} />
-         <Peak run={run} />
-         <Golem run={run} />
+         {/* keyed by level: the pools below are sized once per mount */}
+         <Peak key={levelId} run={run} />
+         <Golem key={`golem-${levelId}`} run={run} />
          <Hero run={run} anim={anim} ground={ground} />
          <Simulation run={run} anim={anim} orbit={orbit} />
          <GroundProbe run={run} ground={ground} />

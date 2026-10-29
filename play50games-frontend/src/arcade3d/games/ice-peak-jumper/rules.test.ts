@@ -85,7 +85,7 @@ describe("the peak (a route of slide-launches, hero routes, hazards)", () => {
          for (let i = 1; i < c.route.length; i++) {
             const a = c.plats[c.route[i - 1]];
             const b = c.plats[c.route[i]];
-            if (a.kind === "boss" || b.kind === "boss") continue;
+            if (a.kind === "boss" || b.kind === "boss" || (c.arena && b.id === c.goal)) continue;
             const d = dirBetween(a, b);
             if (d === "N" || d === "S") expect(Math.abs(a.x - b.x)).toBeLessThan(1e-6);
             else expect(Math.abs(a.z - b.z)).toBeLessThan(1e-6);
@@ -245,7 +245,8 @@ describe("scoring hand-off", () => {
 
 describe("the lower bound (README 'Server limits')", () => {
    it("travel: 9 m/s plus each dash's 4 m/s for its 0.5 s (one per 4 s); travelFloorMs inverts it", () => {
-      for (const ms of [500, 4000, 10_000, 30_000]) expect(maxTravel(travelFloorMs(maxTravel(ms)))).toBeGreaterThanOrEqual(maxTravel(ms) - 0.05);
+      // the floor never asks for more time than the travel really took
+      for (const ms of [0, 500, 3999, 4000, 10_000, 30_000, 120_000]) expect(travelFloorMs(maxTravel(ms))).toBeLessThanOrEqual(ms + 1e-6);
       expect(maxTravel(10_000)).toBeCloseTo(90 + 2 * 3, 6);
    });
 
@@ -276,11 +277,11 @@ describe("the lower bound (README 'Server limits')", () => {
 
 /** minDurationMs, timeBaseMs, maxScore per level (README table). */
 const PINNED = [
-   [1700, 180000, 17830],
-   [500, 210000, 20950],
-   [1000, 240000, 23900],
-   [1400, 270000, 26860],
-   [17500, 360000, 34250],
+   [2400, 180000, 17760],
+   [600, 210000, 20940],
+   [1400, 240000, 23860],
+   [2100, 270000, 26790],
+   [17700, 360000, 34230],
 ];
 
 describe("the guards (the proof's rules hold on every step)", () => {

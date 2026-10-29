@@ -155,7 +155,7 @@ export default function MultiScene() {
    );
    return (
       <JuiceLayer>
-         <LeaderPeak multi={multi} />
+         <LeaderPeak key={levelId} multi={multi} />
          {multi.runs.map((r, i) => (
             <Hero key={i} run={r} anim={anims[i]} ground={grounds[i]} />
          ))}

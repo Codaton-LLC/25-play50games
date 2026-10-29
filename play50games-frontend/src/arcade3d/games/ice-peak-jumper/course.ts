@@ -386,8 +386,9 @@ function level1(b: Builder): void {
    const s = b.start(0, 0, 0, 3, 3);
    const sheet = b.next("N", 0.8, 0, 3.5, 6);
    b.trail(sheet, "W");
-   const snow1 = b.next("N", 0.8, 0.4, 2.5, 2.5, { surface: "snow" });
-   b.mitten(snow1, "E");
+   // the mitten cube sits on the sheet's east side (ice: a dash takes a run at it)
+   b.mitten(sheet, "E");
+   b.next("N", 0.8, 0.4, 2.5, 2.5, { surface: "snow" });
    const run = b.next("N", 0.8, 0.5, 3, 4.5);
    b.ghostCave(run, "W", false);
    b.next("N", 3.0, 0.5, 2.5, 2.5, { surface: "snow" });
@@ -491,11 +492,11 @@ function level4(b: Builder): void {
    b.ghostCave(e, "W", false);
    const s3 = b.next("N", 1.6, 1.0, 2.6, 2.6, lit());
    b.slimes.push({ plat: s3.id, axis: "z", offset: -1.9, amp: 1.6, speed: 1.1 });
-   const g = b.next("E", 1.8, 1.1, 5, 3);
-   b.hidden(g, "S", 6.4);
+   b.next("E", 1.8, 1.1, 5, 3);
    b.next("N", 1.6, 1.1, 2.6, 2.6, { surface: "cracked" });
    const i = b.next("N", 1.8, 1.1, 3, 5);
    b.speedLedge(i, "W", SPEED_GAP);
+   b.hidden(i, "E", 6.4);
    b.next("N", 1.6, 1.1, 2.6, 2.6, lit());
    const k = b.next("W", 1.8, 1.2, 5, 3);
    b.chute(k, "S", 1.2, 2.0);

@@ -72,7 +72,7 @@ function PlatPool({ run, look }: { run: PeakRun; look: Look }) {
    const g = GLB_SIZE[look === "snow2" ? "snow2" : look];
    const update = (i: number, m: Matrix4, color: Color) => {
       const p = list[i];
-      if (!platSolid(run, p)) return false;
+      if (!p || !platSolid(run, p)) return false;
       const thick = look === "block" ? 1.4 : THICK[p.surface];
       let jx = 0;
       let jz = 0;
