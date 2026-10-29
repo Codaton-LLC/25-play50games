@@ -122,6 +122,7 @@ export default function Hud() {
    const speed = useArcadeStore((s) => (s.stats[STAT.speed] ?? 100) / 10);
    const walls = useArcadeStore((s) => s.stats[STAT.walls] ?? 0);
    const streak = useArcadeStore((s) => s.stats[STAT.streak] ?? 0);
+   const met = useArcadeStore((s) => s.stats[STAT.met] ?? 0);
    const rush = useArcadeStore((s) => (s.stats[STAT.rush] ?? 0) === 1);
    const rushStreak = useArcadeStore((s) => s.stats[STAT.rushStreak] ?? 0);
    const bossOn = useArcadeStore((s) => (s.stats[STAT.bossOn] ?? 0) === 1);
@@ -140,7 +141,7 @@ export default function Hud() {
    useEffect(() => () => playersStore.getState().endSession(), []);
    const base = LEVELS[level].speed;
    const speedFrac = Math.max(0, Math.min(1, speed / (base + BOOST_CAP)));
-   const coach = playingPhase ? coachLine(level, walls, dist) : null;
+   const coach = playingPhase ? coachLine(level, met, dist) : null;
    return (
       <>
          <HeroPick />

@@ -152,6 +152,8 @@ function slotWall(run: DoorRun, slot: number): number {
    const w = firstSlot(run) + slot;
    if (w >= run.wallCount) return NONE;
    if (run.wallZ[w] < run.hero.z - AHEAD) return NONE;
+   // a wall the hero has run through is gone (the camera behind would see only its stone, close up)
+   if (run.wallZ[w] > run.hero.z + 0.4) return NONE;
    return w;
 }
 
@@ -351,7 +353,7 @@ function Glyphs({ run, lamps }: { run: DoorRun; lamps: LampSpot[] }) {
                   if (!spot || !spot.on || spot.color !== si) return false;
                   color.copy(GLOWS[spot.color]).lerp(WHITE, 0.4);
                   if (spot.dim) color.multiplyScalar(0.25);
-                  return place(spot.x, spot.y - 0.95, spot.z + 0.02, 0.62, 0.62, 1);
+                  return place(spot.x, spot.y - 0.95, spot.z + 0.02, 0.5, 0.5, 1);
                }}
             />
          ))}
@@ -379,7 +381,8 @@ function lampsOf(run: DoorRun, out: LampSpot[], now: number): void {
    let n = 0;
    const put = (wall: number, z: number, echo: boolean, x: number) => {
       if (n >= out.length) return;
-      if (z < run.hero.z - AHEAD || z > run.hero.z + 25) return;
+      // a lamp the hero is about to run under is put out (it would hang between the hero and the camera)
+      if (z < run.hero.z - AHEAD || z > run.hero.z - 5) return;
       const s = out[n++];
       const def = wallDef(run, wall);
       const mode = run.wallMode[wall];
@@ -409,7 +412,7 @@ function Lamps({ run, spots }: { run: DoorRun; spots: LampSpot[] }) {
    const sphere = useMemo(() => new OctahedronGeometry(0.5, 3), []);
    const glowMat = useMemo(() => new MeshBasicMaterial({ toneMapped: false }), []);
    const halo = useMemo(() => new CircleGeometry(1, 24), []);
-   const haloMat = useMemo(() => new MeshBasicMaterial({ transparent: true, opacity: 0.35, blending: AdditiveBlending, depthWrite: false, toneMapped: false }), []);
+   const haloMat = useMemo(() => new MeshBasicMaterial({ transparent: true, opacity: 0.28, blending: AdditiveBlending, depthWrite: false, toneMapped: false }), []);
    const bar = useMemo(() => new BoxGeometry(1, 1, 1), []);
    const chainMat = useMemo(() => new MeshStandardMaterial({ color: "#3f3a36", roughness: 0.6, metalness: 0.6 }), []);
    const crossMat = useMemo(() => new MeshBasicMaterial({ color: "#ffffff", toneMapped: false }), []);
@@ -462,7 +465,7 @@ function Lamps({ run, spots }: { run: DoorRun; spots: LampSpot[] }) {
                color.copy(COLORS[s.color]);
                const k = s.dim ? 0.15 : 0.8 + 0.2 * Math.sin(time.now * 6 + i);
                color.multiplyScalar(k);
-               return place(s.x, s.y + 0.3, s.z + 0.2, 1.4, 1.4, 1);
+               return place(s.x, s.y + 0.3, s.z + 0.2, 0.95, 0.95, 1);
             }}
          />
          {/* the chain up into the dark */}

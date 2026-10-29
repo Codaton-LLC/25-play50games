@@ -122,7 +122,17 @@ at least level 1's; level 5 is 2.78x. `meta.ts` and `arcade-games.json` ship thi
 
 ### What the bots reached
 
-See "Tests" below for the numbers of the last run (`rules.test.ts` "bots", `proof.test.ts`).
+| Bot | Result |
+|---|---|
+| Honest bot (Riko, no power: reads the next wall's true door once its lamp is in view, takes a main orb only when the true lane is still reachable before the lock, jumps bars, rolls under beams, keeps out of vents; on L5 fires the rush while Flicker is open and dodges his fire) | wins every level at 30 / 60 / 144 Hz with no wrong door: L1 32.4 s (5 757 / 7 460, 77 %, 23/23 main orbs), L2 30.5 s (7 945 / 9 530, 83 %, 29/29), L3 30.0 s (10 001 / 11 680, 86 %, 35/35), L4 29.3-29.5 s (about 12 050 / 13 770, 87 %, 38-39/41), L5 63.6-64.1 s (about 17 600 / 20 730, 85 %, Flicker down, 11-14/14) |
+| Every hero, plain and with its power mashed (60 Hz; Riko 30 / 60 / 144) | every run clears; no finish under the floor (`proof.test.ts`) |
+| Through the real store, ragged frames | a ranked win inside the limits, the score recomputed from the time |
+| Spam (200 on L1, 40 per level, any hero, random presses, yaws, power mashed, 4-50 ms frames) | no finish under the floor |
+| Idle (no input) | still runs (an auto-runner), bounces off wrong doors, finishes slower than the bot |
+| Random camera yaws | the z guard holds every ms (`orbit.test.ts`) |
+
+Mutation probes: a level with a 30 % faster run speed falls out of its limits window; no level's row
+matches another level's course or timer.
 
 ## Levels (the card)
 
@@ -184,3 +194,30 @@ phase cover the whole team. Multiplayer runs are never ranked.
 (Flicker, 18k triangles: the character budget). Code (menu2/props and this folder): the pillars and
 lintels, the ember trim, the glyphs, the lamp's globe, the floor, the sky, the hazards, `ArchWall` +
 `CheckpointPad` (the finish gate).
+
+## Tests and playtest
+
+- `rules.test.ts` (40), `proof.test.ts` (17), `orbit.test.ts` (6), `multiplayer.test.ts` (4),
+  `hero.test.ts` (3), `assets.test.ts` (20): 90 green. `registry.sync.test.ts` "every slug in order"
+  fails on this branch alone by design: order 62 leaves room for the other branches' games 58-61
+  (it passes once they are merged).
+- Headless Chrome playtest (2026-10-29) on `next dev -p 3311` (no production build: the machine had
+  no RAM for one), `?autoplay=1`, all five levels at 1280 x 800 and 390 x 844, with a mouse drag /
+  wheel orbit on desktop and a two-finger orbit on the phone, plus keyboard lane presses (desktop) and
+  one-finger swipes (phone) on level 1 without the bot: every run cleared, 0 console errors. Frame:
+  18-41 draw calls, 196-300k triangles (Flicker's three flames push level 5 to about 300k), p50
+  16.7 ms. Screenshots: the session scratchpad `cds/shots*`.
+
+## Open issues
+
+- No production `next build` ran (RAM); `tsc` is clean, the dev server compiled and served it.
+- Seen from straight to the side in a narrow hall the orbit camera is squeezed against the side wall
+  (the hero stays in view, close up).
+- A wall the hero has run through is hidden at once (the camera behind would otherwise look at its
+  stone close up); a later polish could fade it.
+- Speed lines are juice dust particles; real streak lines would need a shared VFX.
+- `m2RuleLamp` (NICE) was not generated: the lamp is `m2MineLanternPost` hung on a chain with a code
+  globe and glyph.
+- No thumbnail yet (`public/images/3d/color-door-sprint.webp`, meta `thumbnail: null`).
+- Multiplayer (parallel corridors, Door Roulette) is covered by unit tests only; no 2-4 player headless
+  run was made.

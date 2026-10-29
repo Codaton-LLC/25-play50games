@@ -1203,6 +1203,8 @@ export const STAT = {
    /** speed, tenths of m/s */
    speed: "speed",
    walls: "walls",
+   /** walls met so far (true or not): level 1's coach line */
+   met: "met",
    wrong: "wrong",
    streak: "streak",
    rush: "rush",

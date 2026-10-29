@@ -68,6 +68,7 @@ export function publishRun(run: DoorRun): void {
    set(STAT.hero, HERO_STAT[run.heroId]);
    set(STAT.power, Math.max(0, Math.ceil((run.powerReadyAt - run.simMs) / 1000)));
    set(STAT.walls, run.trueDoors);
+   set(STAT.met, run.nextWall);
    set(STAT.wrong, run.wrong);
    set(STAT.streak, run.streak);
    set(STAT.rush, run.rushReady ? 1 : 0);
