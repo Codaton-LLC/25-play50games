@@ -799,7 +799,7 @@ function stepMs(run: ToyRun, input: StepInput, ev: StepEvents): void {
 
    // --- the gap links: a desk left behind, the wave close ahead (a surf)
    const side = deskIndex(c, h.x, h.z);
-   if (h.grounded && side >= 0 && side !== run.deskSide) {
+   if (h.grounded && side > run.deskSide) {
       if (run.deskSide >= 0 && side > run.deskSide) {
          ev.gap = true;
          const surfing = waveAhead(run, h.x, h.z) <= SURF_M;
