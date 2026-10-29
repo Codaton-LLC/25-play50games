@@ -97,10 +97,27 @@ The same rows are in `meta.ts` (via `PROPOSED_LEVEL_LIMITS`), `arcade-games.json
 ## What the bots reached
 
 `bot.ts` plays like a careful player with no power: a visibility-graph line round what is solid for it,
-corner cuts, a wait for green, a timed ramp jump onto a moving bus, and all three boss phases. Submitted
-times at 60 fps (Riko): L1 29.8 s, L2 58.8 s, L3 62.3 s, L4 56.1 s, L5 ~39 s; all at 30 / 60 / 144 fps win,
-none under the floor, each at least 65 % of maxScore. With every hero's power mashed, 200 spam runs on L1
-and 30 on each level, nothing beats the floor (`rules.test.ts`, `proof.test.ts`).
+corner cuts, a detour for a main gem near its line, a wait for green, a timed ramp jump onto a moving bus,
+and all three boss phases. Submitted times at 60 fps (Riko), and the share of maxScore:
+
+| Level | submitted | score / maxScore | main gems |
+|---|---:|---:|---:|
+| 1 | 31.6 s | 83 % | 3 / 6 |
+| 2 | 59.1 s | 68 % | 3 / 6 |
+| 3 | 53.0 s | 84 % | 4 / 6 |
+| 4 | 56.1 s | 89 % | 1 / 6 |
+| 5 | 39.1 s | 93 % | 1 / 5 |
+
+All levels win at 30 / 60 / 144 fps, none under the floor, each at least 65 % of maxScore. With every hero's
+power mashed, 200 spam runs on L1 and 30 on each level, nothing beats the floor (`rules.test.ts`,
+`proof.test.ts`).
+
+## Playtest (headless Chrome, `next start` on :3307)
+
+All five levels at 1280 x 800 and 390 x 844 (plus 844 x 390 L2, 768 x 1024 L3), the honest bot via the
+preview's `?autoplay=1`, a mouse drag / two-finger orbit and the keyboard (W, Space, E, Q turn): every run
+won, 0 console errors from the game. Budget: at most 51 draw calls and ~300k triangles (L5 desktop, the
+busiest), 60 fps (p95 frame 17 ms in headless).
 
 ## Stars, secrets, juice
 
@@ -134,5 +151,6 @@ street). The fits (`assets.ts`) are tested against the measured meshes.
 
 - Level 5 in multiplayer: each player fights their own Greyout; the camera shows player 1's truck.
 - The daily seed that reorders beacons (card's risk fix) is not built: the order is fixed so the proof holds.
-- `registry.sync.test.ts` "every slug in order" expects order = position: it passes once ring-jump (58),
-  wind-tunnel (59) and roll-cannon (60) are in the slice; on this branch alone it fails by design.
+- The bot rarely takes all main gems (it never uses a power or the rail): the "all gems" star is proven
+  reachable by placement tests, not by a bot run.
+- The truck in phase 3 follows your trail, so after a long hold it can cut a building corner (visual only).
