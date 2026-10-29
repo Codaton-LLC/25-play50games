@@ -172,13 +172,23 @@ export function inExit(x: number, z: number): boolean {
    return x >= EXIT.minX && x <= EXIT.maxX && z >= EXIT.minZ && z <= EXIT.maxZ;
 }
 
-export function doorMidZ(room: number): number {
-   return room * ROOM_LEN + ROOM_LEN / 2;
+/** Which side of the hall a room opens on (the level's plan; level 1 alternates from the left). */
+export function roomSide(level: FireLevel, room: number): -1 | 1 {
+   return level.plan.sides[room] ?? (room % 2 === 0 ? -1 : 1);
+}
+
+/** A room wing's depth (m) from the hall wall to its outer wall (the level's plan). */
+export function roomDeep(level: FireLevel): number {
+   return level.plan.deep;
+}
+
+export function doorMidZ(level: FireLevel, room: number): number {
+   return room * ROOM_LEN + ROOM_LEN / 2 + (level.plan.doorShift[room] ?? 0);
 }
 
 /** Hall side of a doorway, where a spray from the corridor reaches the lock fire. */
-export function doorPoint(room: number): { x: number; z: number } {
-   return { x: room % 2 === 0 ? -1.02 : 1.02, z: doorMidZ(room) };
+export function doorPoint(level: FireLevel, room: number): { x: number; z: number } {
+   return { x: roomSide(level, room) < 0 ? -1.02 : 1.02, z: doorMidZ(level, room) };
 }
 
 export function doorClosed(run: Run, room: number, gone?: readonly boolean[]): boolean {
@@ -192,10 +202,11 @@ export function doorClosed(run: Run, room: number, gone?: readonly boolean[]): b
 /** -1 hall or porch, else the room index. -2 is outside the floor. */
 export function roomOf(level: FireLevel, x: number, z: number): number {
    if (Math.abs(x) <= HALL_HALF + 1e-6 && z >= PORCH_Z - 1e-6 && z <= hallEnd(level) + 1e-6) return -1;
+   const deep = roomDeep(level);
    for (let i = 0; i < level.rooms; i++) {
-      const left = i % 2 === 0;
-      const x0 = left ? -HALL_HALF - ROOM_DEEP : HALL_HALF;
-      const x1 = left ? -HALL_HALF : HALL_HALF + ROOM_DEEP;
+      const left = roomSide(level, i) < 0;
+      const x0 = left ? -HALL_HALF - deep : HALL_HALF;
+      const x1 = left ? -HALL_HALF : HALL_HALF + deep;
       const z0 = i * ROOM_LEN;
       if (x >= x0 && x <= x1 && z >= z0 && z <= z0 + ROOM_LEN) return i;
    }
@@ -204,14 +215,15 @@ export function roomOf(level: FireLevel, x: number, z: number): number {
 
 function rectsFor(level: FireLevel): Rect[] {
    const rects: Rect[] = [{ x0: -HALL_HALF, x1: HALL_HALF, z0: PORCH_Z, z1: hallEnd(level), room: -1 }];
+   const deep = roomDeep(level);
    for (let i = 0; i < level.rooms; i++) {
-      const left = i % 2 === 0;
-      const x0 = left ? -HALL_HALF - ROOM_DEEP : HALL_HALF;
-      const x1 = left ? -HALL_HALF : HALL_HALF + ROOM_DEEP;
+      const left = roomSide(level, i) < 0;
+      const x0 = left ? -HALL_HALF - deep : HALL_HALF;
+      const x1 = left ? -HALL_HALF : HALL_HALF + deep;
       const z0 = i * ROOM_LEN;
       rects.push({ x0, x1, z0, z1: z0 + ROOM_LEN, room: -1 });
       // wide enough that erosion still joins the room to the hall through the 1.6 m door
-      const zMid = doorMidZ(i);
+      const zMid = doorMidZ(level, i);
       rects.push({
          x0: left ? -HALL_HALF - 1.35 : HALL_HALF - 1.15,
          x1: left ? -HALL_HALF + 1.15 : HALL_HALF + 1.35,
@@ -269,22 +281,60 @@ export function debrisPose(phase: number): { x: number; moving: boolean } {
    return { x: DEBRIS_X1 + (DEBRIS_X0 - DEBRIS_X1) * ((t - leg - DEBRIS_WARN) / DEBRIS_TRAVEL), moving: true };
 }
 
-function placeRoom(run: Run, room: number, rng: () => number): { fire: { x: number; z: number }; extra: { x: number; z: number }; civ: { x: number; z: number } } {
-   const left = room % 2 === 0;
-   const sign = left ? -1 : 1;
-   const z0 = room * ROOM_LEN;
-   const mid = doorMidZ(room);
+// Each theme keeps every piece at least 1.4 m of wing depth from the hall wall or well off the
+// door lane in z, so the doorway rect, the fire spots and the civilian spot stay clear
+// (levels-variety.test.ts checks pieces against the doorway rects; createRun flood-fills the rest).
+function placeFurniture(run: Run, room: number, sign: -1 | 1, z0: number, mid: number, face: number): void {
+   const level = run.level;
    const depth = (d: number) => sign * (HALL_HALF + d);
-   // sofa against the near wall, off the door lane (local z = 3)
-   pushFurn(run, "sofa", depth(2.15), z0 + 1.15, 0);
-   pushFurn(run, "bed", depth(3.55), z0 + 5.05, 0);
-   pushFurn(run, "cabinet", depth(1.15), z0 + 5.15, left ? 0 : Math.PI);
-   pushFurn(run, "chair", depth(4.15), mid + 0.35, left ? Math.PI / 2 : -Math.PI / 2);
+   switch (level.plan.furn) {
+      case "house":
+         // the kids' bed by the porch end, the sofa facing the door at the far end, an armchair
+         pushFurn(run, "bed", depth(3.55), z0 + 1.2, 0);
+         pushFurn(run, "sofa", depth(2.3), z0 + 5.1, 0);
+         pushFurn(run, "cabinet", depth(1.2), z0 + 0.7, face);
+         pushFurn(run, "chair", depth(2.2), mid - 1.5, face === 0 ? Math.PI / 2 : -Math.PI / 2);
+         break;
+      case "office":
+         // two desks along the hall wall, a visitor chair and the break-area sofa by the outer wall
+         pushFurn(run, "cabinet", depth(1.05), z0 + 0.9, face);
+         pushFurn(run, "cabinet", depth(1.05), z0 + 5.1, face);
+         pushFurn(run, "chair", depth(4.15), z0 + 0.9, face === 0 ? Math.PI / 2 : -Math.PI / 2);
+         pushFurn(run, "sofa", depth(4.2), z0 + 5.05, 0);
+         break;
+      case "hotel":
+         // a double bed under the far window, a dresser, an armchair, a porch-end settee
+         pushFurn(run, "bed", depth(3.5), z0 + 4.6, 0);
+         pushFurn(run, "cabinet", depth(1.1), z0 + 5.25, face);
+         pushFurn(run, "chair", depth(2.0), z0 + 3.4, face === 0 ? Math.PI / 2 : -Math.PI / 2);
+         pushFurn(run, "sofa", depth(2.3), z0 + 0.9, 0);
+         break;
+      case "warehouse":
+         // crates along the outer wall, a plank stack, a locker bench at the far end
+         pushFurn(run, "cabinet", depth(1.1), z0 + 1.0, face);
+         pushFurn(run, "cabinet", depth(1.1), z0 + 5.0, face);
+         pushFurn(run, "chair", depth(2.4), z0 + 1.0, face === 0 ? Math.PI / 2 : -Math.PI / 2);
+         pushFurn(run, "sofa", depth(2.6), z0 + 5.1, 0);
+         break;
+      default:
+         // apartment: today's layout, unchanged
+         pushFurn(run, "sofa", depth(2.15), z0 + 1.15, 0);
+         pushFurn(run, "bed", depth(3.55), z0 + 5.05, 0);
+         pushFurn(run, "cabinet", depth(1.15), z0 + 5.15, face);
+         pushFurn(run, "chair", depth(4.15), mid + 0.35, face === 0 ? Math.PI / 2 : -Math.PI / 2);
+   }
+}
+
+function placeRoom(run: Run, room: number, rng: () => number): { fire: { x: number; z: number }; extra: { x: number; z: number }; civ: { x: number; z: number } } {
+   const sign = roomSide(run.level, room);
+   const z0 = room * ROOM_LEN;
+   const mid = doorMidZ(run.level, room);
+   placeFurniture(run, room, sign, z0, mid, sign < 0 ? 0 : Math.PI);
    const jx = (rng() - 0.5) * 0.2;
    return {
-      fire: { x: depth(1.7) + jx, z: mid },
-      extra: { x: depth(2.7) + jx, z: mid + 1.15 },
-      civ: { x: depth(3.15), z: mid + 0.15 },
+      fire: { x: sign * (HALL_HALF + 1.7) + jx, z: mid },
+      extra: { x: sign * (HALL_HALF + 2.7) + jx, z: mid + 1.15 },
+      civ: { x: sign * (HALL_HALF + 3.15), z: mid + 0.15 },
    };
 }
 
@@ -322,13 +372,13 @@ export function createRun(seed: number, level: FireLevel = LEVELS[1]): Run {
 
    for (let room = 0; room < level.rooms; room++) {
       if (blocked.has(room)) {
-         const at = doorPoint(room);
+         const at = doorPoint(level, room);
          run.fires.push({ x: at.x, z: at.z, room, door: true, out: false });
-         const left = room % 2 === 0;
+         const left = roomSide(level, room) < 0;
          run.solids.push({
             box: {
-               min: { x: left ? -HALL_HALF - 0.28 : HALL_HALF - 0.08, y: 0, z: doorMidZ(room) - DOOR_HALF },
-               max: { x: left ? -HALL_HALF + 0.08 : HALL_HALF + 0.28, y: 2.2, z: doorMidZ(room) + DOOR_HALF },
+               min: { x: left ? -HALL_HALF - 0.28 : HALL_HALF - 0.08, y: 0, z: doorMidZ(level, room) - DOOR_HALF },
+               max: { x: left ? -HALL_HALF + 0.08 : HALL_HALF + 0.28, y: 2.2, z: doorMidZ(level, room) + DOOR_HALF },
             },
             on: true,
             room,
@@ -343,7 +393,7 @@ export function createRun(seed: number, level: FireLevel = LEVELS[1]): Run {
    while (extra > 0) {
       const room = cursor % level.rooms;
       const at = spots[room].extra;
-      run.fires.push({ x: at.x + (extra % 2) * 0.15 * (room % 2 === 0 ? -1 : 1), z: at.z, room, door: false, out: false });
+      run.fires.push({ x: at.x + (extra % 2) * 0.15 * (roomSide(level, room) < 0 ? -1 : 1), z: at.z, room, door: false, out: false });
       extra -= 1;
       cursor += 1;
    }
@@ -352,7 +402,7 @@ export function createRun(seed: number, level: FireLevel = LEVELS[1]): Run {
       const room = level.rooms - level.civilians + i;
       const at = spots[room].civ;
       run.civilians.push({
-         x: at.x, z: at.z, vx: 0, vz: 0, yaw: room % 2 === 0 ? Math.PI / 2 : -Math.PI / 2, phase: 0,
+         x: at.x, z: at.z, vx: 0, vz: 0, yaw: roomSide(level, room) < 0 ? Math.PI / 2 : -Math.PI / 2, phase: 0,
          homeX: at.x, homeZ: at.z, room, following: false, saved: false, clean: true, stuck: 0,
       });
    }
@@ -379,9 +429,10 @@ export function createRun(seed: number, level: FireLevel = LEVELS[1]): Run {
 const CELL = 0.4;
 
 function flood(run: Run, gone: boolean[]): Uint8Array {
-   const x0 = -HALL_HALF - ROOM_DEEP;
+   const deep = roomDeep(run.level);
+   const x0 = -HALL_HALF - deep;
    const z0 = PORCH_Z;
-   const cols = Math.ceil((ROOM_DEEP * 2 + HALL_HALF * 2) / CELL) + 2;
+   const cols = Math.ceil((deep * 2 + HALL_HALF * 2) / CELL) + 2;
    const rows = Math.ceil((hallEnd(run.level) - PORCH_Z) / CELL) + 2;
    const open = new Uint8Array(cols * rows);
    const seen = new Uint8Array(cols * rows);
@@ -426,9 +477,10 @@ function flood(run: Run, gone: boolean[]): Uint8Array {
 }
 
 function near(run: Run, seen: Uint8Array, x: number, z: number): boolean {
-   const x0 = -HALL_HALF - ROOM_DEEP;
+   const deep = roomDeep(run.level);
+   const x0 = -HALL_HALF - deep;
    const z0 = PORCH_Z;
-   const cols = Math.ceil((ROOM_DEEP * 2 + HALL_HALF * 2) / CELL) + 2;
+   const cols = Math.ceil((deep * 2 + HALL_HALF * 2) / CELL) + 2;
    const rows = Math.ceil((hallEnd(run.level) - PORCH_Z) / CELL) + 2;
    const c0 = Math.round((x - x0) / CELL - 0.5);
    const r0 = Math.round((z - z0) / CELL - 0.5);
