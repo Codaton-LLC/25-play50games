@@ -37,5 +37,7 @@ describe("farm tractor levels", () => {
          expect(stats?.find((stat) => stat.key === "trips")?.max).toBe(level.trips);
       }
       expect(PROPOSED_LEVEL_LIMITS[5].maxScore / PROPOSED_LEVEL_LIMITS[1].maxScore).toBeLessThanOrEqual(3);
+      expect(LEVELS[1].theme).toBe("yard");
+      expect(new Set(LEVEL_IDS.map((id) => LEVELS[id].theme)).size).toBe(5);
    });
 });
