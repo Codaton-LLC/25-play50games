@@ -73,8 +73,8 @@ describe("hotel levels: declarations", () => {
       expect(definition.resultDelayMs).toBe(900);
    });
 
-   it("level 1 is the spec's base game: 4 doors, the dark pad, 3 bags, 120 s, indoor", () => {
-      expect(LEVELS[1]).toEqual({ doors: 4, floors: 1, bags: 3, durationMs: 120_000, lighting: "indoor", background: "#44403c" });
+   it("level 1 is the spec's base game: 4 doors, the dark pad, 3 bags, 120 s, indoor, lobby theme", () => {
+      expect(LEVELS[1]).toEqual({ doors: 4, floors: 1, bags: 3, durationMs: 120_000, lighting: "indoor", background: "#44403c", theme: "lobby" });
       expect(levelRunConfig(definition, 1).durationMs).toBe(120_000);
       expect(levelEnvironment(definition, 1)).toEqual({ background: "#44403c", fog: ["#44403c", 16, 38], lighting: "indoor" });
       expect(levelHudStats(definition, 1)).toEqual([{ key: "bags", label: "Bags", max: 3 }]);
