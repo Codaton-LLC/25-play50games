@@ -1246,6 +1246,23 @@
         { "title": "Broken Temple", "max_score": 22640, "min_duration_ms": 13600, "max_duration_ms": 240000, "time_base_ms": 240000 },
         { "title": "Master Wall Run", "max_score": 29300, "min_duration_ms": 7000, "max_duration_ms": 300000, "time_base_ms": 300000 }
       ]
+    },
+    "temple-coin-rush": {
+      "title": "Temple Coin Rush",
+      "kind": "points",
+      "max_score": 480,
+      "min_duration_ms": 1000,
+      "max_duration_ms": 120000,
+      "base": 21,
+      "max_pps": 12,
+      "enabled": false,
+      "levels": [
+        { "title": "Temple Entry", "max_score": 480, "min_duration_ms": 1000, "max_duration_ms": 120000, "base": 21, "max_pps": 12 },
+        { "title": "Coin Hall", "max_score": 610, "min_duration_ms": 1000, "max_duration_ms": 130000, "base": 36, "max_pps": 14 },
+        { "title": "Broken Floors", "max_score": 710, "min_duration_ms": 1000, "max_duration_ms": 140000, "base": 38, "max_pps": 16 },
+        { "title": "Rolling Hazards", "max_score": 690, "min_duration_ms": 1000, "max_duration_ms": 150000, "base": 27, "max_pps": 14 },
+        { "title": "Temple Sprint", "max_score": 910, "min_duration_ms": 1000, "max_duration_ms": 240000, "base": 38, "max_pps": 15 }
+      ]
     }
   }
 }
