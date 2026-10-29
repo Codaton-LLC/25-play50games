@@ -22,7 +22,7 @@ export function startYaw(course: Course): number {
 
 /** The orbit's tuning: a little above, 8.5 m back, zoom 4-18 m. */
 export function templeOrbit(course: Course): Partial<OrbitSettings> {
-   return { yaw: startYaw(course), pitch: 24 * DEG, distance: 8.5, minDistance: 4, maxDistance: 18, autoFollow: false };
+   return { yaw: startYaw(course), pitch: (course.cfg.boss ? 9 : 20) * DEG, distance: 8.5, minDistance: 4, maxDistance: 18, autoFollow: false };
 }
 
 /** How much farther the orbit stands on a portrait screen (the climb is tall, the screen narrow). */
@@ -74,6 +74,8 @@ export function courseSolids(run: TempleRun, x: number, y: number, z: number, ou
    for (let i = 0; i < pads.length && n < out.length; i++) {
       const p = pads[i];
       if (p.kind === "lantern" || !padSolid(run, p)) continue;
+      // ledges over the hero's head would squeeze the camera onto him (the spiral stacks them every 1-2 m): it passes through them
+      if (p.y - 0.4 > run.hero.y + 1.2) continue;
       const px = padX(p, run.simMs);
       const pz = padZ(p, run.simMs);
       const dx = Math.max(Math.abs(px - x) - p.r, 0);
@@ -87,6 +89,16 @@ export function courseSolids(run: TempleRun, x: number, y: number, z: number, ou
       b.max.y = p.y;
       b.min.z = pz - p.r * 0.85;
       b.max.z = pz + p.r * 0.85;
+   }
+   // the golden roof (level 5): the camera stays under its beams instead of sitting inside them
+   if (run.course.cfg.boss && n < out.length) {
+      const b = out[n++];
+      b.min.x = -9;
+      b.max.x = 9;
+      b.min.z = -9;
+      b.max.z = 9;
+      b.min.y = run.course.roofY - 1.6;
+      b.max.y = run.course.roofY + 3;
    }
    return n;
 }

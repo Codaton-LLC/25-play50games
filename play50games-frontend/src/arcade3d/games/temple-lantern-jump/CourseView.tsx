@@ -8,7 +8,7 @@
 // shakes and falls; the express column has its fire jet; bats fly the ring; galleries have their
 // brazier, the hidden lantern room its ghost wall. Everything is instanced (about a dozen draw calls).
 import { useEffect, useMemo } from "react";
-import { useFrame } from "@react-three/fiber";
+import { useFrame, useThree } from "@react-three/fiber";
 import {
    AdditiveBlending, CanvasTexture, CircleGeometry, Color, CylinderGeometry, DoubleSide, MeshBasicMaterial, Object3D, RingGeometry, SphereGeometry, SRGBColorSpace,
    type Matrix4, type Mesh,
@@ -132,10 +132,20 @@ function Lanterns({ run }: { run: TempleRun }) {
    const ids = useMemo(() => [...run.course.lanterns, run.course.room], [run]);
    const pads = useMemo(() => ids.map((id) => run.course.pads[id]), [ids, run]);
    const time = useGameTime();
+   const camera = useThree((st) => st.camera);
+   /** a lantern the camera swings past shrinks away instead of filling the screen (1 at 3.4 m, gone under 1.4 m) */
+   const nearK = (p: { id: number; y: number }, x: number, z: number): number => {
+      const d = Math.hypot(camera.position.x - x, camera.position.y - (p.y - 0.5), camera.position.z - z);
+      return Math.max(0, Math.min(1, (d - 1.4) / 2));
+   };
    const cage = (i: number, m: Matrix4) => {
       const p = pads[i];
       const squash = run.hero.standing === p.id ? 0.85 : 1;
-      place(m, padX(p, run.simMs), p.y - 1 * squash, padZ(p, run.simMs), LANTERN_SCALE, LANTERN_SCALE * squash, LANTERN_SCALE, i * 0.8);
+      const x = padX(p, run.simMs);
+      const z = padZ(p, run.simMs);
+      const k = nearK(p, x, z);
+      if (k < 0.05) return false;
+      place(m, x, p.y - 1 * squash, z, LANTERN_SCALE * k, LANTERN_SCALE * squash * k, LANTERN_SCALE * k, i * 0.8);
    };
    const glowParts = useMemo<InstancePart[]>(() => [{ geometry: new SphereGeometry(1, 16, 12), material: new MeshBasicMaterial({ color: COLORS.lantern, transparent: true, opacity: 0.38, blending: AdditiveBlending, depthWrite: false, toneMapped: false }) }], []);
    const mossParts = useMemo<InstancePart[]>(() => [{ geometry: new CircleGeometry(1, 36), material: new MeshBasicMaterial({ color: COLORS.moss, transparent: true, opacity: 0.32, blending: AdditiveBlending, depthWrite: false, toneMapped: false }) }], []);

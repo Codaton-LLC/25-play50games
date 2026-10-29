@@ -317,7 +317,7 @@ function TempleCamera({ run, orbit }: { run: TempleRun; orbit: ReturnType<typeof
    return <OrbitCamera orbit={orbit} pivot={pivot} travel={travel} solids={solids} lookUp={orbitLookUp(aspect)} distanceScale={orbitScale(aspect)} collision={COLLISION} />;
 }
 
-const COLLISION = { radius: 0.35, minDistance: 2 };
+const COLLISION = { radius: 0.35, minDistance: 4 };
 
 /** The Queen's slow-mo finish: the visuals only (menu2/boss through the juice clock). */
 function BossSlowMo({ run }: { run: TempleRun }) {

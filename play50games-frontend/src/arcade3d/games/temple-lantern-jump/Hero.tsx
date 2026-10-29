@@ -6,7 +6,7 @@
 // gutters out at 0, so the player reads the meter on the hero itself. A blob shadow follows the ledge
 // under the feet. This file turns the run + the Scene's moments (HeroAnim) into the animator's motion.
 import { useMemo, useRef } from "react";
-import { useFrame } from "@react-three/fiber";
+import { useFrame, useThree } from "@react-three/fiber";
 import { AdditiveBlending, type Group, type Mesh, type MeshBasicMaterial } from "three";
 import { FRAME_PRIORITY } from "@/arcade3d/core/frameLoop";
 import { useGameTime } from "@/arcade3d/core/gameTime";
@@ -103,6 +103,8 @@ export function Hero({ run, anim }: { run: TempleRun; anim: HeroAnim }) {
    const root = useRef<Group>(null);
    const shadow = useRef<Mesh>(null);
    const glow = useRef<Mesh>(null);
+   const mark = useRef<Mesh>(null);
+   const camera = useThree((st) => st.camera);
    const motion = useMemo(createHeroMotion, []);
    const memo = useMemo(createMotionMemo, []);
    const animator = useHeroAnimator(run.heroId, motion, { topSpeed: V_WALK + 0.001, jumpSpeed: V_JUMP, yaw: Math.PI });
@@ -143,6 +145,14 @@ export function Hero({ run, anim }: { run: TempleRun; anim: HeroAnim }) {
          gl.scale.setScalar(r);
          (gl.material as MeshBasicMaterial).opacity = run.ember > 0 ? 0.55 : 0.2;
       }
+      // a small ring over the head that shows through the ledges: the spiral stacks slabs in front of the hero
+      const mk = mark.current;
+      if (mk) {
+         mk.visible = g.visible;
+         mk.position.set(h.x, y + 2.35, h.z);
+         mk.quaternion.copy(camera.quaternion);
+         mk.scale.setScalar(1 + 0.08 * Math.sin(now * 5));
+      }
       const sh = shadow.current;
       if (sh) {
          const top = groundUnder(run, h.x, h.z, h.y);
@@ -163,6 +173,10 @@ export function Hero({ run, anim }: { run: TempleRun; anim: HeroAnim }) {
          <mesh ref={glow}>
             <sphereGeometry args={[1, 14, 10]} />
             <meshBasicMaterial color={COLORS.emberHot} transparent opacity={0.5} blending={AdditiveBlending} depthWrite={false} toneMapped={false} />
+         </mesh>
+         <mesh ref={mark} renderOrder={6}>
+            <ringGeometry args={[0.13, 0.2, 20]} />
+            <meshBasicMaterial color={COLORS.emberHot} transparent opacity={0.8} depthTest={false} depthWrite={false} toneMapped={false} />
          </mesh>
          <mesh ref={shadow} rotation-x={-Math.PI / 2} renderOrder={1}>
             <circleGeometry args={[0.5, 24]} />
