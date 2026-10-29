@@ -200,6 +200,15 @@ export const MODEL_MANIFEST: readonly string[] = [
    // plate-surf's sea set, reused by Zipline Rush (ready/menu2/plate-surf)
    "/models/3d/zipline-rush/m2SeaCliffBg.glb",
    "/models/3d/zipline-rush/m2MarkerBuoy.glb",
+   // Menu 2 game 46 (Color Door Sprint): ready/menu2/color-door-sprint plus m2FireSpirit and m2MineLanternPost (shared)
+   "/models/3d/color-door-sprint/m2ArchCorridorBgV2.glb",
+   "/models/3d/color-door-sprint/m2ArchWallV2.glb",
+   "/models/3d/color-door-sprint/m2ChevronSpeedPad.glb",
+   "/models/3d/color-door-sprint/m2DoorwayV2.glb",
+   "/models/3d/color-door-sprint/m2FireSpirit.glb",
+   "/models/3d/color-door-sprint/m2MineLanternPost.glb",
+   "/models/3d/color-door-sprint/m2ScoreOrb.glb",
+   "/models/3d/color-door-sprint/m2SlidingDoor.glb",
    // Menu 2 game 05 (Cloud Hopper): cloud props from ~/.play50/hyper3d/ready/menu2/cloud-hopper
    "/models/3d/cloud-hopper/m2CloudBank.glb",
    "/models/3d/cloud-hopper/m2CloudCastleBg.glb",
@@ -249,6 +258,48 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/roll-cannon-jump/m2RollCannon.glb",
    "/models/3d/roll-cannon-jump/m2SmokeBlimpBoss.glb",
    "/models/3d/roll-cannon-jump/m2Trampoline.glb",
+   // Menu 2 game 14 (Dragon Cave Rush): cave props from ~/.play50/hyper3d/ready/menu2/dragon-cave-rush and
+   // m2PatrolBot (ready/menu2/shared); m2CinderDragon is Cindermaw, the chaser and the L5 boss
+   "/models/3d/dragon-cave-rush/m2CaveArchBridge.glb",
+   "/models/3d/dragon-cave-rush/m2CaveLanternPost.glb",
+   "/models/3d/dragon-cave-rush/m2CaveRock.glb",
+   "/models/3d/dragon-cave-rush/m2CaveWallChunk.glb",
+   "/models/3d/dragon-cave-rush/m2CinderDragon.glb",
+   "/models/3d/dragon-cave-rush/m2CrystalCluster.glb",
+   "/models/3d/dragon-cave-rush/m2DragonEgg.glb",
+   "/models/3d/dragon-cave-rush/m2DragonHoard.glb",
+   "/models/3d/dragon-cave-rush/m2DragonSkullGate.glb",
+   "/models/3d/dragon-cave-rush/m2GlowMushrooms.glb",
+   "/models/3d/dragon-cave-rush/m2HangingCrystal.glb",
+   "/models/3d/dragon-cave-rush/m2LavafallRock.glb",
+   "/models/3d/dragon-cave-rush/m2MineCart.glb",
+   "/models/3d/dragon-cave-rush/m2MineScaffold.glb",
+   "/models/3d/dragon-cave-rush/m2MineTrack.glb",
+   "/models/3d/dragon-cave-rush/m2PatrolBot.glb",
+   "/models/3d/dragon-cave-rush/m2Stalagmites.glb",
+   // Menu 2 game 45 (Sky Hook Swing): dock props from ~/.play50/hyper3d/ready/menu2/sky-hook-swing
+   "/models/3d/sky-hook-swing/m2AirshipBg.glb",
+   "/models/3d/sky-hook-swing/m2FactoryDrone.glb",
+   "/models/3d/sky-hook-swing/m2GrappleRingPost.glb",
+   "/models/3d/sky-hook-swing/m2GrappleRingPostV2.glb",
+   "/models/3d/sky-hook-swing/m2LandingTargetPad.glb",
+   "/models/3d/sky-hook-swing/m2SwingAnchor.glb",
+   "/models/3d/sky-hook-swing/m2SwingAnchorV2.glb",
+   "/models/3d/sky-hook-swing/m2SwingIsland.glb",
+   "/models/3d/sky-hook-swing/m2WindmillIsland.glb",
+   // the galleon's turret (m2SkyCannonTurret from the image batch, card: MUST for L2-5 boss weak points)
+   "/models/3d/sky-hook-swing/m2SkyCannonTurret.glb",
+   // Menu 2 game 15 (Color City Sprint): its props from ready/menu2/color-city-sprint, plus m2FactoryDrone (shared)
+   "/models/3d/color-city-sprint/m2CityBarrier.glb",
+   "/models/3d/color-city-sprint/m2CityBus.glb",
+   "/models/3d/color-city-sprint/m2ColorGate.glb",
+   "/models/3d/color-city-sprint/m2ColorGateV2.glb",
+   "/models/3d/color-city-sprint/m2EnergyGem.glb",
+   "/models/3d/color-city-sprint/m2FactoryDrone.glb",
+   "/models/3d/color-city-sprint/m2GreySweeperBoss.glb",
+   "/models/3d/color-city-sprint/m2PastelCityBg.glb",
+   "/models/3d/color-city-sprint/m2StreetJumpRamp.glb",
+   "/models/3d/color-city-sprint/m2TrafficCone.glb",
    // P-121 dev adoptions (2026-10-25): V2 replacements and Group D variety whose QA verdict
    // starts with OK. Optimized GLBs copied in; not re-optimized. Live games are untouched.
    "/models/3d/shopping-cart/supermarketShelfV2.glb",
@@ -546,6 +597,14 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/robot-factory-run/m2RobotArm.glb",
    "/models/3d/robot-factory-run/m2SteelCatwalk.glb",
    "/models/3d/robot-factory-run/m2TreadBot.glb",
+   "/models/3d/temple-lantern-jump/m2LanternDeck.glb",
+   "/models/3d/temple-lantern-jump/m2RuinRoofSection.glb",
+   "/models/3d/temple-lantern-jump/m2StoneBrazier.glb",
+   "/models/3d/temple-lantern-jump/m2StoneCageLantern.glb",
+   "/models/3d/temple-lantern-jump/m2TempleBeam.glb",
+   "/models/3d/temple-lantern-jump/m2TempleLedge.glb",
+   "/models/3d/temple-lantern-jump/m2TempleTowerBg.glb",
+   "/models/3d/temple-lantern-jump/m2WoodenBalconyV2.glb",
 ];
 
 const LISTED: ReadonlySet<string> = new Set(MODEL_MANIFEST);
