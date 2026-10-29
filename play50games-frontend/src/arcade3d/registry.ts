@@ -65,6 +65,7 @@ import { ringJumpChallengeMeta } from "./games/ring-jump-challenge/meta";
 import { windTunnelEscapeMeta } from "./games/wind-tunnel-escape/meta";
 import { rollCannonJumpMeta } from "./games/roll-cannon-jump/meta";
 import { templeLanternJumpMeta } from "./games/temple-lantern-jump/meta";
+import { jungleVineJumpMeta } from "./games/jungle-vine-jump/meta";
 import { dragonCaveRushMeta } from "./games/dragon-cave-rush/meta";
 
 export const ARCADE_GAMES: ArcadeGameMeta[] = [
@@ -129,6 +130,7 @@ export const ARCADE_GAMES: ArcadeGameMeta[] = [
    windTunnelEscapeMeta,
    rollCannonJumpMeta,
    templeLanternJumpMeta,
+   jungleVineJumpMeta,
    dragonCaveRushMeta,
    colorDoorSprintMeta,
 ].sort((a, b) => a.order - b.order);
