@@ -30,6 +30,7 @@ import { Toss, useActionPop, useFx, type TossHandle } from "@/arcade3d/core/fx";
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import { TargetBeacon } from "@/arcade3d/core/hud";
 import { useInput } from "@/arcade3d/core/input";
+import Room from "./Room";
 import { useLevel } from "@/arcade3d/core/level";
 import { randomSeed } from "@/arcade3d/core/math";
 import { useQuality } from "@/arcade3d/core/quality";
@@ -44,7 +45,7 @@ import { ASSETS, WIZARD_LANDMARKS, WIZARD_SCALE } from "./assets";
 import { GUIDE, hintCode, labHint, nextGoal, type Goal } from "./guide";
 import { publishLab } from "./Hud";
 import { LEVELS, type WizardLevel } from "./levels";
-import { COLORS, DAMPING, FOLLOW, FOV, INGREDIENT_LOOK, candleSpots, aimBounds, drawFlagstones, labDecor, lookAtFor, obstacleBoxes, runeSpots, topDistanceFor, viewFor, wallBoxes, wallCapSpots, wallSpots } from "./looks";
+import { LAB_THEMES, COLORS, DAMPING, FOLLOW, FOV, INGREDIENT_LOOK, candleSpots, aimBounds, drawFlagstones, labDecor, lookAtFor, obstacleBoxes, runeSpots, topDistanceFor, viewFor, wallBoxes, wallCapSpots, wallSpots } from "./looks";
 import { BallPrimitive, BookPrimitive, CauldronPrimitive, TablePrimitive, WizardFigure } from "./Primitives";
 import {
    MAX_SPEED,
@@ -215,6 +216,7 @@ function LevelScene() {
    const body = useRef<Group>(null);
    const gait = useRef({ phase: 0 });
    const bounds = useMemo(() => aimBounds(level), [level]);
+   const room = LAB_THEMES[level.theme];
    const look = useMemo(() => lookAtFor(), []);
    const walls = useMemo(() => wallSpots(level), [level]);
    const caps = useMemo(() => wallCapSpots(walls), [walls]);
@@ -408,31 +410,31 @@ function LevelScene() {
             shift={view.shift}
             damping={DAMPING}
          />
-         <pointLight position={[0, 2.2, 0]} color={COLORS.glow} intensity={4} distance={level.radius * 1.4} decay={2} />
+         <pointLight position={[0, 2.2, 0]} color={room.glow} intensity={4} distance={level.radius * 1.4} decay={2} />
          <mesh rotation-x={-Math.PI / 2} position={[0, 0, 0]}>
             <planeGeometry args={[span, span]} />
             <meshStandardMaterial color={level.background} roughness={0.95} />
          </mesh>
          <mesh rotation-x={-Math.PI / 2} position={[0, 0.012, 0]}>
             <circleGeometry args={[level.radius - 0.05, 48]} />
-            <meshStandardMaterial map={flagstones} color="#ffffff" emissive={COLORS.floor} emissiveMap={flagstones} emissiveIntensity={level.lighting === "night" ? 0.7 : 0.35} roughness={0.88} />
+            <meshStandardMaterial map={flagstones} color={room.floorTint} emissive={room.floorGlow} emissiveMap={flagstones} emissiveIntensity={level.lighting === "night" ? 0.7 : 0.35} roughness={0.88} />
          </mesh>
          <mesh rotation-x={-Math.PI / 2} position={[0, 0.02, 0]}>
             <ringGeometry args={[level.radius - 0.55, level.radius - 0.2, 48]} />
-            <meshStandardMaterial color={COLORS.floorIn} roughness={0.8} />
+            <meshStandardMaterial color={room.floorIn} roughness={0.8} />
          </mesh>
          <Instanced spots={walls} name="walls">
             <boxGeometry args={[1, 1, 1]} />
-            <meshStandardMaterial color={COLORS.wall} emissive={COLORS.wall} emissiveIntensity={level.lighting === "night" ? 0.4 : 0.15} roughness={0.86} />
+            <meshStandardMaterial color={room.wall} emissive={room.wall} emissiveIntensity={level.lighting === "night" ? 0.4 : 0.15} roughness={0.86} />
          </Instanced>
          <Instanced spots={caps} name="wall-caps">
             <boxGeometry args={[1, 1, 1]} />
-            <meshStandardMaterial color={COLORS.wallTrim} roughness={0.65} />
+            <meshStandardMaterial color={room.wallTrim} emissive={room.wallTrim} emissiveIntensity={0.15} roughness={0.65} />
          </Instanced>
          {runes.length > 0 && (
             <Instanced spots={runes} name="runes">
                <boxGeometry args={[1, 1, 1]} />
-               <meshStandardMaterial color={COLORS.rune} emissive={COLORS.glow} emissiveIntensity={0.4} roughness={0.4} />
+               <meshStandardMaterial color={room.rune} emissive={room.glow} emissiveIntensity={0.5} roughness={0.4} />
             </Instanced>
          )}
          <InstancedModel
@@ -471,7 +473,8 @@ function LevelScene() {
          <InstancedModel asset={ASSETS.shelf} spots={decor.shelves} fallback={null} />
          <InstancedModel asset={ASSETS.cauldron} spots={decor.cauldrons} fallback={null} />
          <InstancedModel asset={ASSETS.candle} spots={decor.candles} fallback={null} />
-         <pointLight position={[0, 1.7, 0]} intensity={level.lighting === "night" ? 12 : level.lighting === "sunset" ? 4 : 0} distance={9} decay={1.5} color={COLORS.glow} />
+         <pointLight position={[0, 1.7, 0]} intensity={level.lighting === "night" ? 12 : level.lighting === "sunset" ? 4 : 0} distance={9} decay={1.5} color={room.glow} />
+         <Room level={level} run={run} yaw={view.yaw} />
          <Model asset={ASSETS.cauldron} fallback={<CauldronPrimitive />} />
          <mesh position={[0, DISC_Y, 0]} rotation-x={-Math.PI / 2}>
             <circleGeometry args={[DISC_R, 20]} />
