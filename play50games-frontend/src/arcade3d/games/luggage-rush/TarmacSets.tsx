@@ -113,8 +113,8 @@ function FloorMark({ levelId }: { levelId: LevelId }) {
       ctx.fillText(levelId === 2 ? "2" : levelId === 3 ? "4" : levelId === 4 ? "RUSH" : "HUB", 256, 270);
    });
    return (
-      <mesh position={[11, 0.02, 7]} rotation-x={-Math.PI / 2} name="floor-mark">
-         <planeGeometry args={[3.6, 3.6]} />
+      <mesh position={[9.9, 0.02, 7]} rotation-x={-Math.PI / 2} name="floor-mark">
+         <planeGeometry args={[3, 3]} />
          <meshStandardMaterial map={tex} transparent depthWrite={false} roughness={0.8} />
       </mesh>
    );
