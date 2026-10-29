@@ -116,15 +116,15 @@ The oracle (30 seeds, 30 / 60 / 144 Hz) hits each ceiling exactly. On levels 1-3
 
 ### Each level's own bay (2026-10-29, looks only)
 
-`factorySets.ts` + `FactoryBay.tsx`; rules and limits untouched. Each level has its own light (per-level `environment`), what the four wall screens show (seen on every screen size, phones included), props on the back floor strip behind the belts and an accent light:
+`factorySets.ts` + `FactoryBay.tsx`; rules and limits untouched. Each level has its own light (per-level `environment`), what the four wall screens show, a painted floor sign in front of the bay (both seen on every screen size, phones included), props in the front corners beside the bay (outside x ±3.5) and on the back floor strip, and an accent light:
 
 | Level | Light | Screens | Props |
 |---|---|---|---|
 | 1 Basic Sort | `indoor` (today) | today's telemetry | — |
-| 2 Shape Sort | `day`, skylit | the four part shapes | giant cube, cone, ball and tube on plinths |
-| 3 Color + Shape | `sunset`, pink accent | colour swatches | paint drums in the four part colours, a cone and a cube |
-| 4 Fast Factory | `indoor`, green accent | the sort chart (bins and arrows, SORT >>>) | two bin racks with eight coloured bins |
-| 5 Overdrive | `night`, pulsing red alarm light | OVERDRIVE with hazard stripes | three turning red beacons, red drums, sparks off the back wall every 1.4 s |
+| 2 Shape Sort | `day`, skylit | the four part shapes | giant cube, cone, ball and tube on plinths; the four shapes painted on the floor |
+| 3 Color + Shape | `sunset`, pink accent | colour swatches | paint drums in the four part colours, a cone and a cube; colour stripes on the floor |
+| 4 Fast Factory | `indoor`, green accent | the sort chart (bins and arrows, SORT >>>) | four bin racks with coloured bins; FAST LANE >>> painted on the floor |
+| 5 Overdrive | `night`, pulsing red alarm light | OVERDRIVE with hazard stripes | three turning red beacons, red drums, sparks off the back wall every 1.4 s; a hazard-striped DANGER floor sign |
 
 `factorySets.test.ts`: every prop stands outside `PLAY_BOUNDS` and hides no gameplay target from the fitted camera at 1280 × 800, 390 × 844 and 844 × 390; the five bays differ; level 1 is today's.
 

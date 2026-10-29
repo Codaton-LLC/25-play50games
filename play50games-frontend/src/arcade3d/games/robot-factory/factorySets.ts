@@ -42,35 +42,46 @@ export interface PropSpot {
 }
 
 const BACK_Z = -2.05;
+/** The front corners beside the bay (outside x +-3.5, so nothing stands between the camera and the belts). */
+const L = -3.75;
+const R = 3.7;
+const FZ = 2.0;
 
 export const FACTORY_PROPS: Record<LevelId, readonly PropSpot[]> = {
    1: [],
    2: [
-      { kind: "shapeCube", x: -2.4, z: BACK_Z, hw: 0.35, hd: 0.35, h: 0.6, tone: 0 },
+      { kind: "shapeCube", x: L, z: FZ, hw: 0.3, hd: 0.3, h: 0.55, tone: 0 },
+      { kind: "shapeCone", x: L - 0.75, z: FZ + 0.2, hw: 0.3, hd: 0.3, h: 0.7, tone: 1 },
+      { kind: "shapeBall", x: R, z: FZ, hw: 0.3, hd: 0.3, h: 0.6, tone: 2 },
+      { kind: "shapeTube", x: R + 0.75, z: FZ + 0.2, hw: 0.28, hd: 0.28, h: 0.65, tone: 3 },
       { kind: "shapeCone", x: -0.8, z: BACK_Z, hw: 0.35, hd: 0.35, h: 0.75, tone: 1 },
       { kind: "shapeBall", x: 0.8, z: BACK_Z, hw: 0.35, hd: 0.35, h: 0.65, tone: 2 },
-      { kind: "shapeTube", x: 2.4, z: BACK_Z, hw: 0.33, hd: 0.33, h: 0.7, tone: 3 },
    ],
    3: [
-      { kind: "drum", x: -2.7, z: BACK_Z, hw: 0.3, hd: 0.3, h: 0.8, tone: 0 },
-      { kind: "drum", x: -2.0, z: BACK_Z - 0.2, hw: 0.3, hd: 0.3, h: 0.8, tone: 1 },
-      { kind: "drum", x: 2.0, z: BACK_Z - 0.2, hw: 0.3, hd: 0.3, h: 0.8, tone: 2 },
-      { kind: "drum", x: 2.7, z: BACK_Z, hw: 0.3, hd: 0.3, h: 0.8, tone: 3 },
+      { kind: "drum", x: L, z: FZ, hw: 0.3, hd: 0.3, h: 0.8, tone: 0 },
+      { kind: "drum", x: L - 0.7, z: FZ + 0.15, hw: 0.3, hd: 0.3, h: 0.8, tone: 1 },
+      { kind: "drum", x: R, z: FZ, hw: 0.3, hd: 0.3, h: 0.8, tone: 2 },
+      { kind: "drum", x: R + 0.7, z: FZ + 0.15, hw: 0.3, hd: 0.3, h: 0.8, tone: 3 },
       { kind: "shapeCone", x: -0.6, z: BACK_Z, hw: 0.3, hd: 0.3, h: 0.6, tone: 2 },
       { kind: "shapeCube", x: 0.6, z: BACK_Z, hw: 0.3, hd: 0.3, h: 0.5, tone: 0 },
    ],
    4: [
       { kind: "rack", x: -1.9, z: BACK_Z - 0.1, hw: 1.05, hd: 0.3, h: 1.3, tone: -1 },
       { kind: "rack", x: 1.9, z: BACK_Z - 0.1, hw: 1.05, hd: 0.3, h: 1.3, tone: -1 },
+      { kind: "rack", x: L - 0.45, z: FZ + 0.1, hw: 1.05, hd: 0.3, h: 1.3, tone: -1 },
+      { kind: "rack", x: R + 0.45, z: FZ + 0.1, hw: 1.05, hd: 0.3, h: 1.3, tone: -1 },
    ],
    5: [
-      { kind: "beacon", x: -3.4, z: -1.75, hw: 0.2, hd: 0.2, h: 0.9, tone: -1 },
-      { kind: "beacon", x: 3.3, z: -1.75, hw: 0.2, hd: 0.2, h: 0.9, tone: -1 },
+      { kind: "beacon", x: L, z: FZ, hw: 0.2, hd: 0.2, h: 0.9, tone: -1 },
+      { kind: "beacon", x: R, z: FZ, hw: 0.2, hd: 0.2, h: 0.9, tone: -1 },
       { kind: "beacon", x: 0, z: -2.3, hw: 0.2, hd: 0.2, h: 0.9, tone: -1 },
-      { kind: "drum", x: -2.4, z: BACK_Z, hw: 0.3, hd: 0.3, h: 0.8, tone: 2 },
-      { kind: "drum", x: 2.4, z: BACK_Z, hw: 0.3, hd: 0.3, h: 0.8, tone: 2 },
+      { kind: "drum", x: L - 0.7, z: FZ + 0.15, hw: 0.3, hd: 0.3, h: 0.8, tone: 2 },
+      { kind: "drum", x: R + 0.7, z: FZ + 0.15, hw: 0.3, hd: 0.3, h: 0.8, tone: 2 },
    ],
 };
+
+/** The painted floor sign in front of the bay (flat, so it hides nothing): one per level 2-5. */
+export const FLOOR_SIGN = { x: 0, z: 2.3, w: 5.4, d: 1.3 } as const;
 
 /** Where the alarm sparks fly from (the back wall, over the screens). */
 export const SPARK_SPOTS = [

@@ -11,7 +11,7 @@ import { useGameTime } from "@/arcade3d/core/gameTime";
 import { useCanvasTexture } from "@/arcade3d/core/render";
 import type { LevelId } from "@/arcade3d/types";
 import { COLORS, decorOf } from "./looks";
-import { FACTORY_PROPS, FACTORY_THEMES, SPARK_SPOTS, type FactoryTheme, type PropSpot } from "./factorySets";
+import { FACTORY_PROPS, FACTORY_THEMES, FLOOR_SIGN, SPARK_SPOTS, type FactoryTheme, type PropSpot } from "./factorySets";
 
 const PARTS = COLORS.parts;
 
@@ -62,6 +62,62 @@ function drawScreen(kind: FactoryTheme["screen"], ctx: CanvasRenderingContext2D,
       ctx.fillStyle = "#fbbf24";
       for (let i = 0; i < 9; i++) ctx.fillRect(i * 32, 104, 16, 18);
    }
+}
+
+/** The level's painted floor sign in front of the bay: shapes, colour stripes, FAST LANE arrows, hazard stripes. */
+function FloorSign({ kind }: { kind: FactoryTheme["screen"] }) {
+   const tex = useCanvasTexture(1024, 248, (ctx, w, h) => {
+      ctx.clearRect(0, 0, w, h);
+      ctx.globalAlpha = 0.85;
+      if (kind === "shapes") {
+         ctx.lineWidth = 14;
+         PARTS.forEach((c, i) => {
+            const x = 128 + i * 256;
+            ctx.strokeStyle = c;
+            ctx.beginPath();
+            if (i === 0) ctx.rect(x - 70, 54, 140, 140);
+            else if (i === 1) { ctx.moveTo(x, 40); ctx.lineTo(x + 80, 200); ctx.lineTo(x - 80, 200); ctx.closePath(); }
+            else if (i === 2) ctx.arc(x, 124, 76, 0, Math.PI * 2);
+            else { ctx.moveTo(x - 80, 124); ctx.lineTo(x, 44); ctx.lineTo(x + 80, 124); ctx.lineTo(x, 204); ctx.closePath(); }
+            ctx.stroke();
+         });
+      } else if (kind === "swatches") {
+         PARTS.forEach((c, i) => {
+            ctx.fillStyle = c;
+            ctx.fillRect(i * 256 + 16, 40, 224, 168);
+         });
+      } else if (kind === "bins") {
+         ctx.fillStyle = "#34d399";
+         ctx.font = "bold 120px sans-serif";
+         ctx.textAlign = "center";
+         ctx.textBaseline = "middle";
+         ctx.fillText("FAST LANE >>>", 512, 128);
+      } else if (kind === "alarm") {
+         for (let i = -2; i < 20; i++) {
+            ctx.fillStyle = i % 2 ? "#111827" : "#facc15";
+            ctx.beginPath();
+            ctx.moveTo(i * 64, 0);
+            ctx.lineTo(i * 64 + 64, 0);
+            ctx.lineTo(i * 64 + 64 - 120, h);
+            ctx.lineTo(i * 64 - 120, h);
+            ctx.closePath();
+            ctx.fill();
+         }
+         ctx.fillStyle = "#ef4444";
+         ctx.fillRect(300, 70, 424, 108);
+         ctx.fillStyle = "#fff7ed";
+         ctx.font = "bold 84px sans-serif";
+         ctx.textAlign = "center";
+         ctx.textBaseline = "middle";
+         ctx.fillText("DANGER", 512, 126);
+      }
+   });
+   return (
+      <mesh position={[FLOOR_SIGN.x, 0.012, FLOOR_SIGN.z]} rotation-x={-Math.PI / 2} name="floor-sign">
+         <planeGeometry args={[FLOOR_SIGN.w, FLOOR_SIGN.d]} />
+         <meshStandardMaterial map={tex} transparent roughness={0.8} depthWrite={false} />
+      </mesh>
+   );
 }
 
 /** One face per wall screen (decorOf("screen")), drawn just in front of the screen's panel. */
@@ -172,6 +228,7 @@ export function FactorySets({ levelId }: { levelId: LevelId }) {
    return (
       <group name={`factory-set-${levelId}`}>
          {theme.screen !== "telemetry" && <ScreenFaces kind={theme.screen} />}
+         {theme.screen !== "telemetry" && <FloorSign kind={theme.screen} />}
          {FACTORY_PROPS[levelId].map((p, i) => <Prop key={i} spot={p} />)}
          {theme.accent && !theme.alarm && <pointLight position={[0, 3.3, -1.4]} color={theme.accent} intensity={3} distance={9} decay={1.5} />}
          {theme.alarm && <Alarm />}
