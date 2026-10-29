@@ -257,8 +257,10 @@ function Simulation({ run, anim, orbit }: { run: DoorRun; anim: HeroAnim; orbit:
       }
       // speed lines at 15 m/s and up
       if (h.v >= 15 && h.state === "play") {
-         const p = { x: h.x + (Math.random() - 0.5) * 6, y: 0.4 + Math.random() * 2.6, z: h.z - 6 };
-         juice.stream("dust", p, (h.v - 13) * 9, lines, { color: "#fde68a", vz: h.v * 0.9, size: 0.4 });
+         // along the hall's walls, small, streaming past (never through the camera)
+         const side = Math.random() < 0.5 ? -1 : 1;
+         const p = { x: side * (c.half - 0.4 - Math.random() * 0.8), y: 0.4 + Math.random() * 3, z: h.z - 14 };
+         juice.stream("dust", p, (h.v - 13) * 9, lines, { color: "#fde68a", vz: h.v * 1.1, size: 0.12 });
       }
       if (ev.orbCount > 0) {
          store.setStat(STAT.orbs, run.orbs);
