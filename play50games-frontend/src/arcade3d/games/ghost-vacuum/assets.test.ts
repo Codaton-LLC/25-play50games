@@ -4,7 +4,7 @@ import { resolve } from "node:path";
 import { readCharacterGlb } from "@/arcade3d/core/rig/robotGlb";
 import { EXPANSION_GLB_POINTS, EXPANSION_GLB_SIZE } from "@/arcade3d/core/sharedAssets";
 import { hasModel } from "@/arcade3d/core/modelManifest";
-import { ASSETS, BACK_CLEARANCE, HUNTER_SCALE, PACK_OFFSET, TRUNK_DRAWN, TRUNK_GLB, TRUNK_SCALE, TRUNK_SPOTS, VACUUM_SCALE } from "./assets";
+import { ASSETS, BACK_CLEARANCE, HUNTER_SCALE, PACK_OFFSET, ROOM_GLB, TRUNK_DRAWN, TRUNK_GLB, TRUNK_SCALE, TRUNK_SPOTS, VACUUM_SCALE } from "./assets";
 import { inMansion, MANSION_BOUNDS } from "./looks";
 import { FLOAT, SUCK } from "./suck";
 
@@ -89,5 +89,31 @@ describe("real GLB fits (run by Claude outside the meshopt-restricted sandbox)",
       expect(ghost.depth * k).toBeLessThan(0.8);
       // Floating: the lowest drawn point clears the floor by at least 0.35 m at the bottom of the bob.
       expect(FLOAT.hover - FLOAT.bob + ASSETS.ghost.yOffset + ghost.min[1] * k).toBeGreaterThanOrEqual(0.35);
+   });
+});
+
+describe("ghost-vacuum room furniture (reused GLBs, RoomDressing.tsx)", () => {
+   const units = [
+      [ASSETS.bookshelf, ROOM_GLB.bookshelfFull],
+      [ASSETS.table, ROOM_GLB.table],
+      [ASSETS.counter, ROOM_GLB.prepCounterR],
+      [ASSETS.stove, ROOM_GLB.stoveHearth],
+      [ASSETS.crate, ROOM_GLB.crate],
+      [ASSETS.web, ROOM_GLB.spiderWeb],
+      [ASSETS.trunkBox, TRUNK_GLB],
+   ] as const;
+
+   it("every room GLB is in the manifest and fitted to a 1 m cube from its measured bounds", async () => {
+      for (const [asset, size] of units) {
+         expect(hasModel(asset.url), asset.url).toBe(true);
+         const { cloud } = await readCharacterGlb(asset.url);
+         const mn = [Infinity, Infinity, Infinity], mx = [-Infinity, -Infinity, -Infinity];
+         for (let i = 0; i < cloud.length; i += 3) for (let k = 0; k < 3; k++) { mn[k] = Math.min(mn[k], cloud[i + k]); mx[k] = Math.max(mx[k], cloud[i + k]); }
+         expect(mx[0] - mn[0], asset.url).toBeCloseTo(size.width, 2);
+         expect(mx[1] - mn[1], asset.url).toBeCloseTo(size.height, 2);
+         expect(mx[2] - mn[2], asset.url).toBeCloseTo(size.depth, 2);
+         expect(mn[1]).toBeCloseTo(0, 2);
+         expect(asset.stretch).toEqual([1 / size.width, 1 / size.height, 1 / size.depth]);
+      }
    });
 });

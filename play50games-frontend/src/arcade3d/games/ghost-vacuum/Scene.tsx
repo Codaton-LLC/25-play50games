@@ -20,7 +20,7 @@ import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useFittedView } from "@/arcade3d/core/useFittedView";
 import { useCameraViews } from "@/arcade3d/core/camera/CameraViews";
 import type { AABB } from "@/arcade3d/core/collision";
-import { WALLS } from "./rules";
+import { WALLS, roomFurniture } from "./rules";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import type { ScreenRect } from "@/arcade3d/core/view";
 import { ASSETS, HUNTER_LANDMARKS, HUNTER_SCALE } from "./assets";
@@ -137,6 +137,11 @@ function LevelScene() {
    const view = useFittedView(viewFor(width, height)), input = useInput(), fx = useFx();
    const safe = useSafeArea();
    const [run] = useState(() => createRun(randomSeed(), config));
+   // the walls, plus the rooms' tall furniture (bookshelves, counters, stoves) up to its drawn height
+   const [cameraSolids] = useState<readonly AABB[]>(() => [
+      ...WALLS,
+      ...config.rooms.flatMap((kind, i) => roomFurniture(i, kind).filter((f) => f.kind !== "trunk" && f.kind !== "crate" && f.kind !== "island").map((f) => ({ min: { ...f.box.min, y: 0 }, max: { ...f.box.max, y: 1.3 } }))),
+   ]);
 
    // camera views (core/camera): the rules get the drawn camera's yaw (the fitted yaw in the default view)
    const cam = useCameraViews({
@@ -148,7 +153,7 @@ function LevelScene() {
          const h = run.hunter;
          o.x = h.x; o.y = 1.1; o.z = h.z; o.heading = h.yaw; o.vx = h.vx; o.vz = h.vz;
       },
-      solids: (out: AABB[]) => fillSolids(WALLS, out),
+      solids: (out: AABB[]) => fillSolids(cameraSolids, out),
    });
 
    const [shared] = useState(createSuckShared);
