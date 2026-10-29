@@ -1166,6 +1166,23 @@
         { "title": "Long Gaps", "max_score": 19290, "min_duration_ms": 7100, "max_duration_ms": 200000, "time_base_ms": 200000 },
         { "title": "Sky Swing Master", "max_score": 23310, "min_duration_ms": 6900, "max_duration_ms": 240000, "time_base_ms": 240000 }
       ]
+    },
+    "disc-target-throw": {
+      "title": "Disc Target Throw",
+      "kind": "points",
+      "max_score": 14616,
+      "min_duration_ms": 3400,
+      "max_duration_ms": 151000,
+      "base": 0,
+      "max_pps": 4299,
+      "enabled": false,
+      "levels": [
+        { "title": "Static Targets", "max_score": 14616, "min_duration_ms": 3400, "max_duration_ms": 151000, "base": 0, "max_pps": 4299 },
+        { "title": "Moving Targets", "max_score": 12816, "min_duration_ms": 3400, "max_duration_ms": 161000, "base": 0, "max_pps": 3770 },
+        { "title": "Color Targets", "max_score": 27666, "min_duration_ms": 3400, "max_duration_ms": 171000, "base": 0, "max_pps": 8138 },
+        { "title": "Fast Combo", "max_score": 14341, "min_duration_ms": 3400, "max_duration_ms": 181000, "base": 0, "max_pps": 4218 },
+        { "title": "Accuracy Master", "max_score": 15239, "min_duration_ms": 25000, "max_duration_ms": 241000, "base": 0, "max_pps": 610 }
+      ]
     }
   }
 }
