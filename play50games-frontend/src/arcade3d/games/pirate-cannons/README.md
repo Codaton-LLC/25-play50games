@@ -105,6 +105,20 @@ maxDurationMs is 92000 on every level (the 90 s clock). Level 5's cap is 1.43× 
 
 **Bots** (rules.test.ts's oracle, copied into levels.test.ts with a level and an aim-noise knob, through the real store): the oracle reaches 73–81 % of every level's cap (level 1 77.6 %, as before) at 60 and 20 fps; a human-paced variant (±0.6° aim noise, random 4–50 ms frames) scores 7525–11600 and clears every seed on every level; spam stays legal; idle scores 0 and never clears.
 
+### Each level's own bay (2026-10-29, looks only)
+
+`looks.ts` `BAY_THEMES` + `BaySets.tsx`; rules, lanes and limits untouched. Each level has its own light (per-level `environment`), sky, sea tones and wave height, and its own background:
+
+| Level | Light and sea | Background |
+|---|---|---|
+| 1 Training Deck | today's sunny bay | — |
+| 2 Harbor Targets | `day`, golden sky, teal harbour water, calm | three ships moored off the far shore |
+| 3 Moving Boats | `sunset`, violet-to-orange sky | a fleet of four ships sailing the horizon |
+| 4 Storm Battle | `night`, slate sky, dark rough sea (waves 0.32 m, faster), closer fog | rain (one instanced draw) and double lightning flashes every 6.5 s |
+| 5 Captain Challenge | `sunset`, blood-red sky | the captain's flagship (2.8 × a play ship) lying beyond the far lane |
+
+`baySets.test.ts`: background ships lie more than 15 m behind the far lane; the storm is level 4's, the flagship level 5's; the five bays differ; level 1 keeps today's environment.
+
 ## Run end
 
 - `"lose"` when the third ship reaches the harbour (`loseLife()` to 0, the store ends the run). `resultDelayMs: 1400`: the ship sailing in and the fort's flag dropping are seen.

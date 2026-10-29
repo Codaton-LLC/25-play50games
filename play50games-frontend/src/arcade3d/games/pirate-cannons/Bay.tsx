@@ -23,7 +23,7 @@ import { Instanced, type InstanceSpot } from "@/arcade3d/core/render";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { ASSETS, BUOY_SINK, LIGHTHOUSE_AT, PALM_BASE_Z } from "./assets";
 import { Decor } from "./Decor";
-import { COLORS, FORT } from "./looks";
+import { BAY_THEMES, COLORS, FORT, type BayTheme } from "./looks";
 import { PalmPrimitives } from "./Primitives";
 import { CANNON, ISLAND, LANES, SEA, type RunState } from "./rules";
 
@@ -132,7 +132,7 @@ function WindFlag({ run, reduced }: { run: RunState; reduced: boolean }) {
    );
 }
 
-export function Bay({ run }: { run: RunState }) {
+export function Bay({ run, theme = BAY_THEMES[1] }: { run: RunState; theme?: BayTheme }) {
    const [reduced] = useState(() => typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
    const parapet = useMemo(parapetSpots, []);
    const buoys = useMemo(buoySpots, []);
@@ -177,24 +177,24 @@ export function Bay({ run }: { run: RunState }) {
    return (
       <group name="bay">
          {/* Sunny Caribbean SkyDome overhead */}
-         <SkyDome top={COLORS.skyTop} bottom={COLORS.sky} exponent={0.7} />
+         <SkyDome top={theme.skyTop} bottom={theme.sky} exponent={0.7} />
 
          {/* Flat far ocean plane fogging cleanly into the horizon with no visible edges */}
          <mesh rotation-x={-Math.PI / 2} position={[0, -0.28, -260]} name="far-sea">
             <planeGeometry args={[1800, 1200]} />
-            <meshBasicMaterial color={COLORS.farSea} />
+            <meshBasicMaterial color={theme.farSea} />
          </mesh>
 
          {/* Luminous Caribbean sea waves with white crest foam and shoreline edge */}
          <Water
             size={[500, 360]}
             position={[0, 0, -80]}
-            color={COLORS.sea}
-            deep={COLORS.deep}
-            foam={COLORS.foam}
-            amplitude={reduced ? 0 : 0.16}
+            color={theme.sea}
+            deep={theme.deep}
+            foam={theme.foam}
+            amplitude={reduced ? 0 : theme.amplitude}
             wavelength={6.5}
-            speed={reduced ? 0 : 0.75}
+            speed={reduced ? 0 : theme.waveSpeed}
             foamEdge={0.06}
             opacity={0.96}
          />
