@@ -73,7 +73,10 @@ export const GAME_LOADERS: Record<ArcadeSlug, () => Promise<GameModule>> = {
    "temple-lantern-jump": () => import("./games/temple-lantern-jump"),
    "toy-room-run": () => import("./games/toy-room-run"),
    "jungle-vine-jump": () => import("./games/jungle-vine-jump"),
+   "ice-peak-jumper": () => import("./games/ice-peak-jumper"),
    "dragon-cave-rush": () => import("./games/dragon-cave-rush"),
    "color-door-sprint": () => import("./games/color-door-sprint"),
    "sky-hook-swing": () => import("./games/sky-hook-swing"),
+   "wall-run-temple": () => import("./games/wall-run-temple"),
+   "temple-coin-rush": () => import("./games/temple-coin-rush"),
 };
