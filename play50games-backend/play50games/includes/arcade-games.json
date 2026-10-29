@@ -1328,6 +1328,22 @@
         { "title": "Rotating Path", "max_score": 25990, "min_duration_ms": 20100, "max_duration_ms": 280000, "time_base_ms": 280000 },
         { "title": "Balance Master", "max_score": 33960, "min_duration_ms": 20400, "max_duration_ms": 360000, "time_base_ms": 360000 }
       ]
+    },
+    "color-rail-grind": {
+      "title": "Color Rail Grind",
+      "kind": "time",
+      "max_score": 9800,
+      "min_duration_ms": 22000,
+      "max_duration_ms": 120000,
+      "time_base_ms": 120000,
+      "enabled": false,
+      "levels": [
+        { "title": "Station Yard", "max_score": 9800, "min_duration_ms": 22000, "max_duration_ms": 120000, "time_base_ms": 120000 },
+        { "title": "Village Loop", "max_score": 12440, "min_duration_ms": 25600, "max_duration_ms": 150000, "time_base_ms": 150000 },
+        { "title": "Ice Bridge", "max_score": 15230, "min_duration_ms": 17700, "max_duration_ms": 170000, "time_base_ms": 170000 },
+        { "title": "Night Express", "max_score": 15400, "min_duration_ms": 26000, "max_duration_ms": 180000, "time_base_ms": 180000 },
+        { "title": "Runaway Express", "max_score": 23510, "min_duration_ms": 24900, "max_duration_ms": 260000, "time_base_ms": 260000 }
+      ]
     }
   }
 }
