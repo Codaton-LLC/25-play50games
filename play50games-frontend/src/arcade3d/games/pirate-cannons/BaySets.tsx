@@ -26,7 +26,7 @@ export const BACKGROUND_SHIPS: Record<BayTheme["ships"], ReadonlyArray<{ x: numb
       { x: 15, y: 0, z: -128, rotY: -Math.PI / 2, scale: 1.2 },
       { x: 50, y: 0, z: -140, rotY: -Math.PI / 2, scale: 1 },
    ],
-   flagship: [{ x: 20, y: 0, z: -95, rotY: -Math.PI / 2 + 0.25, scale: 2.8 }],
+   flagship: [{ x: 2, y: 0, z: -79, rotY: -Math.PI / 2 + 0.2, scale: 2.2 }],
 };
 
 const RAIN = { count: 420, x: 45, yTop: 26, z0: -4, z1: -80, speed: 22 } as const;

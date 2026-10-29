@@ -115,7 +115,7 @@ maxDurationMs is 92000 on every level (the 90 s clock). Level 5's cap is 1.43× 
 | 2 Harbor Targets | `day`, golden sky, teal harbour water, calm | three ships moored off the far shore |
 | 3 Moving Boats | `sunset`, violet-to-orange sky | a fleet of four ships sailing the horizon |
 | 4 Storm Battle | `night`, slate sky, dark rough sea (waves 0.32 m, faster), closer fog | rain (one instanced draw) and double lightning flashes every 6.5 s |
-| 5 Captain Challenge | `sunset`, blood-red sky | the captain's flagship (2.8 × a play ship) lying beyond the far lane |
+| 5 Captain Challenge | `sunset`, blood-red sky | the captain's flagship (2.2 × a play ship) lying beyond the far lane, on the horizon |
 
 `baySets.test.ts`: background ships lie more than 15 m behind the far lane; the storm is level 4's, the flagship level 5's; the five bays differ; level 1 keeps today's environment.
 
