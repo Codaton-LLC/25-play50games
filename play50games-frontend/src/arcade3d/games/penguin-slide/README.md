@@ -54,15 +54,19 @@ Proof plan: assert ds<=22*dt for every step, chunk-wide reward budgets and non-r
 
 ## Levels
 
-One glacier, five configurations (`levels.ts`, read through `useSlideLevel`; `createRun(seed, assist, level)`). Level 1 is today's game exactly: the 2 + floor(3 q) obstacle ramp over 120 s, the uniform pick of the six forms, the 30 s starting clock (levels.test.ts replays it against today's `createRun` and `generateChunk`). The slide is endless (no win), so the plan's "reach the finish and collect N fish" is a score target (`meta.ts` `clearScore`). Not built (no support): moving obstacles (L3-4), a finish line or fish-count objective, per-level lighting (the look stays the snow day on every level).
+Five places, one slide each (`levels.ts`, read through `useSlideLevel`; `createRun(seed, assist, level)`). Level 1 is today's game exactly: the 2 + floor(3 q) obstacle ramp over 120 s, the uniform pick of the six forms and of the three obstacle kinds (one draw, `floor(u * 3)`), the 30 s starting clock and the sunny snow day (levels.test.ts replays it against today's `createRun` and `generateChunk`). The slide is endless (no win), so the plan's "reach the finish and collect N fish" is a score target (`meta.ts` `clearScore`). Not built: moving obstacles and a finish line.
 
-| Level | Title | Obstacles per chunk (cap 5) | Forms (straight, curve, s-bend, ramp, narrow, split) | Start clock | Clear | Limits |
-|---|---|---|---|---|---|---|
-| 1 | Snow Hill | 2, +3 by 120 s | 1, 1, 1, 1, 1, 1 | 30 s | 3000 | 18700 / 9000–182000 ms / base 440 / 104 pps |
-| 2 | Ice Cave | 3, +2 by 100 s | 1, 1, 1, 1, 1.5, 1 | 40 s | 3500 | same |
-| 3 | Frozen Lake | 3, +2 by 75 s | 0.5, 1.5, 1.5, 1, 1.5, 1 | 45 s | 4000 | same |
-| 4 | Aurora Run | 4, +1 by 60 s | 0.5, 1.5, 1.5, 1.5, 1.5, 1.5 | 50 s | 4500 | same |
-| 5 | Glacier Sprint | 4, +1 by 30 s | 0.25, 1.5, 1.5, 1.5, 1.5, 1.5 | 60 s | — | same |
+Each level is its own place (`site`; `looks.ts THEMES`, per-level `environment` in `index.tsx`): its core light, sky dome, fog colour, the snow field's tones, its bank scenery (Track's bank pool: pines, cave crystals, shore boulders, ice cliffs), how much snow falls and which far decor shows; and its own obstacle mix (`kinds`, picked from the same single draw).
+
+| Level | Place and look | Bank scenery | Obstacle mix (ice, snowman, crack) | Obstacles per chunk (cap 5) | Forms (straight, curve, s-bend, ramp, narrow, split) | Start clock | Clear |
+|---|---|---|---|---|---|---|---|
+| 1 Snow Hill | sunny pine slope (`snow`, blue sky, snowfall, clouds, mountains, ice spires) | pines | 1, 1, 1 | 2, +3 by 120 s | 1, 1, 1, 1, 1, 1 | 30 s | 3000 |
+| 2 Ice Cave | a dim blue cave (`night`, deep teal sky and fog, no snowfall, no clouds or mountains, ice columns) | glowing crystals | 3, 0.5, 0.75 (fallen ice) | 3, +2 by 100 s | 1, 1, 1, 1, 1.5, 1 | 40 s | 3500 |
+| 3 Frozen Lake | a glassy lake under a pale lilac sky (`snow`, light snowfall, blue ice tones, clouds, mountains) | shore boulders (shared rock) | 0.75, 0.5, 3 (thin-ice cracks) | 3, +2 by 75 s | 0.5, 1.5, 1.5, 1, 1.5, 1 | 45 s | 4000 |
+| 4 Aurora Run | a starry night under the northern lights (`night`, stars, three rippling aurora ribbons, crystals and glacier chunks) | pines | 1, 2, 1 (a snowman parade) | 4, +1 by 60 s | 0.5, 1.5, 1.5, 1.5, 1.5, 1.5 | 50 s | 4500 |
+| 5 Glacier Sprint | a glacier at dusk (`sunset`, violet-to-peach sky, peach snow, ice spires) | ice cliffs (glacier chunks) | 2, 0.5, 1.5 | 4, +1 by 30 s | 0.25, 1.5, 1.5, 1.5, 1.5, 1.5 | 60 s | — |
+
+Limits: **18700 / 9000–182000 ms / base 440 / 104 pps on every level, unchanged.** The obstacle mix only chooses which kind fills a slot the generator already placed (same count, same 12 m spacing from 3 m in, same reserved corridor checked by `validChunk`; cracks still only cover side routes, so no hop is ever required); every kind's radius is at most the 0.6 m the earliest-contact bound already uses, so no mix brings a contact earlier. `sites.test.ts`: level 1's pick is `floor(u * 3)`; on every level 600 chunks keep the corridor (accepted or the tested fallback) and follow the level's mix within 5 %; the five places differ in sky, light, scenery and mix; the new bank props stand at least 0.5 m off the widest track.
 
 Difficulty only rises: at every moment of a run a level has at least the obstacles of the level before, no more straights, at least the clock (tests). The speed cap, the 12 m spacing, the reserved corridor (`validChunk`), the fish budget, the gates and the 180 s ceiling are the same everywhere, so every level stays fair and solvable. A harder level starts with more clock, so it offers at least level 1's points; every level has the same cap, so level 5 is 1× level 1.
 

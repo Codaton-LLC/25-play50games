@@ -5,7 +5,8 @@ import { useFrame } from "@react-three/fiber";
 import type { Group } from "three";
 import { Model } from "@/arcade3d/core/assets";
 import { playSfx } from "@/arcade3d/core/audio";
-import { SkyDome, SnowFall } from "@/arcade3d/core/env";
+import { SkyDome, SnowFall, Starfield } from "@/arcade3d/core/env";
+import { Aurora } from "./Aurora";
 import { SCORE_LIFE, useActionPop, useFx } from "@/arcade3d/core/fx";
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import { TargetMarkers } from "@/arcade3d/core/hud";
@@ -22,7 +23,7 @@ import { ASSETS, BELLY_LIFT, BELLY_ROTATION_Y, bellyClearance } from "./assets";
 import { ChaseCamera, VIEW, useReducedMotion } from "./camera";
 import { GUIDE, hintCode, hintFor } from "./guide";
 import { Decor } from "./Decor";
-import { COLORS } from "./looks";
+import { COLORS, THEMES } from "./looks";
 import { PenguinPrimitive } from "./Primitives";
 import { Terrain } from "./Terrain";
 import Track from "./Track";
@@ -100,6 +101,8 @@ function Penguin({ run, reduced }: { run: Run; reduced: boolean }) {
 
 function LevelScene() {
    const { config, id } = useSlideLevel();
+   // the level's place: sky, snow, scenery (looks.ts THEMES); light and fog come from its environment
+   const theme = THEMES[config.site];
    const input = useInput();
    const fx = useFx();
    const pop = useActionPop();
@@ -260,11 +263,13 @@ function LevelScene() {
    return (
       <>
          <ChaseCamera run={run} reduced={reduced} view={view} />
-         <SkyDome top={COLORS.skyTop} bottom={COLORS.skyBottom} />
-         <SnowFall count={reduced ? 60 : 300} area={[28, 16, 70]} />
-         <Terrain run={run} reduced={reduced} />
-         <Decor run={run} reduced={reduced} />
-         <Track run={run} level={id} />
+         <SkyDome top={theme.skyTop} bottom={theme.skyBottom} />
+         {theme.stars && <Starfield count={reduced ? 300 : 700} upperOnly color="#e0f2fe" />}
+         {theme.aurora && <Aurora reduced={reduced} />}
+         {theme.snow > 0 && <SnowFall count={Math.round((reduced ? 60 : 300) * theme.snow)} area={[28, 16, 70]} />}
+         <Terrain run={run} reduced={reduced} theme={theme} />
+         <Decor run={run} reduced={reduced} theme={theme} />
+         <Track run={run} level={id} theme={theme} />
          <Penguin run={run} reduced={reduced} />
          <TargetMarkers targets={marker} color={COLORS.gateRing} />
       </>
