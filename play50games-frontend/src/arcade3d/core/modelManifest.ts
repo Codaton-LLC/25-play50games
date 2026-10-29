@@ -617,6 +617,21 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/jungle-vine-jump/m2MossyRuinArch.glb",
    "/models/3d/jungle-vine-jump/m2RuinStone.glb",
    "/models/3d/jungle-vine-jump/m2SnapperPlant.glb",
+   // Menu 2 game 9 (Ice Peak Jumper): the ready set from ~/.play50/hyper3d/ready/menu2/ice-peak-jumper, plus
+   // m2FrostGolemBoss (the L5 boss) and m2IceSlime (L4) from ready/menu2/shared
+   "/models/3d/ice-peak-jumper/m2CrackedIcePlatform.glb",
+   "/models/3d/ice-peak-jumper/m2FrostGolemBoss.glb",
+   "/models/3d/ice-peak-jumper/m2IceCrystal.glb",
+   "/models/3d/ice-peak-jumper/m2IcePeakBg.glb",
+   "/models/3d/ice-peak-jumper/m2IcePlatform.glb",
+   "/models/3d/ice-peak-jumper/m2IcePlatformV2.glb",
+   "/models/3d/ice-peak-jumper/m2IceSlime.glb",
+   "/models/3d/ice-peak-jumper/m2Icicle.glb",
+   "/models/3d/ice-peak-jumper/m2Snowball.glb",
+   "/models/3d/ice-peak-jumper/m2SnowLedge.glb",
+   "/models/3d/ice-peak-jumper/m2SnowLedgeV2.glb",
+   "/models/3d/ice-peak-jumper/m2SnowYeti.glb",
+   "/models/3d/ice-peak-jumper/m2SummitCairn.glb",
 ];
 
 const LISTED: ReadonlySet<string> = new Set(MODEL_MANIFEST);

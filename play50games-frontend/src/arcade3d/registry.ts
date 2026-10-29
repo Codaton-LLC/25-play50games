@@ -68,6 +68,7 @@ import { rollCannonJumpMeta } from "./games/roll-cannon-jump/meta";
 import { colorCitySprintMeta } from "./games/color-city-sprint/meta";
 import { templeLanternJumpMeta } from "./games/temple-lantern-jump/meta";
 import { jungleVineJumpMeta } from "./games/jungle-vine-jump/meta";
+import { icePeakJumperMeta } from "./games/ice-peak-jumper/meta";
 import { dragonCaveRushMeta } from "./games/dragon-cave-rush/meta";
 import { skyHookSwingMeta } from "./games/sky-hook-swing/meta";
 
@@ -136,6 +137,7 @@ export const ARCADE_GAMES: ArcadeGameMeta[] = [
    colorCitySprintMeta,
    templeLanternJumpMeta,
    jungleVineJumpMeta,
+   icePeakJumperMeta,
    dragonCaveRushMeta,
    colorDoorSprintMeta,
    skyHookSwingMeta,

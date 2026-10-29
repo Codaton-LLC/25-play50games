@@ -1214,6 +1214,22 @@
         { "title": "Laser Line", "max_score": 12910, "min_duration_ms": 10900, "max_duration_ms": 140000, "time_base_ms": 140000 },
         { "title": "Factory Overdrive", "max_score": 22490, "min_duration_ms": 15100, "max_duration_ms": 240000, "time_base_ms": 240000 }
       ]
+    },
+    "ice-peak-jumper": {
+      "title": "Ice Peak Jumper",
+      "kind": "time",
+      "max_score": 17760,
+      "min_duration_ms": 2400,
+      "max_duration_ms": 180000,
+      "time_base_ms": 180000,
+      "enabled": false,
+      "levels": [
+        { "title": "Base Camp", "max_score": 17760, "min_duration_ms": 2400, "max_duration_ms": 180000, "time_base_ms": 180000 },
+        { "title": "Icicle Steps", "max_score": 20940, "min_duration_ms": 600, "max_duration_ms": 210000, "time_base_ms": 210000 },
+        { "title": "Yeti Ridge", "max_score": 23860, "min_duration_ms": 1400, "max_duration_ms": 240000, "time_base_ms": 240000 },
+        { "title": "Lantern Night", "max_score": 26790, "min_duration_ms": 2100, "max_duration_ms": 270000, "time_base_ms": 270000 },
+        { "title": "Summit Cairn", "max_score": 34230, "min_duration_ms": 17700, "max_duration_ms": 360000, "time_base_ms": 360000 }
+      ]
     }
   }
 }
