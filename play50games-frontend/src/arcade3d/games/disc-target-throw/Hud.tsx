@@ -166,13 +166,22 @@ export default function Hud() {
                </svg>
                <span className={styles.value}>{clockText(tenths * 100)}</span>
             </div>
-            {config?.boss && !playing ? <Boss /> : null}
+            {config?.boss && !playing ? (
+               <div className={styles.bossCenter}>
+                  <Boss />
+               </div>
+            ) : null}
             {hint > 0 && !playing ? (
                <div className={styles.hint} role="status">
                   {HINT_TEXT[hint]}
                </div>
             ) : null}
          </div>
+         {config?.boss && !playing ? (
+            <div className={styles.bossDock} data-arcade-safe-area="">
+               <Boss />
+            </div>
+         ) : null}
       </>
    );
 }

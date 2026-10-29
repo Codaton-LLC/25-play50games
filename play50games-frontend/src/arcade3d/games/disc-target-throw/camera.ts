@@ -58,11 +58,23 @@ export function introKeyframes(course: Course): IntroKeyframe[] {
 }
 
 /**
- * The orbit camera's collision: the columns near the camera. The courtyard walls are low (2.4 m) and
- * the camera rides over them, so a view from outside the yard is never pulled in onto the hero.
+ * The orbit camera's collision: the columns near the camera and the tall courtyard walls (the low
+ * south parapet behind the start is left out: the camera looks over it), so a turned camera is pulled
+ * in front of a wall instead of hiding the hero behind it.
  */
 export function courseSolids(c: Course, x: number, z: number, out: AABB[]): number {
    let n = 0;
+   for (const b of c.boxes) {
+      if (n >= out.length) break;
+      if (b.kind !== "stone" || b.h < 2) continue;
+      const o = out[n++];
+      o.min.x = b.minX;
+      o.max.x = b.maxX;
+      o.min.y = 0;
+      o.max.y = b.h;
+      o.min.z = b.minZ;
+      o.max.z = b.maxZ;
+   }
    for (const col of c.columns) {
       if (n >= out.length) break;
       if (Math.hypot(col.x - x, col.z - z) > 14) continue;

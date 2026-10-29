@@ -167,6 +167,9 @@ function Rails({ run }: { run: DiscRun }) {
    );
 }
 
+/** The raft's drawn height (m): its deck 0.1 m over the walk. */
+const RAFT_DECK = 0.18;
+
 function Raft({ run }: { run: DiscRun }) {
    const ref = useRef<Group>(null);
    const raft = run.course.raft;
@@ -178,7 +181,8 @@ function Raft({ run }: { run: DiscRun }) {
    if (!raft) return null;
    return (
       <group ref={ref}>
-         <Model asset={ASSETS.raft} scale={raftScale(raft.half)} position={[0, -0.12, 0]} />
+         {/* flattened so the deck sits at the hero's feet (y 0): the raft floats low in the canal */}
+         <Model asset={ASSETS.raft} scale={[raftScale(raft.half), RAFT_DECK / GLB_SIZE.raft.y, raftScale(raft.half)]} position={[0, -0.08, 0]} />
       </group>
    );
 }

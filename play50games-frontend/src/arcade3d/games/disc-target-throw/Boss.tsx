@@ -25,13 +25,15 @@ export function Snapper({ run }: { run: DiscRun }) {
    const laneMat = useRef<MeshBasicMaterial>(null);
    const flash = useRef<Mesh>(null);
    const pods = useRef<(Mesh | null)[]>([]);
+   const plateGroup = useRef<Group>(null);
    const boss = run.course.boss;
    const plates = useMemo<InstanceSpot[]>(() => {
       if (!boss) return [];
       const out: InstanceSpot[] = [];
       for (let i = 0; i < 10; i++) {
          const a = (i / 10) * Math.PI * 2;
-         out.push({ x: boss.x + Math.cos(a) * 0.95, y: 1.2 + (i % 3) * 1.1, z: boss.z + Math.sin(a) * 0.95, rotY: -a, sx: 0.7, sy: 0.9, sz: 0.18 });
+         // shell plates lying flat on the stem (local x along it, thin across it)
+         out.push({ x: boss.x + Math.cos(a) * 0.78, y: 1.3 + (i % 3) * 1.0, z: boss.z + Math.sin(a) * 0.78, rotY: Math.PI / 2 - a, sx: 0.62, sy: 0.85, sz: 0.2 });
       }
       return out;
    }, [boss]);
@@ -56,6 +58,8 @@ export function Snapper({ run }: { run: DiscRun }) {
          const intro = b.step === "intro" ? 1 - Math.min(1, b.stepMs / 2000) : 0;
          const snap = b.step === "telegraph" ? 0.06 * Math.sin(b.stepMs / 40) : 0;
          g.position.set(boss.x, -SNAPPER_H * (0.85 * sink + 0.9 * intro), boss.z);
+         // the plates rise and sink with her
+         if (plateGroup.current) plateGroup.current.position.y = g.position.y;
          g.rotation.y = Math.atan2(run.hero.x - boss.x, run.hero.z - boss.z) + Math.sin(now * 0.8) * 0.12 + snap;
          g.rotation.z = Math.sin(now * 0.6) * 0.04;
          const s = SNAPPER_SCALE * (open && b.phase === 0 ? 1.06 : 1);
@@ -103,10 +107,12 @@ export function Snapper({ run }: { run: DiscRun }) {
          <group ref={body}>
             <Model asset={ASSETS.snapper} />
          </group>
-         <Instanced spots={plates}>
-            <boxGeometry args={[1, 1, 1]} />
-            <meshStandardMaterial color={COLORS.plate} metalness={0.6} roughness={0.35} />
-         </Instanced>
+         <group ref={plateGroup}>
+            <Instanced spots={plates}>
+               <sphereGeometry args={[0.5, 14, 10]} />
+               <meshStandardMaterial color="#4a4352" metalness={0.35} roughness={0.55} />
+            </Instanced>
+         </group>
          <Instanced spots={vines}>
             <boxGeometry args={[1, 1, 1]} />
             <meshStandardMaterial color="#3f6b2a" roughness={0.9} />

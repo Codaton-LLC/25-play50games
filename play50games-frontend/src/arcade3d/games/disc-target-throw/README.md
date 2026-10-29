@@ -109,7 +109,15 @@ Touch: joystick, Throw (hold), Power.
 `multiplayer.ts`: the runs share the targets and the monkeys (the first disc to hit takes it),
 co-op shields and magnets cover allies, versus ranks by points.
 
+## Playtest (headless Chrome over CDP, next dev :3323, `?autoplay=1`, unlock-all)
+
+All five levels at 1280 x 800 and 390 x 844 with a two-finger orbit on the phone; 0 console errors.
+Fixed from it: the south wall behind the start is a 1.3 m parapet (the camera stood outside a 2.4 m
+wall and lost the hero); the tall walls join the orbit camera's collision (a turned camera stays in
+the yard); the level 4 raft is drawn flat so its deck is at the hero's feet; Mother Snapper's plates
+lie on her stem and rise and sink with her; on phones the boss bar docks at the right under the clock.
+
 ## Known issues / open
 
 - The lower duration bound is throw-cycle based and loose (pps 3770-8138 on L1-L4).
-- Thumbnail `public/images/3d/disc-target-throw.webp` captured from the preview playtest.
+- No thumbnail yet (`meta.thumbnail: null`, as the other Menu 2 slice games).

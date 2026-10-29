@@ -83,9 +83,9 @@ function Walls({ course }: { course: Course }) {
          const cz = (b.minZ + b.maxZ) / 2;
          const sx = b.maxX - b.minX;
          const sz = b.maxZ - b.minZ;
-         stone.push({ x: cx, y: WALL_H / 2, z: cz, sx, sy: WALL_H, sz });
-         inlay.push({ x: cx, y: 1.15, z: cz, sx: sx + 0.06, sy: 0.18, sz: sz + 0.06 });
-         cap.push({ x: cx, y: WALL_H + 0.08, z: cz, sx: sx + 0.18, sy: 0.16, sz: sz + 0.18 });
+         stone.push({ x: cx, y: b.h / 2, z: cz, sx, sy: b.h, sz });
+         inlay.push({ x: cx, y: Math.min(1.15, b.h * 0.55), z: cz, sx: sx + 0.06, sy: 0.18, sz: sz + 0.06 });
+         cap.push({ x: cx, y: b.h + 0.08, z: cz, sx: sx + 0.18, sy: 0.16, sz: sz + 0.18 });
       }
       return { stone, inlay, cap };
    }, [course]);

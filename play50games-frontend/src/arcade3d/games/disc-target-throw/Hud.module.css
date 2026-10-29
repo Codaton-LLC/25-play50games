@@ -377,3 +377,30 @@
       align-items: flex-end;
    }
 }
+
+/* the boss bar: in the centre column on wide screens; on phones a dock at the right under the clock,
+   clear of the left column */
+.bossDock {
+   display: none;
+}
+
+@media (max-width: 520px) {
+   .bossCenter {
+      display: none;
+   }
+   .bossDock {
+      display: block;
+      position: absolute;
+      top: calc(env(safe-area-inset-top, 0px) + 100px);
+      right: calc(env(safe-area-inset-right, 0px) + 8px);
+      pointer-events: none;
+   }
+   .bossDock .boss {
+      width: calc(100vw - 200px);
+   }
+   /* the shared bar sizes itself to the screen (92vw): here it fills the dock */
+   .bossDock .boss > div {
+      width: 100%;
+      box-sizing: border-box;
+   }
+}

@@ -11,6 +11,8 @@ export const YARD = { minX: -11, maxX: 11, minZ: -16, maxZ: 6 } as const;
 /** Wall height (m) and thickness. */
 export const WALL_H = 2.4;
 export const WALL_T = 1;
+/** The south wall's height: a parapet over the disc's flight (1.1 m) that the camera behind the hero sees over. */
+export const SOUTH_H = 1.3;
 
 export type TargetKind = "hay" | "idol" | "post" | "orb" | "shard";
 
@@ -92,7 +94,8 @@ export interface Course {
 
 const perimeter = (): Box[] => [
    { minX: YARD.minX - WALL_T, maxX: YARD.maxX + WALL_T, minZ: YARD.minZ - WALL_T, maxZ: YARD.minZ, kind: "stone", h: WALL_H },
-   { minX: YARD.minX - WALL_T, maxX: YARD.maxX + WALL_T, minZ: YARD.maxZ, maxZ: YARD.maxZ + WALL_T, kind: "stone", h: WALL_H },
+   // the south wall behind the start is a low parapet (above the disc's flight, under the camera's view)
+   { minX: YARD.minX - WALL_T, maxX: YARD.maxX + WALL_T, minZ: YARD.maxZ, maxZ: YARD.maxZ + WALL_T, kind: "stone", h: SOUTH_H },
    { minX: YARD.minX - WALL_T, maxX: YARD.minX, minZ: YARD.minZ, maxZ: YARD.maxZ, kind: "stone", h: WALL_H },
    { minX: YARD.maxX, maxX: YARD.maxX + WALL_T, minZ: YARD.minZ, maxZ: YARD.maxZ, kind: "stone", h: WALL_H },
 ];

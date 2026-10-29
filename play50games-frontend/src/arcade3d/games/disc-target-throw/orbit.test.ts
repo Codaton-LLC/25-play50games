@@ -73,12 +73,15 @@ describe("the camera", () => {
       }
    });
 
-   it("collides with the columns near it", () => {
+   it("collides with the columns near it and the tall walls, never the low south parapet", () => {
       const c = courseFor(4);
-      const out = Array.from({ length: 16 }, () => ({ min: { x: 0, y: 0, z: 0 }, max: { x: 0, y: 0, z: 0 } }));
+      const out = Array.from({ length: 32 }, () => ({ min: { x: 0, y: 0, z: 0 }, max: { x: 0, y: 0, z: 0 } }));
       const n = courseSolids(c, 0, -4, out);
-      expect(n).toBeGreaterThan(0);
-      expect(n).toBeLessThanOrEqual(c.columns.length);
+      const walls = c.boxes.filter((b) => b.kind === "stone" && b.h >= 2).length;
+      expect(walls).toBe(3);
+      expect(n).toBeGreaterThan(walls);
+      expect(n).toBeLessThanOrEqual(walls + c.columns.length);
+      expect(out.slice(0, n).some((o) => o.max.y < 2)).toBe(false);
    });
 
    it("World 3's lead, Kiro, is preselected and is the rules' default", () => {
