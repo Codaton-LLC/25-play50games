@@ -253,26 +253,76 @@ function anchorCount(level: SubLevel): number {
    return level.treasures >= 6 ? 4 : level.jellies > 0 ? 3 : 2;
 }
 
+function boxFits(run: Run, box: BoxSolid): boolean {
+   if (surfaceGap(run.dock.x, run.dock.z, box) < DOCK_R + SUB_R * 2) return false;
+   if (Math.abs(box.x - run.dock.x) < box.hx + SUB_R * 2 && box.z > run.dock.z && box.z < run.dock.z + box.hz + 8) return false;
+   for (const t of run.treasures) {
+      if (surfaceGap(t.x, t.z, box) < SOLID_CLEAR) return false;
+   }
+   const pass = SUB_R * 2 + 0.4;
+   for (const b of run.boxes) {
+      if (Math.abs(b.x - box.x) < b.hx + box.hx + pass && Math.abs(b.z - box.z) < b.hz + box.hz + pass) return false;
+   }
+   const { hx: boundX, hz: boundZ } = halfExtents(run.level);
+   if (Math.abs(box.x) + box.hx > boundX - 0.8 || Math.abs(box.z) + box.hz > boundZ - 0.8) return false;
+   return true;
+}
+
 function placeBox(run: Run, kind: BoxSolid["kind"], hx: number, hz: number, rotY: number, rng: () => number): void {
    const { hx: boundX, hz: boundZ } = halfExtents(run.level);
    for (let i = 0; i < 50; i++) {
       const x = (rng() * 2 - 1) * (boundX - hx - 1.5);
       const z = (rng() * 2 - 1) * (boundZ * 0.75);
       const box: BoxSolid = { kind, x, z, hx, hz, rotY };
-      if (surfaceGap(run.dock.x, run.dock.z, box) < DOCK_R + SUB_R * 2) continue;
-      if (Math.abs(x - run.dock.x) < box.hx + SUB_R * 2 && z > run.dock.z && z < run.dock.z + box.hz + 8) continue;
-      let hit = false;
-      for (const t of run.treasures) {
-         if (surfaceGap(t.x, t.z, box) < SOLID_CLEAR) hit = true;
-      }
-      const pass = SUB_R * 2 + 0.4;
-      for (const b of run.boxes) {
-         if (Math.abs(b.x - x) < b.hx + hx + pass && Math.abs(b.z - z) < b.hz + hz + pass) hit = true;
-      }
-      if (!hit) {
+      if (boxFits(run, box)) {
          run.boxes.push(box);
          return;
       }
+   }
+}
+
+/** Try a landmark spot; returns true when the box landed. */
+function tryLandmark(run: Run, kind: BoxSolid["kind"], x: number, z: number, hx: number, hz: number, rotY: number): boolean {
+   const box: BoxSolid = { kind, x, z, hx, hz, rotY };
+   if (!boxFits(run, box)) return false;
+   run.boxes.push(box);
+   return true;
+}
+
+/**
+ * Hand-authored wreck / column layouts for Sunken Ship and Deep Cave.
+ * Counts still match wreckCount / columnCount; leftovers fall back to placeBox so fairness holds.
+ * Shallow / Coral / Ruins keep the old random path (L1 never places either; L5 needs that RNG for its score proof).
+ */
+function placeThemeBoxes(run: Run, rng: () => number): void {
+   const theme = run.level.theme;
+   const needWreck = wreckCount(run.level);
+   const needCol = columnCount(run.level);
+   const { hx, hz } = halfExtents(run.level);
+
+   if (theme === "wreck") {
+      // long hull parked on the east flank — readable as the sunken ship, clear of the dock lane
+      tryLandmark(run, "wreck", hx * 0.55, hz * 0.15, 1.15, 2.5, Math.PI / 2);
+      tryLandmark(run, "column", -hx * 0.55, hz * 0.35, 1.2, 0.42, 0);
+   } else if (theme === "cave") {
+      // cave mouth on the far north edge: two side pillars and a lintel, wreck on the west wall
+      tryLandmark(run, "column", -hx * 0.55, hz * 0.72, 0.42, 1.2, Math.PI / 2);
+      tryLandmark(run, "column", hx * 0.55, hz * 0.72, 0.42, 1.2, Math.PI / 2);
+      tryLandmark(run, "column", 0, hz * 0.78, 1.2, 0.42, 0);
+      tryLandmark(run, "wreck", -hx * 0.58, hz * 0.05, 1.15, 2.5, Math.PI / 2);
+   }
+
+   let wrecks = run.boxes.filter((b) => b.kind === "wreck").length;
+   let cols = run.boxes.filter((b) => b.kind === "column").length;
+   while (wrecks < needWreck) {
+      const alongX = rng() > 0.5;
+      placeBox(run, "wreck", alongX ? 2.5 : 1.15, alongX ? 1.15 : 2.5, alongX ? 0 : Math.PI / 2, rng);
+      wrecks += 1;
+   }
+   while (cols < needCol) {
+      const alongX = cols % 2 === 0;
+      placeBox(run, "column", alongX ? 1.2 : 0.42, alongX ? 0.42 : 1.2, alongX ? 0 : Math.PI / 2, rng);
+      cols += 1;
    }
 }
 
@@ -324,13 +374,19 @@ export function createRun(seed: number, level: SubLevel = LEVELS[1]): Run {
    }
    pushTreasures(run);
 
-   for (let i = 0; i < wreckCount(level); i++) {
-      const alongX = rng() > 0.5;
-      placeBox(run, "wreck", alongX ? 2.5 : 1.15, alongX ? 1.15 : 2.5, alongX ? 0 : Math.PI / 2, rng);
-   }
-   for (let i = 0; i < columnCount(level); i++) {
-      const alongX = i % 2 === 0;
-      placeBox(run, "column", alongX ? 1.2 : 0.42, alongX ? 0.42 : 1.2, alongX ? 0 : Math.PI / 2, rng);
+   // L1/L2/L5 keep the old random boxes (L5's score proof needs the same RNG stream).
+   // L3 Sunken Ship and L4 Deep Cave get landmark wrecks / cave-mouth pillars.
+   if (level.theme === "wreck" || level.theme === "cave") {
+      placeThemeBoxes(run, rng);
+   } else {
+      for (let i = 0; i < wreckCount(level); i++) {
+         const alongX = rng() > 0.5;
+         placeBox(run, "wreck", alongX ? 2.5 : 1.15, alongX ? 1.15 : 2.5, alongX ? 0 : Math.PI / 2, rng);
+      }
+      for (let i = 0; i < columnCount(level); i++) {
+         const alongX = i % 2 === 0;
+         placeBox(run, "column", alongX ? 1.2 : 0.42, alongX ? 0.42 : 1.2, alongX ? 0 : Math.PI / 2, rng);
+      }
    }
 
    const addCircle = (kind: CircleSolid["kind"], r: number, lowOnly: boolean) => {
