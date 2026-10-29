@@ -74,7 +74,7 @@ export interface Sandbag {
 export interface Orb {
    id: number;
    link: number;
-   /** along the link (a high orb may sit past its end, over the gap) */
+   /** along the link (a high orb hangs over the start of the link after a gap) */
    s: number;
    /** a high orb hangs 1.8 m up: only a double jump (Nami) reaches it */
    high: boolean;
@@ -274,7 +274,7 @@ function level1(): Course {
          { link: rope, s: 4 },
          { link: beamB, s: 2 },
          { link: plank2, s: 3 },
-         { link: beamA, s: 5.5, high: true },
+         { link: beamB, s: 0.25, high: true },
       ],
       coins: [2, 3.5, 5, 6.5].map((s) => ({ link: rope, s })),
       ghost: { from: 4, side: -3 },
@@ -317,7 +317,7 @@ function level2(): Course {
          { link: dash, s: 6 },
          { link: beamB, s: 2.5 },
          { link: rope2, s: 4 },
-         { link: beamA, s: 6.55, high: true },
+         { link: beamB, s: 0.25, high: true },
       ],
       coins: [2, 4, 6, 8].map((s) => ({ link: rope1, s })).concat([2, 4, 6].map((s) => ({ link: rope2, s }))),
       ghost: { from: 11, side: 3 },
@@ -366,7 +366,7 @@ function level3(): Course {
          { link: beamA, s: 3 },
          { link: rope2, s: 6 },
          { link: plank, s: 2.5 },
-         { link: beamA, s: 6.5, high: true },
+         { link: beamB, s: 0.25, high: true },
       ],
       coins: [2, 4, 6].map((s) => ({ link: rope1, s })).concat([2, 4, 6, 8].map((s) => ({ link: rope2, s }))),
       ghost: { from: 13, side: -2.5 },
@@ -411,7 +411,7 @@ function level4(): Course {
          { link: rope1, s: 5 },
          { link: dash, s: 5 },
          { link: spin2, s: 4.5 },
-         { link: spinA, s: 7.5, high: true },
+         { link: beamB, s: 0.25, high: true },
       ],
       coins: [2, 4, 6, 8].map((s) => ({ link: rope1, s })).concat([2, 4, 6].map((s) => ({ link: rope2, s }))),
       ghost: { from: 11, side: 3 },

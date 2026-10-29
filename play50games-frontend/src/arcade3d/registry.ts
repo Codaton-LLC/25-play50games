@@ -69,6 +69,7 @@ import { colorCitySprintMeta } from "./games/color-city-sprint/meta";
 import { templeLanternJumpMeta } from "./games/temple-lantern-jump/meta";
 import { dragonCaveRushMeta } from "./games/dragon-cave-rush/meta";
 import { skyHookSwingMeta } from "./games/sky-hook-swing/meta";
+import { tightropePathMeta } from "./games/tightrope-path/meta";
 
 export const ARCADE_GAMES: ArcadeGameMeta[] = [
    robotCollectorMeta,
@@ -137,6 +138,7 @@ export const ARCADE_GAMES: ArcadeGameMeta[] = [
    dragonCaveRushMeta,
    colorDoorSprintMeta,
    skyHookSwingMeta,
+   tightropePathMeta,
 ].sort((a, b) => a.order - b.order);
 
 export function getGameMeta(slug: string): ArcadeGameMeta | undefined {

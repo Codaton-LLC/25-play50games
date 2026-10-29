@@ -1198,6 +1198,22 @@
         { "title": "Laser Line", "max_score": 12910, "min_duration_ms": 10900, "max_duration_ms": 140000, "time_base_ms": 140000 },
         { "title": "Factory Overdrive", "max_score": 22490, "min_duration_ms": 15100, "max_duration_ms": 240000, "time_base_ms": 240000 }
       ]
+    },
+    "tightrope-path": {
+      "title": "Tightrope Path",
+      "kind": "time",
+      "max_score": 13610,
+      "min_duration_ms": 13900,
+      "max_duration_ms": 150000,
+      "time_base_ms": 150000,
+      "enabled": false,
+      "levels": [
+        { "title": "Wide Beams", "max_score": 13610, "min_duration_ms": 13900, "max_duration_ms": 150000, "time_base_ms": 150000 },
+        { "title": "Narrow Beams", "max_score": 18410, "min_duration_ms": 15900, "max_duration_ms": 200000, "time_base_ms": 200000 },
+        { "title": "Moving Beams", "max_score": 22060, "min_duration_ms": 19400, "max_duration_ms": 240000, "time_base_ms": 240000 },
+        { "title": "Rotating Path", "max_score": 25990, "min_duration_ms": 20100, "max_duration_ms": 280000, "time_base_ms": 280000 },
+        { "title": "Balance Master", "max_score": 33960, "min_duration_ms": 20400, "max_duration_ms": 360000, "time_base_ms": 360000 }
+      ]
     }
   }
 }

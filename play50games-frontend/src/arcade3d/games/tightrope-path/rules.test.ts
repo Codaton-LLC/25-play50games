@@ -193,12 +193,12 @@ describe("gaps and jumps", () => {
       for (const hero of ["nami", "kiro"] as const) {
          const run = createRun(1, 1, hero);
          const o = run.course.orbs.find((q) => q.high)!;
-         const l = run.course.links[o.link];
-         place(run, o.link, l.len);
+         const l = run.course.links[run.course.links[o.link].prev];
+         place(run, l.id, l.len);
          step(run, 1, { ...along(run, 0), jumpPressed: true });
          let jumped2 = false;
          for (let i = 0; i < 1500 && (run.hero.air || i < 5); i++) {
-            const second = hero === "nami" && !jumped2 && run.hero.vy < 0.6;
+            const second = hero === "nami" && !jumped2 && run.hero.vy < 2.5;
             if (second) jumped2 = true;
             step(run, 1, { ...along(run, 0), jumpPressed: second });
          }

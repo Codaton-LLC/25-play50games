@@ -300,6 +300,13 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/color-city-sprint/m2PastelCityBg.glb",
    "/models/3d/color-city-sprint/m2StreetJumpRamp.glb",
    "/models/3d/color-city-sprint/m2TrafficCone.glb",
+   // Tightrope Path (Menu 2 #47): beam, pole, tower, raft, rock pillar, sandbag
+   "/models/3d/tightrope-path/m2BalanceBeam.glb",
+   "/models/3d/tightrope-path/m2BalancePole.glb",
+   "/models/3d/tightrope-path/m2LookoutTower.glb",
+   "/models/3d/tightrope-path/m2RaftPlatform.glb",
+   "/models/3d/tightrope-path/m2RockPillarBg.glb",
+   "/models/3d/tightrope-path/m2SwingSandbag.glb",
    // P-121 dev adoptions (2026-10-25): V2 replacements and Group D variety whose QA verdict
    // starts with OK. Optimized GLBs copied in; not re-optimized. Live games are untouched.
    "/models/3d/shopping-cart/supermarketShelfV2.glb",
