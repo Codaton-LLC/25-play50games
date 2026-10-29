@@ -136,41 +136,30 @@
 
 .instructions {
    margin: 0 0 16px;
-   padding-left: 1.2em;
+   padding: 0;
+   list-style: none;
    line-height: 1.55;
 }
 
+/* accent dashes instead of bullets */
+.instructions li {
+   position: relative;
+   padding-left: 18px;
+}
+
+.instructions li::before {
+   content: "";
+   position: absolute;
+   top: 0.72em;
+   left: 0;
+   width: 8px;
+   height: 3px;
+   border-radius: 2px;
+   background: var(--game-accent);
+}
+
 .instructions li + li {
-   margin-top: 4px;
-}
-
-.controls {
-   display: grid;
-   gap: 8px;
-   margin: 0 0 16px;
-   padding: 12px 14px;
-   border: 1px solid var(--stroke);
-   border-radius: 12px;
-   background: var(--card);
-   font-size: 14px;
-   line-height: 1.45;
-}
-
-.controls dt {
-   color: var(--text);
-   font-size: 11px;
-   font-weight: 700;
-   letter-spacing: 0.08em;
-   text-transform: uppercase;
-}
-
-.controls dd {
-   margin: 2px 0 0;
-   color: var(--muted);
-}
-
-.controlDim {
-   opacity: 0.6;
+   margin-top: 6px;
 }
 
 .best {
@@ -434,6 +423,19 @@
    text-transform: uppercase;
 }
 
+/* phones: the chip labels were 10px; 12px keeps Score / Time / Level / Lives readable (390 x 844 checked) */
+@media (max-width: 640px) {
+   .chipLabel {
+      font-size: 12px;
+      letter-spacing: 0.04em;
+   }
+
+   .chip {
+      min-width: 54px;
+      padding: 4px 8px;
+   }
+}
+
 .chipValue {
    font-size: 16px;
    font-weight: 800;
@@ -558,7 +560,7 @@
    }
 }
 
-/* short screens (landscape phones): a tighter card, only the controls of this device, and the
+/* short screens (landscape phones): a tighter card (howto/HowTo.module.css tightens the controls), and the
    pause / error buttons side by side, so the title, the first lines and the buttons fit at once */
 @media (max-height: 520px) {
    .panel {
@@ -579,13 +581,8 @@
 
    .tagline,
    .instructions,
-   .controls,
    .best {
       margin-bottom: 12px;
-   }
-
-   .controlDim {
-      display: none;
    }
 }
 

@@ -49,6 +49,41 @@ export const dinoEggRescueMeta: ArcadeGameMeta = {
       keyboard: "WASD / arrows to move, Space or E to dash",
       touch: "Joystick to move, tap Dash to dash",
    },
+   howTo: {
+      keys: [
+         { id: "move", keys: ["WASD", "Arrows"], label: "Waddle", main: true, role: "move" },
+         { id: "dash", keys: ["Space", "E"], label: "Dash", main: true },
+      ],
+      touch: [
+         { id: "joystick", control: "joystick", label: "Waddle" },
+         { id: "dash", control: "action", label: "Dash" },
+      ],
+      steps: [
+         { title: "Goal", text: "Gather the runaway eggs and carry them back to your nest in the south-east." },
+         {
+            title: "Waddle",
+            text: "Use WASD or the arrow keys to waddle.",
+            touchText: "Push the joystick to waddle.",
+            keys: ["move"],
+            touch: ["joystick"],
+         },
+         {
+            title: "Dash",
+            text: "Press Space or E for a burst of speed.",
+            touchText: "Tap Dash for a burst of speed.",
+            keys: ["dash"],
+            touch: ["dash"],
+         },
+         { title: "Watch out", text: "Each carried egg slows you down. Dodge rolling boulders and sticky mud pits." },
+         {
+            title: "Tips",
+            text: "Golden eggs score extra: grab them on the way home. Esc or P pauses.",
+            touchText: "Golden eggs score extra: grab them on the way home. Tap Pause, top right, to stop.",
+            keys: ["pause"],
+            touch: ["pause"],
+         },
+      ],
+   },
    scoring: SCORING_L1,
    levels: LEVELS,
    thumbnail: "/images/3d/dino-egg-rescue.webp",

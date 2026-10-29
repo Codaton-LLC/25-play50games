@@ -19,7 +19,7 @@ import { useFrame } from "@react-three/fiber";
 import { InstancedModel } from "@/arcade3d/core/assets";
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import { Instanced, useCanvasTexture } from "@/arcade3d/core/render";
-import { ASSETS } from "./assets";
+import { ASSETS, HAZARD_BEACON_SPOTS } from "./assets";
 import { BELTS, BELT_HALF_WIDTH, SLOW_ZONES, type Belt, type RobotLevel } from "./levels";
 import { ARENA, BARREL_RADIUS, CRATE_SIZE, ROBOT_START, type Prop } from "./rules";
 
@@ -51,6 +51,9 @@ export const COLORS = {
    oilGlow: "#6d28d9",
    belt: "#1f2937",
    beltArrow: "#facc15",
+   /** the levels 4-5 wall-trim beacons: amber base, glowing dome */
+   beacon: "#f59e0b",
+   beaconLight: "#fbbf24",
 } as const;
 
 // ---------- the warehouse (static) ----------
@@ -253,6 +256,43 @@ function BarrelStandIns({ spots }: { spots: PropSpots }) {
          <Instanced spots={spots.barrelRings}>
             <cylinderGeometry args={[BARREL_RADIUS, BARREL_RADIUS, 0.07, 20]} />
             <meshStandardMaterial color={COLORS.barrelRing} roughness={0.3} metalness={0.3} />
+         </Instanced>
+      </>
+   );
+}
+
+// ---------- hazard beacons (levels 4-5 decor) ----------
+
+/** The trim top the beacons stand on (WALL.height + the trim strip's 0.08 height, TRIM_SPOTS above). */
+const TRIM_TOP = WALL.height + 0.08;
+
+/**
+ * Levels 4-5 decor (Scene.tsx gates it on the level id): a hazard beacon on each wall's trim
+ * (assets.ts HAZARD_BEACON_SPOTS), outside the play area. Instanced like the crates, with the
+ * amber stand-in until the GLB loads.
+ */
+export function HazardBeacons() {
+   const spots = useMemo(() => HAZARD_BEACON_SPOTS.map((s) => ({ x: s.x, y: TRIM_TOP, z: s.z, rotY: s.rotY })), []);
+   return (
+      <group name="hazard-beacons">
+         <InstancedModel asset={ASSETS.hazardBeacon} spots={spots} fallback={<BeaconStandIns spots={spots} />} />
+      </group>
+   );
+}
+
+/** Stand-in beacons: an amber base with a glowing dome, one InstancedMesh each. */
+function BeaconStandIns({ spots }: { spots: readonly { x: number; y: number; z: number }[] }) {
+   const bases = spots.map((s) => ({ x: s.x, y: s.y + 0.12, z: s.z }));
+   const domes = spots.map((s) => ({ x: s.x, y: s.y + 0.3, z: s.z }));
+   return (
+      <>
+         <Instanced spots={bases}>
+            <cylinderGeometry args={[0.21, 0.23, 0.24, 16]} />
+            <meshStandardMaterial color={COLORS.beacon} roughness={0.5} />
+         </Instanced>
+         <Instanced spots={domes}>
+            <sphereGeometry args={[0.14, 16, 12]} />
+            <meshStandardMaterial color={COLORS.beaconLight} emissive={COLORS.beacon} emissiveIntensity={1.6} roughness={0.3} />
          </Instanced>
       </>
    );

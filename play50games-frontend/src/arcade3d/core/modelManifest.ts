@@ -22,6 +22,7 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/food-catcher/apple.glb",
    "/models/3d/food-catcher/burger.glb",
    "/models/3d/food-catcher/sock.glb",
+   "/models/3d/food-catcher/kitchenRangeOven.glb",
    "/models/3d/warehouse-rush/shelfRack.glb",
    "/models/3d/warehouse-rush/pallet.glb",
    "/models/3d/obstacle-race/finishArch.glb",
@@ -36,11 +37,14 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/pigeon-crossing/car.glb",
    "/models/3d/pigeon-crossing/taxi.glb",
    "/models/3d/pigeon-crossing/van.glb",
+   "/models/3d/clean-city/festivalStall.glb",
    "/models/3d/clean-city/bottle.glb",
    "/models/3d/clean-city/bag.glb",
    "/models/3d/escape-room/key.glb",
    "/models/3d/escape-room/book.glb",
    "/models/3d/escape-room/door.glb",
+   "/models/3d/escape-room/stoveT.glb",
+   "/models/3d/escape-room/shipConsole.glb",
    "/models/3d/tower-climb/checkpoint-flag.glb",
    // group D props (2026-10-07): image-to-3D from concepts (tools/hyper3d/concepts), Gen-2.5-Medium,
    // 1000-3000 tris. finishArch.glb (listed above) is replaced in place by the single-arch v2. The
@@ -81,11 +85,14 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/ghost-vacuum/vacuum.glb",
    "/models/3d/knight-arena/dummy.glb",
    "/models/3d/castle-defender/goblin.glb",
+   "/models/3d/castle-defender/royalThrone.glb",
+   "/models/3d/castle-defender/siegeCatapultT.glb",
    "/models/3d/alien-farm/glowPod.glb",
    "/models/3d/zoo-escape/panda.glb",
    // expansion tier 3 (2026-10-08): class E decor, Rodin Gen-2.5-Medium text-to-3D, 1500-3000 tris, 512 px
    // (shared rock and luggage-rush suitcase were regenerated as v2 in place, same urls)
    "/models/3d/museum-guard/bust.glb",
+   "/models/3d/museum-guard/sarcophagusT.glb",
    "/models/3d/shared/mushroom.glb",
    "/models/3d/luggage-rush/plane.glb",
    "/models/3d/treasure-island/crab.glb",
@@ -108,6 +115,7 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/castle-defender/siegeLadder.glb",
    "/models/3d/knight-arena/sword.glb",
    "/models/3d/knight-arena/shield.glb",
+   "/models/3d/knight-arena/trainingDummyT.glb",
    "/models/3d/alien-farm/ufo.glb",
    "/models/3d/space-repair/stationModule.glb",
    // space-repair decor (2026-10-25): comms dish prop for levels 4-5 (External Platform /
@@ -823,6 +831,26 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/wall-run-temple/m2TempleWallV2.glb",
    "/models/3d/wall-run-temple/m2WallRunMarker.glb",
    "/models/3d/wall-run-temple/m2WallSpikePanel.glb",
+   // office-escape exec decor (2026-10-25): batch 5 extra GLB, adopted as corridor decor drawn only
+   // on levels 4-5 (games/office-escape/assets.ts, Scene.tsx)
+   "/models/3d/office-escape/execDesk.glb",
+   // robot-collector hazard beacon (2026-10-25): Hyper3D prop copied in by Claude; decor on the
+   // wall trim of levels 4-5 (Dark Storage / Mega Warehouse), adopted in games/robot-collector
+   "/models/3d/robot-collector/hazardBeacon.glb",
+   // pigeon-crossing night decor (2026-10-25): batch 5 street props (Gen-2.5-Medium, 1500 / 3000
+   // tris), optimized GLBs copied in; dressing for levels 4 (Night Traffic) and 5 (Rush Hour) only,
+   // fitted and placed in games/pigeon-crossing (assets.ts, Decor.tsx)
+   "/models/3d/pigeon-crossing/streetLampNight.glb",
+   "/models/3d/pigeon-crossing/rushTaxi.glb",
+   // tower-climb storm decor (2026-10-25): batch 5 part B adoption, Gen-2.5-Medium, optimized GLB;
+   // frames levels 4-5 (Storm Tower, Sky Tower) beside the column. Fit in games/tower-climb/assets.ts.
+   "/models/3d/tower-climb/stormCloud.glb",
+   // penalty-hero finalTrophy (2026-10-25): the final's presentation cup (text-to-3D batch, optimized);
+   // level 4-5 decor behind the goal, placed in games/penalty-hero/assets.ts
+   "/models/3d/penalty-hero/finalTrophy.glb",
+   // warehouse-rush forkliftTruck (2026-10-25): parked-yard decor for levels 4-5 only (drawn there
+   // only); the fit lives in games/warehouse-rush/assets.ts
+   "/models/3d/warehouse-rush/forkliftTruck.glb",
    // Menu 1 firefighter-rescue (2026-10-28): the ready menu1-firefighter-rescue GLBs (exitSignV2, not
    // exitSign; not the older firefighter-rescue/hero.glb), plus the shared ready cabinet; fits in
    // games/firefighter-rescue/assets.ts (assets.test.ts). The firefighter is auto-rigged.

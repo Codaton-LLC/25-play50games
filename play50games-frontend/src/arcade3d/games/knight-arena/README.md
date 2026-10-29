@@ -192,3 +192,10 @@ OPEN QUESTIONS:
 - Level 5 has no clearScore. 6400 is only the test's winnability target.
 - The human rate is 10/10 on these 10 seeds, not a 200-seed sweep. The 200-seed level-1 store proof stays in rules.test.ts.
 ```
+
+
+## Clarity
+
+The existing Scene-exported HUD now includes a safe-area HintLine with direction, wait/strike beat window, combo, tomato warning and spin readiness. A TargetBeacon follows the earliest visible pending non-tomato cue; existing score pops remain, with tomato, whiff and missed-beat failure pops added. No item hand-off occurs, so no Toss is needed. Check by eye: near/far cues, double/shield beats, tomatoes, spin readiness and the panel on 390px portrait / short landscape.
+
+Visuals only: guide helpers read the run without mutation; guide tests compare JSON before/after on all five levels. Rules, score calculations and level configuration are unchanged. Shared HintLine uses 13px phone text and reserves space above touch controls; existing HUD text is at least 12px.

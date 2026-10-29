@@ -2,6 +2,8 @@
 
 // Radar over the canvas. Shapes, not colour alone. Updated from the live run, no setState per frame.
 import { useEffect, useRef } from "react";
+import { HintLine } from "@/arcade3d/core/hud/HintLine";
+import { GUIDE } from "./guide";
 import { COLORS } from "./looks";
 import { liveRun, type ExhibitKind, type Run } from "./rules";
 import { useMuseumLevel } from "./useMuseumLevel";
@@ -67,6 +69,8 @@ export default function Hud() {
    }, []);
 
    return (
+      <>
+      <HintLine signal={GUIDE} />
       <aside className={styles.radar} style={{ color: COLORS.hud }} data-arcade-safe-area aria-label="Statue radar">
          <svg viewBox="0 0 100 100" aria-hidden="true">
             <circle cx="50" cy="50" r="46" fill="none" stroke={COLORS.accent} strokeOpacity="0.35" strokeWidth="1" />
@@ -80,5 +84,6 @@ export default function Hud() {
             <circle cx="50" cy="50" r="2.2" fill={COLORS.hud} />
          </svg>
       </aside>
+      </>
    );
 }

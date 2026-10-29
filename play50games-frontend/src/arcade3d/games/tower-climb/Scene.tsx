@@ -3,11 +3,15 @@
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { PerspectiveCamera, Vector3, type Group, type Matrix4, type Mesh } from "three";
+import { useCameraViews } from "@/arcade3d/core/camera/CameraViews";
+import { useCameraZoom } from "@/arcade3d/core/useCameraZoom";
+import { CAMERA_VIEWS, phoneOffset } from "./cameraViews";
 import CameraRig from "@/arcade3d/core/CameraRig";
 import { DynamicInstancedModel } from "@/arcade3d/core/assets";
 import { playSfx } from "@/arcade3d/core/audio";
 import { FRAME_PRIORITY } from "@/arcade3d/core/frameLoop";
 import { useFx } from "@/arcade3d/core/fx/FxLayer";
+import { useActionPop } from "@/arcade3d/core/fx";
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import { useInput } from "@/arcade3d/core/input";
 import { useLevel } from "@/arcade3d/core/level";
@@ -21,13 +25,13 @@ import {
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useFittedView } from "@/arcade3d/core/useFittedView";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
-import { ASSETS, RUNNER_SCALE } from "./assets";
+import { ASSETS, RUNNER_SCALE, STORM_CLOUD_SPOTS } from "./assets";
 import { AREA, FOLLOW_DAMPING, FOV, LOOK_AT, VIEW } from "./camera";
 import type { TowerLevel } from "./levels";
 import { RUNNER_ORDER, RunnerPrimitive, useTowerParts, type TowerParts } from "./Primitives";
-import { CHECKPOINT, MOVING, NONE, POOLS, ROCKET, ROCKET_CAP, RUNNER, SPRING_CAP, STATIC, WIND, WIND_CAP, createRun, createStepInput, readStepInput, step, type TowerRun } from "./rules";
+import { CHECKPOINT, COIN_POINTS, MOVING, NONE, POOLS, ROCKET, ROCKET_CAP, RUNNER, SPRING_CAP, STATIC, WIND, WIND_CAP, createRun, createStepInput, readStepInput, step, type TowerRun } from "./rules";
 import { createRunnerGait, stepRunnerGait } from "./runnerGait";
-import { createVisualState, runnerFootY, writeCoin, writeFlag, writeRocket, writeSection, writeSlab, writeSpring, writeSpur, writeWind, type VisualState } from "./visuals";
+import { createVisualState, runnerFootY, writeCoin, writeFlag, writeRocket, writeSection, writeSlab, writeSpring, writeSpur, writeStormCloud, writeWind, type VisualState } from "./visuals";
 
 export const useTowerLevel = () => useLevel<TowerLevel>();
 
@@ -38,10 +42,13 @@ const subscribeMotion = (changed: () => void) => {
 };
 const readMotion = () => window.matchMedia(MOTION_QUERY).matches;
 const noMotion = () => false;
+/** The coin pop text, built once (the frame callbacks allocate nothing). */
+const COIN_POP = `+${COIN_POINTS}`;
 
 const Simulation = memo(function Simulation({ run, visual }: { run: TowerRun; visual: VisualState }) {
    const input = useInput();
    const fx = useFx();
+   const pop = useActionPop();
    const [controls] = useState(createStepInput);
    const [fxPos] = useState(() => new Vector3());
    useEffect(() => { fx.warm("puff", "sparks", "confetti"); }, [fx]);
@@ -51,7 +58,11 @@ const Simulation = memo(function Simulation({ run, visual }: { run: TowerRun; vi
       if (events.delta) store.addScore(events.delta);
       if (events.height !== NONE) store.setStat("height", events.height);
       if (events.jumped) playSfx("jump");
-      if (events.coin !== NONE) playSfx("pickup");
+      if (events.coin !== NONE) {
+         playSfx("pickup");
+         fxPos.set(run.player.x, run.player.y + 1.2, 0);
+         pop.good(fxPos, COIN_POP);
+      }
       if (events.checkpoint !== NONE) {
          visual.checkpointMs = run.timeMs;
          store.setStat("checkpoint", events.checkpoint);
@@ -76,7 +87,12 @@ const Simulation = memo(function Simulation({ run, visual }: { run: TowerRun; vi
          fxPos.set(run.player.x, run.player.y + 0.2, -0.12);
          fx.burst("sparks", fxPos, 5);
       }
-      if (events.hit) { store.setStat("fallen", 1); playSfx("hit"); }
+      if (events.hit) {
+         store.setStat("fallen", 1);
+         playSfx("hit");
+         fxPos.set(run.player.x, run.player.y + 1.2, 0);
+         pop.fail(fxPos, "You fell!");
+      }
       if (events.ended) store.end(events.ended);
    });
    return null;
@@ -84,12 +100,30 @@ const Simulation = memo(function Simulation({ run, visual }: { run: TowerRun; vi
 
 const TowerCamera = memo(function TowerCamera({ run }: { run: TowerRun }) {
    const view = useFittedView(VIEW);
+   const aspect = useThree((s) => s.size.width / s.size.height);
+   const portrait = aspect < 1;
+   const offset = phoneOffset(view.offset, aspect);
+   const zoom = useCameraZoom({ min: 1.3 / Math.hypot(...offset), max: Math.max(1, 2 * view.distance / Math.hypot(...offset)) });
+   useEffect(() => { zoom.current = 1; }, [portrait, zoom]);
+   const [target] = useState(() => ({ x: 0, y: 0, z: 0 }));
+   useFrame(() => {
+      target.x = run.player.x;
+      target.y = run.player.y + RUNNER.height / 2;
+   }, FRAME_PRIORITY.camera - 0.01);
+   useCameraViews({
+      slug: "tower-climb", subject: "character", steering: "camera", defaultYaw: view.yaw,
+      views: CAMERA_VIEWS, framing: { top: { distance: 5, lookUp: 0 } },
+      target: (o) => {
+         o.x = run.player.x; o.y = run.player.y + RUNNER.height / 2; o.z = 0;
+         o.heading = 0; o.vx = 0; o.vz = 0;
+      },
+   });
    const active = useThree(s => s.camera);
    useLayoutEffect(() => {
       if (active instanceof PerspectiveCamera) { active.near = 0.1; active.far = 400; active.updateProjectionMatrix(); }
    }, [active]);
-   const camera = useMemo(() => ({ position: view.offset, lookAt: LOOK_AT, fov: FOV }), [view.offset]);
-   return <CameraRig camera={camera} follow={run.cameraTarget} followFraction={1} offset={view.offset} shift={view.shift} damping={FOLLOW_DAMPING} />;
+   const camera = useMemo(() => ({ position: offset, lookAt: LOOK_AT, fov: FOV }), [offset[0], offset[1], offset[2]]);
+   return <CameraRig camera={camera} follow={aspect < 1 ? target : run.cameraTarget} followFraction={1} offset={offset} zoom={zoom} shift={view.shift} damping={FOLLOW_DAMPING} />;
 });
 
 const SlabPool = memo(function SlabPool({ run, kind, parts }: { run: TowerRun; kind: number; parts: TowerParts }) {
@@ -156,6 +190,19 @@ const WindGusts = memo(function WindGusts({ run, parts }: { run: TowerRun; parts
       writeWind(matrix, side * (WIND.xInner + 0.12), y, side < 0);
    }, [run]);
    return <DynamicInstanced count={WIND_CAP} update={update} parts={parts.wind} name="wind-gusts" />;
+});
+
+/**
+ * The storm clouds of levels 4-5 (Storm Tower, Sky Tower): side decor only. Every spot sits
+ * outside the camera guard box (assets.ts STORM_CLOUD_SPOTS), sinking slowly down a 6 m band above
+ * the danger line and wrapping to the top; visual time only, never any gameplay state.
+ */
+const StormClouds = memo(function StormClouds({ run, parts, reduced }: { run: TowerRun; parts: TowerParts; reduced: boolean }) {
+   const time = useGameTime();
+   const update = useCallback((i: number, matrix: Matrix4) =>
+      writeStormCloud(STORM_CLOUD_SPOTS[i], i, run.viewBottomY, time.now, reduced, matrix), [run, time, reduced]);
+   return <DynamicInstancedModel asset={ASSETS.stormCloud} count={STORM_CLOUD_SPOTS.length} update={update}
+      fallbackParts={parts.stormCloud} name="storm-clouds" />;
 });
 
 const Tower = memo(function Tower({ run, parts }: { run: TowerRun; parts: TowerParts }) {
@@ -334,6 +381,7 @@ function LevelScene() {
          {run.springCount > 0 && <SpringPads run={run} parts={parts} />}
          {run.rocketCount > 0 && <Rockets run={run} parts={parts} />}
          {run.windCount > 0 && <WindGusts run={run} parts={parts} />}
+         {(config.id === 4 || config.id === 5) && <StormClouds run={run} parts={parts} reduced={reduced} />}
          <Runner run={run} visual={visual} parts={parts} />
          <DangerStrip run={run} />
          {process.env.NODE_ENV !== "production" && <FitProbe run={run} />}

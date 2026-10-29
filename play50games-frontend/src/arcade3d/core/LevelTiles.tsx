@@ -29,9 +29,12 @@ function isEditable(target: EventTarget | null): boolean {
    return target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.tagName === "SELECT" || target.isContentEditable;
 }
 
-/** A word longer than a narrow tile holds at the normal size (LevelTiles.module.css `.title[data-long]`). */
+/**
+ * A word longer than a narrow tile holds at the normal size (LevelTiles.module.css `.title[data-long]`).
+ * A hyphen is a line break, so "Closing-Time Rush" wraps at it and keeps the normal size.
+ */
 export const LONG_WORD = 11;
-export const hasLongWord = (title: string): boolean => title.split(/\s+/).some((word) => word.length >= LONG_WORD);
+export const hasLongWord = (title: string): boolean => title.split(/[\s\-‐]+/).some((word) => word.length >= LONG_WORD);
 
 /** The unlock hint of a locked level: "Clear level 2 to unlock". */
 export const unlockHint = (id: LevelId): string => `Clear level ${id - 1} to unlock`;

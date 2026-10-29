@@ -18,7 +18,7 @@ export const officeEscapeMeta: ArcadeGameMeta = {
    slug: "office-escape",
    title: "Office Escape",
    tagline: "Late for the meeting. Run!",
-   description: "Sprint through the office, jump desks and dodge chairs. It gets faster every 20 seconds.",
+   description: "Sprint through the office, jump desks and dodge rolling chairs on the way to the big meeting. It gets faster every 20 seconds.",
    order: 3,
    status: "live",
    difficulty: 1,
@@ -27,6 +27,40 @@ export const officeEscapeMeta: ArcadeGameMeta = {
       scheme: "runner",
       keyboard: "Left / right to change lane, Space to jump",
       touch: "Swipe left / right, swipe up to jump"
+   },
+   howTo: {
+      keys: [
+         { id: "lane", keys: ["Left/Right"], label: "Change lane", main: true, role: "move" },
+         { id: "jump", keys: ["Space"], label: "Jump", main: true },
+      ],
+      touch: [
+         { id: "swipe", control: "swipe", label: "Swipe left / right / up" },
+      ],
+      steps: [
+         { title: "Goal", text: "Run as far as you can through the office. 1 point per metre, +50 per coin." },
+         {
+            title: "Change lane",
+            text: "Left / Right switch lanes.",
+            touchText: "Swipe left or right to switch lanes.",
+            keys: ["lane"],
+            touch: ["swipe"],
+         },
+         {
+            title: "Jump",
+            text: "Space jumps desks, printers and boxes.",
+            touchText: "Swipe up to jump desks, printers and boxes.",
+            keys: ["jump"],
+            touch: ["swipe"],
+         },
+         { title: "Watch out", text: "Chairs, carts and water coolers: one hit ends the run. It gets faster every 20 s." },
+         {
+            title: "Tips",
+            text: "Grab the coin lines: they are worth more on later levels. Esc or P pauses.",
+            touchText: "Grab the coin lines: they are worth more on later levels. Tap Pause, top right, to stop.",
+            keys: ["pause"],
+            touch: ["pause"],
+         },
+      ],
    },
    scoring: {
       kind: "points",

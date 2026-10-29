@@ -1,11 +1,11 @@
 // The auto-rig on the real cleaner (public/models/3d/clean-city/cleaner.glb, 2026-10-08): the
 // measured CLEANER_LANDMARKS match what the heuristics find, its poses keep the feet on the floor,
 // the hands clear of the hips and the bearded head rigid (core/rig/characterChecks.ts); its scale
-// keeps it 0.95 tall. A new cleaner.glb must be re-measured. Then the game's own use of it on the
+// keeps it 1.75 tall (real-world scale, 1 unit = 1 m; it was 0.95). A new cleaner.glb must be re-measured. Then the game's own use of it on the
 // same mesh: the pickup's stoop (pickup.ts) and the cheer keep it above the floor, the reaching hand
 // goes towards the piece and the head comes down, and through the gait (gait.ts)
 // the soles of the planted foot stay put at a walk and at the top-speed run (net over a stance;
-// within a walking stance they rock up to 2 cm, at a run under 4 mm).
+// within a walking stance they rock up to 3.3 cm, at a run under 8 mm, on the 1.75 cleaner).
 import { beforeAll, describe, expect, it } from "vitest";
 import { Vector3 } from "three";
 import { POSE_MASK, applyHumanoidPose, armsDownPose, blendPoses, bodyLift, cheerPose, createPose, idlePose, walkPose } from "@/arcade3d/core/rig";
@@ -36,9 +36,9 @@ describe("clean-city cleaner.glb", () => {
       hipHalfWidth: 0.25,
    });
 
-   it("its scale draws it 0.95 tall (the shared runner it replaced: 0.95), the same everywhere the rules measure it", () => {
+   it("its scale draws it 1.75 tall (an adult at 1 unit = 1 m; it was 0.95, the shared runner it replaced), the same everywhere the rules measure it", () => {
       expect(CLEANER_SCALE).toBe(ASSETS.cleaner.scale);
-      expect(1.9022 * CLEANER_SCALE).toBeCloseTo(0.95, 3);
+      expect(1.9022 * CLEANER_SCALE).toBeCloseTo(1.75, 3);
    });
 
    it("no cloth bridges the legs (hemY = crotchY: the vest ends at the hips; the cargo thighs are not a skirt)", () => {
@@ -221,8 +221,9 @@ describe("clean-city cleaner as the Scene drives it (cleaner.glb)", () => {
       }
    });
 
-   it("within a stance the planted sole gets under 3 cm from where it touched down at a walk (1 and 2 u/s: it rocks forward, then back) and under 6 mm at a run (3.5 and 5 u/s)", () => {
-      for (const v of [1, 2]) expect(slideAt(v).maxDrift, `v ${v}`).toBeLessThan(0.03);
-      for (const v of [3.5, 5]) expect(slideAt(v).maxDrift, `v ${v}`).toBeLessThan(0.006);
+   it("within a stance the planted sole gets under 3.6 cm from where it touched down at a walk (1 and 2 u/s: it rocks forward, then back) and under 8 mm at a run (3.5 and 5 u/s; the 0.95 cleaner: 3 cm and 6 mm)", () => {
+      // on the 1.75 cleaner (the 0.95 one: under 3 cm)
+      for (const v of [1, 2]) expect(slideAt(v).maxDrift, `v ${v}`).toBeLessThan(0.036);
+      for (const v of [3.5, 5]) expect(slideAt(v).maxDrift, `v ${v}`).toBeLessThan(0.008);
    });
 });

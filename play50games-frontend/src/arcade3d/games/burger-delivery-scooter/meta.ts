@@ -36,6 +36,48 @@ export const burgerDeliveryScooterMeta: ArcadeGameMeta = {
       keyboard: "W / Up accelerate, S / Down brake or reverse, A / D steer, Space hop",
       touch: "Joystick to accelerate, brake and steer. Hop clears barriers.",
    },
+   howTo: {
+      keys: [
+         { id: "gas", keys: ["W", "Up"], label: "Accelerate", main: true, role: "move" },
+         { id: "brake", keys: ["S", "Down"], label: "Brake / reverse", role: "move" },
+         { id: "steer", keys: ["A/D", "Left/Right"], label: "Steer", role: "move" },
+         { id: "hop", keys: ["Space"], label: "Hop", main: true },
+      ],
+      touch: [
+         { id: "joystick", control: "joystick", label: "Drive & steer" },
+         { id: "hop", control: "jump", label: "Hop" },
+      ],
+      steps: [
+         { title: "Goal", text: "Pick up burgers at the shop and deliver them hot to the green door rings." },
+         {
+            title: "Ride",
+            text: "W or Up accelerates, S or Down brakes and reverses, A / D steer.",
+            touchText: "Push the joystick up to go, down to brake, left and right to steer.",
+            keys: ["gas", "brake", "steer"],
+            touch: ["joystick"],
+         },
+         {
+            title: "Stop to load and drop",
+            text: "Stop on the pink ring at the shop to load, then stop inside the green door ring for 0.45 s.",
+            keys: ["brake"],
+            touch: ["joystick"],
+         },
+         {
+            title: "Hop",
+            text: "Press Space to hop over barriers. Hits and dark wet patches spoil quality: three spoiled orders end the run.",
+            touchText: "Tap Hop to clear barriers. Hits and dark wet patches spoil quality: three spoiled orders end the run.",
+            keys: ["hop"],
+            touch: ["hop"],
+         },
+         {
+            title: "Tips",
+            text: "Fast drops score more: +40 quality within 25 seconds. Esc or P pauses.",
+            touchText: "Fast drops score more: +40 quality within 25 seconds. Tap Pause, top right, to stop.",
+            keys: ["pause"],
+            touch: ["pause"],
+         },
+      ],
+   },
    scoring: LIMITS[0],
    levels: LEVELS,
    thumbnail: "/images/3d/burger-delivery-scooter.webp",

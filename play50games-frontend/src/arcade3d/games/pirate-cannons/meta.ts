@@ -43,6 +43,41 @@ export const pirateCannonsMeta: ArcadeGameMeta = {
       keyboard: "Drag to aim, release to fire, click to fire again; or arrows + Space",
       touch: "Drag to aim, release to fire, tap to fire again",
    },
+   howTo: {
+      keys: [
+         { id: "drag", keys: ["Mouse"], label: "Drag to aim", main: true, role: "pointer" },
+         { id: "aim", keys: ["Arrows"], label: "Aim", role: "move" },
+         { id: "fire", keys: ["Space"], label: "Fire", main: true },
+      ],
+      touch: [
+         { id: "drag", control: "drag", label: "Drag to aim, release to fire" },
+      ],
+      steps: [
+         { title: "Goal", text: "Sink the pirate ships wave after wave before the 90 seconds run out." },
+         {
+            title: "Aim",
+            text: "Drag sideways to turn the cannon, pull down to shoot farther. Or aim with the arrow keys.",
+            touchText: "Drag sideways to turn the cannon, pull down to shoot farther.",
+            keys: ["drag", "aim"],
+            touch: ["drag"],
+         },
+         {
+            title: "Fire",
+            text: "Release to fire, click to fire the same aim again, or press Space.",
+            touchText: "Release to fire. Tap to fire the same aim again.",
+            keys: ["drag", "fire"],
+            touch: ["drag"],
+         },
+         { title: "Read the wind", text: "Wind bends your shots: check the arrow. Hit a powder barrel to blast nearby ships." },
+         {
+            title: "Tips",
+            text: "Sloops zig-zag: lead your shot. Esc or P pauses.",
+            touchText: "Sloops zig-zag: lead your shot. Tap Pause, top right, to stop.",
+            keys: ["pause"],
+            touch: ["pause"],
+         },
+      ],
+   },
    scoring: SCORING,
    levels: LEVELS,
    thumbnail: "/images/3d/pirate-cannons.webp",

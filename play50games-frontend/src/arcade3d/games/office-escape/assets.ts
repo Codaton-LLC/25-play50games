@@ -1,10 +1,12 @@
 // Models used by Office Escape. Plain data, no three.js: index.tsx hands them to GameShell (which
 // frees the GLBs when the game closes) and Scene.tsx / Primitives.tsx render them.
 // The desk, chair, printer, coffee cart and water cooler GLBs are in core/modelManifest.ts (group A,
-// 2026-10-06), the shared runner since group B and the shared coin since group D. Swapping a model
+// 2026-10-06), the shared runner since group B and the shared coin since group D. The execDesk GLB
+// (2026-10-25) is corridor decor for levels 4-5 only. Swapping a model
 // in is the assets PR (file + manifest line) plus the scale here, never a scene change. Collision
 // never comes from a model (rules.ts hitboxes).
 import type { ModelAsset } from "@/arcade3d/core/types";
+import type { LevelId } from "@/arcade3d/types";
 import { COIN_GLB_SIZE, PROP_BUDGET, SHARED_ASSETS } from "@/arcade3d/core/sharedAssets";
 
 const own = (id: string) => `/models/3d/office-escape/${id}.glb`;
@@ -61,4 +63,34 @@ export const ASSETS = {
       fallbackColor: "#60a5fa",
       budget: { ...PROP_BUDGET },
    },
+   // execDesk.glb (2026-10-25): corridor decor for the two exec levels only (level 4 "Executive
+   // Floor", level 5 "After-Hours Office"). Drawn at its real size; the spots (EXEC_DESK_PATTERN
+   // below) turn it 90° so its 1.9 m length runs along the track against the corridor walls.
+   execDesk: {
+      id: "execDesk",
+      url: own("execDesk"),
+      scale: 1,
+      rotationY: 0,
+      yOffset: 0,
+      fallback: "box",
+      fallbackColor: "#d6a76c",
+      budget: { ...PROP_BUDGET },
+   },
 } satisfies Record<string, ModelAsset>;
+
+/** execDesk.glb raw bounds, measured on the mesh (assets.test.ts): already a real-size executive desk. */
+export const EXEC_DESK_GLB = { width: 1.90001, height: 0.98672, depth: 1.29405 } as const;
+/** Levels that line the corridor with executive desks (meta.ts titles: the executive floors). */
+export const EXEC_DESK_LEVELS: readonly LevelId[] = [4, 5];
+/**
+ * One desk per 12 m treadmill period on each side, at the wall and facing the corridor (rotY ±90°:
+ * the GLB faces +z like the other prop GLBs). The spot z is the offset inside the 12 m period;
+ * Primitives.tsx expands the pattern over the corridor's 120 m with the other decor. Turned, the
+ * footprint is 1.29 (x) x 1.9 (z), so at |x| 3.85 it spans 3.21..4.49: outside the lane edge at
+ * ±3 and inside the wall at ±4.6. The left offset (-4) clears the cabinets (-3) and plants (-6);
+ * the right one (-2) clears the cabinets (-9).
+ */
+export const EXEC_DESK_PATTERN = [
+   { x: -3.85, zOffset: -4, rotY: Math.PI / 2 },
+   { x: 3.85, zOffset: -2, rotY: -Math.PI / 2 },
+] as const;

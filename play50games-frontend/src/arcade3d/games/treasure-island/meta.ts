@@ -55,6 +55,35 @@ export const treasureIslandMeta: ArcadeGameMeta = {
       keyboard: "WASD / arrows to move, hold E, Enter or Space to dig",
       touch: "Joystick to move, hold Dig to dig",
    },
+   howTo: {
+      keys: [
+         { id: "move", keys: ["WASD", "Arrows"], label: "Move", main: true, role: "move" },
+         { id: "dig", keys: ["E", "Enter", "Space"], label: "Dig", hold: true, main: true },
+      ],
+      touch: [
+         { id: "joystick", control: "joystick", label: "Move" },
+         { id: "dig", control: "action", label: "Dig", hold: true },
+      ],
+      steps: [
+         { title: "Goal", text: "Find every buried treasure before the tide comes in." },
+         {
+            title: "Search",
+            text: "Walk with WASD or the arrow keys until the detector ring turns gold and pulses fast.",
+            touchText: "Walk with the joystick until the detector ring turns gold and pulses fast.",
+            keys: ["move"],
+            touch: ["joystick"],
+         },
+         { title: "Dig", text: "Hold E, Enter or Space to dig.", touchText: "Hold Dig to dig.", keys: ["dig"], touch: ["dig"] },
+         { title: "Beat the tide", text: "The tide turns before time runs out. A wrong dig costs the no-miss bonus." },
+         {
+            title: "Tips",
+            text: "Seconds left pay +10 each. Esc or P pauses.",
+            touchText: "Seconds left pay +10 each. Tap Pause, top right, to stop.",
+            keys: ["pause"],
+            touch: ["pause"],
+         },
+      ],
+   },
    scoring: SCORING_L1,
    levels: [
       { id: 1, title: "Starter Beach", scoring: SCORING_L1, clearScore: 1250 },

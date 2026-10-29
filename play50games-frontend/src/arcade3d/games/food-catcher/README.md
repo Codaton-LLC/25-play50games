@@ -278,3 +278,10 @@ Scene writes the combo with `setStat("combo", combo)`. The small `Hud` draws a 2
 ## Status
 
 Levels: OpenCode (P-39, `opencode/levels-food-catcher`); Claude review 2026-10-24 replaced the score design (time bonus, drops cost lives, level-1 clear 600, level-aware cap via the store's `levelId`), re-derived the limits and put them in `arcade-games.json`. Live game: the JSON `levels` must be on the server before the frontend merge.
+
+
+## Clarity
+
+A safe-area HintLine explains movement, good food and bad socks/cans, with last-life and level-specific dropped-food warnings. A ring-free TargetBeacon follows the lowest active good food in this side-on scene. Existing catch animation remains, with actual score-delta success pops and bad-catch/drop failure pops. No inventory hand-off occurs. Check by eye: arrow against falling food, simultaneous catches, bad catches, dropped-food life loss on later levels, combo badge and 390px controls.
+
+Visuals only: guide helpers read the run without mutation; guide tests compare JSON before/after on all five levels. Rules, score calculations and level configuration are unchanged. Shared HintLine uses 13px phone text and reserves space above touch controls; existing HUD text is at least 12px.

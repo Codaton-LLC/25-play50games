@@ -30,6 +30,41 @@ export const catVsRobotVacuumMeta: ArcadeGameMeta = {
       keyboard: "WASD / arrows to move, Space to hop",
       touch: "Joystick to move + Hop",
    },
+   howTo: {
+      keys: [
+         { id: "move", keys: ["WASD", "Arrows"], label: "Move", main: true, role: "move" },
+         { id: "hop", keys: ["Space"], label: "Hop", main: true },
+      ],
+      touch: [
+         { id: "joystick", control: "joystick", label: "Move" },
+         { id: "hop", control: "jump", label: "Hop" },
+      ],
+      steps: [
+         { title: "Goal", text: "Collect every treat in the house, then curl up on the bed to finish." },
+         {
+            title: "Move",
+            text: "Use WASD or the arrow keys to move the cat.",
+            touchText: "Push the joystick to move the cat.",
+            keys: ["move"],
+            touch: ["joystick"],
+         },
+         {
+            title: "Hop",
+            text: "Press Space for a short dodge past a robot vacuum.",
+            touchText: "Tap Hop for a short dodge past a robot vacuum.",
+            keys: ["hop"],
+            touch: ["hop"],
+         },
+         { title: "Watch out", text: "A vacuum hit costs a life. The sofa blocks its sight; in the open it can see you." },
+         {
+            title: "Tips",
+            text: "Boxes on the floor block you too: plan a way round. Esc or P pauses.",
+            touchText: "Boxes on the floor block you too: plan a way round. Tap Pause, top right, to stop.",
+            keys: ["pause"],
+            touch: ["pause"],
+         },
+      ],
+   },
    scoring: SCORING,
    levels: LEVELS,
    thumbnail: "/images/3d/cat-vs-robot-vacuum.webp",

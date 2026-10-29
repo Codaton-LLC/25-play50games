@@ -26,6 +26,10 @@ const COLORS = {
    bench: "#c4a574",
    benchLeg: "#78716c",
    trunk: "#92400e",
+   planter: "#9b6a3e",
+   soil: "#6f5232",
+   awning: "#b45309",
+   door: "#334155",
    leaves: "#166534",
    bin: BIN_COLOR,
    binRim: "#94a3b8",
@@ -203,15 +207,19 @@ function BinParts({ spots }: PartsProps) {
 }
 
 function LampParts({ spots }: PartsProps) {
-   const parts = useMemo(() => ({ pole: atY(spots, 0.85), globe: atY(spots, 1.85) }), [spots]);
+   const parts = useMemo(() => ({ base: atY(spots, 0.18), pole: atY(spots, 1.7), globe: atY(spots, 3.3) }), [spots]);
    return (
       <>
+         <Instanced spots={parts.base}>
+            <cylinderGeometry args={[0.26, 0.3, 0.36, 10]} />
+            <meshStandardMaterial color={COLORS.pole} metalness={0.35} roughness={0.4} />
+         </Instanced>
          <Instanced spots={parts.pole}>
-            <cylinderGeometry args={[0.3, 0.34, 1.7, 10]} />
+            <cylinderGeometry args={[0.06, 0.08, 2.7, 10]} />
             <meshStandardMaterial color={COLORS.pole} metalness={0.35} roughness={0.4} />
          </Instanced>
          <Instanced spots={parts.globe}>
-            <sphereGeometry args={[0.36, 12, 10]} />
+            <sphereGeometry args={[0.3, 12, 10]} />
             <meshStandardMaterial color={COLORS.lamp} emissive={COLORS.lamp} emissiveIntensity={0.7} roughness={0.35} />
          </Instanced>
       </>
@@ -219,15 +227,15 @@ function LampParts({ spots }: PartsProps) {
 }
 
 function PalmParts({ spots }: PartsProps) {
-   const parts = useMemo(() => ({ trunk: atY(spots, 0.7), crown: spots.map((s) => ({ ...s, y: 1.7, sy: 0.55 })) }), [spots]);
+   const parts = useMemo(() => ({ trunk: atY(spots, 1.3), crown: spots.map((s) => ({ ...s, y: 2.75, sy: 0.55 })) }), [spots]);
    return (
       <>
          <Instanced spots={parts.trunk}>
-            <cylinderGeometry args={[0.5, 0.6, 1.4, 10]} />
+            <cylinderGeometry args={[0.12, 0.16, 2.6, 10]} />
             <meshStandardMaterial color={COLORS.palmTrunk} roughness={0.85} />
          </Instanced>
          <Instanced spots={parts.crown}>
-            <sphereGeometry args={[1.05, 12, 10]} />
+            <sphereGeometry args={[0.6, 12, 10]} />
             <meshStandardMaterial color={COLORS.palm} roughness={0.75} />
          </Instanced>
       </>
@@ -235,15 +243,15 @@ function PalmParts({ spots }: PartsProps) {
 }
 
 function UmbrellaParts({ spots }: PartsProps) {
-   const parts = useMemo(() => ({ pole: atY(spots, 0.8), canopy: atY(spots, 1.7) }), [spots]);
+   const parts = useMemo(() => ({ pole: atY(spots, 1.4), canopy: atY(spots, 2.4) }), [spots]);
    return (
       <>
          <Instanced spots={parts.pole}>
-            <cylinderGeometry args={[0.25, 0.25, 1.6, 8]} />
+            <cylinderGeometry args={[0.035, 0.035, 2.8, 8]} />
             <meshStandardMaterial color={COLORS.pole} roughness={0.5} />
          </Instanced>
          <Instanced spots={parts.canopy}>
-            <coneGeometry args={[1.15, 0.5, 14]} />
+            <coneGeometry args={[0.75, 0.6, 14]} />
             <meshStandardMaterial color={COLORS.canopy} roughness={0.55} />
          </Instanced>
       </>
@@ -283,6 +291,14 @@ function GlbProps({ map }: { map: number }) {
    );
 }
 
+/**
+ * The park trees (primitives, no GLB; real-world scale, README "Real-world scale"): a round planter
+ * filling the 1.4 square at the ground (the runner stops at it, as at a bench), a trunk about 0.36
+ * across, and a crown over the cleaner's head (from 1.75 up, top 3.55). Was a 1.4-wide stump 1.1
+ * tall under a crown topping out at 2.4.
+ */
+export const TREE = { planter: 0.32, trunkTop: 2.0, crownY: 2.65, crown: 0.9 } as const;
+
 function Trees() {
    return (
       <Prop
@@ -290,12 +306,20 @@ function Trees() {
          spots={PARK_TREE}
          fallback={
             <>
-               <Instanced spots={atY(PARK_TREE, 0.55)}>
-                  <cylinderGeometry args={[0.7, 0.78, 1.1, 12]} />
+               <Instanced spots={atY(PARK_TREE, TREE.planter / 2)}>
+                  <cylinderGeometry args={[0.66, 0.7, TREE.planter, 16]} />
+                  <meshStandardMaterial color={COLORS.planter} roughness={0.85} />
+               </Instanced>
+               <Instanced spots={atY(PARK_TREE, TREE.planter + 0.006)}>
+                  <cylinderGeometry args={[0.56, 0.56, 0.012, 16]} />
+                  <meshStandardMaterial color={COLORS.soil} roughness={1} />
+               </Instanced>
+               <Instanced spots={atY(PARK_TREE, TREE.trunkTop / 2)}>
+                  <cylinderGeometry args={[0.13, 0.18, TREE.trunkTop, 10]} />
                   <meshStandardMaterial color={COLORS.trunk} roughness={0.85} />
                </Instanced>
-               <Instanced spots={atY(PARK_TREE, 1.45)}>
-                  <sphereGeometry args={[0.95, 14, 12]} />
+               <Instanced spots={atY(PARK_TREE, TREE.crownY)}>
+                  <sphereGeometry args={[TREE.crown, 14, 12]} />
                   <meshStandardMaterial color={COLORS.leaves} roughness={0.8} />
                </Instanced>
             </>
@@ -304,15 +328,25 @@ function Trees() {
    );
 }
 
+/**
+ * One face of a building (3.2 wide, 2.6 tall): a one-storey shop at real-world scale (a 3-row
+ * window grid made each storey 0.87 m next to the 1.75 m cleaner). A door 0.9 x 2.0 m, a shop
+ * window 1.4 x 1.1 m from 0.8 m up, an awning band over them, the parapet on top.
+ */
 const drawFacade: CanvasDraw = (ctx, w, h) => {
+   const mx = w / 3.2;
+   const my = h / 2.6;
+   const fromTop = (m: number) => h - m * my;
    ctx.fillStyle = COLORS.facade;
    ctx.fillRect(0, 0, w, h);
    ctx.fillStyle = COLORS.roof;
    ctx.fillRect(0, 0, w, h * 0.12);
+   ctx.fillStyle = COLORS.awning;
+   ctx.fillRect(w * 0.06, fromTop(2.3), w * 0.88, 0.16 * my);
+   ctx.fillStyle = COLORS.door;
+   ctx.fillRect(0.35 * mx, fromTop(2.0), 0.9 * mx, 2.0 * my);
    ctx.fillStyle = COLORS.window;
-   for (let row = 0; row < 3; row++) {
-      for (let col = 0; col < 3; col++) ctx.fillRect(w * (0.16 + col * 0.26), h * (0.24 + row * 0.22), w * 0.14, h * 0.12);
-   }
+   ctx.fillRect(1.55 * mx, fromTop(1.9), 1.4 * mx, 1.1 * my);
 };
 
 function Buildings() {
@@ -380,16 +414,16 @@ function standOnFloor<T extends BufferGeometry>(geometry: T): T {
 
 /**
  * The litter stand-ins, one part per kind in LITTER_KINDS order (bottle, bag, can, banana):
- * bottom on y = 0, about 0.8-0.9 across, already at the drawn size (DynamicInstancedModel does
+ * bottom on y = 0, about 0.40-0.45 across (real-world scale: knee height on the 1.75 cleaner), already at the drawn size (DynamicInstancedModel does
  * not scale fallbackParts by asset.scale). Fresh geometries and materials: free them with
  * disposeLitterStandIns.
  */
 export function createLitterStandIns(): InstancePart[][] {
    const shapes: BufferGeometry[] = [
-      standOnFloor(new CylinderGeometry(0.16, 0.22, 0.9, 12)),
-      standOnFloor(new BoxGeometry(0.62, 0.8, 0.46)),
-      standOnFloor(new CylinderGeometry(0.22, 0.24, 0.85, 12)),
-      standOnFloor(new CapsuleGeometry(0.12, 0.55, 4, 8).rotateZ(0.7)),
+      standOnFloor(new CylinderGeometry(0.08, 0.11, 0.45, 12)),
+      standOnFloor(new BoxGeometry(0.31, 0.4, 0.23)),
+      standOnFloor(new CylinderGeometry(0.11, 0.12, 0.425, 12)),
+      standOnFloor(new CapsuleGeometry(0.06, 0.275, 4, 8).rotateZ(0.7)),
    ];
    return LITTER_KINDS.map((_, k) => [
       { geometry: shapes[k], material: new MeshStandardMaterial({ color: STAND_IN_COLOR[k], roughness: 0.5 }) },
@@ -426,6 +460,9 @@ export interface RunnerLimbs {
    armR: Group | null;
    bob: Group | null;
 }
+
+/** PrimitiveRunner is built 0.90 tall; Scene draws it at this scale, the cleaner's 1.75. */
+export const RUNNER_STAND_IN_SCALE = 1.75 / 0.9;
 
 /** Vinyl-toy cleaner in an orange hi-vis vest, arms down. Scene swings these groups from the humanoid pose. */
 export function PrimitiveRunner({ limbs }: { limbs: MutableRefObject<RunnerLimbs> }) {

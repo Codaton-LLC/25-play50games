@@ -12,6 +12,7 @@ import { ASSETS } from "./assets";
 import { LEVELS } from "./levels";
 import { STAT, finalScore, type ObstacleLevel } from "./rules";
 import Scene from "./Scene";
+import Hud from "./Hud";
 
 const LEVEL_DESCRIPTIONS: Record<LevelId, string> = {
    1: "The classic course: five platforms, five blocks, one beam.",
@@ -24,6 +25,7 @@ const LEVEL_DESCRIPTIONS: Record<LevelId, string> = {
 const definition: GameDefinition<ObstacleLevel> = {
    slug: "obstacle-race",
    Scene,
+   Hud,
    assets: ASSETS,
    // README "Physics" cut line: the decorative Rapier debris made "ready" more than 0.5 s later on
    // a 4x CPU throttle, so it ships without the layer (no Rapier chunk at all). Rules never used it.

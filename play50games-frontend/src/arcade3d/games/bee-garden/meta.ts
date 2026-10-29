@@ -27,6 +27,46 @@ export const beeGardenMeta: ArcadeGameMeta = {
       keyboard: "WASD / arrows to fly, hold Space to boost",
       touch: "Joystick to fly + hold Boost",
    },
+   howTo: {
+      keys: [
+         { id: "move", keys: ["WASD", "Arrows"], label: "Fly", main: true, role: "move" },
+         { id: "boost", keys: ["Space"], label: "Boost", hold: true, main: true },
+      ],
+      touch: [
+         { id: "joystick", control: "joystick", label: "Fly" },
+         { id: "boost", control: "jump", label: "Boost", hold: true },
+      ],
+      steps: [
+         { title: "Goal", text: "Collect nectar from the flowers and bank it at the hive." },
+         {
+            title: "Fly",
+            text: "Use WASD or the arrow keys to fly.",
+            touchText: "Push the joystick to fly.",
+            keys: ["move"],
+            touch: ["joystick"],
+         },
+         {
+            title: "Boost",
+            text: "Hold Space to fly faster while your stamina lasts.",
+            touchText: "Hold Boost to fly faster while your stamina lasts.",
+            keys: ["boost"],
+            touch: ["boost"],
+         },
+         {
+            title: "Bank it",
+            text: "Carry up to three nectar, then fly over the hive pad. A full load of three pays a bonus.",
+            keys: ["move"],
+            touch: ["joystick"],
+         },
+         {
+            title: "Tips",
+            text: "Spider webs stun you and drop your carry: fly round them. Time left pays at the end. Esc or P pauses.",
+            touchText: "Spider webs stun you and drop your carry: fly round them. Time left pays at the end. Tap Pause, top right, to stop.",
+            keys: ["pause"],
+            touch: ["pause"],
+         },
+      ],
+   },
    scoring: PROPOSED_LEVEL_LIMITS[1],
    levels: LEVELS,
    thumbnail: "/images/3d/bee-garden.webp",

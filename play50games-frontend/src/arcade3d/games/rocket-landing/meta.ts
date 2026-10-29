@@ -29,6 +29,44 @@ export const rocketLandingMeta: ArcadeGameMeta = {
       keyboard: "A / D or left / right to rotate; hold Space, W or up to thrust",
       touch: "Joystick left / right to rotate; hold Thrust to fire; release joystick to auto-level",
    },
+   howTo: {
+      keys: [
+         { id: "rotate", keys: ["A/D", "Left/Right"], label: "Rotate", main: true, role: "move" },
+         { id: "thrust", keys: ["Space", "W", "Up"], label: "Thrust", hold: true, main: true },
+      ],
+      touch: [
+         { id: "joystick", control: "joystick", label: "Rotate" },
+         { id: "thrust", control: "jump", label: "Thrust", hold: true },
+      ],
+      steps: [
+         { title: "Goal", text: "Land softly on every planet's pad. Three lives." },
+         {
+            title: "Rotate",
+            text: "A / D or the arrow keys tilt the rocket.",
+            touchText: "Push the joystick left or right to tilt. Let go to auto-level.",
+            keys: ["rotate"],
+            touch: ["joystick"],
+         },
+         {
+            title: "Thrust",
+            text: "Hold Space, W or Up to fire the engine.",
+            touchText: "Hold Thrust to fire the engine.",
+            keys: ["thrust"],
+            touch: ["thrust"],
+         },
+         {
+            title: "Touch down",
+            text: "Land slow, level and centred: under the pad's speed and tilt limits. Wind pushes you on later worlds.",
+         },
+         {
+            title: "Tips",
+            text: "Save fuel: the reserve pays a bonus. Esc or P pauses.",
+            touchText: "Save fuel: the reserve pays a bonus. Tap Pause, top right, to stop.",
+            keys: ["pause"],
+            touch: ["pause"],
+         },
+      ],
+   },
    scoring: SCORING_L1,
    levels: LEVELS,
    thumbnail: "/images/3d/rocket-landing.webp",

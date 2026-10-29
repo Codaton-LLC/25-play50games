@@ -8,7 +8,10 @@
 // The chef GLB is a static T-pose: <HumanoidModel> (core/rig) rigs it in code and useHumanoidPose
 // drives its limbs (poses.ts: the idle, a walk by its speed with the feet on the ground, the lean
 // into the run in its spine, a reach up on a catch). ChefPrimitive stays as the fallback.
-import { memo, useMemo, useRef, useState } from "react";
+import { TargetBeacon } from "@/arcade3d/core/hud/TargetBeacon";
+import { useActionPop } from "@/arcade3d/core/fx/actionPop";
+import { GUIDE, hintFor, nextTarget } from "./guide";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { Raycaster, Vector2, type Camera, type Group } from "three";
 import CameraRig from "@/arcade3d/core/CameraRig";
@@ -23,7 +26,7 @@ import { HumanoidModel, createPose, useHumanoidPose } from "@/arcade3d/core/rig"
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useFittedView, type FittedViewOptions } from "@/arcade3d/core/useFittedView";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
-import { ASSETS } from "./assets";
+import { ASSETS, kitchenRangeSpots } from "./assets";
 import type { FoodCatcherLevel } from "./levels";
 import { chefPose, chefRootRoll, createChefGait, stepChefGait } from "./poses";
 import {
@@ -94,6 +97,10 @@ const Simulation = memo(function Simulation({ run, scratch }: { run: ViewRun; sc
    const input = useInput();
    const camera = useThree((state) => state.camera);
    const time = useGameTime();
+   const pop = useActionPop();
+   const beacon = useRef({ x: 0, y: 0, z: ITEM_Z, hidden: true }).current;
+
+   useEffect(() => { GUIDE.set(hintFor(run)); }, [run]);
 
    useRunFrame((_state, dt) => {
       const pointer = input.current.pointer;
@@ -101,7 +108,20 @@ const Simulation = memo(function Simulation({ run, scratch }: { run: ViewRun; sc
       const stepInput = scratch.input;
       stepInput.targetX = pointer.down ? projectFingerX(pointer.x, pointer.y, camera, scratch) : null;
       stepInput.dir = moveX < -0.5 ? -1 : moveX > 0.5 ? 1 : 0;
+      const oldScore = run.score;
       const ev = step(run, dt * 1000, stepInput);
+      GUIDE.set(hintFor(run));
+      const next = nextTarget(run);
+      beacon.hidden = next < 0 || !!run.ended;
+      if (next >= 0) {
+         const item = run.items[next];
+         beacon.x = item.x;
+         beacon.y = itemY(item.bornMs, run.elapsedMs, item.speed);
+      }
+      const at = { x: run.chefX, y: 1.9, z: CHEF_Z };
+      if (ev.caught > 0) pop.good(at, run.score > oldScore ? `+${run.score - oldScore}` : `Caught ${ev.caught}`);
+      if (ev.badCaught > 0) pop.fail(at, "Bad catch! -1 life");
+      else if (ev.missed > 0) pop.fail(at, ev.dropLives > 0 ? "Dropped food! -1 life" : "Dropped food", { shake: 0 });
       const store = useArcadeStore.getState();
       if (ev.caught > 0 || ev.missed > 0 || ev.badCaught > 0 || ev.lifeLost || ev.ended) {
          store.setScore(run.score);
@@ -123,7 +143,7 @@ const Simulation = memo(function Simulation({ run, scratch }: { run: ViewRun; sc
       if (ev.ended) store.end(ev.ended);
    });
 
-   return null;
+   return <TargetBeacon target={beacon} noRing height={0.22} />;
 });
 
 const Chef = memo(function Chef({ run }: { run: ViewRun }) {
@@ -296,7 +316,7 @@ function FittedCamera() {
 }
 
 function LevelScene() {
-   const { config } = useFoodCatcherLevel();
+   const { id, config } = useFoodCatcherLevel();
    const [run] = useState<ViewRun>(() => Object.assign(createRun(randomSeed(), config), { flashAt: -10, flashX: 0 }));
    const scratch = useMemo<Scratch>(
       () => ({ ray: new Raycaster(), ndc: new Vector2(), input: { targetX: null, dir: 0 } }),
@@ -309,6 +329,11 @@ function LevelScene() {
          <Simulation run={run} scratch={scratch} />
          <FittedCamera />
          <Kitchen />
+         {kitchenRangeSpots(id).map((position, index) => (
+            <group key={index} position={position} name={`kitchen-range-${index}`}>
+               <Model asset={ASSETS.kitchenRangeOven} fallback={null} />
+            </group>
+         ))}
          <Chef run={run} />
          {slots.map((index) => (
             <FallingItem key={index} index={index} run={run} />
