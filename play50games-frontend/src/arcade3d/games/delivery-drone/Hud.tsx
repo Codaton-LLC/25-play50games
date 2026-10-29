@@ -5,12 +5,13 @@ import { useDeliveryLevel } from "./useDeliveryLevel";
 import CameraViewButton from "@/arcade3d/core/camera/CameraViewButton";
 
 function GameHud() {
-   const battery = useArcadeStore((s) => s.stats.battery ?? 100);
+   const { config } = useDeliveryLevel();
+   // before the first played frame the stat is unset: a full charge, not 100 of a 160 / 230 battery
+   const battery = useArcadeStore((s) => s.stats.battery ?? config.battery);
    const loading = useArcadeStore((s) => s.stats.loading ?? 0);
    const carrying = useArcadeStore((s) => s.stats.carrying ?? 0);
    const fragile = useArcadeStore((s) => s.stats.fragile ?? 0);
    const feedback = useArcadeStore((s) => s.stats.feedback ?? 0);
-   const { config } = useDeliveryLevel();
    // levels 4-5 start above 100 units: show the share of this level's full charge, never over 100 %
    const percent = Math.min(100, Math.round((100 * battery) / config.battery));
    return <div className={styles.panel} data-arcade-safe-area>

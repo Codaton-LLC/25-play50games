@@ -83,10 +83,13 @@ function bandOf(n: number, bands: readonly [number, number, number]): number {
 function makeCity(seed: number, literal = false, level: DroneLevel = LEVELS[1]): City {
    const rng = createRng(seed);
    const buildings: Building[] = [];
+   const map = level.map;
    for (let row = 0; row < CITY.cells; row++) for (let col = 0; col < CITY.cells; col++) {
       if ((row === 3 || row === 4) && (col === 3 || col === 4)) continue;
+      if (map.open.includes(row * 8 + col)) continue;
       const x = (col - 3.5) * CITY.pitch, z = (row - 3.5) * CITY.pitch;
-      const height = CITY.roofs[literal ? (row + col) % 3 : Math.floor(rng() * 3)];
+      // level 1's roofPick is [0, 1, 2], so its draw is exactly today's
+      const height = CITY.roofs[map.roofPick[literal ? (row + col) % 3 : Math.floor(rng() * 3)]];
       buildings.push({ x, z, height, cell: row * 8 + col, tower: false, box: { min: { x: x - 2.5, y: 0, z: z - 2.5 }, max: { x: x + 2.5, y: height, z: z + 2.5 } } });
    }
    const targets: number[] = [];
@@ -97,6 +100,13 @@ function makeCity(seed: number, literal = false, level: DroneLevel = LEVELS[1]):
    }
    const towers = buildings.map((_b, i) => i).filter((i) => !targets.includes(i) && distanceToBoxXZ(0, 0, buildings[i].box) >= 3 && targets.every((t) => distanceToBoxXZ(buildings[t].x, buildings[t].z, buildings[i].box) >= 3));
    if (!literal) shuffle(towers, rng);
+   // the district's preferred tower cells first (seeded order kept), then the rest; level 1 prefers none
+   if (map.towerCells.length) {
+      const preferred = towers.filter((i) => map.towerCells.includes(buildings[i].cell));
+      const rest = towers.filter((i) => !map.towerCells.includes(buildings[i].cell));
+      towers.length = 0;
+      towers.push(...preferred, ...rest);
+   }
    for (const i of towers.slice(0, level.towers)) { buildings[i].tower = true; buildings[i].height = CITY.towerHeight; buildings[i].box.max.y = CITY.towerHeight; }
    const birds: Path[] = [], birdOffsets: number[] = [];
    for (let i = 0; i < level.pigeons; i++) {
@@ -111,6 +121,7 @@ function makeCity(seed: number, literal = false, level: DroneLevel = LEVELS[1]):
       winds.push({ x: (i ? 1 : -1) * 15, z: (Math.floor(rng() * 5) - 2) * 7.5, ax: direction < 2 ? (direction ? -1 : 1) * level.windAccel : 0, az: direction >= 2 ? (direction === 3 ? -1 : 1) * level.windAccel : 0 });
    }
    const cells = new Array<number>(64).fill(-1);
+   // cells[] maps a cell to its building (-1: the depot or an open park)
    for (let i = 0; i < buildings.length; i++) cells[buildings[i].cell] = i;
    return { buildings, cells, towers: towers.slice(0, level.towers), targets, birds, birdOffsets, winds, fallback: literal };
 }
@@ -120,7 +131,8 @@ export function clearAt(city: City, x: number, z: number, clearance: number = CI
    return true;
 }
 export function isValidCity(city: City, level: DroneLevel = LEVELS[1]): boolean {
-   if (city.buildings.length !== 60 || new Set(city.buildings.map((b) => b.cell)).size !== 60 || city.winds.length !== 2 || city.birds.length !== level.pigeons) return false;
+   const blocks = 60 - level.map.open.length;
+   if (city.buildings.length !== blocks || new Set(city.buildings.map((b) => b.cell)).size !== blocks || city.buildings.some((b) => level.map.open.includes(b.cell)) || city.winds.length !== 2 || city.birds.length !== level.pigeons) return false;
    for (const b of city.buildings) {
       if (!Number.isFinite(b.x + b.z + b.height) || Math.abs(b.x) > 26.25 || Math.abs(b.z) > 26.25) return false;
       if (b.tower ? b.height !== CITY.towerHeight : b.height !== 2 && b.height !== 5 && b.height !== 8) return false;

@@ -3,6 +3,8 @@
 // No React, no three.js — Scene, City and Decor upload these buffers.
 
 import type { AABB } from "@/arcade3d/core/collision";
+import type { LightingPreset } from "@/arcade3d/core/types";
+import type { DroneTheme } from "./levels";
 
 /** Cohesive modern-look palette: bright daylight city, vibrant parks, clean water, high-contrast pads. */
 export const COLORS = {
@@ -105,6 +107,117 @@ export const COLORS = {
    cloud: "#ffffff",           // fluffy low-poly cumulus
    cloudShade: "#e0f2fe",      // soft blue cloud underside
 } as const;
+
+export interface Facade { wall: string; trim: string; base: string }
+
+/**
+ * One level's look (levels.ts MAPS[id].theme): light preset, sky and fog, the street and block
+ * palette, the rooftop props and the open-cell style. Pads, beacons, the drone and the parcel keep
+ * COLORS on every level, so the things you act on read the same everywhere.
+ */
+export interface Theme {
+   lighting: LightingPreset;
+   skyTop: string;
+   skyBottom: string;
+   fog: string;
+   asphalt: string;
+   marking: string;
+   sidewalk: string;
+   grass: string;
+   facades: readonly Facade[];
+   roofDeck: string;
+   roofTrim: string;
+   windowWarm: string;
+   windowCool: string;
+   /** windows drawn unlit (they glow at night) */
+   windowsGlow: boolean;
+   towerWall: string;
+   /** rooftop dressing on ordinary blocks */
+   roofProps: "office" | "house" | "billboard" | "windsock";
+   /** open cells: lawn with trees, or a paved plaza */
+   openStyle: "park" | "plaza";
+   stars: boolean;
+   /** street lamps at the crossings (lit bulbs) */
+   lamps: boolean;
+   clouds: boolean;
+   skyline: readonly [string, string, string];
+   /** wind streak colour and opacity */
+   streak: string;
+   streakOpacity: number;
+}
+
+const TRAINING_FACADES: readonly Facade[] = COLORS.facades;
+
+export const THEMES: Record<DroneTheme, Theme> = {
+   training: {
+      lighting: "day", skyTop: COLORS.skyTop, skyBottom: COLORS.skyBottom, fog: COLORS.fog,
+      asphalt: COLORS.asphalt, marking: COLORS.asphaltMarking, sidewalk: COLORS.sidewalk, grass: COLORS.grass,
+      facades: TRAINING_FACADES, roofDeck: COLORS.roofDeck, roofTrim: COLORS.roofTrim,
+      windowWarm: COLORS.windowWarm, windowCool: COLORS.windowCool, windowsGlow: false, towerWall: COLORS.towerWall,
+      roofProps: "office", openStyle: "park", stars: false, lamps: false, clouds: true,
+      skyline: [COLORS.skylineTowerA, COLORS.skylineTowerB, COLORS.skylineTowerC], streak: "#7dd3fc", streakOpacity: 0.55,
+   },
+   // warm morning suburb: pastel houses with stepped tile roofs, leafy pocket parks
+   residential: {
+      lighting: "day", skyTop: "#38bdf8", skyBottom: "#fef3c7", fog: "#fdf4e3",
+      asphalt: "#475569", marking: "#fef9c3", sidewalk: "#e7e5e4", grass: "#4ade80",
+      facades: [
+         { wall: "#fef3c7", trim: "#d97706", base: "#78350f" },
+         { wall: "#dcfce7", trim: "#16a34a", base: "#14532d" },
+         { wall: "#ffe4e6", trim: "#e11d48", base: "#881337" },
+         { wall: "#e0e7ff", trim: "#4f46e5", base: "#312e81" },
+         { wall: "#fed7aa", trim: "#c2410c", base: "#7c2d12" },
+      ],
+      roofDeck: "#b45309", roofTrim: "#7c2d12", windowWarm: "#fde68a", windowCool: "#bfdbfe", windowsGlow: false,
+      towerWall: "#57534e", roofProps: "house", openStyle: "park", stars: false, lamps: false, clouds: true,
+      skyline: ["#a8a29e", "#78716c", "#d6d3d1"], streak: "#93c5fd", streakOpacity: 0.55,
+   },
+   // golden-hour downtown: glass and steel offices, billboards, a long civic square
+   downtown: {
+      lighting: "sunset", skyTop: "#6d28d9", skyBottom: "#fdba74", fog: "#f5c49a",
+      asphalt: "#1f2937", marking: "#fbbf24", sidewalk: "#9ca3af", grass: "#65a30d",
+      facades: [
+         { wall: "#cbd5e1", trim: "#0ea5e9", base: "#0f172a" },
+         { wall: "#93c5fd", trim: "#1d4ed8", base: "#172554" },
+         { wall: "#e5e7eb", trim: "#6b7280", base: "#111827" },
+         { wall: "#a5b4fc", trim: "#4338ca", base: "#1e1b4b" },
+         { wall: "#fcd34d", trim: "#b45309", base: "#451a03" },
+      ],
+      roofDeck: "#374151", roofTrim: "#111827", windowWarm: "#fde047", windowCool: "#bae6fd", windowsGlow: false,
+      towerWall: "#1e293b", roofProps: "billboard", openStyle: "plaza", stars: false, lamps: false, clouds: true,
+      skyline: ["#7c3aed", "#4c1d95", "#a78bfa"], streak: "#fde68a", streakOpacity: 0.55,
+   },
+   // grey storm light: concrete towers in two walls, orange windsocks, bright gust streaks
+   windy: {
+      lighting: "day", skyTop: "#334155", skyBottom: "#cbd5e1", fog: "#cbd5e1",
+      asphalt: "#3f3f46", marking: "#f4f4f5", sidewalk: "#a1a1aa", grass: "#4d7c0f",
+      facades: [
+         { wall: "#e4e4e7", trim: "#71717a", base: "#27272a" },
+         { wall: "#d4d4d8", trim: "#52525b", base: "#18181b" },
+         { wall: "#cbd5e1", trim: "#475569", base: "#0f172a" },
+         { wall: "#f4f4f5", trim: "#a1a1aa", base: "#3f3f46" },
+         { wall: "#e2e8f0", trim: "#64748b", base: "#1e293b" },
+      ],
+      roofDeck: "#52525b", roofTrim: "#27272a", windowWarm: "#fef08a", windowCool: "#cbd5e1", windowsGlow: false,
+      towerWall: "#18181b", roofProps: "windsock", openStyle: "plaza", stars: false, lamps: false, clouds: true,
+      skyline: ["#52525b", "#3f3f46", "#71717a"], streak: "#ffffff", streakOpacity: 0.85,
+   },
+   // night: dark blocks, glowing windows, street lamps, stars; pads and beacons stay bright
+   night: {
+      lighting: "night", skyTop: "#020617", skyBottom: "#1e1b4b", fog: "#0b1020",
+      asphalt: "#111827", marking: "#facc15", sidewalk: "#334155", grass: "#14532d",
+      facades: [
+         { wall: "#334155", trim: "#64748b", base: "#020617" },
+         { wall: "#1e293b", trim: "#475569", base: "#020617" },
+         { wall: "#3f3f46", trim: "#71717a", base: "#09090b" },
+         { wall: "#312e81", trim: "#6366f1", base: "#1e1b4b" },
+         { wall: "#164e63", trim: "#22d3ee", base: "#083344" },
+      ],
+      roofDeck: "#1e293b", roofTrim: "#0f172a", windowWarm: "#fbbf24", windowCool: "#38bdf8", windowsGlow: true,
+      towerWall: "#0f172a", roofProps: "office", openStyle: "plaza", stars: true, lamps: true, clouds: false,
+      skyline: ["#1e293b", "#0f172a", "#334155"], streak: "#a5b4fc", streakOpacity: 0.7,
+   },
+};
 
 /** Playable bounds: bounds of the 60m x 60m playable city. */
 export const PLAY_BOUNDS: AABB = {
