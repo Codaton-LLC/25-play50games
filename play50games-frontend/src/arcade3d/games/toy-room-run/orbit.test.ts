@@ -4,10 +4,11 @@
 import { describe, expect, it } from "vitest";
 import { inputToWorld } from "@/arcade3d/core/math";
 import type { AABB } from "@/arcade3d/core/collision";
-import { orbitPosition } from "@/arcade3d/menu2/camera/orbit";
+import { createOrbit, orbitPosition, orbitRotate, stepOrbit } from "@/arcade3d/menu2/camera/orbit";
 import { defaultHeroFor, memoryHeroStorage, setHeroPickStorage } from "@/arcade3d/menu2/heroes/heroPick";
 import { LEVEL_IDS } from "@/arcade3d/types";
-import { roomOrbit, courseSolids, orbitLookUp, orbitScale, playCamera } from "./camera";
+import { BOSS_FRAME, roomOrbit, courseSolids, orbitLookUp, orbitPivot, orbitScale, playCamera, steerBossFraming } from "./camera";
+import { createBot, botInput } from "./bot";
 import { createRun, createStepInput, step } from "./rules";
 import { DEFAULT_HERO, pickedHero, resetHeroPick, selectHero } from "./heroes";
 
@@ -68,6 +69,79 @@ describe("camera-relative movement is part of the rules' input", () => {
       expect(before).toBeGreaterThan(0);
       run.wallBroken[0] = 1;
       expect(courseSolids(run, w.x0, w.z0, out)).toBe(before - 1);
+   });
+});
+
+/** The horizontal angle (deg) between the camera's view (camera -> pivot) and a point. */
+function offAxis(cam: { x: number; z: number }, piv: { x: number; z: number }, x: number, z: number): number {
+   const fx = piv.x - cam.x;
+   const fz = piv.z - cam.z;
+   const px = x - cam.x;
+   const pz = z - cam.z;
+   return (Math.abs(Math.atan2(fx * pz - fz * px, fx * px + fz * pz)) * 180) / Math.PI;
+}
+
+describe("level 5's boss framing keeps Jack in shot", () => {
+   it("through every vulnerable window of an honest run, Jack and the hero stay inside a phone's view (half-width 15 deg)", () => {
+      for (const fps of [30, 60]) {
+         const dt = 1 / fps;
+         const run = createRun(1, 5);
+         const bot = createBot(run, 1000 / fps);
+         const input = createStepInput();
+         const orbit = createOrbit(roomOrbit(run.course));
+         const piv = { x: 0, y: 0, z: 0 };
+         const cam = { x: 0, y: 0, z: 0 };
+         let samples = 0;
+         let worst = 0;
+         for (let f = 0; f < fps * 120 && run.ended === null; f++) {
+            botInput(bot, run, input);
+            step(run, 1000 / fps, input);
+            steerBossFraming(orbit, run, dt);
+            stepOrbit(orbit, dt, 0, 0, false);
+            orbitPivot(run, piv);
+            orbitPosition(piv.x, piv.y, piv.z, orbit.viewYaw, orbit.viewPitch, orbit.viewDistance, cam);
+            if (run.boss && run.boss.hp > 0 && run.boss.step === "vulnerable") {
+               samples++;
+               worst = Math.max(worst, offAxis(cam, piv, run.jack.x, run.jack.z), offAxis(cam, piv, run.hero.x, run.hero.z));
+            }
+         }
+         expect(run.ended, `${fps}`).toBe("win");
+         expect(samples).toBeGreaterThan(fps * 5);
+         expect(worst, `${fps} fps`).toBeLessThan(10);
+      }
+   }, 60_000);
+
+   it("the pivot leans toward Jack (at most BOSS_FRAME.maxLead); other levels keep the small lead", () => {
+      const run = createRun(1, 5);
+      run.hero.x = 0;
+      run.hero.z = 2;
+      run.jack.x = 0;
+      run.jack.z = 28;
+      const p = orbitPivot(run, { x: 0, y: 0, z: 0 });
+      expect(p.z - run.hero.z).toBeCloseTo(BOSS_FRAME.maxLead, 6);
+      const r1 = createRun(1, 1);
+      const p1 = orbitPivot(r1, { x: 0, y: 0, z: 0 });
+      expect(Math.hypot(p1.x - r1.hero.x, p1.z - r1.hero.z)).toBeLessThanOrEqual(2.5 + 1e-9);
+   });
+
+   it("manual input wins: no steering until the orbit has been idle for its auto-follow delay; none on other levels or after the defeat", () => {
+      const run = createRun(1, 5);
+      run.hero.x = -8;
+      run.hero.z = 4;
+      const orbit = createOrbit(roomOrbit(run.course));
+      orbitRotate(orbit, 1, 0);
+      const yaw = orbit.yaw;
+      expect(steerBossFraming(orbit, run, 1 / 60)).toBe(false);
+      expect(orbit.yaw).toBe(yaw);
+      orbit.idle = orbit.settings.autoFollowDelay;
+      expect(steerBossFraming(orbit, run, 1 / 60)).toBe(true);
+      expect(orbit.yaw).not.toBe(yaw);
+      run.boss!.hp = 0;
+      expect(steerBossFraming(orbit, run, 1 / 60)).toBe(false);
+      const r1 = createRun(1, 1);
+      const o1 = createOrbit(roomOrbit(r1.course));
+      o1.idle = 99;
+      expect(steerBossFraming(o1, r1, 1 / 60)).toBe(false);
    });
 });
 

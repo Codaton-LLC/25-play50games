@@ -11,7 +11,7 @@
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import type { Group, PerspectiveCamera } from "three";
-import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
+import { arcadeStore, useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { useInput } from "@/arcade3d/core/input";
 import { useGameTime } from "@/arcade3d/core/gameTime";
@@ -24,7 +24,7 @@ import { randomSeed } from "@/arcade3d/core/math";
 import { FRAME_PRIORITY } from "@/arcade3d/core/frameLoop";
 import type { AABB } from "@/arcade3d/core/collision";
 import { createOrbit, type OrbitState } from "@/arcade3d/menu2/camera/orbit";
-import { OrbitCamera } from "@/arcade3d/menu2/camera/OrbitCamera";
+import { ORBIT_DRIVER_PRIORITY, OrbitCamera } from "@/arcade3d/menu2/camera/OrbitCamera";
 import { GameIntro, useShellIntro } from "@/arcade3d/core/intro";
 import { ARCADE_PREVIEW } from "@/arcade3d/flags";
 import type { LevelId } from "@/arcade3d/types";
@@ -34,7 +34,7 @@ import { World } from "./World";
 import { Course, type VisualClock } from "./Course";
 import { Boss } from "./Boss";
 import { Hero, createHeroAnim, type HeroAnim } from "./Hero";
-import { ROOM_COLLISION, FOV, FOV_PORTRAIT, roomOrbit, courseSolids, introKeyframes, orbitLookUp, orbitPivot, orbitScale, playCamera } from "./camera";
+import { ROOM_COLLISION, FOV, FOV_PORTRAIT, roomOrbit, courseSolids, introKeyframes, steerBossFraming, orbitLookUp, orbitPivot, orbitScale, playCamera } from "./camera";
 import { ORB_BONUS_MS, STAT, createRun, createStepInput, guidePoint, step, type ToyRun, type StepEvents } from "./rules";
 import { pickedHero, subscribeHero } from "./heroes";
 import { createBot, botInput } from "./bot";
@@ -305,11 +305,17 @@ function CityCamera({ run, orbit }: { run: ToyRun; orbit: OrbitState }) {
    );
    const travel = useMemo(
       () => (out: { x: number; z: number }) => {
-         out.x = run.hero.vx;
-         out.z = run.hero.vz;
+         // in Jack's fight the boss framing turns the camera, not the run direction
+         const fight = run.boss !== null && run.boss.hp > 0;
+         out.x = fight ? 0 : run.hero.vx;
+         out.z = fight ? 0 : run.hero.vz;
       },
       [run],
    );
+   // level 5: keep Jack in shot (before the orbit driver eases the view this frame)
+   useFrame((_, dt) => {
+      if (arcadeStore.getState().phase === "playing") steerBossFraming(orbit, run, dt);
+   }, ORBIT_DRIVER_PRIORITY - 0.002);
    const solids = useMemo(() => (out: AABB[]) => courseSolids(run, camera.position.x, camera.position.z, out), [run, camera]);
    return <OrbitCamera orbit={orbit} pivot={pivot} travel={travel} solids={solids} lookUp={orbitLookUp(aspect)} distanceScale={orbitScale(aspect)} collision={ROOM_COLLISION} />;
 }

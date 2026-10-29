@@ -4,7 +4,7 @@
 // castle and ends on playCamera.
 import type { IntroKeyframe } from "@/arcade3d/core/intro";
 import type { AABB } from "@/arcade3d/core/collision";
-import { orbitPosition, type OrbitSettings } from "@/arcade3d/menu2/camera/orbit";
+import { orbitPosition, wrapAngle, yawBehind, type OrbitSettings, type OrbitState } from "@/arcade3d/menu2/camera/orbit";
 import type { ClipOptions } from "@/arcade3d/menu2/camera/orbitCollision";
 import { guidePoint, type ToyRun } from "./rules";
 import { BOXES } from "./levels";
@@ -35,14 +35,49 @@ export function orbitLookUp(aspect: number): number {
 
 const guide = { x: 0, y: 0, z: 0 };
 
-/** The hero's chest, led a little toward where it should go (a starter, a spare, the wave, Jack). */
+/**
+ * Level 5's boss framing: the pivot leans `share` of the way from the hero toward Jack (at most
+ * `maxLead` m), and with no recent manual input the orbit swings (easing rate `yawRate` 1/s) to look
+ * from the hero toward Jack, so he stays in shot through his telegraphs and windows while the hero
+ * runs to the chain starters. Under `minGap` m (Jack's slam spot) the yaw is left alone.
+ */
+export const BOSS_FRAME = { share: 0.4, maxLead: 6, yawRate: 2.5, minGap: 2 } as const;
+
+/** Jack's spot while the fight is on; false before the fight, after his defeat and on other levels. */
+export function bossTarget(run: ToyRun, out: { x: number; z: number }): boolean {
+   if (!run.boss || run.boss.hp <= 0) return false;
+   out.x = run.jack.x;
+   out.z = run.jack.z;
+   return true;
+}
+
+const jackAt = { x: 0, z: 0 };
+
+/**
+ * One frame (`dt` s) of the boss framing on the orbit's target yaw. Manual input wins: nothing
+ * happens until the orbit has been idle for its auto-follow delay, or while a recenter swings round.
+ * Returns whether it steered.
+ */
+export function steerBossFraming(orbit: OrbitState, run: ToyRun, dt: number): boolean {
+   if (!(dt > 0) || !bossTarget(run, jackAt)) return false;
+   if (orbit.recentering || orbit.idle < orbit.settings.autoFollowDelay) return false;
+   const dx = jackAt.x - run.hero.x;
+   const dz = jackAt.z - run.hero.z;
+   if (Math.hypot(dx, dz) < BOSS_FRAME.minGap) return false;
+   const err = wrapAngle(yawBehind(dx, dz) - orbit.yaw);
+   orbit.yaw = wrapAngle(orbit.yaw + err * (1 - Math.exp(-BOSS_FRAME.yawRate * dt)));
+   return true;
+}
+
+/** The hero's chest, led a little toward where it should go (a starter, a spare, the wave); on level 5 toward Jack. */
 export function orbitPivot(run: ToyRun, out: { x: number; y: number; z: number }): { x: number; y: number; z: number } {
    const h = run.hero;
-   guidePoint(run, guide);
+   const boss = bossTarget(run, guide);
+   if (!boss) guidePoint(run, guide);
    const dx = guide.x - h.x;
    const dz = guide.z - h.z;
    const d = Math.hypot(dx, dz);
-   const lead = Math.min(2.5, d * 0.15);
+   const lead = boss ? Math.min(BOSS_FRAME.maxLead, d * BOSS_FRAME.share) : Math.min(2.5, d * 0.15);
    out.x = h.x + (d > 0.01 ? (dx / d) * lead : 0);
    out.y = Math.max(h.y, -1) + 1.1;
    out.z = h.z + (d > 0.01 ? (dz / d) * lead : 0);
