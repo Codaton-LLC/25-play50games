@@ -77,6 +77,7 @@ import { tightropePathMeta } from "./games/tightrope-path/meta";
 import { discTargetThrowMeta } from "./games/disc-target-throw/meta";
 import { wallRunTempleMeta } from "./games/wall-run-temple/meta";
 import { mineTunnelRunMeta } from "./games/mine-tunnel-run/meta";
+import { neonCubeJumpMeta } from "./games/neon-cube-jump/meta";
 
 export const ARCADE_GAMES: ArcadeGameMeta[] = [
    robotCollectorMeta,
@@ -153,6 +154,7 @@ export const ARCADE_GAMES: ArcadeGameMeta[] = [
    wallRunTempleMeta,
    templeCoinRushMeta,
    mineTunnelRunMeta,
+   neonCubeJumpMeta,
 ].sort((a, b) => a.order - b.order);
 
 export function getGameMeta(slug: string): ArcadeGameMeta | undefined {

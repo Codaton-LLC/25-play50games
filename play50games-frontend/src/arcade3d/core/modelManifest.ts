@@ -349,6 +349,14 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/tightrope-path/m2RaftPlatform.glb",
    "/models/3d/tightrope-path/m2RockPillarBg.glb",
    "/models/3d/tightrope-path/m2SwingSandbag.glb",
+   // Neon Cube Jump (Menu 2 #7): cube, pad, laser, coin, drone, city, Flipframe core
+   "/models/3d/neon-cube-jump/m2NeonCube.glb",
+   "/models/3d/neon-cube-jump/m2EnergyPad.glb",
+   "/models/3d/neon-cube-jump/m2LaserWall.glb",
+   "/models/3d/neon-cube-jump/m2DigitalCoin.glb",
+   "/models/3d/neon-cube-jump/m2NeonSentryDrone.glb",
+   "/models/3d/neon-cube-jump/m2NeonCityBg.glb",
+   "/models/3d/neon-cube-jump/m2FlipframeCore.glb",
    // P-121 dev adoptions (2026-10-25): V2 replacements and Group D variety whose QA verdict
    // starts with OK. Optimized GLBs copied in; not re-optimized. Live games are untouched.
    "/models/3d/shopping-cart/supermarketShelfV2.glb",

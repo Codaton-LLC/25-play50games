@@ -1,0 +1,156 @@
+"use client";
+
+// Neon Cube Jump with 2-4 local players (menu2/multiplayer): one field drawn from player 1's flip state
+// (in co-op the bus is shared, so every field matches), one animated hero per player with a ring in the
+// player's colour, the solo juice (quieter), the runs stepped together by multiplayer.ts with each
+// player's own device (PlayerInputLatch + playerInputFor), and the shared camera framing every hero.
+import { useEffect, useMemo, useRef } from "react";
+import { useFrame, useThree } from "@react-three/fiber";
+import type { Mesh, PerspectiveCamera } from "three";
+import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
+import { useRunFrame } from "@/arcade3d/core/useRunFrame";
+import { useGameTime } from "@/arcade3d/core/gameTime";
+import { useLevel } from "@/arcade3d/core/level";
+import { JuiceLayer } from "@/arcade3d/menu2/juice";
+import { randomSeed } from "@/arcade3d/core/math";
+import type { LevelId } from "@/arcade3d/types";
+import { PLAYER_COLORS, playersStore, usePlayers } from "@/arcade3d/menu2/multiplayer/players";
+import { PlayerInputLatch, playerInputFor } from "@/arcade3d/menu2/multiplayer/MultiplayerInput";
+import { SharedCamera } from "@/arcade3d/menu2/multiplayer/SharedCamera";
+import { createOrbit } from "@/arcade3d/menu2/camera/orbit";
+import { OrbitDriver } from "@/arcade3d/menu2/camera/OrbitCamera";
+import World from "./World";
+import { Field } from "./FieldView";
+import { Flipframe } from "./Boss";
+import { Hero, createHeroAnim, type HeroAnim } from "./Hero";
+import { FOV, neonOrbit } from "./camera";
+import { STAT, createStepInput, type StepInput } from "./rules";
+import { createMultiRun, stepMulti, type MultiRun } from "./multiplayer";
+import type { HeroId } from "./heroes";
+import type { NeonLevel } from "./levels";
+import { RippleView, createRipple, useNeonJuice, type Ripple } from "./Scene";
+
+export const MP_CAMERA = { pitch: 0.75, minSpan: 10, maxSpan: 30, padding: 4 } as const;
+
+function MultiSimulation({ multi, anims, ripples, orbit }: { multi: MultiRun; anims: HeroAnim[]; ripples: Ripple[]; orbit: ReturnType<typeof createOrbit> }) {
+   const time = useGameTime();
+   const inputs = useMemo<StepInput[]>(() => multi.runs.map(() => createStepInput()), [multi]);
+   const effects = useNeonJuice();
+   useEffect(() => {
+      playersStore.getState().beginRun();
+   }, [multi]);
+   useRunFrame((_state, dt) => {
+      for (let i = 0; i < multi.runs.length; i++) {
+         const p = playerInputFor(i);
+         const s = inputs[i];
+         s.moveX = p.moveX;
+         s.moveZ = p.moveY;
+         s.yaw = orbit.viewYaw;
+         s.jumpPressed = p.jumpPressed;
+         s.actionPressed = p.actionPressed;
+      }
+      const events = stepMulti(multi, dt * 1000, inputs);
+      const now = time.now;
+      const players = playersStore.getState();
+      for (let i = 0; i < multi.runs.length; i++) {
+         const run = multi.runs[i];
+         effects(run, events[i], anims[i], ripples[i], now, 0.55);
+         const h = run.hero;
+         players.setPosition(i, h.x, h.y, h.z);
+         const p = players.players[i];
+         const done = run.ended === "win";
+         const progress = Math.round(-h.z);
+         if (p && (p.progress !== progress || p.finished !== done)) players.update(i, { score: run.orbs, progress, finished: done, finishMs: done ? run.finishMs : null });
+      }
+      if (multi.ended !== null) {
+         const store = useArcadeStore.getState();
+         store.setStat(STAT.finishMs, multi.simMs);
+         store.end(multi.ended);
+      }
+   });
+   return null;
+}
+
+function PlayerRing({ multi, index }: { multi: MultiRun; index: number }) {
+   const ref = useRef<Mesh>(null);
+   const time = useGameTime();
+   useFrame(() => {
+      const m = ref.current;
+      if (!m) return;
+      const h = multi.runs[index].hero;
+      m.position.set(h.x, h.y + 0.05, h.z);
+      m.rotation.x = -Math.PI / 2;
+      m.scale.setScalar(1 + Math.sin(time.now * 4 + index) * 0.06);
+   });
+   return (
+      <mesh ref={ref} renderOrder={2}>
+         <ringGeometry args={[0.42, 0.56, 32]} />
+         <meshBasicMaterial color={PLAYER_COLORS[index]} transparent opacity={0.85} depthWrite={false} toneMapped={false} />
+      </mesh>
+   );
+}
+
+export default function MultiScene() {
+   const runId = useArcadeStore((s) => s.runId);
+   const { config } = useLevel<NeonLevel>();
+   const levelId: LevelId = config?.id ?? 1;
+   const mode = usePlayers((s) => s.mode);
+   const heroKey = usePlayers((s) => s.players.map((p) => p.heroId).join(","));
+   const multi = useMemo(
+      () => createMultiRun(randomSeed(), levelId, heroKey.split(",").filter(Boolean) as HeroId[], mode),
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      [runId, levelId, heroKey, mode],
+   );
+   const anims = useMemo(() => multi.runs.map(createHeroAnim), [multi]);
+   const ripples = useMemo(() => multi.runs.map(createRipple), [multi]);
+   const tracked = useMemo(() => multi.runs.map(() => ({ x: 0, y: 0, z: 0 })), [multi]);
+   useFrame(() => {
+      for (let i = 0; i < tracked.length; i++) {
+         const h = multi.runs[i].hero;
+         tracked[i].x = h.x;
+         tracked[i].y = h.y;
+         tracked[i].z = h.z;
+      }
+   }, -0.3);
+   const active = useMemo(() => {
+      const out: boolean[] = [];
+      return () => {
+         for (let i = 0; i < multi.runs.length; i++) out[i] = multi.runs[i].hero.deadMs < 0;
+         return out;
+      };
+   }, [multi]);
+   const anchor = useMemo(() => () => "centroid" as const, []);
+   const camera = useThree((s) => s.camera) as PerspectiveCamera;
+   useEffect(() => {
+      camera.fov = FOV;
+      camera.updateProjectionMatrix();
+   }, [camera]);
+   const orbit = useMemo(() => createOrbit({ ...neonOrbit(multi.runs[0].course), pitch: MP_CAMERA.pitch, autoFollow: false }), [multi]);
+   const travel = useMemo(
+      () => (out: { x: number; z: number }) => {
+         out.x = 0;
+         out.z = 0;
+      },
+      [],
+   );
+   return (
+      <JuiceLayer>
+         <World course={multi.runs[0].course} />
+         <Field run={multi.runs[0]} />
+         <Flipframe run={multi.runs[0]} />
+         {multi.runs.map((r, i) => (
+            <Hero key={`h${i}`} run={r} anim={anims[i]} />
+         ))}
+         {ripples.map((r, i) => (
+            <RippleView key={`w${i}`} ripple={r} />
+         ))}
+         {multi.runs.map((_r, i) => (
+            <PlayerRing key={`r${i}`} multi={multi} index={i} />
+         ))}
+         <PlayerInputLatch />
+         <MultiSimulation multi={multi} anims={anims} ripples={ripples} orbit={orbit} />
+         <OrbitDriver orbit={orbit} travel={travel} />
+         <SharedCamera points={tracked} active={active} anchor={anchor} pitch={MP_CAMERA.pitch} minSpan={MP_CAMERA.minSpan} maxSpan={MP_CAMERA.maxSpan} padding={MP_CAMERA.padding} fov={FOV} orbit={orbit} />
+      </JuiceLayer>
+   );
+}
