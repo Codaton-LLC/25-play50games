@@ -289,6 +289,18 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/sky-hook-swing/m2WindmillIsland.glb",
    // the galleon's turret (m2SkyCannonTurret from the image batch, card: MUST for L2-5 boss weak points)
    "/models/3d/sky-hook-swing/m2SkyCannonTurret.glb",
+   // Menu 2 game 34 (Spin Pole Climb): pole props from ~/.play50/hyper3d/ready/menu2/spin-pole-climb, plus its
+   // copy of World 3's guardian pair (ready/menu2/shared m2CoilstoneHead / m2CoilstoneSegment)
+   "/models/3d/spin-pole-climb/m2CheckpointDisc.glb",
+   "/models/3d/spin-pole-climb/m2CircularPlatform.glb",
+   "/models/3d/spin-pole-climb/m2CoilstoneHead.glb",
+   "/models/3d/spin-pole-climb/m2CoilstoneSegment.glb",
+   "/models/3d/spin-pole-climb/m2GripLedge.glb",
+   "/models/3d/spin-pole-climb/m2MushroomCapTop.glb",
+   "/models/3d/spin-pole-climb/m2RotatingPole.glb",
+   "/models/3d/spin-pole-climb/m2RotatingPoleV2.glb",
+   "/models/3d/spin-pole-climb/m2SpiralTowerBg.glb",
+   "/models/3d/spin-pole-climb/m2SweeperBar.glb",
    // P-121 dev adoptions (2026-10-25): V2 replacements and Group D variety whose QA verdict
    // starts with OK. Optimized GLBs copied in; not re-optimized. Live games are untouched.
    "/models/3d/shopping-cart/supermarketShelfV2.glb",
