@@ -25,8 +25,8 @@ export const GLB_SIZE = {
 /** The gap platform's walkable top (file metres over its feet): its raised frame; the hollow middle is filled in code. */
 export const PLATFORM_TOP = 0.54;
 /** One wall tile as drawn (m): the brick slab stretched to this width and height. */
-export const TILE_W = 2.4;
-export const TILE_H = 2.0;
+export const TILE_W = 4.0;
+export const TILE_H = 2.5;
 /** A column is drawn as stacked segments this tall (m). */
 export const COLUMN_SEG = 4;
 /** Umbra is drawn this long (m). */

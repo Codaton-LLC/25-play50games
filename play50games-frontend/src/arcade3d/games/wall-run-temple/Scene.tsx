@@ -31,7 +31,8 @@ import CourseView, { type VisualClock } from "./CourseView";
 import Umbra from "./Umbra";
 import { Hero, createHeroAnim, type HeroAnim } from "./Hero";
 import { FOV, FOV_PORTRAIT, WALL_ORBIT, introKeyframes, orbitLookUp, orbitPivot, orbitScale, pivotLead, playCamera } from "./camera";
-import { ORB, STAT, RUN_MS, createRun, createStepInput, step, type WallRun } from "./rules";
+import { ORB, STAT, RUN_MS, blockSolid, createRun, createStepInput, step, wallBox, type WallRun } from "./rules";
+import type { AABB } from "@/arcade3d/core/collision";
 import { pickedHero, subscribeHero } from "./heroes";
 import { createBot, botInput } from "./bot";
 import type { WallLevel } from "./levels";
@@ -274,7 +275,41 @@ function WallCamera({ run, orbit }: { run: WallRun; orbit: OrbitState }) {
       [run, head],
    );
    const travel = useMemo(() => (out: { x: number; z: number }) => travelHeading(run, out), [run]);
-   return <OrbitCamera orbit={orbit} pivot={pivot} travel={travel} lookUp={orbitLookUp(aspect)} distanceScale={orbitScale(aspect)} />;
+   const solids = useMemo(() => cameraSolids(run), [run]);
+   return <OrbitCamera orbit={orbit} pivot={pivot} travel={travel} solids={solids} collision={{ radius: 0.35, minDistance: 2.4 }} lookUp={orbitLookUp(aspect)} distanceScale={orbitScale(aspect)} />;
+}
+
+/**
+ * The camera's solid boxes near the hero: the walls (a slid-in panel where it is now), the temple corner
+ * blocks, the columns, the cracked panels and shut gates, so the camera pulls in front of them.
+ */
+function cameraSolids(run: WallRun): (out: AABB[]) => number {
+   const pool: AABB[] = [];
+   const box = { x0: 0, x1: 0, y0: 0, y1: 0, z0: 0, z1: 0 };
+   const put = (n: number, x0: number, x1: number, y0: number, y1: number, z0: number, z1: number) => {
+      let a = pool[n];
+      if (!a) a = pool[n] = { min: { x: 0, y: 0, z: 0 }, max: { x: 0, y: 0, z: 0 } };
+      a.min.x = x0; a.min.y = y0; a.min.z = z0; a.max.x = x1; a.max.y = y1; a.max.z = z1;
+      return a;
+   };
+   return (out) => {
+      const c = run.course;
+      const h = run.hero;
+      let n = 0;
+      const near = (x0: number, x1: number, z0: number, z1: number) => Math.max(x0 - h.x, h.x - x1, 0) + Math.max(z0 - h.z, h.z - z1, 0) < 24;
+      for (let i = 0; i < c.walls.length && n < 200; i++) {
+         if (!wallBox(run, i, box) || !near(box.x0, box.x1, box.z0, box.z1)) continue;
+         out[n] = put(n, box.x0, box.x1, box.y0, box.y1, box.z0, box.z1);
+         n++;
+      }
+      for (const b of c.corners) if (n < 220 && near(b.x0, b.x1, b.z0, b.z1)) out[n] = put(n++, b.x0, b.x1, b.y0, b.y1, b.z0, b.z1);
+      for (const k of c.columns) if (n < 240 && near(k.x - k.r, k.x + k.r, k.z - k.r, k.z + k.r)) out[n] = put(n++, k.x - k.r, k.x + k.r, k.y0, k.y1, k.z - k.r, k.z + k.r);
+      for (let i = 0; i < c.blocks.length && n < 250; i++) {
+         const b = c.blocks[i];
+         if (blockSolid(run, i) && near(b.x0, b.x1, b.z0, b.z1)) out[n] = put(n++, b.x0, b.x1, b.y0, b.y1, b.z0, b.z1);
+      }
+      return n;
+   };
 }
 
 function IntroCamera({ run, anim }: { run: WallRun; anim: HeroAnim }) {

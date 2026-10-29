@@ -201,6 +201,31 @@ function Walls({ run, clock, visited }: { run: WallRun; clock: VisualClock; visi
 
 const P2 = new Vector3();
 
+/** Wall slabs on the four upright faces of a box (pure): the temple corners and the cracked panels wear the wall set. */
+export function faceTiles(b: { x0: number; x1: number; y0: number; y1: number; z0: number; z1: number }): InstanceSpot[] {
+   const out: InstanceSpot[] = [];
+   const h = b.y1 - b.y0;
+   const m = Math.max(1, Math.round(h / TILE_H));
+   const th = fit(GLB_SIZE.wall.z, 0.3);
+   const faces: Array<[number, number, number, number, number]> = [
+      // [centre x, centre z, length, rotY, along x?]
+      [(b.x0 + b.x1) / 2, b.z1 - 0.12, b.x1 - b.x0, 0, 1],
+      [(b.x0 + b.x1) / 2, b.z0 + 0.12, b.x1 - b.x0, Math.PI, 1],
+      [b.x1 - 0.12, (b.z0 + b.z1) / 2, b.z1 - b.z0, Math.PI / 2, 0],
+      [b.x0 + 0.12, (b.z0 + b.z1) / 2, b.z1 - b.z0, -Math.PI / 2, 0],
+   ];
+   for (const [cx, cz, len, rot, alongX] of faces) {
+      const n = Math.max(1, Math.round(len / TILE_W));
+      for (let a = 0; a < n; a++) {
+         const off = -len / 2 + (a + 0.5) * (len / n);
+         for (let k = 0; k < m; k++) {
+            out.push({ x: alongX ? cx + off : cx, y: b.y0 + k * (h / m), z: alongX ? cz : cz + off, sx: fit(GLB_SIZE.wall.x, (len / n) * 1.01), sy: fit(GLB_SIZE.wall.y, (h / m) * 1.01), sz: th, rotY: rot });
+         }
+      }
+   }
+   return out;
+}
+
 // ---------------- columns, corners ----------------
 
 function Columns({ run }: { run: WallRun }) {
@@ -218,6 +243,7 @@ function Columns({ run }: { run: WallRun }) {
       [run.course],
    );
    const caps = useMemo(() => corners.map((c) => ({ x: c.x, y: c.y + c.sy / 2 + 0.15, z: c.z, sx: c.sx + 0.4, sy: 0.3, sz: c.sz + 0.4 })), [corners]);
+   const skins = useMemo(() => run.course.corners.flatMap((b) => faceTiles(b)), [run.course]);
    return (
       <>
          <InstancedModel asset={ASSETS.column} spots={spots} fallback={null} />
@@ -225,8 +251,9 @@ function Columns({ run }: { run: WallRun }) {
             <>
                <Instanced spots={corners}>
                   <boxGeometry args={[1, 1, 1]} />
-                  <meshStandardMaterial color="#b89a6c" roughness={0.9} />
+                  <meshStandardMaterial color="#7d6748" roughness={0.9} />
                </Instanced>
+               <InstancedModel asset={ASSETS.wall} spots={skins} fallback={null} />
                <Instanced spots={caps}>
                   <boxGeometry args={[1, 1, 1]} />
                   <meshStandardMaterial color={COLORS.jadeDark} roughness={0.6} metalness={0.2} />
@@ -331,6 +358,7 @@ function Rams({ run, clock }: { run: WallRun; clock: VisualClock }) {
 
 function Blocks({ run }: { run: WallRun }) {
    const blocks = run.course.blocks;
+   const skins = useMemo(() => blocks.flatMap((b, i) => (b.kind === "cracked" ? faceTiles(b).map((t) => ({ ...t, block: i })) : [])), [blocks]);
    const refs = useRef<Array<Group | null>>([]);
    const time = useGameTime();
    const ghostMats = useRef<Array<MeshStandardMaterial | null>>([]);
@@ -360,6 +388,18 @@ function Blocks({ run }: { run: WallRun }) {
    });
    return (
       <>
+         <DynamicInstancedModel
+            asset={ASSETS.wall}
+            count={skins.length}
+            tinted
+            update={(k, m, color) => {
+               const t = skins[k];
+               if (!t || run.broken[t.block]) return false;
+               Q.setFromAxisAngle(UP, t.rotY ?? 0);
+               m.compose(V.set(t.x, t.y, t.z), Q, P2.set(t.sx ?? 1, t.sy ?? 1, t.sz ?? 1));
+               color.copy(CRACK);
+            }}
+         />
          {blocks.map((b, i) => {
             const w = b.x1 - b.x0;
             const h = b.y1 - b.y0;
