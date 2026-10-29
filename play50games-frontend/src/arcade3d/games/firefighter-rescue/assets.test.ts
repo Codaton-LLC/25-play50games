@@ -7,7 +7,7 @@ import type { ModelAsset } from "@/arcade3d/core/types";
 import { ASSETS, FIT, GLB_SIZE, GLB_TRIS } from "./assets";
 import { LEVELS } from "./levels";
 import { DOOR_LINE_X, EXIT_SIGN_SPOTS, HOSE_REEL_SPOT, HYDRANT_SPOTS, LINTEL, TRUCK_SPOT, doorLeaf } from "./looks";
-import { DEBRIS_HALF, DOOR_HALF, EXIT, FURN_SIZE, HALL_HALF, PORCH_Z, createRun, doorMidZ, pointInside } from "./rules";
+import { DEBRIS_HALF, DOOR_HALF, EXIT, FURN_SIZE, HALL_HALF, PORCH_Z, createRun, doorMidZ, pointInside, roomSide } from "./rules";
 
 async function bounds(url: string) {
    const { cloud } = await readCharacterGlb(url);
@@ -138,16 +138,18 @@ describe("firefighter-rescue prop spots", () => {
 
    it("door leaves: shut they fill the doorway in the hall wall; open they lie along the doorway's sides, clear of the passage", () => {
       const out = { x: 0, z: 0, rotY: 0 };
-      for (let room = 0; room < 6; room++) {
-         const side = room % 2 === 0 ? -1 : 1;
-         const mid = doorMidZ(room);
-         for (const leaf of [0, 1] as const) {
-            doorLeaf(room, leaf, 0, out);
-            expect(out.x).toBeCloseTo(side * DOOR_LINE_X, 9);
-            expect(out.z).toBeCloseTo(mid + (leaf === 0 ? -DOOR_HALF / 2 : DOOR_HALF / 2), 9);
-            doorLeaf(room, leaf, 1, out);
-            expect(out.x).toBeCloseTo(side * (DOOR_LINE_X + DOOR_HALF / 2), 9);
-            expect(Math.abs(out.z - mid)).toBeCloseTo(DOOR_HALF, 9);
+      for (const level of [LEVELS[1], LEVELS[2], LEVELS[5]]) {
+         for (let room = 0; room < level.rooms; room++) {
+            const side = roomSide(level, room);
+            const mid = doorMidZ(level, room);
+            for (const leaf of [0, 1] as const) {
+               doorLeaf(level, room, leaf, 0, out);
+               expect(out.x).toBeCloseTo(side * DOOR_LINE_X, 9);
+               expect(out.z).toBeCloseTo(mid + (leaf === 0 ? -DOOR_HALF / 2 : DOOR_HALF / 2), 9);
+               doorLeaf(level, room, leaf, 1, out);
+               expect(out.x).toBeCloseTo(side * (DOOR_LINE_X + DOOR_HALF / 2), 9);
+               expect(Math.abs(out.z - mid)).toBeCloseTo(DOOR_HALF, 9);
+            }
          }
       }
    });
@@ -157,9 +159,10 @@ describe("firefighter-rescue draw budget", () => {
    it("the heaviest level draws well under 150 calls: one per GLB pool, plus the code pieces", () => {
       // GLB pools / models (each Rodin GLB is one mesh): firefighter, extinguisher, truck, hydrants, reel,
       // signs, doors, debris, civilians, sofa, bed, cabinet, chair = 13; code: floor, street, walls, caps,
-      // plaques, 2 fire parts, blob shadow = 8; smoke discs (one each, up to 5); fx pools (~6)
+      // plaques, 2 fire parts, blob shadow = 8; smoke discs (one each, up to 5); fx pools (~6);
+      // the warehouse decor: 4 instanced box colours, 2 instanced barrel colours, 3 window strips
       const level = LEVELS[5];
-      const calls = 13 + 8 + level.smoke + 6;
+      const calls = 13 + 8 + level.smoke + 6 + 9;
       expect(calls).toBeLessThanOrEqual(150);
    });
 });

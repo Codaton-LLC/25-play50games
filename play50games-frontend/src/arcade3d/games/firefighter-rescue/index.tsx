@@ -44,7 +44,7 @@ const definition: GameDefinition<FireLevel> = {
    camera: { position: [0, 16, 18], fov: FOV, lookAt: look },
    environment: {
       background: LEVELS[1].background,
-      fog: [LEVELS[1].background, 90, 260],
+      fog: [LEVELS[1].background, LEVELS[1].fog[0], LEVELS[1].fog[1]],
       lighting: LEVELS[1].lighting,
    },
    touchControls: ["joystick", "action", "jump"],
@@ -60,7 +60,7 @@ const definition: GameDefinition<FireLevel> = {
          durationMs: level.durationMs,
          environment: {
             background: level.background,
-            fog: [level.background, 90, 260],
+            fog: [level.background, level.fog[0], level.fog[1]],
             lighting: level.lighting,
          },
       };

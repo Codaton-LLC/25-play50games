@@ -1,11 +1,12 @@
-// One palette, the follow camera, and the wall segments. Pure: no React, no three.js.
+// Per-level palettes and the exterior set dressing, the follow camera, and the wall segments.
+// Pure: no React, no three.js.
 import type { AABB } from "@/arcade3d/core/collision";
 import type { InstanceSpot } from "@/arcade3d/core/render";
 import type { FittedViewOptions } from "@/arcade3d/core/useFittedView";
 import { followFocus } from "@/arcade3d/core/view";
 import type { LevelId } from "@/arcade3d/types";
 import { LEVELS, type FireLevel } from "./levels";
-import { DOOR_HALF, HALL_HALF, PORCH_Z, ROOM_DEEP, ROOM_LEN, doorMidZ, roomOf } from "./rules";
+import { DOOR_HALF, HALL_HALF, PORCH_Z, ROOM_LEN, doorMidZ, roomDeep, roomOf, roomSide } from "./rules";
 
 export const COLORS = {
    wall: "#78716c",
@@ -54,9 +55,10 @@ export const DAMPING = 4;
 
 export function buildingBox(level: FireLevel): AABB {
    const zEnd = level.rooms * ROOM_LEN;
+   const deep = roomDeep(level);
    return {
-      min: { x: -HALL_HALF - ROOM_DEEP - 0.4, y: 0, z: PORCH_Z - 0.4 },
-      max: { x: HALL_HALF + ROOM_DEEP + 0.4, y: 2.5, z: zEnd + 0.4 },
+      min: { x: -HALL_HALF - deep - 0.4, y: 0, z: PORCH_Z - 0.4 },
+      max: { x: HALL_HALF + deep + 0.4, y: 2.5, z: zEnd + 0.4 },
    };
 }
 
@@ -98,6 +100,7 @@ export function wallSpots(level: FireLevel): InstanceSpot[] {
    const spots: InstanceSpot[] = [];
    const t = 0.18;
    const h = WALL_H;
+   const deep = roomDeep(level);
    const add = (x: number, z: number, sx: number, sz: number) => {
       if (sx < 0.08 || sz < 0.08) return;
       spots.push({ x, y: h / 2, z, sx, sy: h, sz });
@@ -109,11 +112,11 @@ export function wallSpots(level: FireLevel): InstanceSpot[] {
    for (let i = 0; i < level.rooms; i++) {
       const z0 = i * ROOM_LEN;
       const z1 = z0 + ROOM_LEN;
-      const mid = doorMidZ(i);
+      const mid = doorMidZ(level, i);
       const gap0 = mid - DOOR_HALF;
       const gap1 = mid + DOOR_HALF;
       for (const side of [-1, 1] as const) {
-         const hasRoom = (i % 2 === 0) === (side < 0);
+         const hasRoom = roomSide(level, i) === side;
          const x = side < 0 ? -HALL_HALF - t / 2 : HALL_HALF + t / 2;
          if (!hasRoom) {
             add(x, (z0 + z1) / 2, t, ROOM_LEN);
@@ -121,11 +124,11 @@ export function wallSpots(level: FireLevel): InstanceSpot[] {
          }
          add(x, (z0 + gap0) / 2, t, gap0 - z0);
          add(x, (gap1 + z1) / 2, t, z1 - gap1);
-         const outer = side < 0 ? -HALL_HALF - ROOM_DEEP - t / 2 : HALL_HALF + ROOM_DEEP + t / 2;
+         const outer = side < 0 ? -HALL_HALF - deep - t / 2 : HALL_HALF + deep + t / 2;
          add(outer, (z0 + z1) / 2, t, ROOM_LEN);
-         const xMid = side < 0 ? -(HALL_HALF + ROOM_DEEP / 2) : HALL_HALF + ROOM_DEEP / 2;
-         add(xMid, z0, ROOM_DEEP, t);
-         add(xMid, z1, ROOM_DEEP, t);
+         const xMid = side < 0 ? -(HALL_HALF + deep / 2) : HALL_HALF + deep / 2;
+         add(xMid, z0, deep, t);
+         add(xMid, z1, deep, t);
       }
    }
    return spots;
@@ -135,7 +138,7 @@ export function wallSpots(level: FireLevel): InstanceSpot[] {
 export function plaqueSpots(level: FireLevel): InstanceSpot[] {
    const spots: InstanceSpot[] = [];
    for (let i = 0; i < level.rooms; i++) {
-      const side = i % 2 === 0 ? 1 : -1;
+      const side = roomSide(level, i);
       spots.push({
          x: side * (HALL_HALF - 0.02),
          y: 1.45,
@@ -186,9 +189,9 @@ export const DOOR_LINE_X = HALL_HALF + 0.09;
  * side. Writes the leaf's centre (floor) and its turn into `out`: the leaf's width (GLB x) runs from
  * the hinge along the swing direction.
  */
-export function doorLeaf(room: number, leaf: 0 | 1, open: number, out: { x: number; z: number; rotY: number }) {
-   const side = room % 2 === 0 ? -1 : 1;
-   const hingeZ = doorMidZ(room) + (leaf === 0 ? -DOOR_HALF : DOOR_HALF);
+export function doorLeaf(level: FireLevel, room: number, leaf: 0 | 1, open: number, out: { x: number; z: number; rotY: number }) {
+   const side = roomSide(level, room);
+   const hingeZ = doorMidZ(level, room) + (leaf === 0 ? -DOOR_HALF : DOOR_HALF);
    const shutZ = leaf === 0 ? 1 : -1;
    const a = Math.max(0, Math.min(1, open)) * (Math.PI / 2);
    const dx = side * Math.sin(a);
@@ -236,8 +239,8 @@ export function cutawayWalls(level: FireLevel, yaw: number): InstanceSpot[] {
 
 /** The height (m) of the hall wall a room's door stands in, for the camera at `yaw`. */
 export function doorWallHeight(level: FireLevel, yaw: number, room: number): number {
-   const side = room % 2 === 0 ? -1 : 1;
-   return hidesFloor(level, yaw, side * DOOR_LINE_X, doorMidZ(room), true, DOOR_HALF * 2) ? LOW_WALL_H : WALL_H;
+   const side = roomSide(level, room);
+   return hidesFloor(level, yaw, side * DOOR_LINE_X, doorMidZ(level, room), true, DOOR_HALF * 2) ? LOW_WALL_H : WALL_H;
 }
 
 /**
@@ -245,9 +248,9 @@ export function doorWallHeight(level: FireLevel, yaw: number, room: number): num
  * the camera looks across them at the room floor, as a wall there would be.
  */
 export function openDoorHeight(level: FireLevel, yaw: number, room: number): number {
-   const side = room % 2 === 0 ? -1 : 1;
+   const side = roomSide(level, room);
    const x = side * (DOOR_LINE_X + DOOR_HALF / 2);
-   const mid = doorMidZ(room);
+   const mid = doorMidZ(level, room);
    return hidesFloor(level, yaw, x, mid - DOOR_HALF, false, DOOR_HALF) || hidesFloor(level, yaw, x, mid + DOOR_HALF, false, DOOR_HALF) ? LOW_WALL_H : WALL_H;
 }
 
@@ -256,9 +259,258 @@ export function porchFull(level: FireLevel, yaw: number): boolean {
    return !hidesFloor(level, yaw, DOOR_LINE_X, PORCH_Z / 2, true, -PORCH_Z) && !hidesFloor(level, yaw, -DOOR_LINE_X, PORCH_Z / 2, true, -PORCH_Z);
 }
 
+// One palette per level (level 1 is today's palette, unchanged): the walls, floor and furniture
+// follow the level's look; embers, smoke, debris and the civilians stay the same everywhere so the
+// objectives and hazards read the same on every level.
+export interface LevelColors {
+   wall: string;
+   wallTrim: string;
+   floor: string;
+   floorLine: string;
+   street: string;
+   sofa: string;
+   sofaCushion: string;
+   bed: string;
+   bedFrame: string;
+   cabinet: string;
+   cabinetDoor: string;
+   chair: string;
+   chairSeat: string;
+}
+
+const PALETTES: Record<number, LevelColors> = {
+   1: {
+      wall: COLORS.wall,
+      wallTrim: COLORS.wallTrim,
+      floor: COLORS.floor,
+      floorLine: COLORS.floorLine,
+      street: COLORS.street,
+      sofa: COLORS.sofa,
+      sofaCushion: COLORS.sofaCushion,
+      bed: COLORS.bed,
+      bedFrame: COLORS.bedFrame,
+      cabinet: COLORS.cabinet,
+      cabinetDoor: COLORS.cabinetDoor,
+      chair: COLORS.chair,
+      chairSeat: COLORS.chairSeat,
+   },
+   // Family House by day: cream walls, a wooden floor, warm furniture.
+   2: {
+      wall: "#d3c7b4",
+      wallTrim: "#f3ece0",
+      floor: "#8a6f4d",
+      floorLine: "#9d8160",
+      street: COLORS.street,
+      sofa: "#b08968",
+      sofaCushion: "#e6ccb2",
+      bed: "#f3ece0",
+      bedFrame: "#8a6f4d",
+      cabinet: "#6b4f3a",
+      cabinetDoor: "#8a6f4d",
+      chair: "#7f5539",
+      chairSeat: "#b08968",
+   },
+   // Office: cool grey partitions, blue carpet, dark desks.
+   3: {
+      wall: "#9aa5b1",
+      wallTrim: "#cbd2d9",
+      floor: "#525d6b",
+      floorLine: "#66727f",
+      street: "#3f4750",
+      sofa: "#475569",
+      sofaCushion: "#94a3b8",
+      bed: "#cbd5e1",
+      bedFrame: "#64748b",
+      cabinet: "#334155",
+      cabinetDoor: "#475569",
+      chair: "#1e293b",
+      chairSeat: "#334155",
+   },
+   // Hotel at night: dark walls, brass trim, a deep red carpet.
+   4: {
+      wall: "#4a3f3a",
+      wallTrim: "#a1825c",
+      floor: "#59393b",
+      floorLine: "#6b4a4c",
+      street: "#292524",
+      sofa: "#4e3d4e",
+      sofaCushion: "#a1825c",
+      bed: "#e7e0d5",
+      bedFrame: "#4a3f3a",
+      cabinet: "#3a2f2b",
+      cabinetDoor: "#a1825c",
+      chair: "#3a2f2b",
+      chairSeat: "#a1825c",
+   },
+   // Warehouse at sunset: bare metal, concrete, wooden crates, safety-yellow trim.
+   5: {
+      wall: "#6e747c",
+      wallTrim: "#f59e0b",
+      floor: "#55534f",
+      floorLine: "#6b6963",
+      street: "#44403c",
+      sofa: "#3f4b57",
+      sofaCushion: "#6e747c",
+      bed: "#78716c",
+      bedFrame: "#57534e",
+      cabinet: "#8a6b3d",
+      cabinetDoor: "#a5824f",
+      chair: "#57534e",
+      chairSeat: "#78716c",
+   },
+};
+
+/** The level's palette (level 1 is COLORS, unchanged). */
+export function levelColors(level: FireLevel): LevelColors {
+   return PALETTES[levelPaletteId(level)];
+}
+
+// identify the palette by the theme (levels are distinct themes)
+function levelPaletteId(level: FireLevel): number {
+   switch (level.plan.furn) {
+      case "house": return 2;
+      case "office": return 3;
+      case "hotel": return 4;
+      case "warehouse": return 5;
+      default: return 1;
+   }
+}
+
 /** Wall-mounted pieces (exit signs, plaques) only on walls drawn full height; the lintel's sign with the lintel. */
 export function onFullWall(level: FireLevel, yaw: number, spot: InstanceSpot): boolean {
    if (spot === EXIT_SIGN_SPOTS[0]) return porchFull(level, yaw);
    if (Math.abs(Math.abs(spot.x) - HALL_HALF) > 0.15) return true;
    return !hidesFloor(level, yaw, Math.sign(spot.x) * DOOR_LINE_X, spot.z, true, 0);
+}
+
+// ---------- per-level exterior set dressing (Scene.tsx renders it; all of it stays off the
+// walkable floor — levels-variety.test.ts checks every footprint against the play rects) ----------
+
+export interface DecorPiece {
+   spot: InstanceSpot;
+   color: string;
+}
+
+export interface LevelDecor {
+   /** solid-colour boxes: hedges, canopies, docks, crates (instanced per colour in the scene) */
+   boxes: DecorPiece[];
+   /** cylinders: columns, barrels, posts, topiary */
+   cyls: DecorPiece[];
+   /** window strips and sign glows on the exterior walls (`emissive` 0 = plain glass) */
+   windows: { spot: InstanceSpot; color: string; emissive: number }[];
+}
+
+const NO_DECOR: LevelDecor = { boxes: [], cyls: [], windows: [] };
+
+/**
+ * The level's set pieces outside the building: family-house hedges, the office entrance canopy and
+ * glass strips, the hotel's lit windows and portico, the warehouse dock and barrels. Everything
+ * sits beyond the porch walls (|x| > 1.7 or z < -3.45) or on an exterior wall face, so the play
+ * floor, the camera solids and the cutaway are untouched. Level 1 keeps its bare street.
+ */
+export function levelDecor(level: FireLevel): LevelDecor {
+   const zEnd = level.rooms * ROOM_LEN;
+   const outerX = HALL_HALF + roomDeep(level) + 0.18;
+   switch (level.plan.furn) {
+      case "house": {
+         const boxes: DecorPiece[] = [];
+         const cyls: DecorPiece[] = [];
+         // a clipped hedge along the far side of the street, behind the parked truck
+         for (const x of [-6.0, -4.5, -3.0, 3.0, 4.5, 6.0]) boxes.push({ spot: { x, y: 0.3, z: -6.9, sx: 1.4, sy: 0.6, sz: 0.5 }, color: "#527a35" });
+         // the front garden walls beside the porch and the lawn patches
+         for (const side of [-1, 1]) {
+            boxes.push({ spot: { x: side * 1.78, y: 0.225, z: -2.2, sx: 0.24, sy: 0.45, sz: 2.4 }, color: "#d3c7b4" });
+            boxes.push({ spot: { x: side * 3.6, y: 0.03, z: -2.9, sx: 3.0, sy: 0.06, sz: 1.6 }, color: "#5c8a3c" });
+         }
+         // the mailbox by the garden gate
+         boxes.push({ spot: { x: 2.15, y: 0.55, z: -3.6, sx: 0.14, sy: 1.1, sz: 0.14 }, color: "#6b4f3a" });
+         boxes.push({ spot: { x: 2.15, y: 1.2, z: -3.6, sx: 0.34, sy: 0.26, sz: 0.5 }, color: "#8a6f4d" });
+         const windows = level.rooms === 3
+            ? [
+               { spot: { x: -outerX - 0.02, y: 1.5, z: 3, sx: 0.06, sy: 0.85, sz: 1.5 }, color: "#bfd7ea", emissive: 0 },
+               { spot: { x: outerX + 0.02, y: 1.5, z: 9, sx: 0.06, sy: 0.85, sz: 1.5 }, color: "#bfd7ea", emissive: 0 },
+               { spot: { x: outerX + 0.02, y: 1.5, z: 15, sx: 0.06, sy: 0.85, sz: 1.5 }, color: "#bfd7ea", emissive: 0 },
+            ]
+            : [];
+         return { boxes, cyls, windows };
+      }
+      case "office": {
+         const boxes: DecorPiece[] = [
+            // the entrance canopy on two slim columns, over the street end of the porch
+            { spot: { x: 0, y: 2.42, z: -4.05, sx: 5.0, sy: 0.14, sz: 1.6 }, color: "#334155" },
+            // the company sign panel on the far gable
+            { spot: { x: 0, y: 2.0, z: zEnd + 0.14, sx: 4.4, sy: 0.7, sz: 0.1 }, color: "#1e293b" },
+         ];
+         const cyls: DecorPiece[] = [
+            { spot: { x: -2.2, y: 1.2, z: -4.55, sx: 0.1, sy: 2.4, sz: 0.1 }, color: "#475569" },
+            { spot: { x: 2.2, y: 1.2, z: -4.55, sx: 0.1, sy: 2.4, sz: 0.1 }, color: "#475569" },
+         ];
+         // glass strips down both wing faces, two per room
+         const windows: LevelDecor["windows"] = [
+            { spot: { x: 0, y: 2.0, z: zEnd + 0.2, sx: 3.4, sy: 0.22, sz: 0.06 }, color: "#7dd3fc", emissive: 0.5 },
+         ];
+         for (let i = 0; i < level.rooms; i++) {
+            const side = roomSide(level, i);
+            for (const dz of [1.9, 4.1]) {
+               windows.push({ spot: { x: side * (outerX + 0.02), y: 1.55, z: i * ROOM_LEN + dz, sx: 0.06, sy: 0.8, sz: 1.0 }, color: "#9fc3dd", emissive: 0.18 });
+            }
+         }
+         return { boxes, cyls, windows };
+      }
+      case "hotel": {
+         const boxes: DecorPiece[] = [
+            // the portico slab and the lit hotel sign over it
+            { spot: { x: 0, y: 2.44, z: -4.0, sx: 5.4, sy: 0.16, sz: 1.7 }, color: "#3a2f2b" },
+            { spot: { x: 0, y: 2.72, z: -4.35, sx: 2.6, sy: 0.34, sz: 0.12 }, color: "#2a211d" },
+            // planter tubs flanking the porch
+            { spot: { x: -2.05, y: 0.28, z: -2.6, sx: 0.62, sy: 0.56, sz: 1.1 }, color: "#4a3f3a" },
+            { spot: { x: 2.05, y: 0.28, z: -2.6, sx: 0.62, sy: 0.56, sz: 1.1 }, color: "#4a3f3a" },
+         ];
+         const cyls: DecorPiece[] = [
+            { spot: { x: -2.35, y: 1.2, z: -4.55, sx: 0.11, sy: 2.4, sz: 0.11 }, color: "#a1825c" },
+            { spot: { x: 2.35, y: 1.2, z: -4.55, sx: 0.11, sy: 2.4, sz: 0.11 }, color: "#a1825c" },
+            { spot: { x: -2.05, y: 0.82, z: -2.6, sx: 0.3, sy: 0.52, sz: 0.3 }, color: "#3f5a32" },
+            { spot: { x: 2.05, y: 0.82, z: -2.6, sx: 0.3, sy: 0.52, sz: 0.3 }, color: "#3f5a32" },
+         ];
+         // every room's windows lit warm against the night
+         const windows: LevelDecor["windows"] = [
+            { spot: { x: 0, y: 2.74, z: -4.42, sx: 2.3, sy: 0.18, sz: 0.06 }, color: "#fcd34d", emissive: 1 },
+            { spot: { x: 0, y: 1.5, z: zEnd + 0.02, sx: 1.4, sy: 0.85, sz: 0.06 }, color: "#fcd34d", emissive: 0.9 },
+         ];
+         for (let i = 0; i < level.rooms; i++) {
+            const side = roomSide(level, i);
+            for (const dz of [2.1, 3.9]) {
+               windows.push({ spot: { x: side * (outerX + 0.02), y: 1.55, z: i * ROOM_LEN + dz, sx: 0.06, sy: 0.75, sz: 0.85 }, color: "#fcd34d", emissive: 0.85 });
+            }
+         }
+         return { boxes, cyls, windows };
+      }
+      case "warehouse": {
+         const boxes: DecorPiece[] = [
+            // the loading dock across the far end and a roller-door frame on the gable
+            { spot: { x: 0, y: 0.55, z: zEnd + 1.35, sx: 7.0, sy: 1.1, sz: 1.7 }, color: "#6b6963" },
+            { spot: { x: -1.5, y: 1.3, z: zEnd + 0.16, sx: 0.28, sy: 2.6, sz: 0.24 }, color: "#4b5563" },
+            { spot: { x: 1.5, y: 1.3, z: zEnd + 0.16, sx: 0.28, sy: 2.6, sz: 0.24 }, color: "#4b5563" },
+            { spot: { x: 0, y: 2.62, z: zEnd + 0.16, sx: 3.3, sy: 0.32, sz: 0.24 }, color: "#4b5563" },
+            // pallets beside the porch
+            { spot: { x: -2.35, y: 0.07, z: -2.7, sx: 1.0, sy: 0.14, sz: 1.0 }, color: "#8a6b3d" },
+            { spot: { x: -2.35, y: 0.21, z: -2.7, sx: 0.9, sy: 0.14, sz: 0.9 }, color: "#a5824f" },
+            { spot: { x: 2.35, y: 0.07, z: -2.7, sx: 1.0, sy: 0.14, sz: 1.0 }, color: "#8a6b3d" },
+         ];
+         const cyls: DecorPiece[] = [];
+         // barrels along the pavement
+         for (const [x, color] of [[-5.6, "#b91c1c"], [-4.9, "#334155"], [4.9, "#334155"], [5.6, "#b91c1c"], [6.3, "#8a6b3d"]] as const) {
+            cyls.push({ spot: { x, y: 0.43, z: -4.5, sx: 0.64, sy: 0.86, sz: 0.64 }, color });
+         }
+         // high clerestory strips on the wide bays, glowing in the sunset
+         const windows: LevelDecor["windows"] = [];
+         for (let i = 0; i < level.rooms; i += 2) {
+            const side = roomSide(level, i);
+            windows.push({ spot: { x: side * (outerX + 0.02), y: 1.95, z: i * ROOM_LEN + 3, sx: 0.06, sy: 0.45, sz: 2.6 }, color: "#fdba74", emissive: 0.4 });
+         }
+         return { boxes, cyls, windows };
+      }
+      default:
+         return NO_DECOR;
+   }
 }
