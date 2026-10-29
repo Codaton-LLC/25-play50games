@@ -38,25 +38,31 @@ function place(m: Matrix4, x: number, y: number, z: number, sx: number, sy: numb
 
 const isLeaf = (p: Pad) => p.kind === "leaf" || p.kind === "net" || p.kind === "canopy" || p.kind === "hollow";
 
-/** The platforms: branch slabs (start, branches, stairs, the arena and the goal) and broad leaves. */
+/**
+ * The platforms: every one is a broad leaf (the solid, readable surface; m2LeafPlatformV2 stretched to
+ * the pad's circle), the branch ones with a mossy twig cluster (m2BranchPlatformV2) under the leaf where
+ * it meets its limb, so a branch reads as wood and a leaf pad as a bare leaf.
+ */
 function Pads({ run }: { run: VineRun }) {
-   const branches = useMemo(() => run.course.pads.filter((p) => !isLeaf(p)), [run]);
-   const leaves = useMemo(() => run.course.pads.filter(isLeaf), [run]);
-   const branch = (i: number, m: Matrix4) => {
-      const p = branches[i];
-      const s = branchScale(p.r);
-      // a slab across the route, its top on the pad, turned so its length runs round the trunk
-      place(m, p.x, padY(p, run.simMs) - GLB_SIZE.branch.y * s * 0.9, p.z, s, s * 0.9, s, Math.atan2(p.x, p.z) + Math.PI / 2);
-   };
+   const pads = run.course.pads;
+   const woody = useMemo(() => pads.filter((p) => !isLeaf(p)), [pads]);
    const leaf = (i: number, m: Matrix4) => {
-      const p = leaves[i];
+      const p = pads[i];
       const s = leafScale(p.r);
-      place(m, p.x, padY(p, run.simMs) - GLB_SIZE.leaf.y * s * 0.8, p.z, s * 1.35, s * 0.8, s, Math.atan2(p.x, p.z) + i * 0.4);
+      const wide = (2 * p.r) / GLB_SIZE.leaf.x;
+      place(m, p.x, padY(p, run.simMs) - GLB_SIZE.leaf.y * s * 0.7, p.z, wide * 0.98, s * 0.7, s, Math.atan2(p.x, p.z) + (isLeaf(p) ? i * 0.4 : 0));
+   };
+   const twig = (i: number, m: Matrix4) => {
+      const p = woody[i];
+      const s = branchScale(p.r * 0.7);
+      const n = Math.hypot(p.x, p.z) || 1;
+      // under the leaf, on the trunk side
+      place(m, p.x - (p.x / n) * p.r * 0.45, padY(p, run.simMs) - 0.18 - GLB_SIZE.branch.y * s, p.z - (p.z / n) * p.r * 0.45, s, s, s, Math.atan2(p.x, p.z) + Math.PI / 2);
    };
    return (
       <>
-         <DynamicInstancedModel asset={ASSETS.branch} count={branches.length} update={branch} name="branches" />
-         <DynamicInstancedModel asset={ASSETS.leaf} count={leaves.length} update={leaf} name="leaves" />
+         <DynamicInstancedModel asset={ASSETS.leaf} count={pads.length} update={leaf} name="pads" />
+         <DynamicInstancedModel asset={ASSETS.branch} count={woody.length} update={twig} name="pad-twigs" />
       </>
    );
 }
@@ -84,12 +90,12 @@ function Ropes({ run, dry }: { run: VineRun; dry: boolean }) {
       const seg = len / SEG;
       anchorOf(run, v, A);
       const theta = ropeAngle(run, v, time.now);
-      // a little curl at the tail
-      const curl = theta + 0.04 * k * Math.sin(time.now * 1.3 + v.id);
+      const curl = theta;
       const mid = (k + 0.5) * seg;
       const s = Math.sin(curl);
       const c = Math.cos(curl);
-      place(m, A.x + v.dx * s * mid, A.y - c * mid, A.z + v.dz * s * mid, 1, seg * 1.04, 1, Math.atan2(v.dx, v.dz), curl);
+      // the segment's axis runs along (sin curl along the vine's direction, -cos curl): a tilt of -curl about x
+      place(m, A.x + v.dx * s * mid, A.y - c * mid, A.z + v.dz * s * mid, 1, seg * 1.06, 1, Math.atan2(v.dx, v.dz), -curl);
    };
    return vines.length > 0 ? <DynamicInstanced count={vines.length * SEG} update={update} parts={parts} name={dry ? "dry-ropes" : "ropes"} /> : null;
 }

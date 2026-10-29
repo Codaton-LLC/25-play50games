@@ -110,6 +110,13 @@ vine add their pumps (x1.5 each extra rider), shield / magnet / phase cover the 
 when all are through. Versus: a rival on your vine makes it heavy (x0.75 pumps); first to the top wins,
 the others get the grace. A hero 10 m under the highest is sent back. Multiplayer runs are never ranked.
 
+## Playtest (2026-10-29, `next dev` on 3321, headless Chrome, `?autoplay=1`)
+Every level at 1280x800 and 390x844 with the bot climbing, plus a two-finger orbit on the phone: 0 console
+errors. Seen and fixed: the twig-bundle branch model did not read as a platform (every pad is now a broad
+leaf with the twigs under it), the rope segments tilted the wrong way (a dashed rope), a limb poked up
+through the start leaf, the root flare filled the bottom of the phone view. The headless renderer runs at
+a few fps, so the boss fight itself was not reached in a screenshot (the bot clears it in the tests).
+
 ## Open issues
 - Model look and placement are judged from headless screenshots only; a real-phone pass is pending.
 - The King is the shared monkey at 3x with an ash tint and code-built shoulder plates (no dedicated mesh).

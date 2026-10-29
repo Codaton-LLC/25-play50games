@@ -80,9 +80,11 @@ function Limbs({ run }: { run: VineRun }) {
       const out: (InstanceSpot & { q: Quaternion })[] = [];
       for (const p of c.pads) {
          if (p.kind === "net" || p.kind === "hollow" || p.kind === "canopy") continue;
-         out.push(limbSpot(p.x, p.y - 0.35, p.z, p.kind === "step" ? 0.45 : 0.7));
+         // the limb reaches under the leaf's trunk-side edge, not through its middle
+         const n = Math.hypot(p.x, p.z) || 1;
+         out.push(limbSpot(p.x - (p.x / n) * p.r * 0.7, p.y - 0.6, p.z - (p.z / n) * p.r * 0.7, p.kind === "step" ? 0.32 : 0.5));
       }
-      for (const v of c.vines) out.push(limbSpot(v.x, v.y + 0.25, v.z, 0.5));
+      for (const v of c.vines) out.push(limbSpot(v.x, v.y + 0.25, v.z, 0.32));
       return out;
    }, [c]);
    const parts = useMemo<InstancePart[]>(() => [{ geometry: new CylinderGeometry(0.85, 1, 1, 8), material: new MeshStandardMaterial({ color: COLORS.bark, roughness: 0.95 }) }], []);
@@ -141,7 +143,7 @@ export default function World({ run }: { run: VineRun }) {
       return t;
    }, [top]);
    const trunkMat = useMemo(() => new MeshStandardMaterial({ map: tex, roughness: 0.95, color: new Color("#ffffff") }), [tex]);
-   const rootGeo = useMemo(() => new CylinderGeometry(TRUNK_R, TRUNK_R * 1.9, 9, 24, 1, true), []);
+   const rootGeo = useMemo(() => new CylinderGeometry(TRUNK_R, TRUNK_R * 1.6, 9, 24, 1, true), []);
    const floorMat = useMemo(() => new MeshStandardMaterial({ color: "#2f4a24", roughness: 1 }), []);
    const hazeMat = useMemo(() => new MeshBasicMaterial({ color: look.fog, side: BackSide, transparent: true, opacity: 0.35, depthWrite: false }), [look.fog]);
    useEffect(() => () => { tex.dispose(); trunkMat.dispose(); rootGeo.dispose(); floorMat.dispose(); hazeMat.dispose(); }, [tex, trunkMat, rootGeo, floorMat, hazeMat]);
@@ -151,7 +153,7 @@ export default function World({ run }: { run: VineRun }) {
          const a = (i / 14) * Math.PI * 2 + 0.2;
          const r = 52 + (i % 3) * 12;
          const k = (28 + (i % 4) * 9) / GLB_SIZE.bgTree.y;
-         out.push({ x: Math.sin(a) * r, y: -14, z: Math.cos(a) * r, rotY: a * 3, scale: k });
+         out.push({ x: Math.sin(a) * r, y: -23, z: Math.cos(a) * r, rotY: a * 3, scale: k });
       }
       return out;
    }, []);
@@ -174,8 +176,8 @@ export default function World({ run }: { run: VineRun }) {
          <mesh position={[0, (top + 8) / 2 - 4, 0]} material={trunkMat}>
             <cylinderGeometry args={[TRUNK_R * 0.86, TRUNK_R, top + 30, 28, 1, true]} />
          </mesh>
-         <mesh position={[0, -9.5, 0]} geometry={rootGeo} material={trunkMat} />
-         <mesh position={[0, -14, 0]} rotation-x={-Math.PI / 2} material={floorMat}>
+         <mesh position={[0, -18.5, 0]} geometry={rootGeo} material={trunkMat} />
+         <mesh position={[0, -23, 0]} rotation-x={-Math.PI / 2} material={floorMat}>
             <circleGeometry args={[110, 32]} />
          </mesh>
          <mesh position={[0, top / 2, 0]} material={hazeMat}>
