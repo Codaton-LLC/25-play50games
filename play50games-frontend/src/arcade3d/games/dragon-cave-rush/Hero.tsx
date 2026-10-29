@@ -228,7 +228,7 @@ export function Dragon({ run, cart }: { run: CaveRun; cart: CartPose }) {
          } else if (ph === 1) {
             // ahead of you, turned back to throw fireballs down the track
             // close enough ahead that the loop's curve keeps her near the middle of the view
-            lanePoint(c, run.cart.s + 15, 0, 3.4, P);
+            lanePoint(c, run.cart.s + 24, 7, 2.4, P);
          } else {
             // hovering over the inside of the loop, ahead of you (the collar locks in view)
             const base = c.samples[Math.round(loop.s0 / 0.5) * 4 + 1];
