@@ -74,7 +74,7 @@ Gate review (Claude, 2026-10-25): `l1Replay.test.ts` pins level 1 bit-exact agai
 
 ### Each level's own airport (2026-10-29, looks only)
 
-`TarmacSets.tsx`; rules and limits untouched. Levels 2-5 hang a departures board on the north wall's transom (in view on every screen) listing their destinations in the flights' colours, and dress the apron outside the north window (everything at z <= -5, behind the play area):
+`TarmacSets.tsx`; rules and limits untouched. Levels 2-5 hang a departures board on the north wall's transom listing their destinations in the flights' colours, run a gate band along the west wall's hall face and paint a floor mark east of the belts (2, 4, RUSH, HUB; the band and the mark are in view on every screen, the board on portrait), and dress the apron outside the north window (everything at z <= -5, behind the play area):
 
 | Level | Light | Board | Apron |
 |---|---|---|---|

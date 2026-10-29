@@ -65,6 +65,61 @@ function DeparturesBoard({ levelId }: { levelId: LevelId }) {
    );
 }
 
+const BAND: Record<LevelId, string> = {
+   1: "",
+   2: "GATE A  LONDON          GATE B  PARIS",
+   3: "GATES A-D   LONDON  PARIS  ROME  OSLO",
+   4: "RUSH HOUR   ALL GATES BOARDING   KEEP BAGS MOVING",
+   5: "INTERNATIONAL HUB   NEW YORK  TOKYO  DUBAI  SYDNEY",
+};
+
+/** A gate band along the west wall's hall face, under the old signs: in view on every screen. */
+function WallBand({ levelId }: { levelId: LevelId }) {
+   const tex = useCanvasTexture(2048, 96, (ctx) => {
+      ctx.fillStyle = levelId === 4 ? "#7f1d1d" : levelId === 5 ? "#1e1b4b" : "#0f172a";
+      ctx.fillRect(0, 0, 2048, 96);
+      FLIGHTS.forEach((f, i) => {
+         ctx.fillStyle = f.color;
+         ctx.fillRect(12 + i * 26, 30, 18, 36);
+      });
+      ctx.fillStyle = levelId === 4 ? "#fde68a" : "#f8fafc";
+      ctx.font = "bold 58px sans-serif";
+      ctx.textBaseline = "middle";
+      ctx.fillText(BAND[levelId], 140, 50);
+   });
+   return (
+      <mesh position={[-1.71, 2.45, 7.5]} rotation-y={Math.PI / 2} name="gate-band">
+         <planeGeometry args={[13, 0.6]} />
+         <meshStandardMaterial map={tex} emissiveMap={tex} emissive="#ffffff" emissiveIntensity={0.7} toneMapped={false} />
+      </mesh>
+   );
+}
+
+/** A painted floor sign east of the belts (flat, so it hides nothing): the level's gate count or theme. */
+function FloorMark({ levelId }: { levelId: LevelId }) {
+   const tex = useCanvasTexture(512, 512, (ctx) => {
+      ctx.clearRect(0, 0, 512, 512);
+      ctx.globalAlpha = 0.75;
+      const ring = levelId === 4 ? "#ef4444" : levelId === 5 ? "#a78bfa" : "#38bdf8";
+      ctx.strokeStyle = ring;
+      ctx.lineWidth = 26;
+      ctx.beginPath();
+      ctx.arc(256, 256, 220, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.fillStyle = ring;
+      ctx.font = "bold 150px sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(levelId === 2 ? "2" : levelId === 3 ? "4" : levelId === 4 ? "RUSH" : "HUB", 256, 270);
+   });
+   return (
+      <mesh position={[11, 0.02, 7]} rotation-x={-Math.PI / 2} name="floor-mark">
+         <planeGeometry args={[3.6, 3.6]} />
+         <meshStandardMaterial map={tex} transparent depthWrite={false} roughness={0.8} />
+      </mesh>
+   );
+}
+
 /** Rush Hour: red and white apron beacons blinking along the stands. */
 function Beacons() {
    const group = useRef<Group>(null);
@@ -115,6 +170,8 @@ export function TarmacSets({ levelId }: { levelId: LevelId }) {
    return (
       <group name={`tarmac-set-${levelId}`}>
          {levelId > 1 && <DeparturesBoard levelId={levelId} />}
+         {levelId > 1 && <WallBand levelId={levelId} />}
+         {levelId > 1 && <FloorMark levelId={levelId} />}
          {planes.length > 0 && <InstancedModel asset={ASSETS.plane} spots={planes} fallback={null} />}
          {levelId === 4 && <Beacons />}
          {levelId === 5 && <Hub />}
