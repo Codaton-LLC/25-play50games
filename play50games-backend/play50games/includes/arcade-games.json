@@ -1119,6 +1119,22 @@
         { "title": "Golden Roof", "max_score": 33570, "min_duration_ms": 24300, "max_duration_ms": 360000, "time_base_ms": 360000 }
       ]
     },
+    "jungle-vine-jump": {
+      "title": "Jungle Vine Jump",
+      "kind": "time",
+      "max_score": 19910,
+      "min_duration_ms": 900,
+      "max_duration_ms": 200000,
+      "time_base_ms": 200000,
+      "enabled": false,
+      "levels": [
+        { "title": "Green Start", "max_score": 19910, "min_duration_ms": 900, "max_duration_ms": 200000, "time_base_ms": 200000 },
+        { "title": "Branch Climb", "max_score": 23880, "min_duration_ms": 1200, "max_duration_ms": 240000, "time_base_ms": 240000 },
+        { "title": "Swinging Vines", "max_score": 27800, "min_duration_ms": 2000, "max_duration_ms": 280000, "time_base_ms": 280000 },
+        { "title": "Ruins", "max_score": 31750, "min_duration_ms": 2500, "max_duration_ms": 320000, "time_base_ms": 320000 },
+        { "title": "Canopy Peak", "max_score": 37860, "min_duration_ms": 21400, "max_duration_ms": 400000, "time_base_ms": 400000 }
+      ]
+    },
     "dragon-cave-rush": {
       "title": "Dragon Cave Rush",
       "kind": "time",

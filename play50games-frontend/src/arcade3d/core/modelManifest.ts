@@ -605,6 +605,18 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/temple-lantern-jump/m2TempleLedge.glb",
    "/models/3d/temple-lantern-jump/m2TempleTowerBg.glb",
    "/models/3d/temple-lantern-jump/m2WoodenBalconyV2.glb",
+   "/models/3d/jungle-vine-jump/m2BranchPlatform.glb",
+   "/models/3d/jungle-vine-jump/m2BranchPlatformV2.glb",
+   "/models/3d/jungle-vine-jump/m2GiantJungleTreeBg.glb",
+   "/models/3d/jungle-vine-jump/m2JungleEmerald.glb",
+   "/models/3d/jungle-vine-jump/m2JungleFruitPod.glb",
+   "/models/3d/jungle-vine-jump/m2JungleMonkey.glb",
+   "/models/3d/jungle-vine-jump/m2JungleVine.glb",
+   "/models/3d/jungle-vine-jump/m2JungleVineV2.glb",
+   "/models/3d/jungle-vine-jump/m2LeafPlatformV2.glb",
+   "/models/3d/jungle-vine-jump/m2MossyRuinArch.glb",
+   "/models/3d/jungle-vine-jump/m2RuinStone.glb",
+   "/models/3d/jungle-vine-jump/m2SnapperPlant.glb",
 ];
 
 const LISTED: ReadonlySet<string> = new Set(MODEL_MANIFEST);
