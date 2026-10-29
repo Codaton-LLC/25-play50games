@@ -43,15 +43,15 @@ One cave kitchen, five configurations (`levels.ts`, `docs/arcade-levels.md` §6.
 
 Level 5's maxScore 9600 is 1.99× level 1's 4830 (the 3× guard). Every level's maxScore is at least level 1's.
 
-**Each level is its own room** (`sets.ts`, `KitchenSets.tsx`, 2026-10-29; looks only, the rules and the limits are untouched):
+**Each level is its own room** (`sets.ts`, `KitchenSets.tsx`, 2026-10-29; looks only, the rules and the limits are untouched). Everything stands in the two side strips the camera sees past the hatch wall:
 
 | Level | Room | Dressing (reused Hyper3D GLBs + code) | Light |
 |---|---|---|---|
 | 1 Snack Bar | today's cave kitchen | — | `indoor` |
-| 2 Monster Café | a café | two café tables with wooden chairs, a bakery stand at the back, a chalk MONSTER CAFÉ menu board on the back wall, a jar and a candle on the tables | `day`, grey stone fog |
-| 3 Busy Kitchen | a working kitchen | prep counters on both sides with jars, two pizza ovens along the back wall | `sunset` (stove glow) |
-| 4 Dinner Rush | lantern-lit dining room | five hanging lanterns over both sides and the back, a long candlelit table at the back, a warm lantern light; the feast's stove hearths and slime cakes | `night` |
-| 5 Grand Feast | banquet hall | a 4 m banquet table laden with gourds, a monster top hat, potion jars and candles, two lanterns, rainbow bunting across the back wall; stove hearths and slime cakes | `sunset` |
+| 2 Monster Café | a café | a café table with two wooden chairs, a bakery stand and a small candle table, a chalk MONSTER CAFÉ menu board on the back wall | `day`, grey stone fog |
+| 3 Busy Kitchen | a working kitchen | two pizza ovens and a prep counter with jars in the side strips | `sunset` (stove glow) |
+| 4 Dinner Rush | lantern-lit dining room | four hanging lanterns, candlelit tables in both side strips, a warm lantern light; the feast's stove hearths and slime cakes | `night` |
+| 5 Grand Feast | banquet hall | two long banquet tables laden with gourds, a monster top hat, potion jars and candles, two lanterns, rainbow bunting over the side strips; stove hearths and slime cakes | `sunset` |
 
 Each level's twist is its rules knob above (the second hatch, the drift, the penalty, the drains). `sets.test.ts`: the reused GLBs are in the manifest and measure what `sets.ts` says; every piece's footprint stands outside `PLAY_BOUNDS` (lanterns hang above the side and back strips) and off every camera line to the chef, the wheel, the cauldron, the monsters and the hatches at 1280 × 800, 390 × 844 and 844 × 390; the five rooms differ.
 

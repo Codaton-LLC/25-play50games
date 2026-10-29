@@ -9,7 +9,7 @@ import { hasModel } from "@/arcade3d/core/modelManifest";
 import { readCharacterGlb } from "@/arcade3d/core/rig/robotGlb";
 import { LEVEL_IDS } from "@/arcade3d/types";
 import { HATCH_X, HATCH_Z, MONSTER_Z } from "./Kitchen";
-import { PLAY_BOUNDS } from "./looks";
+import { DECOR, PLAY_BOUNDS } from "./looks";
 import { CHEF_POS } from "./poses";
 import { WHEEL } from "./rules";
 import { SETS, SET_GLB, type SetKind, type SetSpot } from "./sets";
@@ -88,6 +88,20 @@ describe("monster-kitchen level rooms", () => {
          }
       });
    }
+
+   it("no floor piece stands on today's crates, barrels or pumpkins", () => {
+      const floor = DECOR.filter((d) => d.kind === "crate" || d.kind === "barrel" || d.kind === "pumpkin");
+      for (const id of LEVEL_IDS) for (const s of SETS[id].spots) {
+         if (s.y > 0.5) continue;
+         const { hx, hz } = extent(s);
+         for (const d of floor) {
+            const r = 0.3 * Math.max(d.sx, d.sz);
+            const gx = Math.max(0, Math.abs(d.x - s.x) - hx);
+            const gz = Math.max(0, Math.abs(d.z - s.z) - hz);
+            expect(Math.hypot(gx, gz), `L${id} ${s.kind} at (${s.x}, ${s.z}) vs ${d.kind} at (${d.x}, ${d.z})`).toBeGreaterThan(r);
+         }
+      }
+   });
 
    it("the five levels are five different rooms", () => {
       expect(SETS[1].spots).toHaveLength(0);

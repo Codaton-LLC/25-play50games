@@ -54,62 +54,64 @@ export interface LevelExtras {
 
 const T = 0.75; // a table top
 
+// Everything stands in the two side strips the camera sees past the hatch wall (x <= -3.2 and
+// x >= 1.8, z -1.1 .. -3.4, in front of the rock wall at z -3.38), clear of today's crates, barrels
+// and shelves; lanterns hang above the strips.
 export const SETS: Record<LevelId, { spots: readonly SetSpot[]; extras: LevelExtras }> = {
    // Snack Bar: today's cave kitchen
    1: { spots: [], extras: { menu: false, bunting: false, lanternLight: false } },
-   // Monster Café: two café tables with chairs, a bakery stand at the back and a menu board
+   // Monster Café: a café table with two chairs on the left, a bakery stand and a small table on the right
    2: {
       spots: [
-         { kind: "table", x: -4.3, y: 0, z: -2.3, h: T },
-         { kind: "chair", x: -5.0, y: 0, z: -2.3, h: 0.95, rotY: Math.PI / 2 },
-         { kind: "chair", x: -3.6, y: 0, z: -2.3, h: 0.95, rotY: -Math.PI / 2 },
-         { kind: "table", x: 3.1, y: 0, z: -2.4, h: T },
-         { kind: "chair", x: 2.4, y: 0, z: -2.4, h: 0.95, rotY: Math.PI / 2 },
-         { kind: "chair", x: 3.8, y: 0, z: -2.4, h: 0.95, rotY: -Math.PI / 2 },
-         { kind: "bakery", x: -2.2, y: 0, z: -3.9, h: 1.5 },
-         { kind: "potionJar", x: -4.3, y: T, z: -2.3, h: 0.32 },
-         { kind: "candle", x: 3.1, y: T, z: -2.4, h: 0.3 },
+         { kind: "table", x: -4.2, y: 0, z: -2.4, h: T },
+         { kind: "chair", x: -4.95, y: 0, z: -2.4, h: 0.95, rotY: Math.PI / 2 },
+         { kind: "chair", x: -3.5, y: 0, z: -2.4, h: 0.95, rotY: -Math.PI / 2 },
+         { kind: "potionJar", x: -4.2, y: T, z: -2.4, h: 0.32 },
+         { kind: "bakery", x: 3.1, y: 0, z: -2.7, h: 1.5 },
+         { kind: "table", x: 2.6, y: 0, z: -1.5, h: T, wide: 0.6 },
+         { kind: "candle", x: 2.6, y: T, z: -1.5, h: 0.28 },
       ],
       extras: { menu: true, bunting: false, lanternLight: false },
    },
-   // Busy Kitchen: prep counters both sides and two pizza ovens along the back wall
+   // Busy Kitchen: a pizza oven on the left, a prep counter and a second oven on the right
    3: {
       spots: [
-         { kind: "prepCounter", x: -4.4, y: 0, z: -2.1, h: 1.0, rotY: Math.PI / 2 },
-         { kind: "prepCounter", x: 3.3, y: 0, z: -2.2, h: 1.0, rotY: -Math.PI / 2 },
-         { kind: "oven", x: -2.0, y: 0, z: -4.0, h: 1.4 },
-         { kind: "oven", x: 0.9, y: 0, z: -4.0, h: 1.4 },
-         { kind: "potionJar", x: -4.4, y: 1.0, z: -1.9, h: 0.3 },
-         { kind: "potionJar", x: 3.3, y: 1.0, z: -2.4, h: 0.3, rotY: 1 },
+         { kind: "oven", x: -4.2, y: 0, z: -2.5, h: 1.2, rotY: Math.PI / 2 },
+         { kind: "prepCounter", x: 2.3, y: 0, z: -2.2, h: 1.0, rotY: -Math.PI / 2 },
+         { kind: "oven", x: 3.4, y: 0, z: -2.5, h: 1.2, rotY: -Math.PI / 2 },
+         { kind: "potionJar", x: 2.3, y: 1.0, z: -1.8, h: 0.3 },
+         { kind: "potionJar", x: 2.3, y: 1.0, z: -2.6, h: 0.26, rotY: 1 },
       ],
       extras: { menu: false, bunting: false, lanternLight: false },
    },
-   // Dinner Rush: lanterns hanging over both sides and the back, a candlelit table at the back
+   // Dinner Rush: lanterns over both strips and candlelit tables under them
    4: {
       spots: [
-         { kind: "lantern", x: -3.7, y: 2.2, z: -1.2, h: 0.6 },
-         { kind: "lantern", x: 2.5, y: 2.2, z: -1.2, h: 0.6 },
-         { kind: "lantern", x: -3.7, y: 2.3, z: -2.6, h: 0.6 },
-         { kind: "lantern", x: 2.5, y: 2.3, z: -2.6, h: 0.6 },
-         { kind: "lantern", x: -0.7, y: 2.4, z: -3.4, h: 0.6 },
-         { kind: "table", x: -0.7, y: 0, z: -4.0, h: T, wide: 1.8 },
-         { kind: "candle", x: -1.6, y: T, z: -4.0, h: 0.3 },
-         { kind: "candle", x: -0.7, y: T, z: -4.0, h: 0.34 },
-         { kind: "candle", x: 0.2, y: T, z: -4.0, h: 0.3 },
+         { kind: "lantern", x: -3.7, y: 2.2, z: -1.4, h: 0.6 },
+         { kind: "lantern", x: -4.4, y: 2.3, z: -2.8, h: 0.6 },
+         { kind: "lantern", x: 2.5, y: 2.2, z: -1.4, h: 0.6 },
+         { kind: "lantern", x: 3.3, y: 2.3, z: -2.8, h: 0.6 },
+         { kind: "table", x: -4.2, y: 0, z: -2.3, h: T, rotY: Math.PI / 2 },
+         { kind: "table", x: 2.9, y: 0, z: -2.3, h: T, rotY: Math.PI / 2 },
+         { kind: "candle", x: -4.2, y: T, z: -2.0, h: 0.3 },
+         { kind: "candle", x: -4.2, y: T, z: -2.6, h: 0.34 },
+         { kind: "candle", x: 2.9, y: T, z: -2.0, h: 0.34 },
+         { kind: "candle", x: 2.9, y: T, z: -2.6, h: 0.3 },
       ],
       extras: { menu: false, bunting: false, lanternLight: true },
    },
-   // Grand Feast: a long banquet table laden with gourds, a top hat, jars and candles, bunting above
+   // Grand Feast: two long banquet tables laden with gourds, a top hat, jars and candles, bunting above
    5: {
       spots: [
-         { kind: "table", x: -0.7, y: 0, z: -4.0, h: T, wide: 2.4 },
-         { kind: "gourd", x: -2.0, y: T, z: -4.0, h: 0.42, rotY: 0.4 },
-         { kind: "gourd", x: 0.4, y: T, z: -3.95, h: 0.36, rotY: -0.8 },
-         { kind: "topHat", x: -0.7, y: T, z: -4.0, h: 0.26, rotY: 0.3 },
-         { kind: "potionJar", x: -1.3, y: T, z: -4.05, h: 0.34 },
-         { kind: "potionJar", x: 1.0, y: T, z: -4.05, h: 0.3, rotY: 2 },
-         { kind: "candle", x: -2.6, y: T, z: -4.0, h: 0.32 },
-         { kind: "candle", x: 1.3, y: T, z: -4.0, h: 0.32 },
+         { kind: "table", x: -4.2, y: 0, z: -2.4, h: T, rotY: Math.PI / 2, wide: 1.25 },
+         { kind: "table", x: 2.9, y: 0, z: -2.3, h: T, rotY: Math.PI / 2, wide: 1.3 },
+         { kind: "gourd", x: -4.2, y: T, z: -1.6, h: 0.4, rotY: 0.4 },
+         { kind: "topHat", x: -4.2, y: T, z: -2.3, h: 0.26, rotY: 1.2 },
+         { kind: "potionJar", x: -4.2, y: T, z: -2.9, h: 0.32 },
+         { kind: "gourd", x: 2.9, y: T, z: -2.9, h: 0.36, rotY: -0.8 },
+         { kind: "potionJar", x: 2.9, y: T, z: -2.2, h: 0.3, rotY: 2 },
+         { kind: "candle", x: 2.9, y: T, z: -1.6, h: 0.32 },
+         { kind: "candle", x: -4.2, y: T, z: -3.2, h: 0.28 },
          { kind: "lantern", x: -3.7, y: 2.2, z: -1.6, h: 0.6 },
          { kind: "lantern", x: 2.5, y: 2.2, z: -1.6, h: 0.6 },
       ],

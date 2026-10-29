@@ -25,8 +25,8 @@ function MenuBoard() {
       ["Slime soup ..... 3", "Eyeball pie ..... 4", "Toad tea ..... 2"].forEach((line, i) => ctx.fillText(line, 256, 150 + i * 52));
    });
    return (
-      <mesh position={[0.6, 2.35, -3.28]} name="cafe-menu">
-         <planeGeometry args={[1.5, 0.94]} />
+      <mesh position={[2.4, 1.95, -3.3]} name="cafe-menu">
+         <planeGeometry args={[0.9, 0.56]} />
          <meshStandardMaterial map={tex} roughness={0.9} />
       </mesh>
    );
@@ -36,7 +36,11 @@ const BUNTING = ["#f43f5e", "#facc15", "#22c55e", "#38bdf8", "#a855f7"];
 
 /** Bunting across the back wall over the feast: one string of triangle flags. */
 function Bunting() {
-   const flags = useMemo(() => Array.from({ length: 14 }, (_v, i) => ({ x: -4.2 + i * 0.6, y: 2.75 - 0.18 * Math.sin((i / 13) * Math.PI), color: BUNTING[i % BUNTING.length] })), []);
+   // two strings over the side strips (the hatch wall hides the middle)
+   const flags = useMemo(
+      () => [...Array.from({ length: 5 }, (_v, i) => -4.9 + i * 0.4), ...Array.from({ length: 5 }, (_v, i) => 2.1 + i * 0.4)].map((x, i) => ({ x, y: 2.75 - 0.12 * Math.sin(((i % 5) / 4) * Math.PI), color: BUNTING[i % BUNTING.length] })),
+      [],
+   );
    return (
       <group name="feast-bunting" position-z={-3.25}>
          {flags.map((f, i) => (
@@ -67,7 +71,7 @@ export function KitchenSets({ levelId }: { levelId: LevelId }) {
          ))}
          {set.extras.menu && <MenuBoard />}
          {set.extras.bunting && <Bunting />}
-         {set.extras.lanternLight && <pointLight position={[-0.7, 2.4, -2.6]} intensity={6} distance={9} decay={1.6} color="#fbbf24" />}
+         {set.extras.lanternLight && <pointLight position={[-0.7, 2.6, -0.4]} intensity={5} distance={9} decay={1.6} color="#fbbf24" />}
       </group>
    );
 }
