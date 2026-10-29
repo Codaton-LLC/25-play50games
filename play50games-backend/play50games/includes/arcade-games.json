@@ -1279,6 +1279,22 @@
         { "title": "Rolling Hazards", "max_score": 690, "min_duration_ms": 1000, "max_duration_ms": 150000, "base": 27, "max_pps": 14 },
         { "title": "Temple Sprint", "max_score": 910, "min_duration_ms": 1000, "max_duration_ms": 240000, "base": 38, "max_pps": 15 }
       ]
+    },
+    "mine-tunnel-run": {
+      "title": "Mine Tunnel Run",
+      "kind": "time",
+      "max_score": 8890,
+      "min_duration_ms": 1100,
+      "max_duration_ms": 90000,
+      "time_base_ms": 90000,
+      "enabled": false,
+      "levels": [
+        { "title": "Dry Tunnel", "max_score": 8890, "min_duration_ms": 1100, "max_duration_ms": 90000, "time_base_ms": 90000 },
+        { "title": "Pipe Zone", "max_score": 11730, "min_duration_ms": 2700, "max_duration_ms": 120000, "time_base_ms": 120000 },
+        { "title": "Water Gaps", "max_score": 14570, "min_duration_ms": 4300, "max_duration_ms": 150000, "time_base_ms": 150000 },
+        { "title": "Fast Tunnel", "max_score": 11700, "min_duration_ms": 3000, "max_duration_ms": 120000, "time_base_ms": 120000 },
+        { "title": "Deep Mine Sprint", "max_score": 21920, "min_duration_ms": 20800, "max_duration_ms": 240000, "time_base_ms": 240000 }
+      ]
     }
   }
 }
