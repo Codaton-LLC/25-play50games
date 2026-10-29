@@ -597,7 +597,7 @@ function stepMs(run: ToyRun, input: StepInput, ev: StepEvents): void {
    let nx = px + (h.vx + carryX) * 0.001;
    let nz = pz + (h.vz + carryZ) * 0.001;
    // solids: the castle, unbroken block walls, the ghost doorway (unless phasing or already inside)
-   for (const z of c.castles) if (pushOutOf(z, nx, nz, pushed)) ((nx = pushed.x), (nz = pushed.z));
+   for (const z of c.castleWalls) if (pushOutOf(z, nx, nz, pushed)) ((nx = pushed.x), (nz = pushed.z));
    for (let w = 0; w < c.walls.length; w++) {
       if (run.wallBroken[w]) continue;
       const z = c.walls[w];

@@ -82,6 +82,8 @@ export interface Course {
    walls: ZoneSpec[];
    ghosts: ZoneSpec[];
    castles: ZoneSpec[];
+   /** the castles' solid walls (CASTLE_WALL thick), with a gap where a ghost doorway is */
+   castleWalls: ZoneSpec[];
    pencils: { x: number; z: number; dx: number; dz: number }[];
    checkpoints: XZ[];
    orbs: ToySpec["orbs"];
@@ -97,6 +99,39 @@ export interface Course {
 }
 
 const DIR: Record<"+x" | "-x" | "+z" | "-z", [number, number]> = { "+x": [1, 0], "-x": [-1, 0], "+z": [0, 1], "-z": [0, -1] };
+
+/** A castle's walls are this thick; inside it is hollow (the sticker's room). */
+export const CASTLE_WALL = 0.6;
+
+/** The castles as four walls each; a wall a ghost doorway crosses is split round it. */
+export function castleWalls(castles: readonly ZoneSpec[], ghosts: readonly ZoneSpec[]): ZoneSpec[] {
+   const out: ZoneSpec[] = [];
+   const T = CASTLE_WALL;
+   for (const c of castles) {
+      const walls: ZoneSpec[] = [
+         { x0: c.x0, x1: c.x0 + T, z0: c.z0, z1: c.z1 },
+         { x0: c.x1 - T, x1: c.x1, z0: c.z0, z1: c.z1 },
+         { x0: c.x0, x1: c.x1, z0: c.z0, z1: c.z0 + T },
+         { x0: c.x0, x1: c.x1, z0: c.z1 - T, z1: c.z1 },
+      ];
+      for (const w of walls) {
+         const g = ghosts.find((q) => q.x0 < w.x1 && q.x1 > w.x0 && q.z0 < w.z1 && q.z1 > w.z0);
+         if (!g) {
+            out.push(w);
+            continue;
+         }
+         // the doorway: a vertical wall splits along z, a horizontal one along x
+         if (w.x1 - w.x0 <= T + 1e-6) {
+            if (g.z0 > w.z0) out.push({ ...w, z1: g.z0 });
+            if (g.z1 < w.z1) out.push({ ...w, z0: g.z1 });
+         } else {
+            if (g.x0 > w.x0) out.push({ ...w, x1: g.x0 });
+            if (g.x1 < w.x1) out.push({ ...w, x0: g.x1 });
+         }
+      }
+   }
+   return out;
+}
 
 /** Is (x, z) over a desk (a y = 0 platform)? */
 export function onDesk(plats: readonly PlatSpec[], x: number, z: number, margin = 0): boolean {
@@ -178,6 +213,7 @@ export function buildCourse(spec: ToySpec): Course {
       walls: spec.walls,
       ghosts: spec.ghosts,
       castles: spec.castles,
+      castleWalls: castleWalls(spec.castles, spec.ghosts),
       pencils: spec.pencils.map((p) => ({ x: p.x, z: p.z, dx: DIR[p.dir][0], dz: DIR[p.dir][1] })),
       checkpoints: spec.checkpoints,
       orbs: spec.orbs,
