@@ -68,7 +68,10 @@ export interface TurntableSpec {
 export type TerrainKind = "tilt" | "flat" | "ramp" | "tiers" | "hill";
 
 export interface Hole {
+   /** the hole's place in its course (0-based): the world position and the scorecard */
    index: number;
+   /** which layout it is (SPECS: 0-5 the original six, 6-8 the master holes, 9-14 the level holes) */
+   spec: number;
    /** Captured level physics; omitted on the original course. */
    vMax?: number;
    cupRadius?: number;
@@ -271,7 +274,56 @@ const SPECS: HoleSpec[] = [
       rails: [...loop([p(-1.5, 4.2), p(-1.5, -4.2), p(1.5, -4.2), p(1.5, 4.2)]), rail(p(-1.5, 0), p(-0.15, 0)), rail(p(0.45, 0), p(1.5, 0))],
       terrain: "flat", top: 0.8,
    },
+   // ---------- level holes (README "Levels"): L2 ramps, L3 windmills, L4 neon banks ----------
+   {
+      // over the ramp, then a full-width 45 deg board throws the ball right into the arm
+      name: "Ramp Dogleg", par: 3, tee: p(0, 2.5), cup: p(1.6, -2.6),
+      rails: loop([p(-0.6, 3.0), p(-0.6, -2.0), p(0.6, -3.2), p(2.4, -3.2), p(2.4, -2.0), p(0.6, -2.0), p(0.6, 3.0)]),
+      terrain: "ramp", top: 0.8,
+   },
+   {
+      // over the ramp onto a wider island green between two ponds
+      name: "Ramp Island", par: 3, tee: p(0, 2.5), cup: p(0, -3.4),
+      rails: loop([p(-0.6, 3.0), p(-0.6, -1.0), p(-1.2, -1.0), p(-1.2, -4.2), p(1.2, -4.2), p(1.2, -1.0), p(0.6, -1.0), p(0.6, 3.0)]),
+      ponds: [{ x0: -1.2, x1: -0.35, z0: -3.0, z1: -2.2 }, { x0: 0.45, x1: 1.2, z0: -3.6, z1: -2.6 }],
+      terrain: "ramp", top: 0.8,
+   },
+   {
+      // through the windmill, then a wide green with a two-board gate in front of the cup
+      name: "Windmill Gate", par: 3, tee: p(0, 2.4), cup: p(0.3, -2.6),
+      rails: [
+         ...loop([p(-0.8, 3.0), p(-0.8, -1.0), p(-1.2, -1.0), p(-1.2, -3.0), p(1.2, -3.0), p(1.2, -1.0), p(0.8, -1.0), p(0.8, 3.0)]),
+         ...windmillRails(),
+         rail(p(-1.2, -1.9), p(-0.3, -1.9)),
+         rail(p(0.5, -1.9), p(1.2, -1.9)),
+      ],
+      windmill: true, terrain: "flat", top: WINDMILL.hubY + WINDMILL.length,
+   },
+   {
+      // through the windmill, a long lane with a side pond
+      name: "Windmill Pond", par: 3, tee: p(0, 2.4), cup: p(0.25, -2.6),
+      rails: [...loop([p(-0.8, 3.0), p(-0.8, -3.0), p(0.8, -3.0), p(0.8, 3.0)]), ...windmillRails()],
+      ponds: [{ x0: -0.8, x1: -0.15, z0: -2.1, z1: -1.4 }],
+      windmill: true, terrain: "flat", top: WINDMILL.hubY + WINDMILL.length,
+   },
+   {
+      // two staggered boards from opposite walls: one clean diagonal threads both gaps
+      name: "Neon Zigzag", par: 3, tee: p(0.8, 3.6), cup: p(-0.8, -3.6),
+      rails: [...loop([p(-1.5, 4.2), p(-1.5, -4.2), p(1.5, -4.2), p(1.5, 4.2)]), rail(p(-1.5, 1.4), p(-0.1, 1.4)), rail(p(0.1, -1.4), p(1.5, -1.4))],
+      terrain: "flat", top: 0.8,
+   },
+   {
+      // a diamond block in the middle of the green
+      name: "Neon Diamond", par: 3, tee: p(0, 3.6), cup: p(0, -3.5),
+      rails: [...loop([p(-1.5, 4.2), p(-1.5, -4.2), p(1.5, -4.2), p(1.5, 4.2)]), ...loop([p(0, 0.8), p(0.6, 0), p(0, -0.8), p(-0.6, 0)])],
+      terrain: "flat", top: 0.8,
+   },
 ];
+
+/** Every layout's par, by spec index. */
+export const SPEC_PARS = SPECS.map((s) => s.par);
+/** The spec indices of a course (default: the first `count` layouts, in order). */
+export const courseSpecs = (count: number, set?: readonly number[]): number[] => (set ? [...set] : Array.from({ length: count }, (_v, i) => i));
 
 export const PARS = SPECS.slice(0, HOLE_COUNT).map((s) => s.par);
 export const NAMES = SPECS.slice(0, HOLE_COUNT).map((s) => s.name);
@@ -281,9 +333,9 @@ export const PAR_TOTAL = PARS.reduce((a, b) => a + b, 0);
 
 const mp = (q: P2, sx: number): P2 => ({ x: q.x * sx, z: q.z });
 
-/** Hole `index` (0-5), mirrored in x when `mirrored`. */
-export function buildHole(index: number, mirrored: boolean): Hole {
-   const s = SPECS[index];
+/** Layout `spec` (SPECS index), mirrored in x when `mirrored`, at course place `index` (default: the spec index). */
+export function buildHole(spec: number, mirrored: boolean, index = spec): Hole {
+   const s = SPECS[spec];
    const sx = mirrored ? -1 : 1;
    let x0 = Infinity, x1 = -Infinity, z0 = Infinity, z1 = -Infinity;
    const rails = s.rails.map((r) => {
@@ -295,6 +347,7 @@ export function buildHole(index: number, mirrored: boolean): Hole {
    });
    return {
       index,
+      spec,
       name: s.name,
       par: s.par,
       mirrored,
@@ -315,10 +368,13 @@ export function buildHole(index: number, mirrored: boolean): Hole {
    };
 }
 
-/** The run's course: the six holes in order, each mirrored on a seeded bit (64 variants). */
-export function generateCourse(seed: number, count = HOLE_COUNT): Hole[] {
+/**
+ * The run's course: its layouts in order (default the first `count`), each mirrored on a seeded bit
+ * (one draw per hole, as before: level 1's course is unchanged).
+ */
+export function generateCourse(seed: number, count = HOLE_COUNT, set?: readonly number[]): Hole[] {
    const rng = createRng(seed);
-   return SPECS.slice(0, count).map((_s, i) => buildHole(i, rng() < 0.5));
+   return courseSpecs(count, set).map((spec, i) => buildHole(spec, rng() < 0.5, i));
 }
 
 // ---------- the felt ----------

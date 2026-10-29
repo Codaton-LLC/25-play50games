@@ -43,7 +43,8 @@ import {
    RockPrimitives,
    TreePrimitives,
 } from "./Primitives";
-import { type LightingTheme } from "./looks";
+import { COURSE_LOOKS, type CourseLook, type LightingTheme } from "./looks";
+import { useMiniGolfLevel } from "./level";
 import { TICK_S, type RunState } from "./rules";
 import { Windmill } from "./Windmill";
 
@@ -53,13 +54,13 @@ const CELL = 0.25;
 const SKIRT = -0.3;
 
 /** One merged felt mesh: rich putting-green turf with 8-10% mowing stripe contrast and retaining curb skirts (Fix 7). */
-export function buildFelt(hole: Hole, rects: readonly FeltRect[]): BufferGeometry {
+export function buildFelt(hole: Hole, rects: readonly FeltRect[], look: CourseLook = COURSE_LOOKS[1]): BufferGeometry {
    const pos: number[] = [];
    const col: number[] = [];
    const idx: number[] = [];
    // Clear contrast between two greens: 8-10% apart in lightness (Fix 7)
-   const hi = new Color("#22c55e");
-   const lo = new Color("#15803d");
+   const hi = new Color(look.feltHi);
+   const lo = new Color(look.feltLo);
    const sideTop = new Color(COLORS.curb);
    const side = new Color(COLORS.feltSide);
    const h = (r: FeltRect, x: number, z: number) => heightAt(hole, x, z, r.upper) ?? 0;
@@ -150,8 +151,8 @@ export function railSpots(hole: Hole, rects: readonly FeltRect[]): InstanceSpot[
    return out;
 }
 
-function Felt({ hole, rects }: { hole: Hole; rects: readonly FeltRect[] }) {
-   const geometry = useMemo(() => buildFelt(hole, rects), [hole, rects]);
+function Felt({ hole, rects, look }: { hole: Hole; rects: readonly FeltRect[]; look: CourseLook }) {
+   const geometry = useMemo(() => buildFelt(hole, rects, look), [hole, rects, look]);
    useEffect(() => () => geometry.dispose(), [geometry]);
    return (
       <mesh geometry={geometry} name="felt">
@@ -198,22 +199,23 @@ function IslandBase({ hole }: { hole: Hole }) {
    const sx = (b.x1 - b.x0) / 2 + 0.6;
    const sz = (b.z1 - b.z0) / 2 + 0.6;
    return (
-      <mesh geometry={geometry} position={[(b.x0 + b.x1) / 2, 0, (b.z0 + b.z1) / 2]} scale={[sx, 1, sz]} name="island-base">
+      // 1.5 cm under the felt: the island's flat top and the felt shared y 0 and z-fought (orange speckle on the green)
+      <mesh geometry={geometry} position={[(b.x0 + b.x1) / 2, -0.015, (b.z0 + b.z1) / 2]} scale={[sx, 1, sz]} name="island-base">
          <meshStandardMaterial vertexColors roughness={0.95} flatShading side={DoubleSide} />
       </mesh>
    );
 }
 
 /** Bevelled wooden rails with warm mahogany timber body and a darker bevelled top cap (Fix 7). */
-function Rails({ hole, rects }: { hole: Hole; rects: readonly FeltRect[] }) {
+function Rails({ hole, rects, look }: { hole: Hole; rects: readonly FeltRect[]; look: CourseLook }) {
    const spots = useMemo(() => railSpots(hole, rects), [hole, rects]);
    const geo = useMemo(() => {
       const g = new BoxGeometry(1, 1, 1, 2, 2, 1);
       const pos = g.getAttribute("position");
       const colors = new Float32Array(pos.count * 3);
-      const cTop = new Color("#451a03"); // Darker timber cap
-      const cMid = new Color("#92400e"); // Warm mahogany timber body
-      const cBot = new Color("#78350f"); // Shadow underside trim
+      const cTop = new Color(look.railTop); // cap (level 1: darker timber)
+      const cMid = new Color(look.railMid); // body (level 1: warm mahogany)
+      const cBot = new Color(look.railBot); // underside trim
       const c = new Color();
       for (let i = 0; i < pos.count; i++) {
          const y = pos.getY(i);
@@ -233,14 +235,18 @@ function Rails({ hole, rects }: { hole: Hole; rects: readonly FeltRect[] }) {
       g.setAttribute("color", new Float32BufferAttribute(colors, 3));
       g.computeVertexNormals();
       return g;
-   }, []);
+   }, [look]);
 
    useEffect(() => () => geo.dispose(), [geo]);
 
    return (
       <Instanced spots={spots} name="rails">
          <primitive object={geo} attach="geometry" />
-         <meshStandardMaterial vertexColors roughness={0.7} />
+         {look.railGlow ? (
+            <meshStandardMaterial vertexColors roughness={0.4} emissive={look.railGlow} emissiveIntensity={0.9} toneMapped={false} />
+         ) : (
+            <meshStandardMaterial vertexColors roughness={0.7} />
+         )}
       </Instanced>
    );
 }
@@ -478,11 +484,12 @@ function Turntable({ hole, run }: { hole: Hole; run: RunState }) {
 /** One floating island: everything of hole `hole` in its world place. */
 export function Island({ hole, run }: { hole: Hole; run: RunState }) {
    const rects = useMemo(() => feltRects(hole), [hole]);
+   const look = COURSE_LOOKS[useMiniGolfLevel().id];
    return (
       <group position-z={holeZ(hole.index)} name={`hole-${hole.index + 1}`}>
          <IslandBase hole={hole} />
-         <Felt hole={hole} rects={rects} />
-         <Rails hole={hole} rects={rects} />
+         <Felt hole={hole} rects={rects} look={look} />
+         <Rails hole={hole} rects={rects} look={look} />
          <Cup hole={hole} />
          <Ponds hole={hole} />
          {hole.terrain === "ramp" && <Gap hole={hole} />}
