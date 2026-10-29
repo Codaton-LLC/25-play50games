@@ -198,7 +198,7 @@ lintels, the ember trim, the glyphs, the lamp's globe, the floor, the sky, the h
 ## Tests and playtest
 
 - `rules.test.ts` (40), `proof.test.ts` (17), `orbit.test.ts` (6), `multiplayer.test.ts` (4),
-  `hero.test.ts` (3), `assets.test.ts` (20): 90 green. `registry.sync.test.ts` "every slug in order"
+  `hero.test.ts` (3), `assets.test.ts` (19): 89 green. `registry.sync.test.ts` "every slug in order"
   fails on this branch alone by design: order 62 leaves room for the other branches' games 58-61
   (it passes once they are merged).
 - Headless Chrome playtest (2026-10-29) on `next dev -p 3311` (no production build: the machine had
