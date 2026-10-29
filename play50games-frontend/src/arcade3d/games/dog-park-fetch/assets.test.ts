@@ -101,9 +101,21 @@ function frameTris(id: (typeof LEVEL_IDS)[number]): number {
    const fountains = props.filter((p) => p.r === FOUNTAIN_R).length;
    const benches = props.filter((p) => p.r === BENCH_R).length;
    const bushes = props.filter((p) => p.r === TREE_R).length + d.bushes.length;
+   const umbrellas = d.umbrellasA.length + d.umbrellasB.length;
+   const balloons = d.balloonsA.length + d.balloonsB.length;
    const BENCH_TRIS = 2000;
    const TREE_TRIS = 1500;
-   const code = 12 * (fenceSpots(level).length + railSpots(level).length) + 2 * 48 * 2 + 8000; // fence, rails, ground, sky + blanket/stripes/fx
+   const BOX = 12; // a unit box
+   const CYLINDER = 96; // the 24-segment unit cylinder
+   const SPHERE = 252; // the 14 x 10 unit sphere
+   const CONE = 30; // the 10-segment umbrella cone
+   const code =
+      12 * (fenceSpots(level).length + railSpots(level).length) + 2 * 48 * 2 + 8000 + // fence, rails, ground, sky + blanket/stripes/fx
+      BOX * (d.blocks.length + d.flagLines.length) + // skyline, bunting strings
+      CYLINDER * (d.lamps.length + umbrellas + d.stumps.length) + // lamp and umbrella poles, stumps
+      SPHERE * (d.lamps.length + d.rocks.length + balloons) + // lamp heads, rocks, balloons
+      CONE * umbrellas + // umbrella canopies
+      d.flagsA.length + d.flagsB.length; // the bunting pennants
    return (
       g("dog", 1) + g("civilianNpc", 1) + g("tennisBall", 1) + g("fetchStick", 1) + g("frisbee", 1) +
       g("lawnMower", level.mowers) + g("parkFountain", fountains) + BENCH_TRIS * benches + g("parkBush", bushes) +
@@ -124,16 +136,28 @@ describe("dog-park-fetch look: budget, decor, camera and fog", () => {
          const hd = level.depth / 2;
          const d = decorSpots(id);
          expect(JSON.stringify(decorSpots(id))).toBe(JSON.stringify(d));
-         const heightOf = { trees: 1, bushes: GLB_SIZE.parkBush.height / GLB_SIZE.parkBush.width, tents: 1, tunnels: GLB_SIZE.agilityTunnel.height / GLB_SIZE.agilityTunnel.depth, hurdles: GLB_SIZE.agilityHurdleR.height / GLB_SIZE.agilityHurdleR.width } as const;
+         const heightOf = {
+            trees: 1, bushes: GLB_SIZE.parkBush.height / GLB_SIZE.parkBush.width, tents: 1,
+            tunnels: GLB_SIZE.agilityTunnel.height / GLB_SIZE.agilityTunnel.depth,
+            hurdles: GLB_SIZE.agilityHurdleR.height / GLB_SIZE.agilityHurdleR.width,
+            lamps: 2.8, stumps: 0.5, rocks: 0.55, umbrellasA: 2.4, umbrellasB: 2.4,
+            flagsA: 2.1, flagsB: 2.1, balloonsA: 3.5, balloonsB: 3.5,
+         } as const;
+         // these kinds size their pieces per axis (a skyline block, a bunting string, a pennant)
+         const sizedAxes = new Set(["blocks", "flagLines", "flagsA", "flagsB"]);
          for (const [kind, spots] of Object.entries(d) as [keyof typeof heightOf, typeof d.trees][]) {
             for (const s of spots) {
                expect(Math.abs(s.x) > hw + 0.6 || Math.abs(s.z) > hd + 0.6, `${kind} ${s.x},${s.z}`).toBe(true);
                if (s.z > hd) expect((s.scale ?? 1) * heightOf[kind]).toBeLessThanOrEqual(SOUTH_DECOR_MAX_H);
-               expect(s.sx ?? s.sy ?? s.sz).toBeUndefined();
+               if (!sizedAxes.has(kind)) expect(s.sx ?? s.sy ?? s.sz).toBeUndefined();
             }
          }
          for (const t of d.trees) expect(t.z).toBeLessThan(hd - 3);
          expect(d.tents.length + d.tunnels.length + d.hurdles.length > 0).toBe(id === 5);
+         expect(d.lamps.length + d.blocks.length > 0).toBe(id === 2);
+         expect(d.stumps.length > 0).toBe(id === 3);
+         expect(d.umbrellasA.length + d.umbrellasB.length > 0).toBe(id === 4);
+         expect(d.flagLines.length + d.flagsA.length + d.flagsB.length + d.balloonsA.length + d.balloonsB.length > 0).toBe(id === 5);
       });
       it(`L${id}: the fog starts past the fitted camera's window on a phone and a desktop; portrait comes in closer`, () => {
          const level = LEVELS[id];

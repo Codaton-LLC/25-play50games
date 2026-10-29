@@ -3,7 +3,7 @@
 // One useRunFrame steps rules.ts. Visuals read the run and animate with useGameTime.
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
-import { BoxGeometry, CylinderGeometry, Fog, MeshStandardMaterial, RepeatWrapping, SphereGeometry, Vector3, type Group } from "three";
+import { BoxGeometry, BufferGeometry, CylinderGeometry, DoubleSide, Float32BufferAttribute, Fog, MeshStandardMaterial, RepeatWrapping, SphereGeometry, Vector3, type Group } from "three";
 import { InstancedModel, Model } from "@/arcade3d/core/assets";
 import CameraRig from "@/arcade3d/core/CameraRig";
 import { useCameraViews } from "@/arcade3d/core/camera/CameraViews";
@@ -32,7 +32,7 @@ import { ASSETS, DOG_LANDMARKS, FIT } from "./assets";
 import { GUIDE, dogHint, hintCode, nextGoal, type Goal } from "./guide";
 import type { DogLevel } from "./levels";
 import { BENCH_R, BLANKET_R, FOUNTAIN_R, LEAP_S, MAX_SPEED, STUN_S, TREE_R, blanketOf, createRun, frame, leapHeight, propsOf, toyXZ, type Kind, type Run } from "./rules";
-import { COLORS, DAMPING, FOV, LOOK_AHEAD, ZOOM, aimBounds, blanketSpot, decorSpots, drawBlanket, drawGrass, fenceSpots, fogFor, lookAtFor, propSpots, railSpots, sandSpots, stripeSpots, viewFor } from "./looks";
+import { COLORS, DAMPING, FOV, LOOK_AHEAD, ZOOM, PALETTES, aimBounds, blanketSpot, decorSpots, drawBlanket, fenceSpots, fogFor, lookAtFor, paintGrass, propSpots, railSpots, sandSpots, stripeSpots, viewFor } from "./looks";
 import { BallPrimitive, DogFigure, FrisbeePrimitive, MowerPrimitive, OwnerFigure, StickPrimitive } from "./Primitives";
 
 const BODY: BodyOffset = { y: 0, roll: 0, yaw: 0, squash: 1 };
@@ -94,7 +94,12 @@ function LevelScene() {
    const tossStick = useRef<TossHandle>(null);
    const tossFrisbee = useRef<TossHandle>(null);
    const zoom = useCameraZoom({ min: ZOOM.min, max: ZOOM.max });
-   const grass = useCanvasTexture(256, 256, drawGrass);
+   const palette = PALETTES[id];
+   const drawLawn = useMemo(() => {
+      const p = palette;
+      return (ctx: CanvasRenderingContext2D, w: number, h: number) => paintGrass(p, ctx, w, h);
+   }, [palette]);
+   const grass = useCanvasTexture(256, 256, drawLawn);
    const blanketMap = useCanvasTexture(256, 256, drawBlanket);
    useMemo(() => {
       grass.wrapS = RepeatWrapping;
@@ -120,6 +125,14 @@ function LevelScene() {
    const benchFeet = useMemo(() => feet(benches), [benches]);
    // the in-lawn bushes are fitted to 1 m wide: the spot's scale is the solid circle's diameter
    const bushFeet = useMemo(() => bushes.map((b) => ({ x: b.x, y: 0, z: b.z, scale: TREE_R * 2 })), [bushes]);
+   // per-level set pieces: lamps, umbrellas and stumps get a pole and a head / canopy from one spot
+   const lampPoles = useMemo(() => decor.lamps.map((s) => { const k = s.scale ?? 1; return { x: s.x, y: 1.3 * k, z: s.z, sx: 0.09 * k, sy: 2.6 * k, sz: 0.09 * k }; }), [decor]);
+   const lampHeads = useMemo(() => decor.lamps.map((s) => { const k = s.scale ?? 1; return { x: s.x, y: 2.66 * k, z: s.z, scale: 0.24 * k }; }), [decor]);
+   const umbrellaPoles = useMemo(() => [...decor.umbrellasA, ...decor.umbrellasB].map((s) => { const k = s.scale ?? 1; return { x: s.x, y: k, z: s.z, sx: 0.05 * k, sy: 2 * k, sz: 0.05 * k }; }), [decor]);
+   const umbrellaTopsA = useMemo(() => decor.umbrellasA.map((s) => { const k = s.scale ?? 1; return { x: s.x, y: 2.1 * k, z: s.z, rotY: s.rotY, sx: 2 * k, sy: 0.55 * k, sz: 2 * k }; }), [decor]);
+   const umbrellaTopsB = useMemo(() => decor.umbrellasB.map((s) => { const k = s.scale ?? 1; return { x: s.x, y: 2.1 * k, z: s.z, rotY: s.rotY, sx: 2 * k, sy: 0.55 * k, sz: 2 * k }; }), [decor]);
+   const stumps = useMemo(() => decor.stumps.map((s) => { const k = s.scale ?? 1; return { x: s.x, y: 0.25 * k, z: s.z, rotY: s.rotY, sx: 0.7 * k, sy: 0.5 * k, sz: 0.7 * k }; }), [decor]);
+   const rocks = useMemo(() => decor.rocks.map((s) => { const k = s.scale ?? 1; return { x: s.x, y: 0.16 * k, z: s.z, rotY: s.rotY, sx: 1.3 * k, sy: 0.55 * k, sz: 0.9 * k }; }), [decor]);
    const targets = useMemo<MarkerTarget[]>(() => [{ x: 0, y: 0, z: 0, hidden: true }], []);
    // camera views (core/camera): the rules get the drawn camera's yaw; the props and the picket
    // fence pull the chase / front / free camera in front of them (the top view looks over them).
@@ -169,18 +182,39 @@ function LevelScene() {
    const unitBox = useMemo(() => new BoxGeometry(1, 1, 1), []);
    const unitCylinder = useMemo(() => new CylinderGeometry(0.5, 0.5, 1, 24), []);
    const unitSphere = useMemo(() => new SphereGeometry(0.5, 14, 10), []);
+   const unitCone = useMemo(() => new CylinderGeometry(0.04, 0.5, 1, 10), []);
    const trunkGeo = useMemo(() => new CylinderGeometry(0.12, 0.16, 1, 8), []);
+   // a bunting pennant: a downward triangle in the x-y plane, hung from its top edge
+   const unitTri = useMemo(() => {
+      const g = new BufferGeometry();
+      g.setAttribute("position", new Float32BufferAttribute([-0.5, 0, 0, 0.5, 0, 0, 0, -1, 0], 3));
+      g.setAttribute("normal", new Float32BufferAttribute([0, 0, 1, 0, 0, 1, 0, 0, 1], 3));
+      return g;
+   }, []);
    const fenceMat = useMemo(() => new MeshStandardMaterial({ color: COLORS.fence, roughness: 0.7 }), []);
-   const stripeMat = useMemo(() => new MeshStandardMaterial({ color: COLORS.stripe, roughness: 0.95, transparent: true, opacity: 0.35, depthWrite: false }), []);
+   const stripeMat = useMemo(() => new MeshStandardMaterial({ color: palette.stripe, roughness: 0.95, transparent: true, opacity: 0.35, depthWrite: false }), [palette]);
    const sandMat = useMemo(() => new MeshStandardMaterial({ color: COLORS.sand, roughness: 0.95 }), []);
    const padMat = useMemo(() => new MeshStandardMaterial({ color: COLORS.blanket, emissive: COLORS.blanketEdge, emissiveIntensity: 0.12, roughness: 0.8 }), []);
    const fountainMat = useMemo(() => new MeshStandardMaterial({ color: COLORS.fountain, roughness: 0.6 }), []);
    const benchMat = useMemo(() => new MeshStandardMaterial({ color: COLORS.bench, roughness: 0.7 }), []);
    const trunkMat = useMemo(() => new MeshStandardMaterial({ color: COLORS.trunk, roughness: 0.9 }), []);
    const canopyMat = useMemo(() => new MeshStandardMaterial({ color: COLORS.tree, roughness: 0.9 }), []);
+   // the per-level set pieces (looks.ts decorSpots), all code-built and instanced
+   const lampMat = useMemo(() => new MeshStandardMaterial({ color: "#334155", roughness: 0.6 }), []);
+   const lampHeadMat = useMemo(() => new MeshStandardMaterial({ color: "#fef9c3", emissive: "#fde047", emissiveIntensity: 0.7, roughness: 0.4 }), []);
+   const blockMat = useMemo(() => new MeshStandardMaterial({ color: "#94a3b8", roughness: 0.85 }), []);
+   const rockMat = useMemo(() => new MeshStandardMaterial({ color: "#a8a29e", roughness: 0.95 }), []);
+   const poleMat = useMemo(() => new MeshStandardMaterial({ color: "#f8fafc", roughness: 0.6 }), []);
+   const canopyAMat = useMemo(() => new MeshStandardMaterial({ color: "#e11d48", roughness: 0.7 }), []);
+   const canopyBMat = useMemo(() => new MeshStandardMaterial({ color: "#0ea5e9", roughness: 0.7 }), []);
+   const flagLineMat = useMemo(() => new MeshStandardMaterial({ color: "#57534e", roughness: 0.8 }), []);
+   const flagAMat = useMemo(() => new MeshStandardMaterial({ color: "#e11d48", roughness: 0.7, side: DoubleSide }), []);
+   const flagBMat = useMemo(() => new MeshStandardMaterial({ color: "#f59e0b", roughness: 0.7, side: DoubleSide }), []);
+   const balloonAMat = useMemo(() => new MeshStandardMaterial({ color: "#ef4444", roughness: 0.35 }), []);
+   const balloonBMat = useMemo(() => new MeshStandardMaterial({ color: "#fbbf24", roughness: 0.35 }), []);
    const disposables = useMemo(
-      () => [unitBox, unitCylinder, unitSphere, trunkGeo, fenceMat, stripeMat, sandMat, padMat, fountainMat, benchMat, trunkMat, canopyMat],
-      [unitBox, unitCylinder, unitSphere, trunkGeo, fenceMat, stripeMat, sandMat, padMat, fountainMat, benchMat, trunkMat, canopyMat],
+      () => [unitBox, unitCylinder, unitSphere, unitCone, unitTri, trunkGeo, fenceMat, stripeMat, sandMat, padMat, fountainMat, benchMat, trunkMat, canopyMat, lampMat, lampHeadMat, blockMat, rockMat, poleMat, canopyAMat, canopyBMat, flagLineMat, flagAMat, flagBMat, balloonAMat, balloonBMat],
+      [unitBox, unitCylinder, unitSphere, unitCone, unitTri, trunkGeo, fenceMat, stripeMat, sandMat, padMat, fountainMat, benchMat, trunkMat, canopyMat, lampMat, lampHeadMat, blockMat, rockMat, poleMat, canopyAMat, canopyBMat, flagLineMat, flagAMat, flagBMat, balloonAMat, balloonBMat],
    );
    useEffect(() => () => {
       for (const d of disposables) d.dispose();
@@ -388,11 +422,11 @@ function LevelScene() {
             damping={DAMPING}
             zoom={zoom}
          />
-         <SkyDome top={config.lighting === "sunset" ? "#7c2d12" : "#38bdf8"} bottom={config.background} />
+         <SkyDome top={palette.sky} bottom={config.background} />
          {/* the park grass runs out under the fog; the fenced lawn is a brighter mown rectangle on it */}
          <mesh rotation-x={-Math.PI / 2} position={[0, -0.02, 0]}>
             <circleGeometry args={[160, 48]} />
-            <meshStandardMaterial color={COLORS.parkGrass} roughness={0.95} />
+            <meshStandardMaterial color={palette.parkGrass} roughness={0.95} />
          </mesh>
          <mesh rotation-x={-Math.PI / 2} position={[0, -0.01, 0]}>
             <planeGeometry args={[config.width, config.depth]} />
@@ -402,7 +436,7 @@ function LevelScene() {
             <primitive object={unitBox} attach="geometry" />
             <primitive object={stripeMat} attach="material" />
          </Instanced>
-         {config.lighting === "sunset" && (
+         {id === 4 && (
             <>
                <Instanced spots={sand} name="sand">
                   <primitive object={unitBox} attach="geometry" />
@@ -466,6 +500,82 @@ function LevelScene() {
          {decor.tents.length > 0 && <InstancedModel asset={ASSETS.tent} spots={decor.tents} fallback={<DecorFallback spots={decor.tents} geometry={unitBox} material={benchMat} />} />}
          {decor.tunnels.length > 0 && <InstancedModel asset={ASSETS.tunnel} spots={decor.tunnels} fallback={<DecorFallback spots={decor.tunnels} geometry={unitCylinder} material={fountainMat} flat />} />}
          {decor.hurdles.length > 0 && <InstancedModel asset={ASSETS.hurdle} spots={decor.hurdles} fallback={<DecorFallback spots={decor.hurdles} geometry={unitBox} material={benchMat} flat />} />}
+         {/* the per-level set pieces (all outside the fence): city lamps and skyline, forest stumps
+             and boulders, beach umbrellas and rocks, festival bunting and balloons */}
+         {lampPoles.length > 0 && (
+            <>
+               <Instanced spots={lampPoles} name="lamp-poles">
+                  <primitive object={unitCylinder} attach="geometry" />
+                  <primitive object={lampMat} attach="material" />
+               </Instanced>
+               <Instanced spots={lampHeads} name="lamp-heads">
+                  <primitive object={unitSphere} attach="geometry" />
+                  <primitive object={lampHeadMat} attach="material" />
+               </Instanced>
+            </>
+         )}
+         {decor.blocks.length > 0 && (
+            <Instanced spots={decor.blocks} name="skyline">
+               <primitive object={unitBox} attach="geometry" />
+               <primitive object={blockMat} attach="material" />
+            </Instanced>
+         )}
+         {stumps.length > 0 && (
+            <Instanced spots={stumps} name="stumps">
+               <primitive object={unitCylinder} attach="geometry" />
+               <primitive object={trunkMat} attach="material" />
+            </Instanced>
+         )}
+         {rocks.length > 0 && (
+            <Instanced spots={rocks} name="rocks">
+               <primitive object={unitSphere} attach="geometry" />
+               <primitive object={rockMat} attach="material" />
+            </Instanced>
+         )}
+         {umbrellaPoles.length > 0 && (
+            <>
+               <Instanced spots={umbrellaPoles} name="umbrella-poles">
+                  <primitive object={unitCylinder} attach="geometry" />
+                  <primitive object={poleMat} attach="material" />
+               </Instanced>
+               <Instanced spots={umbrellaTopsA} name="umbrella-tops-a">
+                  <primitive object={unitCone} attach="geometry" />
+                  <primitive object={canopyAMat} attach="material" />
+               </Instanced>
+               <Instanced spots={umbrellaTopsB} name="umbrella-tops-b">
+                  <primitive object={unitCone} attach="geometry" />
+                  <primitive object={canopyBMat} attach="material" />
+               </Instanced>
+            </>
+         )}
+         {decor.flagLines.length > 0 && (
+            <>
+               <Instanced spots={decor.flagLines} name="flag-lines">
+                  <primitive object={unitBox} attach="geometry" />
+                  <primitive object={flagLineMat} attach="material" />
+               </Instanced>
+               <Instanced spots={decor.flagsA} name="flags-a">
+                  <primitive object={unitTri} attach="geometry" />
+                  <primitive object={flagAMat} attach="material" />
+               </Instanced>
+               <Instanced spots={decor.flagsB} name="flags-b">
+                  <primitive object={unitTri} attach="geometry" />
+                  <primitive object={flagBMat} attach="material" />
+               </Instanced>
+            </>
+         )}
+         {decor.balloonsA.length + decor.balloonsB.length > 0 && (
+            <>
+               <Instanced spots={decor.balloonsA} name="balloons-a">
+                  <primitive object={unitSphere} attach="geometry" />
+                  <primitive object={balloonAMat} attach="material" />
+               </Instanced>
+               <Instanced spots={decor.balloonsB} name="balloons-b">
+                  <primitive object={unitSphere} attach="geometry" />
+                  <primitive object={balloonBMat} attach="material" />
+               </Instanced>
+            </>
+         )}
          <group ref={owner}>
             <Model asset={ASSETS.owner} fallback={<OwnerFigure />} />
          </group>

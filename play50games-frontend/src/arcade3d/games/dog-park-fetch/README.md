@@ -23,11 +23,23 @@ You are the dog. The owner stands on a blanket at the south end of the lawn and 
 |---|---|---|---:|---|---:|---:|---:|---|---|
 | 1 | Small Park | 20 × 16 | 4 | 6–10 | 0 | – | none | no | day |
 | 2 | City Park | 26 × 20 | 6 | 7–13 | 0 | – | none | yes | day |
-| 3 | Forest Park | 30 × 24 | 8 | 8–15 | 1 | 1.8 | none | yes | day |
+| 3 | Forest Park | 30 × 24 | 8 | 8–15 | 1 | 1.8 | none | yes | sunset (dusk) |
 | 4 | Beach Park | 32 × 26 | 10 | 8–16 | 1 | 2.2 | 14 s | yes | sunset |
 | 5 | Dog Festival | 36 × 28 | 12 | 9–18 | 2 | 2.4 | 12 s | yes | day |
 
 The dog's tint is the level's tint (L1 untinted). The owner is never tinted.
+
+## The five parks' looks (2026-10-29, `kimi/dog-park-fetch-levels`)
+
+Every level has its own palette (`PALETTES` in looks.ts: lawn texture colours, outer park grass, stripe tint, sky-dome top), its own lighting/background and its own set pieces; only Level 1 is exactly today's game.
+
+- **L1 Small Park** — unchanged: sunny lawn, tree line, bushes.
+- **L2 City Park** — a cooler kempt lawn; lamp posts line both sides outside the fence and a slate skyline rises behind the north fence.
+- **L3 Forest Park** — deep shade greens in dusk (sunset preset) light; a second, taller tree wall closes in behind the fence, with stumps and boulders.
+- **L4 Beach Park** — sun-bleached lawn on warm sand (the outer grass is sand-coloured), umbrellas along both sides, boulders on the beach strip, water beyond the south fence (unchanged mechanics).
+- **L5 Dog Festival** — rich summer lawn; bunting (two-colour pennants on strings) runs along the fence, balloon clusters float behind the tents (tents, tunnel and hurdles unchanged).
+
+All set pieces are code-built and instanced; every piece stands outside the fence and the south (camera) side stays under 0.7 m (levels-look.test.ts, assets.test.ts).
 
 ## Controls
 
@@ -60,7 +72,7 @@ Tests: `proof.level-N.test.ts` (bots in `testing/bots.ts`, suite in `testing/pro
 - Decor (`decorSpots`): a tree line behind the north fence and down both sides, low bushes all round (the south row under 0.7 m: the camera side), L5 festival tents and an agility tunnel + hurdles behind the north fence. All decor GLBs are fitted to 1 m and placed by the spot's scale (never scaled twice); nothing stands inside the fence except the solid props.
 - Models (all fitted from their measured bounds, `assets.test.ts` on the real meshes; triangles pinned): dog 0.9 m long, faces +z, per-level tint; owner = shared `civilianNpc` 1.75 m (hops per throw); tennis ball 0.14 m, stick 0.6 m, frisbee 0.28 m (turned over: the GLB lies concave side up); fountain 2.4 m across (its 1.2 m solid circle); lawn mower 1.3 m long; bench (shared) 1.2 m for its 0.5 m circle; park bush, festival tent, agility tunnel / hurdle, leafy tree as decor.
 - Left out: `dogHouse*`, `dogBone*`, `agilityHurdle` (dogs baked in, spec), `dogOwnerNpc` (a dog baked in at its feet), shared `picketFence` (80+ copies x 1.5k tris round the lawn: the code fence instead).
-- Triangles a frame (every copy at full decor): 96k / 109k / 123k / 124k / 147k on L1-L5 (test cap 300k).
+- Triangles a frame (every copy at full decor): 96k / 111k / 150k / 111k / 150k on L1-L5 (test cap 300k).
 
 ## Polish (2026-10-28, `claude/m1-animals`)
 
@@ -70,7 +82,7 @@ Tests: `proof.level-N.test.ts` (bots in `testing/bots.ts`, suite in `testing/pro
 
 ## Not built (spec items left out)
 
-- Festival bunting (L5) and tree shade (L3).
+- Tree shade (L3; the forest reads through its palette, tree wall and dusk light).
 - The path strips (`#d6d3d1`).
 - A throw pose and a muzzle socket: the owner hops; the carried toy sits at a fixed point in front of the dog.
 
