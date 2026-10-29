@@ -16,7 +16,7 @@ import { useGameTime } from "@/arcade3d/core/gameTime";
 import { scaledCount, useQuality } from "@/arcade3d/core/quality";
 import { DynamicInstanced, Instanced, type InstancePart, type InstanceSpot } from "@/arcade3d/core/render";
 import { SCENERY, createTrackFrame, groundY, sceneryS, toView, trackEnd, trackFrame, type Point3 } from "./ground";
-import { CLOUD_DRIFT, COLORS, decorOf, type DecorSpot } from "./looks";
+import { CLOUD_DRIFT, COLORS, THEMES, decorOf, type DecorSpot, type SlideTheme } from "./looks";
 import { COURSE, chunkAt, corridorAt, type Run } from "./rules";
 
 function asSpots(list: readonly DecorSpot[]): InstanceSpot[] {
@@ -73,7 +73,7 @@ export function placeScenery(run: Run, spots: readonly DecorSpot[], i: number, m
  * distant glacier cliffs, horizon mountain peaks, and drifting arctic clouds.
  * All positioned strictly outside the active play bounds.
  */
-export function Decor({ run, reduced }: { run: Run; reduced: boolean }) {
+export function Decor({ run, reduced, theme = THEMES.snowHill }: { run: Run; reduced: boolean; theme?: SlideTheme }) {
    const quality = useQuality();
    const time = useGameTime();
 
@@ -177,7 +177,7 @@ export function Decor({ run, reduced }: { run: Run; reduced: boolean }) {
    return (
       <group name="arctic-decor">
          {/* Ice spires, snow drifts and rocks beside the track: they scroll with it and recycle ahead */}
-         {spires.length > 0 && (
+         {theme.spires && spires.length > 0 && (
             <DynamicInstanced count={spires.length * SCENERY.copies} update={placeSpire} parts={spireParts} name="ice-spires" />
          )}
          {drifts.length > 0 && (
@@ -196,7 +196,7 @@ export function Decor({ run, reduced }: { run: Run; reduced: boolean }) {
          )}
 
          {/* Horizon mountains: rock face + snow peak */}
-         {mountains.length > 0 && (
+         {theme.mountains && mountains.length > 0 && (
             <>
                <Instanced spots={mountains} name="horizon-mountains-rock">
                   <primitive object={geo.mountain} attach="geometry" />
@@ -210,10 +210,12 @@ export function Decor({ run, reduced }: { run: Run; reduced: boolean }) {
          )}
 
          {/* Drifting high arctic clouds */}
-         <DynamicInstanced count={clouds.length} update={placeCloud} name="arctic-clouds">
-            <primitive object={geo.cloud} attach="geometry" />
-            <meshStandardMaterial color={COLORS.cloud} flatShading roughness={0.95} />
-         </DynamicInstanced>
+         {theme.clouds && (
+            <DynamicInstanced count={clouds.length} update={placeCloud} name="arctic-clouds">
+               <primitive object={geo.cloud} attach="geometry" />
+               <meshStandardMaterial color={COLORS.cloud} flatShading roughness={0.95} />
+            </DynamicInstanced>
+         )}
       </group>
    );
 }
