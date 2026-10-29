@@ -22,17 +22,17 @@ Parking: every bale of the trip is hitched, the tractor centre and every slot an
 
 ## Levels
 
-Same yard rules. Counts, cargo, clock and the core lighting preset change. Level 4 fogs grey (`#a8a29e`, near 9). The others fog toward their sky.
+Same yard rules. Each level has its own `theme` (palette, fog, apron scenery in `looks.ts`). Counts, cargo, clock and the core lighting preset still ramp. Level 4 fogs grey (`#a8a29e`, near 22). The others fog toward their sky.
 
-| L | Title | Trips | Bales | Mud | Trees | Cargo | Lives | Clock | Light |
-|---|---|---:|---:|---:|---:|---|---:|---:|---|
-| 1 | Farm Yard | 2 | 1 | 0 | 0 | hay | 6 | 120 s | day `#bae6fd` |
-| 2 | Wheat Field | 3 | 2 | 0 | 0 | hay | 6 | 150 s | day `#86efac` |
-| 3 | Orchard | 4 | 2 | 0 | 6 | crate | 5 | 180 s | sunset `#fdba74` |
-| 4 | Mud Farm | 5 | 2 | 3 | 0 | hay | 4 | 180 s | day `#a8a29e` |
-| 5 | Mega Farm | 6 | 2 | 4 | 8 | hay | 4 | 210 s | sunset `#b45309` |
+| L | Title | Theme | Trips | Bales | Mud | Trees | Cargo | Lives | Clock | Light |
+|---|---|---|---:|---:|---:|---:|---|---:|---:|---|
+| 1 | Farm Yard | yard | 2 | 1 | 0 | 0 | hay | 6 | 120 s | day `#bae6fd` |
+| 2 | Wheat Field | wheat | 3 | 2 | 0 | 0 | hay | 6 | 150 s | day `#86efac` |
+| 3 | Orchard | orchard | 4 | 2 | 0 | 6 | crate | 5 | 180 s | sunset `#fdba74` |
+| 4 | Mud Farm | mud | 5 | 2 | 3 | 0 | hay | 4 | 180 s | day `#a8a29e` |
+| 5 | Mega Farm | mega | 6 | 2 | 4 | 8 | hay | 4 | 210 s | sunset `#b45309` |
 
-Level 2 is the first trip with two slots. The hitch rule does not change. Trees are solid AABBs (half-extent 0.55). Level 3 swaps the hitch mesh to the apple crate at the same radius.
+Level 2 is the first trip with two slots. The hitch rule does not change. Trees are solid AABBs (half-extent 0.55). Level 3 swaps the hitch mesh to the apple crate at the same radius. Look twists: L2 wheat crop rows on the apron; L3 blossom trees + crate stacks outside; L4 visible mud pits (rim + wet centre) + boardwalk planks; L5 densifies wheat, orchard and mud apron. Level 1 apron stays empty (today's four barn-side props only).
 
 ## Controls
 
@@ -60,9 +60,9 @@ Proof (`rules.test.ts`, through `createArcadeStore` + `advanceRunClock` + `withi
 
 ## Look
 
-One palette in `looks.ts`. Grass `#84cc16`, soil `#a16207`, mud `#57534e`, barn `#b45309`, accent `#eab308`. Lighting and background come from the level. Chase camera: pitch 46°, yaws `[π, π/2]`, fov 46, follow fraction 0.2, look-ahead 3.5 m, `shift: true`, bounds the field.
+Base palette in `looks.ts` (`COLORS`); per-theme ground tones in `LOOKS` (yard / wheat / orchard / mud / mega). Lighting and background come from the level. Chase camera: pitch 46°, yaws `[π, π/2]`, fov 46, follow fraction 0.2, look-ahead 3.5 m, `shift: true`, bounds the field.
 
-The farmer is a seated `HumanoidModel` stand-in (`FarmerFigure`, 1.78 m, `applyLift={false}`) until `charFarmer.glb` is measured. Cheer on a win. Hay or crates are one `DynamicInstancedModel` pool (hidden once delivered, shown on the trailer by the same pool). Fence, trees and mud are instanced. Decor (silo, trough, scarecrow, shared crate) sits outside the north fence. Grass extends 2.6× the longer side so the chase frame has no void. Fallback posts and cargo are unit meshes scaled by the spot or the instance matrix.
+The farmer is a seated `HumanoidModel` stand-in (`FarmerFigure`, 1.78 m, `applyLift={false}`) until `charFarmer.glb` is measured. Cheer on a win. Hay or crates are one `DynamicInstancedModel` pool (hidden once delivered, shown on the trailer by the same pool). Fence, trees and mud pits (bed + wet + rim) are instanced. Barn-side decor (silo, trough, scarecrow, shared crate) sits outside the fence; extra apron scenery is `Decor.tsx` / `scenerySpots` (never inside the yard). Grass extends 2.6× the longer side so the chase frame has no void. Fallback posts and cargo are unit meshes scaled by the spot or the instance matrix.
 
 ## Known issues
 
