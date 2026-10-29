@@ -26,7 +26,7 @@ describe("worlds data (00-framework.md)", () => {
    });
 
    it("slugs match the built Menu 2 games' meta", () => {
-      for (const slug of ["sky-tower-jump", "rooftop-roll-climb", "flooded-ruins-escape", "lava-pillar-jump", "cloud-hopper", "wind-tunnel-escape", "dragon-cave-rush", "ice-peak-jumper"]) {
+      for (const slug of ["sky-tower-jump", "rooftop-roll-climb", "flooded-ruins-escape", "lava-pillar-jump", "cloud-hopper", "wind-tunnel-escape", "dragon-cave-rush", "ice-peak-jumper", "candy-world-runner"]) {
          expect(worldOfSlug(slug), slug).toBeDefined();
          expect(getGameMeta(slug)?.collection, slug).toBe("rollheroes");
       }

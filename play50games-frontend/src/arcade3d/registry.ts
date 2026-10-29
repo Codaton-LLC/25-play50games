@@ -72,6 +72,7 @@ import { templeLanternJumpMeta } from "./games/temple-lantern-jump/meta";
 import { toyRoomRunMeta } from "./games/toy-room-run/meta";
 import { jungleVineJumpMeta } from "./games/jungle-vine-jump/meta";
 import { icePeakJumperMeta } from "./games/ice-peak-jumper/meta";
+import { candyWorldRunnerMeta } from "./games/candy-world-runner/meta";
 import { dragonCaveRushMeta } from "./games/dragon-cave-rush/meta";
 import { skyHookSwingMeta } from "./games/sky-hook-swing/meta";
 import { tightropePathMeta } from "./games/tightrope-path/meta";
@@ -146,6 +147,7 @@ export const ARCADE_GAMES: ArcadeGameMeta[] = [
    toyRoomRunMeta,
    jungleVineJumpMeta,
    icePeakJumperMeta,
+   candyWorldRunnerMeta,
    dragonCaveRushMeta,
    colorDoorSprintMeta,
    skyHookSwingMeta,
