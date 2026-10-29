@@ -32,12 +32,6 @@
    box-shadow: 0 0 10px rgba(80, 230, 140, 0.75), inset 0 -2px 3px rgba(0, 70, 30, 0.5);
 }
 
-.icon {
-   width: 24px;
-   height: 24px;
-   flex: none;
-}
-
 .banner {
    display: flex;
    flex-direction: column;
@@ -136,51 +130,29 @@
    outline-offset: 2px;
 }
 
-/* the spin pill: which way the hero's pole turns (with you, against you, still) */
-.spinWith {
-   color: #86efac;
+.levelShort {
+   display: none;
 }
 
-.spinAgainst {
-   color: #fca5a5;
-}
-
-.spinFlip {
-   color: #fff;
-   animation: meterPulse 0.25s ease-in-out infinite alternate;
-}
-
-/* the hop prompt: shows while a hop to a neighbour pole would land */
-.hop {
-   position: absolute;
-   left: 50%;
-   bottom: 132px;
-   transform: translateX(-50%);
-   padding: 6px 14px;
-   border-radius: 999px;
-   background: rgba(20, 40, 28, 0.78);
-   border: 2px solid #f6c453;
-   color: #fff;
-   font-size: 0.85rem;
-   font-weight: 800;
-   pointer-events: none;
-   white-space: nowrap;
-}
-
-@media (prefers-reduced-motion: reduce) {
-   .spinFlip {
-      animation: none;
-   }
-}
-
-/* narrow phones: a smaller banner between the left pills and the shell's buttons */
+/* narrow phones: the banner fits between the shell's chips and its buttons with the level's name only
+   (the shell's chip shows the level number, the start card the title) */
 @media (max-width: 520px) {
    .banner {
-      padding: 4px 12px 5px;
+      max-width: 108px;
+      min-height: 46px;
+      box-sizing: border-box;
+      justify-content: center;
+      padding: 4px 10px 5px;
       border-radius: 12px;
+      white-space: normal;
+      text-align: center;
    }
-   .title {
-      font-size: 0.95rem;
+   .title,
+   .levelLong {
+      display: none;
+   }
+   .levelShort {
+      display: inline;
    }
    .level {
       font-size: 0.75rem;

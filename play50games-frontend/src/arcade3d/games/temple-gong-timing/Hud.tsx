@@ -97,7 +97,10 @@ export default function Hud() {
             <div className={styles.banner}>
                <span className={styles.title}>Temple Gong Timing</span>
                <span className={styles.level}>
-                  Level {level} — {config?.name ?? "Slow Beat"}
+                  <span className={styles.levelLong}>
+                     Level {level} — {config?.name ?? "Slow Beat"}
+                  </span>
+                  <span className={styles.levelShort}>{config?.name ?? "Slow Beat"}</span>
                </span>
             </div>
             {!config?.boss ? (
