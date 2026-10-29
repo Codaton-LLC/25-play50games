@@ -74,6 +74,7 @@ import { icePeakJumperMeta } from "./games/ice-peak-jumper/meta";
 import { dragonCaveRushMeta } from "./games/dragon-cave-rush/meta";
 import { skyHookSwingMeta } from "./games/sky-hook-swing/meta";
 import { tightropePathMeta } from "./games/tightrope-path/meta";
+import { discTargetThrowMeta } from "./games/disc-target-throw/meta";
 import { wallRunTempleMeta } from "./games/wall-run-temple/meta";
 import { mineTunnelRunMeta } from "./games/mine-tunnel-run/meta";
 
@@ -148,6 +149,7 @@ export const ARCADE_GAMES: ArcadeGameMeta[] = [
    colorDoorSprintMeta,
    skyHookSwingMeta,
    tightropePathMeta,
+   discTargetThrowMeta,
    wallRunTempleMeta,
    templeCoinRushMeta,
    mineTunnelRunMeta,

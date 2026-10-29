@@ -321,6 +321,16 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/sky-hook-swing/m2WindmillIsland.glb",
    // the galleon's turret (m2SkyCannonTurret from the image batch, card: MUST for L2-5 boss weak points)
    "/models/3d/sky-hook-swing/m2SkyCannonTurret.glb",
+   // Menu 2 game 40 (Disc Target Throw): courtyard props from ~/.play50/hyper3d/ready/menu2 (disc-target-throw, the columns of wall-run-temple, the raft of tightrope-path, Mother Snapper of jungle-vine-jump, the shared monkey)
+   "/models/3d/disc-target-throw/m2HayBaleTarget.glb",
+   "/models/3d/disc-target-throw/m2JungleMonkey.glb",
+   "/models/3d/disc-target-throw/m2PalisadeWall.glb",
+   "/models/3d/disc-target-throw/m2RaftPlatform.glb",
+   "/models/3d/disc-target-throw/m2ScoreMarkerPost.glb",
+   "/models/3d/disc-target-throw/m2SnapperPlant.glb",
+   "/models/3d/disc-target-throw/m2StoneColumn.glb",
+   "/models/3d/disc-target-throw/m2StoneIdolTarget.glb",
+   "/models/3d/disc-target-throw/m2TrainingPavilionBg.glb",
    // Menu 2 game 15 (Color City Sprint): its props from ready/menu2/color-city-sprint, plus m2FactoryDrone (shared)
    "/models/3d/color-city-sprint/m2CityBarrier.glb",
    "/models/3d/color-city-sprint/m2CityBus.glb",

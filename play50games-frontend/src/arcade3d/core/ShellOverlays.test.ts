@@ -173,7 +173,7 @@ describe("HUD chips", () => {
       expect(hudShowsScore(escapeRoomMeta.scoring.kind)).toBe(false);
       expect(hudShowsScore(obstacleRaceMeta.scoring.kind)).toBe(false);
       expect(hudShowsScore(robotCollectorMeta.scoring.kind)).toBe(true);
-      expect(ARCADE_GAMES).toHaveLength(73);
+      expect(ARCADE_GAMES).toHaveLength(74);
       const hidden = ARCADE_GAMES.filter((meta) => !hudShowsScore(meta.scoring.kind)).map((meta) => meta.slug);
       expect(hidden.sort()).toEqual(["cloud-hopper", "color-city-sprint", "color-door-sprint", "dragon-cave-rush", "escape-room", "flooded-ruins-escape", "haunted-mansion-keys", "ice-peak-jumper", "jungle-vine-jump", "lava-pillar-jump", "mine-tunnel-run", "obstacle-race", "plate-surf", "robot-factory-run", "roll-cannon-jump", "rooftop-roll-climb", "sky-hook-swing", "sky-tower-jump", "temple-lantern-jump", "tightrope-path", "toy-room-run", "wall-run-temple", "wind-tunnel-escape"]);
    });
