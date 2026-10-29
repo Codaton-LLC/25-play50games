@@ -30,7 +30,7 @@ import { Decor } from "./Decor";
 import { COLORS, PLANET_LOOKS } from "./looks";
 import Planet, { PlanetLighting } from "./Planet";
 import { RocketPrimitive } from "./Primitives";
-import { BODY, PLANETS, createRun, crashContact, landingSafe, padVx, padX, stepRun } from "./rules";
+import { BODY, createRun, worldOf, crashContact, landingSafe, padVx, padX, stepRun } from "./rules";
 import { useRocketLevel } from "./useRocketLevel";
 
 /** seconds the crash flash takes to grow and fade */
@@ -114,7 +114,7 @@ export default function Scene() {
       const stats = store.stats;
       const safe = landingSafe(run, run.attemptTime) ? 1 : 0;
       if (stats.landingSafe !== safe) store.setStat("landingSafe", safe);
-      const fuel = Math.floor(100 * run.fuel / PLANETS[run.planet].fuel),
+      const fuel = Math.floor(100 * run.fuel / worldOf(run).fuel),
             vx = Math.round(10 * (b.vx - padVx(run.layouts[run.planet], run.planet, run.attemptTime, run.level?.padAmplitude))),
             vy = Math.round(10 * b.vy),
             tilt = Math.round(b.angle * 180 / Math.PI);
@@ -168,7 +168,7 @@ export default function Scene() {
       markers[0].x = padX(run.layouts[run.planet], run.planet, run.attemptTime, run.level?.padAmplitude);
    });
 
-   const look = PLANET_LOOKS[run.planet] ?? PLANET_LOOKS[0];
+   const lookIndex = worldOf(run).look, look = PLANET_LOOKS[lookIndex] ?? PLANET_LOOKS[0];
 
    return <>
       <RocketCamera run={run} />
@@ -179,7 +179,7 @@ export default function Scene() {
       {/* Rim light catching rocket and stage silhouette from behind */}
       <directionalLight position={[-4, 8, -6]} intensity={0.85} color="#e0f2fe" />
       {/* Instanced scenery outside the play area: distant peaks, rocks, thematic props, moon */}
-      <Decor planet={run.planet} level={run.level?.id ?? 1} reducedMotion={reducedMotion} />
+      <Decor planet={lookIndex} level={run.level?.id ?? 1} reducedMotion={reducedMotion} />
       {/* Ground terrain, pad, cavern roof, lighting */}
       <PlanetLighting run={run} />
       <Planet run={run} />

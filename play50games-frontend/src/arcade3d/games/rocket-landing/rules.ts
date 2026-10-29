@@ -111,6 +111,11 @@ export interface Run {
    contactMask: number; contactSlices: number; sweepSkin: number; pivot: Point;
    level: RocketLevel;
 }
+/** The landing's wind acceleration now (m/s^2, + = toward +x), for the windsock and hints. */
+export function windAt(r: Run): number {
+   const l = r.layouts[r.planet], k = windScale(l, r.planet);
+   return k ? (r.level?.windAmplitude ?? 0.4) * k * Math.sin(TAU * r.attemptTime / 8 + l.wind) : 0;
+}
 export function padX(l: Layout, p: number, t: number, padAmp?: number): number {
    const amp = padAmp ?? l.padAmplitude ?? (p === 4 ? 2 : 0);
    return swings(l, p) ? amp * Math.sin(TAU * t / 16 + l.phase) : l.pad;
