@@ -7,7 +7,7 @@ import type { AABB } from "@/arcade3d/core/collision";
 import { createOrbit, orbitPosition, orbitRotate, stepOrbit } from "@/arcade3d/menu2/camera/orbit";
 import { defaultHeroFor, memoryHeroStorage, setHeroPickStorage } from "@/arcade3d/menu2/heroes/heroPick";
 import { LEVEL_IDS } from "@/arcade3d/types";
-import { BOSS_FRAME, roomOrbit, courseSolids, orbitLookUp, orbitPivot, orbitScale, playCamera, steerBossFraming } from "./camera";
+import { BOSS_FRAME, FOV, FOV_PORTRAIT, bossInFrame, roomOrbit, courseSolids, orbitLookUp, orbitPivot, orbitScale, playCamera, steerBossFraming } from "./camera";
 import { createBot, botInput } from "./bot";
 import { createRun, createStepInput, step } from "./rules";
 import { DEFAULT_HERO, pickedHero, resetHeroPick, selectHero } from "./heroes";
@@ -72,43 +72,52 @@ describe("camera-relative movement is part of the rules' input", () => {
    });
 });
 
-/** The horizontal angle (deg) between the camera's view (camera -> pivot) and a point. */
-function offAxis(cam: { x: number; z: number }, piv: { x: number; z: number }, x: number, z: number): number {
-   const fx = piv.x - cam.x;
-   const fz = piv.z - cam.z;
-   const px = x - cam.x;
-   const pz = z - cam.z;
-   return (Math.abs(Math.atan2(fx * pz - fz * px, fx * px + fz * pz)) * 180) / Math.PI;
-}
-
 describe("level 5's boss framing keeps Jack in shot", () => {
-   it("through every vulnerable window of an honest run, Jack and the hero stay inside a phone's view (half-width 15 deg)", () => {
-      for (const fps of [30, 60]) {
-         const dt = 1 / fps;
-         const run = createRun(1, 5);
-         const bot = createBot(run, 1000 / fps);
-         const input = createStepInput();
-         const orbit = createOrbit(roomOrbit(run.course));
-         const piv = { x: 0, y: 0, z: 0 };
-         const cam = { x: 0, y: 0, z: 0 };
-         let samples = 0;
-         let worst = 0;
-         for (let f = 0; f < fps * 120 && run.ended === null; f++) {
-            botInput(bot, run, input);
-            step(run, 1000 / fps, input);
-            steerBossFraming(orbit, run, dt);
-            stepOrbit(orbit, dt, 0, 0, false);
-            orbitPivot(run, piv);
-            orbitPosition(piv.x, piv.y, piv.z, orbit.viewYaw, orbit.viewPitch, orbit.viewDistance, cam);
-            if (run.boss && run.boss.hp > 0 && run.boss.step === "vulnerable") {
-               samples++;
-               worst = Math.max(worst, offAxis(cam, piv, run.jack.x, run.jack.z), offAxis(cam, piv, run.hero.x, run.hero.z));
+   it("through every vulnerable window of an honest run, the hero and Jack stay on screen, under the boss bar (desktop and phone)", () => {
+      for (const aspect of [1280 / 800, 390 / 844]) {
+         for (const fps of [30, 60]) {
+            const dt = 1 / fps;
+            const run = createRun(1, 5);
+            const bot = createBot(run, 1000 / fps);
+            const input = createStepInput();
+            const orbit = createOrbit(roomOrbit(run.course));
+            const fov = aspect < 1 ? FOV_PORTRAIT : FOV;
+            let samples = 0;
+            let framed = 0;
+            for (let f = 0; f < fps * 120 && run.ended === null; f++) {
+               botInput(bot, run, input);
+               step(run, 1000 / fps, input);
+               steerBossFraming(orbit, run, dt, aspect);
+               stepOrbit(orbit, dt, 0, 0, false);
+               if (run.boss && run.boss.hp > 0 && run.boss.step === "vulnerable") {
+                  samples++;
+                  if (bossInFrame(run, orbit.viewYaw, orbit.viewPitch, orbit.viewDistance * orbitScale(aspect), orbitLookUp(aspect), fov, aspect)) framed++;
+               }
             }
+            expect(run.ended, `${fps}`).toBe("win");
+            expect(samples).toBeGreaterThan(fps * 5);
+            expect(framed, `aspect ${aspect.toFixed(2)} at ${fps} fps`).toBe(samples);
          }
-         expect(run.ended, `${fps}`).toBe("win");
-         expect(samples).toBeGreaterThan(fps * 5);
-         expect(worst, `${fps} fps`).toBeLessThan(10);
       }
+   }, 120_000);
+
+   it("without the framing, the level's own view loses him (the check is not vacuous)", () => {
+      const run = createRun(1, 5);
+      const bot = createBot(run);
+      const input = createStepInput();
+      const orbit = createOrbit(roomOrbit(run.course));
+      let samples = 0;
+      let framed = 0;
+      for (let f = 0; f < 60 * 120 && run.ended === null; f++) {
+         botInput(bot, run, input);
+         step(run, 1000 / 60, input);
+         stepOrbit(orbit, 1 / 60, 0, 0, false);
+         if (run.boss && run.boss.hp > 0 && run.boss.step === "vulnerable") {
+            samples++;
+            if (bossInFrame(run, orbit.viewYaw, orbit.viewPitch, orbit.viewDistance * orbitScale(1.6), orbitLookUp(1.6), FOV, 1.6)) framed++;
+         }
+      }
+      expect(framed).toBeLessThan(samples / 2);
    }, 60_000);
 
    it("the pivot leans toward Jack (at most BOSS_FRAME.maxLead); other levels keep the small lead", () => {

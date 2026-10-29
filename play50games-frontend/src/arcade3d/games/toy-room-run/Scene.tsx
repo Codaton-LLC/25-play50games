@@ -314,7 +314,7 @@ function CityCamera({ run, orbit }: { run: ToyRun; orbit: OrbitState }) {
    );
    // level 5: keep Jack in shot (before the orbit driver eases the view this frame)
    useFrame((_, dt) => {
-      if (arcadeStore.getState().phase === "playing") steerBossFraming(orbit, run, dt);
+      if (arcadeStore.getState().phase === "playing") steerBossFraming(orbit, run, dt, aspect);
    }, ORBIT_DRIVER_PRIORITY - 0.002);
    const solids = useMemo(() => (out: AABB[]) => courseSolids(run, camera.position.x, camera.position.z, out), [run, camera]);
    return <OrbitCamera orbit={orbit} pivot={pivot} travel={travel} solids={solids} lookUp={orbitLookUp(aspect)} distanceScale={orbitScale(aspect)} collision={ROOM_COLLISION} />;
