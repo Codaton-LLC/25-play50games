@@ -25,6 +25,14 @@ export function ringProps(radius: number, n: number, out: number, spread: number
    return spots;
 }
 
+/**
+ * Tall props only on the far side and the flanks: none in the arc between the wall and the camera
+ * (the fitted yaw), where they would hide the lab on a low phone camera.
+ */
+export function awayFromCamera(spots: InstanceSpot[], yaw: number): InstanceSpot[] {
+   return spots.filter((s) => Math.cos(Math.atan2(s.x, s.z) - yaw) < 0.2);
+}
+
 /** Small props at the foot of the wall, between the candles. */
 function wallFoot(radius: number, n: number, scale: number): InstanceSpot[] {
    const spots: InstanceSpot[] = [];
@@ -35,14 +43,14 @@ function wallFoot(radius: number, n: number, scale: number): InstanceSpot[] {
    return spots;
 }
 
-function Mushrooms({ level, look }: { level: WizardLevel; look: LabLook }) {
+function Mushrooms({ level, look, yaw }: { level: WizardLevel; look: LabLook; yaw: number }) {
    const { decor } = useQuality();
    const geo = useMemo(() => ({
       stem: new CylinderGeometry(0.18, 0.26, 1, 8).translate(0, 0.5, 0),
       cap: new SphereGeometry(0.9, 14, 8, 0, Math.PI * 2, 0, Math.PI / 2).scale(1, 0.55, 1).translate(0, 1, 0),
    }), []);
    useEffect(() => () => Object.values(geo).forEach((g) => g.dispose()), [geo]);
-   const big = useMemo(() => ringProps(level.radius, scaledCount(14, decor), 1.6, 1.4).map((s, i) => ({ ...s, scale: 1.6 + (i % 4) * 0.45 })), [level.radius, decor]);
+   const big = useMemo(() => awayFromCamera(ringProps(level.radius, scaledCount(14, decor), 1.6, 1.4), yaw).map((s, i) => ({ ...s, scale: 1.6 + (i % 4) * 0.45 })), [level.radius, decor, yaw]);
    const small = useMemo(() => wallFoot(level.radius, scaledCount(14, decor), 0.28), [level.radius, decor]);
    return (
       <group name="mushroom-lab">
@@ -62,16 +70,16 @@ function Mushrooms({ level, look }: { level: WizardLevel; look: LabLook }) {
    );
 }
 
-function Crystals({ level, run, look }: { level: WizardLevel; run: Run; look: LabLook }) {
+function Crystals({ level, run, look, yaw }: { level: WizardLevel; run: Run; look: LabLook; yaw: number }) {
    const { decor } = useQuality();
    const spires = useMemo(() => {
       const out: InstanceSpot[] = [];
-      ringProps(level.radius, scaledCount(16, decor), 1.4, 1.6, 0.2).forEach((s, i) => {
+      awayFromCamera(ringProps(level.radius, scaledCount(16, decor), 1.4, 1.6, 0.2), yaw).forEach((s, i) => {
          out.push({ ...s, y: 1.2, sx: 0.55, sy: 2.4 + (i % 3) * 0.8, sz: 0.55 });
          out.push({ x: s.x * 1.04 + 0.5, y: 0.6, z: s.z * 1.04, rotY: (s.rotY ?? 0) + 1, sx: 0.35, sy: 1.2, sz: 0.35 });
       });
       return out;
-   }, [level.radius, decor]);
+   }, [level.radius, decor, yaw]);
    const shards = useMemo(() => wallFoot(level.radius, scaledCount(16, decor), 1).map((s) => ({ ...s, y: 0.18, sx: 0.12, sy: 0.3, sz: 0.12 })), [level.radius, decor]);
    return (
       <group name="crystal-lab">
@@ -109,7 +117,7 @@ const AXIS = new Vector3(1, 0.3, 0.2).normalize();
 const P = new Vector3();
 const S = new Vector3(0.16, 0.02, 0.11);
 
-function Forest({ level, run, look, reduced }: { level: WizardLevel; run: Run; look: LabLook; reduced: boolean }) {
+function Forest({ level, run, look, reduced, yaw }: { level: WizardLevel; run: Run; look: LabLook; reduced: boolean; yaw: number }) {
    const { decor, particles } = useQuality();
    const time = useGameTime();
    const geo = useMemo(() => {
@@ -122,7 +130,7 @@ function Forest({ level, run, look, reduced }: { level: WizardLevel; run: Run; l
       return { trunk, crown: crown! };
    }, []);
    useEffect(() => () => Object.values(geo).forEach((g) => g.dispose()), [geo]);
-   const trees = useMemo(() => ringProps(level.radius, scaledCount(16, decor), 1.5, 1.8, 0.1).map((s, i) => ({ ...s, scale: 1 + (i % 3) * 0.25 })), [level.radius, decor]);
+   const trees = useMemo(() => awayFromCamera(ringProps(level.radius, scaledCount(16, decor), 1.5, 1.8, 0.1), yaw).map((s, i) => ({ ...s, scale: 1 + (i % 3) * 0.25 })), [level.radius, decor, yaw]);
    const ferns = useMemo(() => wallFoot(level.radius, scaledCount(14, decor), 0.5), [level.radius, decor]);
    const leaves = scaledCount(LEAVES, particles);
    const place = (i: number, m: Matrix4) => {
@@ -188,12 +196,12 @@ function Tower({ level, run, look, reduced }: { level: WizardLevel; run: Run; lo
    );
 }
 
-export default function Room({ level, run }: { level: WizardLevel; run: Run }) {
+export default function Room({ level, run, yaw }: { level: WizardLevel; run: Run; yaw: number }) {
    const look = LAB_THEMES[level.theme];
    const reduced = useMemo(() => typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches, []);
-   if (look.props === "mushrooms") return <Mushrooms level={level} look={look} />;
-   if (look.props === "crystals") return <Crystals level={level} run={run} look={look} />;
-   if (look.props === "forest") return <Forest level={level} run={run} look={look} reduced={reduced} />;
+   if (look.props === "mushrooms") return <Mushrooms level={level} look={look} yaw={yaw} />;
+   if (look.props === "crystals") return <Crystals level={level} run={run} look={look} yaw={yaw} />;
+   if (look.props === "forest") return <Forest level={level} run={run} look={look} reduced={reduced} yaw={yaw} />;
    if (look.props === "tower") return <Tower level={level} run={run} look={look} reduced={reduced} />;
    return null;
 }

@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import { LEVEL_IDS } from "@/arcade3d/types";
 import { LEVELS } from "./levels";
 import { LAB_THEMES } from "./looks";
-import { ringProps } from "./Room";
+import { awayFromCamera, ringProps } from "./Room";
 import { createRun } from "./rules";
 
 describe("wizard potion lab rooms", () => {
@@ -26,6 +26,14 @@ describe("wizard potion lab rooms", () => {
       for (const id of LEVEL_IDS) {
          const r = LEVELS[id].radius;
          for (const s of ringProps(r, 16, 1.4, 1.8)) expect(Math.hypot(s.x, s.z)).toBeGreaterThanOrEqual(r + 1.4 - 1e-9);
+      }
+   });
+
+   it("tall props never stand between the camera and the lab (either fitted yaw)", () => {
+      for (const yaw of [0, Math.PI / 2]) {
+         const kept = awayFromCamera(ringProps(9, 16, 1.4, 1.6), yaw);
+         expect(kept.length).toBeGreaterThan(4);
+         for (const s of kept) expect(Math.cos(Math.atan2(s.x, s.z) - yaw)).toBeLessThan(0.2);
       }
    });
 

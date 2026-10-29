@@ -417,7 +417,7 @@ function LevelScene() {
          </mesh>
          <mesh rotation-x={-Math.PI / 2} position={[0, 0.012, 0]}>
             <circleGeometry args={[level.radius - 0.05, 48]} />
-            <meshStandardMaterial map={flagstones} color="#ffffff" emissive={room.floorGlow} emissiveMap={flagstones} emissiveIntensity={level.lighting === "night" ? 0.7 : 0.35} roughness={0.88} />
+            <meshStandardMaterial map={flagstones} color={room.floorTint} emissive={room.floorGlow} emissiveMap={flagstones} emissiveIntensity={level.lighting === "night" ? 0.7 : 0.35} roughness={0.88} />
          </mesh>
          <mesh rotation-x={-Math.PI / 2} position={[0, 0.02, 0]}>
             <ringGeometry args={[level.radius - 0.55, level.radius - 0.2, 48]} />
@@ -474,7 +474,7 @@ function LevelScene() {
          <InstancedModel asset={ASSETS.cauldron} spots={decor.cauldrons} fallback={null} />
          <InstancedModel asset={ASSETS.candle} spots={decor.candles} fallback={null} />
          <pointLight position={[0, 1.7, 0]} intensity={level.lighting === "night" ? 12 : level.lighting === "sunset" ? 4 : 0} distance={9} decay={1.5} color={room.glow} />
-         <Room level={level} run={run} />
+         <Room level={level} run={run} yaw={view.yaw} />
          <Model asset={ASSETS.cauldron} fallback={<CauldronPrimitive />} />
          <mesh position={[0, DISC_Y, 0]} rotation-x={-Math.PI / 2}>
             <circleGeometry args={[DISC_R, 20]} />
