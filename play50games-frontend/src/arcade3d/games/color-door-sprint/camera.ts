@@ -42,10 +42,13 @@ export function orbitLookUp(aspect: number): number {
  * The orbit's pivot: the hero's chest, pulled towards the hall's middle (so the whole door wall reads),
  * led down the hall (more at speed).
  */
-export function orbitPivot(hx: number, hy: number, hz: number, v: number, out: { x: number; y: number; z: number }): { x: number; y: number; z: number } {
-   out.x = hx * 0.55;
+export function orbitPivot(hx: number, hy: number, hz: number, v: number, out: { x: number; y: number; z: number }, lead = 1): { x: number; y: number; z: number } {
+   // the lead and the pull to the middle only while the camera looks down the hall (lead = cos of the
+   // orbit's yaw, 0 from the side or the front): seen from the side the hero stays in the middle
+   const k = Math.max(0, Math.min(1, lead));
+   out.x = hx * (1 - 0.45 * k);
    out.y = 1.2 + hy * 0.5;
-   out.z = hz - 3 - Math.max(0, v - 10) * 0.2;
+   out.z = hz - (3 + Math.max(0, v - 10) * 0.2) * k;
    return out;
 }
 

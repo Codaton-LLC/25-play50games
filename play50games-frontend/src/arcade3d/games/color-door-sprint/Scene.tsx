@@ -299,10 +299,10 @@ function DoorCamera({ run, orbit }: { run: DoorRun; orbit: OrbitState }) {
    const pivot = useMemo(
       () => (out: { x: number; y: number; z: number }) => {
          const h = run.hero;
-         orbitPivot(h.x, h.y, h.z, h.v, out);
+         orbitPivot(h.x, h.y, h.z, h.v, out, Math.cos(orbit.viewYaw));
          return true;
       },
-      [run],
+      [run, orbit],
    );
    const travel = useMemo(() => (out: { x: number; z: number }) => orbitTravel(run.hero.v, out), [run]);
    const solids = useMemo(() => (out: AABB[]) => courseSolids(run, camera.position.z, out), [run, camera]);
