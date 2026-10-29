@@ -102,6 +102,13 @@ finish ms - 50 ms per orb - the flow meter's bonus (`runTimeMs`, `finalScore`).
 Bot finish: 30 runs per level (5 heroes x 6 seeds, 5 % ragged frames), all wins. `meta.ts` and
 `arcade-games.json` carry `PROPOSED_LEVEL_LIMITS`; `registry.sync.test.ts` keeps them equal.
 
+## Playtest (2026-10-29, headless Chrome over CDP, `next dev` on 3313, `?autoplay=1`, all levels unlocked)
+
+All five levels cleared by the preview bot at 1280 x 800 (mouse-drag orbit) and at 390 x 844 (two-finger
+orbit): 0 console errors, at most 58 draw calls, at most 0.75 M triangles (wall slabs 6 x 4 m, corner skins
+on the top 9 m only), frame p50 16.7 ms. A column or corner block the camera is inside steps out of the shot
+(a fast whip outruns the camera's collision), so the hero stays in view on a phone.
+
 ## Known issues
 
 - Temple corner blocks, the gap platforms' hollow-top fillers, the ram chains, the darts, the gates and the

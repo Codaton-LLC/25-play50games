@@ -7,7 +7,7 @@
 // panels, Vexa's ghost rooms, the level 5 gates, orbs and secrets. Every drawn face is the rules' face.
 // (CourseView.tsx, not Course.tsx: Windows would collide it with course.ts.)
 import { useEffect, useMemo, useRef } from "react";
-import { useFrame } from "@react-three/fiber";
+import { useFrame, useThree } from "@react-three/fiber";
 import { Color, Matrix4, Quaternion, Vector3, type Group, type MeshStandardMaterial } from "three";
 import { DynamicInstancedModel, InstancedModel, Model } from "@/arcade3d/core/assets";
 import { DynamicInstanced, Instanced, type InstanceSpot } from "@/arcade3d/core/render";
@@ -243,17 +243,55 @@ function Columns({ run }: { run: WallRun }) {
       [run.course],
    );
    const caps = useMemo(() => corners.map((c) => ({ x: c.x, y: c.y + c.sy / 2 + 0.15, z: c.z, sx: c.sx + 0.4, sy: 0.3, sz: c.sz + 0.4 })), [corners]);
-   const skins = useMemo(() => run.course.corners.flatMap((b) => faceTiles(b)), [run.course]);
+   // skins only on the corner's top 9 m: below that it is lost in the haze over the canopy
+   const skins = useMemo(() => run.course.corners.flatMap((b) => faceTiles({ ...b, y0: Math.max(b.y0, b.y1 - 9) })), [run.course]);
+   const camera = useThree((st) => st.camera);
+   const boxes = run.course.corners;
+   /** a piece the camera is in or right at: it steps out of the shot (a fast whip outruns the camera's collision) */
+   const nearCam = (x: number, y: number, z: number, rx: number, ry: number, rz: number) => {
+      const p = camera.position;
+      return Math.abs(p.x - x) < rx && Math.abs(p.y - y) < ry && Math.abs(p.z - z) < rz;
+   };
+   const place = (m: Matrix4, t: InstanceSpot) => {
+      Q.setFromAxisAngle(UP, t.rotY ?? 0);
+      m.compose(V.set(t.x, t.y, t.z), Q, P2.set(t.sx ?? t.scale ?? 1, t.sy ?? t.scale ?? 1, t.sz ?? t.scale ?? 1));
+   };
    return (
       <>
-         <InstancedModel asset={ASSETS.column} spots={spots} fallback={null} />
+         <DynamicInstancedModel
+            asset={ASSETS.column}
+            count={spots.length}
+            update={(k, m) => {
+               const t = spots[k];
+               if (!t) return false;
+               if (nearCam(t.x, t.y + COLUMN_SEG / 2, t.z, 1.6, COLUMN_SEG / 2 + 1, 1.6)) return false;
+               place(m, t);
+            }}
+         />
          {corners.length ? (
             <>
-               <Instanced spots={corners}>
+               <DynamicInstanced
+                  count={corners.length}
+                  update={(k, m) => {
+                     const b = boxes[k];
+                     if (!b) return false;
+                     if (nearCam((b.x0 + b.x1) / 2, (b.y0 + b.y1) / 2, (b.z0 + b.z1) / 2, (b.x1 - b.x0) / 2 + 0.8, (b.y1 - b.y0) / 2 + 0.8, (b.z1 - b.z0) / 2 + 0.8)) return false;
+                     place(m, corners[k]);
+                  }}
+               >
                   <boxGeometry args={[1, 1, 1]} />
                   <meshStandardMaterial color="#7d6748" roughness={0.9} />
-               </Instanced>
-               <InstancedModel asset={ASSETS.wall} spots={skins} fallback={null} />
+               </DynamicInstanced>
+               <DynamicInstancedModel
+                  asset={ASSETS.wall}
+                  count={skins.length}
+                  update={(k, m) => {
+                     const t = skins[k];
+                     if (!t) return false;
+                     if (nearCam(t.x, t.y + TILE_H / 2, t.z, 2.2, TILE_H, 2.2)) return false;
+                     place(m, t);
+                  }}
+               />
                <Instanced spots={caps}>
                   <boxGeometry args={[1, 1, 1]} />
                   <meshStandardMaterial color={COLORS.jadeDark} roughness={0.6} metalness={0.2} />
