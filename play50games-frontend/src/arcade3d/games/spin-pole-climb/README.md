@@ -68,3 +68,4 @@ Per level (`look.ts`): misty morning, green noon, golden hour, blue night with t
 - The card's "a perfect sweeper hop (within 0.15 s) gives a chime" and Doppler stone hum are not built (generic jump / lap sounds); no world music stems (`menu2/audio` does not exist yet).
 - No "fixed camera" setting (the card's alternative to the turning camera): the follow is gentle and any manual turn overrides it.
 - The co-op hub lever is not built.
+- Camera solids are the other poles' cores and every cap (`courseSolids`); the stairs are not, so a manual turn can leave a stair between the camera and the hero until the follow swings back behind him (1.2 s after the turn).

@@ -8,6 +8,7 @@ import type { IntroKeyframe } from "@/arcade3d/core/intro";
 import type { AABB } from "@/arcade3d/core/collision";
 import { orbitPosition, wrapAngle, type OrbitSettings, type OrbitState } from "@/arcade3d/menu2/camera/orbit";
 import { helixTop, type Course } from "./course";
+import { GLB_SIZE } from "./assets";
 import type { SpinRun } from "./rules";
 
 const DEG = Math.PI / 180;
@@ -83,11 +84,32 @@ export function introKeyframes(course: Course): IntroKeyframe[] {
 
 const SOLID_REACH = 22;
 
-/** Fills `out` with the poles near the camera as boxes (the camera pulls in front of a pole between it and the hero). */
+/**
+ * Fills `out` with what stands near the camera as boxes (the camera pulls in front of one between it
+ * and the hero): every other pole's core, and every cap (the hero's own pole's too: a turn or a
+ * two-finger drag must not leave the camera inside a mushroom dome or under a platform). A cap's box
+ * is the dome's upper part only (the stair runs under the rest), and a box the pivot starts inside
+ * never counts (menu2/camera rayBoxDistance).
+ */
 export function courseSolids(run: SpinRun, x: number, _y: number, z: number, out: AABB[]): number {
    let n = 0;
    const c = run.course;
    const own = c.helices[run.hero.helix].pole;
+   for (const h of c.helices) {
+      if (n >= out.length) break;
+      const p = c.poles[h.pole];
+      if (p.ghost || Math.hypot(p.x - x, p.z - z) > SOLID_REACH) continue;
+      const r = p.walk + 0.35;
+      const top = helixTop(h);
+      const depth = p.mushroom && !h.goal ? 0.4 * (r * 2) * (GLB_SIZE.mushroom.y / GLB_SIZE.mushroom.x) : 0.3;
+      const b = out[n++];
+      b.min.x = p.x - r;
+      b.max.x = p.x + r;
+      b.min.y = top - depth;
+      b.max.y = top;
+      b.min.z = p.z - r;
+      b.max.z = p.z + r;
+   }
    for (const p of c.poles) {
       if (n >= out.length) break;
       // the hero's own pole is behind him: the camera never needs it, and it would squeeze the view on a turn

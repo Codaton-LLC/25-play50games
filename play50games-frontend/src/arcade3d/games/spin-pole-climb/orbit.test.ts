@@ -79,6 +79,17 @@ describe("camera helpers", () => {
       expect(n).toBeGreaterThan(0);
       for (let i = 0; i < n; i++) expect(out[i].min.x > -6.1 && out[i].max.x < -5.9).toBe(false);
    });
+
+   it("every cap near the camera is a solid, the hero's own pole's too, as wide as its stair", () => {
+      const run = createRun(1, 1);
+      const c = run.course;
+      const out: AABB[] = Array.from({ length: 64 }, () => ({ min: { x: 0, y: 0, z: 0 }, max: { x: 0, y: 0, z: 0 } }));
+      const own = c.poles[c.helices[run.hero.helix].pole];
+      const n = courseSolids(run, own.x, 1, own.z + 8, out);
+      const capOfOwn = out.slice(0, n).some((b) => Math.abs((b.min.x + b.max.x) / 2 - own.x) < 1e-6 && b.max.x - b.min.x >= own.walk * 2);
+      expect(capOfOwn).toBe(true);
+      for (let i = 0; i < n; i++) expect(out[i].max.y).toBeGreaterThan(out[i].min.y);
+   });
 });
 
 describe("hero pick", () => {
