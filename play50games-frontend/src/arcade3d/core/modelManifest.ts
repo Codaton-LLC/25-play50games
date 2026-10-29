@@ -629,6 +629,20 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/jungle-vine-jump/m2MossyRuinArch.glb",
    "/models/3d/jungle-vine-jump/m2RuinStone.glb",
    "/models/3d/jungle-vine-jump/m2SnapperPlant.glb",
+   // Menu 2 game 35 (Color Rail Grind): ready/menu2/color-rail-grind, plus m2SnowPine and m2SnowCabinBg (ready/menu2/snow-slide-dash)
+   "/models/3d/color-rail-grind/m2ClockworkTrainBoss.glb",
+   "/models/3d/color-rail-grind/m2ElevatedRailBg.glb",
+   "/models/3d/color-rail-grind/m2GrindRing.glb",
+   "/models/3d/color-rail-grind/m2RailJunction.glb",
+   "/models/3d/color-rail-grind/m2RailJunctionV2.glb",
+   "/models/3d/color-rail-grind/m2RailLaunchRamp.glb",
+   "/models/3d/color-rail-grind/m2RailSegment.glb",
+   "/models/3d/color-rail-grind/m2RailSegmentV2.glb",
+   "/models/3d/color-rail-grind/m2RailSwitch.glb",
+   "/models/3d/color-rail-grind/m2SnowCabinBg.glb",
+   "/models/3d/color-rail-grind/m2SnowPine.glb",
+   "/models/3d/color-rail-grind/m2SupportPillar.glb",
+   "/models/3d/color-rail-grind/m2ToyTrainWagon.glb",
    // Menu 2 game 9 (Ice Peak Jumper): the ready set from ~/.play50/hyper3d/ready/menu2/ice-peak-jumper, plus
    // m2FrostGolemBoss (the L5 boss) and m2IceSlime (L4) from ready/menu2/shared
    "/models/3d/ice-peak-jumper/m2CrackedIcePlatform.glb",

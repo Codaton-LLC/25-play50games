@@ -1263,6 +1263,22 @@
         { "title": "Rolling Hazards", "max_score": 690, "min_duration_ms": 1000, "max_duration_ms": 150000, "base": 27, "max_pps": 14 },
         { "title": "Temple Sprint", "max_score": 910, "min_duration_ms": 1000, "max_duration_ms": 240000, "base": 38, "max_pps": 15 }
       ]
+    },
+    "color-rail-grind": {
+      "title": "Color Rail Grind",
+      "kind": "time",
+      "max_score": 9800,
+      "min_duration_ms": 22000,
+      "max_duration_ms": 120000,
+      "time_base_ms": 120000,
+      "enabled": false,
+      "levels": [
+        { "title": "Station Yard", "max_score": 9800, "min_duration_ms": 22000, "max_duration_ms": 120000, "time_base_ms": 120000 },
+        { "title": "Village Loop", "max_score": 12440, "min_duration_ms": 25600, "max_duration_ms": 150000, "time_base_ms": 150000 },
+        { "title": "Ice Bridge", "max_score": 15230, "min_duration_ms": 17700, "max_duration_ms": 170000, "time_base_ms": 170000 },
+        { "title": "Night Express", "max_score": 15400, "min_duration_ms": 26000, "max_duration_ms": 180000, "time_base_ms": 180000 },
+        { "title": "Runaway Express", "max_score": 23510, "min_duration_ms": 24900, "max_duration_ms": 260000, "time_base_ms": 260000 }
+      ]
     }
   }
 }
