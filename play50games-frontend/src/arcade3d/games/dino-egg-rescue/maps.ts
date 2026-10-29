@@ -251,7 +251,7 @@ export const MAP_5: ValleyMap = {
       { id: 1, x: -11, z: 8 },
       { id: 2, x: 11, z: 8 },
       { id: 3, x: 0, z: -9 },
-      { id: 4, x: 0, z: 3.6 },
+      { id: 4, x: 0, z: 2.8 },
    ],
    obstacles: [
       // the pen: west and east walls to the south edge, the north wall with a 2.4 m gate in the middle

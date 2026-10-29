@@ -43,7 +43,7 @@ const DESCRIPTIONS: Record<LevelId, string> = {
    1: "90 seconds in the sunset valley. Carry eggs home and dodge the boulders.",
    2: "A dense forest: trunks, ferns and fallen logs to hop. 120 seconds.",
    3: "A river splits the valley: wade against the current or use the bridges. 120 seconds.",
-   4: "Night in the volcanic pass: lava boulders and erupting vents. 120 seconds.",
+   4: "A smoky volcanic pass at dusk: lava gullies and erupting vents. 120 seconds.",
    5: "The sanctuary at dusk: a gated nest pen, a pond, geysers. Carry four. 120 seconds.",
 };
 

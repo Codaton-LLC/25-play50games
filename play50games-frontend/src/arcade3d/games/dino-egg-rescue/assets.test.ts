@@ -173,7 +173,7 @@ describe("dino-egg-rescue lava rock decor (levels 4-5 only)", () => {
 
 describe("dino-egg-rescue level props (reused GLBs, maps.ts)", () => {
    it("every level prop GLB is in the manifest", () => {
-      for (const asset of [ASSETS.pineTree, ASSETS.fern, ASSETS.log, ASSETS.reeds, ASSETS.bankRock, ASSETS.bridge, ASSETS.fence]) {
+      for (const asset of [ASSETS.fern, ASSETS.log, ASSETS.bankRock, ASSETS.bridge, ASSETS.fence]) {
          expect(hasModel(asset.url), asset.url).toBe(true);
       }
    });
@@ -192,7 +192,6 @@ describe("dino-egg-rescue level props (reused GLBs, maps.ts)", () => {
       for (const [url, s] of [
          [ASSETS.fern.url, JUNGLE_GLB.jungleFern],
          [ASSETS.log.url, JUNGLE_GLB.jungleLogSingle],
-         [ASSETS.reeds.url, JUNGLE_GLB.junglePlant],
          [ASSETS.bridge.url, JUNGLE_GLB.woodenBridge],
       ] as const) {
          const [w, h, d] = await size(url);

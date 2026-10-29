@@ -482,10 +482,10 @@ export const THEME_LOOKS: Record<ValleyTheme, ThemeLook> = {
       lighting: "day", skyTop: "#0284c7", skyBottom: "#e0f2fe", fog: "#cfe8f5", fogNear: 50, fogFar: 105,
       grass: "#5fa83a", grassSun: "#86c94f", grassShade: "#3f7f2a", soil: "#c9a46a", gully: "#6b4a2b", ridgeTint: "#d8e6d0", mottle: 0.08,
    },
-   // Volcanic Pass: night under a red sky, basalt ground, lava glow
+   // Volcanic Pass: a smoky red dusk, ash-grey basalt ground, lava glow
    volcano: {
-      lighting: "night", skyTop: "#1c0606", skyBottom: "#9a2a0e", fog: "#4a1408", fogNear: 46, fogFar: 98,
-      grass: "#5a524c", grassSun: "#77695e", grassShade: "#3a3430", soil: "#2a211c", gully: "#7c2d12", ridgeTint: "#7a5a50", mottle: 0.12,
+      lighting: "sunset", skyTop: "#1c0606", skyBottom: "#b4310e", fog: "#5a1a0c", fogNear: 46, fogFar: 98,
+      grass: "#7a706a", grassSun: "#958a80", grassShade: "#544a44", soil: "#3a2f29", gully: "#7c2d12", ridgeTint: "#8a6a5e", mottle: 0.14,
    },
    // Dino Sanctuary: a golden-violet dusk, a tended lawn
    sanctuary: {

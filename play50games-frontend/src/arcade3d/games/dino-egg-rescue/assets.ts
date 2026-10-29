@@ -73,7 +73,6 @@ export const JUNGLE_GLB = {
    woodenBridge: { width: 1.2978, height: 0.7263, depth: 1.8963 },
    jungleLogSingle: { width: 1.8959, height: 0.5887, depth: 0.6231 },
    jungleFern: { width: 1.6552, height: 1.1821, depth: 1.5669 },
-   junglePlant: { width: 1.662, height: 1.892, depth: 1.367 },
 } as const;
 export const FARM_FENCE_GLB = { x: 1.893, y: 0.862, z: 0.194 } as const;
 /** A fallen log's drawn thickness as a share of its length at spot scale 1 (2.4 m long -> 0.64 m). */
@@ -140,16 +139,13 @@ export const ASSETS = {
       budget: { ...PROP_BUDGET },
    },
    // ----- the level props (maps.ts): reused GLBs, each fitted to a unit so a spot's scale is its size -----
-   // Fern Forest pines: the shared pine, 4 m tall at spot scale 1
-   pineTree: EXPANSION_ASSETS.pineTree,
-   // jungle-bridge-run's fern (1 m tall unit), fallen log (1 m long unit along x), plant (reeds, 1 m tall)
+   // jungle-bridge-run's fern (1 m tall unit; also the river reeds) and fallen log (1 m long unit along x)
    fern: unitAsset("fern", "/models/3d/jungle-bridge-run/jungleFern.glb", 1 / JUNGLE_GLB.jungleFern.height, "#16a34a"),
    log: {
       ...unitAsset("log", "/models/3d/jungle-bridge-run/jungleLogSingle.glb", 1 / JUNGLE_GLB.jungleLogSingle.width, "#78350f"),
       // a 2.4 m log is 0.64 m thick (its collision capsule)
       stretch: [1, LOG_THICKNESS / (JUNGLE_GLB.jungleLogSingle.height / JUNGLE_GLB.jungleLogSingle.width), LOG_THICKNESS / (JUNGLE_GLB.jungleLogSingle.depth / JUNGLE_GLB.jungleLogSingle.width)] as const,
    },
-   reeds: unitAsset("reeds", "/models/3d/jungle-bridge-run/junglePlant.glb", 1 / JUNGLE_GLB.junglePlant.height, "#15803d"),
    // the bank and pass rocks: the shared rock, 1 m wide at spot scale 1
    bankRock: { ...EXPANSION_ASSETS.rock, scale: 1 / EXPANSION_GLB_SIZE.rock.width },
    // Riverbank bridges: jungle-bridge-run's wooden bridge, a 1 m long unit along z, deck lowered to the ground

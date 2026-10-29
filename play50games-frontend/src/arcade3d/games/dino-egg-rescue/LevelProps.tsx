@@ -20,7 +20,7 @@ const PALETTE = {
    pond: "#2fb5a6",
    pondDeep: "#1c8d84",
    bank: "#b08a55",
-   basalt: "#2b2523",
+   basalt: "#4a403b",
    basaltTop: "#4a3f3a",
    lava: "#f97316",
    lavaCore: "#fde047",
@@ -179,7 +179,7 @@ function Spires({ spires }: { spires: readonly Obstacle[] }) {
       <group>
          <Instanced spots={columns}>
             <primitive object={geo} attach="geometry" />
-            <meshStandardMaterial color={PALETTE.basalt} roughness={0.85} flatShading />
+            <meshStandardMaterial color={PALETTE.basalt} emissive="#2a0c04" emissiveIntensity={0.6} roughness={0.85} flatShading />
          </Instanced>
          {spires.map((o, i) => (
             <mesh key={i} position={[o.ax, 0.02, o.az]} rotation={[-Math.PI / 2, 0, 0]}>
@@ -268,10 +268,11 @@ export function LevelProps({ map, ventStates }: { map: ValleyMap; ventStates: re
          byKind(map, kind).map((o, i) => ({ x: o.ax, y, z: o.az, rotY: rotOf(i), scale: scale(o) }));
       return {
          trees: point("tree", () => 1),
-         pines: point("pine", (o) => o.size ?? 1),
+         // the forest's big old trees (the "pine" solids: a 0.3 m trunk), the leafy tree grown 1.15-1.4x
+         pines: point("pine", (o) => 1.15 * (o.size ?? 1)),
          ferns: point("fern", (o) => o.r * 3.2),
          rocks: point("rock", (o) => o.r * 2.3),
-         reeds: point("reeds", () => 1.3),
+         reeds: point("reeds", () => 0.9),
          logs: byKind(map, "log").map((o, i) => {
             const len = Math.hypot(o.bx - o.ax, o.bz - o.az) + o.r * 2;
             return { x: (o.ax + o.bx) / 2, y: 0, z: (o.az + o.bz) / 2, rotY: -Math.atan2(o.bz - o.az, o.bx - o.ax) + (i % 2) * Math.PI, sx: len, sy: len, sz: len } as InstanceSpot;
@@ -287,10 +288,10 @@ export function LevelProps({ map, ventStates }: { map: ValleyMap; ventStates: re
          ))}
          {spots.bridges.length > 0 && <InstancedModel asset={ASSETS.bridge} spots={spots.bridges} fallback={<Instanced spots={spots.bridges}><boxGeometry args={[1, 0.25, 1]} /><meshStandardMaterial color="#92400e" /></Instanced>} />}
          {spots.trees.length > 0 && <InstancedModel asset={ASSETS.leafyTree} spots={spots.trees} fallback={<Instanced spots={spots.trees}><TreePrimitive /></Instanced>} />}
-         {spots.pines.length > 0 && <InstancedModel asset={ASSETS.pineTree} spots={spots.pines} fallback={<Instanced spots={spots.pines}><coneGeometry args={[1, 3.5, 7]} /><meshStandardMaterial color="#166534" /></Instanced>} />}
+         {spots.pines.length > 0 && <InstancedModel asset={ASSETS.leafyTree} spots={spots.pines} fallback={<Instanced spots={spots.pines}><TreePrimitive /></Instanced>} />}
          {spots.ferns.length > 0 && <InstancedModel asset={ASSETS.fern} spots={spots.ferns} fallback={<Instanced spots={spots.ferns}><coneGeometry args={[0.5, 0.9, 5]} /><meshStandardMaterial color="#16a34a" /></Instanced>} />}
          {spots.rocks.length > 0 && <InstancedModel asset={ASSETS.bankRock} spots={spots.rocks} fallback={<Instanced spots={spots.rocks}><dodecahedronGeometry args={[0.5, 0]} /><meshStandardMaterial color="#78716c" flatShading /></Instanced>} />}
-         {spots.reeds.length > 0 && <InstancedModel asset={ASSETS.reeds} spots={spots.reeds} fallback={<Instanced spots={spots.reeds}><coneGeometry args={[0.3, 1.2, 5]} /><meshStandardMaterial color="#15803d" /></Instanced>} />}
+         {spots.reeds.length > 0 && <InstancedModel asset={ASSETS.fern} spots={spots.reeds} fallback={<Instanced spots={spots.reeds}><coneGeometry args={[0.3, 1.2, 5]} /><meshStandardMaterial color="#15803d" /></Instanced>} />}
          {spots.logs.length > 0 && <InstancedModel asset={ASSETS.log} spots={spots.logs} fallback={<Instanced spots={spots.logs}><boxGeometry args={[1, 0.26, 0.26]} /><meshStandardMaterial color="#78350f" /></Instanced>} />}
          {byKind(map, "spire").length > 0 && <Spires spires={byKind(map, "spire")} />}
          {byKind(map, "fence").length > 0 && <Fences fences={byKind(map, "fence")} />}
