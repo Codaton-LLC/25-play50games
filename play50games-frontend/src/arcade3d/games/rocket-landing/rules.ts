@@ -2,7 +2,7 @@ import { createRng } from "@/arcade3d/core/math";
 import { createFixedStep, fixedStep, stepRigidBody2D, type RigidBody2D, type RigidBodyForces, type FixedStepState } from "@/arcade3d/core/kinematics";
 import type { LevelId, ScoringRules } from "@/arcade3d/types";
 import { HULL, HULL_SKIN, SUPPORT } from "./assets";
-import { LEVELS, type RocketLevel } from "./levels";
+import { LEVELS, type RocketLevel, type World } from "./levels";
 
 export const PROPOSED_LEVEL_LIMITS: Record<LevelId, ScoringRules> = {
    1: {
@@ -70,11 +70,32 @@ export const PLANETS = [
    { name: "Gas moon", gravity: 2.5, width: 4.5, fuel: 90, color: "#c4b5fd" },
    { name: "Asteroid", gravity: 1, width: 4, fuel: 85, color: "#78716c" },
 ] as const;
+/** Level 1's five landings: today's planets (Gas moon windy, Asteroid swinging pad under the roof). */
+export const DEFAULT_WORLDS: readonly World[] = PLANETS.map((p, i) => ({
+   name: p.name, gravity: p.gravity, width: p.width, fuel: p.fuel, look: i,
+   wind: i === 3 ? 1 : 0, swing: i === 4, roof: i === 4, towers: false,
+}));
+/** A level's five landings (level 1: DEFAULT_WORLDS). */
+export const worldsOf = (level?: RocketLevel): readonly World[] => level?.worlds ?? DEFAULT_WORLDS;
+/** The landing being flown. */
+export const worldOf = (r: Run): World => worldsOf(r.level)[r.planet];
+/**
+ * Rock towers beside the pad (World.towers): two 1.2 m columns whose inner faces stand 1 m outside
+ * the pad edges, tops at y 5 (below the 6.65 m hull bottom of the 8 m cruise), from y -2.
+ */
+export const TOWER = { half: 0.6, gap: 1.6, top: 5 } as const;
 const STEP = 1 / 120;
 const TAU = 2 * Math.PI;
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 export const wrap = (v: number) => v >= -Math.PI && v < Math.PI ? v : ((v + Math.PI) % TAU + TAU) % TAU - Math.PI;
-export interface Layout { pad: number; spawnX: number; phase: number; wind: number; terrain: number[]; fallback: boolean; padAmplitude?: number }
+/**
+ * One landing's seeded layout. `swing` / `roof` / `windScale` / `towers` are set only off level 1
+ * (level 1 keeps today's layout objects: planet 4 swings under the roof, planet 3 is windy).
+ */
+export interface Layout { pad: number; spawnX: number; phase: number; wind: number; terrain: number[]; fallback: boolean; padAmplitude?: number; swing?: boolean; roof?: boolean; windScale?: number; towers?: number[] }
+export const swings = (l: Layout, p: number) => l.swing ?? p === 4;
+export const roofed = (l: Layout, p: number) => l.roof ?? p === 4;
+export const windScale = (l: Layout, p: number) => l.windScale ?? (p === 3 ? 1 : 0);
 export interface Controls { rotate: number; thrust: boolean }
 export interface Award { soft: number; centre: number; reserve: number; total: number }
 interface Point { x: number; y: number }
@@ -92,30 +113,40 @@ export interface Run {
 }
 export function padX(l: Layout, p: number, t: number, padAmp?: number): number {
    const amp = padAmp ?? l.padAmplitude ?? (p === 4 ? 2 : 0);
-   return p === 4 ? amp * Math.sin(TAU * t / 16 + l.phase) : l.pad;
+   return swings(l, p) ? amp * Math.sin(TAU * t / 16 + l.phase) : l.pad;
 }
 export function padVx(l: Layout, p: number, t: number, padAmp?: number): number {
    const amp = padAmp ?? l.padAmplitude ?? (p === 4 ? 2 : 0);
-   return p === 4 ? amp * (Math.PI / 8) * Math.cos(TAU * t / 16 + l.phase) : 0;
+   return swings(l, p) ? amp * (Math.PI / 8) * Math.cos(TAU * t / 16 + l.phase) : 0;
 }
-export function fallbackLayout(p: number, padAmp?: number): Layout { return { pad: 0, spawnX: 4.5, phase: 0, wind: 0, terrain: new Array<number>(13).fill(0), fallback: true, padAmplitude: padAmp }; }
+/** The flags a non-default world adds to its layout (towers: the two tower centres beside the pad). */
+function worldFlags(world: World | undefined, pad: number): Partial<Layout> {
+   if (!world) return {};
+   const towers = world.towers ? [pad - world.width / 2 - TOWER.gap, pad + world.width / 2 + TOWER.gap] : undefined;
+   return { swing: world.swing, roof: world.roof, windScale: world.wind, ...(towers ? { towers } : {}) };
+}
+export function fallbackLayout(p: number, padAmp?: number, world?: World): Layout { return { pad: 0, spawnX: 4.5, phase: 0, wind: 0, terrain: new Array<number>(13).fill(0), fallback: true, padAmplitude: padAmp, ...worldFlags(world, 0) }; }
 export function isValidLayout(l: Layout, p: number): boolean {
    const offset = Math.abs(l.spawnX - padX(l, p, 0));
    return l.terrain.length === 13 && l.terrain.every((v) => Number.isFinite(v) && v >= -0.5 && v <= 0.5) &&
       Number.isFinite(l.spawnX) && Math.abs(l.spawnX) <= 7.5 && Math.abs(l.pad) <= 1 &&
-      offset >= (p === 4 ? 4.5 : 3) && offset <= 6 && Number.isFinite(l.wind) &&
-      (l.phase === 0 || l.phase === Math.PI);
+      offset >= (roofed(l, p) ? 4.5 : 3) && offset <= 6 && Number.isFinite(l.wind) &&
+      (l.phase === 0 || l.phase === Math.PI) &&
+      (l.towers ?? []).every((x) => Math.abs(x) + TOWER.half <= 9);
 }
-export function generateCampaign(seed: number, padAmp: number = 2): Layout[] {
+/** Seeded layouts for a level's five landings (`worlds` absent: today's planets, byte-identical). */
+export function generateCampaign(seed: number, padAmp: number = 2, worlds?: readonly World[]): Layout[] {
    const rng = createRng(seed);
    return PLANETS.map((_, p) => {
+      const world = worlds?.[p];
+      const fixed = world ? world.swing || world.roof : p === 4, cave = world ? world.roof : p === 4;
       for (let n = 0; n < 16; n++) {
-         const pad = p === 4 ? 0 : rng() * 2 - 1;
-         const spawnX = pad + (rng() < 0.5 ? -1 : 1) * ((p === 4 ? 4.5 : 3) + rng() * (p === 4 ? 1.5 : 3));
-         const l: Layout = { pad, spawnX, phase: rng() < 0.5 ? 0 : Math.PI, wind: rng() * TAU, terrain: Array.from({ length: 13 }, () => rng() - 0.5), fallback: false, padAmplitude: padAmp };
+         const pad = fixed ? 0 : rng() * 2 - 1;
+         const spawnX = pad + (rng() < 0.5 ? -1 : 1) * ((cave ? 4.5 : 3) + rng() * (cave ? 1.5 : 3));
+         const l: Layout = { pad, spawnX, phase: rng() < 0.5 ? 0 : Math.PI, wind: rng() * TAU, terrain: Array.from({ length: 13 }, () => rng() - 0.5), fallback: false, padAmplitude: padAmp, ...worldFlags(world, pad) };
          if (isValidLayout(l, p)) return l;
       }
-      return fallbackLayout(p, padAmp);
+      return fallbackLayout(p, padAmp, world);
    });
 }
 const body = (): RigidBody2D => ({ x: 0, y: 0, angle: 0, vx: 0, vy: 0, omega: 0 });
@@ -125,13 +156,13 @@ function polygon(a: Point[]): Polygon {
 }
 function rect(x0: number, x1: number, y0: number, y1: number): Polygon { return polygon([{ x: x0, y: y0 }, { x: x1, y: y0 }, { x: x1, y: y1 }, { x: x0, y: y1 }]); }
 function movePad(r: Run, t: number): void {
-   const x = padX(r.layouts[r.planet], r.planet, t, r.level?.padAmplitude), w = PLANETS[r.planet].width / 2;
+   const x = padX(r.layouts[r.planet], r.planet, t, r.level?.padAmplitude), w = worldOf(r).width / 2;
    r.pad.minX = x - w; r.pad.maxX = x + w;
    r.pad.points[0].x = r.pad.points[3].x = x - w;
    r.pad.points[1].x = r.pad.points[2].x = x + w;
 }
 export function createRun(seed: number, assist: boolean = false, level: RocketLevel = LEVELS[1]): Run {
-   const layouts = generateCampaign(seed, level.padAmplitude);
+   const layouts = generateCampaign(seed, level.padAmplitude, level.worlds);
    const r: Run = {
       layouts, body: body(), previous: body(), next: body(), probe: body(), clock: createFixedStep(STEP), tick: () => {},
       controls: { rotate: 0, thrust: false }, forces: { thrust: 0, torque: 0, gravity: 0 }, assist,
@@ -141,7 +172,7 @@ export function createRun(seed: number, assist: boolean = false, level: RocketLe
       obstacles: layouts.map((l) => Array.from({ length: 12 }, (_, i) => {
          const x0 = -10 + i * 20 / 12, x1 = -10 + (i + 1) * 20 / 12;
          return polygon([{ x: x0, y: -2 }, { x: x1, y: -2 }, { x: x1, y: l.terrain[i + 1] }, { x: x0, y: l.terrain[i] }]);
-      })),
+      }).concat((l.towers ?? []).map((x) => rect(x - TOWER.half, x + TOWER.half, -2, TOWER.top)))),
       pad: rect(-3, 3, 1.6, 2), roof: rect(-3, 3, 9, 10), a: points(HULL.length), b: points(HULL.length), quad: points(4),
       contactMask: 0, contactSlices: 0, sweepSkin: 0, pivot: { x: 0, y: 0 },
       level,
@@ -160,7 +191,7 @@ function spawn(r: Run): void {
    const b = r.body;
    b.x = r.layouts[r.planet].spawnX; b.y = BODY.spawnY;
    b.vx = b.vy = b.angle = b.omega = 0;
-   r.fuel = PLANETS[r.planet].fuel; r.attemptTime = 0; r.mode = "flight";
+   r.fuel = worldOf(r).fuel; r.attemptTime = 0; r.mode = "flight";
    r.hold = 0; r.lowFuel = false; r.powered = false; r.events.spawn = true;
 }
 function transform(out: Point[], b: RigidBody2D): void {
@@ -203,7 +234,7 @@ function sweptObstacle(r: Run, o: Polygon, minX: number, maxX: number, minY: num
 }
 function sweep(r: Run, a: RigidBody2D, b: RigidBody2D, ta: number, tb: number): number {
    // Covers the rotation arc outside its chord and the analytic moving-pad arc.
-   r.sweepSkin = BODY.radius * (1 - Math.cos(wrap(b.angle - a.angle) / 2)) + (r.planet === 4 ? (r.level?.padAmplitude ?? 2) * (1 - Math.cos(Math.PI * (tb - ta) / 16)) : 0) + 1e-8;
+   r.sweepSkin = BODY.radius * (1 - Math.cos(wrap(b.angle - a.angle) / 2)) + (swings(r.layouts[r.planet], r.planet) ? (r.level?.padAmplitude ?? 2) * (1 - Math.cos(Math.PI * (tb - ta) / 16)) : 0) + 1e-8;
    transform(r.a, a); transform(r.b, b);
    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
    for (let i = 0; i < HULL.length; i++) {
@@ -213,14 +244,14 @@ function sweep(r: Run, a: RigidBody2D, b: RigidBody2D, ta: number, tb: number): 
    let mask = minX - r.sweepSkin <= WORLD.left || maxX + r.sweepSkin >= WORLD.right || minY - r.sweepSkin <= WORLD.bottom || maxY + r.sweepSkin >= WORLD.top ? 2 : 0;
    const obstacles = r.obstacles[r.planet];
    for (let i = 0; ! (mask & 2) && i < obstacles.length; i++) if (sweptObstacle(r, obstacles[i], minX, maxX, minY, maxY, 0)) mask |= 2;
-   if (r.planet === 4 && sweptObstacle(r, r.roof, minX, maxX, minY, maxY, 0)) mask |= 2;
+   if (roofed(r.layouts[r.planet], r.planet) && sweptObstacle(r, r.roof, minX, maxX, minY, maxY, 0)) mask |= 2;
    movePad(r, tb);
    const dx = padX(r.layouts[r.planet], r.planet, tb, r.level?.padAmplitude) - padX(r.layouts[r.planet], r.planet, ta, r.level?.padAmplitude);
    if (sweptObstacle(r, r.pad, minX, maxX, minY, maxY, dx)) mask |= 1;
    return mask;
 }
 export function landingSafe(r: Run, t: number): boolean {
-   const b = r.body, l = r.layouts[r.planet], half = PLANETS[r.planet].width / 2, px = padX(l, r.planet, t, r.level?.padAmplitude);
+   const b = r.body, l = r.layouts[r.planet], half = worldOf(r).width / 2, px = padX(l, r.planet, t, r.level?.padAmplitude);
    const vyGate = r.level?.contactVy ?? CONTACT.vy;
    const angleGate = r.level?.contactAngle ?? CONTACT.angle;
    if (!(b.vy < 0 && Math.abs(b.vy) < vyGate && Math.abs(b.vx - padVx(l, r.planet, t, r.level?.padAmplitude)) < CONTACT.vx && Math.abs(wrap(b.angle)) < angleGate)) return false;
@@ -247,7 +278,7 @@ function impact(r: Run, mask: number): void {
    // The first hull contact must be on the top support edge, within the mesh contact skin.
    const top = Math.abs(lowest - WORLD.padY) <= CONTACT.skin + 0.018;
    if (mask === 1 && top && landingSafe(r, r.attemptTime)) {
-      const p = PLANETS[r.planet];
+      const p = worldOf(r);
       const award = landingAward(b.vy, b.x - padX(r.layouts[r.planet], r.planet, r.attemptTime, r.level?.padAmplitude), p.width, r.fuel, p.fuel, r.award);
       r.awards[r.planet] = award.total; r.score += award.total; r.events.award += award.total; r.completed++;
       r.mode = "landed";
@@ -273,7 +304,7 @@ export function crashContact(r: Run, out: { x: number; y: number; z: number }): 
       const d = (x - qx) ** 2 + (y - qy) ** 2;
       if (d < nearest) { nearest = d; out.x = qx; out.y = qy; }
    };
-   const surfaces = (r.contactMask & 1 ? [r.pad] : []).concat(r.contactMask & 2 ? [...r.obstacles[r.planet], ...(r.planet === 4 ? [r.roof] : [])] : []);
+   const surfaces = (r.contactMask & 1 ? [r.pad] : []).concat(r.contactMask & 2 ? [...r.obstacles[r.planet], ...(roofed(r.layouts[r.planet], r.planet) ? [r.roof] : [])] : []);
    for (const [hx, hy] of HULL) {
       const x = b.x + c * hx - s * (hy - BODY.centre), y = b.y + s * hx + c * (hy - BODY.centre);
       if (r.contactMask & 2) {
@@ -300,16 +331,17 @@ export function crashContact(r: Run, out: { x: number; y: number; z: number }): 
    out.z = 0.5;
 }
 function flight(r: Run, dt: number, thrust: boolean): number {
-   const b = r.body, p = PLANETS[r.planet], oldFuel = r.fuel;
+   const b = r.body, p = worldOf(r), oldFuel = r.fuel;
    copy(r.previous, b);
    const rotate = clamp(r.controls.rotate, -1, 1);
    r.forces.thrust = thrust ? ENGINE.acceleration : 0;
    r.forces.gravity = p.gravity;
    r.forces.torque = r.assist && Math.abs(rotate) <= ENGINE.neutral ? clamp(-ENGINE.assist * wrap(b.angle) - ENGINE.damping * b.omega, -3, 3) : -ENGINE.torque * rotate - ENGINE.damping * b.omega;
    stepRigidBody2D(b, dt, r.forces);
-   if (r.planet === 3) {
-      const windAmp = r.level?.windAmplitude ?? 0.4;
-      const wind = windAmp * Math.sin(TAU * r.attemptTime / 8 + r.layouts[3].wind);
+   const gust = windScale(r.layouts[r.planet], r.planet);
+   if (gust) {
+      const windAmp = (r.level?.windAmplitude ?? 0.4) * gust;
+      const wind = windAmp * Math.sin(TAU * r.attemptTime / 8 + r.layouts[r.planet].wind);
       b.vx += wind * dt; b.x += wind * dt * dt;
    }
    const speed = Math.hypot(b.vx, b.vy);
