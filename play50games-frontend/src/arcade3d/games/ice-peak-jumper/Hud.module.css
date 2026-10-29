@@ -359,6 +359,7 @@
 
 .height {
    margin-left: 10px;
+   white-space: nowrap;
    font-weight: 800;
    color: #bae6fd;
    font-variant-numeric: tabular-nums;
