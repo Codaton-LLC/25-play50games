@@ -1136,6 +1136,22 @@
         { "title": "Perfect Timing", "max_score": 28600, "min_duration_ms": 64700, "max_duration_ms": 242000, "base": 5720, "max_pps": 318 }
       ]
     },
+    "jungle-vine-jump": {
+      "title": "Jungle Vine Jump",
+      "kind": "time",
+      "max_score": 19910,
+      "min_duration_ms": 900,
+      "max_duration_ms": 200000,
+      "time_base_ms": 200000,
+      "enabled": false,
+      "levels": [
+        { "title": "Green Start", "max_score": 19910, "min_duration_ms": 900, "max_duration_ms": 200000, "time_base_ms": 200000 },
+        { "title": "Branch Climb", "max_score": 23880, "min_duration_ms": 1200, "max_duration_ms": 240000, "time_base_ms": 240000 },
+        { "title": "Swinging Vines", "max_score": 27800, "min_duration_ms": 2000, "max_duration_ms": 280000, "time_base_ms": 280000 },
+        { "title": "Ruins", "max_score": 31750, "min_duration_ms": 2500, "max_duration_ms": 320000, "time_base_ms": 320000 },
+        { "title": "Canopy Peak", "max_score": 37860, "min_duration_ms": 21400, "max_duration_ms": 400000, "time_base_ms": 400000 }
+      ]
+    },
     "dragon-cave-rush": {
       "title": "Dragon Cave Rush",
       "kind": "time",
@@ -1182,6 +1198,38 @@
         { "title": "Moving Anchors", "max_score": 17600, "min_duration_ms": 4000, "max_duration_ms": 180000, "time_base_ms": 180000 },
         { "title": "Long Gaps", "max_score": 19290, "min_duration_ms": 7100, "max_duration_ms": 200000, "time_base_ms": 200000 },
         { "title": "Sky Swing Master", "max_score": 23310, "min_duration_ms": 6900, "max_duration_ms": 240000, "time_base_ms": 240000 }
+      ]
+    },
+    "color-city-sprint": {
+      "title": "Color City Sprint",
+      "kind": "time",
+      "max_score": 8290,
+      "min_duration_ms": 17100,
+      "max_duration_ms": 100000,
+      "time_base_ms": 100000,
+      "enabled": false,
+      "levels": [
+        { "title": "Red Block", "max_score": 8290, "min_duration_ms": 17100, "max_duration_ms": 100000, "time_base_ms": 100000 },
+        { "title": "Bus Line", "max_score": 10360, "min_duration_ms": 26400, "max_duration_ms": 130000, "time_base_ms": 130000 },
+        { "title": "Rush Hour", "max_score": 12710, "min_duration_ms": 32900, "max_duration_ms": 160000, "time_base_ms": 160000 },
+        { "title": "Night Neon", "max_score": 16130, "min_duration_ms": 38700, "max_duration_ms": 200000, "time_base_ms": 200000 },
+        { "title": "Greyout Avenue", "max_score": 17390, "min_duration_ms": 26100, "max_duration_ms": 200000, "time_base_ms": 200000 }
+      ]
+    },
+    "robot-factory-run": {
+      "title": "Robot Factory Run",
+      "kind": "time",
+      "max_score": 8280,
+      "min_duration_ms": 7200,
+      "max_duration_ms": 90000,
+      "time_base_ms": 90000,
+      "enabled": false,
+      "levels": [
+        { "title": "Assembly Start", "max_score": 8280, "min_duration_ms": 7200, "max_duration_ms": 90000, "time_base_ms": 90000 },
+        { "title": "Conveyor Hall", "max_score": 9650, "min_duration_ms": 13500, "max_duration_ms": 110000, "time_base_ms": 110000 },
+        { "title": "Robot Arms", "max_score": 11170, "min_duration_ms": 8300, "max_duration_ms": 120000, "time_base_ms": 120000 },
+        { "title": "Laser Line", "max_score": 12910, "min_duration_ms": 10900, "max_duration_ms": 140000, "time_base_ms": 140000 },
+        { "title": "Factory Overdrive", "max_score": 22490, "min_duration_ms": 15100, "max_duration_ms": 240000, "time_base_ms": 240000 }
       ]
     }
   }
