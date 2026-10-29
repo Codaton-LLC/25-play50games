@@ -24,7 +24,7 @@ import type { SpaceRepairLevel } from "./levels";
 import { liveHud } from "./liveHud";
 import { COLORS } from "./looks";
 import { markerHitsSuit, MARKER_SIZE } from "./markerVisibility";
-import { createRun, MODULES, REPAIR, stageAt, stepRun } from "./rules";
+import { createRun, REPAIR, stageAt, stationOf, stepRun } from "./rules";
 import Station from "./Station";
 
 export default function Scene() {
@@ -140,8 +140,8 @@ export default function Scene() {
       if (ev.lap) playSfx("click", scratch.lapSound);
       if (ev.award) {
          store.addScore(ev.award);
-         scratch.at.x = MODULES[ev.module].x;
-         scratch.at.z = MODULES[ev.module].z;
+         scratch.at.x = stationOf(run.level).modules[ev.module].x;
+         scratch.at.z = stationOf(run.level).modules[ev.module].z;
          playSfx(ev.award === 150 ? "combo" : "chime");
          if (!reduced) {
             fx.burst("sparks", scratch.at, ev.award === 150 ? 24 : 16);
@@ -169,7 +169,7 @@ export default function Scene() {
             const id = scratch.sparkSlot;
             scratch.sparkSlot = (scratch.sparkSlot + 1) % 8;
             if (!run.modules[id].broken) continue;
-            const m = MODULES[id];
+            const m = stationOf(run.level).modules[id];
             scratch.at.x = m.x;
             scratch.at.z = m.z;
             if (!reduced) fx.burst("sparks", scratch.at, 3);
@@ -243,8 +243,8 @@ export default function Scene() {
       for (let j = 0; j < 11; j++) {
          const marker = markers[j];
          if (j < 8) {
-            marker.x = MODULES[j].dx;
-            marker.z = MODULES[j].dz;
+            marker.x = stationOf(run.level).modules[j].dx;
+            marker.z = stationOf(run.level).modules[j].dz;
             marker.hidden = !run.modules[j].broken;
          } else {
             const c = run.cells[j - 8];
