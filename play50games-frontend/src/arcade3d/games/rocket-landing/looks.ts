@@ -182,6 +182,114 @@ export const PLANET_LOOKS: readonly PlanetLook[] = [
       propAltColor: COLORS.lavaRock,
       moon: { x: -12, y: 16.2, z: -24, radius: 2.4, color: "#78716c", hasRing: false },
    },
+   // ----- Level 2 Breezy Approach (Wide Crater) -----
+   {
+      name: "Crater",
+      lighting: "day",
+      skyTop: "#1e3a5f",
+      skyBottom: "#8a7a63",
+      fog: "#a8977f",
+      groundTones: ["#cdbfa6", "#a3927a", "#5f5444"],
+      rockColor: "#8b7d6b",
+      rockAltColor: "#6b5f50",
+      propColor: "#d9cbae",
+      propAltColor: "#8b7d6b",
+      moon: { x: -15, y: 16, z: -26, radius: 3.4, color: "#e7e5e4" },
+   },
+   {
+      name: "Dust basin",
+      lighting: "sunset",
+      skyTop: "#3b1d0e",
+      skyBottom: "#a8682e",
+      fog: "#b07a4a",
+      groundTones: ["#d8a86c", "#b0804a", "#6b4a2a"],
+      rockColor: "#9a6a3c",
+      rockAltColor: "#7a5230",
+      propColor: "#e6c08a",
+      propAltColor: "#9a6a3c",
+      moon: { x: 14, y: 16.5, z: -25, radius: 2.4, color: "#fde68a" },
+   },
+   // ----- Level 3 Turbulent Orbit (Mars Ridge) -----
+   {
+      name: "Mars",
+      lighting: "sunset",
+      skyTop: "#2b0a05",
+      skyBottom: "#c2410c",
+      fog: "#7c2d12",
+      groundTones: ["#c1440e", "#8f2f0a", "#4a1606"],
+      rockColor: "#7f1d1d",
+      rockAltColor: "#b45309",
+      propColor: "#9a3412",
+      propAltColor: "#7f1d1d",
+      moon: { x: 13, y: 16, z: -24, radius: 1.4, color: "#a8a29e" },
+   },
+   {
+      name: "Mars dust storm",
+      lighting: "sunset",
+      skyTop: "#3a1a0a",
+      skyBottom: "#d97706",
+      fog: "#b45309",
+      groundTones: ["#d0621f", "#a0461a", "#5a230c"],
+      rockColor: "#92400e",
+      rockAltColor: "#c2410c",
+      propColor: "#b45309",
+      propAltColor: "#92400e",
+      moon: { x: -13, y: 15.5, z: -24, radius: 1.2, color: "#d6d3d1" },
+   },
+   // ----- Level 4 High Winds & Cavern -----
+   {
+      name: "Crystal cavern",
+      lighting: "night",
+      skyTop: "#0b0620",
+      skyBottom: "#2e1065",
+      fog: "#1e1b4b",
+      groundTones: ["#585b7d", "#363859", "#16172b"],
+      rockColor: "#312e81",
+      rockAltColor: "#4c4f6b",
+      propColor: "#a78bfa",
+      propAltColor: "#6d28d9",
+      moon: { x: -12, y: 16.5, z: -25, radius: 2, color: "#c4b5fd", hasRing: true, ringColor: "#a78bfa" },
+   },
+   {
+      name: "Gale ridge",
+      lighting: "snow",
+      skyTop: "#0f2a3d",
+      skyBottom: "#4f7896",
+      fog: "#9fb8cc",
+      groundTones: ["#a7b2be", "#6b7682", "#3a424b"],
+      rockColor: "#475569",
+      rockAltColor: "#64748b",
+      propColor: "#cbd5e1",
+      propAltColor: "#475569",
+      moon: { x: 15, y: 16.8, z: -27, radius: 3, color: "#e2e8f0" },
+   },
+   // ----- Level 5 Precision Landing -----
+   {
+      name: "Beacon field",
+      lighting: "night",
+      skyTop: "#000814",
+      skyBottom: "#0b1d3a",
+      fog: "#050d1f",
+      groundTones: ["#3b4a63", "#1e293b", "#0f172a"],
+      rockColor: "#1e293b",
+      rockAltColor: "#334155",
+      propColor: "#22d3ee",
+      propAltColor: "#0e7490",
+      moon: { x: -14, y: 16, z: -26, radius: 2.8, color: "#93c5fd", hasRing: true, ringColor: "#38bdf8" },
+   },
+   {
+      name: "Orbital dock",
+      lighting: "space",
+      skyTop: "#020617",
+      skyBottom: "#1e1b4b",
+      fog: "#0b0b24",
+      groundTones: ["#8392a8", "#56657c", "#1e293b"],
+      rockColor: "#334155",
+      rockAltColor: "#64748b",
+      propColor: "#f59e0b",
+      propAltColor: "#475569",
+      moon: { x: 13, y: 15.5, z: -22, radius: 5, color: "#1d4ed8", hasRing: true, ringColor: "#93c5fd" },
+   },
 ] as const;
 
 /**
@@ -315,13 +423,7 @@ function generateSpots(planetIndex: number): PlanetDecorSpots {
    return { peaks, rocks, props };
 }
 
-export const PLANET_DECOR: readonly PlanetDecorSpots[] = [
-   generateSpots(0),
-   generateSpots(1),
-   generateSpots(2),
-   generateSpots(3),
-   generateSpots(4),
-];
+export const PLANET_DECOR: readonly PlanetDecorSpots[] = PLANET_LOOKS.map((_, i) => generateSpots(i));
 
 function hexToRgb(hex: string): [number, number, number] {
    const n = Number.parseInt(hex.replace("#", ""), 16);

@@ -18,12 +18,19 @@ Five levels through the core level system (`core/README.md` "Levels"): `levels.t
 | 4 | High Winds & Cavern | 5 (Full campaign) | 240 s | 0.52 | 2.3 | 1.65 m/s | 8.18° (π/22) | 900 | 2150 |
 | 5 | Precision Landing | 5 (Full campaign) | 240 s | 0.55 | 2.4 | 1.50 m/s | 7.50° (π/24) | 1100 | 2200 |
 
-Plan adaptation (GAME 30 — Rocket Landing Challenge):
-- **Level 1 (Five Worlds)**: Today's full 5-planet campaign as-is (Moon, Desert, Ice, Gas moon, Asteroid). Wind amplitude 0.4, pad swing 2.0, contact vy <2.0 m/s, tilt <10°.
-- **Level 2 (Breezy Approach)**: Full 5-planet campaign with gustier wind on Gas moon (0.44 m/s²), wider Asteroid pad swing (2.1 m), tighter landing gates (vy <1.85 m/s, tilt <9.47°), +500 clean bonus.
-- **Level 3 (Turbulent Orbit)**: Full 5-planet campaign with stronger wind gusts (0.48 m/s²), pad swing (2.2 m), tighter landing gates (vy <1.75 m/s, tilt <9.0°), +700 clean bonus.
-- **Level 4 (High Winds & Cavern)**: Full 5-planet campaign with heavy wind (0.52 m/s²), wide pad swing (2.3 m), tighter speed gate (vy <1.65 m/s, tilt <8.18°), +900 clean bonus.
-- **Level 5 (Precision Landing)**: Full 5-planet campaign with highest wind (0.55 m/s²), widest pad swing (2.4 m), precision landing gates (vy <1.5 m/s, tilt <7.5°), +1100 clean bonus.
+**Five different campaigns (2026-10-29).** Each level now flies its own five landings (`levels.ts` `worlds`; level 1 has none and flies today's planets through `rules.ts` `DEFAULT_WORLDS`, byte-identical: the 16-trace replay still matches). A world sets gravity, pad width, fuel, its look (`looks.ts` `PLANET_LOOKS` 5-12: own sky, fog, lighting preset, ground tones and props) and its hazards; the seeded `Layout` carries `swing` / `roof` / `windScale` / `towers` only off level 1.
+
+| Level | Landings (gravity, pad width, fuel) | Look | Twist |
+|---|---|---|---|
+| 1 Five Worlds | Moon, Desert, Ice, Gas moon (wind), Asteroid (rail pad under the roof) | today's five planets | today's |
+| 2 Breezy Approach | Crater Rim 1.6/6/100, Dust Basin 2.2/5.5/100 (wind 0.8), Breezy Floor 3/5.5/100 (wind 1), Twin Craters 2.5/5/95 (wind 1), Crater Sled 1.4/5/95 (rail pad) | day crater regolith, sunset dust basin; crater-rim mounds | **breeze** on three landings with a **windsock** at the pad (points downwind, fills with the gust); an open **sled pad** on a visible rail |
+| 3 Turbulent Orbit | Red Plain 3.7/5.5/100 (towers), Ridge Gap 3/5/100 (towers, wind 0.8), Dust Storm 3/5/95 (wind 1.15), Canyon Ledge 3.7/4.5/95 (towers), Olympus Rail 2.5/4.5/90 (rail pad) | Mars sunset, orange dust-storm haze; layered buttes | **rock towers**: two solid columns beside the pad (`TOWER`: inner faces 1 m outside the pad edges, tops y 5, under the 8 m cruise), dust-storm gusts |
+| 4 High Winds & Cavern | Cave Mouth 1.6/5.5/100, Crystal Cavern 1.2/5/95 (roof), Gale Ridge 2.5/5/95 (wind 1.05), Deep Cavern 1.4/4.5/90 (roof), Storm Cavern 1/4/85 (roof + rail) | night crystal caverns, snowy gale ridge; crystal shards, habitat domes | three **caverns** (roof over the pad, side shafts) and the windiest ridge |
+| 5 Precision Landing | Beacon Field 1.6/3.9/100, Needle Pad 2.5/3.6/95, Shuttle Rail 1.6/3.9/95 (rail), Windward Needle 2.5/3.8/90 (wind 1), Orbital Dock 1/3.6/85 (roof + rail) | night beacon field, orbital dock with a big blue planet; beacon masts, antennas | **needle pads** (all narrower than any level-1 pad), two **rail pads** with their track drawn, wind, a docked cavern |
+
+Rail pads (any `swing` world) draw their whole slide as a lit rail under the pad. Fairness per level (`levels.test.ts` "five different landings"): gravity in [1, 5], wind <= 0.56 m/s^2, pads >= 3.5 m, fuel >= 85; caved spawns sit in a free side shaft; towers clear the pad by >= 1 m, stay under the cruise and >= 6.7 m from the spawn hull; the honest pilot lands all five on 16 seeds (and 6 more with assist on and off). The pilot waits over the middle for a rail pad to come under it.
+
+**Limits unchanged.** The proof's premises are unchanged on every level: every award is still <= 500 (pad width only scales the centre term), every pad top is y 2 under a y 14 spawn (the 10.65 m minimum drop), every acceleration stays <= 12 + 5 + 0.56 m/s^2, and the fastest loss is three crashes on the first landing, which has no roof or rail: the ceiling takes >= 0.944 s and a tower (L3) >= 0.873 s from 6.7 m, so 3 x 0.873 + 2 x 1.2 = 5.02 s > 5 s (pinned, plus idle / full-thrust / spin-and-burn runs on 12 seeds per level).
 
 ### Server limits per level (the proof)
 

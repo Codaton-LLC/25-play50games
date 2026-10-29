@@ -1,11 +1,11 @@
 import type { ScreenRect } from "@/arcade3d/core/view";
 import { HULL } from "./assets";
-import { BODY, PLANETS, padX, type Run } from "./rules";
+import { BODY, padX, worldOf, type Run } from "./rules";
 
 export interface FlightBox { x0: number; x1: number; y0: number; y1: number }
 export function rocketBox(run: Run): FlightBox {
    const b = run.body, c = Math.cos(b.angle), s = Math.sin(b.angle);
-   const px = padX(run.layouts[run.planet], run.planet, run.attemptTime), half = PLANETS[run.planet].width / 2;
+   const px = padX(run.layouts[run.planet], run.planet, run.attemptTime), half = worldOf(run).width / 2;
    const box = { x0: px - half, x1: px + half, y0: 1.6, y1: 2.08 };
    for (const [hx, hy] of HULL) {
       const x = b.x + c * hx - s * (hy - BODY.centre);
