@@ -654,6 +654,16 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/wall-run-temple/m2TempleWallV2.glb",
    "/models/3d/wall-run-temple/m2WallRunMarker.glb",
    "/models/3d/wall-run-temple/m2WallSpikePanel.glb",
+   // Menu 2 game 32 (Plate Bounce Arena): the pinball set from ~/.play50/hyper3d/ready/menu2/plate-bounce-arena (incl. m2PinballPlunger, m2PenguinDropTarget) and magnet-coin-lab's m2HorseshoeMagnet
+   "/models/3d/plate-bounce-arena/m2BounceMushroom.glb",
+   "/models/3d/plate-bounce-arena/m2BumperPost.glb",
+   "/models/3d/plate-bounce-arena/m2BumperPostV2.glb",
+   "/models/3d/plate-bounce-arena/m2HorseshoeMagnet.glb",
+   "/models/3d/plate-bounce-arena/m2PenguinDropTarget.glb",
+   "/models/3d/plate-bounce-arena/m2PinballPlunger.glb",
+   "/models/3d/plate-bounce-arena/m2ScoreRingGold.glb",
+   "/models/3d/plate-bounce-arena/m2StadiumStandBgV2I.glb",
+   "/models/3d/plate-bounce-arena/m2ToyFlipper.glb",
 ];
 
 const LISTED: ReadonlySet<string> = new Set(MODEL_MANIFEST);
