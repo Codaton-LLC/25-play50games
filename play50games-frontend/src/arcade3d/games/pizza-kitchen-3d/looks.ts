@@ -57,7 +57,7 @@ export const KITCHENS: Record<KitchenTheme, KitchenLook> = {
    // a retro diner at sunset: mint and cream floor, pastel wall, the sunset window and a big clock
    diner: { tile: "#99f6e4", tileAlt: "#fef9c3", grout: "#0f766e", wall: "#fbcfe8", skirting: "#0f766e", wood: "#f472b6", darkWood: "#9d174d", oven: "#134e4a", decor: "diner" },
    // the night patio: dark stone, brick wall, wood-fired dome ovens, string lights
-   patio: { tile: "#57534e", tileAlt: "#44403c", grout: "#292524", wall: "#7f1d1d", skirting: "#292524", wood: "#78350f", darkWood: "#451a03", oven: "#9a3412", decor: "patio" },
+   patio: { tile: "#6b6560", tileAlt: "#57534e", grout: "#292524", wall: "#a8452a", skirting: "#292524", wood: "#78350f", darkWood: "#451a03", oven: "#9a3412", decor: "patio" },
 };
 
 export const FOV = 42;
