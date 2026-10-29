@@ -53,7 +53,7 @@ Level 5's maxScore 9600 is 1.99× level 1's 4830 (the 3× guard). Every level's 
 | 4 Dinner Rush | lantern-lit dining room | four hanging lanterns, candlelit tables in both side strips, a warm lantern light; the feast's stove hearths and slime cakes | `night` |
 | 5 Grand Feast | banquet hall | two long banquet tables laden with gourds, a monster top hat, potion jars and candles, two lanterns, rainbow bunting over the side strips; stove hearths and slime cakes | `sunset` |
 
-Each level's twist is its rules knob above (the second hatch, the drift, the penalty, the drains). `sets.test.ts`: the reused GLBs are in the manifest and measure what `sets.ts` says; every piece's footprint stands outside `PLAY_BOUNDS` (lanterns hang above the side and back strips) and off every camera line to the chef, the wheel, the cauldron, the monsters and the hatches at 1280 × 800, 390 × 844 and 844 × 390; the five rooms differ.
+Because a portrait phone sees little of the side strips, each level also marks the hatch wall over the right hatch, in view on every screen: a lit MONSTER CAFÉ sign (2), the order-ticket rail (3), a string of warm bulbs over the lintel (4), a GRAND FEAST banner (5). Each level's twist is its rules knob above (the second hatch, the drift, the penalty, the drains). `sets.test.ts`: the reused GLBs are in the manifest and measure what `sets.ts` says; every piece's footprint stands outside `PLAY_BOUNDS` (lanterns hang above the side and back strips) and off every camera line to the chef, the wheel, the cauldron, the monsters and the hatches at 1280 × 800, 390 × 844 and 844 × 390; the five rooms differ.
 
 ### Per-level proof
 
