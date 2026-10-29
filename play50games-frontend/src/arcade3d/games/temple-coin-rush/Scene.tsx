@@ -33,11 +33,11 @@ import type { LevelId } from "@/arcade3d/types";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePlayers } from "@/arcade3d/menu2/multiplayer/players";
 import World, { type RestoreRef } from "./World";
-import { Course } from "./Course";
+import { Course, chaserDrawOffset } from "./Course";
 import { Hero, createHeroAnim, type HeroAnim } from "./Hero";
 import { TEMPLE_ORBIT, FOV, FOV_PORTRAIT, portraitAmount, courseSolids, introKeyframes, orbitLookUp, orbitPivot, orbitScale, orbitTravel, playCamera } from "./camera";
 import { LANES, TIER, laneX } from "./temples";
-import { GATE, STAT, bossVulnerable, chaserZ, createRun, createStepInput, distanceOf, gateInView, priceOf, scoreOf, step, type StepEvents, type TempleRun } from "./rules";
+import { GATE, STAT, bossVulnerable, createRun, createStepInput, distanceOf, gateInView, priceOf, scoreOf, step, type StepEvents, type TempleRun } from "./rules";
 import { pickedHero, subscribeHero } from "./heroes";
 import { createBot, botInput } from "./bot";
 import type { TempleLevel } from "./levels";
@@ -149,9 +149,9 @@ export function juiceEvents(run: TempleRun, ev: StepEvents, anim: HeroAnim, juic
       const at = { x: laneX(h.lane), y: 1.6, z: g.z };
       if (r === GATE.paid) {
          // the coins arc into the gate's offering bowl, a register chime, the gate grinds open
-         P.x = laneX(h.lane) + (h.lane === 0 ? -0.95 : 0.95);
+         P.x = laneX(h.lane) + (h.lane === 0 ? -0.75 : 0.75);
          P.y = 1.0;
-         P.z = g.z + 1;
+         P.z = g.z + 1.3;
          juice.burst("pickup", P, 10 + Math.min(30, ev.paid * 2), { color: "#fcd34d", vy: 4 });
          juice.burst("dust", at, 18, { color: "#c8b48c", vy: 1 });
          juice.popup(chest, `${tag}-${ev.paid}`, { color: "#fde68a", size: 0.08 });
@@ -235,7 +235,7 @@ export function juiceEvents(run: TempleRun, ev: StepEvents, anim: HeroAnim, juic
       playSfx("chime", { pitch: 1.4 });
    }
    // level 5: Coilstone
-   const head = { x: h.x, y: 2.2, z: chaserZ(run) + 1 };
+   const head = { x: h.x, y: 2.0, z: h.z + chaserDrawOffset(run.gap) + 1 };
    if (ev.bossTelegraph) playSfx("whoosh", { volume: 0.45, pitch: 0.45 });
    if (ev.lunged) {
       juice.burst("dust", { x: laneX(run.hazard.lane), y: 0.3, z: h.z }, 26, { color: "#a8a29e" });

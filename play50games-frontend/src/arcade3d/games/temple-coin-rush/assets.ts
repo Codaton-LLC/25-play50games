@@ -44,13 +44,13 @@ export const GLB_SIZE = {
 export const GATE_W = LANE_W - 0.1;
 export const GATE_SCALE = GATE_W / GLB_SIZE.gate.x;
 export const GATE_H = GLB_SIZE.gate.y * GATE_SCALE;
-/** A coin is drawn 0.62 m across; a block 0.85 m tall (BLOCK_CLEAR) across its lane; the boulder 3.2 m round. */
+/** A coin is drawn 0.62 m across; a block 0.85 m tall (BLOCK_CLEAR) across its lane; the boulder 2.7 m round (it fills the lower view behind the hero). */
 export const COIN_D = 0.62;
 export const BLOCK_H = 0.85;
-export const BOULDER_D = 3.2;
-/** Coilstone: its head about 3.6 m tall, each body ring 2.8 m across (the card: colossal). */
-export const HEAD_SCALE = 3.6 / GLB_SIZE.head.y;
-export const SEGMENT_SCALE = 2.8 / GLB_SIZE.segment.x;
+export const BOULDER_D = 2.7;
+/** Coilstone: its head about 3.1 m tall (it rears behind the hero), each body ring 2.6 m across (the card: colossal). */
+export const HEAD_SCALE = 3.1 / GLB_SIZE.head.y;
+export const SEGMENT_SCALE = 2.6 / GLB_SIZE.segment.x;
 
 const prop = (id: string, color: string, budget: { tris: number; bytes: number } = PROP_BUDGET, folder = "temple-coin-rush"): ModelAsset => ({
    id,

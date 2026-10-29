@@ -31,7 +31,8 @@ import {
    MeshStandardMaterial,
    Object3D,
    OctahedronGeometry,
-   PlaneGeometry,
+   Shape,
+   ShapeGeometry,
    TorusGeometry,
    type BufferGeometry,
    type Mesh,
@@ -71,6 +72,15 @@ export const AHEAD = 125;
 const NEAR_COINS = 30;
 const COIN_SLOTS = 40;
 const FAR_SLOTS = 90;
+/**
+ * Where the chaser is drawn: in the lower foreground behind the hero, closer as the gap shrinks (the
+ * rules' gap, 0.8-9 m, maps onto 1.6-6 m of drawn distance so the camera never sits inside it and it
+ * looms nearer as the danger grows; the HUD's meter shows the real gap).
+ */
+export function chaserDrawOffset(gap: number): number {
+   return 1.15 + gap * 0.55;
+}
+
 /** gates drawn: the one just passed and the next two */
 const GATE_SLOTS = 3;
 const SEGMENTS = 8;
@@ -116,6 +126,19 @@ function Pool({ geometry, material, count, update, tinted = false, order }: { ge
       if (tinted && m.instanceColor) m.instanceColor.needsUpdate = true;
    });
    return <instancedMesh ref={ref} args={[geometry, material, Math.max(1, count)]} frustumCulled={false} renderOrder={order} />;
+}
+
+/** A flat chevron pointing +y (laid on the floor it points down the hall). */
+function chevronGeometry(): BufferGeometry {
+   const sh = new Shape();
+   sh.moveTo(-0.5, -0.3);
+   sh.lineTo(0, 0.2);
+   sh.lineTo(0.5, -0.3);
+   sh.lineTo(0.5, -0.05);
+   sh.lineTo(0, 0.45);
+   sh.lineTo(-0.5, -0.05);
+   sh.closePath();
+   return new ShapeGeometry(sh);
 }
 
 /** The price badge's texture: a coin and the number (cached per price and state). */
@@ -177,7 +200,7 @@ function PriceBadges({ run, slot }: { run: TempleRun; slot: number }) {
             mats[l].map = tex;
             mats[l].needsUpdate = true;
          }
-         mesh.position.set(laneX(l), GATE_H + 0.9, gate.z);
+         mesh.position.set(laneX(l), GATE_H + 1.75, gate.z);
          mesh.quaternion.copy(camera.quaternion);
          const d = Math.max(1, run.hero.z - gate.z);
          const s = Math.min(2.6, 1.1 + d * 0.02);
@@ -243,7 +266,7 @@ export function Course({ run, offsetX = 0 }: { run: TempleRun; offsetX?: number 
          divider: new RoundedBoxGeometry(0.36, 1, 1, 2, 0.06),
          bar: new CylinderGeometry(0.05, 0.05, 1, 6),
          flame: new ConeGeometry(0.42, 1, 8, 1, true),
-         chevron: new PlaneGeometry(1, 1),
+         chevron: chevronGeometry(),
          box: new BoxGeometry(1, 1, 1),
          disc: new CylinderGeometry(0.5, 0.5, 0.1, 14),
          gem: new OctahedronGeometry(0.32, 0),
@@ -259,16 +282,28 @@ export function Course({ run, offsetX = 0 }: { run: TempleRun; offsetX?: number 
    // ---- toll gates ----
    const gateS = GATE_SCALE;
    const arches = GATE_SLOTS * LANES;
-   const archUpdate = (ghostPass: boolean) => (i: number, m: Matrix4) => {
+   /**
+    * How far a toll gate has ground down into the floor (0 shut .. 1 open): it sinks once paid (or as a
+    * hero with the price in its purse runs at it, so the way is clear), and stays down.
+    */
+   const gateOpen = (g: number, l: number) => {
+      const res = run.gateResult[g];
+      const gate = c.gates[g];
+      if ((res === GATE.paid || res === GATE.free) && run.hero.route === g && run.hero.lane === l) return Math.min(1, (run.simMs - run.gateMs[g]) / 300 + 0.6);
+      if (res !== GATE.pending) return 0;
+      if (run.hero.lane !== l || run.purse.coins < priceOf(run, g, l) && !(run.simMs <= run.openUntil[g * LANES + l])) return 0;
+      return Math.max(0, Math.min(1, 1 - (run.hero.z - gate.z - 2) / 9));
+   };
+   const archUpdate = (i: number, m: Matrix4) => {
       const g = gateOf(Math.floor(i / LANES));
       const l = i % LANES;
       if (g === NONE) return false;
       const gate = c.gates[g];
-      if (!near(gate.z)) return false;
-      const ghost = l === gate.ghost;
-      if (ghostPass !== ghost) return false;
-      if (!ghost && gate.lanes[l].tier === TIER.slow) return false;
-      place(offsetX + laneX(l), 0, gate.z, gateS, gateS, gateS * 0.6, Math.PI);
+      if (!near(gate.z) || gate.lanes[l].tier === TIER.slow) return false;
+      const sink = gateOpen(g, l);
+      if (sink >= 1) return false;
+      const shake = sink > 0 && sink < 1 ? Math.sin(time.now * 50 + i) * 0.03 : 0;
+      place(offsetX + laneX(l) + shake, -sink * (GATE_H + 0.1), gate.z, gateS, gateS, gateS * 0.6, Math.PI);
       m.copy(DUMMY.matrix);
    };
 
@@ -350,7 +385,7 @@ export function Course({ run, offsetX = 0 }: { run: TempleRun; offsetX?: number 
       const h = run.hero;
       const tx = h.x;
       headPos.x += (tx - headPos.x) * 0.08;
-      headPos.z = chaserZ(run) + 0.4;
+      headPos.z = h.z + chaserDrawOffset(run.gap);
       const b = run.boss;
       let lunge = 0;
       if (b && run.bossOn && bossAlive(run) && b.phase === 0 && (b.step === "telegraph" || b.step === "attack")) {
@@ -365,7 +400,7 @@ export function Course({ run, offsetX = 0 }: { run: TempleRun; offsetX?: number 
    return (
       <group position={[0, 0, 0]}>
          {/* toll arches (GLB) over each toll lane, Vexa's ghost arch as a shimmer */}
-         <DynamicInstancedModel asset={ASSETS.gate} count={arches} update={archUpdate(false)} />
+         <DynamicInstancedModel asset={ASSETS.gate} count={arches} update={archUpdate} />
          <Pool
             geometry={geos.box}
             material={mats.ghost}
@@ -413,32 +448,10 @@ export function Course({ run, offsetX = 0 }: { run: TempleRun; offsetX?: number 
                return place(offsetX, GATE_H + 0.75, c.gates[g].z + 0.46, HALF * 2, 0.16, 0.04);
             }}
          />
-         {/* the portcullis: bronze bars in each toll lane, grinding up once paid (or a free toll) */}
-         <Pool
-            geometry={geos.bar}
-            material={mats.bronze}
-            count={GATE_SLOTS * LANES * 6}
-            update={(i) => {
-               const slot = Math.floor(i / (LANES * 6));
-               const l = Math.floor(i / 6) % LANES;
-               const b = i % 6;
-               const g = gateOf(slot);
-               if (g === NONE) return false;
-               const gate = c.gates[g];
-               if (!near(gate.z) || gate.lanes[l].tier === TIER.slow) return false;
-               const res = run.gateResult[g];
-               const opened = (res === GATE.paid || res === GATE.free) && run.hero.lane === l;
-               const t = opened ? Math.min(1, (run.simMs - run.gateMs[g]) / 450) : 0;
-               // before the plane: the bars lift while the hero, with the price in its purse, runs at it
-               const pre = res === GATE.pending && run.hero.lane === l && run.purse.coins >= priceOf(run, g, l) ? Math.max(0, 1 - (run.hero.z - gate.z) / 7) : 0;
-               const lift = Math.max(t, pre) * (GATE_H - 0.3);
-               const x = laneX(l) - 0.85 + b * 0.34;
-               return place(offsetX + x, GATE_H / 2 + lift, gate.z - 0.05, 1, GATE_H - 0.2, 1);
-            }}
-         />
+         {/* the dust the sinking gate throws up at its foot */}
          <Pool
             geometry={geos.box}
-            material={mats.bronze}
+            material={mats.rumble}
             count={GATE_SLOTS * LANES}
             update={(i) => {
                const g = gateOf(Math.floor(i / LANES));
@@ -446,12 +459,9 @@ export function Course({ run, offsetX = 0 }: { run: TempleRun; offsetX?: number 
                if (g === NONE) return false;
                const gate = c.gates[g];
                if (!near(gate.z) || gate.lanes[l].tier === TIER.slow) return false;
-               const res = run.gateResult[g];
-               const opened = (res === GATE.paid || res === GATE.free) && run.hero.lane === l;
-               const t = opened ? Math.min(1, (run.simMs - run.gateMs[g]) / 450) : 0;
-               const pre = res === GATE.pending && run.hero.lane === l && run.purse.coins >= priceOf(run, g, l) ? Math.max(0, 1 - (run.hero.z - gate.z) / 7) : 0;
-               const lift = Math.max(t, pre) * (GATE_H - 0.3);
-               return place(offsetX + laneX(l), 0.35 + lift, gate.z - 0.05, LANE_W - 0.5, 0.12, 0.12);
+               const sink = gateOpen(g, l);
+               if (sink <= 0 || sink >= 1) return false;
+               return place(offsetX + laneX(l), 0.2, gate.z, LANE_W - 0.2, 0.4 + 0.2 * Math.sin(time.now * 40 + i), 0.9);
             }}
          />
          {/* the jackpot arch's gold frame */}
@@ -478,8 +488,8 @@ export function Course({ run, offsetX = 0 }: { run: TempleRun; offsetX?: number 
                if (g === NONE) return false;
                const gate = c.gates[g];
                if (!near(gate.z) || gate.lanes[l].tier === TIER.slow) return false;
-               const s = 0.85 / GLB_SIZE.bowl.x;
-               place(offsetX + laneX(l) + (l === 0 ? -0.95 : 0.95), 0, gate.z + 1.0, s, s, s);
+               const s = 1.05 / GLB_SIZE.bowl.x;
+               place(offsetX + laneX(l) + (l === 0 ? -0.75 : 0.75), 0, gate.z + 1.3, s, s, s);
                m.copy(DUMMY.matrix);
             }}
          />
@@ -840,7 +850,7 @@ export function Course({ run, offsetX = 0 }: { run: TempleRun; offsetX?: number 
                const s = BOULDER_D / GLB_SIZE.boulder.x;
                const sy = BOULDER_D / GLB_SIZE.boulder.y;
                const roll = -(c.startZ - chaserZ(run)) / (BOULDER_D / 2);
-               placeCentered(m, offsetX + headPos.x * 0.6, 0, chaserZ(run) + BOULDER_D / 2, s, sy, GLB_SIZE.boulder.y, roll);
+               placeCentered(m, offsetX + headPos.x * 0.6, 0, headPos.z + BOULDER_D / 2, s, sy, GLB_SIZE.boulder.y, roll);
             }}
          />
          {/* level 5: Coilstone */}
@@ -852,8 +862,9 @@ export function Course({ run, offsetX = 0 }: { run: TempleRun; offsetX?: number 
                   update={(_i, m) => {
                      if (!serpentOn()) return false;
                      const t = time.now;
-                     let y = 0.2 + Math.sin(t * 2) * 0.15;
-                     let z = headPos.z + 1.6 - headPos.lunge * 3.2;
+                     // it rears out of the floor behind the hero: half sunk, so the hero and the course stay in view
+                     let y = -1.1 + Math.sin(t * 2) * 0.12 + headPos.lunge * 0.5;
+                     let z = headPos.z + 1.2 - headPos.lunge * 2.6;
                      if (!Number.isNaN(headPos.freedAt)) {
                         // freed: it rears up and slides away over the wall
                         const k = Math.min(1, (t - headPos.freedAt) / 2.5);
@@ -870,14 +881,17 @@ export function Course({ run, offsetX = 0 }: { run: TempleRun; offsetX?: number 
                   update={(i, m) => {
                      if (!serpentOn()) return false;
                      const t = time.now;
-                     // the body loops up and over the corridor behind its head
-                     const k = (i + 1) / quality2;
-                     const a = k * Math.PI;
-                     const z = headPos.z + 4 + i * 2.3;
-                     const y = 0.3 + Math.sin(a) * 6.5 + Math.sin(t * 1.6 + i * 0.7) * 0.25;
-                     const x = headPos.x * (1 - k) + Math.sin(t * 0.9 + i) * 0.5;
-                     const pitch = Math.cos(a) * 1.1;
-                     place(offsetX + x, y, z, SEGMENT_SCALE * (1 - k * 0.25), SEGMENT_SCALE * (1 - k * 0.25), SEGMENT_SCALE * (1 - k * 0.25), Math.PI / 2, pitch);
+                     // the body rises from behind its head onto the left wall's top and coils along it,
+                     // ahead past the hero: a colossal serpent in the upper corner of the view
+                     const k = (i + 1) / (quality2 + 1);
+                     const up = Math.min(1, k * 3);
+                     const ease = up * up * (3 - 2 * up);
+                     const span = headPos.z - run.hero.z + 22;
+                     const z = headPos.z + 3 - k * span;
+                     const y = -0.5 + ease * 6.4 + Math.sin(t * 1.6 + i * 0.9) * 0.35;
+                     const x = headPos.x * (1 - ease) - ease * (HALF + 1.4) + Math.sin(t * 0.9 + i) * 0.25;
+                     const sc = SEGMENT_SCALE * (1 - k * 0.25);
+                     place(offsetX + x, y, z, sc, sc, sc, 0, Math.sin(t + i) * 0.2);
                      m.copy(DUMMY.matrix);
                   }}
                />
@@ -974,8 +988,8 @@ export function Course({ run, offsetX = 0 }: { run: TempleRun; offsetX?: number 
                      const b = run.boss!;
                      if (!serpentOn() || i >= Math.min(5, b.hp)) return false;
                      const a = (i / 5) * Math.PI - Math.PI / 2;
-                     const z = headPos.z + 1.6 - headPos.lunge * 3.2 + 1.2;
-                     return place(offsetX + headPos.x + Math.sin(a) * 1.1, 2.6 + Math.cos(a) * 0.9, z, 0.7, 0.5, 0.25, 0, -0.3, a);
+                     const z = headPos.z + 1.2 - headPos.lunge * 2.6;
+                     return place(offsetX + headPos.x + Math.sin(a) * 0.7, 1.75 + Math.cos(a) * 0.35 + headPos.lunge * 0.5, z, 0.45, 0.3, 0.45, 0, -0.5, a);
                   }}
                />
             </>

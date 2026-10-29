@@ -45,8 +45,8 @@
    padding: 6px 22px 7px;
    border: 2px solid rgba(255, 255, 255, 0.2);
    border-radius: 16px;
-   background: linear-gradient(180deg, rgba(76, 20, 16, 0.92), rgba(40, 10, 12, 0.92));
-   box-shadow: 0 6px 18px rgba(30, 6, 4, 0.4);
+   background: linear-gradient(180deg, rgba(20, 70, 50, 0.92), rgba(10, 36, 28, 0.92));
+   box-shadow: 0 6px 18px rgba(4, 24, 14, 0.4);
    white-space: nowrap;
 }
 
