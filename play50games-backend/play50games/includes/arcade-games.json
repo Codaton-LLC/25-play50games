@@ -1263,6 +1263,52 @@
         { "title": "Rolling Hazards", "max_score": 690, "min_duration_ms": 1000, "max_duration_ms": 150000, "base": 27, "max_pps": 14 },
         { "title": "Temple Sprint", "max_score": 910, "min_duration_ms": 1000, "max_duration_ms": 240000, "base": 38, "max_pps": 15 }
       ]
+    },
+    "snow-slide-dash": {
+      "title": "Snow Slide Dash",
+      "kind": "time",
+      "max_score": 8522,
+      "min_duration_ms": 14771,
+      "max_duration_ms": 100000,
+      "time_base_ms": 100000,
+      "enabled": false,
+      "levels": [
+        {
+          "title": "Bunny Hill",
+          "max_score": 8522,
+          "min_duration_ms": 14771,
+          "max_duration_ms": 100000,
+          "time_base_ms": 100000
+        },
+        {
+          "title": "Pine Run",
+          "max_score": 10409,
+          "min_duration_ms": 20908,
+          "max_duration_ms": 125000,
+          "time_base_ms": 125000
+        },
+        {
+          "title": "Frozen Lake",
+          "max_score": 12000,
+          "min_duration_ms": 24999,
+          "max_duration_ms": 145000,
+          "time_base_ms": 145000
+        },
+        {
+          "title": "Lantern Slope",
+          "max_score": 13545,
+          "min_duration_ms": 29544,
+          "max_duration_ms": 165000,
+          "time_base_ms": 165000
+        },
+        {
+          "title": "Avalanche Run",
+          "max_score": 16909,
+          "min_duration_ms": 40908,
+          "max_duration_ms": 210000,
+          "time_base_ms": 210000
+        }
+      ]
     }
   }
 }
