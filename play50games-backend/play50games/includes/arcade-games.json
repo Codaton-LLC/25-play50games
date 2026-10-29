@@ -1119,6 +1119,22 @@
         { "title": "Golden Roof", "max_score": 33570, "min_duration_ms": 24300, "max_duration_ms": 360000, "time_base_ms": 360000 }
       ]
     },
+    "jungle-vine-jump": {
+      "title": "Jungle Vine Jump",
+      "kind": "time",
+      "max_score": 19910,
+      "min_duration_ms": 900,
+      "max_duration_ms": 200000,
+      "time_base_ms": 200000,
+      "enabled": false,
+      "levels": [
+        { "title": "Green Start", "max_score": 19910, "min_duration_ms": 900, "max_duration_ms": 200000, "time_base_ms": 200000 },
+        { "title": "Branch Climb", "max_score": 23880, "min_duration_ms": 1200, "max_duration_ms": 240000, "time_base_ms": 240000 },
+        { "title": "Swinging Vines", "max_score": 27800, "min_duration_ms": 2000, "max_duration_ms": 280000, "time_base_ms": 280000 },
+        { "title": "Ruins", "max_score": 31750, "min_duration_ms": 2500, "max_duration_ms": 320000, "time_base_ms": 320000 },
+        { "title": "Canopy Peak", "max_score": 37860, "min_duration_ms": 21400, "max_duration_ms": 400000, "time_base_ms": 400000 }
+      ]
+    },
     "dragon-cave-rush": {
       "title": "Dragon Cave Rush",
       "kind": "time",
@@ -1198,6 +1214,71 @@
         { "title": "Rush Hour", "max_score": 12710, "min_duration_ms": 32900, "max_duration_ms": 160000, "time_base_ms": 160000 },
         { "title": "Night Neon", "max_score": 16130, "min_duration_ms": 38700, "max_duration_ms": 200000, "time_base_ms": 200000 },
         { "title": "Greyout Avenue", "max_score": 17390, "min_duration_ms": 26100, "max_duration_ms": 200000, "time_base_ms": 200000 }
+      ]
+    },
+    "robot-factory-run": {
+      "title": "Robot Factory Run",
+      "kind": "time",
+      "max_score": 8280,
+      "min_duration_ms": 7200,
+      "max_duration_ms": 90000,
+      "time_base_ms": 90000,
+      "enabled": false,
+      "levels": [
+        { "title": "Assembly Start", "max_score": 8280, "min_duration_ms": 7200, "max_duration_ms": 90000, "time_base_ms": 90000 },
+        { "title": "Conveyor Hall", "max_score": 9650, "min_duration_ms": 13500, "max_duration_ms": 110000, "time_base_ms": 110000 },
+        { "title": "Robot Arms", "max_score": 11170, "min_duration_ms": 8300, "max_duration_ms": 120000, "time_base_ms": 120000 },
+        { "title": "Laser Line", "max_score": 12910, "min_duration_ms": 10900, "max_duration_ms": 140000, "time_base_ms": 140000 },
+        { "title": "Factory Overdrive", "max_score": 22490, "min_duration_ms": 15100, "max_duration_ms": 240000, "time_base_ms": 240000 }
+      ]
+    },
+    "ice-peak-jumper": {
+      "title": "Ice Peak Jumper",
+      "kind": "time",
+      "max_score": 17760,
+      "min_duration_ms": 2400,
+      "max_duration_ms": 180000,
+      "time_base_ms": 180000,
+      "enabled": false,
+      "levels": [
+        { "title": "Base Camp", "max_score": 17760, "min_duration_ms": 2400, "max_duration_ms": 180000, "time_base_ms": 180000 },
+        { "title": "Icicle Steps", "max_score": 20940, "min_duration_ms": 600, "max_duration_ms": 210000, "time_base_ms": 210000 },
+        { "title": "Yeti Ridge", "max_score": 23860, "min_duration_ms": 1400, "max_duration_ms": 240000, "time_base_ms": 240000 },
+        { "title": "Lantern Night", "max_score": 26790, "min_duration_ms": 2100, "max_duration_ms": 270000, "time_base_ms": 270000 },
+        { "title": "Summit Cairn", "max_score": 34230, "min_duration_ms": 17700, "max_duration_ms": 360000, "time_base_ms": 360000 }
+      ]
+    },
+    "wall-run-temple": {
+      "title": "Wall Run Temple",
+      "kind": "time",
+      "max_score": 13720,
+      "min_duration_ms": 12800,
+      "max_duration_ms": 150000,
+      "time_base_ms": 150000,
+      "enabled": false,
+      "levels": [
+        { "title": "Training Wall", "max_score": 13720, "min_duration_ms": 12800, "max_duration_ms": 150000, "time_base_ms": 150000 },
+        { "title": "Double Wall", "max_score": 16570, "min_duration_ms": 14300, "max_duration_ms": 180000, "time_base_ms": 180000 },
+        { "title": "Column Hall", "max_score": 19680, "min_duration_ms": 13200, "max_duration_ms": 210000, "time_base_ms": 210000 },
+        { "title": "Broken Temple", "max_score": 22640, "min_duration_ms": 13600, "max_duration_ms": 240000, "time_base_ms": 240000 },
+        { "title": "Master Wall Run", "max_score": 29300, "min_duration_ms": 7000, "max_duration_ms": 300000, "time_base_ms": 300000 }
+      ]
+    },
+    "temple-coin-rush": {
+      "title": "Temple Coin Rush",
+      "kind": "points",
+      "max_score": 480,
+      "min_duration_ms": 1000,
+      "max_duration_ms": 120000,
+      "base": 21,
+      "max_pps": 12,
+      "enabled": false,
+      "levels": [
+        { "title": "Temple Entry", "max_score": 480, "min_duration_ms": 1000, "max_duration_ms": 120000, "base": 21, "max_pps": 12 },
+        { "title": "Coin Hall", "max_score": 610, "min_duration_ms": 1000, "max_duration_ms": 130000, "base": 36, "max_pps": 14 },
+        { "title": "Broken Floors", "max_score": 710, "min_duration_ms": 1000, "max_duration_ms": 140000, "base": 38, "max_pps": 16 },
+        { "title": "Rolling Hazards", "max_score": 690, "min_duration_ms": 1000, "max_duration_ms": 150000, "base": 27, "max_pps": 14 },
+        { "title": "Temple Sprint", "max_score": 910, "min_duration_ms": 1000, "max_duration_ms": 240000, "base": 38, "max_pps": 15 }
       ]
     }
   }
