@@ -331,6 +331,18 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/disc-target-throw/m2StoneColumn.glb",
    "/models/3d/disc-target-throw/m2StoneIdolTarget.glb",
    "/models/3d/disc-target-throw/m2TrainingPavilionBg.glb",
+   // Menu 2 game 34 (Spin Pole Climb): pole props from ~/.play50/hyper3d/ready/menu2/spin-pole-climb, plus its
+   // copy of World 3's guardian pair (ready/menu2/shared m2CoilstoneHead / m2CoilstoneSegment)
+   "/models/3d/spin-pole-climb/m2CheckpointDisc.glb",
+   "/models/3d/spin-pole-climb/m2CircularPlatform.glb",
+   "/models/3d/spin-pole-climb/m2CoilstoneHead.glb",
+   "/models/3d/spin-pole-climb/m2CoilstoneSegment.glb",
+   "/models/3d/spin-pole-climb/m2GripLedge.glb",
+   "/models/3d/spin-pole-climb/m2MushroomCapTop.glb",
+   "/models/3d/spin-pole-climb/m2RotatingPole.glb",
+   "/models/3d/spin-pole-climb/m2RotatingPoleV2.glb",
+   "/models/3d/spin-pole-climb/m2SpiralTowerBg.glb",
+   "/models/3d/spin-pole-climb/m2SweeperBar.glb",
    // Menu 2 game 15 (Color City Sprint): its props from ready/menu2/color-city-sprint, plus m2FactoryDrone (shared)
    "/models/3d/color-city-sprint/m2CityBarrier.glb",
    "/models/3d/color-city-sprint/m2CityBus.glb",

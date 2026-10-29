@@ -1119,6 +1119,22 @@
         { "title": "Golden Roof", "max_score": 33570, "min_duration_ms": 24300, "max_duration_ms": 360000, "time_base_ms": 360000 }
       ]
     },
+    "spin-pole-climb": {
+      "title": "Spin Pole Climb",
+      "kind": "time",
+      "max_score": 14150,
+      "min_duration_ms": 8500,
+      "max_duration_ms": 150000,
+      "time_base_ms": 150000,
+      "enabled": false,
+      "levels": [
+        { "title": "Slow Poles", "max_score": 14150, "min_duration_ms": 8500, "max_duration_ms": 150000, "time_base_ms": 150000 },
+        { "title": "Twin Poles", "max_score": 16810, "min_duration_ms": 11900, "max_duration_ms": 180000, "time_base_ms": 180000 },
+        { "title": "Mixed Rotation", "max_score": 19550, "min_duration_ms": 14500, "max_duration_ms": 210000, "time_base_ms": 210000 },
+        { "title": "Fast Tower", "max_score": 22020, "min_duration_ms": 19800, "max_duration_ms": 240000, "time_base_ms": 240000 },
+        { "title": "Spin Master", "max_score": 28340, "min_duration_ms": 16600, "max_duration_ms": 300000, "time_base_ms": 300000 }
+      ]
+    },
     "jungle-vine-jump": {
       "title": "Jungle Vine Jump",
       "kind": "time",
