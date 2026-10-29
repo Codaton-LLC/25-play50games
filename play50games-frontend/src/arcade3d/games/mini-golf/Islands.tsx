@@ -199,7 +199,8 @@ function IslandBase({ hole }: { hole: Hole }) {
    const sx = (b.x1 - b.x0) / 2 + 0.6;
    const sz = (b.z1 - b.z0) / 2 + 0.6;
    return (
-      <mesh geometry={geometry} position={[(b.x0 + b.x1) / 2, 0, (b.z0 + b.z1) / 2]} scale={[sx, 1, sz]} name="island-base">
+      // 1.5 cm under the felt: the island's flat top and the felt shared y 0 and z-fought (orange speckle on the green)
+      <mesh geometry={geometry} position={[(b.x0 + b.x1) / 2, -0.015, (b.z0 + b.z1) / 2]} scale={[sx, 1, sz]} name="island-base">
          <meshStandardMaterial vertexColors roughness={0.95} flatShading side={DoubleSide} />
       </mesh>
    );

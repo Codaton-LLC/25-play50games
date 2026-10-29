@@ -200,9 +200,9 @@ The frozen pre-level rules fixture is replayed against L1 with identical frames 
 | Level | Course (in order) | Look | Full putt | Pick-up | Cap | Moving obstacles | Cup radius / capture speed | Lighting | Clear score |
 |---|---|---|---|---|---|---|---|---|---|
 | 1 Garden Course | Original 6: First Putt, Dogleg, Ramp Jump, Windmill, Pipe Maze, Turntable Hill (par 17) | mahogany rails, green felt | 4.5 m/s | par + 4 | 600 s | bar 1.2 rad/s, windmill 6 s/turn | 0.10 m / 1.2 m/s | day | 2000 or win |
-| 2 Ramp Course | Ramp Jump, **Ramp Dogleg**, Dogleg, **Ramp Island**, Turntable Hill, First Putt (par 17) | red-and-white painted rails, bright felt | 5 m/s | par + 3 | 480 s | unchanged | 0.10 / 1.2 | day | 2000 or win |
-| 3 Windmill Course | Windmill, First Putt, **Windmill Gate**, Dogleg, **Windmill Pond**, Turntable Hill (par 17) | Dutch blue rails with white caps | 5 | par + 3 | 480 s | bar 1.6, windmill 5 s/turn | 0.10 / 1.2 | sunset | 2000 or win |
-| 4 Neon Course | First Putt, **Neon Zigzag**, Split Fairway, **Neon Diamond**, Twin Banks, Final Needle (par 17) | glowing cyan rails on violet felt | 5 | par + 3 | 480 s | retain L3 | 0.08 / 1.0 | night | 2000 or win |
+| 2 Ramp Course | **Ramp Dogleg**, Ramp Jump, Dogleg, **Ramp Island**, Turntable Hill, First Putt (par 17) | red-and-white painted rails, bright felt | 5 m/s | par + 3 | 480 s | unchanged | 0.10 / 1.2 | day | 2000 or win |
+| 3 Windmill Course | **Windmill Gate**, First Putt, Windmill, Dogleg, **Windmill Pond**, Turntable Hill (par 17) | Dutch blue rails with white caps | 5 | par + 3 | 480 s | bar 1.6, windmill 5 s/turn | 0.10 / 1.2 | sunset | 2000 or win |
+| 4 Neon Course | **Neon Zigzag**, First Putt, Split Fairway, **Neon Diamond**, Twin Banks, Final Needle (par 17) | glowing cyan rails on violet felt | 5 | par + 3 | 480 s | retain L3 | 0.08 / 1.0 | night | 2000 or win |
 | 5 Master Course | Original 6 + Split Fairway, Twin Banks, Final Needle (par 26) | walnut rails with gold caps | 5 | par + 2 | 600 s | retain L3 | 0.08 / 1.0 | sunset | win |
 
 The level holes (course.ts specs 9-14; `levels.ts` `course` lists each level's layouts, levels 1 and 5
@@ -214,7 +214,7 @@ clean diagonal threads both gaps), **Neon Diamond** (a diamond block in the midd
 has a robust ace and a human-paced two-putt line at its level's physics, found by grid search (both
 mirrors, nine start ticks; `levelLines.fixture.ts` `NEW_ACE` / `NEW_PAR`), replayed by
 `aces.levels.test.ts` and `solver.levels.test.ts` and played by the level bots; `camera.levels.test.ts`
-checks every new layout's felt and fitted camera on desktop and both phone orientations. The course dress
+checks every new layout's felt and fitted camera on desktop and both phone orientations. Each of levels 2-4 opens on one of its new holes, so the first island already shows the course. The island's rock top sits 1.5 cm under the felt (they shared y 0 and z-fought). The course dress
 (`looks.ts` `COURSE_LOOKS`: felt stripes, rail paint, the Neon Course's emissive rails) is per level.
 
 The master course adds Split Fairway (a central dividing board), Twin Banks (two staggered angled
