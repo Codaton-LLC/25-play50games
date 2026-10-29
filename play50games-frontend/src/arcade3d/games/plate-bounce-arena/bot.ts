@@ -3,7 +3,8 @@
 // flipper, when, how long, or a cradle) on copies of the run, plays each one 1.5 s ahead with a simple
 // reflex after it, and keeps the one that makes progress on the current objective (or brings the ball
 // nearest its target) without draining. Away from the flippers the reflex keeps the ball alive.
-import { BALL_R, FLIPPER_LEN, PLUNGER } from "./table";
+import { inputToWorld } from "@/arcade3d/core/math";
+import { BALL_R, FLIPPER_LEN } from "./table";
 import { cloneRun, createStepInput, currentObjective, exitOpen, step, type PinRun, type StepInput } from "./rules";
 
 export interface Plan {
@@ -19,16 +20,21 @@ export interface Bot {
    charge: number;
    /** searches run (cost check in tests) */
    searches: number;
+   /** the last rules ms the ball was down at the flippers */
+   zoneAt: number;
 }
 
 export function createBot(_run?: PinRun): Bot {
-   return { plan: null, nextSearch: 0, charge: 0.9, searches: 0 };
+   return { plan: null, nextSearch: 0, charge: 0.9, searches: 0, zoneAt: 0 };
 }
 
 const SEARCH_MS = 60;
 const HORIZON_MS = 1500;
 const ROLL_DT = 16;
 const DELAYS = [0, 30, 60, 90, 120, 160, 200, 250, 300];
+
+/** A ball that has not come down to the flippers for this long is caught in a loop: nudge toward the drain. */
+const LOOP_MS = 8000;
 
 function clearInput(i: StepInput): void {
    i.moveX = i.moveZ = 0;
@@ -195,6 +201,14 @@ export function botInput(bot: Bot, run: PinRun, input: StepInput): void {
       return;
    }
    bot.plan = null;
+   if (inZone(run) || b.layer === 1) bot.zoneAt = run.simMs;
+   else if (run.simMs - bot.zoneAt > LOOP_MS) {
+      // the stick that nudges the table toward the drain (+z) whatever the camera's yaw
+      const a = inputToWorld(1, 0, input.yaw);
+      const c = inputToWorld(0, 1, input.yaw);
+      input.moveX = a.z;
+      input.moveZ = c.z;
+   }
    if (inZone(run) && run.simMs >= bot.nextSearch) {
       bot.plan = search(bot, run);
       bot.nextSearch = run.simMs + SEARCH_MS;
@@ -208,5 +222,4 @@ export function botInput(bot: Bot, run: PinRun, input: StepInput): void {
       }
    }
    reflex(run, input);
-   void PLUNGER;
 }

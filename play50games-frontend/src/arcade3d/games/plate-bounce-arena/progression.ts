@@ -49,6 +49,6 @@ export const ROLLO: BossConfig = {
    phases: [
       { id: "clash", name: "Clash", endsAt: 3 / 6, attacks: [{ id: "charge", telegraphMs: 700, attackMs: 1300, vulnerableMs: 5000 }] },
       { id: "armour", name: "Armour", endsAt: 1 / 6, attacks: [{ id: "spin", telegraphMs: 700, attackMs: 1300, vulnerableMs: 6500 }] },
-      { id: "thief", name: "Flipper thief", endsAt: 0, attacks: [{ id: "jam", telegraphMs: 600, attackMs: 1000, vulnerableMs: 9000 }] },
+      { id: "thief", name: "Flipper thief", endsAt: 0, attacks: [{ id: "jam", telegraphMs: 400, attackMs: 600, vulnerableMs: 14000 }] },
    ],
 };

@@ -68,3 +68,20 @@ describe("tables", () => {
       expect(TILT).toBeCloseTo((7 * Math.PI) / 180, 6);
    });
 });
+
+describe("the left inlane", () => {
+   it("a ball fits between every slingshot corner and the inlane guide", () => {
+      const t = buildTable(1);
+      const guide = t.segs.find((s) => s.ax === LEFT_X && s.az === -6.5 && s.kind === "wall")!;
+      const dx = guide.bx - guide.ax;
+      const dz = guide.bz - guide.az;
+      const len = Math.hypot(dx, dz);
+      const corners = t.segs.filter((s) => s.ax <= -3.9 && s.ax >= -5.6 && s.az > -9 && s.az < -4.5 && s !== guide);
+      for (const s of corners) {
+         for (const [x, z] of [[s.ax, s.az], [s.bx, s.bz]]) {
+            const d = Math.abs((x - guide.ax) * dz - (z - guide.az) * dx) / len;
+            expect(d - s.r - guide.r).toBeGreaterThan(2 * BALL_R + 0.05);
+         }
+      }
+   });
+});

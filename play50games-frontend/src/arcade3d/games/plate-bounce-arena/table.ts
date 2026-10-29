@@ -255,9 +255,10 @@ function frame(): { segs: Seg[]; posts: Circle[] } {
    // the top arc
    segs.push(...chain(arcPoints(ARC.x, ARC.z, ARC.r, 0, Math.PI, 14)));
    // slingshots: a kicking face toward the field, closed behind
-   segs.push(seg(-5.5, -8.2, -4.0, -5.0, "kick", { kick: 9 }));
-   segs.push(seg(-4.0, -5.0, -5.5, -5.7));
-   segs.push(seg(-5.5, -5.7, -5.5, -8.2));
+   // (the inlane under it keeps 1.4 m between the sling's corners and the guide: a ball needs 1.24)
+   segs.push(seg(-5.5, -8.4, -4.0, -5.2, "kick", { kick: 9 }));
+   segs.push(seg(-4.0, -5.2, -5.5, -7.0));
+   segs.push(seg(-5.5, -7.0, -5.5, -8.4));
    segs.push(seg(5.45, -8.2, 4.0, -5.0, "kick", { kick: 9 }));
    segs.push(seg(4.0, -5.0, 5.45, -6.3));
    // Riko's skill lane under the arc, its mouth closed by the cracked block

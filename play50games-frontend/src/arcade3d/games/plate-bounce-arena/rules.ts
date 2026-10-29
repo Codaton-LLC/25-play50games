@@ -40,6 +40,9 @@ export const NUDGE = 2;
 export const E_WALL = 0.45;
 export const E_FLIP = 0.3;
 export const V_BUMPER = 12;
+/** slingshots: the outgoing speed is SLING_BASE + SLING_GAIN x the incoming normal speed, at most the kicker's own */
+export const SLING_BASE = 1;
+export const SLING_GAIN = 0.8;
 export const V_MUSHROOM_BOUNCE = 9;
 /** flipper angles (rad from the horizontal toward the centre; + toward the drain) and speeds */
 export const FLIP_REST = 0.52;
@@ -55,7 +58,7 @@ export const SKILL_LO = 0.62;
 export const SKILL_HI = 0.74;
 /** a ramp takes the ball when it reaches the mouth moving along it this fast */
 export const RAMP_MIN = 6.5;
-export const RAMP_CATCH = 0.9;
+export const RAMP_CATCH = 1.05;
 /** flights (mushrooms, the deck): at most this fast along the ground */
 export const V_FLIGHT = 12;
 export const G_HOP = 20;
@@ -107,6 +110,9 @@ export interface Ball {
    heldMs: number;
    timer: number;
    stillMs: number;
+   /** where the stuck check anchored */
+   sx: number;
+   sz: number;
    hops: number;
 }
 
@@ -267,7 +273,7 @@ function resetEvents(ev: StepEvents): void {
 function freshBall(): Ball {
    return {
       x: PLUNGER.x, z: PLUNGER.z, vx: 0, vz: 0, h: 0, vh: 0, layer: 0, mode: "plunger", charge: 0,
-      fx0: 0, fz0: 0, fh0: 0, fx1: 0, fz1: 0, fh1: 0, fT: 0, fDur: 1, fThen: NONE, ramp: NONE, rampS: 0, rampV: 0, pad: NONE, heldMs: 0, timer: 0, stillMs: 0, hops: 0,
+      fx0: 0, fz0: 0, fh0: 0, fx1: 0, fz1: 0, fh1: 0, fT: 0, fDur: 1, fThen: NONE, ramp: NONE, rampS: 0, rampV: 0, pad: NONE, heldMs: 0, timer: 0, stillMs: 0, sx: PLUNGER.x, sz: PLUNGER.z, hops: 0,
    };
 }
 
@@ -382,8 +388,10 @@ function hitSeg(run: PinRun, b: Body, s: Seg, hero: boolean, ev: StepEvents): bo
    const vn = b.vx * nx + b.vz * nz;
    if (s.kind === "kick" || (s.kind === "gate" && s.kick > 0)) {
       if (vn < 1) {
-         b.vx += (s.kick - vn) * nx;
-         b.vz += (s.kick - vn) * nz;
+         // a slingshot fires as hard as it is hit (a dribble dies out); the drain gate always kicks fully
+         const out = s.kind === "gate" ? s.kick : Math.min(s.kick, SLING_BASE + SLING_GAIN * Math.max(0, -vn));
+         b.vx += (out - vn) * nx;
+         b.vz += (out - vn) * nz;
          if (hero) {
             ev.slings++;
             ev.points += POINTS.sling;
@@ -864,8 +872,13 @@ function rollStep(run: PinRun, dt: number, input: StepInput, ev: StepEvents): vo
       b.charge = 0;
    }
    // stuck: a ball search kick toward the middle of the table
+   // stuck (wedged or rocking in one spot) unless a flipper cradles it: a ball search kick
    const held = input.left || input.right || input.jumpHeld;
-   if (Math.hypot(b.vx, b.vz) < 0.35 && !held && b.h <= 0) {
+   if (Math.hypot(b.x - b.sx, b.z - b.sz) > 0.6 || held || b.h > floor) {
+      b.sx = b.x;
+      b.sz = b.z;
+      b.stillMs = 0;
+   } else {
       b.stillMs += dt * 1000;
       if (b.stillMs > STILL_MS) {
          const dx = 0 - b.x;
@@ -875,7 +888,7 @@ function rollStep(run: PinRun, dt: number, input: StepInput, ev: StepEvents): vo
          b.vz = (dz / d) * 7;
          b.stillMs = 0;
       }
-   } else b.stillMs = 0;
+   }
 }
 
 function marbleStep(run: PinRun, m: Marble, dt: number, ev: StepEvents): void {
