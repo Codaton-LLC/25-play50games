@@ -2,6 +2,8 @@
 // decor positions, distant hills geometry and crop growth / ring math. Pure: no React.
 import { BufferAttribute, BufferGeometry } from "three";
 import type { FittedViewOptions } from "@/arcade3d/core/useFittedView";
+import type { LightingPreset } from "@/arcade3d/core/types";
+import type { FarmTheme } from "./levels";
 import { FARM, PLOTS } from "./rules";
 
 /** One unified palette for the whole game: whimsical alien farm at sunset. */
@@ -49,6 +51,71 @@ export const COLORS = {
    hullDark: "#64748b",
    dome: "#a5f3fc",
 } as const;
+
+/**
+ * One level's look (levels.ts `theme`). The crops, rings, beam, beacons and the farmer keep COLORS
+ * on every level, so what you read and act on is the same everywhere; the world around them changes.
+ */
+export interface FarmLook {
+   lighting: LightingPreset;
+   background: string;
+   fog: string;
+   fogNear: number;
+   fogFar: number;
+   skyTop: string;
+   skyBottom: string;
+   soil: string;
+   bed: string;
+   bedSoil: string;
+   furrow: string;
+   channel: string;
+   /** multiplies the hills' vertex colours */
+   hillTint: string;
+   spire: string;
+   plantCap: string;
+   plantGlow: string;
+   stars: number;
+   /** the level's own scenery (Farm.tsx Scenery) */
+   scenery: "none" | "crystals" | "marsh" | "meteors" | "festival";
+}
+
+export const LOOKS: Record<FarmTheme, FarmLook> = {
+   // today's purple dusk
+   starter: {
+      lighting: "sunset", background: COLORS.background, fog: COLORS.fog, fogNear: 32, fogFar: 85,
+      skyTop: COLORS.skyTop, skyBottom: COLORS.skyBottom, soil: COLORS.soil, bed: COLORS.bed, bedSoil: COLORS.bedSoil,
+      furrow: COLORS.furrowRidge, channel: COLORS.channel, hillTint: "#ffffff", spire: COLORS.spire,
+      plantCap: COLORS.plantCap, plantGlow: COLORS.plantGlow, stars: 700, scenery: "none",
+   },
+   // a frozen crystal valley in cold light: ice-blue soil, crystal planters, crystal clusters round the field
+   crystal: {
+      lighting: "snow", background: "#0c4a6e", fog: "#bae6fd", fogNear: 34, fogFar: 90,
+      skyTop: "#0c4a6e", skyBottom: "#7dd3fc", soil: "#93c5fd", bed: "#1d4ed8", bedSoil: "#1e3a8a",
+      furrow: "#0f766e", channel: "#e0f2fe", hillTint: "#bfdbfe", spire: "#60a5fa",
+      plantCap: "#a5f3fc", plantGlow: "#e0f2fe", stars: 0, scenery: "crystals",
+   },
+   // a teal bioluminescent marsh: dark water pools, glowing reeds and mushrooms
+   marsh: {
+      lighting: "sunset", background: "#022c22", fog: "#064e3b", fogNear: 26, fogFar: 70,
+      skyTop: "#021b17", skyBottom: "#0f766e", soil: "#14532d", bed: "#166534", bedSoil: "#052e16",
+      furrow: "#134e4a", channel: "#a3e635", hillTint: "#86efac", spire: "#15803d",
+      plantCap: "#bef264", plantGlow: "#d9f99d", stars: 400, scenery: "marsh",
+   },
+   // a scorched meteor field under a red sky: dark basalt, craters, a falling shower
+   meteor: {
+      lighting: "sunset", background: "#450a0a", fog: "#7c2d12", fogNear: 30, fogFar: 80,
+      skyTop: "#1c0505", skyBottom: "#c2410c", soil: "#44403c", bed: "#7c2d12", bedSoil: "#292524",
+      furrow: "#57534e", channel: "#fb923c", hillTint: "#fca5a5", spire: "#78350f",
+      plantCap: "#fdba74", plantGlow: "#fed7aa", stars: 500, scenery: "meteors",
+   },
+   // the harvest festival: magenta-gold sky, lantern strings, banners, and the marsh pools
+   grand: {
+      lighting: "sunset", background: "#3b0764", fog: "#701a75", fogNear: 32, fogFar: 85,
+      skyTop: "#2e1065", skyBottom: "#f59e0b", soil: "#6b21a8", bed: "#a21caf", bedSoil: "#3b0764",
+      furrow: "#0e7490", channel: "#fde047", hillTint: "#f5d0fe", spire: "#86198f",
+      plantCap: "#f0abfc", plantGlow: "#fef08a", stars: 700, scenery: "festival",
+   },
+};
 
 /** Overlay heights (m): every overlay clearly above its surface, none coincident. */
 export const HEIGHTS = {

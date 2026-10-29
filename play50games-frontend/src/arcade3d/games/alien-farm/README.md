@@ -46,7 +46,7 @@ Groups: `FARM`, `FARMER`, `PLOTS`, `OFFSET_TABLES`, `CYCLE`, `HARVEST`, `SHIP`, 
 
 ## Levels (five per game)
 
-Five levels through the core level system (`core/README.md` "Levels"): `levels.ts` holds the pure configs, `createRun(seed, level)` plays one, Scene reads it with `useLevel`, `index.tsx` declares the five specs (clock, Basket chip) and `meta.ts` the titles, limits and clear targets. **Level 1 is today's game** (replayed bit-exact against today's `createRun` in `levels.test.ts`). The same nine beds, assets and controls on every level; a level clears at its `clearScore` (score attack, no win); level 5 has none.
+Five levels through the core level system (`core/README.md` "Levels"): `levels.ts` holds the pure configs, `createRun(seed, level)` plays one, Scene reads it with `useLevel`, `index.tsx` declares the five specs (clock, Basket chip) and `meta.ts` the titles, limits and clear targets. **Level 1 is today's game** (replayed bit-exact against today's `createRun` in `levels.test.ts`). The nine beds keep their positions on every level (the certified bound and the 71/90 s press gap depend on them), but each level is its own place (`levels.ts` `theme`, `looks.ts` `LOOKS`, `Farm.tsx` `Scenery`), and Glow Marsh and the Grand Harvest add marsh pools that slow the farmer. A level clears at its `clearScore` (score attack, no win); level 5 has none.
 
 | Level | Title | Clock | Beds | Saucer m/s (<40 / 40-70 / >70 s) | Spores | Late window | Clear |
 |---|---|---:|---|---|---:|---:|---:|
@@ -55,6 +55,18 @@ Five levels through the core level system (`core/README.md` "Levels"): `levels.t
 | 3 | Glow Marsh | 180 s | staggered as L1; 5 s pods, 8 s gourds | 2 / 2.5 / 3 | 7 s | ±0.6 s | 3500 |
 | 4 | Meteor Field | 180 s | all 9 at 0 s; 6 / 8 s | 2.5 / 3 / 3.5 | 7 s | ±0.5 s | 1600 |
 | 5 | Grand Alien Harvest | 210 s | all 9 at 0 s; 5 s pods, 7 s gourds | 2.5 / 3 / 3.5 | 7 s | ±0.5 s | - |
+
+**Places (2026-10-29).** Crops, rings, the beam, the beacons and the farmer keep one palette everywhere, so what you read and act on never changes; the world round them does:
+
+| Level | Place | Light / sky | Scenery | Twist |
+|---|---|---|---|---|
+| 1 Starter Plot | today's purple dusk crater farm | `sunset`, purple dusk, stars | spires, glowing plants, silo | (today's game) |
+| 2 Crystal Farm | a frozen crystal valley | `snow`, ice-blue sky, no stars | blue crystal planters, a crystal shard on every bed corner, crystal clusters round the field, ice-blue soil and hills | all beds live at once (timing knob) |
+| 3 Glow Marsh | a teal bioluminescent marsh | `sunset` tinted teal, dark green fog | four dark glowing pools with reeds in the lanes between the beds, glowing mushrooms round the field | **marsh pools**: top speed x0.75 inside (`rules.ts` `POOLS`, `inPool`); routes round them are shorter in time |
+| 4 Meteor Field | a scorched basalt field | `sunset`, red sky, orange fog | crater rims in the lanes and round the field, a meteor shower falling far to the north (cosmetic; still in reduced motion) | swift saucer, tighter late windows (timing knobs) |
+| 5 Grand Alien Harvest | the harvest festival | `sunset`, magenta-to-gold sky | lantern posts with gold and pink lanterns, banners, plus the marsh pools | every hazard at once, pools included |
+
+The pools only slow, never block: each is at least r + 0.9 + 0.5 m from every bed centre (a crop in reach is never in a pool), clear of the start and at least r + 2 m from the saucer's route, so the beam is never over water (`scenery.test.ts`). The certificate relaxes every slowdown (carry, spores, daze), so it relaxes the pools too: S\*, maxScore and the rate proof are unchanged, and the certificate tests re-ran green. Bots on the places: human-paced clears 30/30 on L1-L4 (worst 2825 / 4500 / 4400 / 1700; L3 was 4625 before the pools), greedy 4/4.
 
 Hazards never ease: clock, saucer speed and spore life never fall, the late window never widens. From L4 the saucer outruns a loaded farmer (3.06 m/s with four crops) after 70 s, so a delivery has to cut it off; that is why the human-paced bot (which chases the beam without leading it) scores less on L4-L5 and L4's clear target is lower.
 

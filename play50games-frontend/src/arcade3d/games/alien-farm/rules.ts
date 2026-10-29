@@ -111,6 +111,8 @@ export const SHIP = {
 export const SHIP_PATH = createPath(SHIP.waypoints, { closed: true });
 
 export const SPORES = { radius: 2, lifeS: 5, slow: 0.6 } as const;
+/** Marsh pools (levels.ts `pools`): top speed x0.75 inside. Only slows, so the limit proof is unchanged. */
+export const POOLS = { slow: 0.75 } as const;
 
 export const SCORE = {
    harvest: 50,
@@ -552,6 +554,14 @@ export function inSpores(run: RunState, x: number, z: number, t: number): boolea
    return false;
 }
 
+/** Inside one of the level's marsh pools (inclusive edge). */
+export function inPool(level: AlienFarmLevel | undefined, x: number, z: number): boolean {
+   const pools = level?.pools;
+   if (!pools) return false;
+   for (const p of pools) if (distXZ(x, z, p.x, p.z) <= p.r) return true;
+   return false;
+}
+
 /** The farmer's top speed now: by basket slots, x0.6 inside spores. */
 export const topSpeed = (cargo: number, spores: boolean): number => FARMER.speeds[cargo] * (spores ? SPORES.slow : 1);
 
@@ -567,7 +577,7 @@ function moveFarmer(run: RunState, h: number, t: number): void {
    let len = Math.hypot(dirX, dirZ);
    const ux = len > 1 ? dirX / len : dirX, uz = len > 1 ? dirZ / len : dirZ;
    len = Math.min(1, len);
-   const top = topSpeed(run.cargoCount, f.inSpore);
+   const top = topSpeed(run.cargoCount, f.inSpore) * (inPool(run.level, f.x, f.z) ? POOLS.slow : 1);
    // velocity eases towards the wanted one: accelerating at 24 m/s^2, braking (no stick) at 30
    const wx = ux * top, wz = uz * top;
    let dx = wx - f.vx, dz = wz - f.vz;

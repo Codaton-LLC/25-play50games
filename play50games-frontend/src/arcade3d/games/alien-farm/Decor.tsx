@@ -15,7 +15,7 @@ import { InstancedModel } from "@/arcade3d/core/assets";
 import { scaledCount, useQuality } from "@/arcade3d/core/quality";
 import { Instanced, type InstanceSpot } from "@/arcade3d/core/render";
 import { ASSETS, METEORITE_SCALE, METEORITE_SPOTS } from "./assets";
-import { COLORS, decorOf, hillHeight, type DecorSpot } from "./looks";
+import { COLORS, LOOKS, decorOf, hillHeight, type DecorSpot, type FarmLook } from "./looks";
 import { CratePrimitives, RockPrimitives } from "./Primitives";
 
 function asSpots(list: readonly DecorSpot[]): InstanceSpot[] {
@@ -30,7 +30,7 @@ function asSpots(list: readonly DecorSpot[]): InstanceSpot[] {
    }));
 }
 
-export function Decor() {
+export function Decor({ look = LOOKS.starter }: { look?: FarmLook }) {
    const quality = useQuality();
 
    const geo = useMemo(() => {
@@ -94,7 +94,7 @@ export function Decor() {
          {spires.length > 0 && (
             <Instanced spots={spires} name="rock-spires">
                <primitive object={geo.spire} attach="geometry" />
-               <meshStandardMaterial color={COLORS.spire} roughness={0.8} flatShading />
+               <meshStandardMaterial color={look.spire} roughness={0.8} flatShading />
             </Instanced>
          )}
 
@@ -108,9 +108,9 @@ export function Decor() {
                <Instanced spots={plants} name="plant-caps">
                   <primitive object={geo.plantCap} attach="geometry" />
                   <meshStandardMaterial
-                     color={COLORS.plantCap}
+                     color={look.plantCap}
                      roughness={0.4}
-                     emissive={COLORS.plantGlow}
+                     emissive={look.plantGlow}
                      emissiveIntensity={0.55}
                   />
                </Instanced>

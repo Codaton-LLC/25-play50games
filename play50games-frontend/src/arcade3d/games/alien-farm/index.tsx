@@ -8,7 +8,7 @@ import { LEVEL_IDS } from "@/arcade3d/types";
 import Scene from "./Scene";
 import { ASSETS } from "./assets";
 import { DESCRIPTIONS, LEVELS, type AlienFarmLevel } from "./levels";
-import { COLORS, FOG, FOV } from "./looks";
+import { COLORS, FOG, FOV, LOOKS } from "./looks";
 import { DURATION_MS, HUD_STATS, RESULT_DELAY_MS } from "./rules";
 import Hud from "./Hud";
 
@@ -38,6 +38,9 @@ const definition: GameDefinition<AlienFarmLevel> = {
          description: DESCRIPTIONS[id],
          config: level,
          durationMs: level.durationMs,
+         ...(id === 1
+            ? {}
+            : { environment: { background: LOOKS[level.theme].background, fog: [LOOKS[level.theme].fog, LOOKS[level.theme].fogNear, LOOKS[level.theme].fogFar] as [string, number, number], lighting: LOOKS[level.theme].lighting } }),
          hudStats: [
             { key: "delivered", label: "Delivered" },
             { key: "carry", label: "Basket", max: level.capacity },
