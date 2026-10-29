@@ -424,7 +424,8 @@ function Landmarks({ run }: { run: CaveRun }) {
                <group scale={hk}>
                   <Model asset={ASSETS.hoard} />
                </group>
-               {[-2.6, 2.6].map((dz, i) => (
+               {/* one patrol bot (18k triangles) guards the hoard */}
+               {[2.6].map((dz, i) => (
                   <group key={i} position={[2.6, 0, dz]} rotation-y={-Math.PI / 2} scale={bk}>
                      <Model asset={ASSETS.bot} />
                   </group>
@@ -455,6 +456,7 @@ function BossTrack({ run, clock }: { run: CaveRun; clock: VisualClock }) {
       const l = c.lanes[e.lane];
       lanePoint(c, e.s, l.d, l.y, P);
       if (e.kind === "lock") {
+         if (!live) return false;
          E.set(0, P.h, 0);
          Q.setFromEuler(E);
          const s = live ? 1 + Math.sin(time.now * 6 + k) * 0.06 : 0.7;

@@ -224,10 +224,11 @@ export function Dragon({ run, cart }: { run: CaveRun; cart: CartPose }) {
          const ph = boss.phase;
          if (ph === 0) {
             // beside you, a little ahead, over the outer track (in view of the chase camera)
-            lanePoint(c, run.cart.s + 12, 10, 4.5, P);
+            lanePoint(c, run.cart.s + 16, 8, 2.6, P);
          } else if (ph === 1) {
             // ahead of you, turned back to throw fireballs down the track
-            lanePoint(c, run.cart.s + 30, 0, 3.2, P);
+            // close enough ahead that the loop's curve keeps her near the middle of the view
+            lanePoint(c, run.cart.s + 15, 0, 3.4, P);
          } else {
             // hovering over the inside of the loop, ahead of you (the collar locks in view)
             const base = c.samples[Math.round(loop.s0 / 0.5) * 4 + 1];
