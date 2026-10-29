@@ -1230,6 +1230,22 @@
         { "title": "Lantern Night", "max_score": 26790, "min_duration_ms": 2100, "max_duration_ms": 270000, "time_base_ms": 270000 },
         { "title": "Summit Cairn", "max_score": 34230, "min_duration_ms": 17700, "max_duration_ms": 360000, "time_base_ms": 360000 }
       ]
+    },
+    "wall-run-temple": {
+      "title": "Wall Run Temple",
+      "kind": "time",
+      "max_score": 13720,
+      "min_duration_ms": 12800,
+      "max_duration_ms": 150000,
+      "time_base_ms": 150000,
+      "enabled": false,
+      "levels": [
+        { "title": "Training Wall", "max_score": 13720, "min_duration_ms": 12800, "max_duration_ms": 150000, "time_base_ms": 150000 },
+        { "title": "Double Wall", "max_score": 16570, "min_duration_ms": 14300, "max_duration_ms": 180000, "time_base_ms": 180000 },
+        { "title": "Column Hall", "max_score": 19680, "min_duration_ms": 13200, "max_duration_ms": 210000, "time_base_ms": 210000 },
+        { "title": "Broken Temple", "max_score": 22640, "min_duration_ms": 13600, "max_duration_ms": 240000, "time_base_ms": 240000 },
+        { "title": "Master Wall Run", "max_score": 29300, "min_duration_ms": 7000, "max_duration_ms": 300000, "time_base_ms": 300000 }
+      ]
     }
   }
 }

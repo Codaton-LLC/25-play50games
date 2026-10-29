@@ -632,6 +632,16 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/ice-peak-jumper/m2SnowLedgeV2.glb",
    "/models/3d/ice-peak-jumper/m2SnowYeti.glb",
    "/models/3d/ice-peak-jumper/m2SummitCairn.glb",
+   // Menu 2 game 31 (Wall Run Temple): the cliff temple set from ~/.play50/hyper3d/ready/menu2/wall-run-temple (incl. m2SwingingStoneRam)
+   "/models/3d/wall-run-temple/m2CliffTempleBg.glb",
+   "/models/3d/wall-run-temple/m2GoldRingOrb.glb",
+   "/models/3d/wall-run-temple/m2StoneColumn.glb",
+   "/models/3d/wall-run-temple/m2SwingingStoneRam.glb",
+   "/models/3d/wall-run-temple/m2TempleGapPlatform.glb",
+   "/models/3d/wall-run-temple/m2TempleWall.glb",
+   "/models/3d/wall-run-temple/m2TempleWallV2.glb",
+   "/models/3d/wall-run-temple/m2WallRunMarker.glb",
+   "/models/3d/wall-run-temple/m2WallSpikePanel.glb",
 ];
 
 const LISTED: ReadonlySet<string> = new Set(MODEL_MANIFEST);
