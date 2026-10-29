@@ -226,3 +226,35 @@ export function contrastRatio(a: string, b: string): number {
    const lo = Math.min(lum(a), lum(b));
    return (hi + 0.05) / (lo + 0.05);
 }
+
+/**
+ * Each level's weather and sea (README "Levels"): the core light, sky, sea tones, how rough the
+ * water runs, and what joins the bay: moored ships in the harbour (2), a sailing fleet on the
+ * horizon (3), a storm with rain and lightning (4), the captain's flagship lying off the far lane
+ * (5). Looks only: the rules, the lanes and the limits are the same. Level 1 is today's bay.
+ */
+export interface BayTheme {
+   lighting: "day" | "sunset" | "night";
+   skyTop: string;
+   sky: string;
+   sea: string;
+   farSea: string;
+   deep: string;
+   foam: string;
+   /** wave height (m) and speed factor */
+   amplitude: number;
+   waveSpeed: number;
+   rain: boolean;
+   lightning: boolean;
+   /** background ships: moored in the harbour, sailing the horizon, the flagship */
+   ships: "none" | "moored" | "fleet" | "flagship";
+}
+
+export const BAY_THEMES: Record<1 | 2 | 3 | 4 | 5, BayTheme> = {
+   1: { lighting: "day", skyTop: COLORS.skyTop, sky: COLORS.sky, sea: COLORS.sea, farSea: COLORS.farSea, deep: COLORS.deep, foam: COLORS.foam, amplitude: 0.16, waveSpeed: 0.75, rain: false, lightning: false, ships: "none" },
+   2: { lighting: "day", skyTop: "#0ea5e9", sky: "#fde68a", sea: "#14b8a6", farSea: "#0f766e", deep: "#115e59", foam: "#f0fdfa", amplitude: 0.12, waveSpeed: 0.6, rain: false, lightning: false, ships: "moored" },
+   3: { lighting: "sunset", skyTop: "#7c3aed", sky: "#fdba74", sea: "#0e7490", farSea: "#164e63", deep: "#083344", foam: "#fed7aa", amplitude: 0.2, waveSpeed: 0.85, rain: false, lightning: false, ships: "fleet" },
+   4: { lighting: "night", skyTop: "#020617", sky: "#334155", sea: "#1e3a5f", farSea: "#0f172a", deep: "#0b1324", foam: "#cbd5e1", amplitude: 0.32, waveSpeed: 1.3, rain: true, lightning: true, ships: "none" },
+   5: { lighting: "sunset", skyTop: "#450a0a", sky: "#f97316", sea: "#1d4ed8", farSea: "#1e3a8a", deep: "#172554", foam: "#fde68a", amplitude: 0.2, waveSpeed: 0.9, rain: false, lightning: false, ships: "flagship" },
+};
+
