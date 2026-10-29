@@ -112,14 +112,16 @@ describe("the stage", () => {
 
    it("a shockwave hits a grounded hero, not a jumping one", () => {
       for (const jump of [false, true]) {
-         const run = createRun(1, 4);
+         const run = createRun(1, 4, "riko");
          const s = run.chart.shocks[0];
-         run.hero.x = 0;
-         run.hero.z = STRIKE_R;
          const input = createStepInput();
-         advanceTo(run, s.t - 60, input);
-         run.hero.x = 0;
-         run.hero.z = STRIKE_R;
+         advanceTo(run, s.t - 1_000, input);
+         // hold him on the strike circle until the wave is 60 ms out (an earlier wave's pass is not counted)
+         while (run.simMs < s.t - 60) {
+            run.hero.x = 0;
+            run.hero.z = STRIKE_R;
+            step(run, STEP_MS, input);
+         }
          if (jump) {
             input.jumpPressed = true;
             step(run, STEP_MS, input);
@@ -135,21 +137,34 @@ describe("the stage", () => {
       }
    });
 
-   it("a Perfect throws an echo orb worth 20; the pickup reaches ECHO_REACH", () => {
-      const run = createRun(1, 1);
+   it("a Perfect throws an echo orb worth 20 inside ECHO_REACH; a Good throws none", () => {
+      const run = createRun(1, 1, "riko");
       const n = run.chart.notes[0];
       advanceTo(run, n.t - 300);
       standAt(run, n);
+      const before = run.score;
       pressAt(run, n.t);
       expect(run.echoes.length).toBe(1);
-      const e = run.echoes[0];
-      run.hero.x = e.x;
-      run.hero.z = e.z;
-      const before = run.score;
-      step(run, STEP_MS, createStepInput());
       expect(run.echoCount).toBe(1);
-      expect(run.score - before).toBe(POINTS.echo);
+      expect(run.score - before).toBe(POINTS.perfect + POINTS.echo);
       expect(ECHO_REACH).toBeGreaterThan(1);
+      // an orb the hero walks away from floats in and fades unclaimed
+      const far = createRun(1, 1, "riko");
+      advanceTo(far, n.t - 300);
+      standAt(far, n);
+      far.echoes.push({ x: 0, z: -3, born: far.simMs, alive: true });
+      far.hero.x = 0;
+      far.hero.z = 6;
+      const input = createStepInput();
+      input.moveX = 0.001;
+      for (let t = 0; t < 1_800; t += STEP_MS) step(far, STEP_MS, input);
+      expect(far.echoes[0].alive).toBe(false);
+      expect(far.echoCount).toBe(0);
+      const good = createRun(1, 1, "riko");
+      advanceTo(good, n.t - 300);
+      standAt(good, n);
+      pressAt(good, n.t + GOOD_MS - 10);
+      expect(good.echoes.length).toBe(0);
    });
 
    it("the ghost gong takes Vexa only; a pillar gong needs the air of a double jump", () => {

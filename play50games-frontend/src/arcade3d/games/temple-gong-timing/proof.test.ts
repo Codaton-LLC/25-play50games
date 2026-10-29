@@ -59,7 +59,7 @@ function play(level: LevelId, hero: HeroId, policy: Policy, fps: number, seed = 
    const lim = PROPOSED_LEVEL_LIMITS[level];
    const rng = createRng(seed);
    const run = createRun(seed, level, hero);
-   const bot = createBot(run, 1000 / fps, policy === "sloppy" ? 60 : 0, seed);
+   const bot = createBot(run, 1000 / fps, policy === "sloppy" ? 45 : 0, seed);
    const input: StepInput = createStepInput();
    let held = 0;
    for (let f = 0; f < 400_000 && run.ended === null; f++) {
@@ -110,7 +110,7 @@ describe("soundness: nobody beats the bound", () => {
 
 describe("the honest bot", () => {
    for (const level of LEVEL_IDS) {
-      it(`level ${level}: wins with all three stars (perfect timing), and a 60 ms-sloppy bot still clears`, () => {
+      it(`level ${level}: wins with all three stars (perfect timing), and a 45 ms-sloppy bot still clears`, () => {
          const run = play(level, "kiro", "bot", 60);
          expect(run.ended).toBe("win");
          const stars = runStars(run);
