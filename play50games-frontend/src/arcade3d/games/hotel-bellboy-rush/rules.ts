@@ -159,23 +159,93 @@ function boxAt(x: number, z: number, sx: number, sz: number): AABB {
    return { min: { x: x - sx / 2, y: 0, z: z - sz / 2 }, max: { x: x + sx / 2, y: 3, z: z + sz / 2 } };
 }
 
-/** Sofas in the lobby, planters between the doors on both walls, two guests opposite doors 1 and 3. */
+/**
+ * Sofas, planters and guests along the walls (theme layout). Level 1 (`lobby`) is today's layout
+ * and must not change. Props hug the walls so the start, desk / pad / door Use points and the centre
+ * lane stay clear (looks.test.ts).
+ */
 export function decorFor(level: HotelLevel): Solid[] {
    const out: Solid[] = [];
    const sofa = (x: number, z: number, rotY: number) => out.push({ kind: "sofa", x, z, rotY, box: boxAt(x, z, SOFA_SIZE.x, SOFA_SIZE.z) });
    const planter = (x: number, z: number) => out.push({ kind: "planter", x, z, rotY: Math.PI / 2, box: boxAt(x, z, PLANTER_SIZE.x, PLANTER_SIZE.z) });
-   sofa(-HALF_W + SOFA_SIZE.x / 2, 3.2, Math.PI / 2);
+   const guest = (x: number, z: number) => out.push({ kind: "guest", x, z, rotY: Math.PI / 2, box: boxAt(x, z, GUEST_RADIUS * 2, GUEST_RADIUS * 2) });
+   const doorWall = HALF_W - PLANTER_SIZE.x / 2;
+   const nearWall = -HALF_W + PLANTER_SIZE.x / 2;
+   const guestX = -HALF_W + 0.5;
+   const theme = level.theme;
+
+   if (theme === "lobby") {
+      // Lobby Floor: today's compact hall (pinned by looks.test.ts).
+      sofa(-HALF_W + SOFA_SIZE.x / 2, 3.2, Math.PI / 2);
+      for (let i = 0; i < level.doors - 1; i++) {
+         const z = doorZ(i) + DOOR_SPACING / 2;
+         planter(doorWall, z);
+         if (i % 2 === 1) planter(nearWall, z);
+      }
+      for (const i of [0, 2]) {
+         if (i >= level.doors) continue;
+         guest(guestX, doorZ(i) + 0.9);
+      }
+      return out;
+   }
+
+   if (theme === "floors3") {
+      // 3-Floor Hotel: sofa on the near lobby wall, planters both sides every gap, guests at 1 and 3.
+      sofa(nearWall + (SOFA_SIZE.x - PLANTER_SIZE.x) / 2, 2.4, Math.PI / 2);
+      for (let i = 0; i < level.doors - 1; i++) {
+         const z = doorZ(i) + DOOR_SPACING / 2;
+         planter(doorWall, z);
+         planter(nearWall, z);
+      }
+      for (const i of [1, 3]) {
+         if (i >= level.doors) continue;
+         guest(guestX, doorZ(i) + 0.9);
+      }
+      return out;
+   }
+
+   if (theme === "luxury") {
+      // Luxury Hotel: twin lobby sofas (right one clear of the elevator pad), door-wall planters.
+      sofa(-HALF_W + SOFA_SIZE.x / 2, 2.5, Math.PI / 2);
+      sofa(HALF_W - SOFA_SIZE.x / 2, 2.0, -Math.PI / 2);
+      for (let i = 0; i < level.doors - 1; i++) {
+         const z = doorZ(i) + DOOR_SPACING / 2;
+         planter(doorWall, z);
+         if (i === 1) planter(nearWall, z);
+      }
+      for (const i of [0, 2, 4]) {
+         if (i >= level.doors) continue;
+         guest(guestX, doorZ(i) + 0.9);
+      }
+      return out;
+   }
+
+   if (theme === "business") {
+      // Business Hotel: lobby sofa, sparse door-wall planters, a second sofa on the near wall mid-hall.
+      sofa(-HALF_W + SOFA_SIZE.x / 2, 3.0, Math.PI / 2);
+      for (let i = 0; i < level.doors - 1; i++) {
+         if (i % 2 !== 0) continue;
+         planter(doorWall, doorZ(i) + DOOR_SPACING / 2);
+      }
+      if (level.doors >= 3) sofa(-HALF_W + SOFA_SIZE.x / 2, doorZ(level.doors - 2) + DOOR_SPACING / 2, Math.PI / 2);
+      for (const i of [1, level.doors - 1]) {
+         if (i < 0 || i >= level.doors) continue;
+         guest(guestX, doorZ(i) + 0.85);
+      }
+      return out;
+   }
+
+   // Grand Hotel: sofas both lobby sides (pad clear), planters every gap both walls, guests at 0 / 2 / 4.
+   sofa(-HALF_W + SOFA_SIZE.x / 2, 2.3, Math.PI / 2);
+   sofa(HALF_W - SOFA_SIZE.x / 2, 2.0, -Math.PI / 2);
    for (let i = 0; i < level.doors - 1; i++) {
       const z = doorZ(i) + DOOR_SPACING / 2;
-      planter(HALF_W - PLANTER_SIZE.x / 2, z);
-      if (i % 2 === 1) planter(-HALF_W + PLANTER_SIZE.x / 2, z);
+      planter(doorWall, z);
+      planter(nearWall, z);
    }
-   for (const i of [0, 2]) {
+   for (const i of [0, 2, 4]) {
       if (i >= level.doors) continue;
-      const x = -HALF_W + 0.5;
-      // across the corridor from the door, a step past it: never a pocket with a planter
-      const z = doorZ(i) + 0.9;
-      out.push({ kind: "guest", x, z, rotY: Math.PI / 2, box: boxAt(x, z, GUEST_RADIUS * 2, GUEST_RADIUS * 2) });
+      guest(guestX, doorZ(i) + 0.9);
    }
    return out;
 }
