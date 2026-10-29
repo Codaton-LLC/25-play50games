@@ -1,5 +1,5 @@
 import type { LevelId, ScoringRules } from "@/arcade3d/types";
-import { LEVELS, type SpaceRepairLevel } from "./levels";
+import { LEVELS, type SpaceRepairLevel, type StationKind } from "./levels";
 import { rngNext, turnTowards } from "@/arcade3d/core/math";
 import { circlesOverlapXZ } from "@/arcade3d/core/collision";
 import { circleSegmentXZ, resolveCircleSegmentXZ, substep, type CircleBodyXZ, type SegmentContact, type SegmentXZ } from "@/arcade3d/core/kinematics";
@@ -42,8 +42,86 @@ export const SOLIDS = [
    }),
 ];
 export const SEGMENTS = SOLIDS.flat();
-const SOLID_BOUNDS = SOLIDS.map((poly) => ({ minX: Math.min(...poly.map((e) => e.a.x)), maxX: Math.max(...poly.map((e) => e.a.x)), minZ: Math.min(...poly.map((e) => e.a.z)), maxZ: Math.max(...poly.map((e) => e.a.z)) }));
-export const DEBRIS_PATH = createPath(Array.from({ length: DEBRIS.points }, (_, i) => ({ x: DEBRIS.radius * Math.sin(TAU * i / DEBRIS.points), y: 0.95, z: DEBRIS.radius * Math.cos(TAU * i / DEBRIS.points) })), { closed: true });
+const boundsOf = (solids: SegmentXZ[][]) => solids.map((poly) => ({ minX: Math.min(...poly.map((e) => e.a.x)), maxX: Math.max(...poly.map((e) => e.a.x)), minZ: Math.min(...poly.map((e) => e.a.z)), maxZ: Math.max(...poly.map((e) => e.a.z)) }));
+const SOLID_BOUNDS = boundsOf(SOLIDS);
+const debrisLoop = (rx: number, rz: number) => createPath(Array.from({ length: DEBRIS.points }, (_, i) => ({ x: rx * Math.sin(TAU * i / DEBRIS.points), y: 0.95, z: rz * Math.cos(TAU * i / DEBRIS.points) })), { closed: true });
+export const DEBRIS_PATH = debrisLoop(DEBRIS.radius, DEBRIS.radius);
+
+/** One module of a station layout: its pod centre (x, z), its service disc (dx, dz) and the outward facing angle. */
+export interface StationModule { id: number; x: number; z: number; dx: number; dz: number; angle: number }
+/**
+ * A level's station (levels.ts `station`): where the eight pods and their service discs sit, every solid
+ * footprint the suit bounces off, the debris loop's radii and the cosmetic set pieces Station.tsx draws.
+ * "bay" is today's ring exactly (MODULES / SOLIDS / DEBRIS_PATH are its objects).
+ */
+export interface StationLayout {
+   kind: StationKind;
+   modules: readonly StationModule[];
+   solids: SegmentXZ[][];
+   bounds: { minX: number; maxX: number; minZ: number; maxZ: number }[];
+   debris: typeof DEBRIS_PATH;
+   debrisRadii: [number, number];
+   /** solid footprints by role, for drawing: hub polygon(s), boxes (x0, x1, z0, z1, role) */
+   hub: { x: number; z: number; inradius: number; sides: number } | null;
+   boxes: { x0: number; x1: number; z0: number; z1: number; role: "wing" | "spine" | "mast" | "bulkhead" | "crate" }[];
+}
+function box(x0: number, x1: number, z0: number, z1: number): SegmentXZ[] {
+   return [{ a: { x: x0, z: z0 }, b: { x: x0, z: z1 } }, { a: { x: x0, z: z1 }, b: { x: x1, z: z1 } }, { a: { x: x1, z: z1 }, b: { x: x1, z: z0 } }, { a: { x: x1, z: z0 }, b: { x: x0, z: z0 } }];
+}
+/** Service disc = pod centre + (moduleInradius gap) 1.8 m along the outward angle, as on today's ring. */
+const SERVICE = STATION.serviceRadius - STATION.moduleRadius;
+function podsOn(rx: number, rz: number, offset = 0): StationModule[] {
+   return Array.from({ length: 8 }, (_, id) => {
+      const t = id * Math.PI / 4 + offset, x = rx * Math.sin(t), z = rz * Math.cos(t);
+      // outward normal of the ellipse at t
+      const nx = Math.sin(t) / rx, nz = Math.cos(t) / rz, n = Math.hypot(nx, nz);
+      const angle = Math.atan2(nx / n, nz / n);
+      return { id, x, z, dx: x + SERVICE * nx / n, dz: z + SERVICE * nz / n, angle };
+   });
+}
+function layout(kind: StationKind, modules: StationModule[], hub: StationLayout["hub"], boxes: StationLayout["boxes"], debrisRadii: [number, number]): StationLayout {
+   const solids = [
+      ...modules.map((m) => polygon(m.x, m.z, STATION.moduleInradius, STATION.moduleSides)),
+      ...(hub ? [polygon(hub.x, hub.z, hub.inradius, hub.sides)] : []),
+      ...boxes.map((b) => box(b.x0, b.x1, b.z0, b.z1)),
+   ];
+   return { kind, modules, solids, bounds: boundsOf(solids), debris: debrisLoop(debrisRadii[0], debrisRadii[1]), debrisRadii, hub, boxes };
+}
+/** Bulkheads / masts between adjacent pods, outside every service-disc chord. */
+const between = (r: number, half: number, role: "mast" | "bulkhead", count = 8) => Array.from({ length: count }, (_, i) => {
+   const t = (i + 0.5) * TAU / count, x = r * Math.sin(t), z = r * Math.cos(t);
+   return { x0: x - half, x1: x + half, z0: z - half, z1: z + half, role };
+});
+export const STATIONS: Record<StationKind, StationLayout> = {
+   // Docking Bay: today's ring, round hub, solar wings east and west.
+   bay: { kind: "bay", modules: MODULES, solids: SOLIDS, bounds: SOLID_BOUNDS, debris: DEBRIS_PATH, debrisRadii: [DEBRIS.radius, DEBRIS.radius], hub: { x: 0, z: 0, inradius: STATION.hubInradius, sides: STATION.hubSides },
+      boxes: [{ x0: -9.3, x1: -8.1, z0: -1, z1: 1, role: "wing" }, { x0: 8.1, x1: 9.3, z0: -1, z1: 1, role: "wing" }] },
+   // Power Wing: pods round a long oval on a power spine, the big solar arrays north and south.
+   power: layout("power", podsOn(5, 3.4), null, [
+      { x0: -3.2, x1: 3.2, z0: -0.6, z1: 0.6, role: "spine" },
+      { x0: -2.6, x1: 2.6, z0: -9.4, z1: -8.4, role: "wing" },
+      { x0: -2.6, x1: 2.6, z0: 8.4, z1: 9.4, role: "wing" },
+   ], [8.7, 7.1]),
+   // Comms Wing: a wide ring round the big comms dish, antenna masts standing between the docks outside.
+   comms: layout("comms", podsOn(4.8, 4.8), { x: 0, z: 0, inradius: 1.9, sides: 16 }, between(8.9, 0.32, "mast"), [8.1, 8.1]),
+   // External Platform: pods on a square deck (corners and edge middles), a diamond command block, open space.
+   platform: layout("platform", Array.from({ length: 8 }, (_, id) => {
+      const t = id * Math.PI / 4, corner = id % 2 === 1, x = (corner ? 3.3 : 3.6) * Math.sign(Math.round(Math.sin(t) * 1e6)), z = (corner ? 3.3 : 3.6) * Math.sign(Math.round(Math.cos(t) * 1e6));
+      return { id, x, z, dx: x + SERVICE * Math.sin(t), dz: z + SERVICE * Math.cos(t), angle: t };
+   }), { x: 0, z: 0, inradius: 1.3, sides: 4 }, [
+      { x0: -9.5, x1: -8.5, z0: 7.6, z1: 8.6, role: "crate" },
+      { x0: 8.5, x1: 9.5, z0: -8.6, z1: -7.6, role: "crate" },
+   ], [8.6, 8.6]),
+   // Station Emergency: today's ring turned half a pod, with sealed bulkheads between the docks.
+   emergency: layout("emergency", podsOn(STATION.moduleRadius, STATION.moduleRadius, Math.PI / 8), { x: 0, z: 0, inradius: STATION.hubInradius, sides: STATION.hubSides },
+      between(7.6, 0.38, "bulkhead").map((b, i) => {
+         // the bulkheads stand on the old ring's diagonals, i.e. between the turned docks
+         const t = i * TAU / 8, x = 7.6 * Math.sin(t), z = 7.6 * Math.cos(t);
+         return { ...b, x0: x - 0.38, x1: x + 0.38, z0: z - 0.38, z1: z + 0.38 };
+      }), [8.9, 8.9]),
+};
+/** The station a level flies (level 1: today's "bay"). */
+export const stationOf = (level: SpaceRepairLevel): StationLayout => STATIONS[level.station ?? "bay"];
 export interface Controls { x: number; z: number; repair: boolean }
 export interface ModuleState { broken: boolean; hits: number; perfect: boolean; centre: number; period: number; zones: TimingZone[]; lockUntil: number; issued: number; generation: number; fixedAt: number }
 export interface CellState { active: boolean; used: boolean; born: number; x: number; y: number; z: number }
@@ -65,12 +143,13 @@ export function createRun(seed: number, levelOrCoarse: SpaceRepairLevel | boolea
    const rng = { s: (seed >>> 0) || 1 }, direction = rngNext(rng) < 0.5 ? -1 : 1;
    const modules = MODULES.map((): ModuleState => ({ broken: false, hits: 0, perfect: true, centre: REPAIR.centre + REPAIR.jitter * (2 * rngNext(rng) - 1), period: level.periods[0], zones: [{ start: 0, end: 0 }], lockUntil: 0, issued: -1, generation: 0, fixedAt: -10 }));
    const debris = Array.from({ length: DEBRIS.count }, (_, i) => {
-      const rider = { path: DEBRIS_PATH, s: (i / DEBRIS.count + DEBRIS.jitter * (2 * rngNext(rng) - 1)) * DEBRIS_PATH.total, position: { x: 0, y: 0.95, z: 0 } };
+      const path = stationOf(level).debris;
+      const rider = { path, s: (i / DEBRIS.count + DEBRIS.jitter * (2 * rngNext(rng) - 1)) * path.total, position: { x: 0, y: 0.95, z: 0 } };
       advance(rider, 0); return rider;
    });
    const run: Run = {
       level, time: 0, power: 100, score: 0, repairs: 0, perfectRepairs: 0, bonus: 0, coarse, direction, ticket: 0, terminal: null,
-      body: { x: 0, y: 1.1, z: 6, vx: 0, vz: 0, radius: SUIT.radius }, yaw: Math.PI, docked: -1, needleAge: 0, wobbleUntil: 0,
+      body: { x: stationOf(level).modules[0].dx, y: 1.1, z: stationOf(level).modules[0].dz, vx: 0, vz: 0, radius: SUIT.radius }, yaw: Math.PI, docked: -1, needleAge: 0, wobbleUntil: 0,
       contactArmed: true, debrisUntil: 0, lowArmed: true, thrusting: false, modules, debris,
       cells: CELL.milestones.map(() => ({ active: false, used: false, born: -10, x: 0, y: 1.1, z: 0 })),
       events: { award: 0, module: -1, hit: false, miss: false, contact: false, cell: false, alarm: false, lap: false },
@@ -86,9 +165,9 @@ export function needle(r: Run): number {
    if (r.docked < 0) return 0;
    return needlePosition(r.needleAge, r.modules[r.docked].period, "loop");
 }
-export function clearance(x: number, z: number): number {
+export function clearance(x: number, z: number, station: StationLayout = STATIONS.bay): number {
    let d = STATION.edge - Math.max(Math.abs(x), Math.abs(z));
-   for (const poly of SOLIDS) {
+   for (const poly of station.solids) {
       let inside = true;
       for (const e of poly) {
          const dx = e.b.x - e.a.x, dz = e.b.z - e.a.z;
@@ -107,6 +186,7 @@ function capVelocity(b: CircleBodyXZ): void {
 export function resolveContacts(r: Run): boolean {
    const b = r.body, hit = r.contact, limit = STATION.edge - b.radius;
    let touched = false;
+   const station = stationOf(r.level), SOLIDS = station.solids, SOLID_BOUNDS = station.bounds;
    if (b.x > limit) { b.x = limit; if (b.vx > 0) b.vx *= -SUIT.restitution; touched = true; }
    if (b.x < -limit) { b.x = -limit; if (b.vx < 0) b.vx *= -SUIT.restitution; touched = true; }
    if (b.z > limit) { b.z = limit; if (b.vz > 0) b.vz *= -SUIT.restitution; touched = true; }
@@ -151,7 +231,7 @@ function dock(r: Run): void {
    if (!r.thrusting && r.time + EPS >= r.wobbleUntil && Math.hypot(r.body.vx, r.body.vz) <= SUIT.dockSpeed + EPS) {
       for (let i = 0; i < 8; i++) {
          if (!r.modules[i].broken) continue;
-         const m = MODULES[i], d = Math.hypot(r.body.x - m.dx, r.body.z - m.dz);
+         const m = stationOf(r.level).modules[i], d = Math.hypot(r.body.x - m.dx, r.body.z - m.dz);
          if (d <= STATION.dock + EPS && d < best) { target = i; best = d; }
       }
    }
@@ -191,9 +271,10 @@ function integrate(r: Run, dt: number): void {
    if (r.power <= EPS) { r.power = 0; r.terminal = "lose"; return; }
    if (r.lowArmed && r.power < CLOCK.low) { r.events.alarm = true; r.lowArmed = false; }
    const touched = resolveContacts(r);
-   if (touched && clearance(b.x, b.z) < b.radius - 1e-6) { b.x = oldX; b.z = oldZ; b.vx = 0; b.vz = 0; }
+   const station = stationOf(r.level);
+   if (touched && clearance(b.x, b.z, station) < b.radius - 1e-6) { b.x = oldX; b.z = oldZ; b.vx = 0; b.vz = 0; }
    if (touched && r.contactArmed) { wobble(r); r.contactArmed = false; }
-   if (!r.contactArmed && clearance(b.x, b.z) >= b.radius + SUIT.rearm) r.contactArmed = true;
+   if (!r.contactArmed && clearance(b.x, b.z, station) >= b.radius + SUIT.rearm) r.contactArmed = true;
    for (let i = 0; i < DEBRIS.count; i++) {
       const d = r.debris[i]; advance(d, r.level.speeds[stage] * dt);
       if (i >= stage + 2 || r.time < r.debrisUntil) continue;
@@ -207,7 +288,7 @@ function integrate(r: Run, dt: number): void {
    }
    dock(r);
    let facing = r.yaw;
-   if (r.docked >= 0) facing = Math.atan2(MODULES[r.docked].x - b.x, MODULES[r.docked].z - b.z);
+   if (r.docked >= 0) facing = Math.atan2(station.modules[r.docked].x - b.x, station.modules[r.docked].z - b.z);
    else if (Math.hypot(b.vx, b.vz) > 0.2) facing = Math.atan2(b.vx, b.vz);
    r.yaw = turnTowards(r.yaw, facing, 1 - Math.exp(-SUIT.turn * dt));
    collectCells(r);
@@ -237,7 +318,7 @@ function attempt(r: Run): void {
    const award = SCORE.repair + (m.perfect ? SCORE.perfect : 0);
    r.score += award; r.events.award = award; r.events.module = id;
    for (let i = 0; i < CELL.milestones.length; i++) if (r.repairs === CELL.milestones[i] && !r.cells[i].used) {
-      const c = r.cells[i], p = MODULES[id];
+      const c = r.cells[i], p = stationOf(r.level).modules[id];
       c.used = true; c.active = true; c.born = r.time;
       c.x = p.dx + CELL.offset * Math.cos(p.angle); c.z = p.dz - CELL.offset * Math.sin(p.angle);
    }
