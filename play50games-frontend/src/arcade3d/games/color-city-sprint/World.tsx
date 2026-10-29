@@ -34,8 +34,8 @@ export function backdropSpots(c: Course): { rows: InstanceSpot[]; towers: Instan
          { ox: 1, oz: 0, len: hd * 2 + gap * 2, yaw: -Math.PI / 2 },
       ];
       sides.forEach((s, si) => {
-         // sparse: a row every 22 m (the triangle budget), the gaps read as side streets
-         const n = Math.ceil(s.len / 22);
+         // sparse: a row every 28 m (the triangle budget), the gaps read as side streets
+         const n = Math.ceil(s.len / 28);
          for (let k = 0; k < n; k++) {
             const t = -s.len / 2 + (k + 0.5) * (s.len / n);
             const r = hash(k + ring * 31, si);
@@ -64,11 +64,11 @@ export function World({ course }: { course: Course }) {
          <directionalLight position={[cx + 30, 45, cz - 20]} intensity={look.sunI * 0.35} color={look.sun} />
          <InstancedModel asset={ASSETS.pastel} spots={spots.rows} fallback={null} />
          <InstancedModel asset={ASSETS.tower} spots={spots.towers} fallback={null} />
-         {/* the volcano's ember glow low on the far horizon */}
-         <mesh position={[cx, 14, cz - 150]}>
+         {/* the volcano's ember glow low on the far horizon (day only: the night fog hides it anyway) */}
+         {look.lighting === "night" ? null : <mesh position={[cx, 14, cz - 150]}>
             <planeGeometry args={[420, 60]} />
-            <meshBasicMaterial color={look.lighting === "night" ? "#7c2d12" : "#fb923c"} transparent opacity={look.lighting === "night" ? 0.35 : 0.18} depthWrite={false} fog={false} />
-         </mesh>
+            <meshBasicMaterial color="#fb923c" transparent opacity={0.18} depthWrite={false} fog={false} />
+         </mesh>}
       </group>
    );
 }
