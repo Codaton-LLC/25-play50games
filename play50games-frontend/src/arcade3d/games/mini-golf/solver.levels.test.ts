@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { LEVEL_IDS } from "../../types";
-import { buildHole } from "./course";
+import { buildHole, courseSpecs } from "./course";
 import { feltRects, onFelt, decorSpots } from "./looks";
 import { createRun } from "./rules";
 import { LEVELS } from "./levels";
@@ -11,7 +11,7 @@ describe("mini-golf robust level par witnesses", () => {
    for (const id of LEVEL_IDS) for (let h = 0; h < LEVELS[id].holes; h++) {
       it(`L${id} H${h + 1}: within par on both mirrors over nine start ticks`, () => {
          for (const mirrored of [false, true]) {
-            const hole = { ...createRun(13, LEVELS[id]).course[h], ...buildHole(h, mirrored) };
+            const hole = { ...createRun(13, LEVELS[id]).course[h], ...buildHole(courseSpecs(LEVELS[id].holes, LEVELS[id].course)[h], mirrored, h) };
             // buildHole supplies geometry and signed obstacle phases; reapply this level's speed.
             if (hole.windmill) hole.windmill.omega = 2 * Math.PI / LEVELS[id].windmillPeriod * hole.sx;
             if (hole.turntable) hole.turntable.omega = LEVELS[id].turntableOmega * hole.sx;

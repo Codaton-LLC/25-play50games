@@ -197,20 +197,28 @@ The core owns selection, unlocking and the sum of level bests. `levels.ts` is th
 Level 1 keeps the original six-hole course, par 17, physics, scoring, timing, pick-ups and win behavior.
 The frozen pre-level rules fixture is replayed against L1 with identical frames and inputs.
 
-| Level | Course | Full putt | Pick-up | Cap | Moving obstacles | Cup radius / capture speed | Lighting | Clear score |
-|---|---|---|---|---|---|---|---|---|
-| 1 Garden Course | Original 6, par 17 | 4.5 m/s | par + 4 | 600 s | bar 1.2 rad/s, windmill 6 s/turn | 0.10 m / 1.2 m/s | day | 2000 or win |
-| 2 Ramp Course | Same 6, par 17 | 5 m/s | par + 3 | 480 s | unchanged | 0.10 / 1.2 | day | 2000 or win |
-| 3 Windmill Course | Same 6, par 17 | 5 | par + 3 | 480 s | bar 1.6, windmill 5 s/turn | 0.10 / 1.2 | sunset | 2000 or win |
-| 4 Neon Course | Same 6, par 17 | 5 | par + 3 | 480 s | retain L3 | 0.08 / 1.0 | night | 2000 or win |
-| 5 Master Course | 9, par 26 | 5 | par + 2 | 600 s | retain L3 | 0.08 / 1.0 | sunset | win |
+| Level | Course (in order) | Look | Full putt | Pick-up | Cap | Moving obstacles | Cup radius / capture speed | Lighting | Clear score |
+|---|---|---|---|---|---|---|---|---|---|
+| 1 Garden Course | Original 6: First Putt, Dogleg, Ramp Jump, Windmill, Pipe Maze, Turntable Hill (par 17) | mahogany rails, green felt | 4.5 m/s | par + 4 | 600 s | bar 1.2 rad/s, windmill 6 s/turn | 0.10 m / 1.2 m/s | day | 2000 or win |
+| 2 Ramp Course | Ramp Jump, **Ramp Dogleg**, Dogleg, **Ramp Island**, Turntable Hill, First Putt (par 17) | red-and-white painted rails, bright felt | 5 m/s | par + 3 | 480 s | unchanged | 0.10 / 1.2 | day | 2000 or win |
+| 3 Windmill Course | Windmill, First Putt, **Windmill Gate**, Dogleg, **Windmill Pond**, Turntable Hill (par 17) | Dutch blue rails with white caps | 5 | par + 3 | 480 s | bar 1.6, windmill 5 s/turn | 0.10 / 1.2 | sunset | 2000 or win |
+| 4 Neon Course | First Putt, **Neon Zigzag**, Split Fairway, **Neon Diamond**, Twin Banks, Final Needle (par 17) | glowing cyan rails on violet felt | 5 | par + 3 | 480 s | retain L3 | 0.08 / 1.0 | night | 2000 or win |
+| 5 Master Course | Original 6 + Split Fairway, Twin Banks, Final Needle (par 26) | walnut rails with gold caps | 5 | par + 2 | 600 s | retain L3 | 0.08 / 1.0 | sunset | win |
+
+The level holes (course.ts specs 9-14; `levels.ts` `course` lists each level's layouts, levels 1 and 5
+keep theirs): **Ramp Dogleg** (over the ramp, a full-width 45° board throws the ball right into a short
+arm), **Ramp Island** (over the ramp onto a wider green between two ponds), **Windmill Gate** (through
+the windmill onto a wider green with a two-board gate before the cup), **Windmill Pond** (through the
+windmill, a long lane past a side pond), **Neon Zigzag** (two staggered boards from opposite walls; one
+clean diagonal threads both gaps), **Neon Diamond** (a diamond block in the middle: bank round it). Each
+has a robust ace and a human-paced two-putt line at its level's physics, found by grid search (both
+mirrors, nine start ticks; `levelLines.fixture.ts` `NEW_ACE` / `NEW_PAR`), replayed by
+`aces.levels.test.ts` and `solver.levels.test.ts` and played by the level bots; `camera.levels.test.ts`
+checks every new layout's felt and fitted camera on desktop and both phone orientations. The course dress
+(`looks.ts` `COURSE_LOOKS`: felt stripes, rail paint, the Neon Course's emissive rails) is per level.
 
 The master course adds Split Fairway (a central dividing board), Twin Banks (two staggered angled
-boards) and Final Needle (a narrow gate), all par 3 on the same felt/rail system. Each has an
-independently found robust ace; the live beam search still uses 0.5-degree aim, 0.01 power and
-0.1-second wait steps, retaining six safe rests. Both mirrors and nine consecutive start ticks
-are checked. No solver resolution or robustness requirement was relaxed. Only three felt mappings
-were appended to `looks.ts`; the original six entries and palette are untouched.
+boards) and Final Needle (a narrow gate), all par 3 on the same felt/rail system.
 
 Levels 2-5 win after finishing all cups without a pick-up; a completed course containing a pick-up
 ends with `lose`, keeping the earned points. A score of 2000 also clears L1-L4 through the core;
@@ -263,21 +271,24 @@ every completed course, including a losing card with pick-ups. The three new hol
 1. **L1:** The original capture bounds are 0.917, 0.807, 0.868, 0.718, 1.154, 1.287 s. All pick-up
    bounds exceed them. Sum plus 10 s transitions = 15.751 s; 15000 ms retains the original margin.
    `1200 + 200 * 15 = 4200 >= 4100`. The original 600 s cap plus at most one 50 ms frame fits 602000 ms.
-2. **L2:** A par-3 water hole can now be picked up after three splashes (1 s ready gaps). The
-   pipe hole's bound drops to 1 s. Granting the bar disk's 1.82 m as free travel reduces the hill
-   bound by another 0.303 s: total 15.294 s including transitions.
-   The 15000 ms minimum is below it, and the same 4200-point envelope covers the entire 4100 ceiling.
-   The 480 s cap plus a 50 ms frame fits 482000 ms. Higher launch speed cannot evade the 6 m/s clamp.
-3. **L3:** Faster obstacles cannot evade that clamp, the fixed ready gap, or the 2 s transitions.
-   Identical geometry, cup and pick-up allowance give the same 15.294 s lower bound and 4100 ceiling.
-   So L2's limits apply unchanged. Robust lines independently verify the narrower timing windows.
-4. **L4:** Radius 0.08 increases the dry capture bounds to 0.920, 0.810, 0.871, 0.721 s; pipe is still
-   conservatively 1 s and hill 0.987 s after the bar disk allowance. Total 15.310 s. A lower capture-speed threshold cannot make
-   capture earlier. The 15000 ms / 4200 envelope and 482000 ms cap still bound every ranked ending.
+2. **L2 (Ramp Course):** par 17, so the ceiling stays 4100. Ramp Jump 0.868, Ramp Dogleg 0.874, Dogleg
+   0.807, Ramp Island 0.967 (all ramp holes can splash: pick-up 1.0 s is later), Turntable Hill 0.984
+   (bar disk granted free), First Putt 0.917: 5.42 s + 10 s = **15.42 s** ≥ 15000 ms.
+3. **L3 (Windmill Course):** Windmill 0.718, First Putt 0.917, Windmill Gate 0.818 (dry: pick-up 2.5 s),
+   Dogleg 0.807, Windmill Pond 0.818 (pond: pick-up 1.0 s), Turntable Hill 0.984: **15.06 s** ≥ 15000 ms
+   (the two new windmill holes are 6 m long like Windmill, for the camera's size rule).
+   Faster obstacles cannot evade the 6 m/s clamp, the fixed ready gap or the 2 s transitions.
+4. **L4 (Neon Course):** cup 0.08 (a smaller radius only lengthens a capture): First Putt 0.920, Neon
+   Zigzag 1.216, Split Fairway 1.138, Neon Diamond 1.170, Twin Banks 1.176, Final Needle 1.223 (all dry):
+   **16.84 s** ≥ 15000 ms.
 5. **L5:** With par + 2, pipe and hill have 1 s pick-up bounds; the hill capture bound of 0.987 s is lower. The new dry-hole
    capture bounds are 1.138, 1.176, 1.223 s, below their 2 s pick-up gaps. Sum with 16 s transitions
    is 24.847 s. Minimum 24000 ms leaves 0.847 s; `1200 + 210 * 24 = 6240 >= 6200`. The 600 s cap
    plus one frame fits 602000 ms. The final hole and scorecard sizes come from the captured course.
+
+Every level's limits are unchanged (4100 / 15000-482000 or 602000 ms / base 1200 / 200 pps; level 5
+6200 / 24000-602000 / 210). `courses.levels.test.ts` recomputes each level's ceiling from its own pars
+and its earliest end from its own holes (the bound above, generically), and checks both against its limits.
 
 For a level, let M be the ceiling and E the earliest-end bound above. A final submission ends at
 E or later, or at its much later cap. Thus `B(t) <= M <= base + pps * minDurationSeconds` for every
