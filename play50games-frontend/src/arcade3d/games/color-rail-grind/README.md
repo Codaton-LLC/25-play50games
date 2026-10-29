@@ -137,3 +137,22 @@ ready/menu2/snow-slide-dash (the card's village; snow-slide-dash is not in the s
 is ice-peak-jumper's, by its manifest line. The card's `m2ToyBlocks` barrier does not exist in the ready
 folders: Riko's barrier is code-built planks. Code parts: the far rails, the lanterns, the loop, the
 icicle frames, the ghost door, the arrows and lit rings, the station arch, the steam.
+
+## Tests and playtest
+
+- `rules.test.ts`, `proof.test.ts`, `orbit.test.ts`, `multiplayer.test.ts`, `hero.test.ts`,
+  `assets.test.ts`: 91 green (2026-10-29); `registry.sync`, `modelManifest`, `ShellOverlays` green with
+  the game registered (order 79); `tsc` clean.
+- Headless Chrome on `next dev -p 3311`, `?autoplay=1`: all five levels at 1280 x 800 (mouse drag /
+  wheel orbit) and levels 1, 3 and 5 at 390 x 844 (two-finger orbit): every run reached the result card
+  (L5 phone 1:02.54 with the loop shard), 0 console errors, 13-27 draw calls, 157-300k triangles, p50
+  16.7 ms when the machine was quiet (33 ms while other agents' builds shared it).
+
+## Open issues
+
+- No production `next build` ran.
+- The far rails are plain beams (the GLB rail is drawn within 70 m); at a distance the grid reads thin.
+- The card's `m2ToyBlocks` barrier does not exist; Riko's barrier is code-built planks.
+- `m2SnowPine` and `m2SnowCabinBg` are copied here from ready/snow-slide-dash (that game is not in the
+  slice yet); when it lands, one copy can go.
+- No thumbnail yet. Multiplayer is covered by unit tests only.
