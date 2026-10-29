@@ -277,6 +277,18 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/dragon-cave-rush/m2MineTrack.glb",
    "/models/3d/dragon-cave-rush/m2PatrolBot.glb",
    "/models/3d/dragon-cave-rush/m2Stalagmites.glb",
+   // Menu 2 game 45 (Sky Hook Swing): dock props from ~/.play50/hyper3d/ready/menu2/sky-hook-swing
+   "/models/3d/sky-hook-swing/m2AirshipBg.glb",
+   "/models/3d/sky-hook-swing/m2FactoryDrone.glb",
+   "/models/3d/sky-hook-swing/m2GrappleRingPost.glb",
+   "/models/3d/sky-hook-swing/m2GrappleRingPostV2.glb",
+   "/models/3d/sky-hook-swing/m2LandingTargetPad.glb",
+   "/models/3d/sky-hook-swing/m2SwingAnchor.glb",
+   "/models/3d/sky-hook-swing/m2SwingAnchorV2.glb",
+   "/models/3d/sky-hook-swing/m2SwingIsland.glb",
+   "/models/3d/sky-hook-swing/m2WindmillIsland.glb",
+   // the galleon's turret (m2SkyCannonTurret from the image batch, card: MUST for L2-5 boss weak points)
+   "/models/3d/sky-hook-swing/m2SkyCannonTurret.glb",
    // P-121 dev adoptions (2026-10-25): V2 replacements and Group D variety whose QA verdict
    // starts with OK. Optimized GLBs copied in; not re-optimized. Live games are untouched.
    "/models/3d/shopping-cart/supermarketShelfV2.glb",
