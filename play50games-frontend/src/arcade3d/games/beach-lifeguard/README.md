@@ -10,7 +10,8 @@ A sand strip and a sea that deepens from the shore. An alert rings and a pink ri
 |---|---|
 | `rules.ts` | Pure rules: `createRun(seed, level, levelId)`, `step(run, input, dt, timeLeftMs)` (returns a shared event), `syncStore(run, ev, store)` (exactly the Scene's store calls), `stepZ` (the water split), `PROPOSED_LEVEL_LIMITS`, `PROOF_MIN_WIN_S`. |
 | `levels.ts` | The five `BeachLevel` configs, titles, tile lines. |
-| `looks.ts` | Palette, the follow view (an 18 x 15 m window round the aim, 9 x 12 m in portrait), aim bounds, the fog from the fitted distance, decor spots, the sea floor (`seabedY`) and the swim blend (`swimBlend`). |
+| `looks.ts` | Palette, per-level `THEMES` (sky, water colours, wave amplitude, rain) and the level-specific `decorSpots` layouts, the follow view (an 18 x 15 m window round the aim, 9 x 12 m in portrait), aim bounds, the fog from the fitted distance, the sea floor (`seabedY`) and the swim blend (`swimBlend`). |
+| `SetPieces.tsx` | The per-level set pieces drawn from `decorSpots`: L2 boardwalk, L3 hotels / deck chairs / pool, L4 slide flumes / ring floats, L5 rain. Visual only, all outside the play rectangle. |
 | `assets.ts` | The ready Hyper3D GLBs with their measured raw bounds, fits in metres, `LIFEGUARD_LANDMARKS`. |
 | `Scene.tsx` | One `useRunFrame` (step + syncStore + effects), the rigged lifeguard (run, wade, front crawl, carry, jet ski seat, cheer), the towed / carried swimmer, the rescue tube and its line, instanced swimmers / props / decor, the sea floor, `<Water>`, the shore foam, the wake rings, the code torus, `TargetMarkers`. |
 | `testing/bots.ts`, `testing/limitProof.ts` | Test-only bots (oracle, greedy, idle, spam) through the real store (`playBot`) and a pure twin (`playPure`) for the 200-seed sweeps. |
@@ -26,12 +27,27 @@ Camera views (core/camera): 📷 / C (T too) cycle Classic → Chase → Front �
 | L | Title | Width | Swim depth | Rescues | Alert | Jet ski | Clock | Lighting | Limits (max / base / pps) | Fastest bot win | Honest clear |
 |---|---|---:|---:|---:|---:|---|---:|---|---|---:|---:|
 | 1 | Small Beach | 24 | 12 | 2 | 40 s | no | 120 s | day | 1110 / 500 / 107 | 6.96 s | 200/200 |
-| 2 | Busy Beach | 32 | 16 | 3 | 34 s | no | 150 s | day | 1490 / 750 / 64 | 14.10 s | 200/200 |
-| 3 | Resort | 40 | 18 | 4 | 30 s | no | 180 s | day, more chairs | 1860 / 1000 / 46 | 22.97 s | 200/200 |
-| 4 | Waterpark | 44 | 20 | 5 | 28 s | yes | 180 s | sunset | 2130 / 1250 / 50 | 23.13 s | 200/200 |
-| 5 | Stormy Beach | 48 | 22 | 6 | 24 s | yes | 210 s | sunset, near fog | 2510 / 1500 / 44 | 28.94 s | 200/200 |
+| 2 | Busy Beach | 32 | 16 | 3 | 34 s | no | 150 s | day, deep-blue midday | 1490 / 750 / 64 | 14.10 s | 200/200 |
+| 3 | Resort | 40 | 18 | 4 | 30 s | no | 180 s | sunset, golden, turquoise water | 1860 / 1000 / 46 | 22.97 s | 200/200 |
+| 4 | Waterpark | 44 | 20 | 5 | 28 s | yes | 180 s | sunset, slides | 2130 / 1250 / 50 | 23.13 s | 200/200 |
+| 5 | Stormy Beach | 48 | 22 | 6 | 24 s | yes | 210 s | night, rain, heavy sea | 2510 / 1500 / 44 | 28.94 s | 200/200 |
 
 A level clears only on a win (no `clearScore`). minDurationMs 4000 everywhere.
+
+### Per-level look (2026-10-29)
+
+Each level reads as its name; level 1 keeps today's layout byte-for-byte (its decor rng draws are
+untouched). The numbers above (width / depth / rescues / clocks / jet ski / fog) feed the limit
+proofs and did not change; only the look did (`looks.ts` THEMES + `decorSpots`, `SetPieces.tsx`):
+
+- **L1 Small Beach** — today's day beach: sky `#0ea5e9`, light-blue water, huts and palms at the ends.
+- **L2 Busy Beach** — deeper-blue midday sky and water; a low wooden **boardwalk** runs along the back of the sand behind the clutter.
+- **L3 Resort** — golden-hour sunset with a warm haze and turquoise water; **hotel blocks** past both beach ends, two neat **deck-chair rows** and a low **pool** on the terrace behind the sand.
+- **L4 Waterpark** — dusk sunset; a tall pink **slide flume** on white supports past each beach end, **ring floats** scattered on the back sand, choppier water; the jet-ski twist from the plan.
+- **L5 Stormy Beach** — night preset, dark sky and slate water, the nearest fog; a **rain sheet** (240 streaks) over the arena, the roughest sea (wave amplitude 0.3), about half the beach clutter (wind-swept).
+
+All set pieces are visual only (nothing new is solid) and stand outside the play rectangle: tall
+things past the beach ends, low things on the camera side behind the sand (`variety.test.ts`).
 
 ## Server limits and why they hold
 
