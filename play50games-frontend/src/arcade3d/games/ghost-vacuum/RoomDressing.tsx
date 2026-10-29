@@ -136,9 +136,11 @@ export default function RoomDressing({ level }: { level: GhostLevel }) {
          }
          if (kind === "attic") {
             // cobwebs in the far corners, dust in the air, rafters sloping down the outer wall
-            const far = r.north * 9.85;
-            webs.push({ x: r.side * 13.2, y: 0.9, z: far, rotY: 0, sx: 1.2, sy: 1.1, sz: 0.1 });
-            webs.push({ x: r.side * 4.0, y: 1.0, z: far, rotY: 0, sx: 1.0, sy: 0.9, sz: 0.1 });
+            // (webs only on the far, north walls: the camera looks at them, not at their backs)
+            if (r.north < 0) {
+               webs.push({ x: r.side * 13.2, y: 0.9, z: -9.85, rotY: 0, sx: 1.2, sy: 1.1, sz: 0.1 });
+               webs.push({ x: r.side * 4.0, y: 1.0, z: -9.85, rotY: 0, sx: 1.0, sy: 0.9, sz: 0.1 });
+            }
             for (let k = 0; k < 9; k++) dust.push({ x: r.side * (4.5 + ((k * 3.7) % 8.5)), y: 0.6 + ((k * 0.37) % 1.4), z: r.north * (1.2 + ((k * 2.3) % 8)), scale: 0.05 + (k % 3) * 0.02 });
             for (let k = 0; k < 4; k++) rafters.push({ x: r.side * 13.4, y: 1.6, z: r.north * (1.5 + k * 2.4), rotY: 0, sx: 0.16, sy: 1.6, sz: 0.16 });
          }
