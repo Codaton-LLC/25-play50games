@@ -72,6 +72,7 @@ import {
    lookFor,
    platformLook,
    restLook,
+   setPieceSpots,
    trackSpots,
    trainOffset,
    viewFor,
@@ -363,6 +364,7 @@ function LevelScene() {
    const sleepers = useMemo(() => tracks.sleepers.filter((_, i) => i % (quality.decor < 0.75 ? 2 : 1) === 0), [tracks, quality.decor]);
    const walls = useMemo(() => wallSpots(config), [config]);
    const beds = useMemo(() => Array.from({ length: config.platforms }, (_, p) => ({ x: trackX(config, p), y: -BED_DEPTH, z: (CONCOURSE_DEPTH + STATION_END + 30) / 2, sx: 2.4, sy: 0.02, sz: STATION_END + 30 - CONCOURSE_DEPTH })), [config]);
+   const pieces = useMemo(() => setPieceSpots(config), [config]);
    const { canopies, signs, benches, tickets, lamps, trolleys } = useMemo(() => {
       const of = (kind: Solid["kind"]) => run.solids.filter((s) => s.kind === kind).map((s) => ({ x: s.x, y: 0, z: s.z, rotY: s.rotY }));
       return { canopies: of("canopy"), signs: of("sign"), benches: of("bench"), tickets: of("ticket"), lamps: of("lamp"), trolleys: of("trolley") };
@@ -600,10 +602,13 @@ function LevelScene() {
             <planeGeometry args={[4.2, 2.8]} />
             <meshStandardMaterial color={look.doorGlow} emissive={look.doorGlow} emissiveIntensity={config.lighting === "night" ? 0.9 : config.lighting === "indoor" ? 0.65 : 0.45} />
          </mesh>
-         {/* Central / Mega: a second station clock higher on the hall facade */}
+         {/* Clocks: one over the doors; Central Station adds a ticket-hall pair; Mega lifts the main clock */}
          <Model asset={ASSETS.clock} position={[0, config.theme === "central" || config.theme === "mega" ? 3.55 : 2.95, 0.05]} fallback={<ClockPrimitive />} />
          {config.theme === "central" ? (
-            <Model asset={ASSETS.clock} position={[-4.8, 2.6, 0.05]} fallback={<ClockPrimitive />} />
+            <>
+               <Model asset={ASSETS.clock} position={[-4.8, 2.6, 0.05]} fallback={<ClockPrimitive />} />
+               <Model asset={ASSETS.clock} position={[4.8, 2.6, 0.05]} fallback={<ClockPrimitive />} />
+            </>
          ) : null}
          <InstancedModel asset={ASSETS.ticket} spots={tickets} fallback={<PropsPrimitive kind="ticket" spots={tickets} />} />
          <InstancedModel asset={ASSETS.bench} spots={benches} fallback={<PropsPrimitive kind="bench" spots={benches} />} />
@@ -616,7 +621,38 @@ function LevelScene() {
          {config.lighting === "night" || config.lighting === "sunset" || config.lighting === "indoor" ? (
             <Instanced spots={lampGlow} name="lamp-glow">
                <boxGeometry args={[1, 1, 1]} />
-               <meshStandardMaterial color={COLORS.glow} emissive={COLORS.glow} emissiveIntensity={config.lighting === "indoor" ? 1.1 : 1.6} />
+               <meshStandardMaterial color={COLORS.glow} emissive={COLORS.glow} emissiveIntensity={config.lighting === "indoor" ? 1.1 : config.lighting === "sunset" ? 1.4 : 1.6} />
+            </Instanced>
+         ) : null}
+         {/* Per-theme set pieces: hall roof, sunset lanterns, mega gantries (visual only) */}
+         {pieces.roofs.length > 0 ? (
+            <Instanced spots={pieces.roofs} name="set-roofs">
+               <boxGeometry args={[1, 1, 1]} />
+               <meshStandardMaterial
+                  color={look.scenery === "hall" ? "#d6d3d1" : look.scenery === "city" ? "#1e293b" : "#94a3b8"}
+                  roughness={look.scenery === "hall" ? 0.35 : 0.7}
+                  metalness={look.scenery === "hall" ? 0.15 : 0.05}
+                  transparent={look.scenery === "hall"}
+                  opacity={look.scenery === "hall" ? 0.55 : 1}
+               />
+            </Instanced>
+         ) : null}
+         {pieces.beams.length > 0 ? (
+            <Instanced spots={pieces.beams} name="set-beams">
+               <boxGeometry args={[1, 1, 1]} />
+               <meshStandardMaterial color={look.scenery === "hall" ? "#a8a29e" : COLORS.buildingDark} roughness={0.65} />
+            </Instanced>
+         ) : null}
+         {pieces.lanterns.length > 0 ? (
+            <Instanced spots={pieces.lanterns} name="set-lanterns">
+               <boxGeometry args={[1, 1, 1]} />
+               <meshStandardMaterial color="#fdba74" emissive="#f97316" emissiveIntensity={1.5} roughness={0.4} />
+            </Instanced>
+         ) : null}
+         {pieces.gantries.length > 0 ? (
+            <Instanced spots={pieces.gantries} name="set-gantries">
+               <boxGeometry args={[1, 1, 1]} />
+               <meshStandardMaterial color="#0f172a" metalness={0.55} roughness={0.4} emissive={COLORS.neon} emissiveIntensity={0.25} />
             </Instanced>
          ) : null}
          <Decor level={config} />

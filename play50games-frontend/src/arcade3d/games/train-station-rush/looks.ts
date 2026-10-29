@@ -246,6 +246,79 @@ export interface StationDecor {
    neon: InstanceSpot[];
 }
 
+/**
+ * Visual-only set pieces that make each station read differently (ticket-hall roof, sunset lanterns,
+ * night gantries). Never solids: roofs / beams / lanterns hang above walk height; gantries sit over
+ * track beds or past the platforms.
+ */
+export interface StationSetPieces {
+   roofs: InstanceSpot[];
+   beams: InstanceSpot[];
+   lanterns: InstanceSpot[];
+   gantries: InstanceSpot[];
+}
+
+/** Over walk height so the worker never clips a set piece. */
+export const SET_PIECE_CLEAR_Y = 2.85;
+
+/** Per-theme overhead / platform accents (looks only). Level 1 (`sparse`) has none. */
+export function setPieceSpots(level: StationLevel): StationSetPieces {
+   const look = LOOKS[level.theme];
+   const out: StationSetPieces = { roofs: [], beams: [], lanterns: [], gantries: [] };
+   const half = concourseHalf(level);
+
+   if (look.scenery === "hall") {
+      // Central Station: indoor ticket-hall vault over the whole concourse + cross beams.
+      out.roofs.push({ x: 0, y: 5.05, z: CONCOURSE_DEPTH / 2, sx: half * 2 + 0.8, sy: 0.18, sz: CONCOURSE_DEPTH + 0.6 });
+      for (let i = -2; i <= 2; i++) {
+         out.beams.push({ x: i * (half / 2.2), y: 4.7, z: CONCOURSE_DEPTH / 2, sx: 0.22, sy: 0.35, sz: CONCOURSE_DEPTH + 0.2 });
+      }
+      for (let z of [1.6, 4.0, 6.4]) {
+         out.beams.push({ x: 0, y: 4.7, z, sx: half * 2 + 0.4, sy: 0.28, sz: 0.22 });
+      }
+      return out;
+   }
+
+   if (look.scenery === "sunset") {
+      // Rush Hour: warm lanterns over every island canopy and along the platform lip.
+      for (let k = 0; k < level.platforms / 2; k++) {
+         const [x0, x1] = islandX(level, k);
+         const cx = (x0 + x1) / 2;
+         out.lanterns.push({ x: cx - 1.1, y: 2.95, z: STATION_END - 1.2, sx: 0.28, sy: 0.35, sz: 0.28 });
+         out.lanterns.push({ x: cx + 1.1, y: 2.95, z: STATION_END - 1.2, sx: 0.28, sy: 0.35, sz: 0.28 });
+         out.lanterns.push({ x: cx, y: 2.9, z: CONCOURSE_DEPTH + 3.5, sx: 0.26, sy: 0.32, sz: 0.26 });
+      }
+      for (const side of [-1, 1] as const) {
+         out.lanterns.push({ x: side * (half - 0.7), y: 3.1, z: 2.2, sx: 0.24, sy: 0.3, sz: 0.24 });
+         out.lanterns.push({ x: side * (half - 0.7), y: 3.1, z: 5.5, sx: 0.24, sy: 0.3, sz: 0.24 });
+      }
+      return out;
+   }
+
+   if (look.scenery === "city") {
+      // Mega Station: night gantries spanning the track beds past the platforms.
+      for (let p = 0; p < level.platforms; p++) {
+         const x = trackX(level, p);
+         out.gantries.push({ x, y: 3.6, z: STATION_END + 1.4, sx: TRACK_W + 0.4, sy: 0.2, sz: 0.25 });
+         out.gantries.push({ x: x - TRACK_W / 2 - 0.1, y: 2.4, z: STATION_END + 1.4, sx: 0.16, sy: 2.4, sz: 0.16 });
+         out.gantries.push({ x: x + TRACK_W / 2 + 0.1, y: 2.4, z: STATION_END + 1.4, sx: 0.16, sy: 2.4, sz: 0.16 });
+      }
+      out.roofs.push({ x: 0, y: 5.4, z: CONCOURSE_DEPTH / 2, sx: half * 2 + 1.0, sy: 0.14, sz: CONCOURSE_DEPTH + 0.4 });
+      return out;
+   }
+
+   if (look.scenery === "yards") {
+      // 4 Platforms: a light yard canopy over the entrance strip only (not the whole hall).
+      out.roofs.push({ x: 0, y: 3.6, z: 1.2, sx: half * 1.2, sy: 0.12, sz: 2.4 });
+      out.beams.push({ x: -half * 0.55, y: 3.2, z: 1.2, sx: 0.18, sy: 0.8, sz: 0.18 });
+      out.beams.push({ x: half * 0.55, y: 3.2, z: 1.2, sx: 0.18, sy: 0.8, sz: 0.18 });
+      return out;
+   }
+
+   // sparse (L1): no overhead set pieces — today's open branch station.
+   return out;
+}
+
 /** True when a point sits on the walkable station (concourse or an island), plus margin. */
 export function inPlayStation(level: StationLevel, x: number, z: number, margin = 0): boolean {
    const half = concourseHalf(level) + margin;
@@ -287,12 +360,16 @@ export function decorSpots(level: StationLevel): StationDecor {
    }
 
    if (look.scenery === "hall") {
-      // ticket-hall pillars flanking the entrance wall, departure boards, city blocks behind
+      // ticket-hall pillars flanking the entrance wall, big departure board, city blocks behind
       out.pillars.push({ x: -2.6, y: 0, z: -gap - 0.4, rotY: 0, sx: 0.55, sy: 4.2, sz: 0.55 });
       out.pillars.push({ x: 2.6, y: 0, z: -gap - 0.4, rotY: 0, sx: 0.55, sy: 4.2, sz: 0.55 });
       out.pillars.push({ x: -half - gap - 0.3, y: 0, z: 3.5, rotY: 0, sx: 0.5, sy: 3.8, sz: 0.5 });
       out.pillars.push({ x: half + gap + 0.3, y: 0, z: 3.5, rotY: 0, sx: 0.5, sy: 3.8, sz: 0.5 });
+      out.pillars.push({ x: -half - gap - 0.3, y: 0, z: 6.5, rotY: 0, sx: 0.5, sy: 3.8, sz: 0.5 });
+      out.pillars.push({ x: half + gap + 0.3, y: 0, z: 6.5, rotY: 0, sx: 0.5, sy: 3.8, sz: 0.5 });
       out.boards.push({ x: 0, y: 3.4, z: -gap - 0.55, rotY: 0, sx: 4.8, sy: 1.4, sz: 0.18 });
+      out.boards.push({ x: -5.2, y: 2.6, z: -gap - 0.5, rotY: 0, sx: 2.2, sy: 1.0, sz: 0.14 });
+      out.boards.push({ x: 5.2, y: 2.6, z: -gap - 0.5, rotY: 0, sx: 2.2, sy: 1.0, sz: 0.14 });
       for (const side of [-1, 1] as const) {
          out.buildings.push({ x: side * (half + gap + 3.0), y: 0, z: 2, rotY: 0, sx: 4.0, sy: 5.5, sz: 3.2 });
          out.buildings.push({ x: side * (half + gap + 2.6), y: 0, z: 10, rotY: 0.1 * side, sx: 3.4, sy: 4.2, sz: 2.8 });
@@ -303,14 +380,17 @@ export function decorSpots(level: StationLevel): StationDecor {
    }
 
    if (look.scenery === "sunset") {
-      // warm low buildings and platform signals past the tracks for Rush Hour
+      // warm low buildings, platform signals and a sunset notice board for Rush Hour
       for (const side of [-1, 1] as const) {
          out.buildings.push({ x: side * (half + gap + 2.4), y: 0, z: 4, rotY: 0, sx: 3.6, sy: 2.2, sz: 2.8 });
          out.buildings.push({ x: side * (half + gap + 2.8), y: 0, z: 12, rotY: 0.15 * side, sx: 4.0, sy: 1.8, sz: 3.0 });
+         out.buildings.push({ x: side * (half + gap + 3.4), y: 0, z: 8, rotY: 0.08 * side, sx: 2.8, sy: 1.5, sz: 2.2 });
          out.signals.push({ x: side * (half * 0.35), y: 0, z: farZ + 1.2, rotY: 0, sx: 0.28, sy: 3.6, sz: 0.28 });
+         out.signals.push({ x: side * (half * 0.7), y: 0, z: farZ + 0.6, rotY: 0, sx: 0.26, sy: 3.2, sz: 0.26 });
          out.trees.push({ x: side * (half + gap + 1.0), y: 0, z: CONCOURSE_DEPTH + 1.5, rotY: side * 0.4, scale: 1.2 });
       }
       out.boards.push({ x: 0, y: 2.8, z: -gap - 0.4, rotY: 0, sx: 3.6, sy: 0.9, sz: 0.14 });
+      out.boards.push({ x: 0, y: 2.2, z: farZ + 0.5, rotY: 0, sx: 2.8, sy: 0.7, sz: 0.12 });
       return out;
    }
 
