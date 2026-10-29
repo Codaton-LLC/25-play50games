@@ -289,6 +289,17 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/sky-hook-swing/m2WindmillIsland.glb",
    // the galleon's turret (m2SkyCannonTurret from the image batch, card: MUST for L2-5 boss weak points)
    "/models/3d/sky-hook-swing/m2SkyCannonTurret.glb",
+   // Menu 2 game 36 (Temple Gong Timing): stage props from ~/.play50/hyper3d/ready/menu2/temple-gong-timing
+   // (the Great Gong is the code-built menu2/props GreatGong), plus its copy of World 3's guardian pair
+   "/models/3d/temple-gong-timing/m2CeremonyDrum.glb",
+   "/models/3d/temple-gong-timing/m2CoilstoneHead.glb",
+   "/models/3d/temple-gong-timing/m2CoilstoneSegment.glb",
+   "/models/3d/temple-gong-timing/m2GongStage.glb",
+   "/models/3d/temple-gong-timing/m2JungleRuinBg.glb",
+   "/models/3d/temple-gong-timing/m2RuinLanternPillar.glb",
+   "/models/3d/temple-gong-timing/m2StrikerPost.glb",
+   "/models/3d/temple-gong-timing/m2TempleGong.glb",
+   "/models/3d/temple-gong-timing/m2TimingRing.glb",
    // P-121 dev adoptions (2026-10-25): V2 replacements and Group D variety whose QA verdict
    // starts with OK. Optimized GLBs copied in; not re-optimized. Live games are untouched.
    "/models/3d/shopping-cart/supermarketShelfV2.glb",
