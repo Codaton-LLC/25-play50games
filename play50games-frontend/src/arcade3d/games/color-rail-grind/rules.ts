@@ -1167,13 +1167,13 @@ function contacts(run: RailRun, ms: number, prevZ: number): void {
       ev.ringCount += 1;
       linkCombo(run, COMBO_BASE_MS.ring);
    }
-   // Kiro's icicle tunnels: a stumble on the way in, unless the shield is up
+   // Kiro's icicle tunnels: judged on the way in (or a hop into it): a stumble, unless the shield is up
    for (let i = 0; i < c.hazards.length; i++) {
       const hz = c.hazards[i];
       if (hz.kind !== HAZ.icicles || run.hazardHit[i]) continue;
       if (h.lane !== hz.lane || h.tier !== 0 || h.z > hz.z0 || h.z < hz.z1 || h.y > 2) continue;
-      if (ms < h.shieldUntil) continue;
       run.hazardHit[i] = 1;
+      if (ms < h.shieldUntil) continue;
       h.stumbleUntil = ms + STUMBLE.ms;
       run.stumbles += 1;
       comboBreak(run.combo);
