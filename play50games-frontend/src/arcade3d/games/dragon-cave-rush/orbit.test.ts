@@ -3,7 +3,7 @@
 import { describe, expect, it } from "vitest";
 import { orbitPosition } from "@/arcade3d/menu2/camera/orbit";
 import { LEVEL_IDS } from "@/arcade3d/types";
-import { CAVE_ORBIT, INTRO_STEP, PIVOT_UP, introKeyframes, orbitPivot, orbitScale, playCamera, yawAt } from "./camera";
+import { CAVE_ORBIT, INTRO_STEP, PIVOT_UP, insideTube, introKeyframes, orbitPivot, orbitScale, playCamera, tubeFraction, yawAt } from "./camera";
 import { courseFor } from "./rules";
 import { centreAt } from "./track";
 
@@ -53,6 +53,28 @@ describe("the orbit camera", () => {
                expect(Math.hypot(x - px, z - pz)).toBeLessThanOrEqual(INTRO_STEP + 1);
             }
          }
+      }
+   });
+
+   it("the default chase camera sits inside the cave all along every level; a camera turned out through the wall is pulled in", () => {
+      for (const id of LEVEL_IDS) {
+         const c = courseFor(id);
+         let pulled = 0;
+         for (let s = 10; s < c.finishS - 10; s += 15) {
+            const yaw = yawAt(c, s);
+            const pv = orbitPivot(c, s, 0, 0, { x: 0, y: 0, z: 0 });
+            const behind = orbitPosition(pv.x, pv.y, pv.z, yaw, CAVE_ORBIT.pitch ?? 0, (CAVE_ORBIT.distance ?? 7) * orbitScale(390 / 844), { x: 0, y: 0, z: 0 });
+            expect(tubeFraction(c, s - 6, pv, behind), `L${id} s=${s}`).toBe(1);
+            // turned 90° to the side at the max distance: outside the tube, pulled in until inside
+            const side = orbitPosition(pv.x, pv.y, pv.z, yaw + Math.PI / 2, 0.1, CAVE_ORBIT.maxDistance ?? 13, { x: 0, y: 0, z: 0 });
+            const k = tubeFraction(c, s - 6, pv, side);
+            if (k < 1) pulled++;
+            const x = pv.x + (side.x - pv.x) * k;
+            const y = pv.y + (side.y - pv.y) * k;
+            const z = pv.z + (side.z - pv.z) * k;
+            if (!(c.loop && s > c.loop.s0 + 4 && s < c.loop.s1 - 4)) expect(insideTube(c, s - 6, x, y, z) || k <= 0.15).toBe(true);
+         }
+         expect(pulled).toBeGreaterThan(0);
       }
    });
 });
