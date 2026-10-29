@@ -128,7 +128,7 @@ function asSpots(list: readonly DecorSpot[]): InstanceSpot[] {
  * Procedural instanced decor outside the play area:
  * Cones, jersey barriers, stacked pipes, distant city skyline silhouettes and drifting clouds.
  */
-export function Decor({ reduced = false }: { reduced?: boolean }) {
+export function Decor({ reduced = false, skyline: showSkyline = true, clouds: showClouds = true }: { reduced?: boolean; skyline?: boolean; clouds?: boolean }) {
    const quality = useQuality();
    const time = useGameTime();
 
@@ -195,14 +195,18 @@ export function Decor({ reduced = false }: { reduced?: boolean }) {
                <meshStandardMaterial vertexColors roughness={0.5} metalness={0.2} />
             </Instanced>
          )}
-         <Instanced spots={skyline} name="construction-skyline">
-            <primitive object={geo.skyline} attach="geometry" />
-            <meshStandardMaterial vertexColors flatShading roughness={0.9} />
-         </Instanced>
-         <DynamicInstanced count={clouds.length} update={placeCloud} name="construction-clouds">
-            <primitive object={geo.cloud} attach="geometry" />
-            <meshStandardMaterial color={COLORS.cloud} flatShading roughness={1} />
-         </DynamicInstanced>
+         {showSkyline && (
+            <Instanced spots={skyline} name="construction-skyline">
+               <primitive object={geo.skyline} attach="geometry" />
+               <meshStandardMaterial vertexColors flatShading roughness={0.9} />
+            </Instanced>
+         )}
+         {showClouds && (
+            <DynamicInstanced count={clouds.length} update={placeCloud} name="construction-clouds">
+               <primitive object={geo.cloud} attach="geometry" />
+               <meshStandardMaterial color={COLORS.cloud} flatShading roughness={1} />
+            </DynamicInstanced>
+         )}
       </group>
    );
 }

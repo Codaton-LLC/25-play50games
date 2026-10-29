@@ -13,7 +13,8 @@ import { playSfx } from "@/arcade3d/core/audio";
 import { landingMarker, markerColor, RATING_NAME, shadowTop, VISUAL_EXTENSION } from "./dropGuide";
 import { PIECE_ASSETS } from "./assets";
 import { cableGeo, steel } from "./Primitives";
-import { CUE_DROP, CUE_MISS, FLOOR, GRAVITY, PIECE_H, PLAN, SLOT_A, SLOT_R, type Run } from "./rules";
+import { CUE_DROP, CUE_MISS, FLOOR, GRAVITY, PIECE_H, PLAN, SLOT_R, type Run } from "./rules";
+import { LEVELS, type CraneLevel } from "./levels";
 import {
    flashMat,
    guideMat,
@@ -30,9 +31,13 @@ const quat = new Quaternion();
 const scl = new Vector3();
 const slot = { x: 0, z: 0 };
 
+/** The level whose slots slotXZ reads (Pieces sets it from its run each frame). */
+let slotLevel: CraneLevel = LEVELS[1];
+
 function slotXZ(index: number): { x: number; z: number } {
-   slot.x = SLOT_R * Math.sin(SLOT_A[index] ?? 0);
-   slot.z = SLOT_R * Math.cos(SLOT_A[index] ?? 0);
+   const a = slotLevel.slotA[index] ?? 0;
+   slot.x = SLOT_R * Math.sin(a);
+   slot.z = SLOT_R * Math.cos(a);
    return slot;
 }
 
@@ -74,6 +79,7 @@ const fallAt = { x: 0, y: 0, z: 0 };
 const popAt = { x: 0, y: 0, z: 0 };
 
 function surfaceUnder(run: Run, x: number, z: number): number {
+   slotLevel = run.level;
    let top = 0;
    for (const piece of run.pieces) {
       if (!piece.on) continue;
@@ -89,6 +95,7 @@ function hidden(fall: Fall, slotIndex: number, floor: number): boolean {
 
 /** Placed floors, the piece on the hook, the landing guide and the glowing slot. */
 export function Pieces({ run }: { run: Run }) {
+   slotLevel = run.level;
    const parts = useMemo(() => [{ geometry: pieceGeo, material: pieceMat }], []);
    // stand-ins for the four GLB piece kinds: the coloured rounded box at the piece's size, feet on the origin
    const standIns = useMemo(
@@ -151,6 +158,7 @@ export function Pieces({ run }: { run: Run }) {
    };
 
    useFrame(() => {
+      slotLevel = run.level;
       const now = time.now;
       const f = fall.current;
       if (run.cue & (CUE_DROP | CUE_MISS)) {
