@@ -10,7 +10,7 @@ import { FRAME_PRIORITY } from "@/arcade3d/core/frameLoop";
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import { Instanced, useCanvasTexture, type InstanceSpot } from "@/arcade3d/core/render";
 import type { AquariumLevel } from "./levels";
-import { GLASS_H, HALL, SAND_TILE_M, hallSpots, sandTint, waterTint } from "./looks";
+import { GLASS_H, HALL, SAND_TILE_M, causticsOf, hallSpots, lookOf, sandTint, waterTint } from "./looks";
 
 /** A 4 m square of sand: warm base, fine grain, wind ripples, soft darker patches, a few pebbles and shells. */
 function drawSand(ctx: CanvasRenderingContext2D, w: number, h: number) {
@@ -112,6 +112,7 @@ export function TankSurroundings({ level }: { level: AquariumLevel }) {
    useMemo(() => wrap(caustics, level.width / 6, level.depth / 6), [caustics, level.width, level.depth]);
    useMemo(() => wrap(hall, hallSize / HALL.tile, hallSize / HALL.tile), [hall, hallSize]);
    const plinth = useMemo(() => hallSpots(level), [level]);
+   const look = useMemo(() => lookOf(level), [level]);
    const night = level.lighting === "night";
    useFrame(() => {
       // the caustics drift slowly (game clock: frozen while paused)
@@ -131,7 +132,7 @@ export function TankSurroundings({ level }: { level: AquariumLevel }) {
          </mesh>
          <mesh rotation-x={-Math.PI / 2} position={[0, 0.006, 0]}>
             <planeGeometry args={[level.width, level.depth]} />
-            <meshBasicMaterial map={caustics} transparent opacity={night ? 0.14 : 0.16} blending={AdditiveBlending} depthWrite={false} />
+            <meshBasicMaterial map={caustics} transparent opacity={causticsOf(level)} blending={AdditiveBlending} depthWrite={false} />
          </mesh>
          {/* a faint tint under the water surface */}
          <mesh rotation-x={-Math.PI / 2} position={[0, GLASS_H - 0.05, 0]} renderOrder={2}>
@@ -141,7 +142,7 @@ export function TankSurroundings({ level }: { level: AquariumLevel }) {
          {/* the plinth under the glass and the dim back wall of the hall */}
          <Instanced spots={plinth} name="hall-plinth">
             <boxGeometry args={[1, 1, 1]} />
-            <meshStandardMaterial color="#1f2937" emissive="#0e7490" emissiveIntensity={night ? 0.25 : 0} roughness={0.6} />
+            <meshStandardMaterial color="#1f2937" emissive={look.plinthGlow[0]} emissiveIntensity={look.plinthGlow[1]} roughness={0.6} />
          </Instanced>
       </>
    );

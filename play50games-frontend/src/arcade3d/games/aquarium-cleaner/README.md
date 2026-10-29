@@ -1,6 +1,6 @@
 # Aquarium Cleaner
 
-Owner: kimi. Slug: `aquarium-cleaner`. Order 49. Status `dev`. Collection `adventure`. Points. Difficulty 2. One tank, five level configs. Spec: `docs/menu1-new/specs-41-50.md` §49. Built on `claude/game-aquarium-cleaner`.
+Owner: kimi. Slug: `aquarium-cleaner`. Order 49. Status `dev`. Collection `adventure`. Points. Difficulty 2. Five tanks, one per level. Spec: `docs/menu1-new/specs-41-50.md` §49. Built on `claude/game-aquarium-cleaner`; per-level maps and looks on `kimi/aquarium-cleaner-levels`.
 
 ## Rules
 
@@ -27,15 +27,20 @@ Keyboard and touch run the same `step()`: only the stick axes, `action` and `jum
 
 ## Levels
 
-| L | Title | Tank | Algae (high) | Trash | Filters | Tasks | Drain /s | Sharks | Current | Clock | Light |
-|---|---|---|---|---:|---:|---:|---:|---|---|---:|---|
-| 1 | Small Tank | 16 x 12 | 1 (0) | 1 | 1 | 3 | 1.2 | - | no | 120 s | day `#5eead4` |
-| 2 | Tropical Tank | 20 x 14 | 2 (1) | 1 | 1 | 4 | 1.3 | - | no | 150 s | day `#2dd4bf` |
-| 3 | Shark Tunnel | 24 x 14 | 2 (1) | 2 | 1 | 5 | 1.4 | 1 at 1.6 | no | 180 s | indoor `#115e59` |
-| 4 | Giant Aquarium | 26 x 18 | 2 (1) | 2 | 2 | 6 | 1.5 | 1 at 1.9 | no | 180 s | day `#0d9488` |
-| 5 | Deep Sea Exhibit | 30 x 20 | 3 (2) | 3 | 2 | 8 | 1.5 | 2 at 2.0 | yes | 210 s | night `#042f2e` |
+Each level is its own tank with its own map (`layout` in levels.ts drives the castle's hunting box
+and size and the rocks' count, size and spread in rules.ts) and its own look (`lookOf` in looks.ts:
+fog distance, sand / water tints, caustics, the glass-frame glow, coral and fish counts, and the
+set pieces in SetPieces.tsx). Level 1 keeps the original layout and look exactly.
 
-Fog is `[background, 42, 120]`: it starts past the whole camera window on a 390 × 844 phone, a 1280 × 800 desktop and an 844 × 390 landscape phone (`look.test.ts`). The layout is seeded (`createRun(seed, level)`): the castle, rocks, filters, patches and trash are placed by rejection sampling and a flood fill proves every patch (a stand point within 1.0 m), filter, item, the basket, the column and the hatch reachable from the entry. 200 seeds x 5 levels in `rules.test.ts`.
+| L | Title | Tank | Algae (high) | Trash | Filters | Tasks | Drain /s | Sharks | Current | Clock | Light | Map flavour |
+|---|---|---|---|---:|---:|---:|---:|---|---|---:|---|---|
+| 1 | Small Tank | 16 x 12 | 1 (0) | 1 | 1 | 3 | 1.2 | - | no | 120 s | day `#5eead4` | small: castle centre, rocks anywhere |
+| 2 | Tropical Tank | 20 x 14 | 2 (1) | 1 | 1 | 4 | 1.3 | - | no | 150 s | day `#2dd4bf` | garden: castle back-left, a swaying kelp garden, lush coral |
+| 3 | Shark Tunnel | 24 x 14 | 2 (1) | 2 | 1 | 5 | 1.4 | 1 at 1.6 | no | 180 s | indoor `#115e59` | tunnel: castle centre strip, extra rocks, arches over the glass |
+| 4 | Giant Aquarium | 26 x 18 | 2 (1) | 2 | 2 | 6 | 1.5 | 1 at 1.9 | no | 180 s | day `#0d9488` | expanse: a big castle mid-left, extra rocks, a sunken ruin |
+| 5 | Deep Sea Exhibit | 30 x 20 | 3 (2) | 3 | 2 | 8 | 1.5 | 2 at 2.0 | yes | 210 s | night `#042f2e` | abyss: castle back-right, big rocks in the back band, rim lamps and glowing stalks |
+
+Fog is `[background, 42, fogFar]`, `fogFar` 120 / 110 / 85 / 115 / 78 per level: it starts past the whole camera window on a 390 × 844 phone, a 1280 × 800 desktop and an 844 × 390 landscape phone (`look.test.ts`). The layout is seeded (`createRun(seed, level)`): the castle, rocks, filters, patches and trash are placed by rejection sampling and a flood fill proves every patch (a stand point within 1.0 m), filter, item, the basket, the column and the hatch reachable from the entry. 200 seeds x 5 levels in `rules.test.ts`. The per-level set pieces (kelp, arches, ruin, lamps, stalks) are seeded decor in looks.ts, cosmetic only, and `variety.test.ts` proves the five levels differ and every piece stays out of the play area.
 
 ## Server limits
 
@@ -55,7 +60,7 @@ Proof (`proof.level-N.test.ts`, one level per file, `testing/proof.ts`; bots in 
 
 ## Look
 
-One palette (`COLORS`) in `looks.ts`: sand `#f5deb3`, glass edge `#99f6e4` as a thin emissive frame, algae `#4d7c0f` decals that fade as the hold fills, accent `#2dd4bf`. Lighting and background come from the level (core presets + fog). Camera: follow, pitch 50 deg, one yaw (0: the tank's open front always faces the camera; a portrait phone no longer turns it to look through the side glass), fov 48, an 8 × 11 m window round the diver (the portrait camera sits at about 25 m instead of 34 m), `shift: true`. The tank floor is a sand bed (`Tank.tsx`: one canvas texture every 4 m with grain, ripples, soft patches, pebbles and shells, tinted per level, plus slowly drifting additive caustics) under a faint water tint at the surface. Round the tank stands the aquarium hall: a dark tiled floor reaching 150 m (past the fog), a 0.45 m plinth under the back and side glass, a 0.15 m lip along the open front (never over the diver's feet) and a dim back wall 9 m behind the tank, so no screen edge shows void (`look.test.ts`).
+One palette (`COLORS`) in `looks.ts`: sand `#f5deb3`, glass edge `#99f6e4` as a thin emissive frame, algae `#4d7c0f` decals that fade as the hold fills, accent `#2dd4bf`. Lighting and background come from the level (core presets + fog). Camera: follow, pitch 50 deg, one yaw (0: the tank's open front always faces the camera; a portrait phone no longer turns it to look through the side glass), fov 48, an 8 × 11 m window round the diver (the portrait camera sits at about 25 m instead of 34 m), `shift: true`. The tank floor is a sand bed (`Tank.tsx`: one canvas texture every 4 m with grain, ripples, soft patches, pebbles and shells, tinted per level, plus slowly drifting additive caustics) under a faint water tint at the surface. Round the tank stands the aquarium hall: a dark tiled floor reaching 150 m (past the fog), a 0.45 m plinth under the back and side glass, a 0.15 m lip along the open front (never over the diver's feet) and a dim back wall 9 m behind the tank, so no screen edge shows void (`look.test.ts`). The set pieces are per level (`SetPieces.tsx`, spots from looks.ts): the Tropical Tank grows a swaying kelp garden along the back glass with extra coral and three fish schools; the Shark Tunnel carries dark metal arches on the side plinths over the glass, each with an emissive strip; the Giant Aquarium has a sunken ruin (tilted column, stump, hull rib, slab) in the back-left corner; the Deep Sea Exhibit is lamp-lit — warm rim lamps on the back plinth, one cyan point light over the tank, and bioluminescent cyan / violet stalks along the back glass (`variety.test.ts` keeps them out of the play area).
 
 Models are Hyper3D GLBs through the core: the diver (`charDiver`, 1.78 m, auto-rig with committed `DIVER_LANDMARKS`, slow `walkPose` 0.4 with a stride from `gaitPhaseStep` at 0.6 x speed, spine pitched 10 deg, `jumpPose` on a float, an arm aimed at the patch while scrubbing, the scrubber in `handR` and the tank on the chest by `attach`), castle (2.5 m wide, y x0.8), rocks (instanced), filter machine V3 (1.3 m wide), trash basket, bottle pool, fish schools (decor, high in the back half), shark pool, coral (instanced decor on the back glass). The bubble column is code (a ring, a faint tube and 26 rising bubbles): the `bubbleStation` GLBs are glass domes and are not used. `coral`, `seaweed` and the V2 / V3 variants are broken shard meshes and are not used either. Every GLB has a bevelled 2-3 tone stand-in (`Primitives.tsx`). Decor is authored at the drawn size of spot scale 1 and scaled by the spot only; coral stays against the back glass and fish above 2.4 m behind the diver's half of the tank, so nothing sits between the camera and him. About 35 draw calls by count (cap 60); not measured on a device.
 
