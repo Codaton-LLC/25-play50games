@@ -200,6 +200,15 @@ export const MODEL_MANIFEST: readonly string[] = [
    // plate-surf's sea set, reused by Zipline Rush (ready/menu2/plate-surf)
    "/models/3d/zipline-rush/m2SeaCliffBg.glb",
    "/models/3d/zipline-rush/m2MarkerBuoy.glb",
+   // Menu 2 game 46 (Color Door Sprint): ready/menu2/color-door-sprint plus m2FireSpirit and m2MineLanternPost (shared)
+   "/models/3d/color-door-sprint/m2ArchCorridorBgV2.glb",
+   "/models/3d/color-door-sprint/m2ArchWallV2.glb",
+   "/models/3d/color-door-sprint/m2ChevronSpeedPad.glb",
+   "/models/3d/color-door-sprint/m2DoorwayV2.glb",
+   "/models/3d/color-door-sprint/m2FireSpirit.glb",
+   "/models/3d/color-door-sprint/m2MineLanternPost.glb",
+   "/models/3d/color-door-sprint/m2ScoreOrb.glb",
+   "/models/3d/color-door-sprint/m2SlidingDoor.glb",
    // Menu 2 game 05 (Cloud Hopper): cloud props from ~/.play50/hyper3d/ready/menu2/cloud-hopper
    "/models/3d/cloud-hopper/m2CloudBank.glb",
    "/models/3d/cloud-hopper/m2CloudCastleBg.glb",

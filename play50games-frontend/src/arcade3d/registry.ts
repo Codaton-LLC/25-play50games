@@ -58,6 +58,7 @@ import { rooftopRollClimbMeta } from "./games/rooftop-roll-climb/meta";
 import { floodedRuinsEscapeMeta } from "./games/flooded-ruins-escape/meta";
 import { lavaPillarJumpMeta } from "./games/lava-pillar-jump/meta";
 import { ziplineRushMeta } from "./games/zipline-rush/meta";
+import { colorDoorSprintMeta } from "./games/color-door-sprint/meta";
 import { cloudHopperMeta } from "./games/cloud-hopper/meta";
 import { plateSurfMeta } from "./games/plate-surf/meta";
 import { ringJumpChallengeMeta } from "./games/ring-jump-challenge/meta";
@@ -129,6 +130,7 @@ export const ARCADE_GAMES: ArcadeGameMeta[] = [
    rollCannonJumpMeta,
    templeLanternJumpMeta,
    dragonCaveRushMeta,
+   colorDoorSprintMeta,
 ].sort((a, b) => a.order - b.order);
 
 export function getGameMeta(slug: string): ArcadeGameMeta | undefined {
