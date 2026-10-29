@@ -204,6 +204,13 @@ function RunScene({ multi }: { multi: boolean }) {
                   // a little below the hero: the way is down
                   Object.assign(out, { x: cellX(world.w, firstHero.px), y: floorY(firstHero.py) - 0.8, z: 0 });
                }}
+               // the cross-section is read face-on: the auto-follow (2.5 s after a manual turn) and the
+               // recenter button both swing the camera back in front of the slab
+               travel={(out) => {
+                  out.x = 0;
+                  out.z = -4;
+               }}
+               behind={() => 0}
                distanceScale={aspect < 1 ? PORTRAIT_DISTANCE : 1}
             />
          )}

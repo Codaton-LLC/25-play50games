@@ -26,18 +26,20 @@ export function World({ world }: { world: RunWorld }) {
    const look = lookFor(world.level);
    const tex = useMemo(() => terrainTextures(look, 91 + world.level), [look, world.level]);
    const outer = useMemo(() => {
-      const t = tex.bedrock.clone();
+      const t = tex.rock.clone();
       t.wrapS = t.wrapT = RepeatWrapping;
-      t.repeat.set(6, 30);
+      t.repeat.set(20, 60);
       t.needsUpdate = true;
-      return new MeshStandardMaterial({ map: t, roughness: 1, color: "#8a7d72" });
+      // the rock mass beyond the cells: the same stone, a little darker, faintly self-lit so it never reads as a void
+      return new MeshStandardMaterial({ map: t, roughness: 1, color: "#7d7068", emissive: new Color("#2a1d16"), emissiveIntensity: 0.6, emissiveMap: t });
    }, [tex]);
    const ground = useMemo(() => {
       const t = tex.soft.clone();
       t.wrapS = t.wrapT = RepeatWrapping;
-      t.repeat.set(20, 4);
+      t.repeat.set(40, 12);
       t.needsUpdate = true;
-      return new MeshStandardMaterial({ map: t, roughness: 1, color: "#9c958e" });
+      // the volcano's ash-grey flank at the surface (W1 is drained of colour)
+      return new MeshStandardMaterial({ map: t, roughness: 1, color: "#b5aca4", emissive: new Color("#6b5f57"), emissiveIntensity: 0.45, emissiveMap: t });
    }, [tex]);
    const sky = useMemo(
       () =>
@@ -76,7 +78,7 @@ export function World({ world }: { world: RunWorld }) {
          {/* the volcano's grey cone far behind, a dim ember at its crater on the deep levels */}
          <mesh position={[18, 6, -95]}>
             <coneGeometry args={[70, 55, 32, 1, true]} />
-            <meshStandardMaterial color="#5b5550" roughness={1} />
+            <meshBasicMaterial color={world.level === 5 ? "#3b3138" : "#7d7069"} fog={false} />
          </mesh>
          {world.level >= 4 && (
             <mesh position={[18, 33.5, -95]}>
