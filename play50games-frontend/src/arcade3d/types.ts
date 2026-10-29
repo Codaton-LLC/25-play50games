@@ -78,6 +78,7 @@ export const ARCADE_SLUGS = [
    "temple-coin-rush",
    "wall-run-temple",
    "spin-pole-climb",
+   "temple-gong-timing",
    "disc-target-throw",
    "tightrope-path",
    "ice-peak-jumper",

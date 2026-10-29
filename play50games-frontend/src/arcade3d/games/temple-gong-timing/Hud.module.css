@@ -1,0 +1,210 @@
+/* Temple Gong Timing HUD: deep jungle-green pills with a gold edge, bold white numbers, the accuracy
+   meter, the song's progress, a beat light and the judgement of the last strike. Under the shell's chip row on the left; the banner centred at the
+   top, clear of the shell's Mute / Pause on the right. Every text is at least 12 px. */
+.pill,
+.clock {
+   display: inline-flex;
+   align-items: center;
+   gap: 8px;
+   min-width: 92px;
+   padding: 6px 14px 6px 8px;
+   border: 2px solid rgba(255, 220, 140, 0.28);
+   border-radius: 999px;
+   background: linear-gradient(180deg, rgba(14, 46, 34, 0.9), rgba(8, 26, 20, 0.9));
+   box-shadow: 0 4px 14px rgba(0, 10, 6, 0.4);
+   color: #fff;
+}
+
+.value {
+   font-size: 1.25rem;
+   font-weight: 800;
+   letter-spacing: 0.01em;
+   line-height: 1;
+   font-variant-numeric: tabular-nums;
+   text-shadow: 0 2px 0 rgba(0, 0, 0, 0.25);
+}
+
+.orb {
+   width: 26px;
+   height: 26px;
+   border-radius: 50%;
+   background: radial-gradient(circle at 35% 30%, #eafff0 0, #7ff0a8 35%, #22b866 70%, #0d6b38 100%);
+   box-shadow: 0 0 10px rgba(80, 230, 140, 0.75), inset 0 -2px 3px rgba(0, 70, 30, 0.5);
+}
+
+.banner {
+   display: flex;
+   flex-direction: column;
+   align-items: center;
+   padding: 6px 22px 7px;
+   border: 2px solid rgba(255, 220, 140, 0.3);
+   border-radius: 16px;
+   background: linear-gradient(180deg, rgba(14, 46, 34, 0.92), rgba(8, 26, 20, 0.92));
+   box-shadow: 0 6px 18px rgba(0, 10, 6, 0.4);
+   white-space: nowrap;
+}
+
+.title {
+   color: #fff;
+   font-size: 1.2rem;
+   font-weight: 800;
+   line-height: 1.15;
+}
+
+.level {
+   color: #ffd257;
+   font-size: 0.85rem;
+   font-weight: 700;
+   line-height: 1.2;
+}
+
+.clock {
+   min-width: 0;
+   padding: 4px 14px 4px 8px;
+}
+
+.swatch {
+   width: 22px;
+   height: 22px;
+   flex: none;
+   border-radius: 50%;
+   box-shadow: inset 0 -2px 3px rgba(0, 0, 0, 0.35), 0 0 8px rgba(255, 255, 255, 0.35);
+}
+
+/* the climb meter: how high up the level the hero is (green), pulsing amber in the last few metres */
+.meter {
+   position: relative;
+   width: 78px;
+   height: 10px;
+   border-radius: 999px;
+   background: rgba(255, 255, 255, 0.2);
+   overflow: hidden;
+}
+
+.meterFill {
+   position: absolute;
+   inset: 0 auto 0 0;
+   border-radius: 999px;
+   background: linear-gradient(90deg, #15803d, #86efac);
+   transition: width 90ms linear;
+}
+
+.meterHigh {
+   background: linear-gradient(90deg, #ca8a04, #fde68a);
+   animation: meterPulse 0.5s ease-in-out infinite alternate;
+}
+
+@keyframes meterPulse {
+   from {
+      opacity: 0.55;
+   }
+   to {
+      opacity: 1;
+   }
+}
+
+@media (prefers-reduced-motion: reduce) {
+   .meterHigh {
+      animation: none;
+   }
+}
+
+/* the hero row, portaled onto the page above the start card */
+.mpBtn {
+   min-height: 44px;
+   margin-left: 4px;
+   padding: 0 12px;
+   border: 2px solid #ffd257;
+   border-radius: 12px;
+   background: rgba(255, 210, 87, 0.14);
+   color: #fff;
+   font: inherit;
+   font-size: 0.78rem;
+   font-weight: 800;
+   white-space: nowrap;
+   cursor: pointer;
+}
+
+.mpBtn:focus-visible {
+   outline: 3px solid #ffd257;
+   outline-offset: 2px;
+}
+
+.levelShort {
+   display: none;
+}
+
+/* narrow phones: the banner fits between the shell's chips and its buttons with the level's name only
+   (the shell's chip shows the level number, the start card the title) */
+@media (max-width: 520px) {
+   .banner {
+      max-width: 108px;
+      min-height: 46px;
+      box-sizing: border-box;
+      justify-content: center;
+      padding: 4px 10px 5px;
+      border-radius: 12px;
+      white-space: normal;
+      text-align: center;
+   }
+   .title,
+   .levelLong {
+      display: none;
+   }
+   .levelShort {
+      display: inline;
+   }
+   .level {
+      font-size: 0.75rem;
+   }
+   .value {
+      font-size: 1.05rem;
+   }
+   .pill {
+      min-width: 76px;
+      padding: 4px 12px 4px 6px;
+   }
+   .orb {
+      width: 22px;
+      height: 22px;
+   }
+   .meter {
+      width: 64px;
+   }
+}
+
+/* the judgement of the last strike, big under the banner */
+.judge {
+   font-size: 1.15rem;
+   font-weight: 900;
+   letter-spacing: 0.06em;
+   text-shadow: 0 2px 8px rgba(0, 0, 0, 0.55);
+   min-height: 1.4em;
+   text-align: center;
+}
+
+.perfect {
+   color: #4ade80;
+}
+
+.good {
+   color: #fde68a;
+}
+
+.miss {
+   color: #f87171;
+}
+
+/* the beat light: flashes on every beat, brighter on the downbeat */
+.beat {
+   width: 14px;
+   height: 14px;
+   border-radius: 50%;
+   background: rgba(255, 255, 255, 0.25);
+   flex: none;
+}
+
+.beatOn {
+   background: #fde68a;
+   box-shadow: 0 0 10px #fde68a;
+}

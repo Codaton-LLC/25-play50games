@@ -343,6 +343,17 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/spin-pole-climb/m2RotatingPoleV2.glb",
    "/models/3d/spin-pole-climb/m2SpiralTowerBg.glb",
    "/models/3d/spin-pole-climb/m2SweeperBar.glb",
+   // Menu 2 game 36 (Temple Gong Timing): stage props from ~/.play50/hyper3d/ready/menu2/temple-gong-timing
+   // (the Great Gong is the code-built menu2/props GreatGong), plus its copy of World 3's guardian pair
+   "/models/3d/temple-gong-timing/m2CeremonyDrum.glb",
+   "/models/3d/temple-gong-timing/m2CoilstoneHead.glb",
+   "/models/3d/temple-gong-timing/m2CoilstoneSegment.glb",
+   "/models/3d/temple-gong-timing/m2GongStage.glb",
+   "/models/3d/temple-gong-timing/m2JungleRuinBg.glb",
+   "/models/3d/temple-gong-timing/m2RuinLanternPillar.glb",
+   "/models/3d/temple-gong-timing/m2StrikerPost.glb",
+   "/models/3d/temple-gong-timing/m2TempleGong.glb",
+   "/models/3d/temple-gong-timing/m2TimingRing.glb",
    // Menu 2 game 15 (Color City Sprint): its props from ready/menu2/color-city-sprint, plus m2FactoryDrone (shared)
    "/models/3d/color-city-sprint/m2CityBarrier.glb",
    "/models/3d/color-city-sprint/m2CityBus.glb",

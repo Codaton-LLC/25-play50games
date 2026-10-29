@@ -1376,6 +1376,23 @@
         { "title": "Gummy Grove", "max_score": 12290, "min_duration_ms": 27100, "max_duration_ms": 150000, "time_base_ms": 150000 },
         { "title": "Bonbon Palace", "max_score": 16740, "min_duration_ms": 32600, "max_duration_ms": 200000, "time_base_ms": 200000 }
       ]
+    },
+    "temple-gong-timing": {
+      "title": "Temple Gong Timing",
+      "kind": "points",
+      "max_score": 12790,
+      "min_duration_ms": 72800,
+      "max_duration_ms": 79500,
+      "base": 400,
+      "max_pps": 176,
+      "enabled": false,
+      "levels": [
+        { "title": "Slow Beat", "max_score": 12790, "min_duration_ms": 72800, "max_duration_ms": 79500, "base": 400, "max_pps": 176 },
+        { "title": "Alternating Gongs", "max_score": 13690, "min_duration_ms": 71500, "max_duration_ms": 78154, "base": 400, "max_pps": 187 },
+        { "title": "Moving Targets", "max_score": 14180, "min_duration_ms": 64400, "max_duration_ms": 70572, "base": 400, "max_pps": 215 },
+        { "title": "Fast Rhythm", "max_score": 14790, "min_duration_ms": 41800, "max_duration_ms": 46517, "base": 400, "max_pps": 358 },
+        { "title": "Perfect Timing", "max_score": 28600, "min_duration_ms": 64700, "max_duration_ms": 242000, "base": 5720, "max_pps": 318 }
+      ]
     }
   }
 }
