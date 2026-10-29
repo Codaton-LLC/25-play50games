@@ -245,7 +245,7 @@ export const LEVELS: Record<LevelId, ToySpec> = {
       ],
       chains: [
          { pts: [[-3, 6], [-3, 18], [2, 22], [2, 41]], speed: 6, kind: "domino" },
-         { pts: [[2, 44], [2, 81]], speed: 6.5, kind: "key" },
+         { pts: [[2, 44], [2, 91]], speed: 6.5, kind: "key" },
          { pts: [[-2, 94], [-2, 137]], speed: 6.5, kind: "domino", missing: [10], spares: [{ x: 0.6, z: 108, slot: 10 }] },
       ],
       drums: [],
@@ -299,7 +299,7 @@ export const LEVELS: Record<LevelId, ToySpec> = {
       ],
       chains: [
          { pts: [[0, 24], [0, 45]], speed: 9, kind: "domino" },
-         { pts: [[-3, 60], [-3, 85]], speed: 9, kind: "domino" },
+         { pts: [[-3, 60], [-3, 95]], speed: 9, kind: "domino" },
          { pts: [[2, 110], [2, 141]], speed: 9, kind: "key" },
       ],
       drums: [],

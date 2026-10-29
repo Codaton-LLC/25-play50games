@@ -5,7 +5,7 @@
 // hero power whenever it is ready (the proof's power-mashing check); it never changes the line.
 import { BOXES } from "./levels";
 import { DRUM_R, PIECE_SPACING, type Course } from "./room";
-import { createRun, createStepInput, step, type StepInput, type ToyRun } from "./rules";
+import { createRun, createStepInput, pieceStanding, step, type StepInput, type ToyRun } from "./rules";
 import { heroById, type HeroId } from "./heroes";
 import type { LevelId } from "../../types";
 
@@ -109,6 +109,30 @@ function pushStarter(run: ToyRun, chain: number, input: StepInput): void {
    else steer(run, bx, bz, input);
 }
 
+/** Walk round the standing pieces near you (a bounce off a line's side costs the drum's window). */
+function avoidStanding(run: ToyRun, input: StepInput): void {
+   const h = run.hero;
+   const c = run.course;
+   let ax = 0;
+   let az = 0;
+   for (let i = 0; i < c.pieces.length; i++) {
+      const p = c.pieces[i];
+      const dx = h.x - p.x;
+      const dz = h.z - p.z;
+      const d = Math.hypot(dx, dz);
+      if (d > 2 || d < 1e-6 || !pieceStanding(run, i)) continue;
+      const w = (2 - d) / 2;
+      ax += (dx / d) * w * 2;
+      az += (dz / d) * w * 2;
+   }
+   if (ax === 0 && az === 0) return;
+   const mx = input.moveX + ax;
+   const mz = input.moveZ + az;
+   const m = Math.hypot(mx, mz) || 1;
+   input.moveX = mx / Math.max(1, m);
+   input.moveZ = mz / Math.max(1, m);
+}
+
 function bossPlay(bot: Bot, run: ToyRun, input: StepInput): void {
    const b = run.boss!;
    const c = run.course;
@@ -145,7 +169,13 @@ export function botInput(bot: Bot, run: ToyRun, input: StepInput): void {
    input.moveZ = 0;
    const c = run.course;
    const h = run.hero;
-   if (run.ended || h.lostUntil >= 0) return;
+   if (run.ended) return;
+   if (h.lostUntil >= 0) {
+      // fell: re-plan from the checkpoint it respawns at (its chains were re-armed)
+      bot.gap = 0;
+      bot.launched = false;
+      return;
+   }
    if (run.boss && run.boss.hp > 0) {
       bossPlay(bot, run, input);
    } else {
@@ -172,6 +202,7 @@ export function botInput(bot: Bot, run: ToyRun, input: StepInput): void {
             // stand on the drum and wait for the wave
             if (Math.hypot(h.x - dr.x, h.z - dr.z) > DRUM_R * 0.5) {
                steer(run, dr.x, dr.z, input);
+               avoidStanding(run, input);
                if (h.grounded && Math.hypot(h.x - dr.x, h.z - dr.z) < DRUM_R + 1 && h.y < 0.3) input.jumpPressed = true;
             }
          }

@@ -40,7 +40,11 @@ describe("placement", () => {
             const z0 = desks[g].z1;
             const z1 = desks[g + 1].z0;
             expect(z1 - z0, `gap ${g}`).toBeGreaterThan(Math.max(NAMI, RIKO) + 0.5);
-            const bridged = c.pieces.some((p) => p.gap && p.z > z0 && p.z < z1);
+            // one chain's pieces reach right across: from the near edge to within a fallen piece of the far one
+            const bridged = c.chains.some((ch) => {
+               const zs = c.pieces.filter((p) => p.chain === c.chains.indexOf(ch)).map((p) => p.z);
+               return Math.min(...zs) < z0 + 0.5 && Math.max(...zs) > z1 - 1.5;
+            });
             const drum = c.drums.some((d) => d.z < z0 && d.z > desks[g].z0) && c.plats.some((p) => p.kind === "shelf" && p.z0 < z0 && p.z1 > z1);
             expect(bridged || drum, `gap ${g}`).toBe(true);
          }

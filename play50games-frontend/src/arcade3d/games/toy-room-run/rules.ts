@@ -32,6 +32,8 @@ import {
    HERO_R,
    PICKUP_R,
    PIECE_SPACING,
+   PIECE_T,
+   PIECE_W,
    TOP_R,
    buildCourse,
    carAt,
@@ -637,13 +639,17 @@ function stepMs(run: ToyRun, input: StepInput, ev: StepEvents): void {
             continue;
          }
          // back out the way you came, and a bounce
-         const s = hit.along >= 0 ? 1 : -1;
+         // out through the face you hit: the broad face (along the wave) or the narrow side
+         const faceHit = PIECE_T / 2 - Math.abs(hit.along) < PIECE_W / 2 - Math.abs(hit.side);
+         const s = (faceHit ? hit.along : hit.side) >= 0 ? 1 : -1;
+         const ox = faceHit ? p.dx : p.dz;
+         const oz = faceHit ? p.dz : -p.dx;
          nx = px;
          nz = pz;
          if (ms - h.lastKnockMs > 400) {
             h.lastKnockMs = ms;
-            h.vx = p.dx * s * V_BOUNCE;
-            h.vz = p.dz * s * V_BOUNCE;
+            h.vx = ox * s * V_BOUNCE;
+            h.vz = oz * s * V_BOUNCE;
             h.stunUntil = ms + STUN_BOUNCE;
             run.bounces += 1;
             ev.bounced = true;
@@ -729,7 +735,7 @@ function stepMs(run: ToyRun, input: StepInput, ev: StepEvents): void {
    if (rampHere > 0 && rampHere > surf) surf = rampHere;
    for (let i = 0; i < c.pieces.length; i++) {
       const p = c.pieces[i];
-      if (!p.gap || Math.abs(p.x - h.x) > 2.2 || Math.abs(p.z - h.z) > 2.2) continue;
+      if (Math.abs(p.x - h.x) > 2.4 || Math.abs(p.z - h.z) > 2.4) continue;
       if (pieceBridge(run, i) && onFallen(p, h.x, h.z) && 0 > surf && h.y >= -0.6) surf = 0;
    }
    let drumHere = -1;
@@ -990,11 +996,11 @@ export function proposeLimits(_id: LevelId, c: Course): LevelLimits {
 }
 
 export const PROPOSED_LEVEL_LIMITS: Record<LevelId, LevelLimits> = {
-   1: { kind: "time", maxScore: 0, minDurationMs: 0, maxDurationMs: 0, timeBaseMs: 0 },
-   2: { kind: "time", maxScore: 0, minDurationMs: 0, maxDurationMs: 0, timeBaseMs: 0 },
-   3: { kind: "time", maxScore: 0, minDurationMs: 0, maxDurationMs: 0, timeBaseMs: 0 },
-   4: { kind: "time", maxScore: 0, minDurationMs: 0, maxDurationMs: 0, timeBaseMs: 0 },
-   5: { kind: "time", maxScore: 0, minDurationMs: 0, maxDurationMs: 0, timeBaseMs: 0 },
+   1: { kind: "time", maxScore: 10750, minDurationMs: 12500, maxDurationMs: 120000, timeBaseMs: 120000 },
+   2: { kind: "time", maxScore: 13690, minDurationMs: 13100, maxDurationMs: 150000, timeBaseMs: 150000 },
+   3: { kind: "time", maxScore: 14580, minDurationMs: 14200, maxDurationMs: 160000, timeBaseMs: 160000 },
+   4: { kind: "time", maxScore: 15340, minDurationMs: 16600, maxDurationMs: 170000, timeBaseMs: 170000 },
+   5: { kind: "time", maxScore: 18410, minDurationMs: 15900, maxDurationMs: 200000, timeBaseMs: 200000 },
 };
 
 export function runTimeMs(playMs: number, orbs: number, comboMs = 0): number {

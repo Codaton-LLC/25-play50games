@@ -97,7 +97,7 @@ export function floorUnder(run: ToyRun): number {
    if (ramp > best && ramp <= h.y + 0.3) best = ramp;
    for (let i = 0; i < c.pieces.length; i++) {
       const p = c.pieces[i];
-      if (!p.gap || Math.abs(p.x - h.x) > 2.2 || Math.abs(p.z - h.z) > 2.2) continue;
+      if (Math.abs(p.x - h.x) > 2.4 || Math.abs(p.z - h.z) > 2.4) continue;
       if (pieceBridge(run, i) && onFallen(p, h.x, h.z) && best < 0 && h.y >= -0.6) best = 0;
    }
    for (const d of c.drums) if (Math.hypot(h.x - d.x, h.z - d.z) <= DRUM_R && h.y >= DRUM_TOP - 0.3) best = Math.max(best, DRUM_TOP);

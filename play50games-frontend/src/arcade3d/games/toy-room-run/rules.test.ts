@@ -88,7 +88,10 @@ describe("the domino wave", () => {
       const r2 = at(1, -2.5, 33);
       hold(r2, 1000, go(0, 1));
       const ch = c.chains[1];
-      const last = ch.first + ch.count - 1;
+      // its last piece over the gap (the chain's very last piece stands on the next desk)
+      let last = ch.first + ch.count - 1;
+      while (!c.pieces[last].gap) last -= 1;
+      expect(last).toBeGreaterThan(ch.first);
       hold(r2, Math.max(0, r2.fallAt[last] - r2.simMs) + 10, createStepInput());
       expect(pieceBridge(r2, last)).toBe(true);
       hold(r2, BRIDGE_MS + 50, createStepInput());
@@ -118,7 +121,8 @@ describe("the domino wave", () => {
          expect(run.fallAt[ch.first + slot]).toBe(Infinity);
          expect(run.fallAt[ch.first + slot + 1]).toBe(Infinity);
          const sp = run.spares[0];
-         run.hero.x = sp.x + 4;
+         // 3.3 m off: beyond a touch, inside the magnet, still on the desk (it ends at x 6)
+         run.hero.x = sp.x + 3.3;
          run.hero.z = sp.z;
          const p = createStepInput();
          p.actionPressed = hero === "zuno";
@@ -202,7 +206,8 @@ describe("hero routes", () => {
       const c = courseFor(1);
       const z = c.cascades[0];
       for (const hero of ["zuno", "kiro"] as const) {
-         const run = at(1, (z.x0 + z.x1) / 2, (z.z0 + z.z1) / 2, hero);
+         // the zone's outer edge, clear of chain 2's dominoes at x -3
+         const run = at(1, z.x0 + 1, (z.z0 + z.z1) / 2, hero);
          const p = createStepInput();
          p.actionPressed = hero === "kiro";
          hold(run, 2900, p);
@@ -286,11 +291,11 @@ describe("the lower bound (README 'Score limits')", () => {
 
 /** minDurationMs, timeBaseMs, maxScore per level (README table). */
 const PINNED = [
-   [0, 0, 0],
-   [0, 0, 0],
-   [0, 0, 0],
-   [0, 0, 0],
-   [0, 0, 0],
+   [12500, 120000, 10750],
+   [13100, 150000, 13690],
+   [14200, 160000, 14580],
+   [16600, 170000, 15340],
+   [15900, 200000, 18410],
 ];
 
 describe("bots (README 'What the bots reached')", () => {
