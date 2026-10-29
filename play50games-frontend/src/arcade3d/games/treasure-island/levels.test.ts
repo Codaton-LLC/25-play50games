@@ -10,6 +10,8 @@ import { createArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { LEVELS } from "./levels";
 import { treasureIslandMeta as meta } from "./meta";
 import definition from "./index";
+import { mapBot } from "./fairnessSuite";
+import { THEMES, groundAt, hillHeight } from "./looks";
 import {
    DIG,
    DURATION_MS,
@@ -26,6 +28,8 @@ import {
    createRun,
    earliestWinMs,
    generateIsland,
+   MAP_MAX_RHO,
+   mapIslandProblem,
    isValidIsland,
    isWon,
    layoutFrom,
@@ -69,26 +73,43 @@ describe("treasure-island levels: declarations", () => {
       for (const id of LEVEL_IDS) expect(PROPOSED_LEVEL_LIMITS[id].maxScore).toBeGreaterThanOrEqual(PROPOSED_LEVEL_LIMITS[1].maxScore);
    });
 
-   it("level 1 is today's game: same clock, tide, ellipse, instructions and sunset", () => {
+   it("level 1 is today's game: same clock, tide, ellipse and instructions, in the morning light", () => {
       const l1 = LEVELS[1];
       expect(l1).toEqual({ treasures: 5, durationMs: 90_000, tideStartS: 70, tideEndS: 90, finalShore: 0.75, spacing: 6, rx: 14, rz: 11, routeMin: 38, routeMax: 56 });
       expect(l1.durationMs).toBe(DURATION_MS);
       expect(levelEnvironment(definition, 1)).toBe(definition.environment);
-      expect(definition.environment).toEqual({ background: "#fdba74", fog: ["#fdba74", 40, 95], lighting: "sunset" });
+      expect(definition.environment).toEqual({ background: "#fde4c4", fog: ["#fde4c4", 42, 100], lighting: "day" });
       expect(levelInstructions(definition, 1)).toBe(definition.instructions);
       expect(levelHudStats(definition, 1)).toEqual([{ key: "treasures", label: "Treasures", max: 5 }]);
       expect(levelRunConfig(definition, 1).durationMs).toBe(DURATION_MS);
+      const lights = new Set<string>();
       for (const id of LEVEL_IDS) {
-         expect(levelEnvironment(definition, id)).toBe(definition.environment);
+         const env = levelEnvironment(definition, id)!;
+         expect(env.lighting).toBe(THEMES[id].lighting);
+         expect(env.background).toBe(THEMES[id].background);
+         lights.add(`${env.lighting} ${env.background}`);
          expect(levelRunConfig(definition, id).durationMs).toBe(DURATION_MS);
       }
+      // morning, noon, golden hour, jungle shade, the storm: five different lights
+      expect(lights.size).toBe(5);
+      expect(LEVEL_IDS.map((id) => THEMES[id].lighting)).toEqual(["day", "day", "sunset", "indoor", "night"]);
+      // the chain levels show the map pieces next to the treasures
+      expect(levelHudStats(definition, 3)).toEqual([{ key: "treasures", label: "Treasures", max: 6 }, { key: "map", label: "Map", max: 2 }]);
+      expect(levelHudStats(definition, 4)![1]).toEqual({ key: "map", label: "Map", max: 3 });
+      expect(levelHudStats(definition, 5)![1]).toEqual({ key: "map", label: "Map", max: 3 });
    });
 
-   it("replays today's createRun, and level 2 only moves the tide clock", () => {
+   it("replays today's createRun on level 1; levels 2-5 are their own maps", () => {
       for (const seed of [0, 1, 7, 42, 94]) {
          const today = generateIsland(seed);
          expect(generateIsland(seed, LEVELS[1])).toEqual(today);
-         expect(generateIsland(seed, LEVELS[2]).treasures).toEqual(today.treasures);
+         expect(today.gates).toBeUndefined();
+         expect(today.unlockAt).toBeUndefined();
+         for (const id of [2, 3, 4, 5] as const) {
+            const other = generateIsland(seed, LEVELS[id]);
+            expect(other.treasures).not.toEqual(today.treasures);
+            expect(other.circles.length).toBeGreaterThan(today.circles.length);
+         }
          const a = createRun(today);
          const b = createRun(today, LEVELS[1]);
          expect(b.tide).toBe(TIDE);
@@ -106,8 +127,9 @@ describe("treasure-island levels: declarations", () => {
          expect(b.dug).toEqual(a.dug);
       }
       expect(shoreAt(65)).toBe(1);
-      const later = createRun(generateIsland(3), LEVELS[2]);
-      expect(later.shape).toBe(ISLAND);
+      const later = createRun(generateIsland(3, LEVELS[2]), LEVELS[2]);
+      expect(later.shape.map).toBe(LEVELS[2].map);
+      expect(createRun(generateIsland(3), LEVELS[1]).shape).toBe(ISLAND);
       expect(shoreAt(65, later.tide)).toBeLessThan(1);
       expect(shoreAt(65, later.tide)).toBeGreaterThan(later.tide.finalShore);
    });
@@ -142,7 +164,8 @@ describe("treasure-island levels: difficulty", () => {
             const island = generateIsland(seed * 17 + 3, LEVELS[id]);
             expect(island.treasures).not.toBe(FALLBACK_ISLAND.treasures);
             expect(island.treasures.length).toBe(LEVELS[id].treasures);
-            expect(isValidIsland(island, layoutFrom(LEVELS[id]))).toBe(true);
+            if (LEVELS[id].map) expect(mapIslandProblem(island, LEVELS[id])).toBeNull();
+            else expect(isValidIsland(island, layoutFrom(LEVELS[id]))).toBe(true);
             const ideal = shortestRoute(island.treasures);
             expect(ideal).toBeGreaterThanOrEqual(LEVELS[id].routeMin);
             expect(ideal).toBeLessThanOrEqual(LEVELS[id].routeMax);
@@ -306,7 +329,7 @@ describe("treasure-island levels: bots", () => {
       let rejected = 0;
       for (let seed = 0; seed < BOT_SEEDS; seed++) {
          const island = generateIsland(seed, LEVELS[id]);
-         const run = simulate(island, id, pathBot(island, LEVELS[id]));
+         const run = simulate(island, id, LEVELS[id].map ? mapBot(island, LEVELS[id]) : pathBot(island, LEVELS[id]));
          if (run.won && run.score >= clearAt) wins++;
          if (run.won && run.score >= 0.9 * limits.maxScore) rich++;
          if (run.capped) capped++;
@@ -340,7 +363,7 @@ describe("treasure-island levels: the simulation reads every level knob", () => 
       for (let seed = 0; seed < SEEDS; seed++) {
          const five = generateIsland(seed, LEVELS[5]);
          const shape = { rx: LEVELS[5].rx, rz: LEVELS[5].rz };
-         for (const t of five.treasures) expect(rho(t.x, t.z, shape)).toBeLessThanOrEqual(0.72 + 1e-9);
+         for (const t of five.treasures) expect(rho(t.x, t.z, shape)).toBeLessThanOrEqual(MAP_MAX_RHO + 1e-9);
          if (five.treasures.some((t) => rho(t.x, t.z) > 0.72 + 1e-9)) outsideToday++;
          const gap = pairMin(five.treasures);
          expect(gap).toBeGreaterThanOrEqual(LEVELS[5].spacing - 1e-9);
@@ -370,5 +393,43 @@ describe("treasure-island levels: the simulation reads every level knob", () => 
          expect(run.shape.rx).toBe(LEVELS[id].rx);
          expect(run.shape.rz).toBe(LEVELS[id].rz);
       }
+   });
+});
+
+describe("treasure-island levels: five different islands", () => {
+   const maps = [LEVELS[2].map!, LEVELS[3].map!, LEVELS[4].map!, LEVELS[5].map!];
+
+   it("each map has its own props, water and mechanic", () => {
+      const kinds = maps.map((m) => new Set(m.props.map((p) => p.kind)));
+      // the landmarks the level names promise
+      expect(kinds[0].has("hut")).toBe(true);
+      expect(maps[0].carves.some((c) => c.kind === "stream")).toBe(true);
+      expect(maps[0].gates.map((g) => g.kind)).toEqual(["log"]);
+      expect(kinds[1].has("cliff") && kinds[1].has("arch")).toBe(true);
+      expect(maps[1].carves.filter((c) => c.kind === "pool").length).toBeGreaterThanOrEqual(4);
+      expect(maps[1].bridges.map((b) => b.kind)).toEqual(["rope"]);
+      expect(kinds[2].has("plant") && kinds[2].has("block") && kinds[2].has("ruinGate")).toBe(true);
+      expect(maps[2].gates.map((g) => [g.kind, g.opensAfter])).toEqual([["vines", 1], ["vines", 3]]);
+      expect(kinds[3].has("wreck") && kinds[3].has("cannon")).toBe(true);
+      expect(maps[3].hill).toBeDefined();
+      expect(maps[3].chestAt).toEqual({ x: maps[3].hill!.x, z: maps[3].hill!.z });
+      // no two maps share their set of prop kinds; the chain is on 3-5 only
+      const sigs = kinds.map((k) => [...k].sort().join());
+      expect(new Set(sigs).size).toBe(4);
+      expect(maps.map((m) => Boolean(m.chain))).toEqual([false, true, true, true]);
+   });
+
+   it("the dock start stands on level 1's sand on every map, and the peak's slopes never hide the ground behind them", () => {
+      for (const id of [2, 3, 4, 5] as const) {
+         const shape = { rx: LEVELS[id].rx, rz: LEVELS[id].rz, map: LEVELS[id].map };
+         // the same beach slope as level 1's at the dock's foot: no carve, hill or bridge reaches it
+         expect(groundAt(START.x, START.z, shape)).toBeCloseTo(groundAt(START.x, START.z), 9);
+      }
+      const peak = LEVELS[5].map!;
+      const hill = peak.hill!;
+      let steepest = 0;
+      for (let d = 0; d < hill.r; d += 0.05) steepest = Math.max(steepest, (hillHeight(hill.x + d + 0.05, hill.z, peak) - hillHeight(hill.x + d, hill.z, peak)) / -0.05);
+      expect(Math.atan(Math.abs(steepest)) * (180 / Math.PI)).toBeLessThan(40);
+      expect(hillHeight(hill.x, hill.z, peak)).toBeCloseTo(hill.h, 6);
    });
 });
