@@ -374,3 +374,18 @@
       animation: none;
    }
 }
+
+@media (max-width: 460px) {
+   .gate {
+      gap: 6px;
+      padding: 4px 10px 4px 8px;
+   }
+
+   .gateText {
+      display: none;
+   }
+
+   .price {
+      font-size: 1rem;
+   }
+}

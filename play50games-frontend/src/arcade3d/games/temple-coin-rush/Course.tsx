@@ -31,8 +31,10 @@ import {
    MeshStandardMaterial,
    Object3D,
    OctahedronGeometry,
+   LatheGeometry,
    Shape,
    ShapeGeometry,
+   Vector2,
    TorusGeometry,
    type BufferGeometry,
    type Mesh,
@@ -126,6 +128,21 @@ function Pool({ geometry, material, count, update, tinted = false, order }: { ge
       if (tinted && m.instanceColor) m.instanceColor.needsUpdate = true;
    });
    return <instancedMesh ref={ref} args={[geometry, material, Math.max(1, count)]} frustumCulled={false} renderOrder={order} />;
+}
+
+/** A temple bell: a lathed bronze profile, 1 m tall, its crown at y = 0.5. */
+function bellGeometry(): BufferGeometry {
+   const pts = [
+      [0.0, 0.5],
+      [0.16, 0.5],
+      [0.24, 0.42],
+      [0.27, 0.2],
+      [0.32, -0.1],
+      [0.42, -0.36],
+      [0.5, -0.47],
+      [0.46, -0.5],
+   ].map(([x, y]) => new Vector2(x, y));
+   return new LatheGeometry(pts, 16);
 }
 
 /** A flat chevron pointing +y (laid on the floor it points down the hall). */
@@ -235,6 +252,8 @@ export function Course({ run, offsetX = 0 }: { run: TempleRun; offsetX?: number 
       const g = Math.max(0, run.nextGate - 1) + k;
       return g < c.gates.length ? g : NONE;
    };
+   /** a gate's frame (pillars, lintel, arches, bowls) is drawn until the hero has run through it */
+   const framed = (g: number) => g !== NONE && near(c.gates[g].z) && run.hero.z > c.gates[g].z - 0.3;
 
    // ---- materials and geometries (code parts: pillars, dividers, portcullis bars, flames, glow) ----
    const mats = useMemo(
@@ -254,7 +273,7 @@ export function Course({ run, offsetX = 0 }: { run: TempleRun; offsetX?: number 
          halo: new MeshBasicMaterial({ color: "#6ee7b7", transparent: true, opacity: 0.45, blending: AdditiveBlending, depthWrite: false, toneMapped: false }),
          shard: new MeshStandardMaterial({ color: "#e9d5ff", emissive: "#a855f7", emissiveIntensity: 1.2, roughness: 0.2 }),
          rumble: new MeshBasicMaterial({ color: "#d6c4a0", transparent: true, opacity: 0.35, depthWrite: false }),
-         dark: new MeshStandardMaterial({ color: "#1f1a24", emissive: "#4c1d95", emissiveIntensity: 0.4, roughness: 0.5, metalness: 0.4 }),
+         dark: new MeshStandardMaterial({ color: "#1f1a24", emissive: "#3b1670", emissiveIntensity: 0.25, roughness: 0.5, metalness: 0.4 }),
          disc: new MeshStandardMaterial({ color: "#f5c542", emissive: "#a16207", emissiveIntensity: 0.4, roughness: 0.35, metalness: 0.8 }),
       }),
       [look],
@@ -272,7 +291,7 @@ export function Course({ run, offsetX = 0 }: { run: TempleRun; offsetX?: number 
          gem: new OctahedronGeometry(0.32, 0),
          halo: new TorusGeometry(0.5, 0.05, 6, 24),
          glint: new IcosahedronGeometry(0.12, 0),
-         bell: new CylinderGeometry(0.35, 0.75, 1, 12, 1, true),
+         bell: bellGeometry(),
          ring: new TorusGeometry(1, 0.08, 6, 28),
       }),
       [],
@@ -421,9 +440,8 @@ export function Course({ run, offsetX = 0 }: { run: TempleRun; offsetX?: number 
             count={GATE_SLOTS * (LANES + 1)}
             update={(i) => {
                const g = gateOf(Math.floor(i / (LANES + 1)));
-               if (g === NONE) return false;
+               if (!framed(g)) return false;
                const gate = c.gates[g];
-               if (!near(gate.z)) return false;
                const x = -HALF + 0.6 + (i % (LANES + 1)) * LANE_W;
                return place(offsetX + x, (GATE_H + 0.6) / 2, gate.z, 1, GATE_H + 0.6, 1);
             }}
@@ -434,7 +452,7 @@ export function Course({ run, offsetX = 0 }: { run: TempleRun; offsetX?: number 
             count={GATE_SLOTS}
             update={(k) => {
                const g = gateOf(k);
-               if (g === NONE || !near(c.gates[g].z)) return false;
+               if (!framed(g)) return false;
                return place(offsetX, GATE_H + 0.75, c.gates[g].z, HALF * 2 + 0.4, 0.5, 0.9);
             }}
          />
@@ -444,7 +462,7 @@ export function Course({ run, offsetX = 0 }: { run: TempleRun; offsetX?: number 
             count={GATE_SLOTS}
             update={(k) => {
                const g = gateOf(k);
-               if (g === NONE || !near(c.gates[g].z)) return false;
+               if (!framed(g)) return false;
                return place(offsetX, GATE_H + 0.75, c.gates[g].z + 0.46, HALF * 2, 0.16, 0.04);
             }}
          />
@@ -487,7 +505,7 @@ export function Course({ run, offsetX = 0 }: { run: TempleRun; offsetX?: number 
                const l = i % LANES;
                if (g === NONE) return false;
                const gate = c.gates[g];
-               if (!near(gate.z) || gate.lanes[l].tier === TIER.slow) return false;
+               if (!framed(g) || gate.lanes[l].tier === TIER.slow) return false;
                const s = 1.05 / GLB_SIZE.bowl.x;
                place(offsetX + laneX(l) + (l === 0 ? -0.75 : 0.75), 0, gate.z + 1.3, s, s, s);
                m.copy(DUMMY.matrix);
@@ -883,13 +901,11 @@ export function Course({ run, offsetX = 0 }: { run: TempleRun; offsetX?: number 
                      const t = time.now;
                      // the body rises from behind its head onto the left wall's top and coils along it,
                      // ahead past the hero: a colossal serpent in the upper corner of the view
-                     const k = (i + 1) / (quality2 + 1);
-                     const up = Math.min(1, k * 3);
-                     const ease = up * up * (3 - 2 * up);
-                     const span = headPos.z - run.hero.z + 22;
-                     const z = headPos.z + 3 - k * span;
-                     const y = -0.5 + ease * 6.4 + Math.sin(t * 1.6 + i * 0.9) * 0.35;
-                     const x = headPos.x * (1 - ease) - ease * (HALF + 1.4) + Math.sin(t * 0.9 + i) * 0.25;
+                     const k = i / quality2;
+                     // from just ahead of the hero (never between the camera and the hero) onwards
+                     const z = run.hero.z - 1 - i * 2.9;
+                     const y = 5.9 + Math.sin(t * 1.6 + i * 0.9) * 0.35;
+                     const x = -(HALF + 1.5) + Math.sin(t * 0.9 + i) * 0.3;
                      const sc = SEGMENT_SCALE * (1 - k * 0.25);
                      place(offsetX + x, y, z, sc, sc, sc, 0, Math.sin(t + i) * 0.2);
                      m.copy(DUMMY.matrix);
@@ -943,12 +959,12 @@ export function Course({ run, offsetX = 0 }: { run: TempleRun; offsetX?: number 
                      if (arenaToll(run, s).bowls) return false;
                      if (run.arenaPaid[s]) {
                         // the paid bell flies back over the hero to Coilstone's head
-                        const k = Math.min(1, (z - run.hero.z) / 14);
+                        const k = Math.min(1, (z - run.hero.z) / 10);
                         if (k >= 1) return false;
-                        return place(offsetX + laneX(1) * (1 - k) + headPos.x * k, GATE_H - 0.6 + Math.sin(k * Math.PI) * 3, z + (headPos.z - z) * k, 1, 1.1, 1);
+                        return place(offsetX + laneX(1) * (1 - k) + headPos.x * k, GATE_H - 0.4 + Math.sin(k * Math.PI) * 6, z + (headPos.z - z) * k, 0.8, 0.8, 0.8, k * 6);
                      }
                      if (!near(z) || s < run.arenaMet) return false;
-                     return place(offsetX + laneX(1), GATE_H - 0.6 + Math.sin(time.now * 2 + s) * 0.05, z, 1, 1.1, 1, 0, Math.sin(time.now * 1.5 + s) * 0.1);
+                     return place(offsetX + laneX(1), GATE_H - 0.4 + Math.sin(time.now * 2 + s) * 0.05, z, 0.8, 0.8, 0.8, 0, Math.sin(time.now * 1.5 + s) * 0.1);
                   }}
                />
                <DynamicInstancedModel
@@ -989,7 +1005,7 @@ export function Course({ run, offsetX = 0 }: { run: TempleRun; offsetX?: number 
                      if (!serpentOn() || i >= Math.min(5, b.hp)) return false;
                      const a = (i / 5) * Math.PI - Math.PI / 2;
                      const z = headPos.z + 1.2 - headPos.lunge * 2.6;
-                     return place(offsetX + headPos.x + Math.sin(a) * 0.7, 1.75 + Math.cos(a) * 0.35 + headPos.lunge * 0.5, z, 0.45, 0.3, 0.45, 0, -0.5, a);
+                     return place(offsetX + headPos.x + Math.sin(a) * 0.55, 1.7 + Math.cos(a) * 0.25 + headPos.lunge * 0.5, z + 0.2, 0.28, 0.12, 0.3, 0, -0.5, a);
                   }}
                />
             </>

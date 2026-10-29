@@ -68,7 +68,7 @@ function Boss() {
    if (!on) return null;
    return (
       <div className={stack.boss}>
-         <BossHealthBar name={COILSTONE.name} phaseName={COILSTONE.phases[phase]?.name} hp={hp} maxHp={COILSTONE.maxHp} marks={phaseMarks(COILSTONE)} vulnerable={open} flash={flash} accent="#34d399" />
+         <BossHealthBar name="Coilstone" phaseName={COILSTONE.phases[phase]?.name} hp={hp} maxHp={COILSTONE.maxHp} marks={phaseMarks(COILSTONE)} vulnerable={open} flash={flash} accent="#34d399" />
          {hp > 0 ? <div className={stack.hint}>{bossHint(phase, open, bells)}</div> : <div className={stack.hint}>The plates shatter: run for the grand gate!</div>}
       </div>
    );

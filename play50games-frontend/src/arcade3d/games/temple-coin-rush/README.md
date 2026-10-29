@@ -162,24 +162,27 @@ the bells, the pits. GLB coins near the hero (40), cheap gold discs beyond.
 ## Tests and playtest
 
 - `rules.test.ts` (40), `proof.test.ts` (17), `orbit.test.ts` (6), `multiplayer.test.ts` (6),
-  `hero.test.ts` (3), `assets.test.ts`: all green on 2026-10-29 before the shared node_modules broke;
-  `registry.sync`, `modelManifest`, `ShellOverlays` green with this game registered (order 69).
-- Headless Chrome on `next dev -p 3311`, `?autoplay=1`, 1280 x 800, mouse drag / wheel orbit: levels 1,
-  3, 4 and 5 ran to the result card (L1 392 pts, L3 529 pts, L5 a win over Coilstone), level 2 played
-  to 49.6 s of game time before the window closed (frame stalls from other processes); 0 console
-  errors; 20-46 draw calls; 135-260k triangles, about 305k on level 5 with the serpent; p50 16.7 ms.
+  `hero.test.ts` (3), `assets.test.ts`: green, with `registry.sync`, `modelManifest` and
+  `ShellOverlays` (278 tests in 11 files, 2026-10-29); `tsc` clean.
+- Headless Chrome on `next dev -p 3311`, `?autoplay=1`: 1280 x 800 (mouse drag / wheel orbit) on all
+  five levels, and 390 x 844 (two-finger orbit, pinch) on levels 1, 3 and 5. Every run reached the
+  result card except one desktop level 2 run cut off by frame stalls from other processes at 49.6 s
+  of game time; L1 392 pts, L3 529, L5 664 (all three stars). 0 console errors; 20-46 draw calls;
+  135-260k triangles, about 305k on level 5; p50 16.7 ms.
+- Fixed after looking: the gates sink into the floor (the GLB is a closed door), chevron arrows, the
+  price badges above the lintel, a passed gate's frame is gone (the camera behind it would look at
+  its lintel), the boulder and Coilstone's head in the lower foreground (never round the camera),
+  Coilstone's body coiling along the left wall's top ahead of the hero, a lathed bronze bell, a
+  compact gate card and a short boss name on phones.
 
 ## Open issues
 
-- **Not yet verified on screen** (the dev server could not recompile once the shared node_modules
-  lost packages): the serpent's new pose (head half sunk behind the hero, the body coiling along the
-  left wall's top, the plates on its crown; in the first run the body arched in front of the camera
-  and the head filled the lower view), and the chevron arrows. No phone (390 x 844) run and no
-  two-finger orbit run yet.
 - No production `next build` ran.
-- Level 5 peaks at about 305k triangles (two 15k-triangle Coilstone GLBs, 8 rings); the phone tier draws 5 rings.
+- Level 5 peaks at about 305k triangles (two 15k-triangle Coilstone GLBs, 8 rings); the phone tier
+  draws 5 rings.
 - The rumble wave is a translucent band; a dust stream would read better.
+- On a portrait phone the boulder looms large in the lower third (the orbit stands farther back).
 - No thumbnail yet (`public/images/3d/temple-coin-rush.webp`, meta `thumbnail: null`).
 - Multiplayer is covered by unit tests only.
-- Pre-existing in the slice, not touched: `arcade-games.json` holds a duplicate `temple-lantern-jump`
-  key (the first copy carries roll-cannon-jump's level rows); JSON parsers keep the second.
+- The shared Coilstone chain lives in this game folder; World 3's other two Coilstone games (34, 36)
+  should lift it into `menu2/boss`.
