@@ -20,7 +20,7 @@ const MENU1_NEW = ARCADE_SLUGS.slice(30, 50);
 
 /** Menu 2 (Color Roll Heroes): the vertical slice so far, after the 50 Menu 1 games, hidden ("dev") until the user signs off. */
 /** Owners other than Cursor in the Menu 2 slice. */
-const OWNER: Record<string, string> = { "sky-tower-jump": "claude", "plate-surf": "claude", "zipline-rush": "codex", "ring-jump-challenge": "claude", "wind-tunnel-escape": "claude", "roll-cannon-jump": "claude", "robot-factory-run": "codex", "color-city-sprint": "claude", "color-door-sprint": "claude", "dragon-cave-rush": "claude", "temple-lantern-jump": "claude" };
+const OWNER: Record<string, string> = { "sky-tower-jump": "claude", "plate-surf": "claude", "zipline-rush": "codex", "ring-jump-challenge": "claude", "wind-tunnel-escape": "claude", "roll-cannon-jump": "claude", "color-city-sprint": "claude", "color-door-sprint": "claude", "robot-factory-run": "codex", "dragon-cave-rush": "claude", "temple-lantern-jump": "claude" };
 const MENU2 = ["sky-tower-jump", "rooftop-roll-climb", "flooded-ruins-escape", "lava-pillar-jump", "cloud-hopper", "plate-surf", "zipline-rush", "ring-jump-challenge", "wind-tunnel-escape", "roll-cannon-jump", "color-city-sprint", "color-door-sprint", "sky-hook-swing", "robot-factory-run", "dragon-cave-rush", "temple-lantern-jump"];
 
 describe("registry for 50 Menu 1 games plus Menu 2", () => {
