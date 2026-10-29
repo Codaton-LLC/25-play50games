@@ -3,7 +3,7 @@ import type { AABB } from "@/arcade3d/core/collision";
 import type { InstanceSpot } from "@/arcade3d/core/render";
 import type { FittedViewOptions } from "@/arcade3d/core/useFittedView";
 import type { LevelId } from "@/arcade3d/types";
-import { LEVELS, type WizardLevel } from "./levels";
+import { LEVELS, type LabTheme, type WizardLevel } from "./levels";
 import { TABLE_HEIGHT } from "./assets";
 import { CAULDRON_BODY, SHELF_R, TABLE_R, type Ingredient, type Run } from "./rules";
 
@@ -35,6 +35,33 @@ export const COLORS = {
    rune: "#c4b5fd",
    brewIdle: "#4c1d95",
 } as const;
+
+/**
+ * One room per level (levels.ts `theme`). The ingredients, the cauldron, the beacons and the HUD keep
+ * COLORS / INGREDIENT_LOOK everywhere; the floor, walls, glow and the props round the room change.
+ */
+export interface LabLook {
+   floorGlow: string;
+   floorIn: string;
+   wall: string;
+   wallTrim: string;
+   rune: string;
+   glow: string;
+   /** the theme's props (Room.tsx) */
+   props: "none" | "mushrooms" | "crystals" | "forest" | "tower";
+}
+
+export const LAB_THEMES: Record<LabTheme, LabLook> = {
+   beginner: { floorGlow: COLORS.floor, floorIn: COLORS.floorIn, wall: COLORS.wall, wallTrim: COLORS.wallTrim, rune: COLORS.rune, glow: COLORS.glow, props: "none" },
+   // a damp cellar: mossy flagstones, green glow, giant glowing mushrooms over the walls
+   mushroom: { floorGlow: "#2f6b3a", floorIn: "#3f7d43", wall: "#4a3b2c", wallTrim: "#6b5440", rune: "#bef264", glow: "#84cc16", props: "mushrooms" },
+   // an ice-crystal cave: icy floor, cyan glow, crystal spires, a crystal rail under the sliding ingredient
+   crystal: { floorGlow: "#1e5a8a", floorIn: "#2b78b0", wall: "#334a6b", wallTrim: "#7dd3fc", rune: "#a5f3fc", glow: "#22d3ee", props: "crystals" },
+   // a lab grown into the forest: warm wood floor, amber glow, trees over the walls, drifting leaves
+   forest: { floorGlow: "#7a4a22", floorIn: "#8f5a2b", wall: "#4d3a24", wallTrim: "#65a30d", rune: "#fcd34d", glow: "#f59e0b", props: "forest" },
+   // the master's tower: midnight floor with gold runes, gold trim, books orbiting over the walls
+   master: { floorGlow: "#3b2a8a", floorIn: "#4c3aa8", wall: "#2e2a4f", wallTrim: "#eab308", rune: "#fde047", glow: "#c084fc", props: "tower" },
+};
 
 /** HUD shape and stand-in, one per shelf mesh, in TYPES order. */
 export const INGREDIENT_LOOK: Record<Ingredient, { shape: "circle" | "square" | "triangle" | "diamond" | "star" | "drop"; color: string }> = {
