@@ -1,119 +1,104 @@
-# Temple Coin Rush (Menu 2, game 16)
+# Color Rail Grind (Menu 2, game 35)
 
-World 3 "Wild Temples" (green), lead hero Kiro. Design card: `docs/menu2-super/world-3-wild-temples.md`
-"16 Temple Coin Rush" (branch `claude/m2-super-plan`). Status `dev`, order 69, a **points** game.
+World 4 "Frost and Sweets" (yellow), lead hero Zuno. Design card:
+`docs/menu2-super/world-4-frost-and-sweets.md` "35 Color Rail Grind" (branch `claude/m2-super-plan`).
+Status `dev`, order 79, a **time** game.
 
-**Core verb: COLLECT AND PAY.** A three-lane auto-runner through a collapsing jungle temple with a
-boulder at your heels. Coins fill a purse that lasts only for the run. Every 12-18 s a toll gate
-splits the path for a section: run through a toll arch with enough coins and they are spent (the
-portcullis grinds up onto a short, clean, coin-rich fast lane with a run boost); without enough the gate
-stays shut and pushes you into a slow lane (longer: 90 % speed, with traps, and the boulder gains 1.5 m).
-Unspent coins score double at the finish, so every gate is a choice: buy speed or bank points.
+**Core verb: SWITCH-ROUTING.** The hero grinds the Sugarfrost Workshop's toy train line on its own along
+-z. Left / Right hop to an adjacent parallel rail (0.35 s; only where one runs), Up jumps (gaps, grind
+rings), Down crouches (+3 m/s downhill). A track switch ahead lights up 1.5 s before it: the Switch
+press (E / Enter while one is lit, or a tap on the view) throws it, and the hero (or a toy train)
+passing it takes its branch: an orb branch, a shortcut, a dead end with a buffer stop, a hero gate.
+Branches curve away from the grid, so only a switch reaches them. Nothing is fatal: a buffer stop
+costs 3 s, a missed gap 2 s on the hook.
 
 ## Files
 
 | File | What |
 |---|---|
-| `levels.ts` | the five levels' numbers (speed, clock, par time, finish bonus, bank target, boss) |
-| `temples.ts` | each level's hand-written script and the builder: coin lines and arcs, blocks, beams, fire jets, spike and broken tiles, side-ramp boulders, Zuno's veins, the toll gates and their sections |
-| `rules.ts` | the pure, deterministic run (1 ms steps), the bounds and `PROPOSED_LEVEL_LIMITS` |
-| `progression.ts` | the combo, the stars, the secrets, Coilstone's `BossConfig` |
+| `levels.ts` | the five levels' numbers (speed, clock, star time, main orbs, boss) |
+| `network.ts` | each level's hand-written script and the builder: rail pieces per lane (ends: open, gap, buffer, merge), switches and branches (orb, dead end, shortcut, Riko's barrier spur, Vexa's ghost spur, level 2's caboose), Nami's high rails, Zuno's loop, Riko's long gap, Kiro's icicle tunnels, rings, orbs, downhill stretches, level 4's trains |
+| `rules.ts` | the pure, deterministic run (1 ms steps), the bound and `PROPOSED_LEVEL_LIMITS` |
+| `progression.ts` | the flow combo, the stars, the secrets, the Clockwork Express's `BossConfig` |
 | `bot.ts` | the honest bot (tests and `?autoplay=1` on preview builds) |
-| `heroes.ts` | the five heroes and their roles here; Kiro preselected |
-| `multiplayer.ts` | 2-4 local players: versus (shared coins, held-open lanes) and co-op (one purse) |
-| `Scene.tsx`, `World.tsx`, `Course.tsx`, `Hero.tsx`, `camera.ts` | the scene, the temple, the props, the hero, the orbit camera and the intro |
-| `Hud.tsx`, `StarResult.tsx`, `MultiplayerHud.tsx`, `MultiScene.tsx` | the HUD, the star screen, multiplayer |
+| `heroes.ts` | the five heroes and their roles here; Zuno preselected |
+| `multiplayer.ts` | 2-4 local players on ONE switch board (versus sabotage, co-op routing) |
+| `Scene.tsx`, `World.tsx`, `Course.tsx`, `Hero.tsx`, `camera.ts` | the scene, the valley, the line, the hero, the orbit camera and the intro |
+| `Hud.tsx`, `StarResult.tsx`, `MultiplayerHud.tsx`, `MultiScene.tsx` | the HUD (switch card, mini-map), the star screen, multiplayer |
 
 ## Rules
 
-- **Lanes:** three, 2.4 m wide; Left / Right change lanes (camera-relative under the orbit camera), Up
-  jumps (apex 1.29 m), Down rolls (0.7 s). Inside a gate's section stone dividers hold the lane.
-- **Coins:** picked up within 1 m of the hero's middle (Zuno's magnet: 5 m). A coin within 0.4 s of the
-  last links the combo (juice: the ping climbs, the meter fills; it adds no score).
-- **Toll gates:** each lane behind a gate is a toll lane (cheap, dear, or level 3's 50-coin jackpot with
-  coins worth 2) or a slow lane. The price floats over the arch on a billboard badge (never on the
-  mesh) and on the HUD's gate card ("pay or bank?" / "short by n"). Paying happens at the gate's plane.
-  A shut gate pushes the hero to the nearest slow lane. Level 4's surge: every 2 s of the last 40 m spent
-  outside a toll lane adds 1 to the price.
-- **The boulder:** 6 m behind. A stumble costs 1.6 m, a slow section 1.5 m, a perfect lane (a paid,
-  free or ghost lane run without a stumble and every low coin) gives 1 m back (max 9 m), and it creeps
-  back to 6 m at 0.12 m/s two seconds after the last stumble. At 0.8 m it catches you: a life (3), and
-  it falls back to 6 m with 1.5 s of grace. The HUD's gap meter reddens and the screen's edges darken as
-  it closes; its rumble gets louder.
-- **Hazards:** stone blocks (jump: feet over 0.85 m), low beams across the hall (roll), fire-jet pillars
-  (their flame fills the lane: step out, or Kiro's shield), spike tiles (level 2+: up 600 ms of every
-  1.5 s), broken tiles (level 3+: a rumble wave rolls out of the boulder every 3.5 s for 26 m; a tile it
-  passes falls 0.5 s later; a grounded hero on the pit falls: a life), side-ramp boulders (level 4: they
-  roll across the hall once you are 13 m away). A stumble: 45 % speed for 0.7 s, the combo broken.
-- **Hero roles (the card):** Riko's dash into a gate's cracked side wall is a free toll into the fast
-  lane; Nami's double jump reaches the ledge coins over the slow lanes (out of a single jump's reach);
-  Kiro's shield walks through the fire jets and takes a knock; Zuno's magnet pulls the hidden coin veins
-  out of the walls (8-10 coins each); Vexa's phase opens the ghost gate, a hidden toll-free passage with
-  coins and a shard (its traps skipped). Every level has a route for each power, and every relic orb sits
-  in a toll lane any hero can pay for.
+- **Switches:** the lit switch is the first on the hero's predicted path (the switches as they stand)
+  within 1.5 s; a switch thrown less than 0.6 s ago is skipped, so a quick second press throws the switch
+  after it (level 2's golden caboose: two switches in a second). A press after that throws it back. One
+  Action press throws the lit switch, else fires the hero power; a tap on the view always throws the
+  switch. Audio ticks while one is lit (the card's fix for missed switches).
+- **Frozen switches (level 3):** a press on the rail clunks; a press in the air stomps it (the hero
+  slams down). Frozen rails are 20 % faster and have no crouch.
+- **Ends:** a buffer stop bonks the hero for 3 s and puts it back on its grid rail; a merge carries it
+  back into its neighbour; a side rail that stops always merges. A gap must be jumped (gaps are about a
+  third of the speed long); a missed one drops the hero into the hook, which carries it to the nearest
+  rail ahead in at least 2 s and never faster than the level's speed.
+- **Hero roles (the card):** Riko's dash in the air clears the 11 m broken rail (a jump covers about
+  9.5 m) and breaks a side spur's wooden barrier (else a bump: 1.5 s); Nami's double jump lands on the
+  high rails (+3 m/s, bonus orbs); Kiro's shield crosses an icicle tunnel (judged on the way in; else a
+  stumble); Zuno's magnet takes him round the loop (+6 m/s and a shard) and pulls the coin trails out of
+  the snowbanks; Vexa's phase goes through the ghost door to the hidden spur (else a bump).
+- **Toy trains (level 4):** they wait until the hero is 90 m off, then drive the line at 8-9 m/s and
+  follow the switches too: thrown into a dead end they crash at its buffer stop; a hero catching one on
+  its rail is bumped (1.5 s) unless it jumps it or hops.
+- **Relight:** the share of the run spent grinding the rails; 90 %+ takes 1.5 s off. The rail lanterns
+  relight gold behind the hero.
 
 ## Levels (the card)
 
-| Level | Speed | Gates | Twist |
-|---|---|---|---|
-| 1 Temple Entry | 8 m/s | 3 | three beats: a coin line then a 5-coin gate; a 15-coin gate no plain run can afford yet (tested); a rich stretch, then pay or bank |
-| 2 Coin Hall | 9 m/s | 4 | gates in pairs (a cheap and a dear toll), spike tiles on a 1.5 s rhythm |
-| 3 Broken Floors | 9.5 m/s | 4 | the rumble drops the broken tiles; the 50-coin jackpot gate |
-| 4 Rolling Hazards | 10.5 m/s | 5 | side-ramp boulders; price surges |
-| 5 Temple Sprint | 11 m/s | 2 + the arena | Coilstone, the Temple Serpent |
+| Level | Speed | Twist |
+|---|---|---|
+| 1 Station Yard | 12 m/s | three beats: hop for the rings; a first switch (orb branch or plain line, both safe); a ring jump over a gap |
+| 2 Village Loop | 13 m/s | dead ends with buffer stops; the mini-map of the next two switches; the golden caboose |
+| 3 Ice Bridge | 13 m/s x1.2 | frozen rails, frozen switches (jump-stomp), no crouch |
+| 4 Night Express | 15 m/s | toy trains on the network |
+| 5 Runaway Express | 16 m/s | the Clockwork Express |
 
-## Coilstone (level 5)
+## The Clockwork Express (level 5)
 
-World 3's shared guardian (`m2CoilstoneHead` + a chain of `m2CoilstoneSegment` looping overhead, also
-used by 34 and 36), through `menu2/boss`, 9 hp. It replaces the boulder at the boss start (its head
-chases at the same gap). The arena spawns a section every 40 m ahead while it is up: a 10-coin line and a
-toll at its plane.
-- **Lunge** (2 hits): it hisses and marks a lane with dust; 1 s later it lunges there (a stumble that
-  costs 3 m). Pay a bell gate in the middle lane (20 coins): the bell flies back and drops on its head
-  while it recoils.
-- **Coils** (2 hits): its body coils across the lanes ahead, low (jump) and high (roll) in turn; bells
-  now cost 30.
-- **Grand Gate** (5 hits): a straight sprint past rows of offering bowls; every 10 coins paid cracks a
-  plate.
-A paid bell or bowl queues a hit that lands at the next open window (one a window). Slow-mo, the plates
-shatter, it turns green and slides away over the wall; the grand gate stands 45 m ahead.
+`m2ClockworkTrainBoss` x2.85 on its own rail (lane 3), through `menu2/boss`, 9 hp. The arena spawns a
+section every 45 m ahead while it is up.
+- **Route it** (3 hits): it runs 32 m ahead; its switches light up as it comes; thrown, it takes the
+  buffer spur and crashes.
+- **Wagon drop** (3 hits): it uncouples a toy wagon back at the hero along its rail (hop or jump);
+  grind through the arena's rings to charge.
+- **Roof** (3 hits): it runs beside the hero; a launch ramp throws the hero onto its roof; stomp the
+  wind-up key (jump and land) between its steam puffs (a puff on a standing hero blows it off).
+A crash, a ring or a stomp queues a hit that lands while it is open (one a window). Slow-mo as the key
+spins out; the station arch stands 45 m ahead.
 
 ## Scoring
 
-The card's board: **banked coins x 2**, and on a win **+ the finish bonus** (150 / 200 / 250 / 300 /
-400) **+ the time bonus** (one point per 0.1 s under the par time: 58 / 64 / 66 / 66 / 95 s). A lost run
-(the third life) and a time-up (the level's clock: 120-240 s) score the bank x 2. The bank counts up to
-the level's cap (`bankCap`, below). The Scene keeps the store's score at `scoreOf(run)`; `finalScore`
-submits it with the played time.
+A time game: the submitted time is the finish minus 0.15 s per orb (main and bonus), 0.1 s per ring,
+1.5 s for a 90 %+ relight and the flow bonus (`runTimeMs`). `finalScore` sends it; the server computes
+`(timeBaseMs - time) / 10`.
 
 ## Server limits and why they hold
 
-- **The speed guard.** `speedNow` is the level's speed, times 0.9 in a slow section and 0.45 in a
-  stumble, plus inside a gate's section that lane's toll boost (1.5 / 2.5 m/s); nothing else adds
-  speed (Riko's dash is a burst for the wall, not a speed boost). So `runFloorMs` (each metre at the
-  level's speed, or in a gate's section at the speed plus that gate's best boost) is the least time to
-  any z, and the finish's floor `minFinishMs` follows. Tested every ms with mashed powers.
-- **Level 5's floor.** The larger of the boss machine's own least time after the boss start and the
-  coins: every hit needs its own paid arena section (one payment per plane), so the last of 9 payments
-  is at section 8's plane at the earliest, and the grand gate then stands 45 m further on.
-- **The bank.** `heroBankBound(course, hero)`: every common coin the hero can reach (the veins only for
-  Zuno) plus, at each gate, the best of its lanes (a slow lane's coins, the ledge coins only for Nami,
-  the ghost passage only for Vexa; a toll lane's coins less its price, or free for Riko at a cracked
-  wall), ignoring whether it could afford the toll. `bankCap` is the best hero's; level 5's arena coins
-  are for paying (`ARENA_BANK` 0).
-- **maxScore** = finish bonus + 2 x bankCap + the time bonus at `minFinishMs`, plus 3 %, rounded up to 10.
-- **base + maxPointsPerSec x s:** a run that ends at `t` before `minFinishMs` can only be a lost run (or
-  a time-up), worth 2 x the coins within vMax t + 5 m of the start; from `minFinishMs` on, maxScore.
-  `proposeLimits` covers that bound at every 250 ms (+3 %), and a test checks it at every 100 ms.
-- **Duration:** 1 s to the level's clock (a run can be lost early; the clock ends it).
+- **The z guard:** every ms moves the hero at most vMax / 1000 m towards -z, vMax = speed x 1.2 (frozen
+  rails, level 3 only) + 6 (the boost cap: crouch, high rails, shortcuts, the loop; never stacked past
+  it). Hops are along x, a bonk stops the hero, the hook moves it at most the level's speed, and on the
+  Express's roof it moves with the Express, whose chase is capped at vMax. Tested every ms with mashed
+  powers.
+- **Level 5:** the boss machine's least defeat time after the boss start (every open window hit at its
+  first ms).
+- **Bonus:** every orb and every ring (level 5: plus 20 capped arena rings), the relight bonus, and
+  `comboMaxBonus` over every orb, ring and switch.
+- **minDurationMs** = the bound less about 4.5 %, rounded down to 100 ms.
 
-| Level | maxScore | min / max ms | base | pps |
-|---|---:|---|---:|---:|
-| 1 | 480 | 1000 / 120000 | 21 | 12 |
-| 2 | 610 | 1000 / 130000 | 36 | 14 |
-| 3 | 710 | 1000 / 140000 | 38 | 16 |
-| 4 | 690 | 1000 / 150000 | 27 | 14 |
-| 5 | 910 | 1000 / 240000 | 38 | 15 |
+| Level | minDurationMs | max / base ms | maxScore |
+|---|---:|---:|---:|
+| 1 | 22000 | 120000 | 9800 |
+| 2 | 25600 | 150000 | 12440 |
+| 3 | 17700 | 170000 | 15230 |
+| 4 | 26000 | 180000 | 15400 |
+| 5 | 24900 | 260000 | 23510 |
 
 Meta, `arcade-games.json` (dev, `enabled: false`) and the pinned test move together.
 
@@ -121,68 +106,34 @@ Meta, `arcade-games.json` (dev, `enabled: false`) and the pinned test move toget
 
 | Bot | Result |
 |---|---|
-| Honest bot (weighs each gate's lanes, steers for coins, jumps / rolls / dodges, uses each hero's power at its gate) | wins every level with every hero at 30 / 60 / 144 Hz inside every limit; Kiro 73-82 % of maxScore (L1 82 %, L2 74 %, L3 75 %, L4 73 %, L5 73 %), the best hero 78-84 % |
-| Every hero with its power mashed | every run inside every limit (`proof.test.ts`) |
-| Through the real store, ragged frames | a ranked points run inside the limits, the store's score = the run's |
-| Spam (40 per level, any hero, random presses, yaws, power mashed, 4-50 ms frames) | every end (win, lost, time-up) inside the limits and under `scoreBoundAt` |
-| Idle (no input) | runs on, pays the first toll it can, ends below the bot |
+| Honest bot (reads the lit switch, takes orb branches and shortcuts, never a dead end, a hero gate only with the power ready; diverts a train into a dead end first; stomps frozen switches; hops for orbs and rings; jumps gaps; crouches downhill) | wins every level with every hero at 30 / 60 / 144 Hz, no fall; Zuno takes every main orb on all five levels; submitted about 42 / 51 / 36 / 50 / 62 s (L1-L5), 79-82 % of maxScore |
+| Every hero with its power mashed | no finish under the floor (`proof.test.ts`) |
+| Through the real store, ragged frames | a ranked win inside the limits, the score from the time |
+| Spam (40 per level, any hero, random hops, jumps, switches, power, yaws, 4-50 ms frames) | no finish under the floor |
+| Idle (no input) | still finishes level 1, slower than the bot |
 
-Mutation probes: a 30 % faster level or a doubled finish bonus breaks its maxScore; no level's row
-matches another level's course.
+Mutation probes: a 30 % faster level falls out of its window; no level's row matches another's course.
 
-## Stars, combo, secrets
+## Stars, flow, secrets
 
-- **Stars:** clear; all 3 relic orbs (each in a toll lane, or in the run-up on level 1 / 5); finish with
-  the bank target (20 / 30 / 35 / 40 / 30 coins). The badge: no stumble.
-- **Secrets:** Vexa's ghost-gate shard (every level), "Pauper's Run" (finish without paying a single
-  toll; Riko's free toll counts as not paying; level 5's bells and bowls are not tolls), level 3's
-  jackpot room.
-- **Restore:** the canopy beyond the walls turns from grey to green as the gates are passed (and as
-  Coilstone's plates crack).
+- **Stars:** clear; every main orb (25 / 30 / 35 / 40 / 35; bonus orbs sit behind hero gates and dead
+  ends); the card's target time (60 / 80 / 95 / 105 / 150 s). The badge: no bonk and no fall.
+- **Secrets:** Vexa's hidden spur shard (every level), Zuno's loop shard (every level), level 2's golden
+  caboose sticker (two switches in a second; its spur skips the lane-3 branch's orbs, so the caboose and
+  all orbs are two runs).
 
 ## Multiplayer (1-4)
 
-Parallel corridors, one shared camera (desktop and tablet), the same seed. **Versus:** the coins are
-shared (a coin one hero grabs is gone from every corridor) and a toll lane one hero pays stays open 2 s
-for whoever comes through it next: a free pass. **Co-op:** one shared purse everyone pays from; Kiro's
-shield, Zuno's magnet and Vexa's phase cover the team. Never ranked.
+Parallel copies of the line, one shared camera, ONE switch board: a switch one hero throws is thrown for
+every corridor (the card's versus sabotage). Co-op shares the board and the ally powers. Never ranked.
 
 ## Models
 
-`public/models/3d/temple-coin-rush/`: `m2TempleGate`, `m2TempleCoin`, `m2OfferingBowl` (NICE, today's),
-`m2RollingBoulder`, `m2StoneObstacle`, `m2SpikeTrapTile`, `m2BrokenTile`, `m2FireJetPillar`,
-`m2StepPyramidBg` (ready/menu2/temple-coin-rush), and `m2CoilstoneHead`, `m2CoilstoneSegment`
-(ready/menu2/shared: World 3's shared boss, 15k triangles each, the character budget). World 3's set
-already shipped with temple-lantern-jump is reused by its manifest urls (no copy): `m2TempleBeam` (the
-low beams), `m2TempleLedge` (Nami's ledges), `m2StoneBrazier` (the wall-top fires),
-`m2TempleTowerBg`. Code parts: the side walls (a carved-sandstone canvas texture with a jade band and
-moss), the canopy, the pillars, dividers and portcullis bars, the flames, the chevrons, the relic gems,
-the bells, the pits. GLB coins near the hero (40), cheap gold discs beyond.
-
-## Tests and playtest
-
-- `rules.test.ts` (40), `proof.test.ts` (17), `orbit.test.ts` (6), `multiplayer.test.ts` (6),
-  `hero.test.ts` (3), `assets.test.ts`: green, with `registry.sync`, `modelManifest` and
-  `ShellOverlays` (278 tests in 11 files, 2026-10-29); `tsc` clean.
-- Headless Chrome on `next dev -p 3311`, `?autoplay=1`: 1280 x 800 (mouse drag / wheel orbit) on all
-  five levels, and 390 x 844 (two-finger orbit, pinch) on levels 1, 3 and 5. Every run reached the
-  result card except one desktop level 2 run cut off by frame stalls from other processes at 49.6 s
-  of game time; L1 392 pts, L3 529, L5 664 (all three stars). 0 console errors; 20-46 draw calls;
-  135-260k triangles, about 305k on level 5; p50 16.7 ms.
-- Fixed after looking: the gates sink into the floor (the GLB is a closed door), chevron arrows, the
-  price badges above the lintel, a passed gate's frame is gone (the camera behind it would look at
-  its lintel), the boulder and Coilstone's head in the lower foreground (never round the camera),
-  Coilstone's body coiling along the left wall's top ahead of the hero, a lathed bronze bell, a
-  compact gate card and a short boss name on phones.
-
-## Open issues
-
-- No production `next build` ran.
-- Level 5 peaks at about 305k triangles (two 15k-triangle Coilstone GLBs, 8 rings); the phone tier
-  draws 5 rings.
-- The rumble wave is a translucent band; a dust stream would read better.
-- On a portrait phone the boulder looms large in the lower third (the orbit stands farther back).
-- No thumbnail yet (`public/images/3d/temple-coin-rush.webp`, meta `thumbnail: null`).
-- Multiplayer is covered by unit tests only.
-- The shared Coilstone chain lives in this game folder; World 3's other two Coilstone games (34, 36)
-  should lift it into `menu2/boss`.
+`public/models/3d/color-rail-grind/`: `m2RailSegmentV2` (the rails), `m2RailSegment`, `m2RailSwitch`
+(lever box), `m2RailJunction` (frog), `m2RailJunctionV2` (buffer stop), `m2RailLaunchRamp`,
+`m2GrindRing`, `m2SupportPillar`, `m2ElevatedRailBg`, `m2ClockworkTrainBoss` (15k triangles, the
+character budget), `m2ToyTrainWagon` (today's), and `m2SnowPine`, `m2SnowCabinBg` copied from
+ready/menu2/snow-slide-dash (the card's village; snow-slide-dash is not in the slice yet). `m2Icicle`
+is ice-peak-jumper's, by its manifest line. The card's `m2ToyBlocks` barrier does not exist in the ready
+folders: Riko's barrier is code-built planks. Code parts: the far rails, the lanterns, the loop, the
+icicle frames, the ghost door, the arrows and lit rings, the station arch, the steam.
