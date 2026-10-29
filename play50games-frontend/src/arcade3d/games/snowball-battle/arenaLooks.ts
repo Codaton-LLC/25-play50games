@@ -34,14 +34,15 @@ export const THEMES: Record<ArenaTheme, ThemeLook> = {
       background: "#bfe3fb", fog: ["#d6ecfb", 30, 56], lighting: "day", skyTop: "#60a5fa", skyBottom: "#eff6ff", snow: 120,
       fence: "#a16207", rail: "#78350f", shade: "#c7e3d4", fortBody: "#3f6212", fortCap: "#f8fafc", fortTrim: "#1a2e05",
    },
-   // Snow Fort: golden late light, ice-brick castle walls with merlons and pennants
+   // Snow Fort: late afternoon under a golden sky (the white "day" sun keeps the snow white, the
+   // "sunset" preset turned it to sand), ice-brick castle walls with merlons and pennants
    fort: {
-      background: "#fcd9b6", fog: ["#f8cfae", 26, 50], lighting: "sunset", skyTop: "#fb923c", skyBottom: "#fef3c7", snow: 200,
-      fence: "#7c2d12", rail: "#9a3412", shade: "#fde2c8", fortBody: "#dbeafe", fortCap: "#93c5fd", fortTrim: "#1e3a8a",
+      background: "#fde7cf", fog: ["#fde7cf", 28, 52], lighting: "day", skyTop: "#f97316", skyBottom: "#fff7ed", snow: 200,
+      fence: "#7c2d12", rail: "#9a3412", shade: "#e2e8f0", fortBody: "#e0f2fe", fortCap: "#60a5fa", fortTrim: "#1e3a8a",
    },
    // Ice Village: blue hour, heavy snowfall, igloos for forts, lamp light along the lanes
    village: {
-      background: "#c7d2fe", fog: ["#c7d2fe", 22, 44], lighting: "snow", skyTop: "#4f46e5", skyBottom: "#e0e7ff", snow: 720,
+      background: "#c7d2fe", fog: ["#c7d2fe", 26, 52], lighting: "snow", skyTop: "#4f46e5", skyBottom: "#e0e7ff", snow: 720,
       fence: "#cbd5e1", rail: "#94a3b8", shade: "#a5b4fc", fortBody: "#f1f5f9", fortCap: "#c7d2fe", fortTrim: "#312e81",
    },
    // Championship Arena: night under floodlights, ice-block barriers, team banners round the ring
@@ -53,7 +54,7 @@ export const THEMES: Record<ArenaTheme, ThemeLook> = {
 
 /** Ice and deep-snow patches as drawn (the rules zones). */
 export const ICE_LOOK = { color: "#a5d8f3", rim: "#e0f2fe", y: 0.012 } as const;
-export const DRIFT_LOOK = { color: "#ffffff", rim: "#dbeafe", height: 0.14, y: 0.01 } as const;
+export const DRIFT_LOOK = { color: "#c7d7f0", rim: "#ffffff", height: 0.16, y: 0.01 } as const;
 
 export type DecorKind = "tree" | "bench" | "lamp" | "tower" | "glacier" | "stand" | "banner" | "flood";
 

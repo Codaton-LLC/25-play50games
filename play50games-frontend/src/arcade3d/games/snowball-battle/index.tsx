@@ -18,7 +18,7 @@ const HUD: NonNullable<GameDefinition["hudStats"]> = [
 const DESCRIPTIONS: Record<LevelId, string> = {
    1: "Three rivals in the snow yard. Tag each one three times.",
    2: "Frozen Park at noon: hedges at the edges, long throws, and two frozen ponds you slide across.",
-   3: "Snow Fort at sunset: the rivals hold a wall of five. Their walls get packed back up.",
+   3: "Snow Fort in the late afternoon: the rivals hold a wall of five. Their walls get packed back up.",
    4: "Ice Village at blue hour: igloos that crumble in two hits, deep drifts and an icy square.",
    5: "Championship Arena under floodlights: ice-block barriers, an ice rink and every rival at once.",
 };

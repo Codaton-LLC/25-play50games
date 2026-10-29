@@ -285,7 +285,7 @@ export function Zones({ level }: { level: SnowLevel }) {
          {drifts.length > 0 && (
             <Instanced spots={drifts}>
                <sphereGeometry args={[1, 18, 8, 0, Math.PI * 2, 0, Math.PI / 2]} />
-               <meshStandardMaterial color={DRIFT_LOOK.color} roughness={1} emissive={DRIFT_LOOK.rim} emissiveIntensity={0.15} />
+               <meshStandardMaterial color={DRIFT_LOOK.color} roughness={1} emissive={DRIFT_LOOK.rim} emissiveIntensity={0.06} />
             </Instanced>
          )}
       </group>
