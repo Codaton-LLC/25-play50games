@@ -71,6 +71,7 @@ export const GAME_LOADERS: Record<ArcadeSlug, () => Promise<GameModule>> = {
    "robot-factory-run": () => import("./games/robot-factory-run"),
    "color-city-sprint": () => import("./games/color-city-sprint"),
    "temple-lantern-jump": () => import("./games/temple-lantern-jump"),
+   "toy-room-run": () => import("./games/toy-room-run"),
    "jungle-vine-jump": () => import("./games/jungle-vine-jump"),
    "ice-peak-jumper": () => import("./games/ice-peak-jumper"),
    "dragon-cave-rush": () => import("./games/dragon-cave-rush"),

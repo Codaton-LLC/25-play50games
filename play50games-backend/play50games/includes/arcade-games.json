@@ -1199,6 +1199,22 @@
         { "title": "Greyout Avenue", "max_score": 17390, "min_duration_ms": 26100, "max_duration_ms": 200000, "time_base_ms": 200000 }
       ]
     },
+    "toy-room-run": {
+      "title": "Toy Room Run",
+      "kind": "time",
+      "max_score": 10750,
+      "min_duration_ms": 12500,
+      "max_duration_ms": 120000,
+      "time_base_ms": 120000,
+      "enabled": false,
+      "levels": [
+        { "title": "Desk Start", "max_score": 10750, "min_duration_ms": 12500, "max_duration_ms": 120000, "time_base_ms": 120000 },
+        { "title": "Book Bridge", "max_score": 13690, "min_duration_ms": 13100, "max_duration_ms": 150000, "time_base_ms": 150000 },
+        { "title": "Race Track", "max_score": 14580, "min_duration_ms": 14200, "max_duration_ms": 160000, "time_base_ms": 160000 },
+        { "title": "Lights Out", "max_score": 15340, "min_duration_ms": 16600, "max_duration_ms": 170000, "time_base_ms": 170000 },
+        { "title": "Toybox Finale", "max_score": 18410, "min_duration_ms": 15900, "max_duration_ms": 200000, "time_base_ms": 200000 }
+      ]
+    },
     "robot-factory-run": {
       "title": "Robot Factory Run",
       "kind": "time",
