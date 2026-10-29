@@ -9,7 +9,7 @@ import { stepPatrol, type PatrolState } from "@/arcade3d/core/ai/patrol";
 import { createPath, type Path } from "@/arcade3d/core/path";
 import { createRng, inputToWorld, turnTowards } from "@/arcade3d/core/math";
 import type { LevelId, ScoringRules } from "@/arcade3d/types";
-import { LEVELS, tasksOf, type AquariumLevel } from "./levels";
+import { LEVELS, tasksOf, type AquariumLayout, type AquariumLevel } from "./levels";
 
 // ---------- tuning (the scoring proof cites these) ----------
 
@@ -61,6 +61,27 @@ export const CASTLE_R = 1.25;
 export const ROCK_R = 0.8;
 export const FILTER_R = 0.65;
 
+/** The castle per layout: hunting box as fractions of hx/hz (z negative is the back glass) and size.
+ * On shark levels the box must sit inside the loop's fat middle band (solids stay 1.2 m + r off
+ * the loop), so the tunnel and the abyss keep their castles in the centre strip. */
+export const CASTLE_PLACE: Record<AquariumLayout, { x0: number; x1: number; z0: number; z1: number; scale: number }> = {
+   small: { x0: -0.3, x1: 0.3, z0: -0.4, z1: 0.05, scale: 1 },
+   garden: { x0: -0.55, x1: -0.05, z0: -0.55, z1: -0.05, scale: 1.1 },
+   tunnel: { x0: -0.15, x1: 0.15, z0: -0.16, z1: -0.02, scale: 1.1 },
+   expanse: { x0: -0.5, x1: -0.1, z0: -0.1, z1: 0.15, scale: 1.3 },
+   abyss: { x0: 0.05, x1: 0.5, z0: -0.45, z1: -0.1, scale: 1.2 },
+};
+
+/** The rocks per layout: count beyond the base 3, the z band (fractions of hz), the scale range.
+ * The back band only fits on the wide abyss tank (the shark loop there leaves room for it). */
+export const ROCK_PLACE: Record<AquariumLayout, { extra: number; zBack: boolean; zBackAt: number; s0: number; s1: number }> = {
+   small: { extra: 0, zBack: false, zBackAt: 0, s0: 0.8, s1: 1.25 },
+   garden: { extra: 1, zBack: false, zBackAt: 0, s0: 0.75, s1: 1.2 },
+   tunnel: { extra: 1, zBack: false, zBackAt: 0, s0: 0.8, s1: 1.25 },
+   expanse: { extra: 1, zBack: false, zBackAt: 0, s0: 0.85, s1: 1.35 },
+   abyss: { extra: 0, zBack: true, zBackAt: 0.1, s0: 0.85, s1: 1.35 },
+};
+
 /**
  * The earliest win measured per level (ms): the fastest of the oracle and the honest bot over 200 seeds
  * each at 30 / 60 / 144 Hz (two measurements, the lower kept). The proof allows a win at 0.85 x this.
@@ -77,6 +98,10 @@ export const PROPOSED_LEVEL_LIMITS: Record<LevelId, ScoringRules> = {
 };
 
 // ---------- layout ----------
+//
+// Each level has its own map flavour (level.layout): the castle's hunting box and size and the
+// rocks' count, size and spread differ per level name. "small" is level 1 and reproduces the
+// original placement exactly (same regions, same rng consumption, so same seed = same run).
 
 export type SolidKind = "castle" | "rock" | "filter";
 
@@ -322,20 +347,26 @@ function build(seed: number, attempt: number, level: AquariumLevel): Run | null 
    };
 
    // the centre-piece, then the filter machines, then rocks: all solid
-   const castle = place(CASTLE_R, -hx * 0.3, hx * 0.3, -hz * 0.4, hz * 0.05, 1.2, true);
+   const castleSpec = CASTLE_PLACE[level.layout];
+   const castleScale = castleSpec.scale;
+   const castleR = CASTLE_R * castleScale;
+   const castle = place(castleR, hx * castleSpec.x0, hx * castleSpec.x1, hz * castleSpec.z0, hz * castleSpec.z1, 1.2, true);
    if (!castle) return null;
-   run.solids.push({ kind: "castle", x: castle.x, z: castle.z, r: CASTLE_R, rotY: 0, scale: 1 });
+   run.solids.push({ kind: "castle", x: castle.x, z: castle.z, r: castleR, rotY: 0, scale: castleScale });
    for (let i = 0; i < level.filters; i++) {
       const f = place(FILTER_R, -hx + FILTER_R + 2.4, hx - FILTER_R - 2.4, -hz + FILTER_R + 1.6, hz - 4.6, 1.2, true);
       if (!f) return null;
       run.solids.push({ kind: "filter", x: f.x, z: f.z, r: FILTER_R, rotY: (rng() - 0.5) * 0.8, scale: 1 });
       run.filters.push({ solid: run.solids.length - 1, x: f.x, z: f.z, done: false });
    }
-   const rocks = 3 + Math.floor(level.width / 8);
+   const rockSpec = ROCK_PLACE[level.layout];
+   const rocks = 3 + Math.floor(level.width / 8) + rockSpec.extra;
    for (let i = 0; i < rocks; i++) {
-      const scale = 0.8 + rng() * 0.45;
+      const scale = rockSpec.s0 + rng() * (rockSpec.s1 - rockSpec.s0);
       const r = ROCK_R * scale;
-      const spot = place(r, -hx + r + 1.2, hx - r - 1.2, -hz + r + 1.2, hz - 4.6, 1.1, true);
+      const z0 = -hz + r + 1.2;
+      const z1 = rockSpec.zBack ? Math.max(z0 + 0.4, -hz * rockSpec.zBackAt) : hz - 4.6;
+      const spot = place(r, -hx + r + 1.2, hx - r - 1.2, z0, z1, 1.1, true);
       if (!spot) continue;
       run.solids.push({ kind: "rock", x: spot.x, z: spot.z, r, rotY: rng() * Math.PI * 2, scale });
    }
