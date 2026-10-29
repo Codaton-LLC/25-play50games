@@ -1015,12 +1015,13 @@ function meetGate(run: TempleRun, g: number, ms: number): void {
    h.routeKind = result;
 }
 
+/** A section's end: a perfect lane (a paid, free or ghost lane run without a stumble, every low coin taken) pushes the boulder back. */
 function endSection(run: TempleRun): void {
    const h = run.hero;
    const g = h.route;
    const ev = run.events;
    ev.sectionEnd = g;
-   let all = true;
+   let all = h.routeKind === GATE.paid || h.routeKind === GATE.free || h.routeKind === GATE.ghost;
    for (const i of run.course.laneCoins[g * LANES + h.lane]) if (!run.collected[i]) all = false;
    if (all && run.sectionStumbles === 0) {
       ev.perfect = true;
