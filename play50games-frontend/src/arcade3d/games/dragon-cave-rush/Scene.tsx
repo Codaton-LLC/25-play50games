@@ -31,7 +31,7 @@ import { usePlayers } from "@/arcade3d/menu2/multiplayer/players";
 import World from "./World";
 import { Course, type VisualClock } from "./Course";
 import { Dragon, Rider, cartPose, createCartPose, createHeroAnim, type CartPose, type HeroAnim } from "./Hero";
-import { CAVE_ORBIT, FOV, FOV_PORTRAIT, introKeyframes, orbitLookUp, orbitPivot, orbitScale, playCamera, yawAt } from "./camera";
+import { CAVE_ORBIT, FOV, FOV_PORTRAIT, introKeyframes, orbitLookUp, orbitPivot, orbitScale, playCamera, tubeFraction, yawAt } from "./camera";
 import { BREATH, ORB, STAT, bossVulnerable, createRun, createStepInput, step, type CaveRun, type StepEvents, type StepInput } from "./rules";
 import { pickedHero, subscribeHero } from "./heroes";
 import { createBot, botInput } from "./bot";
@@ -218,6 +218,30 @@ export function CaveCamera({ run, orbit }: { run: CaveRun; orbit: OrbitState }) 
    return <OrbitCamera orbit={orbit} pivot={pivot} travel={travel} behind={behind} input={CAVE_GESTURES} lookUp={orbitLookUp(aspect)} distanceScale={orbitScale(aspect)} pivotDamping={10} />;
 }
 
+/** After the orbit placed the camera: pull it in along its ray to the pivot until it is inside the cave. */
+function TubeClamp({ run }: { run: CaveRun }) {
+   const camera = useThree((s) => s.camera);
+   const size = useThree((s) => s.size);
+   const at = useMemo(() => ({ x: 0, y: 0, z: 0 }), []);
+   const cam = useMemo(() => ({ x: 0, y: 0, z: 0 }), []);
+   const k = useRef(1);
+   useFrame((_s, delta) => {
+      const c = run.cart;
+      const lane = run.course.lanes[c.lane];
+      orbitPivot(run.course, c.s, c.d, lane.y + Math.max(0, c.h) * 0.6, at);
+      cam.x = camera.position.x;
+      cam.y = camera.position.y;
+      cam.z = camera.position.z;
+      const want = tubeFraction(run.course, c.s - 6, at, cam);
+      // in at once (never through the wall), back out smoothly
+      k.current = want < k.current ? want : k.current + (want - k.current) * (1 - Math.exp(-4 * Math.min(0.1, delta)));
+      if (k.current >= 0.999) return;
+      camera.position.set(at.x + (cam.x - at.x) * k.current, at.y + (cam.y - at.y) * k.current, at.z + (cam.z - at.z) * k.current);
+      camera.lookAt(at.x, at.y + orbitLookUp(size.width / Math.max(1, size.height)), at.z);
+   }, FRAME_PRIORITY.camera + 0.01);
+   return null;
+}
+
 /** Canvas swipes swap lanes: one finger never turns the camera (two fingers do; the right mouse button drags it). */
 export const CAVE_GESTURES = { oneFinger: false, mouseButtons: [2] } as const;
 
@@ -302,6 +326,7 @@ function SoloScene() {
          <Simulation run={run} anim={anim} clock={clock} orbit={orbit} />
          <PoseProbe run={run} pose={pose} />
          <CaveCamera run={run} orbit={orbit} />
+         <TubeClamp run={run} />
          <IntroCamera run={run} anim={anim} />
          <ViewProbe pose={pose} />
       </JuiceLayer>
