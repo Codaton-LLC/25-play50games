@@ -1103,6 +1103,70 @@
         { "title": "Big Top Finale", "max_score": 17600, "min_duration_ms": 24000, "max_duration_ms": 200000, "time_base_ms": 200000 }
       ]
     },
+    "temple-lantern-jump": {
+      "title": "Temple Lantern Jump",
+      "kind": "time",
+      "max_score": 17870,
+      "min_duration_ms": 1300,
+      "max_duration_ms": 180000,
+      "time_base_ms": 180000,
+      "enabled": false,
+      "levels": [
+        { "title": "Temple Gate", "max_score": 17870, "min_duration_ms": 1300, "max_duration_ms": 180000, "time_base_ms": 180000 },
+        { "title": "Lantern Hall", "max_score": 20740, "min_duration_ms": 2600, "max_duration_ms": 210000, "time_base_ms": 210000 },
+        { "title": "Balcony Climb", "max_score": 23610, "min_duration_ms": 3900, "max_duration_ms": 240000, "time_base_ms": 240000 },
+        { "title": "Night Temple", "max_score": 26480, "min_duration_ms": 5200, "max_duration_ms": 270000, "time_base_ms": 270000 },
+        { "title": "Golden Roof", "max_score": 33570, "min_duration_ms": 24300, "max_duration_ms": 360000, "time_base_ms": 360000 }
+      ]
+    },
+    "dragon-cave-rush": {
+      "title": "Dragon Cave Rush",
+      "kind": "time",
+      "max_score": 5360,
+      "min_duration_ms": 36400,
+      "max_duration_ms": 90000,
+      "time_base_ms": 90000,
+      "enabled": false,
+      "levels": [
+        { "title": "Crystal Entry", "max_score": 5360, "min_duration_ms": 36400, "max_duration_ms": 90000, "time_base_ms": 90000 },
+        { "title": "Rockfall", "max_score": 7670, "min_duration_ms": 33300, "max_duration_ms": 110000, "time_base_ms": 110000 },
+        { "title": "Glow Tunnel", "max_score": 8940, "min_duration_ms": 30600, "max_duration_ms": 120000, "time_base_ms": 120000 },
+        { "title": "Deep Cave", "max_score": 10170, "min_duration_ms": 28300, "max_duration_ms": 130000, "time_base_ms": 130000 },
+        { "title": "Dragon Hoard", "max_score": 14610, "min_duration_ms": 33900, "max_duration_ms": 180000, "time_base_ms": 180000 }
+      ]
+    },
+    "color-door-sprint": {
+      "title": "Color Door Sprint",
+      "kind": "time",
+      "max_score": 7460,
+      "min_duration_ms": 15400,
+      "max_duration_ms": 90000,
+      "time_base_ms": 90000,
+      "enabled": false,
+      "levels": [
+        { "title": "Two Doors", "max_score": 7460, "min_duration_ms": 15400, "max_duration_ms": 90000, "time_base_ms": 90000 },
+        { "title": "Three Doors", "max_score": 9530, "min_duration_ms": 14700, "max_duration_ms": 110000, "time_base_ms": 110000 },
+        { "title": "Fake Door", "max_score": 11680, "min_duration_ms": 13200, "max_duration_ms": 130000, "time_base_ms": 130000 },
+        { "title": "Fast Gates", "max_score": 13770, "min_duration_ms": 12300, "max_duration_ms": 150000, "time_base_ms": 150000 },
+        { "title": "Door Sprint Master", "max_score": 20730, "min_duration_ms": 32700, "max_duration_ms": 240000, "time_base_ms": 240000 }
+      ]
+    },
+    "sky-hook-swing": {
+      "title": "Sky Hook Swing",
+      "kind": "time",
+      "max_score": 9700,
+      "min_duration_ms": 3000,
+      "max_duration_ms": 100000,
+      "time_base_ms": 100000,
+      "enabled": false,
+      "levels": [
+        { "title": "Single Swing", "max_score": 9700, "min_duration_ms": 3000, "max_duration_ms": 100000, "time_base_ms": 100000 },
+        { "title": "Double Swing", "max_score": 13320, "min_duration_ms": 6800, "max_duration_ms": 140000, "time_base_ms": 140000 },
+        { "title": "Moving Anchors", "max_score": 17600, "min_duration_ms": 4000, "max_duration_ms": 180000, "time_base_ms": 180000 },
+        { "title": "Long Gaps", "max_score": 19290, "min_duration_ms": 7100, "max_duration_ms": 200000, "time_base_ms": 200000 },
+        { "title": "Sky Swing Master", "max_score": 23310, "min_duration_ms": 6900, "max_duration_ms": 240000, "time_base_ms": 240000 }
+      ]
+    },
     "color-city-sprint": {
       "title": "Color City Sprint",
       "kind": "time",
