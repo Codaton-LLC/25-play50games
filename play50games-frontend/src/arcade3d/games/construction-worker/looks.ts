@@ -2,6 +2,8 @@
 // portrait view sideways. The live look-at point is LOOK (Scene moves its y with the roof).
 // Colors, decor definitions and boundary clearances for the modern look pass.
 import type { AABB } from "@/arcade3d/core/collision";
+import type { LightingPreset } from "@/arcade3d/core/types";
+import type { CraneSite } from "./levels";
 import type { FittedViewOptions } from "@/arcade3d/core/useFittedView";
 
 export const PITCH = (40 * Math.PI) / 180;
@@ -104,6 +106,47 @@ export const COLORS = {
    rateOk: "#facc15",
    rateMiss: "#ef4444",
 } as const;
+
+/**
+ * Each level's light and surroundings (README "Levels"). `lighting` is the core preset, the sky dome
+ * and fog are the level's own, `outerGround` is the ground beyond the yard, `flood` adds the night
+ * shift's work lights. Level 1 keeps today's warm daylight.
+ */
+export interface SiteTheme {
+   lighting: LightingPreset;
+   skyTop: string;
+   skyBottom: string;
+   fog: string;
+   fogNear: number;
+   fogFar: number;
+   outerGround: string;
+   fence: string;
+   fenceRail: string;
+   /** extra work lights over the yard (night) */
+   flood: boolean;
+}
+
+export const THEMES: Record<CraneSite, SiteTheme> = {
+   // back garden, bright midday
+   shed: { lighting: "day", skyTop: COLORS.skyTop, skyBottom: COLORS.skyBottom, fog: COLORS.fog, fogNear: 65, fogFar: 140, outerGround: "#86b25a", fence: COLORS.craneOrange, fenceRail: COLORS.safetyYellow, flood: false },
+   // a quiet street of small houses, clear cool morning
+   tinyHouse: { lighting: "day", skyTop: "#7dd3fc", skyBottom: "#e0f2fe", fog: "#dbeafe", fogNear: 55, fogFar: 130, outerGround: "#6f9f4f", fence: "#f8fafc", fenceRail: "#94a3b8", flood: false },
+   // a garage yard in the late afternoon: low warm sun, long shadows
+   garage: { lighting: "sunset", skyTop: "#f97316", skyBottom: "#fde68a", fog: "#fdba74", fogNear: 45, fogFar: 120, outerGround: "#57534e", fence: "#facc15", fenceRail: "#1f2937", flood: false },
+   // a shop street at dusk: violet sky, lamps on
+   shopFront: { lighting: "sunset", skyTop: "#4c1d95", skyBottom: "#fb923c", fog: "#c084fc", fogNear: 40, fogFar: 110, outerGround: "#3f3f46", fence: "#ef4444", fenceRail: "#f8fafc", flood: false },
+   // downtown at night: floodlit yard, lit towers
+   tower: { lighting: "night", skyTop: "#020617", skyBottom: "#1e3a8a", fog: "#172554", fogNear: 40, fogFar: 120, outerGround: "#1f2937", fence: "#f59e0b", fenceRail: "#0f172a", flood: true },
+};
+
+/** The three buildings of each site's shift (the HUD's "Next: ..."); level 1 keeps today's names. */
+export const BUILDING_NAMES: Record<CraneSite, readonly [string, string, string]> = {
+   shed: ["House", "Shop", "Tower"],
+   tinyHouse: ["Cabin", "Tiny house", "Loft house"],
+   garage: ["Carport", "Workshop", "Garage"],
+   shopFront: ["Kiosk", "Café", "Shop front"],
+   tower: ["Base block", "Mid block", "Mini tower"],
+};
 
 function channel(c: number): number {
    const s = c / 255;

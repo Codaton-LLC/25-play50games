@@ -183,7 +183,7 @@ export function Cues({ run }: { run: Run }) {
       if (ring) {
          ring.visible = target >= 0;
          if (target >= 0) {
-            pileAt(target, at);
+            pileAt(target, at, run.level);
             ring.position.set(at.x, 0.04, at.z);
             ring.scale.setScalar(1.45 + 0.25 * pulse);
             mats.pileRing.opacity = 0.55 + 0.4 * pulse;
@@ -193,7 +193,7 @@ export function Cues({ run }: { run: Run }) {
       if (red) {
          red.visible = wrong >= 0;
          if (wrong >= 0) {
-            pileAt(wrong, at);
+            pileAt(wrong, at, run.level);
             red.position.set(at.x, 0.05, at.z);
             red.scale.setScalar(1.3 + 0.9 * (1 - wrongK));
             mats.refused.opacity = 0.9 * wrongK;
@@ -203,7 +203,7 @@ export function Cues({ run }: { run: Run }) {
       if (a) {
          a.visible = target >= 0;
          if (target >= 0) {
-            pileAt(target, at);
+            pileAt(target, at, run.level);
             a.position.set(at.x, (PILE_TOP[target] ?? 0.4) + 1.1 + 0.35 * Math.abs(Math.sin(now * 4)), at.z);
             const tex = mats.label.map;
             if (tex) tex.offset.set(target * 0.2, 0);
@@ -237,7 +237,7 @@ export function Cues({ run }: { run: Run }) {
       if (b) {
          b.visible = carrying && playing && !!step;
          if (step) {
-            slotAt(step.slot, at);
+            slotAt(step.slot, at, run.level);
             const top = step.floor * FLOOR;
             b.position.set(at.x, top, at.z);
             b.scale.set(1, 3, 1);
