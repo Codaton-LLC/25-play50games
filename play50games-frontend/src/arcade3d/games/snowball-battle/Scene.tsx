@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useFrame, useThree, type RootState } from "@react-three/fiber";
 import { Raycaster, Vector2, Vector3 } from "three";
 import { aimFired } from "@/arcade3d/core/aim";
+import type { AABB } from "@/arcade3d/core/collision";
 import CameraRig from "@/arcade3d/core/CameraRig";
 import { playSfx, startLoop, useMuted } from "@/arcade3d/core/audio";
 import { useActionPop, type ActionPop } from "@/arcade3d/core/fx/actionPop";
@@ -24,7 +25,8 @@ import Balls from "./Balls";
 import { AIM_CLAMP, FIT, FOLLOW_Y, LOOK_AT, areaFor } from "./camera";
 import { missPop, scoopOutcome, scoopPop } from "./feedback";
 import Kids from "./Kids";
-import { createRun, missReason, pickTap, stepRun, type Run, type SimEvent, type StepInput } from "./rules";
+import { FORT, YARD, createRun, fortHeight, groundAt, missReason, pickTap, stepRun, type Run, type SimEvent, type StepInput } from "./rules";
+import { GROUND } from "./guide";
 import ScoopMeter from "./ScoopMeter";
 import { useSnowLevel } from "./useSnowLevel";
 import Yard from "./Yard";
@@ -74,6 +76,16 @@ const TAP = [
    { id: 2, x: 0, y: 0, live: false },
    { id: 3, x: 0, y: 0, live: false },
 ];
+
+/** One camera solid (core/camera `solids`); returns the next free slot. */
+function putSolid(out: AABB[], n: number, x: number, z: number, half: number, height: number): number {
+   if (n >= out.length) return n;
+   const box = out[n];
+   box.min.x = x - half; box.max.x = x + half;
+   box.min.y = 0; box.max.y = height;
+   box.min.z = z - half; box.max.z = z + half;
+   return n + 1;
+}
 
 function coarsePointer(): boolean {
    return typeof matchMedia === "function" && matchMedia("(pointer: coarse)").matches;
@@ -127,6 +139,11 @@ function playEvent(fx: FxApi, e: SimEvent): void {
       playSfx("thud", { pitch: 0.5 });
       fx.shake(0.2);
       fx.burst("snow", FX_POS, 12);
+   } else if (e.kind === "rebuild") {
+      playSfx("thud", { pitch: 1.2 });
+      fx.burst("snow", FX_POS, 14);
+      FX_POS.y = 1.9;
+      fx.score(FX_POS, "Rebuilt!", { color: "#bae6fd" });
    } else if (e.kind === "splat" || e.kind === "down") {
       fx.burst("puff", FX_POS, 8);
    }
@@ -153,6 +170,12 @@ function LevelScene() {
       steering: "camera",
       defaultYaw: view.yaw,
       mouseButtons: CAMERA_BUTTONS,
+      // the standing forts and the centre cover keep the chase / front / free views from clipping into them
+      solids: (out) => {
+         let n = putSolid(out, 0, 0, 0, YARD.snowHalf, YARD.snowHeight);
+         for (let i = 0; i < run.forts.length; i++) if (run.forts[i].hp >= 1) n = putSolid(out, n, run.forts[i].x, run.forts[i].z, FORT.half, fortHeight(run.forts[i].hp));
+         return n;
+      },
       target: (o) => {
          const k = run.kids[0];
          o.x = k.x; o.y = 1.0; o.z = k.z; o.heading = k.yaw; o.vx = k.vx; o.vz = k.vz;
@@ -239,6 +262,8 @@ function LevelScene() {
       for (let i = 1; i < 4; i++) if (run.kids[i].present && run.kids[i].alive) rivals += 1;
       store.setStat("rivals", rivals);
       store.setStat("health", 5 - run.playerTags);
+      const under = groundAt(run.level, player.x, player.z);
+      store.setStat("ground", under === "ice" ? GROUND.ice : under === "drift" ? GROUND.drift : GROUND.snow);
       const api = fxRef.current;
       for (let i = 0; i < run.eventCount; i++) playEvent(api, run.events[i]);
       run.eventCount = 0;
