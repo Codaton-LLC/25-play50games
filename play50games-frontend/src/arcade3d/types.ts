@@ -77,6 +77,7 @@ export const ARCADE_SLUGS = [
    "jungle-vine-jump",
    "temple-coin-rush",
    "wall-run-temple",
+   "tightrope-path",
    "ice-peak-jumper",
    "toy-room-run",
 ] as const;
