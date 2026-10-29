@@ -68,11 +68,13 @@ import { windTunnelEscapeMeta } from "./games/wind-tunnel-escape/meta";
 import { rollCannonJumpMeta } from "./games/roll-cannon-jump/meta";
 import { colorCitySprintMeta } from "./games/color-city-sprint/meta";
 import { templeLanternJumpMeta } from "./games/temple-lantern-jump/meta";
+import { toyRoomRunMeta } from "./games/toy-room-run/meta";
 import { jungleVineJumpMeta } from "./games/jungle-vine-jump/meta";
 import { icePeakJumperMeta } from "./games/ice-peak-jumper/meta";
 import { dragonCaveRushMeta } from "./games/dragon-cave-rush/meta";
 import { skyHookSwingMeta } from "./games/sky-hook-swing/meta";
 import { wallRunTempleMeta } from "./games/wall-run-temple/meta";
+import { mineTunnelRunMeta } from "./games/mine-tunnel-run/meta";
 
 import { snowSlideDashMeta } from "./games/snow-slide-dash/meta";
 
@@ -140,6 +142,7 @@ export const ARCADE_GAMES: ArcadeGameMeta[] = [
    robotFactoryRunMeta,
    colorCitySprintMeta,
    templeLanternJumpMeta,
+   toyRoomRunMeta,
    jungleVineJumpMeta,
    icePeakJumperMeta,
    dragonCaveRushMeta,
@@ -148,6 +151,7 @@ export const ARCADE_GAMES: ArcadeGameMeta[] = [
    wallRunTempleMeta,
    templeCoinRushMeta,
    snowSlideDashMeta,
+   mineTunnelRunMeta,
 ].sort((a, b) => a.order - b.order);
 
 export function getGameMeta(slug: string): ArcadeGameMeta | undefined {

@@ -31,6 +31,10 @@ describe("Carve & Air", () => {
    });
    it("derives separate level bounds from the absolute travel-speed cap", () => {
       expect(([1, 2, 3, 4, 5] as const).map((id) => [LIMITS[id].minDurationMs, LIMITS[id].maxScore])).toEqual([[14771, 8522], [20908, 10409], [24999, 12000], [29544, 13545], [40908, 16909]]);
+      // PINNED: these exact numbers must match meta.scoring / meta.levels and arcade-games.json.
+      const PINNED = [[14771, 100000, 8522], [20908, 125000, 10409], [24999, 145000, 12000], [29544, 165000, 13545], [40908, 210000, 16909]];
+      expect(([1, 2, 3, 4, 5] as const).map((id) => [LIMITS[id].minDurationMs, LIMITS[id].maxDurationMs, LIMITS[id].maxScore])).toEqual(PINNED);
+      expect(([1, 2, 3, 4, 5] as const).map((id) => LIMITS[id].timeBaseMs)).toEqual(PINNED.map((p) => p[1]));
       for (const id of [1, 2, 3, 4, 5] as const) {
          expect(LIMITS[id].minDurationMs).toBe(Math.floor(LEVELS[id].length / TOP_SPEED * 1000) - 1);
          expect(LIMITS[id].maxScore).toBe(Math.floor((LEVELS[id].durationMs - LIMITS[id].minDurationMs) / 10));
