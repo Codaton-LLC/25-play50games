@@ -14,13 +14,15 @@ and let go at the peak to fly to the next one. The rope is an analytic pendulum 
 - Keyboard: WASD / arrows walk and aim; on the rope up reels in, down reels out, left / right turn the
   swing plane. Space jumps. E or Enter throws the hook, and releases it.
 - Touch: joystick, Jump and **Hook** (the shared Action button). The ring Hook will take glows white
-  (the card's auto-target fix for phones: a 35° cone round the stick, biased up, up to 14 m); the same
+  (the card's auto-target fix for phones: a 35° cone round the stick, leaning 42° up because the rings
+  hang 40-60° over a hero on a deck, up to 14 m); the same
   windows on touch and keyboard (decision 7).
 - Peak release: while the rope flashes green (climbing, past the bottom, faster than 5.2 m/s) a release
   leaves 25 % faster: a green burst, a 50 ms hit-stop and a FOV kick.
 - Camera (menu2/camera, the shared free orbit): drag (either mouse button, two fingers, or one finger on
-  empty canvas), wheel / pinch zooms, Q / C turn, R / F tilt, V recenters. It starts behind and to the
-  left of the hero (a three-quarter view, `camera.ts SWING_ORBIT`), so a swing reads as an arc with depth;
+  empty canvas), wheel / pinch zooms, Q / C turn, R / F tilt, V recenters. It starts 20° off straight
+  behind the hero (`camera.ts SWING_ORBIT`), so screen-up walks along the docks toward the rings and a
+  swing reads as an arc with depth; a portrait phone leads less so the hero stays centred;
   it pulls back on a big, fast arc. Movement and aim are camera-relative (`StepInput.yaw`).
 - Hero choice: the shared picker on the start card, the pause menu and the result; Nami (W2's lead) is
   preselected.
@@ -104,16 +106,24 @@ finish ms - 80 ms per orb - the flow meter's bonus (`runTimeMs`, `finalScore`).
 
 | Level | Span (m) | Travel floor | Boss floor | Orbs (main) | Orb bonus | Flow bound | Least duration | minDurationMs | maxDurationMs | maxScore | Bot finish (ms) |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| 1 | 150.6 | 6 846 | - | 31 (15) | 2 480 | 1 092 | 3 273 | 3 100 | 100 000 | 9 690 | 18 400-18 800 |
-| 2 | 274.5 | 12 478 | - | 43 (27) | 3 440 | 1 776 | 7 261 | 6 800 | 140 000 | 13 320 | 29 300-33 200 |
-| 3 | 170.6 | 7 755 | - | 31 (15) | 2 480 | 1 020 | 4 254 | 4 000 | 180 000 | 17 600 | 19 800-32 800 |
-| 4 | 268.0 | 12 182 | - | 40 (21) | 3 200 | 1 380 | 7 601 | 7 200 | 200 000 | 19 280 | 36 000-65 400 |
-| 5 | 159.0 | 7 228 | 10 700 | 29 (13) | 2 320 | 1 044 | 7 336 | 6 900 | 240 000 | 23 310 | 23 500-85 200 |
+| 1 | 150.6 | 6 846 | - | 31 (15) | 2 480 | 1 128 | 3 237 | 3 000 | 100 000 | 9 700 | 16 700-38 200 |
+| 2 | 274.5 | 12 478 | - | 43 (27) | 3 440 | 1 812 | 7 225 | 6 800 | 140 000 | 13 320 | 30 500-39 100 |
+| 3 | 170.6 | 7 755 | - | 31 (15) | 2 480 | 1 056 | 4 218 | 4 000 | 180 000 | 17 600 | 19 200-34 200 |
+| 4 | 268.0 | 12 182 | - | 40 (21) | 3 200 | 1 416 | 7 565 | 7 100 | 200 000 | 19 290 | 36 200-74 300 |
+| 5 | 159.0 | 7 228 | 10 700 | 29 (13) | 2 320 | 1 044 | 7 336 | 6 900 | 240 000 | 23 310 | 26 100-85 200 |
 
 `meta.ts` and `arcade-games.json` carry `PROPOSED_LEVEL_LIMITS`; `registry.sync.test.ts` keeps them equal.
 `proof.test.ts`: every hero wins every level with the plain bot and a mashed power; the honest bot through
 the real store (`createArcadeStore`, `advanceRunClock`, ragged frames) is a ranked win on every level and
 its normalized run is inside that level's row; 40 spam runs per level never beat the floor.
+
+Bot finish: 50 runs per level (5 heroes x 10 seeds, 5 % of frames at 50 ms), all wins.
+
+## Playtest (2026-10-28, headless Chrome over CDP, `next start` preview build)
+
+All five levels cleared by the preview bot at 1280 x 800 and 390 x 844 (two-finger orbit on the phone,
+mouse drag on desktop), a keyboard run (walk up, Hook, reel, peak release, Q turn) and a two-player
+local session: 0 console errors, at most 95 draw calls, frame p50 16.7 ms / p95 17 ms.
 
 ## Known issues
 
