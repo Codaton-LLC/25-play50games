@@ -114,6 +114,20 @@ A missed assembly part is replaced within `period + 1.9 / 1.45` s: 2.91 s on lev
 
 The oracle (30 seeds, 30 / 60 / 144 Hz) hits each ceiling exactly. On levels 1-3 the human-paced bot (200 seeds, 150-250 ms) clears at least 90 %. On levels 4-5 an honest sorter (the same 150-250 ms, 3 % wrong bin) clears at least 95 %. A bot that always picks bin 1, and one that cycles bins without looking, stay under 35 % of the ceiling and never clear. Idle scores 0.
 
+### Each level's own bay (2026-10-29, looks only)
+
+`factorySets.ts` + `FactoryBay.tsx`; rules and limits untouched. Each level has its own light (per-level `environment`), what the four wall screens show (seen on every screen size, phones included), props on the back floor strip behind the belts and an accent light:
+
+| Level | Light | Screens | Props |
+|---|---|---|---|
+| 1 Basic Sort | `indoor` (today) | today's telemetry | — |
+| 2 Shape Sort | `day`, skylit | the four part shapes | giant cube, cone, ball and tube on plinths |
+| 3 Color + Shape | `sunset`, pink accent | colour swatches | paint drums in the four part colours, a cone and a cube |
+| 4 Fast Factory | `indoor`, green accent | the sort chart (bins and arrows, SORT >>>) | two bin racks with eight coloured bins |
+| 5 Overdrive | `night`, pulsing red alarm light | OVERDRIVE with hazard stripes | three turning red beacons, red drums, sparks off the back wall every 1.4 s |
+
+`factorySets.test.ts`: every prop stands outside `PLAY_BOUNDS` and hides no gameplay target from the fitted camera at 1280 × 800, 390 × 844 and 844 × 390; the five bays differ; level 1 is today's.
+
 ## Run end
 
 - **Shift clock (`SHIFT_DURATION = 90.0` s):** `durationMs` is **omitted** on `GameDefinition`; `rules.ts` runs the 90 s clock itself (HUD stat `"Time"`, `"90s"` → `"0s"`) and ends at `90.0` s with `end("win")` when `robotsCompleted >= 5` (`WIN_QUOTA = 5`, `resultDelayMs: 1400` for the final walk-off + `cheerPose`) or `end("lose")` when `robotsCompleted < 5`. Grabbing a 3rd faulty part ends immediately with `"lose"` via `loseLife()`.
