@@ -20,8 +20,8 @@ const MENU1_NEW = ARCADE_SLUGS.slice(30, 50);
 
 /** Menu 2 (Color Roll Heroes): the vertical slice so far, after the 50 Menu 1 games, hidden ("dev") until the user signs off. */
 /** Owners other than Cursor in the Menu 2 slice. */
-const OWNER: Record<string, string> = { "sky-tower-jump": "claude", "plate-surf": "claude", "zipline-rush": "codex", "ring-jump-challenge": "claude", "wind-tunnel-escape": "claude", "roll-cannon-jump": "claude", "dragon-cave-rush": "claude", "temple-lantern-jump": "claude", "color-door-sprint": "claude" };
-const MENU2 = ["sky-tower-jump", "rooftop-roll-climb", "flooded-ruins-escape", "lava-pillar-jump", "cloud-hopper", "plate-surf", "zipline-rush", "ring-jump-challenge", "wind-tunnel-escape", "roll-cannon-jump", "color-door-sprint", "dragon-cave-rush", "temple-lantern-jump"];
+const OWNER: Record<string, string> = { "sky-tower-jump": "claude", "plate-surf": "claude", "zipline-rush": "codex", "ring-jump-challenge": "claude", "wind-tunnel-escape": "claude", "roll-cannon-jump": "claude", "color-door-sprint": "claude", "dragon-cave-rush": "claude", "temple-lantern-jump": "claude", "temple-coin-rush": "claude" };
+const MENU2 = ["sky-tower-jump", "rooftop-roll-climb", "flooded-ruins-escape", "lava-pillar-jump", "cloud-hopper", "plate-surf", "zipline-rush", "ring-jump-challenge", "wind-tunnel-escape", "roll-cannon-jump", "color-door-sprint", "dragon-cave-rush", "temple-lantern-jump", "temple-coin-rush"];
 
 describe("registry for 50 Menu 1 games plus Menu 2", () => {
    it("has 50 Menu 1 slugs plus the Menu 2 ones, each with one meta, a unique order and a loader", () => {
@@ -76,8 +76,8 @@ describe("Menu 2", () => {
    it("keeps its games last, in dev, in the rollheroes collection", () => {
       const menu2 = ARCADE_GAMES.slice(50);
       expect(menu2.map((g) => g.slug)).toEqual(MENU2);
-      expect(menu2.map((g) => g.order)).toEqual([51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 62, 66, 67]);
-      expect(menu2.map((g) => g.owner)).toEqual(["claude", "cursor", "cursor", "cursor", "cursor", "claude", "codex", "claude", "claude", "claude", "claude", "claude", "claude"]);
+      expect(menu2.map((g) => g.order)).toEqual([51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 62, 66, 67, 69]);
+      expect(menu2.map((g) => g.owner)).toEqual(["claude", "cursor", "cursor", "cursor", "cursor", "claude", "codex", "claude", "claude", "claude", "claude", "claude", "claude", "claude"]);
       for (const g of menu2) {
          expect(g.status).toBe("dev");
          expect(g.collection).toBe("rollheroes");

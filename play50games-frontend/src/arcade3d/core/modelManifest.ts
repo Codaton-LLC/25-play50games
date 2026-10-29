@@ -209,6 +209,18 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/color-door-sprint/m2MineLanternPost.glb",
    "/models/3d/color-door-sprint/m2ScoreOrb.glb",
    "/models/3d/color-door-sprint/m2SlidingDoor.glb",
+   // Menu 2 game 16 (Temple Coin Rush): ready/menu2/temple-coin-rush plus m2CoilstoneHead and m2CoilstoneSegment (shared, W3's boss)
+   "/models/3d/temple-coin-rush/m2BrokenTile.glb",
+   "/models/3d/temple-coin-rush/m2CoilstoneHead.glb",
+   "/models/3d/temple-coin-rush/m2CoilstoneSegment.glb",
+   "/models/3d/temple-coin-rush/m2FireJetPillar.glb",
+   "/models/3d/temple-coin-rush/m2OfferingBowl.glb",
+   "/models/3d/temple-coin-rush/m2RollingBoulder.glb",
+   "/models/3d/temple-coin-rush/m2SpikeTrapTile.glb",
+   "/models/3d/temple-coin-rush/m2StepPyramidBg.glb",
+   "/models/3d/temple-coin-rush/m2StoneObstacle.glb",
+   "/models/3d/temple-coin-rush/m2TempleCoin.glb",
+   "/models/3d/temple-coin-rush/m2TempleGate.glb",
    // Menu 2 game 05 (Cloud Hopper): cloud props from ~/.play50/hyper3d/ready/menu2/cloud-hopper
    "/models/3d/cloud-hopper/m2CloudBank.glb",
    "/models/3d/cloud-hopper/m2CloudCastleBg.glb",
