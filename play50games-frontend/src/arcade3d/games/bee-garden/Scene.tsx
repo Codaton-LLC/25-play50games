@@ -28,12 +28,14 @@ import { GUIDE, beeHint, flowerGoal, hintCode, hiveGoal, nextFlower } from "./gu
 import { FLAP_TIME, patchWings } from "./wings";
 import { ASSETS, BRANCH_UPRIGHT, FIT } from "./assets";
 import { LEVELS, type BeeLevel } from "./levels";
-import { COLORS, DAMPING, FOV, LEVEL_LOOKS, LOOK_AHEAD, aimBounds, decorSpots, soilSpots, viewFor } from "./looks";
+import { COLORS, DAMPING, FOV, LEVEL_LOOKS, LOOK_AHEAD, aimBounds, decorSpots, setPieces, soilSpots, viewFor } from "./looks";
 import {
    BeehivePrimitive,
    BeePrimitive,
    BranchPrimitive,
    FLOWER_COLOR,
+   GiantFlower,
+   GreenhouseShell,
    PartsInstanced,
    canParts,
    flowerParts,
@@ -55,17 +57,19 @@ const AT = { x: 0, y: 0, z: 0 };
 const Q2 = new Quaternion();
 
 /** Mowing stripes: two greens in bands, a faint grain; repeated along the garden. */
-function drawStripes(ctx: CanvasRenderingContext2D, w: number, h: number) {
-   ctx.fillStyle = COLORS.garden;
-   ctx.fillRect(0, 0, w, h);
-   ctx.fillStyle = COLORS.gardenStripe;
-   ctx.fillRect(0, 0, w / 2, h);
-   ctx.globalAlpha = 0.05;
-   for (let i = 0; i < 160; i++) {
-      ctx.fillStyle = i % 2 ? "#14532d" : "#d9f99d";
-      ctx.fillRect((i * 37) % w, (i * 91) % h, 3, 3);
-   }
-   ctx.globalAlpha = 1;
+function drawStripes(garden: string, stripe: string) {
+   return (ctx: CanvasRenderingContext2D, w: number, h: number) => {
+      ctx.fillStyle = garden;
+      ctx.fillRect(0, 0, w, h);
+      ctx.fillStyle = stripe;
+      ctx.fillRect(0, 0, w / 2, h);
+      ctx.globalAlpha = 0.05;
+      for (let i = 0; i < 160; i++) {
+         ctx.fillStyle = i % 2 ? "#14532d" : "#d9f99d";
+         ctx.fillRect((i * 37) % w, (i * 91) % h, 3, 3);
+      }
+      ctx.globalAlpha = 1;
+   };
 }
 
 function LevelScene() {
@@ -140,6 +144,7 @@ function LevelScene() {
       const keep = (spots: InstanceSpot[]) => spots.slice(0, scaledCount(spots.length, quality.decor));
       return { leaves: keep(d.leaves), mushrooms: keep(d.mushrooms), planters: d.planters, cans: d.cans, trees: keep(d.trees) };
    }, [id, quality.decor]);
+   const pieces = useMemo(() => setPieces(id), [id]);
 
    const flowerFallback = [useParts(() => flowerParts(FLOWER_COLOR.A)), useParts(() => flowerParts(FLOWER_COLOR.B)), useParts(() => flowerParts(FLOWER_COLOR.C))];
    const orbFallback = useParts(orbParts);
@@ -302,7 +307,9 @@ function LevelScene() {
 
    const halfX = level.width / 2;
    const halfZ = level.depth / 2;
-   const stripes = useCanvasTexture(128, 64, drawStripes);
+   // stable draw so useCanvasTexture does not rebuild the map every frame
+   const paintStripes = useMemo(() => drawStripes(look.garden, look.gardenStripe), [look.garden, look.gardenStripe]);
+   const stripes = useCanvasTexture(128, 64, paintStripes);
    useMemo(() => {
       stripes.wrapS = RepeatWrapping;
       stripes.wrapT = RepeatWrapping;
@@ -334,13 +341,19 @@ function LevelScene() {
          {/* the lawn reaches past the fog, the garden is a brighter mown rectangle inside a stone kerb */}
          <mesh rotation-x={-Math.PI / 2} position={[0, -0.01, 0]}>
             <circleGeometry args={[160, 48]} />
-            <meshStandardMaterial color={COLORS.lawnFar} roughness={0.95} />
+            <meshStandardMaterial color={look.lawnFar} roughness={0.95} />
          </mesh>
          <mesh rotation-x={-Math.PI / 2} position={[0, 0.002, 0]}>
             <planeGeometry args={[level.width, level.depth]} />
             <meshStandardMaterial map={stripes} roughness={0.9} />
          </mesh>
-         <Kerb halfX={halfX} halfZ={halfZ} />
+         <Kerb halfX={halfX} halfZ={halfZ} kerb={look.kerb} kerbTop={look.kerbTop} />
+         {pieces.greenhouse && <GreenhouseShell {...pieces.greenhouse} />}
+         {pieces.giantFlower && (
+            <group position={[pieces.giantFlower.x, 0, pieces.giantFlower.z]}>
+               <GiantFlower height={pieces.giantFlower.height} />
+            </group>
+         )}
          <Instanced spots={soil} name="soil">
             <cylinderGeometry args={[0.3, 0.36, 0.03, 18]} />
             <meshStandardMaterial color={COLORS.soil} roughness={0.95} />
@@ -404,7 +417,7 @@ function LevelScene() {
 }
 
 /** A low stone kerb round the garden: two instanced boxes (body + light cap), one per side. */
-function Kerb({ halfX, halfZ }: { halfX: number; halfZ: number }) {
+function Kerb({ halfX, halfZ, kerb, kerbTop }: { halfX: number; halfZ: number; kerb: string; kerbTop: string }) {
    const sides = useMemo<InstanceSpot[]>(
       () => [
          { x: 0, y: 0.06, z: -halfZ - 0.15, sx: 2 * halfX + 0.6, sy: 0.12, sz: 0.3 },
@@ -419,11 +432,11 @@ function Kerb({ halfX, halfZ }: { halfX: number; halfZ: number }) {
       <>
          <Instanced spots={sides} name="kerb">
             <boxGeometry args={[1, 1, 1]} />
-            <meshStandardMaterial color={COLORS.kerb} roughness={0.85} />
+            <meshStandardMaterial color={kerb} roughness={0.85} />
          </Instanced>
          <Instanced spots={caps} name="kerb-cap">
             <boxGeometry args={[1, 1, 1]} />
-            <meshStandardMaterial color={COLORS.kerbTop} roughness={0.7} />
+            <meshStandardMaterial color={kerbTop} roughness={0.7} />
          </Instanced>
       </>
    );

@@ -176,3 +176,115 @@ export function BeehivePrimitive() {
       </group>
    );
 }
+
+/**
+ * Greenhouse glass shell (level 3): milky panels on N/E/W, a low south sill for the camera,
+ * metal frame posts. Visual only — the bee still clamps to the garden edge.
+ */
+export function GreenhouseShell({
+   halfX,
+   halfZ,
+   wallH,
+   sillH,
+}: {
+   halfX: number;
+   halfZ: number;
+   wallH: number;
+   sillH: number;
+}) {
+   const thick = 0.06;
+   const post = 0.12;
+   const spanX = 2 * halfX;
+   const spanZ = 2 * halfZ;
+   const glass = { color: COLORS.glass, roughness: 0.15, metalness: 0.05, transparent: true, opacity: 0.28, depthWrite: false } as const;
+   const frame = { color: COLORS.glassFrame, roughness: 0.55, metalness: 0.35 } as const;
+   const sill = { color: COLORS.glassSill, roughness: 0.7, metalness: 0.15 } as const;
+   return (
+      <group>
+         {/* north / east / west glass */}
+         <mesh position={[0, wallH / 2, -halfZ]}>
+            <boxGeometry args={[spanX, wallH, thick]} />
+            <meshStandardMaterial {...glass} />
+         </mesh>
+         <mesh position={[-halfX, wallH / 2, 0]}>
+            <boxGeometry args={[thick, wallH, spanZ]} />
+            <meshStandardMaterial {...glass} />
+         </mesh>
+         <mesh position={[halfX, wallH / 2, 0]}>
+            <boxGeometry args={[thick, wallH, spanZ]} />
+            <meshStandardMaterial {...glass} />
+         </mesh>
+         {/* south sill (camera side) */}
+         <mesh position={[0, sillH / 2, halfZ]}>
+            <boxGeometry args={[spanX, sillH, thick * 1.4]} />
+            <meshStandardMaterial {...sill} />
+         </mesh>
+         {/* corner posts */}
+         {(
+            [
+               [-halfX, -halfZ],
+               [halfX, -halfZ],
+               [-halfX, halfZ],
+               [halfX, halfZ],
+            ] as const
+         ).map(([x, z]) => (
+            <mesh key={`${x}:${z}`} position={[x, wallH / 2, z]}>
+               <boxGeometry args={[post, wallH, post]} />
+               <meshStandardMaterial {...frame} />
+            </mesh>
+         ))}
+         {/* top rails on N/E/W */}
+         <mesh position={[0, wallH, -halfZ]}>
+            <boxGeometry args={[spanX + post, post * 0.7, post]} />
+            <meshStandardMaterial {...frame} />
+         </mesh>
+         <mesh position={[-halfX, wallH, 0]}>
+            <boxGeometry args={[post, post * 0.7, spanZ + post]} />
+            <meshStandardMaterial {...frame} />
+         </mesh>
+         <mesh position={[halfX, wallH, 0]}>
+            <boxGeometry args={[post, post * 0.7, spanZ + post]} />
+            <meshStandardMaterial {...frame} />
+         </mesh>
+         {/* mid rail for a greenhouse bay read */}
+         <mesh position={[0, wallH * 0.45, -halfZ]}>
+            <boxGeometry args={[spanX, post * 0.55, post * 0.6]} />
+            <meshStandardMaterial {...frame} />
+         </mesh>
+      </group>
+   );
+}
+
+/** Giant Garden centrepiece: an oversized bloom north of the garden (visual only). */
+export function GiantFlower({ height }: { height: number }) {
+   const stemH = height * 0.62;
+   const bloomR = height * 0.22;
+   return (
+      <group>
+         <mesh position={[0, stemH / 2, 0]}>
+            <cylinderGeometry args={[0.12, 0.22, stemH, 10]} />
+            <meshStandardMaterial color={COLORS.stem} roughness={0.75} />
+         </mesh>
+         {/* three petal layers + a bright centre */}
+         <mesh position={[0, stemH + bloomR * 0.15, 0]} scale={[1, 0.35, 1]}>
+            <sphereGeometry args={[bloomR, 16, 12]} />
+            <meshStandardMaterial color={COLORS.flowerA} roughness={0.45} />
+         </mesh>
+         <mesh position={[0, stemH + bloomR * 0.25, 0]} scale={[0.72, 0.28, 0.72]}>
+            <sphereGeometry args={[bloomR, 14, 10]} />
+            <meshStandardMaterial color={COLORS.flowerB} roughness={0.4} />
+         </mesh>
+         <mesh position={[0, stemH + bloomR * 0.32, 0]}>
+            <cylinderGeometry args={[bloomR * 0.28, bloomR * 0.32, bloomR * 0.2, 12]} />
+            <meshStandardMaterial color={COLORS.flowerCenter} roughness={0.35} emissive={COLORS.nectar} emissiveIntensity={0.25} />
+         </mesh>
+         {/* two big leaves at the base */}
+         {[-1, 1].map((s) => (
+            <mesh key={s} position={[s * 0.55, stemH * 0.28, 0.1]} rotation={[0.4, 0, s * 0.7]} scale={[1.1, 0.12, 0.55]}>
+               <sphereGeometry args={[0.7, 10, 8]} />
+               <meshStandardMaterial color={COLORS.leaf} roughness={0.55} />
+            </mesh>
+         ))}
+      </group>
+   );
+}

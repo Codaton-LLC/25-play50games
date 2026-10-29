@@ -18,11 +18,11 @@ Fly a bee in the horizontal plane (fixed 1.15 m) over one garden, drink the nect
 
 | L | Title | Garden | Nectar | Webs | Branches | Breeze | Clock | Look | Limits (max / base / pps) |
 |---|---|---|---:|---:|---:|---|---:|---|---|
-| 1 | Flower Garden | 18 × 14 | 10 | 0 | 2 | no | 120 s | day | 705 / 245 / 42 |
-| 2 | Vegetable Garden | 22 × 16 | 15 | 2 | 4 | no | 150 s | day, vegetable planters | 930 / 375 / 31 |
-| 3 | Greenhouse | 24 × 18 | 20 | 4 | 6 | no | 180 s | day, close milky fog (the glass), planters | 1140 / 490 / 25 |
-| 4 | Forest Flowers | 28 × 20 | 25 | 6 | 8 | no | 180 s | sunset, tree line | 1225 / 620 / 16 |
-| 5 | Giant Garden | 32 × 22 | 30 | 8 | 8 | 0.8 m/s² east | 210 s | day + fog, tree line, leaves lean in the wind | 1440 / 750 / 15 |
+| 1 | Flower Garden | 18 × 14 | 10 | 0 | 2 | no | 120 s | day, border leaves + mushrooms | 705 / 245 / 42 |
+| 2 | Vegetable Garden | 22 × 16 | 15 | 2 | 4 | no | 150 s | day, soil kerb, planter rows + cans | 930 / 375 / 31 |
+| 3 | Greenhouse | 24 × 18 | 20 | 4 | 6 | no | 180 s | day, real glass walls + milky fog, planters | 1140 / 490 / 25 |
+| 4 | Forest Flowers | 28 × 20 | 25 | 6 | 8 | no | 180 s | sunset, dense north tree line + mushrooms | 1225 / 620 / 16 |
+| 5 | Giant Garden | 32 × 22 | 30 | 8 | 8 | 0.8 m/s² east | 210 s | day + fog, giant bloom centrepiece, breeze lean | 1440 / 750 / 15 |
 
 All levels: `minDurationMs` 4000, `maxDurationMs` = the clock. Only a win (every nectar banked) clears a level (no `clearScore`).
 
@@ -62,8 +62,9 @@ All `menu1-bee-garden` GLBs are adopted (`public/models/3d/bee-garden/`, `branch
 - hive 0.85 m (under the bee's lowest point, so it never hides the bee) inside its 0.7 m solid box; the pad is a ring + a soft disc;
 - flowers 0.95 m (instanced per type), nectar orbs 0.3 m on the blooms at flight height with a pulsing additive glow (one pool each);
 - branches stand upright (1.6 m, their leafy spread = the 1 m solid circle); webs 1.4 m wide across the flight height, with a ring on the ground showing the hazard circle;
-- decor is fitted to 1 m and placed by its spot's scale (never scaled twice): big leaves (sway; lean east on L5), mushrooms, vegetable planters, watering cans, L4–L5 trees. Nothing stands inside the garden, decor south of it (the camera side) stays under 0.7 m, trees only north and well behind the sides (`assets.test.ts`).
-- Ground: a 160 m lawn under the fog (no void), the garden as a mown, striped rectangle in a stone kerb, a soil bed under each flower. `SkyDome` per level.
+- decor is fitted to 1 m and placed by its spot's scale (never scaled twice): big leaves (sway; lean east on L5), mushrooms, vegetable planters, watering cans, L4–L5 trees. Each level has its own layout (`looks.ts` scenery). Nothing stands inside the garden, decor south of it (the camera side) stays under 0.7 m, trees only north and well behind the sides (`assets.test.ts`).
+- Set pieces: L3 greenhouse glass shell (N/E/W panels + south sill, code-built), L5 giant flower centrepiece north of the garden. Visual only.
+- Ground: a 160 m lawn under the fog (no void), the garden as a mown, striped rectangle in a stone kerb (colours per level), a soil bed under each flower. `SkyDome` per level.
 
 Camera: a follow camera (pitch 55°, yaw 0, 2 m look-ahead along the velocity) that keeps a 9 × 11 m window (a phone in portrait fits its width; a wide screen sees most of the L1 garden) clear of the HUD and the controls (`useFittedView`, `shift`), aimed inside the garden. `<TargetMarkers>`: the hive while carrying, the nearest nectar while empty.
 
