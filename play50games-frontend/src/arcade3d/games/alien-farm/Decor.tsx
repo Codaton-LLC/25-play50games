@@ -15,8 +15,9 @@ import { InstancedModel } from "@/arcade3d/core/assets";
 import { scaledCount, useQuality } from "@/arcade3d/core/quality";
 import { Instanced, type InstanceSpot } from "@/arcade3d/core/render";
 import { ASSETS, METEORITE_SCALE, METEORITE_SPOTS } from "./assets";
-import { COLORS, decorOf, hillHeight, type DecorSpot } from "./looks";
+import { COLORS, LOOKS, decorOf, hillHeight, type DecorSpot, type FarmLook } from "./looks";
 import { CratePrimitives, RockPrimitives } from "./Primitives";
+import type { Pool } from "./levels";
 
 function asSpots(list: readonly DecorSpot[]): InstanceSpot[] {
    return list.map((s) => ({
@@ -30,7 +31,7 @@ function asSpots(list: readonly DecorSpot[]): InstanceSpot[] {
    }));
 }
 
-export function Decor() {
+export function Decor({ look = LOOKS.starter, pools = [] }: { look?: FarmLook; pools?: readonly Pool[] }) {
    const quality = useQuality();
 
    const geo = useMemo(() => {
@@ -79,9 +80,10 @@ export function Decor() {
    }, [quality.decor]);
 
    const plants = useMemo(() => {
-      const list = decorOf("plant");
+      // no plant standing in a marsh pool
+      const list = decorOf("plant").filter((s) => pools.every((p) => Math.hypot(s.x - p.x, s.z - p.z) > p.r + 0.3));
       return asSpots(list.slice(0, scaledCount(list.length, quality.decor)));
-   }, [quality.decor]);
+   }, [quality.decor, pools]);
 
    const silos = useMemo(() => asSpots(decorOf("silo")), []);
    const rocks = useMemo(() => asSpots(decorOf("rock")), []);
@@ -94,7 +96,7 @@ export function Decor() {
          {spires.length > 0 && (
             <Instanced spots={spires} name="rock-spires">
                <primitive object={geo.spire} attach="geometry" />
-               <meshStandardMaterial color={COLORS.spire} roughness={0.8} flatShading />
+               <meshStandardMaterial color={look.spire} roughness={0.8} flatShading />
             </Instanced>
          )}
 
@@ -108,9 +110,9 @@ export function Decor() {
                <Instanced spots={plants} name="plant-caps">
                   <primitive object={geo.plantCap} attach="geometry" />
                   <meshStandardMaterial
-                     color={COLORS.plantCap}
+                     color={look.plantCap}
                      roughness={0.4}
-                     emissive={COLORS.plantGlow}
+                     emissive={look.plantGlow}
                      emissiveIntensity={0.55}
                   />
                </Instanced>
