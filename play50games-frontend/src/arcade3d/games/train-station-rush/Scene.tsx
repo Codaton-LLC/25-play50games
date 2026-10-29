@@ -646,7 +646,12 @@ function LevelScene() {
          {pieces.lanterns.length > 0 ? (
             <Instanced spots={pieces.lanterns} name="set-lanterns">
                <boxGeometry args={[1, 1, 1]} />
-               <meshStandardMaterial color="#fdba74" emissive="#f97316" emissiveIntensity={1.5} roughness={0.4} />
+               <meshStandardMaterial
+                  color={look.scenery === "hall" ? "#fef3c7" : "#fdba74"}
+                  emissive={look.scenery === "hall" ? "#fde68a" : "#f97316"}
+                  emissiveIntensity={look.scenery === "hall" ? 1.1 : 1.5}
+                  roughness={0.4}
+               />
             </Instanced>
          ) : null}
          {pieces.gantries.length > 0 ? (

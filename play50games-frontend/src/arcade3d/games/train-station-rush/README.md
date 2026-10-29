@@ -60,10 +60,11 @@ number). Carry the bag, or walk the passenger, to that platform's boarding pad w
 | 4 | Rush Hour | rush | 4 | 10 | 4 | 2 | 3 / 24 s | 8 | 180 s | sunset |
 | 5 | Mega Station | mega | 6 | 12 | 6 | 2 | 3 / 24 s | 10 | 210 s | night |
 
-Level 1 is the spec's base game (same solids, same bright palette). Each later level has its own floor / wall /
-fog palette, concourse prop layout and apron scenery (`looks.ts` / `Decor.tsx`); play twists stay the ramp above
-(passengers L2, crowd L3, two tasks L4, six platforms L5). Difficulty is monotone. Only a win clears a level
-(`clearScore` omitted).
+Level 1 is the spec's base game (same solids, same bright palette, no overhead set pieces). Each later level has
+its own floor / wall / fog palette, concourse prop layout, apron scenery and set pieces (`looks.ts` / `Decor.tsx`:
+L2 yard canopy, L3 ticket-hall vault + clocks, L4 sunset lanterns along platforms, L5 night gantries). Play twists
+stay the ramp above (passengers L2, crowd L3, two tasks L4, six platforms L5). Difficulty is monotone. Only a win
+clears a level (`clearScore` omitted).
 
 ## Server limits and why they hold
 

@@ -1,9 +1,18 @@
-// Each level is its own station (theme → LOOKS + apron + solids). Apron props never enter the play
-// area; level 1 solids stay today's layout; start / spots / pads stay clear of concourse blockers.
+// Each level is its own station (theme → LOOKS + apron + solids + set pieces). Apron props never
+// enter the play area; level 1 solids stay today's layout; start / spots / pads stay clear.
 import { describe, expect, it } from "vitest";
 import { LEVEL_IDS } from "@/arcade3d/types";
 import { LEVELS } from "./levels";
-import { APRON_GAP, LOOKS, decorSpots, fogOf, inPlayStation, lookFor } from "./looks";
+import {
+   APRON_GAP,
+   LOOKS,
+   SET_PIECE_CLEAR_Y,
+   decorSpots,
+   fogOf,
+   inPlayStation,
+   lookFor,
+   setPieceSpots,
+} from "./looks";
 import {
    CONCOURSE_DEPTH,
    RADIUS,
@@ -56,6 +65,56 @@ describe("train-station-rush level looks", () => {
          });
       });
       expect(new Set(keys).size).toBe(5);
+   });
+
+   it("set pieces match the level name: L1 none, L3 hall roof, L4 sunset lanterns, L5 gantries", () => {
+      const l1 = setPieceSpots(LEVELS[1]);
+      expect(l1.roofs).toHaveLength(0);
+      expect(l1.beams).toHaveLength(0);
+      expect(l1.lanterns).toHaveLength(0);
+      expect(l1.gantries).toHaveLength(0);
+
+      const yards = setPieceSpots(LEVELS[2]);
+      expect(yards.roofs.length).toBeGreaterThan(0);
+
+      const hall = setPieceSpots(LEVELS[3]);
+      expect(hall.roofs.length).toBeGreaterThan(0);
+      expect(hall.beams.length).toBeGreaterThan(0);
+      expect(hall.lanterns.length).toBeGreaterThan(0);
+      expect(hall.gantries).toHaveLength(0);
+
+      const rush = setPieceSpots(LEVELS[4]);
+      expect(rush.lanterns.length).toBeGreaterThanOrEqual(12);
+      expect(rush.beams.length).toBeGreaterThan(0);
+      expect(rush.gantries).toHaveLength(0);
+
+      const mega = setPieceSpots(LEVELS[5]);
+      expect(mega.gantries.length).toBeGreaterThan(0);
+      expect(mega.roofs.length).toBeGreaterThan(0);
+
+      const signatures = LEVEL_IDS.map((id) => {
+         const p = setPieceSpots(LEVELS[id]);
+         return JSON.stringify({
+            roofs: p.roofs.length,
+            beams: p.beams.length,
+            lanterns: p.lanterns.length,
+            gantries: p.gantries.length,
+            theme: LEVELS[id].theme,
+         });
+      });
+      expect(new Set(signatures).size).toBe(5);
+   });
+
+   it("overhead set pieces hang above walk height", () => {
+      for (const id of LEVEL_IDS) {
+         const pieces = setPieceSpots(LEVELS[id]);
+         for (const spot of [...pieces.roofs, ...pieces.beams, ...pieces.lanterns]) {
+            // centres sit at SET_PIECE_CLEAR_Y+; bottoms stay above the 1.78 m worker
+            expect(spot.y ?? 0, `L${id} set piece y`).toBeGreaterThanOrEqual(SET_PIECE_CLEAR_Y - 0.1);
+            const bottom = (spot.y ?? 0) - (spot.sy ?? 1) / 2;
+            expect(bottom, `L${id} set piece bottom`).toBeGreaterThan(1.9);
+         }
+      }
    });
 
    it("apron decor stays outside the walkable station by APRON_GAP", () => {

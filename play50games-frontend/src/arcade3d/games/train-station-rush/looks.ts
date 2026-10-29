@@ -7,7 +7,7 @@ import type { InstanceSpot } from "@/arcade3d/core/render";
 import type { FittedViewOptions } from "@/arcade3d/core/useFittedView";
 import type { LevelId } from "@/arcade3d/types";
 import type { StationLevel, StationTheme } from "./levels";
-import { CONCOURSE_DEPTH, STATION_END, TRACK_W, concourseHalf, islandX, trackX, type Run } from "./rules";
+import { CONCOURSE_DEPTH, PAD_Z, STATION_END, TRACK_W, concourseHalf, islandX, trackX, type Run } from "./rules";
 
 export const COLORS = {
    concourse: "#e2e8f0",
@@ -268,25 +268,35 @@ export function setPieceSpots(level: StationLevel): StationSetPieces {
    const half = concourseHalf(level);
 
    if (look.scenery === "hall") {
-      // Central Station: indoor ticket-hall vault over the whole concourse + cross beams.
+      // Central Station: indoor ticket-hall vault over the whole concourse + cross beams + hanging lamps.
       out.roofs.push({ x: 0, y: 5.05, z: CONCOURSE_DEPTH / 2, sx: half * 2 + 0.8, sy: 0.18, sz: CONCOURSE_DEPTH + 0.6 });
       for (let i = -2; i <= 2; i++) {
          out.beams.push({ x: i * (half / 2.2), y: 4.7, z: CONCOURSE_DEPTH / 2, sx: 0.22, sy: 0.35, sz: CONCOURSE_DEPTH + 0.2 });
       }
-      for (let z of [1.6, 4.0, 6.4]) {
+      for (const z of [1.6, 4.0, 6.4]) {
          out.beams.push({ x: 0, y: 4.7, z, sx: half * 2 + 0.4, sy: 0.28, sz: 0.22 });
       }
+      // hanging hall lamps under the vault (clear of walk height)
+      for (const z of [2.0, 4.2, 6.2]) {
+         out.lanterns.push({ x: -half * 0.45, y: 4.15, z, sx: 0.32, sy: 0.4, sz: 0.32 });
+         out.lanterns.push({ x: half * 0.45, y: 4.15, z, sx: 0.32, sy: 0.4, sz: 0.32 });
+      }
+      out.lanterns.push({ x: 0, y: 4.25, z: CONCOURSE_DEPTH / 2, sx: 0.55, sy: 0.5, sz: 0.55 });
       return out;
    }
 
    if (look.scenery === "sunset") {
-      // Rush Hour: warm lanterns over every island canopy and along the platform lip.
+      // Rush Hour: warm lanterns along every island lip so the platforms read as a sunset bay.
       for (let k = 0; k < level.platforms / 2; k++) {
          const [x0, x1] = islandX(level, k);
          const cx = (x0 + x1) / 2;
-         out.lanterns.push({ x: cx - 1.1, y: 2.95, z: STATION_END - 1.2, sx: 0.28, sy: 0.35, sz: 0.28 });
-         out.lanterns.push({ x: cx + 1.1, y: 2.95, z: STATION_END - 1.2, sx: 0.28, sy: 0.35, sz: 0.28 });
-         out.lanterns.push({ x: cx, y: 2.9, z: CONCOURSE_DEPTH + 3.5, sx: 0.26, sy: 0.32, sz: 0.26 });
+         for (const z of [CONCOURSE_DEPTH + 2.2, CONCOURSE_DEPTH + 5.5, PAD_Z, STATION_END - 1.2]) {
+            out.lanterns.push({ x: cx - 1.15, y: 2.95, z, sx: 0.26, sy: 0.34, sz: 0.26 });
+            out.lanterns.push({ x: cx + 1.15, y: 2.95, z, sx: 0.26, sy: 0.34, sz: 0.26 });
+         }
+         // warm lintel over the far canopy (above walk height) so the bay silhouette reads from the camera
+         out.beams.push({ x: cx, y: 3.25, z: STATION_END - 0.55, sx: x1 - x0 - 0.4, sy: 0.2, sz: 0.22 });
+         out.lanterns.push({ x: cx, y: 3.05, z: STATION_END - 0.55, sx: 0.34, sy: 0.28, sz: 0.34 });
       }
       for (const side of [-1, 1] as const) {
          out.lanterns.push({ x: side * (half - 0.7), y: 3.1, z: 2.2, sx: 0.24, sy: 0.3, sz: 0.24 });
