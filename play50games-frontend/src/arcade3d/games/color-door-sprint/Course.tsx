@@ -573,7 +573,7 @@ function Hazards({ run }: { run: DoorRun }) {
    const beam = useMemo(() => new MeshStandardMaterial({ color: "#3f3f46", emissive: "#facc15", emissiveIntensity: 0.35, roughness: 0.5, metalness: 0.4 }), []);
    const cone = useMemo(() => new ConeGeometry(0.22, 1, 10, 1, true), []);
    const flame = useMemo(() => new MeshBasicMaterial({ color: "#fb923c", transparent: true, opacity: 0.8, blending: AdditiveBlending, depthWrite: false, toneMapped: false }), []);
-   const grate = useMemo(() => new MeshStandardMaterial({ color: "#1c1917", emissive: look.ember, emissiveIntensity: 0.18, roughness: 0.8, metalness: 0.4 }), [look]);
+   const grate = useMemo(() => new MeshStandardMaterial({ color: "#241612", emissive: look.ember, emissiveIntensity: 0.06, roughness: 0.9, metalness: 0.2 }), [look]);
    useEffect(
       () => () => {
          [geo, cone].forEach((g) => g.dispose());
