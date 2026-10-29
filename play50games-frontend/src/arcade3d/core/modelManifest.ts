@@ -644,6 +644,19 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/ice-peak-jumper/m2SnowLedgeV2.glb",
    "/models/3d/ice-peak-jumper/m2SnowYeti.glb",
    "/models/3d/ice-peak-jumper/m2SummitCairn.glb",
+   // Menu 2 game 19 (Candy World Runner): the ready set from ~/.play50/hyper3d/ready/menu2/candy-world-runner
+   // (incl. m2FrostedCupcakeTower), plus m2CandyKingBoss (the L5 boss) and m2GummyMonster (L4) from ready/menu2/shared
+   "/models/3d/candy-world-runner/m2CandyCaneArch.glb",
+   "/models/3d/candy-world-runner/m2CandyCastleBg.glb",
+   "/models/3d/candy-world-runner/m2CandyCoin.glb",
+   "/models/3d/candy-world-runner/m2CandyKingBoss.glb",
+   "/models/3d/candy-world-runner/m2ChocoBarPlatform.glb",
+   "/models/3d/candy-world-runner/m2CookieArch.glb",
+   "/models/3d/candy-world-runner/m2DonutPlatform.glb",
+   "/models/3d/candy-world-runner/m2FrostedCupcakeTower.glb",
+   "/models/3d/candy-world-runner/m2GummyMonster.glb",
+   "/models/3d/candy-world-runner/m2JellyCube.glb",
+   "/models/3d/candy-world-runner/m2Lollipop.glb",
    // Menu 2 game 31 (Wall Run Temple): the cliff temple set from ~/.play50/hyper3d/ready/menu2/wall-run-temple (incl. m2SwingingStoneRam)
    "/models/3d/wall-run-temple/m2CliffTempleBg.glb",
    "/models/3d/wall-run-temple/m2GoldRingOrb.glb",

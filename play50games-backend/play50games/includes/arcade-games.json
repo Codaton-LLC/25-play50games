@@ -1263,6 +1263,22 @@
         { "title": "Rolling Hazards", "max_score": 690, "min_duration_ms": 1000, "max_duration_ms": 150000, "base": 27, "max_pps": 14 },
         { "title": "Temple Sprint", "max_score": 910, "min_duration_ms": 1000, "max_duration_ms": 240000, "base": 38, "max_pps": 15 }
       ]
+    },
+    "candy-world-runner": {
+      "title": "Candy World Runner",
+      "kind": "time",
+      "max_score": 7920,
+      "min_duration_ms": 40800,
+      "max_duration_ms": 120000,
+      "time_base_ms": 120000,
+      "enabled": false,
+      "levels": [
+        { "title": "Candy Lane", "max_score": 7920, "min_duration_ms": 40800, "max_duration_ms": 120000, "time_base_ms": 120000 },
+        { "title": "Cookie Road", "max_score": 9010, "min_duration_ms": 39900, "max_duration_ms": 130000, "time_base_ms": 130000 },
+        { "title": "Sorbet Slopes", "max_score": 11000, "min_duration_ms": 30000, "max_duration_ms": 140000, "time_base_ms": 140000 },
+        { "title": "Gummy Grove", "max_score": 12290, "min_duration_ms": 27100, "max_duration_ms": 150000, "time_base_ms": 150000 },
+        { "title": "Bonbon Palace", "max_score": 16740, "min_duration_ms": 32600, "max_duration_ms": 200000, "time_base_ms": 200000 }
+      ]
     }
   }
 }
