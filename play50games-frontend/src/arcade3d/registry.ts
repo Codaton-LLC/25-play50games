@@ -65,6 +65,7 @@ import { ringJumpChallengeMeta } from "./games/ring-jump-challenge/meta";
 import { windTunnelEscapeMeta } from "./games/wind-tunnel-escape/meta";
 import { rollCannonJumpMeta } from "./games/roll-cannon-jump/meta";
 import { templeLanternJumpMeta } from "./games/temple-lantern-jump/meta";
+import { icePeakJumperMeta } from "./games/ice-peak-jumper/meta";
 import { dragonCaveRushMeta } from "./games/dragon-cave-rush/meta";
 import { skyHookSwingMeta } from "./games/sky-hook-swing/meta";
 
@@ -130,6 +131,7 @@ export const ARCADE_GAMES: ArcadeGameMeta[] = [
    windTunnelEscapeMeta,
    rollCannonJumpMeta,
    templeLanternJumpMeta,
+   icePeakJumperMeta,
    dragonCaveRushMeta,
    colorDoorSprintMeta,
    skyHookSwingMeta,
