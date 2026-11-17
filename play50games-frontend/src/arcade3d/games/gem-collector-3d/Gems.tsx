@@ -11,12 +11,14 @@ import { DynamicInstancedModel } from "@/arcade3d/core/assets";
 import { FRAME_PRIORITY } from "@/arcade3d/core/frameLoop";
 import { MAX_LINKS } from "./arena";
 import { GEM, type GemRun } from "./rules";
-import { ASSETS } from "./assets";
+import { ASSETS, GEM_H } from "./assets";
 import { COLORS, GEM_TINT, LOOKS } from "./look";
 import type { VisualClock } from "./Vault";
 
 const TINT = { clear: new Color(GEM_TINT.clear), frost: new Color(GEM_TINT.frost), gold: new Color(GEM_TINT.gold) };
 const BLINK = new Color("#ffffff");
+/** the bauble is drawn cap down, its faceted crown up (the camera looks down on it); lifted back by GEM_H */
+const FLIP = new Matrix4().makeRotationX(Math.PI);
 const LINK_Y = 0.25;
 
 /** Where each train gem is this frame: gem index -> (x, z, heading), filled before the pool updates. */
@@ -58,8 +60,8 @@ export function Gems({ runs, clock }: { runs: GemRun[]; clock: VisualClock }) {
       const gem = a.gems[i];
       if (st === GEM.train) {
          if (!slots.on[i]) return false;
-         m.makeRotationY(slots.yaw[i] + ms / 500);
-         m.setPosition(slots.x[i], LINK_Y + 0.08 * Math.sin(ms / 180 + i), slots.z[i]);
+         m.makeRotationY(slots.yaw[i] + ms / 500).multiply(FLIP);
+         m.setPosition(slots.x[i], LINK_Y + GEM_H + 0.08 * Math.sin(ms / 180 + i), slots.z[i]);
          if (color) color.copy(TINT[gem.kind]);
          return;
       }
@@ -68,8 +70,8 @@ export function Gems({ runs, clock }: { runs: GemRun[]; clock: VisualClock }) {
       const left = st === GEM.loose ? first.fadeAt[i] - ms : Infinity;
       if (left < 1000 && Math.floor(ms / 120) % 2 === 0) return false;
       const bob = 0.18 + 0.12 * Math.sin(ms / 420 + i * 0.7);
-      m.makeRotationY(ms / 700 + i);
-      m.setPosition(first.gx[i], first.gy[i] + bob, first.gz[i]);
+      m.makeRotationY(ms / 700 + i).multiply(FLIP);
+      m.setPosition(first.gx[i], first.gy[i] + GEM_H + bob, first.gz[i]);
       if (color) {
          color.copy(TINT[gem.kind]);
          if (st === GEM.loose) color.lerp(BLINK, 0.4);

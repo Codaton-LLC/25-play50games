@@ -62,13 +62,12 @@ describe("camera-relative movement is part of the rules' input", () => {
       }
    });
 
-   it("the camera's solids: the walls (not a broken cracked wall), the pedestals, the Glutton", () => {
+   it("the camera's solids: the pedestals and the Glutton (never the low walls); none of him while he is split", () => {
       const run = createRun(1, 5);
       const out: AABB[] = Array.from({ length: 64 }, () => ({ min: { x: 0, y: 0, z: 0 }, max: { x: 0, y: 0, z: 0 } }));
-      const before = arenaSolids(run, 0, 0, out);
-      expect(before).toBe(run.arena.solids.length + run.arena.pedestals.length + 1);
-      run.wallBroken[0] = 1;
-      expect(arenaSolids(run, 0, 0, out)).toBe(before - 1);
+      expect(arenaSolids(run, 0, 0, out)).toBe(run.arena.pedestals.length + 1);
+      run.boss!.phase = 1;
+      expect(arenaSolids(run, 0, 0, out)).toBe(run.arena.pedestals.length);
    });
 });
 

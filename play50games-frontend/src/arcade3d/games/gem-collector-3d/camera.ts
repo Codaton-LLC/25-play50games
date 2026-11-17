@@ -1,6 +1,6 @@
 // The camera and the intro's shots. Play uses the shared Menu 2 orbit (menu2/camera): behind and
 // above the hero, steep enough to read the train's shape on the floor (the whole game is path shape).
-// The vault and pocket walls, the cracked wall, the pedestals and the Glutton are its solids. On
+// The pedestals and the Glutton are its solids (the low walls never block the view from above). On
 // level 5, while the orbit is idle, the yaw swings to keep the Glutton in shot (as in Toy Room Run).
 import type { IntroKeyframe } from "@/arcade3d/core/intro";
 import type { AABB } from "@/arcade3d/core/collision";
@@ -81,7 +81,7 @@ export function introKeyframes(arena: Arena): IntroKeyframe[] {
    ];
 }
 
-/** The solid boxes near the camera: walls (an unbroken cracked wall), pedestals, the Glutton. */
+/** The solid boxes near the camera: the pedestals and the Glutton (the 2.2 m vault and pocket walls never block a camera looking down from 8 m). */
 export function arenaSolids(run: GemRun, x: number, z: number, out: AABB[]): number {
    let n = 0;
    const a = run.arena;
@@ -98,10 +98,6 @@ export function arenaSolids(run: GemRun, x: number, z: number, out: AABB[]): num
       b.min.z = z0;
       b.max.z = z1;
    };
-   for (const s of a.solids) {
-      if (s.kind === "cracked" && run.wallBroken[s.index]) continue;
-      add(s.x0, s.x1, 0, 2.6, s.z0, s.z1);
-   }
    for (const p of a.pedestals) add(p.x - 0.8, p.x + 0.8, 0, p.h, p.z - 0.8, p.z + 0.8);
    if (run.boss && run.boss.hp > 0 && run.boss.phase !== 1) add(run.glutton.x - 1.1, run.glutton.x + 1.1, 0, 2.8, run.glutton.z - 1.1, run.glutton.z + 1.1);
    return n;

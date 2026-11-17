@@ -285,3 +285,10 @@
       height: 92px;
    }
 }
+
+/* phones: the shell's LEVEL and SCORE chips sit where the title banner would; the banner gives way */
+@media (max-width: 480px) {
+   .banner {
+      display: none;
+   }
+}
