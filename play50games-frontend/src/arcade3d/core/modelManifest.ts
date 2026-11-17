@@ -380,6 +380,11 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/neon-cube-jump/m2NeonSentryDrone.glb",
    "/models/3d/neon-cube-jump/m2NeonCityBg.glb",
    "/models/3d/neon-cube-jump/m2FlipframeCore.glb",
+   // Paint the Platforms (Menu 2 #25): floor tile, arena wall, paint pickup, Paint Blob boss
+   "/models/3d/paint-the-platforms/m2ArenaFloorTile.glb",
+   "/models/3d/paint-the-platforms/m2ArenaWall.glb",
+   "/models/3d/paint-the-platforms/m2PaintBlobBoss.glb",
+   "/models/3d/paint-the-platforms/m2PaintPickup.glb",
    // Crystal Cave Switch (Menu 2 #44): switch, gate, beacon, slab, bridge, boulder, grotto wall, Hollow Prism
    "/models/3d/crystal-cave-switch/m2CrystalSwitch.glb",
    "/models/3d/crystal-cave-switch/m2CaveGate.glb",
@@ -844,6 +849,14 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/magnet-coin-lab/m2MetalBlockV2.glb",
    "/models/3d/magnet-coin-lab/m2PolarityGate.glb",
    "/models/3d/magnet-coin-lab/m2ToyPiggyBank.glb",
+   // Menu 2 game 21 (Color Match Jump, W6): ready/menu2/color-match-jump (hexes, pillar, beacon, code lamps, fortress islands); the golem and the orb are already listed
+   "/models/3d/color-match-jump/m2CountdownBeacon.glb",
+   "/models/3d/color-match-jump/m2CrackedHexPlatform.glb",
+   "/models/3d/color-match-jump/m2FloatingArenaBg.glb",
+   "/models/3d/color-match-jump/m2HexPillar.glb",
+   "/models/3d/color-match-jump/m2HexPlatform.glb",
+   "/models/3d/color-match-jump/m2HexPlatformV2.glb",
+   "/models/3d/color-match-jump/m2SignalOrbLamp.glb",
    // Menu 2 game 24 (Portal Hop, W5): ready/menu2/portal-hop (portals, obelisks, anchor pads, void crystals, the Portal Wyrm)
    "/models/3d/portal-hop/m2ColorBeacon.glb",
    "/models/3d/portal-hop/m2FloatingRuinBg.glb",
@@ -868,6 +881,44 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/color-bridge-builder/m2CanyonBg.glb",
    "/models/3d/color-bridge-builder/m2LaserPrism.glb",
    "/models/3d/color-bridge-builder/m2FactoryDrone.glb",
+   // Menu 2 game 11 (Roll Dash, W6): ready/menu2/roll-dash plus m2ArenaCrate, m2TeslaCoil (energy-core-hunt), m2EnergyBarrierWall (switch-color-hero), m2StormHawkBoss (shared, the grey echo)
+   // Menu 2 game 33 (Mirror Dash): ready/menu2/mirror-dash plus m2LaserWall, m2NeonSpikeBlock (neon-cube-jump) and m2Crystal (crystal-tower)
+   // Menu 2 game 22 (Switch Color Hero): ready/menu2/switch-color-hero (gate arches, barrier wall, energy pickup, checkpoint flag and pad, spires, the start platform)
+   "/models/3d/roll-dash/m2ArenaCrate.glb",
+   "/models/3d/mirror-dash/m2GlassSentinelBoss.glb",
+   "/models/3d/switch-color-hero/m2CheckpointFlagPad.glb",
+   "/models/3d/roll-dash/m2EnergyBarrierWall.glb",
+   "/models/3d/mirror-dash/m2HazardBlock.glb",
+   "/models/3d/switch-color-hero/m2CheckpointFlagPadV2.glb",
+   "/models/3d/roll-dash/m2GoldCoin.glb",
+   "/models/3d/mirror-dash/m2MirrorGate.glb",
+   "/models/3d/switch-color-hero/m2ColorGateArch.glb",
+   "/models/3d/roll-dash/m2MarketStall.glb",
+   "/models/3d/mirror-dash/m2MirrorHallBg.glb",
+   "/models/3d/switch-color-hero/m2ColorGateArchV2.glb",
+   "/models/3d/roll-dash/m2OldTownHouseBg.glb",
+   "/models/3d/mirror-dash/m2MirrorStand.glb",
+   "/models/3d/switch-color-hero/m2EnergyBarrierWall.glb",
+   "/models/3d/roll-dash/m2StormHawkBoss.glb",
+   "/models/3d/mirror-dash/m2LaserWall.glb",
+   "/models/3d/switch-color-hero/m2EnergyPickup.glb",
+   "/models/3d/roll-dash/m2StreetLamp.glb",
+   "/models/3d/mirror-dash/m2NeonSpikeBlock.glb",
+   "/models/3d/switch-color-hero/m2SciFiSpireBg.glb",
+   "/models/3d/roll-dash/m2TeslaCoil.glb",
+   "/models/3d/mirror-dash/m2Crystal.glb",
+   "/models/3d/switch-color-hero/m2SwitchPlatform.glb",
+   // Menu 2 game 29 (Energy Core Hunt, W5): ready/menu2/energy-core-hunt (the card's core, crate and gate, plus
+   // the capsule, pylon, tesla coil, reactor columns and the Core Sprite boss)
+   "/models/3d/energy-core-hunt/m2ArenaCrate.glb",
+   "/models/3d/energy-core-hunt/m2CoreCapsule.glb",
+   "/models/3d/energy-core-hunt/m2CoreGate.glb",
+   "/models/3d/energy-core-hunt/m2CoreGateV2.glb",
+   "/models/3d/energy-core-hunt/m2CorePylon.glb",
+   "/models/3d/energy-core-hunt/m2CoreSprite.glb",
+   "/models/3d/energy-core-hunt/m2EnergyCore.glb",
+   "/models/3d/energy-core-hunt/m2ReactorBg.glb",
+   "/models/3d/energy-core-hunt/m2TeslaCoil.glb",
 ];
 
 const LISTED: ReadonlySet<string> = new Set(MODEL_MANIFEST);

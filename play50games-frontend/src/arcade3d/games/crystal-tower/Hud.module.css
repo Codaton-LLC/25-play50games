@@ -1,0 +1,215 @@
+/* Crystal Tower HUD (the Menu 2 HUD look, after toy-room-run, in cosmic violet): pills, the banner,
+   the clock, the tier pill, the sequence strip (the show's colours, then the hidden dots filling as
+   you touch the crystals), the power pill. Placement is menu2/hud HudStack. */
+.pill,
+.clock {
+   display: inline-flex;
+   align-items: center;
+   gap: 8px;
+   min-width: 92px;
+   padding: 6px 14px 6px 8px;
+   border: 2px solid rgba(255, 255, 255, 0.18);
+   border-radius: 999px;
+   background: linear-gradient(180deg, rgba(46, 16, 101, 0.9), rgba(24, 10, 60, 0.92));
+   box-shadow: 0 4px 14px rgba(8, 4, 40, 0.4);
+   color: #fff;
+}
+
+.value {
+   font-size: 1.25rem;
+   font-weight: 800;
+   letter-spacing: 0.01em;
+   line-height: 1;
+   font-variant-numeric: tabular-nums;
+   text-shadow: 0 2px 0 rgba(0, 0, 0, 0.25);
+}
+
+.orb {
+   width: 26px;
+   height: 26px;
+   border-radius: 50%;
+   background: radial-gradient(circle at 35% 30%, #fffbeb 0, #fde68a 35%, #a855f7 75%, #4c1d95 100%);
+   box-shadow: 0 0 10px rgba(253, 230, 138, 0.75), inset 0 -2px 3px rgba(40, 8, 80, 0.5);
+}
+
+.icon {
+   width: 24px;
+   height: 24px;
+   flex: none;
+}
+
+.banner {
+   display: flex;
+   flex-direction: column;
+   align-items: center;
+   padding: 6px 22px 7px;
+   border: 2px solid rgba(255, 255, 255, 0.2);
+   border-radius: 16px;
+   background: linear-gradient(180deg, rgba(46, 16, 101, 0.92), rgba(24, 10, 60, 0.92));
+   box-shadow: 0 6px 18px rgba(8, 4, 40, 0.4);
+   white-space: nowrap;
+}
+
+.title {
+   color: #fff;
+   font-size: 1.2rem;
+   font-weight: 800;
+   line-height: 1.15;
+}
+
+.level {
+   color: #e9d5ff;
+   font-size: 0.85rem;
+   font-weight: 700;
+   line-height: 1.2;
+}
+
+.clock {
+   min-width: 0;
+   padding: 4px 14px 4px 8px;
+}
+
+.swatch {
+   width: 22px;
+   height: 22px;
+   flex: none;
+   border-radius: 50%;
+   box-shadow: inset 0 -2px 3px rgba(0, 0, 0, 0.35), 0 0 8px rgba(255, 255, 255, 0.35);
+}
+
+.unit {
+   font-size: 0.8rem;
+   font-weight: 700;
+   opacity: 0.85;
+}
+
+.beaconDot {
+   width: 16px;
+   height: 16px;
+   flex: none;
+   border-radius: 50%;
+   background: radial-gradient(circle at 35% 30%, #faf5ff 0, #c084fc 45%, #6d28d9 100%);
+   box-shadow: 0 0 8px rgba(192, 132, 252, 0.9);
+}
+
+/* the sequence strip: one dot per colour of the sequence */
+.seq {
+   display: inline-flex;
+   align-items: center;
+   gap: 7px;
+   padding: 7px 14px;
+   border: 2px solid rgba(255, 255, 255, 0.2);
+   border-radius: 999px;
+   background: rgba(24, 10, 60, 0.88);
+   box-shadow: 0 4px 14px rgba(8, 4, 40, 0.4);
+}
+
+.seqLabel {
+   color: #e9d5ff;
+   font-size: 0.78rem;
+   font-weight: 800;
+   letter-spacing: 0.04em;
+   text-transform: uppercase;
+   margin-right: 4px;
+}
+
+.dot {
+   width: 18px;
+   height: 18px;
+   border-radius: 50%;
+   border: 2px solid rgba(255, 255, 255, 0.35);
+   background: rgba(255, 255, 255, 0.12);
+   transition: background-color 120ms linear, transform 120ms ease-out, box-shadow 120ms linear;
+}
+
+.dotShown {
+   transform: scale(1.15);
+}
+
+.dotDone {
+   border-color: #fff;
+   background: #e9d5ff;
+   box-shadow: 0 0 8px rgba(233, 213, 255, 0.9);
+}
+
+.dotNext {
+   border-color: #fff;
+   animation: blink 0.7s ease-in-out infinite alternate;
+}
+
+@keyframes blink {
+   from {
+      box-shadow: 0 0 0 rgba(255, 255, 255, 0);
+   }
+   to {
+      box-shadow: 0 0 10px rgba(255, 255, 255, 0.9);
+   }
+}
+
+.trick {
+   color: #f0abfc;
+   font-size: 0.78rem;
+   font-weight: 800;
+   margin-left: 6px;
+}
+
+/* narrow phones: a smaller banner between the left pills and the shell's buttons */
+@media (max-width: 520px) {
+   .banner {
+      padding: 4px 12px 5px;
+      border-radius: 12px;
+   }
+   .title {
+      font-size: 0.95rem;
+   }
+   .level {
+      font-size: 0.7rem;
+   }
+   .value {
+      font-size: 1.05rem;
+   }
+   .pill {
+      min-width: 76px;
+      padding: 4px 12px 4px 6px;
+   }
+   .orb {
+      width: 22px;
+      height: 22px;
+   }
+   .seq {
+      padding: 5px 10px;
+      gap: 5px;
+   }
+   .dot {
+      width: 15px;
+      height: 15px;
+   }
+}
+
+/* the start card's local multiplayer entry (menu2/multiplayer; hidden on phones by device.ts) */
+.mpBtn {
+   min-height: 44px;
+   margin-left: 4px;
+   padding: 0 12px;
+   border: 2px solid #c084fc;
+   border-radius: 12px;
+   background: rgba(192, 132, 252, 0.16);
+   color: #fff;
+   font: inherit;
+   font-size: 0.78rem;
+   font-weight: 800;
+   white-space: nowrap;
+   cursor: pointer;
+}
+
+.mpBtn:focus-visible {
+   outline: 3px solid #c084fc;
+   outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+   .dotNext {
+      animation: none;
+      box-shadow: 0 0 10px rgba(255, 255, 255, 0.9);
+   }
+}
