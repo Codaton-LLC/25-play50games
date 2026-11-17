@@ -21,6 +21,9 @@ import {
    trackShareClick,
    getShareStatus,
 } from "@/lib/api/share";
+import { MIN_TARGET, TOUCH_SURFACE, useRevealOnPlay, useViewport } from "./touch";
+import fx from "./speedFx.module.css";
+import rt from "./ReactionTest.module.css";
 
 interface ReactionTestProps {
    config: Record<string, any>;
@@ -52,8 +55,10 @@ export default function ReactionTest({
       "ready"
    );
    const [requirementsMet, setRequirementsMet] = useState(false);
-   const [isMobile, setIsMobile] = useState(false);
-   const [isTablet, setIsTablet] = useState(false);
+   // Live viewport (resize / rotation). This game keeps its 768 px phone breakpoint, so a 820 px tablet
+   // gets the tablet layout.
+   const vp = useViewport();
+   const isMobile = vp.width < 768;
 
    // Reaction test specific state
    const [waiting, setWaiting] = useState(true);
@@ -132,17 +137,6 @@ export default function ReactionTest({
    const greenStartTimeRef = useRef(0);
    const animationFrameRef = useRef<number | null>(null);
    const objectIdCounterRef = useRef(0);
-
-   // Mobile/Tablet detection
-   useEffect(() => {
-      const checkSize = () => {
-         setIsMobile(window.innerWidth < 768);
-         setIsTablet(window.innerWidth >= 768 && window.innerWidth < 1024);
-      };
-      checkSize();
-      window.addEventListener("resize", checkSize);
-      return () => window.removeEventListener("resize", checkSize);
-   }, []);
 
    // Start level ref
    const startLevelRef = useRef<((levelIndex?: number) => void) | null>(null);
@@ -588,7 +582,7 @@ export default function ReactionTest({
 
    // Handle click - different logic for each mini-game
    const handleClick = useCallback(
-      (e?: React.MouseEvent, targetId?: number) => {
+      (e?: React.SyntheticEvent, targetId?: number) => {
          if (gameStateRef.current !== "playing") return;
 
          const variant = getVariant();
@@ -813,6 +807,61 @@ export default function ReactionTest({
       ]
    );
 
+   // Input plumbing: every play target reacts on pointerdown, for mouse, touch and pen alike, so the
+   // reaction time (still Date.now() inside handleClick) is measured at the press on every device; the
+   // click that follows a touch 100-300 ms later is never used.
+   const rootRef = useRef<HTMLDivElement>(null);
+   const padRef = useRef<HTMLDivElement>(null);
+   const lastPointerRef = useRef(0);
+   const [padTop, setPadTop] = useState<number | null>(null);
+   useRevealOnPlay(rootRef, isPlaying);
+
+   const pressPlay = useCallback(
+      (e: React.PointerEvent, targetId?: number) => {
+         if (e.pointerType === "mouse" && e.button !== 0) return;
+         if (targetId !== undefined) e.stopPropagation();
+         lastPointerRef.current = performance.now();
+         handleClick(e, targetId);
+      },
+      [handleClick]
+   );
+
+   // A real <button> target (memory numbers): the keyboard (Enter / Space) still activates it through
+   // click, while the click that trails a pointer press is ignored.
+   const clickFromKeyboard = useCallback(
+      (e: React.MouseEvent, targetId: number) => {
+         e.stopPropagation();
+         if (performance.now() - lastPointerRef.current < 700) return;
+         handleClick(e, targetId);
+      },
+      [handleClick]
+   );
+
+   // Visual feedback only (never touches the rules): a flash and a toast on a penalty, a flash on a
+   // pass or a fail.
+   const [padFx, setPadFx] = useState<{
+      kind: "hit" | "early" | "fail";
+      n: number;
+      label?: string;
+   } | null>(null);
+   const prevPenaltiesRef = useRef(0);
+   useEffect(() => {
+      if (penalties > prevPenaltiesRef.current) {
+         // the label is fixed at the press: before the signal it was too early, after it the wrong target
+         const label = greenShown ? "Wrong one!" : "Too early!";
+         setPadFx((f) => ({ kind: "early", n: (f?.n ?? 0) + 1, label }));
+      }
+      prevPenaltiesRef.current = penalties;
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+   }, [penalties]);
+   useEffect(() => {
+      if (gameState === "ready" && requirementsMet) {
+         setPadFx((f) => ({ kind: "hit", n: (f?.n ?? 0) + 1 }));
+      } else if (gameState === "failed") {
+         setPadFx((f) => ({ kind: "fail", n: (f?.n ?? 0) + 1 }));
+      }
+   }, [gameState, requirementsMet]);
+
    // Finalize game
    const finalizeGame = useCallback(() => {
       if (completionCalledRef.current) return;
@@ -848,6 +897,13 @@ export default function ReactionTest({
          startLevel(currentLevel + 1);
       }
    }, [currentLevel, maxLevels, onScoreUpdate, finalizeGame, startLevel]);
+
+   // Next Round sits on the pad's result card, right where the winning tap landed: ignore the
+   // synthetic click a touch press sends after its pointerdown, so a reaction never also skips ahead.
+   const handleNextRoundPress = useCallback(() => {
+      if (performance.now() - lastPointerRef.current < 500) return;
+      handleNextRound();
+   }, [handleNextRound]);
 
    // Handle repeat round
    const handleRepeatRound = useCallback(() => {
@@ -1257,6 +1313,192 @@ export default function ReactionTest({
       };
    };
 
+   // Pad height from the live viewport: once the run starts, useRevealOnPlay puts the engine's score
+   // bar at the top (phones / tablets), so the pad gets what is left between its own top and the bottom
+   // band the cookie banner and the safe area use (phones ~180 px, wider screens ~100 px).
+   useEffect(() => {
+      const pad = padRef.current;
+      const root = rootRef.current;
+      if (!pad || !root) return;
+      const engine = root.closest(".game-engine");
+      const anchor =
+         vp.width < 1024
+            ? ((engine?.querySelector(".game-header") as HTMLElement | null) ?? root)
+            : ((root.closest(".game-content") as HTMLElement | null) ?? root);
+      const offset = Math.round(
+         pad.getBoundingClientRect().top - anchor.getBoundingClientRect().top
+      );
+      setPadTop((prev) => (prev === offset ? prev : offset));
+   });
+   const bottomReserve = isMobile ? 184 : vp.width < 1024 ? 100 : 116;
+   // A short viewport (landscape phone) keeps only the variant's name above the pad.
+   const padMin = isMobile
+      ? variant === 3
+         ? 270
+         : vp.isShort
+         ? 180
+         : 230
+      : variant === 3
+      ? 370
+      : 280;
+   const padMax = isMobile ? 500 : 560;
+   const padAvailable =
+      vp.height - (padTop ?? (isMobile ? 330 : 300)) - bottomReserve;
+   const padHeight = Math.round(
+      Math.max(padMin, Math.min(padMax, padAvailable))
+   );
+
+   const replayDisabled = maxReplays > 0 && replaysUsed >= maxReplays;
+   const actionsLive = gameState === "playing" || gameState === "failed";
+   const replayShareBar = (
+      <div
+         aria-hidden={!actionsLive}
+         style={{
+            display: "flex",
+            gap: "8px",
+            flexWrap: "nowrap",
+            width: isMobile ? "100%" : "auto",
+            visibility: actionsLive ? "visible" : "hidden",
+         }}
+      >
+         {/* Replay Button */}
+         <button
+            type="button"
+            className={rt.btn}
+            onClick={handleReplay}
+            disabled={replayDisabled}
+            tabIndex={actionsLive ? 0 : -1}
+            style={{
+               flex: isMobile ? "1 1 0" : "0 0 auto",
+               display: "flex",
+               alignItems: "center",
+               justifyContent: "center",
+               gap: isMobile ? "6px" : "8px",
+               padding: isMobile ? "8px 12px" : "8px 16px",
+               background: replayDisabled
+                  ? "rgba(100, 100, 100, 0.2)"
+                  : "linear-gradient(135deg, rgba(125, 211, 252, 0.2), rgba(125, 211, 252, 0.1))",
+               border: replayDisabled
+                  ? "1px solid rgba(100, 100, 100, 0.4)"
+                  : "1px solid rgba(125, 211, 252, 0.6)",
+               color: "var(--text)",
+               fontSize: isMobile ? "0.9rem" : "0.95rem",
+               fontWeight: 600,
+               cursor: replayDisabled ? "not-allowed" : "pointer",
+               opacity: replayDisabled ? 0.5 : 1,
+            }}
+         >
+            <ArrowPathRoundedSquareIcon
+               style={{
+                  width: isMobile ? 18 : 20,
+                  height: isMobile ? 18 : 20,
+                  color: replayDisabled ? "var(--muted)" : "var(--accent)",
+               }}
+            />
+            <span>
+               {"Replay "}
+               {maxReplays === 0
+                  ? "(∞)"
+                  : `(${maxReplays - replaysUsed}/${maxReplays})`}
+            </span>
+         </button>
+
+         {/* Share Button (stays on click: the share sheet / clipboard need the click's user activation) */}
+         <button
+            type="button"
+            className={rt.btn}
+            onClick={handleShare}
+            tabIndex={actionsLive ? 0 : -1}
+            style={{
+               flex: isMobile ? "1 1 0" : "0 0 auto",
+               display: "flex",
+               alignItems: "center",
+               justifyContent: "center",
+               gap: isMobile ? "6px" : "8px",
+               padding: isMobile ? "8px 12px" : "8px 16px",
+               background:
+                  "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
+               border: "1px solid rgba(59, 130, 246, 0.6)",
+               color: "var(--text)",
+               fontSize: isMobile ? "0.9rem" : "0.95rem",
+               fontWeight: 600,
+               cursor: "pointer",
+            }}
+         >
+            <ShareIcon
+               style={{
+                  width: isMobile ? 18 : 20,
+                  height: isMobile ? 18 : 20,
+                  color: "rgba(59, 130, 246, 0.9)",
+               }}
+            />
+            <span>{vp.width < 1024 ? "Share" : "Share for Unlimited Replay"}</span>
+         </button>
+      </div>
+   );
+
+   const shareMessages = actionsLive ? (
+      <>
+         {/* Share Success Message */}
+         {shareSuccess && !unlimitedActivated && (
+            <div
+               className={fx.fadeUp}
+               style={{
+                  width: "100%",
+                  padding: "10px 12px",
+                  background: "rgba(134, 239, 172, 0.2)",
+                  border: "2px solid rgba(134, 239, 172, 0.6)",
+                  borderRadius: "8px",
+                  fontSize: isMobile ? "0.9rem" : "1rem",
+                  fontWeight: 600,
+                  color: "var(--ok)",
+                  textAlign: "center",
+               }}
+            >
+               Link copied! Unlimited replay will unlock when someone opens your
+               link!
+            </div>
+         )}
+
+         {/* Unlimited Activated Message */}
+         {unlimitedActivated && (
+            <div
+               className={fx.fadeUp}
+               style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: isMobile ? "6px" : "8px",
+                  padding: isMobile ? "10px 14px" : "8px 16px",
+                  background:
+                     "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
+                  border: "2px solid rgba(59, 130, 246, 0.6)",
+                  borderRadius: isMobile ? "10px" : "8px",
+                  color: "var(--text)",
+                  fontSize: isMobile ? "0.85rem" : "0.9rem",
+                  fontWeight: 500,
+                  width: "100%",
+                  justifyContent: "center",
+                  textAlign: "center",
+                  flexWrap: "wrap",
+               }}
+            >
+               <CheckCircleIcon
+                  style={{
+                     width: isMobile ? 16 : 18,
+                     height: isMobile ? 16 : 18,
+                     color: "rgba(59, 130, 246, 0.9)",
+                     flexShrink: 0,
+                  }}
+               />
+               <span>
+                  🎉 Someone opened your link! Unlimited replay is now active for 15
+                  minutes!
+               </span>
+            </div>
+         )}
+      </>
+   ) : null;
+
    return (
       <React.Fragment>
          <style>{`
@@ -1285,22 +1527,26 @@ export default function ReactionTest({
              }
           `}</style>
          <div
+            ref={rootRef}
+            className={rt.root}
             style={{
-               display: "flex",
-               flexDirection: "column",
-               gap: isMobile ? "16px" : "20px",
-               padding: isMobile ? "16px" : "24px",
-               maxWidth: "900px",
-               margin: "0 auto",
+               gap: isMobile ? "10px" : "16px",
+               // Below 1024 px the bottom padding is the cookie-banner band: the page ends right under
+               // the game, and without it the reveal scroll could not lift the pad above the banner.
+               padding: isMobile
+                  ? `10px 10px calc(env(safe-area-inset-bottom) + ${bottomReserve}px)`
+                  : vp.width < 1024
+                  ? `20px 24px calc(env(safe-area-inset-bottom) + ${bottomReserve}px)`
+                  : "20px 24px calc(env(safe-area-inset-bottom) + 16px)",
             }}
          >
-            {/* Header */}
+            {/* Header: level, max time, score, Replay / Share, progress, the variant's name and rule */}
             <div
                style={{
                   display: "flex",
                   flexDirection: "column",
-                  gap: isMobile ? "12px" : "16px",
-                  padding: isMobile ? "14px" : "18px",
+                  gap: isMobile ? "8px" : "12px",
+                  padding: isMobile ? "12px" : "16px 18px",
                   background: "var(--card)",
                   borderRadius: "16px",
                }}
@@ -1318,7 +1564,7 @@ export default function ReactionTest({
                      style={{
                         display: "flex",
                         alignItems: "center",
-                        gap: isMobile ? "12px" : "16px",
+                        gap: isMobile ? "10px" : "16px",
                         flexWrap: "wrap",
                      }}
                   >
@@ -1327,15 +1573,15 @@ export default function ReactionTest({
                            display: "flex",
                            alignItems: "center",
                            gap: "6px",
-                           fontSize: isMobile ? "0.9rem" : "1rem",
-                           fontWeight: 600,
+                           fontSize: isMobile ? "0.95rem" : "1rem",
+                           fontWeight: 700,
                            color: "var(--text)",
                         }}
                      >
                         <ArrowPathIcon
                            style={{
-                              width: isMobile ? 14 : 16,
-                              height: isMobile ? 14 : 16,
+                              width: isMobile ? 15 : 16,
+                              height: isMobile ? 15 : 16,
                            }}
                         />
                         Level {currentLevel + 1} / {maxLevels}
@@ -1347,7 +1593,7 @@ export default function ReactionTest({
                               alignItems: "center",
                               gap: "4px",
                               fontSize: isMobile ? "0.85rem" : "0.9rem",
-                              fontWeight: 600,
+                              fontWeight: 700,
                               color: "var(--accent)",
                               padding: "4px 10px",
                               background: "rgba(125, 211, 252, 0.15)",
@@ -1357,37 +1603,43 @@ export default function ReactionTest({
                         >
                            <ClockIcon
                               style={{
-                                 width: isMobile ? 12 : 14,
-                                 height: isMobile ? 12 : 14,
+                                 width: isMobile ? 13 : 14,
+                                 height: isMobile ? 13 : 14,
                               }}
                            />
                            Max: {getMaxTimeDisplay()}
                         </span>
                      )}
-                  </div>
-                  <span
-                     style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "6px",
-                        fontSize: isMobile ? "0.9rem" : "1rem",
-                        fontWeight: 600,
-                        color: "var(--text)",
-                     }}
-                  >
-                     <TrophyIcon
+                     <span
                         style={{
-                           width: isMobile ? 14 : 16,
-                           height: isMobile ? 14 : 16,
-                           color: "var(--ok)",
+                           display: "flex",
+                           alignItems: "center",
+                           gap: "6px",
+                           fontSize: isMobile ? "0.95rem" : "1rem",
+                           fontWeight: 700,
+                           color: "var(--text)",
                         }}
-                     />
-                     {currentLevel + 1 >= maxLevels && gameState === "ready"
-                        ? 100
-                        : currentScore}{" "}
-                     / 100
-                  </span>
+                     >
+                        <TrophyIcon
+                           style={{
+                              width: isMobile ? 15 : 16,
+                              height: isMobile ? 15 : 16,
+                              color: "var(--ok)",
+                           }}
+                        />
+                        {currentLevel + 1 >= maxLevels && gameState === "ready"
+                           ? 100
+                           : currentScore}{" "}
+                        / 100
+                     </span>
+                  </div>
+                  {/* Replay / Share: only usable while playing or after a fail (as before); the row keeps
+                      its space after a pass so the pad never jumps */}
+                  {replayShareBar}
                </div>
+               {(shareSuccess && !unlimitedActivated) || unlimitedActivated
+                  ? shareMessages
+                  : null}
                <div
                   style={{
                      width: "100%",
@@ -1407,49 +1659,37 @@ export default function ReactionTest({
                      }}
                   />
                </div>
-            </div>
-
-            {/* Variant Name and Description */}
-            <div
-               style={{
-                  textAlign: "center",
-                  padding: isMobile ? "12px" : "16px",
-                  background: "var(--card)",
-               }}
-            >
-               <div
-                  style={{
-                     fontSize: isMobile ? "1rem" : "1.1rem",
-                     fontWeight: 600,
-                     color: "var(--text)",
-                     marginBottom: isMobile ? "6px" : "8px",
-                  }}
-               >
-                  {variantNames[variant]}
-               </div>
-               <div
-                  style={{
-                     fontSize: isMobile ? "0.85rem" : "0.9rem",
-                     color: "var(--muted)",
-                     lineHeight: "1.4",
-                     fontStyle: "italic",
-                  }}
-               >
-                  {variantDescriptions[variant]}
+               <div style={{ textAlign: "center" }}>
+                  <div
+                     style={{
+                        fontSize: isMobile ? "1rem" : "1.1rem",
+                        fontWeight: 700,
+                        color: "var(--text)",
+                        marginBottom: "4px",
+                     }}
+                  >
+                     {variantNames[variant]}
+                  </div>
+                  {!vp.isShort && (
+                     <div
+                        style={{
+                           fontSize: isMobile ? "0.85rem" : "0.92rem",
+                           color: "var(--muted)",
+                           lineHeight: "1.4",
+                           fontStyle: "italic",
+                        }}
+                     >
+                        {variantDescriptions[variant]}
+                     </div>
+                  )}
                </div>
             </div>
 
-            {/* Game Area - Different UI for each mini-game */}
+            {/* Game Area - Different UI for each mini-game; its height comes from the live viewport */}
             <div
-               style={{
-                  position: "relative",
-                  width: "100%",
-                  aspectRatio: "16/9",
-                  minHeight: isMobile ? "250px" : "400px",
-                  background: "var(--stroke)",
-                  borderRadius: "16px",
-                  overflow: "hidden",
-               }}
+               ref={padRef}
+               className={rt.pad}
+               style={{ height: `${padHeight}px` }}
             >
                {/* Variant 0: Color Flash Reaction */}
                {variant === 0 && (
@@ -1460,11 +1700,11 @@ export default function ReactionTest({
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        gap: "20px",
+                        gap: isMobile ? "14px" : "20px",
                         flexWrap: "wrap",
                         cursor: "pointer",
                      }}
-                     onClick={() => handleClick()}
+                     onPointerDown={(e) => pressPlay(e)}
                   >
                      {[0, 1, 2, 3].map((index) => {
                         const isGreen =
@@ -1507,7 +1747,7 @@ export default function ReactionTest({
                         position: "relative",
                         cursor: "pointer",
                      }}
-                     onClick={() => handleClick()}
+                     onPointerDown={(e) => pressPlay(e)}
                   >
                      <div
                         style={{
@@ -1545,7 +1785,7 @@ export default function ReactionTest({
                         justifyContent: "center",
                         cursor: "pointer",
                      }}
-                     onClick={() => handleClick()}
+                     onPointerDown={(e) => pressPlay(e)}
                   >
                      <div
                         style={{
@@ -1585,7 +1825,7 @@ export default function ReactionTest({
                         flexDirection: "column",
                         alignItems: "center",
                         justifyContent: "center",
-                        gap: isMobile ? "20px" : "30px",
+                        gap: isMobile ? "12px" : "24px",
                         position: "relative",
                      }}
                   >
@@ -1609,8 +1849,8 @@ export default function ReactionTest({
                         </div>
                         <div
                            style={{
-                              width: isMobile ? "70px" : "90px",
-                              height: isMobile ? "70px" : "90px",
+                              width: isMobile ? "56px" : "90px",
+                              height: isMobile ? "56px" : "90px",
                               borderRadius:
                                  targetShape === "circle"
                                     ? "50%"
@@ -1634,10 +1874,11 @@ export default function ReactionTest({
                            style={{
                               display: "grid",
                               gridTemplateColumns: "repeat(3, 1fr)",
-                              gap: isMobile ? "12px" : "16px",
+                              gap: isMobile ? "10px" : "14px",
+                              justifyItems: "center",
                               width: "100%",
-                              maxWidth: isMobile ? "280px" : "360px",
-                              padding: isMobile ? "12px" : "16px",
+                              maxWidth: isMobile ? "240px" : "360px",
+                              padding: isMobile ? "4px" : "8px",
                            }}
                         >
                            {shapeOptions.map((option) => {
@@ -1645,13 +1886,10 @@ export default function ReactionTest({
                               return (
                                  <div
                                     key={option.id}
-                                    onClick={(e) => {
-                                       e.stopPropagation();
-                                       handleClick(e, option.id);
-                                    }}
+                                    onPointerDown={(e) => pressPlay(e, option.id)}
                                     style={{
-                                       width: isMobile ? "70px" : "90px",
-                                       height: isMobile ? "70px" : "90px",
+                                       width: isMobile ? "56px" : "90px",
+                                       height: isMobile ? "56px" : "90px",
                                        borderRadius:
                                           option.shape === "circle"
                                              ? "50%"
@@ -1707,17 +1945,14 @@ export default function ReactionTest({
                      {movingObjects.map((obj) => (
                         <div
                            key={obj.id}
-                           onClick={(e) => {
-                              e.stopPropagation();
-                              handleClick(e, obj.id);
-                           }}
+                           onPointerDown={(e) => pressPlay(e, obj.id)}
                            style={{
                               position: "absolute",
                               left: `${obj.x}%`,
                               top: `${obj.y}%`,
                               transform: "translate(-50%, -50%)",
-                              width: isMobile ? "40px" : "50px",
-                              height: isMobile ? "40px" : "50px",
+                              width: isMobile ? "48px" : "50px",
+                              height: isMobile ? "48px" : "50px",
                               borderRadius: "50%",
                               background:
                                  obj.color === "green"
@@ -1752,7 +1987,7 @@ export default function ReactionTest({
                         gap: "20px",
                         cursor: "pointer",
                      }}
-                     onClick={() => handleClick()}
+                     onPointerDown={(e) => pressPlay(e)}
                   >
                      {patternSequence.map((color, idx) => (
                         <div
@@ -1806,10 +2041,7 @@ export default function ReactionTest({
                      {multiTargets.map((target) => (
                         <div
                            key={target.id}
-                           onClick={(e) => {
-                              e.stopPropagation();
-                              handleClick(e, target.id);
-                           }}
+                           onPointerDown={(e) => pressPlay(e, target.id)}
                            style={{
                               position: "absolute",
                               left: `${target.x}%`,
@@ -1849,11 +2081,11 @@ export default function ReactionTest({
                         flexDirection: "column",
                         alignItems: "center",
                         justifyContent: "center",
-                        gap: "30px",
+                        gap: isMobile ? "20px" : "30px",
                         cursor: "pointer",
-                        padding: "40px",
+                        padding: isMobile ? "20px" : "40px",
                      }}
-                     onClick={() => handleClick()}
+                     onPointerDown={(e) => pressPlay(e)}
                   >
                      <div
                         style={{
@@ -1977,10 +2209,12 @@ export default function ReactionTest({
                                  return (
                                     <button
                                        key={num}
-                                       onClick={(e) => {
-                                          e.stopPropagation();
-                                          handleClick(e, num);
+                                       type="button"
+                                       onPointerDown={(e) => {
+                                          if (isClicked) return;
+                                          pressPlay(e, num);
                                        }}
+                                       onClick={(e) => clickFromKeyboard(e, num)}
                                        disabled={isClicked}
                                        style={{
                                           width: isMobile ? "50px" : "60px",
@@ -2039,7 +2273,7 @@ export default function ReactionTest({
                            ? "0 0 30px rgba(134, 239, 172, 0.4), inset 0 0 50px rgba(134, 239, 172, 0.2)"
                            : "none",
                      }}
-                     onClick={() => handleClick()}
+                     onPointerDown={(e) => pressPlay(e)}
                   >
                      <div
                         style={{
@@ -2062,49 +2296,223 @@ export default function ReactionTest({
                {/* Penalty indicator */}
                {penalties > 0 && (
                   <div
+                     key={`pen-${penalties}`}
+                     className={fx.hitPop}
                      style={{
                         position: "absolute",
-                        top: "20px",
-                        right: "20px",
+                        top: isMobile ? "10px" : "16px",
+                        right: isMobile ? "10px" : "16px",
                         padding: "6px 12px",
                         background: "rgba(252, 165, 165, 0.2)",
                         border: "2px solid rgba(252, 165, 165, 0.6)",
                         borderRadius: "999px",
-                        fontSize: isMobile ? "0.8rem" : "0.9rem",
+                        fontSize: isMobile ? "0.85rem" : "0.9rem",
                         fontWeight: 700,
                         color: "var(--warn)",
                         display: "flex",
                         alignItems: "center",
                         gap: "4px",
+                        pointerEvents: "none",
                      }}
                   >
                      ⚠️ {penalties}
                   </div>
                )}
 
-               {/* Reaction time display */}
-               {reactionTime > 0 && !showFeedback && (
+               {/* Feedback flash (a pass, a fail, a press too early or on the wrong target) */}
+               {padFx && (
                   <div
+                     key={`fx-${padFx.n}`}
+                     aria-hidden="true"
+                     className={padFx.kind === "hit" ? rt.padHit : rt.padEarly}
                      style={{
                         position: "absolute",
-                        bottom: "20px",
-                        left: "50%",
-                        transform: "translateX(-50%)",
-                        fontSize: isMobile ? "1.2rem" : "1.5rem",
-                        fontWeight: 700,
-                        color: "white",
-                        background: "rgba(0, 0, 0, 0.6)",
-                        padding: "12px 24px",
-
-                        border: "2px solid rgba(255, 255, 255, 0.3)",
-                        boxShadow: "0 4px 12px rgba(0, 0, 0, 0.3)",
+                        inset: 0,
+                        borderRadius: "16px",
+                        pointerEvents: "none",
                      }}
+                  />
+               )}
+               {padFx && padFx.kind === "early" && gameState === "playing" && (
+                  <div
+                     key={`toast-${padFx.n}`}
+                     role="status"
+                     className={`${rt.toast} ${rt.toastEarly}`}
+                  >
+                     {padFx.label}
+                  </div>
+               )}
+
+               {/* Reaction time display */}
+               {reactionTime > 0 && !showFeedback && gameState === "playing" && (
+                  <div
+                     key={`rt-${reactionTime}`}
+                     className={rt.timeChip}
+                     style={{ fontSize: isMobile ? "1.2rem" : "1.5rem" }}
                   >
                      {reactionTime}ms
                   </div>
                )}
-            </div>
 
+               {/* Result card over the pad: pass (Next Round), game complete, or fail */}
+               {(gameState === "ready" || gameState === "failed") && (
+                  <div
+                     onPointerDown={(e) => e.stopPropagation()}
+                     style={{
+                        position: "absolute",
+                        inset: 0,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        padding: isMobile ? "10px" : "20px",
+                        background: "rgba(11, 16, 32, 0.55)",
+                        cursor: "default",
+                     }}
+                  >
+                     <div
+                        className={fx.fadeUp}
+                        style={{
+                           ...getNoticeStyle(),
+                           maxWidth: "440px",
+                           maxHeight: "100%",
+                           overflowY: "auto",
+                           padding: isMobile ? "14px 16px" : "20px 28px",
+                           display: "flex",
+                           flexDirection: "column",
+                           alignItems: "center",
+                           gap: isMobile ? "8px" : "12px",
+                           background: "rgba(20, 26, 44, 0.94)",
+                        }}
+                     >
+                        {gameState === "ready" && currentLevel + 1 < maxLevels && (
+                           <>
+                              <div style={getNoticeBadgeStyle("success")}>
+                                 <CheckCircleIcon style={{ width: 20, height: 20 }} />
+                                 Level {currentLevel + 1} Complete
+                              </div>
+                              {reactionTime > 0 && (
+                                 <div
+                                    key={`t-${reactionTime}`}
+                                    className={fx.hitPop}
+                                    style={{
+                                       fontSize: isMobile ? "1.9rem" : "2.3rem",
+                                       fontWeight: 900,
+                                       color: "var(--ok)",
+                                       lineHeight: 1.1,
+                                    }}
+                                 >
+                                    {reactionTime}ms
+                                 </div>
+                              )}
+                              <div
+                                 style={{
+                                    fontSize: isMobile ? "1rem" : "1.1rem",
+                                    fontWeight: 600,
+                                 }}
+                              >
+                                 Are you ready for next round?
+                              </div>
+                              <button
+                                 type="button"
+                                 className={rt.btn}
+                                 onClick={handleNextRoundPress}
+                                 style={{
+                                    ...getActionButtonStyle("success"),
+                                    ...TOUCH_SURFACE,
+                                    minHeight: `${MIN_TARGET + 4}px`,
+                                    justifyContent: "center",
+                                 }}
+                                 onMouseEnter={(e) => applyActionHover(e, "success", true)}
+                                 onMouseLeave={(e) => applyActionHover(e, "success", false)}
+                              >
+                                 Next Round
+                              </button>
+                           </>
+                        )}
+
+                        {gameState === "ready" && currentLevel + 1 >= maxLevels && (
+                           <>
+                              <div style={getNoticeBadgeStyle("success")}>
+                                 <TrophyIcon style={{ width: 20, height: 20 }} />
+                                 Game Complete!
+                              </div>
+                              {reactionTime > 0 && (
+                                 <div
+                                    key={`t-${reactionTime}`}
+                                    className={fx.hitPop}
+                                    style={{
+                                       fontSize: isMobile ? "1.9rem" : "2.3rem",
+                                       fontWeight: 900,
+                                       color: "var(--ok)",
+                                       lineHeight: 1.1,
+                                    }}
+                                 >
+                                    {reactionTime}ms
+                                 </div>
+                              )}
+                              <div
+                                 style={{
+                                    fontSize: isMobile ? "1rem" : "1.1rem",
+                                    fontWeight: 600,
+                                 }}
+                              >
+                                 All {maxLevels} levels completed!
+                              </div>
+                              <div
+                                 style={{
+                                    fontSize: isMobile ? "0.95rem" : "1rem",
+                                    opacity: 0.8,
+                                 }}
+                              >
+                                 Final Score: 100
+                              </div>
+                           </>
+                        )}
+
+                        {gameState === "failed" && (
+                           <>
+                              <div style={getNoticeBadgeStyle("danger")}>
+                                 <XCircleIcon style={{ width: 20, height: 20 }} />
+                                 Level {currentLevel + 1} Failed
+                              </div>
+                              {reactionTime > 0 && (
+                                 <div
+                                    key={`t-${reactionTime}`}
+                                    className={fx.missShake}
+                                    style={{
+                                       fontSize: isMobile ? "1.7rem" : "2.1rem",
+                                       fontWeight: 900,
+                                       color: "var(--warn)",
+                                       lineHeight: 1.1,
+                                    }}
+                                 >
+                                    {reactionTime}ms
+                                 </div>
+                              )}
+                              <div
+                                 style={{
+                                    fontSize: isMobile ? "1rem" : "1.1rem",
+                                    fontWeight: 600,
+                                    color: "var(--text)",
+                                 }}
+                              >
+                                 Score too low.
+                              </div>
+                              <div
+                                 style={{
+                                    fontSize: "0.85rem",
+                                    fontWeight: 500,
+                                    color: "var(--muted)",
+                                 }}
+                              >
+                                 Use Replay above to try this level again.
+                              </div>
+                           </>
+                        )}
+                     </div>
+                  </div>
+               )}
+            </div>
             {/* Stats */}
             {(penalties > 0 || attempts.length > 0) && (
                <div
@@ -2164,280 +2572,6 @@ export default function ReactionTest({
                </div>
             )}
 
-            {/* Action Buttons: Replay, Share */}
-            {(gameState === "playing" || gameState === "failed") && (
-               <div
-                  style={{
-                     display: "flex",
-                     gap: "12px",
-                     justifyContent: "center",
-                     flexWrap: "wrap",
-                     padding: isMobile ? "12px" : "16px",
-                     background: "var(--card)",
-                  }}
-               >
-                  {/* Share Success Message */}
-                  {shareSuccess && !unlimitedActivated && (
-                     <div
-                        style={{
-                           width: "100%",
-                           padding: "12px",
-                           background: "rgba(134, 239, 172, 0.2)",
-                           border: "2px solid rgba(134, 239, 172, 0.6)",
-                           borderRadius: "8px",
-                           fontSize: isMobile ? "0.9rem" : "1rem",
-                           fontWeight: 600,
-                           color: "var(--ok)",
-                           textAlign: "center",
-                           marginBottom: "8px",
-                        }}
-                     >
-                        Link copied! Unlimited replay will unlock when someone
-                        opens your link!
-                     </div>
-                  )}
-
-                  {/* Unlimited Activated Message */}
-                  {unlimitedActivated && (
-                     <div
-                        style={{
-                           display: "flex",
-                           alignItems: "center",
-                           gap: isMobile ? "6px" : "8px",
-                           padding: isMobile ? "10px 14px" : "8px 16px",
-                           background:
-                              "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
-                           border: "2px solid rgba(59, 130, 246, 0.6)",
-                           borderRadius: isMobile ? "10px" : "8px",
-                           color: "var(--text)",
-                           fontSize: isMobile ? "0.85rem" : "0.9rem",
-                           fontWeight: 500,
-                           width: "100%",
-                           justifyContent: "center",
-                           textAlign: "center",
-                           flexWrap: "wrap",
-                           marginBottom: "8px",
-                        }}
-                     >
-                        <CheckCircleIcon
-                           style={{
-                              width: isMobile ? 16 : 18,
-                              height: isMobile ? 16 : 18,
-                              color: "rgba(59, 130, 246, 0.9)",
-                              flexShrink: 0,
-                           }}
-                        />
-                        <span>
-                           {isMobile
-                              ? "🎉 Someone opened your link! Unlimited replay is now active for 15 minutes!"
-                              : "🎉 Someone opened your link! Unlimited replay is now active for 15 minutes!"}
-                        </span>
-                     </div>
-                  )}
-
-                  {/* Replay Button */}
-                  <button
-                     onClick={handleReplay}
-                     disabled={maxReplays > 0 && replaysUsed >= maxReplays}
-                     style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: isMobile ? "6px" : "8px",
-                        padding: isMobile ? "10px 16px" : "10px 20px",
-                        width: isMobile ? "100%" : "auto",
-                        background:
-                           maxReplays > 0 && replaysUsed >= maxReplays
-                              ? "rgba(100, 100, 100, 0.2)"
-                              : "linear-gradient(135deg, rgba(125, 211, 252, 0.2), rgba(125, 211, 252, 0.1))",
-                        border:
-                           maxReplays > 0 && replaysUsed >= maxReplays
-                              ? "1px solid rgba(100, 100, 100, 0.4)"
-                              : "1px solid rgba(125, 211, 252, 0.6)",
-
-                        color: "var(--text)",
-                        fontSize: isMobile ? "0.85rem" : "0.95rem",
-                        fontWeight: 600,
-                        cursor:
-                           maxReplays > 0 && replaysUsed >= maxReplays
-                              ? "not-allowed"
-                              : "pointer",
-                        opacity:
-                           maxReplays > 0 && replaysUsed >= maxReplays
-                              ? 0.5
-                              : 1,
-                        transition: "all 0.3s ease",
-                     }}
-                     onMouseEnter={(e) => {
-                        if (!(maxReplays > 0 && replaysUsed >= maxReplays)) {
-                           e.currentTarget.style.background =
-                              "linear-gradient(135deg, rgba(125, 211, 252, 0.3), rgba(125, 211, 252, 0.2))";
-                           e.currentTarget.style.borderColor =
-                              "rgba(125, 211, 252, 0.8)";
-                           e.currentTarget.style.transform = "translateY(-2px)";
-                           e.currentTarget.style.boxShadow =
-                              "0 4px 12px rgba(125, 211, 252, 0.3)";
-                        }
-                     }}
-                     onMouseLeave={(e) => {
-                        if (!(maxReplays > 0 && replaysUsed >= maxReplays)) {
-                           e.currentTarget.style.background =
-                              maxReplays > 0 && replaysUsed >= maxReplays
-                                 ? "rgba(100, 100, 100, 0.2)"
-                                 : "linear-gradient(135deg, rgba(125, 211, 252, 0.2), rgba(125, 211, 252, 0.1))";
-                           e.currentTarget.style.borderColor =
-                              maxReplays > 0 && replaysUsed >= maxReplays
-                                 ? "rgba(100, 100, 100, 0.4)"
-                                 : "rgba(125, 211, 252, 0.6)";
-                           e.currentTarget.style.transform = "translateY(0)";
-                           e.currentTarget.style.boxShadow = "none";
-                        }
-                     }}
-                  >
-                     <ArrowPathRoundedSquareIcon
-                        style={{
-                           width: isMobile ? 18 : 20,
-                           height: isMobile ? 18 : 20,
-                           color:
-                              maxReplays > 0 && replaysUsed >= maxReplays
-                                 ? "var(--muted)"
-                                 : "var(--accent)",
-                        }}
-                     />
-                     <span>
-                        {isMobile ? "" : "Replay "}
-                        {maxReplays === 0
-                           ? "(∞)"
-                           : `(${maxReplays - replaysUsed}/${maxReplays})`}
-                     </span>
-                  </button>
-
-                  {/* Share Button */}
-                  <button
-                     onClick={handleShare}
-                     style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: isMobile ? "6px" : "8px",
-                        padding: isMobile ? "10px 16px" : "10px 20px",
-                        width: isMobile ? "100%" : "auto",
-                        background:
-                           "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
-                        border: "1px solid rgba(59, 130, 246, 0.6)",
-
-                        color: "var(--text)",
-                        fontSize: isMobile ? "0.85rem" : "0.95rem",
-                        fontWeight: 600,
-                        cursor: "pointer",
-                        transition: "all 0.3s ease",
-                     }}
-                     onMouseEnter={(e) => {
-                        e.currentTarget.style.background =
-                           "linear-gradient(135deg, rgba(59, 130, 246, 0.3), rgba(59, 130, 246, 0.2))";
-                        e.currentTarget.style.borderColor =
-                           "rgba(59, 130, 246, 0.8)";
-                        e.currentTarget.style.transform = "translateY(-2px)";
-                        e.currentTarget.style.boxShadow =
-                           "0 4px 12px rgba(59, 130, 246, 0.3)";
-                     }}
-                     onMouseLeave={(e) => {
-                        e.currentTarget.style.background =
-                           "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))";
-                        e.currentTarget.style.borderColor =
-                           "rgba(59, 130, 246, 0.6)";
-                        e.currentTarget.style.transform = "translateY(0)";
-                        e.currentTarget.style.boxShadow = "none";
-                     }}
-                  >
-                     <ShareIcon
-                        style={{
-                           width: isMobile ? 18 : 20,
-                           height: isMobile ? 18 : 20,
-                           color: "rgba(59, 130, 246, 0.9)",
-                        }}
-                     />
-                     <span>
-                        {isMobile ? "Share" : "Share for Unlimited Replay"}
-                     </span>
-                  </button>
-               </div>
-            )}
-
-            {/* Level Complete Message */}
-            {gameState === "ready" && currentLevel + 1 < maxLevels && (
-               <div style={getNoticeStyle()}>
-                  <div style={getNoticeBadgeStyle("success")}>
-                     <CheckCircleIcon style={{ width: 20, height: 20 }} />
-                     Level {currentLevel + 1} Complete
-                  </div>
-                  <div
-                     style={{
-                        fontSize: isMobile ? "1.05rem" : "1.1rem",
-                        fontWeight: 600,
-                        marginBottom: "20px",
-                        marginTop: "16px",
-                     }}
-                  >
-                     Are you ready for next round?
-                  </div>
-                  <button
-                     onClick={handleNextRound}
-                     style={getActionButtonStyle("success")}
-                     onMouseEnter={(e) => applyActionHover(e, "success", true)}
-                     onMouseLeave={(e) => applyActionHover(e, "success", false)}
-                  >
-                     Next Round
-                  </button>
-               </div>
-            )}
-
-            {/* Game Complete Message */}
-            {gameState === "ready" && currentLevel + 1 >= maxLevels && (
-               <div style={getNoticeStyle()}>
-                  <div style={getNoticeBadgeStyle("success")}>
-                     <TrophyIcon style={{ width: 20, height: 20 }} />
-                     Game Complete!
-                  </div>
-                  <div
-                     style={{
-                        fontSize: isMobile ? "1.05rem" : "1.1rem",
-                        fontWeight: 600,
-                        marginTop: "16px",
-                        marginBottom: "20px",
-                     }}
-                  >
-                     All {maxLevels} levels completed!
-                  </div>
-                  <div
-                     style={{
-                        fontSize: isMobile ? "0.95rem" : "1rem",
-                        opacity: 0.8,
-                        marginTop: "8px",
-                     }}
-                  >
-                     Final Score: 100
-                  </div>
-               </div>
-            )}
-
-            {/* Level Failed Message */}
-            {gameState === "failed" && (
-               <div style={getNoticeStyle()}>
-                  <div style={getNoticeBadgeStyle("danger")}>
-                     <XCircleIcon style={{ width: 20, height: 20 }} />
-                     Level {currentLevel + 1} Failed
-                  </div>
-                  <div
-                     style={{
-                        fontSize: isMobile ? "1.05rem" : "1.1rem",
-                        fontWeight: 600,
-                        marginTop: "16px",
-                        color: "var(--text)",
-                     }}
-                  >
-                     Score too low.
-                  </div>
-               </div>
-            )}
          </div>
       </React.Fragment>
    );
