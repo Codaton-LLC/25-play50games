@@ -38,7 +38,7 @@ export const toyRoomRunMeta: ArcadeGameMeta = {
    },
    scoring: scoring(1),
    levels: LEVEL_IDS.map((id) => ({ id, title: LEVEL_TITLES[id], scoring: scoring(id) })),
-   thumbnail: null,
+   thumbnail: "/images/3d/toy-room-run.webp",
    accent: "#facc15",
    owner: "claude",
 };

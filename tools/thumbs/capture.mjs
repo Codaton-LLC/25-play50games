@@ -5,6 +5,7 @@
 //
 // Usage (from the repo root or anywhere):
 //   node tools/thumbs/capture.mjs [--base-url http://localhost:3100] [--slugs a,b,c] [--out dir]
+//   [--query "?autoplay=1"] [--auto-wait 4000]   (a Menu 2 game in a preview build: its bot plays, the shot is mid-run)
 //                                 [--chrome path] [--write]
 // Only a local server is accepted (localhost, 127.0.0.1, [::1], *.localhost): the tool plays
 // real runs. Nothing is written outside --out (default tools/thumbs/out) unless --write is given.
@@ -59,6 +60,10 @@ const SLUGS = argValue("--slugs", DEFAULT_SLUGS.join(",")).split(",").map((s) =>
 const OUT_DIR = path.resolve(argValue("--out", path.join(HERE, "out")));
 const CHROME = argValue("--chrome", process.env.CHROME_PATH || DEFAULT_CHROME[process.platform] || "google-chrome");
 const WRITE = process.argv.includes("--write");
+// --query "?autoplay=1" opens each game with that query (a preview build's bot plays the run);
+// --auto-wait <ms> then replaces the input script with one wait, so the shot catches the bot mid-run.
+const QUERY = argValue("--query", "");
+const AUTO_WAIT = Number(argValue("--auto-wait", "0"));
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -68,7 +73,7 @@ class FatalError extends Error {}
 function checkArgs() {
    const args = process.argv.slice(2);
    for (let i = 0; i < args.length; i++) {
-      if (["--base-url", "--slugs", "--out", "--chrome"].includes(args[i])) i++;
+      if (["--base-url", "--slugs", "--out", "--chrome", "--query", "--auto-wait"].includes(args[i])) i++;
       else if (args[i] !== "--write") throw new FatalError(`unknown argument ${args[i]} (usage: top of capture.mjs)`);
    }
    let url;
@@ -424,7 +429,7 @@ function shotClip(rect, frame) {
 // (so the shot catches the character mid-move); they are returned for release after the shot,
 // with the { zoom } frame for the shot (null = the whole canvas).
 async function playScript(cdp, sessionId, slug, rect) {
-   const { steps } = await loadInputScript(slug);
+   const { steps } = AUTO_WAIT > 0 ? { steps: [{ wait: AUTO_WAIT }] } : await loadInputScript(slug);
    const held = new Set();
    let frame = null;
    for (const step of steps) {
@@ -467,7 +472,7 @@ async function captureGame(cdp, sessionId, slug) {
    const route = `/3d/${slug}`;
    const state = () => evaluate(cdp, sessionId, PAGE_STATE_JS);
 
-   const nav = await cdp.send("Page.navigate", { url: `${BASE_URL}${route}` }, sessionId);
+   const nav = await cdp.send("Page.navigate", { url: `${BASE_URL}${route}${QUERY}` }, sessionId);
    if (nav.errorText) throw new FatalError(`cannot open ${BASE_URL}${route}: ${nav.errorText} (is the server running?)`);
    await waitFor(async () => {
       const s = await state();
@@ -491,8 +496,13 @@ async function captureGame(cdp, sessionId, slug) {
    }, 60_000, "Play button");
    await evaluate(cdp, sessionId, CLICK_BUTTON_JS("Play"));
 
-   // The 3-2-1 countdown, then the run is playing.
-   await waitFor(async () => (await state()).countdown, 5_000, "countdown");
+   // A Menu 2 game plays its intro first (never part of the run clock): skip it, then the
+   // 3-2-1 countdown, then the run is playing.
+   await waitFor(async () => {
+      if ((await state()).countdown) return true;
+      await evaluate(cdp, sessionId, CLICK_BUTTON_JS("Skip"));
+      return false;
+   }, 15_000, "countdown");
    await waitFor(async () => {
       const s = await state();
       const bad = badDialog(s);

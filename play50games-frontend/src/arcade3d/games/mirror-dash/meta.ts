@@ -32,7 +32,7 @@ export const mirrorDashMeta: ArcadeGameMeta = {
    },
    scoring: scoring(1),
    levels: LEVEL_IDS.map((id) => ({ id, title: LEVELS[id].name, scoring: scoring(id) })),
-   thumbnail: null,
+   thumbnail: "/images/3d/mirror-dash.webp",
    accent: "#a78bfa",
    owner: "claude",
 };

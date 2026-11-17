@@ -40,7 +40,7 @@ export const portalHopMeta: ArcadeGameMeta = {
    },
    scoring: scoring(1),
    levels: LEVEL_IDS.map((id) => ({ id, title: LEVEL_TITLES[id], scoring: scoring(id) })),
-   thumbnail: null,
+   thumbnail: "/images/3d/portal-hop.webp",
    accent: "#8b5cf6",
    owner: "claude",
 };

@@ -40,7 +40,7 @@ export const spacePodJumpMeta: ArcadeGameMeta = {
    },
    scoring: scoring(1),
    levels: LEVEL_IDS.map((id) => ({ id, title: LEVEL_TITLES[id], scoring: scoring(id) })),
-   thumbnail: null,
+   thumbnail: "/images/3d/space-pod-jump.webp",
    accent: "#a855f7",
    owner: "claude",
 };

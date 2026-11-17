@@ -39,7 +39,7 @@ export const laserMazeRunMeta: ArcadeGameMeta = {
    },
    scoring: scoring(1),
    levels: LEVEL_IDS.map((id) => ({ id, title: LEVEL_TITLES[id], scoring: scoring(id) })),
-   thumbnail: null,
+   thumbnail: "/images/3d/laser-maze-run.webp",
    accent: "#ff2d55",
    owner: "claude",
 };
