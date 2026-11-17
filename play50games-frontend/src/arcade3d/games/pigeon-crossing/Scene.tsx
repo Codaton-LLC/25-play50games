@@ -24,7 +24,8 @@ import {
    createPigeonPose, writePigeonPose, placePigeon,
 } from "./camera";
 import { useStreetGate } from "./Hud";
-import { COLORS, PigeonPrimitive, useStreetParts, type StreetParts } from "./Primitives";
+import { DistrictScenery } from "./DistrictScenery";
+import { PigeonPrimitive, useStreetParts, type StreetParts } from "./Primitives";
 import { COVER_INNER_X, HOP_MS, LANE_SLOTS, NONE, ROW_PITCH, VEHICLE_SLOTS, createRun, step, type PigeonRun } from "./rules";
 import { VEHICLE_ASSETS, vehicleFacing } from "./traffic";
 
@@ -162,7 +163,7 @@ const VehiclePool = memo(function VehiclePool({ run, kind, parts }: { run: Pigeo
    return <DynamicInstancedModel asset={VEHICLE_ASSETS[kind]} count={VEHICLE_SLOTS} update={update} fallbackParts={parts.vehicles[kind]} name={`traffic-${VEHICLE_ASSETS[kind].id}`} />;
 });
 
-const SideCover = memo(function SideCover({ layout }: { layout: Layout }) {
+const SideCover = memo(function SideCover({ layout, coverColor }: { layout: Layout; coverColor: string }) {
    const left = useRef<Mesh>(null), right = useRef<Mesh>(null);
    useFrame(() => {
       const h = layout.horizon, width = Math.max(0.1, h.coverX - COVER_INNER_X), length = Math.max(1, h.coverMaxZ - h.coverMinZ), z = (h.coverMaxZ + h.coverMinZ) / 2;
@@ -171,8 +172,8 @@ const SideCover = memo(function SideCover({ layout }: { layout: Layout }) {
    });
    return (
       <group name="opaque-side-cover">
-         <mesh ref={left}><boxGeometry args={[1, 1, 1]} /><meshStandardMaterial color={COLORS.cover} roughness={0.95} polygonOffset polygonOffsetFactor={-1} polygonOffsetUnits={-1} /></mesh>
-         <mesh ref={right}><boxGeometry args={[1, 1, 1]} /><meshStandardMaterial color={COLORS.cover} roughness={0.95} polygonOffset polygonOffsetFactor={-1} polygonOffsetUnits={-1} /></mesh>
+         <mesh ref={left}><boxGeometry args={[1, 1, 1]} /><meshStandardMaterial color={coverColor} roughness={0.95} polygonOffset polygonOffsetFactor={-1} polygonOffsetUnits={-1} /></mesh>
+         <mesh ref={right}><boxGeometry args={[1, 1, 1]} /><meshStandardMaterial color={coverColor} roughness={0.95} polygonOffset polygonOffsetFactor={-1} polygonOffsetUnits={-1} /></mesh>
       </group>
    );
 });
@@ -203,7 +204,7 @@ export default function Scene() {
    const { config } = usePigeonLevel();
    const [run] = useState(() => createRun(randomSeed(), config));
    const [layout] = useState(createLayout);
-   const parts = useStreetParts();
+   const parts = useStreetParts(config.map.palette);
    const reported = useRef(false);
    useEffect(() => {
       if (!reported.current) { reported.current = true; useArcadeStore.getState().setStat("level", 1); }
@@ -212,12 +213,13 @@ export default function Scene() {
       <>
          <Simulation run={run} layout={layout} />
          <StreetCamera run={run} layout={layout} />
-         <mesh rotation-x={-Math.PI / 2} position={[0, -0.11, -8000]} name="background-grass"><planeGeometry args={[160, 20000]} /><meshStandardMaterial color={COLORS.grass} roughness={1} /></mesh>
+         <mesh rotation-x={-Math.PI / 2} position={[0, -0.11, -8000]} name="background-grass"><planeGeometry args={[160, 20000]} /><meshStandardMaterial color={config.map.palette.grass} roughness={1} /></mesh>
          <Rows run={run} parts={parts} />
          <VehiclePool run={run} kind={0} parts={parts} />
          <VehiclePool run={run} kind={1} parts={parts} />
          <VehiclePool run={run} kind={2} parts={parts} />
-         <SideCover layout={layout} />
+         <SideCover layout={layout} coverColor={config.map.palette.cover} />
+         <DistrictScenery run={run} horizon={layout.horizon} />
          <Pigeon run={run} layout={layout} />
       </>
    );
