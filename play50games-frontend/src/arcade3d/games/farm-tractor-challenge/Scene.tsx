@@ -34,8 +34,11 @@ import {
    aimBounds,
    groundSpan,
    lookAtFor,
+   lookFor,
+   mudPitSpots,
    viewFor,
 } from "./looks";
+import Decor from "./Decor";
 import { BarnFrame, FarmerFigure, GatePostPrimitive, ScarecrowPrimitive, SiloPrimitive, TractorPrimitive, TrailerPrimitive, TroughPrimitive } from "./Primitives";
 import { BAY_RING, GUIDE, bumpAtBale, farmHint, hintCode, nextGoal, type FarmGoal } from "./guide";
 import { BALE_R, MAX_BALES, TRAILER_BEHIND, createRun, forwardOf, hitchPoint, step, type Run } from "./rules";
@@ -128,19 +131,13 @@ function LevelScene() {
     */
    const towed = useRef({ yaw: run.tractor.yaw, x: run.trailerX.x, z: run.trailerZ.x }).current;
    const bounds = useMemo(() => aimBounds(config), [config]);
-   const look = useMemo(() => lookAtFor(config), [config]);
+   const lookAt = useMemo(() => lookAtFor(config), [config]);
+   const theme = lookFor(config);
    const decor = useMemo(() => decorAt(config), [config]);
    const span = groundSpan(config);
    const fence = fenceDraw(id);
    const glbPosts = useMemo(() => fenceGlbSpots(id), [id]);
-   const mudSpots = useMemo(() => run.mud.map((rect) => ({
-      x: (rect.x0 + rect.x1) / 2,
-      y: 0.035,
-      z: (rect.z0 + rect.z1) / 2,
-      sx: rect.x1 - rect.x0,
-      sy: 0.05,
-      sz: rect.z1 - rect.z0,
-   })), [run]);
+   const mudPits = useMemo(() => mudPitSpots(run.mud), [run]);
    const treeGlb = useMemo(() => run.trees.map((tree) => ({ x: tree.x, y: 0, z: tree.z })), [run]);
    const treeTrunks = useMemo(() => run.trees.map((tree) => ({ x: tree.x, y: 0.7, z: tree.z, sx: 0.45, sy: 1.4, sz: 0.45 })), [run]);
    const treeCrowns = useMemo(() => run.trees.map((tree) => ({ x: tree.x, y: 2.15, z: tree.z, sx: 1.5, sy: 2.2, sz: 1.5 })), [run]);
@@ -375,7 +372,7 @@ function LevelScene() {
    return (
       <>
          <CameraRig
-            camera={{ position: view.offset, fov: FOV, lookAt: look }}
+            camera={{ position: view.offset, fov: FOV, lookAt: lookAt }}
             follow={aim}
             followFraction={FOLLOW}
             bounds={bounds}
@@ -385,21 +382,31 @@ function LevelScene() {
          />
          <mesh rotation-x={-Math.PI / 2} position={[0, -0.03, 0]} receiveShadow={false}>
             <planeGeometry args={[span, span]} />
-            <meshStandardMaterial color={COLORS.grass} roughness={0.92} />
+            <meshStandardMaterial color={theme.grass} roughness={0.92} />
          </mesh>
          <mesh rotation-x={-Math.PI / 2} position={[0, 0, 0]}>
             <planeGeometry args={[config.width, config.depth]} />
-            <meshStandardMaterial color={COLORS.soil} roughness={0.9} />
+            <meshStandardMaterial color={theme.soil} roughness={0.9} />
          </mesh>
          <mesh rotation-x={-Math.PI / 2} position={[0, 0.012, bayZ]}>
             <planeGeometry args={[config.width - 1.2, halfD - run.gateZ]} />
-            <meshStandardMaterial color={COLORS.soilDark} roughness={0.88} />
+            <meshStandardMaterial color={theme.soilDark} roughness={0.88} />
          </mesh>
-         {mudSpots.length > 0 && (
-            <Instanced spots={mudSpots} name="mud">
-               <boxGeometry args={[1, 1, 1]} />
-               <meshStandardMaterial color={COLORS.mud} roughness={0.95} />
-            </Instanced>
+         {mudPits.beds.length > 0 && (
+            <>
+               <Instanced spots={mudPits.beds} name="mud-beds">
+                  <boxGeometry args={[1, 1, 1]} />
+                  <meshStandardMaterial color={theme.mud} roughness={0.95} />
+               </Instanced>
+               <Instanced spots={mudPits.wet} name="mud-wet">
+                  <boxGeometry args={[1, 1, 1]} />
+                  <meshStandardMaterial color={theme.mudWet} roughness={0.35} metalness={0.08} />
+               </Instanced>
+               <Instanced spots={mudPits.rims} name="mud-rims">
+                  <boxGeometry args={[1, 1, 1]} />
+                  <meshStandardMaterial color={theme.mudRim} roughness={0.9} />
+               </Instanced>
+            </>
          )}
          <InstancedModel
             asset={ASSETS.fence}
@@ -421,7 +428,7 @@ function LevelScene() {
                      </Instanced>
                      <Instanced spots={treeCrowns} name="tree-crowns">
                         <sphereGeometry args={[0.5, 10, 8]} />
-                        <meshStandardMaterial color={COLORS.leaf} roughness={0.7} />
+                        <meshStandardMaterial color={theme.leaf} roughness={0.7} />
                      </Instanced>
                   </>
                }
@@ -443,6 +450,7 @@ function LevelScene() {
          <Model asset={ASSETS.trough} position={[decor.trough.x, 0, decor.trough.z]} fallback={<TroughPrimitive />} />
          <Model asset={ASSETS.scarecrow} position={[decor.scarecrow.x, 0, decor.scarecrow.z]} fallback={<ScarecrowPrimitive />} />
          <Model asset={ASSETS.barnCrate} position={[decor.crate.x, 0, decor.crate.z]} />
+         <Decor level={config} />
          <group ref={trailer}>
             <Model asset={ASSETS.trailer} fallback={<TrailerPrimitive />} />
          </group>
