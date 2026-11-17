@@ -380,6 +380,11 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/neon-cube-jump/m2NeonSentryDrone.glb",
    "/models/3d/neon-cube-jump/m2NeonCityBg.glb",
    "/models/3d/neon-cube-jump/m2FlipframeCore.glb",
+   // Paint the Platforms (Menu 2 #25): floor tile, arena wall, paint pickup, Paint Blob boss
+   "/models/3d/paint-the-platforms/m2ArenaFloorTile.glb",
+   "/models/3d/paint-the-platforms/m2ArenaWall.glb",
+   "/models/3d/paint-the-platforms/m2PaintBlobBoss.glb",
+   "/models/3d/paint-the-platforms/m2PaintPickup.glb",
    // P-121 dev adoptions (2026-10-25): V2 replacements and Group D variety whose QA verdict
    // starts with OK. Optimized GLBs copied in; not re-optimized. Live games are untouched.
    "/models/3d/shopping-cart/supermarketShelfV2.glb",
