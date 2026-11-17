@@ -18,8 +18,8 @@ const local = (id: string, fallback: ModelAsset["fallback"], fallbackColor: stri
 /** Raw GLB bounds (width x, height y, depth z), measured 2026-10-25. */
 export const GLB_SIZE = {
    charBellboy: { width: 1.8786, height: 1.8977, depth: 0.3678 },
-   bellboyTrolley: { width: 1.1567, height: 1.9013, depth: 0.796 },
-   elevatorDoorV2: { width: 1.2034, height: 1.8967, depth: 0.3373 },
+   bellboyTrolleyV3T: { width: 1.12, height: 1.902, depth: 1.702 },
+   elevatorDoorsSliding: { width: 1.584, height: 1.895, depth: 0.201 },
    hotelRoomDoor: { width: 0.9785, height: 1.8875, depth: 0.1412 },
    keyCard: { width: 1.3167, height: 0.0744, depth: 1.9016 },
    receptionDesk: { width: 1.9022, height: 0.8731, depth: 0.7338 },
@@ -31,8 +31,12 @@ export const GLB_SIZE = {
 
 /** Drawn sizes (m). The blockers' sizes are the rules' (SOFA_SIZE, PLANTER_SIZE, DESK). */
 export const BELLBOY_HEIGHT = 1.74;
-export const TROLLEY_HEIGHT = 1.55;
+export const TROLLEY_HEIGHT = 1.3;
+/** The V3T red base top (m): where the suitcase stands. */
+export const TROLLEY_DECK = 0.52;
 export const ELEVATOR_HEIGHT = 2.3;
+/** The sliding pair fills the 1.5 m door frame (looks.ts frame half 0.78). */
+export const ELEVATOR_WIDTH = 1.5;
 export const ROOM_DOOR_HEIGHT = 2.1;
 export const DESK_WIDTH = 2.2;
 export const DESK_DEPTH = 0.9;
@@ -45,9 +49,9 @@ export const BELLBOY_SCALE = BELLBOY_HEIGHT / GLB_SIZE.charBellboy.height;
 const deskScale = DESK_WIDTH / GLB_SIZE.receptionDesk.width;
 /** The desk top (m): where the bell sits. */
 export const DESK_TOP = GLB_SIZE.receptionDesk.height * deskScale;
-const trolleyScale = TROLLEY_HEIGHT / GLB_SIZE.bellboyTrolley.height;
-/** The trolley's footprint (m): its long side (GLB x) runs along the pull, so rotationY turns it a quarter. */
-export const TROLLEY_LENGTH = GLB_SIZE.bellboyTrolley.width * trolleyScale;
+const trolleyScale = TROLLEY_HEIGHT / GLB_SIZE.bellboyTrolleyV3T.height;
+/** The trolley's footprint (m): its long side (GLB z) already runs along the pull. */
+export const TROLLEY_LENGTH = GLB_SIZE.bellboyTrolleyV3T.depth * trolleyScale;
 
 /**
  * The bellboy's joints (GLB units: a 1.879 x 1.898 x 0.368 T-pose facing +z; a pillbox hat, a short
@@ -102,9 +106,14 @@ export const ASSETS = {
       humanoid: { landmarks: BELLBOY_LANDMARKS },
    },
    /** Brass luggage cart, 1.55 m tall, its long side along the pull (rotationY a quarter turn). */
-   trolley: { ...local("bellboyTrolley", "box", "#d4a574"), scale: trolleyScale, rotationY: Math.PI / 2 },
+   trolley: { ...local("bellboyTrolleyV3T", "box", "#d4a574"), scale: trolleyScale },
    /** Single door GLB (the ledger: not a sliding pair), 2.30 m tall on the door wall, facing the corridor. */
-   elevator: { ...local("elevatorDoorV2", "box", "#d4a574"), scale: ELEVATOR_HEIGHT / GLB_SIZE.elevatorDoorV2.height, rotationY: -Math.PI / 2 },
+   elevator: {
+      ...local("elevatorDoorsSliding", "box", "#d4a574"),
+      scale: ELEVATOR_WIDTH / GLB_SIZE.elevatorDoorsSliding.width,
+      stretch: [1, ELEVATOR_HEIGHT / (GLB_SIZE.elevatorDoorsSliding.height * (ELEVATOR_WIDTH / GLB_SIZE.elevatorDoorsSliding.width)), 1] as const,
+      rotationY: -Math.PI / 2,
+   },
    /** Room door, 2.10 m tall, one InstancedModel for every door, facing the corridor. */
    door: { ...local("hotelRoomDoor", "box", "#7c2d12"), scale: ROOM_DOOR_HEIGHT / GLB_SIZE.hotelRoomDoor.height, rotationY: -Math.PI / 2 },
    /** The key card beacon over the desk, 0.50 m long (its face is tipped up to the camera in the scene). */

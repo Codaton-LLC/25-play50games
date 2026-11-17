@@ -1,9 +1,9 @@
 // Toy Store Night Shift rules. Pure and deterministic: no three.js, React, DOM, Math.random or Date.
 // Scene.tsx calls step() from one useRunFrame. Same seed + level + inputs = same run.
 //
-// A store of shelf rows (aisles). The night guard picks up the scattered toys (Use) and drops each
-// one on the shelf of its kind. Wind-up robots and cars patrol loops round the rows and knock the
-// carried toys out of his hands. No lives: the clock is the shell's.
+// A store of shelf rows (aisles). The tidy-up robot picks up the scattered toys (Use) and drops each
+// one on the shelf of its kind. Wild wind-up robots and cars patrol loops round the rows and knock
+// the carried toys out of its hands. No lives: the clock is the shell's.
 import { stepPatrol, type PatrolState } from "@/arcade3d/core/ai/patrol";
 import { createPath, type Path } from "@/arcade3d/core/path";
 import { createRng, inputToWorld, turnTowards } from "@/arcade3d/core/math";
@@ -153,15 +153,18 @@ export function rowCount(level: ToyLevel, r: number): number {
    return Math.floor(s / level.aisles) + (r < s % level.aisles ? 1 : 0);
 }
 
+export const shelfGap = (level: ToyLevel): number => level.shelfGap ?? SHELF_GAP;
+export const rowOffset = (level: ToyLevel, row: number): number => level.rowOffsets?.[row] ?? 0;
+
 export const maxRowCount = (level: ToyLevel): number => Math.ceil(shelvesOf(level) / level.aisles);
 
 export function storeHalf(level: ToyLevel): { hx: number; hz: number } {
    const n = maxRowCount(level);
-   const rowHalf = (n * SHELF_LEN + (n - 1) * SHELF_GAP) / 2;
-   return { hx: rowHalf + LOOP_OFFSET + 1.2, hz: ((level.aisles - 1) * ROW_PITCH) / 2 + LOOP_OFFSET + 1.4 };
+   const rowHalf = (n * SHELF_LEN + (n - 1) * shelfGap(level)) / 2;
+   return { hx: rowHalf + LOOP_OFFSET + 1.2 + Math.max(0, ...(level.rowOffsets ?? []).map(Math.abs)), hz: ((level.aisles - 1) * (level.rowPitch ?? ROW_PITCH)) / 2 + LOOP_OFFSET + 1.4 };
 }
 
-export const rowZ = (level: ToyLevel, r: number): number => (r - (level.aisles - 1) / 2) * ROW_PITCH;
+export const rowZ = (level: ToyLevel, r: number): number => (r - (level.aisles - 1) / 2) * (level.rowPitch ?? ROW_PITCH);
 
 export function startOf(level: ToyLevel): { x: number; z: number } {
    const { hx, hz } = storeHalf(level);
@@ -184,11 +187,11 @@ export function standable(run: Run, x: number, z: number, radius = RADIUS): bool
 /** Eight waypoints round a row: its rectangle `LOOP_OFFSET` out, corners cut. */
 export function loopPoints(level: ToyLevel, row: number, clockwise: boolean): Array<{ x: number; y: number; z: number }> {
    const n = rowCount(level, row);
-   const half = (n * SHELF_LEN + (n - 1) * SHELF_GAP) / 2 + LOOP_OFFSET;
+   const half = (n * SHELF_LEN + (n - 1) * shelfGap(level)) / 2 + LOOP_OFFSET;
    const z = rowZ(level, row);
    const c = LOOP_CHAMFER;
    const zo = LOOP_OFFSET;
-   const p = (x: number, zz: number) => ({ x, y: 0, z: zz });
+   const p = (x: number, zz: number) => ({ x: x + rowOffset(level, row), y: 0, z: zz });
    const pts = [
       p(-half + c, z - zo), p(half - c, z - zo), p(half, z - zo + c), p(half, z + zo - c),
       p(half - c, z + zo), p(-half + c, z + zo), p(-half, z + zo - c), p(-half, z - zo + c),
@@ -235,7 +238,7 @@ function build(seed: number, attempt: number, level: ToyLevel): Run | null {
    for (let r = 0; r < level.aisles; r++) {
       const n = rowCount(level, r);
       for (let i = 0; i < n; i++) {
-         const x = (i - (n - 1) / 2) * (SHELF_LEN + SHELF_GAP);
+         const x = (i - (n - 1) / 2) * (SHELF_LEN + shelfGap(level)) + rowOffset(level, r);
          const z = rowZ(level, r);
          run.shelves.push({
             x, z, cat: kinds[k++], row: r,
@@ -533,7 +536,7 @@ export function step(run: Run, input: ToyInput, dt: number, timeLeftMs = 0): Ste
    if (run.mercy <= 0) {
       for (const w of run.windups) {
          if (Math.hypot(h.x - w.x, h.z - w.z) > WINDUP_HIT) continue;
-         // everything carried falls where the guard stands
+         // everything carried falls where the robot stands
          run.carried.forEach((index, k) => {
             const t = run.toys[index];
             t.state = 0;

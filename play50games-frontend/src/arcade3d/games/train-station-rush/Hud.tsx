@@ -1,7 +1,10 @@
 "use client";
 
+import CameraViewButton from "@/arcade3d/core/camera/CameraViewButton";
+import { HintLine } from "@/arcade3d/core/hud/HintLine";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { platformLook, type PlatformShape } from "./looks";
+import { hintFor, type TaskStat } from "./guide";
 import styles from "./Hud.module.css";
 
 /** The platform's shape as a small SVG (the same shapes as the pads and the signs). */
@@ -49,7 +52,7 @@ function TaskRow({ slot }: { slot: 0 | 1 }) {
  * The open tasks: the platform's shape and number, bag or passenger, and the train's wait (green
  * above half: the +50). Score, time, lives and Delivered are the shell's chips.
  */
-export default function Hud() {
+function GameHud() {
    const any = useArcadeStore((s) => (s.stats.t0p ?? -1) >= 0 || (s.stats.t1p ?? -1) >= 0);
    if (!any) return null;
    return (
@@ -58,5 +61,28 @@ export default function Hud() {
          <TaskRow slot={0} />
          <TaskRow slot={1} />
       </div>
+   );
+}
+
+/** One hint line from the task stats (guide.ts): the held task first, else the first open one. */
+function TaskHint() {
+   const slot = (s: { stats: Record<string, number> }, i: 0 | 1): TaskStat => ({
+      platform: s.stats[`t${i}p`] ?? -1,
+      passenger: (s.stats[`t${i}k`] ?? 0) > 0,
+      held: (s.stats[`t${i}h`] ?? 0) > 0,
+   });
+   const text = useArcadeStore((s) => hintFor([slot(s, 0), slot(s, 1)]).text);
+   const carrying = useArcadeStore((s) => hintFor([slot(s, 0), slot(s, 1)]).tone === "carry");
+   return <HintLine text={text} tone={carrying ? "carry" : "info"} />;
+}
+
+/** The game's HUD plus the core 📷 camera-view button (core/camera). */
+export default function Hud() {
+   return (
+      <>
+         <CameraViewButton />
+         <TaskHint />
+         <GameHud />
+      </>
    );
 }

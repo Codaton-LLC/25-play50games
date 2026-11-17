@@ -34,7 +34,7 @@ describe("mini-golf five levels", () => {
       }
       expect(LEVELS[1]).toEqual({ holes: 6, vMax: 4.5, pickUpOver: 4, capS: 600, turntableOmega: 1.2, windmillPeriod: 6, cupRadius: 0.1, captureSpeed: 1.2 });
    });
-   it("adds pressure monotonically while preserving the six original holes", () => {
+   it("adds pressure monotonically; levels 2-4 play their own six (par 17), level 5 the original six plus three", () => {
       for (const id of LEVEL_IDS.slice(1)) {
          const a = LEVELS[(id - 1) as 1 | 2 | 3 | 4], b = LEVELS[id];
          expect(b.holes).toBeGreaterThanOrEqual(a.holes);
@@ -46,8 +46,21 @@ describe("mini-golf five levels", () => {
          expect(b.captureSpeed).toBeLessThanOrEqual(a.captureSpeed);
          expect(b.vMax).toBeGreaterThanOrEqual(a.vMax);
          expect(b.requireAllCups).toBe(true);
-         expect(createRun(7, b).course.slice(0, 6).map(h => [h.tee, h.cup, h.rails, h.par])).toEqual(generateCourse(7).map(h => [h.tee, h.cup, h.rails, h.par]));
+         const course = createRun(7, b).course;
+         expect(course).toHaveLength(b.holes);
+         course.forEach((hole, i) => expect(hole.index).toBe(i));
+         if (id === 5) expect(course.slice(0, 6).map(h => [h.tee, h.cup, h.rails, h.par])).toEqual(generateCourse(7).map(h => [h.tee, h.cup, h.rails, h.par]));
+         else expect(course.reduce((s, h) => s + h.par, 0)).toBe(17);
       }
+      // each of levels 2-4 is its own course: new layouts (specs 9+) and a different order
+      const sets = ([2, 3, 4] as const).map(id => LEVELS[id].course!);
+      for (const set of sets) {
+         expect(set).toHaveLength(6);
+         expect(new Set(set).size).toBe(6);
+         expect(set.filter(s => s >= 9).length).toBeGreaterThanOrEqual(2);
+      }
+      expect(new Set(sets.map(s => s.join())).size).toBe(3);
+      expect(sets.map(s => s.join())).not.toContain("0,1,2,3,4,5");
    });
 });
 
@@ -130,7 +143,8 @@ describe("mini-golf per-level analytic server bounds", () => {
       }, 0);
       expect(limits.maxScore).toBe(max);
       expect(limits.minDurationMs / 1000).toBeLessThan(earliest);
-      expect(earliest - limits.minDurationMs / 1000).toBeLessThan(1);
+      // tight on the original courses; the level courses (2-4, their own holes) stay within 2 s
+      expect(earliest - limits.minDurationMs / 1000).toBeLessThan(id === 1 || id === 5 ? 1 : 2);
       expect(limits.base! + limits.maxPointsPerSec! * limits.minDurationMs / 1000).toBeGreaterThanOrEqual(max);
       expect(c.capS + 0.05).toBeLessThan(limits.maxDurationMs / 1000);
    });
@@ -141,8 +155,9 @@ describe("mini-golf per-level analytic server bounds", () => {
       ]);
       for (const id of LEVEL_IDS) {
          const course = createRun(13, LEVELS[id]).course;
-         expect(Math.abs(course[3].windmill!.omega)).toBeCloseTo(2 * Math.PI / LEVELS[id].windmillPeriod);
-         expect(Math.abs(course[5].turntable!.omega)).toBe(LEVELS[id].turntableOmega);
+         const windmills = course.filter(h => h.windmill), tables = course.filter(h => h.turntable);
+         for (const h of windmills) expect(Math.abs(h.windmill!.omega)).toBeCloseTo(2 * Math.PI / LEVELS[id].windmillPeriod);
+         for (const h of tables) expect(Math.abs(h.turntable!.omega)).toBe(LEVELS[id].turntableOmega);
       }
    });
 });

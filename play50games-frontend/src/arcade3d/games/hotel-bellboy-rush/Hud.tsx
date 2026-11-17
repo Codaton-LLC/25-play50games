@@ -1,5 +1,6 @@
 "use client";
 
+import CameraViewButton from "@/arcade3d/core/camera/CameraViewButton";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { floorColor } from "./looks";
 import styles from "./Hud.module.css";
@@ -8,7 +9,7 @@ import styles from "./Hud.module.css";
  * The key card: the room on the bag (colour + digits, never colour alone), what to do next, and the
  * bag's own 30 s clock (gold above half: the +40). Score, time, lives, Bags and Floor are the shell's chips.
  */
-export default function Hud() {
+function GameHud() {
    const card = useArcadeStore((s) => s.stats.card ?? 0);
    const cardFloor = useArcadeStore((s) => s.stats.cardFloor ?? 1);
    const floor = useArcadeStore((s) => s.stats.floor ?? 1);
@@ -33,5 +34,15 @@ export default function Hud() {
             </div>
          )}
       </div>
+   );
+}
+
+/** The game's HUD plus the core 📷 camera-view button (core/camera). */
+export default function Hud() {
+   return (
+      <>
+         <CameraViewButton />
+         <GameHud />
+      </>
    );
 }

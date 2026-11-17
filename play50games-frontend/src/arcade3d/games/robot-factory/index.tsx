@@ -12,6 +12,7 @@ import Scene, { CAMERA } from "./Scene";
 import { ASSETS } from "./assets";
 import { LEVELS, type FactoryLevel } from "./levels";
 import { COLORS } from "./looks";
+import { FACTORY_THEMES } from "./factorySets";
 import { SCORING, SHIFT } from "./rules";
 
 const BASE_LINES = [
@@ -82,6 +83,8 @@ const definition: GameDefinition<FactoryLevel> = {
          config: level,
          instructions: instructionsFor(level),
          hudStats: hudFor(level),
+         // each level's own bay light (factorySets.ts); level 1 keeps today's indoor bay
+         environment: { background: FACTORY_THEMES[id].background, fog: [FACTORY_THEMES[id].background, 24, 42] as [string, number, number], lighting: FACTORY_THEMES[id].lighting },
       };
    }),
 };

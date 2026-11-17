@@ -1,18 +1,223 @@
 {
    "slug": "magic-carpet-ride",
    "universe": "play50-toy-world-premium",
-   "notes": "GLBs are generated already (menu1-magic-carpet-ride/ and shared/star.glb). This file names the ids the game loads from /models/3d/magic-carpet-ride/. Claude copies them and adds the manifest lines. Leave desertRooftop.glb, floatingPalace.glb, floatingRock.glb, floatingRockV2.glb and magic-carpet-ride/hero.glb. floatingRockV3.glb is the flat-topped rock with a pointed underside; until it is in the manifest the bevelled stand-in draws.",
+   "notes": "Ready Hyper3D GLBs (paths under ~/.play50/hyper3d/ready/), copied as optimized to /models/3d/magic-carpet-ride/ and listed in core/modelManifest.ts. The 2026-10-28 redesign adopted the flyers, pickups and sky decor from the menu2, treasure-island and tower-climb sets. Not used: desertRooftop, floatingPalace (broken), floatingRock, floatingRockV2, magic-carpet-ride/hero.glb, shared/star.glb.",
    "assets": [
-      { "id": "charCarpetRider", "kind": "character", "file": "menu1-magic-carpet-ride/charCarpetRider.glb", "budget": { "tris": 20000, "bytes": 1500000 } },
-      { "id": "magicCarpet", "kind": "prop", "file": "menu1-magic-carpet-ride/magicCarpet.glb", "budget": { "tris": 5000, "bytes": 300000 } },
-      { "id": "flyingRing", "kind": "prop", "file": "menu1-magic-carpet-ride/flyingRing.glb", "budget": { "tris": 5000, "bytes": 300000 } },
-      { "id": "palaceTower", "kind": "prop", "file": "menu1-magic-carpet-ride/palaceTower.glb", "budget": { "tris": 5000, "bytes": 300000 } },
-      { "id": "desertRooftopV2", "kind": "prop", "file": "menu1-magic-carpet-ride/desertRooftopV2.glb", "budget": { "tris": 5000, "bytes": 300000 } },
-      { "id": "cloud", "kind": "prop", "file": "menu1-magic-carpet-ride/cloud.glb", "budget": { "tris": 5000, "bytes": 300000 } },
-      { "id": "hangingLantern", "kind": "prop", "file": "menu1-magic-carpet-ride/hangingLantern.glb", "budget": { "tris": 5000, "bytes": 300000 } },
-      { "id": "canyonMesa", "kind": "prop", "file": "menu1-magic-carpet-ride/canyonMesa.glb", "budget": { "tris": 5000, "bytes": 300000 } },
-      { "id": "floatingPalaceR", "kind": "prop", "file": "menu1-magic-carpet-ride/floatingPalaceR.glb", "budget": { "tris": 5000, "bytes": 300000 } },
-      { "id": "floatingRockV3", "kind": "prop", "file": "menu1-magic-carpet-ride/floatingRockV3.glb", "budget": { "tris": 5000, "bytes": 300000 } },
-      { "id": "star", "kind": "prop", "file": "shared/star.glb", "budget": { "tris": 5000, "bytes": 300000 } }
+      {
+         "id": "charCarpetRider",
+         "kind": "character",
+         "file": "menu1-magic-carpet-ride/charCarpetRider.glb",
+         "budget": {
+            "tris": 20000,
+            "bytes": 1500000
+         }
+      },
+      {
+         "id": "magicCarpet",
+         "kind": "prop",
+         "file": "menu1-magic-carpet-ride/magicCarpet.glb",
+         "budget": {
+            "tris": 5000,
+            "bytes": 300000
+         }
+      },
+      {
+         "id": "flyingRing",
+         "kind": "prop",
+         "file": "menu1-magic-carpet-ride/flyingRing.glb",
+         "budget": {
+            "tris": 5000,
+            "bytes": 300000
+         }
+      },
+      {
+         "id": "palaceTower",
+         "kind": "prop",
+         "file": "menu1-magic-carpet-ride/palaceTower.glb",
+         "budget": {
+            "tris": 5000,
+            "bytes": 300000
+         }
+      },
+      {
+         "id": "desertRooftopV2",
+         "kind": "prop",
+         "file": "menu1-magic-carpet-ride/desertRooftopV2.glb",
+         "budget": {
+            "tris": 5000,
+            "bytes": 300000
+         }
+      },
+      {
+         "id": "cloud",
+         "kind": "prop",
+         "file": "menu1-magic-carpet-ride/cloud.glb",
+         "budget": {
+            "tris": 5000,
+            "bytes": 300000
+         }
+      },
+      {
+         "id": "hangingLantern",
+         "kind": "prop",
+         "file": "menu1-magic-carpet-ride/hangingLantern.glb",
+         "budget": {
+            "tris": 5000,
+            "bytes": 300000
+         }
+      },
+      {
+         "id": "canyonMesa",
+         "kind": "prop",
+         "file": "menu1-magic-carpet-ride/canyonMesa.glb",
+         "budget": {
+            "tris": 5000,
+            "bytes": 300000
+         }
+      },
+      {
+         "id": "floatingPalaceR",
+         "kind": "prop",
+         "file": "menu1-magic-carpet-ride/floatingPalaceR.glb",
+         "budget": {
+            "tris": 5000,
+            "bytes": 300000
+         }
+      },
+      {
+         "id": "floatingRockV3",
+         "kind": "prop",
+         "file": "menu1-magic-carpet-ride/floatingRockV3.glb",
+         "budget": {
+            "tris": 5000,
+            "bytes": 300000
+         }
+      },
+      {
+         "id": "m2SeaGullDiver",
+         "kind": "character",
+         "file": "menu2/plate-surf/m2SeaGullDiver.glb",
+         "budget": {
+            "tris": 20000,
+            "bytes": 1500000
+         }
+      },
+      {
+         "id": "m2CaveBat",
+         "kind": "character",
+         "file": "menu2/shared/m2CaveBat.glb",
+         "budget": {
+            "tris": 20000,
+            "bytes": 1500000
+         }
+      },
+      {
+         "id": "m2StormHawkBoss",
+         "kind": "character",
+         "file": "menu2/shared/m2StormHawkBoss.glb",
+         "budget": {
+            "tris": 20000,
+            "bytes": 1500000
+         }
+      },
+      {
+         "id": "m2SmokeBlimpBoss",
+         "kind": "character",
+         "file": "menu2/roll-cannon-jump/m2SmokeBlimpBoss.glb",
+         "budget": {
+            "tris": 20000,
+            "bytes": 1500000
+         }
+      },
+      {
+         "id": "m2BalloonBunch",
+         "kind": "prop",
+         "file": "menu2/roll-cannon-jump/m2BalloonBunch.glb",
+         "budget": {
+            "tris": 5000,
+            "bytes": 300000
+         }
+      },
+      {
+         "id": "m2AirshipBg",
+         "kind": "prop",
+         "file": "menu2/sky-hook-swing/m2AirshipBg.glb",
+         "budget": {
+            "tris": 5000,
+            "bytes": 300000
+         }
+      },
+      {
+         "id": "m2TempleLantern",
+         "kind": "prop",
+         "file": "menu2/temple-lantern-jump/m2TempleLantern.glb",
+         "budget": {
+            "tris": 5000,
+            "bytes": 300000
+         }
+      },
+      {
+         "id": "m2GoldCoin",
+         "kind": "prop",
+         "file": "menu2/roll-dash/m2GoldCoin.glb",
+         "budget": {
+            "tris": 5000,
+            "bytes": 300000
+         }
+      },
+      {
+         "id": "treasureGem",
+         "kind": "prop",
+         "file": "treasure-island/treasureGem.glb",
+         "budget": {
+            "tris": 5000,
+            "bytes": 300000
+         }
+      },
+      {
+         "id": "rocketBooster",
+         "kind": "prop",
+         "file": "tower-climb/rocketBooster.glb",
+         "budget": {
+            "tris": 5000,
+            "bytes": 300000
+         }
+      },
+      {
+         "id": "m2SkyIslandCastle",
+         "kind": "prop",
+         "file": "menu2/sky-tower-jump/m2SkyIslandCastle.glb",
+         "budget": {
+            "tris": 5000,
+            "bytes": 300000
+         }
+      },
+      {
+         "id": "m2SkyIslandWaterfall",
+         "kind": "prop",
+         "file": "menu2/sky-tower-jump/m2SkyIslandWaterfall.glb",
+         "budget": {
+            "tris": 5000,
+            "bytes": 300000
+         }
+      },
+      {
+         "id": "m2WindmillIsland",
+         "kind": "prop",
+         "file": "menu2/sky-hook-swing/m2WindmillIsland.glb",
+         "budget": {
+            "tris": 5000,
+            "bytes": 300000
+         }
+      },
+      {
+         "id": "m2StepPyramidBg",
+         "kind": "prop",
+         "file": "menu2/temple-coin-rush/m2StepPyramidBg.glb",
+         "budget": {
+            "tris": 5000,
+            "bytes": 300000
+         }
+      }
    ]
 }

@@ -52,3 +52,7 @@ The ready `menu1-burger-delivery-scooter` GLBs, fitted from measured bounds (`as
 
 - Facings were set from the bounds only (no render in the gate fork): check the scooter's nose (+z), the counter's front (turned to face the west street), the bench and the rider seated on the saddle (group offset -0.15 m; the seated pose is game-local, core has no `sitPose`).
 - `deliveryBoxV2` is a rolling cooler and `restaurantCounter` carries "FASST" lettering (spec "still needed": `scooterDeliveryBox`, `restaurantCounterPlain`; the ledger's `scooterDeliveryBox` / `foodBoxClosed` regenerations were rejected).
+
+## Clarity (2026-10-28, visual only)
+
+`guide.ts` (pure, `guide.test.ts`) picks the goal: the pink shop while the box is empty, the active customer's door while carrying. Core `TargetBeacon`s: a pink "SHOP" pick arrow and ring, a green "DROP" drop-here ring on the door (the edge `TargetMarkers` arrow stays). The core `HintLine` (in `Hud.tsx`) says "Drive to the pink shop ring and stop on it", "Order 2 of 4: stop on the green ring (arrow), slowly". A bump pops "Bump! -12" and a ruined order "Burgers ruined! -1 life" (`useActionPop`, same 0.15 / 0.3 shakes); the bag hops from the shop counter into the scooter's box and, at the door, from the box onto the pad (`<Toss>`, 0.4 s). Rules, scoring and limits are unchanged.

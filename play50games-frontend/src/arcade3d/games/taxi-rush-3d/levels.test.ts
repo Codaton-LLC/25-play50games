@@ -5,7 +5,7 @@ import { LEVEL_IDS, type LevelId } from "@/arcade3d/types";
 import definition from "./index";
 import { LEVELS, LEVEL_LINES, LEVEL_TITLES } from "./levels";
 import { taxiRush3dMeta as meta } from "./meta";
-import { PROPOSED_LEVEL_LIMITS, activePad, citySize, createRun, idleInput, step, streetX, streetZ } from "./rules";
+import { PITCH, PROPOSED_LEVEL_LIMITS, STREET, activePad, citySize, createRun, idleInput, step, streetX, streetZ } from "./rules";
 
 vi.mock("./Scene", () => ({ default: () => null }));
 
@@ -65,7 +65,7 @@ describe("taxi levels: the rules read the level they are given", () => {
       it(`L${id}: grid, fares, lights, cars, traffic speed and patience drain`, () => {
          const level = LEVELS[id];
          const run = createRun(21, level);
-         expect([run.width, run.depth]).toEqual([level.blocksX * 20 + 6, level.blocksZ * 20 + 6]);
+         expect([run.width, run.depth]).toEqual([level.blocksX * PITCH + STREET, level.blocksZ * PITCH + STREET]);
          expect(citySize(level)).toEqual({ x: run.width, z: run.depth });
          expect(run.buildings.length).toBe(level.blocksX * level.blocksZ);
          expect(run.fares.length).toBe(level.rides);

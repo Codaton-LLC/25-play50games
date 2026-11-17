@@ -30,14 +30,17 @@ import { RUNNER_LANDMARKS } from "@/arcade3d/core/sharedAssets";
 import { useLevel } from "@/arcade3d/core/level";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useFittedView } from "@/arcade3d/core/useFittedView";
+import { useCameraViews } from "@/arcade3d/core/camera/CameraViews";
+import type { AABB } from "@/arcade3d/core/collision";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { ASSETS, EXPLORER_SCALE } from "./assets";
 import { DetectorRing } from "./Detector";
 import { IslandScene } from "./Island";
+import { MapScene } from "./MapScene";
 import type { IslandLevel } from "./levels";
 import { COLORS, PITCH, groundAt, viewFor } from "./looks";
 import { advancePhase, explorerPhaseStep, explorerPose, gaitAmount, type ExplorerLook } from "./poses";
-import { ChestPrimitive, ExplorerHat, ExplorerPrimitive, GullPrimitive, useCoinParts } from "./Primitives";
+import { ChestPrimitive, ExplorerHat, ExplorerPrimitive, GullPrimitive, MapPiecePrimitive, ScrollPrimitive, XMarkPrimitive, useCoinParts } from "./Primitives";
 import { ExplorerShovel } from "./Shovel";
 import {
    HINT,
@@ -62,6 +65,8 @@ interface Reveals {
    slot: number[];
    coins: number;
    gems: number;
+   clues: number;
+   maps: number;
 }
 
 /** The picked level (level 1 when the levels flag is off). Scene reads it once per run. */
@@ -199,12 +204,21 @@ function useHoleParts(): readonly InstancePart[] {
    return parts;
 }
 
+/** Two clue scrolls and three map pieces at most (maps.ts chains). */
+const CLUE_POOL = 2;
+const MAP_POOL = 3;
+
 function Treasures({ run, island, reveals }: { run: RunState; island: Island; reveals: Reveals }) {
    const time = useGameTime();
    const holeParts = useHoleParts();
    const coinParts = useCoinParts();
    const gems = useRef<Array<Group | null>>([]);
+   const clues = useRef<Array<Group | null>>([]);
+   const maps = useRef<Array<Group | null>>([]);
    const chest = useRef<Group>(null);
+   const xMark = useRef<Group>(null);
+   // the drawn ground under each spot (0 on level 1's flat sand; the hill and the slopes on a map)
+   const ground = useMemo(() => island.treasures.map((t) => groundAt(t.x, t.z, run.shape)), [island, run.shape]);
 
    const rise = (i: number) => clamp01((time.play - reveals.at[i]) / RISE_S);
 
@@ -212,7 +226,7 @@ function Treasures({ run, island, reveals }: { run: RunState; island: Island; re
       if (!run.dug[i]) return false;
       const t = island.treasures[i];
       const k = Math.max(0.01, clamp01((time.play - reveals.at[i]) / 0.25));
-      m.makeScale(k, 1, k).setPosition(t.x, 0.012, t.z);
+      m.makeScale(k, 1, k).setPosition(t.x, ground[i] + 0.012, t.z);
    };
 
    const placeCoin = (c: number, m: Matrix4) => {
@@ -225,7 +239,7 @@ function Treasures({ run, island, reveals }: { run: RunState; island: Island; re
       YAW.setFromAxisAngle(UP, yaw + i);
       Q.copy(YAW).multiply(FLAT);
       // the pile rises out of the hole and settles on its rim, the side towards the camera
-      V.set(t.x + ox, -0.3 + k * (0.34 + level * COIN_STEP), t.z + oz + 0.1);
+      V.set(t.x + ox, ground[i] - 0.3 + k * (0.34 + level * COIN_STEP), t.z + oz + 0.1);
       m.compose(V, Q, S.set(1, 1, 1));
    };
 
@@ -233,18 +247,39 @@ function Treasures({ run, island, reveals }: { run: RunState; island: Island; re
       const n = island.treasures.length;
       for (let i = 0; i < n; i++) {
          const kind = reveals.kind[i];
+         const t = island.treasures[i];
          if (kind === "gem") {
             const g = gems.current[reveals.slot[i]];
             if (!g) continue;
-            const t = island.treasures[i];
             g.visible = true;
-            g.position.set(t.x, -0.2 + easeOutBack(rise(i)) * 0.85, t.z);
+            g.position.set(t.x, ground[i] - 0.2 + easeOutBack(rise(i)) * 0.85, t.z);
          } else if (kind === "chest" && chest.current) {
-            const t = island.treasures[i];
             const k = easeOutBack(rise(i));
             chest.current.visible = true;
-            chest.current.position.set(t.x, -0.5 + 0.5 * Math.min(1, k), t.z + 0.05);
+            chest.current.position.set(t.x, ground[i] - 0.5 + 0.5 * Math.min(1, k), t.z + 0.05);
             chest.current.scale.setScalar(Math.max(0.01, k));
+         } else if (kind === "clue" || kind === "map") {
+            // the scroll / map piece pops out, floats, turning, over its hole
+            const g = (kind === "clue" ? clues : maps).current[reveals.slot[i]];
+            if (!g) continue;
+            const k = easeOutBack(rise(i));
+            g.visible = true;
+            g.position.set(t.x, ground[i] - 0.25 + k * 0.85 + Math.sin(time.now * 2 + i) * 0.05, t.z);
+            g.rotation.set(kind === "map" ? -0.5 : 0, time.now * 0.9 + i, 0);
+            g.scale.setScalar(Math.max(0.01, Math.min(1, k)) * 1.25);
+         }
+      }
+      // the complete map marks the locked chest with an X (until it is dug)
+      const x = xMark.current;
+      const last = island.finalChest;
+      if (x && last !== undefined) {
+         const on = run.found >= island.treasures.length - 1 && !run.dug[last];
+         x.visible = on;
+         if (on) {
+            const t = island.treasures[last];
+            const pulse = 1 + 0.08 * Math.sin(time.now * 4);
+            x.position.set(t.x, ground[last] + 0.03, t.z);
+            x.scale.set(pulse, 1, pulse);
          }
       }
    });
@@ -267,6 +302,23 @@ function Treasures({ run, island, reveals }: { run: RunState; island: Island; re
          <group ref={chest} visible={false}>
             <Model asset={ASSETS.chest} fallback={<ChestPrimitive />} />
          </group>
+         {island.finalChest !== undefined && (
+            <>
+               {Array.from({ length: CLUE_POOL }, (_v, k) => (
+                  <group key={`clue${k}`} visible={false} ref={(el) => { clues.current[k] = el; }}>
+                     <ScrollPrimitive />
+                  </group>
+               ))}
+               {Array.from({ length: MAP_POOL }, (_v, k) => (
+                  <group key={`map${k}`} visible={false} ref={(el) => { maps.current[k] = el; }}>
+                     <MapPiecePrimitive />
+                  </group>
+               ))}
+               <group ref={xMark} visible={false}>
+                  <XMarkPrimitive />
+               </group>
+            </>
+         )}
       </group>
    );
 }
@@ -282,18 +334,29 @@ function coinPileTreasure(reveals: Reveals, pile: number): number {
 function Gull({ run, island, marker }: { run: RunState; island: Island; marker: MarkerTarget[] }) {
    const time = useGameTime();
    const g = useRef<Group>(null);
-   const [state] = useState(() => ({ k: 0, x: 0, z: 0 }));
+   const [state] = useState(() => ({ k: 0, x: 0, y: 0, z: 0 }));
    const [bob] = useState<BodyOffset>(() => ({ y: 0, roll: 0, yaw: 0, squash: 1 }));
    useFrame(() => {
       const target = run.hint.target;
       if (target >= 0) {
          state.x = island.treasures[target].x;
          state.z = island.treasures[target].z;
+         state.y = groundAt(state.x, state.z, run.shape);
       }
       state.k += ((target >= 0 ? 1 : 0) - state.k) * (1 - Math.exp(-1.6 * time.delta));
       marker[0].x = state.x;
+      marker[0].y = state.y + 0.3;
       marker[0].z = state.z;
       marker[0].hidden = target < 0;
+      // the X of the complete map gets an arrow too when it is off screen
+      const last = island.finalChest;
+      if (marker[1] && last !== undefined) {
+         const t = island.treasures[last];
+         marker[1].x = t.x;
+         marker[1].y = groundAt(t.x, t.z, run.shape) + 0.3;
+         marker[1].z = t.z;
+         marker[1].hidden = !(run.found >= island.treasures.length - 1 && !run.dug[last]) || target === last;
+      }
       const node = g.current;
       if (!node) return;
       node.visible = state.k > 0.02;
@@ -306,7 +369,7 @@ function Gull({ run, island, marker }: { run: RunState; island: Island; marker: 
       const height = HINT.height + (1 - state.k) * 9;
       node.position.set(
          state.x + Math.cos(angle) * HINT.radius,
-         height + bob.y,
+         state.y + height + bob.y,
          state.z + height / Math.tan(PITCH) - Math.sin(angle) * HINT.radius
       );
       node.rotation.set(0, angle + Math.PI, -0.45 + bob.roll);
@@ -320,6 +383,29 @@ function Gull({ run, island, marker }: { run: RunState; island: Island; marker: 
 
 // ---------- the scene ----------
 
+/** Copies `src` into the camera hook's box slots. */
+function fillSolids(src: readonly AABB[], out: AABB[]): number {
+   let n = 0;
+   for (const b of src) {
+      if (n >= out.length) break;
+      const o = out[n++];
+      o.min.x = b.min.x; o.min.y = b.min.y; o.min.z = b.min.z;
+      o.max.x = b.max.x; o.max.y = b.max.y; o.max.z = b.max.z;
+   }
+   return n;
+}
+
+/** Every box footprint plus each tall map prop's drawn box (the free camera views stop at them). */
+function solidsFor(island: Island, level: IslandLevel | undefined): AABB[] {
+   const out = island.boxes.map((b) => ({ min: { ...b.min, y: 0 }, max: { ...b.max, y: 2.5 } }));
+   for (const p of level?.map?.props ?? []) {
+      if (p.h < 1.4 || p.hx !== undefined) continue;
+      const e = Math.max(p.w, p.d) / 2;
+      out.push({ min: { x: p.x - e, y: 0, z: p.z - e }, max: { x: p.x + e, y: p.h, z: p.z + e } });
+   }
+   return out;
+}
+
 export default function Scene() {
    const width = useThree((s) => s.size.width);
    const height = useThree((s) => s.size.height);
@@ -330,6 +416,24 @@ export default function Scene() {
    const { id, config } = useIslandLevel();
    const [island] = useState(() => generateIsland(randomSeed(), config));
    const [run] = useState(() => createRun(island, config));
+   // the camera follows the explorer where it is drawn (on the hill, on a bridge)
+   const [follow] = useState(() => ({ x: run.explorer.x, y: groundAt(run.explorer.x, run.explorer.z, run.shape), z: run.explorer.z }));
+
+   // camera views (core/camera): the rules get the drawn camera's yaw (the fitted yaw in the default view)
+   const cam = useCameraViews({
+      slug: "treasure-island",
+      subject: "character",
+      steering: "camera",
+      defaultYaw: view.yaw,
+      target: (o) => {
+         const e = run.explorer;
+         o.x = e.x; o.y = follow.y + 1.0; o.z = e.z; o.heading = e.heading; o.vx = e.vx; o.vz = e.vz;
+      },
+      solids: (out: AABB[]) => fillSolids(solids, out),
+   });
+
+   // the camera views' solids: every box footprint plus the tall round props (cliffs, huts, hedges) as boxes
+   const [solids] = useState<AABB[]>(() => solidsFor(island, config));
    const [scratch] = useState(() => ({
       step: { dirX: 0, dirZ: 0, digHeld: false, digPressed: false } as StepInput,
       dir: { x: 0, z: 0 },
@@ -344,9 +448,13 @@ export default function Scene() {
          slot: new Array<number>(n).fill(0),
          coins: 0,
          gems: 0,
+         clues: 0,
+         maps: 0,
       };
    });
-   const [marker] = useState<MarkerTarget[]>(() => [{ x: 0, y: 0.3, z: 0, hidden: true }]);
+   const [marker] = useState<MarkerTarget[]>(() =>
+      island.finalChest === undefined ? [{ x: 0, y: 0.3, z: 0, hidden: true }] : [{ x: 0, y: 0.3, z: 0, hidden: true }, { x: 0, y: 0.3, z: 0, hidden: true }]
+   );
 
    useEffect(() => fx.warm("sparkle", "puff", "confetti", "debris", "sparks", "score"), [fx]);
 
@@ -354,7 +462,7 @@ export default function Scene() {
    useRunFrame((_state, dt, time) => {
       const { moveX, moveY, action, jump, actionPressed, jumpPressed } = input.current;
       const { step, dir, at } = scratch;
-      inputToWorld(moveX, moveY, view.yaw, dir);
+      inputToWorld(moveX, moveY, cam.yaw(), dir);
       step.dirX = dir.x;
       step.dirZ = dir.z;
       step.digHeld = action || jump;
@@ -363,8 +471,11 @@ export default function Scene() {
 
       const ev = run.events;
       const e = run.explorer;
+      follow.x = e.x;
+      follow.y = groundAt(e.x, e.z, run.shape);
+      follow.z = e.z;
       at.x = e.x;
-      at.y = groundAt(e.x, e.z, run.shape) + 0.1;
+      at.y = follow.y + 0.1;
       at.z = e.z;
       // TODO(P-06): one detector beep per pulse: if (ev.beep) playSfx("click", { pitch: 0.8 + 0.8 * s, volume: 0.3 + 0.4 * s })
       // TODO(P-06): a "thud" every 0.2 s of a held dig; ev.tide: playSfx("whoosh") and the surf loop to 0.5
@@ -380,25 +491,43 @@ export default function Scene() {
          fx.burst("debris", at, 8);
          playSfx("hit"); // TODO(P-06): at a low volume
       }
+      if (ev.gateOpened >= 0 && island.gates) {
+         // the blocked path clears: dust, debris and a word over it
+         const g = island.gates[ev.gateOpened];
+         at.x = g.x;
+         at.y = groundAt(g.x, g.z, run.shape) + 0.6;
+         at.z = g.z;
+         fx.burst("puff", at, 26);
+         fx.burst("debris", at, 14);
+         at.y += 1.2;
+         fx.score(at, "Path open!", { color: "#bbf7d0" });
+         fx.shake(0.12);
+      }
       if (ev.found < 0) return;
 
       const i = ev.found;
       const t = island.treasures[i];
+      const kind = ev.foundType;
       reveals.at[i] = time;
-      reveals.kind[i] = ev.foundType;
-      reveals.slot[i] = ev.foundType === "coins" ? reveals.coins++ : ev.foundType === "gem" ? reveals.gems++ : 0;
+      reveals.kind[i] = kind;
+      reveals.slot[i] = kind === "coins" ? reveals.coins++ : kind === "gem" ? reveals.gems++ : kind === "clue" ? reveals.clues++ : kind === "map" ? reveals.maps++ : 0;
       at.x = t.x;
-      at.y = 0.4;
+      at.y = groundAt(t.x, t.z, run.shape) + 0.4;
       at.z = t.z;
       fx.burst("sparkle", at, ev.foundType === "chest" ? 36 : 22);
       if (ev.foundClean) fx.burst("sparks", at, 10);
-      at.y = 1.3;
+      at.y += 0.9;
       fx.score(at, ev.foundClean ? `+${POINTS.find + POINTS.clean} clean` : `+${POINTS.find}`, { color: ev.foundClean ? "#fde68a" : "#fff7d6" });
+      if (kind === "clue" || kind === "map" || ev.chestUnlocked) {
+         at.y += 0.7;
+         fx.score(at, ev.chestUnlocked ? "Map complete!" : kind === "clue" ? "A clue!" : `Map piece ${reveals.maps}`, { color: "#fecaca" });
+      }
       fx.shake(ev.foundType === "chest" ? 0.22 : 0.08);
       playSfx("pickup"); // TODO(P-06): + "chime" when clean
       const store = useArcadeStore.getState();
       store.addScore(POINTS.find + (ev.foundClean ? POINTS.clean : 0));
       store.setStat("treasures", run.found);
+      if (island.finalChest !== undefined) store.setStat("map", reveals.maps);
       if (isWon(run)) {
          // the run clock ticked before this callback: timeLeftMs / elapsedMs are this frame's
          const { timeLeftMs, elapsedMs } = useArcadeStore.getState();
@@ -416,13 +545,13 @@ export default function Scene() {
          {/* the camera reads run.explorer, which useRunFrame already moved this frame */}
          <CameraRig
             camera={{ position: view.offset, lookAt: [0, 0, 0] }}
-            follow={run.explorer}
+            follow={follow}
             followFraction={1}
             offset={view.offset}
             shift={view.shift}
             damping={4}
          />
-         <IslandScene island={island} run={run} levelId={id} />
+         {run.shape.map ? <MapScene island={island} run={run} levelId={id} /> : <IslandScene island={island} run={run} levelId={id} />}
          <Treasures run={run} island={island} reveals={reveals} />
          <Explorer run={run} />
          <DetectorRing run={run} />

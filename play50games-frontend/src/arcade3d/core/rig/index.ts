@@ -24,6 +24,7 @@ export {
    carryPose,
    cheerPose,
    copyPose,
+   crawlPose,
    createPose,
    flailPose,
    idlePose,
@@ -56,3 +57,37 @@ export {
 } from "./skinning";
 export { HumanoidModel, useHumanoidPose, type HumanoidAttachments, type HumanoidModelProps } from "./HumanoidModel";
 export { ANCHOR_NAMES, anchorOffset, measureAnchors, type AnchorName, type HumanoidAnchor, type HumanoidAnchors } from "./attachments";
+// The quadruped auto-rig: static four-legged animal GLBs (a cat, a dog) with procedural gaits.
+export {
+   QBONE,
+   QUADRUPED_BONES,
+   QUAD_BONE_COUNT,
+   QUAD_BONE_PARENT,
+   QUAD_LEGS,
+   computeQuadrupedWeights,
+   quadrupedJoints,
+   type QuadrupedBone,
+   type QuadrupedLandmarks,
+   type QuadrupedLeg,
+} from "./quadruped";
+export {
+   DIAGONAL_WALK,
+   blendQuadrupedPoses,
+   copyQuadrupedPose,
+   createQuadrupedPose,
+   quadrupedAnkles,
+   quadrupedCrouch,
+   quadrupedGait,
+   quadrupedGaitMix,
+   quadrupedIdle,
+   quadrupedLeap,
+   quadrupedLegLength,
+   quadrupedPhaseStep,
+   quadrupedSit,
+   quadrupedStand,
+   quadrupedStride,
+   type QuadrupedGaitOptions,
+   type QuadrupedPose,
+} from "./quadrupedPoses";
+export { applyQuadrupedPose, buildQuadrupedTemplate, cloneQuadruped, createMouthGroup, disposeQuadruped, quadrupedTemplate, type QuadrupedRig, type QuadrupedTemplate } from "./quadrupedSkinning";
+export { QuadrupedModel, useQuadrupedPose, useQuadrupedRig, type QuadrupedModelProps } from "./QuadrupedModel";

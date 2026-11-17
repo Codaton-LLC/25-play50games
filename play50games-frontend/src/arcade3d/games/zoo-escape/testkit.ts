@@ -1,13 +1,14 @@
-// Test-only helpers (imported by fairness.test.ts and rules.test.ts, never by the game): the
-// fairness grid of each stage and the blocked masks of every keeper's undisturbed patrol, in the
-// layout of core/testing/periodic (phase-major, 1 = unsafe). Pure, no three.js.
-import { distanceToBoxXZ, sphereAabbOverlap } from "@/arcade3d/core/collision";
+// Test-only helpers (imported by the fairness, rules and levels tests, never by the game): the
+// fairness grid of each stage and the blocked masks of every keeper's undisturbed patrol (and every
+// searchlight and jeep), in the layout of core/testing/periodic (phase-major, 1 = unsafe), per map
+// (default: level 1's MAP_1). Pure, no three.js.
+import { distanceToBoxXZ, sphereAabbOverlap, type AABB } from "@/arcade3d/core/collision";
 import { inViewCone, type Agent, type PatrolState } from "@/arcade3d/core/ai";
-import { BUSHES, CYCLES, KEEPERS, SNACK_CANDIDATES as SNACK_CANDIDATES_REF, SOLIDS, STAGES, STAGE_KEEPERS, type StageIndex } from "./level";
-import { HEARING, KEEPER, PANDA, SEARCHLIGHT, VISION, clearSight, placeOnSchedule, searchlightYaw } from "./rules";
+import { MAP_1, type StageIndex, type ZooMap } from "./level";
+import { BIRDS, HEARING, KEEPER, PANDA, VISION, clearSight, jeepBox, jeepPose, placeOnSchedule, searchlightYaw, type JeepState } from "./rules";
 
 /** Solver grid: 0.4 m cells, 0.25 s steps: a sneak (1.6 m/s) moves one cell per step. */
-export const FAIR = { cell: 0.4, step: 0.25, sub: 8, hearing: HEARING.sneak + 0.75, walkHearing: HEARING.walk + 0.75, oracleSneak: HEARING.sneak + 0.35, oracleWalk: HEARING.walk + 0.35, coneDeg: 3, rangeMargin: 0.5, corner: 0.25, bushInset: 0.2, searchMargin: 0.4, goalDepth: 1.6 } as const;
+export const FAIR = { cell: 0.4, step: 0.25, sub: 8, hearing: HEARING.sneak + 0.75, walkHearing: HEARING.walk + 0.75, oracleSneak: HEARING.sneak + 0.35, oracleWalk: HEARING.walk + 0.35, coneDeg: 3, rangeMargin: 0.5, corner: 0.25, bushInset: 0.2, searchMargin: 0.4, goalDepth: 1.6, jeepMargin: 0.45, birdMargin: 0.4 } as const;
 
 export interface StageGrid {
    stage: StageIndex;
@@ -27,12 +28,12 @@ export interface StageGrid {
    cellOf(x: number, z: number): number;
 }
 
-const grids = new Map<number, StageGrid>();
+const grids = new Map<string, StageGrid>();
 
-export function stageGrid(stage: StageIndex): StageGrid {
-   const cached = grids.get(stage);
+export function stageGrid(stage: StageIndex, map: ZooMap = MAP_1): StageGrid {
+   const cached = grids.get(`${map.id}:${stage}`);
    if (cached) return cached;
-   const s = STAGES[stage];
+   const s = map.stages[stage];
    const x0 = s.bounds.x0;
    const z0 = s.gate.z - FAIR.goalDepth;
    const width = Math.round((s.bounds.x1 - s.bounds.x0) / FAIR.cell);
@@ -46,9 +47,9 @@ export function stageGrid(stage: StageIndex): StageGrid {
    const p = { x: 0, y: 0.5, z: 0 };
    for (let c = 0; c < cells; c++) {
       p.x = cx(c); p.z = cz(c);
-      if (SOLIDS.some((b) => sphereAabbOverlap(p, PANDA.radius, b))) wall[c] = 1;
+      if (map.solids.some((b) => sphereAabbOverlap(p, PANDA.radius, b))) wall[c] = 1;
       if (p.z < s.gate.z) goal[c] = wall[c] ? 0 : 1;
-      const i = BUSHES.findIndex(
+      const i = map.bushes.findIndex(
          (b) => p.x >= b.box.min.x + FAIR.bushInset && p.x <= b.box.max.x - FAIR.bushInset && p.z >= b.box.min.z + FAIR.bushInset && p.z <= b.box.max.z - FAIR.bushInset
       );
       hidden[c] = i;
@@ -59,52 +60,52 @@ export function stageGrid(stage: StageIndex): StageGrid {
       return j * width + i;
    };
    const g: StageGrid = { stage, width, height, cells, x0, z0, wall, goal, hidden, cx, cz, cellOf };
-   grids.set(stage, g);
+   grids.set(`${map.id}:${stage}`, g);
    return g;
 }
 
-export const phasesOf = (stage: StageIndex) => Math.round(CYCLES[stage] / FAIR.step);
+export const phasesOf = (stage: StageIndex, map: ZooMap = MAP_1) => Math.round(map.cycles[stage] / FAIR.step);
 /** Phase steps of one seeded offset step (C / 6). */
-export const offsetSteps = (stage: StageIndex) => phasesOf(stage) / KEEPER.offsets;
+export const offsetSteps = (stage: StageIndex, map: ZooMap = MAP_1) => phasesOf(stage, map) / KEEPER.offsets;
 
 const masks = new Map<string, Uint8Array>();
 
 /** Is the panda at cell c unsafe from a watcher at `feet` facing `yaw` (cone half-angle, range)? */
-function unsafe(g: StageGrid, c: number, feet: { x: number; y: number; z: number }, yaw: number, half: number, range: number, near: number, pt: { x: number; y: number; z: number }): boolean {
+function unsafe(g: StageGrid, map: ZooMap, c: number, feet: { x: number; y: number; z: number }, yaw: number, half: number, range: number, near: number, pt: { x: number; y: number; z: number }): boolean {
    const x = g.cx(c), z = g.cz(c);
    const d = Math.hypot(x - feet.x, z - feet.z);
    if (d <= near) return true;
    const h = g.hidden[c];
-   if (h >= 0) return distanceToBoxXZ(feet.x, feet.z, BUSHES[h].box) <= KEEPER.radius + FAIR.searchMargin;
+   if (h >= 0) return distanceToBoxXZ(feet.x, feet.z, map.bushes[h].box) <= KEEPER.radius + FAIR.searchMargin;
    if (d > range + FAIR.rangeMargin + FAIR.corner * 1.5) return false;
    const wide = half + (FAIR.coneDeg * Math.PI) / 180;
    for (let k = 0; k < 5; k++) {
       pt.x = x + (k === 0 ? 0 : k < 3 ? -FAIR.corner : FAIR.corner);
       pt.z = z + (k === 0 ? 0 : k % 2 ? -FAIR.corner : FAIR.corner);
-      if (inViewCone(feet, yaw, wide, range + FAIR.rangeMargin, pt) && clearSight(feet, pt)) return true;
+      if (inViewCone(feet, yaw, wide, range + FAIR.rangeMargin, pt) && clearSight(feet, pt, map.blockers)) return true;
    }
    return false;
 }
 
 /** The blocked mask of keeper `i` on its stage grid (schedule offset 0). */
-export function keeperMask(i: number, near: number = FAIR.hearing): Uint8Array {
-   const key = `k${i}:${near}`;
+export function keeperMask(i: number, near: number = FAIR.hearing, map: ZooMap = MAP_1): Uint8Array {
+   const key = `${map.id}:k${i}:${near}`;
    const cached = masks.get(key);
    if (cached) return cached;
-   const stage = KEEPERS[i].stage;
-   const g = stageGrid(stage);
-   const phases = phasesOf(stage);
+   const stage = map.keepers[i].stage;
+   const g = stageGrid(stage, map);
+   const phases = phasesOf(stage, map);
    const mask = new Uint8Array(g.cells * phases);
    const agent: Agent = { x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, yaw: 0 };
    const patrol: PatrolState = { index: 1, wait: 0, mode: "patrol", target: { x: 0, y: 0, z: 0 } };
    const pt = { x: 0, y: 0, z: 0 };
    for (let p = 0; p < phases; p++) {
       for (let j = 0; j <= FAIR.sub; j++) {
-         placeOnSchedule(agent, patrol, i, (p + j / FAIR.sub) * FAIR.step);
+         placeOnSchedule(agent, patrol, i, (p + j / FAIR.sub) * FAIR.step, map);
          for (let c = 0; c < g.cells; c++) {
             const o = p * g.cells + c;
             if (mask[o] || g.wall[c]) continue;
-            if (unsafe(g, c, agent, agent.yaw, VISION.halfAngle, VISION.range[stage], near, pt)) mask[o] = 1;
+            if (unsafe(g, map, c, agent, agent.yaw, VISION.halfAngle, map.vision[stage], near, pt)) mask[o] = 1;
          }
       }
    }
@@ -112,52 +113,96 @@ export function keeperMask(i: number, near: number = FAIR.hearing): Uint8Array {
    return mask;
 }
 
-/** The searchlight's mask on stage 3's grid (phase 0; it shifts with the first stage-3 keeper). */
-export function lightMask(): Uint8Array {
-   const cached = masks.get("light");
+/** A stage's searchlight mask on its grid (phase 0; it shifts with the stage's first keeper). Level 1: stage 3. */
+export function lightMask(stage: StageIndex = 2, map: ZooMap = MAP_1): Uint8Array {
+   const key = `${map.id}:light${stage}`;
+   const cached = masks.get(key);
    if (cached) return cached;
-   const g = stageGrid(2);
-   const phases = phasesOf(2);
+   const light = map.lights[stage]!;
+   const g = stageGrid(stage, map);
+   const phases = phasesOf(stage, map);
    const mask = new Uint8Array(g.cells * phases);
-   const eye = { x: SEARCHLIGHT.x, y: 0, z: SEARCHLIGHT.z };
+   const eye = { x: light.x, y: 0, z: light.z };
    const pt = { x: 0, y: 0, z: 0 };
    for (let p = 0; p < phases; p++) {
       for (let j = 0; j <= FAIR.sub; j++) {
-         const yaw = searchlightYaw((p + j / FAIR.sub) * FAIR.step, 0);
+         const yaw = searchlightYaw((p + j / FAIR.sub) * FAIR.step, 0, light);
          for (let c = 0; c < g.cells; c++) {
             const o = p * g.cells + c;
             if (mask[o] || g.wall[c]) continue;
-            if (unsafe(g, c, eye, yaw, SEARCHLIGHT.halfAngle, SEARCHLIGHT.range, 0, pt)) mask[o] = 1;
+            if (unsafe(g, map, c, eye, yaw, light.halfAngle, light.range, 0, pt)) mask[o] = 1;
          }
       }
    }
-   masks.set("light", mask);
+   masks.set(key, mask);
+   return mask;
+}
+
+/** A jeep's mask on its stage grid (phase 0; it shifts with the stage's first keeper): every cell whose panda disc comes within the margin of its body. */
+export function jeepMask(j: number, map: ZooMap = MAP_1): Uint8Array {
+   const key = `${map.id}:jeep${j}`;
+   const cached = masks.get(key);
+   if (cached) return cached;
+   const jeep = map.jeeps[j];
+   const g = stageGrid(jeep.stage, map);
+   const phases = phasesOf(jeep.stage, map);
+   const mask = new Uint8Array(g.cells * phases);
+   const pose: JeepState = { x: 0, z: 0, yaw: 0 };
+   const b: AABB = { min: { x: 0, y: 0, z: 0 }, max: { x: 0, y: 0, z: 0 } };
+   const reach = PANDA.radius + FAIR.jeepMargin + FAIR.cell * 0.71;
+   for (let p = 0; p < phases; p++) {
+      for (let s = 0; s <= FAIR.sub; s++) {
+         jeepBox(jeep, jeepPose(jeep, map.cycles[jeep.stage], (p + s / FAIR.sub) * FAIR.step, pose), b);
+         for (let c = 0; c < g.cells; c++) if (!g.wall[c] && distanceToBoxXZ(g.cx(c), g.cz(c), b) <= reach) mask[p * g.cells + c] = 1;
+      }
+   }
+   masks.set(key, mask);
+   return mask;
+}
+
+/** Cells where a walking panda would squawk a bird of the stage (+ margin): the oracle never walks there (the solver only sneaks). */
+export function birdWalkMask(stage: StageIndex, map: ZooMap = MAP_1): Uint8Array {
+   const key = `${map.id}:birds${stage}`;
+   const cached = masks.get(key);
+   if (cached) return cached;
+   const g = stageGrid(stage, map);
+   const phases = phasesOf(stage, map);
+   const mask = new Uint8Array(g.cells * phases);
+   for (const bird of map.birds) {
+      if (bird.stage !== stage) continue;
+      for (let c = 0; c < g.cells; c++) {
+         if (Math.hypot(g.cx(c) - bird.x, g.cz(c) - bird.z) > BIRDS.range + FAIR.birdMargin + FAIR.cell) continue;
+         for (let p = 0; p < phases; p++) mask[p * g.cells + c] = 1;
+      }
+   }
+   masks.set(key, mask);
    return mask;
 }
 
 /** Walls as a mask (blocked at every phase). */
-export function wallMask(stage: StageIndex): Uint8Array {
-   const key = `w${stage}`;
+export function wallMask(stage: StageIndex, map: ZooMap = MAP_1): Uint8Array {
+   const key = `${map.id}:w${stage}`;
    const cached = masks.get(key);
    if (cached) return cached;
-   const g = stageGrid(stage);
-   const phases = phasesOf(stage);
+   const g = stageGrid(stage, map);
+   const phases = phasesOf(stage, map);
    const mask = new Uint8Array(g.cells * phases);
    for (let p = 0; p < phases; p++) for (let c = 0; c < g.cells; c++) mask[p * g.cells + c] = g.wall[c];
    masks.set(key, mask);
    return mask;
 }
 
-/** The stage's keepers' masks paired with how far each is shifted by its offset step k (and the light with stage 3's first keeper). */
-export function stageWatchers(stage: StageIndex): { mask: Uint8Array; keeperSlot: number }[] {
-   const out = STAGE_KEEPERS[stage].map((i, slot) => ({ mask: keeperMask(i), keeperSlot: slot }));
-   if (stage === 2) out.push({ mask: lightMask(), keeperSlot: 0 });
+/** The stage's keepers' masks paired with how far each is shifted by its offset step k (the light and the jeeps with the stage's first keeper). */
+export function stageWatchers(stage: StageIndex, map: ZooMap = MAP_1, near: number = FAIR.hearing): { mask: Uint8Array; keeperSlot: number }[] {
+   const out = map.stageKeepers[stage].map((i, slot) => ({ mask: keeperMask(i, near, map), keeperSlot: slot }));
+   if (map.lights[stage]) out.push({ mask: lightMask(stage, map), keeperSlot: 0 });
+   map.jeeps.forEach((j, i) => { if (j.stage === stage) out.push({ mask: jeepMask(i, map), keeperSlot: 0 }); });
    return out;
 }
 
 /** Every offset combination of a stage (k per keeper of the stage, 0..5). */
-export function combinations(stage: StageIndex): number[][] {
-   const n = STAGE_KEEPERS[stage].length;
+export function combinations(stage: StageIndex, map: ZooMap = MAP_1): number[][] {
+   const n = map.stageKeepers[stage].length;
    const out: number[][] = [];
    const total = KEEPER.offsets ** n;
    for (let m = 0; m < total; m++) {
@@ -180,15 +225,15 @@ export function cellsIn(g: StageGrid, x0: number, z0: number, x1: number, z1: nu
 }
 
 /** The stage's start cells (the start point's cell and its free 4-neighbours) and its entry band (stages 2-3). */
-export function startCells(stage: StageIndex): number[] {
-   const g = stageGrid(stage);
-   const s = STAGES[stage].start;
+export function startCells(stage: StageIndex, map: ZooMap = MAP_1): number[] {
+   const g = stageGrid(stage, map);
+   const s = map.stages[stage].start;
    return cellsIn(g, s.x - 0.45, s.z - 0.45, s.x + 0.45, s.z + 0.45);
 }
-export function entryBand(stage: StageIndex): number[] {
+export function entryBand(stage: StageIndex, map: ZooMap = MAP_1): number[] {
    if (stage === 0) return [];
-   const g = stageGrid(stage);
-   const prev = STAGES[stage - 1].gate;
+   const g = stageGrid(stage, map);
+   const prev = map.stages[stage - 1].gate;
    const mid = (prev.x0 + prev.x1) / 2;
    return cellsIn(g, mid - 0.5, prev.z - 1.5, mid + 0.5, prev.z);
 }
@@ -196,22 +241,21 @@ export function entryBand(stage: StageIndex): number[] {
 // ---------- combined masks and the oracle's forward search ----------
 
 /** Walls + every watcher of the stage shifted by its keeper's offset step (ks[slot] in 0..5). */
-export function stageBlocked(stage: StageIndex, ks: readonly number[], near: number = FAIR.hearing): Uint8Array {
-   const g = stageGrid(stage);
-   const P = phasesOf(stage);
-   const out = wallMask(stage).slice();
+export function stageBlocked(stage: StageIndex, ks: readonly number[], near: number = FAIR.hearing, map: ZooMap = MAP_1, walking = false): Uint8Array {
+   const g = stageGrid(stage, map);
+   const P = phasesOf(stage, map);
+   const out = wallMask(stage, map).slice();
    const tmp = new Uint8Array(g.cells * P);
-   const ids = STAGE_KEEPERS[stage];
    const shiftOr = (mask: Uint8Array, k: number) => {
-      const s = k * offsetSteps(stage);
+      const s = k * offsetSteps(stage, map);
       for (let p = 0; p < P; p++) {
          const from = ((p + s) % P) * g.cells;
          tmp.set(mask.subarray(from, from + g.cells), p * g.cells);
       }
       for (let i = 0; i < out.length; i++) out[i] |= tmp[i];
    };
-   ids.forEach((id, slot) => shiftOr(keeperMask(id, near), ks[slot]));
-   if (stage === 2) shiftOr(lightMask(), ks[0]);
+   for (const w of stageWatchers(stage, map, near)) shiftOr(w.mask, ks[w.keeperSlot]);
+   if (walking) { const b = birdWalkMask(stage, map); for (let i = 0; i < out.length; i++) out[i] |= b[i]; }
    return out;
 }
 
@@ -233,9 +277,9 @@ export interface GridPlan {
  * Earliest arrival (fewest 0.25 s steps) from (start, phase) to any cell with target(c), on a sneak
  * mask (sneak moves) and a walk mask (walk moves: source, middle and destination must be clear).
  */
-export function earliest(stage: StageIndex, sneak: Uint8Array, walk: Uint8Array | null, start: number, phase: number, target: (c: number) => boolean, moves = walk ? ORACLE_MOVES : SNEAK_MOVES): GridPlan | null {
-   const g = stageGrid(stage);
-   const P = phasesOf(stage);
+export function earliest(stage: StageIndex, sneak: Uint8Array, walk: Uint8Array | null, start: number, phase: number, target: (c: number) => boolean, moves = walk ? ORACLE_MOVES : SNEAK_MOVES, map: ZooMap = MAP_1): GridPlan | null {
+   const g = stageGrid(stage, map);
+   const P = phasesOf(stage, map);
    const cells = g.cells;
    const p0 = ((phase % P) + P) % P;
    if (target(start)) return { cells: [start], walk: [] };
@@ -293,12 +337,13 @@ export function cellsNear(g: StageGrid, x: number, z: number, r: number): Set<nu
  * The oracle's plan through one stage: from (start, phase) every snack in `snacks` (best order of
  * all permutations, earliest arrival per leg) and then the gate. null when some leg is impossible.
  */
-export function oracleStage(stage: StageIndex, ks: readonly number[], start: number, phase: number, snacks: readonly { x: number; z: number }[], walkMoves = true): GridPlan | null {
-   const g = stageGrid(stage);
-   const sneak = stageBlocked(stage, ks, walkMoves ? FAIR.oracleSneak : FAIR.hearing);
-   const walk = walkMoves ? stageBlocked(stage, ks, FAIR.oracleWalk) : null;
+export function oracleStage(stage: StageIndex, ks: readonly number[], start: number, phase: number, snacks: readonly { x: number; z: number }[], walkMoves = true, map: ZooMap = MAP_1, goalOk: (c: number) => boolean = () => true): GridPlan | null {
+   const g = stageGrid(stage, map);
+   const sneak = stageBlocked(stage, ks, walkMoves ? FAIR.oracleSneak : FAIR.hearing, map);
+   const walk = walkMoves ? stageBlocked(stage, ks, FAIR.oracleWalk, map, true) : null;
+   const moves = walk ? ORACLE_MOVES : SNEAK_MOVES;
    const targets = snacks.map((s) => cellsNear(g, s.x, s.z, 0.5));
-   const gate = (c: number) => g.goal[c] === 1;
+   const gate = (c: number) => g.goal[c] === 1 && goalOk(c);
    let best: GridPlan | null = null;
    const join = (a: GridPlan, b: GridPlan): GridPlan => ({ cells: [...a.cells, ...b.cells.slice(1)], walk: [...a.walk, ...b.walk] });
    const go = (plan: GridPlan, left: number[]) => {
@@ -306,12 +351,12 @@ export function oracleStage(stage: StageIndex, ks: readonly number[], start: num
       const at = plan.cells[plan.cells.length - 1];
       const ph = phase + plan.cells.length - 1;
       if (left.length === 0) {
-         const leg = earliest(stage, sneak, walk, at, ph, gate);
+         const leg = earliest(stage, sneak, walk, at, ph, gate, moves, map);
          if (leg && (!best || plan.cells.length + leg.cells.length - 1 < best.cells.length)) best = join(plan, leg);
          return;
       }
       for (const i of left) {
-         const leg = earliest(stage, sneak, walk, at, ph, (c) => targets[i].has(c));
+         const leg = earliest(stage, sneak, walk, at, ph, (c) => targets[i].has(c), moves, map);
          if (leg) go(join(plan, leg), left.filter((j) => j !== i));
       }
    };
@@ -331,8 +376,9 @@ export const BOUND = { circle: 64, window: 21 } as const;
  * pick (>= minGap apart) in some order. Straight lines only (obstacles only lengthen a route), the
  * touch points and window points sampled, minus the sampling slack.
  */
-export function stageRouteBound(stage: StageIndex, m: number, reach: number, minGap: number, radius: number): number {
-   const cands = SNACK_CANDIDATES_REF[stage];
+export function stageRouteBound(stage: StageIndex, m: number, reach: number, minGap: number, radius: number, map: ZooMap = MAP_1): number {
+   const cands = map.snacks[stage];
+   const STAGES = map.stages;
    const windowPts = (g: { x0: number; x1: number; z: number }) =>
       Array.from({ length: BOUND.window }, (_, i) => ({ x: g.x0 + radius + ((g.x1 - g.x0 - 2 * radius) * i) / (BOUND.window - 1), z: g.z }));
    const from = stage === 0 ? [STAGES[0].start] : windowPts(STAGES[stage - 1].gate);
@@ -385,8 +431,8 @@ export function emptyPlan(t0: number): WorldPlan {
 }
 
 /** Appends a stage's grid plan (its first cell repeats the previous plan's last point, so it is dropped). */
-export function appendPlan(out: WorldPlan, stage: StageIndex, plan: GridPlan): void {
-   const g = stageGrid(stage);
+export function appendPlan(out: WorldPlan, stage: StageIndex, plan: GridPlan, map: ZooMap = MAP_1): void {
+   const g = stageGrid(stage, map);
    const skip = out.x.length ? 1 : 0;
    for (let i = skip; i < plan.cells.length; i++) { out.x.push(g.cx(plan.cells[i])); out.z.push(g.cz(plan.cells[i])); }
    if (skip === 0) out.walk.push(...plan.walk);
@@ -394,18 +440,20 @@ export function appendPlan(out: WorldPlan, stage: StageIndex, plan: GridPlan): v
 }
 
 /** The oracle's plan from (x, z) at run time t (on a step boundary) through the stages from `stage`, eating the given snacks per stage. */
-export function oraclePlan(offsets: readonly number[], stage: StageIndex, x: number, z: number, t: number, snacksPer: readonly (readonly { x: number; z: number }[])[], walkMoves = true): WorldPlan | null {
+export function oraclePlan(offsets: readonly number[], stage: StageIndex, x: number, z: number, t: number, snacksPer: readonly (readonly { x: number; z: number }[])[], walkMoves = true, map: ZooMap = MAP_1): WorldPlan | null {
    const plan = emptyPlan(t);
    let at = { x, z };
    let time = t;
-   for (let s = stage; s < STAGES.length; s++) {
+   for (let s = stage; s < map.stages.length; s++) {
       const st = s as StageIndex;
-      const g = stageGrid(st);
-      const ks = STAGE_KEEPERS[st].map((i) => offsets[i]);
-      const phase = Math.round((time % CYCLES[st]) / FAIR.step);
-      const p = oracleStage(st, ks, g.cellOf(at.x, at.z), phase, snacksPer[s], walkMoves);
+      const g = stageGrid(st, map);
+      const ks = map.stageKeepers[st].map((i) => offsets[i]);
+      const phase = Math.round((time % map.cycles[st]) / FAIR.step);
+      // past a gate the next stage's grid must have a free cell there (its cells are offset by 0.2 m on stages 2-3)
+      const ng = s < 2 ? stageGrid((s + 1) as StageIndex, map) : null;
+      const p = oracleStage(st, ks, g.cellOf(at.x, at.z), phase, snacksPer[s], walkMoves, map, ng ? (c) => ng.wall[ng.cellOf(g.cx(c), g.cz(c))] === 0 : undefined);
       if (!p) return null;
-      appendPlan(plan, st, p);
+      appendPlan(plan, st, p, map);
       time += (p.cells.length - 1) * FAIR.step;
       const last = p.cells[p.cells.length - 1];
       at = { x: g.cx(last), z: g.cz(last) };

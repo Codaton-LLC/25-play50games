@@ -1,7 +1,7 @@
 "use client";
 
 import type { ArcadeSlug } from "../types";
-import { getGameMeta } from "../registry";
+import { getGameMeta } from "../metaSource";
 import { useBestScore } from "../core/useBestScore";
 import { formatScore } from "../core/format";
 import styles from "./BestScoreBadge.module.css";

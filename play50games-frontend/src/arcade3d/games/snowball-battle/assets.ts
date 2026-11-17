@@ -3,7 +3,7 @@
 // big snowman are this game's own decor, drawn only on levels 4-5 behind the far fence.
 import type { LevelId } from "@/arcade3d/types";
 import type { ModelAsset } from "@/arcade3d/core/types";
-import { EXPANSION_ASSETS, EXPANSION_CHARACTERS, EXPANSION_GLB_SIZE, PROP_BUDGET } from "@/arcade3d/core/sharedAssets";
+import { EXPANSION_ASSETS, EXPANSION_CHARACTERS, EXPANSION_GLB_SIZE, PROP_BUDGET, REUSED_GLB_SIZE } from "@/arcade3d/core/sharedAssets";
 
 /** Accessor bounds of /models/3d/shared/snowman.glb. The nose makes the horizontal reach wider than the body. */
 export const SNOWMAN_GLB = { height: 1.9034, halfWidth: 0.7904 };
@@ -91,12 +91,75 @@ export const SNOWMAN_BIG_SPOTS: readonly VillageSpot[] = [
    { x: 4.2, y: 0, z: -10.6, rotY: -1.9 },
 ];
 
+/** snowFort.glb (Menu 1 adoption, 3000 tris) raw bounds: a low snow wall, feet on y = 0, centred. */
+export const SNOW_FORT_GLB = { width: 1.89, height: 0.399, depth: 1.759 } as const;
+/** Drawn 3.2 m long (about 0.67 m tall): spectator forts built beside the yard, outside the fence. */
+export const SNOW_FORT_WIDTH = 3.2;
+export const SNOW_FORT_SCALE = SNOW_FORT_WIDTH / SNOW_FORT_GLB.width;
+export const SNOW_FORT_DRAWN = {
+   width: SNOW_FORT_WIDTH,
+   height: SNOW_FORT_GLB.height * SNOW_FORT_SCALE,
+   depth: SNOW_FORT_GLB.depth * SNOW_FORT_SCALE,
+} as const;
+const snowFort: ModelAsset = {
+   id: "snowFort",
+   url: "/models/3d/snowball-battle/snowFort.glb",
+   scale: SNOW_FORT_SCALE,
+   fallback: "box",
+   fallbackColor: "#e2e8f0",
+   budget: { ...PROP_BUDGET },
+};
+/** Side forts beyond both long fences (every level), turned so their long face runs along z. */
+export const SNOW_FORT_SPOTS: readonly VillageSpot[] = [
+   { x: -14.9, y: 0, z: -5, rotY: Math.PI / 2 },
+   { x: -14.9, y: 0, z: 1, rotY: Math.PI / 2 + 0.1 },
+   { x: -14.9, y: 0, z: 6.5, rotY: Math.PI / 2 - 0.1 },
+   { x: 14.9, y: 0, z: -4, rotY: Math.PI / 2 - 0.1 },
+   { x: 14.9, y: 0, z: 2, rotY: Math.PI / 2 },
+   { x: 14.9, y: 0, z: 7, rotY: Math.PI / 2 + 0.1 },
+];
+
+/**
+ * Scenery and fort models reused from other games for the level arenas (arenaLooks.ts). Fitted per
+ * spot from the measured GLB bounds below (GLB units, w x h x d, feet on y = 0, centred), so each
+ * asset keeps scale 1. assets.test.ts checks the bounds on the real meshes.
+ */
+export const DECOR_GLB = {
+   tree: { url: "/models/3d/shared/leafyTree.glb", ...EXPANSION_GLB_SIZE.leafyTree },
+   tower: { url: "/models/3d/shared/castleTower.glb", ...EXPANSION_GLB_SIZE.castleTower },
+   bench: { url: "/models/3d/clean-city/bench.glb", ...REUSED_GLB_SIZE.bench },
+   lamp: { url: "/models/3d/clean-city/lamp.glb", ...REUSED_GLB_SIZE.lamp },
+   glacier: { url: "/models/3d/penguin-slide/glacierChunk.glb", width: 1.8964, height: 1.3888, depth: 1.4132 },
+   iceBlock: { url: "/models/3d/penguin-slide/iceBlock.glb", width: 1.8936, height: 1.9031, depth: 1.8872 },
+} as const;
+
+export type DecorModelId = keyof typeof DECOR_GLB;
+
+const decorAsset = (id: DecorModelId, fallback: ModelAsset["fallback"], fallbackColor: string): ModelAsset => ({
+   id: `snow-${id}`,
+   url: DECOR_GLB[id].url,
+   scale: 1,
+   fallback,
+   fallbackColor,
+   budget: { ...PROP_BUDGET },
+});
+
+export const DECOR_ASSETS: Record<DecorModelId, ModelAsset> = {
+   tree: decorAsset("tree", "cylinder", "#65a30d"),
+   tower: decorAsset("tower", "cylinder", "#cbd5e1"),
+   bench: decorAsset("bench", "box", "#92400e"),
+   lamp: decorAsset("lamp", "cylinder", "#94a3b8"),
+   glacier: decorAsset("glacier", "box", "#bae6fd"),
+   iceBlock: decorAsset("iceBlock", "box", "#bae6fd"),
+};
+
 export const ASSETS = {
    kid: EXPANSION_CHARACTERS.snowKid,
    pine: EXPANSION_ASSETS.pineTree,
    snowman,
    igloo,
    snowmanBig,
+   snowFort,
 } as const;
 
 export const KID_SCALE = ASSETS.kid.scale ?? 1;

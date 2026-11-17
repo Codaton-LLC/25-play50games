@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import { hasModel } from "@/arcade3d/core/modelManifest";
 import { EXPANSION_CHARACTER_HEIGHT, EXPANSION_GLB_SIZE } from "@/arcade3d/core/sharedAssets";
 import {
-   ASSETS, IGLOO_DRAWN, IGLOO_GLB, IGLOO_SCALE, IGLOO_SPOTS, IGLOO_WIDTH, KID_SCALE, PINE_HEIGHT,
+   ASSETS, SNOW_FORT_DRAWN, SNOW_FORT_GLB, SNOW_FORT_SCALE, SNOW_FORT_SPOTS, SNOW_FORT_WIDTH, IGLOO_DRAWN, IGLOO_GLB, IGLOO_SCALE, IGLOO_SPOTS, IGLOO_WIDTH, KID_SCALE, PINE_HEIGHT,
    SNOWMAN_BIG_DRAWN, SNOWMAN_BIG_GLB, SNOWMAN_BIG_HEIGHT, SNOWMAN_BIG_SCALE, SNOWMAN_BIG_SPOTS,
    SNOWMAN_GLB, SNOWMAN_HEIGHT, SNOWMAN_RADIUS, SNOWMAN_SCALE, SNOWMAN_STRETCH_XZ, VILLAGE_LEVEL_IDS,
 } from "./assets";
@@ -108,4 +108,22 @@ describe("snowball-battle model fits", () => {
          expect(spot.z + snowmanR).toBeLessThan(YARD.minZ);
       }
    });
+
+describe("snowball-battle side forts (Menu 1 adoption)", () => {
+   it("draws the fort 3.2 m long on the snow and keeps every spot beyond the yard's fences", () => {
+      expect(hasModel(ASSETS.snowFort.url)).toBe(true);
+      expect(existsSync(resolve("public", ASSETS.snowFort.url.slice(1)))).toBe(true);
+      const box = bounds(ASSETS.snowFort.url);
+      const size = box.getSize(new Vector3());
+      expect(size.x).toBeCloseTo(SNOW_FORT_GLB.width, 3);
+      expect(size.y).toBeCloseTo(SNOW_FORT_GLB.height, 3);
+      expect(box.min.y).toBeCloseTo(0, 3);
+      expect(size.x * SNOW_FORT_SCALE).toBeCloseTo(SNOW_FORT_WIDTH, 3);
+      expect(SNOW_FORT_DRAWN.height).toBeLessThan(SNOWMAN_HEIGHT / 2);
+      const reach = Math.hypot(SNOW_FORT_DRAWN.width, SNOW_FORT_DRAWN.depth) / 2;
+      for (const spot of SNOW_FORT_SPOTS) expect(Math.abs(spot.x) - reach, `${spot.x},${spot.z}`).toBeGreaterThan(YARD.maxX - 1.5);
+      // turned a quarter turn, the footprint's x extent is the depth
+      for (const spot of SNOW_FORT_SPOTS) expect(Math.abs(spot.x) - SNOW_FORT_DRAWN.width / 2).toBeGreaterThan(YARD.maxX);
+   });
+});
 });

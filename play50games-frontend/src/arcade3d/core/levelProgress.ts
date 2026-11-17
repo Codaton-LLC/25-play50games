@@ -6,7 +6,7 @@
 // best); a level never locks again. Cleared = a stored win / clearScore flag, a best that reaches
 // the level's clearScore (also true for server-synced bests), or any stored best of a time game
 // (time games save finished runs only, so every stored time is a win).
-import { LEVEL_IDS, type ArcadeGameMeta, type LevelId, type LevelMeta, type ScoringRules } from "../types";
+import { LEVEL_IDS, type GameScoringMeta, type LevelId, type LevelMeta, type ScoringRules } from "../types";
 import { levelsOf } from "../levelMeta";
 import { levelKey, levelsActive } from "./levels";
 import { formatDuration, formatScore } from "./format";
@@ -36,20 +36,24 @@ export interface LevelProgressSummary {
 }
 
 /** One level entry counts as cleared (see the unlock rule above). */
-export function levelEntryCleared(meta: ArcadeGameMeta, level: LevelMeta, entry: LocalLevelEntry | undefined): boolean {
+export function levelEntryCleared(meta: GameScoringMeta, level: LevelMeta, entry: LocalLevelEntry | undefined): boolean {
    if (!entry) return false;
    if (entry.cleared || meta.scoring.kind === "time") return true;
    return level.clearScore !== undefined && entry.best >= level.clearScore;
 }
 
+
+/** Preview builds only (NEXT_PUBLIC_ARCADE_UNLOCK_ALL, see flags.ts): every level opens. Read here, not from flags.ts, so tests that mock the flags keep working. */
+const UNLOCK_ALL = process.env.NEXT_PUBLIC_ARCADE_UNLOCK_ALL === "1" || process.env.NEXT_PUBLIC_ARCADE_UNLOCK_ALL === "true";
 /**
  * The tiles' data. `active` false (levels off, or a one-level game) gives level 1 only, with the
  * game's best as today.
  */
 export function levelProgress(
-   meta: ArcadeGameMeta,
+   meta: GameScoringMeta,
    entry: LocalScoreEntry | null | undefined,
-   active: boolean = levelsActive(meta)
+   active: boolean = levelsActive(meta),
+   unlockAll: boolean = UNLOCK_ALL
 ): LevelProgressSummary {
    const metas = active ? levelsOf(meta) : levelsOf(meta).slice(0, 1);
    const levels: LevelProgress[] = [];
@@ -64,7 +68,7 @@ export function levelProgress(
          bestDurationMs: stored?.bestDurationMs ?? null,
          plays: stored?.plays ?? 0,
          cleared,
-         unlocked: index === 0 || !!stored || !!previous?.cleared,
+         unlocked: unlockAll || index === 0 || !!stored || !!previous?.cleared,
       });
    });
    const complete = levels.every((level) => (meta.scoring.kind === "time" ? level.bestDurationMs !== null : level.best !== null));
@@ -102,7 +106,7 @@ export function levelBestText(level: Pick<LevelProgress, "best" | "bestDurationM
 }
 
 /** "Total 3,420 pts", "Total time 4:12.33", or the time game's "Finish all 5 levels to rank". */
-export function levelTotalText(meta: ArcadeGameMeta, summary: LevelProgressSummary): string {
+export function levelTotalText(meta: GameScoringMeta, summary: LevelProgressSummary): string {
    if (meta.scoring.kind === "time") {
       return summary.totalDurationMs !== null ? `Total time ${formatDuration(summary.totalDurationMs)}` : "Finish all 5 levels to rank";
    }
@@ -114,5 +118,5 @@ export const levelClearedText = (summary: LevelProgressSummary): string =>
    `${summary.cleared} of ${summary.levels.length} levels cleared`;
 
 /** The /3d card's line for a game whose levels are on: "Total 3,420 pts · 2/5". */
-export const levelCardText = (meta: ArcadeGameMeta, summary: LevelProgressSummary): string =>
+export const levelCardText = (meta: GameScoringMeta, summary: LevelProgressSummary): string =>
    `${levelTotalText(meta, summary)} · ${summary.cleared}/${summary.levels.length}`;

@@ -26,11 +26,18 @@ import {
    landingSafe,
    padVx,
    padX,
+   roofed,
    stepRun,
+   swings,
+   windScale,
+   worldsOf,
    wrap,
+   TOWER,
+   WORLD,
    type Run,
    type Controls,
 } from "./rules";
+import { HULL } from "./assets";
 import * as rules from "./rules";
 
 vi.mock("./Scene", () => ({ default: () => null }));
@@ -67,29 +74,34 @@ function runPilot(level: RocketLevel, seed: number, assist: boolean = false): {
             stage = 0;
             pulse = 0;
          }
-         const b = r.body, l = r.layouts[r.planet], g = PLANETS[r.planet].gravity;
+         // each landing's hazards, from its layout (level 1: planet 3 windy, planet 4 caved swing)
+         const b = r.body, l = r.layouts[r.planet], g = worldsOf(level)[r.planet].gravity;
+         const cave = roofed(l, r.planet), rail = swings(l, r.planet), gusty = windScale(l, r.planet) > 0;
          const px = padX(l, r.planet, r.attemptTime, level.padAmplitude);
          const pv = padVx(l, r.planet, r.attemptTime, level.padAmplitude);
-         if (r.planet === 4 && stage === 0 && b.y < 7.4 && Math.abs(b.vy) < 1.5) stage = 1;
-         const crossing = r.planet !== 4 || Math.abs(padX(l, 4, r.attemptTime + 3.5, level.padAmplitude)) < 0.25;
-         const p3WindLow = r.planet !== 3 || Math.abs(Math.sin(2 * Math.PI * r.attemptTime / 8 + l.wind)) < 0.45;
-         const p3Aligned = r.planet !== 3 || (p3WindLow && Math.abs(b.x - px) < 0.6 && Math.abs(b.vx - pv) < 0.35 && Math.abs(b.angle) < Math.min(0.12, level.contactAngle * 0.75));
-         if ((r.planet !== 4 || stage === 1) && crossing && p3Aligned &&
-            Math.abs(b.x - (r.planet === 4 ? 0 : px)) < (r.planet === 3 ? 0.8 : 0.3) &&
-            Math.abs(b.vx - (r.planet === 4 ? 0 : pv)) < (r.planet === 3 ? 0.5 : 0.25) &&
-            Math.abs(b.angle) < (r.planet === 3 ? Math.min(0.12, level.contactAngle * 0.85) : 0.08)) stage = 2;
+         // a rail pad (caved or open): hover over the middle and drop as the pad comes under
+         const waits = cave || rail;
+         if (waits && stage === 0 && (!cave || (b.y < 7.4 && Math.abs(b.vy) < 1.5))) stage = 1;
+         // a caved rail pad: wait until it is about to cross the middle; an open rail pad: ride it
+         const crossing = !rail || Math.abs(padX(l, r.planet, r.attemptTime + 3.5, level.padAmplitude)) < 0.25;
+         const windLow = !gusty || Math.abs(Math.sin(2 * Math.PI * r.attemptTime / 8 + l.wind)) < 0.45;
+         const aligned = !gusty || (windLow && Math.abs(b.x - px) < 0.6 && Math.abs(b.vx - pv) < 0.35 && Math.abs(b.angle) < Math.min(0.12, level.contactAngle * 0.75));
+         if ((!waits || stage === 1) && crossing && aligned &&
+            Math.abs(b.x - (waits ? 0 : px)) < (gusty ? 0.8 : 0.3) &&
+            Math.abs(b.vx - (waits ? 0 : pv)) < (gusty ? 0.5 : 0.25) &&
+            Math.abs(b.angle) < (gusty ? Math.min(0.12, level.contactAngle * 0.85) : 0.08)) stage = 2;
          const shaft = l.spawnX < 0 ? -5.3 : 5.3;
-         const tx = r.planet === 4 ? (stage === 0 ? shaft : 0) : px;
-         const tv = r.planet === 4 ? (stage === 2 ? pv * 0.5 : 0) : pv;
-         const targetY = stage === 2 ? 3.1 : r.planet === 4 ? (stage === 0 ? 7.2 : 5.8) : 8;
+         const tx = cave ? (stage === 0 ? shaft : 0) : rail ? 0 : px;
+         const tv = waits ? (stage === 2 ? pv * 0.5 : 0) : pv;
+         const targetY = stage === 2 ? 3.1 : waits ? (cave && stage === 0 ? 7.2 : 5.8) : 8;
          const targetVy = stage === 2 ? -Math.min(level.contactVy * 0.5, 0.4 + Math.max(0, b.y - 3.1) * 0.5) : clamp((targetY - b.y) * 0.8, -3, 2);
          const ay = clamp(g + 3 * (targetVy - b.vy), 0, 12);
-         const wind = r.planet === 3 ? level.windAmplitude * Math.sin(2 * Math.PI * r.attemptTime / 8 + l.wind) : 0;
-         const ax = (r.planet === 4 ? 0.15 : r.planet === 3 ? 0.5 : 0.8) * (tx - b.x) + (r.planet === 4 ? 1 : r.planet === 3 ? 2.0 : 1.8) * (tv - b.vx) - (r.planet === 3 ? 1.15 : 1) * wind;
-         const maxAngle = stage === 2 && b.y < 4.5 ? Math.min(level.contactAngle * 0.70, r.planet === 3 ? 0.125 : 0.08) : 0.45;
+         const wind = gusty ? level.windAmplitude * windScale(l, r.planet) * Math.sin(2 * Math.PI * r.attemptTime / 8 + l.wind) : 0;
+         const ax = (cave ? 0.15 : gusty ? 0.5 : 0.8) * (tx - b.x) + (cave ? 1 : gusty ? 2.0 : 1.8) * (tv - b.vx) - (gusty ? 1.15 : 1) * wind;
+         const maxAngle = stage === 2 && b.y < 4.5 ? Math.min(level.contactAngle * 0.70, gusty ? 0.125 : 0.08) : 0.45;
          const desiredAngle = clamp(-Math.atan2(ax, Math.max(g, ay)), -maxAngle, maxAngle);
          controls.rotate = clamp(-(8 * wrap(desiredAngle - b.angle) - 4 * b.omega) / 3, -1, 1);
-         if (r.planet === 4 && r.assist && Math.abs(controls.rotate) <= ENGINE.neutral) controls.rotate = (controls.rotate < 0 ? -1 : 1) * (ENGINE.neutral + 0.001);
+         if (cave && r.assist && Math.abs(controls.rotate) <= ENGINE.neutral) controls.rotate = (controls.rotate < 0 ? -1 : 1) * (ENGINE.neutral + 0.001);
          pulse += clamp(ay / (12 * Math.max(0.8, Math.cos(b.angle))), 0, 1);
          controls.thrust = pulse >= 1;
          if (controls.thrust) pulse -= 1;
@@ -407,4 +419,89 @@ describe("rocket-landing levels: mutation probes on level knobs", () => {
       expect(Math.abs(x1)).toBeCloseTo(2.0, 5);
       expect(Math.abs(x5)).toBeCloseTo(2.4, 5);
    });
+});
+
+describe("rocket-landing levels: five different landings per level (fairness per level)", () => {
+   const hullAt = (x: number, y: number) => HULL.map(([hx, hy]) => ({ x: x + hx, y: y + hy - BODY.centre }));
+   const rectDistance = (px: number, py: number, x0: number, x1: number, y0: number, y1: number) =>
+      Math.hypot(Math.max(x0 - px, 0, px - x1), Math.max(y0 - py, 0, py - y1));
+
+   it("level 1 flies today's planets; levels 2-5 each fly their own five landings with their own looks", () => {
+      expect(LEVELS[1].worlds).toBeUndefined();
+      expect(worldsOf(LEVELS[1]).map((w) => [w.gravity, w.width, w.fuel])).toEqual(PLANETS.map((p) => [p.gravity, p.width, p.fuel]));
+      const looks = LEVEL_IDS.map((id) => new Set(worldsOf(LEVELS[id]).map((w) => w.look)));
+      for (let a = 0; a < 5; a++) for (let b = a + 1; b < 5; b++) {
+         expect([...looks[a]].some((k) => looks[b].has(k)), `levels ${a + 1} and ${b + 1} share a look`).toBe(false);
+      }
+      const hazards = LEVEL_IDS.map((id) => worldsOf(LEVELS[id]).map((w) => `${w.wind > 0 ? "W" : ""}${w.swing ? "S" : ""}${w.roof ? "R" : ""}${w.towers ? "T" : ""}`).join("|"));
+      expect(new Set(hazards).size).toBe(5);
+      expect(worldsOf(LEVELS[3]).filter((w) => w.towers).length).toBeGreaterThanOrEqual(3);
+      expect(worldsOf(LEVELS[4]).filter((w) => w.roof).length).toBeGreaterThanOrEqual(3);
+      expect(Math.max(...worldsOf(LEVELS[5]).map((w) => w.width))).toBeLessThan(Math.min(...worldsOf(LEVELS[1]).map((w) => w.width)));
+      for (const id of LEVEL_IDS) expect(worldsOf(LEVELS[id])).toHaveLength(LEVELS[id].planets);
+   });
+
+   for (const id of LEVEL_IDS) it(`L${id}: every landing is reachable and the limit proof's premises hold`, () => {
+      const level = LEVELS[id], worlds = worldsOf(level);
+      for (const w of worlds) {
+         // thrust beats gravity everywhere; the pad top stays at y 2 (the 10.65 m minimum drop)
+         expect(w.gravity).toBeGreaterThanOrEqual(1);
+         expect(w.gravity).toBeLessThanOrEqual(5);
+         // the widest wind keeps every acceleration under 17.6 m/s^2 (proof below)
+         expect(level.windAmplitude * w.wind).toBeLessThanOrEqual(0.56);
+         // both landing feet always fit on the pad with room to spare
+         expect(w.width).toBeGreaterThanOrEqual(3.5);
+         expect(w.fuel).toBeGreaterThanOrEqual(85);
+      }
+      // the fastest loss is three crashes on the first landing. It has no roof or rail, so a crash
+      // is the ceiling (4.9 m at <= 12 - 1 m/s^2 up: >= 0.944 s) or a tower kept >= 6.7 m from the
+      // spawn hull (at <= 12 + 5 + 0.56 m/s^2: >= 0.873 s); 3 x 0.873 + 2 x 1.2 = 5.02 s > 5 s
+      expect(worlds[0].roof || worlds[0].swing).toBe(false);
+      const fastestCrash = Math.min(Math.sqrt(2 * 4.9 / (ENGINE.acceleration - worlds[0].gravity)), Math.sqrt(2 * 6.7 / 17.6));
+      expect(3 * fastestCrash + 2 * 1.2).toBeGreaterThan(PROPOSED_LEVEL_LIMITS[id].minDurationMs / 1000);
+      for (let seed = 0; seed < 200; seed++) {
+         const r = createRun(seed, false, level);
+         r.layouts.forEach((l, p) => {
+            const w = worlds[p], half = w.width / 2;
+            expect(Math.abs(l.spawnX)).toBeLessThanOrEqual(7.5);
+            if (w.roof) {
+               // a free side shaft: the hull fits between the roof and the wall
+               expect(Math.abs(l.spawnX) - BODY.radius).toBeGreaterThanOrEqual(WORLD.roofRight);
+               expect(Math.abs(l.spawnX) + BODY.radius).toBeLessThanOrEqual(10);
+            }
+            for (const x of l.towers ?? []) {
+               // towers stand clear of the pad's whole sweep and under the 8 m cruise
+               expect(Math.abs(x - l.pad) - TOWER.half - half).toBeGreaterThanOrEqual(1 - 1e-9);
+               expect(TOWER.top).toBeLessThan(8 - BODY.radius);
+               expect(Math.abs(x) + TOWER.half).toBeLessThanOrEqual(9);
+               // nothing solid within 6.7 m of the spawn hull (an obstacle crash takes >= 0.87 s)
+               for (const q of hullAt(l.spawnX, BODY.spawnY)) expect(rectDistance(q.x, q.y, x - TOWER.half, x + TOWER.half, -2, TOWER.top)).toBeGreaterThan(6.7);
+            }
+            if (w.swing) expect(level.padAmplitude + half).toBeLessThanOrEqual(w.roof ? 4.5 : 5);
+            expect(r.obstacles[p].length).toBe(12 + (l.towers?.length ?? 0));
+         });
+      }
+   });
+
+   for (const id of LEVEL_IDS) it(`L${id}: idle, full-thrust and spin-and-burn runs never end before minDurationMs`, () => {
+      const pilots: ((r: Run) => Controls)[] = [
+         () => ({ rotate: 0, thrust: false }),
+         () => ({ rotate: 0, thrust: true }),
+         (r) => ({ rotate: r.body.angle > -2 ? 1 : 0, thrust: true }),
+         (r) => ({ rotate: r.body.angle < 2 ? -1 : 0, thrust: true }),
+      ];
+      for (const fly of pilots) for (let seed = 0; seed < 12; seed++) {
+         const r = createRun(seed, false, LEVELS[id]);
+         let t = 0;
+         while (!r.terminal && t < 60) { stepRun(r, fly(r), 1 / 60); t += 1 / 60; }
+         if (r.terminal) expect(r.simTime * 1000, `seed ${seed}`).toBeGreaterThan(PROPOSED_LEVEL_LIMITS[id].minDurationMs);
+      }
+   });
+
+   for (const id of LEVEL_IDS) it(`L${id}: the pilot lands every one of the five landings with fuel to spare, assist on and off`, () => {
+      for (const assist of [false, true]) for (let seed = 20; seed < 26; seed++) {
+         const res = runPilot(LEVELS[id], seed, assist);
+         expect(res.landedAll && res.won, `seed ${seed} assist ${assist}: ${res.endReason} at ${res.finalPlanet}`).toBe(true);
+      }
+   }, 60000);
 });

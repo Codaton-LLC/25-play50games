@@ -1,9 +1,12 @@
 "use client";
+import CameraViewButton from "../../core/camera/CameraViewButton";
+import { HintLine } from "../../core/hud/HintLine";
 import { useLevel } from "../../core/level";
 import { useArcadeStore } from "../../core/useArcadeStore";
 import type { BurgerLevel } from "./levels";
+import { GUIDE } from "./guide";
 import styles from "./Hud.module.css";
-export default function Hud() {
+function GameHud() {
    const carrying = useArcadeStore((s) => s.stats.carrying ?? 0);
    const average = useArcadeStore((s) => s.stats.average ?? 100);
    const required = useLevel<BurgerLevel>().config.qualityMin;
@@ -15,4 +18,15 @@ export default function Hud() {
          <i style={{ width: Math.round(progress * 100) + "%" }} />
       </div>
    </div>;
+}
+
+/** The game's HUD plus the core 📷 camera-view button (core/camera). */
+export default function Hud() {
+   return (
+      <>
+         <CameraViewButton />
+         <GameHud />
+         <HintLine signal={GUIDE} />
+      </>
+   );
 }

@@ -11,6 +11,7 @@ export interface CatLevel {
    chaseSpeed: number;
    chaseRange: number;
    clutter: number;
+   /** the cat's coat (multiplies the silver tabby GLB): always a warm ginger, the one warm hue on the cool floors */
    tint: string;
    durationMs: number;
    lighting: "day" | "indoor" | "night";
@@ -18,11 +19,11 @@ export interface CatLevel {
 }
 
 export const LEVELS: Record<LevelId, CatLevel> = {
-   1: { rooms: 2, treats: 8, toys: 1, vacuums: 1, patrolSpeed: 1.4, chaseSpeed: 0, chaseRange: 0, clutter: 0, tint: "#fb923c", durationMs: 90_000, lighting: "day", background: "#fde68a" },
-   2: { rooms: 3, treats: 12, toys: 1, vacuums: 1, patrolSpeed: 1.8, chaseSpeed: 2.4, chaseRange: 6, clutter: 0, tint: "#9ca3af", durationMs: 120_000, lighting: "indoor", background: "#e7e5e4" },
-   3: { rooms: 4, treats: 16, toys: 2, vacuums: 2, patrolSpeed: 1.8, chaseSpeed: 2.6, chaseRange: 7, clutter: 0, tint: "#57534e", durationMs: 150_000, lighting: "indoor", background: "#d6d3d1" },
-   4: { rooms: 5, treats: 20, toys: 2, vacuums: 2, patrolSpeed: 2.1, chaseSpeed: 3.0, chaseRange: 8, clutter: 4, tint: "#fde68a", durationMs: 150_000, lighting: "day", background: "#fbcfe8" },
-   5: { rooms: 6, treats: 25, toys: 3, vacuums: 3, patrolSpeed: 2.2, chaseSpeed: 3.0, chaseRange: 8, clutter: 6, tint: "#c4b5fd", durationMs: 180_000, lighting: "night", background: "#1e1b4b" },
+   1: { rooms: 2, treats: 8, toys: 1, vacuums: 1, patrolSpeed: 1.4, chaseSpeed: 0, chaseRange: 0, clutter: 0, tint: "#ffb066", durationMs: 90_000, lighting: "day", background: "#fde68a" },
+   2: { rooms: 3, treats: 12, toys: 1, vacuums: 1, patrolSpeed: 1.8, chaseSpeed: 2.4, chaseRange: 6, clutter: 0, tint: "#ffa95c", durationMs: 120_000, lighting: "indoor", background: "#e7e5e4" },
+   3: { rooms: 4, treats: 16, toys: 2, vacuums: 2, patrolSpeed: 1.8, chaseSpeed: 2.6, chaseRange: 7, clutter: 0, tint: "#ffbd7a", durationMs: 150_000, lighting: "indoor", background: "#d6d3d1" },
+   4: { rooms: 5, treats: 20, toys: 2, vacuums: 2, patrolSpeed: 2.1, chaseSpeed: 3.0, chaseRange: 8, clutter: 4, tint: "#ff9f52", durationMs: 150_000, lighting: "day", background: "#fbcfe8" },
+   5: { rooms: 6, treats: 25, toys: 3, vacuums: 3, patrolSpeed: 2.2, chaseSpeed: 3.0, chaseRange: 8, clutter: 6, tint: "#ffd09a", durationMs: 180_000, lighting: "night", background: "#1e1b4b" },
 };
 
 export const LEVEL_TITLES: Record<LevelId, string> = {

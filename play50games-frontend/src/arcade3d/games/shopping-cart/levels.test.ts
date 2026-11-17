@@ -26,12 +26,14 @@ import {
    MIN_WIN_ROUTE_M,
    POINTS,
    SHELF_SLOTS,
+   LANE_GATE,
    SOLID_OBSTACLES,
    START_POS,
    createRun,
    generateList,
    runScore,
    shortestPickTour,
+   solidsFor,
    spanningTreeLength,
    stepRun,
    withinProposedLimits,
@@ -109,10 +111,11 @@ describe("shopping-cart levels: declarations", () => {
             `Steer the runaway cart through aisles to grab all ${LEVELS[id].listCount} items on your list.`
          );
       }
-      // Indoor lighting is preserved on all 5 levels
-      for (const id of LEVEL_IDS) {
-         expect(levelEnvironment(definition, id)!.lighting).toBe("indoor");
-      }
+      // level 1 keeps today's indoor light; every level has its own light, sky and fog, and levels 2-5 a twist line
+      expect(levelEnvironment(definition, 1)!.lighting).toBe("indoor");
+      const envs = new Set(LEVEL_IDS.map((id) => JSON.stringify(levelEnvironment(definition, id))));
+      expect(envs.size).toBe(5);
+      for (const id of LEVEL_IDS.slice(1)) expect(levelInstructions(definition, id)).toHaveLength(4);
    });
 });
 
@@ -190,23 +193,28 @@ describe("shopping-cart levels: score limits proof per level (README)", () => {
 
 describe("shopping-cart levels: bot clear rates and gameplay", () => {
    const grid = createGrid({ cell: 0.5, halfX: 16, halfZ: 12 });
-   const free = freeGrid(grid, (x, z) => {
-      if (x < -15.2 || x > 15.2 || z < -11.2 || z > 11.2) return false;
-      for (const obs of SOLID_OBSTACLES) {
-         if (
-            x >= obs.min.x - 0.45 &&
-            x <= obs.max.x + 0.45 &&
-            z >= obs.min.z - 0.45 &&
-            z <= obs.max.z + 0.45
-         ) {
-            return false;
+   // each level's own floor: its set pieces, and on a closing level the shut lane (planned around from the start)
+   const freeFor = (id: LevelId) => {
+      const solids = [...solidsFor(LEVELS[id]), ...(LEVELS[id].store.closeLaneAt > 0 ? [LANE_GATE] : [])];
+      return freeGrid(grid, (x, z) => {
+         if (x < -15.2 || x > 15.2 || z < -11.2 || z > 11.2) return false;
+         for (const obs of solids) {
+            if (
+               x >= obs.min.x - 0.45 &&
+               x <= obs.max.x + 0.45 &&
+               z >= obs.min.z - 0.45 &&
+               z <= obs.max.z + 0.45
+            ) {
+               return false;
+            }
          }
-      }
-      return true;
-   });
+         return true;
+      });
+   };
 
    function getTarget(run: RunState, listCount: number): { x: number; z: number } {
       if (run.collectedCount >= listCount) {
+         if (run.level.store.closeLaneAt > 0) return { x: 0.9, z: 10.8 };
          return run.cart.x < -1.5 ? { x: -2.0, z: 10.8 } : { x: 0.9, z: 10.8 };
       }
       let bestDist = Infinity;
@@ -239,6 +247,7 @@ describe("shopping-cart levels: bot clear rates and gameplay", () => {
       it(`L${id}: honest path-following bot clears level on >= 99% of seeds`, () => {
          const lvl = LEVELS[id];
          const metaLvl = meta.levels![id - 1];
+         const free = freeFor(id);
          let clears = 0;
          const sampleSeeds = 40;
 

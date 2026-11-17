@@ -7,10 +7,13 @@ import { useSafeArea } from "@/arcade3d/core/safeArea";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { liveHud, readNeedle } from "./liveHud";
 import { COLORS } from "./looks";
+import { HintLine } from "@/arcade3d/core/hud/HintLine";
+import { hintFor } from "./guide";
 import styles from "./Hud.module.css";
+import CameraViewButton from "@/arcade3d/core/camera/CameraViewButton";
 
 const NO_ZONES = [{ start: 0.42, end: 0.58 }];
-export default function Hud() {
+function GameHud() {
    const { config } = useLevel<SpaceRepairLevel>();
    const power = useArcadeStore((s) => s.stats.power ?? 100), remaining = useArcadeStore((s) => s.stats.remaining ?? config.duration);
    const repairs = useArcadeStore((s) => s.stats.repairs ?? 0), docked = useArcadeStore((s) => s.stats.docked ?? -1);
@@ -25,7 +28,9 @@ export default function Hud() {
    const ringTop = landscape && rightControl ? rightControl.top - size - 8 : leftControl ? (leftControl.top + leftControl.bottom - size) / 2 : safe.height - size - 24;
    const ringStyle = { left: Math.max(8, ringLeft), top: Math.max(68, ringTop) } as CSSProperties;
    const zones = docked >= 0 && liveHud.run ? liveHud.run.modules[docked].zones : NO_ZONES;
+   const hint = hintFor(docked, waiting > 0, power);
    return <>
+      <HintLine text={hint.text} tone={hint.tone} />
       <div className={styles.stats} data-arcade-safe-area data-low={power < 25}>
          <div className={styles.power}><span>POWER <b>{power}%</b></span><progress max={100} value={power} aria-label="Station power" /></div>
          <div><span>REMAINING</span><b>{Math.floor(remaining / 60)}:{String(remaining % 60).padStart(2, "0")}</b></div>
@@ -37,4 +42,14 @@ export default function Hud() {
       </div>
       <div className={styles.feedback} aria-live="polite">{bonus > 0 ? `POWER BONUS +${bonus}` : feedback === 3 ? "MISS · reset & retry" : feedback === 2 ? "PERFECT REPAIR" : feedback === 1 ? "REPAIRED" : feedback === 4 ? "POWER CELL +25" : power < 25 ? "LOW POWER · repair a module" : ""}</div>
    </>;
+}
+
+/** The game's HUD plus the core 📷 camera-view button (core/camera). */
+export default function Hud() {
+   return (
+      <>
+         <CameraViewButton />
+         <GameHud />
+      </>
+   );
 }

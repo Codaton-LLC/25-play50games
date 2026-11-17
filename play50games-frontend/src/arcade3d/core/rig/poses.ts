@@ -558,26 +558,101 @@ const SIT_KNEE_OUT = 0.08;
  * floor, and the seat would sink to about knee height) and `lift` stays 0, so bodyLift is 0 when
  * fully seated and the hip joint stays at hipY. Parent the model to the vehicle; the feet hang at
  * about knee height, where the pegs are.
+ *
+ * `cross` 0..1 (default 0) folds the legs into a cross-legged sit on a flat seat (a carpet, a
+ * cushion): the thighs forward to level and well out, the shins across in front of the body (the
+ * left one on top), the hands resting on the knees and the back nearly upright. The hips stay at
+ * their standing height over the seat as above; the thighs lie level with them.
  */
-export function sitPose(amount: number, out: HumanoidPose): HumanoidPose {
+export function sitPose(amount: number, out: HumanoidPose, cross = 0): HumanoidPose {
    armsDownPose(out);
    const k = clamp01(amount);
    if (k === 0) return out;
    out.ground = 1 - k;
    out.lift = 0;
+   const c = clamp01(cross);
    for (let side = 1; side >= -1; side -= 2) {
       setLeg(out, side, SIT_HIP * k, SIT_KNEE_OUT * k);
       setKnee(out, side, SIT_KNEE * k);
+      if (c > 0) crossLeg(out, side, k, c);
       levelFoot(out, side);
       // from the hanging arm: forward and a little out, a short elbow bend so the hand
       // stays at the bar (a deep bend folds the forearm up past the shoulder)
       setArm(out, side, 1.2 * k, 0.28 * k);
       setElbow(out, side, ARMS_DOWN_ELBOW + 0.4 * k);
    }
-   setTrunk(out, BONE.spine, SIT_LEAN * k);
+   if (c > 0) {
+      // cross-legged: the hands rest on the knees (upper arm down and a little forward and out, the
+      // forearm forward and down onto the thigh), the back nearly upright
+      for (let side = 1; side >= -1; side -= 2) {
+         const s = side as 1 | -1;
+         aimArm(out, s, lerp(0.2, 0.3, c), -0.9, lerp(0.45, 0.3, c), 0.25, lerp(0.15, -0.35, c), 1);
+      }
+   }
+   setTrunk(out, BONE.spine, SIT_LEAN * k * (1 - 0.6 * c));
    setTrunk(out, BONE.chest, 0.08 * k);
    setTrunk(out, BONE.head, -0.1 * k);
    return out;
+}
+
+/** Cross-legged thigh: forward to level and well out; the shin folds in front of the body towards the other side. */
+const CROSS_THIGH = [0.62, -0.04, 0.78] as const;
+/** ...the shin, written for the left leg (+x = away from the body): across, a little forward and down. */
+const CROSS_SHIN = [-0.9, -0.12, 0.3] as const;
+const CROSS_V = new Float64Array(3);
+const CROSS_Q = new Float64Array(4);
+
+/** Shortest turn from the leg's rest axis (0, -1, 0) to the unit direction (dx, dy, dz), into q at o. */
+function setLegTurn(q: Float32Array | Float64Array, o: number, dx: number, dy: number, dz: number): void {
+   let x = -dz;
+   let y = 0;
+   let z = dx;
+   let w = 1 - dy;
+   if (w < 1e-6) {
+      x = 1;
+      y = 0;
+      z = 0;
+      w = 0;
+   }
+   const len = Math.hypot(x, y, z, w);
+   q[o] = x / len;
+   q[o + 1] = y / len;
+   q[o + 2] = z / len;
+   q[o + 3] = w / len;
+}
+
+/**
+ * Turns one leg of a seated pose (thigh and shin already set) towards a cross-legged sit by `c`
+ * (the seat amount `k` scales it): the thigh forward and out, the shin folded across in front of the
+ * body, the left shin a little above the right one so the two never cut each other.
+ */
+function crossLeg(out: HumanoidPose, side: number, k: number, c: number): void {
+   const t = c * k;
+   const thigh = upperLeg(side) * 4;
+   const shin = lowerLeg(side) * 4;
+   // the seated thigh (forward, a little out) towards the cross-legged one
+   const ox = SIT_KNEE_OUT * k;
+   let tx = lerp(Math.sin(ox), CROSS_THIGH[0], t);
+   let ty = lerp(-Math.cos(SIT_HIP * k), CROSS_THIGH[1], t);
+   let tz = lerp(Math.sin(SIT_HIP * k), CROSS_THIGH[2], t);
+   let len = Math.hypot(tx, ty, tz) || 1;
+   setLegTurn(out.q, thigh, (side * tx) / len, ty / len, tz / len);
+   // the seated shin hangs straight down; cross-legged it lies across
+   const lift = side > 0 ? 0.08 : -0.04;
+   let sx = lerp(0, CROSS_SHIN[0], t);
+   let sy = lerp(-1, CROSS_SHIN[1] + lift, t);
+   let sz = lerp(0, CROSS_SHIN[2], t);
+   len = Math.hypot(sx, sy, sz) || 1;
+   sx = (side * sx) / len;
+   sy /= len;
+   sz /= len;
+   // into the thigh's frame (the inverse of its turn), then the shin's own shortest turn there
+   CROSS_Q[0] = -out.q[thigh];
+   CROSS_Q[1] = -out.q[thigh + 1];
+   CROSS_Q[2] = -out.q[thigh + 2];
+   CROSS_Q[3] = out.q[thigh + 3];
+   rotateVec(CROSS_Q, 0, sx, sy, sz, CROSS_V, 0);
+   setLegTurn(out.q, shin, CROSS_V[0], CROSS_V[1], CROSS_V[2]);
 }
 
 /** Idle-float hip pitch (rad): a relaxed lean, legs still nearly under the body. */
@@ -624,6 +699,62 @@ export function swimPose(phase: number, amount: number, out: HumanoidPose): Huma
       setArm(out, side, 0.18 + 0.32 * a - 0.12 * a * ls, 0.05);
       setElbow(out, side, ARMS_DOWN_ELBOW + 0.2 * a);
    }
+   return out;
+}
+
+/** Front crawl: how far each upper arm swings out from the body's midline plane (entry, recovery). */
+const CRAWL_OUT_PULL = 0.32;
+const CRAWL_OUT_RECOVER = 0.75;
+/** The body rolls towards the pulling arm by this much (rad, about the body's long axis). */
+const CRAWL_ROLL = 0.42;
+/** Flutter-kick thigh swing (rad); three kicks per leg per arm cycle (a six-beat kick). */
+const CRAWL_KICK = 0.26;
+
+/**
+ * The front crawl, in the body's own frame: the game lays the body down (turn its group about x by
+ * about π/2, so the head leads and the chest faces the water) and holds it with the chest at the
+ * water line. `phase` (rad) is one arm cycle: the left hand enters overhead at 0, pulls under the
+ * body to the hip by π and recovers out of the water, elbow high, back to the entry; the right arm is
+ * half a cycle behind (phase + π is the mirror image). The body rolls towards the pulling arm, the
+ * head turns to breathe on the side of the recovering arm once per cycle, and the legs flutter
+ * three times per arm cycle, nearly straight. `ground` 0 (the water carries the body), `lift` 0.
+ */
+export function crawlPose(phase: number, out: HumanoidPose): HumanoidPose {
+   armsDownPose(out);
+   out.ground = 0;
+   out.lift = 0;
+   const p = wrapPhase(phase);
+   for (let i = 0; i < 2; i++) {
+      const side = i === 0 ? 1 : -1;
+      const th = wrapPhase(p + (side > 0 ? 0 : Math.PI));
+      // the upper arm along (out, cos θ, sin θ): overhead -> under the body (+z, the water) -> the hip -> out over the back
+      let fa: number;
+      let outward: number;
+      if (th < Math.PI) {
+         const u = th / Math.PI;
+         fa = th + 0.6 * Math.sin(th) - 0.9 * u * u * u;
+         outward = CRAWL_OUT_PULL;
+      } else {
+         const u = (th - Math.PI) / Math.PI;
+         fa = (Math.PI - 0.9) * (1 - u);
+         outward = lerp(CRAWL_OUT_PULL, CRAWL_OUT_RECOVER, Math.sin(Math.PI * u));
+      }
+      aimArm(out, side as 1 | -1, outward, Math.cos(th), Math.sin(th), outward * 0.6, Math.cos(fa), Math.sin(fa));
+      // flutter: three kicks per arm cycle, the legs half a kick apart
+      const kick = Math.sin(3 * p + (side > 0 ? 0 : Math.PI));
+      setLeg(out, side, CRAWL_KICK * kick, 0.03);
+      setKnee(out, side, 0.06 + 0.18 * Math.max(0, -kick));
+      // pointed toes: the foot keeps on the line of the shin
+      setBoneEuler(out.q, foot(side), 0.7, 0, 0);
+   }
+   // roll towards the pulling arm (the left pulls on 0..π)
+   const roll = CRAWL_ROLL * Math.sin(p);
+   setTrunk(out, BONE.hips, 0, roll * 0.7);
+   setTrunk(out, BONE.spine, 0, roll * 0.3);
+   // breathe to the side of the recovering arm once per cycle: the head turns further than the roll
+   const breathe = Math.max(0, Math.sin(p - 0.6));
+   setTrunk(out, BONE.neck, -0.12, 0.5 * breathe * breathe);
+   setTrunk(out, BONE.head, -0.1, 0.2 * breathe);
    return out;
 }
 

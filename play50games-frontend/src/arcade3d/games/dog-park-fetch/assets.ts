@@ -5,6 +5,7 @@
 // dogOwnerNpc (a dog is baked in at its feet), agilityHurdle (dog on the bar), and the shared
 // picketFence (80+ copies x 1.5k tris round the lawn: the code fence draws it in 2 calls).
 import type { ModelAsset } from "@/arcade3d/core/types";
+import type { QuadrupedLandmarks } from "@/arcade3d/core/rig/quadruped";
 import { CHARACTER_BUDGET, EXPANSION_ASSETS, EXPANSION_GLB_SIZE, PROP_BUDGET, REUSED_ASSETS, REUSED_GLB_SIZE } from "@/arcade3d/core/sharedAssets";
 
 /** Raw GLB bounds (Rodin units, pivot on the floor centre) and triangles, measured 2026-10-26. */
@@ -38,6 +39,41 @@ export const FIT = {
    bench: 1.2,
 } as const;
 
+/**
+ * The dog's joints for the core quadruped rig, measured on dog.glb (GLB units, faces +z, L = +x):
+ * front legs from the shoulder through the wrist (bends forward), hind legs from the hip through
+ * the hock (bends back). Rodin gave the dog a raised tail and a second, low curled one: the raised
+ * one wags, the low one is folded away (`stray`). Checked on the real mesh in assets.test.ts.
+ */
+export const DOG_LANDMARKS: QuadrupedLandmarks = {
+   front: { top: [0.17, 0.62, 0.28], knee: [0.205, 0.35, 0.31], ankle: [0.24, 0.12, 0.33], toeZ: 0.58, radius: 0.085, bend: 1 },
+   hind: { top: [0.15, 0.6, -0.25], knee: [0.18, 0.28, -0.33], ankle: [0.24, 0.09, -0.25], toeZ: -0.05, radius: 0.09, bend: -1 },
+   bellyY: 0.43,
+   thighBlend: 0.2,
+   neck: [0.22, 0.78],
+   head: [0.36, 0.96],
+   mouth: [0, 0.98, 0.84],
+   tail: [
+      [0, 0.8, -0.45],
+      [0, 0.93, -0.54],
+      [0, 1.07, -0.615],
+      [0, 1.21, -0.665],
+   ],
+   tailRadius: 0.09,
+   stray: [
+      {
+         line: [
+            [0, 0.6, -0.47],
+            [0, 0.56, -0.62],
+            [-0.04, 0.6, -0.78],
+            [-0.09, 0.7, -0.88],
+            [-0.09, 0.9, -0.86],
+         ],
+         radius: 0.11,
+      },
+   ],
+};
+
 const local = (id: keyof typeof GLB_SIZE, fit: Partial<ModelAsset>, fallback: ModelAsset["fallback"], fallbackColor: string, budget: ModelAsset["budget"] = PROP_BUDGET): ModelAsset => ({
    id,
    url: `/models/3d/dog-park-fetch/${id}.glb`,
@@ -53,7 +89,7 @@ const centred = (id: keyof typeof GLB_SIZE, size: number, axis: "width" | "heigh
 
 export const ASSETS = {
    // the dog faces +z (its head is the tall end at +z), feet on the floor
-   dog: local("dog", { scale: FIT.dogLength / GLB_SIZE.dog.depth }, "capsule", "#d6a15b", CHARACTER_BUDGET),
+   dog: local("dog", { scale: FIT.dogLength / GLB_SIZE.dog.depth, quadruped: { landmarks: DOG_LANDMARKS } }, "capsule", "#d6a15b", CHARACTER_BUDGET),
    owner: {
       id: "civilianNpc",
       url: "/models/3d/shared/civilianNpc.glb",

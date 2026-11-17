@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 import { BufferGeometry, Float32BufferAttribute, Group, Mesh, Vector3, Box3 } from "three";
 import { modelParts } from "@/arcade3d/core/assets";
 import { readCharacterGlb } from "@/arcade3d/core/rig/robotGlb";
+import type { ModelAsset } from "@/arcade3d/core/types";
 import { hasModel } from "@/arcade3d/core/modelManifest";
 import { WORLD } from "./rules";
 import {
@@ -12,6 +13,11 @@ import {
    BELL,
    FEET_3D,
    flattenLandingPadCone,
+   BEACON_GLB,
+   BEACON_HEIGHT,
+   OUTPOST_BEACON_SPOTS,
+   OUTPOST_PAD_SPOTS,
+   OUTPOST_PAD_WIDTH,
    HABITAT_DOME_GLB,
    HABITAT_DOME_LEVELS,
    HABITAT_DOME_SCALE,
@@ -203,4 +209,45 @@ describe("habitat dome outpost decor (levels 4-5)", () => {
          expect(clear, `dome at ${spot.x},${spot.z} r=${r.toFixed(2)}`).toBe(true);
       }
    });
+
+describe("outpost pad and beacons (Menu 1 adoption, levels 4-5)", () => {
+   async function drawnBox(asset: ModelAsset) {
+      const { local, node } = await readCharacterGlb(asset.url);
+      const geometry = new BufferGeometry();
+      geometry.setAttribute("position", new Float32BufferAttribute(local, 3));
+      const mesh = new Mesh(geometry);
+      mesh.position.fromArray(node);
+      const root = new Group();
+      root.add(mesh);
+      const parts = modelParts(root, asset);
+      const box = new Box3(), point = new Vector3();
+      for (let i = 0; i < local.length; i += 3) box.expandByPoint(point.set(local[i], local[i + 1], local[i + 2]).applyMatrix4(parts[0].matrix));
+      geometry.dispose();
+      return box;
+   }
+   it("are listed, on disk and fitted to their README sizes on the ground", async () => {
+      for (const asset of [ASSETS.outpostBeacon, ASSETS.outpostPad]) {
+         expect(hasModel(asset.url), asset.url).toBe(true);
+         expect(existsSync(resolve("public", asset.url.slice(1))), asset.url).toBe(true);
+      }
+      const beacon = await drawnBox(ASSETS.outpostBeacon);
+      expect(beacon.min.y).toBeCloseTo(0, 2);
+      expect(beacon.max.y - beacon.min.y).toBeCloseTo(BEACON_HEIGHT, 2);
+      const pad = await drawnBox(ASSETS.outpostPad);
+      expect(pad.min.y).toBeCloseTo(0, 2);
+      expect(pad.max.x - pad.min.x).toBeCloseTo(OUTPOST_PAD_WIDTH, 2);
+      expect(pad.max.y - pad.min.y).toBeCloseTo(0.6, 2);
+      expect(BEACON_GLB.height).toBeGreaterThan(1.9 - 0.01);
+   });
+   it("keeps every footprint outside the play area", () => {
+      const padR = (OUTPOST_PAD_WIDTH * 1.15) / 2;
+      for (const s of OUTPOST_PAD_SPOTS) {
+         expect(s.z + padR < PLAY_AREA.z0 || s.z - padR > PLAY_AREA.z1, `pad ${s.x},${s.z}`).toBe(true);
+      }
+      for (const s of OUTPOST_BEACON_SPOTS) {
+         const r = 0.6;
+         expect(s.x + r < PLAY_AREA.x0 || s.x - r > PLAY_AREA.x1 || s.z + r < PLAY_AREA.z0 || s.z - r > PLAY_AREA.z1, `beacon ${s.x},${s.z}`).toBe(true);
+      }
+   });
+});
 });

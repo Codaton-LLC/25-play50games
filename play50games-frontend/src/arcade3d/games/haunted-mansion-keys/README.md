@@ -7,6 +7,12 @@ A grid of 6 × 5 m rooms. Find each coloured key (tint plus shape), open its doo
 Hold Use (E / Enter / touch Use) for 0.20 s within 1.2 m to take a key, open a door or pull the lever. The
 finishing time is the score: `max(0, floor((timeBaseMs − durationMs) / 10))`, ranked on a win only.
 
+## Controls
+
+WASD / arrows move, E / Enter / Use take, open or pull. Camera views: 📷 button (touch) or **C** cycles
+default → chase → front → top → free (`core/camera`); the movement follows the view on screen. The room
+walls are the camera's solids (the camera pulls in before a wall).
+
 ## Rules (`rules.ts`, pure and seeded)
 
 - A random backbone from room (0,0) to the far corner, split into `keys + 1` wings; the other rooms join a
@@ -92,3 +98,7 @@ handle that flips), `grandfatherClock`, `paintingFrame`, `armourStand`; shared `
   browser; the door's frame depth is squashed to 0.22 m.
 - Rodin's key GLB is upright; it spins on its pedestal.
 - About 1 seed in 7 on L3–L5 gets a two-wing shortcut (the lever skips two keys); the limits include it.
+
+## Clarity (2026-10-28, visual only)
+
+`guide.ts` (pure, `guide.test.ts`) picks the next step: the first key whose door is still shut, then that door once the key is held, then the exit (the exit door first whenever its key is held). A core `TargetBeacon` stands over it in the key's own colour (a green "drop-here" ring with an EXIT label once the exit is open); the core `HintLine` says it ("Find the red ◆ key (follow the arrow)", "Got the red ◆ key: go to its door", "hold E / hold Use to unlock", "Exit open!"), for 8 s at the start and 4 s on every new step. A taken key flies into the detective's hand and from the hand into its lock (`<Toss>`); a Use at a locked door without its key pops "Locked: need the … key", an armour hit pops "Caught! -1 life". The key ring title is 12 px. Rules, scoring and limits are unchanged.

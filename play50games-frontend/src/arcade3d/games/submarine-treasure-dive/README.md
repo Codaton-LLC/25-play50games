@@ -14,17 +14,17 @@ Score, all integers: +150 per treasure, +50 more when nothing has bumped or stun
 
 ## Levels
 
-Same reef, centered on the origin. The dock is south. Counts, drain, clock, current and the core lighting preset change. Fog is always `["#0e7490", 8, fogFar]`.
+Five reefs, each with its own `theme` (`looks.ts` LOOKS + apron Decor outside the play box; landmark wrecks/columns on L3–L5). The dock is south. Counts, drain, clock, current and the core lighting preset still ramp. Level 1 is today's Shallow Reef (bit-same layout path).
 
-| L | Title | Size | Treasures | Rocks | Coral | Jellies | Speed | Current | Drain /s | Clock | Light |
-|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---|
-| 1 | Shallow Reef | 30×26 | 3 | 4 | 4 | 0 | — | 0 | 0.55 | 120 s | day |
-| 2 | Coral Reef | 36×30 | 4 | 6 | 8 | 0 | — | 0 | 0.55 | 150 s | day |
-| 3 | Sunken Ship | 40×34 | 5 | 6 | 8 | 3 | 1.2 | 0 | 0.50 | 180 s | sunset |
-| 4 | Deep Cave | 44×36 | 6 | 8 | 10 | 4 | 1.4 | 0.5 | 0.45 | 180 s | night |
-| 5 | Ancient Ruins | 48×40 | 8 | 10 | 12 | 6 | 1.6 | 0.6 | 0.45 | 240 s | night |
+| L | Title | Theme | Size | Treasures | Rocks | Coral | Jellies | Current | Drain /s | Clock | Light | Water |
+|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---|---|
+| 1 | Shallow Reef | shallow | 30×26 | 3 | 4 | 4 | 0 | 0 | 0.55 | 120 s | day | `#0891b2` |
+| 2 | Coral Reef | coral | 36×30 | 4 | 6 | 8 | 0 | 0 | 0.55 | 150 s | day | teal |
+| 3 | Sunken Ship | wreck | 40×34 | 5 | 6 | 8 | 3 | 0 | 0.50 | 180 s | sunset | amber |
+| 4 | Deep Cave | cave | 44×36 | 6 | 8 | 10 | 4 | 0.5 | 0.38 | 180 s | night | deep blue |
+| 5 | Ancient Ruins | ruins | 48×40 | 8 | 10 | 12 | 6 | 0.6 | 0.36 | 240 s | night | indigo |
 
-Level 4 drain is 0.38 and level 5 0.36 (the spec says 0.6). Gate review: at 0.45 the paced pilot lost 4% of level 4 and 9% of level 5 seeds to a flat battery. Drain is the tuning knob: at 0.6 two fair seeds finished under 15% battery (9.4 and 14.6). At 0.45 every winning oracle, including 144 Hz, keeps at least 15%.
+Twists: L2 denser coral + garden apron; L3 landmark hull + jellyfish; L4 cave-mouth pillars + current + cavern apron; L5 temple colonnade on the apron (in-play boxes stay random so the score proof holds) + densest haul. Level 4 drain is 0.38 and level 5 0.36 (the spec says 0.6).
 
 ## Controls
 
@@ -54,7 +54,7 @@ Also covered: no pickup at 1.2 m, pickup below it scores 200, arches block only 
 
 ## Look
 
-One palette in `looks.ts`. Sand `#e7c98a`, water fog `#0e7490`, accent `#22d3ee`. Lighting is the level preset (`day`, `sunset`, `night`). Night adds an emissive cone headlight, not a spot light. Camera: chase, pitch 55°, fov 46, look-ahead 2.5 m along velocity, `followFocus` over the floor, `shift: true`. The camera does not dip with the sub. A `BlobShadow` on the sand reads the height. The floor plane is padded 48 m past the reef so the frame has no void. Decor stays under the cruise height so it does not cover the sub.
+Per-level `LOOKS[theme]` in `looks.ts` (sand, rock, coral, kelp) plus the shared gameplay accents (`COLORS.accent` etc.). Water fog is the level's `background`. Lighting is the level preset (`day`, `sunset`, `night`). Night adds an emissive cone headlight, not a spot light. Apron scenery (`Decor.tsx`, `decorSpots`) frames the reef outside the play box. Camera: chase, pitch 55°, fov 46, look-ahead 2.5 m along velocity, `followFocus` over the floor, `shift: true`. The camera does not dip with the sub. A `BlobShadow` on the sand reads the height. The floor plane is padded 48 m past the reef so the frame has no void.
 
 The sub is a bevelled two-tone stand-in with a spinning prop until Claude fits `miniSubmarine.glb`. Sonar is a code torus that expands from the sub every 2 s. `<TargetMarkers>` points at the nearest treasure, then the dock. Fish schools and the current motes are visual only. Columns lie on their side. Fallback geometry is unit-sized and scaled once by the spot.
 
@@ -64,7 +64,7 @@ The sub is a bevelled two-tone stand-in with a spinning prop until Claude fits `
 - The sub has no humanoid landmarks. Claude adds that GLB at the gate. This game's hero is the mini sub, not a person.
 - `pearlShell.glb`, the upright hulls, and the broken coral / seaweed shards are not referenced. The wreck id is `shipwreckSidewaysT`. If that mesh still reads wrong, the bevelled box is the hull.
 - Fog hides the far reef. The marker is the guide.
-- No thumbnail yet: `meta.thumbnail` is `null`.
+- Thumbnail: `meta.thumbnail` is `/images/3d/<slug>.webp` (capture via tools/thumbs).
 - Draw calls were not measured in a browser. The scene targets about 35 and stays under 55 by instancing each pool.
 
 ## Status

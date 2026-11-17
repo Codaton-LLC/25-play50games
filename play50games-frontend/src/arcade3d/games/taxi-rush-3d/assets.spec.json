@@ -3,7 +3,8 @@
    "universe": "play50-toy-world-premium",
    "notes": "GLBs are generated already (menu1-taxi-rush-3d/ and the shared ready set). This file names the ids the game loads from /models/3d/taxi-rush-3d/. Claude copies them and adds the manifest lines. There is no driver mesh: the cab is the player. car, lamp and bench stay the shared REUSED_ASSETS and are not copied.",
    "assets": [
-      { "id": "taxiCab", "kind": "prop", "file": "menu1-taxi-rush-3d/taxiCab.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "taxiCab", "kind": "prop", "file": "menu1-taxi-rush-3d/taxiCab.glb", "budget": { "tris": 18000, "bytes": 1200000 }, "note": "hero vehicle: re-optimized from the raw Rodin file, 1024 px textures, baked wheels cut out (code wheels)" },
+      { "id": "trafficCar", "kind": "prop", "file": "pigeon-crossing/car.glb", "budget": { "tris": 5000, "bytes": 300000 }, "note": "derived: baked wheels cut out, red paint made grey for tints" },
       { "id": "townhouseBlock", "kind": "prop", "file": "menu1-taxi-rush-3d/townhouseBlock.glb", "budget": { "tris": 5000, "bytes": 300000 } },
       { "id": "cornerShop", "kind": "prop", "file": "menu1-taxi-rush-3d/cornerShop.glb", "budget": { "tris": 5000, "bytes": 300000 } },
       { "id": "busStop", "kind": "prop", "file": "menu1-taxi-rush-3d/busStop.glb", "budget": { "tris": 5000, "bytes": 300000 } },

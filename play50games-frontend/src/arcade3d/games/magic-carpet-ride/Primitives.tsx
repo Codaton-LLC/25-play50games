@@ -1,8 +1,20 @@
 "use client";
 
-// Bevelled stand-ins (two or three tones) until the magic-carpet-ride GLBs are in the manifest.
+// Bevelled stand-ins (two or three tones) for the carpet and the rider, drawn if their GLBs fail.
 // Geometries here are already in metres. Instanced decor in Scene.tsx is unit-sized and scaled by the spot.
-import { COLORS } from "./looks";
+import { COLORS as LOOK } from "./looks";
+
+/** The stand-ins' own tones (two or three per part). */
+const COLORS = {
+   ...LOOK,
+   carpet: "#6d28d9",
+   carpetTrim: "#c4b5fd",
+   carpetGold: "#fbbf24",
+   cloth: "#4c1d95",
+   clothDark: "#2e1065",
+   skin: "#f1d0b4",
+   scarf: "#a78bfa",
+} as const;
 
 /** Seated rider. A standing 1.72 m person sits about 0.95 m from the cushion to the crown. */
 export function RiderFigure() {
@@ -66,30 +78,6 @@ export function CarpetPrimitive() {
          <mesh position={[-0.78, 0.02, 1.05]}>
             <boxGeometry args={[0.06, 0.05, 0.16]} />
             <meshStandardMaterial color={COLORS.carpetGold} roughness={0.4} />
-         </mesh>
-      </group>
-   );
-}
-
-/** Posts sit outside the ±4 m window. The beam clears the ±2.5 m climb. */
-export function FinishArch() {
-   return (
-      <group>
-         <mesh position={[-5.2, 1.6, 0]}>
-            <boxGeometry args={[0.42, 3.2, 0.42]} />
-            <meshStandardMaterial color={COLORS.archPost} roughness={0.55} />
-         </mesh>
-         <mesh position={[5.2, 1.6, 0]}>
-            <boxGeometry args={[0.42, 3.2, 0.42]} />
-            <meshStandardMaterial color={COLORS.archPost} roughness={0.55} />
-         </mesh>
-         <mesh position={[0, 3.35, 0]}>
-            <boxGeometry args={[11.1, 0.28, 0.36]} />
-            <meshStandardMaterial color={COLORS.arch} emissive={COLORS.ring} emissiveIntensity={0.35} roughness={0.35} metalness={0.2} />
-         </mesh>
-         <mesh position={[0, 3.35, 0.2]}>
-            <boxGeometry args={[6.4, 0.5, 0.06]} />
-            <meshStandardMaterial color={COLORS.accent} emissive={COLORS.accent} emissiveIntensity={0.45} roughness={0.4} />
          </mesh>
       </group>
    );

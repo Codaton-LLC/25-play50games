@@ -79,6 +79,40 @@ export const TOTEM_SPOTS: readonly InstanceSpot[] = [
    { x: 2.5, y: 0.05, z: -28, rotY: -0.2 },
 ];
 
+/**
+ * palmTreeI.glb (Menu 1 adoption, 3000 tris) 1.606 x 1.896 x 1.712, floor pivot at y 0, centred on x / z:
+ * a curved ringed trunk, frond crown, coconuts, rock base. Drawn 3.4 m tall (the old code palm was ~3.3 m)
+ * on the distant atolls only; the playable palms keep palm.glb and their footprints.
+ */
+export const PALM_I_GLB = { width: 1.606, height: 1.896, depth: 1.712 } as const;
+export const PALM_I_HEIGHT = 3.4;
+const PALM_I_SCALE = PALM_I_HEIGHT / PALM_I_GLB.height;
+
+/** rowboat.glb 0.904 x 0.589 x 1.896 (bow along z), floor pivot. Drawn 2.4 m long, pulled up on distant beaches. */
+export const ROWBOAT_GLB = { width: 0.904, height: 0.589, depth: 1.896 } as const;
+export const ROWBOAT_LENGTH = 2.4;
+const ROWBOAT_SCALE = ROWBOAT_LENGTH / ROWBOAT_GLB.depth;
+
+/** treasureGem.glb 1.9 x 1.832 x 1.891, floor pivot. Drawn 0.55 m tall: gems glinting on the distant atolls. */
+export const TREASURE_GEM_GLB = { width: 1.9, height: 1.832, depth: 1.891 } as const;
+export const TREASURE_GEM_HEIGHT = 0.55;
+const TREASURE_GEM_SCALE = TREASURE_GEM_HEIGHT / TREASURE_GEM_GLB.height;
+
+/** Rowboats beached on the distant atolls (every level), clear of the palms and the play area. */
+export const ROWBOAT_SPOTS: readonly InstanceSpot[] = [
+   { x: -21, y: 0.05, z: -14.5, rotY: 0.9 },
+   { x: 23.5, y: 0.05, z: -14, rotY: -0.7 },
+   { x: 24.5, y: 0.05, z: 1.5, rotY: 1.9 },
+   { x: -25, y: 0.05, z: 2.5, rotY: 2.6 },
+];
+
+/** Gems lying on the atolls beside the boats. */
+export const GEM_SPOTS: readonly InstanceSpot[] = [
+   { x: -22.4, y: 0.05, z: -14.2, rotY: 0.4 },
+   { x: 24.9, y: 0.05, z: -13.2, rotY: 1.6 },
+   { x: 25.6, y: 0.05, z: 2.6, rotY: 2.2, scale: 0.8 },
+];
+
 export const ASSETS = {
    explorer: { ...SHARED_ASSETS.runner, scale: EXPLORER_SCALE, humanoid: { landmarks: RUNNER_LANDMARKS } },
    chest: EXPANSION_ASSETS.chest,
@@ -105,6 +139,30 @@ export const ASSETS = {
       fallbackColor: "#78716c",
       budget: { ...PROP_BUDGET },
    },
+   palmTreeI: {
+      id: "palmTreeI",
+      url: "/models/3d/treasure-island/palmTreeI.glb",
+      scale: PALM_I_SCALE,
+      fallback: "cylinder",
+      fallbackColor: "#15803d",
+      budget: { ...PROP_BUDGET },
+   },
+   rowboat: {
+      id: "rowboat",
+      url: "/models/3d/treasure-island/rowboat.glb",
+      scale: ROWBOAT_SCALE,
+      fallback: "box",
+      fallbackColor: "#92400e",
+      budget: { ...PROP_BUDGET },
+   },
+   treasureGem: {
+      id: "treasureGem",
+      url: "/models/3d/treasure-island/treasureGem.glb",
+      scale: TREASURE_GEM_SCALE,
+      fallback: "sphere",
+      fallbackColor: "#22d3ee",
+      budget: { ...PROP_BUDGET },
+   },
    jungleTotem: {
       id: "jungleTotem",
       url: "/models/3d/treasure-island/jungleTotem.glb",
@@ -125,3 +183,61 @@ export function palmBaseOffset(yaw: number, size: number): { x: number; z: numbe
    const s = Math.sin(yaw);
    return { x: bx * c + bz * s, z: -bx * s + bz * c };
 }
+
+// ---------- the map levels' props (levels 2-5: maps.ts, drawn by MapScene.tsx) ----------
+
+/**
+ * Raw GLB bounds (w x h x d, GLB units; every one has its floor pivot at y 0 and is centred on x / z),
+ * measured on the meshes (assets.test.ts checks them). All are reused from other games' folders.
+ */
+export const PROP_GLB = {
+   hut: { url: "/models/3d/beach-lifeguard/beachHut.glb", width: 1.354, height: 1.9, depth: 1.781, color: "#a16207" },
+   bush: { url: "/models/3d/zoo-escape/leafyBush.glb", width: 1.758, height: 1.401, depth: 1.805, color: "#3f7d18" },
+   fern: { url: "/models/3d/jungle-bridge-run/jungleFern.glb", width: 1.655, height: 1.182, depth: 1.567, color: "#2f7a22" },
+   plant: { url: "/models/3d/jungle-bridge-run/junglePlant.glb", width: 1.662, height: 1.892, depth: 1.367, color: "#25661c" },
+   boulder: { url: "/models/3d/jungle-bridge-run/jungleRock.glb", width: 1.91, height: 0.993, depth: 1.854, color: "#78716c" },
+   rock: { url: "/models/3d/shared/rock.glb", width: 1.901, height: 0.899, depth: 1.857, color: "#8a837c" },
+   cliff: { url: "/models/3d/jungle-bridge-run/waterfallCliff.glb", width: 1.893, height: 1.313, depth: 1.855, color: "#6b625b" },
+   pillar: { url: "/models/3d/jungle-bridge-run/templePillarV2.glb", width: 0.823, height: 1.901, depth: 0.834, color: "#9ca38f" },
+   column: { url: "/models/3d/submarine-treasure-dive/ruinColumn.glb", width: 0.842, height: 1.903, depth: 0.829, color: "#a8a29e" },
+   block: { url: "/models/3d/castle-defender/stoneWall.glb", width: 1.903, height: 1.003, depth: 1.763, color: "#7d7a6c" },
+   ruinGate: { url: "/models/3d/jungle-bridge-run/ruinGateR.glb", width: 1.904, height: 1.661, depth: 0.625, color: "#8b8a78" },
+   arch: { url: "/models/3d/submarine-treasure-dive/rockArch.glb", width: 1.894, height: 1.347, depth: 1.228, color: "#6f655c" },
+   wreck: { url: "/models/3d/submarine-treasure-dive/shipwreckI.glb", width: 0.864, height: 1.237, depth: 1.86, color: "#5c3a1e" },
+   cannon: { url: "/models/3d/shared/cannon.glb", width: 1.374, height: 1.447, depth: 1.898, color: "#334155" },
+   barrel: { url: "/models/3d/robot-collector/barrel.glb", width: 1.735, height: 1.898, depth: 1.737, color: "#92400e" },
+   crate: { url: "/models/3d/shared/crate.glb", width: 1.88, height: 1.335, depth: 1.81, color: "#b45309" },
+   anchor: { url: "/models/3d/submarine-treasure-dive/anchor.glb", width: 1.276, height: 1.912, depth: 0.349, color: "#475569" },
+   flag: { url: "/models/3d/tower-climb/checkpoint-flag.glb", width: 0.634, height: 1.897, depth: 0.467, color: "#fbbf24" },
+   totem: { url: "/models/3d/treasure-island/jungleTotem.glb", width: 0.688, height: 1.888, depth: 0.706, color: "#78350f" },
+   log: { url: "/models/3d/jungle-bridge-run/jungleLogSingle.glb", width: 1.896, height: 0.589, depth: 0.623, color: "#6b4423" },
+   vine: { url: "/models/3d/jungle-bridge-run/hangingVine.glb", width: 1.193, height: 1.731, depth: 1.133, color: "#3f7d18" },
+   shell: { url: "/models/3d/submarine-treasure-dive/pearlShellV2.glb", width: 1.902, height: 1.3, depth: 1.751, color: "#fbcfe8" },
+   plankBridge: { url: "/models/3d/zoo-escape/woodenFootbridge.glb", width: 1.346, height: 0.902, depth: 1.895, color: "#92400e" },
+   ropeBridge: { url: "/models/3d/jungle-bridge-run/ropeBridge.glb", width: 1.019, height: 1.002, depth: 1.9, color: "#a16207" },
+} as const;
+
+export type PropAssetId = keyof typeof PROP_GLB;
+
+/** The footbridge's deck top as a fraction of its height (zoo-escape BRIDGE_GLB.deck / height). */
+export const PLANK_DECK = 0.38 / 0.902;
+
+/**
+ * Each prop as a 1 x 1 x 1 m unit (scale 1 / height, stretched on x and z), so a spot's sx / sy / sz
+ * are its drawn size in metres, the same numbers as its maps.ts w / h / d and footprint.
+ */
+export const PROP_ASSETS = Object.fromEntries(
+   (Object.keys(PROP_GLB) as PropAssetId[]).map((id) => {
+      const g = PROP_GLB[id];
+      const asset: ModelAsset = {
+         id: `map-${id}`,
+         url: g.url,
+         scale: 1 / g.height,
+         stretch: [g.height / g.width, 1, g.height / g.depth] as const,
+         fallback: "box",
+         fallbackColor: g.color,
+         budget: { ...PROP_BUDGET },
+      };
+      return [id, asset];
+   }),
+) as Record<PropAssetId, ModelAsset>;

@@ -6,7 +6,7 @@ import { modelParts } from "@/arcade3d/core/assets";
 import { hasModel } from "@/arcade3d/core/modelManifest";
 import { readCharacterGlb } from "@/arcade3d/core/rig/robotGlb";
 import type { ModelAsset } from "@/arcade3d/core/types";
-import { ASSETS, BAKERY_DRAWN, BAKERY_HEIGHT, BAKERY_SPOTS, PRODUCT_KINDS, RUNNER_SCALE, SCRUBBER_DRAWN, SCRUBBER_GLB, SCRUBBER_HEIGHT, SCRUBBER_SPOTS, SHELF_BAY, SHELF_BAYS, SHELF_GLB } from "./assets";
+import { ASSETS, MARKET_DRAWN, MARKET_SPOTS, type MarketKind, BAKERY_DRAWN, BAKERY_HEIGHT, BAKERY_SPOTS, PRODUCT_KINDS, RUNNER_SCALE, SCRUBBER_DRAWN, SCRUBBER_GLB, SCRUBBER_HEIGHT, SCRUBBER_SPOTS, SHELF_BAY, SHELF_BAYS, SHELF_GLB } from "./assets";
 import { PLAY_BOUNDS } from "./looks";
 import { SHELVES } from "./rules";
 
@@ -124,4 +124,23 @@ describe("shopping-cart level 4-5 floor scrubbers", () => {
          expect(outside, `${spot.x},${spot.z}`).toBe(true);
       }
    });
+
+describe("shopping-cart Menu 1 apron props", () => {
+   it("draws each prop at its README size on the floor and keeps every spot outside the play box", async () => {
+      for (const kind of Object.keys(MARKET_SPOTS) as MarketKind[]) {
+         const asset = ASSETS[kind];
+         expect(existsSync(resolve("public", asset.url.slice(1))), kind).toBe(true);
+         expect(hasModel(asset.url), kind).toBe(true);
+         const box = await fitted(asset);
+         expect(box.min.y, kind).toBeCloseTo(0, 2);
+         expect(box.max.y - box.min.y, kind).toBeCloseTo(MARKET_DRAWN[kind].height, 2);
+         expect(box.max.x - box.min.x, kind).toBeCloseTo(MARKET_DRAWN[kind].width, 2);
+         const reach = Math.hypot(MARKET_DRAWN[kind].width, MARKET_DRAWN[kind].depth) / 2;
+         for (const spot of MARKET_SPOTS[kind]) {
+            const outside = spot.x - reach > PLAY_BOUNDS.x1 || spot.x + reach < PLAY_BOUNDS.x0 || spot.z + reach < PLAY_BOUNDS.z0 || spot.z - reach > PLAY_BOUNDS.z1;
+            expect(outside, `${kind} ${spot.x},${spot.z}`).toBe(true);
+         }
+      }
+   });
+});
 });

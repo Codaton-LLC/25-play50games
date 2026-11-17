@@ -23,7 +23,8 @@ function asSpots(list: readonly DecorSpot[]): InstanceSpot[] {
    }));
 }
 
-export function Decor({ reduced }: { reduced: boolean }) {
+/** `exit`: the map's last gate; the north hedge row leaves the way out through it open. */
+export function Decor({ reduced, exit }: { reduced: boolean; exit?: { x0: number; x1: number } }) {
    const quality = useQuality();
    const time = useGameTime();
 
@@ -48,10 +49,10 @@ export function Decor({ reduced }: { reduced: boolean }) {
       [geo]
    );
 
-   const hedges = useMemo(
-      () => asSpots(decorOf("hedge").slice(0, scaledCount(decorOf("hedge").length, quality.decor))),
-      [quality.decor]
-   );
+   const hedges = useMemo(() => {
+      const all = decorOf("hedge").filter((h) => !exit || h.z > -45 || h.x < exit.x0 - 2 || h.x > exit.x1 + 2);
+      return asSpots(all.slice(0, scaledCount(all.length, quality.decor)));
+   }, [quality.decor, exit]);
    const trees = useMemo(
       () => asSpots(decorOf("tree").slice(0, scaledCount(decorOf("tree").length, quality.decor))),
       [quality.decor]

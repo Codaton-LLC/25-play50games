@@ -35,11 +35,27 @@ Acceptance checklist (original brief, item by item):
 - [x] 7 Core effects/audio; loop restarts keyed by phase/mute. Browser mute/reduced-motion checks pending.
 - [x] 8 Rules score reconciliation before end(win/lose); real-store boundary/pause/retry tests pass.
 - [x] 9 meta status dev and provisional scoring preserved; proposed limits 4700/37000/122000/400/40 require Claude's paired metadata/backend update.
-- [x] 10 Existing tools/thumbs/inputs/space-repair.mjs present; thumbnail null.
+- [x] 10 Existing tools/thumbs/inputs/space-repair.mjs present; thumbnail wired.
 - [ ] Common final gates: Claude runs full repository tests/build/gamecheck and headless keyboard/two-thumb playthroughs; ready/countdown/Esc/P/tab/pause/resume/over/Retry/Exit; 1280x800/390x844/844x390 screenshots with banner on/off, actual >=24 px silhouettes, contrast/overlays, missing-GLB fallback, mute/reduced motion, mid-phone p95 and Retry x10 resource stability.
 - [ ] Draw calls are an estimate (~32 plus imported mesh/material reserve 13), not measured evidence: verify target <=45, hard game cap 50, <=100k triangles, p95 <=33 ms; include the exact-pose outline and fallback backpack in measurement.
 
 Open questions: no new design decision requested. Claude owns the remaining browser/performance/build evidence and paired scoring integration. The measured human cadence differs from the design prediction; assess the real keyboard/two-thumb witness rather than treating the bot as a human playtest. Scope checked only with git status --porcelain; tracked modifications are confined to the game folder.
+
+## Five stations (levels, 2026-10-29)
+
+Each level repairs a different station (`levels.ts` `station`, `rules.ts` `STATIONS` / `stationOf`). Level 1 has no `station` and flies today's ring through the very same `MODULES` / `SOLIDS` / `DEBRIS_PATH` objects (the frame-for-frame replay against `today.rules.fixture.ts` still matches). A layout sets the eight pods, their service discs (1.8 m out along each pod's outward normal), every solid footprint, the debris loop's radii and the set pieces `Station.tsx` draws; the suit starts on dock 1 of its station.
+
+| Level | Station | Layout | Look (`index.tsx` environment) | What changes in play |
+|---|---|---|---|---|
+| 1 Docking Bay | `bay` | today's ring: pods r 4.2, round hub, solar wings east and west | night space | today's |
+| 2 Power Wing | `power` | pods round a 5 x 3.4 m oval on a long power spine (solid, glowing conduit), big solar arrays north and south (solid), debris loop 8.7 x 7.1 | full sun (`day`) | fly round the spine's ends; the east/west docks sit far out on the oval |
+| 3 Comms Wing | `comms` | wide ring (pods r 4.8, docks r 6.6) round the big comms dish (hub r 1.9 with a tilted dish), 8 antenna masts (solid) between the docks outside, debris loop r 8.1 | dusk-blue `night` | longest trips (chords 5.05 m); the outer lane between docks and masts is narrow debris alley |
+| 4 External Platform | `platform` | square open deck: pods on the corners (3.3, 3.3) and edge middles (3.6), a diamond command block, cargo crates at two corners, debris loop r 8.6 | hard `sunset` light | corner docks sit far out; open space with a wide debris swing |
+| 5 Station Emergency | `emergency` | the ring turned half a pod, 8 sealed bulkheads (solid, hazard stripes) on the old diagonals between docks, a pulsing red alarm light, debris loop r 8.9 | red alarm `night` | the outer lane is sealed between docks: fly the inner ring; fastest debris and tightest arcs (unchanged level knobs) |
+
+Fairness per level (`levels.test.ts` "five different stations"): every dock has > 0.6 m clearance and a 0.25 m-grid path from the start; adjacent docks (the ticket order) are joined by a clear straight chord under 5.2 m; the debris loop stays > 0.06 m off every docked suit and inside the arena; pods never overlap; the battery spot is inside the arena; every level's docks differ from every other level's. The store proof per level (honest 50 seeds, oracle 30, greedy, idle and spam, both devices, 30/60/144 Hz and random frames) runs each station.
+
+**Limits unchanged.** The proof depends only on the 30 ticket times, the 150-point award, the 200-point bonus and the drain (each identical on every level): the station only changes travel, which can delay but never add a paid repair. Every limit test re-runs per level.
 
 ## Concept
 
@@ -276,3 +292,7 @@ No frame-loop allocation was added: the level config is captured once at run cre
 The test-only today.rules.fixture.ts freezes the pre-task engine; replay hashes compare
 all serialized simulation state every frame, excluding only the new config and callback.
 The original rules.test.ts stays byte-identical.
+
+## Camera views
+
+Views: default and top (the stick stays screen-fixed). **C** / **T** or the 📷 button cycles them; drag (or two fingers) looks around and switches to the free view, wheel / pinch zooms, **V** recenters. The rules receive the drawn camera's yaw (the fitted yaw in the default view), so a run in the default view is unchanged; no rules, bots, proofs or scoring were touched. Core docs: `core/camera/README.md`.

@@ -31,7 +31,7 @@ export const beachLifeguardMeta: ArcadeGameMeta = {
    },
    scoring: SCORING,
    levels: LEVELS,
-   thumbnail: null,
+   thumbnail: "/images/3d/beach-lifeguard.webp",
    accent: "#fb7185",
    owner: "antigravity",
 };

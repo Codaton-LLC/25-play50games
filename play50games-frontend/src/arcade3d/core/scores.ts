@@ -8,9 +8,10 @@
 // migrated lazily on read (their best becomes level 1's) and saved in the new shape on the next
 // save. A run carries its `level` (default 1); level 1 is sent exactly as before, levels 2-5 only
 // to a server that advertises `features.levels` (levelSupport.ts).
-import type { ArcadeGameMeta, ArcadeSlug, LevelId, ScoringRules } from "../types";
+import type { ArcadeSlug, GameScoringMeta, LevelId, ScoringRules } from "../types";
 import type { EndReason } from "./types";
-import { getGameMeta, isLevelId, levelMetaFor, levelsOf } from "../registry";
+import { getGameMeta } from "../metaSource";
+import { isLevelId, levelMetaFor, levelsOf } from "../levelMeta";
 import { ARCADE_LEADERBOARD } from "../flags";
 import { arcadeApi, ArcadeApiError } from "@/lib/api/arcade";
 import { getJwtToken, removeJwtToken } from "@/lib/api/apiUtils";
@@ -202,7 +203,7 @@ export function normalizeEntry(slug: string, raw: unknown, active?: boolean): Lo
 export function mergeRun(
    prev: LocalScoreEntry | undefined,
    run: FinishedRun,
-   meta: ArcadeGameMeta,
+   meta: GameScoringMeta,
    cleared = false,
    active: boolean = levelsActive(meta)
 ): { entry: LocalScoreEntry; isNewBest: boolean; newlyCleared: boolean; level: LocalLevelEntry } {
@@ -277,7 +278,7 @@ function writeLocalScores(userId: number | null, scores: LocalScores): void {
 /** Patches one level of a stored entry (and its rank); returns the entry with fresh totals. */
 function patchLocalLevel(
    userId: number | null,
-   meta: ArcadeGameMeta,
+   meta: GameScoringMeta,
    id: LevelId,
    patch: Partial<LocalLevelEntry>,
    rank: number | null
@@ -323,13 +324,13 @@ function statusFromError(error: unknown): SubmitStatus {
 }
 
 interface LocalSave {
-   meta: ArcadeGameMeta;
+   meta: GameScoringMeta;
    normalized: FinishedRun & { level: LevelId };
    result: SubmitResult;
 }
 
 /** The run's level, or 1 when the game does not have it. */
-function runLevel(meta: ArcadeGameMeta, run: FinishedRun): LevelId {
+function runLevel(meta: GameScoringMeta, run: FinishedRun): LevelId {
    return run.level !== undefined && isLevelId(meta, run.level) ? run.level : 1;
 }
 

@@ -20,6 +20,8 @@ import { levelUiEnabled } from "./levels";
 import { levelCardText, levelProgress } from "./levelProgress";
 import { normalizeEntry } from "./scores";
 import { withLevels } from "./testing/levelFixtures";
+import { provideGameMetas } from "../metaSource";
+import { getGameMeta as registryMeta } from "../registry";
 
 vi.mock("@/contexts/AuthContext", () => ({ useAuth: () => ({ user: null }) }));
 vi.mock("../registry", async (importOriginal) => {
@@ -28,6 +30,9 @@ vi.mock("../registry", async (importOriginal) => {
    const five = new Map(["robot-collector", "obstacle-race"].map((slug) => [slug, add(original.getGameMeta(slug)!)]));
    return { ...original, getGameMeta: (slug: string) => five.get(slug) ?? original.getGameMeta(slug) };
 });
+
+// BestScoreBadge and scores.ts read metas through metaSource: hand it the five-level fixtures.
+provideGameMetas(["robot-collector", "obstacle-race"].map((slug) => registryMeta(slug)!));
 
 const FIVE = withLevels(robotCollectorMeta);
 /** robot-collector as it was before its levels: a one-level game */

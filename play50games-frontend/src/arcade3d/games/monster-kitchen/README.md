@@ -43,6 +43,18 @@ One cave kitchen, five configurations (`levels.ts`, `docs/arcade-levels.md` §6.
 
 Level 5's maxScore 9600 is 1.99× level 1's 4830 (the 3× guard). Every level's maxScore is at least level 1's.
 
+**Each level is its own room** (`sets.ts`, `KitchenSets.tsx`, 2026-10-29; looks only, the rules and the limits are untouched). Everything stands in the two side strips the camera sees past the hatch wall:
+
+| Level | Room | Dressing (reused Hyper3D GLBs + code) | Light |
+|---|---|---|---|
+| 1 Snack Bar | today's cave kitchen | — | `indoor` |
+| 2 Monster Café | a café | a café table with two wooden chairs, a bakery stand and a small candle table, a chalk MONSTER CAFÉ menu board on the back wall | `day`, grey stone fog |
+| 3 Busy Kitchen | a working kitchen | two pizza ovens and a prep counter with jars in the side strips | `sunset` (stove glow) |
+| 4 Dinner Rush | lantern-lit dining room | four hanging lanterns, candlelit tables in both side strips, a warm lantern light; the feast's stove hearths and slime cakes | `night` |
+| 5 Grand Feast | banquet hall | two long banquet tables laden with gourds, a monster top hat, potion jars and candles, two lanterns, rainbow bunting over the side strips; stove hearths and slime cakes | `sunset` |
+
+Because a portrait phone sees little of the side strips, each level also marks the hatch wall over the right hatch, in view on every screen: a lit MONSTER CAFÉ sign (2), the order-ticket rail (3), a string of warm bulbs over the lintel (4), a GRAND FEAST banner (5). Each level's twist is its rules knob above (the second hatch, the drift, the penalty, the drains). `sets.test.ts`: the reused GLBs are in the manifest and measure what `sets.ts` says; every piece's footprint stands outside `PLAY_BOUNDS` (lanterns hang above the side and back strips) and off every camera line to the chef, the wheel, the cauldron, the monsters and the hatches at 1280 × 800, 390 × 844 and 844 × 390; the five rooms differ.
+
 ### Per-level proof
 
 The ceiling is `fastestSchedule` in `rules.ts`: one shared pot, always the earliest-ready hatch, always the longest band length (150 / 190 / 240 with a full patience bar). A longer order pays more per second both alone (150/4.45, 190/5.00, 240/5.55) and while the other hatch fills the 2.8 s eat-and-walk gap, and `scheduleCeiling(level, false)` (shortest legal orders) scores less on every level. The landing has to fall inside the clock; the last order shortens only if the long one would miss it. Rotations are free and the ingredient is always in hand, so a real cook scores less. `maxScore = ceil(ceiling × 1.03 / 10) × 10`, `pps = ceil(slope × 1.03)` with base 240, and `maxDurationMs = clock + 2 s`.

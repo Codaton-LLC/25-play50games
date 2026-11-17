@@ -21,3 +21,6 @@ export const ARCADE_PREVIEW = on(process.env.NEXT_PUBLIC_ARCADE_PREVIEW);
  * `meta.levels` never show the level UI, even with the flag on.
  */
 export const ARCADE_LEVELS = on(process.env.NEXT_PUBLIC_ARCADE_LEVELS);
+
+/** Preview builds only: every level of every game is open, so a tester can jump to any level. Never set on Vercel. */
+export const ARCADE_UNLOCK_ALL = on(process.env.NEXT_PUBLIC_ARCADE_UNLOCK_ALL);

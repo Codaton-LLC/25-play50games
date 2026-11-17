@@ -1,114 +1,114 @@
-{
-   "slug": "pizza-kitchen-3d",
-   "source": "Hyper3D ready/menu1-pizza-kitchen-3d",
-   "assets": [
-      {
-         "id": "pizzaBase",
-         "url": "/models/3d/pizza-kitchen-3d/pizzaBase.glb",
-         "budget": {
-            "tris": 20000,
-            "bytes": 200000
-         }
-      },
-      {
-         "id": "sauceBowl",
-         "url": "/models/3d/pizza-kitchen-3d/sauceBowl.glb",
-         "budget": {
-            "tris": 20000,
-            "bytes": 200000
-         }
-      },
-      {
-         "id": "cheeseBowl",
-         "url": "/models/3d/pizza-kitchen-3d/cheeseBowl.glb",
-         "budget": {
-            "tris": 20000,
-            "bytes": 200000
-         }
-      },
-      {
-         "id": "mushroomBowlR",
-         "url": "/models/3d/pizza-kitchen-3d/mushroomBowlR.glb",
-         "budget": {
-            "tris": 20000,
-            "bytes": 200000
-         }
-      },
-      {
-         "id": "oliveBowl",
-         "url": "/models/3d/pizza-kitchen-3d/oliveBowl.glb",
-         "budget": {
-            "tris": 20000,
-            "bytes": 200000
-         }
-      },
-      {
-         "id": "pepperoni",
-         "url": "/models/3d/pizza-kitchen-3d/pepperoni.glb",
-         "budget": {
-            "tris": 20000,
-            "bytes": 200000
-         }
-      },
-      {
-         "id": "tomato",
-         "url": "/models/3d/pizza-kitchen-3d/tomato.glb",
-         "budget": {
-            "tris": 20000,
-            "bytes": 200000
-         }
-      },
-      {
-         "id": "onion",
-         "url": "/models/3d/pizza-kitchen-3d/onion.glb",
-         "budget": {
-            "tris": 20000,
-            "bytes": 200000
-         }
-      },
-      {
-         "id": "pizzaOven",
-         "url": "/models/3d/pizza-kitchen-3d/pizzaOven.glb",
-         "budget": {
-            "tris": 20000,
-            "bytes": 200000
-         }
-      },
-      {
-         "id": "pizzaPeelClean",
-         "url": "/models/3d/pizza-kitchen-3d/pizzaPeelClean.glb",
-         "budget": {
-            "tris": 20000,
-            "bytes": 200000
-         }
-      },
-      {
-         "id": "prepCounterR",
-         "url": "/models/3d/pizza-kitchen-3d/prepCounterR.glb",
-         "budget": {
-            "tris": 20000,
-            "bytes": 200000
-         }
-      },
-      {
-         "id": "pizzaBoxClosed",
-         "url": "/models/3d/pizza-kitchen-3d/pizzaBoxClosed.glb",
-         "budget": {
-            "tris": 20000,
-            "bytes": 200000
-         }
-      }
-   ],
-   "reused": [
-      "chef",
-      "bin",
-      "crate"
-   ],
-   "excluded": [
-      "mushroomBowl",
-      "prepCounter",
-      "pizzaBox",
-      "pizzaBoxV2",
-      "pizzaPeel"
-   ]
-}
+{
+   "slug": "pizza-kitchen-3d",
+   "source": "Hyper3D ready/menu1-pizza-kitchen-3d",
+   "assets": [
+      {
+         "id": "pizzaBase",
+         "url": "/models/3d/pizza-kitchen-3d/pizzaBase.glb",
+         "budget": {
+            "tris": 20000,
+            "bytes": 200000
+         }
+      },
+      {
+         "id": "sauceBowl",
+         "url": "/models/3d/pizza-kitchen-3d/sauceBowl.glb",
+         "budget": {
+            "tris": 20000,
+            "bytes": 200000
+         }
+      },
+      {
+         "id": "cheeseBowl",
+         "url": "/models/3d/pizza-kitchen-3d/cheeseBowl.glb",
+         "budget": {
+            "tris": 20000,
+            "bytes": 200000
+         }
+      },
+      {
+         "id": "mushroomBowlR",
+         "url": "/models/3d/pizza-kitchen-3d/mushroomBowlR.glb",
+         "budget": {
+            "tris": 20000,
+            "bytes": 200000
+         }
+      },
+      {
+         "id": "oliveBowl",
+         "url": "/models/3d/pizza-kitchen-3d/oliveBowl.glb",
+         "budget": {
+            "tris": 20000,
+            "bytes": 200000
+         }
+      },
+      {
+         "id": "pepperoni",
+         "url": "/models/3d/pizza-kitchen-3d/pepperoni.glb",
+         "budget": {
+            "tris": 20000,
+            "bytes": 200000
+         }
+      },
+      {
+         "id": "tomato",
+         "url": "/models/3d/pizza-kitchen-3d/tomato.glb",
+         "budget": {
+            "tris": 20000,
+            "bytes": 200000
+         }
+      },
+      {
+         "id": "onion",
+         "url": "/models/3d/pizza-kitchen-3d/onion.glb",
+         "budget": {
+            "tris": 20000,
+            "bytes": 200000
+         }
+      },
+      {
+         "id": "pizzaOven",
+         "url": "/models/3d/pizza-kitchen-3d/pizzaOven.glb",
+         "budget": {
+            "tris": 20000,
+            "bytes": 200000
+         }
+      },
+      {
+         "id": "pizzaPeelCleanT",
+         "url": "/models/3d/pizza-kitchen-3d/pizzaPeelCleanT.glb",
+         "budget": {
+            "tris": 20000,
+            "bytes": 200000
+         }
+      },
+      {
+         "id": "prepCounterR",
+         "url": "/models/3d/pizza-kitchen-3d/prepCounterR.glb",
+         "budget": {
+            "tris": 20000,
+            "bytes": 200000
+         }
+      },
+      {
+         "id": "pizzaBoxClosed",
+         "url": "/models/3d/pizza-kitchen-3d/pizzaBoxClosed.glb",
+         "budget": {
+            "tris": 20000,
+            "bytes": 200000
+         }
+      }
+   ],
+   "reused": [
+      "chef",
+      "bin",
+      "crate"
+   ],
+   "excluded": [
+      "mushroomBowl",
+      "prepCounter",
+      "pizzaBox",
+      "pizzaBoxV2",
+      "pizzaPeel"
+   ]
+}

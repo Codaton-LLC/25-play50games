@@ -7,7 +7,7 @@ import { describeCharacter, rigCharacter } from "@/arcade3d/core/rig/characterCh
 import { createPose, sitPose } from "@/arcade3d/core/rig";
 import { readCharacterGlb } from "@/arcade3d/core/rig/robotGlb";
 import type { ModelAsset } from "@/arcade3d/core/types";
-import { ASSETS, CARPET_WIDTH, CLOUD_WIDTH, GLB_SIZE, RIDER_HEIGHT, RIDER_LANDMARKS, RIDER_SCALE, RING_DIAMETER, ROCK_WIDTH, SEAT_Y, STAR_SIZE, TOWER_HEIGHT } from "./assets";
+import { ASSETS, CARPET_STRETCH_Z, CARPET_TOP, CARPET_WIDTH, FLY_SIZE, GLB_SIZE, RIDER_HEIGHT, RIDER_LANDMARKS, RIDER_SCALE, SEAT_Y } from "./assets";
 
 async function drawnBox(asset: ModelAsset): Promise<Box3> {
    const { local, node } = await readCharacterGlb(asset.url);
@@ -28,7 +28,11 @@ async function drawnBox(asset: ModelAsset): Promise<Box3> {
 }
 const drawnSize = async (asset: ModelAsset) => (await drawnBox(asset)).getSize(new Vector3());
 
-const UNIT_BOX = ["roof", "mesa", "lantern", "palace"] as const;
+const UNIT_BOX = ["cloud", "tower", "roof", "mesa", "lantern", "palace", "pyramid", "islandCastle", "islandFalls", "islandMill", "palm"] as const;
+const FLYING = ["ring", "coin", "gem", "boost", "gull", "bat", "hawk", "balloon", "hotAir", "blimp", "skyLantern", "rock"] as const;
+const FLY_KEY: Record<(typeof FLYING)[number], keyof typeof FLY_SIZE> = {
+   ring: "ring", coin: "coin", gem: "gem", boost: "boost", gull: "gull", bat: "bat", hawk: "hawk", balloon: "balloon", hotAir: "hotAir", blimp: "blimp", skyLantern: "skyLantern", rock: "rock",
+};
 
 describe("magic-carpet-ride models", () => {
    it("lists every GLB it uses; only the rider is a humanoid", () => {
@@ -38,38 +42,37 @@ describe("magic-carpet-ride models", () => {
       for (const key of Object.keys(ASSETS) as Array<keyof typeof ASSETS>) if (key !== "rider") expect((ASSETS[key] as ModelAsset).humanoid).toBeUndefined();
    });
 
-   it("draws the rider at 1.72 m, the carpet, rings, stars, rocks, clouds and towers at their size, centred where the scene places them", async () => {
+   it("draws the rider at 1.72 m and the carpet 1.9 m wide, stretched long", async () => {
       expect((await drawnSize(ASSETS.rider)).y).toBeCloseTo(RIDER_HEIGHT, 2);
-      expect((await drawnSize(ASSETS.carpet)).x).toBeCloseTo(CARPET_WIDTH, 2);
-      const ring = await drawnBox(ASSETS.ring);
-      expect(ring.getSize(new Vector3()).x).toBeCloseTo(RING_DIAMETER, 2);
-      expect((ring.min.y + ring.max.y) / 2).toBeCloseTo(0, 3);
-      const star = await drawnBox(ASSETS.star);
-      expect(Math.max(...star.getSize(new Vector3()).toArray())).toBeCloseTo(STAR_SIZE, 2);
-      expect((star.min.y + star.max.y) / 2).toBeCloseTo(0, 3);
-      const rock = await drawnBox(ASSETS.rock);
-      expect(Math.max(...rock.getSize(new Vector3()).toArray())).toBeCloseTo(ROCK_WIDTH, 2);
-      expect((rock.min.y + rock.max.y) / 2).toBeCloseTo(0, 3);
-      const cloud = await drawnBox(ASSETS.cloud);
-      expect(Math.max(...cloud.getSize(new Vector3()).toArray())).toBeCloseTo(CLOUD_WIDTH, 2);
-      const tower = await drawnBox(ASSETS.tower);
-      expect(tower.getSize(new Vector3()).y).toBeCloseTo(TOWER_HEIGHT, 2);
-      expect((tower.min.y + tower.max.y) / 2).toBeCloseTo(0, 3);
+      const carpet = await drawnSize(ASSETS.carpet);
+      expect(carpet.x).toBeCloseTo(CARPET_WIDTH, 2);
+      expect(carpet.y).toBeCloseTo(CARPET_TOP, 2);
+      expect(carpet.z / carpet.x).toBeCloseTo((GLB_SIZE.carpet.z / GLB_SIZE.carpet.x) * CARPET_STRETCH_Z, 2);
    });
 
-   it("draws the instanced decor as unit boxes centred on the origin: the spot's size is the box, never doubled", async () => {
+   it("draws every flyer and pickup at its size in metres, centred on its middle (the rules place them by their centre)", async () => {
+      for (const key of FLYING) {
+         const box = await drawnBox(ASSETS[key]);
+         const s = box.getSize(new Vector3());
+         expect(Math.max(s.x, s.y, s.z), key).toBeCloseTo(FLY_SIZE[FLY_KEY[key]], 2);
+         expect((box.min.y + box.max.y) / 2, key).toBeCloseTo(0, 2);
+      }
+   });
+
+   it("draws the instanced decor as unit boxes standing on the origin: the spot's size is the box, never doubled", async () => {
       for (const key of UNIT_BOX) {
          const box = await drawnBox(ASSETS[key]);
          const s = box.getSize(new Vector3());
          expect([s.x, s.y, s.z].map((v) => Math.round(v * 100) / 100), key).toEqual([1, 1, 1]);
-         expect((box.min.y + box.max.y) / 2, key).toBeCloseTo(0, 3);
+         expect(box.min.y, key).toBeCloseTo(0, 3);
       }
    });
 
    it("the constants match the real GLB bounds", async () => {
       const ids: Record<keyof typeof GLB_SIZE, ModelAsset> = {
-         rider: ASSETS.rider, carpet: ASSETS.carpet, ring: ASSETS.ring, star: ASSETS.star, rock: ASSETS.rock, cloud: ASSETS.cloud, tower: ASSETS.tower,
-         roof: ASSETS.roof, mesa: ASSETS.mesa, lantern: ASSETS.lantern, palace: ASSETS.palace,
+         rider: ASSETS.rider, carpet: ASSETS.carpet, ring: ASSETS.ring, coin: ASSETS.coin, gem: ASSETS.gem, boost: ASSETS.boost, gull: ASSETS.gull, bat: ASSETS.bat, hawk: ASSETS.hawk,
+         balloon: ASSETS.balloon, hotAir: ASSETS.hotAir, blimp: ASSETS.blimp, skyLantern: ASSETS.skyLantern, rock: ASSETS.rock, cloud: ASSETS.cloud, tower: ASSETS.tower, roof: ASSETS.roof,
+         mesa: ASSETS.mesa, lantern: ASSETS.lantern, palace: ASSETS.palace, pyramid: ASSETS.pyramid, islandCastle: ASSETS.islandCastle, islandFalls: ASSETS.islandFalls, islandMill: ASSETS.islandMill,
       };
       for (const [key, size] of Object.entries(GLB_SIZE) as Array<[keyof typeof GLB_SIZE, { x: number; y: number; z: number }]>) {
          const real = await drawnSize({ ...ids[key], scale: 1, stretch: undefined, yOffset: 0, rotationY: 0 });
@@ -79,22 +82,21 @@ describe("magic-carpet-ride models", () => {
       }
    });
 
-   it("seats the rider on the carpet: the core sitPose with the hips at the carpet's top, the knees forward, nothing below the carpet but the feet", async () => {
+   it("seats the rider cross-legged on the carpet (the core sitPose): nothing sinks below the carpet's top, the head well above it", async () => {
       const rider = await rigCharacter(ASSETS.rider);
-      const world = rider.posed(sitPose(1, createPose()), false);
+      const world = rider.posed(sitPose(1, createPose(), 1), false);
       let minY = Infinity;
       let maxY = -Infinity;
       for (let i = 1; i < world.length; i += 3) {
          minY = Math.min(minY, world[i]);
          maxY = Math.max(maxY, world[i]);
       }
-      // drawn at the seat: the feet hang about knee height under the carpet's top, the head stays over it
-      const top = 0.2;
-      expect(minY * RIDER_SCALE + SEAT_Y).toBeGreaterThan(top - 0.6);
-      expect(minY * RIDER_SCALE + SEAT_Y).toBeLessThan(top);
-      expect(maxY * RIDER_SCALE + SEAT_Y).toBeGreaterThan(top + 0.6);
+      // drawn at the seat: the folded legs rest on the carpet (a few cm into the cloth at most), the head high above it
+      expect(minY * RIDER_SCALE + SEAT_Y).toBeGreaterThan(CARPET_TOP - 0.06);
+      expect(minY * RIDER_SCALE + SEAT_Y).toBeLessThan(CARPET_TOP + 0.12);
+      expect(maxY * RIDER_SCALE + SEAT_Y).toBeGreaterThan(CARPET_TOP + 0.75);
       const scene = readFileSync(new URL("./Scene.tsx", import.meta.url), "utf8");
-      expect(scene.includes("sitPose(1, pose)")).toBe(true);
+      expect(scene.includes("sitPose(1, p, 1)")).toBe(true);
    });
 });
 

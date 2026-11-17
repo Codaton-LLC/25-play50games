@@ -31,7 +31,7 @@ export const trainStationRushMeta: ArcadeGameMeta = {
    },
    scoring: LEVELS[0].scoring,
    levels: LEVELS,
-   thumbnail: null,
+   thumbnail: "/images/3d/train-station-rush.webp",
    accent: "#38bdf8",
    owner: "claude",
 };

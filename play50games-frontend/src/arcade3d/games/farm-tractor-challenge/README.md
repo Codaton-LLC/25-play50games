@@ -10,7 +10,7 @@ Street-vehicle integrator. Stick up is forward (`moveY` −1). Top speed 6, acce
 
 A trip's bales wear the tint ring. Overlap at incoming speed under 2 hitches one into the next free trailer slot (the speed is read before drag). At 2 or above the bale stays and a life is spent. A full trailer ignores a further slow overlap. Unarmed bales do not hitch. Slots never exceed `balesPerTrip`.
 
-The trailer is a critically damped spring (`SPRING_K` 26) toward a point 1.15 + 2.4 m behind the tractor. It never writes the tractor. Two slot offsets sit on that point.
+The trailer is a critically damped spring (`SPRING_K` 26) toward a point 1.15 + 2.4 m behind the tractor. It never writes the tractor. Two slot offsets sit on that point. Drawn (`Scene.tsx`): `farmTrailer.glb` 2.4 m behind the hitch along its own yaw (the spring point once the yaw has caught up, so the bar stays rigid), 2.8 m long and 1.2 m wide (`TRAILER_LENGTH`, sides squashed to 0.8), its yaw easing toward the tractor's heading (`TRAILER_TURN` 3/s); a hitch bar runs from the GLB's drawbar eye to a pin at `hitchPoint`, and the hitched loads sit on the measured bed (`TRAILER_BED`, checked on the real mesh in `assets.test.ts`), one in the middle or two front and back. The slot offsets stay the rules' (bay check). Steering: stick right lowers the yaw (the tractor faces (sin yaw, cos yaw), and +x is the driver's left); the models are drawn with `rotation.y = yaw`.
 
 Mud rects multiply accel, top speed and reverse by 0.55 while the tractor circle overlaps them. Speed above the mud top bleeds with the brake. Mud never covers a bale or the bay (200 seeds).
 
@@ -22,17 +22,17 @@ Parking: every bale of the trip is hitched, the tractor centre and every slot an
 
 ## Levels
 
-Same yard rules. Counts, cargo, clock and the core lighting preset change. Level 4 fogs grey (`#a8a29e`, near 9). The others fog toward their sky.
+Same yard rules. Each level has its own `theme` (palette, fog, apron scenery in `looks.ts`). Counts, cargo, clock and the core lighting preset still ramp. Level 4 fogs grey (`#a8a29e`, near 22). The others fog toward their sky.
 
-| L | Title | Trips | Bales | Mud | Trees | Cargo | Lives | Clock | Light |
-|---|---|---:|---:|---:|---:|---|---:|---:|---|
-| 1 | Farm Yard | 2 | 1 | 0 | 0 | hay | 6 | 120 s | day `#bae6fd` |
-| 2 | Wheat Field | 3 | 2 | 0 | 0 | hay | 6 | 150 s | day `#86efac` |
-| 3 | Orchard | 4 | 2 | 0 | 6 | crate | 5 | 180 s | sunset `#fdba74` |
-| 4 | Mud Farm | 5 | 2 | 3 | 0 | hay | 4 | 180 s | day `#a8a29e` |
-| 5 | Mega Farm | 6 | 2 | 4 | 8 | hay | 4 | 210 s | sunset `#b45309` |
+| L | Title | Theme | Trips | Bales | Mud | Trees | Cargo | Lives | Clock | Light |
+|---|---|---|---:|---:|---:|---:|---|---:|---:|---|
+| 1 | Farm Yard | yard | 2 | 1 | 0 | 0 | hay | 6 | 120 s | day `#bae6fd` |
+| 2 | Wheat Field | wheat | 3 | 2 | 0 | 0 | hay | 6 | 150 s | day `#86efac` |
+| 3 | Orchard | orchard | 4 | 2 | 0 | 6 | crate | 5 | 180 s | sunset `#fdba74` |
+| 4 | Mud Farm | mud | 5 | 2 | 3 | 0 | hay | 4 | 180 s | day `#a8a29e` |
+| 5 | Mega Farm | mega | 6 | 2 | 4 | 8 | hay | 4 | 210 s | sunset `#b45309` |
 
-Level 2 is the first trip with two slots. The hitch rule does not change. Trees are solid AABBs (half-extent 0.55). Level 3 swaps the hitch mesh to the apple crate at the same radius.
+Level 2 is the first trip with two slots. The hitch rule does not change. Trees are solid AABBs (half-extent 0.55). Level 3 swaps the hitch mesh to the apple crate at the same radius. Look twists: L2 wheat crop rows on the apron; L3 blossom trees + crate stacks outside; L4 visible mud pits (rim + wet centre) + boardwalk planks; L5 densifies wheat, orchard and mud apron. Level 1 apron stays empty (today's four barn-side props only).
 
 ## Controls
 
@@ -60,9 +60,9 @@ Proof (`rules.test.ts`, through `createArcadeStore` + `advanceRunClock` + `withi
 
 ## Look
 
-One palette in `looks.ts`. Grass `#84cc16`, soil `#a16207`, mud `#57534e`, barn `#b45309`, accent `#eab308`. Lighting and background come from the level. Chase camera: pitch 46°, yaws `[π, π/2]`, fov 46, follow fraction 0.2, look-ahead 3.5 m, `shift: true`, bounds the field.
+Base palette in `looks.ts` (`COLORS`); per-theme ground tones in `LOOKS` (yard / wheat / orchard / mud / mega). Lighting and background come from the level. Chase camera: pitch 46°, yaws `[π, π/2]`, fov 46, follow fraction 0.2, look-ahead 3.5 m, `shift: true`, bounds the field.
 
-The farmer is a seated `HumanoidModel` stand-in (`FarmerFigure`, 1.78 m, `applyLift={false}`) until `charFarmer.glb` is measured. Cheer on a win. Hay or crates are one `DynamicInstancedModel` pool (hidden once delivered, shown on the trailer by the same pool). Fence, trees and mud are instanced. Decor (silo, trough, scarecrow, shared crate) sits outside the north fence. Grass extends 2.6× the longer side so the chase frame has no void. Fallback posts and cargo are unit meshes scaled by the spot or the instance matrix.
+The farmer is a seated `HumanoidModel` stand-in (`FarmerFigure`, 1.78 m, `applyLift={false}`) until `charFarmer.glb` is measured. Cheer on a win. Hay or crates are one `DynamicInstancedModel` pool (hidden once delivered, shown on the trailer by the same pool). Fence, trees and mud pits (bed + wet + rim) are instanced. Barn-side decor (silo, trough, scarecrow, shared crate) sits outside the fence; extra apron scenery is `Decor.tsx` / `scenerySpots` (never inside the yard). Grass extends 2.6× the longer side so the chase frame has no void. Fallback posts and cargo are unit meshes scaled by the spot or the instance matrix.
 
 ## Known issues
 
@@ -70,7 +70,7 @@ The farmer is a seated `HumanoidModel` stand-in (`FarmerFigure`, 1.78 m, `applyL
 - Every url under `/models/3d/farm-tractor-challenge/` is unlisted, so those fallbacks draw. The leafy tree and the barn crate are shared meshes already in the manifest.
 - Leave `hero.glb`. Regen still open for `hayBaleBound`, `grainSiloGround` and `scarecrowPost`. The game loads `hayBale`, `grainSilo` and `scarecrow`. `grainSiloR` is the closer interim silo if Claude swaps the file.
 - Draw calls were not measured on a device. The target is about 30, cap 50.
-- No thumbnail yet: `meta.thumbnail` is `null`.
+- Thumbnail: `meta.thumbnail` is `/images/3d/<slug>.webp` (capture via tools/thumbs).
 
 ## What Claude registers
 
@@ -99,3 +99,15 @@ The slug is already on main (registry, loader, stub meta). Status stays `dev`. D
 ```
 
 2. Copy the GLBs named in `assets.spec.json` to `public/models/3d/farm-tractor-challenge/` and add them to `core/modelManifest.ts`. Leave `hero.glb`. Then fit scales. The tree and the barn crate are already shared.
+
+## Camera views
+
+Tap 📷 or press **C** (**T** also cycles): Classic (the existing fitted follow camera) / Front / Top / Free. A separate chase view is omitted because Classic already follows the vehicle. WASD / arrows and the joystick keep steering the vehicle in every view.
+
+Drag on empty canvas (one or two fingers on touch) to orbit in Free; wheel / pinch zooms. Q / Z turn left, X turns right, R / F tilt, V recenters. No camera keys conflict with game controls. The core camera button stays at the bottom right, clear of the shell chips and joystick and the top-left Load panel.
+
+Both subject and steering are `vehicle`. Camera collision uses the existing tree AABBs plus boxes around the fence segments and gate posts. Top distance is 18 m (below the mud level’s 22 m fog start). No fitted-pitch labels or view-based scene culling need adjustment. Browser checks, including 390 × 844 with the cookie banner, are left to Claude.
+
+## Clarity (2026-10-28, visual only)
+
+`guide.ts` (pure, `guide.test.ts`) picks the next step: the nearest bale of this trip still in the field, then the barn bay once the trailer is full. A core `TargetBeacon` marks it (a yellow arrow over the bale; a green "drop-here" ring with a PARK label over the bay). The core `HintLine` says it ("Trip 1/2: drive gently into the ringed bale", "1/2 loaded: get the next bale", "Loaded! Drive into the green barn bay", "In the bay: stop and hold still", a sticky "Parking… hold still" and a sticky red "Slow down! Touch the bale under 2 m/s" within 4 m of a bale at hitch speed). The Load chip turns green with "to the bay" when full. A hitched load swings from the field onto the bed and a delivered one is lifted off into the barn (0.45 s arcs) instead of jumping or vanishing; a bump pops "Too fast for the bale! -1 life" next to a bale, else "Bump! -1 life". Rules, scoring and limits are unchanged.

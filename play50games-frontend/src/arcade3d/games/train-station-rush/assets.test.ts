@@ -12,10 +12,12 @@ import {
    CANOPY_DEPTH,
    CANOPY_HEIGHT,
    CANOPY_WIDTH,
+   CAR_HEIGHT,
    CAR_LENGTH,
    CAR_WIDTH,
    GLB_SIZE,
    LAMP_HEIGHT,
+   LOCO_WIDTH,
    SUITCASE_HEIGHT,
    TICKET_HEIGHT,
    TRAVELLER_HEIGHT,
@@ -23,6 +25,7 @@ import {
 } from "./assets";
 import spec from "./assets.spec.json";
 import { LEVELS } from "./levels";
+import { LOCO_LEN } from "./looks";
 import { PLATFORM_W, TRACK_W, solidsFor } from "./rules";
 
 async function bounds(url: string) {
@@ -40,6 +43,7 @@ async function bounds(url: string) {
 const BY_ID: Record<keyof typeof GLB_SIZE, string> = {
    charStationWorker: ASSETS.worker.url,
    trainCarV2: ASSETS.car.url,
+   locomotiveFront: ASSETS.loco.url,
    platformCanopy: ASSETS.canopy.url,
    platformSign: ASSETS.sign.url,
    stationBench: ASSETS.bench.url,
@@ -81,6 +85,10 @@ describe("train-station-rush GLB fits", () => {
       // the carriage: 2.0 m wide inside its 2.4 m track bed, about 14 m long and 2.5 m tall
       expect(GLB_SIZE.trainCarV2.width * k(ASSETS.car)).toBeCloseTo(CAR_WIDTH, 6);
       expect(CAR_WIDTH).toBeLessThan(TRACK_W);
+      // the engine: as tall as a carriage, inside the track bed, exactly LOCO_LEN long
+      expect(GLB_SIZE.locomotiveFront.height * k(ASSETS.loco)).toBeCloseTo(CAR_HEIGHT, 6);
+      expect(LOCO_WIDTH).toBeLessThan(TRACK_W);
+      expect(GLB_SIZE.locomotiveFront.depth * k(ASSETS.loco) * ASSETS.loco.stretch[2]).toBeCloseTo(LOCO_LEN, 6);
       expect(CAR_LENGTH).toBeGreaterThan(12);
       // the canopy spans the island (two platforms) without reaching the tracks
       expect(GLB_SIZE.platformCanopy.depth * k(ASSETS.canopy)).toBeCloseTo(CANOPY_WIDTH, 6);

@@ -25,6 +25,14 @@ One open kitchen. A ticket shows the pizza: Use the dough, then sauce, cheese an
 
 A level clears on a win only (no `clearScore`).
 
+**Rooms (2026-10-29).** One counter line, five rooms (`levels.ts` `theme`, `looks.ts` `KITCHENS`, `Decor.tsx`): floor tiles, wall, skirting, counter and oven stand-in colours, and the props on the back wall, over the ovens and past the ends of the line. The stations, pizzas, oven rings and the hatch keep one palette. Nothing stands in the cook's strip, so the rules, the bots and the limits are unchanged (`kitchen.test.ts`).
+
+- **L1 Cheese Pizza:** today's white tiled kitchen.
+- **L2 Two Toppings:** a cosy trattoria: terracotta floor, warm wall, herb shelves, hanging garlic and chillies, framed pictures.
+- **L3 Restaurant Rush:** black-and-white floor, red wall, a ticket rail full of tickets, a lit menu board, and a full dining room (tables, plates, chairs) past both ends of the line, next to the second oven.
+- **L4 Multiple Orders:** a retro diner at sunset: mint and cream floor, pink wall, a glowing sunset window, a neon stripe and a big wall clock (tickets have patience now).
+- **L5 Master Pizza Night:** the night patio: dark stone floor, brick wall, wood-fired dome ovens with glowing mouths, flues and a warm light each, string lights and stars; box it before it goes out.
+
 ## Server limits and why they hold
 
 Score sources (constants in `rules.ts`): 230 per ticket at most (150 + 50 + 30), once per ticket, so `Bobj = 230 × orders`; the win bonus `4 × floor(D − t)` is the only time term and is largest at the earliest win `M`. So `B(t) ≤ Bobj` before a win and `Bobj + 4 (D − t)` at a win at `t ≥ M`:
@@ -44,7 +52,7 @@ Score sources (constants in `rules.ts`): 230 per ticket at most (150 + 50 + 30),
 
 ## Models
 
-Ready Hyper3D GLBs in `public/models/3d/pizza-kitchen-3d/` (fits in `assets.ts`, checked on the real meshes in `assets.test.ts`): `prepCounterR` (worktop 0.95 m, one per station, stretched to meet at 1.6 m), `pizzaOven` (1.5 m wide on the floor, one per oven), `sauceBowl`, `cheeseBowl`, `mushroomBowlR`, `oliveBowl` (0.5 m), `pepperoni`, `tomato`, `onion` (on the pizza, and as piles in steel bowls), `pizzaBase` (0.6 m), `pizzaPeelClean`, `pizzaBoxClosed`. Left out: `mushroomBowl`, `prepCounter`, `pizzaPeel`, `pizzaBox`, `pizzaBoxV2`. Core: the food-catcher chef (`REUSED_ASSETS.chef`, 1.82 m, auto-rig: walk by `walkStride`, reach on Use, carry with the peel, cheer on a win), the clean-city bin (0.8 m), the shared crate.
+Ready Hyper3D GLBs in `public/models/3d/pizza-kitchen-3d/` (fits in `assets.ts`, checked on the real meshes in `assets.test.ts`): `prepCounterR` (worktop 0.95 m, one per station, stretched to meet at 1.6 m), `pizzaOven` (1.5 m wide on the floor, one per oven), `sauceBowl`, `cheeseBowl`, `mushroomBowlR`, `oliveBowl` (0.5 m), `pepperoni`, `tomato`, `onion` (on the pizza, and as piles in steel bowls), `pizzaBase` (0.6 m), `pizzaPeelCleanT`, `pizzaBoxClosed`. Left out: `mushroomBowl`, `prepCounter`, `pizzaPeel`, `pizzaBox`, `pizzaBoxV2`. Core: the food-catcher chef (`REUSED_ASSETS.chef`, 1.82 m, auto-rig: walk by `walkStride`, reach on Use, carry with the peel, cheer on a win), the clean-city bin (0.8 m), the shared crate.
 
 ## Known issues
 

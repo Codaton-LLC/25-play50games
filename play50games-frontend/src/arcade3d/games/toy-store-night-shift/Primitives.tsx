@@ -102,26 +102,27 @@ export function windupCarParts(): InstancePart[] {
    ];
 }
 
-export function GuardFigure() {
+/** The tidy-up robot's stand-in (1.2 m): a white body, a blue visor head, grey legs. */
+export function HeroFigure() {
    const stuff = useMemo(
       () => ({
-         legs: new CylinderGeometry(0.13, 0.15, 0.85, 8),
-         torso: new CylinderGeometry(0.22, 0.24, 0.62, 8),
-         head: new SphereGeometry(0.17, 10, 8),
-         cap: new CylinderGeometry(0.18, 0.2, 0.1, 10),
-         suit: new MeshStandardMaterial({ color: COLORS.guard, roughness: 0.6 }),
-         skin: new MeshStandardMaterial({ color: COLORS.skin, roughness: 0.6 }),
-         trim: new MeshStandardMaterial({ color: COLORS.guardTrim, roughness: 0.5 }),
+         legs: new BoxGeometry(0.34, 0.36, 0.22),
+         torso: new BoxGeometry(0.46, 0.38, 0.3),
+         head: new BoxGeometry(0.5, 0.4, 0.4),
+         visor: new BoxGeometry(0.36, 0.14, 0.04),
+         shell: new MeshStandardMaterial({ color: COLORS.hero, roughness: 0.5 }),
+         dark: new MeshStandardMaterial({ color: COLORS.heroDark, roughness: 0.6 }),
+         glow: new MeshStandardMaterial({ color: COLORS.heroVisor, emissive: COLORS.heroVisor, emissiveIntensity: 0.6, roughness: 0.4 }),
       }),
       [],
    );
    useEffect(() => () => Object.values(stuff).forEach((x) => x.dispose()), [stuff]);
    return (
       <group>
-         <mesh geometry={stuff.legs} material={stuff.suit} position={[0, 0.42, 0]} />
-         <mesh geometry={stuff.torso} material={stuff.suit} position={[0, 1.15, 0]} />
-         <mesh geometry={stuff.head} material={stuff.skin} position={[0, 1.62, 0]} />
-         <mesh geometry={stuff.cap} material={stuff.trim} position={[0, 1.78, 0]} />
+         <mesh geometry={stuff.legs} material={stuff.dark} position={[0, 0.18, 0]} />
+         <mesh geometry={stuff.torso} material={stuff.shell} position={[0, 0.56, 0]} />
+         <mesh geometry={stuff.head} material={stuff.shell} position={[0, 0.96, 0]} />
+         <mesh geometry={stuff.visor} material={stuff.glow} position={[0, 0.98, 0.21]} />
       </group>
    );
 }

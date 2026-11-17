@@ -23,15 +23,29 @@ You are the dog. The owner stands on a blanket at the south end of the lawn and 
 |---|---|---|---:|---|---:|---:|---:|---|---|
 | 1 | Small Park | 20 × 16 | 4 | 6–10 | 0 | – | none | no | day |
 | 2 | City Park | 26 × 20 | 6 | 7–13 | 0 | – | none | yes | day |
-| 3 | Forest Park | 30 × 24 | 8 | 8–15 | 1 | 1.8 | none | yes | day |
+| 3 | Forest Park | 30 × 24 | 8 | 8–15 | 1 | 1.8 | none | yes | sunset (dusk) |
 | 4 | Beach Park | 32 × 26 | 10 | 8–16 | 1 | 2.2 | 14 s | yes | sunset |
 | 5 | Dog Festival | 36 × 28 | 12 | 9–18 | 2 | 2.4 | 12 s | yes | day |
 
 The dog's tint is the level's tint (L1 untinted). The owner is never tinted.
 
+## The five parks' looks (2026-10-29, `kimi/dog-park-fetch-levels`)
+
+Every level has its own palette (`PALETTES` in looks.ts: lawn texture colours, outer park grass, stripe tint, sky-dome top), its own lighting/background and its own set pieces; only Level 1 is exactly today's game.
+
+- **L1 Small Park** — unchanged: sunny lawn, tree line, bushes.
+- **L2 City Park** — a cooler kempt lawn; lamp posts line both sides outside the fence and a slate skyline rises behind the north fence.
+- **L3 Forest Park** — deep shade greens in dusk (sunset preset) light; a second, taller tree wall closes in behind the fence, with stumps and boulders.
+- **L4 Beach Park** — sun-bleached lawn on warm sand (the outer grass is sand-coloured), umbrellas along both sides, boulders on the beach strip, water beyond the south fence (unchanged mechanics).
+- **L5 Dog Festival** — rich summer lawn; bunting (two-colour pennants on strings) runs along the fence, balloon clusters float behind the tents (tents, tunnel and hurdles unchanged).
+
+All set pieces are code-built and instanced; every piece stands outside the fence and the south (camera) side stays under 0.7 m (levels-look.test.ts, assets.test.ts).
+
 ## Controls
 
-WASD / arrows run. Space jumps (leap). Touch: joystick and Jump. Scheme `joystick`. The same leap length and catch window run on both devices. The shell owns pause. HUD: the shell's score and clock, plus the stat chip Fetched (max = throws). There is no custom HUD. `resultDelayMs` 900. The target arrow (`TargetMarkers`) points at the toy while it is out, and at the blanket while the dog carries it.
+WASD / arrows run. Space jumps (leap). Touch: joystick and Jump. Scheme `joystick`. The same leap length and catch window run on both devices. The shell owns pause. HUD: the shell's score and clock, plus the stat chip Fetched (max = throws) and the 📷 camera-view button (`Hud.tsx`; the game has no HUD of its own). `resultDelayMs` 900. The target arrow (`TargetMarkers`) points at the toy while it is out, and at the blanket while the dog carries it.
+
+Camera views (core/camera, `kimi/cam-views-cat-dog`): 📷 or **C** cycles Classic (the fitted follow camera) / Chase / Front / Top / Free; drag looks around; V recenters. The rules get the drawn camera's yaw (`cam.yaw()`), so WASD / the stick stay screen-relative in every view; bots and proofs are unchanged. The props (fountain, benches, bushes) and the picket fence are camera solids; the fog (`fogFor`, near ≥ 18 m) stays past the top view (15 m), so no framing override was needed.
 
 ## Server limits (one proof per level, gate 2026-10-26)
 
@@ -58,11 +72,17 @@ Tests: `proof.level-N.test.ts` (bots in `testing/bots.ts`, suite in `testing/pro
 - Decor (`decorSpots`): a tree line behind the north fence and down both sides, low bushes all round (the south row under 0.7 m: the camera side), L5 festival tents and an agility tunnel + hurdles behind the north fence. All decor GLBs are fitted to 1 m and placed by the spot's scale (never scaled twice); nothing stands inside the fence except the solid props.
 - Models (all fitted from their measured bounds, `assets.test.ts` on the real meshes; triangles pinned): dog 0.9 m long, faces +z, per-level tint; owner = shared `civilianNpc` 1.75 m (hops per throw); tennis ball 0.14 m, stick 0.6 m, frisbee 0.28 m (turned over: the GLB lies concave side up); fountain 2.4 m across (its 1.2 m solid circle); lawn mower 1.3 m long; bench (shared) 1.2 m for its 0.5 m circle; park bush, festival tent, agility tunnel / hurdle, leafy tree as decor.
 - Left out: `dogHouse*`, `dogBone*`, `agilityHurdle` (dogs baked in, spec), `dogOwnerNpc` (a dog baked in at its feet), shared `picketFence` (80+ copies x 1.5k tris round the lawn: the code fence instead).
-- Triangles a frame (every copy at full decor): 96k / 109k / 123k / 124k / 147k on L1-L5 (test cap 300k).
+- Triangles a frame (every copy at full decor): 96k / 111k / 150k / 111k / 150k on L1-L5 (test cap 300k).
+
+## Polish (2026-10-28, `claude/m1-animals`)
+
+- The dog runs like a dog on the core quadruped rig (`DOG_LANDMARKS` in `assets.ts`, checked on the real mesh in `dog.test.ts`): walk, trot and gallop by speed with planted paws, head nod and a wagging raised tail; idle when still and it sits after 1.2 s of waiting; a leap for the jump; it sits dazed while a mower has stunned it. The carried toy is held in its mouth (`attach.mouth`). Rodin's second, low curled tail is folded away.
+- Camera: a closer window (portrait 6.8 x 9.2 m, landscape 10.4 x 7.6 m; was 10 x 14 / 16 x 14) and the player zoom (wheel, pinch, + / -, `core/useCameraZoom`, `ZOOM` 0.55-1.8). The edge arrow and a beacon (a light column and ring) on the waiting toy show throws outside the view.
+- Look: a grass texture with quiet mowing stripes (they were loud lime bands), a red gingham picnic blanket instead of the orange disc, a white ring and contact shadow under the dog; the L4 sea drawn above the park grass (it showed as a blue shard).
 
 ## Not built (spec items left out)
 
-- Festival bunting (L5) and tree shade (L3).
+- Tree shade (L3; the forest reads through its palette, tree wall and dusk light).
 - The path strips (`#d6d3d1`).
 - A throw pose and a muzzle socket: the owner hops; the carried toy sits at a fixed point in front of the dog.
 
@@ -72,3 +92,7 @@ Tests: `proof.level-N.test.ts` (bots in `testing/bots.ts`, suite in `testing/pro
 - Frisbee flight is a parabola (apex 1.5 m) whose time grows with distance. The seeded landing point is the only randomness in a throw.
 - A mower drop leaves the toy where the dog stood. It can be dropped again, and the patience timer keeps running.
 - The bench is drawn 1.2 m long for its 0.5 m solid circle: its ends overhang the circle by 0.1 m.
+
+## Clarity (2026-10-28, visual only)
+
+`guide.ts` (pure, `guide.test.ts`) follows the active throw: the ring where a toy in the air lands, the toy waiting on the grass, the blanket once it is carried. Core `TargetBeacon`s draw them (they replace the old light column): a "drop-here" ring at the landing spot, a "pick" arrow on the toy, a green "HOME" ring on the blanket. The core `HintLine` (new `Hud.tsx`) says "Frisbee! Run under it, then press Space / tap Jump to catch it", "Run to the toy (arrow)", "Got it! Run back to the blanket (arrow)", and a sticky red "Hurry! The owner is about to fetch it" for the last 4 s of L4-L5's patience. Fail pops (`useActionPop`): "Mower! Toy dropped" (same 0.3 shake), "Too slow! Owner took it n/2". A returned toy flies from the dog's mouth into the owner's hands (`<Toss>`) instead of vanishing. The chase camera (owner beside the blanket), rules, scoring and limits are unchanged.

@@ -1,7 +1,7 @@
 "use client";
 
 // Submarine Treasure Dive. GameShell owns the clock, pause and the result.
-// Level 1 is the definition; levels 2-5 swap the reef, the clock and the light (levels.ts).
+// Level 1 is the definition; levels 2-5 swap theme (look + landmarks), counts, clock and light.
 import type { GameDefinition, LevelSpec } from "@/arcade3d/core/types";
 import { LEVEL_IDS, type LevelId } from "@/arcade3d/types";
 import { ASSETS } from "./assets";

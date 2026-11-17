@@ -4,7 +4,8 @@ import { buildHole } from "./course";
 import { FOV, MIN_PX_PER_M, feltRects, fixedView, followViews, minPxPerMetre, pickCamera } from "./looks";
 import { BALL, CUP } from "./physics";
 
-for (let h = 6; h < 9; h++) it(`Master H${h + 1}: felt and fitted camera work on desktop and both phone orientations`, () => {
+// the master holes (specs 6-8) and the level holes (specs 9-14: ramp, windmill and neon layouts)
+for (let h = 6; h < 15; h++) it(`spec ${h}: felt and fitted camera work on desktop and both phone orientations`, () => {
    for (const mirrored of [false, true]) for (const [width, height] of [[1280, 800], [390, 844], [844, 390]]) {
       const hole = buildHole(h, mirrored), bottom = height - 122;
       const screen = { width, height, fov: FOV, avoid: [
@@ -19,6 +20,6 @@ for (let h = 6; h < 9; h++) it(`Master H${h + 1}: felt and fitted camera work on
       expect(px).toBeGreaterThanOrEqual(MIN_PX_PER_M);
       expect(px * 2 * BALL.drawnRadius).toBeGreaterThanOrEqual(10);
       expect(px * 2 * CUP.drawnRadius).toBeGreaterThanOrEqual(14);
-      expect(feltRects(hole)).toHaveLength(1);
+      expect(feltRects(hole).length).toBeGreaterThanOrEqual(1);
    }
 });

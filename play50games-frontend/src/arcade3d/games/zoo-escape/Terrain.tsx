@@ -10,7 +10,8 @@ import { Water } from "@/arcade3d/core/env";
 import { Instanced, useCanvasTexture, type CanvasDraw, type InstanceSpot } from "@/arcade3d/core/render";
 import { ASSETS } from "./assets";
 import { COLORS } from "./looks";
-import { BRIDGE, MOAT, PROPS } from "./level";
+import { BRIDGE, MOAT, PROPS, type ZooMap } from "./level";
+import type { Theme } from "./looks";
 import { bridgePieces, useMerged } from "./Primitives";
 
 export const MEADOW_BLOTCH_ALPHA = 0.08;
@@ -131,7 +132,106 @@ const TERRAIN_SPOTS = {
    ] as InstanceSpot[],
 };
 
-export function Terrain({ reduced }: { reduced: boolean }) {
+/** The ground of the run's map: level 1's enclosure / plaza / parking lot, or the theme's three stage grounds. */
+export function Terrain({ reduced, map, theme }: { reduced: boolean; map?: ZooMap; theme?: Theme }) {
+   if (map && theme && map.theme !== "enclosure") return <ThemedTerrain map={map} theme={theme} />;
+   return <EnclosureTerrain reduced={reduced} />;
+}
+
+/** A mottled ground texture in a stage's tones (paved: square pavers). */
+const groundDraw = (base: string, tones: readonly string[], paved: boolean): CanvasDraw => (ctx, width, height) => {
+   ctx.fillStyle = base;
+   ctx.fillRect(0, 0, width, height);
+   if (paved) {
+      const step = 32;
+      ctx.globalAlpha = 0.3;
+      for (let x = 0; x < width; x += step) for (let y = 0; y < height; y += step) {
+         ctx.fillStyle = tones[((x + y) / step) % Math.max(1, tones.length)] ?? base;
+         if (tones.length) ctx.fillRect(x + 2, y + 2, step - 4, step - 4);
+      }
+      ctx.globalAlpha = 1;
+      return;
+   }
+   for (let i = 0; i < 56; i++) {
+      ctx.fillStyle = tones[i % tones.length];
+      ctx.globalAlpha = MEADOW_BLOTCH_ALPHA * 1.4;
+      ctx.beginPath();
+      ctx.ellipse((i * 103) % width, (i * 67) % height, 18 + ((i * 19) % 50), 12 + ((i * 13) % 36), ((i * 23) % 60) * 0.03, 0, Math.PI * 2);
+      ctx.fill();
+   }
+   ctx.globalAlpha = 1;
+};
+
+function StageGround({ draw, x, z, w, d, layer, name }: { draw: CanvasDraw; x: number; z: number; w: number; d: number; layer: { y: number; offsetFactor: number; offsetUnits: number }; name: string }) {
+   const texture = useCanvasTexture(256, 256, draw);
+   useEffect(() => {
+      texture.wrapS = texture.wrapT = RepeatWrapping;
+      texture.repeat.set(Math.max(1, w / 5), Math.max(1, d / 5));
+      texture.needsUpdate = true;
+   }, [texture, w, d]);
+   return (
+      <mesh rotation-x={-Math.PI / 2} position={[x, layer.y, z]} name={name}>
+         <planeGeometry args={[w, d]} />
+         <meshStandardMaterial map={texture} roughness={0.92} polygonOffset polygonOffsetFactor={layer.offsetFactor} polygonOffsetUnits={layer.offsetUnits} />
+      </mesh>
+   );
+}
+
+const STAGE_FRAMES = [
+   { x: 0, z: 9, w: 14.4, d: 18.4 },
+   { x: 0, z: -10, w: 18.4, d: 20.4 },
+   { x: 0, z: -31, w: 20.4, d: 22.4 },
+] as const;
+
+/** Levels 2-5: the theme's ground per stage, dusty tracks under the jeeps, parking lines under cars, kerbs. */
+function ThemedTerrain({ map, theme }: { map: ZooMap; theme: Theme }) {
+   const draws = useMemo(() => theme.ground.map((g) => groundDraw(g.base, g.tones, !!g.paved)), [theme]);
+   const outer = useMemo(() => groundDraw(theme.outer, theme.ground[0].tones, false), [theme]);
+   const tracks = useMemo<InstanceSpot[]>(
+      () =>
+         map.jeeps.flatMap((j) =>
+            j.route.map((a, i) => {
+               const b = j.route[(i + 1) % j.route.length];
+               const alongX = Math.abs(b.x - a.x) > Math.abs(b.z - a.z);
+               return { x: (a.x + b.x) / 2, y: TERRAIN_LAYERS.paths.y, z: (a.z + b.z) / 2, sx: alongX ? Math.abs(b.x - a.x) + j.width + 0.4 : j.width + 0.4, sy: 1, sz: alongX ? j.width + 0.4 : Math.abs(b.z - a.z) + j.width + 0.4 };
+            })
+         ),
+      [map]
+   );
+   const lines = useMemo<InstanceSpot[]>(
+      () =>
+         map.props.filter((p) => p.kind === "car").flatMap((p) =>
+            [-1.25, 1.25].map((dx) => ({ x: (p.box.min.x + p.box.max.x) / 2 + dx, y: TERRAIN_LAYERS.parkingLines.y, z: (p.box.min.z + p.box.max.z) / 2, sx: 0.12, sy: 1, sz: 4.8 }))
+         ),
+      [map]
+   );
+   return (
+      <group name="zoo-terrain">
+         <StageGround draw={outer} x={0} z={-13} w={160} d={200} layer={TERRAIN_LAYERS.outerGround} name="outer-ground" />
+         {STAGE_FRAMES.map((f, i) => (
+            <StageGround key={i} draw={draws[i]} {...f} layer={i === 0 ? TERRAIN_LAYERS.meadow : i === 1 ? TERRAIN_LAYERS.plaza : TERRAIN_LAYERS.asphalt} name={`stage-ground-${i + 1}`} />
+         ))}
+         {tracks.length > 0 && (
+            <Instanced spots={tracks} name="jeep-tracks">
+               <boxGeometry args={[1, 0.01, 1]} />
+               <meshStandardMaterial color={theme.path} roughness={0.95} polygonOffset polygonOffsetFactor={TERRAIN_LAYERS.paths.offsetFactor} polygonOffsetUnits={TERRAIN_LAYERS.paths.offsetUnits} />
+            </Instanced>
+         )}
+         {lines.length > 0 && (
+            <Instanced spots={lines} name="parking-lines">
+               <boxGeometry args={[1, 0.01, 1]} />
+               <meshStandardMaterial color={COLORS.lines} roughness={0.7} polygonOffset polygonOffsetFactor={TERRAIN_LAYERS.parkingLines.offsetFactor} polygonOffsetUnits={TERRAIN_LAYERS.parkingLines.offsetUnits} />
+            </Instanced>
+         )}
+         <Instanced spots={TERRAIN_SPOTS.curbs} name="zoo-curbs">
+            <boxGeometry args={[1, 1, 1]} />
+            <meshStandardMaterial color={COLORS.curb} roughness={0.85} />
+         </Instanced>
+      </group>
+   );
+}
+
+function EnclosureTerrain({ reduced }: { reduced: boolean }) {
    const meadowTexture = useCanvasTexture(512, 512, drawMeadow);
    const plazaTexture = useCanvasTexture(256, 256, drawPlaza);
    const bridge = useMerged(bridgePieces);

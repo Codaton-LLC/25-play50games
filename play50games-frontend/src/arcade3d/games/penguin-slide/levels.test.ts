@@ -129,7 +129,7 @@ describe("penguin-slide levels: declarations", () => {
 
    it("level 1 is today's game: same obstacle ramp, form pick, clock, course, HUD and start card", () => {
       const l1 = LEVELS[1];
-      expect(l1).toEqual({ slots: 2, extraSlots: 3, rampS: 120, clock: CLOCK.initial, forms: [1, 1, 1, 1, 1, 1] });
+      expect(l1).toEqual({ slots: 2, extraSlots: 3, rampS: 120, clock: CLOCK.initial, forms: [1, 1, 1, 1, 1, 1], site: "snowHill", kinds: [1, 1, 1] });
       for (let e = 0; e <= 200; e += 0.5) expect(slotsAt(l1, e)).toBe(2 + Math.floor(3 * Math.min(e / 120, 1)));
       const rng = createRng(5);
       for (let i = 0; i < 5000; i++) {

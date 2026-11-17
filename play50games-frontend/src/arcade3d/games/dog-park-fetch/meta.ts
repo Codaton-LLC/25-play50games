@@ -32,7 +32,7 @@ export const dogParkFetchMeta: ArcadeGameMeta = {
    },
    scoring: SCORING,
    levels: LEVELS,
-   thumbnail: null,
+   thumbnail: "/images/3d/dog-park-fetch.webp",
    accent: "#f59e0b",
    owner: "kimi",
 };

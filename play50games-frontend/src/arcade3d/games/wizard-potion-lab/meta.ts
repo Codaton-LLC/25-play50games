@@ -32,7 +32,7 @@ export const wizardPotionLabMeta: ArcadeGameMeta = {
    },
    scoring: SCORING,
    levels: LEVELS,
-   thumbnail: null,
+   thumbnail: "/images/3d/wizard-potion-lab.webp",
    accent: "#c4b5fd",
    owner: "cursor",
 };

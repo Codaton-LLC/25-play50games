@@ -13,8 +13,13 @@ import {
    IDLE_DRAIN,
    LIVES,
    PROPOSED_LEVEL_LIMITS,
+   CREVASSE,
+   PROP_RADIUS,
+   PROP_BOUNCE_SPEED,
    ROCK_RADIUS,
    ROVER,
+   SITE_PROP_OFFSET,
+   crevasseDistance,
    SITE_RING_RADIUS,
    axis,
    createRun,
@@ -41,9 +46,12 @@ const hold = (run: Run, seconds: number, speed: number) => {
       step(run, HOLD, DT);
    }
 };
+/** An empty plain: no rocks, boulders, props or crevasses (the drive / battery / scan tests). */
 const open = (run: Run) => {
    run.rocks.length = 0;
    run.boulders.length = 0;
+   run.props.length = 0;
+   run.crevasses.length = 0;
 };
 
 describe("mars-rover-mission rules: determinism", () => {
@@ -119,7 +127,13 @@ describe("mars-rover-mission rules: the generator (300 seeds per level)", () => 
          for (let seed = 1; seed <= 200; seed++) {
             const run = createRun(seed, LEVELS[id], id);
             const grid = createGrid({ cell: 0.5, halfX: run.level.width / 2 - ROVER.radius, halfZ: run.level.depth / 2 - ROVER.radius });
-            const free = freeGrid(grid, (x, z) => run.rocks.every((r) => Math.hypot(x - r.x, z - r.z) >= r.radius + ROVER.radius));
+            const free = freeGrid(
+               grid,
+               (x, z) =>
+                  run.rocks.every((r) => Math.hypot(x - r.x, z - r.z) >= r.radius + ROVER.radius) &&
+                  run.props.every((p) => Math.hypot(x - p.x, z - p.z) >= p.radius + ROVER.radius) &&
+                  run.crevasses.every((c) => crevasseDistance(c, x, z) >= c.halfWidth + CREVASSE.fallMargin + 0.05)
+            );
             const seen = new Uint8Array(grid.size);
             const queue = [nearestFree(grid, free, run.rover.x, run.rover.z, 0.6)];
             seen[queue[0]] = 1;
@@ -365,5 +379,96 @@ describe("mars-rover-mission rules: scans, battery and the win", () => {
    it("Bobj is 180 per site", () => {
       expect(LEVEL_IDS.map((id) => objectiveCeiling(LEVELS[id].sites))).toEqual([540, 720, 900, 1080, 1260]);
       expect(BOULDER_RADIUS).toBeLessThan(ROVER.radius);
+   });
+});
+
+describe("mars-rover-mission rules: props and crevasses", () => {
+   for (const id of LEVEL_IDS) {
+      it(`L${id}: each site's object, the chargers' stations and the lander stand clear (300 seeds); crevasses keep a rover's width from everything`, () => {
+         const level = LEVELS[id];
+         const room = 2 * ROVER.radius;
+         for (let seed = 1; seed <= 300; seed++) {
+            const run = createRun(seed, level, id);
+            const kinds = run.props.map((p) => p.kind);
+            expect(kinds.filter((k) => k === "lander").length).toBe(1);
+            expect(kinds.filter((k) => k === "station").length).toBe(level.chargers);
+            expect(kinds.filter((k) => k === "stationPanel").length).toBe(level.chargers);
+            const siteProps = run.props.filter((p) => p.site >= 0);
+            expect(siteProps.length).toBe(level.mission === "crystal" ? 0 : level.sites);
+            for (const p of siteProps) {
+               expect(p.kind).toBe(level.mission);
+               expect(p.radius).toBe(PROP_RADIUS[p.kind]);
+               const s = run.sites[p.site];
+               expect(p.x).toBe(s.x);
+               expect(p.z).toBeCloseTo(s.z - SITE_PROP_OFFSET, 9);
+            }
+            for (const p of run.props) {
+               // inside the plain, out of every boulder lane, never on another site's ring or a pad
+               expect(Math.abs(p.x)).toBeLessThanOrEqual(level.width / 2 - p.radius);
+               expect(Math.abs(p.z)).toBeLessThanOrEqual(level.depth / 2 - p.radius);
+               for (const b of run.boulders) expect(Math.abs(b.x - p.x)).toBeGreaterThanOrEqual(p.radius + BOULDER_RADIUS);
+               for (const s of run.sites) if (s.index !== p.site) expect(Math.hypot(s.x - p.x, s.z - p.z)).toBeGreaterThanOrEqual(SITE_RING_RADIUS + p.radius + room);
+               for (const c of run.chargers) if (c.index !== p.charger) expect(Math.hypot(c.x - p.x, c.z - p.z)).toBeGreaterThanOrEqual(CHARGER_PAD_RADIUS + p.radius);
+               for (const r of run.rocks) expect(Math.hypot(r.x - p.x, r.z - p.z) - r.radius - p.radius).toBeGreaterThanOrEqual(room);
+               // a charger's station and its own solar panel stand side by side
+               for (const o of run.props) if (o !== p && !(o.charger >= 0 && o.charger === p.charger)) expect(Math.hypot(o.x - p.x, o.z - p.z) - o.radius - p.radius).toBeGreaterThanOrEqual(room);
+            }
+            expect(run.crevasses.length).toBe(level.crevasses);
+            for (const c of run.crevasses) {
+               const d = (x: number, z: number) => crevasseDistance(c, x, z) - c.halfWidth;
+               expect(d(run.basePad.x, run.basePad.z)).toBeGreaterThanOrEqual(BASE_PAD_RADIUS + 4);
+               for (const s of run.sites) expect(d(s.x, s.z)).toBeGreaterThanOrEqual(SITE_RING_RADIUS + room);
+               for (const ch of run.chargers) expect(d(ch.x, ch.z)).toBeGreaterThanOrEqual(CHARGER_PAD_RADIUS + room);
+               for (const p of run.props) expect(d(p.x, p.z)).toBeGreaterThanOrEqual(p.radius + room);
+               for (const r of run.rocks) expect(d(r.x, r.z)).toBeGreaterThanOrEqual(r.radius + room);
+               expect(d(run.rover.x, run.rover.z)).toBeGreaterThan(CREVASSE.safeGap);
+            }
+         }
+      });
+   }
+
+   it("props are solid without damage: a slow push slides, a hard bump bounces the speed back, never a life", () => {
+      const run = createRun(4, LEVELS[2], 2);
+      run.rocks.length = 0;
+      run.boulders.length = 0;
+      const p = run.props.find((q) => q.kind === "beacon")!;
+      // drive at the beacon from the south, fast
+      place(run, p.x, p.z + p.radius + ROVER.radius + 0.5, 6, Math.PI);
+      const lives = run.lives;
+      let bumped = false;
+      for (let i = 0; i < 30; i++) {
+         run.rover.speed = Math.max(run.rover.speed, i === 0 ? 6 : run.rover.speed);
+         if (step(run, HOLD, DT).propBump) bumped = true;
+         expect(Math.hypot(run.rover.x - p.x, run.rover.z - p.z)).toBeGreaterThanOrEqual(p.radius + ROVER.radius - 1e-9);
+      }
+      expect(bumped).toBe(true);
+      expect(run.lives).toBe(lives);
+      expect(PROP_BOUNCE_SPEED).toBeLessThan(6);
+   });
+
+   it("a crevasse fall spends a life (once per grace) and puts the rover back on its last safe point, stopped, facing away", () => {
+      const run = createRun(2, LEVELS[5], 5);
+      run.rocks.length = 0;
+      run.boulders.length = 0;
+      run.props.length = 0;
+      const c = run.crevasses[0];
+      // approach the crack's middle square-on from a safe point
+      const nx = -Math.sin(c.angle);
+      const nz = Math.cos(c.angle);
+      const start = { x: c.x + nx * 4, z: c.z + nz * 4 };
+      place(run, start.x, start.z, 0, Math.atan2(-nx, -nz));
+      run.safe.x = start.x;
+      run.safe.z = start.z;
+      let fell = false;
+      for (let i = 0; i < 240 && !fell; i++) fell = step(run, { moveX: 0, moveY: -1 }, DT).fell;
+      expect(fell).toBe(true);
+      expect(run.lives).toBe(LIVES - 1);
+      // stopped at the fall (the frame's later 1/120 s steps may start it rolling again)
+      expect(Math.abs(run.rover.speed)).toBeLessThan(0.1);
+      expect(crevasseDistance(c, run.rover.x, run.rover.z) - c.halfWidth).toBeGreaterThanOrEqual(CREVASSE.safeGap - 1e-9);
+      // facing away: driving on moves it away from the crack
+      const before = crevasseDistance(c, run.rover.x, run.rover.z);
+      for (let i = 0; i < 30; i++) step(run, { moveX: 0, moveY: -1 }, DT);
+      expect(crevasseDistance(c, run.rover.x, run.rover.z)).toBeGreaterThan(before);
    });
 });

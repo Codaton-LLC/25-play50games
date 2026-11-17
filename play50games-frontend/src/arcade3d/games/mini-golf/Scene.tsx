@@ -26,6 +26,7 @@ import { useInput } from "@/arcade3d/core/input";
 import { randomSeed } from "@/arcade3d/core/math";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useFittedView } from "@/arcade3d/core/useFittedView";
+import { useCameraViews } from "@/arcade3d/core/camera/CameraViews";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import type { FittedView } from "@/arcade3d/core/view";
 import { createPuttAim, headingTo, resetPuttAim, stepPuttAim, worldHeading } from "./aim";
@@ -153,6 +154,21 @@ export default function Scene() {
    scratch.fit = fit;
    scratch.yaw = fit?.view.yaw ?? 0;
    scratch.follow = fit?.follow ?? false;
+
+   // camera views (core/camera): the rules get the drawn camera's yaw (the fitted yaw in the default view)
+   useCameraViews({
+      slug: "mini-golf",
+      subject: "character",
+      steering: "camera",
+      defaultYaw: scratch.yaw,
+      target: (o) => {
+         const b = run.ball;
+         o.x = b.x; o.y = 0.2; o.z = holeZ(run.hole) + b.z; o.heading = 0; o.vx = 0; o.vz = 0;
+      },
+      framing: { top: { distance: 14 } },
+      views: ["default", "top"],
+   });
+
 
    useEffect(() => fx.warm("sparkle", "splash", "confetti", "puff", "score"), [fx]);
    useEffect(() => {

@@ -9,7 +9,9 @@ import CameraRig from "@/arcade3d/core/CameraRig";
 import { InstancedModel, Model } from "@/arcade3d/core/assets";
 import { playSfx, startLoop, type LoopHandle } from "@/arcade3d/core/audio";
 import { SkyDome } from "@/arcade3d/core/env";
-import { useFx } from "@/arcade3d/core/fx";
+import { tossAt, useActionPop, useFx, type TossFrame } from "@/arcade3d/core/fx";
+import { TargetBeacon, TargetMarkers } from "@/arcade3d/core/hud";
+import { useCoarsePointer } from "@/arcade3d/core/TouchControls";
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import { useInput } from "@/arcade3d/core/input";
 import { inputToWorld, randomSeed } from "@/arcade3d/core/math";
@@ -17,10 +19,15 @@ import { BlobShadow, DynamicInstanced, Instanced, useCanvasTexture, type CanvasD
 import { HumanoidModel, createPose, useHumanoidPose } from "@/arcade3d/core/rig";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useFittedView } from "@/arcade3d/core/useFittedView";
+import { useCameraViews } from "@/arcade3d/core/camera/CameraViews";
+import type { AABB } from "@/arcade3d/core/collision";
+import { SOLID_OBSTACLES } from "./rules";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
-import { ASSETS, BAKERY_DRAWN, BAKERY_FALLBACK_SPOTS, BAKERY_HEIGHT, BAKERY_SPOTS, SCRUBBER_DRAWN, SCRUBBER_FALLBACK_SPOTS, SCRUBBER_HEIGHT, SCRUBBER_SPOTS, SHELF_BAYS } from "./assets";
+import { ASSETS, MARKET_COLORS, MARKET_DRAWN, MARKET_SPOTS, type MarketKind, BAKERY_DRAWN, BAKERY_FALLBACK_SPOTS, BAKERY_HEIGHT, BAKERY_SPOTS, SCRUBBER_DRAWN, SCRUBBER_FALLBACK_SPOTS, SCRUBBER_HEIGHT, SCRUBBER_SPOTS, SHELF_BAYS } from "./assets";
 import { STORE_BOUNDS, viewFor } from "./camera";
 import { Decor } from "./Decor";
+import StoreSetPieces from "./StoreSetPieces";
+import { STORE_LOOKS } from "./storeLooks";
 import { COLORS, FLOOR } from "./looks";
 import {
    CartPrimitive,
@@ -44,6 +51,22 @@ import {
 } from "./rules";
 import { useLevel } from "@/arcade3d/core/level";
 import type { ShoppingCartLevel } from "./levels";
+import { CHECKOUT, GUIDE, LIST, cartHint, hintCode, nextItem } from "./guide";
+
+/** A taken product flies into the cart for this long (s), then is hidden. */
+const INTO_CART_S = 0.42;
+
+/** Copies `src` into the camera hook's box slots. */
+function fillSolids(src: readonly AABB[], out: AABB[]): number {
+   let n = 0;
+   for (const b of src) {
+      if (n >= out.length) break;
+      const o = out[n++];
+      o.min.x = b.min.x; o.min.y = b.min.y; o.min.z = b.min.z;
+      o.max.x = b.max.x; o.max.y = b.max.y; o.max.z = b.max.z;
+   }
+   return n;
+}
 
 export default function Scene() {
    const width = useThree((s) => s.size.width);
@@ -55,6 +78,23 @@ export default function Scene() {
    // Seeded run state created once per run
    const { config, id: levelId } = useLevel<ShoppingCartLevel>();
    const [run] = useState<RunState>(() => createRun(randomSeed(), config));
+   const look = STORE_LOOKS[run.level.store.theme];
+
+   // camera views (core/camera): the rules get the drawn camera's yaw (the fitted yaw in the default view)
+   const cam = useCameraViews({
+      slug: "shopping-cart",
+      subject: "vehicle",
+      steering: "camera",
+      defaultYaw: view.yaw,
+      target: (o) => {
+         const c = run.cart;
+         o.x = c.x; o.y = 0.7; o.z = c.z; o.heading = c.heading; o.vx = c.vx; o.vz = c.vz;
+      },
+      // the level's own solids (set pieces, the shut lane) keep the chase / front views out of them too
+      solids: (out: AABB[]) => fillSolids(run.solids ?? SOLID_OBSTACLES, out),
+      framing: { top: { distance: 12 } },
+   });
+
 
    // Live point for camera look-ahead
    const followTarget = useRef<{ x: number; y: number; z: number }>({
@@ -62,6 +102,35 @@ export default function Scene() {
       y: 0,
       z: START_POS.z,
    });
+
+   // clarity (visual only): the beacon on the next item / the checkout, the list panel, the hint, fail pops
+   const pop = useActionPop();
+   const touch = useCoarsePointer();
+   const beacon = useRef({ x: 0, y: 0, z: 0, hidden: true }).current;
+   // the same target for the edge arrow when it is off screen or under a HUD panel
+   const edgeTargets = useMemo(() => [beacon], [beacon]);
+   const guide = useRef({ next: -2, code: -1, combo: 0, checkout: false }).current;
+   const kinds = useMemo(() => run.list.map((item) => item.kind), [run]);
+   const [atCheckout, setAtCheckout] = useState(false);
+   useEffect(() => {
+      // the list is up from the countdown on, so the panel's size (a safe-area rect) is settled before play
+      guide.next = nextItem(run, -1);
+      LIST.set({ kinds, taken: 0, next: guide.next, riding: false });
+      guide.code = hintCode(run, guide.next);
+      GUIDE.set(cartHint(run, guide.code, touch));
+      const first = run.list[guide.next];
+      if (first) {
+         beacon.x = first.x;
+         beacon.y = 0.95;
+         beacon.z = first.z;
+         beacon.hidden = false;
+      }
+      return () => {
+         GUIDE.reset();
+         LIST.reset();
+      };
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+   }, [run, kinds, guide, beacon]);
 
    // Cart rolling sound loop (P-06) - sync with play/pause phases
    const rollLoop = useRef<LoopHandle | null>(null);
@@ -105,7 +174,7 @@ export default function Scene() {
       const inp = input.current;
 
       // Screen-relative movement
-      inputToWorld(inp.moveX, inp.moveY, view.yaw, WORLD_MOVE);
+      inputToWorld(inp.moveX, inp.moveY, cam.yaw(), WORLD_MOVE);
       STEP_INPUT.moveX = WORLD_MOVE.x;
       STEP_INPUT.moveY = -WORLD_MOVE.z; // up in screen = north (-z in world)
       STEP_INPUT.ride = inp.jump;       // Space or touch Ride button
@@ -165,6 +234,34 @@ export default function Scene() {
          fx.burst("puff", { x: cart.x, y: 0.1, z: cart.z }, 8);
       }
 
+      // fail pops: a bump, a toppled pyramid, a hard crash that ends the combo streak
+      const hadCombo = guide.combo > 0;
+      if (events.shopperBumped.length > 0) {
+         pop.fail({ x: cart.x, y: 2, z: cart.z }, hadCombo ? "Bumped! Combo lost" : "Bumped! Stunned", { shake: 0 });
+      } else if (events.pyramidToppled.length > 0) {
+         pop.fail({ x: cart.x, y: 2, z: cart.z }, hadCombo ? "Crash! Combo lost" : "Crash! Slowed", { shake: 0 });
+      } else if (hadCombo && run.combo === 0 && events.pickups.length === 0) {
+         pop.fail({ x: cart.x, y: 2, z: cart.z }, "Crash! Combo lost");
+      }
+      guide.combo = run.combo;
+
+      // the next item (or the checkout): beacon, list panel, hint (rebuilt only on a change)
+      guide.next = nextItem(run, guide.next);
+      const target = guide.next >= 0 ? run.list[guide.next] : null;
+      beacon.x = target ? target.x : CHECKOUT.x;
+      beacon.y = target ? 0.95 : 0.1;
+      beacon.z = target ? target.z : CHECKOUT.z;
+      beacon.hidden = run.won;
+      if ((guide.next < 0) !== guide.checkout) setAtCheckout((guide.checkout = guide.next < 0));
+      let taken = 0;
+      for (let i = 0; i < run.list.length; i++) if (run.list[i].collected) taken |= 1 << i;
+      LIST.set({ kinds, taken, next: guide.next, riding: cart.riding });
+      const code = hintCode(run, guide.next);
+      if (code !== guide.code) {
+         guide.code = code;
+         GUIDE.set(cartHint(run, code, touch));
+      }
+
       if (events.won) {
          rollLoop.current?.set({ volume: 0 });
          playSfx("win");
@@ -192,13 +289,13 @@ export default function Scene() {
          />
 
          {/* Sky Dome from core env */}
-         <SkyDome top={COLORS.skyTop} bottom={COLORS.skyBottom} />
+         <SkyDome top={look.skyTop} bottom={look.skyBottom} />
 
          {/* Instanced Decor strictly outside play area standing on the ground */}
          <Decor />
 
          {/* Supermarket Interior & Parking Lot Exterior Environment */}
-         <StoreEnvironment run={run} />
+         <StoreEnvironment run={run} banner={look.banner} />
 
          {/* Floor scrubbers parked on the north apron: the after-hours cleaning crew,
              drawn only on levels 4 (Superstore) and 5 (Closing-Time Rush). */}
@@ -215,6 +312,9 @@ export default function Scene() {
             />
          )}
 
+         {/* Levels 2-5: the level's own floor (set pieces, floor machines, the lane shutter, wet floor) */}
+         <StoreSetPieces run={run} />
+
          {/* Cart + Pusher Runner Coupled Group */}
          <CartRunner run={run} />
 
@@ -224,7 +324,16 @@ export default function Scene() {
          ))}
 
          {/* Shelf Items with glowing 0.8m halos and floating badges */}
-         <ShelfItems items={run.list} />
+         <ShelfItems items={run.list} cart={run.cart} />
+         <TargetBeacon
+            target={beacon}
+            variant={atCheckout ? "drop-here" : "pick"}
+            color={atCheckout ? "#4ade80" : COLORS.halo}
+            radius={atCheckout ? 2.4 : 0.5}
+            height={atCheckout ? 2 : 0.85}
+            label={atCheckout ? "CHECKOUT" : null}
+         />
+         <TargetMarkers targets={edgeTargets} color={atCheckout ? "#4ade80" : COLORS.halo} />
 
          {/* Instanced Can Pyramids */}
          <InstancedCanPyramids pyramids={run.pyramids} />
@@ -339,7 +448,7 @@ function ShopperComponent({ shopper }: { shopper: RunState["shoppers"][0] }) {
 
 // ---------- Shelf Items with 0.8 m Glow Halo & Bobbing Badges ----------
 
-function ShelfItems({ items }: { items: RunState["list"] }) {
+function ShelfItems({ items, cart }: { items: RunState["list"]; cart: RunState["cart"] }) {
    const time = useGameTime();
 
    // Dynamic instancing for the 0.8 m floor glow halos (1 draw call)
@@ -380,22 +489,42 @@ function ShelfItems({ items }: { items: RunState["list"] }) {
 
          {/* 3D Model items rotating above shelves */}
          {items.map((item, i) => (
-            <ShelfItem key={i} item={item} index={i} />
+            <ShelfItem key={i} item={item} index={i} cart={cart} />
          ))}
       </group>
    );
 }
 
-function ShelfItem({ item, index }: { item: ListItem; index: number }) {
+function ShelfItem({ item, index, cart }: { item: ListItem; index: number; cart: RunState["cart"] }) {
    const groupRef = useRef<Group>(null);
    const asset = ASSETS[item.kind as keyof typeof ASSETS] ?? ASSETS.apple;
    const gameTime = useGameTime();
+   // a taken product flies on an arc into the basket (visual only), then hides
+   const flight = useRef({ t: -1, from: { x: 0, y: 0, z: 0 }, to: { x: 0, y: 0.9, z: 0 } }).current;
+   const pose = useRef<TossFrame>({ x: 0, y: 0, z: 0, scale: 1 }).current;
 
    useFrame(() => {
       const g = groupRef.current;
       if (!g) return;
       if (item.collected) {
-         g.visible = false;
+         if (flight.t < 0) {
+            flight.t = 0;
+            flight.from.x = g.position.x;
+            flight.from.y = g.position.y;
+            flight.from.z = g.position.z;
+         }
+         if (flight.t >= 1) {
+            if (g.visible) g.visible = false;
+            return;
+         }
+         flight.t = Math.min(1, flight.t + gameTime.delta / INTO_CART_S);
+         flight.to.x = cart.x;
+         flight.to.z = cart.z;
+         tossAt(flight.from, flight.to, flight.t, 0.9, 1, 0.35, pose);
+         g.position.set(pose.x, pose.y, pose.z);
+         g.scale.setScalar(pose.scale);
+         g.rotation.y += gameTime.delta * 9;
+         g.visible = flight.t < 1;
          return;
       }
       g.visible = true;
@@ -684,7 +813,7 @@ function FinishMat({ run }: { run: RunState }) {
    );
 }
 
-function StoreEnvironment({ run }: { run: RunState }) {
+function StoreEnvironment({ run, banner }: { run: RunState; banner: string | null }) {
    const floorTexture = useCanvasTexture(512, 512, drawSupermarketFloor);
    const parkingTexture = useCanvasTexture(512, 512, drawParkingLot);
 
@@ -798,7 +927,7 @@ function StoreEnvironment({ run }: { run: RunState }) {
          {/* The aisle banners and blue category signs stay on top of the GLB bays (the look pass's readable signs). */}
          <Instanced spots={SHELF_BANNER_SPOTS} name="shelves-banner">
             <boxGeometry args={[1.22, 0.12, 12.0]} />
-            <meshStandardMaterial color={COLORS.shelfBanner} roughness={0.35} />
+            <meshStandardMaterial color={banner ?? COLORS.shelfBanner} roughness={0.35} emissive={banner ?? "#000000"} emissiveIntensity={banner ? 0.25 : 0} />
          </Instanced>
          <Instanced spots={SHELF_SIGN_SPOTS} name="shelves-signs">
             <boxGeometry args={[1.15, 0.25, 2.4]} />
@@ -816,6 +945,21 @@ function StoreEnvironment({ run }: { run: RunState }) {
                </Instanced>
             }
          />
+
+         {/* Checkout counters, freezers, a fruit stand and wet-floor cones on the north apron, outside the play box. */}
+         {(Object.keys(MARKET_SPOTS) as MarketKind[]).map((kind) => (
+            <InstancedModel
+               key={kind}
+               asset={ASSETS[kind]}
+               spots={MARKET_SPOTS[kind]}
+               fallback={
+                  <Instanced spots={MARKET_SPOTS[kind].map((p) => ({ ...p, y: MARKET_DRAWN[kind].height / 2 }))} name={`${kind}-fallback`}>
+                     <boxGeometry args={[MARKET_DRAWN[kind].width, MARKET_DRAWN[kind].height, MARKET_DRAWN[kind].depth]} />
+                     <meshStandardMaterial color={MARKET_COLORS[kind]} roughness={0.6} />
+                  </Instanced>
+               }
+            />
+         ))}
 
          {/* Fruit Island Produce Display */}
          <group

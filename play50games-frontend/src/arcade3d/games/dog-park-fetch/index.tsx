@@ -7,6 +7,7 @@ import { LEVEL_IDS, type LevelId } from "@/arcade3d/types";
 import { ASSETS } from "./assets";
 import { LEVELS, LEVEL_LINES, type DogLevel } from "./levels";
 import { FOV, lookAtFor } from "./looks";
+import Hud from "./Hud";
 import Scene from "./Scene";
 
 const LINES = [
@@ -32,6 +33,7 @@ const look = lookAtFor(LEVELS[1]);
 const definition: GameDefinition<DogLevel> = {
    slug: "dog-park-fetch",
    Scene,
+   Hud,
    assets: ASSETS,
    durationMs: LEVELS[1].durationMs,
    resultDelayMs: 900,

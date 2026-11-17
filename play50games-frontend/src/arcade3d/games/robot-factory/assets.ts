@@ -40,6 +40,44 @@ export const POWER_CORE_FALLBACK = POWER_CORE_SPOTS.map((s) => ({ ...s, y: POWER
 /** A near-white satin shell: the part colour (per-copy tint) multiplies it, so sky, amber, coral and lime read true. */
 const PART_SHELL = { color: "#f1f5f9", roughness: 0.42, metalness: 0.12 } as const;
 
+/**
+ * Menu 1 adoptions: the six head and arm parts on the belt and in the cradle (1500 tris each, floor pivot, centred;
+ * measured on the meshes, GLB units w x h x d): robotHeadDome 1.906 x 1.904 x 1.636, robotHeadBox 1.828 x 1.902 x 1.361,
+ * robotHeadAntenna 1.579 x 1.890 x 1.422, robotArmClaw 0.859 x 1.005 x 1.881, robotArmWrench 0.753 x 0.694 x 1.896,
+ * robotArmDrill 1.331 x 1.698 x 1.901 (the arms lie along z). Drawn at the stand-ins' sizes: the heads 0.44 / 0.46 / 0.50 m
+ * tall, the arms 0.50 m on their longest side. Like the torso parts they wear the near-white PART_SHELL, so the per-copy
+ * tint (palette colour, faulty red) reads. The clawHead GLB is not adopted: a uniform 1.05 m column with no readable
+ * gripper, nothing like the 0.4 m code gripper it would replace.
+ */
+export const PART_GLB = {
+   headDome: { width: 1.906, height: 1.904, depth: 1.636 },
+   headBox: { width: 1.828, height: 1.902, depth: 1.361 },
+   headAntenna: { width: 1.579, height: 1.89, depth: 1.422 },
+   armClaw: { width: 0.859, height: 1.005, depth: 1.881 },
+   armWrench: { width: 0.753, height: 0.694, depth: 1.896 },
+   armDrill: { width: 1.331, height: 1.698, depth: 1.901 },
+} as const;
+/** Drawn size of each: the measured dimension that is pinned, in metres. */
+export const PART_DRAWN = {
+   headDome: { dim: "width", size: 0.44 },
+   headBox: { dim: "height", size: 0.46 },
+   headAntenna: { dim: "height", size: 0.5 },
+   armClaw: { dim: "depth", size: 0.5 },
+   armWrench: { dim: "depth", size: 0.5 },
+   armDrill: { dim: "depth", size: 0.5 },
+} as const;
+type PartKey = keyof typeof PART_GLB;
+const partScale = (k: PartKey) => PART_DRAWN[k].size / PART_GLB[k][PART_DRAWN[k].dim];
+const partAsset = (k: PartKey, file: string, fallback: "sphere" | "box" | "cylinder"): ModelAsset => ({
+   id: file,
+   url: `/models/3d/robot-factory/${file}.glb`,
+   scale: partScale(k),
+   material: PART_SHELL,
+   fallback,
+   fallbackColor: "#cbd5e1",
+   budget: { ...PROP_BUDGET },
+});
+
 export const ASSETS = {
    robot: { ...SHARED_ASSETS.robot, scale: ROBOT_SCALE, humanoid: { landmarks: ROBOT_LANDMARKS } },
    barrel: { ...REUSED_ASSETS.barrel, scale: TORSO_SIZE / REUSED_GLB_SIZE.barrel.height, material: PART_SHELL },
@@ -50,6 +88,12 @@ export const ASSETS = {
       scale: doorScale,
       stretch: [DOOR.width / (REUSED_GLB_SIZE.door.width * doorScale), 1, DOOR.depth / (REUSED_GLB_SIZE.door.depth * doorScale)],
    },
+   headDome: partAsset("headDome", "robotHeadDome", "sphere"),
+   headBox: partAsset("headBox", "robotHeadBox", "box"),
+   headAntenna: partAsset("headAntenna", "robotHeadAntenna", "cylinder"),
+   armClaw: partAsset("armClaw", "robotArmClaw", "box"),
+   armWrench: partAsset("armWrench", "robotArmWrench", "box"),
+   armDrill: partAsset("armDrill", "robotArmDrill", "cylinder"),
    powerCore: {
       id: "powerCore",
       url: "/models/3d/robot-factory/powerCore.glb",

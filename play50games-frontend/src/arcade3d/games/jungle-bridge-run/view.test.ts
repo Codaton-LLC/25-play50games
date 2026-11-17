@@ -57,7 +57,11 @@ describe("jungle-bridge-run triangle budget", () => {
                tris.rock * d.rocks.length +
                tris.tree * d.trees.length +
                tris.fern * d.ferns.length +
+               tris.plant * d.plants.length +
                tris.hangingVine * d.vines.length +
+               // the themed set pieces drawn from GLBs (falls, mist, lava, embers are code-built parts)
+               tris.ropeBridge * d.ropeBridges.length +
+               tris.pillar * d.colonnade.length +
                tris.volcano * backdrop;
             worst = Math.max(worst, total);
          }

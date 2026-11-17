@@ -7,7 +7,7 @@ import { fitView } from "@/arcade3d/core/view";
 import { LEVEL_IDS } from "@/arcade3d/types";
 import { ASSETS, FIT, GLB_SIZE, GLB_TRIS } from "./assets";
 import { LEVELS } from "./levels";
-import { FOV, SOUTH_DECOR_MAX_H, VIEW, WINDOW, decorSpots, fogFor, lampSpots } from "./looks";
+import { FOV, GLB_FENCE_HOUSES, SOUTH_DECOR_MAX_H, VIEW, WINDOW, decorSpots, fogFor, lampSpots } from "./looks";
 import { CAR_HX, CAR_HZ, HOUSE_HX, HOUSE_HZ, OFFICE_BOX, STREET_GAP, VAN_BOX, boundsFor } from "./rules";
 
 async function bounds(url: string) {
@@ -41,6 +41,7 @@ describe("postman-3d GLB fits (real meshes)", () => {
          holidayTree: ASSETS.holidayTree.url,
          trafficLight: ASSETS.trafficLight.url,
          dog: ASSETS.dog.url,
+         picketFence: ASSETS.picketFence.url,
       };
       for (const [id, url] of Object.entries(urls) as [keyof typeof GLB_SIZE, string][]) {
          expect(hasModel(url), url).toBe(true);
@@ -99,6 +100,7 @@ describe("postman-3d triangle budget", () => {
          houseA: [ASSETS.houseAN.url, GLB_TRIS.house], houseB: [ASSETS.houseBN.url, GLB_TRIS.house], houseC: [ASSETS.houseCN.url, GLB_TRIS.house],
          office: [ASSETS.office.url, GLB_TRIS.postOffice], van: [ASSETS.van.url, GLB_TRIS.postVan], lamp: [ASSETS.lamp.url, GLB_TRIS.streetLampVictorian],
          bicycle: [ASSETS.bicycle.url, GLB_TRIS.bicycle], tree: [ASSETS.holidayTree.url, GLB_TRIS.holidayTree], light: [ASSETS.trafficLight.url, GLB_TRIS.trafficLight],
+         picketFence: [ASSETS.picketFence.url, GLB_TRIS.picketFence],
          dog: [ASSETS.dog.url, GLB_TRIS.dog], bench: [ASSETS.bench.url, GLB_TRIS.bench], car: [ASSETS.car.url, GLB_TRIS.car],
       };
       for (const [id, [url, tris]] of Object.entries(urls)) expect((await readCharacterGlb(url)).indices.length / 3, id).toBe(tris);
@@ -121,10 +123,12 @@ function levelTriangles(id: (typeof LEVEL_IDS)[number]): number {
    const boxTris = 12; // the scene's code pieces are plain unit boxes (Boxes without `rounded`)
    // code pieces as the scene builds them: per street roads, dashes, pavements, kerbs, zebra; per house path, door frame and leaf, 2 x (2 rails + 9 posts)
    const lines = level.streets * Math.ceil((boundsFor(level).max.x + 28 + 13) / 4);
-   const codeBoxes = level.streets * (1 + 2 + 2 + 7) + 1 + lines + houses * (1 + 2 + 22);
+   // the fenced houses' +x fence (11 code boxes) is the picket GLB instead (GLB_FENCE_HOUSES, looks.ts)
+   const fenced = Math.min(GLB_FENCE_HOUSES, houses);
+   const codeBoxes = level.streets * (1 + 2 + 2 + 7) + 1 + lines + houses * (1 + 2 + 22) - fenced * 11;
    return (
       GLB_TRIS.charPostman + GLB_TRIS.mailbag + GLB_TRIS.postOffice + GLB_TRIS.postVan +
-      houses * (GLB_TRIS.house + GLB_TRIS.mailbox) +
+      houses * (GLB_TRIS.house + GLB_TRIS.mailbox) + fenced * GLB_TRIS.picketFence +
       lampSpots(level).length * GLB_TRIS.streetLampVictorian +
       level.dogs * GLB_TRIS.dog +
       level.traffic * GLB_TRIS.car +

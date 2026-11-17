@@ -53,7 +53,8 @@ function makeDriver(run: Run, kind: BotKind, seed: number): (dt: number) => Cont
       let want = d < (last ? 0.25 : 0.4) ? endSpeed : Math.min(top, Math.sqrt(endSpeed * endSpeed + 2 * brake * Math.max(0, d - (last ? 0.2 : 0.4))));
       if (Math.abs(err) > 0.5) want = Math.min(want, oracle ? 5 : 2);
       if (detour && d < 0.6) want = 0;
-      input.moveX = Math.max(-1, Math.min(1, err * 3));
+      // stick right lowers the yaw (rules.ts substep)
+      input.moveX = -Math.max(-1, Math.min(1, err * 3));
       input.moveY = p.speed > want + 0.15 ? 1 : p.speed < want - 0.15 ? -1 : 0;
       // creep while turning on the spot: the scooter turns only when it rolls
       if (Math.abs(err) > 0.3 && Math.abs(p.speed) < 0.6 && !last) input.moveY = -0.6;

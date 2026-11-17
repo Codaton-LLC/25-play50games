@@ -18,7 +18,7 @@ export const pizzaKitchen3dMeta: ArcadeGameMeta = {
    slug: "pizza-kitchen-3d",
    title: "Pizza Kitchen 3D",
    tagline: "Sauce, cheese, oven, serve.",
-   description: "Build each pizza in order, bake it just right and serve it before the next ticket comes in.",
+   description: "Build each pizza in order with sauce, cheese and toppings, bake it just right and serve it before the next ticket comes in.",
    order: 45,
    status: "dev",
    collection: "skill",
@@ -31,7 +31,7 @@ export const pizzaKitchen3dMeta: ArcadeGameMeta = {
    },
    scoring: SCORING,
    levels: LEVELS,
-   thumbnail: null,
+   thumbnail: "/images/3d/pizza-kitchen-3d.webp",
    accent: "#ef4444",
    owner: "claude",
 };

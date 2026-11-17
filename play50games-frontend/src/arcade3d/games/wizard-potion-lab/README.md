@@ -12,19 +12,25 @@ Score, all integers: +300 per finished recipe, +80 more when that recipe took no
 
 ## Levels
 
-Same lab. Counts, the clock and the core lighting preset change. Fog is `[background, radius * 1.7, radius * 4.4]`.
+One round lab shape, five rooms (2026-10-29): `levels.ts` `theme`, `looks.ts` `LAB_THEMES`, `Room.tsx`. Counts, the clock and the core lighting preset change too. Fog is `[background, radius * 3.4, radius * 8]`. The ingredients, the cauldron, the beacons and the HUD keep one palette everywhere; the floor glow, walls, trim, runes, glow light and the props change. Big props stand beyond the wall ring (at least radius + 1.4 m), small ones at the wall foot or flat on the floor, so the walk, the shelves, the bots and the limit proof are unchanged (`room.test.ts`).
+
+- **L1 Beginner Lab:** today's violet flagstone lab.
+- **L2 Mushroom Lab:** a damp cellar: mossy green floor glow, brown stone walls, giant glowing mushrooms over the walls and small ones at the wall foot. A wrong bottle costs a life.
+- **L3 Crystal Lab:** an ice-crystal cave: icy blue floor, cyan glow and trim, crystal spires round the room, shards at the wall foot. The sliding ingredient runs on a glowing crystal rail that shows its 3 m path.
+- **L4 Forest Lab:** a lab grown into the forest: warm wood-brown floor, amber light, pines over the walls, ferns at the wall foot, leaves drifting down through the room (lying still with reduced motion). Five-step recipes; the slide rail too.
+- **L5 Master Wizard Lab:** the master's tower: midnight floor, gold trim and a gold rune ring, books orbiting above the walls, stars. Two recipes at once; the slide rail too.
 
 | L | Title | Radius | Recipes | Steps | Dual | Wander | Lives | Clock | Light |
 |---|---|---:|---:|---:|---|---|---:|---:|---|
 | 1 | Beginner Lab | 7 | 2 | 2 | | | | 120 s | indoor `#1e1b4b` |
-| 2 | Mushroom Lab | 8 | 3 | 3 | | | 3 | 150 s | indoor `#1e1b4b` |
+| 2 | Mushroom Lab | 8 | 3 | 3 | | | 3 | 150 s | indoor `#14261c` |
 | 3 | Crystal Lab | 9 | 4 | 4 | | yes | 3 | 180 s | night `#172554` |
-| 4 | Forest Lab | 10 | 5 | 5 | | yes | 3 | 180 s | sunset `#3b0764` |
+| 4 | Forest Lab | 10 | 5 | 5 | | yes | 3 | 180 s | sunset `#2a1a0e` |
 | 5 | Master Wizard Lab | 11 | 6 | 5 | yes | yes | 3 | 210 s | night `#1e1b4b` |
 
 ## Controls
 
-WASD / arrows move. E or Enter uses. Touch: joystick, Action "Use". Scheme `joystick`. No jump. The same 1.2 m use range and 0.60 s stun run on both devices (`rules.test.ts`). The shell owns pause and the Score / Time chips. Lives appear from level 2. Custom HUD (`data-arcade-safe-area`) shows up to two rows of remaining steps as circle, square, triangle, diamond, star, drop, plus what you carry. `resultDelayMs` 900.
+WASD / arrows move. E or Enter uses. Touch: joystick, Action "Use". Scheme `joystick`. No jump. Camera views: 📷 button (touch) or **C** cycles default → chase → front → top → free (`core/camera`); the movement follows the view on screen (`cam.yaw()` into the rules). The same 1.2 m use range and 0.60 s stun run on both devices (`rules.test.ts`). The shell owns pause and the Score / Time chips. Lives appear from level 2. Custom HUD (`data-arcade-safe-area`) shows up to two rows of remaining steps as circle, square, triangle, diamond, star, drop, plus what you carry. `resultDelayMs` 900.
 
 ## Server limits
 
@@ -58,7 +64,7 @@ The wizard is a `HumanoidModel` stand-in (`WizardFigure`, 1.70 m, robe / hat / b
 - Every url under `/models/3d/wizard-potion-lab/` is unlisted, so those fallbacks draw. The cauldron and the mushroom are the live meshes.
 - `wizard-potion-lab/hero.glb` is not used. `shared/gardenMushroom.glb` replaces the expansion mushroom when that PR lands. The shelf source is `shared/bookshelf.glb`.
 - The camera frames the whole lab, so the wizard reads smaller on level 5 than on level 1.
-- No thumbnail yet: `meta.thumbnail` is `null`.
+- Thumbnail: `meta.thumbnail` is `/images/3d/<slug>.webp` (capture via tools/thumbs).
 
 ## What Claude registers
 
@@ -83,3 +89,7 @@ The slug is already on main. Status stays `dev`. Do not enable the game. Copy th
   ]
 }
 ```
+
+## Clarity (2026-10-28, visual only)
+
+`guide.ts` (pure, `guide.test.ts`) picks the goal: the shelf holding the next ingredient of the first open recipe, then the cauldron once it is in hand (a wrong item goes back to its own shelf). Core `TargetBeacon`s: a lilac "pick" arrow and ring on that shelf's item (it follows a wandering shelf), a green "ADD" drop-here ring on the cauldron. The core `HintLine` (in `Hud.tsx`) says "Take the mushroom from the glowing shelf (arrow), press E / tap Use", "Go to the cauldron, ... to add the mushroom" and a red "Not in the recipe: put it back" line. A wrong add pops "Wrong ingredient!" (or "Wrong! -1 life", `useActionPop`, same 0.22 shake); an accepted ingredient flies from the hand into the pot as a coloured orb (`<Toss>`, 0.3 s). The recipe card label is 12 px. Rules, scoring and limits are unchanged.

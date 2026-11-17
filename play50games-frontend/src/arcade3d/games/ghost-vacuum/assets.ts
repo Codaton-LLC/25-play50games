@@ -96,6 +96,20 @@ export const TRUNK_SPOTS = [
  */
 export const BACK_CLEARANCE = 0.035;
 export const PACK_OFFSET = [0, -EXPANSION_GLB_POINTS.vacuumBack.y * VACUUM_SCALE, EXPANSION_GLB_POINTS.vacuumBack.z * VACUUM_SCALE - 0.01 - BACK_CLEARANCE] as const;
+/** Raw bounds (GLB units, floor pivot, centred) of the GLBs the rooms reuse, measured 2026-10-29 (assets.test.ts). */
+export const ROOM_GLB = {
+   bookshelfFull: { width: 1.6086, height: 1.8941, depth: 0.4207 },
+   table: { width: 1.896, height: 0.8729, depth: 0.9264 },
+   prepCounterR: { width: 1.5933, height: 1.8967, depth: 1.1 },
+   stoveHearth: { width: 1.8153, height: 1.4526, depth: 1.9017 },
+   crate: { width: 1.8797, height: 1.3351, depth: 1.8107 },
+   spiderWeb: { width: 1.9131, height: 1.8057, depth: 0.2538 },
+} as const;
+
+function unitCube(id: string, url: string, size: { width: number; height: number; depth: number }, fallbackColor: string): ModelAsset {
+   return { id, url, scale: 1, stretch: [1 / size.width, 1 / size.height, 1 / size.depth], fallback: "box", fallbackColor, budget: { tris: 5000, bytes: 400000 } };
+}
+
 export const ASSETS = {
    /** Hyper3D image-to-3D from the user's own concept (18k tris, 545 KB): a static T-pose, auto-rigged (core/rig) with HUNTER_LANDMARKS. */
    hunter: { id: "hunter", url: "/models/3d/ghost-vacuum/hunter.glb", scale: HUNTER_SCALE, fallback: "capsule", fallbackColor: "#6ee7b7", budget: { ...CHARACTER_BUDGET }, humanoid: { landmarks: HUNTER_LANDMARKS } },
@@ -110,4 +124,13 @@ export const ASSETS = {
    candelabra: { id: "candelabra", url: "/models/3d/ghost-vacuum/candelabra.glb", scale: CANDELABRA_SCALE, fallback: "cylinder", fallbackColor: COLORS.brass, budget: { tris: 5000, bytes: 300000 } },
    /** Hyper3D steamer trunk (2500 tris, 250 KB): drawn 1.0 m wide, base at y = 0; levels 4-5 grounds decor only. */
    trunk: { id: "trunk", url: "/models/3d/ghost-vacuum/atticTrunk.glb", scale: TRUNK_SCALE, rotationY: 0, yOffset: 0, fallback: "box", fallbackColor: COLORS.woodDesk, budget: { tris: 5000, bytes: 300000 } },
+   // ----- the rooms' own furniture (rules.ts ROOM_FURNITURE): reused GLBs fitted to a 1 m cube, so a
+   // spot's sx / sy / sz is the drawn size in metres (measured bounds in ROOM_GLB, assets.test.ts) -----
+   bookshelf: unitCube("bookshelf", "/models/3d/shared/bookshelfFull.glb", ROOM_GLB.bookshelfFull, "#7c4a1e"),
+   table: unitCube("kitchenTable", "/models/3d/shared/table.glb", ROOM_GLB.table, "#a16207"),
+   counter: unitCube("counter", "/models/3d/pizza-kitchen-3d/prepCounterR.glb", ROOM_GLB.prepCounterR, "#a16207"),
+   stove: unitCube("stove", "/models/3d/monster-kitchen/stoveHearth.glb", ROOM_GLB.stoveHearth, "#78716c"),
+   trunkBox: unitCube("trunkBox", "/models/3d/ghost-vacuum/atticTrunk.glb", TRUNK_GLB, "#5b3a1f"),
+   crate: unitCube("crate", "/models/3d/shared/crate.glb", ROOM_GLB.crate, "#a16207"),
+   web: unitCube("web", "/models/3d/bee-garden/spiderWeb.glb", ROOM_GLB.spiderWeb, "#e2e8f0"),
 } satisfies Record<string, ModelAsset>;

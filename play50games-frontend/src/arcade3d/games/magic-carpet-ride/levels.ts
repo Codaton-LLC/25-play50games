@@ -1,16 +1,29 @@
-// Magic Carpet Ride level configs. One route; length, speed, quotas and light change.
-// Plain data: no three.js, no React.
+// Magic Carpet Ride level configs: one flight (a winding sky lane), five biomes. Plain data: no
+// three.js, no React. The route's length and speed, the rings and their quota, the coin arcs, gems,
+// boosts, the flying obstacles and their kinds, the clock and the light change per level.
 import type { LevelId } from "@/arcade3d/types";
 
+/** The world the lane flies through (decor, ground, which flyers live there). */
+export type Biome = "desert" | "canyon" | "clouds" | "night" | "palace";
+
+/** A flying obstacle (rules.ts OBSTACLE_SPEC gives its size and motion). */
+export type ObstacleKind = "gull" | "balloon" | "rock" | "hotAir" | "bat" | "lantern" | "hawk" | "blimp";
+
 export interface CarpetLevel {
+   biome: Biome;
+   /** route length, m */
    length: number;
+   /** forward speed, m/s (a boost multiplies it) */
    speed: number;
    rings: number;
+   /** rings needed at the finish to clear the level */
    ringQuota: number;
-   stars: number;
-   starQuota: number;
-   rocks: number;
-   movers: number;
+   /** coins in each arc between two rings */
+   coinsPerArc: number;
+   gems: number;
+   boosts: number;
+   obstacles: number;
+   kinds: readonly ObstacleKind[];
    durationMs: number;
    lighting: "day" | "sunset" | "night";
    background: string;
@@ -18,37 +31,26 @@ export interface CarpetLevel {
 }
 
 export const LEVELS: Record<LevelId, CarpetLevel> = {
-   1: { length: 420, speed: 9, rings: 8, ringQuota: 6, stars: 8, starQuota: 5, rocks: 3, movers: 0, durationMs: 120_000, lighting: "day", background: "#fde68a", fogFar: 120 },
-   2: { length: 600, speed: 10, rings: 12, ringQuota: 9, stars: 12, starQuota: 8, rocks: 6, movers: 0, durationMs: 150_000, lighting: "sunset", background: "#fb923c", fogFar: 110 },
-   3: { length: 780, speed: 10.5, rings: 16, ringQuota: 12, stars: 15, starQuota: 10, rocks: 8, movers: 4, durationMs: 180_000, lighting: "day", background: "#e0f2fe", fogFar: 70 },
-   4: { length: 880, speed: 11, rings: 20, ringQuota: 15, stars: 18, starQuota: 12, rocks: 10, movers: 6, durationMs: 180_000, lighting: "night", background: "#1e1b4b", fogFar: 80 },
-   5: { length: 1100, speed: 11.5, rings: 25, ringQuota: 19, stars: 22, starQuota: 15, rocks: 14, movers: 8, durationMs: 240_000, lighting: "sunset", background: "#7c2d12", fogFar: 100 },
+   1: { biome: "desert", length: 540, speed: 13, rings: 10, ringQuota: 7, coinsPerArc: 5, gems: 4, boosts: 2, obstacles: 4, kinds: ["gull", "balloon"], durationMs: 75_000, lighting: "day", background: "#fcd9a0", fogFar: 150 },
+   2: { biome: "canyon", length: 680, speed: 14, rings: 13, ringQuota: 9, coinsPerArc: 5, gems: 5, boosts: 3, obstacles: 7, kinds: ["gull", "rock"], durationMs: 85_000, lighting: "sunset", background: "#f59e5b", fogFar: 140 },
+   3: { biome: "clouds", length: 820, speed: 15, rings: 16, ringQuota: 12, coinsPerArc: 6, gems: 6, boosts: 3, obstacles: 9, kinds: ["balloon", "hotAir", "gull"], durationMs: 95_000, lighting: "day", background: "#bfe3fb", fogFar: 150 },
+   4: { biome: "night", length: 900, speed: 15.5, rings: 18, ringQuota: 13, coinsPerArc: 6, gems: 7, boosts: 4, obstacles: 11, kinds: ["bat", "lantern"], durationMs: 100_000, lighting: "night", background: "#1e1b4b", fogFar: 120 },
+   5: { biome: "palace", length: 1080, speed: 16, rings: 22, ringQuota: 16, coinsPerArc: 6, gems: 8, boosts: 4, obstacles: 14, kinds: ["hawk", "rock", "blimp"], durationMs: 115_000, lighting: "sunset", background: "#c2603a", fogFar: 140 },
 };
 
 export const LEVEL_TITLES: Record<LevelId, string> = {
-   1: "Desert Village",
-   2: "Canyon",
+   1: "Desert Dawn",
+   2: "Red Canyon",
    3: "Cloud Kingdom",
-   4: "Night City",
-   5: "Floating Palace",
+   4: "Lantern Night",
+   5: "Sky Palace",
 };
 
 /** Start-card line under the level tile. */
 export const LEVEL_LINES: Record<LevelId, string> = {
-   1: "Eight rings over the rooftops.",
-   2: "Tighter turns between the walls.",
-   3: "Rocks drift up and down.",
-   4: "Lanterns light the way.",
-   5: "Twenty-five rings to the palace.",
+   1: "Over the rooftops: 7 of 10 rings, gulls and balloons.",
+   2: "Down the canyon: drifting rocks between the walls.",
+   3: "Above the clouds: hot-air balloons and sky islands.",
+   4: "Through the lanterns: bats in the dark.",
+   5: "To the floating palace: hawks, rocks and a blimp.",
 };
-
-export type CarpetTheme = "town" | "canyon" | "cloud" | "night" | "palace";
-
-/** Which dressing and which obstacle mesh this level draws. */
-export function themeOf(level: CarpetLevel): CarpetTheme {
-   if (level.background === "#e0f2fe") return "cloud";
-   if (level.background === "#1e1b4b") return "night";
-   if (level.background === "#7c2d12") return "palace";
-   if (level.background === "#fb923c") return "canyon";
-   return "town";
-}

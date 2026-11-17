@@ -2,6 +2,7 @@
 
 // The open tickets as rows of ingredient icons (shape + colour, the next step outlined) and each oven's
 // bake ring (core TimingRing: the zone is the golden window; rules.bakeGrade grades the take-out).
+import CameraViewButton from "@/arcade3d/core/camera/CameraViewButton";
 import type { CSSProperties } from "react";
 import { TimingRing } from "@/arcade3d/core/hud/TimingRing";
 import { useKitchenHud } from "./hudStore";
@@ -19,7 +20,7 @@ const ICON: Record<Ingredient, CSSProperties> = {
    onion: { background: "transparent", borderRadius: "50%", borderColor: COLORS.onion, borderWidth: 3 },
 };
 
-export default function Hud() {
+function GameHud() {
    const r = useKitchenHud((s) => s.run);
    useKitchenHud((s) => s.revision);
    if (!r) return null;
@@ -58,5 +59,15 @@ export default function Hud() {
             <p role="status">{r.message}</p>
          </div>
       </aside>
+   );
+}
+
+/** The game's HUD plus the core 📷 camera-view button (core/camera). */
+export default function Hud() {
+   return (
+      <>
+         <CameraViewButton />
+         <GameHud />
+      </>
    );
 }

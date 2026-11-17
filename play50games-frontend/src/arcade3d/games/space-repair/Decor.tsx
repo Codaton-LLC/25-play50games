@@ -147,10 +147,16 @@ export function Decor({ reduced, levelId }: { reduced: boolean; levelId: number 
             </Instanced>
          )}
          {distantWings.length > 0 && (
-            <Instanced spots={distantWings} name="space-distant-wings">
-               <primitive object={geo.wing} attach="geometry" />
-               <meshStandardMaterial color={COLORS.panel} roughness={0.35} metalness={0.5} emissive={COLORS.panel} emissiveIntensity={0.25} />
-            </Instanced>
+            <InstancedModel
+               asset={ASSETS.solarWing}
+               spots={distantWings.map((w) => ({ x: w.x, y: w.y, z: w.z, rotY: w.rotY }))}
+               fallback={
+                  <Instanced spots={distantWings} name="space-distant-wings">
+                     <primitive object={geo.wing} attach="geometry" />
+                     <meshStandardMaterial color={COLORS.panel} roughness={0.35} metalness={0.5} emissive={COLORS.panel} emissiveIntensity={0.25} />
+                  </Instanced>
+               }
+            />
          )}
          {satellites.length > 0 && (
             <Instanced spots={satellites} name="space-satellites">

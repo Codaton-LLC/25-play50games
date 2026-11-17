@@ -27,6 +27,10 @@ export const COLORS = {
    vine: "#3f6212",
    vineLeaf: "#65a30d",
    cliff: "#44403c",
+   fall: "#bae6fd",
+   fallDeep: "#7dd3fc",
+   mist: "#e0f2fe",
+   ember: "#fbbf24",
 } as const;
 
 // ---------- camera: behind and above, pitch 28°, 8 m look-ahead, x fixed on the track centre ----------
@@ -201,10 +205,24 @@ export interface DecorSpots {
    /** trees on the canyon rims (1 m tall: scale = height) */
    trees: InstanceSpot[];
    ferns: InstanceSpot[];
+   /** potted plants on the canyon rims (1 m tall: scale = height), outside DECOR_CLEAR_X */
+   plants: InstanceSpot[];
    /** hanging vines on the canyon walls (background only) */
    vines: InstanceSpot[];
    /** wooden stilts under the deck (a unit box: sx/sy/sz) */
    stilts: InstanceSpot[];
+   /** L2 Rope Bridges: abandoned rope bridges below the deck, spanning from the walls over the water */
+   ropeBridges: InstanceSpot[];
+   /** L3 Waterfall: translucent sheets pouring off the canyon walls (sx = width, sy = drop, y = top) */
+   falls: InstanceSpot[];
+   /** L3 Waterfall: mist puffs at the falls' base */
+   mist: InstanceSpot[];
+   /** L4 Ancient Temple: a templePillarV2 colonnade on the canyon rims (scale = height) */
+   colonnade: InstanceSpot[];
+   /** L5 Volcano Jungle: glowing lava streams down the canyon walls (sx = width, sy = drop, y = top) */
+   lavafalls: InstanceSpot[];
+   /** L5 Volcano Jungle: embers drifting up along the canyon (scale = size, animated in the Scene) */
+   embers: InstanceSpot[];
 }
 
 /**
@@ -219,10 +237,47 @@ export function decorZ(baseZ: number, runnerZ: number): number {
    return start + ((((baseZ - start) % DECOR_PERIOD) + DECOR_PERIOD) % DECOR_PERIOD);
 }
 
+/**
+ * The canyon's dressing per theme. Chance gates run on their own rng stream, so the `path` theme
+ * (level 1) keeps the exact spots it always had; the values they gate are consumed from the main
+ * stream either way, so every theme stays deterministic.
+ */
+interface CanyonDressing {
+   /** the share of wall units that carry a tree (path: every unit, as built) */
+   treeChance: number;
+   treeScale: readonly [number, number];
+   fernChance: number;
+   plantChance: number;
+   vineChance: number;
+   vineScale: readonly [number, number];
+   riverRockChance: number;
+   /** L4: a temple pillar per wall unit on the rim */
+   colonnade: boolean;
+}
+
+const CANYON_DRESSING: Record<JungleLevel["canyon"], CanyonDressing> = {
+   path: { treeChance: 1, treeScale: [6, 10], fernChance: 0.6, plantChance: 0.5, vineChance: 0.45, vineScale: [4, 6], riverRockChance: 0.5, colonnade: false },
+   // Rope Bridges: a dense green canopy, long vine curtains, abandoned rope bridges below
+   rope: { treeChance: 1, treeScale: [7, 11], fernChance: 0.75, plantChance: 0.6, vineChance: 0.7, vineScale: [5, 8], riverRockChance: 0.5, colonnade: false },
+   // Waterfall: lush but open walls for the falls
+   falls: { treeChance: 0.8, treeScale: [6, 10], fernChance: 0.7, plantChance: 0.4, vineChance: 0.2, vineScale: [4, 6], riverRockChance: 0.5, colonnade: false },
+   // Ancient Temple: sparse jungle, a pillar colonnade on both rims
+   temple: { treeChance: 0.35, treeScale: [5, 8], fernChance: 0.25, plantChance: 0.15, vineChance: 0.15, vineScale: [4, 6], riverRockChance: 0.3, colonnade: true },
+   // Volcano Jungle: charred and sparse, lava streams and embers carry the look
+   volcano: { treeChance: 0.5, treeScale: [5, 8], fernChance: 0.15, plantChance: 0.1, vineChance: 0.1, vineScale: [3, 5], riverRockChance: 0.3, colonnade: false },
+};
+
 export function decorSpots(id: LevelId, level: JungleLevel): DecorSpots {
-   void level;
+   const theme = CANYON_DRESSING[level.canyon];
    const rng = createRng(7000 + id);
-   const out: DecorSpots = { rocks: [], trees: [], ferns: [], vines: [], stilts: [] };
+   // its own sequence, so the other decor keeps its seeded places
+   const plantRng = createRng(9100 + id);
+   // chance gates only, so a themed level skips a tree/fern without changing the values that follow
+   const gateRng = createRng(5300 + id);
+   // the set pieces (rope bridges, falls, colonnade, lava, embers): their own sequence
+   const setRng = createRng(6100 + id);
+   const out: DecorSpots = { rocks: [], trees: [], ferns: [], plants: [], vines: [], stilts: [], ropeBridges: [], falls: [], mist: [], colonnade: [], lavafalls: [], embers: [] };
+   const legacy = level.canyon === "path";
    for (const side of [-1, 1]) {
       for (let z = side < 0 ? 0 : 6; z < DECOR_PERIOD; z += 12) {
          // the canyon wall: a rock rising from the water to just under the deck's level (top <= -0.5),
@@ -231,16 +286,70 @@ export function decorSpots(id: LevelId, level: JungleLevel): DecorSpots {
          const cx = 13 + rng() * 3;
          out.rocks.push({ x: side * cx, y: WATER_Y, z, rotY: 0, sx: 0.55 * h, sy: h, sz: 0.8 * h });
          const rim = WATER_Y + h * 0.9;
-         out.trees.push({ x: side * (cx + 1 + rng() * 3), y: rim - 0.4, z: z + rng() * 6, rotY: rng() * Math.PI * 2, scale: 6 + rng() * 4 });
-         if (rng() < 0.6) out.ferns.push({ x: side * (cx - 1 + rng() * 2), y: rim, z: z + 3 + rng() * 4, rotY: rng() * Math.PI * 2, scale: 1.2 + rng() * 0.8 });
-         if (rng() < 0.45) out.vines.push({ x: side * (11 + rng() * 2), y: rim - 4, z: z + rng() * 5, rotY: rng() * Math.PI * 2, scale: 4 + rng() * 2 });
-         // river rocks
-         if (rng() < 0.5) out.rocks.push({ x: side * (4 + rng() * 6), y: WATER_Y - 0.4, z: z + rng() * 8, rotY: rng() * Math.PI * 2, scale: 1.2 + rng() * 1.5 });
+         if (legacy) {
+            // level 1 as built: the rng gates spend the main stream, the values are pinned (canyon.test.ts)
+            out.trees.push({ x: side * (cx + 1 + rng() * 3), y: rim - 0.4, z: z + rng() * 6, rotY: rng() * Math.PI * 2, scale: 6 + rng() * 4 });
+            if (rng() < 0.6) out.ferns.push({ x: side * (cx - 1 + rng() * 2), y: rim, z: z + 3 + rng() * 4, rotY: rng() * Math.PI * 2, scale: 1.2 + rng() * 0.8 });
+            if (plantRng() < 0.5) out.plants.push({ x: side * (cx + 0.5 + plantRng() * 2), y: rim, z: z + 6 + plantRng() * 4, rotY: plantRng() * Math.PI * 2, scale: 1.5 + plantRng() * 0.7 });
+            if (rng() < 0.45) out.vines.push({ x: side * (11 + rng() * 2), y: rim - 4, z: z + rng() * 5, rotY: rng() * Math.PI * 2, scale: 4 + rng() * 2 });
+            if (rng() < 0.5) out.rocks.push({ x: side * (4 + rng() * 6), y: WATER_Y - 0.4, z: z + rng() * 8, rotY: rng() * Math.PI * 2, scale: 1.2 + rng() * 1.5 });
+            continue;
+         }
+         const treeX = side * (cx + 1 + rng() * 3);
+         const treeZ = z + rng() * 6;
+         const treeRot = rng() * Math.PI * 2;
+         const treeScale = theme.treeScale[0] + rng() * (theme.treeScale[1] - theme.treeScale[0]);
+         if (gateRng() < theme.treeChance) out.trees.push({ x: treeX, y: rim - 0.4, z: treeZ, rotY: treeRot, scale: treeScale });
+         const fernX = side * (cx - 1 + rng() * 2);
+         const fernZ = z + 3 + rng() * 4;
+         const fernRot = rng() * Math.PI * 2;
+         const fernScale = 1.2 + rng() * 0.8;
+         if (gateRng() < theme.fernChance) out.ferns.push({ x: fernX, y: rim, z: fernZ, rotY: fernRot, scale: fernScale });
+         if (plantRng() < theme.plantChance) out.plants.push({ x: side * (cx + 0.5 + plantRng() * 2), y: rim, z: z + 6 + plantRng() * 4, rotY: plantRng() * Math.PI * 2, scale: 1.5 + plantRng() * 0.7 });
+         const vineX = side * (11 + rng() * 2);
+         const vineZ = z + rng() * 5;
+         const vineRot = rng() * Math.PI * 2;
+         const vineScale = theme.vineScale[0] + rng() * (theme.vineScale[1] - theme.vineScale[0]);
+         if (gateRng() < theme.vineChance) out.vines.push({ x: vineX, y: rim - 4, z: vineZ, rotY: vineRot, scale: vineScale });
+         const rockX = side * (4 + rng() * 6);
+         const rockZ = z + rng() * 8;
+         const rockRot = rng() * Math.PI * 2;
+         const rockScale = 1.2 + rng() * 1.5;
+         if (gateRng() < theme.riverRockChance) out.rocks.push({ x: rockX, y: WATER_Y - 0.4, z: rockZ, rotY: rockRot, scale: rockScale });
+         // L4 Ancient Temple: a colonnade pillar on the rim of every wall unit
+         if (theme.colonnade) out.colonnade.push({ x: side * 8.6, y: rim - 0.4, z: z + 3, rotY: 0, scale: 4.4 });
       }
    }
    // stilts under the outer lanes every 6 m, from the deck down into the water
    for (let z = 1; z < DECOR_PERIOD; z += 6) {
       for (const x of [LANE_X[0] + 0.85, LANE_X[2] - 0.85]) out.stilts.push({ x, y: WATER_Y / 2 - 0.2, z, sx: 0.22, sy: -WATER_Y - 0.3, sz: 0.22 });
+   }
+   // the set pieces: each theme's own scenery, all well clear of the track (canyon.test.ts)
+   if (level.canyon === "rope") {
+      // abandoned rope bridges hanging below the deck, from the walls over the water
+      for (let i = 0; i < 4; i++) {
+         const side = i % 2 === 0 ? -1 : 1;
+         out.ropeBridges.push({ x: side * 9.5, y: -2.3, z: 9 + i * 18 + setRng() * 4, rotY: Math.PI / 2, sz: 8 + setRng() * 2 });
+      }
+   }
+   if (level.canyon === "falls") {
+      // waterfalls pour off both walls into the river, mist at their base
+      for (let i = 0; i < 4; i++) {
+         const side = i % 2 === 0 ? -1 : 1;
+         const z = 10 + i * 18 + setRng() * 3;
+         out.falls.push({ x: side * 10.6, y: 1.6, z, rotY: side > 0 ? -Math.PI / 2 : Math.PI / 2, sx: 2.8, sy: 13.2, sz: 1 });
+         out.mist.push({ x: side * 9.8, y: -11.6, z: z + 1, sx: 3.4, sy: 1.1, sz: 3.4 });
+      }
+   }
+   if (level.canyon === "volcano") {
+      // lava streams down the walls, embers drifting up along the canyon
+      for (let i = 0; i < 4; i++) {
+         const side = i % 2 === 0 ? -1 : 1;
+         out.lavafalls.push({ x: side * 10.6, y: 1.2, z: 10 + i * 18 + setRng() * 3, rotY: side > 0 ? -Math.PI / 2 : Math.PI / 2, sx: 1.8, sy: 13.2, sz: 1 });
+      }
+      for (let i = 0; i < 28; i++) {
+         out.embers.push({ x: (i % 2 === 0 ? -1 : 1) * (7.6 + setRng() * 5), y: -5 + setRng() * 7, z: setRng() * DECOR_PERIOD, rotY: setRng() * Math.PI * 2, scale: 0.12 + setRng() * 0.12 });
+      }
    }
    for (const list of Object.values(out)) for (const spot of list) spot.z = ((spot.z % DECOR_PERIOD) + DECOR_PERIOD) % DECOR_PERIOD;
    return out;

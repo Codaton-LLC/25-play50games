@@ -7,6 +7,7 @@ import { useFrame, useThree } from "@react-three/fiber";
 import { RepeatWrapping, type Group } from "three";
 import { InstancedModel, Model } from "@/arcade3d/core/assets";
 import CameraRig from "@/arcade3d/core/CameraRig";
+import { useCameraViews } from "@/arcade3d/core/camera/CameraViews";
 import { playSfx } from "@/arcade3d/core/audio";
 import { FRAME_PRIORITY } from "@/arcade3d/core/frameLoop";
 import { useFx } from "@/arcade3d/core/fx";
@@ -24,7 +25,8 @@ import { ASSETS, FIT, GLB_SIZE } from "./assets";
 import { SHARED_GLB_SIZE } from "@/arcade3d/core/sharedAssets";
 import { useKitchenHud } from "./hudStore";
 import { LEVELS, type PizzaLevel } from "./levels";
-import { AIM_Z, COLORS, FOV, panHalf, viewFor } from "./looks";
+import { AIM_Z, COLORS, FOV, KITCHENS, panHalf, viewFor, type KitchenLook } from "./looks";
+import Decor from "./Decor";
 import { TUNING, createRun, frame, kitchenHalf, nearestStation, type Pizza as PizzaState, type Run } from "./rules";
 
 const COUNTER_Z = -2.05;
@@ -33,17 +35,27 @@ const AT = { x: 0, y: 0, z: 0 };
 const CHEF_SCALE = ASSETS.chef.scale;
 const BOX_H = GLB_SIZE.pizzaBoxClosed.height * (ASSETS.box.scale ?? 1);
 
-function drawTiles(ctx: CanvasRenderingContext2D, w: number, h: number) {
-   ctx.fillStyle = COLORS.grout;
-   ctx.fillRect(0, 0, w, h);
-   const n = 4;
-   const s = w / n;
-   for (let i = 0; i < n; i++) {
-      for (let j = 0; j < n; j++) {
-         ctx.fillStyle = (i + j) % 2 ? COLORS.tile : COLORS.tileAlt;
-         ctx.fillRect(i * s + 2, j * s + 2, s - 4, s - 4);
-      }
+const TILE_DRAWS = new Map<KitchenLook, (ctx: CanvasRenderingContext2D, w: number, h: number) => void>();
+
+/** The room's floor tiles, drawn once per look (a stable function, so the texture is drawn once). */
+function tilesFor(look: KitchenLook) {
+   let draw = TILE_DRAWS.get(look);
+   if (!draw) {
+      draw = (ctx: CanvasRenderingContext2D, w: number, h: number) => {
+         ctx.fillStyle = look.grout;
+         ctx.fillRect(0, 0, w, h);
+         const n = 4;
+         const s = w / n;
+         for (let i = 0; i < n; i++) {
+            for (let j = 0; j < n; j++) {
+               ctx.fillStyle = (i + j) % 2 ? look.tile : look.tileAlt;
+               ctx.fillRect(i * s + 2, j * s + 2, s - 4, s - 4);
+            }
+         }
+      };
+      TILE_DRAWS.set(look, draw);
    }
+   return draw;
 }
 
 function Disc({ radius, color, y = 0, height = 0.03 }: { radius: number; color: string; y?: number; height?: number }) {
@@ -190,6 +202,23 @@ function LevelScene() {
    const fx = useFx();
    const [run] = useState<Run>(() => createRun(randomSeed(), level));
    const dir = useRef({ x: 0, z: 0 }).current;
+   // camera views (core/camera): the stick turns with the drawn camera's yaw
+   const cam = useCameraViews({
+      slug: "pizza-kitchen-3d",
+      subject: "character",
+      steering: "camera",
+      defaultYaw: view.yaw,
+      target: (o) => {
+         const p = run.player;
+         o.x = p.x;
+         o.y = 1.1;
+         o.z = p.z;
+         if (Math.hypot(p.vx, p.vz) > 0.3) o.heading = Math.atan2(p.vx, p.vz);
+         else if (o.heading === 0) o.heading = Math.PI; // before the first step: facing the counters
+         o.vx = p.vx;
+         o.vz = p.vz;
+      },
+   });
    // the camera pans along the row with the cook (L3-L5 on narrow screens), never past its ends
    const aim = useRef({ x: Math.max(-pan, Math.min(pan, run.player.x)), y: 0, z: AIM_Z }).current;
    const half = kitchenHalf(level);
@@ -201,7 +230,8 @@ function LevelScene() {
       () => run.stations.filter((s) => s.id === "pepperoni" || s.id === "tomato" || s.id === "onion").map((s): InstanceSpot => ({ x: s.x, y: TOP, z: COUNTER_Z + 0.1 })),
       [run]
    );
-   const floor = useCanvasTexture(256, 256, drawTiles);
+   const room = KITCHENS[level.theme];
+   const floor = useCanvasTexture(256, 256, tilesFor(room));
    useMemo(() => {
       floor.wrapS = RepeatWrapping;
       floor.wrapT = RepeatWrapping;
@@ -217,7 +247,7 @@ function LevelScene() {
 
    useRunFrame((_s, dt) => {
       const { moveX, moveY, actionPressed } = input.current;
-      inputToWorld(moveX, moveY, view.yaw, dir);
+      inputToWorld(moveX, moveY, cam.yaw(), dir);
       frame(run, dt, dir.x, dir.z, actionPressed, useArcadeStore);
       aim.x = Math.max(-pan, Math.min(pan, run.player.x));
       for (const ev of run.events) {
@@ -253,11 +283,11 @@ function LevelScene() {
          </mesh>
          <mesh position={[0, 2.2, COUNTER_Z - 0.75]}>
             <boxGeometry args={[60, 4.4, 0.2]} />
-            <meshStandardMaterial color={COLORS.wall} roughness={0.9} />
+            <meshStandardMaterial color={room.wall} roughness={0.9} />
          </mesh>
          <mesh position={[0, 0.08, COUNTER_Z - 0.62]}>
             <boxGeometry args={[60, 0.16, 0.06]} />
-            <meshStandardMaterial color={COLORS.skirting} roughness={0.7} />
+            <meshStandardMaterial color={room.skirting} roughness={0.7} />
          </mesh>
          {/* side counters close the line at both ends */}
          <InstancedModel
@@ -267,11 +297,11 @@ function LevelScene() {
                <>
                   <Instanced spots={counters.map((s) => ({ ...s, y: TOP / 2, sx: 1.56, sy: TOP, sz: 0.9 }))}>
                      <boxGeometry />
-                     <meshStandardMaterial color={COLORS.darkWood} roughness={0.7} />
+                     <meshStandardMaterial color={room.darkWood} roughness={0.7} />
                   </Instanced>
                   <Instanced spots={counters.map((s) => ({ ...s, y: TOP, sx: 1.6, sy: 0.06, sz: 0.95 }))}>
                      <boxGeometry />
-                     <meshStandardMaterial color={COLORS.wood} roughness={0.55} />
+                     <meshStandardMaterial color={room.wood} roughness={0.55} />
                   </Instanced>
                </>
             }
@@ -282,7 +312,7 @@ function LevelScene() {
             fallback={
                <Instanced spots={ovens.map((s) => ({ ...s, y: 0.62, sx: 1.4, sy: 1.24, sz: 1.1 }))}>
                   <boxGeometry />
-                  <meshStandardMaterial color={COLORS.oven} roughness={0.5} metalness={0.3} />
+                  <meshStandardMaterial color={room.oven} roughness={0.5} metalness={0.3} />
                </Instanced>
             }
          />
@@ -328,6 +358,7 @@ function LevelScene() {
                <Model key={k} asset={ASSETS.box} position={[0, crateTop + k * BOX_H, 0]} rotation-y={k * 0.3} fallback={<Disc radius={0.3} color={COLORS.tile} y={0.08} height={0.16} />} />
             ))}
          </group>
+         <Decor level={level} />
          <Live run={run} />
          <Chef run={run} />
       </>

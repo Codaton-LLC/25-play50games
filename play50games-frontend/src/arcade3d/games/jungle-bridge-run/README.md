@@ -27,11 +27,16 @@ A forward runner on three plank lanes over a jungle river: jump the gaps and rol
 
 | L | Title | Sections | Speed | Patterns | Log speed | Clock | Look | Limits (max / min ms / base / pps) |
 |---|---|---:|---:|---|---:|---:|---|---|
-| 1 | Jungle Path | 3 | 6.0 | gap, pillar | – | 75 s | day | 880 / 5500 / 480 / 30 |
-| 2 | Rope Bridges | 5 | 6.5 | + bridge, vine | – | 90 s | day | 1260 / 5200 / 800 / 23 |
-| 3 | Waterfall | 7 | 7.0 | + log | 2.5 | 110 s | day, waterfall backdrop | 1680 / 4900 / 1120 / 22 |
-| 4 | Ancient Temple | 9 | 7.8 | same, pairs | 3.2 | 120 s | sunset, closer fog | 2050 / 3300 / 1440 / 20 |
-| 5 | Volcano Jungle | 12 | 8.4 | + lava, pairs | 3.6 | 120 s | sunset, red fog, volcano backdrop | 2505 / 3200 / 1920 / 15 |
+| 1 | Jungle Path | 3 | 6.0 | gap, pillar | – | 75 s | day, the original jungle canyon | 880 / 5500 / 480 / 30 |
+| 2 | Rope Bridges | 5 | 6.5 | + bridge, vine | – | 90 s | day, dense canopy and vine curtains, abandoned rope bridges below the deck | 1260 / 5200 / 800 / 23 |
+| 3 | Waterfall | 7 | 7.0 | + log | 2.5 | 110 s | dramatic blue day, waterfalls pour off both walls, mist at their base | 1680 / 4900 / 1120 / 22 |
+| 4 | Ancient Temple | 9 | 7.8 | same, pairs | 3.2 | 120 s | sunset, sparse jungle, a temple-pillar colonnade on both rims, closer fog | 2050 / 3300 / 1440 / 20 |
+| 5 | Volcano Jungle | 12 | 8.4 | + lava, pairs | 3.6 | 120 s | dark-red sunset, lava streams down the walls, drifting embers, volcano backdrop | 2505 / 3200 / 1920 / 15 |
+
+Every level is its own canyon map (`canyon` theme in levels.ts, `CANYON_DRESSING` in looks.ts): the
+canyon dressing (tree/vine/fern densities and sizes) and the set pieces differ per level; the sky top
+and the river's colours are per-level palette fields. Level 1 keeps the exact map it shipped with
+(pinned by a sha256 of its spot lists in canyon.test.ts).
 
 Only a win clears a level (no `clearScore`).
 
@@ -46,7 +51,7 @@ Only a win clears a level (no `clearScore`).
 
 Bots (`testing/bots.ts`, through `createArcadeStore` + `simulateRun`, the Scene's own `syncStore`; `proof.level-N.test.ts` one level per file): the honest bot (jumps and slides centred in each window with a ±60 ms seeded spread, lane changes to the clear lane) clears ≥ 99 % of 200 seeds per level at 30 / 60 / 144 Hz (200 / 200 measured on every level); the oracle (perfect timing, detours for every gem when the lane is safe) stays inside the limits and reaches ≥ 90 % of `maxScore`; idle never clears (200 seeds); input spam stays inside the limits (60 seeds, random frames).
 
-`rules.test.ts`: determinism; the generator on 200 seeds per level (counts, clear line, the arrival lane always stopped, spacing, pairs only on L4–L5, gems reachable); every obstacle's rule (a jump clears a gap and a slide does not, a slide clears a vine and a jump does not, log height, pillar, bridge, the lava window); move timings; screen-ordered lanes; every score event; respawn; the store's lives. `levels.test.ts`, `assets.test.ts` (every GLB's bounds and fit, the deck drawn exactly where the rules hold the runner, decor clearances), `explorer.test.ts` (the auto-rig checks on the real mesh). Mutation probes on every level read in `rules.ts`, `index.tsx`, `looks.ts` and `meta.ts` fail the tests.
+`rules.test.ts`: determinism; the generator on 200 seeds per level (counts, clear line, the arrival lane always stopped, spacing, pairs only on L4–L5, gems reachable); every obstacle's rule (a jump clears a gap and a slide does not, a slide clears a vine and a jump does not, log height, pillar, bridge, the lava window); move timings; screen-ordered lanes; every score event; respawn; the store's lives. `levels.test.ts`, `assets.test.ts` (every GLB's bounds and fit, the deck drawn exactly where the rules hold the runner, decor clearances), `canyon.test.ts` (the five levels' canyons, skies and palettes all differ; each themed set piece stays out of the play area; level 1 is byte-identical to its shipped map), `explorer.test.ts` (the auto-rig checks on the real mesh). Mutation probes on every level read in `rules.ts`, `index.tsx`, `looks.ts` and `meta.ts` fail the tests.
 
 ## Look and models
 
@@ -56,8 +61,9 @@ All listed `menu1-jungle-bridge-run` GLBs are adopted (`templePillarV2`, `ruinGa
 - track: `woodenBridge` as 1 m plank-lane pieces (1.9 m wide, low kerbs between lanes) stretched by `sz` over each stretch of deck; `ropeBridge` (1.6 m, rope rails) on a bridge's plank lane; one `ruinGateR` per lane at every gate (2 m wide, lintel 2 m up); `templePillarV2` 1.1 m wide; `jungleLogSingle` 1.2 m long, 0.6 m thick, rolling about its axis. Every kind is one instanced pool.
 - code by design: the vine bars (a rope with leaf tufts; spec: `hangingVineV2` is still needed), lava vents (crust + an eruption glow), gems (one faceted cyan pool), stilts under the deck, `<Water>` 12 m down.
 - canyon: `jungleRock` walls and river rocks, `leafyTree` rims, `jungleFern`, `hangingVine` curtains (background only), all fitted to 1 m and placed by their spot's scale; nothing above the deck within |x| < 7 (the camera at x = 0 can never see decor in front of the runner, `assets.test.ts`); L3 `waterfallCliff` and L5 `volcanoBackdrop` ride beside the track ahead of the camera, hazy in the fog.
+- the themed set pieces (looks.ts decorSpots, drawn in Scene.tsx, all clear of the track — canyon.test.ts): L2 abandoned `ropeBridge` spans below the deck from the walls; L3 translucent waterfall sheets (`fallParts`) off both walls with `mistParts` puffs at their base; L4 a `templePillarV2` colonnade on both rims; L5 glowing lava streams (`lavafallParts`) down the walls and drifting embers (`emberParts`, animated like the lava glow). Falls/mist/lava/embers are code-built parts (like the vines and lava vents), so they do not enter the GLB triangle budget.
 - Camera: behind and above (yaw π), pitch 28°, 8 m look-ahead, x fixed on the track centre, a fitted window of the three lanes from 3 m behind the runner to 18 m ahead of it (focus = the aim), `shift`; it keeps the runner clear of the HUD and of the cookie banner on 390 × 844, 844 × 390 and desktop (`view.test.ts`, the banner's strip as an avoid rect).
-- What is drawn (playtest fix 2026-10-26: 650k-1.79M triangles per frame before): only the visible stretch. Track pieces (4.8 m deck pieces, rope bridges, gates, pillars) are z-sorted pools drawing the spots from 6 m behind the runner to the fog's far end (`visibleAhead` = fogFar - 12), recycled as the runner moves; the canyon is one seeded 72 m band wrapped into that stretch (`decorZ`), its counts scaled by `useQuality().decor`. `view.test.ts` sums measured triangles × the largest pool counts over 40 seeds: L1 274k, L2 271k, L3 266k, L4 236k, L5 214k (budget 300k, high tier).
+- What is drawn (playtest fix 2026-10-26: 650k-1.79M triangles per frame before): only the visible stretch. Track pieces (4.8 m deck pieces, rope bridges, gates, pillars) are z-sorted pools drawing the spots from 6 m behind the runner to the fog's far end (`visibleAhead` = fogFar - 12), recycled as the runner moves; the canyon is one seeded 72 m band wrapped into that stretch (`decorZ`), its counts scaled by `useQuality().decor`. `view.test.ts` sums measured triangles × the largest pool counts over 40 seeds: L1 280k, L2 288k, L3 260k, L4 245k, L5 198k (budget 300k, high tier; the GLB set pieces — L2's rope bridges, L4's colonnade — are counted, the code-built falls/mist/lava/embers are not, like the other code parts).
 - The gate row the runner passes fades to 25 % from 4 m before it to 4 m past it (`gateOpacity`, its own three faded copies; the pool skips that row): the chase camera never sees the runner through a solid gate (`view.test.ts` checks the hidden stretch on every screen is under 4 m).
 
 ## Known issues / for the playtest
@@ -65,3 +71,7 @@ All listed `menu1-jungle-bridge-run` GLBs are adopted (`templePillarV2`, `ruinGa
 - Not yet seen in a browser at the gate: the deck's top height (`FIT.deckTop`, from the mesh profile), the gate's opening, the log's roll, the explorer's slide lean.
 - A slide is a lean, not a crouch (no slide pose in core).
 - The rolling log is visual on its own lane band; the hit box is its 1.2 m length.
+
+## Clarity (2026-10-28, visual only)
+
+`guide.ts` (pure, `guide.test.ts`) finds the next obstacle within 24 m. A core `TargetBeacon` marks it: a "GO" arrow on the clear lane before a pillar or a lava vent and on a rope bridge's planked lane, an orange "JUMP" / "SLIDE" danger ring on the runner's lane at a gap, a log or a vine. The new `Hud.tsx` is the core `HintLine` ("Gap ahead: jump! (Space / swipe up)", "Pillar ahead: A / D to the arrow's lane", "Clear lane: keep running"). A taken gem flies into the runner instead of vanishing (`<Toss>`); a hit pops "Fell! / Crash! / Burned! / Slide next time! -1 life". Rules, scoring and limits are unchanged; the hint slot is a safe-area panel, so the fitted camera keeps the runner clear of it.

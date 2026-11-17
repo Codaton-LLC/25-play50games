@@ -20,19 +20,28 @@ const hudFor = (level: ZooLevel): NonNullable<GameDefinition["hudStats"]> => [
    { key: STATS.bamboo, label: "Bamboo", max: level.bundles },
 ];
 
-const INSTRUCTIONS = (level: ZooLevel) => [
+/** Each level's own twist, as a fourth instruction line (level 1 keeps its three). */
+const TWISTS: Partial<Record<LevelId, string>> = {
+   2: "Safari Zone: hide in the tall grass, and cross the jeep tracks behind the jeep - it never stops.",
+   3: "Bird Garden: walk past a bird and it squawks for a keeper. Sneak past the birds.",
+   4: "Central Zoo: slip into the crowds of visitors to hide.",
+   5: "Night Escape: lamps light the paths and two searchlights sweep the plaza and the back gate.",
+};
+
+const INSTRUCTIONS = (level: ZooLevel, id: LevelId = 1) => [
    "Sneak out of the zoo: stay out of the keepers' flashlight cones and reach each gate.",
    "Hold Space / Sneak to tiptoe past, hide in bushes, toss bamboo (E / Toss) to lure a keeper.",
    `Snacks +50, caught -100 and -${level.penalty} s, +10 per second left at the exit.`,
+   ...(TWISTS[id] ? [TWISTS[id]!] : []),
 ];
 
 /** One line under the level tiles. */
 const DESCRIPTIONS: Record<LevelId, string> = {
-   1: "Three stages, three gates. Escape, or score 1500.",
-   2: "Keepers notice you a little sooner and investigate faster. Score 1600.",
-   3: "One bamboo bundle per stage, sharper keepers. Score 1700.",
-   4: "Keepers catch on quickly and chase faster. Score 1800.",
-   5: "The sharpest keepers; a catch costs 10 seconds.",
+   1: "The panda enclosure, the visitor plaza, the parking lot at dusk. Escape, or score 1500.",
+   2: "Savanna paddock, a safari track with a jeep lapping it, the ranger camp. Score 1600.",
+   3: "Aviary walk, flamingo ponds, swan lake: birds squawk when you walk past. Score 1700.",
+   4: "Panda house, the central plaza and the main gate: hide in the crowds. Score 1800.",
+   5: "Night on every stage: lamps, flashlights and two sweeping searchlights.",
 };
 
 const definition: GameDefinition<ZooLevel> = {
@@ -55,7 +64,7 @@ const definition: GameDefinition<ZooLevel> = {
       description: DESCRIPTIONS[id],
       config: LEVELS[id],
       hudStats: hudFor(LEVELS[id]),
-      ...(id === 1 ? {} : { instructions: INSTRUCTIONS(LEVELS[id]) }),
+      ...(id === 1 ? {} : { instructions: INSTRUCTIONS(LEVELS[id], id) }),
    })),
 };
 

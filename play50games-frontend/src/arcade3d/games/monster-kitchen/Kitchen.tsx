@@ -19,7 +19,7 @@ import { InstancedModel } from "@/arcade3d/core/assets";
 import { Instanced, useCanvasTexture } from "@/arcade3d/core/render";
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import { scaledCount, useQuality } from "@/arcade3d/core/quality";
-import { ASSETS } from "./assets";
+import { ASSETS, POTION_JAR_HEIGHT } from "./assets";
 import { COLORS, drawKitchenTiles } from "./looks";
 
 /** The counter top (m), also the stove drum's top and the wheel's height (rules.WHEEL.y). */
@@ -115,6 +115,12 @@ export function Kitchen() {
       }
       return spots;
    }, [quality.tier]);
+
+   // the potion jar GLB stands on y = 0 (the stand-in cylinder is centred), drawn JAR_H tall x the spot scale
+   const jarModelSpots = useMemo(
+      () => jarSpots.map((s) => ({ ...s, y: s.y - (JAR_H / 2) * s.scale, scale: s.scale * (JAR_H / POTION_JAR_HEIGHT) })),
+      [jarSpots]
+   );
 
    const mushroomSpots = useMemo(() => {
       const count = scaledCount(5, quality.decor);
@@ -397,11 +403,17 @@ export function Kitchen() {
             </mesh>
          </group>
 
-         {/* Instanced jars on the shelf */}
-         <Instanced spots={jarSpots} name="jars">
-            <cylinderGeometry args={[0.07, 0.075, JAR_H, 12]} />
-            <meshStandardMaterial map={jarTexture} roughness={0.45} />
-         </Instanced>
+         {/* Instanced jars on the shelf (Hyper3D potion jars; the labelled cylinders are the fallback) */}
+         <InstancedModel
+            asset={ASSETS.potionJar}
+            spots={jarModelSpots}
+            fallback={
+               <Instanced spots={jarSpots} name="jars">
+                  <cylinderGeometry args={[0.07, 0.075, JAR_H, 12]} />
+                  <meshStandardMaterial map={jarTexture} roughness={0.45} />
+               </Instanced>
+            }
+         />
 
          {/* Shared mushroom decor */}
          <InstancedModel

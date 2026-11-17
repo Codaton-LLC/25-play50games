@@ -38,6 +38,7 @@ describe("jungle-bridge-run GLB fits (real meshes)", () => {
          ruinGateR: ASSETS.gate.url,
          jungleLogSingle: ASSETS.log.url,
          jungleFern: ASSETS.fern.url,
+         junglePlant: ASSETS.plant.url,
          volcanoBackdrop: ASSETS.volcano.url,
          hangingVine: ASSETS.hangingVine.url,
       };
@@ -52,7 +53,7 @@ describe("jungle-bridge-run GLB fits (real meshes)", () => {
          expect((b.min[0] + b.max[0]) / 2).toBeCloseTo(0, 2);
          expect((b.min[2] + b.max[2]) / 2).toBeCloseTo(0, 2);
       }
-      for (const skip of ["templePillar", "ruinGate", "junglePlant", "jungleLog"]) expect(hasModel(`/models/3d/jungle-bridge-run/${skip}.glb`)).toBe(false);
+      for (const skip of ["templePillar", "ruinGate", "jungleLog"]) expect(hasModel(`/models/3d/jungle-bridge-run/${skip}.glb`)).toBe(false);
    });
 
    it("track pieces: 1 m long (a spot's sz is the length), a lane 1.9 m wide with low kerbs, the rope bridge 1.6 m wide", () => {
@@ -90,6 +91,7 @@ describe("jungle-bridge-run GLB fits (real meshes)", () => {
       for (const [a, size] of [
          [ASSETS.rock, GLB_SIZE.jungleRock],
          [ASSETS.fern, GLB_SIZE.jungleFern],
+         [ASSETS.plant, GLB_SIZE.junglePlant],
          [ASSETS.hangingVine, GLB_SIZE.hangingVine],
          [ASSETS.waterfall, GLB_SIZE.waterfallCliff],
          [ASSETS.volcano, GLB_SIZE.volcanoBackdrop],
@@ -149,7 +151,7 @@ describe("jungle-bridge-run track and decor spots", () => {
             expect(top).toBeLessThanOrEqual(-0.3);
          }
          for (const t of d.trees) expect(Math.abs(t.x) - (t.scale ?? 1) * 0.5).toBeGreaterThanOrEqual(DECOR_CLEAR_X);
-         for (const f of [...d.ferns, ...d.vines]) expect(Math.abs(f.x)).toBeGreaterThanOrEqual(DECOR_CLEAR_X);
+         for (const f of [...d.ferns, ...d.plants, ...d.vines]) expect(Math.abs(f.x)).toBeGreaterThanOrEqual(DECOR_CLEAR_X);
          for (const s of d.stilts) expect(s.y + (s.sy ?? 1) / 2).toBeLessThanOrEqual(-0.3);
          for (const s of d.stilts) expect(s.y - (s.sy ?? 1) / 2).toBeLessThanOrEqual(WATER_Y);
          const b = backdropFor(level);

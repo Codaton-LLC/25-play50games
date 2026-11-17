@@ -199,3 +199,40 @@ describe("burger-delivery-scooter rules", () => {
       }
    });
 });
+
+// Steering direction on screen. A heading (sin yaw, cos yaw) has its driver's LEFT at (cos yaw, -sin yaw)
+// (three.js is right-handed, y up: facing +z, +x is on the left). A left turn rotates the heading
+// towards that side, so cross(before, after).y > 0, and the vehicle drifts to its own left.
+type Drive = "KeyA" | "ArrowLeft" | "KeyD" | "ArrowRight" | "stickLeft" | "stickRight";
+const DRIVES: readonly Drive[] = ["KeyA", "ArrowLeft", "stickLeft", "KeyD", "ArrowRight", "stickRight"];
+const isLeft = (d: Drive) => d === "KeyA" || d === "ArrowLeft" || d === "stickLeft";
+function pressDrive(d: Drive) {
+   const pad = createInputController();
+   if (d === "stickLeft") pad.setJoystick(-1, -1);
+   else if (d === "stickRight") pad.setJoystick(1, -1);
+   else {
+      pad.keyDown("KeyW");
+      pad.keyDown(d);
+   }
+   pad.latch();
+   return pad.state.current;
+}
+function turnOf(yaw0: number, x0: number, z0: number, yaw1: number, x1: number, z1: number) {
+   const turn = Math.sin(yaw0) * Math.cos(yaw1) - Math.cos(yaw0) * Math.sin(yaw1);
+   const side = (x1 - x0) * Math.cos(yaw0) - (z1 - z0) * Math.sin(yaw0);
+   return { turn: -turn, side };
+}
+
+describe("burger-delivery-scooter steering", () => {
+   it.each(DRIVES)("%s turns the scooter to the rider's matching side (keys and joystick)", (d) => {
+      const r = createRun(3, 1);
+      const input = pressDrive(d);
+      const p = r.player;
+      const yaw0 = p.yaw, x0 = p.x, z0 = p.z;
+      tick(r, 0.7, { moveX: input.moveX, moveY: input.moveY, jumpPressed: false });
+      const { turn, side } = turnOf(yaw0, x0, z0, p.yaw, p.x, p.z);
+      const sign = isLeft(d) ? 1 : -1;
+      expect(turn * sign).toBeGreaterThan(0.05);
+      expect(side * sign).toBeGreaterThan(0);
+   });
+});

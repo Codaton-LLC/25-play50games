@@ -13,7 +13,7 @@ describe("smoke", () => {
                const door = run.fires.findIndex((f) => f.door);
                gone[door] = true;
                const civ = run.civilians[run.civilians.length - 1];
-               const at = doorPoint(civ.room);
+               const at = doorPoint(run.level, civ.room);
                console.log(id, {
                   closedAfter: doorClosed(run, civ.room, gone),
                   doorStand: standable(run, at.x, at.z, 0.38, gone),

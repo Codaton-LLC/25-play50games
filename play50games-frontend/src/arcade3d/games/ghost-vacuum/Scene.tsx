@@ -18,6 +18,9 @@ import { useQuality } from "@/arcade3d/core/quality";
 import { useSafeArea } from "@/arcade3d/core/safeArea";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useFittedView } from "@/arcade3d/core/useFittedView";
+import { useCameraViews } from "@/arcade3d/core/camera/CameraViews";
+import type { AABB } from "@/arcade3d/core/collision";
+import { WALLS, roomFurniture } from "./rules";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import type { ScreenRect } from "@/arcade3d/core/view";
 import { ASSETS, HUNTER_LANDMARKS, HUNTER_SCALE } from "./assets";
@@ -116,12 +119,43 @@ function Hunter({ run, shared }: { run: Run; shared: SuckShared }) {
    </>;
 }
 
+/** Copies `src` into the camera hook's box slots. */
+function fillSolids(src: readonly AABB[], out: AABB[]): number {
+   let n = 0;
+   for (const b of src) {
+      if (n >= out.length) break;
+      const o = out[n++];
+      o.min.x = b.min.x; o.min.y = b.min.y; o.min.z = b.min.z;
+      o.max.x = b.max.x; o.max.y = b.max.y; o.max.z = b.max.z;
+   }
+   return n;
+}
+
 function LevelScene() {
    const { config } = useGhostLevel();
    const width = useThree((s) => s.size.width), height = useThree((s) => s.size.height);
    const view = useFittedView(viewFor(width, height)), input = useInput(), fx = useFx();
    const safe = useSafeArea();
    const [run] = useState(() => createRun(randomSeed(), config));
+   // the walls, plus the rooms' tall furniture (bookshelves, counters, stoves) up to its drawn height
+   const [cameraSolids] = useState<readonly AABB[]>(() => [
+      ...WALLS,
+      ...config.rooms.flatMap((kind, i) => roomFurniture(i, kind).filter((f) => f.kind !== "trunk" && f.kind !== "crate" && f.kind !== "island").map((f) => ({ min: { ...f.box.min, y: 0 }, max: { ...f.box.max, y: 1.3 } }))),
+   ]);
+
+   // camera views (core/camera): the rules get the drawn camera's yaw (the fitted yaw in the default view)
+   const cam = useCameraViews({
+      slug: "ghost-vacuum",
+      subject: "character",
+      steering: "camera",
+      defaultYaw: view.yaw,
+      target: (o) => {
+         const h = run.hunter;
+         o.x = h.x; o.y = 1.1; o.z = h.z; o.heading = h.yaw; o.vx = h.vx; o.vz = h.vz;
+      },
+      solids: (out: AABB[]) => fillSolids(cameraSolids, out),
+   });
+
    const [shared] = useState(createSuckShared);
    const [scratch] = useState(() => ({
       step: { dirX: 0, dirZ: 0, held: false, aim: false, aimYaw: Math.PI, coarse: typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches } as StepInput,
@@ -156,7 +190,7 @@ function LevelScene() {
    }, [fx, scratch]);
    useRunFrame((state, dt, elapsed) => {
       const i = input.current, s = scratch.step;
-      inputToWorld(i.moveX, i.moveY, view.yaw, scratch.dir);
+      inputToWorld(i.moveX, i.moveY, cam.yaw(), scratch.dir);
       s.dirX = scratch.dir.x; s.dirZ = scratch.dir.z; s.held = i.action || i.jump;
       const px = (i.pointer.x + 1) * width / 2, py = (1 - i.pointer.y) * height / 2;
       const blocked = underRects(px, py, safe.hud) || underRects(px, py, safe.controls) || underRects(px, py, safe.obstructions);

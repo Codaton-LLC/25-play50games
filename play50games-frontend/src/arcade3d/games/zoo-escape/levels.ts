@@ -1,14 +1,12 @@
 // Zoo Escape's five levels: pure data, no React (docs/arcade-levels.md §6.3, README "Levels").
-// One zoo, five configurations of the same three stages. Level 1 is today's game and must never
-// change: 1.35 s of sight to catch, the meter decays 0.5/s, keepers investigate at 2.0 m/s, two
-// bamboo bundles per stage, a catch costs 5 s. levels.test.ts pins it.
-//
-// The level brief proposed a two-stage 90 s level 1 with today's campaign at levels 3-4; level 1 must
-// stay today's game, so every level is the full 3-stage, 180 s escape made harder. Only what the
-// keepers do once they notice the panda changes: the map, the routes, the vision and hearing ranges
-// and the searchlight stay, so the fairness proofs (fairness.test.ts: a safe route at every phase)
-// hold on every level. Per-level lighting is not built (stage 3's dusk stays).
+// Each level is its own map (level.ts MAP_1 = today's zoo; maps.ts levels 2-5: Safari Zone with
+// jeeps, Bird Garden with birds, Central Zoo with crowds, Night Escape with two searchlights) plus
+// the keepers' settings, which ramp: quicker catches, slower decay, faster investigations, fewer
+// bamboo bundles, dearer catches. Level 1 is today's game and must never change (levels.test.ts).
+// Every map has its own fairness proof (fairness.test.ts, fairness.level-N.test.ts).
 import type { LevelId } from "@/arcade3d/types";
+import { MAP_1, type ZooMap } from "./level";
+import { MAP_2, MAP_3, MAP_4, MAP_5 } from "./maps";
 
 export interface ZooLevel {
    /** seconds of continuous sight to fill the meter (SUSPICION.catchS); the same for every device */
@@ -21,17 +19,19 @@ export interface ZooLevel {
    bundles: number;
    /** clock seconds a catch costs (CATCH.penalty) */
    penalty: number;
+   /** the level's map (level.ts MAP_1 = today's zoo; maps.ts levels 2-5) */
+   map: ZooMap;
 }
 
 export const LEVELS: Record<LevelId, ZooLevel> = {
    // Small Enclosure: today's game.
-   1: { catchS: 1.35, decay: 0.5, investigate: 2.0, bundles: 2, penalty: 5 },
+   1: { catchS: 1.35, decay: 0.5, investigate: 2.0, bundles: 2, penalty: 5, map: MAP_1 },
    // Safari Zone: keepers react a little quicker.
-   2: { catchS: 1.25, decay: 0.45, investigate: 2.2, bundles: 2, penalty: 6 },
+   2: { catchS: 1.25, decay: 0.45, investigate: 2.2, bundles: 2, penalty: 6, map: MAP_2 },
    // Bird Garden: one bamboo bundle per stage.
-   3: { catchS: 1.15, decay: 0.4, investigate: 2.4, bundles: 1, penalty: 7 },
+   3: { catchS: 1.15, decay: 0.4, investigate: 2.4, bundles: 1, penalty: 7, map: MAP_3 },
    // Central Zoo: sharper, faster keepers.
-   4: { catchS: 1.05, decay: 0.35, investigate: 2.6, bundles: 1, penalty: 8 },
+   4: { catchS: 1.05, decay: 0.35, investigate: 2.6, bundles: 1, penalty: 8, map: MAP_4 },
    // Night Escape: the sharpest keepers, a catch costs 10 s.
-   5: { catchS: 0.95, decay: 0.3, investigate: 2.8, bundles: 1, penalty: 10 },
+   5: { catchS: 0.95, decay: 0.3, investigate: 2.8, bundles: 1, penalty: 10, map: MAP_5 },
 };

@@ -4,6 +4,7 @@
 // assets.test.ts checks every fit on the real mesh. Solid pieces fit their rules.ts boxes; decor is
 // fitted to 1 m, so a decor spot's scale is its size in metres (never scaled twice).
 import type { ModelAsset } from "@/arcade3d/core/types";
+import type { QuadrupedLandmarks } from "@/arcade3d/core/rig/quadruped";
 import { PROP_BUDGET } from "@/arcade3d/core/sharedAssets";
 import { CLUTTER_HALF, FURN_SIZE, VAC_R } from "./rules";
 
@@ -29,6 +30,42 @@ export const FIT = {
    treatLength: 0.32,
    toyLength: 0.36,
 } as const;
+
+/**
+ * The cat's joints for the core quadruped rig, measured on cat.glb (GLB units, faces +z, L = +x):
+ * front legs from the shoulder through the wrist (bends forward, the paw folds back in the swing),
+ * hind legs from the hip through the hock (bends back). Rodin gave the cat two tails: the raised
+ * one is the tail, the one lying on the floor behind it is folded away (`stray`). Checked on the
+ * real mesh in assets.test.ts.
+ */
+export const CAT_LANDMARKS: QuadrupedLandmarks = {
+   front: { top: [0.13, 0.62, 0.45], knee: [0.135, 0.33, 0.47], ankle: [0.14, 0.09, 0.48], toeZ: 0.67, radius: 0.065, bend: 1 },
+   hind: { top: [0.12, 0.52, -0.17], knee: [0.125, 0.24, -0.215], ankle: [0.135, 0.075, -0.13], toeZ: -0.01, radius: 0.07, bend: -1 },
+   bellyY: 0.36,
+   thighBlend: 0.18,
+   neck: [0.45, 0.78],
+   head: [0.6, 0.95],
+   mouth: [0, 0.97, 0.9],
+   tail: [
+      [0.015, 0.6, -0.46],
+      [0.005, 0.82, -0.5],
+      [-0.01, 1.02, -0.54],
+      [-0.03, 1.25, -0.525],
+   ],
+   tailRadius: 0.08,
+   stray: [
+      {
+         line: [
+            [0.045, 0.37, -0.35],
+            [0.05, 0.27, -0.48],
+            [0.07, 0.17, -0.62],
+            [0.08, 0.12, -0.75],
+            [0.098, 0.09, -0.96],
+         ],
+         radius: 0.1,
+      },
+   ],
+};
 
 const budget = { ...PROP_BUDGET };
 const local = (id: keyof typeof GLB_SIZE, fit: Partial<ModelAsset>, fallback: ModelAsset["fallback"], fallbackColor: string): ModelAsset => ({
@@ -57,10 +94,13 @@ const bedScale = FURN_SIZE.bed.z / GLB_SIZE.bed.depth;
 
 export const ASSETS = {
    // a creature: one unskinned mesh with hop / waddle (core/motion), tinted per level
-   cat: local("cat", { scale: FIT.catLength / GLB_SIZE.cat.depth, budget: { tris: 20000, bytes: 400_000 } }, "capsule", "#fb923c"),
-   vacuum: local("robotVacuum", { scale: (2 * VAC_R) / GLB_SIZE.robotVacuum.width }, "cylinder", "#94a3b8"),
+   cat: local("cat", { scale: FIT.catLength / GLB_SIZE.cat.depth, budget: { tris: 20000, bytes: 400_000 }, quadruped: { landmarks: CAT_LANDMARKS } }, "capsule", "#fb923c"),
+   // the hazard: drawn in dark graphite (the GLB's silver read as part of the light floor), with a
+   // red glow ring and a red floor aura in the Scene while it can hurt
+   vacuum: local("robotVacuum", { scale: (2 * VAC_R) / GLB_SIZE.robotVacuum.width, material: { color: "#30353f", roughness: 0.4, metalness: 0.35 } }, "cylinder", "#30353f"),
    treat: local("catTreatFish", { scale: FIT.treatLength / GLB_SIZE.catTreatFish.depth }, "sphere", "#f97316"),
-   toy: local("catToyPlush", { scale: FIT.toyLength / GLB_SIZE.catToyPlush.depth }, "sphere", "#fde68a"),
+   // the bonus toy: a pink plush mouse (the GLB's grey mouse vanished on the floors)
+   toy: local("catToyPlush", { scale: FIT.toyLength / GLB_SIZE.catToyPlush.depth, material: { color: "#f472b6", roughness: 0.75, emissive: "#3b0a24" } }, "sphere", "#f472b6"),
    clutter: local("catBox", { scale: (2 * CLUTTER_HALF) / GLB_SIZE.catBox.depth }, "box", "#a16207"),
    sofa: shared("sofa", turned("sofa", FURN_SIZE.sofa), "box", "#78716c"),
    bed: shared("bed", { scale: bedScale, stretch: [FURN_SIZE.bed.x / (GLB_SIZE.bed.width * bedScale), FURN_SIZE.bed.y / (GLB_SIZE.bed.height * bedScale), 1] }, "box", "#a8a29e"),

@@ -49,6 +49,31 @@ export const CENTER_BONUS_SCORE = 60;
 export const CENTER_BONUS_RADIUS = 1.0;
 export const TIME_BONUS_PER_SEC = 5;
 
+/**
+ * Solid props (circles in the xz plane, no damage: the rover is pushed out and a hard bump bounces it):
+ * the beacon / panel / ancient beacon at each site's north edge, each charger's station and solar panel,
+ * and the lander beside the base pad.
+ */
+export type PropKind = "beacon" | "panel" | "relic" | "station" | "stationPanel" | "lander";
+export const PROP_RADIUS: Record<PropKind, number> = { beacon: 0.6, panel: 0.85, relic: 0.75, station: 0.55, stationPanel: 0.85, lander: 1.5 };
+/** a site's prop stands this far north (-z) of the ring's centre, past the ring's edge */
+export const SITE_PROP_OFFSET = 2.9;
+/** a charger's station at the pad's north edge, its solar panel west of the station */
+export const STATION_OFFSET = { x: 0, z: -2.9 } as const;
+export const STATION_PANEL_OFFSET = { x: -2.1, z: -3.0 } as const;
+/** the lander stands west of the base pad */
+export const LANDER_OFFSET = { x: -4.4, z: 0.6 } as const;
+/** a bump into a prop faster than this bounces the rover back (never a life) */
+export const PROP_BOUNCE_SPEED = 2.0;
+
+/**
+ * Crevasses: a crack along a segment (centre, angle, half length) of half width `halfWidth`. The rover
+ * falls in when its centre comes within halfWidth + fallMargin of the segment: a life is spent (unless in
+ * the hit grace) and it is put back, stopped and facing away, on the last point it held at least
+ * `safeGap` from every crevasse's edge.
+ */
+export const CREVASSE = { halfWidth: 0.55, fallMargin: 0.25, minHalfLength: 2.2, maxHalfLength: 3.4, safeGap: 1.6 } as const;
+
 /** Generator clearances (m). Boulder lanes keep the rings, pads and base clear of a rolling boulder. */
 export const GEN = {
    siteSpacing: 10,
@@ -78,20 +103,20 @@ export function objectiveCeiling(sites: number): number {
  * fastest oracle / careful-bot win over 200 seeds at 30 / 60 / 144 Hz (PROOF_EARLIEST_WIN_S, pinned by tests).
  */
 export const PROPOSED_LEVEL_LIMITS: Record<LevelId, ScoringRules> = {
-   /** L1: Bobj 540, D 120 s, fastest bot win 14.28 s → M 11.42 s, peak 1080; pps 5 (120 / 11.42 - 1) = 47.5 */
-   1: { ...PTS, maxScore: 1115, minDurationMs: 4000, maxDurationMs: 120_000, base: 540, maxPointsPerSec: 49 },
-   /** L2: Bobj 720, D 150 s, 18.17 s → M 14.53 s, peak 1395; pps 46.6 */
-   2: { ...PTS, maxScore: 1440, minDurationMs: 4000, maxDurationMs: 150_000, base: 720, maxPointsPerSec: 48 },
-   /** L3: Bobj 900, D 180 s, 22.33 s → M 17.87 s, peak 1710; pps 45.4 */
+   /** L1: Bobj 540, D 120 s, fastest bot win 14.47 s → M 11.57 s, peak 1080; pps 5 (120 / 11.57 - 1) = 46.9 */
+   1: { ...PTS, maxScore: 1115, minDurationMs: 4000, maxDurationMs: 120_000, base: 540, maxPointsPerSec: 48 },
+   /** L2: Bobj 720, D 150 s, 19.31 s → M 15.45 s, peak 1390; pps 43.5 */
+   2: { ...PTS, maxScore: 1435, minDurationMs: 4000, maxDurationMs: 150_000, base: 720, maxPointsPerSec: 45 },
+   /** L3: Bobj 900, D 180 s, 22.15 s → M 17.72 s, peak 1710; pps 45.8 */
    3: { ...PTS, maxScore: 1765, minDurationMs: 4000, maxDurationMs: 180_000, base: 900, maxPointsPerSec: 47 },
-   /** L4: Bobj 1080, D 180 s, 32.55 s → M 26.04 s, peak 1845; pps 29.6 */
-   4: { ...PTS, maxScore: 1905, minDurationMs: 4000, maxDurationMs: 180_000, base: 1080, maxPointsPerSec: 31 },
-   /** L5: Bobj 1260, D 240 s, 40.57 s → M 32.46 s, peak 2295; pps 32.0 */
-   5: { ...PTS, maxScore: 2365, minDurationMs: 4000, maxDurationMs: 240_000, base: 1260, maxPointsPerSec: 33 },
+   /** L4: Bobj 1080, D 180 s, 35.15 s → M 28.12 s, peak 1835; pps 27.0 */
+   4: { ...PTS, maxScore: 1895, minDurationMs: 4000, maxDurationMs: 180_000, base: 1080, maxPointsPerSec: 28 },
+   /** L5: Bobj 1260, D 240 s, 43.04 s → M 34.43 s, peak 2285; pps 29.9 */
+   5: { ...PTS, maxScore: 2355, minDurationMs: 4000, maxDurationMs: 240_000, base: 1260, maxPointsPerSec: 31 },
 };
 
 /** The earliest win each proof assumes (s): 0.8 x the fastest oracle / careful win over 200 seeds (tests pin it). */
-export const PROOF_EARLIEST_WIN_S: Record<LevelId, number> = { 1: 11.42, 2: 14.53, 3: 17.87, 4: 26.04, 5: 32.46 };
+export const PROOF_EARLIEST_WIN_S: Record<LevelId, number> = { 1: 11.57, 2: 15.45, 3: 17.72, 4: 28.12, 5: 34.43 };
 
 export interface MarsInput {
    moveX: number;
@@ -120,6 +145,27 @@ export interface Rock {
    radius: number;
    /** visual turn only */
    rotY: number;
+}
+
+export interface Prop {
+   kind: PropKind;
+   x: number;
+   z: number;
+   radius: number;
+   /** the site it belongs to (-1: a charger's or the lander) */
+   site: number;
+   /** the charger it belongs to (-1: none) */
+   charger: number;
+}
+
+export interface Crevasse {
+   index: number;
+   x: number;
+   z: number;
+   /** the axis angle in the xz plane: direction (cos, sin) in (x, z) */
+   angle: number;
+   halfLength: number;
+   halfWidth: number;
 }
 
 export interface Boulder {
@@ -152,6 +198,10 @@ export interface StepEvents {
    charging: boolean;
    rockHit: boolean;
    boulderHit: boolean;
+   /** fell into a crevasse this frame (and was put back on safe ground) */
+   fell: boolean;
+   /** bounced off a prop this frame */
+   propBump: boolean;
    lifeLost: boolean;
    won: boolean;
    lost: boolean;
@@ -167,6 +217,10 @@ export interface Run {
    chargers: Charger[];
    rocks: Rock[];
    boulders: Boulder[];
+   props: Prop[];
+   crevasses: Crevasse[];
+   /** the last point the rover held clear of every crevasse (the fall respawn) */
+   safe: { x: number; z: number };
    basePad: { x: number; z: number; radius: number };
    score: number;
    lives: number;
@@ -213,6 +267,28 @@ interface Layout {
    chargers: Charger[];
    rocks: Rock[];
    boulders: Boulder[];
+   props: Prop[];
+   crevasses: Crevasse[];
+}
+
+/** Distance from (px, pz) to a crevasse's axis segment. */
+export function crevasseDistance(c: Crevasse, px: number, pz: number): number {
+   const ux = Math.cos(c.angle);
+   const uz = Math.sin(c.angle);
+   const dx = px - c.x;
+   const dz = pz - c.z;
+   const t = Math.max(-c.halfLength, Math.min(c.halfLength, dx * ux + dz * uz));
+   return Math.hypot(dx - ux * t, dz - uz * t);
+}
+
+/** The prop each mission stands at its rings (crystals are drilled inside the ring: no prop). */
+export function siteProp(level: MarsLevel): PropKind | null {
+   return level.mission === "crystal" ? null : level.mission;
+}
+
+/** The lander beside the base pad. */
+export function landerProp(basePad: { x: number; z: number }): Prop {
+   return { kind: "lander", x: basePad.x + LANDER_OFFSET.x, z: basePad.z + LANDER_OFFSET.z, radius: PROP_RADIUS.lander, site: -1, charger: -1 };
 }
 
 /** One seeded attempt at the layout; null when a count could not be met (createRun draws again). */
@@ -220,7 +296,17 @@ function layout(rng: () => number, level: MarsLevel, basePad: { x: number; z: nu
    const halfW = level.width / 2;
    const halfD = level.depth / 2;
 
-   // 1. Boulder lanes first (x positions; the boulders roll south along z), clear of the base.
+   const lander = landerProp(basePad);
+   const props: Prop[] = [lander];
+   const kind = siteProp(level);
+   /** a prop keeps a rover's width clear of every ring and pad that is not its own */
+   const GAP = 2 * ROVER.radius + 0.2;
+   /** a prop's circle inside the plain */
+   const inPlain = (x: number, z: number, r: number) => Math.abs(x) <= halfW - r - 0.3 && z >= -halfD + r + 0.3 && z <= halfD - r - 0.3;
+   /** far enough from every prop for the rover to pass between them */
+   const propsClear = (x: number, z: number, r: number) => props.every((p) => dist(p.x, p.z, x, z) >= p.radius + r + 2 * ROVER.radius + 0.2);
+
+   // 1. Boulder lanes first (x positions; the boulders roll south along z), clear of the base and the lander.
    const boulders: Boulder[] = [];
    const laneMin = -halfW + GEN.wallMargin;
    const laneMax = halfW - GEN.wallMargin;
@@ -228,6 +314,7 @@ function layout(rng: () => number, level: MarsLevel, basePad: { x: number; z: nu
       const x = laneMin + rng() * (laneMax - laneMin);
       const z = -halfD + 2 + rng() * (level.depth - 4);
       if (Math.abs(x - basePad.x) < GEN.laneFromBase) continue;
+      if (Math.abs(x - lander.x) < lander.radius + BOULDER_RADIUS + 0.3) continue;
       if (boulders.some((b) => Math.abs(b.x - x) < GEN.laneSpacing)) continue;
       boulders.push({ index: boulders.length, x, z, speed: level.boulderSpeed, minZ: -halfD + 1, maxZ: halfD - 1, rolled: 0 });
    }
@@ -240,8 +327,17 @@ function layout(rng: () => number, level: MarsLevel, basePad: { x: number; z: nu
       const x = (rng() * 2 - 1) * (halfW - GEN.wallMargin - 0.5);
       const z = -halfD + GEN.wallMargin + 0.5 + rng() * (level.depth - 2 * GEN.wallMargin - 1 - GEN.baseInset - 2);
       if (dist(x, z, basePad.x, basePad.z) < 7) continue;
+      if (dist(x, z, lander.x, lander.z) < SITE_RING_RADIUS + lander.radius + GAP) continue;
       if (sites.some((s) => dist(s.x, s.z, x, z) < GEN.siteSpacing)) continue;
       if (!laneClear(x, GEN.laneFromSite)) continue;
+      if (kind) {
+         const r = PROP_RADIUS[kind];
+         const pz = z - SITE_PROP_OFFSET;
+         if (!inPlain(x, pz, r) || !propsClear(x, pz, r)) continue;
+         if (dist(x, pz, basePad.x, basePad.z) < BASE_PAD_RADIUS + r + 0.5) continue;
+         if (sites.some((s) => dist(s.x, s.z, x, pz) < SITE_RING_RADIUS + r + GAP)) continue;
+         props.push({ kind, x, z: pz, radius: r, site: sites.length, charger: -1 });
+      }
       sites.push({ index: sites.length, x, z, scanned: false, holdTime: 0 });
    }
    if (sites.length < level.sites) return null;
@@ -261,6 +357,20 @@ function layout(rng: () => number, level: MarsLevel, basePad: { x: number; z: nu
          if (sites.some((s) => dist(s.x, s.z, x, z) < SITE_RING_RADIUS + CHARGER_PAD_RADIUS + 1)) continue;
          if (chargers.some((ch) => dist(ch.x, ch.z, x, z) < 10)) continue;
          if (!laneClear(x, GEN.laneFromPad)) continue;
+         // the pad clear of every prop; the station and its panel clear of every ring, pad, the base and prop
+         if (props.some((p) => dist(p.x, p.z, x, z) < CHARGER_PAD_RADIUS + p.radius + GAP)) continue;
+         const st = { x: x + STATION_OFFSET.x, z: z + STATION_OFFSET.z, r: PROP_RADIUS.station };
+         const sp = { x: x + STATION_PANEL_OFFSET.x, z: z + STATION_PANEL_OFFSET.z, r: PROP_RADIUS.stationPanel };
+         const fits = (q: { x: number; z: number; r: number }) =>
+            inPlain(q.x, q.z, q.r) &&
+            propsClear(q.x, q.z, q.r) &&
+            laneClear(q.x, q.r + BOULDER_RADIUS + 0.3) &&
+            dist(q.x, q.z, basePad.x, basePad.z) >= BASE_PAD_RADIUS + q.r + 0.5 &&
+            sites.every((s) => dist(s.x, s.z, q.x, q.z) >= SITE_RING_RADIUS + q.r + GAP) &&
+            chargers.every((c) => dist(c.x, c.z, q.x, q.z) >= CHARGER_PAD_RADIUS + q.r + 0.5);
+         if (!fits(st) || !fits(sp)) continue;
+         props.push({ kind: "station", x: st.x, z: st.z, radius: st.r, site: -1, charger: chargers.length });
+         props.push({ kind: "stationPanel", x: sp.x, z: sp.z, radius: sp.r, site: -1, charger: chargers.length });
          chargers.push({ index: chargers.length, x, z });
          break;
       }
@@ -278,16 +388,39 @@ function layout(rng: () => number, level: MarsLevel, basePad: { x: number; z: nu
       if (chargers.some((ch) => dist(ch.x, ch.z, x, z) < CHARGER_PAD_RADIUS + ROCK_RADIUS + 2.5)) continue;
       if (!laneClear(x, GEN.rockFromLane)) continue;
       if (rocks.some((r) => dist(r.x, r.z, x, z) < GEN.rockSpacing)) continue;
+      if (!propsClear(x, z, ROCK_RADIUS)) continue;
       rocks.push({ index: rocks.length, x, z, radius: ROCK_RADIUS, rotY });
    }
    if (rocks.length < level.rocks) return null;
+
+   // 5. Crevasses: clear of every ring, pad, the base, prop, rock and lane, with room for the rover all round.
+   const crevasses: Crevasse[] = [];
+   const hw = CREVASSE.halfWidth;
+   const room = 2 * ROVER.radius + 0.4;
+   for (let tries = 0; crevasses.length < level.crevasses && tries < 3000; tries++) {
+      const hl = CREVASSE.minHalfLength + rng() * (CREVASSE.maxHalfLength - CREVASSE.minHalfLength);
+      const c: Crevasse = { index: crevasses.length, x: (rng() * 2 - 1) * (halfW - 4), z: -halfD + 4 + rng() * (level.depth - 8 - GEN.baseInset), angle: rng() * Math.PI, halfLength: hl, halfWidth: hw };
+      const ex = Math.abs(Math.cos(c.angle)) * hl;
+      const ez = Math.abs(Math.sin(c.angle)) * hl;
+      if (Math.abs(c.x) + ex > halfW - room - hw || c.z - ez < -halfD + room + hw || c.z + ez > halfD - room - hw) continue;
+      const d = (x: number, z: number) => crevasseDistance(c, x, z) - hw;
+      if (d(basePad.x, basePad.z) < BASE_PAD_RADIUS + 4) continue;
+      if (sites.some((s) => d(s.x, s.z) < SITE_RING_RADIUS + room)) continue;
+      if (chargers.some((ch) => d(ch.x, ch.z) < CHARGER_PAD_RADIUS + room)) continue;
+      if (props.some((p) => d(p.x, p.z) < p.radius + room)) continue;
+      if (rocks.some((r) => d(r.x, r.z) < r.radius + room)) continue;
+      if (boulders.some((b) => Math.abs(b.x - c.x) < ex + hw + BOULDER_RADIUS + 0.5)) continue;
+      if (crevasses.some((o) => Math.hypot(o.x - c.x, o.z - c.z) < o.halfLength + hl + 2 * hw + room)) continue;
+      crevasses.push(c);
+   }
+   if (crevasses.length < level.crevasses) return null;
    // energy: every site within REACH of a charger, the first charger within two REACH of the base, the
    // chargers within two REACH of each other, so a full battery always covers a there-and-back
    const reach = energyReach(level);
    if (sites.some((s) => chargers.every((ch) => dist(s.x, s.z, ch.x, ch.z) > reach))) return null;
    if (chargers.every((ch) => dist(ch.x, ch.z, basePad.x, basePad.z) > 2 * reach)) return null;
    if (chargers.some((a) => chargers.some((b) => dist(a.x, a.z, b.x, b.z) > 2 * reach))) return null;
-   return { sites, chargers, rocks, boulders };
+   return { sites, chargers, rocks, boulders, props, crevasses };
 }
 
 export function createRun(seed: number, level: MarsLevel = LEVELS[1], levelId: LevelId = 1): Run {
@@ -297,7 +430,7 @@ export function createRun(seed: number, level: MarsLevel = LEVELS[1], levelId: L
    let found: Layout | null = null;
    for (let attempt = 0; attempt < 200 && !found; attempt++) found = layout(rng, level, basePad);
    if (!found) throw new Error(`mars-rover-mission: no layout for seed ${seed}`);
-   const { sites, chargers, rocks, boulders } = found;
+   const { sites, chargers, rocks, boulders, props, crevasses } = found;
 
    return {
       seed,
@@ -308,6 +441,9 @@ export function createRun(seed: number, level: MarsLevel = LEVELS[1], levelId: L
       chargers,
       rocks,
       boulders,
+      props,
+      crevasses,
+      safe: { x: basePad.x, z: basePad.z },
       basePad,
       score: 0,
       lives: LIVES,
@@ -315,7 +451,7 @@ export function createRun(seed: number, level: MarsLevel = LEVELS[1], levelId: L
       baseHoldTime: 0,
       over: null,
       charging: false,
-      ev: { score: 0, siteScanned: -1, centerBonus: false, charging: false, rockHit: false, boulderHit: false, lifeLost: false, won: false, lost: false, timeBonus: 0 },
+      ev: { score: 0, siteScanned: -1, centerBonus: false, charging: false, rockHit: false, boulderHit: false, fell: false, propBump: false, lifeLost: false, won: false, lost: false, timeBonus: 0 },
       time: 0,
       acc: 0,
    };
@@ -332,6 +468,8 @@ function resetEvents(ev: StepEvents): void {
    ev.charging = false;
    ev.rockHit = false;
    ev.boulderHit = false;
+   ev.fell = false;
+   ev.propBump = false;
    ev.lifeLost = false;
    ev.won = false;
    ev.lost = false;
@@ -397,6 +535,49 @@ function substep(run: Run, throttle: number, brake: number, steer: number, h: nu
             ev.rockHit = true;
          }
          r.speed = -0.3 * r.speed;
+      }
+   }
+
+   // props: solid, no damage; a hard bump bounces the rover back
+   for (const p of run.props) {
+      const dx = r.x - p.x;
+      const dz = r.z - p.z;
+      const d = Math.hypot(dx, dz);
+      const min = ROVER.radius + p.radius;
+      if (d >= min) continue;
+      const nx = d > 1e-9 ? dx / d : 0;
+      const nz = d > 1e-9 ? dz / d : 1;
+      r.x = p.x + nx * min;
+      r.z = p.z + nz * min;
+      if (Math.abs(r.speed) > PROP_BOUNCE_SPEED) {
+         r.speed = -0.25 * r.speed;
+         ev.propBump = true;
+      }
+   }
+
+   // crevasses: a fall puts the rover back on the last safe point, stopped and facing away
+   if (run.crevasses.length > 0) {
+      let fell: Crevasse | null = null;
+      let clear = Infinity;
+      for (const c of run.crevasses) {
+         const d = crevasseDistance(c, r.x, r.z);
+         if (d <= c.halfWidth + CREVASSE.fallMargin) fell = c;
+         clear = Math.min(clear, d - c.halfWidth);
+      }
+      if (fell) {
+         r.x = run.safe.x;
+         r.z = run.safe.z;
+         r.speed = 0;
+         // face away from the crack: from its nearest axis point towards the safe point
+         const ux = Math.cos(fell.angle);
+         const uz = Math.sin(fell.angle);
+         const t = Math.max(-fell.halfLength, Math.min(fell.halfLength, (r.x - fell.x) * ux + (r.z - fell.z) * uz));
+         r.yaw = Math.atan2(r.x - (fell.x + ux * t), r.z - (fell.z + uz * t));
+         ev.fell = true;
+         if (r.invulnerable <= 0) spendLife(run);
+      } else if (clear >= CREVASSE.safeGap) {
+         run.safe.x = r.x;
+         run.safe.z = r.z;
       }
    }
 

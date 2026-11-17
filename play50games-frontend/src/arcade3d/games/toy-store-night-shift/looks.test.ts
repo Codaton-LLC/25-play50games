@@ -3,11 +3,11 @@ import { LEVEL_IDS } from "@/arcade3d/types";
 import { LEVELS } from "./levels";
 import { fitView } from "@/arcade3d/core/view";
 import { ASSETS } from "./assets";
-import { BACK, FOG, FOV, ROW_TRIMS, WALL_H, WINDOW, aimBounds, shelfTrimSpots, decorOf, fog, signBaseSpots, signSpots, slotSpot, viewFor, wallSpots, windowBox } from "./looks";
+import { BACK, FOG, FOV, ROW_TRIMS, WALL_H, WINDOW, ZOOM, aimBounds, followOffset, shelfTrimSpots, decorOf, fog, signBaseSpots, signSpots, slotSpot, viewFor, wallSpots, windowBox } from "./looks";
 import { SHELF_H, createRun, standable } from "./rules";
 
 describe("toy store looks", () => {
-   it("keeps decor behind the walkable floor, so it can never hide or clip the guard", () => {
+   it("keeps decor behind the walkable floor, so it can never hide or clip the robot", () => {
       for (const id of LEVEL_IDS) {
          for (let seed = 0; seed < 20; seed++) {
             const run = createRun(seed, LEVELS[id]);
@@ -39,7 +39,7 @@ describe("toy store looks", () => {
       }
    });
 
-   it("fits a window round the guard and scrolls only where the store is bigger than it", () => {
+   it("fits a window round the robot and scrolls only where the store is bigger than it", () => {
       for (const id of LEVEL_IDS) {
          const win = windowBox(LEVELS[id]);
          const aim = aimBounds(LEVELS[id]);
@@ -50,19 +50,23 @@ describe("toy store looks", () => {
       }
    });
 
-   it("the fog starts past the fitted camera and the whole window on a phone and a desktop, and the phone camera stays close", () => {
+   it("the follow camera is close; the full player zoom out reaches the old fitted overview, still short of the fog", () => {
       for (const [w, h] of [[390, 844], [1280, 800], [844, 390]] as const) {
+         const far = Math.hypot(...followOffset(0, w / h)) * ZOOM.max;
+         expect(Math.hypot(...followOffset(0, w / h))).toBeLessThan(9);
+         expect(far + Math.max(WINDOW.w, WINDOW.d) / 2).toBeLessThan(FOG.near);
          for (const id of LEVEL_IDS) {
             const v = viewFor(id);
             const f = fitView({ width: w, height: h, fov: FOV, area: v.area, pitch: v.pitch, yaws: v.yaws, focus: v.focus, margin: v.margin, shift: true });
-            expect(f.distance + Math.max(WINDOW.w, WINDOW.d) / 2).toBeLessThan(FOG.near);
+            // zooming out shows at least the old fitted window (the overview)
+            expect(far).toBeGreaterThanOrEqual(f.distance);
             expect(fog(LEVELS[id])).toEqual([LEVELS[id].background, FOG.near, FOG.far]);
-            if (w < h) expect(f.distance).toBeLessThan(24);
          }
       }
+      expect(ZOOM.min).toBeLessThan(1);
    });
 
-   it("the wall on the portrait camera's side (+x, yaw pi/2) is a low counter, so it never hides the guard", () => {
+   it("the wall on the portrait camera's side (+x, yaw pi/2) is a low counter, so it never hides the robot", () => {
       for (const id of LEVEL_IDS) {
          const { walls, trims } = wallSpots(LEVELS[id]);
          const right = walls.filter((w) => w.x > 0 && (w.sx ?? 1) < 1);

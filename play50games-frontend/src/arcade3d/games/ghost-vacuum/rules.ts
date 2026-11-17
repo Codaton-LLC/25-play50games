@@ -4,7 +4,7 @@ import { substep } from "@/arcade3d/core/kinematics";
 import { createRng, turnTowards } from "@/arcade3d/core/math";
 import { capScore as limitScore, withinServerLimits } from "@/arcade3d/core/limits";
 import type { LevelId, ScoringRules } from "@/arcade3d/types";
-import { LEVELS, type GhostLevel } from "./levels";
+import { LEVELS, type GhostLevel, type RoomKind } from "./levels";
 import { ghostVacuumMeta } from "./meta";
 
 export const DURATION_MS = 120000;
@@ -50,7 +50,75 @@ export const WALLS: readonly AABB[] = [
    box(-8.5, 0, 5.5, 0.1), box(8.5, 0, 5.5, 0.1),
 ];
 export const FURNITURE: readonly AABB[] = ROOMS.flatMap((r) => [box(r.x, r.z, 0.8, 0.4), box(r.x, r.north * 5.5, 0.3, 0.3)]);
+/** Level 1's solids (today's): the walls, the four desks and chairs. */
 export const SOLIDS = [...WALLS, ...FURNITURE];
+
+/**
+ * Each room kind's own furniture (the hunter walks round it; light and ghosts pass over it, like the
+ * desks), in room-local coordinates: x = distance from the hall wall outwards (`side`), z = distance
+ * from the middle wall (`north`), half sizes hx / hz. The desk (the hidden ghost's host) and the chair
+ * stay on every level. Clear of the doorways (x < 2, |z - 5| < 1) and of the desk's reveal ring.
+ */
+export const ROOM_FURNITURE: Record<RoomKind, readonly { x: number; z: number; hx: number; hz: number; kind: string }[]> = {
+   living: [],
+   library: [
+      { x: 10.55, z: 3.0, hx: 0.3, hz: 1.2, kind: "shelf" },
+      { x: 4.0, z: 9.55, hx: 1.2, hz: 0.3, kind: "shelfWall" },
+      { x: 4.0, z: 2.4, hx: 0.3, hz: 1.0, kind: "shelf" },
+   ],
+   kitchen: [
+      { x: 3.6, z: 7.6, hx: 0.5, hz: 1.2, kind: "island" },
+      { x: 10.5, z: 2.6, hx: 0.4, hz: 1.4, kind: "counter" },
+      { x: 4.4, z: 9.5, hx: 0.8, hz: 0.35, kind: "stove" },
+   ],
+   attic: [
+      { x: 9.8, z: 2.4, hx: 0.5, hz: 0.35, kind: "trunk" },
+      { x: 3.4, z: 9.4, hx: 0.5, hz: 0.35, kind: "trunk" },
+      { x: 3.2, z: 2.8, hx: 0.45, hz: 0.45, kind: "crate" },
+   ],
+};
+
+/** A room's furniture in world coordinates (room i of ROOMS as `kind`). */
+export function roomFurniture(i: number, kind: RoomKind): { box: AABB; kind: string; x: number; z: number }[] {
+   const r = ROOMS[i];
+   return ROOM_FURNITURE[kind].map((f) => {
+      const x = r.side * (3 + f.x), z = r.north * f.z;
+      return { box: box(x, z, f.hx, f.hz), kind: f.kind, x, z };
+   });
+}
+
+const SOLIDS_BY_LEVEL = new Map<GhostLevel, readonly AABB[]>();
+/** The level's solids: the walls, desks, chairs and every room's own furniture (level 1: SOLIDS). */
+export function solidsFor(level: GhostLevel): readonly AABB[] {
+   let solids = SOLIDS_BY_LEVEL.get(level);
+   if (!solids) {
+      solids = level.rooms.every((k) => k === "living") ? SOLIDS : [...SOLIDS, ...level.rooms.flatMap((k, i) => roomFurniture(i, k).map((f) => f.box))];
+      SOLIDS_BY_LEVEL.set(level, solids);
+   }
+   return solids;
+}
+
+/**
+ * The rooms' ghost habits (levels.ts `rooms`; a ghost keeps its home room's habit):
+ * - library: every `libraryPeriod` s a roaming ghost slips into the shelves for `libraryFade` s (offset
+ *   by its id): while faded the light cannot catch it (its exposure resets, like out of the cone);
+ * - kitchen: a lit ghost skids away on the tiles at `kitchenFlee` x its flee speed;
+ * - attic: a ghost left unlit for `atticQuiet` s, roaming in its own room with its trunk free and the
+ *   hunter over `atticReach` m from the trunk, creeps back into the trunk (hidden: it pops out again
+ *   when the hunter comes within the usual reveal distance).
+ * They only delay a capture, never pay or speed anything up, so every limit proof holds as it is.
+ */
+export const ROOM_HABITS = { libraryPeriod: 5, libraryFade: 1.2, kitchenFlee: 1.35, atticQuiet: 5, atticReach: 4.5 } as const;
+
+/** The habit room of a ghost (its home room's kind on this level). */
+export const habitOf = (run: Run, g: Ghost): RoomKind => run.level.rooms[g.room];
+
+/** True while a library ghost is slipped into the shelves (only while roaming). */
+export function faded(run: Run, g: Ghost): boolean {
+   if (habitOf(run, g) !== "library" || (g.mode !== "wandering" && g.mode !== "fleeing") || g.returnStage) return false;
+   const c = (run.elapsed + g.id * 0.83) % ROOM_HABITS.libraryPeriod;
+   return c < ROOM_HABITS.libraryFade;
+}
 export type Mode = "pending" | "hidden" | "wandering" | "fleeing" | "stunned" | "pulling" | "caught";
 export interface Body { x: number; y: number; z: number; vx: number; vy: number; vz: number; yaw: number }
 export interface Ghost extends Body {
@@ -58,14 +126,18 @@ export interface Ghost extends Body {
    angle: number; exposure: number; stun: number; lit: boolean; progress: number; grace: number;
    baseX: number; baseZ: number; ax: number; az: number; hx: number; hz: number; p0: number;
    homeX: number; homeZ: number; returnStage: number; returnRoom: number; admittedAt: number; caughtAt: number;
+   /** attic habit: seconds roaming unlit in its own room */
+   quiet: number;
 }
 export interface StepInput { dirX: number; dirZ: number; held: boolean; aim: boolean; aimYaw: number; coarse: boolean }
 export interface Run {
    /** the level this run was built from; level 1 is the module constants */
    level: GhostLevel;
+   /** the level's solids (solidsFor) */
+   solids: readonly AABB[];
    hunter: Body; ghosts: Ghost[]; rng: () => number; elapsed: number; caught: number; gold: number;
    extras: number; session: number; score: number; won: boolean; ended: boolean;
-   events: { captures: number[]; count: number; points: number; stun: number; pop: number; breaks: number; win: boolean };
+   events: { captures: number[]; count: number; points: number; stun: number; pop: number; breaks: number; win: boolean; hide: number };
    scratch: { logical: { x: number; y: number; z: number }; force: { x: number; y: number; z: number }; input: StepInput; tick: (dt: number) => void };
 }
 export function createRun(seed: number, level: GhostLevel = LEVELS[1]): Run {
@@ -79,11 +151,11 @@ export function createRun(seed: number, level: GhostLevel = LEVELS[1]): Run {
       ghosts.push({ id, room, ordinal, kind: level.gold.includes(id) ? "gold" : level.big.includes(id) ? "big" : "normal",
          x, y: 0, z, vx: 0, vy: 0, vz: 0, yaw: 0, angle: rng() * TAU, mode: "pending", exposure: 0, stun: 0, lit: false,
          progress: 0, grace: 0, baseX: x, baseZ: z, ax: x, az: z, hx: 0, hz: 0, p0: 0, homeX: x, homeZ: z,
-         returnStage: 0, returnRoom: room, admittedAt: -1, caughtAt: -1 });
+         returnStage: 0, returnRoom: room, admittedAt: -1, caughtAt: -1, quiet: 0 });
    }
-   const run: Run = { level, hunter: { x: 0, y: 0, z: 8, vx: 0, vy: 0, vz: 0, yaw: Math.PI }, ghosts, rng, elapsed: 0,
+   const run: Run = { level, solids: solidsFor(level), hunter: { x: 0, y: 0, z: 8, vx: 0, vy: 0, vz: 0, yaw: Math.PI }, ghosts, rng, elapsed: 0,
       caught: 0, gold: 0, extras: 0, session: 0, score: 0, won: false, ended: false,
-      events: { captures: new Array(COUNT).fill(-1), count: 0, points: 0, stun: 0, pop: 0, breaks: 0, win: false },
+      events: { captures: new Array(COUNT).fill(-1), count: 0, points: 0, stun: 0, pop: 0, breaks: 0, win: false, hide: 0 },
       scratch: { logical: { x: 0, y: 0, z: 0 }, force: { x: 0, y: 0, z: 0 }, input: { dirX: 0, dirZ: 0, held: false, aim: false, aimYaw: Math.PI, coarse: false }, tick: () => {} } };
    run.scratch.tick = (dt) => {
       let left = dt;
@@ -145,7 +217,7 @@ function moveHunter(run: Run, dt: number): void {
    h.vx += dx * k; h.vz += dz * k;
    const x = h.x, z = h.z;
    h.x += h.vx * dt; h.z += h.vz * dt;
-   for (const b of SOLIDS) resolveSphereAabb(h, HUNTER.radius, b, h);
+   for (const b of run.solids) resolveSphereAabb(h, HUNTER.radius, b, h);
    h.x = Math.max(-13.5, Math.min(13.5, h.x)); h.z = Math.max(-9.5, Math.min(9.5, h.z));
    const dist = Math.hypot(h.x - x, h.z - z), max = HUNTER.speed * dt;
    if (dist > max + EPS) { h.x = x + (h.x - x) * max / dist; h.z = z + (h.z - z) * max / dist; }
@@ -178,7 +250,8 @@ function speed(g: Ghost, late: boolean, lit: boolean): number {
    return g.kind === "gold" ? lit ? GHOST.goldFlee : GHOST.goldWander : g.kind === "big" ? lit ? GHOST.bigFlee : GHOST.bigWander : late ? lit ? GHOST.lateFlee : GHOST.lateWander : lit ? GHOST.flee : GHOST.wander;
 }
 function moveGhost(run: Run, g: Ghost, dt: number): void {
-   const r = ROOMS[g.room], rad = radius(g), max = speed(g, run.elapsed >= run.level.lateAt, g.lit) * run.level.speed, f = run.scratch.force;
+   const skid = g.lit && run.level.rooms[g.room] === "kitchen" ? ROOM_HABITS.kitchenFlee : 1;
+   const r = ROOMS[g.room], rad = radius(g), max = speed(g, run.elapsed >= run.level.lateAt, g.lit) * run.level.speed * skid, f = run.scratch.force;
    if (g.returnStage) {
       // Leave the current room before travelling along the unobstructed hall.
       const via = g.returnStage <= 2 ? ROOMS[g.returnRoom] : r;
@@ -232,6 +305,17 @@ function capture(run: Run, g: Ghost): void {
    run.session++; run.score += points; run.events.points += points;
    run.events.captures[run.events.count++] = g.id;
 }
+/** Attic habit: count the ghost's quiet time and send it back into its free trunk (see ROOM_HABITS). */
+function creepBack(run: Run, g: Ghost, dt: number): void {
+   if (g.mode !== "wandering" || g.lit || g.returnStage || !inRoom(g)) { g.quiet = 0; return; }
+   g.quiet += dt;
+   if (g.quiet < ROOM_HABITS.atticQuiet - EPS) return;
+   const r = ROOMS[g.room];
+   if (Math.hypot(run.hunter.x - r.x, run.hunter.z - r.z) <= ROOM_HABITS.atticReach) return;
+   for (const other of run.ghosts) if (other !== g && other.room === g.room && other.mode === "hidden") return;
+   g.mode = "hidden"; g.x = g.homeX; g.z = g.homeZ; g.vx = 0; g.vz = 0; g.exposure = 0; g.quiet = 0;
+   run.events.hide++;
+}
 function tick(run: Run, dt: number): void {
    if (run.ended) return;
    admit(run); reveal(run);
@@ -240,7 +324,7 @@ function tick(run: Run, dt: number): void {
    for (const g of run.ghosts) {
       if (!active(g) || g.mode === "hidden") continue;
       let remaining = dt;
-      g.lit = illuminated(run, g);
+      g.lit = illuminated(run, g) && !faded(run, g);
       if (g.mode === "stunned") {
          if (g.stun <= EPS) { g.mode = "wandering"; g.exposure = 0; }
          else if (!i.held || !pullValid(run, g)) {
@@ -257,8 +341,8 @@ function tick(run: Run, dt: number): void {
          moveGhost(run, g, travel);
          if (g.lit) g.exposure += travel;
          remaining -= travel;
-         if (g.exposure >= exposureTime(g, run.level) - EPS) { g.mode = "stunned"; g.stun = run.level.stun; g.vx = 0; g.vz = 0; run.events.stun++; }
-         else continue;
+         if (g.exposure >= exposureTime(g, run.level) - EPS) { g.mode = "stunned"; g.stun = run.level.stun; g.vx = 0; g.vz = 0; g.quiet = 0; run.events.stun++; }
+         else { if (habitOf(run, g) === "attic") creepBack(run, g, travel); continue; }
       }
       if (g.mode === "stunned") {
          if (i.held && pullValid(run, g)) { g.mode = "pulling"; g.progress = 0; g.grace = 0; g.baseX = g.x; g.baseZ = g.z; rebase(run, g); g.returnStage = 0; }
@@ -283,7 +367,7 @@ function tick(run: Run, dt: number): void {
    admit(run);
 }
 export function stepRun(run: Run, input: StepInput, dt: number, elapsed: number): void {
-   const e = run.events; e.count = 0; e.points = 0; e.stun = 0; e.pop = 0; e.breaks = 0; e.win = false;
+   const e = run.events; e.count = 0; e.points = 0; e.stun = 0; e.pop = 0; e.breaks = 0; e.win = false; e.hide = 0;
    if (run.ended || !(dt > 0) || !Number.isFinite(dt) || elapsed >= 120 - EPS) return;
    Object.assign(run.scratch.input, input);
    run.elapsed = elapsed - dt;

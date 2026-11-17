@@ -221,11 +221,13 @@ describe("robot-factory levels: declarations", () => {
       ]);
    });
 
-   it("keeps the indoor bay, the shell clock off, and a quota chip on levels 2-5", () => {
+   it("gives each level its own bay light, keeps the shell clock off, and a quota chip on levels 2-5", () => {
+      const lights = new Set<string>();
       for (const id of LEVEL_IDS) {
          expect(levelRunConfig(definition, id)).toEqual(levelRunConfig(definition, 1));
-         expect(levelEnvironment(definition, id)!.lighting).toBe("indoor");
+         lights.add(`${levelEnvironment(definition, id)!.lighting}${levelEnvironment(definition, id)!.background}`);
       }
+      expect(lights.size).toBe(5);
       for (const id of [1, 2, 3] as const) {
          expect(levelHudStats(definition, id)!.map((stat) => stat.key)).toEqual(["robots", "combo", "time"]);
       }

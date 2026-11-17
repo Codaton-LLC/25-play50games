@@ -17,7 +17,7 @@ async function bounds(url: string) {
    return { min, width: max[0] - min[0], height: max[1] - min[1], depth: max[2] - min[2] };
 }
 
-const LOCAL = ["pizzaBase", "sauceBowl", "cheeseBowl", "mushroomBowlR", "oliveBowl", "pepperoni", "tomato", "onion", "pizzaOven", "pizzaPeelClean", "prepCounterR", "pizzaBoxClosed"] as const;
+const LOCAL = ["pizzaBase", "sauceBowl", "cheeseBowl", "mushroomBowlR", "oliveBowl", "pepperoni", "tomato", "onion", "pizzaOven", "pizzaPeelCleanT", "prepCounterR", "pizzaBoxClosed"] as const;
 
 describe("pizza-kitchen-3d models (real GLBs)", () => {
    it("every GLB is listed, measured as recorded, and stands on its floor pivot", async () => {
@@ -50,7 +50,7 @@ describe("pizza-kitchen-3d models (real GLBs)", () => {
       expect(COUNTER_TOP_GLB * assetScale(ASSETS.counter)[1]).toBeCloseTo(FIT.counterTop, 6);
       expect(c.w).toBeCloseTo(FIT.counterWidth, 6);
       expect(c.d).toBeLessThan(1.0);
-      expect(Math.max(size(ASSETS.peel, GLB_SIZE.pizzaPeelClean).w, size(ASSETS.peel, GLB_SIZE.pizzaPeelClean).d)).toBeCloseTo(FIT.peel, 3);
+      expect(Math.max(size(ASSETS.peel, GLB_SIZE.pizzaPeelCleanT).w, size(ASSETS.peel, GLB_SIZE.pizzaPeelCleanT).d)).toBeCloseTo(FIT.peel, 3);
       expect(Math.max(size(ASSETS.box, GLB_SIZE.pizzaBoxClosed).w, size(ASSETS.box, GLB_SIZE.pizzaBoxClosed).d)).toBeCloseTo(FIT.box, 3);
       expect(Math.max(size(ASSETS.pepperoni, GLB_SIZE.pepperoni).w, size(ASSETS.pepperoni, GLB_SIZE.pepperoni).d)).toBeCloseTo(FIT.pepperoni, 3);
       expect(Math.max(size(ASSETS.pepperoniPile, GLB_SIZE.pepperoni).w, size(ASSETS.pepperoniPile, GLB_SIZE.pepperoni).d)).toBeCloseTo(FIT.pile, 3);

@@ -7,7 +7,7 @@ import { modelParts } from "@/arcade3d/core/assets";
 import { hasModel } from "@/arcade3d/core/modelManifest";
 import { readCharacterGlb } from "@/arcade3d/core/rig/robotGlb";
 import type { ModelAsset } from "@/arcade3d/core/types";
-import { ASSETS, CELL_SIZE, DOOR, POWER_CORE_DRAWN, POWER_CORE_GLB, POWER_CORE_SPOTS, ROBOT_HEIGHT, ROBOT_SCALE, TORSO_SIZE } from "./assets";
+import { PART_DRAWN, PART_GLB, ASSETS, CELL_SIZE, DOOR, POWER_CORE_DRAWN, POWER_CORE_GLB, POWER_CORE_SPOTS, ROBOT_HEIGHT, ROBOT_SCALE, TORSO_SIZE } from "./assets";
 import { DECOR_SPOTS, inPlayBounds } from "./looks";
 
 async function boundsOf(asset: ModelAsset): Promise<Box3> {
@@ -90,4 +90,30 @@ describe("robot-factory models", () => {
          }
       }
    });
+
+describe("robot-factory head and arm parts (Menu 1 adoption)", () => {
+   const KEYS = ["headDome", "headBox", "headAntenna", "armClaw", "armWrench", "armDrill"] as const;
+   it("are in the manifest, on disk, wear the part shell and match the measured GLB bounds", async () => {
+      for (const key of KEYS) {
+         const asset = ASSETS[key];
+         expect(hasModel(asset.url), key).toBe(true);
+         expect(existsSync(resolve("public", asset.url.slice(1))), key).toBe(true);
+         expect(asset.material, key).toBeDefined();
+         const raw = (await rawBox(asset)).getSize(new Vector3());
+         expect(raw.x, key).toBeCloseTo(PART_GLB[key].width, 2);
+         expect(raw.y, key).toBeCloseTo(PART_GLB[key].height, 2);
+         expect(raw.z, key).toBeCloseTo(PART_GLB[key].depth, 2);
+      }
+   });
+   it("draws every part at its README size, standing on y 0, small enough to ride the belt and the cradle", async () => {
+      for (const key of KEYS) {
+         const box = await boundsOf(ASSETS[key]);
+         const size = box.getSize(new Vector3());
+         expect(box.min.y, key).toBeCloseTo(0, 2);
+         const pinned = { width: size.x, height: size.y, depth: size.z }[PART_DRAWN[key].dim];
+         expect(pinned, key).toBeCloseTo(PART_DRAWN[key].size, 2);
+         expect(Math.max(size.x, size.y, size.z), key).toBeLessThanOrEqual(0.52);
+      }
+   });
+});
 });

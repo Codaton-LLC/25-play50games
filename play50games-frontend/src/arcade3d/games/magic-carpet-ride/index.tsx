@@ -1,36 +1,42 @@
 "use client";
 
 // Magic Carpet Ride. GameShell owns the clock, the lives, pause and the result.
-// Level 1 is the definition; levels 2-5 swap the route, the clock and the light (levels.ts).
+// Level 1 is the definition; levels 2-5 swap the biome, the lane, the flyers, the clock and the light (levels.ts).
 import type { GameDefinition, LevelSpec } from "@/arcade3d/core/types";
 import { LEVEL_IDS, type LevelId } from "@/arcade3d/types";
 import { ASSETS } from "./assets";
 import Hud from "./Hud";
 import { LEVELS, LEVEL_LINES, type CarpetLevel } from "./levels";
 import { FOG_NEAR, FOV } from "./looks";
+import { LIVES } from "./rules";
 import Scene from "./Scene";
 
 const LINES = [
-   "WASD or the stick steers. Up is up. Hold Boost to fly faster.",
-   "Pass through rings and collect the stars between them.",
-   "A rock costs a life and drops you back to the path. Three lives.",
+   "WASD, the arrows or the stick fly left, right, up and down. The carpet stays where you leave it. 📷 or C changes the view.",
+   "Fly through the rings: rings in a row build a combo. Follow the coin arcs, reach for the gems.",
+   "Grab a rocket for a burst of speed. Gulls, balloons, bats, hawks and rocks cost a life.",
 ];
 
-function stats(level: CarpetLevel): GameDefinition["hudStats"] {
-   return [
-      { key: "rings", label: "Rings", max: level.ringQuota },
-      { key: "stars", label: "Stars", max: level.starQuota },
-      { key: "boost", label: "Boost", max: 100 },
-   ];
+function goalLine(level: CarpetLevel): string {
+   return `Reach the end of the route with ${level.ringQuota} of ${level.rings} rings.`;
 }
 
 function instructionsFor(id: LevelId): string[] {
-   if (id === 2) return [LINES[0], "The walls sit outside the window. The rocks do not.", LINES[2]];
-   if (id === 3) return [LINES[0], "Clouds only slow you. Some of them drift up and down.", LINES[1]];
-   if (id === 4) return [LINES[0], "Lanterns hang beside the lane. The towers drift.", LINES[2]];
-   if (id === 5) return [LINES[0], LINES[1], "Twenty-five rings. The palace waits at the arch."];
-   return LINES;
+   return [goalLine(LEVELS[id]), ...LINES];
 }
+
+function stats(level: CarpetLevel): GameDefinition["hudStats"] {
+   return [
+      { key: "rings", label: "Rings", max: level.rings },
+      { key: "gems", label: "Gems", max: level.gems },
+   ];
+}
+
+const environmentFor = (level: CarpetLevel) => ({
+   background: level.background,
+   fog: [level.background, FOG_NEAR, level.fogFar] as [string, number, number],
+   lighting: level.lighting,
+});
 
 const definition: GameDefinition<CarpetLevel> = {
    slug: "magic-carpet-ride",
@@ -38,31 +44,16 @@ const definition: GameDefinition<CarpetLevel> = {
    Hud,
    assets: ASSETS,
    durationMs: LEVELS[1].durationMs,
-   lives: 3,
-   resultDelayMs: 900,
-   camera: { position: [0, 20, -6], fov: FOV, lookAt: [0, 18, 12] },
-   environment: {
-      background: LEVELS[1].background,
-      fog: [LEVELS[1].background, FOG_NEAR, LEVELS[1].fogFar],
-      lighting: LEVELS[1].lighting,
-   },
-   touchControls: ["joystick", "jump"],
-   touchLabels: { jump: "Boost" },
+   lives: LIVES,
+   resultDelayMs: 1200,
+   camera: { position: [0, 22, -6], fov: FOV, lookAt: [0, 20, 12] },
+   environment: environmentFor(LEVELS[1]),
+   touchControls: ["joystick"],
    hudStats: stats(LEVELS[1]),
-   instructions: LINES,
+   instructions: instructionsFor(1),
    levels: LEVEL_IDS.map((id): LevelSpec<CarpetLevel> => {
       const level = LEVELS[id];
-      const spec: LevelSpec<CarpetLevel> = {
-         id,
-         description: LEVEL_LINES[id],
-         config: level,
-         durationMs: level.durationMs,
-         environment: {
-            background: level.background,
-            fog: [level.background, FOG_NEAR, level.fogFar],
-            lighting: level.lighting,
-         },
-      };
+      const spec: LevelSpec<CarpetLevel> = { id, description: LEVEL_LINES[id], config: level, durationMs: level.durationMs, environment: environmentFor(level) };
       if (id !== 1) {
          spec.instructions = instructionsFor(id);
          spec.hudStats = stats(level);

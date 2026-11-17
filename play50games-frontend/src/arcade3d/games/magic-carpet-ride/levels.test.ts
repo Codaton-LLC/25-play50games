@@ -18,10 +18,9 @@ describe("magic carpet levels", () => {
       expect(magicCarpetRideMeta.order).toBe(47);
       expect(magicCarpetRideMeta.difficulty).toBe(2);
       expect(magicCarpetRideMeta.scoring).toEqual(PROPOSED_LEVEL_LIMITS[1]);
-      expect(definition.touchControls).toEqual(["joystick", "jump"]);
-      expect(definition.touchLabels).toEqual({ jump: "Boost" });
+      expect(definition.touchControls).toEqual(["joystick"]);
       expect(definition.lives).toBe(3);
-      expect(definition.resultDelayMs).toBe(900);
+      expect(definition.resultDelayMs).toBe(1200);
       for (const id of LEVEL_IDS) {
          const level = LEVELS[id];
          expect(magicCarpetRideMeta.levels?.[id - 1].title).toBe(LEVEL_TITLES[id]);
@@ -33,11 +32,13 @@ describe("magic carpet levels", () => {
          expect(levelInstructions(definition, id).length).toBeGreaterThan(0);
          expect(definition.levels?.[id - 1].description).toBe(LEVEL_LINES[id]);
          const stats = levelHudStats(definition, id);
-         expect(stats?.find((stat) => stat.key === "rings")?.max).toBe(level.ringQuota);
-         expect(stats?.find((stat) => stat.key === "stars")?.max).toBe(level.starQuota);
-         expect(stats?.find((stat) => stat.key === "boost")?.max).toBe(100);
+         expect(stats?.find((stat) => stat.key === "rings")?.max).toBe(level.rings);
+         expect(stats?.find((stat) => stat.key === "gems")?.max).toBe(level.gems);
+         expect(levelInstructions(definition, id)[0]).toContain(`${level.ringQuota} of ${level.rings} rings`);
       }
       expect(PROPOSED_LEVEL_LIMITS[5].maxScore).toBeLessThanOrEqual(3 * PROPOSED_LEVEL_LIMITS[1].maxScore);
-      expect(PROPOSED_LEVEL_LIMITS[5].maxScore).toBeLessThanOrEqual(3300);
+      // five distinct biomes, each with its own flyers
+      expect(new Set(LEVEL_IDS.map((id) => LEVELS[id].biome)).size).toBe(5);
+      for (const id of LEVEL_IDS) expect(LEVELS[id].ringQuota).toBeLessThan(LEVELS[id].rings);
    });
 });

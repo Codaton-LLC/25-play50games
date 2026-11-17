@@ -6,8 +6,11 @@ import Footer from "@/components/Footer/Footer";
 import SectionTabs from "@/components/Nav/SectionTabs";
 import ArcadeGrid from "@/arcade3d/ui/ArcadeGrid";
 import WorldMap from "@/arcade3d/menu2/worldMap/WorldMap";
+import { ARCADE_ENABLED, ARCADE_LEADERBOARD } from "@/arcade3d/flags";
 import { ARCADE_ENABLED, ARCADE_LEADERBOARD, ARCADE_PREVIEW } from "@/arcade3d/flags";
+import { getLiveGames, getVisibleGames, getVisibleSections, scoringMetas } from "@/arcade3d/registry";
 import { gameCollection, getLiveGames, getVisibleGames, getVisibleSections } from "@/arcade3d/registry";
+import GameMetas from "@/arcade3d/ui/GameMetas";
 import type { ArcadeCollection } from "@/arcade3d/types";
 import { arcadeJsonLd, serializeJsonLd } from "@/lib/seo/jsonLd";
 import ArcadeScoreSync from "./ArcadeScoreSync";
@@ -88,29 +91,31 @@ function ArcadeSections() {
 export default function ArcadePage() {
    const jsonLd = arcadeJsonLd(SITE_URL, getLiveGames(), ARCADE_ENABLED);
    return (
-      <div className={styles.page}>
-         {jsonLd && (
-            <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }} />
-         )}
-         <div className={styles.header}>
-            <HeaderWithAuth />
-         </div>
-
-         <main className={styles.content}>
-            <SectionTabs active="arcade" />
-            {ARCADE_ENABLED ? (
-               <>
-                  <ArcadeIntro />
-                  <ArcadeSections />
-                  {ARCADE_LEADERBOARD && <ArcadePrivacyToggle />}
-               </>
-            ) : (
-               <ComingSoon />
+      <GameMetas metas={scoringMetas()}>
+         <div className={styles.page}>
+            {jsonLd && (
+               <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }} />
             )}
-         </main>
+            <div className={styles.header}>
+               <HeaderWithAuth />
+            </div>
 
-         <Footer />
-         {ARCADE_ENABLED && <ArcadeScoreSync />}
-      </div>
+            <main className={styles.content}>
+               <SectionTabs active="arcade" />
+               {ARCADE_ENABLED ? (
+                  <>
+                     <ArcadeIntro />
+                     <ArcadeSections />
+                     {ARCADE_LEADERBOARD && <ArcadePrivacyToggle />}
+                  </>
+               ) : (
+                  <ComingSoon />
+               )}
+            </main>
+
+            <Footer />
+            {ARCADE_ENABLED && <ArcadeScoreSync />}
+         </div>
+      </GameMetas>
    );
 }

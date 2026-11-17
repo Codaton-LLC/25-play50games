@@ -1,5 +1,6 @@
 "use client";
 
+import CameraViewButton from "@/arcade3d/core/camera/CameraViewButton";
 import { useLevel } from "@/arcade3d/core/level";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { GLYPHS } from "./glyphs";
@@ -7,7 +8,7 @@ import { CATEGORIES, type ToyLevel } from "./levels";
 import styles from "./Hud.module.css";
 
 /** The toy kinds of this level with their sign (colour + silhouette) and how many are left to shelve. */
-export default function Hud() {
+function GameHud() {
    const { config } = useLevel<ToyLevel>();
    const stats = useArcadeStore((s) => s.stats);
    const kinds = CATEGORIES.slice(0, config.categories);
@@ -27,5 +28,15 @@ export default function Hud() {
             );
          })}
       </div>
+   );
+}
+
+/** The game's HUD plus the core 📷 camera-view button (core/camera). */
+export default function Hud() {
+   return (
+      <>
+         <CameraViewButton />
+         <GameHud />
+      </>
    );
 }

@@ -32,7 +32,7 @@ export const catVsRobotVacuumMeta: ArcadeGameMeta = {
    },
    scoring: SCORING,
    levels: LEVELS,
-   thumbnail: null,
+   thumbnail: "/images/3d/cat-vs-robot-vacuum.webp",
    accent: "#fb923c",
    owner: "kimi",
 };

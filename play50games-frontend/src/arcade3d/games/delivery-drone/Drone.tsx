@@ -219,7 +219,7 @@ export default function Drone({ run, reduced }: { run: Run; reduced: boolean }) 
 
          {/* Attached / falling parcel */}
          <group ref={parcel} visible={false}>
-            <Parcel size={[0.4, 0.4, 0.4]} />
+            <Model asset={ASSETS.parcel} fallback={<Parcel size={[0.4, 0.4, 0.4]} />} />
          </group>
 
          {/* High-contrast visibility overlay pass */}

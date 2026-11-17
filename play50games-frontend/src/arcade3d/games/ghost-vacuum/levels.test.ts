@@ -5,9 +5,9 @@
 import { describe, expect, it, vi } from "vitest";
 import { createArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { distanceToBoxXZ } from "@/arcade3d/core/collision";
-import { createGrid, freeGrid, followPath, steer, simulateRun, fixedFrames, randomFrames, type PathFollower } from "@/arcade3d/core/testing/botHarness";
+import { createGrid, findPath, freeGrid, followPath, nearestFree, steer, simulateRun, fixedFrames, randomFrames, type PathFollower } from "@/arcade3d/core/testing/botHarness";
 import type { ScoringRules } from "@/arcade3d/types";
-import { definitionLevelProblems, isLevelCleared, levelHudStats, levelInstructions, levelRunConfig } from "@/arcade3d/core/levels";
+import { definitionLevelProblems, isLevelCleared, levelEnvironment, levelHudStats, levelInstructions, levelRunConfig } from "@/arcade3d/core/levels";
 import { capScore, withinServerLimits } from "@/arcade3d/core/limits";
 import { createRng } from "@/arcade3d/core/math";
 import { levelMetaProblems, scoringFor } from "@/arcade3d/levelMeta";
@@ -15,7 +15,7 @@ import { LEVEL_IDS, type LevelId } from "@/arcade3d/types";
 import definition from "./index";
 import { LEVELS, type GhostLevel } from "./levels";
 import { ghostVacuumMeta as meta } from "./meta";
-import { GHOST, LIGHT, PROPOSED_LEVEL_LIMITS, ROOMS, SCHEDULE, SOLIDS, active, createRun, exposureTime, runScore, stepRun, type Run, type StepInput } from "./rules";
+import { GHOST, LIGHT, PROPOSED_LEVEL_LIMITS, ROOMS, ROOM_HABITS, SCHEDULE, SOLIDS, active, createRun, exposureTime, faded, roomFurniture, runScore, solidsFor, stepRun, type Run, type StepInput } from "./rules";
 
 vi.mock("./Scene", () => ({ default: () => null }));
 vi.mock("./Hud", () => ({ default: () => null }));
@@ -38,9 +38,18 @@ function fixture(level: GhostLevel, kind: "normal" | "gold" | "big" = "normal") 
    return { run, i, g };
 }
 
-const walkable = (x: number, z: number) => Math.abs(x) <= 13.5 && Math.abs(z) <= 9.5 && SOLIDS.every((b) => distanceToBoxXZ(x, z, b) >= 0.401);
 const grid = createGrid({ cell: 0.25, halfX: 14, halfZ: 10 });
-const free = freeGrid(grid, walkable);
+/** The hunter's free centres on a level (its own furniture included). */
+const FREE = new Map<GhostLevel, Uint8Array>();
+function freeFor(level: GhostLevel): Uint8Array {
+   let f = FREE.get(level);
+   if (!f) {
+      const solids = solidsFor(level);
+      f = freeGrid(grid, (x, z) => Math.abs(x) <= 13.5 && Math.abs(z) <= 9.5 && solids.every((b) => distanceToBoxXZ(x, z, b) >= 0.401));
+      FREE.set(level, f);
+   }
+   return f;
+}
 
 type Brain = "honest" | "spam" | "idle";
 
@@ -51,6 +60,7 @@ function playLevel(seed: number, level: GhostLevel, limits: ScoringRules, brain:
    const rng = createRng(seed + 904);
    const frame = seed % 3 === 0 ? fixedFrames(1000 / 60) : seed % 3 === 1 ? fixedFrames(50) : randomFrames(seed + 80);
    let target = -1, path: PathFollower | null = null, planned = -1, prefixOk = true;
+   const free = freeFor(level);
    const final = simulateRun(createArcadeStore(), { durationMs: 120000, resultDelayMs: 1600, frame,
       step: (dt, time, store) => {
          if (brain === "spam") { i.dirX = rng() * 2 - 1; i.dirZ = rng() * 2 - 1; i.held = rng() > 0.25; i.aimYaw = rng() * Math.PI * 2; }
@@ -103,7 +113,8 @@ describe("ghost-vacuum levels: declarations", () => {
    });
 
    it("level 1 is today's game: same ghosts, timings, and a replayed run matches today's createRun", () => {
-      expect(LEVELS[1]).toEqual({ gold: [5, 8, 11], big: [9, 10], speed: 1, exposure: LIGHT.exposure, bigExposure: LIGHT.bigExposure, stun: LIGHT.stun, earlyCap: 3, capAt: 40, lateAt: 60 });
+      expect(LEVELS[1]).toEqual({ gold: [5, 8, 11], big: [9, 10], speed: 1, exposure: LIGHT.exposure, bigExposure: LIGHT.bigExposure, stun: LIGHT.stun, earlyCap: 3, capAt: 40, lateAt: 60, rooms: ["living", "living", "living", "living"] });
+      expect(solidsFor(LEVELS[1])).toBe(SOLIDS);
       for (let seed = 0; seed < 12; seed++) {
          const today = createRun(seed);
          const named = createRun(seed, LEVELS[1]);
@@ -129,12 +140,16 @@ describe("ghost-vacuum levels: declarations", () => {
       expect(levelHudStats(definition, 1)).toEqual(definition.hudStats);
    });
 
-   it("keeps the same clock, chips and instructions on every level", () => {
+   it("keeps the same clock and chips on every level; levels 2-5 add their room's habit to the instructions and have their own light", () => {
+      const looks = new Set<string>();
       for (const id of LEVEL_IDS) {
          expect(levelRunConfig(definition, id)).toEqual(levelRunConfig(definition, 1));
-         expect(levelInstructions(definition, id)).toBe(definition.instructions);
          expect(levelHudStats(definition, id)).toEqual(definition.hudStats);
+         if (id > 1) expect(levelInstructions(definition, id).length).toBe(definition.instructions.length + 1);
+         const env = levelEnvironment(definition, id);
+         looks.add(JSON.stringify([env?.lighting, env?.background, env?.fog]));
       }
+      expect(looks.size).toBe(5);
    });
 });
 
@@ -226,6 +241,100 @@ describe("ghost-vacuum levels: the simulation reads the level", () => {
       // level 5's late speed-up from 30 s
       expect(fastest(5, 31, 50)).toBeGreaterThan(GHOST.wander * LEVELS[5].speed * 1.02);
       expect(fastest(1, 31, 50)).toBeLessThanOrEqual(GHOST.wander + 1e-9);
+   });
+});
+
+describe("ghost-vacuum levels: rooms, furniture and habits", () => {
+   it("every level dresses its rooms its own way: levels 2-4 one kind each, level 5 all four", () => {
+      expect(new Set(LEVELS[2].rooms)).toEqual(new Set(["library"]));
+      expect(new Set(LEVELS[3].rooms)).toEqual(new Set(["kitchen"]));
+      expect(new Set(LEVELS[4].rooms)).toEqual(new Set(["attic"]));
+      expect(new Set(LEVELS[5].rooms)).toEqual(new Set(["living", "library", "kitchen", "attic"]));
+      for (const id of [2, 3, 4, 5] as const) expect(solidsFor(LEVELS[id]).length).toBeGreaterThan(SOLIDS.length);
+   });
+
+   for (const id of LEVEL_IDS) it(`L${id}: furniture keeps clear of the doorways, the desks and the pop spots; the whole mansion stays reachable`, () => {
+      const level = LEVELS[id], free = freeFor(level);
+      for (let i = 0; i < 4; i++) {
+         const r = ROOMS[i];
+         for (const f of roomFurniture(i, level.rooms[i])) {
+            // inside the room, off the doorway, off the desk and chair, not on a pop spot
+            expect(Math.abs(f.box.min.x) >= 3.1 && Math.abs(f.box.max.x) >= 3.1 && Math.abs(f.box.min.x) <= 13.9 && Math.abs(f.box.max.x) <= 13.9, f.kind).toBe(true);
+            expect(distanceToBoxXZ(r.doorX, r.doorZ, f.box), `${f.kind} / door`).toBeGreaterThan(1.6);
+            expect(distanceToBoxXZ(r.x, r.z, f.box), `${f.kind} / desk`).toBeGreaterThan(1.2);
+            for (const k of [0, -1, 1]) expect(distanceToBoxXZ(r.x - r.side * 2, r.z + k, f.box), `${f.kind} / pop`).toBeGreaterThan(0.5);
+         }
+      }
+      // every free cell connects to the start, and every desk's reveal ring has a free cell on it
+      const start = nearestFree(grid, free, 0, 8);
+      let unreached = 0, cells = 0;
+      const reach = new Uint8Array(grid.size);
+      const queue = [start];
+      reach[start] = 1;
+      while (queue.length) {
+         const n = queue.pop()!;
+         const xi = Math.floor(n / grid.nz), zi = n % grid.nz;
+         for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+            const a = xi + dx, b = zi + dz;
+            if (a < 0 || b < 0 || a >= grid.nx || b >= grid.nz) continue;
+            const m = a * grid.nz + b;
+            if (free[m] && !reach[m]) { reach[m] = 1; queue.push(m); }
+         }
+      }
+      for (let n = 0; n < grid.size; n++) if (free[n]) { cells++; if (!reach[n]) unreached++; }
+      expect(cells).toBeGreaterThan(4000);
+      expect(unreached).toBe(0);
+      for (const r of ROOMS) {
+         const near = nearestFree(grid, free, r.x - r.side * 1.5, r.z, 1);
+         expect(near).toBeGreaterThanOrEqual(0);
+         expect(Math.hypot(grid.x(near) - r.x, grid.z(near) - r.z)).toBeLessThanOrEqual(GHOST.reveal);
+         expect(findPath(grid, free, start, near).length).toBeGreaterThan(0);
+      }
+   });
+
+   it("library: a faded ghost cannot be lit, and a lit one fades out of the light now and then", () => {
+      const { run, i, g } = fixture(LEVELS[2]);
+      let fadedSteps = 0, litWhileFaded = 0;
+      for (let k = 0; k < 600; k++) {
+         advance(run, i, 1 / 60);
+         if (g.mode === "stunned") { g.mode = "wandering"; g.exposure = 0; }
+         if (faded(run, g)) { fadedSteps++; if (g.lit) litWhileFaded++; }
+      }
+      expect(fadedSteps).toBeGreaterThan(60);
+      expect(litWhileFaded).toBe(0);
+      // level 1 never fades
+      const one = fixture(LEVELS[1]);
+      for (let k = 0; k < 600; k++) { advance(one.run, one.i, 1 / 60); expect(faded(one.run, one.g)).toBe(false); }
+   });
+
+   it("kitchen: a lit ghost skids away faster than the same ghost in the living room", () => {
+      const top = (level: GhostLevel) => {
+         const { run, i, g } = fixture({ ...level, exposure: 99, bigExposure: 99 });
+         let best = 0;
+         for (let k = 0; k < 120; k++) { advance(run, i, 1 / 60); if (g.lit) best = Math.max(best, Math.hypot(g.vx, g.vz)); }
+         return best;
+      };
+      const living = top({ ...LEVELS[3], rooms: ["living", "living", "living", "living"] });
+      const kitchen = top(LEVELS[3]);
+      expect(kitchen).toBeGreaterThan(living * 1.2);
+      expect(kitchen).toBeLessThanOrEqual(GHOST.flee * LEVELS[3].speed * ROOM_HABITS.kitchenFlee + 1e-9);
+   });
+
+   it("attic: a ghost left alone creeps back into its trunk and pops out again when the hunter comes", () => {
+      const { run, i, g } = fixture(LEVELS[4]);
+      run.hunter.x = 0; run.hunter.z = 9; run.hunter.yaw = Math.PI; i.aimYaw = Math.PI; // far away, light off
+      advance(run, i, ROOM_HABITS.atticQuiet + 0.5);
+      expect(g.mode).toBe("hidden");
+      expect([g.x, g.z]).toEqual([g.homeX, g.homeZ]);
+      const r = ROOMS[g.room];
+      run.hunter.x = r.x - r.side * 1.5; run.hunter.z = r.z;
+      advance(run, i, 0.05);
+      expect(g.mode).toBe("wandering");
+      // the living room never re-hides
+      const one = fixture(LEVELS[1]);
+      one.run.hunter.x = 0; one.run.hunter.z = 9; one.run.hunter.yaw = Math.PI; one.i.aimYaw = Math.PI;
+      advance(one.run, one.i, 10);
+      expect(one.g.mode).not.toBe("hidden");
    });
 });
 

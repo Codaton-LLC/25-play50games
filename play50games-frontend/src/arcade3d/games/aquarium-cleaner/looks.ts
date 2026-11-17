@@ -1,4 +1,4 @@
-// One palette, the follow camera, and the cosmetic spots. Pure: no React, no three.js.
+// One palette, the follow camera, the cosmetic spots and the per-level look. Pure: no React, no three.js.
 import type { AABB } from "@/arcade3d/core/collision";
 import type { InstanceSpot } from "@/arcade3d/core/render";
 import type { FittedViewOptions } from "@/arcade3d/core/useFittedView";
@@ -58,7 +58,54 @@ export const GLASS_H = 3.2;
 export const FRAME_T = 0.1;
 
 export function fog(level: AquariumLevel): [string, number, number] {
-   return [level.background, 42, 120];
+   return [level.background, 42, lookOf(level).fogFar];
+}
+
+// ---------- the per-level look ----------
+//
+// Every level has its own look matching its name: fog distance, sand and water tints, caustics,
+// the glass frame glow, coral and fish counts, and its set pieces (tunnel arches, rim lamps,
+// kelp, a sunken ruin, bioluminescent stalks). "small" is level 1 and keeps today's values.
+
+export interface LevelLook {
+   /** fog far distance; near is 42 on every level */
+   fogFar: number;
+   /** multiplied into the sand texture */
+   sandTint: string;
+   /** the faint colour under the water surface */
+   waterTint: string;
+   /** caustic overlay opacity */
+   caustics: number;
+   /** emissive boost of the glass frame */
+   frameGlow: number;
+   /** coral instances along the glass */
+   coralCount: number;
+   /** fish schools (0 = the size default) */
+   schoolCount: number;
+   /** plinth emissive colour and intensity (the deep sea glows) */
+   plinthGlow: readonly [string, number];
+   /** kelp strands (the tropical garden) */
+   kelpCount: number;
+   /** tunnel ribs across the tank (the shark tunnel) */
+   arches: number;
+   /** rim lamps on the back plinth (the deep sea exhibit) */
+   lamps: number;
+   /** bioluminescent stalks (the deep sea exhibit) */
+   glowCount: number;
+   /** a sunken ruin against the back glass (the giant aquarium) */
+   wreck: boolean;
+}
+
+const LOOKS: Record<AquariumLevel["layout"], LevelLook> = {
+   small: { fogFar: 120, sandTint: "#ffffff", waterTint: "#0891b2", caustics: 0.16, frameGlow: 0.55, coralCount: 5, schoolCount: 0, plinthGlow: ["#0e7490", 0], kelpCount: 0, arches: 0, lamps: 0, glowCount: 0, wreck: false },
+   garden: { fogFar: 110, sandTint: "#ffedc9", waterTint: "#22d3ee", caustics: 0.2, frameGlow: 0.75, coralCount: 8, schoolCount: 3, plinthGlow: ["#0e7490", 0], kelpCount: 6, arches: 0, lamps: 0, glowCount: 0, wreck: false },
+   tunnel: { fogFar: 85, sandTint: "#c2d8d4", waterTint: "#0f766e", caustics: 0.1, frameGlow: 1.1, coralCount: 4, schoolCount: 0, plinthGlow: ["#14b8a6", 0.2], kelpCount: 0, arches: 4, lamps: 0, glowCount: 0, wreck: false },
+   expanse: { fogFar: 115, sandTint: "#eef6f7", waterTint: "#0284c7", caustics: 0.18, frameGlow: 0.6, coralCount: 5, schoolCount: 0, plinthGlow: ["#0e7490", 0], kelpCount: 0, arches: 0, lamps: 0, glowCount: 0, wreck: true },
+   abyss: { fogFar: 78, sandTint: "#7e97bd", waterTint: "#1e3a8a", caustics: 0.12, frameGlow: 1.8, coralCount: 4, schoolCount: 0, plinthGlow: ["#22d3ee", 0.5], kelpCount: 0, arches: 0, lamps: 5, glowCount: 8, wreck: false },
+};
+
+export function lookOf(level: AquariumLevel): LevelLook {
+   return LOOKS[level.layout];
 }
 
 export function tankBox(level: AquariumLevel): AABB {
@@ -114,14 +161,24 @@ export const SAND_TILE_M = 4;
 /** The aquarium hall round the tank: how far its floor reaches, its tile size, the plinth and the back wall. */
 export const HALL = { reach: 150, tile: 2, plinthH: 0.45, frontH: 0.15, plinthW: 0.6, wallGap: 9, wallH: 5 } as const;
 
-/** Per-level tint multiplied into the sand texture (night and the tunnel read darker and cooler). */
+/** Per-level tint multiplied into the sand texture (the tunnel and the deep sea read darker and cooler). */
 export function sandTint(level: AquariumLevel): string {
-   return level.lighting === "night" ? "#9fb6c8" : level.lighting === "indoor" ? "#d9e6de" : "#ffffff";
+   return lookOf(level).sandTint;
 }
 
 /** The faint colour under the water surface. */
 export function waterTint(level: AquariumLevel): string {
-   return level.lighting === "night" ? "#1e3a8a" : "#0891b2";
+   return lookOf(level).waterTint;
+}
+
+/** The caustic overlay opacity. */
+export function causticsOf(level: AquariumLevel): number {
+   return lookOf(level).caustics;
+}
+
+/** The glass frame emissive boost. */
+export function frameGlowOf(level: AquariumLevel): number {
+   return lookOf(level).frameGlow;
 }
 
 /**
@@ -197,11 +254,11 @@ export interface School {
    count: number;
 }
 
-export function schoolsOf(run: Run): School[] {
+export function schoolsOf(run: Run, count = 0): School[] {
    const rng = createRng((run.seed ^ 0xf15b) >>> 0);
    const { hx, hz } = run;
    const out: School[] = [];
-   const n = run.level.width > 22 ? 3 : 2;
+   const n = count > 0 ? count : run.level.width > 22 ? 3 : 2;
    for (let i = 0; i < n; i++) {
       const left = i % 2 === 0;
       out.push({
@@ -224,3 +281,86 @@ export const ZONES = (run: Run) => ({
    column: { ...run.column, r: COLUMN_R },
    hatch: { ...run.hatch, r: HATCH_R },
 });
+
+// ---------- per-level set pieces (cosmetic only; never in rules) ----------
+
+/**
+ * Kelp strand spots for the tropical garden: on the sand against the back glass, clear of the
+ * algae, the solids and the walk zones. `scale` is the strand height in metres. Like the coral,
+ * the kelp stays at the back so it never stands between the camera and the diver.
+ */
+export function kelpSpots(run: Run, count: number): InstanceSpot[] {
+   const rng = createRng((run.seed ^ 0x6b39) >>> 0);
+   const spots: InstanceSpot[] = [];
+   const { hx, hz } = run;
+   const avoid = [entryOf(run.level), basketOf(run.level), columnOf(run.level), hatchOf(run.level)];
+   for (let tries = 0; tries < count * 30 && spots.length < count; tries++) {
+      const x = -hx + 1.2 + (run.level.width - 2.4) * rng();
+      const z = -hz + 0.55 + rng() * 0.5;
+      if (run.algae.some((a) => Math.hypot(a.x - x, a.z - z) < 2.2)) continue;
+      if (avoid.some((a) => Math.hypot(a.x - x, a.z - z) < 3)) continue;
+      if (run.solids.some((s) => Math.hypot(s.x - x, s.z - z) < s.r + 0.9)) continue;
+      if (spots.some((s) => Math.hypot(s.x - x, s.z - z) < 1.6)) continue;
+      spots.push({ x, y: 0, z, rotY: rng() * Math.PI * 2, scale: 1.4 + rng() * 0.8 });
+   }
+   return spots;
+}
+
+/** Bioluminescent stalk spots for the deep sea exhibit: the back glass and the side corners. */
+export function glowSpots(run: Run, count: number): InstanceSpot[] {
+   const rng = createRng((run.seed ^ 0xd00d) >>> 0);
+   const spots: InstanceSpot[] = [];
+   const { hx, hz } = run;
+   const avoid = [entryOf(run.level), basketOf(run.level), columnOf(run.level), hatchOf(run.level)];
+   for (let tries = 0; tries < count * 30 && spots.length < count; tries++) {
+      const side = rng();
+      const x = side < 0.7 ? -hx + 1.2 + (run.level.width - 2.4) * rng() : (side < 0.85 ? -1 : 1) * (hx - 0.7);
+      const z = side < 0.7 ? -hz + 0.5 + rng() * 0.4 : -hz + 1 + run.level.depth * 0.5 * rng();
+      if (run.algae.some((a) => Math.hypot(a.x - x, a.z - z) < 1.8)) continue;
+      if (avoid.some((a) => Math.hypot(a.x - x, a.z - z) < 3)) continue;
+      if (run.solids.some((s) => Math.hypot(s.x - x, s.z - z) < s.r + 0.7)) continue;
+      if (spots.some((s) => Math.hypot(s.x - x, s.z - z) < 1.4)) continue;
+      spots.push({ x, y: 0, z, rotY: rng() * Math.PI * 2, scale: 0.5 + rng() * 0.6 });
+   }
+   return spots;
+}
+
+/**
+ * The sunken ruin's anchor for the giant aquarium: the back-left corner with a seeded turn,
+ * rejected away from the solids (the rib reaches about 1.9 m from the anchor).
+ */
+export function wreckAnchor(run: Run): { x: number; z: number; rotY: number } {
+   const rng = createRng((run.seed ^ 0x77ec) >>> 0);
+   let best: { x: number; z: number; rotY: number } = { x: -run.hx + 2.6, z: -run.hz + 0.9, rotY: 0 };
+   let bestGap = -Infinity;
+   for (let tries = 0; tries < 20; tries++) {
+      const x = -run.hx + 2.6 + rng() * 1.4;
+      const z = -run.hz + 0.9;
+      const gap = Math.min(...run.solids.map((s) => Math.hypot(s.x - x, s.z - z) - s.r));
+      const candidate = { x, z, rotY: (rng() - 0.5) * 0.6 };
+      if (gap > bestGap) { bestGap = gap; best = candidate; }
+      if (gap >= 1.9) return candidate;
+   }
+   return best;
+}
+
+/**
+ * The shark tunnel's rib stations: z positions of the arches across the tank (always at least
+ * one on each side of the shark's front lane). The component builds the arcs; the legs land on
+ * the side plinths, outside the glass.
+ */
+export function archStations(level: AquariumLevel): number[] {
+   const { hz } = tankHalf(level);
+   return [-hz + 2.2, -hz / 2, 0, hz / 2 - 0.6];
+}
+
+/** The deep sea exhibit's rim lamps: on the back plinth, outside the glass. */
+export function lampSpots(level: AquariumLevel, count: number): InstanceSpot[] {
+   const { hx, hz } = tankHalf(level);
+   const spots: InstanceSpot[] = [];
+   for (let i = 0; i < count; i++) {
+      const x = count === 1 ? 0 : -hx + 2 + ((level.width - 4) * i) / (count - 1);
+      spots.push({ x, y: 0, z: -hz - HALL.plinthW / 2, rotY: 0, scale: 1 });
+   }
+   return spots;
+}

@@ -1,45 +1,56 @@
 "use client";
 
 // Mars Rover Mission. GameShell owns the clock, lives, pause and the result.
-// Level 1 is the definition; levels 2-5 swap arena dimensions, sites, and hazards (levels.ts).
+// Level 1 is the definition; levels 2-5 swap the mission, the plain, the hazards and the look (levels.ts).
 import type { GameDefinition, LevelSpec } from "@/arcade3d/core/types";
 import { LEVEL_IDS, type LevelId } from "@/arcade3d/types";
 import { ASSETS } from "./assets";
-import { LEVELS, LEVEL_LINES, type MarsLevel } from "./levels";
+import MarsHud from "./Hud";
+import { LEVELS, LEVEL_LINES, MISSION_WORDS, type MarsLevel } from "./levels";
 import { FOV, fogFor } from "./looks";
 import Scene from "./Scene";
+import { RESULT_DELAY_MS } from "./resultDelay";
 import { LIVES } from "./rules";
 
-const LINES = [
-   "W / up drives, S / down brakes and reverses, A D / left right steer (or the joystick).",
-   "Stop inside each beacon ring for 1 s to scan a sample: dead centre pays a bonus.",
-   "Stop on a green charger pad to recharge. Scan every site, then park on the base pad to win.",
-];
+
+const DRIVE = "Drive with W A S D / arrows or the joystick: left turns left, the camera follows behind. 📷 or C changes the view.";
+
+/** The action line: what to do at a site, and the dead-centre bonus. */
+function actionLine(level: MarsLevel): string {
+   if (level.mission === "crystal") return "Follow the teal light. Stop inside the ring: the rover drills by itself (1 s). Dead centre = +60.";
+   if (level.mission === "panel") return "Follow the blue light. Stop inside the ring by a broken panel: the rover repairs it (1 s). Dead centre = +60.";
+   return "Follow the light. Stop inside the ring by the beacon: the rover scans it (1 s). Dead centre = +60.";
+}
+
+/** The hazard line per level. */
+const HAZARDS: Record<LevelId, string> = {
+   1: "Then park on the blue pad by the lander. Watch the battery: green pads recharge it.",
+   2: "Rocks everywhere: hitting one faster than 3 m/s costs a life. Green pads recharge the battery.",
+   3: "Sliding rocks roll down the dust chutes from the cliff: wait for them to pass.",
+   4: "The dust storm closes in as time runs out. Crevasses: a fall costs a life.",
+   5: "Night: your headlights are on. Sliding rocks, crevasses, and a hungry battery.",
+};
 
 function stats(level: MarsLevel): GameDefinition["hudStats"] {
    return [
-      { key: "samples", label: "Samples", max: level.sites },
+      { key: "samples", label: MISSION_WORDS[level.mission].chip, max: level.sites },
       { key: "battery", label: "Battery", max: 100 },
    ];
 }
 
 function instructionsFor(id: LevelId): string[] {
-   if (id === 2) return [LINES[0], "Rocks everywhere: hitting one faster than 3 m/s costs a life.", LINES[1]];
-   if (id === 3) return [LINES[0], "Boulders roll down the canyon lanes. Steer clear to save lives.", LINES[2]];
-   if (id === 4) return [LINES[0], "Dense dust storm: visibility is low. Follow beacon markers on screen.", LINES[2]];
-   if (id === 5) return [LINES[0], "Seven ancient sites under starlight. Monitor battery levels carefully.", LINES[2]];
-   return LINES;
+   return [actionLine(LEVELS[id]), HAZARDS[id], DRIVE];
 }
-
 
 const definition: GameDefinition<MarsLevel> = {
    slug: "mars-rover-mission",
    Scene,
+   Hud: MarsHud,
    assets: ASSETS,
    durationMs: LEVELS[1].durationMs,
    lives: LIVES,
-   resultDelayMs: 900,
-   camera: { position: [0, 14, 13], fov: FOV, lookAt: [0, 0, 0] },
+   resultDelayMs: RESULT_DELAY_MS,
+   camera: { position: [0, 6, 20], fov: FOV, lookAt: [0, 0, 10] },
    environment: {
       background: LEVELS[1].background,
       fog: fogFor(LEVELS[1], 1),
@@ -47,7 +58,7 @@ const definition: GameDefinition<MarsLevel> = {
    },
    touchControls: ["joystick"],
    hudStats: stats(LEVELS[1]),
-   instructions: LINES,
+   instructions: instructionsFor(1),
    levels: LEVEL_IDS.map((id): LevelSpec<MarsLevel> => {
       const level = LEVELS[id];
       const spec: LevelSpec<MarsLevel> = {

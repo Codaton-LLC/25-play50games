@@ -5,8 +5,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useFrame, useThree, type RootState } from "@react-three/fiber";
 import { Raycaster, Vector2, Vector3 } from "three";
 import { aimFired } from "@/arcade3d/core/aim";
+import type { AABB } from "@/arcade3d/core/collision";
 import CameraRig from "@/arcade3d/core/CameraRig";
 import { playSfx, startLoop, useMuted } from "@/arcade3d/core/audio";
+import { useActionPop, type ActionPop } from "@/arcade3d/core/fx/actionPop";
 import { useFx, type FxApi } from "@/arcade3d/core/fx/FxLayer";
 import { TargetMarkers, type MarkerTarget } from "@/arcade3d/core/hud/TargetMarkers";
 import { markerBounds, placeMarker, type MarkerPlacement } from "@/arcade3d/core/hud/markerPlacement";
@@ -15,12 +17,17 @@ import { randomSeed } from "@/arcade3d/core/math";
 import { useSafeArea, type SafeArea } from "@/arcade3d/core/safeArea";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useFittedView } from "@/arcade3d/core/useFittedView";
+import { useCameraViews } from "@/arcade3d/core/camera/CameraViews";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { TEAM } from "./assets";
+import Aim, { type AimPoint } from "./Aim";
 import Balls from "./Balls";
 import { AIM_CLAMP, FIT, FOLLOW_Y, LOOK_AT, areaFor } from "./camera";
+import { missPop, scoopOutcome, scoopPop } from "./feedback";
 import Kids from "./Kids";
-import { createRun, pickTap, stepRun, type Run, type SimEvent, type StepInput } from "./rules";
+import { FORT, YARD, createRun, fortHeight, groundAt, missReason, pickTap, stepRun, type Run, type SimEvent, type StepInput } from "./rules";
+import { GROUND } from "./guide";
+import ScoopMeter from "./ScoopMeter";
 import { useSnowLevel } from "./useSnowLevel";
 import Yard from "./Yard";
 
@@ -30,6 +37,37 @@ const LOOK = new Vector3();
 const PROJ = new Vector3();
 const PLACE: MarkerPlacement = { visible: false, x: 0, y: 0, angle: 0 };
 const FX_POS = { x: 0, y: 0, z: 0 };
+const POP_POS = { x: 0, y: 0, z: 0 };
+/** Right and middle drag turn the camera here: a left click throws (core/camera `mouseButtons`). */
+const CAMERA_BUTTONS: readonly number[] = [2, 1];
+
+/** This frame's scoop event from the player: 1 = a ball pocketed, 2 = a roller, 0 = none. */
+function scoopEventOf(run: Run): number {
+   for (let i = 0; i < run.eventCount; i++) {
+      const e = run.events[i];
+      if (e.kind === "scoop") return e.n;
+   }
+   return 0;
+}
+
+/** The player threw this frame (a lob or a roller). */
+function playerThrew(run: Run): boolean {
+   for (let i = 0; i < run.eventCount; i++) {
+      const e = run.events[i];
+      if (e.kind === "throw" && e.n === 0) return true;
+   }
+   return false;
+}
+
+function showPop(pop: ActionPop, run: Run, kind: "good" | "fail" | "info", text: string): void {
+   const p = run.kids[0];
+   POP_POS.x = p.x;
+   POP_POS.y = 2.3;
+   POP_POS.z = p.z;
+   if (kind === "good") pop.good(POP_POS, text);
+   else if (kind === "fail") pop.fail(POP_POS, text, { shake: 0 });
+   else pop.info(POP_POS, text);
+}
 const TAP = [
    { id: 1, x: 0, y: 0, live: false },
    { id: 2, x: 0, y: 0, live: false },
@@ -38,6 +76,16 @@ const TAP = [
    { id: 2, x: 0, y: 0, live: false },
    { id: 3, x: 0, y: 0, live: false },
 ];
+
+/** One camera solid (core/camera `solids`); returns the next free slot. */
+function putSolid(out: AABB[], n: number, x: number, z: number, half: number, height: number): number {
+   if (n >= out.length) return n;
+   const box = out[n];
+   box.min.x = x - half; box.max.x = x + half;
+   box.min.y = 0; box.max.y = height;
+   box.min.z = z - half; box.max.z = z + half;
+   return n + 1;
+}
 
 function coarsePointer(): boolean {
    return typeof matchMedia === "function" && matchMedia("(pointer: coarse)").matches;
@@ -91,6 +139,11 @@ function playEvent(fx: FxApi, e: SimEvent): void {
       playSfx("thud", { pitch: 0.5 });
       fx.shake(0.2);
       fx.burst("snow", FX_POS, 12);
+   } else if (e.kind === "rebuild") {
+      playSfx("thud", { pitch: 1.2 });
+      fx.burst("snow", FX_POS, 14);
+      FX_POS.y = 1.9;
+      fx.score(FX_POS, "Rebuilt!", { color: "#bae6fd" });
    } else if (e.kind === "splat" || e.kind === "down") {
       fx.burst("puff", FX_POS, 8);
    }
@@ -109,8 +162,32 @@ function LevelScene() {
    areaRef.current = area;
    const coarse = useState(coarsePointer)[0];
    const run = useState(() => createRun(randomSeed(), coarse, config))[0];
+
+   // camera views (core/camera): the rules get the drawn camera's yaw (the fitted yaw in the default view)
+   const cam = useCameraViews({
+      slug: "snowball-battle",
+      subject: "character",
+      steering: "camera",
+      defaultYaw: view.yaw,
+      mouseButtons: CAMERA_BUTTONS,
+      // the standing forts and the centre cover keep the chase / front / free views from clipping into them
+      solids: (out) => {
+         let n = putSolid(out, 0, 0, 0, YARD.snowHalf, YARD.snowHeight);
+         for (let i = 0; i < run.forts.length; i++) if (run.forts[i].hp >= 1) n = putSolid(out, n, run.forts[i].x, run.forts[i].z, FORT.half, fortHeight(run.forts[i].hp));
+         return n;
+      },
+      target: (o) => {
+         const k = run.kids[0];
+         o.x = k.x; o.y = 1.0; o.z = k.z; o.heading = k.yaw; o.vx = k.vx; o.vz = k.vz;
+      },
+   });
+
    const step = useRef<StepInput>({ moveX: 0, moveY: 0, camYaw: 0, scoop: false, fire: false, tapId: -1, aimYaw: Math.PI }).current;
    const aim = useRef({ moved: false, px: 0, py: 0 }).current;
+   const aimPoint = useRef<AimPoint>({ x: 0, z: 0, on: false }).current;
+   const pop = useActionPop();
+   const popRef = useRef(pop);
+   popRef.current = pop;
    const follow = useRef({ x: 0, y: FOLLOW_Y, z: 6.2 }).current;
    const fx = useFx();
    const fxRef = useRef(fx);
@@ -132,9 +209,10 @@ function LevelScene() {
       const live = input.current;
       step.moveX = live.moveX;
       step.moveY = live.moveY;
-      step.camYaw = view.yaw;
+      step.camYaw = cam.yaw();
       step.scoop = live.action;
-      step.fire = !run.coarse && aimFired(live, { jump: true });
+      // fine pointer: Space or a left click on the canvas (its tapDown) throws at the highlighted rival
+      step.fire = !run.coarse && (aimFired(live, { jump: true }) || live.tapDown !== null);
       step.tapId = -1;
       const p = live.pointer;
       if (p.x !== aim.px || p.y !== aim.py) aim.moved = true;
@@ -148,7 +226,12 @@ function LevelScene() {
          const dir = RAY.ray.direction;
          if (Math.abs(dir.y) > 1e-4) {
             const t = -origin.y / dir.y;
-            if (t > 0) step.aimYaw = Math.atan2(origin.x + dir.x * t - player.x, origin.z + dir.z * t - player.z);
+            if (t > 0) {
+               aimPoint.x = origin.x + dir.x * t;
+               aimPoint.z = origin.z + dir.z * t;
+               aimPoint.on = true;
+               step.aimYaw = Math.atan2(aimPoint.x - player.x, aimPoint.z - player.z);
+            }
          }
       } else step.aimYaw = player.yaw;
       if (run.coarse && live.tapDown) {
@@ -157,7 +240,17 @@ function LevelScene() {
          const sy = ((1 - live.tapDown.y) / 2) * state.size.height;
          step.tapId = pickTap(sx, sy, TAP);
       }
+      const wasScooping = run.scooping;
+      const heldT = run.scoopT;
+      const ammoBefore = player.ammo;
       stepRun(run, dt, step);
+      const pops = popRef.current;
+      const scooped = scoopPop(scoopOutcome(wasScooping, heldT, ammoBefore, run.scooping, scoopEventOf(run)), player.ammo);
+      if (scooped) showPop(pops, run, scooped.kind, scooped.text);
+      if (step.fire && !playerThrew(run)) {
+         const text = missPop(missReason(run, step.aimYaw), false);
+         if (text) showPop(pops, run, "info", text);
+      }
       const store = useArcadeStore.getState();
       if (run.scoreDelta) {
          store.addScore(run.scoreDelta);
@@ -169,6 +262,8 @@ function LevelScene() {
       for (let i = 1; i < 4; i++) if (run.kids[i].present && run.kids[i].alive) rivals += 1;
       store.setStat("rivals", rivals);
       store.setStat("health", 5 - run.playerTags);
+      const under = groundAt(run.level, player.x, player.z);
+      store.setStat("ground", under === "ice" ? GROUND.ice : under === "drift" ? GROUND.drift : GROUND.snow);
       const api = fxRef.current;
       for (let i = 0; i < run.eventCount; i++) playEvent(api, run.events[i]);
       run.eventCount = 0;
@@ -216,6 +311,8 @@ function LevelScene() {
          <Yard run={run} view={view} />
          <Kids run={run} />
          <Balls run={run} />
+         <Aim run={run} aim={aimPoint} />
+         <ScoopMeter run={run} />
          <TargetMarkers targets={markers} />
       </>
    );

@@ -14,9 +14,12 @@ import { scaledCount, useQuality } from "@/arcade3d/core/quality";
 import { Instanced, useCanvasTexture, type InstanceSpot } from "@/arcade3d/core/render";
 import { ASSETS, palmBaseOffset } from "./assets";
 import { Decor } from "./Decor";
-import { CRAB_INSET, crabAngles, groundAt, groundHeight, waterLevel } from "./looks";
+import { CRAB_INSET, THEMES, crabAngles, groundAt, groundHeight, waterLevel } from "./looks";
 import { COLORS, CratePrimitives, PalmPrimitives, RockPrimitives, UmbrellaPrimitive, useCrabParts } from "./Primitives";
 import { FIXED, ISLAND, shoreAt, type Island as IslandData, type RunState } from "./rules";
+
+/** Starter Beach in the morning (looks.ts THEMES[1]). */
+const MORNING = THEMES[1];
 
 // ---------- ground ----------
 
@@ -120,7 +123,7 @@ function Ground({ shape }: { shape: { rx: number; rz: number } }) {
 // ---------- sea ----------
 
 /** The water and its foam line rise with the tide: the drawn waterline is the rules' shore(t). */
-function Sea({ run }: { run: RunState }) {
+export function Sea({ run, color = COLORS.sea, deep = COLORS.deep }: { run: RunState; color?: string; deep?: string }) {
    const sea = useRef<Group>(null);
    const foam = useRef<Mesh>(null);
    const innerFoam = useRef<Mesh>(null);
@@ -137,7 +140,7 @@ function Sea({ run }: { run: RunState }) {
    return (
       <group ref={sea} name="sea">
          {/* Deep turquoise sea surface (extended to 180x180 to guarantee no void at screen edges) */}
-         <Water size={[180, 180]} color={COLORS.sea} deep={COLORS.deep} amplitude={0.035} wavelength={5.2} opacity={0.88} />
+         <Water size={[180, 180]} color={color} deep={deep} amplitude={0.035} wavelength={5.2} opacity={0.88} />
 
          {/* Ocean seabed plane underneath the water so no sky/void can ever show through */}
          <mesh rotation-x={-Math.PI / 2} position-y={-1.35} name="sea-bed">
@@ -227,7 +230,7 @@ for (let z = FIXED.dock.fromZ + 0.3; z <= FIXED.dock.toZ; z += 1.4) {
    DOCK_POSTS.push({ x: -FIXED.dock.hx + 0.08, y: -1, z }, { x: FIXED.dock.hx - 0.08, y: -1, z });
 }
 
-function Dock() {
+export function Dock() {
    const { hx, fromZ, toZ } = FIXED.dock;
    return (
       <group name="dock">
@@ -258,7 +261,7 @@ function Dock() {
 
 const CRAB_POOL = 3;
 
-function Crabs({ island, run }: { island: IslandData; run: RunState }) {
+export function Crabs({ island, run }: { island: IslandData; run: RunState }) {
    const time = useGameTime();
    const { tier, decor } = useQuality();
    const shown = tier === "low" ? 0 : scaledCount(CRAB_POOL, decor);
@@ -291,7 +294,8 @@ const CRAB_R = new Matrix4();
 
 // ---------- the island ----------
 
-export function IslandScene({ island, run, levelId }: { island: IslandData; run: RunState; levelId?: number }) {
+/** The island's palms on their trunk footprints (palm.glb, the code palm as its fallback). */
+export function Palms({ island, run }: { island: IslandData; run: RunState }) {
    const palmSpots = useMemo<InstanceSpot[]>(
       () =>
          island.palms.map((p) => {
@@ -300,6 +304,10 @@ export function IslandScene({ island, run, levelId }: { island: IslandData; run:
          }),
       [island, run.shape]
    );
+   return <InstancedModel asset={ASSETS.palm} spots={palmSpots} fallback={<PalmPrimitives spots={palmSpots} />} />;
+}
+
+export function IslandScene({ island, run, levelId }: { island: IslandData; run: RunState; levelId?: number }) {
    const rockSpots = useMemo<InstanceSpot[]>(
       () => island.rocks.map((r) => ({ x: r.x, y: groundAt(r.x, r.z, run.shape) - 0.06 * r.size, z: r.z, rotY: r.yaw, scale: r.size })),
       [island, run.shape]
@@ -312,10 +320,12 @@ export function IslandScene({ island, run, levelId }: { island: IslandData; run:
    const umbrellaY = groundAt(FIXED.umbrella.x, FIXED.umbrella.z, run.shape);
    return (
       <group name="island">
-         <SkyDome top={COLORS.skyTop} bottom={COLORS.skyBottom} offset={0.06} exponent={0.72} />
+         {/* Starter Beach in the morning (looks.ts THEMES[1]): a pale sky, a low warm sun from the west */}
+         <SkyDome top={MORNING.skyTop} bottom={MORNING.skyBottom} offset={0.06} exponent={0.72} />
+         {MORNING.accent && <directionalLight color={MORNING.accent.color} intensity={MORNING.accent.intensity} position={[...MORNING.accent.position]} />}
          <Ground shape={run.shape} />
          <Sea run={run} />
-         <InstancedModel asset={ASSETS.palm} spots={palmSpots} fallback={<PalmPrimitives spots={palmSpots} />} />
+         <Palms island={island} run={run} />
          <InstancedModel asset={ASSETS.rock} spots={rockSpots} fallback={<RockPrimitives spots={rockSpots} />} />
          <InstancedModel asset={ASSETS.crate} spots={crates} fallback={<CratePrimitives spots={crates} />} />
          <group position={[FIXED.umbrella.x, umbrellaY - 0.05, FIXED.umbrella.z]} rotation-y={0.6}>

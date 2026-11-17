@@ -13,7 +13,7 @@
    text-align: center;
    display: grid;
    gap: 5px;
-   font-size: 12px;
+   font-size: 13px;
 }
 .card strong { font-size: 14px; }
 .track { height: 4px; border-radius: 4px; background: var(--bg); overflow: hidden; }

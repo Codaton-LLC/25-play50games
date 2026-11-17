@@ -24,7 +24,7 @@ export const taxiRush3dMeta: ArcadeGameMeta = {
    },
    scoring: PROPOSED_LEVEL_LIMITS[1],
    levels: LEVELS,
-   thumbnail: null,
+   thumbnail: "/images/3d/taxi-rush-3d.webp",
    accent: "#facc15",
    owner: "cursor",
 };

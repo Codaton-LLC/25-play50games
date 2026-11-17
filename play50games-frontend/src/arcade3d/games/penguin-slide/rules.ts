@@ -3,7 +3,7 @@ import { substep } from "@/arcade3d/core/kinematics";
 import { createRng } from "@/arcade3d/core/math";
 import { createPath, createPathGraph, pointAt, tangentAt, type Path, type PathGraph } from "@/arcade3d/core/path";
 import type { LevelId, ScoringRules } from "@/arcade3d/types";
-import { LEVELS, formIndex, slotsAt, type SlideLevel } from "./levels";
+import { LEVELS, formIndex, kindIndex, slotsAt, type SlideLevel } from "./levels";
 
 export const COURSE = { chunk: 60, radius: 0.35, width: 3.5, narrow: 2.25, split: 1.25, corridor: 0.6, taper: 20, preview: 20, separation: 12, attempts: 16 } as const;
 export const DRIVE = { initial: 8, max: 22, lateral: 4, smoothing: 4, impulse: 0.1, carve: 0.02, crashSpeed: 0.6, tumble: 1, step: 1 / 120 } as const;
@@ -144,7 +144,8 @@ export function generateChunk(seed: number, index: number, entry: Entry, elapsed
    const count = slotsAt(level, elapsed);
    for (let i = 0; i < count; i++) {
       const s = start + 3 + i * COURSE.separation;
-      const kind = (["ice", "snowman", "crack"] as const)[Math.floor(rng() * 3)];
+      // the level's obstacle mix from the same single draw (equal weights: today's floor(u * 3))
+      const kind = (["ice", "snowman", "crack"] as const)[kindIndex(level, rng())];
       const radius = kind === "snowman" ? 0.5 : 0.6;
       const local = s - start;
       const centre = corridorAt(c, local);

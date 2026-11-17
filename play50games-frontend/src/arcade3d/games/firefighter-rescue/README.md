@@ -6,7 +6,7 @@ Owner: cursor. Slug: `firefighter-rescue`. Order 31. Status `dev`. Collection `a
 
 Enter the floor at `(0, 0.85)`. Put every fire out and walk every neighbour into the exit, one at a time. The shell clock and three lives end the run. A partial score ranks; only a win clears the level (no `clearScore`).
 
-Corridor hall is `x ∈ [−1.5, 1.5]`. Rooms alternate left and right, 6 m along z and 5 m deep, from z = 0. The porch starts at z = −3.4. Door openings are ±0.8 m around each room's middle. A locked door is a fire on the hall side of that doorway (`x = ±1.02`) plus a solid slab. The flood fill keeps the room shut until that fire is out. The exit rect is `x ∈ [−1.15, 1.15]`, `z ∈ [−2.9, −1.15]`. The escort stand is `(0, −2.7)`.
+Corridor hall is `x ∈ [−1.5, 1.5]`. Every level has its own floor plan (levels.ts `plan`): which side each room opens on, how deep the wing runs (5 m, or 6.5 m warehouse bays), where the doorway sits along the room, and the furniture theme. Rooms are 6 m along z, from z = 0. The porch starts at z = −3.4. Door openings are ±0.8 m around each room's doorway. A locked door is a fire on the hall side of that doorway (`x = ±1.02`) plus a solid slab. The flood fill keeps the room shut until that fire is out. The exit rect is `x ∈ [−1.15, 1.15]`, `z ∈ [−2.9, −1.15]`. The escort stand is `(0, −2.7)`.
 
 On-foot mover: radius 0.38, top speed 4.6, accel 22, brake 28. Inside a smoke disc the speed is × 0.65. `inputToWorld` uses the fitted camera yaw, so keyboard and touch share the same step.
 
@@ -22,19 +22,21 @@ Score, all integers: +100 per fire, +150 when a neighbour enters the exit, +50 m
 
 ## Levels
 
-Same corridor. Only counts, breath drain, clock and the core lighting preset change. Fog is `[background, 14, 36]`.
+Each level is its own floor plan and look: the room sides, wing depth, doorway positions and the furniture theme come from the level's `plan` (levels.ts), and the palette, fog and the exterior set dressing come from `levelColors` / `levelDecor` (looks.ts). Only level 1 is the original corridor. Counts, drain, clock and the lighting preset ramp as before; fog is per level on the level's background.
 
-| L | Title | Rooms | Fires | People | Smoke | Locked | Debris | Drain /s | Clock | Light |
-|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---|
-| 1 | Small Apartment | 2 | 2 | 1 | 1 | 0 | 0 | 0.15 | 120 s | indoor `#292524` |
-| 2 | Family House | 3 | 4 | 2 | 2 | 1 | 0 | 0.18 | 150 s | day `#44403c` |
-| 3 | Office | 4 | 6 | 3 | 3 | 1 | 0 | 0.22 | 180 s | indoor `#1c1917` |
-| 4 | Hotel | 5 | 8 | 4 | 4 | 2 | 1 | 0.28 | 180 s | night `#0c0a09` |
-| 5 | Warehouse | 6 | 10 | 5 | 5 | 2 | 2 | 0.32 | 210 s | sunset `#291c14` |
+| L | Title | Rooms | Fires | People | Smoke | Locked | Debris | Drain /s | Clock | Light | Plan |
+|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---|---|
+| 1 | Small Apartment | 2 | 2 | 1 | 1 | 0 | 0 | 0.15 | 120 s | indoor `#292524` | alternating wings, 5 m deep, centred doors, apartment furniture |
+| 2 | Family House | 3 | 4 | 2 | 2 | 1 | 0 | 0.18 | 150 s | day `#44403c` | L-shaped (two rooms on the right), doors 1.1 m toward the exit, house furniture |
+| 3 | Office | 4 | 6 | 3 | 3 | 1 | 0 | 0.22 | 180 s | indoor `#1c1917` | staggered doorways ±0.8 m, desks and a break sofa |
+| 4 | Hotel | 5 | 8 | 4 | 4 | 2 | 1 | 0.28 | 180 s | night `#0c0a09` | five rooms, every door 1.2 m toward the exit, bedroom sets |
+| 5 | Warehouse | 6 | 10 | 5 | 5 | 2 | 2 | 0.32 | 210 s | sunset `#291c14` | wide 6.5 m bays, crate stacks, locker benches |
 
 ## Controls
 
-WASD / arrows move. Hold E or Enter to spray. Space hops. Touch: joystick, Action "Spray", Jump "Hop". Scheme `joystick`. The same 0.75 s spray, 0.30 s talk, 0.40 s hop and 0.50 s debris stun run on both devices (`rules.test.ts`). The shell owns pause. `clockChip` stays on. Custom HUD is a breath meter only (`data-arcade-safe-area`). Stat chips: Fires, Saved, Breath 0–100. `resultDelayMs` 900.
+WASD / arrows move. Hold E or Enter to spray. Space hops. Touch: joystick, Action "Spray", Jump "Hop". Scheme `joystick`. The same 0.75 s spray, 0.30 s talk, 0.40 s hop and 0.50 s debris stun run on both devices (`rules.test.ts`). The shell owns pause. `clockChip` stays on. Custom HUD is a breath meter only (`data-arcade-safe-area`) plus the core 📷 camera-view button. Stat chips: Fires, Saved, Breath 0–100. `resultDelayMs` 900.
+
+Camera views (core/camera): 📷 / C (T too) cycle Classic → Chase → Front → Top → Free; drag turns the free view, wheel / pinch zoom. `useCameraViews({ subject: "character", steering: "camera" })`, pivot at the firefighter's chest (`hero.y + 1.1`), all five views. Solids: the building's full-height walls (`wallSpots`) plus the rules' furniture and locked-door boxes (`run.solids`, only while `on`), so the camera pulls in front of them in the chase / front / free views. `step` gets `cam.yaw()`; in the classic view that is exactly the fitted yaw, so bots, proofs and limits are unchanged. No key conflicts: the game itself uses only WASD / arrows, E / Enter and Space. The cutaway walls (`looks.ts`) are cut for the classic fitted yaw only, so in a non-default view a wall kept low for the classic view can read as a low wall from that other angle; the camera collision still uses the full-height boxes, so the camera never ends up inside a wall.
 
 ## Server limits
 
@@ -47,9 +49,9 @@ The sketch assumed an earliest win M and `peak = Bobj + 6 * (durationS − M)`, 
 | L | Bobj | Measured win | Score | base + pps × seconds | maxScore | Best / max |
 |---|---:|---:|---:|---:|---:|---:|
 | 1 | 400 | 8.40 s | 1066 | 400 + 96 × 8.40 = 1206 | 1100 | 96.9% |
-| 2 | 800 | 21.78 s | 1568 | 800 + 40 × 21.78 = 1671 | 1650 | 95.0% |
-| 3 | 1200 | 38.97 s | 2046 | 1200 + 32 × 38.97 = 2447 | 2200 | 93.0% |
-| 4 | 1600 | 57.67 s | 2332 | 1600 + 24 × 57.67 = 2984 | 2550 | 91.5% |
+| 2 | 800 | 19.80 s | 1580 | 800 + 40 × 19.80 = 1592 | 1650 | 95.8% |
+| 3 | 1200 | 37.92 s | 2052 | 1200 + 32 × 37.92 = 2413 | 2200 | 93.3% |
+| 4 | 1600 | 55.93 s | 2344 | 1600 + 24 × 55.93 = 2942 | 2550 | 91.9% |
 | 5 | 2000 | 80.43 s | 2774 | 2000 + 20 × 80.43 = 3609 | 3050 | 91.0% |
 
 The score is `Bobj + 6 * floor(timeLeft)`. Level 1's 8.40 s leaves 111 full seconds (`666 + 400 = 1066`). A hypothetical 7.5 s clear would score 1072, and `400 + 96 * 7.5 = 1120` still accepts it. The oracle did not beat 8.3 s in 24 runs.
@@ -58,19 +60,30 @@ Proof (`rules.test.ts`, through `createArcadeStore` + `advanceRunClock` + `withi
 
 ## Look
 
-One palette in `looks.ts`. Walls `#44403c`, floor `#292524`, ember `#f97316` on the active fire only. Lighting and background come from the level. Camera: follow, pitch 52°, yaws `[0, π/2]`, fov 48, `followFocus` fraction 0.45, `shift: true`, look-ahead 1.5 m.
+One palette per level in `looks.ts` (`levelColors`; level 1 keeps the original `COLORS`). The embers, smoke, debris and the civilians stay the same on every level so the objectives and hazards always read. Lighting, background and fog come from the level. Camera: follow, pitch 52°, yaws `[0, π/2]`, fov 48, `followFocus` fraction 0.45, `shift: true`, look-ahead 1.5 m.
 
-The firefighter is a `HumanoidModel` stand-in (`FirefighterFigure`, 1.82 m, coat / navy / skin) until `charFirefighter.glb` is measured. Spray aims the right arm (`aimArm` side −1) and plays `fx.smoke`. Cheer on a win. Neighbours are one `DynamicInstancedModel` pool of 5, untinted, with a waddle. The door reuses the escape-room GLB, fitted to 1.10 × 2.05 m. Other props are local urls and draw bevelled 2–3 tone fallbacks. Decor plaques scale with `useQuality().decor`.
+The exterior set dressing is per level too (`levelDecor`, instanced boxes and cylinders plus emissive window strips, all off the walkable floor — levels-variety.test.ts): level 1 keeps the bare street; the family house gets a front garden, hedges and a mailbox; the office gets an entrance canopy, glass strips and a gable sign; the hotel gets a lit portico, topiary and warm windows at night; the warehouse gets a loading dock, a roller-door frame, barrels and pallets.
+
+Models (2026-10-28, `claude/firefighter-models`): every visible object is a Hyper3D GLB, fitted in `assets.ts` from its measured bounds (`assets.test.ts` checks each fit and triangle count on the real mesh).
+
+- **Firefighter**: `charFirefighter.glb` (menu1 set, 18k tris), auto-rigged with the measured `FIREFIGHTER_LANDMARKS`, drawn 1.82 m (`firefighter.test.ts`). `poses.ts`: walk and run from core `walkPose`, the phase stepped by `gaitPhaseStep` (the walk's own stride, planted feet); the right hand always carries the extinguisher (forearm forward at the waist, the canister hanging from its handle on `handR`), a spray raises it to the chest with a water jet (`fx` splash) and steam on the fire; while a neighbour follows, the left arm reaches back to guide them; a hop tucks; a win cheers with confetti. Never a T-pose. The older `firefighter-rescue/hero.glb` is not used.
+- **Outside the porch**: the fire truck (5.2 m, parked across the street), two hydrants and the hose reel, all past the porch, never on the floor (`looks.ts` `TRUCK_SPOT`, `HYDRANT_SPOTS`, `HOSE_REEL_SPOT`).
+- **Exit signs** (`exitSignV2`, an arrow sign; `exitSign` has a letter-like glyph and is not used): one under a lintel over the porch mouth, one flush on each porch wall over the exit zone, all above 1.7 m.
+- **Fire doors**: each room has a double fire door (`fireDoor.glb`, two 0.8 x 2.1 m leaves in the hall wall). A locked room's leaves stay shut while its doorway fire burns, then swing 90° into the room; unlocked rooms start open (`doorLeaf` in `looks.ts`).
+- **Debris**: each hazard is a pile of two crossed charred planks (`fallingDebris.glb`, 0.68 m) inside the rules' box; it tumbles while it slides and shudders during the end warnings.
+- **Furniture**: the shared sofa, bed, cabinet and wooden chair fill their `FURN_SIZE` boxes (one `InstancedModel` per kind), placed by the level's theme (rules.ts `placeFurniture` — apartment, house, office, hotel, warehouse) and turned to face into their rooms.
+- **Neighbours**: the shared `civilianNpc` (1.62 m) in one `DynamicInstancedModel` pool of 5 with a waddle. It is not a T-pose (hands on hips), so it cannot be auto-rigged.
+
+- **Cutaway walls**: from the fitted yaw, every wall with play floor right behind it is drawn 1.0 m tall instead of 2.25 m (`cutawayWalls` in `looks.ts`), and the door leaves, plaques, signs and the porch lintel in such a wall follow it, so no wall or door hides the firefighter, a fire or a neighbour (`looks.test.ts` traces the sightlines on every level and both yaws). Before this the near hall wall hid the firefighter on desktop.
+
+Draw calls stay far under 150 (22 on level 1 to 27 on level 5, measured with `?perf=1`; one per GLB pool). The brightness fill (extra hemisphere and ambient light) and the phone framing are unchanged. Decor plaques scale with `useQuality().decor`.
 
 ## Known issues
 
-- `charFirefighter` has no measured landmarks and `scale` 1. The gait uses a fixed 0.72 m stride. Claude's assets PR measures the GLB, sets landmarks and the scale that keeps 1.82 m, and checks the drawn height.
-- The extinguisher `attach` is on `handR` of the rig. The fallback figure draws its own extinguisher; the attach shows only after the GLB is in the manifest.
-- Every url under `/models/3d/firefighter-rescue/` is unlisted, so the fallbacks draw. The door is the one live mesh (`REUSED_ASSETS.door`).
+- The neighbours are static figures (the shared `civilianNpc` has its hands on its hips, not a T-pose): they waddle while they follow, their legs do not walk. A T-pose civilian GLB would let the auto-rig walk them.
 - The camera frames the whole building. On the warehouse the firefighter reads smaller than on level 1.
-- Spray is not a simulated hose. Smoke is a disc plus `fx.smoke`.
-- One of 24 warehouse oracle seeds still walks into debris and loses. The limit uses the winning runs. A player who clips a parked box spends a life; the hop is the dodge.
-- No thumbnail yet: `meta.thumbnail` is `null` until `/images/3d/firefighter-rescue.webp` lands (with its OG card).
+- Spray is not a simulated hose. Smoke is a disc plus `fx.smoke`; the jet is `fx` splash puffs.
+- One of 24 warehouse oracle seeds still walks into debris and loses. The limit uses the winning runs. A player who clips a parked pile spends a life; the hop is the dodge.
 
 ## What Claude registers
 
@@ -101,4 +114,8 @@ Steps 1–4 are done (`claude/menu1-scaffold`, 2026-10-25: slug in `ARCADE_SLUGS
 }
 ```
 
-5. Copy the GLBs named in `assets.spec.json` to `public/models/3d/firefighter-rescue/` and add them to `core/modelManifest.ts`. Leave `hero.glb` and `exitSign.glb`. Then fit scales. The door is already shared; do not copy a second door.
+5. Done (2026-10-28): the GLBs in `assets.spec.json` are in `public/models/3d/firefighter-rescue/` (plus the shared `cabinet.glb`) and in `core/modelManifest.ts`, fitted and tested. `hero.glb` and `exitSign.glb` are left out.
+
+## Clarity (2026-10-28, visual only)
+
+`guide.ts` (pure, `guide.test.ts`) picks the current target: the green exit while a neighbour follows, else the fire or neighbour already chosen until it is done, else the nearest one that can be reached now (never one behind a shut door). A core `TargetBeacon` stands over it (orange on a fire, blue on a neighbour, a green "drop-here" ring with an EXIT label at the exit); the core `HintLine` says what to do ("Go to the fire", "hold E / hold Spray until the fire is out", "hold … to talk: they follow you", "Neighbour following: lead them to the green EXIT"), and a sticky red "Low breath! Get out of the smoke" while breath is under 35 % in smoke; the breath meter turns red then too. Pops: "Keep holding!" when a spray is let go before the fire is out, "Follow me!" when a neighbour starts to follow, "Hit by debris! -1 life", "Out of breath! -1 life". Rules, scoring and limits are unchanged.

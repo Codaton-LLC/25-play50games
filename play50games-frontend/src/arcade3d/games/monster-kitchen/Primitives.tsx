@@ -12,6 +12,8 @@ import {
    TorusGeometry,
 } from "three";
 import type { InstancePart } from "@/arcade3d/core/render";
+import { Model } from "@/arcade3d/core/assets";
+import { ASSETS } from "./assets";
 import { COLORS } from "./looks";
 import type { IngredientKind, MonsterType } from "./rules";
 
@@ -325,7 +327,7 @@ export function Horns() {
 
 export function Headgear({ type }: { type: MonsterType }) {
    if (type === "jolly") return <PartyHat />;
-   if (type === "greedy") return <TopHat />;
+   if (type === "greedy") return <Model asset={ASSETS.topHat} fallback={<TopHat />} />;
    return <Horns />;
 }
 

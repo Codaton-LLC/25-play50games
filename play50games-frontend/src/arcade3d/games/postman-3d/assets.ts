@@ -22,12 +22,13 @@ export const GLB_SIZE = {
    holidayTree: { width: 1.1173, height: 1.8575, depth: 1.1543 },
    trafficLight: { width: 0.547, height: 1.8964, depth: 0.5693 },
    dog: { width: 1.0087, height: 1.5248, depth: 1.8976 },
+   picketFence: { width: 1.8986, height: 1.0494, depth: 0.2345 },
 } as const;
 
 /** Measured triangles per GLB (assets.test.ts pins them; the per-level frame budget sums them). */
 export const GLB_TRIS = {
    charPostman: 18000, mailbag: 1500, mailbox: 1500, house: 3000, postOffice: 3000, postVan: 3000,
-   streetLampVictorian: 1500, bicycle: 1500, holidayTree: 1500, trafficLight: 3000, dog: 18000, bench: 2000, car: 2500,
+   streetLampVictorian: 1500, bicycle: 1500, holidayTree: 1500, trafficLight: 3000, dog: 18000, bench: 2000, car: 2500, picketFence: 1500,
 } as const;
 
 /** Drawn sizes in metres (the rules' boxes are in rules.ts). */
@@ -136,6 +137,8 @@ export const ASSETS = {
    /** the delivery puff: a 0.3 m envelope */
    letter: local("letter", { scale: 0.3 / GLB_SIZE.letter.width }, "box", "#f8fafc"),
    mailbox: local("mailbox", { scale: FIT.mailboxHeight / GLB_SIZE.mailbox.height }, "box", "#ef4444"),
+   // a picket fence segment: 1.6 m along x (the code fence's length), 0.6 m tall (FIT.fenceHeight); its fallback is the code fence
+   picketFence: local("picketFence", { scale: FIT.fenceLength / GLB_SIZE.picketFence.width, stretch: [1, FIT.fenceHeight / (GLB_SIZE.picketFence.height * (FIT.fenceLength / GLB_SIZE.picketFence.width)), 1] }, "box", "#f8fafc"),
    houseAN: house("houseA", FIT.houseHeightNorth, "N"),
    houseBN: house("houseB", FIT.houseHeightNorth, "N"),
    houseCN: house("houseC", FIT.houseHeightNorth, "N"),

@@ -1,8 +1,9 @@
 // The list of 3D Arcade games. Server-safe: imports only plain-data meta files.
 // Owned by Claude. Game owners change their own meta.ts, never this file.
-import type { ArcadeCollection, ArcadeGameMeta, ArcadeSlug } from "./types";
+import type { ArcadeCollection, ArcadeGameMeta, ArcadeSlug, GameScoringMeta } from "./types";
 import { ARCADE_COLLECTIONS } from "./types";
 import { ARCADE_PREVIEW } from "./flags";
+import { provideGameMetas, scoringMetaOf } from "./metaSource";
 import { robotCollectorMeta } from "./games/robot-collector/meta";
 import { foodCatcherMeta } from "./games/food-catcher/meta";
 import { officeEscapeMeta } from "./games/office-escape/meta";
@@ -207,6 +208,14 @@ export const ARCADE_GAMES: ArcadeGameMeta[] = [
    colorBossTowerMeta,
    ultimateColorTrialMeta,
 ].sort((a, b) => a.order - b.order);
+
+// Client code reads metas through metaSource.ts; wherever the registry is loaded, it is filled.
+provideGameMetas(ARCADE_GAMES);
+
+/** Every game in the compact form the /3d grid hands the browser (ui/GameMetas.tsx). */
+export function scoringMetas(): GameScoringMeta[] {
+   return ARCADE_GAMES.map(scoringMetaOf);
+}
 
 export function getGameMeta(slug: string): ArcadeGameMeta | undefined {
    return ARCADE_GAMES.find((game) => game.slug === slug);

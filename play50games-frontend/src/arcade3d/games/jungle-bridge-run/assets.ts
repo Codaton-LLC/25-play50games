@@ -18,6 +18,7 @@ export const GLB_SIZE = {
    ruinGateR: { width: 1.9039, height: 1.6608, depth: 0.6253 },
    jungleLogSingle: { width: 1.8959, height: 0.5887, depth: 0.6231 },
    jungleFern: { width: 1.6552, height: 1.1821, depth: 1.5669 },
+   junglePlant: { width: 1.662, height: 1.892, depth: 1.367 },
    volcanoBackdrop: { width: 1.8728, height: 1.2738, depth: 1.8621 },
    hangingVine: { width: 1.1929, height: 1.731, depth: 1.1326 },
 } as const;
@@ -145,6 +146,8 @@ export const ASSETS = {
    // decor, fitted to 1 m tall: the spot's scale is the size in metres
    rock: local("jungleRock", { scale: unitH("jungleRock") }, "sphere", "#57534e"),
    fern: local("jungleFern", { scale: unitH("jungleFern") }, "cylinder", "#16a34a"),
+   /** a potted plant on the canyon rims (decor), 1 m tall: the spot scale is the size */
+   plant: local("junglePlant", { scale: unitH("junglePlant") }, "cylinder", "#15803d"),
    hangingVine: local("hangingVine", { scale: unitH("hangingVine") }, "cylinder", "#15803d"),
    waterfall: local("waterfallCliff", { scale: unitH("waterfallCliff") }, "box", "#0e7490"),
    volcano: local("volcanoBackdrop", { scale: unitH("volcanoBackdrop") }, "cylinder", "#7f1d1d"),
