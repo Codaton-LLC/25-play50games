@@ -1616,6 +1616,22 @@
         { "title": "Echo", "max_score": 17150, "min_duration_ms": 18500, "max_duration_ms": 190000, "time_base_ms": 190000 },
         { "title": "Glass Hall", "max_score": 21710, "min_duration_ms": 22900, "max_duration_ms": 240000, "time_base_ms": 240000 }
       ]
+    },
+    "color-match-jump": {
+      "title": "Color Match Jump",
+      "kind": "time",
+      "max_score": 8440,
+      "min_duration_ms": 5599,
+      "max_duration_ms": 90000,
+      "time_base_ms": 90000,
+      "enabled": false,
+      "levels": [
+        { "title": "Two-Tone Steps", "max_score": 8440, "min_duration_ms": 5599, "max_duration_ms": 90000, "time_base_ms": 90000 },
+        { "title": "Three Calls", "max_score": 10656, "min_duration_ms": 13439, "max_duration_ms": 120000, "time_base_ms": 120000 },
+        { "title": "Shifting Hues", "max_score": 12984, "min_duration_ms": 20159, "max_duration_ms": 150000, "time_base_ms": 150000 },
+        { "title": "Fast Countdown", "max_score": 14416, "min_duration_ms": 35839, "max_duration_ms": 180000, "time_base_ms": 180000 },
+        { "title": "Frozen Crown", "max_score": 20992, "min_duration_ms": 30079, "max_duration_ms": 240000, "time_base_ms": 240000 }
+      ]
     }
   }
 }
