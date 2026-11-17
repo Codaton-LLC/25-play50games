@@ -1409,6 +1409,116 @@
         { "title": "Zero-G Gap", "max_score": 16220, "min_duration_ms": 7800, "max_duration_ms": 170000, "time_base_ms": 170000 },
         { "title": "Orbital Peak", "max_score": 24400, "min_duration_ms": 16000, "max_duration_ms": 260000, "time_base_ms": 260000 }
       ]
+    },
+    "plate-bounce-arena": {
+      "title": "Plate Bounce Arena",
+      "kind": "time",
+      "max_score": 29850,
+      "min_duration_ms": 1500,
+      "max_duration_ms": 300000,
+      "time_base_ms": 300000,
+      "enabled": false,
+      "levels": [
+        { "title": "Practice Table", "max_score": 29850, "min_duration_ms": 1500, "max_duration_ms": 300000, "time_base_ms": 300000 },
+        { "title": "Mushroom Garden", "max_score": 32460, "min_duration_ms": 5400, "max_duration_ms": 330000, "time_base_ms": 330000 },
+        { "title": "Ice Table", "max_score": 35850, "min_duration_ms": 1500, "max_duration_ms": 360000, "time_base_ms": 360000 },
+        { "title": "Multiball", "max_score": 38750, "min_duration_ms": 2500, "max_duration_ms": 390000, "time_base_ms": 390000 },
+        { "title": "Rollo's Table", "max_score": 40680, "min_duration_ms": 13200, "max_duration_ms": 420000, "time_base_ms": 420000 }
+      ]
+    },
+    "snow-slide-dash": {
+      "title": "Snow Slide Dash",
+      "kind": "time",
+      "max_score": 8522,
+      "min_duration_ms": 14771,
+      "max_duration_ms": 100000,
+      "time_base_ms": 100000,
+      "enabled": false,
+      "levels": [
+        {
+          "title": "Bunny Hill",
+          "max_score": 8522,
+          "min_duration_ms": 14771,
+          "max_duration_ms": 100000,
+          "time_base_ms": 100000
+        },
+        {
+          "title": "Pine Run",
+          "max_score": 10409,
+          "min_duration_ms": 20908,
+          "max_duration_ms": 125000,
+          "time_base_ms": 125000
+        },
+        {
+          "title": "Frozen Lake",
+          "max_score": 12000,
+          "min_duration_ms": 24999,
+          "max_duration_ms": 145000,
+          "time_base_ms": 145000
+        },
+        {
+          "title": "Lantern Slope",
+          "max_score": 13545,
+          "min_duration_ms": 29544,
+          "max_duration_ms": 165000,
+          "time_base_ms": 165000
+        },
+        {
+          "title": "Avalanche Run",
+          "max_score": 16909,
+          "min_duration_ms": 40908,
+          "max_duration_ms": 210000,
+          "time_base_ms": 210000
+        }
+      ]
+    },
+    "alien-lane-escape": {
+      "title": "Alien Lane Escape",
+      "kind": "time",
+      "max_score": 8480,
+      "min_duration_ms": 35200,
+      "max_duration_ms": 120000,
+      "time_base_ms": 120000,
+      "enabled": false,
+      "levels": [
+        { "title": "Alien Meadow", "max_score": 8480, "min_duration_ms": 35200, "max_duration_ms": 120000, "time_base_ms": 120000 },
+        { "title": "Crystal Route", "max_score": 9280, "min_duration_ms": 37200, "max_duration_ms": 130000, "time_base_ms": 130000 },
+        { "title": "Meteor Zone", "max_score": 10080, "min_duration_ms": 39200, "max_duration_ms": 140000, "time_base_ms": 140000 },
+        { "title": "Glow Plants", "max_score": 11430, "min_duration_ms": 35700, "max_duration_ms": 150000, "time_base_ms": 150000 },
+        { "title": "Planet Escape", "max_score": 15910, "min_duration_ms": 40900, "max_duration_ms": 200000, "time_base_ms": 200000 }
+      ]
+    },
+    "magnet-coin-lab": {
+      "title": "Magnet Coin Lab",
+      "kind": "time",
+      "max_score": 17990,
+      "min_duration_ms": 100,
+      "max_duration_ms": 180000,
+      "time_base_ms": 180000,
+      "enabled": false,
+      "levels": [
+        { "title": "Basic Magnet", "max_score": 17990, "min_duration_ms": 100, "max_duration_ms": 180000, "time_base_ms": 180000 },
+        { "title": "Two Poles", "max_score": 23990, "min_duration_ms": 100, "max_duration_ms": 240000, "time_base_ms": 240000 },
+        { "title": "Moving Metal", "max_score": 29990, "min_duration_ms": 100, "max_duration_ms": 300000, "time_base_ms": 300000 },
+        { "title": "Drone Lab", "max_score": 31990, "min_duration_ms": 100, "max_duration_ms": 320000, "time_base_ms": 320000 },
+        { "title": "Scrap Magnus", "max_score": 34500, "min_duration_ms": 15000, "max_duration_ms": 360000, "time_base_ms": 360000 }
+      ]
+    },
+    "neon-cube-jump": {
+      "title": "Neon Cube Jump",
+      "kind": "time",
+      "max_score": 14790,
+      "min_duration_ms": 2100,
+      "max_duration_ms": 150000,
+      "time_base_ms": 150000,
+      "enabled": false,
+      "levels": [
+        { "title": "Static Grid", "max_score": 14790, "min_duration_ms": 2100, "max_duration_ms": 150000, "time_base_ms": 150000 },
+        { "title": "Moving Cubes", "max_score": 17850, "min_duration_ms": 1500, "max_duration_ms": 180000, "time_base_ms": 180000 },
+        { "title": "Blink Grid", "max_score": 19790, "min_duration_ms": 2100, "max_duration_ms": 200000, "time_base_ms": 200000 },
+        { "title": "Laser Grid", "max_score": 21790, "min_duration_ms": 2100, "max_duration_ms": 220000, "time_base_ms": 220000 },
+        { "title": "Neon Overdrive", "max_score": 28750, "min_duration_ms": 12500, "max_duration_ms": 300000, "time_base_ms": 300000 }
+      ]
     }
   }
 }
