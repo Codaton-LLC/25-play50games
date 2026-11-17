@@ -68,7 +68,7 @@ export const robotCollectorMeta: ArcadeGameMeta = {
             keys: ["move"],
             touch: ["joystick"],
          },
-         { title: "Watch out", text: "Oil patches slow you down; conveyor belts carry you along their arrows." },
+         { title: "Watch out", text: "Crates and barrels block the way: steer round them." },
          {
             title: "Tips",
             text: "Finish early: every second left pays +10. Esc or P pauses.",

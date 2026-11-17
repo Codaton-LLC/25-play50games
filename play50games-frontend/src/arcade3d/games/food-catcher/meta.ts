@@ -64,8 +64,8 @@ export const foodCatcherMeta: ArcadeGameMeta = {
          { title: "Watch out", text: "Socks and tins cost a life. Three and you are out." },
          {
             title: "Tips",
-            text: "Golden treats score extra. Esc or P pauses.",
-            touchText: "Golden treats score extra. Tap Pause, top right, to stop.",
+            text: "Keep the combo going: from the fifth catch in a row every catch scores double. Esc or P pauses.",
+            touchText: "Keep the combo going: from the fifth catch in a row every catch scores double. Tap Pause, top right, to stop.",
             keys: ["pause"],
             touch: ["pause"],
          },

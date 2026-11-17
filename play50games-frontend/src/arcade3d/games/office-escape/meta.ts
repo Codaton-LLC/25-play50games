@@ -55,8 +55,8 @@ export const officeEscapeMeta: ArcadeGameMeta = {
          { title: "Watch out", text: "Chairs, carts and water coolers: one hit ends the run. It gets faster every 20 s." },
          {
             title: "Tips",
-            text: "Grab the coin lines: they are worth more on later levels. Esc or P pauses.",
-            touchText: "Grab the coin lines: they are worth more on later levels. Tap Pause, top right, to stop.",
+            text: "Grab the coin lines for extra points. Esc or P pauses.",
+            touchText: "Grab the coin lines for extra points. Tap Pause, top right, to stop.",
             keys: ["pause"],
             touch: ["pause"],
          },
