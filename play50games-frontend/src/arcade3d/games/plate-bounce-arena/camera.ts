@@ -11,8 +11,8 @@ const DEG = Math.PI / 180;
 
 export const TABLE_ORBIT: Partial<OrbitSettings> = {
    yaw: 0,
-   pitch: 46 * DEG,
-   distance: 19,
+   pitch: 56 * DEG,
+   distance: 27,
    minDistance: 8,
    maxDistance: 34,
    autoFollow: false,
@@ -26,13 +26,13 @@ export function portraitness(aspect: number): number {
 }
 
 export function orbitScale(aspect: number): number {
-   return 1 + 0.55 * portraitness(aspect);
+   return 1 + 0.6 * portraitness(aspect);
 }
 
 /** How far the pivot follows the ball (0 = the table's middle, 1 = the ball). */
-export const FOLLOW = 0.35;
+export const FOLLOW = 0.1;
 /** The table point the pivot rests on. */
-export const REST = { x: 0, z: -12 } as const;
+export const REST = { x: 0, z: -13 } as const;
 
 /** The pivot (world): between the table's middle and the ball. */
 export function orbitPivot(bx: number, bz: number, bh: number, out: { x: number; y: number; z: number }): { x: number; y: number; z: number } {

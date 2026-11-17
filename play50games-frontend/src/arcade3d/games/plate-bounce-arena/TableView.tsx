@@ -196,11 +196,11 @@ function Playfield({ table, level }: { table: Table; level: LevelId }) {
             <meshStandardMaterial color="#3b2a6b" roughness={0.6} emissive="#5b21b6" emissiveIntensity={0.25} />
          </mesh>
          {/* the cabinet: a box under the field, wider at the attic */}
-         <mesh position={[0, -0.75, -14.6]} castShadow receiveShadow>
+         <mesh position={[0, -0.78, -14.6]} castShadow receiveShadow>
             <boxGeometry args={[15.2, 1.5, 30.4]} />
             <meshStandardMaterial color={COLORS.cabinet} roughness={0.5} />
          </mesh>
-         <mesh position={[(ATTIC.x0 + ATTIC.x1) / 2 - 0.2, -0.75, (ATTIC.z0 + ATTIC.z1) / 2]} castShadow>
+         <mesh position={[(ATTIC.x0 + ATTIC.x1) / 2 - 0.2, -0.78, (ATTIC.z0 + ATTIC.z1) / 2]} castShadow>
             <boxGeometry args={[3.0, 1.5, 5.4]} />
             <meshStandardMaterial color={COLORS.cabinetDark} roughness={0.5} />
          </mesh>
@@ -341,6 +341,7 @@ export default function TableView({ run, clock }: { run: PinRun; clock: TableClo
    const ringRefs = useRef<(Mesh | null)[]>([]);
    const shardRef = useRef<Mesh>(null);
    const marbleRefs = useRef<(Mesh | null)[]>([]);
+   const iceRefs = useRef<(Mesh | null)[]>([]);
 
    // static GLB spots
    const bumperSpots = useMemo<InstanceSpot[]>(
@@ -357,8 +358,9 @@ export default function TableView({ run, clock }: { run: PinRun; clock: TableClo
    );
    const padSpots = useMemo<InstanceSpot[]>(
       () => [
-         { x: -4.9, y: 0, z: -6.6, rotY: -0.46, sx: fit(GLB_SIZE.pad.x, 1.1), sy: 1.1, sz: fit(GLB_SIZE.pad.z, 2.6) },
-         { x: 4.85, y: 0, z: -6.6, rotY: 0.46, sx: fit(GLB_SIZE.pad.x, 1.1), sy: 1.1, sz: fit(GLB_SIZE.pad.z, 2.6) },
+         // inside each slingshot triangle, the long side along its kicking face
+         { x: -5.0, y: 0, z: -6.9, rotY: Math.atan2(1.5, 3.2), sx: fit(GLB_SIZE.pad.x, 0.75), sy: 1.1, sz: fit(GLB_SIZE.pad.z, 2.2) },
+         { x: 4.95, y: 0, z: -6.5, rotY: Math.atan2(-1.45, 3.2), sx: fit(GLB_SIZE.pad.x, 0.75), sy: 1.1, sz: fit(GLB_SIZE.pad.z, 2.2) },
       ],
       [],
    );
@@ -489,6 +491,10 @@ export default function TableView({ run, clock }: { run: PinRun; clock: TableClo
          shardRef.current.visible = !run.secrets.found[2];
          shardRef.current.rotation.y = t * 1.5;
       }
+      for (let i = 0; i < table.targets.length; i++) {
+         const ice = iceRefs.current[i];
+         if (ice) ice.visible = run.prog.down[i] === 0;
+      }
       for (let i = 0; i < 2; i++) {
          const mm = marbleRefs.current[i];
          const mb = run.marbles[i];
@@ -615,6 +621,15 @@ export default function TableView({ run, clock }: { run: PinRun; clock: TableClo
                </group>
             );
          })}
+         {/* level 3's ice blocks round the penguins (they shatter with them) */}
+         {table.targets.map((t, i) =>
+            t.ice ? (
+               <mesh key={`ice${i}`} ref={(m) => { iceRefs.current[i] = m; }} position={[t.x, 0.65, t.z]} renderOrder={2}>
+                  <boxGeometry args={[t.r * 2.3, 1.3, t.r * 2.1]} />
+                  <meshStandardMaterial color={COLORS.ice} transparent opacity={0.45} roughness={0.08} metalness={0.1} depthWrite={false} />
+               </mesh>
+            ) : null,
+         )}
          {/* the marbles */}
          {[0, 1].map((i) => (
             <mesh key={i} ref={(m) => { marbleRefs.current[i] = m; }} visible={false} castShadow>
