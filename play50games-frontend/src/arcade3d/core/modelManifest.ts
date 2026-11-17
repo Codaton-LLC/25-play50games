@@ -854,6 +854,17 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/portal-hop/m2PortalIsle.glb",
    "/models/3d/portal-hop/m2PortalWyrmBoss.glb",
    "/models/3d/portal-hop/m2VoidCrystal.glb",
+   // Menu 2 game 48 (Color Orb Defense): ready/menu2/color-orb-defense (pillar, wall, beacon, orb, zone plate) and the new set optimised with tools/hyper3d (portal, pedestal, Orb Mortar, orb blob, spawn pad)
+   "/models/3d/color-orb-defense/m2ArenaPillar.glb",
+   "/models/3d/color-orb-defense/m2CastleWallBg.glb",
+   "/models/3d/color-orb-defense/m2DomeBeacon.glb",
+   "/models/3d/color-orb-defense/m2EnergyOrb.glb",
+   "/models/3d/color-orb-defense/m2OrbBlob.glb",
+   "/models/3d/color-orb-defense/m2OrbLauncherPortal.glb",
+   "/models/3d/color-orb-defense/m2OrbMortarBoss.glb",
+   "/models/3d/color-orb-defense/m2ShieldPedestal.glb",
+   "/models/3d/color-orb-defense/m2SpawnPad.glb",
+   "/models/3d/color-orb-defense/m2ZonePlate.glb",
 ];
 
 const LISTED: ReadonlySet<string> = new Set(MODEL_MANIFEST);

@@ -93,6 +93,7 @@ import { snowSlideDashMeta } from "./games/snow-slide-dash/meta";
 import { portalHopMeta } from "./games/portal-hop/meta";
 import { crystalCaveSwitchMeta } from "./games/crystal-cave-switch/meta";
 
+import { colorOrbDefenseMeta } from "./games/color-orb-defense/meta";
 export const ARCADE_GAMES: ArcadeGameMeta[] = [
    robotCollectorMeta,
    foodCatcherMeta,
@@ -182,6 +183,7 @@ export const ARCADE_GAMES: ArcadeGameMeta[] = [
    neonCubeJumpMeta,
    portalHopMeta,
    crystalCaveSwitchMeta,
+   colorOrbDefenseMeta,
 ].sort((a, b) => a.order - b.order);
 
 export function getGameMeta(slug: string): ArcadeGameMeta | undefined {
