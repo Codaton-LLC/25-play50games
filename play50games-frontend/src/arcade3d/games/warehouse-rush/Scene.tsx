@@ -24,7 +24,8 @@ import { useFrame, useThree } from "@react-three/fiber";
 import { MeshBasicMaterial, PlaneGeometry, Vector3, type Camera, type Group, type Matrix4, type Mesh, type Sprite, type SpriteMaterial } from "three";
 import { useCameraViews } from "@/arcade3d/core/camera/CameraViews";
 import { useCameraZoom } from "@/arcade3d/core/useCameraZoom";
-import { phoneOffset } from "./cameraViews";
+import { PHONE_LEAD, PHONE_LIFT, phoneOffset } from "./cameraViews";
+import { useLeadFollow } from "@/arcade3d/core/camera/useLeadFollow";
 import CameraRig from "@/arcade3d/core/CameraRig";
 import { useModel } from "@/arcade3d/core/assets";
 import { playSfx } from "@/arcade3d/core/audio";
@@ -826,6 +827,7 @@ function LevelScene() {
    const aspect = useThree((s) => s.size.width / s.size.height);
    const portrait = aspect < 1;
    const offset = phoneOffset(view.offset, aspect);
+   const aim = useLeadFollow(run.robot, offset, PHONE_LEAD, PHONE_LIFT, portrait);
    const zoom = useCameraZoom({ min: 1.7 / Math.hypot(...offset), max: Math.max(1, 2 * view.distance / Math.hypot(...offset)) });
    useEffect(() => { zoom.current = 1; }, [portrait, zoom]);
    const cam = useCameraViews({
@@ -857,7 +859,7 @@ function LevelScene() {
    return (
       <>
          <Simulation run={run} fx={fx} pub={pub} yaw={cam.yaw} />
-         <CameraRig camera={{ position: offset, lookAt: LOOK_AT }} follow={aspect < 1 ? run.robot : { x: 0, y: 0, z: 0 }} offset={offset} zoom={zoom} shift={view.shift} />
+         <CameraRig camera={{ position: offset, lookAt: LOOK_AT }} follow={aspect < 1 ? aim : { x: 0, y: 0, z: 0 }} offset={offset} zoom={zoom} shift={view.shift} />
          <Warehouse layout={run.layout} yaw={view.yaw} level={config} run={run} />
          <Robot run={run} fx={fx} lamp={config.lamp} />
          <Boxes run={run} fx={fx} yaw={cam.yaw} />

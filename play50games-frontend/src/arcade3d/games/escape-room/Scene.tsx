@@ -9,7 +9,8 @@ import { useFrame, useThree } from "@react-three/fiber";
 import { Raycaster, Vector2, Vector3, type Group, type MeshBasicMaterial, type PerspectiveCamera } from "three";
 import { useCameraViews } from "@/arcade3d/core/camera/CameraViews";
 import { useCameraZoom } from "@/arcade3d/core/useCameraZoom";
-import { phoneOffset } from "./cameraViews";
+import { PHONE_LEAD, PHONE_LIFT, phoneOffset } from "./cameraViews";
+import { useLeadFollow } from "@/arcade3d/core/camera/useLeadFollow";
 import { ROOM_STYLES, scenerySolids } from "./roomStyles";
 import CameraRig from "@/arcade3d/core/CameraRig";
 import { playSfx } from "@/arcade3d/core/audio";
@@ -362,6 +363,7 @@ export default function Scene() {
    const aspect = useThree((s) => s.size.width / s.size.height);
    const portrait = aspect < 1;
    const offset = phoneOffset(view.offset, aspect);
+   const aim = useLeadFollow(run.player, offset, PHONE_LEAD, PHONE_LIFT, portrait);
    const zoom = useCameraZoom({ min: 2 / Math.hypot(...offset), max: Math.max(1, 2 * view.distance / Math.hypot(...offset)) });
    useEffect(() => { zoom.current = 1; }, [portrait, zoom]);
    const cam = useCameraViews({
@@ -393,7 +395,7 @@ export default function Scene() {
             camera={{ position, fov: 45, lookAt: ROOM_FOCUS }}
             offset={offset}
             zoom={zoom}
-            follow={aspect < 1 ? run.player : FOCUS[0]}
+            follow={aspect < 1 ? aim : FOCUS[0]}
             shift={view.shift}
          />
          <Room run={run} moving={moving} />
