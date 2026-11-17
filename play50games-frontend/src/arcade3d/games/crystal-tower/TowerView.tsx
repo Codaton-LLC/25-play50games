@@ -90,8 +90,9 @@ function Spire({ course }: { course: Course }) {
    return (
       <group position={[0, bottom + h / 2, 0]}>
          <mesh>
-            <cylinderGeometry args={[CORE_R * 0.88, CORE_R, h, 8, 1]} />
-            <meshStandardMaterial color={COLORS.core} roughness={0.35} metalness={0.3} emissive={COLORS.coreEdge} emissiveIntensity={0.25} flatShading />
+            {/* 16 facets (was 8): up close one facet filled a third of the screen as a flat purple slab */}
+            <cylinderGeometry args={[CORE_R * 0.88, CORE_R, h, 16, 1]} />
+            <meshStandardMaterial color="#1e0b4a" roughness={0.22} metalness={0.55} emissive={COLORS.coreEdge} emissiveIntensity={0.12} flatShading />
          </mesh>
          <mesh>
             <cylinderGeometry args={[CORE_R * 0.92, CORE_R * 1.03, h, 8, 1, true]} />

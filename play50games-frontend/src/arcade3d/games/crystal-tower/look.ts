@@ -52,9 +52,9 @@ const BASE: TowerLook = {
    lighting: "night",
    hemiSky: "#a78bfa",
    hemiGround: "#1e1240",
-   hemi: 0.9,
+   hemi: 1.25,
    key: "#f5d0fe",
-   keyIntensity: 0.7,
+   keyIntensity: 0.95,
    rimGlow: 0.8,
 };
 
@@ -62,8 +62,8 @@ export const LOOKS: Record<LevelId, TowerLook> = {
    1: BASE,
    2: { ...BASE, background: "#0f0a2a", fog: "#120c32" },
    3: { ...BASE, background: "#0a1030", fog: "#0d1438", hemiSky: "#93c5fd", key: "#dbeafe", rimGlow: 1 },
-   4: { ...BASE, background: "#1a0a2a", fog: "#1d0c30", fogNear: 24, fogFar: 120, hemiSky: "#f0abfc", hemiGround: "#2a0f3a", key: "#fbcfe8", keyIntensity: 0.6, rimGlow: 1.2 },
-   5: { ...BASE, background: "#07041a", fog: "#0a0620", fogNear: 22, fogFar: 110, lighting: "space", hemiSky: "#8b5cf6", hemiGround: "#0a0520", hemi: 0.8, key: "#e9d5ff", keyIntensity: 0.9, rimGlow: 1.4 },
+   4: { ...BASE, background: "#1a0a2a", fog: "#1d0c30", fogNear: 24, fogFar: 120, hemiSky: "#f0abfc", hemiGround: "#2a0f3a", key: "#fbcfe8", keyIntensity: 0.9, rimGlow: 1.2 },
+   5: { ...BASE, background: "#07041a", fog: "#0a0620", fogNear: 22, fogFar: 110, lighting: "space", hemiSky: "#8b5cf6", hemiGround: "#0a0520", hemi: 1.1, key: "#e9d5ff", keyIntensity: 1.15, rimGlow: 1.4 },
 };
 
 export function levelEnvironment(id: LevelId): NonNullable<GameDefinition["environment"]> {
