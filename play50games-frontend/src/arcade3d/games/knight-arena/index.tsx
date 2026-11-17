@@ -23,10 +23,10 @@ function instructionsFor(id: LevelId): string[] {
 
 const DESCRIPTIONS: Record<LevelId, string> = {
    1: "Four stages in 60 seconds: shields, doubles and tomato decoys.",
-   2: "Far targets slide in from the first stage, on a faster beat.",
-   3: "A tighter on-beat window, and doubles from the second stage.",
-   4: "Night: combo climbs faster, with more shields and decoys.",
-   5: "The fastest beat and the tightest on-beat window.",
+   2: "Far targets slide in from the first stage, on a faster beat, on a day-lit practice meadow.",
+   3: "A tighter on-beat window on a torch-lit timed course, and doubles from the second stage.",
+   4: "Night fires: combo climbs faster, with more shields and decoys.",
+   5: "The royal trial before the throne: the fastest beat and the tightest on-beat window.",
 };
 
 function environmentFor(id: LevelId): LevelSpec<KnightLevel>["environment"] {
