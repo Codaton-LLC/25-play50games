@@ -286,9 +286,17 @@
    }
 }
 
-/* phones: the shell's LEVEL and SCORE chips sit where the title banner would; the banner gives way */
+/* phones: a smaller banner, so it clears the shell's LEVEL and SCORE chips (the shared stack keeps it first) */
 @media (max-width: 480px) {
    .banner {
-      display: none;
+      padding: 4px 12px 5px;
+   }
+
+   .title {
+      font-size: 0.82rem;
+   }
+
+   .level {
+      font-size: 0.66rem;
    }
 }
