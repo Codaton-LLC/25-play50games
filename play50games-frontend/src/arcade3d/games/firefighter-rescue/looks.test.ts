@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { LEVEL_IDS } from "@/arcade3d/types";
 import { LEVELS } from "./levels";
 import { DOOR_LINE_X, LOW_WALL_H, PITCH, WALL_H, YAWS, cutawayWalls, doorWallHeight, openDoorHeight, wallSpots } from "./looks";
-import { DOOR_HALF, HALL_HALF, PORCH_Z, ROOM_LEN, createRun, doorMidZ } from "./rules";
+import { DOOR_HALF, HALL_HALF, PORCH_Z, ROOM_LEN, createRun, doorMidZ, roomSide } from "./rules";
 
 /** Is the point (x, y, z) seen from far away along the camera's direction at `yaw` and PITCH, past every wall? */
 function seen(walls: ReturnType<typeof wallSpots>, yaw: number, x: number, y: number, z: number): boolean {
@@ -44,8 +44,8 @@ describe("firefighter-rescue cutaway walls", () => {
             }
             // a door is as tall as the hall wall either side of it (cut down with it)
             for (let room = 0; room < level.rooms; room++) {
-               const x = (room % 2 === 0 ? -1 : 1) * DOOR_LINE_X;
-               const beside = walls.find((w) => Math.abs(w.x - x) < 1e-6 && Math.abs(w.z + (w.sz ?? 0) / 2 - (doorMidZ(room) - DOOR_HALF)) < 1e-6);
+               const x = roomSide(level, room) * DOOR_LINE_X;
+               const beside = walls.find((w) => Math.abs(w.x - x) < 1e-6 && Math.abs(w.z + (w.sz ?? 0) / 2 - (doorMidZ(level, room) - DOOR_HALF)) < 1e-6);
                expect(beside, `room ${room}`).toBeDefined();
                expect(doorWallHeight(level, yaw, room)).toBe(beside!.sy);
                // swung open (lying along x), a leaf is low where the camera looks across it into the room

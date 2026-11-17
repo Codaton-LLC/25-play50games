@@ -41,12 +41,12 @@ function route(run: Run, x: number, z: number, room: number): number {
    let x0 = run.hero.x;
    let z0 = run.hero.z;
    if (room >= 0 && here !== room) {
-      const door = doorPoint(room);
+      const door = doorPoint(run.level, room);
       d += Math.hypot(door.x - x0, door.z - z0);
       x0 = door.x;
       z0 = door.z;
    } else if (here >= 0 && room < 0) {
-      const door = doorPoint(here);
+      const door = doorPoint(run.level, here);
       d += Math.hypot(door.x - x0, door.z - z0);
       x0 = door.x;
       z0 = door.z;
@@ -70,9 +70,9 @@ function goal(run: Run): { x: number; z: number; room: number } | null {
 function via(run: Run, at: { x: number; z: number; room: number }): { x: number; z: number } {
    const here = roomOf(run.level, run.hero.x, run.hero.z);
    // Leave the room through its own door. Aiming at the next door cuts the wall.
-   if (here >= 0 && here !== at.room) return doorPoint(here);
+   if (here >= 0 && here !== at.room) return doorPoint(run.level, here);
    if (at.room >= 0 && here !== at.room) {
-      const door = doorPoint(at.room);
+      const door = doorPoint(run.level, at.room);
       if (Math.hypot(run.hero.x - door.x, run.hero.z - door.z) > 0.55) return door;
    }
    return at;
