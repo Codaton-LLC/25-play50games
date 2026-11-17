@@ -764,6 +764,17 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/alien-lane-escape/m2FlyingSaucer.glb",
    "/models/3d/alien-lane-escape/m2MeteorRock.glb",
    "/models/3d/alien-lane-escape/m2ScannerDrone.glb",
+   // Menu 2 game 38 (Laser Maze Run): the ready set from ~/.play50/hyper3d/ready/menu2/laser-maze-run, the card's
+   // checkpoint pad, laser frame and moving barrier (ready/menu2/laser-maze-ninja)
+   "/models/3d/laser-maze-run/m2CheckpointPad.glb",
+   "/models/3d/laser-maze-run/m2LaserEmitter.glb",
+   "/models/3d/laser-maze-run/m2LaserFloorTile.glb",
+   "/models/3d/laser-maze-run/m2LaserFrame.glb",
+   "/models/3d/laser-maze-run/m2LaserPrism.glb",
+   "/models/3d/laser-maze-run/m2MovingBarrier.glb",
+   "/models/3d/laser-maze-run/m2SecurityCam.glb",
+   "/models/3d/laser-maze-run/m2VaultCoreBoss.glb",
+   "/models/3d/laser-maze-run/m2VaultWallBg.glb",
    // Menu 2 game 31 (Wall Run Temple): the cliff temple set from ~/.play50/hyper3d/ready/menu2/wall-run-temple (incl. m2SwingingStoneRam)
    "/models/3d/wall-run-temple/m2CliffTempleBg.glb",
    "/models/3d/wall-run-temple/m2GoldRingOrb.glb",
