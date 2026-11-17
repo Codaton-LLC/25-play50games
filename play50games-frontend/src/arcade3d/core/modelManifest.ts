@@ -716,7 +716,7 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/gem-collector-3d/m2ArenaRimWall.glb",
    "/models/3d/gem-collector-3d/m2ArenaTileV2.glb",
    "/models/3d/gem-collector-3d/m2CrystalHillBg.glb",
-   "/models/3d/gem-collector-3d/m2FacetGemI.glb",
+   "/models/3d/gem-collector-3d/m2FacetGem.glb",
    "/models/3d/gem-collector-3d/m2GemPedestal.glb",
    "/models/3d/gem-collector-3d/m2GummyMonster.glb",
    "/models/3d/gem-collector-3d/m2ScoreBeacon.glb",

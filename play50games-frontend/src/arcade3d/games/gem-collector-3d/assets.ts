@@ -11,7 +11,8 @@ import { CHEST_R, PED_R, SLIME_R } from "./arena";
 import { MINI_R } from "./rules";
 
 export const GLB_SIZE = {
-   gem: { x: 1.897, y: 1.904, z: 1.861 },
+   /** m2FacetGem, the plain faceted gem (3k triangles; the brass-capped m2FacetGemI was 5k and cost ~510k on level 5) */
+   gem: { x: 1.898, y: 1.863, z: 1.903 },
    beacon: { x: 1.219, y: 1.894, z: 1.19 },
    pedestal: { x: 1.589, y: 1.892, z: 1.613 },
    chest: { x: 1.892, y: 1.651, z: 1.453 },
@@ -50,7 +51,7 @@ const RIM_S = RIM_SPAN / GLB_SIZE.rim.x;
  */
 export const ASSETS: Record<string, ModelAsset> = {
    hero: heroModelAsset("zuno"),
-   gem: { ...own("m2FacetGemI", "#e0f2fe"), scale: GEM_H / GLB_SIZE.gem.y },
+   gem: { ...own("m2FacetGem", "#e0f2fe"), scale: GEM_H / GLB_SIZE.gem.y },
    beacon: { ...own("m2ScoreBeacon", "#f59e0b"), scale: BEACON_H / GLB_SIZE.beacon.y },
    pedestal: { ...own("m2GemPedestal", "#d4a017"), scale: PED_S },
    chest: { ...own("m2TreasureChest", "#a16207"), scale: (CHEST_R * 2) / GLB_SIZE.chest.x },
