@@ -40,7 +40,7 @@ export const colorArenaSurvivalMeta: ArcadeGameMeta = {
    },
    scoring: scoring(1),
    levels: LEVEL_IDS.map((id) => ({ id, title: LEVEL_TITLES[id], scoring: scoring(id) })),
-   thumbnail: null,
+   thumbnail: "/images/3d/color-arena-survival.webp",
    accent: "#f472b6",
    owner: "claude",
 };

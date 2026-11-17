@@ -109,5 +109,4 @@ board and ranks by finish time.
 
 ## Known issues / open
 
-- No thumbnail yet (`meta.thumbnail: null`).
 - No hero tag-switch (W6 `heroTag` is not built): one hero per run.

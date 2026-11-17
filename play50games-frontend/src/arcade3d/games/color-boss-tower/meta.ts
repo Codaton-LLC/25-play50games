@@ -38,7 +38,7 @@ export const colorBossTowerMeta: ArcadeGameMeta = {
    },
    scoring: scoring(1),
    levels: LEVEL_IDS.map((id) => ({ id, title: LEVEL_TITLES[id], scoring: scoring(id) })),
-   thumbnail: null,
+   thumbnail: "/images/3d/color-boss-tower.webp",
    accent: "#c084fc",
    owner: "claude",
 };
