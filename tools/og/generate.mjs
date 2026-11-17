@@ -115,6 +115,12 @@ const TITLES = {
    "switch-color-hero": "Switch Color Hero",
    "energy-core-hunt": "Energy Core Hunt",
    "roll-dash": "Roll Dash",
+   "crystal-tower": "Crystal Tower",
+   "paint-the-platforms": "Paint the Platforms",
+   "color-arena-survival": "Color Arena Survival",
+   "color-boss-tower": "Color Boss Tower",
+   "color-bridge-builder": "Color Bridge Builder",
+   "color-orb-defense": "Color Orb Defense",
 };
 
 /** One entry per thumbnail in public/images/3d, in filename order. */
