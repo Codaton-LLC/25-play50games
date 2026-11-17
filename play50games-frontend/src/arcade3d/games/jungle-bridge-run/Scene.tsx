@@ -29,13 +29,17 @@ import {
    ExplorerPrimitive,
    PartsInstanced,
    deckParts,
+   emberParts,
+   fallParts,
    fernParts,
    gateParts,
    gemParts,
    hangingVineParts,
    lavaCrustParts,
    lavaGlowParts,
+   lavafallParts,
    logParts,
+   mistParts,
    pillarParts,
    rockParts,
    ropeParts,
@@ -177,7 +181,15 @@ function LevelScene() {
    const decor = useMemo(() => {
       const d = decorSpots(id, level);
       const keep = <T,>(a: T[]) => a.slice(0, scaledCount(a.length, quality.decor));
-      return { ...d, rocks: keep(d.rocks), trees: keep(d.trees), ferns: keep(d.ferns), plants: keep(d.plants), vines: keep(d.vines) };
+      // the themed dressing thins with quality; a level's set pieces stay (they are its identity)
+      return {
+         ...d,
+         rocks: keep(d.rocks),
+         trees: keep(d.trees),
+         ferns: keep(d.ferns),
+         plants: keep(d.plants),
+         vines: keep(d.vines),
+      };
    }, [id, level, quality.decor]);
    const backdrop = useMemo(() => backdropFor(level), [level]);
    const ahead = visibleAhead(level);
@@ -197,7 +209,19 @@ function LevelScene() {
          if (!spot) return false;
          spotInto(m, spot, decorZ(spot.z, run.z));
       };
-      return { rocks: wrap(decor.rocks), trees: wrap(decor.trees), ferns: wrap(decor.ferns), plants: wrap(decor.plants), vines: wrap(decor.vines), stilts: wrap(decor.stilts) };
+      return {
+         rocks: wrap(decor.rocks),
+         trees: wrap(decor.trees),
+         ferns: wrap(decor.ferns),
+         plants: wrap(decor.plants),
+         vines: wrap(decor.vines),
+         stilts: wrap(decor.stilts),
+         ropeBridges: wrap(decor.ropeBridges),
+         falls: wrap(decor.falls),
+         mist: wrap(decor.mist),
+         colonnade: wrap(decor.colonnade),
+         lavafalls: wrap(decor.lavafalls),
+      };
    }, [decor, run]);
    const trackEnd = finishZ(level);
 
@@ -217,6 +241,10 @@ function LevelScene() {
       glow: useParts(lavaGlowParts),
       gem: useParts(gemParts),
       stilt: useParts(stiltParts),
+      fall: useParts(fallParts),
+      mist: useParts(mistParts),
+      lavafall: useParts(lavafallParts),
+      ember: useParts(emberParts),
    };
 
    useEffect(() => {
@@ -349,12 +377,24 @@ function LevelScene() {
       S.set(1, 0.4 + Math.sin(k * Math.PI) * 0.9, 1);
       m.compose(V, Q, S);
    };
+   const placeEmber = (i: number, m: Matrix4) => {
+      const spot = decor.embers[i];
+      if (!spot) return false;
+      // drifts up 3 m, fades small, then wraps; the band wraps with the runner like the other decor
+      const rise = (time.now * 0.9 + i * 0.37) % 3;
+      E.set(0, time.now * 0.6 + i, 0);
+      Q.setFromEuler(E);
+      V.set(spot.x, spot.y + rise, decorZ(spot.z, run.z));
+      const k = (spot.scale ?? 1) * (1 - rise / 4.5);
+      S.set(k, k, k);
+      m.compose(V, Q, S);
+   };
 
    return (
       <>
          <CameraRig camera={{ position: view.offset, fov: FOV, lookAt: [0, 0, LOOK_AHEAD_Z] }} follow={aim} offset={view.offset} shift={view.shift} damping={8} />
-         <SkyDome top={level.lighting === "sunset" ? "#7c2d12" : "#0ea5e9"} bottom={level.background} />
-         <Water position={[0, WATER_Y, trackEnd / 2]} size={[160, trackEnd + 160]} color={COLORS.water} deep={COLORS.waterDeep} />
+         <SkyDome top={level.skyTop} bottom={level.background} />
+         <Water position={[0, WATER_Y, trackEnd / 2]} size={[160, trackEnd + 160]} color={level.water} deep={level.waterDeep} />
 
          {/* the track: only the visible stretch, pooled and recycled along z */}
          <DynamicInstancedModel asset={ASSETS.deck} count={pools.deck.count} update={pools.deck.update} fallbackParts={parts.deck} name="deck" />
@@ -381,6 +421,14 @@ function LevelScene() {
          {decor.ferns.length > 0 && <DynamicInstancedModel asset={ASSETS.fern} count={decor.ferns.length} update={decorUpdate.ferns} fallbackParts={parts.fern} name="ferns" />}
          {decor.plants.length > 0 && <DynamicInstancedModel asset={ASSETS.plant} count={decor.plants.length} update={decorUpdate.plants} fallbackParts={parts.plant} name="plants" />}
          {decor.vines.length > 0 && <DynamicInstancedModel asset={ASSETS.hangingVine} count={decor.vines.length} update={decorUpdate.vines} fallbackParts={parts.hanging} name="hanging" />}
+         {/* the level's set pieces (all clear of the track): rope bridges below, falls and mist,
+             a temple colonnade, lava streams and embers */}
+         {decor.ropeBridges.length > 0 && <DynamicInstancedModel asset={ASSETS.ropeBridge} count={decor.ropeBridges.length} update={decorUpdate.ropeBridges} fallbackParts={parts.rope} name="rope-bridges" />}
+         {decor.falls.length > 0 && <DynamicInstanced count={decor.falls.length} update={decorUpdate.falls} parts={parts.fall} name="falls" />}
+         {decor.mist.length > 0 && <DynamicInstanced count={decor.mist.length} update={decorUpdate.mist} parts={parts.mist} name="mist" />}
+         {decor.colonnade.length > 0 && <DynamicInstancedModel asset={ASSETS.pillar} count={decor.colonnade.length} update={decorUpdate.colonnade} fallbackParts={parts.pillar} name="colonnade" />}
+         {decor.lavafalls.length > 0 && <DynamicInstanced count={decor.lavafalls.length} update={decorUpdate.lavafalls} parts={parts.lavafall} name="lavafalls" />}
+         {decor.embers.length > 0 && <DynamicInstanced count={decor.embers.length} update={placeEmber} parts={parts.ember} name="embers" />}
          {backdrop && (
             <group ref={backdropRef} rotation-y={backdrop.rotY} scale={backdrop.scale}>
                <Model asset={backdrop.kind === "volcano" ? ASSETS.volcano : ASSETS.waterfall} />
