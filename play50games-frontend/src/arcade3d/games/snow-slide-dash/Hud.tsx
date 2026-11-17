@@ -37,13 +37,15 @@ export default function Hud() {
       <OrbitHud />
       <MultiplayerHud />
       {shown && !multiplayer && <>
-         <div className={stack.left} data-arcade-safe-area="">
+         <div className={`${stack.left} ${styles.leftStack}`} data-arcade-safe-area="">
             <div className={styles.pill}><span>GATE STARS</span><strong>{stats[STAT.orbs] ?? 0} / {l.orbs}</strong></div>
             <div className={styles.pill}><span>SPEED</span><strong>{((stats[STAT.speed] ?? l.baseSpeed * 10) / 10).toFixed(1)} m/s</strong></div>
             <div className={styles.pill}><span>STREAK</span><strong>{stats[STAT.streak] ?? 0} / 6</strong></div>
             <div className={styles.pill}><span>{hero.name.toUpperCase()}</span><strong>{stats[STAT.power] ? `${stats[STAT.power]} s` : hero.powerLabel}</strong></div>
             <div className={styles.surface}>{["POWDER · GRIP", "PACKED · FAST", "ICE · PRE-AIM"][stats[STAT.surface] ?? 1]}</div>
-            <ComboMeter chain={stats[STAT.chain] ?? 0} multiplier={(stats[STAT.multiplier] ?? 100) / 100} flow={(stats[STAT.flow] ?? 0) / 100} cap={COMBO.cap} accent="#facc15" />
+            <div className={styles.combo}>
+               <ComboMeter chain={stats[STAT.chain] ?? 0} multiplier={(stats[STAT.multiplier] ?? 100) / 100} flow={(stats[STAT.flow] ?? 0) / 100} cap={COMBO.cap} accent="#facc15" />
+            </div>
          </div>
          <div className={stack.center} data-arcade-safe-area="">
             <div className={styles.banner}><span>SNOW SLIDE DASH</span><strong>{l.name}</strong></div>

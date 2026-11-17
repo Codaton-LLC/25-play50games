@@ -111,7 +111,7 @@ Code-built: the colour-blind glyphs (chevron, wave, hexagon, horseshoe, spiral) 
 
 - Local multiplayer ("Code Breakers" versus, "Last Hex Standing", co-op twin hexes) is not built. The game is solo for now.
 - The shared W6 systems the card names do not exist yet. Their game-local equivalents, and the generic parts to extract when more W6 games land:
-  - `heroTag`: tagging lives in `rules.ts` / `tagLatch.ts`;
-  - `colourKit`: the palette and glyphs are in `look.ts` / `Field.tsx`;
+  - `heroTag`: the keys and the portrait strip go through the shared `menu2/heroTag/tagInput` (keys 1-5 by physical key, Digit or Numpad row; T the next; Shift+T is T here), and the tag's cooldown, linger and bench recharge are its constants; the tag state itself stays in `rules.ts`;
+  - `colourKit`: the hero glyphs come from `menu2/heroTag` (`TAG_GLYPH`); the hex palette (with grey and ice) stays in `look.ts` / `Field.tsx`;
   - `echoMaterial`: a material override on the golem.
 - Not yet checked: real-phone frame time and draw calls, audio balance, and gamepad tagging (no LB/RB yet).

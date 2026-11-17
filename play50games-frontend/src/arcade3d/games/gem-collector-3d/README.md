@@ -144,11 +144,11 @@ with ragged frames all stay inside the limits (`rules.test.ts`, `proof.test.ts`)
 
 ## Models
 
-`public/models/3d/gem-collector-3d/` holds m2FacetGemI (every gem, tinted by kind), m2ScoreBeacon,
+`public/models/3d/gem-collector-3d/` holds m2FacetGem (every gem, tinted by kind; 3k triangles, upright), m2ScoreBeacon,
 m2GemPedestal, m2TreasureChest, m2ArenaTileV2 (the sinking slabs), m2ArenaRimWall (the rim, instanced),
 m2CrystalHillBg (the backdrop) and m2GummyMonster (the boss, from ready/menu2/shared). Three are reused by
 url: Ice Peak Jumper's m2IceSlime and m2IceCrystal (the cracked wall), and Plate Surf's m2SlimeBlob (the
-minis). m2ArenaTile (an unusable rock) and m2FacetGem (the plain gem) are left out. `assets.test.ts`
+minis). m2ArenaTile (an unusable rock) is left out; m2FacetGemI (the brass-capped bauble, 5k triangles) was swapped for m2FacetGem in the Menu 2 polish pack (level 5 drew about 510k triangles of gems). `assets.test.ts`
 tests the fits against the measured meshes. The floor, the vault walls and the tethers are code.
 
 ## Open issues

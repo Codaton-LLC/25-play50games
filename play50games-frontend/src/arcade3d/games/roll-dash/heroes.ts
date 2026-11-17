@@ -8,6 +8,7 @@
 // - Zuno: magnet (3 s, 6 m): rips the coin trail out of a yellow vault and opens it.
 // - Vexa: phase (0.8 s): through a purple ghost wall.
 import { createHeroPick } from "@/arcade3d/menu2/heroes/heroPick";
+import { TAG_ORDER } from "@/arcade3d/menu2/heroTag/rules";
 
 export type HeroId = "riko" | "nami" | "kiro" | "zuno" | "vexa";
 export type PowerId = "dash" | "doubleJump" | "shield" | "magnet" | "phase";
@@ -33,7 +34,11 @@ export const HEROES: readonly HeroDef[] = [
    { id: "vexa", name: "Vexa", color: "#8B5CF6", power: "phase", powerLabel: "Phase", durationMs: 800, cooldownMs: 5_000, glyph: "spiral" },
 ];
 
-export const HERO_IDS: readonly HeroId[] = HEROES.map((h) => h.id);
+export const HERO_IDS: readonly HeroId[] = HEROES.map((h, i) => {
+   // the tag keys 1-5 and the portrait strip index World 6's TAG_ORDER
+   if (h.id !== TAG_ORDER[i]) throw new Error(`roll-dash heroes must follow TAG_ORDER (${h.id} at ${i})`);
+   return h.id;
+});
 
 const BY_ID: Record<HeroId, HeroDef> = { riko: HEROES[0], nami: HEROES[1], kiro: HEROES[2], zuno: HEROES[3], vexa: HEROES[4] };
 

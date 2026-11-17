@@ -31,7 +31,7 @@ import { createMultiRun, leaderIndex, progressOf, stepMulti, type MultiRun } fro
 import type { HeroId } from "./heroes";
 import type { DashLevel } from "./levels";
 import { useDashJuice } from "./Scene";
-import { tagLatch } from "./latch";
+import { takeTag, tagIndexOf } from "@/arcade3d/menu2/heroTag/tagInput";
 
 export const MP_CAMERA = { pitch: 0.42, minSpan: 9, maxSpan: 40, padding: 3 } as const;
 
@@ -45,6 +45,9 @@ function MultiSimulation({ multi, anims, orbit }: { multi: MultiRun; anims: Retu
    }, [multi]);
    useRunFrame((_state, dt) => {
       const sign = laneSign(orbit.viewYaw);
+      // the portrait strip tags for player 1
+      const req = takeTag();
+      const q = req ? tagIndexOf(req) : null;
       for (let i = 0; i < multi.runs.length; i++) {
          const p = playerInputFor(i);
          const s = inputs[i];
@@ -52,10 +55,9 @@ function MultiSimulation({ multi, anims, orbit }: { multi: MultiRun; anims: Retu
          s.jumpPressed = p.jumpPressed || p.pressed.up;
          s.downPressed = p.pressed.down;
          s.actionPressed = p.actionPressed;
-         s.tag = i === 0 ? tagLatch.tag : 0;
-         s.tagCycle = 0;
+         s.tag = i === 0 && q && q.hero >= 0 ? q.hero + 1 : 0;
+         s.tagCycle = i === 0 && q ? q.cycle : 0;
       }
-      tagLatch.tag = 0;
       const events = stepMulti(multi, dt * 1000, inputs);
       const now = time.now;
       const players = playersStore.getState();

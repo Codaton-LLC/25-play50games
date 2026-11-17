@@ -346,7 +346,11 @@ function SoloScene() {
    // eslint-disable-next-line react-hooks/exhaustive-deps
    const run = useMemo(() => createRun(randomSeed(), levelId, hero), [runId, levelId, hero]);
    const anim = useMemo(createHeroAnim, [run]);
-   const orbit = useMemo(() => createOrbit(arenaOrbit(run.arena)), [run]);
+   const size = useThree((s) => s.size);
+   const aspect = size.width / Math.max(1, size.height);
+   // the start yaw follows the screen (level 5 turns towards the Keeper on a portrait phone)
+   // eslint-disable-next-line react-hooks/exhaustive-deps
+   const orbit = useMemo(() => createOrbit(arenaOrbit(run.arena, aspect)), [run]);
    return (
       <JuiceLayer>
          <World arena={run.arena} />
