@@ -43,7 +43,19 @@ HUD: Ghosts x/12, shell time, ghost progress rings and capture base/combo popup.
 
 ## Levels
 
-One mansion, five configurations (`levels.ts`, read through `useGhostLevel`; `createRun(seed, level)`). **Level 1 is today's game exactly** (12 ghosts, 120 s; levels.test.ts replays 12 seeds against today's `createRun`). The level brief's re-ordering (a 4-ghost level 1, today's game as level 5) was not used: level 1 must stay today's game. Every level keeps the twelve ghosts, the release schedule (ghost 11 at 90 s), the 120 s clock and the night look; a harder level offers more points (more gold ghosts) and is harder to catch. Not built: the plan's blocked/locked paths (fixed walls, no doors), per-level lighting, more than twelve ghosts.
+One mansion, five rooms (`levels.ts`, read through `useGhostLevel`; `createRun(seed, level)`). **Level 1 is today's game exactly** (12 ghosts, 120 s, today's living rooms and night look; levels.test.ts replays 12 seeds against today's `createRun`). Every level keeps the twelve ghosts, the release schedule (ghost 11 at 90 s), the 120 s clock and the walls; a harder level offers more points (more gold ghosts) and is harder to catch.
+
+**Rooms (2026-10-29).** Each level dresses the four side rooms as its own room (`levels.ts` `rooms`) and the ghosts there keep that room's habit (`rules.ts` `ROOM_HABITS`, a ghost keeps its home room's habit):
+
+| Level | Rooms | Look (`RoomDressing.tsx`, `Mansion.tsx`, `index.tsx` environment) | Furniture (hunter walks round it, `ROOM_FURNITURE`) | Ghost habit |
+|---|---|---|---|---|
+| 1 Living Room | 4 × living | today's: oak floor, lilac walls, desks with candelabras, night | today's desks and chairs | none (today's) |
+| 2 Library | 4 × library | warm `indoor` light, green walls, dark parquet with a green-and-gold rug | 3 bookcases per room (outer wall, far wall, a free-standing one) | **fades into the shelves**: every 5 s a roaming ghost is a faint shimmer for 1.2 s (offset by id); the light cannot catch it then (exposure resets, as out of the cone) |
+| 3 Kitchen | 4 × kitchen | bright cool `indoor` light, tiled walls, teal-and-cream checker tiles, copper pots | an island, a counter, a stove per room; the hidden ghost's host is a work counter | **skids away**: a lit ghost flees at 1.35 × its flee speed |
+| 4 Attic | 4 × attic | dark `night`, close dusty fog, grey board floor with rafter shadows, rafters on the outer walls, cobwebs, dust motes | two trunks and a crate per room; the host is a steamer trunk | **creeps back**: a ghost left unlit for 5 s, roaming in its own room, its trunk free and the hunter over 4.5 m from it, hides in the trunk again (it pops out as before when the hunter comes within 3 m) |
+| 5 Whole Mansion | library (NW), living room / study (SW), kitchen (NE), attic (SE) | night; each wing its own floor, furniture and host | each wing's own | each wing's own habit: the level links all four rooms through the hall |
+
+The habits and furniture only delay a capture: no payment, release time or exposure shortens, so every limit and proof below holds unchanged (levels.test.ts re-runs them). Fairness per level (levels.test.ts "rooms, furniture and habits"): furniture stays inside its room, > 1.6 m from the doorway, > 1.2 m from the desk and off every pop spot; every free cell of the mansion (0.25 m grid, hunter radius) is reachable from the start and every host's reveal ring has a reachable cell; the habit tests (a faded ghost is never lit; a kitchen ghost skids > 1.2 × faster, never past its cap; an attic ghost re-hides after 5 s alone and pops out when the hunter comes; the living room does none of it). The honest bot walks each level's own grid (its furniture included). Not built: the plan's blocked/locked paths, more than twelve ghosts.
 
 | Level | Title | Gold ids | Big ids | Speed | Exposure (big) | Stun | Early cap | Late speed-up | Clear | Limits (max / base) |
 |---|---|---|---|---|---|---|---|---|---|---|

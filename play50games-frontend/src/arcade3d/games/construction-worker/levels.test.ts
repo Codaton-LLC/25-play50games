@@ -15,8 +15,8 @@ import { LEVELS, type CraneLevel } from "./levels";
 import { constructionWorkerMeta as meta } from "./meta";
 import {
    BOB_SPEED, CLOCK_S, FLOOR, GOOD, GRAVITY, MAX_OMEGA, MAX_VR, OK_BAND, PERFECT, PICK_MAX_R, PIECE_H, PILE_A, PILE_R,
-   PLAN, PROPOSED_LEVEL_LIMITS, RADIUS_MIN, SLOT_A, SLOT_R, TOWER_BAND, WIND, createRun, dropRadius, pileUnder, rateLanding,
-   stepRun, type CraneInput, type Run,
+   PLAN, PROPOSED_LEVEL_LIMITS, RADIUS_MIN, SLOT_A, SLOT_R, TOWER_BAND, WIND, createRun, dropRadius, gustDirection, pileUnder,
+   rateLanding, stepRun, type CraneInput, type Run,
 } from "./rules";
 
 vi.mock("./Scene", () => ({ default: () => null }));
@@ -50,8 +50,9 @@ const FINE_GAINS = [3.2, 3, 2.5, 1.8, 4, 0.38, 1.4, 0.4, 2, 4];
 function landDist(run: Run, step: { slot: number; floor: number }): number {
    const fall = Math.max(0, run.hookY - PIECE_H - step.floor * FLOOR);
    const t = Math.sqrt((2 * fall) / GRAVITY);
-   const sx = SLOT_R * Math.sin(SLOT_A[step.slot]);
-   const sz = SLOT_R * Math.cos(SLOT_A[step.slot]);
+   const a = run.level.slotA[step.slot];
+   const sx = SLOT_R * Math.sin(a);
+   const sz = SLOT_R * Math.cos(a);
    return Math.hypot(run.hookX + run.bobVx * t - sx, run.hookZ + run.bobVz * t - sz);
 }
 
@@ -61,8 +62,8 @@ function driveFine(run: Run, dt: number): CraneInput {
    const step = PLAN[run.planIndex];
    if (!step || run.phase !== "play" || run.lock > 0 || !(dt > 0)) return CMD;
    const carrying = run.carried >= 0;
-   const wantR = carrying ? Math.max(SLOT_R, dropRadius(step.building)) : PILE_R;
-   const wantA = carrying ? SLOT_A[step.slot] : PILE_A[step.kind];
+   const wantR = carrying ? Math.max(SLOT_R, dropRadius(step.building)) : run.level.pileR;
+   const wantA = carrying ? run.level.slotA[step.slot] : run.level.pileA[step.kind];
    const aErr = wantA - run.angle;
    const rErr = wantR - run.radius;
    const s = Math.sin(run.angle);
@@ -83,6 +84,7 @@ function driveFine(run: Run, dt: number): CraneInput {
 }
 
 const STOP = { radAcc: 3.5, angK: 4, stop: 0.8, dropDist: 0.35 };
+const WIND_DIR = { x: 1, z: 0 };
 
 function driveStop(run: Run, dt: number): CraneInput {
    const p = STOP;
@@ -94,8 +96,8 @@ function driveStop(run: Run, dt: number): CraneInput {
    const step = PLAN[run.planIndex];
    if (!step || run.phase !== "play" || run.lock > 0 || !(dt > 0)) return CMD;
    const carrying = run.carried >= 0;
-   const wantR = carrying ? Math.max(SLOT_R, dropRadius(step.building)) : PILE_R;
-   const wantA = carrying ? SLOT_A[step.slot] : PILE_A[step.kind];
+   const wantR = carrying ? Math.max(SLOT_R, dropRadius(step.building)) : run.level.pileR;
+   const wantA = carrying ? run.level.slotA[step.slot] : run.level.pileA[step.kind];
    const aErr = wantA - run.angle;
    const rErr = wantR - run.radius;
    const radius = Math.max(run.radius, RADIUS_MIN);
@@ -106,8 +108,12 @@ function driveStop(run: Run, dt: number): CraneInput {
    let vrCmd: number;
    let omCmd: number;
    if (gust) {
-      vrCmd = run.vr - 2.5 * Math.sin(run.angle) * dt;
-      omCmd = run.omega - (2.5 * Math.cos(run.angle) * dt) / radius;
+      // lean against the gust (its direction turns per gust on levels 4-5): its radial and tangential parts
+      const w = gustDirection(lv, run.towerTime, WIND_DIR);
+      const radial = w.x * Math.sin(run.angle) + w.z * Math.cos(run.angle);
+      const tangential = w.x * Math.cos(run.angle) - w.z * Math.sin(run.angle);
+      vrCmd = run.vr - 2.5 * radial * dt;
+      omCmd = run.omega - (2.5 * tangential * dt) / radius;
    } else {
       vrCmd = ease(run.vr, Math.sign(rErr) * cap(rErr, p.radAcc, 2.3), p.radAcc, dt);
       omCmd = ease(run.omega, Math.sign(aErr) * cap(aErr, angAcc, 0.75), angAcc, dt);
@@ -173,7 +179,7 @@ function at(run: Run, angle: number, radius: number): void {
 function dropAt(level: CraneLevel, offset: number): Run {
    const run = createRun(1, level);
    const step = PLAN[0];
-   at(run, SLOT_A[step.slot], SLOT_R + offset);
+   at(run, level.slotA[step.slot], SLOT_R + offset);
    run.carried = step.kind;
    stepRun(run, { ...ZERO, drop: true }, 1 / 60);
    return run;
@@ -202,7 +208,11 @@ describe("construction-worker levels: declarations", () => {
    });
 
    it("level 1 is today's game: same wind, bands and stability, and a replayed shift matches today's createRun", () => {
-      expect(LEVELS[1]).toEqual({ gustFrom: 2, wind: WIND, gustPeriod: 7, band: 1, stab: 1 });
+      expect(LEVELS[1]).toMatchObject({ gustFrom: 2, wind: WIND, gustPeriod: 7, band: 1, stab: 1, windDir: 0, windTurn: 0, pileR: PILE_R, worker: { x: 2.6, z: 5.35 } });
+      expect([...LEVELS[1].pileA]).toEqual([-0.45, -0.15, 0, 0.15, 0.45]);
+      expect([...LEVELS[1].slotA]).toEqual([-0.45, -0.15, 0.15, 0.45]);
+      expect(PILE_A).toBe(LEVELS[1].pileA);
+      expect(SLOT_A).toBe(LEVELS[1].slotA);
       for (const d of [0.1, 0.14, 0.2, 0.3, 0.5, 0.7]) for (const tower of [false, true]) expect(rateLanding(d, tower, LEVELS[1].band)).toBe(rateLanding(d, tower));
       for (const [k, frame] of [[0, fixedFrames(1000 / 60)], [1, randomFrames(5, 0.004, 0.05)]] as const) {
          const today = createRun(7 + k);
@@ -279,13 +289,14 @@ describe("construction-worker levels: the simulation reads the level", () => {
    it("a landing is rated in the level's bands and a good or ok one costs the level's stability", () => {
       // level 3 has no gust on the house, so the hook stays where it is put
       const step = PLAN[0];
-      const sx = SLOT_R * Math.sin(SLOT_A[step.slot]);
-      const sz = SLOT_R * Math.cos(SLOT_A[step.slot]);
       let differs = 0;
       for (let offset = 0; offset <= 0.75; offset += 0.005) {
          for (const id of [1, 3] as const) {
+            const slotA = LEVELS[id].slotA[step.slot];
+            const sx = SLOT_R * Math.sin(slotA);
+            const sz = SLOT_R * Math.cos(slotA);
             const run = createRun(1, LEVELS[id]);
-            at(run, SLOT_A[step.slot] + offset / SLOT_R, SLOT_R);
+            at(run, slotA + offset / SLOT_R, SLOT_R);
             run.carried = step.kind;
             stepRun(run, ZERO, 1 / 120);
             const dist = Math.hypot(run.landX - sx, run.landZ - sz);
@@ -314,7 +325,7 @@ describe("construction-worker levels: limit proof per level (README)", () => {
          expect(PROPOSED_LEVEL_LIMITS[id]).toEqual(PROPOSED_LEVEL_LIMITS[1]);
          expect(levelRunConfig(definition, id).durationMs).toBe(CLOCK_S * 1000);
          const miss = createRun(1, LEVELS[id]);
-         at(miss, SLOT_A[0] + 0.25, 9.5);
+         at(miss, LEVELS[id].slotA[0] + 0.25, 9.5);
          miss.carried = 0;
          stepRun(miss, { ...ZERO, drop: true }, 1 / 60);
          expect(miss.stability).toBe(88);

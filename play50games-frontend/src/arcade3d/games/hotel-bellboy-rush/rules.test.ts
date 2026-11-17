@@ -18,6 +18,7 @@ import {
    START,
    STUN_S,
    TIME_BONUS_PER_SECOND,
+   TROLLEY_GAP,
    TROLLEY_RADIUS,
    USE_RANGE,
    bagQueue,
@@ -340,11 +341,11 @@ describe("hotel movement and trolley", () => {
          far = Math.max(far, Math.hypot(a.trolley.x.x - a.hero.x, a.trolley.z.x - a.hero.z));
       }
       expect(far).toBeLessThan(3);
-      // standing still, it settles at its 1.1 m gap behind him
+      // standing still, it settles at its gap (the hitch plus the bar) straight behind him
       const c = createRun(1, LEVELS[1]);
       c.hero.yaw = 0;
       for (let i = 0; i < 120; i++) stepTrolley(c, 1 / 60);
-      expect(Math.hypot(c.trolley.x.x - c.hero.x, c.trolley.z.x - c.hero.z)).toBeCloseTo(1.1, 2);
+      expect(Math.hypot(c.trolley.x.x - c.hero.x, c.trolley.z.x - c.hero.z)).toBeCloseTo(TROLLEY_GAP, 2);
    });
 });
 

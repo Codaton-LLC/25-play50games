@@ -2,7 +2,7 @@
 import { HintLine } from "@/arcade3d/core/hud/HintLine";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { hintFor } from "./guide";
-import { PLANETS } from "./rules";
+import { worldsOf } from "./rules";
 import { useRocketLevel } from "./useRocketLevel";
 import styles from "./Hud.module.css";
 export default function Hud() {
@@ -21,7 +21,7 @@ export default function Hud() {
    return <div className={styles.wrap}>
       <HintLine text={hint.text} tone={hint.tone} />
       <div className={styles.flight} data-arcade-safe-area>
-         <span>{PLANETS[Math.max(0, Math.min(4, planet - 1))].name} {planet || 1}/{config?.planets ?? 5}</span>
+         <span>{worldsOf(config)[Math.max(0, Math.min(4, planet - 1))].name} {planet || 1}/{config?.planets ?? 5}</span>
          <span className={styles.fuel}>Fuel {fuel}<meter min={0} max={100} value={fuel} aria-label="Fuel remaining percent" /></span>
          <span title="Pad-relative horizontal speed: below 1 m/s">↔ {(vx / 10).toFixed(1)}</span>
          <span title="Descending speed: below 2 m/s">↕ {(vy / 10).toFixed(1)}</span>

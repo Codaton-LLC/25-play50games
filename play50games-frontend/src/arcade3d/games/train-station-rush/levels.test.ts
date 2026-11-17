@@ -50,8 +50,8 @@ describe("station levels: declarations", () => {
       expect(definition.resultDelayMs).toBe(900);
    });
 
-   it("level 1 is the spec's base game: 2 platforms, 4 bags, one task at a time, 120 s, day", () => {
-      expect(LEVELS[1]).toEqual({ platforms: 2, tasks: 4, passengerShare: 0, parallel: 1, arriveS: 4, dwellS: 22, crowd: 0, durationMs: 120_000, lighting: "day", background: "#bae6fd" });
+   it("level 1 is the spec's base game: 2 platforms, 4 bags, one task at a time, 120 s, day, local theme", () => {
+      expect(LEVELS[1]).toEqual({ platforms: 2, tasks: 4, passengerShare: 0, parallel: 1, arriveS: 4, dwellS: 22, crowd: 0, durationMs: 120_000, lighting: "day", background: "#bae6fd", theme: "local" });
       expect(levelRunConfig(definition, 1).durationMs).toBe(120_000);
       expect(levelEnvironment(definition, 1)?.lighting).toBe("day");
       expect(levelHudStats(definition, 1)).toEqual([{ key: "delivered", label: "Delivered", max: 4 }]);

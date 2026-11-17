@@ -122,6 +122,8 @@ export const ASSETS = {
       fallbackColor: "#a5f3fc",
       budget: { ...PROP_BUDGET },
    },
+   /** The Frozen Lake's shore boulders (shared rock, 1.8 m across), level 3's bank scenery. */
+   rock: { ...EXPANSION_ASSETS.rock, scale: 1.8 / EXPANSION_GLB_SIZE.rock.width },
    glacierChunk: {
       id: "glacierChunk",
       url: "/models/3d/penguin-slide/glacierChunk.glb",

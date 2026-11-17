@@ -6,7 +6,7 @@ Owner: cursor. Slug: `firefighter-rescue`. Order 31. Status `dev`. Collection `a
 
 Enter the floor at `(0, 0.85)`. Put every fire out and walk every neighbour into the exit, one at a time. The shell clock and three lives end the run. A partial score ranks; only a win clears the level (no `clearScore`).
 
-Corridor hall is `x ∈ [−1.5, 1.5]`. Rooms alternate left and right, 6 m along z and 5 m deep, from z = 0. The porch starts at z = −3.4. Door openings are ±0.8 m around each room's middle. A locked door is a fire on the hall side of that doorway (`x = ±1.02`) plus a solid slab. The flood fill keeps the room shut until that fire is out. The exit rect is `x ∈ [−1.15, 1.15]`, `z ∈ [−2.9, −1.15]`. The escort stand is `(0, −2.7)`.
+Corridor hall is `x ∈ [−1.5, 1.5]`. Every level has its own floor plan (levels.ts `plan`): which side each room opens on, how deep the wing runs (5 m, or 6.5 m warehouse bays), where the doorway sits along the room, and the furniture theme. Rooms are 6 m along z, from z = 0. The porch starts at z = −3.4. Door openings are ±0.8 m around each room's doorway. A locked door is a fire on the hall side of that doorway (`x = ±1.02`) plus a solid slab. The flood fill keeps the room shut until that fire is out. The exit rect is `x ∈ [−1.15, 1.15]`, `z ∈ [−2.9, −1.15]`. The escort stand is `(0, −2.7)`.
 
 On-foot mover: radius 0.38, top speed 4.6, accel 22, brake 28. Inside a smoke disc the speed is × 0.65. `inputToWorld` uses the fitted camera yaw, so keyboard and touch share the same step.
 
@@ -22,15 +22,15 @@ Score, all integers: +100 per fire, +150 when a neighbour enters the exit, +50 m
 
 ## Levels
 
-Same corridor. Only counts, breath drain, clock and the core lighting preset change. Fog is `[background, 14, 36]`.
+Each level is its own floor plan and look: the room sides, wing depth, doorway positions and the furniture theme come from the level's `plan` (levels.ts), and the palette, fog and the exterior set dressing come from `levelColors` / `levelDecor` (looks.ts). Only level 1 is the original corridor. Counts, drain, clock and the lighting preset ramp as before; fog is per level on the level's background.
 
-| L | Title | Rooms | Fires | People | Smoke | Locked | Debris | Drain /s | Clock | Light |
-|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---|
-| 1 | Small Apartment | 2 | 2 | 1 | 1 | 0 | 0 | 0.15 | 120 s | indoor `#292524` |
-| 2 | Family House | 3 | 4 | 2 | 2 | 1 | 0 | 0.18 | 150 s | day `#44403c` |
-| 3 | Office | 4 | 6 | 3 | 3 | 1 | 0 | 0.22 | 180 s | indoor `#1c1917` |
-| 4 | Hotel | 5 | 8 | 4 | 4 | 2 | 1 | 0.28 | 180 s | night `#0c0a09` |
-| 5 | Warehouse | 6 | 10 | 5 | 5 | 2 | 2 | 0.32 | 210 s | sunset `#291c14` |
+| L | Title | Rooms | Fires | People | Smoke | Locked | Debris | Drain /s | Clock | Light | Plan |
+|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---|---|
+| 1 | Small Apartment | 2 | 2 | 1 | 1 | 0 | 0 | 0.15 | 120 s | indoor `#292524` | alternating wings, 5 m deep, centred doors, apartment furniture |
+| 2 | Family House | 3 | 4 | 2 | 2 | 1 | 0 | 0.18 | 150 s | day `#44403c` | L-shaped (two rooms on the right), doors 1.1 m toward the exit, house furniture |
+| 3 | Office | 4 | 6 | 3 | 3 | 1 | 0 | 0.22 | 180 s | indoor `#1c1917` | staggered doorways ±0.8 m, desks and a break sofa |
+| 4 | Hotel | 5 | 8 | 4 | 4 | 2 | 1 | 0.28 | 180 s | night `#0c0a09` | five rooms, every door 1.2 m toward the exit, bedroom sets |
+| 5 | Warehouse | 6 | 10 | 5 | 5 | 2 | 2 | 0.32 | 210 s | sunset `#291c14` | wide 6.5 m bays, crate stacks, locker benches |
 
 ## Controls
 
@@ -49,9 +49,9 @@ The sketch assumed an earliest win M and `peak = Bobj + 6 * (durationS − M)`, 
 | L | Bobj | Measured win | Score | base + pps × seconds | maxScore | Best / max |
 |---|---:|---:|---:|---:|---:|---:|
 | 1 | 400 | 8.40 s | 1066 | 400 + 96 × 8.40 = 1206 | 1100 | 96.9% |
-| 2 | 800 | 21.78 s | 1568 | 800 + 40 × 21.78 = 1671 | 1650 | 95.0% |
-| 3 | 1200 | 38.97 s | 2046 | 1200 + 32 × 38.97 = 2447 | 2200 | 93.0% |
-| 4 | 1600 | 57.67 s | 2332 | 1600 + 24 × 57.67 = 2984 | 2550 | 91.5% |
+| 2 | 800 | 19.80 s | 1580 | 800 + 40 × 19.80 = 1592 | 1650 | 95.8% |
+| 3 | 1200 | 37.92 s | 2052 | 1200 + 32 × 37.92 = 2413 | 2200 | 93.3% |
+| 4 | 1600 | 55.93 s | 2344 | 1600 + 24 × 55.93 = 2942 | 2550 | 91.9% |
 | 5 | 2000 | 80.43 s | 2774 | 2000 + 20 × 80.43 = 3609 | 3050 | 91.0% |
 
 The score is `Bobj + 6 * floor(timeLeft)`. Level 1's 8.40 s leaves 111 full seconds (`666 + 400 = 1066`). A hypothetical 7.5 s clear would score 1072, and `400 + 96 * 7.5 = 1120` still accepts it. The oracle did not beat 8.3 s in 24 runs.
@@ -60,7 +60,9 @@ Proof (`rules.test.ts`, through `createArcadeStore` + `advanceRunClock` + `withi
 
 ## Look
 
-One palette in `looks.ts`. Walls `#44403c`, floor `#292524`, ember `#f97316` on the active fire only. Lighting and background come from the level. Camera: follow, pitch 52°, yaws `[0, π/2]`, fov 48, `followFocus` fraction 0.45, `shift: true`, look-ahead 1.5 m.
+One palette per level in `looks.ts` (`levelColors`; level 1 keeps the original `COLORS`). The embers, smoke, debris and the civilians stay the same on every level so the objectives and hazards always read. Lighting, background and fog come from the level. Camera: follow, pitch 52°, yaws `[0, π/2]`, fov 48, `followFocus` fraction 0.45, `shift: true`, look-ahead 1.5 m.
+
+The exterior set dressing is per level too (`levelDecor`, instanced boxes and cylinders plus emissive window strips, all off the walkable floor — levels-variety.test.ts): level 1 keeps the bare street; the family house gets a front garden, hedges and a mailbox; the office gets an entrance canopy, glass strips and a gable sign; the hotel gets a lit portico, topiary and warm windows at night; the warehouse gets a loading dock, a roller-door frame, barrels and pallets.
 
 Models (2026-10-28, `claude/firefighter-models`): every visible object is a Hyper3D GLB, fitted in `assets.ts` from its measured bounds (`assets.test.ts` checks each fit and triangle count on the real mesh).
 
@@ -69,7 +71,7 @@ Models (2026-10-28, `claude/firefighter-models`): every visible object is a Hype
 - **Exit signs** (`exitSignV2`, an arrow sign; `exitSign` has a letter-like glyph and is not used): one under a lintel over the porch mouth, one flush on each porch wall over the exit zone, all above 1.7 m.
 - **Fire doors**: each room has a double fire door (`fireDoor.glb`, two 0.8 x 2.1 m leaves in the hall wall). A locked room's leaves stay shut while its doorway fire burns, then swing 90° into the room; unlocked rooms start open (`doorLeaf` in `looks.ts`).
 - **Debris**: each hazard is a pile of two crossed charred planks (`fallingDebris.glb`, 0.68 m) inside the rules' box; it tumbles while it slides and shudders during the end warnings.
-- **Furniture**: the shared sofa, bed, cabinet and wooden chair fill their `FURN_SIZE` boxes (one `InstancedModel` per kind), turned to face into their rooms.
+- **Furniture**: the shared sofa, bed, cabinet and wooden chair fill their `FURN_SIZE` boxes (one `InstancedModel` per kind), placed by the level's theme (rules.ts `placeFurniture` — apartment, house, office, hotel, warehouse) and turned to face into their rooms.
 - **Neighbours**: the shared `civilianNpc` (1.62 m) in one `DynamicInstancedModel` pool of 5 with a waddle. It is not a T-pose (hands on hips), so it cannot be auto-rigged.
 
 - **Cutaway walls**: from the fitted yaw, every wall with play floor right behind it is drawn 1.0 m tall instead of 2.25 m (`cutawayWalls` in `looks.ts`), and the door leaves, plaques, signs and the porch lintel in such a wall follow it, so no wall or door hides the firefighter, a fire or a neighbour (`looks.test.ts` traces the sightlines on every level and both yaws). Before this the near hall wall hid the firefighter on desktop.

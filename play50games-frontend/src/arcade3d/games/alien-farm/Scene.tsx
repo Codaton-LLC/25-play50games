@@ -334,7 +334,7 @@ export default function Scene() {
             offset={view.offset}
             shift={view.shift}
          />
-         <FarmScene />
+         <FarmScene level={config} />
          <Crops run={run} reducedMotion={reducedMotion} />
          <Saucer run={run} reducedMotion={reducedMotion} />
          <Farmer run={run} />

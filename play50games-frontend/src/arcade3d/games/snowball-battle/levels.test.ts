@@ -94,10 +94,9 @@ describe("snowball-battle levels: declarations", () => {
       expect(levelHudStats(definition, 1)).toEqual(definition.hudStats);
    });
 
-   it("keeps the snow look, the same chips and the same instructions on every level", () => {
+   it("keeps the chips and the run config on every level; levels 2-5 get their own light and a twist line", () => {
+      const lights = new Set<string>();
       for (const id of LEVEL_IDS) {
-         expect(levelEnvironment(definition, id)).toEqual(definition.environment);
-         expect(levelInstructions(definition, id)).toBe(definition.instructions);
          expect(levelHudStats(definition, id)).toEqual([
             { key: "time", label: "Time" },
             { key: "ammo", label: "Ammo" },
@@ -105,7 +104,14 @@ describe("snowball-battle levels: declarations", () => {
          ]);
          expect(levelRunConfig(definition, id)).toEqual(levelRunConfig(definition, 1));
          expect(LEVELS[id].duration).toBe(90);
+         const env = levelEnvironment(definition, id)!;
+         lights.add(`${env.lighting} ${env.background} ${env.fog?.[0]}`);
+         if (id === 1) continue;
+         const lines = levelInstructions(definition, id);
+         expect(lines.slice(0, 3)).toEqual(definition.instructions);
+         expect(lines).toHaveLength(4);
       }
+      expect(lights.size).toBe(5);
    });
 });
 
@@ -153,12 +159,14 @@ describe("snowball-battle levels: difficulty", () => {
       expect(flightTime(16, LEVELS[2])).toBeCloseTo(0.9, 10);
    });
 
-   it("level 4 forts start on 2 HP in the same places as level 1", () => {
+   it("level 4 forts start on 2 HP; every level puts its forts somewhere else", () => {
       const easy = createRun(4, false, LEVELS[1]);
       const hard = createRun(4, false, LEVELS[4]);
-      expect(hard.forts.map((fort) => [fort.x, fort.z])).toEqual(easy.forts.map((fort) => [fort.x, fort.z]));
       expect(hard.forts.every((fort) => fort.hp === 2)).toBe(true);
       expect(easy.forts.every((fort) => fort.hp === 3)).toBe(true);
+      const layouts = LEVEL_IDS.map((id) => JSON.stringify(LEVELS[id].arena.forts));
+      expect(new Set(layouts).size).toBe(5);
+      expect(new Set(LEVEL_IDS.map((id) => LEVELS[id].arena.theme)).size).toBe(5);
    });
 });
 

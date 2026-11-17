@@ -25,7 +25,7 @@ export function shadowTop(run: Readonly<Run>, at: { x: number; z: number }): num
    for (let i = 0; i < run.pieces.length; i++) {
       const piece = run.pieces[i];
       if (!piece.on) continue;
-      slotAt(piece.slot, at);
+      slotAt(piece.slot, at, run.level);
       if (Math.abs(run.hookX - at.x) <= 0.68 && Math.abs(run.hookZ - at.z) <= 0.68) {
          top = Math.max(top, (piece.floor + 1) * FLOOR);
       }

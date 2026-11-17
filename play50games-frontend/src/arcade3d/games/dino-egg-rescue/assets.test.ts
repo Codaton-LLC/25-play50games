@@ -13,6 +13,8 @@ import {
    DINO_EGG_HEIGHT,
    DINO_NEST_DIAMETER,
    DINO_NEST_HEIGHT,
+   FARM_FENCE_GLB,
+   JUNGLE_GLB,
    GOLDEN_EGG_HEIGHT,
    LAVA_ROCK_DRAWN,
    LAVA_ROCK_GLB,
@@ -166,5 +168,40 @@ describe("dino-egg-rescue lava rock decor (levels 4-5 only)", () => {
       expect(nest.min.y).toBeCloseTo(0, 2);
       expect(nest.getSize(new Vector3()).y).toBeCloseTo(DINO_NEST_HEIGHT, 2);
       expect(nest.getSize(new Vector3()).x).toBeCloseTo(DINO_NEST_DIAMETER, 2);
+   });
+});
+
+describe("dino-egg-rescue level props (reused GLBs, maps.ts)", () => {
+   it("every level prop GLB is in the manifest", () => {
+      for (const asset of [ASSETS.fern, ASSETS.log, ASSETS.bankRock, ASSETS.bridge, ASSETS.fence]) {
+         expect(hasModel(asset.url), asset.url).toBe(true);
+      }
+   });
+
+   it("the reused GLBs measure what the fits assume", async () => {
+      const size = async (url: string) => {
+         const { cloud } = await readCharacterGlb(url);
+         const min = [Infinity, Infinity, Infinity];
+         const max = [-Infinity, -Infinity, -Infinity];
+         for (let i = 0; i < cloud.length; i += 3) for (let k = 0; k < 3; k++) {
+            min[k] = Math.min(min[k], cloud[i + k]);
+            max[k] = Math.max(max[k], cloud[i + k]);
+         }
+         return max.map((v, k) => v - min[k]);
+      };
+      for (const [url, s] of [
+         [ASSETS.fern.url, JUNGLE_GLB.jungleFern],
+         [ASSETS.log.url, JUNGLE_GLB.jungleLogSingle],
+         [ASSETS.bridge.url, JUNGLE_GLB.woodenBridge],
+      ] as const) {
+         const [w, h, d] = await size(url);
+         expect(w, url).toBeCloseTo(s.width, 1);
+         expect(h, url).toBeCloseTo(s.height, 1);
+         expect(d, url).toBeCloseTo(s.depth, 1);
+      }
+      const [fx, fy, fz] = await size(ASSETS.fence.url);
+      expect(fx).toBeCloseTo(FARM_FENCE_GLB.x, 1);
+      expect(fy).toBeCloseTo(FARM_FENCE_GLB.y, 1);
+      expect(fz).toBeCloseTo(FARM_FENCE_GLB.z, 1);
    });
 });

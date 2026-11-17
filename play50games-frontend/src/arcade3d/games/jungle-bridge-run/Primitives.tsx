@@ -5,7 +5,7 @@
 // same spots place both. Vines, lava vents, gems and stilts are code by design (spec: hangingVineV2 is
 // still needed; markers and glows stay code).
 import { memo, useEffect, useMemo } from "react";
-import { BoxGeometry, ConeGeometry, CylinderGeometry, DodecahedronGeometry, IcosahedronGeometry, MeshStandardMaterial, OctahedronGeometry, SphereGeometry, TorusGeometry, type BufferGeometry, type Material } from "three";
+import { BoxGeometry, ConeGeometry, CylinderGeometry, DodecahedronGeometry, DoubleSide, IcosahedronGeometry, MeshStandardMaterial, OctahedronGeometry, PlaneGeometry, SphereGeometry, TorusGeometry, type BufferGeometry, type Material } from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { Instanced, type InstancePart, type InstanceSpot } from "@/arcade3d/core/render";
 import { FIT } from "./assets";
@@ -127,6 +127,27 @@ export const lavaGlowParts = (): InstancePart[] => [
 
 /** a stilt: a unit box (spots set sx / sy / sz) */
 export const stiltParts = (): InstancePart[] => [{ geometry: new BoxGeometry(1, 1, 1), material: mat(COLORS.planksDark, { roughness: 0.9 }) }];
+
+/** a waterfall sheet (L3): a translucent plane, its spot's y is the lip, sy the drop (geometry hangs down) */
+export const fallParts = (): InstancePart[] => [
+   { geometry: new PlaneGeometry(1, 1).translate(0, -0.5, 0), material: mat(COLORS.fall, { transparent: true, opacity: 0.55, roughness: 0.2, depthWrite: false, side: DoubleSide }) },
+   { geometry: new PlaneGeometry(0.7, 1).translate(0, -0.5, 0.06), material: mat(COLORS.fallDeep, { transparent: true, opacity: 0.4, roughness: 0.2, depthWrite: false, side: DoubleSide }) },
+];
+
+/** the mist pool at a waterfall's base (L3): a soft flat puff */
+export const mistParts = (): InstancePart[] => [
+   { geometry: new SphereGeometry(0.5, 10, 7).scale(1, 0.32, 1), material: mat(COLORS.mist, { transparent: true, opacity: 0.35, roughness: 1, depthWrite: false }) },
+];
+
+/** a lava stream down the canyon wall (L5): a glowing sheet, its spot's y is the lip, sy the drop */
+export const lavafallParts = (): InstancePart[] => [
+   { geometry: new PlaneGeometry(1, 1).translate(0, -0.5, 0), material: mat(COLORS.lavaGlow, { emissive: COLORS.lavaGlow, emissiveIntensity: 1.3, transparent: true, opacity: 0.85, depthWrite: false, side: DoubleSide }) },
+];
+
+/** a drifting ember (L5): a tiny glowing tetrahedron, animated by the Scene */
+export const emberParts = (): InstancePart[] => [
+   { geometry: new OctahedronGeometry(0.5, 0), material: mat(COLORS.ember, { emissive: COLORS.lavaGlow, emissiveIntensity: 1.6, transparent: true, opacity: 0.9 }) },
+];
 
 /** The explorer stand-in: khaki shirt, shorts, boots, a hat; 1.76 m. */
 export const ExplorerPrimitive = memo(function ExplorerPrimitive() {

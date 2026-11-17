@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef } from "react";
 import { BufferAttribute, BufferGeometry, type Group } from "three";
 import { useFrame } from "@react-three/fiber";
 import { createStripScratch, createTrackFrame, fillStrip, stripFloats, trackFrame } from "./ground";
-import { COLORS } from "./looks";
+import { THEMES, type SlideTheme } from "./looks";
 import { chunkAt, createRun, sampleTrack, type Run } from "./rules";
 
 interface Vec3Point {
@@ -18,12 +18,7 @@ function hexToRgb(hex: string): [number, number, number] {
    return [((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255];
 }
 
-const TONES = [
-   hexToRgb(COLORS.snowSun),
-   hexToRgb(COLORS.terrainSnow),
-   hexToRgb(COLORS.terrainShade),
-   hexToRgb(COLORS.terrainIce),
-];
+const tonesOf = (theme: SlideTheme) => theme.tones.map(hexToRgb);
 
 // The view-space helpers below (sampleWorldAt, createTrackPathSampler, createTerrainSampler) describe
 // the ground surface around the penguin for the decor tests. The drawn ground is ground.ts
@@ -173,9 +168,10 @@ function stripGeometry(): BufferGeometry {
  * track (ground.ts trackFrame), so it scrolls with the track. A strip is rebuilt only when the run
  * generates a new chunk (every 60 m); a frame only moves one group. No allocation per frame.
  */
-export function Terrain({ run, reduced: _reduced }: { run: Run; reduced: boolean }) {
+export function Terrain({ run, reduced: _reduced, theme = THEMES.snowHill }: { run: Run; reduced: boolean; theme?: SlideTheme }) {
    const root = useRef<Group>(null);
    const state = useMemo(() => {
+      const TONES = tonesOf(theme);
       const scratch = createStripScratch();
       const geometries = [stripGeometry(), stripGeometry(), stripGeometry()];
       const indices = [-1, -1, -1];
@@ -196,7 +192,7 @@ export function Terrain({ run, reduced: _reduced }: { run: Run; reduced: boolean
       };
       fill();
       return { scratch, geometries, frame, fill, p: { x: 0, y: 0, z: 0 }, t: { x: 0, y: 0, z: 0 } };
-   }, [run]);
+   }, [run, theme]);
 
    useEffect(() => () => {
       for (const g of state.geometries) g.dispose();
@@ -229,7 +225,7 @@ export function Terrain({ run, reduced: _reduced }: { run: Run; reduced: boolean
          */}
          <mesh name="arctic-ground-base" rotation={[-Math.PI / 2, 0, 0]} position={[0, BASE_PLANE_Y, -60]}>
             <planeGeometry args={[1200, 1200]} />
-            <meshBasicMaterial color={COLORS.fog} />
+            <meshBasicMaterial color={theme.fog} />
          </mesh>
       </group>
    );

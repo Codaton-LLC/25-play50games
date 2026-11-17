@@ -36,11 +36,18 @@ const RECTS: [number, number, number, number, boolean?][][] = [
    [[-1.5, 1.5, -4.2, 4.2]],
    [[-1.5, 1.5, -4.2, 4.2]],
    [[-1.5, 1.5, -4.2, 4.2]],
+   // level holes (course.ts specs 9-14)
+   [[-0.6, 0.6, RAMP.start, 3.0], [-0.6, 0.6, RAMP.lip, RAMP.start], [-0.6, 0.6, -3.2, RAMP.gapEnd], [0.6, 2.4, -3.2, -2.0]],
+   [[-0.6, 0.6, RAMP.start, 3.0], [-0.6, 0.6, RAMP.lip, RAMP.start], [-0.6, 0.6, -1.0, RAMP.gapEnd], [-1.2, 1.2, -4.2, -1.0]],
+   [[-0.8, 0.8, -1.0, 3.0], [-1.2, 1.2, -3.0, -1.0]],
+   [[-0.8, 0.8, -3.0, 3.0]],
+   [[-1.5, 1.5, -4.2, 4.2]],
+   [[-1.5, 1.5, -4.2, 4.2]],
 ];
 
 /** The hole's felt regions (mirrored with the hole). */
 export function feltRects(hole: Hole): FeltRect[] {
-   return RECTS[hole.index].map(([a, b, z0, z1, upper]) => (hole.sx > 0 ? { x0: a, x1: b, z0, z1, upper: !!upper } : { x0: -b, x1: -a, z0, z1, upper: !!upper }));
+   return RECTS[hole.spec].map(([a, b, z0, z1, upper]) => (hole.sx > 0 ? { x0: a, x1: b, z0, z1, upper: !!upper } : { x0: -b, x1: -a, z0, z1, upper: !!upper }));
 }
 
 export function onFelt(rects: readonly FeltRect[], x: number, z: number): boolean {
@@ -84,7 +91,7 @@ const FOLLOW = new Map<string, readonly FollowFit[]>();
 
 /** The fixed whole-hole fit (one cached object per hole and mirror). Hole 4 faces the camera (its blades). */
 export function fixedView(hole: Hole): FittedViewOptions {
-   const key = `${hole.index}${hole.mirrored}`;
+   const key = `${hole.spec}${hole.mirrored}`;
    let v = FIXED.get(key);
    if (!v) {
       const area = holeArea(hole);
@@ -110,7 +117,7 @@ export interface FollowFit {
  * (the blade disc's top at the tee, under a 10 px ball on a landscape phone with the banner open).
  */
 export function followViews(hole: Hole): readonly FollowFit[] {
-   const key = `${hole.index}${hole.mirrored}`;
+   const key = `${hole.spec}${hole.mirrored}`;
    let v = FOLLOW.get(key);
    if (!v) {
       const a = holeArea(hole);
@@ -141,7 +148,7 @@ const ESTABLISH = new Map<string, FittedViewOptions>();
 
 /** The establishing shot: the fixed whole-hole fit at the follow view's yaw (so the camera never turns between the two). */
 export function establishView(hole: Hole, yaw: number): FittedViewOptions {
-   const key = `${hole.index}${hole.mirrored}${yaw}`;
+   const key = `${hole.spec}${hole.mirrored}${yaw}`;
    let v = ESTABLISH.get(key);
    if (!v) {
       v = { ...fixedView(hole), yaws: [yaw] };
@@ -471,3 +478,26 @@ export function surroundingsSpots(holes: readonly Hole[], yaws: readonly number[
 
    return { flowers, palms, pennants, hills: [...DISTANT_HILLS], clubhouse: [CLUBHOUSE], clouds, backdropIslands, horizonLine };
 }
+
+/**
+ * Each level's course dress (README "Levels"): felt stripes and rail paint. Level 1 is today's
+ * mahogany rails on green; the Ramp Course has red-and-white painted ramp rails, the Windmill Course
+ * Dutch blue rails, the Neon Course glowing cyan rails on violet felt, the Master Course walnut and gold.
+ */
+export interface CourseLook {
+   feltHi: string;
+   feltLo: string;
+   railTop: string;
+   railMid: string;
+   railBot: string;
+   /** emissive glow of the rails (null = none) */
+   railGlow: string | null;
+}
+
+export const COURSE_LOOKS: Record<1 | 2 | 3 | 4 | 5, CourseLook> = {
+   1: { feltHi: "#22c55e", feltLo: "#15803d", railTop: "#451a03", railMid: "#92400e", railBot: "#78350f", railGlow: null },
+   2: { feltHi: "#4ade80", feltLo: "#22c55e", railTop: "#f8fafc", railMid: "#dc2626", railBot: "#991b1b", railGlow: null },
+   3: { feltHi: "#16a34a", feltLo: "#166534", railTop: "#f8fafc", railMid: "#1d4ed8", railBot: "#1e3a8a", railGlow: null },
+   4: { feltHi: "#6d28d9", feltLo: "#4c1d95", railTop: "#a5f3fc", railMid: "#06b6d4", railBot: "#0e7490", railGlow: "#22d3ee" },
+   5: { feltHi: "#15803d", feltLo: "#14532d", railTop: "#fbbf24", railMid: "#57290e", railBot: "#3b1a07", railGlow: null },
+};

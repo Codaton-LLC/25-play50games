@@ -26,6 +26,8 @@ import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { ASSETS, MARKET_COLORS, MARKET_DRAWN, MARKET_SPOTS, type MarketKind, BAKERY_DRAWN, BAKERY_FALLBACK_SPOTS, BAKERY_HEIGHT, BAKERY_SPOTS, SCRUBBER_DRAWN, SCRUBBER_FALLBACK_SPOTS, SCRUBBER_HEIGHT, SCRUBBER_SPOTS, SHELF_BAYS } from "./assets";
 import { STORE_BOUNDS, viewFor } from "./camera";
 import { Decor } from "./Decor";
+import StoreSetPieces from "./StoreSetPieces";
+import { STORE_LOOKS } from "./storeLooks";
 import { COLORS, FLOOR } from "./looks";
 import {
    CartPrimitive,
@@ -76,6 +78,7 @@ export default function Scene() {
    // Seeded run state created once per run
    const { config, id: levelId } = useLevel<ShoppingCartLevel>();
    const [run] = useState<RunState>(() => createRun(randomSeed(), config));
+   const look = STORE_LOOKS[run.level.store.theme];
 
    // camera views (core/camera): the rules get the drawn camera's yaw (the fitted yaw in the default view)
    const cam = useCameraViews({
@@ -87,7 +90,8 @@ export default function Scene() {
          const c = run.cart;
          o.x = c.x; o.y = 0.7; o.z = c.z; o.heading = c.heading; o.vx = c.vx; o.vz = c.vz;
       },
-      solids: (out: AABB[]) => fillSolids(SOLID_OBSTACLES, out),
+      // the level's own solids (set pieces, the shut lane) keep the chase / front views out of them too
+      solids: (out: AABB[]) => fillSolids(run.solids ?? SOLID_OBSTACLES, out),
       framing: { top: { distance: 12 } },
    });
 
@@ -285,13 +289,13 @@ export default function Scene() {
          />
 
          {/* Sky Dome from core env */}
-         <SkyDome top={COLORS.skyTop} bottom={COLORS.skyBottom} />
+         <SkyDome top={look.skyTop} bottom={look.skyBottom} />
 
          {/* Instanced Decor strictly outside play area standing on the ground */}
          <Decor />
 
          {/* Supermarket Interior & Parking Lot Exterior Environment */}
-         <StoreEnvironment run={run} />
+         <StoreEnvironment run={run} banner={look.banner} />
 
          {/* Floor scrubbers parked on the north apron: the after-hours cleaning crew,
              drawn only on levels 4 (Superstore) and 5 (Closing-Time Rush). */}
@@ -307,6 +311,9 @@ export default function Scene() {
                }
             />
          )}
+
+         {/* Levels 2-5: the level's own floor (set pieces, floor machines, the lane shutter, wet floor) */}
+         <StoreSetPieces run={run} />
 
          {/* Cart + Pusher Runner Coupled Group */}
          <CartRunner run={run} />
@@ -806,7 +813,7 @@ function FinishMat({ run }: { run: RunState }) {
    );
 }
 
-function StoreEnvironment({ run }: { run: RunState }) {
+function StoreEnvironment({ run, banner }: { run: RunState; banner: string | null }) {
    const floorTexture = useCanvasTexture(512, 512, drawSupermarketFloor);
    const parkingTexture = useCanvasTexture(512, 512, drawParkingLot);
 
@@ -920,7 +927,7 @@ function StoreEnvironment({ run }: { run: RunState }) {
          {/* The aisle banners and blue category signs stay on top of the GLB bays (the look pass's readable signs). */}
          <Instanced spots={SHELF_BANNER_SPOTS} name="shelves-banner">
             <boxGeometry args={[1.22, 0.12, 12.0]} />
-            <meshStandardMaterial color={COLORS.shelfBanner} roughness={0.35} />
+            <meshStandardMaterial color={banner ?? COLORS.shelfBanner} roughness={0.35} emissive={banner ?? "#000000"} emissiveIntensity={banner ? 0.25 : 0} />
          </Instanced>
          <Instanced spots={SHELF_SIGN_SPOTS} name="shelves-signs">
             <boxGeometry args={[1.15, 0.25, 2.4]} />

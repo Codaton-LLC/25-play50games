@@ -68,6 +68,8 @@ export function TrolleyPrimitive() {
             <Rb key={z} size={[0.05, 1.3, 0.05]} at={[0, 0.9, z]} color={COLORS.brass} r={0.02} metal={0.7} rough={0.3} />
          ))}
          <Rb size={[0.05, 0.05, 0.9]} at={[0, 1.53, 0]} color={COLORS.brass} r={0.02} metal={0.7} rough={0.3} />
+         {/* the near crossbar he holds (cart.ts HANDLE_Y / HANDLE_AHEAD) */}
+         <Rb size={[0.5, 0.04, 0.04]} at={[0, 0.89, 0.37]} color={COLORS.brass} r={0.015} metal={0.7} rough={0.3} />
          {[-0.25, 0.25].map((x) => [-0.38, 0.38].map((z) => (
             <mesh key={`${x}${z}`} position={[x, 0.08, z]} rotation-z={Math.PI / 2}>
                <cylinderGeometry args={[0.07, 0.07, 0.05, 14]} />

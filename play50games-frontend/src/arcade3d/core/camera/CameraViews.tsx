@@ -102,6 +102,12 @@ export interface CameraViewsOptions {
    keys?: readonly string[];
    /** the free view's turn keys (default orbitGestures ORBIT_KEYS: Q/Z, X, R/F, V) */
    orbitKeys?: OrbitKeys;
+   /**
+    * mouse buttons (PointerEvent.button) that drag the camera: default [0, 2] (left and right). A game
+    * that reads a left click as an action (snowball-battle: click to throw) passes [2, 1] (right and
+    * middle), so a click never turns the camera; the first-time hint then says "right-drag".
+    */
+   mouseButtons?: readonly number[];
 }
 
 export interface CameraViewsHandle {
@@ -135,6 +141,8 @@ function useViewInput(element: HTMLElement, gestures: OrbitGestures, keys: reado
          if (!turnable()) return;
          if (e.target instanceof Element && e.target.closest(`[${CONTROLS_ATTR}]`)) return;
          if (gestures.down(e.pointerId, e.clientX, e.clientY, kind(e), e.button)) {
+            // a middle-button drag must not start the browser's autoscroll
+            if (e.button === 1) e.preventDefault();
             try {
                element.setPointerCapture(e.pointerId);
             } catch {
@@ -203,7 +211,9 @@ function useViewInput(element: HTMLElement, gestures: OrbitGestures, keys: reado
 }
 
 export function useCameraViews(options: CameraViewsOptions): CameraViewsHandle {
-   const { slug, subject, steering, framing: overrides, oneFinger = true, keys = VIEW_KEYS, orbitKeys } = options;
+   const { slug, subject, steering, framing: overrides, oneFinger = true, keys = VIEW_KEYS, orbitKeys, mouseButtons } = options;
+   const buttonKey = (mouseButtons ?? [0, 2]).join(",");
+   const leftDrag = buttonKey.split(",").includes("0");
    const opts = useRef(options);
    opts.current = options;
    const camera = useThree((s) => s.camera) as PerspectiveCamera;
@@ -224,7 +234,7 @@ export function useCameraViews(options: CameraViewsOptions): CameraViewsHandle {
       return out;
    }, [subject, steering, framings]);
 
-   const gestures = useMemo(() => createOrbitGestures({ oneFinger, keys: orbitKeys }), [oneFinger, orbitKeys]);
+   const gestures = useMemo(() => createOrbitGestures({ oneFinger, keys: orbitKeys, mouseButtons: buttonKey.split(",").map(Number) }), [oneFinger, orbitKeys, buttonKey]);
    const cycle = useMemo(() => ({ pending: 0 }), []);
    useViewInput(element, gestures, keys, cycle);
 
@@ -270,7 +280,7 @@ export function useCameraViews(options: CameraViewsOptions): CameraViewsHandle {
 
    // the 📷 button and the hint read the live list and view
    useEffect(() => {
-      publishViews({ list, current: s.view, key: keys[0]?.replace(/^Key/, "") ?? "C", oneFinger });
+      publishViews({ list, current: s.view, key: keys[0]?.replace(/^Key/, "") ?? "C", oneFinger, leftDrag });
    });
    useEffect(() => () => publishViews(null), []);
 
@@ -292,7 +302,7 @@ export function useCameraViews(options: CameraViewsOptions): CameraViewsHandle {
       if (s.view !== view) {
          s.view = view;
          saveView(slug, view);
-         publishViews({ list, current: view, key: keys[0]?.replace(/^Key/, "") ?? "C", oneFinger });
+         publishViews({ list, current: view, key: keys[0]?.replace(/^Key/, "") ?? "C", oneFinger, leftDrag });
       }
    };
 

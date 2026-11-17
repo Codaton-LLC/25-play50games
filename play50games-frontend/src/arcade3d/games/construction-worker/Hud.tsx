@@ -6,8 +6,8 @@ import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { PIECE_NAME } from "./rules";
 import { markerColor, RATING_NAME } from "./dropGuide";
 import styles from "./Hud.module.css";
-
-const BUILDING = ["House", "Shop", "Tower"];
+import { BUILDING_NAMES } from "./looks";
+import { useCraneLevel } from "./useCraneLevel";
 
 function useStat(key: string, fallback = 0): number {
    return useArcadeStore((s) => s.stats[key] ?? fallback);
@@ -30,7 +30,8 @@ function GameHud() {
    const cheer = useStat("cheer");
    const kind = Math.min(4, Math.max(0, piece - 1));
    const name = PIECE_NAME[kind] ?? "Slab";
-   const site = BUILDING[Math.min(2, Math.max(0, building - 1))] ?? "House";
+   const names = BUILDING_NAMES[useCraneLevel().config.site];
+   const site = names[Math.min(2, Math.max(0, building - 1))] ?? names[0];
 
    let tone = styles.pill;
    let head: ReactNode;

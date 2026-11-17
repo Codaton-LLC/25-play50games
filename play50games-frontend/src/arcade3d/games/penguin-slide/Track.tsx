@@ -4,11 +4,11 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
 import { BufferAttribute, BufferGeometry, Color, Matrix4, Quaternion, Vector3, type Group } from "three";
 import { DynamicInstancedModel } from "@/arcade3d/core/assets";
+import { BANK_LATERAL, COLORS, THEMES, type SlideTheme } from "./looks";
 import { scaledCount, useQuality } from "@/arcade3d/core/quality";
 import { DynamicInstanced, useCanvasTexture } from "@/arcade3d/core/render";
 import type { LevelId } from "@/arcade3d/types";
 import { ASSETS, AURORA_CRYSTAL_LOCAL, AURORA_CRYSTAL_LATERAL, GLACIER_CHUNK_LOCAL, GLACIER_CHUNK_LATERAL, ICE_ARCH_LATERAL } from "./assets";
-import { COLORS } from "./looks";
 import { usePropParts } from "./Primitives";
 import { CLOCK, corridorAt, chunkAt, safeCentre, sampleTrack, widthAt, worldAt, type Chunk, type Run } from "./rules";
 
@@ -122,7 +122,7 @@ function fillTrack(g: BufferGeometry, c: Chunk, p: Vector3, t: Vector3, columns:
    pos.needsUpdate = normal.needsUpdate = color.needsUpdate = true;
 }
 
-export default function Track({ run, level }: { run: Run; level: LevelId }) {
+export default function Track({ run, level, theme = THEMES.snowHill }: { run: Run; level: LevelId; theme?: SlideTheme }) {
    const root = useRef<Group>(null);
    const texture = useCanvasTexture(256, 256, drawIce);
    const { decor } = useQuality();
@@ -200,7 +200,8 @@ export default function Track({ run, level }: { run: Run; level: LevelId }) {
       const slot = i % 10;
       if (slot >= treeCount) return false;
       const s = c.index * 60 + 3 + Math.floor(slot / 2) * 12;
-      place(s, corridorAt(c, s - c.index * 60) + (slot % 2 ? 1 : -1) * 5.2, m, 0, 0.8 + (slot % 3) * 0.2);
+      // the level's bank scenery (pines, cave crystals, shore boulders, ice cliffs), clear of the track
+      place(s, corridorAt(c, s - c.index * 60) + (slot % 2 ? 1 : -1) * BANK_LATERAL[theme.bank], m, 0, 0.8 + (slot % 3) * 0.2);
    };
 
    const arch = (i: number, m: Matrix4) => {
@@ -274,7 +275,14 @@ export default function Track({ run, level }: { run: Run; level: LevelId }) {
             ))}
          </group>
          <DynamicInstancedModel name="fish-trails" asset={ASSETS.fish} count={36} update={fish} fallbackParts={fishParts} />
-         <DynamicInstancedModel name="pine-banks" asset={ASSETS.pine} count={30} update={tree} fallbackParts={pineParts} />
+         <DynamicInstancedModel
+            key={theme.bank}
+            name="bank-scenery"
+            asset={ASSETS[theme.bank]}
+            count={30}
+            update={tree}
+            fallbackParts={theme.bank === "pine" ? pineParts : undefined}
+         />
          <DynamicInstancedModel name="ice-arches" asset={ASSETS.iceArch} count={6} update={arch} />
          {showAuroraDecor && (
             <>

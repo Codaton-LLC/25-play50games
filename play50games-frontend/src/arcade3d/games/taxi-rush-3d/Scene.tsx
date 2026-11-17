@@ -4,6 +4,7 @@
 // Real metres (rules.ts U): a 4.55 m cab on a 6.5 m road between raised pavements, a 1.75 m rider.
 import { useEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
+import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 import { AdditiveBlending, Color, Matrix4, MeshStandardMaterial, Quaternion, RepeatWrapping, Shape, ShapeGeometry, SphereGeometry, Vector3, type Group, type Mesh, type MeshBasicMaterial } from "three";
 import { InstancedModel, Model } from "@/arcade3d/core/assets";
 import { playSfx, startLoop, type LoopHandle } from "@/arcade3d/core/audio";
@@ -26,7 +27,7 @@ import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { ASSETS, FIT } from "./assets";
 import { CoinPop, GuideArrow, PaintReflections, TyreSmoke, useCoinPop } from "./Effects";
 import type { TaxiLevel } from "./levels";
-import { COLORS, DAMPING, FOV, KERB, LOOK_AHEAD, RIDER_SIDE, citySpots, cityBox, coneSpots, drawAsphalt, drawFacade, drawPaving, lightPoles, lookAtFor, skyFor, stopBars, viewFor } from "./looks";
+import { COLORS, DAMPING, FOV, KERB, LOOK_AHEAD, RIDER_SIDE, citySpots, cityBox, coneSpots, destinationFor, districtFor, drawAsphalt, drawFacade, drawPaving, lightPoles, lookAtFor, skyFor, stopBars, viewFor } from "./looks";
 import { PartsInstanced, RiderPrimitive, useCityParts } from "./Primitives";
 import { CALM_POINTS, CLOSE_POINTS, DROP_POINTS, PAD_R, TOP_SPEED, U, createRun, signalRed, step, type Run } from "./rules";
 import { Vehicles, type CabState } from "./Vehicles";
@@ -86,6 +87,11 @@ function LevelScene() {
    const look = useMemo(() => lookAtFor(config), [config]);
    const sky = useMemo(() => skyFor(config), [config]);
    const city = useMemo(() => citySpots(id), [id]);
+   const district = districtFor(id);
+   const landmarkTrim = useMemo(() => city.landmarks.filter((p) => p.sy! <= 0.3), [city]);
+   const landmarkBodies = useMemo(() => city.landmarks.filter((p) => p.sy! > 0.3), [city]);
+   const landmarkGeo = useMemo(() => new RoundedBoxGeometry(1, 1, 1, 1, 0.08), []);
+   useEffect(() => () => landmarkGeo.dispose(), [landmarkGeo]);
    const trees = useMemo(() => city.trees.slice(0, scaledCount(city.trees.length, quality.decor)), [city, quality.decor]);
    const lamps = useMemo(() => city.lamps.slice(0, scaledCount(city.lamps.length, quality.decor)), [city, quality.decor]);
    const poles = useMemo(() => lightPoles(run), [run]);
@@ -176,7 +182,8 @@ function LevelScene() {
          AT.x = run.x;
          AT.z = run.z;
          AT.y = 2.2;
-         fx.score(AT, "Hop in!", { color: COLORS.pad });
+         const destination = destinationFor(run);
+         fx.score(AT, destination?.label ?? "Hop in!", { color: destination?.color ?? COLORS.pad });
          playSfx("click");
       }
       if (ev.drop) {
@@ -222,7 +229,7 @@ function LevelScene() {
          person.scale.set(1, OFF.squash, 1);
       }
       const show = !run.marker.hidden && run.phase !== 2;
-      const tone = run.phase === 1 ? COLORS.dropPad : COLORS.pad;
+      const tone = destinationFor(run)?.color ?? (run.phase === 1 ? COLORS.dropPad : COLORS.pad);
       marker.x = run.marker.x;
       marker.z = run.marker.z;
       marker.y = 1;
@@ -262,7 +269,7 @@ function LevelScene() {
          {/* asphalt to the fog (dark grey with grain), pavements, courtyards, road paint */}
          <mesh rotation-x={-Math.PI / 2} position={[run.width / 2, -0.01, run.depth / 2]}>
             <planeGeometry args={[ground, ground]} />
-            <meshStandardMaterial map={asphalt} color="#ffffff" roughness={0.92} emissiveMap={night ? asphalt : null} emissive={night ? "#8b97b0" : "#000000"} emissiveIntensity={night ? 0.55 : 0} />
+            <meshStandardMaterial map={asphalt} color={district.road} roughness={night ? 0.6 : 0.92} emissiveMap={night ? asphalt : null} emissive={night ? "#8b97b0" : "#000000"} emissiveIntensity={night ? 0.55 : 0} />
          </mesh>
          {night && (
             <>
@@ -275,11 +282,11 @@ function LevelScene() {
          )}
          <Instanced spots={city.slabs} name="pavements">
             <boxGeometry args={[1, 1, 1]} />
-            <meshStandardMaterial map={paving} color={COLORS.sidewalk} roughness={0.85} />
+            <meshStandardMaterial map={paving} color={district.pavement} roughness={0.85} />
          </Instanced>
          <Instanced spots={city.courts} name="courtyards">
             <boxGeometry args={[1, 1, 1]} />
-            <meshStandardMaterial color={COLORS.court} roughness={0.9} />
+            <meshStandardMaterial color={district.court} roughness={0.9} />
          </Instanced>
          <Instanced spots={city.dashes} name="dashes">
             <boxGeometry args={[1, 1, 1]} />
@@ -304,7 +311,7 @@ function LevelScene() {
             </Instanced>
          )}
          {/* code buildings: three facade tones (one window texture), slate roof caps */}
-         {([COLORS.facadeA, COLORS.facadeB, COLORS.facadeC] as const).map((tone, k) => (
+         {district.facades.map((tone, k) => (
             <Instanced key={tone} spots={city.boxes[k]} name={`facade-${k}`}>
                <boxGeometry args={[1, 1, 1]} />
                <meshStandardMaterial map={facade} color={tone} roughness={0.8} />
@@ -312,8 +319,20 @@ function LevelScene() {
          ))}
          <Instanced spots={city.roofs} name="roofs">
             <boxGeometry args={[1, 1, 1]} />
-            <meshStandardMaterial color={COLORS.roof} roughness={0.7} />
+            <meshStandardMaterial color={district.roof} roughness={0.7} />
          </Instanced>
+         {city.landmarks.length > 0 && (
+            <>
+               <Instanced spots={landmarkBodies} name="district-landmark-bodies">
+                  <primitive object={landmarkGeo} attach="geometry" />
+                  <meshStandardMaterial color={district.roof} roughness={0.6} metalness={0.15} />
+               </Instanced>
+               <Instanced spots={landmarkTrim} name="district-landmark-trim">
+                  <primitive object={landmarkGeo} attach="geometry" />
+                  <meshStandardMaterial color={district.accent} roughness={0.45} emissive={district.accent} emissiveIntensity={district.glow} />
+               </Instanced>
+            </>
+         )}
          <InstancedModel asset={ASSETS.townhouseBlock} spots={city.houses} fallback={<PartsInstanced spots={city.houses} parts={parts.house} name="house" />} />
          <InstancedModel asset={ASSETS.cornerShop} spots={city.shops} fallback={<PartsInstanced spots={city.shops} parts={parts.shop} name="shop" />} />
          <InstancedModel asset={ASSETS.busStop} spots={city.busStops} fallback={<PartsInstanced spots={city.busStops} parts={parts.bus} name="bus" />} />

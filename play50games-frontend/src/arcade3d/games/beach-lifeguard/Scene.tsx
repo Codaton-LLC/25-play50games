@@ -29,7 +29,7 @@ import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { ASSETS, FIT, LIFEGUARD_LANDMARKS, LIFEGUARD_SCALE } from "./assets";
 import type { LevelId } from "@/arcade3d/types";
 import type { BeachLevel } from "./levels";
-import { COLORS, DAMPING, FOV, LOOK_AHEAD, SEABED_MAX, WATER_Y, aimBounds, decorSpots, fogFor, frameAim, seabedY, swimBlend, viewFor, viewWindow } from "./looks";
+import { COLORS, DAMPING, FOV, LOOK_AHEAD, SEABED_MAX, WATER_Y, aimBounds, decorSpots, fogFor, frameAim, seabedY, swimBlend, themeFor, viewFor, viewWindow } from "./looks";
 import {
    AlertTorusMarker,
    BeachChairPrimitive,
@@ -43,6 +43,7 @@ import {
 } from "./Primitives";
 import { GUIDE, beachHint, hintCode, nextGoal, type Goal } from "./guide";
 import { SAFE_SAND_Z, SAND_DEPTH, SPEED_SAND, TOWER, createRun, step, syncStore, type PropKind, type Run } from "./rules";
+import SetPieces, { Rain } from "./SetPieces";
 
 const V = new Vector3();
 const Q = new Quaternion();
@@ -314,6 +315,8 @@ export default function Scene() {
    const touch = useCoarsePointer();
    const time = useGameTime();
    const [run] = useState<Run>(() => createRun(randomSeed(), config, id));
+   // the level's own look (looks.ts THEMES): sky, water palette, wave height, rain
+   const theme = themeFor(id);
    // camera views (core/camera): an on-foot hero, the stick is camera-relative (inputToWorld in
    // rules.ts), so the chase view only drifts behind the travel. The pivot is the drawn chest: on the
    // sand at PIVOT over the feet, in the water at the water line, seated on the jet ski. The tower and
@@ -711,7 +714,7 @@ export default function Scene() {
    return (
       <>
          <CameraRig camera={{ position: view.offset, fov: FOV, lookAt: [aim.x, aim.y, aim.z] }} follow={aim} bounds={bounds} offset={view.offset} shift={view.shift} damping={DAMPING} />
-         <SkyDome top={config.lighting === "sunset" ? "#7c2d12" : "#0ea5e9"} bottom={config.background} />
+         <SkyDome top={theme.skyTop} bottom={config.background} />
          <TargetMarkers targets={markers} />
          <TargetBeacon target={swimBeacon} variant="pick" color={COLORS.accent} radius={1.1} height={1.0} ground={WATER_Y + 0.12} label="GRAB" />
          <TargetBeacon target={shoreBeacon} variant="drop-here" radius={1.6} height={1.2} label="SAFE" />
@@ -732,14 +735,15 @@ export default function Scene() {
          <Water
             size={[sandW + 120, seaDepth]}
             position={[0, WATER_Y, -seaDepth / 2]}
-            color={COLORS.waterShallow}
-            deep={COLORS.waterDeep}
-            foam={COLORS.waterFoam}
-            amplitude={id === 5 ? 0.24 : 0.14}
+            color={theme.waterShallow}
+            deep={theme.waterDeep}
+            foam={theme.waterFoam}
+            amplitude={theme.waveAmp}
             foamEdge={0.012}
             opacity={0.8}
          />
          <ShoreFoam width={sandW + 120} />
+         {theme.rain && <Rain />}
          <DynamicInstanced count={RIPPLES} update={placeRipple} parts={RIPPLE_PARTS} name="ripples" />
 
          <Model asset={ASSETS.tower} position={[TOWER.x, 0, TOWER.z]} rotation-y={Math.PI} fallback={<TowerPrimitive />} />
@@ -789,6 +793,7 @@ export default function Scene() {
 
          <Props run={run} />
          <Decor id={id} />
+         <SetPieces id={id} />
       </>
    );
 }

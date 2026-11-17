@@ -12,14 +12,20 @@ Score, all integers: +300 per finished recipe, +80 more when that recipe took no
 
 ## Levels
 
-Same lab. Counts, the clock and the core lighting preset change. Fog is `[background, radius * 1.7, radius * 4.4]`.
+One round lab shape, five rooms (2026-10-29): `levels.ts` `theme`, `looks.ts` `LAB_THEMES`, `Room.tsx`. Counts, the clock and the core lighting preset change too. Fog is `[background, radius * 3.4, radius * 8]`. The ingredients, the cauldron, the beacons and the HUD keep one palette everywhere; the floor glow, walls, trim, runes, glow light and the props change. Big props stand beyond the wall ring (at least radius + 1.4 m), small ones at the wall foot or flat on the floor, so the walk, the shelves, the bots and the limit proof are unchanged (`room.test.ts`).
+
+- **L1 Beginner Lab:** today's violet flagstone lab.
+- **L2 Mushroom Lab:** a damp cellar: mossy green floor glow, brown stone walls, giant glowing mushrooms over the walls and small ones at the wall foot. A wrong bottle costs a life.
+- **L3 Crystal Lab:** an ice-crystal cave: icy blue floor, cyan glow and trim, crystal spires round the room, shards at the wall foot. The sliding ingredient runs on a glowing crystal rail that shows its 3 m path.
+- **L4 Forest Lab:** a lab grown into the forest: warm wood-brown floor, amber light, pines over the walls, ferns at the wall foot, leaves drifting down through the room (lying still with reduced motion). Five-step recipes; the slide rail too.
+- **L5 Master Wizard Lab:** the master's tower: midnight floor, gold trim and a gold rune ring, books orbiting above the walls, stars. Two recipes at once; the slide rail too.
 
 | L | Title | Radius | Recipes | Steps | Dual | Wander | Lives | Clock | Light |
 |---|---|---:|---:|---:|---|---|---:|---:|---|
 | 1 | Beginner Lab | 7 | 2 | 2 | | | | 120 s | indoor `#1e1b4b` |
-| 2 | Mushroom Lab | 8 | 3 | 3 | | | 3 | 150 s | indoor `#1e1b4b` |
+| 2 | Mushroom Lab | 8 | 3 | 3 | | | 3 | 150 s | indoor `#14261c` |
 | 3 | Crystal Lab | 9 | 4 | 4 | | yes | 3 | 180 s | night `#172554` |
-| 4 | Forest Lab | 10 | 5 | 5 | | yes | 3 | 180 s | sunset `#3b0764` |
+| 4 | Forest Lab | 10 | 5 | 5 | | yes | 3 | 180 s | sunset `#2a1a0e` |
 | 5 | Master Wizard Lab | 11 | 6 | 5 | yes | yes | 3 | 210 s | night `#1e1b4b` |
 
 ## Controls

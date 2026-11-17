@@ -9,7 +9,9 @@ import { createArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { levelMetaProblems, scoringFor } from "@/arcade3d/levelMeta";
 import { LEVEL_IDS, type LevelId } from "@/arcade3d/types";
 import definition from "./index";
-import { EXTRA_MUD, LEVELS, type DinoLevel } from "./levels";
+import { LEVELS, type DinoLevel } from "./levels";
+import type { ValleyMap } from "./maps";
+import { cellNear, cellX, cellZ, navGrid, travelTimes, waypoint, type NavGrid } from "./navkit";
 import { dinoEggRescueMeta as meta } from "./meta";
 import {
    BOULDER_LANES,
@@ -18,11 +20,9 @@ import {
    DURATION_MS,
    EGGS,
    MUD,
-   NEST,
    PROPOSED_LEVEL_LIMITS,
    boulderIntervalAt,
    createDinoRun,
-   laneEdgeClearance,
    maxPointsPerEgg,
    mudFor,
    regularSupply,
@@ -59,8 +59,48 @@ function silence(run: DinoRunState) {
    run.nextEggSpawnTick = 999;
 }
 
+// The bots walk the valley's grid (navkit.ts): a vent counts as a wall for them, a log too (they
+// never need a dash to get round), and the route is the cheapest one with mud and water priced in.
+const GRIDS = new Map<ValleyMap, NavGrid>();
+function botGrid(map: ValleyMap): NavGrid {
+   let g = GRIDS.get(map);
+   if (!g) {
+      const vents = map.vents.map((v) => ({ kind: "rock" as const, ax: v.x, az: v.z, bx: v.x, bz: v.z, r: v.r + 0.35 }));
+      g = navGrid({ ...map, obstacles: [...map.obstacles, ...vents] }, 0.5);
+      GRIDS.set(map, g);
+   }
+   return g;
+}
+const NAV = new WeakMap<DinoRunState, { cell: number; field: Float64Array }>();
+
+/** The way to (tx, tz): straight when close or in plain sight of nothing, else the next grid waypoint. */
+function heading(run: DinoRunState, tx: number, tz: number, out: { x: number; z: number }) {
+   const dino = run.dino;
+   out.x = tx - dino.x;
+   out.z = tz - dino.z;
+   if (Math.hypot(out.x, out.z) < 1.2) return;
+   const g = botGrid(run.map);
+   const goal = cellNear(g, tx, tz, 1.2);
+   if (goal < 0) return;
+   let nav = NAV.get(run);
+   if (!nav) {
+      nav = { cell: -1, field: new Float64Array(g.nx * g.nz) };
+      NAV.set(run, nav);
+   }
+   if (nav.cell !== goal) {
+      travelTimes(g, goal, DINO.baseSpeed, nav.field);
+      nav.cell = goal;
+   }
+   const w = waypoint(g, nav.field, dino.x, dino.z, 3);
+   if (w < 0 || w === goal) return;
+   out.x = cellX(g, w) - dino.x;
+   out.z = cellZ(g, w) - dino.z;
+}
+const HEAD = { x: 0, z: 0 };
+
 /** Human stacks and dodges. Oracle also dashes through a close boulder and banks the stack before the clock. */
 function steer(run: DinoRunState, profile: "human" | "oracle" | "idle" | "spam"): StepInput {
+   const NEST = run.map.nest;
    const dino = run.dino;
    INPUT.moveX = 0;
    INPUT.moveY = 0;
@@ -105,8 +145,10 @@ function steer(run: DinoRunState, profile: "human" | "oracle" | "idle" | "spam")
          }
       }
    }
-   let dx = tx - dino.x;
-   let dz = tz - dino.z;
+   heading(run, tx, tz, HEAD);
+   let dx = HEAD.x;
+   let dz = HEAD.z;
+   const goalDist = Math.hypot(tx - dino.x, tz - dino.z);
    let threat = 0;
    let dashThreat = false;
    for (let i = 0; i < run.boulders.length; i++) {
@@ -131,7 +173,7 @@ function steer(run: DinoRunState, profile: "human" | "oracle" | "idle" | "spam")
    INPUT.moveX = len > 0.12 ? dx / len : 0;
    INPUT.moveY = len > 0.12 ? dz / len : 0;
    const dashReach = profile === "oracle" ? 2.4 : 4.5;
-   INPUT.actionPressed = dino.dashCooldown <= 0 && dino.stunTimer <= 0 && (len > dashReach || dashThreat || threat > 0.9);
+   INPUT.actionPressed = dino.dashCooldown <= 0 && dino.stunTimer <= 0 && (goalDist > dashReach || dashThreat || threat > 0.9);
    return INPUT;
 }
 
@@ -175,12 +217,15 @@ describe("dino-egg-rescue levels: declarations", () => {
       expect(levelEnvironment(definition, 1)).toEqual(definition.environment);
    });
 
-   it("levels 2-5 keep the sunset and override the clock, the chip max and the instructions", () => {
+   it("levels 2-5 have their own light, fog and sky, and override the clock, the chip max and the instructions", () => {
+      const looks = new Set<string>();
       for (const id of LEVEL_IDS) {
-         expect(levelEnvironment(definition, id)).toEqual(definition.environment);
+         const env = levelEnvironment(definition, id);
+         looks.add(JSON.stringify([env?.lighting, env?.background, env?.fog]));
          expect(levelRunConfig(definition, id).durationMs).toBe(LEVELS[id].durationMs);
          expect(levelRunConfig(definition, id).resultDelayMs).toBe(1200);
       }
+      expect(looks.size).toBe(5);
       expect(definition.environment!.lighting).toBe("sunset");
       for (const id of LEVEL_IDS.slice(1)) {
          expect(levelHudStats(definition, id)![0].max).toBe(regularSupply(LEVELS[id]) + LEVELS[id].goldenSpawnTimes.length);
@@ -190,7 +235,7 @@ describe("dino-egg-rescue levels: declarations", () => {
 });
 
 describe("dino-egg-rescue levels: difficulty", () => {
-   it("is monotone: open time, speed, mud, supply and stack never fall, and each level adds pressure", () => {
+   it("is monotone: open time, speed, supply and stack never fall, and each level adds pressure (mud is each valley's own)", () => {
       for (const id of LEVEL_IDS.slice(1)) {
          const a = prev(id);
          const b = LEVELS[id];
@@ -199,14 +244,12 @@ describe("dino-egg-rescue levels: difficulty", () => {
             expect(b.speeds[lane]).toBeGreaterThanOrEqual(a.speeds[lane]);
          }
          expect(b.spawnRampS).toBeLessThanOrEqual(a.spawnRampS);
-         expect(b.mudPatches).toBeGreaterThanOrEqual(a.mudPatches);
          expect(regularSupply(b)).toBeGreaterThanOrEqual(regularSupply(a));
          expect(b.maxStack).toBeGreaterThanOrEqual(a.maxStack);
          expect(b.durationMs).toBeGreaterThanOrEqual(a.durationMs);
          expect(scoreCeiling(b)).toBeGreaterThanOrEqual(scoreCeiling(a));
          const added =
             b.spawnRampS < a.spawnRampS ||
-            b.mudPatches > a.mudPatches ||
             b.maxStack > a.maxStack ||
             regularSupply(b) > regularSupply(a) ||
             b.speeds.some((speed, lane) => speed > a.speeds[lane]) ||
@@ -228,32 +271,94 @@ describe("dino-egg-rescue levels: difficulty", () => {
       expect(lanesSpawned(LEVELS[2], 20).has(2)).toBe(true);
    });
 
-   it("the extra mud pits stay 2 m clear of every lane, and only levels 3-5 slow the dino there", () => {
-      for (const mud of EXTRA_MUD) {
-         for (const lane of BOULDER_LANES) {
-            expect(laneEdgeClearance(mud.x, mud.z, MUD.radius, lane)).toBeGreaterThanOrEqual(2);
-         }
-         expect(Math.hypot(mud.x - NEST.x, mud.z - NEST.z)).toBeGreaterThan(NEST.radius + MUD.radius);
+   const pushFor = (id: LevelId, x: number, z: number, input: StepInput, steps: number) => {
+      const run = createDinoRun(1, LEVELS[id]);
+      silence(run);
+      run.dino.x = x;
+      run.dino.z = z;
+      let top = 0;
+      for (let i = 0; i < steps; i++) {
+         const x0 = run.dino.x;
+         const z0 = run.dino.z;
+         stepDinoRun(run, input, 1 / 60);
+         top = Math.max(top, Math.hypot(run.dino.x - x0, run.dino.z - z0) * 60);
       }
+      return { run, top };
+   };
+
+   it("every valley's mud halves the speed (level 1: today's three pits)", () => {
       expect(mudFor(LEVELS[1])).toBe(MUD.patches);
-      expect(mudFor(LEVELS[3])).toHaveLength(5);
-      const spot = EXTRA_MUD[1];
-      const sample = (id: LevelId) => {
+      for (const id of LEVEL_IDS) {
+         const m = LEVELS[id].map.mud[0];
+         const { top } = pushFor(id, m.x, m.z, { moveX: 0, moveY: 0.3, actionPressed: false, jumpPressed: false }, 20);
+         expect(top, `L${id}`).toBeLessThan(DINO.baseSpeed * 0.3 * MUD.speedMultiplier + 0.05);
+      }
+   });
+
+   it("Fern Forest: a fallen log stops a walk, a dash hops it", () => {
+      const log = LEVELS[2].map.obstacles.find((o) => o.kind === "log" && o.az === o.bz)!;
+      const mx = (log.ax + log.bx) / 2;
+      const mz = (log.az + log.bz) / 2;
+      const walk = pushFor(2, mx, mz + 1.4, { moveX: 0, moveY: -1, actionPressed: false, jumpPressed: false }, 60);
+      expect(walk.run.dino.z).toBeGreaterThan(mz);
+      const dash = pushFor(2, mx, mz + 1.4, { moveX: 0, moveY: -1, actionPressed: true, jumpPressed: false }, 60);
+      expect(dash.run.dino.z).toBeLessThan(mz - 0.8);
+   });
+
+   it("Riverbank: wading is slow and the current drags the dino east; a bridge crosses dry", () => {
+      const map = LEVELS[3].map;
+      const w = map.water[0];
+      const mid = (w.z0 + w.z1) / 2;
+      const still: StepInput = { moveX: 0, moveY: 0, actionPressed: false, jumpPressed: false };
+      const drift = pushFor(3, -6, mid, still, 60);
+      expect(drift.run.dino.x - -6).toBeCloseTo(w.flowX, 1);
+      const wade = pushFor(3, -6, mid, { moveX: 0, moveY: -1, actionPressed: false, jumpPressed: false }, 30);
+      expect(wade.top).toBeLessThan(Math.hypot(DINO.baseSpeed * 0.56, w.flowX) + 0.1);
+      const b = map.bridges[0];
+      const bridge = pushFor(3, (b.x0 + b.x1) / 2, mid, still, 60);
+      expect(bridge.run.dino.x).toBeCloseTo((b.x0 + b.x1) / 2, 6);
+      const cross = pushFor(3, (b.x0 + b.x1) / 2, mid, { moveX: 0, moveY: -1, actionPressed: false, jumpPressed: false }, 30);
+      expect(cross.top).toBeGreaterThan(DINO.baseSpeed - 0.1);
+   });
+
+   it("Volcanic Pass and the Sanctuary: an erupting vent hits like a boulder (stun, scatter); a glowing one does not, a dash rides it out", () => {
+      for (const id of [4, 5] as const) {
+         const v = LEVELS[id].map.vents[0];
          const run = createDinoRun(1, LEVELS[id]);
          silence(run);
-         run.dino.x = spot.x;
-         run.dino.z = spot.z;
-         let top = 0;
-         const push: StepInput = { moveX: 0, moveY: 1, actionPressed: false, jumpPressed: false };
-         for (let i = 0; i < 24; i++) {
-            const z0 = run.dino.z;
-            stepDinoRun(run, push, 1 / 60);
-            top = Math.max(top, (run.dino.z - z0) * 60);
+         run.dino.x = v.x;
+         run.dino.z = v.z;
+         run.dino.carriedEggs = [1, 2];
+         let warned = false;
+         let hitAt = -1;
+         const still: StepInput = { moveX: 0, moveY: 0, actionPressed: false, jumpPressed: false };
+         for (let i = 0; i < 60 * v.periodS && hitAt < 0; i++) {
+            const ev = stepDinoRun(run, still, 1 / 60);
+            if (run.ventStates[0] === 1) {
+               warned = true;
+               expect(run.dino.stunTimer).toBe(0);
+            }
+            if (ev.ventHit) {
+               expect(ev.boulderHit).toBe(true);
+               expect(run.ventStates[0]).toBe(2);
+               hitAt = run.timeS;
+            }
          }
-         return top;
-      };
-      expect(sample(1)).toBeGreaterThan(4);
-      expect(sample(3)).toBeLessThan(3);
+         expect(warned).toBe(true);
+         expect(hitAt).toBeGreaterThan(0);
+         expect(run.dino.stunTimer).toBeGreaterThan(0);
+         expect(run.dino.carriedEggs).toHaveLength(0);
+         expect(run.groundEggs.filter((e) => e.active)).toHaveLength(2);
+         // a dash through the eruption is safe
+         const dash = createDinoRun(1, LEVELS[id]);
+         silence(dash);
+         dash.dino.x = v.x;
+         dash.dino.z = v.z;
+         dash.timeS = hitAt - 1 / 60;
+         dash.dino.dashTimer = 0.4;
+         const ev = stepDinoRun(dash, still, 1 / 60);
+         expect(ev.ventHit).toBe(false);
+      }
    });
 
    it("level 4's golden egg is already out at 22 s; level 1's is not", () => {
@@ -271,14 +376,14 @@ describe("dino-egg-rescue levels: difficulty", () => {
       const run = createDinoRun(4, LEVELS[5]);
       expect(run.groundEggs.length).toBe(6);
       silence(run);
-      run.dino.x = 0;
+      run.dino.x = -10;
       run.dino.z = 0;
-      for (let i = 0; i < 5; i++) run.groundEggs.push({ id: 100 + i, x: 0, z: 0.04 * i, isGolden: false, active: true });
+      for (let i = 0; i < 5; i++) run.groundEggs.push({ id: 100 + i, x: -10, z: 0.04 * i, isGolden: false, active: true });
       stepDinoRun(run, ZERO, 1 / 60);
       expect(run.dino.carriedEggs.length).toBe(4);
       expect(run.groundEggs.filter((egg) => egg.active && !egg.isGolden).length).toBe(1);
-      run.dino.x = NEST.x;
-      run.dino.z = NEST.z;
+      run.dino.x = run.map.nest.x;
+      run.dino.z = run.map.nest.z;
       stepDinoRun(run, ZERO, 1 / 60);
       expect(run.score).toBe(600);
    });
@@ -290,8 +395,8 @@ describe("dino-egg-rescue levels: difficulty", () => {
          const run = createDinoRun(9, LEVELS[id]);
          silence(run);
          run.nextEggSpawnTick = 1;
-         run.dino.x = NEST.x;
-         run.dino.z = NEST.z;
+         run.dino.x = run.map.nest.x;
+         run.dino.z = run.map.nest.z;
          for (let i = 0; i < onGround; i++) run.groundEggs.push({ id: 200 + i, x: -12, z: -8 + i, isGolden: false, active: true });
          while (run.timeS < 3.05) stepDinoRun(run, ZERO, 1 / 60);
          return run.groundEggs.filter((egg) => egg.active && !egg.isGolden).length - onGround;

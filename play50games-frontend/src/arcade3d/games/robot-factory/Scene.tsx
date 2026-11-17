@@ -27,7 +27,9 @@ import { COLORS } from "./looks";
 import { Parts } from "./Parts";
 import { Robot } from "./Robot";
 import { SortBins } from "./SortBins";
+import { FactorySets } from "./FactoryBay";
 import type { FactoryLevel } from "./levels";
+import type { LevelId } from "@/arcade3d/types";
 import { CRADLE, SCRAP_BIN, SORTER, beltSpeed, createRun, createShown, inZone, sortBinCenter, sorterSpeed, stepRun, syncStore, type FrameInput, type Run } from "./rules";
 
 export const useFactoryLevel = () => useLevel<FactoryLevel>();
@@ -125,7 +127,7 @@ function PowerCores() {
    );
 }
 
-function LevelScene({ config }: { config: FactoryLevel }) {
+function LevelScene({ config, levelId }: { config: FactoryLevel; levelId: LevelId }) {
    const [run] = useState(() => createRun(randomSeed(), config));
    const [look] = useState(createLook);
    const [scratch] = useState(() => ({
@@ -278,6 +280,7 @@ function LevelScene({ config }: { config: FactoryLevel }) {
          <Parts run={run} look={look} />
          <Robot run={run} />
          {run.level.sorter && <PowerCores />}
+         <FactorySets levelId={levelId} />
       </>
    );
 }
@@ -291,5 +294,5 @@ function beltPitch(speed: number, level: FactoryLevel): number {
 
 export default function Scene() {
    const { id, config } = useFactoryLevel();
-   return <LevelScene key={id} config={config} />;
+   return <LevelScene key={id} config={config} levelId={id} />;
 }

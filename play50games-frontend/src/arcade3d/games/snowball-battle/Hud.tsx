@@ -1,5 +1,7 @@
 "use client";
 
+import { useSafeArea, type SafeArea } from "@/arcade3d/core/safeArea";
+import { useCoarsePointer } from "@/arcade3d/core/TouchControls";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { HintLine } from "@/arcade3d/core/hud/HintLine";
 import { hintFor } from "./guide";
@@ -13,22 +15,35 @@ function Marks({ n, total, kind }: { n: number; total: number; kind: "mitt" | "d
       const full = i < on;
       cells.push(
          <span
-            key={i}
-            className={kind === "mitt" ? (full ? styles.mitt : `${styles.mitt} ${styles.empty}`) : (full ? styles.dot : `${styles.dot} ${styles.dotOff}`)}
+            key={`${i}-${full ? 1 : 0}`}
+            className={kind === "mitt" ? (full ? styles.mitt : `${styles.mitt} ${styles.empty}`) : (full ? `${styles.dot} ${styles.dotNew}` : `${styles.dot} ${styles.dotOff}`)}
          />,
       );
    }
    return <span className={styles.group}>{cells}</span>;
 }
 
+/** Default top of the mittens panel (px); it moves below the shell chips when they wrap (a phone). */
+export const PANEL_TOP = 58;
+
+/** Below every shell HUD rect that starts above the panel (the chips wrap to two rows at 390 px). */
+export function panelTop(area: SafeArea): number {
+   let bottom = PANEL_TOP - 8;
+   for (const rect of area.hud) if (rect.top < PANEL_TOP - 1) bottom = Math.max(bottom, rect.bottom);
+   return Math.round(bottom + 8);
+}
+
 function GameHud() {
    const health = useArcadeStore((s) => s.stats.health ?? 5);
    const ammo = useArcadeStore((s) => s.stats.ammo ?? 0);
-   const hint = hintFor(ammo, health);
+   const ground = useArcadeStore((s) => s.stats.ground ?? 0);
+   const touch = useCoarsePointer();
+   const hint = hintFor(ammo, health, touch, ground);
+   const top = useSafeArea(panelTop);
    return (
       <>
          <HintLine text={hint.text} tone={hint.tone} />
-         <div className={styles.panel} data-arcade-safe-area>
+         <div className={styles.panel} style={{ top }} data-arcade-safe-area>
             <Marks n={health} total={5} kind="mitt" />
             <Marks n={ammo} total={3} kind="dot" />
          </div>

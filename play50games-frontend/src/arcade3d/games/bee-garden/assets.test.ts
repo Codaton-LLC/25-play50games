@@ -6,7 +6,7 @@ import { EXPANSION_GLB_SIZE } from "@/arcade3d/core/sharedAssets";
 import { LEVEL_IDS } from "@/arcade3d/types";
 import { ASSETS, BRANCH_UPRIGHT, FIT, GLB_SIZE } from "./assets";
 import { LEVELS } from "./levels";
-import { SOUTH_DECOR_MAX_H, decorSpots } from "./looks";
+import { SOUTH_DECOR_MAX_H, decorSpots, setPieces } from "./looks";
 import { TUNING } from "./rules";
 
 async function bounds(url: string) {
@@ -118,4 +118,43 @@ describe("bee-garden decor spots", () => {
          for (const t of d.trees) expect(t.z).toBeLessThan(hz - 3);
       });
    }
+
+   it("each level's decor layout differs (vegetable planters, greenhouse, forest trees, giant leaves)", () => {
+      const counts = LEVEL_IDS.map((id) => {
+         const d = decorSpots(id);
+         return { id, planters: d.planters.length, trees: d.trees.length, leaves: d.leaves.length, cans: d.cans.length, mushrooms: d.mushrooms.length };
+      });
+      // vegetable beds: L2 has the most planters; forest and giant alone grow trees
+      expect(counts[1].planters).toBeGreaterThan(counts[0].planters);
+      expect(counts[1].planters).toBeGreaterThan(counts[3].planters);
+      expect(counts[2].planters).toBeGreaterThan(counts[0].planters);
+      expect(counts[0].trees).toBe(0);
+      expect(counts[1].trees).toBe(0);
+      expect(counts[2].trees).toBe(0);
+      expect(counts[3].trees).toBeGreaterThan(counts[4].trees);
+      expect(counts[4].leaves).toBeGreaterThan(counts[0].leaves);
+      // no two levels share the same decor signature
+      const keys = counts.map((c) => `${c.planters}:${c.trees}:${c.leaves}:${c.cans}:${c.mushrooms}`);
+      expect(new Set(keys).size).toBe(5);
+   });
+
+   it("set pieces: greenhouse glass only on L3, giant flower only on L5, both outside the fly rectangle", () => {
+      for (const id of LEVEL_IDS) {
+         const hx = LEVELS[id].width / 2;
+         const hz = LEVELS[id].depth / 2;
+         const p = setPieces(id);
+         expect(!!p.greenhouse).toBe(id === 3);
+         expect(!!p.giantFlower).toBe(id === 5);
+         if (p.greenhouse) {
+            expect(p.greenhouse.halfX).toBeGreaterThan(hx);
+            expect(p.greenhouse.halfZ).toBeGreaterThan(hz);
+            expect(p.greenhouse.sillH).toBeLessThan(p.greenhouse.wallH * 0.4);
+         }
+         if (p.giantFlower) {
+            expect(Math.abs(p.giantFlower.x) > hx + 0.3 || Math.abs(p.giantFlower.z) > hz + 0.3).toBe(true);
+            expect(p.giantFlower.z).toBeLessThan(-hz);
+            expect(p.giantFlower.height).toBeGreaterThan(3);
+         }
+      }
+   });
 });

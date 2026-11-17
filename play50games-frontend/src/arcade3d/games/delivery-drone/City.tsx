@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
-import { Color, Matrix4, MeshStandardMaterial, Quaternion, Vector3, type Mesh, type Group } from "three";
+import { Color, Matrix4, MeshBasicMaterial, MeshStandardMaterial, Quaternion, Vector3, type Mesh, type Group } from "three";
 import { DynamicInstancedModel, InstancedModel } from "@/arcade3d/core/assets";
 import { DynamicInstanced, Instanced } from "@/arcade3d/core/render";
 import { scaledCount, useQuality } from "@/arcade3d/core/quality";
@@ -12,7 +12,8 @@ import { advance, createPath, tangentAt } from "@/arcade3d/core/path";
 import { ASSETS, BLOCK_FALLBACK, BLOCK_HEIGHT, BLOCK_SPOTS, BLOCK_WIDTH, TALL_FALLBACK, TALL_HEIGHT, TALL_SPOTS, TALL_WIDTH, BRICK_FALLBACK, BRICK_HEIGHT, BRICK_SPOTS, GLASS_FALLBACK, GLASS_HEIGHT, GLASS_SPOTS, SKYLINE_FOOTPRINT } from "./assets";
 import { CITY, ROUTE, type Run, type City } from "./rules";
 import { mergedBoxes, useMergedPart } from "./Primitives";
-import { COLORS, GROUND_PLANE, PARK } from "./looks";
+import { COLORS, GROUND_PLANE, PARK, THEMES, type Facade, type Theme } from "./looks";
+import type { DroneMap } from "./levels";
 import { ROOF_CAP, ROOFTOP_OVERLAY_Y } from "./visuals";
 import { Decor } from "./Decor";
 
@@ -57,147 +58,259 @@ const STREET_MARKINGS = [
    })),
 ];
 
+const BILLBOARDS = ["#ec4899", "#22d3ee", "#a3e635", "#f97316"] as const;
+
+/** Rooftop dressing of an ordinary (non-target, non-tower) block, by theme. */
+function roofProps(pieces: BoxPiece[], b: City["buildings"][number], theme: Theme, facade: Facade): void {
+   const h = b.height;
+   if (theme.roofProps === "house") {
+      // a stepped tile roof (kept under 0.6 m) and a chimney
+      pieces.push([b.x, h + 0.12, b.z, 4.7, 0.2, 4.7, theme.roofDeck]);
+      pieces.push([b.x, h + 0.3, b.z, 3.4, 0.18, 4.7, theme.roofDeck]);
+      pieces.push([b.x, h + 0.45, b.z, 1.9, 0.14, 4.7, theme.roofTrim]);
+      pieces.push([b.x + 1.5, h + 0.45, b.z - 1.4, 0.45, 0.8, 0.45, facade.base]);
+      return;
+   }
+   // stairwell penthouse and HVAC, shared by the city looks
+   pieces.push([b.x - 1.4, h + 0.38, b.z - 1.4, 1.1, 0.72, 1.1, facade.wall]);
+   pieces.push([b.x - 1.4, h + 0.76, b.z - 1.4, 1.2, 0.06, 1.2, theme.roofTrim]);
+   pieces.push([b.x + 1.2, h + 0.24, b.z - 1.1, 0.9, 0.44, 1.3, COLORS.roofHvac]);
+   if (theme.roofProps === "billboard") {
+      // a billboard on two legs along the south edge
+      const color = BILLBOARDS[b.cell % BILLBOARDS.length];
+      pieces.push([b.x - 1.2, h + 0.5, b.z + 1.9, 0.1, 1.0, 0.1, COLORS.roofMetal]);
+      pieces.push([b.x + 1.2, h + 0.5, b.z + 1.9, 0.1, 1.0, 0.1, COLORS.roofMetal]);
+      pieces.push([b.x, h + 1.25, b.z + 1.9, 3.0, 0.9, 0.08, color]);
+      pieces.push([b.x, h + 1.25, b.z + 1.85, 3.15, 1.02, 0.04, theme.roofTrim]);
+      return;
+   }
+   if (theme.roofProps === "windsock") {
+      // an antenna mast with a striped orange windsock
+      pieces.push([b.x + 1.6, h + 0.8, b.z + 1.6, 0.08, 1.6, 0.08, COLORS.roofMetal]);
+      pieces.push([b.x + 1.95, h + 1.45, b.z + 1.6, 0.36, 0.26, 0.26, "#f97316"]);
+      pieces.push([b.x + 2.2, h + 1.42, b.z + 1.6, 0.16, 0.2, 0.2, "#ffffff"]);
+      pieces.push([b.x + 2.35, h + 1.4, b.z + 1.6, 0.16, 0.16, 0.16, "#f97316"]);
+      pieces.push([b.x - 0.3, h + 0.12, b.z + 1.2, 2.2, 0.16, 1.2, COLORS.roofMetal]);
+      return;
+   }
+   if (b.cell % 2 === 0) {
+      pieces.push([b.x + 0.6, h + 0.16, b.z + 1.2, 1.6, 0.08, 1.4, COLORS.solarPanel]);
+      pieces.push([b.x - 1.1, h + 0.16, b.z + 1.2, 1.4, 0.08, 1.4, COLORS.solarPanel]);
+   } else {
+      pieces.push([b.x - 0.2, h + 0.18, b.z + 1.1, 1.8, 0.24, 1.2, theme.windowCool]);
+      pieces.push([b.x + 1.3, h + 0.18, b.z + 1.1, 0.8, 0.32, 0.8, COLORS.roofMetal]);
+   }
+}
+
 /**
  * Procedural city chunks:
- * 16 pre-merged chunks covering the 64 city cells.
- * Each building has multi-tone architectural facades, dark street-level plinths,
- * multi-pane windows with warm/cool lighting, raised parapet roof trims,
- * recessed roof deck membranes, and authentic rooftop equipment.
+ * 16 pre-merged chunks covering the 64 city cells, in this level's theme (looks.ts THEMES).
+ * Each building has multi-tone facades, dark street-level plinths, raised parapet roof trims,
+ * recessed roof decks and the theme's rooftop props. Windows are one extra merged mesh for the
+ * whole city, drawn unlit on the night level so they glow.
  * Target roofs retain clean flat pad clearance (r = 1.5m).
- * Towers have skyscraper crowns and high-contrast coral/yellow hazard stripes.
+ * Towers are drawn at the district's height (MAPS towerVisual) with crowns and hazard stripes.
  */
-function CityChunks({ city }: { city: City }) {
+function CityChunks({ city, map }: { city: City; map: DroneMap }) {
+   const theme = THEMES[map.theme];
    const material = useMemo(() => new MeshStandardMaterial({ vertexColors: true, roughness: 0.85 }), []);
-
-   const chunks = useMemo(
+   const windowMaterial = useMemo(
       () =>
-         Array.from({ length: 16 }, (_, chunkIdx) => {
-            const pieces: BoxPiece[] = [];
+         theme.windowsGlow
+            ? new MeshBasicMaterial({ vertexColors: true, toneMapped: false })
+            : new MeshStandardMaterial({ vertexColors: true, roughness: 0.35, metalness: 0.1 }),
+      [theme.windowsGlow]
+   );
 
-            for (let bIdx = 0; bIdx < city.buildings.length; bIdx++) {
-               const b = city.buildings[bIdx];
-               if (Math.floor(b.cell / 16) * 4 + Math.floor((b.cell % 8) / 2) !== chunkIdx) continue;
+   const { chunks, windows } = useMemo(() => {
+      const glass: BoxPiece[] = [];
+      const chunks = Array.from({ length: 16 }, (_, chunkIdx) => {
+         const pieces: BoxPiece[] = [];
 
-               const isTarget = city.targets.includes(bIdx);
-               const facade = COLORS.facades[b.cell % COLORS.facades.length];
+         for (let bIdx = 0; bIdx < city.buildings.length; bIdx++) {
+            const b = city.buildings[bIdx];
+            if (Math.floor(b.cell / 16) * 4 + Math.floor((b.cell % 8) / 2) !== chunkIdx) continue;
 
-               // 1. Pedestrian sidewalk block with curb around the building
-               pieces.push([b.x, 0.015, b.z, 6.2, 0.03, 6.2, COLORS.sidewalk]);
-               pieces.push([b.x, 0.02, b.z, 6.3, 0.025, 6.3, COLORS.curb]);
+            const isTarget = city.targets.includes(bIdx);
+            const facade = theme.facades[b.cell % theme.facades.length];
+            const top = b.tower ? map.towerVisual : b.height;
 
-               // 2. Building ground-level plinth tier (dark architectural base)
-               const plinthHeight = Math.min(0.9, b.height * 0.25);
-               pieces.push([b.x, plinthHeight / 2, b.z, 5.06, plinthHeight, 5.06, facade.base]);
+            // 1. Pedestrian sidewalk block with curb around the building
+            pieces.push([b.x, 0.015, b.z, 6.2, 0.03, 6.2, theme.sidewalk]);
+            pieces.push([b.x, 0.02, b.z, 6.3, 0.025, 6.3, COLORS.curb]);
 
-               // 3. Main building facade body
-               const mainBodyHeight = b.height - plinthHeight;
-               pieces.push([
-                  b.x,
-                  plinthHeight + mainBodyHeight / 2,
-                  b.z,
-                  5.0,
-                  mainBodyHeight,
-                  5.0,
-                  facade.wall,
-               ]);
+            // 2. Building ground-level plinth tier (dark architectural base)
+            const plinthHeight = Math.min(0.9, b.height * 0.25);
+            pieces.push([b.x, plinthHeight / 2, b.z, 5.06, plinthHeight, 5.06, facade.base]);
 
-               // 4. Corner pilasters / architectural trim
-               for (const cx of [-2.45, 2.45]) {
-                  for (const cz of [-2.45, 2.45]) {
-                     pieces.push([b.x + cx, b.height / 2, b.z + cz, 0.22, b.height, 0.22, facade.trim]);
-                  }
-               }
+            // 3. Main building facade body
+            const mainBodyHeight = top - plinthHeight;
+            pieces.push([b.x, plinthHeight + mainBodyHeight / 2, b.z, 5.0, mainBodyHeight, 5.0, b.tower ? theme.towerWall : facade.wall]);
 
-               // 5. Multi-pane window grid with warm interior and cool reflective glass
-               for (let y = 1.4; y < b.height - 0.7; y += 1.8) {
-                  for (let column = -1; column <= 1; column++) {
-                     const isWarm = (b.cell + Math.floor(y) + column) % 3 === 0;
-                     const winColor = isWarm ? COLORS.windowWarm : COLORS.windowCool;
-                     // South and North window bands
-                     pieces.push([b.x + column * 1.3, y, b.z + 2.51, 0.65, 0.85, 0.025, winColor]);
-                     pieces.push([b.x + column * 1.3, y, b.z - 2.51, 0.65, 0.85, 0.025, winColor]);
-                     // East and West window bands
-                     pieces.push([b.x + 2.51, y, b.z + column * 1.3, 0.025, 0.85, 0.65, winColor]);
-                     pieces.push([b.x - 2.51, y, b.z + column * 1.3, 0.025, 0.85, 0.65, winColor]);
-                  }
-               }
-
-               // 6. Roof structure:
-               // Recessed roof deck membrane
-               pieces.push([
-                  b.x,
-                  b.height + ROOF_CAP.centerY,
-                  b.z,
-                  4.85,
-                  ROOF_CAP.thickness,
-                  4.85,
-                  COLORS.roofDeck,
-               ]);
-
-               // Raised parapet perimeter rim
-               pieces.push([b.x, b.height + 0.045, b.z - 2.46, 5.04, 0.07, 0.12, COLORS.roofTrim]);
-               pieces.push([b.x, b.height + 0.045, b.z + 2.46, 5.04, 0.07, 0.12, COLORS.roofTrim]);
-               pieces.push([b.x - 2.46, b.height + 0.045, b.z, 0.12, 0.07, 4.8, COLORS.roofTrim]);
-               pieces.push([b.x + 2.46, b.height + 0.045, b.z, 0.12, 0.07, 4.8, COLORS.roofTrim]);
-
-               // 7. Rooftop Equipment:
-               if (b.tower) {
-                  // Skyscraper architectural crown
-                  pieces.push([b.x, b.height + 0.35, b.z, 4.4, 0.7, 4.4, COLORS.towerCrown]);
-
-                  // Hazard warning bands (alternating coral red and amber caution)
-                  for (let k = -2; k <= 2; k++) {
-                     const isOdd = Math.abs(k) % 2 === 1;
-                     const hazardColor = isOdd ? COLORS.towerHazardA : COLORS.towerHazardB;
-                     pieces.push([b.x + k * 0.9, b.height + 0.72, b.z, 0.8, 0.06, 4.42, hazardColor]);
-                     pieces.push([b.x, b.height + 0.72, b.z + k * 0.9, 4.42, 0.06, 0.8, hazardColor]);
-                  }
-
-                  // Central communication mast & beacon
-                  pieces.push([b.x, b.height + 1.2, b.z, 0.22, 1.4, 0.22, COLORS.roofMetal]);
-                  pieces.push([b.x, b.height + 1.95, b.z, 0.24, 0.24, 0.24, COLORS.towerBeacon]);
-               } else if (!isTarget) {
-                  // Non-target buildings receive authentic urban rooftop details:
-                  // Stairwell penthouse / roof access
-                  pieces.push([b.x - 1.4, b.height + 0.38, b.z - 1.4, 1.1, 0.72, 1.1, facade.wall]);
-                  pieces.push([b.x - 1.4, b.height + 0.76, b.z - 1.4, 1.2, 0.06, 1.2, COLORS.roofTrim]);
-
-                  // AC / HVAC compressor units
-                  pieces.push([b.x + 1.2, b.height + 0.24, b.z - 1.1, 0.9, 0.44, 1.3, COLORS.roofHvac]);
-                  pieces.push([b.x + 1.2, b.height + 0.48, b.z - 1.1, 0.6, 0.08, 0.6, COLORS.roofMetal]);
-
-                  // Solar panel arrays or skylights
-                  if (b.cell % 2 === 0) {
-                     pieces.push([b.x + 0.6, b.height + 0.16, b.z + 1.2, 1.6, 0.08, 1.4, COLORS.solarPanel]);
-                     pieces.push([b.x - 1.1, b.height + 0.16, b.z + 1.2, 1.4, 0.08, 1.4, COLORS.solarPanel]);
-                  } else {
-                     pieces.push([b.x - 0.2, b.height + 0.18, b.z + 1.1, 1.8, 0.24, 1.2, COLORS.windowCool]);
-                     pieces.push([b.x + 1.3, b.height + 0.18, b.z + 1.1, 0.8, 0.32, 0.8, COLORS.roofMetal]);
-                  }
-               } else {
-                  // Target buildings: keep centre radius 1.5m completely flat for the target pad.
-                  // Only add subtle corner gravel border markings:
-                  for (const cx of [-2.0, 2.0]) {
-                     for (const cz of [-2.0, 2.0]) {
-                        pieces.push([b.x + cx, b.height + 0.05, b.z + cz, 0.5, 0.04, 0.5, COLORS.roofHvac]);
-                     }
-                  }
+            // 4. Corner pilasters / architectural trim
+            for (const cx of [-2.45, 2.45]) {
+               for (const cz of [-2.45, 2.45]) {
+                  pieces.push([b.x + cx, top / 2, b.z + cz, 0.22, top, 0.22, b.tower ? COLORS.towerAccent : facade.trim]);
                }
             }
 
-            return pieces.length ? mergedBoxes(pieces) : null;
-         }),
-      [city]
-   );
+            // 5. Multi-pane window grid (one city-wide mesh)
+            for (let y = 1.4; y < top - 0.7; y += 1.8) {
+               for (let column = -1; column <= 1; column++) {
+                  // at night about a third of the windows stay dark
+                  if (theme.windowsGlow && (b.cell * 7 + Math.floor(y) * 3 + column + 3) % 3 === 1) continue;
+                  const isWarm = (b.cell + Math.floor(y) + column) % 3 === 0;
+                  const winColor = isWarm ? theme.windowWarm : theme.windowCool;
+                  glass.push([b.x + column * 1.3, y, b.z + 2.51, 0.65, 0.85, 0.025, winColor]);
+                  glass.push([b.x + column * 1.3, y, b.z - 2.51, 0.65, 0.85, 0.025, winColor]);
+                  glass.push([b.x + 2.51, y, b.z + column * 1.3, 0.025, 0.85, 0.65, winColor]);
+                  glass.push([b.x - 2.51, y, b.z + column * 1.3, 0.025, 0.85, 0.65, winColor]);
+               }
+            }
+
+            // 6. Roof structure: recessed deck membrane and a raised parapet rim
+            pieces.push([b.x, top + ROOF_CAP.centerY, b.z, 4.85, ROOF_CAP.thickness, 4.85, theme.roofDeck]);
+            pieces.push([b.x, top + 0.045, b.z - 2.46, 5.04, 0.07, 0.12, theme.roofTrim]);
+            pieces.push([b.x, top + 0.045, b.z + 2.46, 5.04, 0.07, 0.12, theme.roofTrim]);
+            pieces.push([b.x - 2.46, top + 0.045, b.z, 0.12, 0.07, 4.8, theme.roofTrim]);
+            pieces.push([b.x + 2.46, top + 0.045, b.z, 0.12, 0.07, 4.8, theme.roofTrim]);
+
+            // 7. Rooftop Equipment:
+            if (b.tower) {
+               // Skyscraper crown, hazard bands, mast and red aviation beacon
+               pieces.push([b.x, top + 0.35, b.z, 4.4, 0.7, 4.4, COLORS.towerCrown]);
+               for (let k = -2; k <= 2; k++) {
+                  const hazardColor = Math.abs(k) % 2 === 1 ? COLORS.towerHazardA : COLORS.towerHazardB;
+                  pieces.push([b.x + k * 0.9, top + 0.72, b.z, 0.8, 0.06, 4.42, hazardColor]);
+                  pieces.push([b.x, top + 0.72, b.z + k * 0.9, 4.42, 0.06, 0.8, hazardColor]);
+               }
+               pieces.push([b.x, top + 1.2, b.z, 0.22, 1.4, 0.22, COLORS.roofMetal]);
+               glass.push([b.x, top + 1.95, b.z, 0.26, 0.26, 0.26, COLORS.towerBeacon]);
+               if (theme.roofProps === "billboard") {
+                  // downtown towers carry a big billboard on the south face
+                  glass.push([b.x, top - 4, b.z + 2.54, 3.8, 2.6, 0.05, BILLBOARDS[(b.cell + 1) % BILLBOARDS.length]]);
+               }
+            } else if (!isTarget) {
+               roofProps(pieces, b, theme, facade);
+            } else {
+               // Target buildings: keep centre radius 1.5m completely flat for the target pad.
+               for (const cx of [-2.0, 2.0]) {
+                  for (const cz of [-2.0, 2.0]) {
+                     pieces.push([b.x + cx, b.height + 0.05, b.z + cz, 0.5, 0.04, 0.5, COLORS.roofHvac]);
+                  }
+               }
+            }
+         }
+
+         return pieces.length ? mergedBoxes(pieces) : null;
+      });
+      return { chunks, windows: glass.length ? mergedBoxes(glass) : null };
+   }, [city, map, theme]);
 
    useEffect(() => () => {
       for (const g of chunks) g?.dispose();
-      material.dispose();
-   }, [chunks, material]);
+      windows?.dispose();
+   }, [chunks, windows]);
+   useEffect(() => () => material.dispose(), [material]);
+   useEffect(() => () => windowMaterial.dispose(), [windowMaterial]);
 
    return (
       <group name="city-chunks">
          {chunks.map((geometry, i) => geometry && <mesh key={i} geometry={geometry} material={material} dispose={null} />)}
+         {windows && <mesh geometry={windows} material={windowMaterial} dispose={null} name="city-windows" />}
+      </group>
+   );
+}
+
+/** The district's open cells: a lawn with trees and a path cross, or a paved plaza with a fountain. */
+function OpenCells({ map }: { map: DroneMap }) {
+   const theme = THEMES[map.theme];
+   const { decor } = useQuality();
+   const centres = useMemo(
+      () => map.open.map((cell) => ({ x: ((cell % 8) - 3.5) * CITY.pitch, z: (Math.floor(cell / 8) - 3.5) * CITY.pitch })),
+      [map]
+   );
+   const ground = useMemo(() => {
+      if (!centres.length) return null;
+      const pieces: BoxPiece[] = [];
+      for (const c of centres) {
+         if (theme.openStyle === "park") {
+            pieces.push([c.x, 0.02, c.z, 6.4, 0.04, 6.4, theme.grass]);
+            pieces.push([c.x, 0.045, c.z, 6.4, 0.012, 0.9, COLORS.parkPath]);
+            pieces.push([c.x, 0.045, c.z, 0.9, 0.012, 6.4, COLORS.parkPath]);
+            // two benches
+            pieces.push([c.x - 1.6, 0.25, c.z + 0.9, 1.2, 0.1, 0.4, "#92400e"]);
+            pieces.push([c.x + 1.6, 0.25, c.z - 0.9, 1.2, 0.1, 0.4, "#92400e"]);
+         } else {
+            pieces.push([c.x, 0.02, c.z, 6.4, 0.04, 6.4, theme.sidewalk]);
+            for (let k = -2; k <= 2; k++) pieces.push([c.x + k * 1.2, 0.045, c.z, 0.06, 0.012, 6.2, theme.roofTrim]);
+            // fountain basin, water and column
+            pieces.push([c.x, 0.2, c.z, 2.6, 0.4, 2.6, theme.roofTrim]);
+            pieces.push([c.x, 0.42, c.z, 2.2, 0.06, 2.2, COLORS.water]);
+            pieces.push([c.x, 0.8, c.z, 0.35, 0.8, 0.35, theme.sidewalk]);
+         }
+      }
+      return mergedBoxes(pieces);
+   }, [centres, theme]);
+   useEffect(() => () => ground?.dispose(), [ground]);
+   const trees = useMemo(() => {
+      if (theme.openStyle !== "park") return [];
+      const out: { x: number; y: number; z: number }[] = [];
+      for (const c of centres) for (const [dx, dz] of [[-2, -2], [2, -2], [2, 2], [-2, 2]]) out.push({ x: c.x + dx, y: 0, z: c.z + dz });
+      return out.slice(0, scaledCount(out.length, decor));
+   }, [centres, theme, decor]);
+   const treeFallback = useMemo(() => trees.map((p) => ({ ...p, y: p.y + 1.5 })), [trees]);
+   if (!ground) return null;
+   return (
+      <group name="open-cells">
+         <mesh geometry={ground} dispose={null}>
+            <meshStandardMaterial vertexColors roughness={0.85} />
+         </mesh>
+         {trees.length > 0 && (
+            <InstancedModel
+               asset={ASSETS.tree}
+               spots={trees}
+               fallback={
+                  <Instanced spots={treeFallback}>
+                     <coneGeometry args={[0.9, 3, 8]} />
+                     <meshStandardMaterial color={COLORS.treeFoliageA} roughness={0.9} />
+                  </Instanced>
+               }
+            />
+         )}
+      </group>
+   );
+}
+
+/** Street lamps on the sidewalk corners (night): posts, unlit bulbs and soft light pools. */
+function StreetLamps() {
+   const spots = useMemo(() => {
+      const out: { x: number; y: number; z: number }[] = [];
+      for (let i = -3; i <= 3; i++) {
+         for (let j = -3; j <= 3; j++) {
+            if (Math.abs(i) <= 1 && Math.abs(j) <= 1) continue;
+            out.push({ x: i * CITY.pitch - 1.0, y: 0, z: j * CITY.pitch - 1.0 });
+         }
+      }
+      return out;
+   }, []);
+   const posts = useMemo(() => spots.map((p) => ({ ...p, y: 1.1 })), [spots]);
+   const bulbs = useMemo(() => spots.map((p) => ({ ...p, y: 2.25 })), [spots]);
+   const pools = useMemo(() => spots.map((p) => ({ ...p, y: 0.05 })), [spots]);
+   return (
+      <group name="street-lamps">
+         <Instanced spots={posts}>
+            <cylinderGeometry args={[0.05, 0.07, 2.2, 6]} />
+            <meshStandardMaterial color="#475569" roughness={0.6} />
+         </Instanced>
+         <Instanced spots={bulbs}>
+            <sphereGeometry args={[0.16, 8, 6]} />
+            <meshBasicMaterial color="#fde68a" toneMapped={false} />
+         </Instanced>
+         <Instanced spots={pools}>
+            <cylinderGeometry args={[1.6, 1.6, 0.01, 20]} />
+            <meshBasicMaterial color="#fbbf24" transparent opacity={0.16} depthWrite={false} toneMapped={false} />
+         </Instanced>
       </group>
    );
 }
@@ -447,7 +560,7 @@ function Wind({ run, reduced }: { run: Run; reduced: boolean }) {
             }}
          >
             <coneGeometry args={[0.1, 0.6, 3]} />
-            <meshBasicMaterial color="#7dd3fc" transparent opacity={0.55} depthWrite={false} />
+            <meshBasicMaterial color={THEMES[run.level.map.theme].streak} transparent opacity={THEMES[run.level.map.theme].streakOpacity} depthWrite={false} />
          </DynamicInstanced>
       </group>
    );
@@ -460,6 +573,8 @@ function Wind({ run, reduced }: { run: Run; reduced: boolean }) {
  */
 export default function CityScene({ run, reduced }: { run: Run; reduced: boolean }) {
    const { decor } = useQuality();
+   const map = run.level.map;
+   const theme = THEMES[map.theme];
    const trees = useMemo(() => TREES.slice(0, scaledCount(4, decor)), [decor]);
    const treeFallback = useMemo(() => trees.map((p) => ({ ...p, y: p.y + 1.5 })), [trees]);
 
@@ -468,19 +583,19 @@ export default function CityScene({ run, reduced }: { run: Run; reduced: boolean
          {/* Expansive 280m x 280m ground plane: covers the entire viewport at all viewports and sizes */}
          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, GROUND_PLANE.y, 0]} name="ground-plane">
             <planeGeometry args={[GROUND_PLANE.size, GROUND_PLANE.size]} />
-            <meshStandardMaterial color={COLORS.asphalt} roughness={0.95} />
+            <meshStandardMaterial color={theme.asphalt} roughness={0.95} />
          </mesh>
 
          {/* Street grid centre markings */}
          <Instanced spots={STREET_MARKINGS} name="street-markings">
             <boxGeometry args={[1, 1, 1]} />
-            <meshStandardMaterial color={COLORS.asphaltMarking} roughness={0.8} />
+            <meshStandardMaterial color={theme.marking} roughness={0.8} />
          </Instanced>
 
          {/* Central depot park lawn */}
          <mesh position={[0, PARK.y, 0]} name="depot-park-lawn">
             <boxGeometry args={[14.8, 0.03, 14.8]} />
-            <meshStandardMaterial color={COLORS.grass} roughness={0.9} />
+            <meshStandardMaterial color={theme.grass} roughness={0.9} />
          </mesh>
 
          {/* Central depot plaza paved apron */}
@@ -490,7 +605,9 @@ export default function CityScene({ run, reduced }: { run: Run; reduced: boolean
          </mesh>
 
          {/* 16 City Chunks */}
-         <CityChunks city={run.city} />
+         <CityChunks city={run.city} map={map} />
+         <OpenCells map={map} />
+         {theme.lamps && <StreetLamps />}
 
          {/* Pads, Traffic, Birds, Wind */}
          <Pads run={run} />
@@ -566,7 +683,7 @@ export default function CityScene({ run, reduced }: { run: Run; reduced: boolean
          />
 
          {/* Surroundings outside play area: River, Quayside, Distant Skyline, Clouds */}
-         <Decor reduced={reduced} />
+         <Decor reduced={reduced} theme={theme} />
       </group>
    );
 }

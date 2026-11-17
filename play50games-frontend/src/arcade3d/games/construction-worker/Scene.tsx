@@ -1,6 +1,7 @@
 "use client";
 
 import { useCraneLevel } from "./useCraneLevel";
+import type { CraneLevel } from "./levels";
 import { useEffect, useRef, useState } from "react";
 import { useThree } from "@react-three/fiber";
 import { Plane, Raycaster, Vector2, Vector3, type Camera } from "three";
@@ -15,7 +16,7 @@ import { playSfx, startLoop, useMuted, type LoopHandle } from "@/arcade3d/core/a
 import { randomSeed } from "@/arcade3d/core/math";
 import { SkyDome } from "@/arcade3d/core/env";
 import { useStageLighting } from "@/arcade3d/core/lighting";
-import { COLORS, LOOK, viewFor } from "./looks";
+import { COLORS, LOOK, THEMES, viewFor } from "./looks";
 import { Crane } from "./Crane";
 import { Site } from "./Site";
 import { Pieces } from "./Pieces";
@@ -28,8 +29,6 @@ import {
    CUE_WIN,
    CUE_WRONG,
    dropRadius,
-   PILE_A,
-   PILE_R,
    PLAN,
    pileAt,
    pileUnder,
@@ -48,15 +47,15 @@ const marker = { x: 0, y: 0, z: 0 };
 const pileXZ = { x: 0, z: 0 };
 const wrongAt = { x: 0, y: 0, z: 0 };
 
-function pileFromPointer(camera: Camera, pointer: { x: number; y: number }): number {
+function pileFromPointer(camera: Camera, pointer: { x: number; y: number }, level: CraneLevel): number {
    ndc.set(pointer.x, pointer.y);
    raycaster.setFromCamera(ndc, camera);
    if (!raycaster.ray.intersectPlane(ground, hit)) return -1;
    let best = -1;
    let bestD = 1.15;
-   for (let i = 0; i < PILE_A.length; i++) {
-      const x = PILE_R * Math.sin(PILE_A[i]);
-      const z = PILE_R * Math.cos(PILE_A[i]);
+   for (let i = 0; i < level.pileA.length; i++) {
+      const x = level.pileR * Math.sin(level.pileA[i]);
+      const z = level.pileR * Math.cos(level.pileA[i]);
       const d = Math.hypot(hit.x - x, hit.z - z);
       if (d < bestD) {
          best = i;
@@ -97,8 +96,9 @@ function LevelScene() {
       oneFinger: false,
    });
 
-   // Core preset lighting and warm daylight construction mood
-   useStageLighting("day", 1, COLORS.skyBottom, COLORS.fog);
+   // the level's light: its core preset, sky and fog (looks.ts THEMES)
+   const theme = THEMES[config.site];
+   useStageLighting(theme.lighting, 1, theme.skyBottom, theme.fog);
 
    useEffect(() => {
       fx.warm("sparkle", "puff", "confetti", "score");
@@ -117,7 +117,7 @@ function LevelScene() {
       const digit = live.digit;
       let pick = -1;
       if (digit !== null && digit >= 1 && digit <= 5) pick = digit - 1;
-      else if (live.tap) pick = pileFromPointer(camera, live.pointer);
+      else if (live.tap) pick = pileFromPointer(camera, live.pointer, run.level);
       const carried = run.carried >= 0;
       const order = command.current;
       order.rot = live.moveX;
@@ -163,7 +163,7 @@ function LevelScene() {
          playSfx("buzz");
          const pile = pileUnder(run);
          if (pile >= 0) {
-            pileAt(pile, pileXZ);
+            pileAt(pile, pileXZ, run.level);
             wrongAt.x = pileXZ.x * 0.55;
             wrongAt.y = 1.6;
             wrongAt.z = pileXZ.z;
@@ -191,12 +191,23 @@ function LevelScene() {
             shift={view.shift}
             damping={6}
          />
-         <SkyDome top={COLORS.skyTop} bottom={COLORS.skyBottom} />
+         <SkyDome top={theme.skyTop} bottom={theme.skyBottom} />
+         {theme.flood && <FloodLights />}
          <Site run={run} levelId={id} />
          <Crane run={run} />
          <Pieces run={run} />
          <Cues run={run} />
       </>
+   );
+}
+
+/** The night shift's work lights: two warm floods on poles behind the mast, aimed at the building. */
+function FloodLights() {
+   return (
+      <group name="flood-lights">
+         <directionalLight position={[-6, 14, -4]} intensity={1.3} color="#fde68a" />
+         <pointLight position={[0, 7, 9]} intensity={18} distance={16} decay={1.6} color="#fef3c7" />
+      </group>
    );
 }
 

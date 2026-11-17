@@ -8,6 +8,7 @@ import Scene from "./Scene";
 import { ASSETS } from "./assets";
 import { COLORS, FOG } from "./looks";
 import { LEVELS, type ShoppingCartLevel } from "./levels";
+import { STORE_LOOKS } from "./storeLooks";
 import { DURATION_MS, LIST_COUNT } from "./rules";
 
 function instructionsFor(level: ShoppingCartLevel): string[] {
@@ -20,11 +21,25 @@ function instructionsFor(level: ShoppingCartLevel): string[] {
 
 const DESCRIPTIONS: Record<LevelId, string> = {
    1: "6 items in 75 seconds: learn the drift and dodge.",
-   2: "7 items in 100 seconds: more spread targets across aisles.",
-   3: "9 items in 150 seconds: faster shoppers and an early 4th patrol.",
-   4: "12 items in 150 seconds: dense shopping list across half the store.",
-   5: "15 items in 180 seconds: rush hour with all 4 shoppers active from the start.",
+   2: "Fresh Food: 7 items in 100 s. Produce stands, chilled cases and misted, slippery floors.",
+   3: "Household Aisles: 9 items in 150 s. Stock pallets zigzag the aisles and a floor scrubber patrols.",
+   4: "Superstore: 12 items in 150 s. Bakery promo islands, a zigzag aisle and a moving stock pallet.",
+   5: "Closing-Time Rush: 15 items in 180 s, lights half off, cleaning crew out, one checkout lane shuts at 60 s.",
 };
+
+/** Each level's twist, as a fourth start-card line. */
+const TWISTS: Record<Exclude<LevelId, 1>, string> = {
+   2: "Fresh Food: the misters keep two patches of floor wet from the start; steer around the produce stands.",
+   3: "Household: weave the pallets in aisle 2 and 5. The floor scrubber stuns you like a shopper.",
+   4: "Superstore: bakery islands in the side aisles, and a stock pallet rolls up and down aisle 5.",
+   5: "Closing time: the left checkout lane shuts at 60 s. Scrubber and pallet are both out; mop water by the freezers.",
+};
+
+/** The level's light, sky and fog (storeLooks.ts). */
+function environmentFor(id: LevelId) {
+   const look = STORE_LOOKS[LEVELS[id].store.theme];
+   return { background: look.background, fog: [look.fog[0], look.fog[1], look.fog[2]] as [string, number, number], lighting: look.lighting };
+}
 
 const definition: GameDefinition<ShoppingCartLevel> = {
    slug: "shopping-cart",
@@ -46,7 +61,8 @@ const definition: GameDefinition<ShoppingCartLevel> = {
          id,
          description: DESCRIPTIONS[id],
          config: level,
-         instructions: instructionsFor(level),
+         instructions: [...instructionsFor(level), TWISTS[id]],
+         environment: environmentFor(id),
          durationMs: level.durationMs,
          hudStats: [{ key: "items", label: "Items", max: level.listCount }],
       };

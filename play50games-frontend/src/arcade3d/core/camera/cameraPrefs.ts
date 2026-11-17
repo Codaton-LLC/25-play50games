@@ -129,6 +129,8 @@ export interface LiveViews {
    key: string;
    /** one finger on the canvas turns the free view (false: only two fingers) */
    oneFinger: boolean;
+   /** the left mouse button turns the free view (default true; false: right / middle drag only) */
+   leftDrag?: boolean;
 }
 
 const NONE: LiveViews = { list: [], current: "default", key: "C", oneFinger: true };
@@ -140,7 +142,7 @@ const emit = () => liveListeners.forEach((l) => l());
 /** The camera publishes its views (on mount, on every change); `null` on unmount. */
 export function publishViews(next: LiveViews | null): void {
    const value = next ?? NONE;
-   if (value.list.join() === live.list.join() && value.current === live.current && value.key === live.key && value.oneFinger === live.oneFinger) return;
+   if (value.list.join() === live.list.join() && value.current === live.current && value.key === live.key && value.oneFinger === live.oneFinger && (value.leftDrag ?? true) === (live.leftDrag ?? true)) return;
    live = value;
    emit();
 }

@@ -326,3 +326,79 @@ function useDisposeParts(parts: readonly InstancePart[]): void {
       [parts]
    );
 }
+
+// ---------- the chain levels' finds (code-built: a clue scroll, a map piece, the X on the ground) ----------
+
+/** A rolled clue scroll, 0.5 m long: parchment roll, darker end caps, a red ribbon and a wax seal. */
+export function ScrollPrimitive() {
+   return (
+      <group name="clue-scroll">
+         <mesh position-y={0.12} rotation-z={Math.PI / 2}>
+            <cylinderGeometry args={[0.1, 0.1, 0.42, 14]} />
+            <meshStandardMaterial color="#f3e2b8" roughness={0.85} />
+         </mesh>
+         {[-0.23, 0.23].map((x) => (
+            <mesh key={x} position={[x, 0.12, 0]} rotation-z={Math.PI / 2}>
+               <cylinderGeometry args={[0.12, 0.12, 0.05, 14]} />
+               <meshStandardMaterial color="#7c4a1e" roughness={0.7} />
+            </mesh>
+         ))}
+         <mesh position-y={0.12} rotation-z={Math.PI / 2}>
+            <torusGeometry args={[0.105, 0.018, 6, 18]} />
+            <meshStandardMaterial color="#dc2626" roughness={0.55} />
+         </mesh>
+         <mesh position={[0, 0.12, 0.11]}>
+            <cylinderGeometry args={[0.045, 0.045, 0.02, 12]} />
+            <meshStandardMaterial color="#991b1b" roughness={0.4} />
+         </mesh>
+      </group>
+   );
+}
+
+/** A torn map piece, 0.55 m across: a parchment tile on a thin wooden backing with a red dashed trail. */
+export function MapPiecePrimitive() {
+   return (
+      <group name="map-piece">
+         <mesh position-y={0.03} rotation-y={0.2}>
+            <boxGeometry args={[0.56, 0.03, 0.44]} />
+            <meshStandardMaterial color="#6b4423" roughness={0.8} />
+         </mesh>
+         <mesh position-y={0.055} rotation-y={0.2}>
+            <boxGeometry args={[0.52, 0.02, 0.4]} />
+            <meshStandardMaterial color="#f1dca6" roughness={0.9} />
+         </mesh>
+         {[[-0.16, -0.08], [-0.05, -0.02], [0.06, 0.05], [0.16, 0.08]].map(([x, z]) => (
+            <mesh key={x} position={[x, 0.068, z]} rotation-y={0.6}>
+               <boxGeometry args={[0.07, 0.01, 0.025]} />
+               <meshStandardMaterial color="#b91c1c" roughness={0.6} />
+            </mesh>
+         ))}
+         <mesh position={[0.19, 0.072, 0.1]} rotation-y={Math.PI / 4}>
+            <boxGeometry args={[0.12, 0.012, 0.03]} />
+            <meshStandardMaterial color="#b91c1c" roughness={0.6} />
+         </mesh>
+         <mesh position={[0.19, 0.072, 0.1]} rotation-y={-Math.PI / 4}>
+            <boxGeometry args={[0.12, 0.012, 0.03]} />
+            <meshStandardMaterial color="#b91c1c" roughness={0.6} />
+         </mesh>
+      </group>
+   );
+}
+
+/** The red X the complete map marks the final chest with (1.3 m), on a gold ring. */
+export function XMarkPrimitive() {
+   return (
+      <group name="x-mark">
+         {[Math.PI / 4, -Math.PI / 4].map((a) => (
+            <mesh key={a} position-y={0.03} rotation-y={a}>
+               <boxGeometry args={[1.3, 0.04, 0.22]} />
+               <meshStandardMaterial color="#dc2626" emissive="#7f1d1d" emissiveIntensity={0.6} roughness={0.5} />
+            </mesh>
+         ))}
+         <mesh position-y={0.02} rotation-x={-Math.PI / 2}>
+            <ringGeometry args={[0.85, 0.98, 40]} />
+            <meshBasicMaterial color="#fbbf24" transparent opacity={0.85} depthWrite={false} />
+         </mesh>
+      </group>
+   );
+}

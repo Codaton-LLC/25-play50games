@@ -29,6 +29,8 @@ import { GUIDE, hintCode, hintFor, targetShip } from "./guide";
 import { COLORS, SEA_FOCUS, viewFor } from "./looks";
 import { advanceRun, createRun, muzzleAt, type RunState } from "./rules";
 import { usePirateLevel } from "./usePirateLevel";
+import { BaySets } from "./BaySets";
+import { BAY_THEMES } from "./looks";
 import { Floaters, Ships, createShipLooks } from "./Ships";
 
 /** Stereo position of a sound at world x (the bay spans about x ±20). */
@@ -45,7 +47,9 @@ function showWind(run: RunState) {
 }
 
 function LevelScene() {
-   const { config } = usePirateLevel();
+   const { config, id } = usePirateLevel();
+   // the level's weather, sea and background ships (looks.ts BAY_THEMES); light comes from its environment
+   const theme = BAY_THEMES[id];
    const width = useThree((s) => s.size.width);
    const height = useThree((s) => s.size.height);
    const view = useFittedView(viewFor(width, height));
@@ -179,7 +183,8 @@ function LevelScene() {
    return (
       <>
          <CameraRig camera={{ position, lookAt: SEA_FOCUS }} shift={view.shift} />
-         <Bay run={run} />
+         <Bay run={run} theme={theme} />
+         <BaySets theme={theme} />
          <Ships run={run} looks={ships} />
          <Floaters run={run} />
          <Cannon run={run} aim={aim} look={cannon} />

@@ -1,13 +1,15 @@
-// One palette, the follow camera, the corridor's walls and decor spots, and the label atlas layout.
-// Pure: no React, no three.js. Decor boxes are unit cubes scaled by their spot (sx / sy / sz), never
-// a sized geometry scaled again.
+// Base accents, per-level lobby looks (theme → wall / carpet / marble / fog + set pieces), the
+// follow camera, the corridor's walls and decor spots, and the label atlas layout. Pure: no React,
+// no three.js. Decor boxes are unit cubes scaled by their spot (sx / sy / sz), never a sized
+// geometry scaled again.
 import type { AABB } from "@/arcade3d/core/collision";
 import type { InstanceSpot } from "@/arcade3d/core/render";
 import type { FittedViewOptions } from "@/arcade3d/core/useFittedView";
 import type { LevelId } from "@/arcade3d/types";
-import type { HotelLevel } from "./levels";
+import type { HotelLevel, HotelTheme } from "./levels";
 import { DOOR_SPACING, ELEVATOR_Z, HALF_W, LOBBY_LEN, corridorLength, doorZ } from "./rules";
 
+/** Gameplay accents and the level-1 Lobby Floor tones (Primitives + shared labels). */
 export const COLORS = {
    wall: "#44403c",
    wallUpper: "#57534e",
@@ -39,16 +41,149 @@ export const COLORS = {
    ok: "#4ade80",
    label: "#fffbeb",
    labelInk: "#1c1917",
+   glass: "#7dd3fc",
 } as const;
-
-/** The floors' colours: the door plates, the elevator panel, the key card and the HUD card. */
-export const FLOOR_COLORS = ["#fbbf24", "#2dd4bf", "#a78bfa", "#fb7185"] as const;
-export const floorColor = (floor: number) => FLOOR_COLORS[(Math.max(1, floor) - 1) % FLOOR_COLORS.length];
 
 export const WALL_T = 0.18;
 export const WALL_H = 2.8;
 /** The two walls between the camera and the hall (the lobby end and the x -2 side) are low. */
 export const LOW_WALL_H = 0.9;
+
+export type CarpetStyle = "diamond" | "stripe" | "grid";
+export type HotelSetKind = "none" | "directory" | "chandelier" | "glass" | "grand";
+
+/** Floor / wall / fog tones and set-piece kit for one hotel theme. Accents stay on COLORS. */
+export interface HotelLook {
+   wall: string;
+   wainscot: string;
+   carpet: string;
+   carpetDeep: string;
+   marble: string;
+   marbleAlt: string;
+   brass: string;
+   brassDeep: string;
+   glow: string;
+   void: string;
+   fogNear: number;
+   fogFar: number;
+   carpetStyle: CarpetStyle;
+   set: HotelSetKind;
+}
+
+export const LOOKS: Record<HotelTheme, HotelLook> = {
+   // Lobby Floor: today's warm stone + red diamond runner.
+   lobby: {
+      wall: COLORS.wall, wainscot: COLORS.wainscot,
+      carpet: COLORS.carpet, carpetDeep: COLORS.carpetDeep,
+      marble: COLORS.marble, marbleAlt: "#d6d3d1",
+      brass: COLORS.brass, brassDeep: COLORS.brassDeep, glow: COLORS.glow, void: COLORS.void,
+      fogNear: 16, fogFar: 38, carpetStyle: "diamond", set: "none",
+   },
+   // 3-Floor Hotel: cooler taupe walls, navy stripe runner, brushed rails, floor directory.
+   floors3: {
+      wall: "#57534e", wainscot: "#44403c",
+      carpet: "#1e3a5f", carpetDeep: "#0f172a",
+      marble: "#f5f5f4", marbleAlt: "#e7e5e4",
+      brass: "#a8a29e", brassDeep: "#78716c", glow: "#e0f2fe", void: "#292524",
+      fogNear: 18, fogFar: 42, carpetStyle: "stripe", set: "directory",
+   },
+   // Luxury Hotel: cream marble, rose carpet, gold brass, lobby chandelier.
+   luxury: {
+      wall: "#4a4038", wainscot: "#1c1917",
+      carpet: "#881337", carpetDeep: "#4c0519",
+      marble: "#faf7f2", marbleAlt: "#f5e6d3",
+      brass: "#fbbf24", brassDeep: "#b45309", glow: "#fef3c7", void: "#1c1917",
+      fogNear: 14, fogFar: 34, carpetStyle: "diamond", set: "chandelier",
+   },
+   // Business Hotel: slate walls, teal grid carpet, cool glass panels.
+   business: {
+      wall: "#334155", wainscot: "#1e293b",
+      carpet: "#0f766e", carpetDeep: "#134e4a",
+      marble: "#e2e8f0", marbleAlt: "#cbd5e1",
+      brass: "#94a3b8", brassDeep: "#64748b", glow: "#7dd3fc", void: "#0f172a",
+      fogNear: 20, fogFar: 48, carpetStyle: "grid", set: "glass",
+   },
+   // Grand Hotel: night stone, deep burgundy runner, gold chandelier + lobby columns.
+   grand: {
+      wall: "#1c1917", wainscot: "#0c0a09",
+      carpet: "#9f1239", carpetDeep: "#4c0519",
+      marble: "#a8a29e", marbleAlt: "#78716c",
+      brass: "#fbbf24", brassDeep: "#a16207", glow: "#fde68a", void: "#0a0a0a",
+      fogNear: 12, fogFar: 30, carpetStyle: "diamond", set: "grand",
+   },
+};
+
+export const lookFor = (level: HotelLevel): HotelLook => LOOKS[level.theme];
+
+/** Shell fog: level background colour with the theme's near / far. */
+export const fogOf = (level: HotelLevel): [string, number, number] => {
+   const look = LOOKS[level.theme];
+   return [level.background, look.fogNear, look.fogFar];
+};
+
+/** Overhead / wall set pieces hang above walk height (chandelier centres). */
+export const SET_PIECE_CLEAR_Y = 2.35;
+
+export interface HotelSetPieces {
+   chandeliers: InstanceSpot[];
+   columns: InstanceSpot[];
+   panels: InstanceSpot[];
+   boards: InstanceSpot[];
+   strips: InstanceSpot[];
+}
+
+/**
+ * Per-theme set pieces (visual only). Level 1 has none. Boards / panels hug the walls; chandeliers
+ * and strips hang above walk height; columns sit in the wall thickness so the lane stays clear.
+ */
+export function setPieceSpots(level: HotelLevel): HotelSetPieces {
+   const look = LOOKS[level.theme];
+   const length = corridorLength(level);
+   const out: HotelSetPieces = { chandeliers: [], columns: [], panels: [], boards: [], strips: [] };
+   if (look.set === "none") return out;
+   if (look.set === "directory" || look.set === "grand") {
+      // floor directory board on the door wall beside the elevator
+      out.boards.push({ x: HALF_W - 0.06, y: 2.15, z: ELEVATOR_Z - 1.35, sx: 0.05, sy: 0.85, sz: 1.1 });
+      for (let f = 0; f < Math.min(4, level.floors); f++) {
+         out.strips.push({ x: HALF_W - 0.05, y: 2.55, z: ELEVATOR_Z - 0.55 + f * 0.28, sx: 0.04, sy: 0.08, sz: 0.2 });
+      }
+   }
+   if (look.set === "chandelier" || look.set === "grand") {
+      out.chandeliers.push({ x: 0, y: 2.55, z: LOBBY_LEN * 0.45, sx: 0.9, sy: 0.4, sz: 0.9 });
+      if (look.set === "grand") {
+         out.chandeliers.push({ x: 0, y: 2.6, z: Math.min(length - 2.5, LOBBY_LEN + (level.doors * DOOR_SPACING) * 0.45), sx: 0.7, sy: 0.35, sz: 0.7 });
+         // columns flush with the door wall / near wall (outside the walk radius)
+         const colX = HALF_W + WALL_T * 0.15;
+         for (const z of [1.4, LOBBY_LEN + 1.2, length - 1.6]) {
+            out.columns.push({ x: colX, y: WALL_H / 2, z, sx: 0.32, sy: WALL_H, sz: 0.32 });
+            out.columns.push({ x: -colX, y: WALL_H / 2, z, sx: 0.32, sy: WALL_H, sz: 0.32 });
+         }
+      }
+   }
+   if (look.set === "glass") {
+      // frosted glass on the low near wall (camera side), clear of Use points
+      const span = Math.max(2, (length - LOBBY_LEN) / 3);
+      for (let i = 0; i < 3; i++) {
+         out.panels.push({
+            x: -HALF_W + 0.04,
+            y: LOW_WALL_H * 0.55,
+            z: LOBBY_LEN * 0.55 + i * span,
+            sx: 0.05,
+            sy: LOW_WALL_H * 0.85,
+            sz: Math.min(2.4, span - 0.4),
+         });
+      }
+      // cool ceiling strip lights down the hall
+      for (let i = 0; i < level.doors; i++) {
+         out.strips.push({ x: 0, y: WALL_H - 0.08, z: doorZ(i), sx: HALF_W * 1.4, sy: 0.06, sz: 0.18 });
+      }
+   }
+   return out;
+}
+
+/** The floors' colours: the door plates, the elevator panel, the key card and the HUD card. */
+export const FLOOR_COLORS = ["#fbbf24", "#2dd4bf", "#a78bfa", "#fb7185"] as const;
+export const floorColor = (floor: number) => FLOOR_COLORS[(Math.max(1, floor) - 1) % FLOOR_COLORS.length];
 
 // ---------- camera ----------
 

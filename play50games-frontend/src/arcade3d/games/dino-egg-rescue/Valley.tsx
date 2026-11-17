@@ -8,26 +8,14 @@ import {
    RepeatWrapping,
    type Mesh,
 } from "three";
-import { InstancedModel, Model } from "@/arcade3d/core/assets";
-import {
-   Instanced,
-   useCanvasTexture,
-   type CanvasDraw,
-   type InstanceSpot,
-} from "@/arcade3d/core/render";
+import { Model } from "@/arcade3d/core/assets";
+import { useCanvasTexture, type CanvasDraw } from "@/arcade3d/core/render";
 import { ASSETS } from "./assets";
-import { COLORS, valleyRidgeMesh, type ColoredMesh } from "./looks";
-import { TreePrimitive, VolcanoConePrimitive } from "./Primitives";
-import { BOULDER_LANES, MUD, NEST, TREES, VALLEY, mudFor } from "./rules";
+import { LevelProps } from "./LevelProps";
+import { COLORS, THEME_LOOKS, valleyRidgeMesh, type ColoredMesh, type ThemeLook } from "./looks";
+import { VolcanoConePrimitive } from "./Primitives";
+import { MUD, mudFor } from "./rules";
 import { useDinoLevel } from "./useDinoLevel";
-
-const TREE_SPOTS: InstanceSpot[] = TREES.positions.map((t, idx) => ({
-   x: t.x,
-   y: 0,
-   z: t.z,
-   yaw: (idx * 1.47) % (Math.PI * 2),
-   scale: 1,
-}));
 
 function coloredGeometry(data: ColoredMesh): BufferGeometry {
    const geometry = new BufferGeometry();
@@ -37,18 +25,18 @@ function coloredGeometry(data: ColoredMesh): BufferGeometry {
    return geometry;
 }
 
-const drawValleyMeadow: CanvasDraw = (ctx, width, height) => {
-   // Lush prehistoric mossy grass base (clean, calm mid-tone)
-   ctx.fillStyle = COLORS.grass;
+const meadowFor = (look: ThemeLook): CanvasDraw => (ctx, width, height) => {
+   // Lush prehistoric mossy grass base (clean, calm mid-tone; each level's own ground)
+   ctx.fillStyle = look.grass;
    ctx.fillRect(0, 0, width, height);
 
    // Subtle, soft, low-contrast mottling (soft sunlit and soft shaded greens)
    // Keep alpha very low (0.05) so the playfield stays calm and uniform,
    // letting eggs, nest and dinosaurs pop with high readability.
-   const tones = [COLORS.grassSun, COLORS.grassShade];
+   const tones = [look.grassSun, look.grassShade];
    for (let i = 0; i < 14; i++) {
       ctx.fillStyle = tones[i % tones.length];
-      ctx.globalAlpha = 0.05;
+      ctx.globalAlpha = look.mottle;
       ctx.beginPath();
       ctx.ellipse(
          (i * 137) % width,
@@ -64,8 +52,12 @@ const drawValleyMeadow: CanvasDraw = (ctx, width, height) => {
    ctx.globalAlpha = 1;
 };
 
-export function Valley({ telegraphLanes }: { telegraphLanes?: readonly boolean[] }) {
-   const mudPatches = mudFor(useDinoLevel().config);
+export function Valley({ telegraphLanes, ventStates }: { telegraphLanes?: readonly boolean[]; ventStates: readonly number[] }) {
+   const { config } = useDinoLevel();
+   const mudPatches = mudFor(config);
+   const map = config.map;
+   const look = THEME_LOOKS[map.theme];
+   const lava = map.theme === "volcano";
    // Warm golden straw texture for nest with woven criss-crossing fibres
    const strawTexture = useCanvasTexture(128, 128, (ctx) => {
       ctx.fillStyle = COLORS.straw;
@@ -97,7 +89,8 @@ export function Valley({ telegraphLanes }: { telegraphLanes?: readonly boolean[]
    });
 
    // Valley floor organic meadow texture
-   const meadowTexture = useCanvasTexture(512, 512, drawValleyMeadow);
+   const drawMeadow = useMemo(() => meadowFor(look), [look]);
+   const meadowTexture = useCanvasTexture(512, 512, drawMeadow);
    useEffect(() => {
       meadowTexture.wrapS = meadowTexture.wrapT = RepeatWrapping;
       meadowTexture.repeat.set(8, 8);
@@ -135,6 +128,7 @@ export function Valley({ telegraphLanes }: { telegraphLanes?: readonly boolean[]
          <mesh geometry={ridges} dispose={null} name="valley-ridges">
             <meshStandardMaterial
                vertexColors
+               color={look.ridgeTint}
                flatShading
                roughness={1}
                polygonOffset
@@ -146,11 +140,11 @@ export function Valley({ telegraphLanes }: { telegraphLanes?: readonly boolean[]
          {/* Soil path boundary ring */}
          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.001, 0]}>
             <ringGeometry args={[14.5, 17.5, 32]} />
-            <meshStandardMaterial color={COLORS.soil} roughness={0.9} />
+            <meshStandardMaterial color={look.soil} roughness={0.9} />
          </mesh>
 
          {/* Gully lane tracks on terrain */}
-         {BOULDER_LANES.map((lane, idx) => {
+         {map.lanes.map((lane, idx) => {
             const midX = (lane.startX + lane.endX) / 2;
             const midZ = (lane.startZ + lane.endZ) / 2;
             const dx = lane.endX - lane.startX;
@@ -167,10 +161,12 @@ export function Valley({ telegraphLanes }: { telegraphLanes?: readonly boolean[]
                   >
                      <planeGeometry args={[len, 1.8]} />
                      <meshStandardMaterial
-                        color={COLORS.gullyBed}
+                        color={look.gully}
                         roughness={0.95}
                         transparent
-                        opacity={0.4}
+                        opacity={lava ? 0.75 : 0.4}
+                        emissive={lava ? COLORS.lavaCrust : "#000000"}
+                        emissiveIntensity={lava ? 0.9 : 0}
                      />
                   </mesh>
 
@@ -236,8 +232,8 @@ export function Valley({ telegraphLanes }: { telegraphLanes?: readonly boolean[]
             </mesh>
          </group>
 
-         {/* Nest at SE (11, 7.5), outer radius 1.8 m */}
-         <group position={[NEST.x, 0, NEST.z]}>
+         {/* Nest (level 1: SE (11, 7.5)), outer radius 1.8 m */}
+         <group position={[map.nest.x, 0, map.nest.z]}>
             {/* Hyper3D straw nest; the torus rim + straw floor are its fallback */}
             <Model
                asset={ASSETS.dinoNest}
@@ -267,16 +263,8 @@ export function Valley({ telegraphLanes }: { telegraphLanes?: readonly boolean[]
             </mesh>
          </group>
 
-         {/* 8 Leafy trees */}
-         <InstancedModel
-            asset={ASSETS.leafyTree}
-            spots={TREE_SPOTS}
-            fallback={
-               <Instanced spots={TREE_SPOTS}>
-                  <TreePrimitive />
-               </Instanced>
-            }
-         />
+         {/* the level's trunks, rocks, logs, water, vents and pen (maps.ts) */}
+         <LevelProps map={map} ventStates={ventStates} />
       </group>
    );
 }

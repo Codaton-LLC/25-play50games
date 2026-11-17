@@ -27,12 +27,12 @@ export const HINT_MS = 7000;
 /** How long the view's name shows after a switch (ms). */
 export const LABEL_MS = 1400;
 
-export function hintText(touch: boolean, key: string, oneFinger: boolean): string {
+export function hintText(touch: boolean, key: string, oneFinger: boolean, leftDrag = true): string {
    if (touch) return oneFinger ? "📷: change view; drag to look around" : "📷: change view; two fingers to look around";
-   return `📷 / ${key}: change view; drag to look around`;
+   return `📷 / ${key}: change view; ${leftDrag ? "drag" : "right-drag"} to look around`;
 }
 
-function Hint({ touch, keyName, oneFinger }: { touch: boolean; keyName: string; oneFinger: boolean }) {
+function Hint({ touch, keyName, oneFinger, leftDrag }: { touch: boolean; keyName: string; oneFinger: boolean; leftDrag: boolean }) {
    const turned = useSyncExternalStore(subscribeLiveViews, cameraTurned, () => 0);
    const playing = useArcadeStore((s) => s.phase === "playing");
    const expired = useArcadeStore((s) => s.phase === "playing" && s.elapsedMs >= HINT_MS);
@@ -50,7 +50,7 @@ function Hint({ touch, keyName, oneFinger }: { touch: boolean; keyName: string; 
       if (stage === "on" && (turned > 0 || expired)) setStage("done");
    }, [stage, turned, expired]);
    if (!(stage === "on" && playing && turned === 0 && !expired)) return null;
-   return <HintChip text={hintText(touch, keyName, oneFinger)} />;
+   return <HintChip text={hintText(touch, keyName, oneFinger, leftDrag)} />;
 }
 
 /** The chip, placed by hintSpot.ts from the live safe area and its own measured size. */
@@ -130,7 +130,7 @@ export default function CameraViewButton({ style, hint = true }: CameraViewButto
                {label}
             </div>
          )}
-         {hint && <Hint touch={touch} keyName={views.key} oneFinger={views.oneFinger} />}
+         {hint && <Hint touch={touch} keyName={views.key} oneFinger={views.oneFinger} leftDrag={views.leftDrag ?? true} />}
       </>
    );
 }

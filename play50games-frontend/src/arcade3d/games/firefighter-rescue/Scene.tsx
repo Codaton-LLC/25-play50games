@@ -19,7 +19,7 @@ import { useLevel } from "@/arcade3d/core/level";
 import { randomSeed } from "@/arcade3d/core/math";
 import { waddle, type BodyOffset } from "@/arcade3d/core/motion";
 import { useQuality } from "@/arcade3d/core/quality";
-import { DynamicInstanced, Instanced, type InstancePart } from "@/arcade3d/core/render";
+import { DynamicInstanced, Instanced, type InstancePart, type InstanceSpot } from "@/arcade3d/core/render";
 import { BlobShadow } from "@/arcade3d/core/render";
 import { HumanoidModel, gaitPhaseStep, useHumanoidPose, wrapPhase } from "@/arcade3d/core/rig";
 import { useFittedView } from "@/arcade3d/core/useFittedView";
@@ -44,6 +44,8 @@ import {
    cutawayWalls,
    doorLeaf,
    doorWallHeight,
+   levelColors,
+   levelDecor,
    lookAtFor,
    openDoorHeight,
    onFullWall,
@@ -51,6 +53,7 @@ import {
    porchFull,
    viewFor,
    wallSpots,
+   type DecorPiece,
 } from "./looks";
 import { GUIDE, heroInSmoke, hintCode, nextTarget, targetHint, type Target } from "./guide";
 import { firefighterPose } from "./poses";
@@ -144,6 +147,21 @@ function LevelScene() {
    const time = useGameTime();
    const quality = useQuality();
    const [run] = useState<Run>(() => createRun(randomSeed(), config));
+   // the level's own palette and exterior set dressing (level 1 keeps today's bare street)
+   const colors = useMemo(() => levelColors(config), [config]);
+   const decor = useMemo(() => levelDecor(config), [config]);
+   const decorGroups = useMemo(() => {
+      const group = (items: readonly DecorPiece[]) => {
+         const map = new Map<string, InstanceSpot[]>();
+         for (const item of items) {
+            const list = map.get(item.color) ?? [];
+            list.push(item.spot);
+            map.set(item.color, list);
+         }
+         return [...map].map(([color, spots]) => ({ color, spots }));
+      };
+      return { boxes: group(decor.boxes), cyls: group(decor.cyls) };
+   }, [decor]);
    // camera views (core/camera): an on-foot hero, the stick is camera-relative (inputToWorld in
    // rules.ts), so the chase view only drifts behind the travel. The building's walls (full height,
    // not the cutaway) and furniture pull the camera in front of them in the chase / front / free views.
@@ -468,7 +486,7 @@ function LevelScene() {
          doorOpen[room] = target > now ? Math.min(target, now + DOOR_SWING * time.delta) : target;
       }
       const open = doorOpen[room] ?? 1;
-      doorLeaf(room, (index & 1) as 0 | 1, open * open * (3 - 2 * open), LEAF);
+      doorLeaf(config, room, (index & 1) as 0 | 1, open * open * (3 - 2 * open), LEAF);
       V.set(LEAF.x, 0, LEAF.z);
       E.set(0, LEAF.rotY, 0);
       Q.setFromEuler(E);
@@ -493,19 +511,19 @@ function LevelScene() {
          <ambientLight intensity={config.lighting === "night" ? 0.7 : 0.45} />
          <mesh rotation-x={-Math.PI / 2} position={[0, 0, (zEnd - 5.2) / 2]}>
             <planeGeometry args={[16, zEnd + 8]} />
-            <meshStandardMaterial color={COLORS.floor} roughness={0.92} />
+            <meshStandardMaterial color={colors.floor} roughness={0.92} />
          </mesh>
          <mesh rotation-x={-Math.PI / 2} position={[0, 0.005, STREET.z]}>
             <planeGeometry args={[STREET.width, STREET.depth]} />
-            <meshStandardMaterial color={COLORS.street} roughness={0.88} />
+            <meshStandardMaterial color={colors.street} roughness={0.88} />
          </mesh>
          <Instanced spots={walls} name="walls">
             <boxGeometry args={[1, 1, 1]} />
-            <meshStandardMaterial color={COLORS.wall} roughness={0.86} />
+            <meshStandardMaterial color={colors.wall} roughness={0.86} />
          </Instanced>
          <Instanced spots={caps} name="wall-caps">
             <boxGeometry args={[1, 1, 1]} />
-            <meshStandardMaterial color={COLORS.wallTrim} roughness={0.7} />
+            <meshStandardMaterial color={colors.wallTrim} roughness={0.7} />
          </Instanced>
          {plaques.length > 0 && (
             <Instanced spots={plaques} name="plaques">
@@ -513,10 +531,28 @@ function LevelScene() {
                <meshStandardMaterial color={COLORS.ember} emissive={COLORS.ember} emissiveIntensity={0.15} roughness={0.5} />
             </Instanced>
          )}
-         <FurnMeshes kind="sofa" color={COLORS.sofa} trim={COLORS.sofaCushion} spots={sofas} asset={ASSETS.sofa} />
-         <FurnMeshes kind="bed" color={COLORS.bedFrame} trim={COLORS.bed} spots={beds} asset={ASSETS.bed} />
-         <FurnMeshes kind="cabinet" color={COLORS.cabinet} trim={COLORS.cabinetDoor} spots={cabinets} asset={ASSETS.cabinet} />
-         <FurnMeshes kind="chair" color={COLORS.chair} trim={COLORS.chairSeat} spots={chairs} asset={ASSETS.chair} />
+         <FurnMeshes kind="sofa" color={colors.sofa} trim={colors.sofaCushion} spots={sofas} asset={ASSETS.sofa} />
+         <FurnMeshes kind="bed" color={colors.bedFrame} trim={colors.bed} spots={beds} asset={ASSETS.bed} />
+         <FurnMeshes kind="cabinet" color={colors.cabinet} trim={colors.cabinetDoor} spots={cabinets} asset={ASSETS.cabinet} />
+         <FurnMeshes kind="chair" color={colors.chair} trim={colors.chairSeat} spots={chairs} asset={ASSETS.chair} />
+         {decorGroups.boxes.map((g) => (
+            <Instanced key={g.color} spots={g.spots} name="decor-box">
+               <boxGeometry args={[1, 1, 1]} />
+               <meshStandardMaterial color={g.color} roughness={0.85} />
+            </Instanced>
+         ))}
+         {decorGroups.cyls.map((g) => (
+            <Instanced key={g.color} spots={g.spots} name="decor-cyl">
+               <cylinderGeometry args={[0.5, 0.5, 1, 12]} />
+               <meshStandardMaterial color={g.color} roughness={0.7} />
+            </Instanced>
+         ))}
+         {decor.windows.map((w, i) => (
+            <mesh key={i} position={[w.spot.x, w.spot.y, w.spot.z]}>
+               <boxGeometry args={[w.spot.sx ?? 1, w.spot.sy ?? 1, w.spot.sz ?? 1]} />
+               <meshStandardMaterial color={w.color} emissive={w.color} emissiveIntensity={w.emissive} roughness={0.4} />
+            </mesh>
+         ))}
          <DynamicInstancedModel asset={ASSETS.door} count={config.rooms * 2} update={placeDoor} fallbackParts={DOOR_PARTS} name="doors" />
          <DynamicInstanced count={run.fires.length} update={placeFire} parts={fireParts} name="fires" />
          {run.smoke.map((disc, i) => (

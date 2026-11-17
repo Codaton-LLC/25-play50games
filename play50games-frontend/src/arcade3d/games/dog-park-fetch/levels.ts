@@ -1,5 +1,5 @@
-// Dog Park Fetch level configs (docs/menu1-new/specs-41-50.md §41). One fenced lawn; throws,
-// mowers, patience, tint and lighting change. Plain data: no three.js, no React.
+// Dog Park Fetch level configs (docs/menu1-new/specs-41-50.md §41). One fenced lawn per level; throws,
+// mowers, patience, tint, lighting and the look palette change. Plain data: no three.js, no React.
 import type { LevelId } from "@/arcade3d/types";
 
 export interface DogLevel {
@@ -24,7 +24,7 @@ export interface DogLevel {
 export const LEVELS: Record<LevelId, DogLevel> = {
    1: { width: 20, depth: 16, throws: 4, throwMin: 6, throwMax: 10, mowers: 0, mowerSpeed: 0, patienceS: 0, fountain: false, tint: null, durationMs: 90_000, lighting: "day", background: "#bae6fd" },
    2: { width: 26, depth: 20, throws: 6, throwMin: 7, throwMax: 13, mowers: 0, mowerSpeed: 0, patienceS: 0, fountain: true, tint: "#fde68a", durationMs: 120_000, lighting: "day", background: "#7dd3fc" },
-   3: { width: 30, depth: 24, throws: 8, throwMin: 8, throwMax: 15, mowers: 1, mowerSpeed: 1.8, patienceS: 0, fountain: true, tint: "#78716c", durationMs: 150_000, lighting: "day", background: "#86efac" },
+   3: { width: 30, depth: 24, throws: 8, throwMin: 8, throwMax: 15, mowers: 1, mowerSpeed: 1.8, patienceS: 0, fountain: true, tint: "#78716c", durationMs: 150_000, lighting: "sunset", background: "#ddaa6e" },
    4: { width: 32, depth: 26, throws: 10, throwMin: 8, throwMax: 16, mowers: 1, mowerSpeed: 2.2, patienceS: 14, fountain: true, tint: "#f8fafc", durationMs: 150_000, lighting: "sunset", background: "#fdba74" },
    5: { width: 36, depth: 28, throws: 12, throwMin: 9, throwMax: 18, mowers: 2, mowerSpeed: 2.4, patienceS: 12, fountain: true, tint: "#fb923c", durationMs: 180_000, lighting: "day", background: "#fde68a" },
 };

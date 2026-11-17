@@ -37,6 +37,11 @@ first version also turned right with C). A game can pass its own `orbitKeys`.
 - None of C, T, Q, Z, X, R, F, V is a core game key (WASD, arrows, Space, E, Enter, digits) or a shell
   key (Esc, P): `orbit.test.ts` checks it. A game that uses one of them passes `keys` (cycle) or
   `orbitKeys` (turn) to `useCameraViews`.
+- Mouse buttons (opt-in, `mouseButtons`): the default `[0, 2]` lets a left or a right drag turn the
+  camera. A game that reads a left click as an action passes `mouseButtons: [2, 1]` (right and middle
+  drag only; a middle press does not start the browser's autoscroll), so a click never also turns the
+  camera, and the first-time hint says "right-drag to look around". Used by `snowball-battle` (click
+  to throw). Other games are unchanged.
 - Input counts only while a run can be seen moving: `countdown`, `playing` and the result delay. The
   start card, the pause menu and the result screen ignore it.
 - The joystick and buttons carry `data-arcade-controls`: a finger on them never turns the camera. The

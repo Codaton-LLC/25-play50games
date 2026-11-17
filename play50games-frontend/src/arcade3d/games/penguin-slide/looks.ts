@@ -3,6 +3,8 @@
 // No React, no Three.js runtime logic here.
 
 import { rngNext } from "@/arcade3d/core/math";
+import type { LightingPreset } from "@/arcade3d/core/types";
+import type { SlideSite } from "./levels";
 
 /** Single palette for the entire visual pass. */
 export const COLORS = {
@@ -309,3 +311,62 @@ export const DECOR: readonly DecorSpot[] = buildDecorSpots();
 export function decorOf(kind: DecorSpot["kind"], tone?: number): DecorSpot[] {
    return DECOR.filter((spot) => spot.kind === kind && (tone === undefined || spot.tone === tone));
 }
+
+/** What lines the banks of a level's slope (Track.tsx's bank pool): asset key and lateral offset (m). */
+export type BankProp = "pine" | "auroraCrystal" | "rock" | "glacierChunk";
+
+/**
+ * Each level's place (README "Levels"): the core light preset, sky, fog, the snow field's four
+ * tones, the bank scenery, how much snow falls, and which far decor shows. Level 1 is today's look.
+ */
+export interface SlideTheme {
+   lighting: LightingPreset;
+   skyTop: string;
+   skyBottom: string;
+   fog: string;
+   /** the snow field's four tones (Terrain.tsx): sunlit, snow, shade, ice */
+   tones: readonly [string, string, string, string];
+   bank: BankProp;
+   /** share of today's snowfall (0 = none) */
+   snow: number;
+   clouds: boolean;
+   mountains: boolean;
+   spires: boolean;
+   stars: boolean;
+   aurora: boolean;
+}
+
+export const THEMES: Record<SlideSite, SlideTheme> = {
+   snowHill: {
+      lighting: "snow", skyTop: COLORS.skyTop, skyBottom: COLORS.skyBottom, fog: COLORS.fog,
+      tones: [COLORS.snowSun, COLORS.terrainSnow, COLORS.terrainShade, COLORS.terrainIce],
+      bank: "pine", snow: 1, clouds: true, mountains: true, spires: true, stars: false, aurora: false,
+   },
+   // a dim blue cave: no sky, no snowfall, glowing crystals on the banks, ice columns all round
+   iceCave: {
+      lighting: "night", skyTop: "#04121f", skyBottom: "#16455e", fog: "#123a50",
+      tones: ["#b6e3f5", "#8cc7e3", "#5a93b5", "#a5f3fc"],
+      bank: "auroraCrystal", snow: 0, clouds: false, mountains: false, spires: true, stars: false, aurora: false,
+   },
+   // a flat glassy lake under a pale lilac sky: boulders on the shore, light snow
+   frozenLake: {
+      lighting: "snow", skyTop: "#818cf8", skyBottom: "#eef2ff", fog: "#e0e7ff",
+      tones: ["#eff6ff", "#dbeafe", "#bfdbfe", "#93c5fd"],
+      bank: "rock", snow: 0.35, clouds: true, mountains: true, spires: false, stars: false, aurora: false,
+   },
+   // a starry night under the northern lights
+   auroraRun: {
+      lighting: "night", skyTop: "#020617", skyBottom: "#0f3b3f", fog: "#0c2a33",
+      tones: ["#dbeafe", "#bfdbfe", "#8ea7d8", "#99f6e4"],
+      bank: "pine", snow: 0.5, clouds: false, mountains: true, spires: false, stars: true, aurora: true,
+   },
+   // a glacier at dusk between ice cliffs
+   glacierSprint: {
+      lighting: "sunset", skyTop: "#7c3aed", skyBottom: "#fdba74", fog: "#fbc999",
+      tones: ["#fff7ed", "#fde7d0", "#f5c6a5", "#bae6fd"],
+      bank: "glacierChunk", snow: 0.6, clouds: true, mountains: true, spires: true, stars: false, aurora: false,
+   },
+};
+
+/** How far off the corridor centre each bank prop stands (m): clear of the 3.5 m half-width and its banks. */
+export const BANK_LATERAL: Record<BankProp, number> = { pine: 5.2, auroraCrystal: 5.8, rock: 5.6, glacierChunk: 6.8 };

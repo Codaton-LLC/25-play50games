@@ -22,9 +22,9 @@ export const LEVELS: Record<LevelId, BeeLevel> = {
 };
 
 export const LEVEL_DESCRIPTIONS: Record<LevelId, string> = {
-   1: "Ten nectar, no webs, learn the hive.",
-   2: "Webs drop your carry.",
-   3: "Same garden, more flowers, glass is fog and props.",
-   4: "Longer flight, more webs.",
-   5: "A sideways breeze and thirty nectar.",
+   1: "Flower Garden: ten nectar, no webs — learn the hive.",
+   2: "Vegetable Garden: planter beds and the first spider webs.",
+   3: "Greenhouse: milky glass walls, more flowers and webs.",
+   4: "Forest Flowers: sunset tree line, denser webs and branches.",
+   5: "Giant Garden: a giant bloom, a sideways breeze and thirty nectar.",
 };

@@ -31,8 +31,9 @@ import { ASSETS, DIVER_LANDMARKS, DIVER_SCALE } from "./assets";
 import { GUIDE, emptyGoal, hintCode, hintFor, nextGoal } from "./guide";
 import type { AquariumLevel } from "./levels";
 import {
-   COLORS, DAMPING, FOLLOW, FOV, GLASS_H, LOOK_AHEAD, coralSpots, frameSpots, lookAtFor, schoolsOf, aimBounds, viewFor,
+   COLORS, DAMPING, FOLLOW, FOV, GLASS_H, LOOK_AHEAD, coralSpots, frameSpots, frameGlowOf, lookAtFor, lookOf, schoolsOf, aimBounds, viewFor,
 } from "./looks";
+import { SetPieces } from "./SetPieces";
 import { TankSurroundings } from "./Tank";
 import { BasketStand, CastleStand, DiverFigure, FilterStand, bottleParts, coralParts, fishParts, rockParts, sharkParts } from "./Primitives";
 import {
@@ -191,7 +192,7 @@ function Glass({ run }: { run: Run }) {
          <mesh position={[hx, GLASS_H / 2, 0]} rotation-y={-Math.PI / 2} material={mat}><planeGeometry args={[run.level.depth, GLASS_H]} /></mesh>
          <Instanced spots={frames} name="glass-frame">
             <boxGeometry args={[1, 1, 1]} />
-            <meshStandardMaterial color={COLORS.frame} emissive={COLORS.frame} emissiveIntensity={run.level.lighting === "night" ? 1.6 : 0.55} roughness={0.3} />
+            <meshStandardMaterial color={COLORS.frame} emissive={COLORS.frame} emissiveIntensity={frameGlowOf(run.level)} roughness={0.3} />
          </Instanced>
       </>
    );
@@ -245,9 +246,9 @@ function LevelScene() {
    const gait = useRef({ phase: 0, amount: 0, visYaw: 0, scrub: 0 }).current;
    const bubbleAt = useRef(0);
    const bounds = useMemo(() => aimBounds(config), [config]);
-   const look = useMemo(() => lookAtFor(config), [config]);
-   const corals = useMemo(() => coralSpots(run, 5).slice(0, Math.max(2, scaledCount(5, quality.decor))), [run, quality.decor]);
-   const schools = useMemo(() => schoolsOf(run), [run]);
+   const look = useMemo(() => lookOf(config), [config]);
+   const corals = useMemo(() => coralSpots(run, look.coralCount).slice(0, Math.max(2, scaledCount(look.coralCount, quality.decor))), [run, look, quality.decor]);
+   const schools = useMemo(() => schoolsOf(run, look.schoolCount), [run, look]);
    const fishCount = schools.reduce((n, s) => n + s.count, 0);
    const rocks = useMemo(() => run.solids.filter((s) => s.kind === "rock").map((s) => ({ x: s.x, y: 0, z: s.z, rotY: s.rotY, scale: s.scale })), [run]);
    const castle = useMemo(() => run.solids.find((s) => s.kind === "castle"), [run]);
@@ -452,7 +453,7 @@ function LevelScene() {
    return (
       <>
          <CameraRig
-            camera={{ position: view.offset, fov: FOV, lookAt: look }}
+            camera={{ position: view.offset, fov: FOV, lookAt: lookAtFor(config) }}
             follow={aim}
             followFraction={FOLLOW}
             bounds={bounds}
@@ -462,12 +463,13 @@ function LevelScene() {
          />
          <TankSurroundings level={config} />
          <Glass run={run} />
+         <SetPieces run={run} look={look} />
          <AlgaePatches run={run} />
          <Column run={run} />
          <Hatch run={run} />
          <Model asset={ASSETS.basket} position={[run.basket.x, 0, run.basket.z]} fallback={<BasketStand />} />
          <Filters run={run} />
-         {castle && <Model asset={ASSETS.castle} position={[castle.x, 0, castle.z]} fallback={<CastleStand />} />}
+         {castle && <Model asset={ASSETS.castle} position={[castle.x, 0, castle.z]} rotation-y={castle.rotY} scale={castle.scale} fallback={<CastleStand />} />}
          {rocks.length > 0 && (
             <InstancedModel asset={ASSETS.rock} spots={rocks} fallback={<Instanced spots={rocks} name="rocks-stand"><primitive object={rockP[0].geometry} attach="geometry" /><primitive object={rockP[0].material} attach="material" /></Instanced>} />
          )}

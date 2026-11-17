@@ -6,7 +6,7 @@ import { definitionLevelProblems, levelEnvironment, levelHudStats, levelInstruct
 import { levelMetaProblems, scoringFor } from "@/arcade3d/levelMeta";
 import definition from "./index";
 import { LEVELS, type DroneLevel } from "./levels";
-import { COLORS } from "./looks";
+import { COLORS, THEMES } from "./looks";
 import { deliveryDroneMeta as meta } from "./meta";
 import {
    BATTERY,
@@ -73,9 +73,10 @@ describe("delivery-drone levels: declarations", () => {
       ]);
    });
 
-   it("every level keeps the day sky and its own delivery chip", () => {
+   it("every level has its district's sky and light, and its own delivery chip", () => {
       for (const id of LEVEL_IDS) {
-         expect(levelEnvironment(definition, id)).toEqual({ background: COLORS.skyBottom, lighting: "day" });
+         const theme = THEMES[LEVELS[id].map.theme];
+         expect(levelEnvironment(definition, id)).toEqual({ background: theme.skyBottom, lighting: theme.lighting });
          expect(levelRunConfig(definition, id).durationMs).toBeUndefined();
          expect(levelHudStats(definition, id)![0]).toEqual({ key: "deliveries", label: "Deliveries", max: LEVELS[id].count });
          expect(meta.levels![id - 1].clearScore).toBeLessThanOrEqual(PROPOSED_LEVEL_LIMITS[id].maxScore);

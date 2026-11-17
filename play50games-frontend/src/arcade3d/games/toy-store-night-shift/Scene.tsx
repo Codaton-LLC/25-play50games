@@ -30,7 +30,7 @@ import { ASSETS, HERO_HEIGHT, TOY_ASSETS } from "./assets";
 import { SIGN_ATLAS_W, SIGN_CELL, drawSigns } from "./glyphs";
 import { CATEGORIES, type Category, type ToyLevel } from "./levels";
 import {
-   BACK, COLORS, DAMPING, FOLLOW, FOV, SIDE_H, TORCH, WALL_H, ZOOM, aimBounds, aimFor, followOffset, shelfTrimSpots, decorOf, lookAtFor, signBaseSpots, signSpots, slotSpot, tileSpots, viewFor, wallSpots,
+   BACK, COLORS, departmentOf, DAMPING, FOLLOW, FOV, SIDE_H, TORCH, WALL_H, ZOOM, aimBounds, aimFor, followOffset, shelfTrimSpots, decorOf, lookAtFor, signBaseSpots, signSpots, slotSpot, tileSpots, viewFor, wallSpots,
 } from "./looks";
 import HeroRobot, { type HeroCues } from "./HeroRobot";
 import { BinStand, shelfParts, toyParts, windupCarParts, windupRobotParts } from "./Primitives";
@@ -182,6 +182,7 @@ function LevelScene() {
          wall(run.hx + t / 2, -BACK / 2, t, run.hz * 2 + BACK, SIDE_H);
          // the shelves too: without them the chase / free camera ends inside a shelf (a pink trim slab)
          for (const sh of run.shelves) wall((sh.minX + sh.maxX) / 2, sh.z, sh.maxX - sh.minX, sh.maxZ - sh.minZ, SHELF_H + 0.15);
+         for (const d of run.level.department ? decor : []) wall(d.x, d.z, 1.3, 1.3, d.y + 1.2);
          return n;
       },
    });
@@ -192,6 +193,7 @@ function LevelScene() {
    const cues = useRef<HeroCues>({ pointAt: -1, stunAt: -1 });
    const bounds = useMemo(() => aimBounds(config), [config]);
    const look = useMemo(() => lookAtFor(), []);
+   const palette = departmentOf(config);
    const tiles = useMemo(() => tileSpots(config), [config]);
    const walls = useMemo(() => wallSpots(config), [config]);
    const decor = useMemo(() => decorOf(run), [run]);
@@ -345,20 +347,26 @@ function LevelScene() {
          </mesh>
          <mesh rotation-x={-Math.PI / 2} position={[0, 0, -BACK / 2]}>
             <planeGeometry args={[run.hx * 2, run.hz * 2 + BACK]} />
-            <meshStandardMaterial color={COLORS.floor} roughness={0.85} />
+            <meshStandardMaterial color={palette.floor} roughness={0.85} />
          </mesh>
          <Instanced spots={tiles} name="floor-tiles">
             <boxGeometry args={[1, 1, 1]} />
-            <meshStandardMaterial color={COLORS.floorTile} roughness={0.85} />
+            <meshStandardMaterial color={palette.tile} roughness={0.85} />
          </Instanced>
          <Instanced spots={walls.walls} name="walls">
             <boxGeometry args={[1, 1, 1]} />
-            <meshStandardMaterial color={COLORS.wall} roughness={0.8} />
+            <meshStandardMaterial color={palette.wall} roughness={0.8} />
          </Instanced>
          <Instanced spots={walls.trims} name="wall-trims">
             <boxGeometry args={[1, 1, 1]} />
-            <meshStandardMaterial color={config.lighting === "night" ? COLORS.emergency : COLORS.wallTrim} emissive={config.lighting === "night" ? COLORS.emergency : COLORS.wallTrim} emissiveIntensity={config.lighting === "night" ? 0.9 : 0.15} roughness={0.5} />
+            <meshStandardMaterial color={config.lighting === "night" ? COLORS.emergency : palette.accent} emissive={config.lighting === "night" ? COLORS.emergency : palette.accent} emissiveIntensity={config.lighting === "night" ? 0.9 : 0.15} roughness={0.5} />
          </Instanced>
+         {config.department && run.shelves.filter((s, i, all) => all.findIndex((a) => a.row === s.row) === i).map((s) => (
+            <mesh key={`department-lane-${s.row}`} rotation-x={-Math.PI / 2} position={[0, 0.014, s.z + 1.25]}>
+               <planeGeometry args={[run.hx * 2 - 1.4, config.department === "warehouse" ? 0.12 : 0.35]} />
+               <meshBasicMaterial color={config.department === "mega" ? ["#f472b6", "#60a5fa", "#facc15", "#34d399"][s.row % 4] : palette.accent} transparent opacity={0.45} toneMapped={false} />
+            </mesh>
+         ))}
          <InstancedModel
             asset={ASSETS.shelf}
             spots={shelfSpots}
@@ -378,7 +386,7 @@ function LevelScene() {
          {decor.map((d, i) => (
             <Model
                key={i}
-               asset={d.kind === "bin" ? ASSETS.bin : d.kind === "binPlush" ? ASSETS.binPlush : ASSETS.crate}
+               asset={ASSETS[d.kind]}
                position={[d.x, d.y, d.z]}
                rotation-y={d.rotY}
                fallback={<BinStand color={d.kind === "crate" ? COLORS.crate : d.kind === "bin" ? COLORS.bin : COLORS.binPlush} />}

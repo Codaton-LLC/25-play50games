@@ -34,9 +34,12 @@ export function viewFor(width: number, height: number, coarse = false): FittedVi
    };
 }
 
-export function FittedFog({ distance }: { distance: number }) {
+export function FittedFog({ distance, color = COLORS.fog }: { distance: number; color?: string }) {
    const scene = useThree((s) => s.scene);
    const fog = useMemo(() => new Fog(COLORS.fog, distance + 10, distance + 40), []);
+   useEffect(() => {
+      fog.color.set(color);
+   }, [color, fog]);
    useEffect(() => {
       fog.near = distance + 10;
       fog.far = distance + 40;

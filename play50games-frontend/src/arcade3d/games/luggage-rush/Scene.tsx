@@ -30,6 +30,7 @@ import {
    type StepInput,
 } from "./rules";
 import { useLuggageLevel } from "./useLuggageLevel";
+import { TarmacSets } from "./TarmacSets";
 
 /** Belts only. The floor and handler past x 8.2 are outside the fit, so the camera can come in. */
 const AREA = {
@@ -103,7 +104,7 @@ function pickDiverter(state: RootState, tap: { x: number; y: number }, time: num
 }
 
 export default function Scene() {
-   const { config } = useLuggageLevel();
+   const { config, id: levelId } = useLuggageLevel();
    const [run] = useState(() => createRun(randomSeed(), config));
    const input = useInput();
    const fx = useFx();
@@ -188,6 +189,7 @@ export default function Scene() {
          <SkyDome top={COLORS.skyTop} bottom={COLORS.skyBottom} />
          <FittedCamera />
          <Hall />
+         <TarmacSets levelId={levelId} />
          <Belts run={run} />
          <Bags run={run} />
          <TargetBeacon target={flipBeacon} variant="pick" color={flightColorNow} radius={0.7} height={1.0} label="FLIP" />

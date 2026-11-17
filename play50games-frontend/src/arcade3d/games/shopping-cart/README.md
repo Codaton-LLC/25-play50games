@@ -199,7 +199,25 @@ Five levels through the core level system (`core/README.md` "Levels"): `levels.t
 | 4 | Superstore | 12 | 150 s | 15 s | 2.1 m/s (0.3 s wait) | 1800 |
 | 5 | Closing-Time Rush | 15 | 180 s | 0 s (start) | 2.2 m/s (0.2 s wait) | - |
 
-Plan adaptation (GAME 16): 1 base store environment + 5 level configurations; indoor lighting is kept throughout. Item counts scale 6 -> 7 -> 9 -> 12 -> 15. The 4th shopper (`shopperD`) activates progressively earlier (40 s down to 0 s at rush hour), and shoppers move faster with shorter waypoint pauses. The 52 m tour gate holds across all levels.
+Plan adaptation (GAME 16): 1 base store + 5 level configurations. Since 2026-10-29 each level is also its own store floor and light (below); level 1 is unchanged. Item counts scale 6 -> 7 -> 9 -> 12 -> 15. The 4th shopper (`shopperD`) activates progressively earlier (40 s down to 0 s at rush hour), and shoppers move faster with shorter waypoint pauses. The 52 m tour gate holds across all levels.
+
+### Store floors (2026-10-29: "the same level 5 times")
+
+`levels.ts` `STORES`: each level 2-5 adds its own set pieces (solid, drawn inside their rules box), its own wet floor, floor machines on patrol and, at closing time, a shut lane. The 24 shelf slots, the start, the four shelves, the fruit island, the freezer row, the counters and the finish are the same on every level.
+
+| Level | Floor | Twist | Light |
+|---|---|---|---|
+| 1 Mini Market | today's store | none (unchanged; `STORES[1]` is empty and a level-1 run carries no new state, so the bit-exact replay in `levels.test.ts` still matches) | `indoor`, today's |
+| 2 Fresh Food | two produce stands (fruitStand GLB) in the entrance aisle, two chilled cases (freezerCase GLB) on the east wall, green banners | the misters: two wet patches slick from the start (same grip rule as the spills) | `snow` (cool chilled light), green sky and fog |
+| 3 Household Aisles | stock-pallet zigzags (shared crate GLB on pallets) in aisles 2 and 5, teal banners | a floor scrubber (floorScrubber GLB) patrols the entrance aisle; contact stuns like a shopper (1 s, 1.5 s grace, combo reset) | `indoor`, warm brown sky and fog |
+| 4 Superstore | bakery promo islands (bakeryStand GLB) in both side aisles, the aisle-2 zigzag, orange banners | a stock pallet rolls up and down aisle 5 (same stun) | `day` (roof lights), blue sky |
+| 5 Closing-Time Rush | the aisle-2 zigzag, red banners, mop water by the freezers, a second puddle at 30 s | the scrubber and the pallet both out; at 60 s the left checkout lane's shutter drops (`LANE_GATE`, never onto the cart) | `night`, closer fog |
+
+Rules (`rules.ts`): `solidsFor(level)` = `SOLID_OBSTACLES` + the set pieces' boxes; a level-2-5 run keeps them in `run.solids` (the swept collision and the push-out loop read it), `run.movers` (stepped with `stepPatrol`, bumps reported as `shopperBumped`), and `run.laneClosed`. `inSpillAt` checks the rules spills and the level's own. The HUD, list, hint and beacon are unchanged.
+
+**Limits: unchanged.** Every level's proof is "a win visits the start, its slots' reach discs and the finish, and no frame moves the cart more than the kinematic cap", with the route bound measured over the level-1 solids. A set piece or the lane shutter only adds walls (`solidsFor(level)` starts with every level-1 solid), so every route can only get longer; wet floor and stuns only slow the cart; nothing adds a score source. So the 3500 ms floor, every `maxScore` and every pps line hold as written, and `meta.ts` / `arcade-games.json` are untouched.
+
+Tests: `stores.test.ts` floods the cart-centre configuration space (solids inflated by 0.45 m, the proof's inflation) on every level, with and without the shut lane, and checks every slot's reach disc and the finish stay reachable; that no piece touches a slot's reach disc, the start, a pyramid, the finish, another piece or a shopper / machine route; that a piece stops the cart; that a machine stuns and then gives grace; that the lane shuts at 60 s, not before and never on the cart; and that a level-1 run has no new keys. `levels.test.ts`'s path-following bot plans on each level's own floor (and the east lane at closing time): 40/40 seeds clear on every level.
 
 ### Server limits per level (the proof)
 

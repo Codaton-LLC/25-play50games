@@ -138,6 +138,34 @@ export function fogFor(level: BeachLevel, distance: number, portrait = false): {
    return { near, far: near + (level.fogFar - FOG_NEAR) };
 }
 
+// ---------- per-level look: sky, water and weather (lighting preset is levels.ts) ----------
+// Each level reads as its name: L1 the small day beach, L2 a brighter busy midday, L3 a golden-hour
+// resort with turquoise water, L4 a dusk waterpark, L5 a dark night storm with rain and a heavy sea.
+
+export interface BeachTheme {
+   /** SkyDome top (the horizon is the level's background / fog colour) */
+   skyTop: string;
+   waterShallow: string;
+   waterDeep: string;
+   waterFoam: string;
+   /** the Water component's wave amplitude: the storm sea is the roughest */
+   waveAmp: number;
+   /** L5 only: the rain sheet */
+   rain: boolean;
+}
+
+export const THEMES: Record<LevelId, BeachTheme> = {
+   1: { skyTop: "#0ea5e9", waterShallow: COLORS.waterShallow, waterDeep: COLORS.waterDeep, waterFoam: COLORS.waterFoam, waveAmp: 0.14, rain: false },
+   2: { skyTop: "#0369a1", waterShallow: "#0ea5e9", waterDeep: "#075985", waterFoam: COLORS.waterFoam, waveAmp: 0.15, rain: false },
+   3: { skyTop: "#c2410c", waterShallow: "#5eead4", waterDeep: "#0f766e", waterFoam: "#ecfeff", waveAmp: 0.12, rain: false },
+   4: { skyTop: "#7c2d12", waterShallow: "#38bdf8", waterDeep: "#155e75", waterFoam: "#fff7ed", waveAmp: 0.18, rain: false },
+   5: { skyTop: "#292524", waterShallow: "#64748b", waterDeep: "#0f172a", waterFoam: "#cbd5e1", waveAmp: 0.3, rain: true },
+};
+
+export function themeFor(id: LevelId): BeachTheme {
+   return THEMES[id];
+}
+
 // ---------- decor: never between the camera and the beach ----------
 // The camera looks north (-z) from the south (+z): south of the sand only low things stand; the palms and
 // huts line both ends of the beach, outside the play rectangle.
@@ -153,14 +181,27 @@ export interface DecorSpots {
    /** low beach clutter on the camera side (sandcastles and coolers, fitted to 1 m tall in assets.ts) */
    castles: InstanceSpot[];
    coolers: InstanceSpot[];
+   /** L2 Busy Beach: low boardwalk planks along the back of the sand */
+   boardwalk: InstanceSpot[];
+   /** L3 Resort: hotel blocks past both beach ends, deck chairs and a low pool on the terrace */
+   hotels: InstanceSpot[];
+   deckChairs: InstanceSpot[];
+   pool: { x: number; z: number; w: number; d: number } | null;
+   /** L4 Waterpark: tall slide flumes past both beach ends; ring floats on the back sand */
+   slides: InstanceSpot[];
+   rings: InstanceSpot[];
 }
 
-/** Seeded per level. Every decor GLB is fitted to 1 m tall (assets.ts): the spot's scale is the height. */
+/**
+ * Seeded per level. Every decor GLB is fitted to 1 m tall (assets.ts): the spot's scale is the height.
+ * Level 1 keeps today's layout; each later level adds its own set pieces, all outside the play rectangle:
+ * tall things only past the beach ends, low things only on the camera side (z > the sand).
+ */
 export function decorSpots(id: LevelId): DecorSpots {
    const level = LEVELS[id];
    const rng = createRng(3400 + id);
    const halfW = level.width / 2;
-   const out: DecorSpots = { palms: [], huts: [], castles: [], coolers: [] };
+   const out: DecorSpots = { palms: [], huts: [], castles: [], coolers: [], boardwalk: [], hotels: [], deckChairs: [], pool: null, slides: [], rings: [] };
    for (const side of [-1, 1]) {
       // a hut at each end of the sand, palms along both ends from the waterline to the back of the beach
       out.huts.push({ x: side * (halfW + END_GAP + 1.4), y: 0, z: 9 + rng() * 3, rotY: side > 0 ? -Math.PI / 2 : Math.PI / 2, scale: 2.4 });
@@ -168,11 +209,38 @@ export function decorSpots(id: LevelId): DecorSpots {
          out.palms.push({ x: side * (halfW + END_GAP + 0.5 + rng() * 3.5), y: 0, z, rotY: rng() * Math.PI * 2, scale: 3 + rng() * 1.4 });
       }
    }
-   // low clutter on the camera side of the sand
+   // low clutter on the camera side of the sand (the storm beach is wind-swept: about half of it)
    for (let x = -halfW - 6; x <= halfW + 6; x += 3 + rng() * 3) {
       const z = SAND_DEPTH + 1 + rng() * 5;
+      if (id === 5 && rng() < 0.5) continue;
       if (rng() < 0.5) out.castles.push({ x, y: 0, z, rotY: rng() * Math.PI * 2, scale: 0.35 + rng() * 0.25 });
       else out.coolers.push({ x, y: 0, z, rotY: rng() * Math.PI * 2, scale: 0.35 + rng() * 0.15 });
+   }
+
+   if (id === 2) {
+      // Busy Beach: a low wooden boardwalk runs along the back of the sand behind the clutter
+      for (let x = -halfW - 4; x <= halfW + 4; x += 2.4) {
+         out.boardwalk.push({ x, y: 0.05, z: SAND_DEPTH + 3.4 + (rng() - 0.5) * 0.2, rotY: (rng() - 0.5) * 0.05, scale: 1 });
+      }
+   } else if (id === 3) {
+      // Resort: hotel blocks past both ends, neat deck-chair rows and a low pool on the terrace
+      for (const side of [-1, 1]) {
+         out.hotels.push({ x: side * (halfW + END_GAP + 7), y: 0, z: 5.5 + rng() * 1.5, rotY: side > 0 ? -Math.PI / 2 : Math.PI / 2, scale: 1 });
+      }
+      for (let row = 0; row < 2; row++) {
+         for (let x = -halfW + 2 + rng(); x <= halfW - 2; x += 4.5 + rng() * 2) {
+            out.deckChairs.push({ x, y: 0, z: SAND_DEPTH + 1.6 + row * 2.4 + rng() * 0.4, rotY: Math.PI + (rng() - 0.5) * 0.5, scale: 0.55 });
+         }
+      }
+      out.pool = { x: 0, z: SAND_DEPTH + 6.4, w: Math.min(16, halfW * 1.4), d: 3.4 };
+   } else if (id === 4) {
+      // Waterpark: a tall slide flume past each beach end, ring floats scattered on the back sand
+      for (const side of [-1, 1]) {
+         out.slides.push({ x: side * (halfW + END_GAP + 5.5), y: 0, z: 4.5 + rng() * 1.5, rotY: side > 0 ? Math.PI / 2 : -Math.PI / 2, scale: 1.35 });
+      }
+      for (let i = 0; i < 6; i++) {
+         out.rings.push({ x: -halfW - 3 + rng() * (halfW * 2 + 6), y: 0.14, z: SAND_DEPTH + 1.5 + rng() * 4, rotY: rng() * Math.PI, scale: 0.85 });
+      }
    }
    return out;
 }
