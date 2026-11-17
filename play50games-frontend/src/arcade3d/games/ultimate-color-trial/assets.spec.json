@@ -1,0 +1,108 @@
+{
+   "slug": "ultimate-color-trial",
+   "universe": "Menu 2 Color Roll Heroes, World 6 Prism Fortress: the mixed-mechanic finale. Premium modular arcade challenge pieces, neutral/white parts recoloured at runtime.",
+   "seed": 5050,
+   "assets": [
+      {
+         "id": "m2ChromaSentinelBoss",
+         "kind": "character",
+         "mode": "image",
+         "concept": "tools/hyper3d/concepts/m2ChromaSentinelBoss.webp",
+         "prompt": "Chroma Sentinel, the final boss of the Grand Hero Trial: a tall prism-armoured guardian with a neutral recolorable chest core, rounded stylized shapes, clean low-poly browser game geometry.",
+         "attempts": 1,
+         "target": "ultimate-color-trial",
+         "budget": { "tris": 20000, "bytes": 1500000 },
+         "textureSize": 1024
+      },
+      {
+         "id": "m2BossBeacon",
+         "kind": "prop",
+         "mode": "text",
+         "prompt": "Boss beacon: a tall arcade beacon post with a neutral recolorable light crown, rounded stylized shapes, clean low-poly browser game geometry.",
+         "attempts": 1,
+         "target": "ultimate-color-trial",
+         "budget": { "tris": 5000, "bytes": 300000 },
+         "textureSize": 512
+      },
+      {
+         "id": "m2ColorSwitch",
+         "kind": "prop",
+         "mode": "text",
+         "prompt": "Color switch floor button: a round pressure plate with a neutral recolorable cap, rounded stylized shapes, clean low-poly browser game geometry.",
+         "attempts": 1,
+         "target": "ultimate-color-trial",
+         "budget": { "tris": 5000, "bytes": 300000 },
+         "textureSize": 512
+      },
+      {
+         "id": "m2TrialRing",
+         "kind": "prop",
+         "mode": "text",
+         "prompt": "Trial ring: an upright hoop on a slim stand with a neutral recolorable rim, rounded stylized shapes, clean low-poly browser game geometry.",
+         "attempts": 1,
+         "target": "ultimate-color-trial",
+         "budget": { "tris": 5000, "bytes": 300000 },
+         "textureSize": 512
+      },
+      {
+         "id": "m2SpawnPad",
+         "kind": "prop",
+         "mode": "text",
+         "prompt": "Spawn pad: a flat round arcade platform with a neutral recolorable rim light, clean low-poly browser game geometry.",
+         "attempts": 1,
+         "target": "ultimate-color-trial",
+         "budget": { "tris": 5000, "bytes": 300000 },
+         "textureSize": 512
+      },
+      {
+         "id": "m2RunwayPlatform",
+         "kind": "prop",
+         "mode": "text",
+         "prompt": "Runway platform: a long flat arcade platform slab with neutral recolorable edge strips, clean low-poly browser game geometry.",
+         "attempts": 1,
+         "target": "ultimate-color-trial",
+         "budget": { "tris": 5000, "bytes": 300000 },
+         "textureSize": 512
+      },
+      {
+         "id": "m2LaserEmitter",
+         "kind": "prop",
+         "mode": "text",
+         "prompt": "Laser emitter: a low arcade emitter block with a neutral recolorable lens, clean low-poly browser game geometry.",
+         "attempts": 1,
+         "target": "ultimate-color-trial",
+         "budget": { "tris": 5000, "bytes": 300000 },
+         "textureSize": 512
+      },
+      {
+         "id": "m2CoreCapsule",
+         "kind": "prop",
+         "mode": "text",
+         "prompt": "Energy core capsule: a carryable capsule with a neutral recolorable glowing core, rounded stylized shapes, clean low-poly browser game geometry.",
+         "attempts": 1,
+         "target": "ultimate-color-trial",
+         "budget": { "tris": 5000, "bytes": 300000 },
+         "textureSize": 512
+      },
+      {
+         "id": "m2OrbBlob",
+         "kind": "prop",
+         "mode": "text",
+         "prompt": "Hazard orb: a round rolling blob with a neutral recolorable shell, clean low-poly browser game geometry.",
+         "attempts": 1,
+         "target": "ultimate-color-trial",
+         "budget": { "tris": 5000, "bytes": 300000 },
+         "textureSize": 512
+      },
+      {
+         "id": "m2FloatCrystalPedestal",
+         "kind": "prop",
+         "mode": "text",
+         "prompt": "Core receptor: a floating crystal pedestal with a neutral recolorable socket, clean low-poly browser game geometry.",
+         "attempts": 1,
+         "target": "ultimate-color-trial",
+         "budget": { "tris": 5000, "bytes": 300000 },
+         "textureSize": 512
+      }
+   ]
+}

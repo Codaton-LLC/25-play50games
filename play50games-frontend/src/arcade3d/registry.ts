@@ -102,6 +102,7 @@ import { switchColorHeroMeta } from "./games/switch-color-hero/meta";
 import { colorMatchJumpMeta } from "./games/color-match-jump/meta";
 import { energyCoreHuntMeta } from "./games/energy-core-hunt/meta";
 import { colorBossTowerMeta } from "./games/color-boss-tower/meta";
+import { ultimateColorTrialMeta } from "./games/ultimate-color-trial/meta";
 
 import { colorOrbDefenseMeta } from "./games/color-orb-defense/meta";
 export const ARCADE_GAMES: ArcadeGameMeta[] = [
@@ -204,6 +205,7 @@ export const ARCADE_GAMES: ArcadeGameMeta[] = [
    colorMatchJumpMeta,
    energyCoreHuntMeta,
    colorBossTowerMeta,
+   ultimateColorTrialMeta,
 ].sort((a, b) => a.order - b.order);
 
 export function getGameMeta(slug: string): ArcadeGameMeta | undefined {

@@ -106,6 +106,7 @@ export const ARCADE_SLUGS = [
    "color-boss-tower",
    "color-bridge-builder",
    "color-orb-defense",
+   "ultimate-color-trial",
 ] as const;
 
 export type ArcadeSlug = (typeof ARCADE_SLUGS)[number];

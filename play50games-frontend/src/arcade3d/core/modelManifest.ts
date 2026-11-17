@@ -943,6 +943,17 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/color-boss-tower/m2PrismHeart.glb",
    "/models/3d/color-boss-tower/m2StoneGuardianBoss.glb",
    "/models/3d/color-boss-tower/m2TowerLedgePlatform.glb",
+   // Menu 2 game 50 (Ultimate Color Trial): the trial pieces from p50-assets hyper3d-new / hyper3d-recovered (m2ChromaSentinelBoss is its L5 boss)
+   "/models/3d/ultimate-color-trial/m2BossBeacon.glb",
+   "/models/3d/ultimate-color-trial/m2ChromaSentinelBoss.glb",
+   "/models/3d/ultimate-color-trial/m2ColorSwitch.glb",
+   "/models/3d/ultimate-color-trial/m2CoreCapsule.glb",
+   "/models/3d/ultimate-color-trial/m2FloatCrystalPedestal.glb",
+   "/models/3d/ultimate-color-trial/m2LaserEmitter.glb",
+   "/models/3d/ultimate-color-trial/m2OrbBlob.glb",
+   "/models/3d/ultimate-color-trial/m2RunwayPlatform.glb",
+   "/models/3d/ultimate-color-trial/m2SpawnPad.glb",
+   "/models/3d/ultimate-color-trial/m2TrialRing.glb",
 ];
 
 const LISTED: ReadonlySet<string> = new Set(MODEL_MANIFEST);

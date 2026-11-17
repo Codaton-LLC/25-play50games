@@ -1248,6 +1248,22 @@
         { "title": "Toybox Finale", "max_score": 18410, "min_duration_ms": 15900, "max_duration_ms": 200000, "time_base_ms": 200000 }
       ]
     },
+    "ultimate-color-trial": {
+      "title": "Ultimate Color Trial",
+      "kind": "time",
+      "max_score": 9330,
+      "min_duration_ms": 6700,
+      "max_duration_ms": 100000,
+      "time_base_ms": 100000,
+      "enabled": false,
+      "levels": [
+        { "title": "Jump Trial", "max_score": 9330, "min_duration_ms": 6700, "max_duration_ms": 100000, "time_base_ms": 100000 },
+        { "title": "Runner Trial", "max_score": 10700, "min_duration_ms": 13000, "max_duration_ms": 120000, "time_base_ms": 120000 },
+        { "title": "Color Trial", "max_score": 12880, "min_duration_ms": 21200, "max_duration_ms": 150000, "time_base_ms": 150000 },
+        { "title": "Mixed Trial", "max_score": 14900, "min_duration_ms": 31000, "max_duration_ms": 180000, "time_base_ms": 180000 },
+        { "title": "Grand Hero Trial", "max_score": 18920, "min_duration_ms": 50800, "max_duration_ms": 240000, "time_base_ms": 240000 }
+      ]
+    },
     "robot-factory-run": {
       "title": "Robot Factory Run",
       "kind": "time",
