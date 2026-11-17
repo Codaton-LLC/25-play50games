@@ -305,3 +305,10 @@
 .upBtn[aria-pressed="true"] {
    border-color: #f5c542;
 }
+
+/* phones: clear of the shell's round view button under it */
+@media (max-width: 520px) {
+   .upBtn {
+      bottom: calc(168px + env(safe-area-inset-bottom, 0px));
+   }
+}

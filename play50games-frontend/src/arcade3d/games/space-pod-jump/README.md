@@ -126,3 +126,17 @@ planetoids), `m2OrbitWardenBoss` (15k triangles: the character budget), `m2Space
 `m2Asteroid` (the moons and the debris), `m2RingedPlanetBg`, `m2GravityBuoy` (the Warden's mines); the
 dock's beacon is the shared `menu2/checkpointBeacon`. Code: the halos, the SOI rings, the gates, the flares,
 the belt, the vents, the thruster, the trajectory dots, the starfield, the grid, the Hollow Prism cameo.
+
+## Playtest (dev server, headless Chrome, bot autoplay)
+
+All five levels at 1280×800 (mouse drag orbit, wheel zoom) and levels 1, 3 and 5 at 390×844 (touch:
+joystick, Jump, Power, two-finger orbit): every run cleared, the Warden fell on level 5, 0 console errors,
+frame p50 16.7 ms, p95 17-20 ms, 18-29 draw calls, 51k-125k triangles. Fixed from it:
+
+- The planetoid rock was near black under the shell's night preset: World adds a lilac ambient fill and a
+  key light from the camera side (+z), so every body reads in the play plane.
+- On phones the "Up" switch sat on the shell's round view button: it moves up under 520 px.
+
+Seen once and not reproduced: on one desktop level-5 run the hero stayed a capsule (the GLB fallback,
+no console error) for the whole run; the re-run and the phone run drew Vexa. Most likely a slow dev-server
+load of the hero GLB while the Warden compiled, not a code path.

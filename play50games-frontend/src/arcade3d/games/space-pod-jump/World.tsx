@@ -100,6 +100,10 @@ export default function World({ course, view, speed, outer = true }: { course: C
    });
    return (
       <>
+         {/* the planetoid rock is near black under the shell's night preset: a lilac fill plus a key from the
+             camera side (the view always looks from +z) so every body reads in the play plane */}
+         {outer ? <ambientLight intensity={0.7} color="#c9b8ff" /> : null}
+         {outer ? <directionalLight position={[-8, 12, 30]} intensity={1.6} color="#efe6ff" /> : null}
          {outer ? (
             <mesh ref={sky} material={skyMat} renderOrder={-1}>
                <sphereGeometry args={[180, 32, 16]} />
