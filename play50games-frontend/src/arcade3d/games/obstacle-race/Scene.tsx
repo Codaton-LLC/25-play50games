@@ -56,16 +56,16 @@ import {
    walkPose,
 } from "@/arcade3d/core/rig";
 import { RUNNER_LANDMARKS } from "@/arcade3d/core/sharedAssets";
-import type { RunPhase } from "@/arcade3d/core/types";
 import { COUNTDOWN_MS, useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useFittedView } from "@/arcade3d/core/useFittedView";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import type { FittedView } from "@/arcade3d/core/view";
 import { ASSETS } from "./assets";
 import { DAMPING, followPoint, viewFor, type RaceView } from "./camera";
+import LevelDecor from "./Decor";
 import { archOpacity, clearPostArm, fadeCopy, postArmWeight } from "./finishLooks";
+import { obstacleMs } from "./obstacleClock";
 import {
-   COLORS,
    CourseStatic,
    FinishArchPrimitive,
    Gates,
@@ -101,6 +101,7 @@ import {
    type ObstacleLevel,
    type ObstacleRun,
 } from "./rules";
+import { ThemeProvider, useColors } from "./themes";
 
 // ---------- shared state ----------
 
@@ -270,22 +271,6 @@ const VisualClock = memo(function VisualClock({ run, fx }: { run: ObstacleRun; f
    return null;
 });
 
-function obstacleMs(phase: RunPhase, countdownMs: number, simMs: number, fx: Fx, now: number): number {
-   switch (phase) {
-      case "countdown":
-         return -countdownMs;
-      case "playing":
-      case "paused":
-         return simMs;
-      case "over":
-         if (fx.endedAt < 0) fx.endedAt = now;
-         return simMs + (now - fx.endedAt) * 1000;
-      default:
-         // the start screen (its own Scene mount, behind the start panel): already turning
-         return now * 1000 - COUNTDOWN_MS;
-   }
-}
-
 // ---------- camera ----------
 
 const ORIGIN: [number, number, number] = [0, 0, 0];
@@ -396,8 +381,6 @@ const Beam = memo(function Beam({ run, fx }: { run: ObstacleRun; fx: Fx }) {
    return <BalanceBeam beam={beam} course={run.course} />;
 });
 
-const ACCENT = new Color(COLORS.accent);
-const REACHED = new Color(COLORS.reached);
 const GATE_FLASH_S = 0.6;
 const POP_S = 0.45;
 /** Overshoots a little, then settles. */
@@ -405,6 +388,9 @@ const easeOutBack = (k: number) => 1 + 2.70158 * (k - 1) ** 3 + 1.70158 * (k - 1
 
 const CheckpointGates = memo(function CheckpointGates({ run, fx }: { run: ObstacleRun; fx: Fx }) {
    const time = useGameTime();
+   const c = useColors();
+   const accent = useMemo(() => new Color(c.accent), [c]);
+   const reached = useMemo(() => new Color(c.reached), [c]);
    const [rigs] = useState<GateRig[]>(createGateRigs);
    useEffect(() => () => rigs.forEach((rig) => rig.banner.dispose()), [rigs]);
    useFrame(() => {
@@ -412,15 +398,15 @@ const CheckpointGates = memo(function CheckpointGates({ run, fx }: { run: Obstac
       for (let k = 0; k < rigs.length; k++) {
          const cp = k + 1;
          const rig = rigs[k];
-         const reached = run.checkpoint >= cp;
+         const reachedIt = run.checkpoint >= cp;
          const e = fx.gateAt[cp] >= 0 ? t - fx.gateAt[cp] : -1;
-         rig.banner.color.copy(reached ? REACHED : ACCENT);
-         rig.banner.emissive.copy(reached ? REACHED : ACCENT);
+         rig.banner.color.copy(reachedIt ? reached : accent);
+         rig.banner.emissive.copy(reachedIt ? reached : accent);
          rig.banner.emissiveIntensity = e >= 0 && e < GATE_FLASH_S ? 0.15 + 0.85 * (1 - e / GATE_FLASH_S) : 0.15;
          const flag = rig.flag;
          if (!flag) continue;
-         flag.visible = reached;
-         if (reached) {
+         flag.visible = reachedIt;
+         if (reachedIt) {
             flag.scale.setScalar(e >= 0 && e < POP_S ? Math.max(0.001, easeOutBack(e / POP_S)) : 1);
             flag.rotation.y = Math.sin(t * 3 + k) * 0.25;
          }
@@ -766,6 +752,7 @@ const RING_S = 0.8;
 
 const Effects = memo(function Effects({ fx }: { fx: Fx }) {
    const time = useGameTime();
+   const c = useColors();
    const parts = useFxParts();
    const splashRing = useRef<Mesh>(null);
    const spawnRing = useRef<Mesh>(null);
@@ -809,7 +796,7 @@ const Effects = memo(function Effects({ fx }: { fx: Fx }) {
       <group name="effects">
          <DynamicInstanced count={DROPS} update={placeDrop} name="splash-drops">
             <sphereGeometry args={[0.1, 8, 6]} />
-            <meshStandardMaterial color={COLORS.splash} roughness={0.2} />
+            <meshStandardMaterial color={c.splash} roughness={0.2} />
          </DynamicInstanced>
          <mesh ref={splashRing} geometry={parts.ring} material={parts.splashMat} visible={false} renderOrder={2} />
          <mesh ref={spawnRing} geometry={parts.ring} material={parts.spawnMat} visible={false} renderOrder={2} />
@@ -823,7 +810,8 @@ export default function Scene() {
    // GameShell remounts the Scene (and its game time) on start and retry: a fresh run every time.
    // The level config comes from the shell (useLevel); with the levels flag off the core hands
    // level 1's config, which builds the course of today's game bit for bit (README "Levels").
-   const { config } = useLevel<ObstacleLevel>();
+   // The level id picks the theme (themes.ts): the palette, and the level's decor set pieces.
+   const { id, config } = useLevel<ObstacleLevel>();
    const [run] = useState(() => createRun(buildCourse(config)));
    const [fx] = useState(createFx);
    const [follow] = useState<Follow>(() => ({ ...followPoint(run, { x: 0, y: 0, z: 0 }), hold: false }));
@@ -850,12 +838,13 @@ export default function Scene() {
    }, [gl, scene, camera]);
 
    return (
-      <>
+      <ThemeProvider level={id}>
          <Simulation run={run} fx={fx} follow={follow} />
          <VisualClock run={run} fx={fx} />
          <FollowCamera run={run} follow={follow} />
          <Water />
          <LaneRopes />
+         <LevelDecor level={id} course={run.course} run={run} />
          <CourseStatic course={run.course} />
          <Sweeper run={run} fx={fx} />
          <Blocks run={run} fx={fx} />
@@ -864,6 +853,6 @@ export default function Scene() {
          <FinishArch run={run} />
          <Runner run={run} fx={fx} />
          <Effects fx={fx} />
-      </>
+      </ThemeProvider>
    );
 }
