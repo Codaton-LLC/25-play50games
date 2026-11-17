@@ -394,7 +394,7 @@ Notes:
 -  5 points per correct round
 -  Keyboard: ArrowLeft/A (left heavier), ArrowRight/D (right heavier), Enter/Space/E (equal)
 
-#### Sudoku 4x4
+#### Number Grid 4x4
 
 ```json
 {
@@ -1533,7 +1533,7 @@ Reaction Test përfshin 10 variante unike të mini-lojave:
          "minCorrectWords": 17,
          "duration": 30,
          "words": [
-            "Supercalifragilisticexpialidocious",
+            "Antidisestablishmentarianism",
             "Pneumonoultramicroscopicsilicovolcanoconiosis",
             "The quick brown fox jumps over the lazy dog quickly",
             "JavaScript TypeScript React NodeJS Python Java CSharp"
@@ -2162,7 +2162,7 @@ Reaction Test përfshin 10 variante unike të mini-lojave:
 -  **Passing Score**: 70 (70% of max score)
 -  **Difficulty**: 2 (medium to hard difficulty)
 
-#### Whack-a-Shape
+#### Shape Pop
 
 ```json
 {
@@ -5219,7 +5219,7 @@ src/
 
 ## Features
 
--  **Modern Games**: Match Shapes, Color Sequence, Number Order, Find the Odd One, Balance the Scale, Sudoku 4x4, Tile Slider, Circuit Path, and more
+-  **Modern Games**: Match Shapes, Color Sequence, Number Order, Find the Odd One, Balance the Scale, Number Grid 4x4, Tile Slider, Circuit Path, and more
 -  **Modular Architecture**: Games organized in separate files within category-specific folders (`logicgames-parts/`, `memorygames-parts/`, `speedgames-parts/`, `skillgames-parts/`) for better maintainability
 -  **Progress Tracking**: localStorage for guests, WordPress API for logged-in users
 -  **Unlock System**: Sequential game unlocking based on completion
@@ -5243,7 +5243,7 @@ src/
 -  Number Order
 -  Find the Odd One
 -  Balance the Scale
--  Sudoku 4x4
+-  Number Grid 4x4
 -  Tile Slider
 -  Circuit Path
 -  Maze Escape
@@ -5273,7 +5273,7 @@ src/
 -  Avoid the Red
 -  Reaction Test
 -  Fast Math
--  Whack-a-Shape
+-  Shape Pop
 -  Typing Sprint
 -  Quick Compare
 -  Falling Objects

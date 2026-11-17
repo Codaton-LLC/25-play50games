@@ -1,6 +1,7 @@
 // Read-only Tower pool/pose writers. All objects used by these callbacks are made at mount.
 import { Matrix4, Quaternion, Vector3 } from "three";
 import type { RunPhase } from "@/arcade3d/core/types";
+import { STORM_CLOUD_BAND, type StormCloudSpot } from "./assets";
 import {
    FALLING, INTACT, WARNING, NONE, SPUR, COIN, FLAG, SLAB,
    debrisDrop, lossFall, posedMs, slabX,
@@ -71,4 +72,59 @@ export function writeSection(run: TowerRun, slot: SectionSlot, matrix: Matrix4):
 
 export function runnerFootY(run: TowerRun, visual: VisualState, phase: RunPhase, now: number): number {
    return run.pendingLose ? lossFall(run.loss, posedMs(run, visual, phase, now)) : run.player.y;
+}
+
+const SPRING_SCALE = new Vector3(1, 1, 1);
+
+/** Squash on launch, then stretch back. `ageMs` is ms since the pad fired; negative is idle. */
+export function writeSpring(matrix: Matrix4, x: number, y: number, ageMs: number): void {
+   let sy = 1;
+   if (ageMs >= 0 && ageMs < 180) {
+      const u = ageMs / 180;
+      sy = u < 0.35 ? 1 - 0.35 * (u / 0.35) : 0.65 + 0.35 * ((u - 0.35) / 0.65);
+   }
+   SPRING_SCALE.set(1, sy, 1);
+   matrix.makeTranslation(x, y + (1 - sy) * 0.04, 0).scale(SPRING_SCALE);
+}
+
+// the pickup reads at phone size (about 0.5 m tall, the runner is 0.55 m); collision uses ROCKET.reach
+const ROCKET_SCALE = new Vector3(1.8, 1.8, 1.8);
+
+/** A slow spin. `false` hides a spent or empty slot. */
+export function writeRocket(matrix: Matrix4, x: number, y: number, spin: number, visible: boolean): boolean {
+   if (!visible) return false;
+   matrix.makeRotationY(spin).scale(ROCKET_SCALE).setPosition(x, y, 0);
+   return true;
+}
+
+const WIND_SCALE = new Vector3(1.7, 1.7, 1.7);
+
+/** A chevron. `flip` points the gust to -x. */
+export function writeWind(matrix: Matrix4, x: number, y: number, flip: boolean): void {
+   matrix.makeRotationY(flip ? Math.PI : 0).scale(WIND_SCALE).setPosition(x, y, 0);
+}
+
+/** The storm clouds' slow sink down the wrap band (m/s) and their sideways sway amplitude (m). */
+export const STORM_CLOUD_SINK = 0.12;
+export const STORM_CLOUD_SWAY = 0.12;
+const STORM_CLOUD_SCALE = new Vector3();
+
+/**
+ * A storm-cloud spot (levels 4-5). The cloud sinks slowly down `STORM_CLOUD_BAND` metres above
+ * `viewBottomY` and wraps to the top, so the decor drifts as the camera rises; reduced motion
+ * pins it at its spot. Purely decorative: visual time only, never any gameplay state.
+ */
+export function writeStormCloud(
+   spot: StormCloudSpot, index: number, viewBottomY: number, now: number, reduced: boolean, matrix: Matrix4
+): void {
+   const sink = reduced ? 0 : now * STORM_CLOUD_SINK;
+   let y = (spot.y - sink) % STORM_CLOUD_BAND;
+   if (y < 0) y += STORM_CLOUD_BAND;
+   const sway = reduced ? 0 : Math.sin(now * 0.12 + index * 1.7) * STORM_CLOUD_SWAY;
+   STORM_CLOUD_SCALE.set(spot.s, spot.s, spot.s);
+   matrix.compose(
+      POSITION.set(spot.x + sway, viewBottomY + y, spot.z),
+      ROTATION.setFromAxisAngle(Y_AXIS, spot.rotY),
+      STORM_CLOUD_SCALE,
+   );
 }

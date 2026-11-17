@@ -1,0 +1,21 @@
+{
+   "slug": "mars-rover-mission",
+   "universe": "play50-toy-world-premium",
+   "notes": "Ready GLBs in menu1-mars-rover-mission/. Loaded from /models/3d/mars-rover-mission/. Fallbacks draw until listed in manifest. Leave marsRoverV2.glb and groundSolarPanel.glb.",
+   "assets": [
+      { "id": "marsRover", "kind": "vehicle", "file": "menu1-mars-rover-mission/marsRover.glb", "budget": { "tris": 15000, "bytes": 500000 } },
+      { "id": "marsBase", "kind": "building", "file": "menu1-mars-rover-mission/marsBase.glb", "budget": { "tris": 10000, "bytes": 400000 } },
+      { "id": "commsAntenna", "kind": "prop", "file": "menu1-mars-rover-mission/commsAntenna.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "groundSolarPanelV2", "kind": "prop", "file": "menu1-mars-rover-mission/groundSolarPanelV2.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "chargingStation", "kind": "prop", "file": "menu1-mars-rover-mission/chargingStation.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "sampleRock", "kind": "prop", "file": "menu1-mars-rover-mission/sampleRock.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "beaconLight", "kind": "prop", "file": "menu1-mars-rover-mission/beaconLight.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "researchCrate", "kind": "prop", "file": "menu1-mars-rover-mission/researchCrate.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "landingCapsule", "kind": "prop", "file": "menu1-mars-rover-mission/landingCapsule.glb", "budget": { "tris": 8000, "bytes": 350000 } },
+      { "id": "charAstronaut", "kind": "character", "file": "menu1-mars-rover-mission/charAstronaut.glb", "budget": { "tris": 20000, "bytes": 1500000 } },
+      { "id": "marsMesaRock", "kind": "prop", "file": "menu1-mars-rover-mission/marsMesaRock.glb", "budget": { "tris": 8000, "bytes": 400000 } },
+      { "id": "marsBoulder", "kind": "prop", "file": "menu1-mars-rover-mission/marsBoulder.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "ancientMarsRuin", "kind": "prop", "file": "menu1-mars-rover-mission/ancientMarsRuin.glb", "budget": { "tris": 8000, "bytes": 400000 } },
+      { "id": "marsMesaTall", "kind": "prop", "file": "menu1-mars-rover-mission/marsMesaTall.glb", "budget": { "tris": 8000, "bytes": 400000 } }
+   ]
+}

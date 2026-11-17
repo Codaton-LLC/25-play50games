@@ -6,6 +6,68 @@ Owner: Codex. Slug: `rocket-landing`. Skill game 20, wave 2, complexity 3. P-15 
 
 Feather a chunky white toy rocket's engine, cancel drift and land upright on five alien worlds. Three lives cover the whole campaign; a crash repeats the current planet. Different gravity, narrowing pads, wind and a moving pad make each landing a new control problem. Accent `#fda4af`.
 
+## Levels (P-59 levels, 2026-10-25)
+
+Five levels through the core level system (`core/README.md` "Levels"): `levels.ts` holds the pure `RocketLevel` configs, `createRun(seed, assist, level)` / `stepRun` play one, Scene reads it with `useRocketLevel()` (= `useLevel<RocketLevel>()`), `index.tsx` declares the five `LevelSpec`s (description, config, instructions, `durationMs`, and `hudStats`), and `meta.ts` declares the titles and limits. **Level 1 is today's game byte-for-byte (the full 5-planet campaign, same limits)**: existing `rules.test.ts` passes unchanged for Level 1, and `levels.test.ts` pins contracts, replay fidelity (25 seeds byte-identical vs today's createRun), monotonicity, limits, and honest pilot vs idle bot.
+
+| Level | Title | Planets | Clock | Wind | Pad Amp | Contact vy | Contact angle | Clean bonus | Clear score |
+|---|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| 1 | Five Worlds | 5 (Full campaign) | 240 s | 0.40 | 2.0 | 2.00 m/s | 10.0° (π/18) | 300 | 2000 |
+| 2 | Breezy Approach | 5 (Full campaign) | 240 s | 0.44 | 2.1 | 1.85 m/s | 9.47° (π/19) | 500 | 2050 |
+| 3 | Turbulent Orbit | 5 (Full campaign) | 240 s | 0.48 | 2.2 | 1.75 m/s | 9.00° (π/20) | 700 | 2100 |
+| 4 | High Winds & Cavern | 5 (Full campaign) | 240 s | 0.52 | 2.3 | 1.65 m/s | 8.18° (π/22) | 900 | 2150 |
+| 5 | Precision Landing | 5 (Full campaign) | 240 s | 0.55 | 2.4 | 1.50 m/s | 7.50° (π/24) | 1100 | 2200 |
+
+**Five different campaigns (2026-10-29).** Each level now flies its own five landings (`levels.ts` `worlds`; level 1 has none and flies today's planets through `rules.ts` `DEFAULT_WORLDS`, byte-identical: the 16-trace replay still matches). A world sets gravity, pad width, fuel, its look (`looks.ts` `PLANET_LOOKS` 5-12: own sky, fog, lighting preset, ground tones and props) and its hazards; the seeded `Layout` carries `swing` / `roof` / `windScale` / `towers` only off level 1.
+
+| Level | Landings (gravity, pad width, fuel) | Look | Twist |
+|---|---|---|---|
+| 1 Five Worlds | Moon, Desert, Ice, Gas moon (wind), Asteroid (rail pad under the roof) | today's five planets | today's |
+| 2 Breezy Approach | Crater Rim 1.6/6/100, Dust Basin 2.2/5.5/100 (wind 0.8), Breezy Floor 3/5.5/100 (wind 1), Twin Craters 2.5/5/95 (wind 1), Crater Sled 1.4/5/95 (rail pad) | day crater regolith, sunset dust basin; crater-rim mounds | **breeze** on three landings with a **windsock** at the pad (points downwind, fills with the gust); an open **sled pad** on a visible rail |
+| 3 Turbulent Orbit | Red Plain 3.7/5.5/100 (towers), Ridge Gap 3/5/100 (towers, wind 0.8), Dust Storm 3/5/95 (wind 1.15), Canyon Ledge 3.7/4.5/95 (towers), Olympus Rail 2.5/4.5/90 (rail pad) | Mars sunset, orange dust-storm haze; layered buttes | **rock towers**: two solid columns beside the pad (`TOWER`: inner faces 1 m outside the pad edges, tops y 5, under the 8 m cruise), dust-storm gusts |
+| 4 High Winds & Cavern | Cave Mouth 1.6/5.5/100, Crystal Cavern 1.2/5/95 (roof), Gale Ridge 2.5/5/95 (wind 1.05), Deep Cavern 1.4/4.5/90 (roof), Storm Cavern 1/4/85 (roof + rail) | night crystal caverns, snowy gale ridge; crystal shards, habitat domes | three **caverns** (roof over the pad, side shafts) and the windiest ridge |
+| 5 Precision Landing | Beacon Field 1.6/3.9/100, Needle Pad 2.5/3.6/95, Shuttle Rail 1.6/3.9/95 (rail), Windward Needle 2.5/3.8/90 (wind 1), Orbital Dock 1/3.6/85 (roof + rail) | night beacon field, orbital dock with a big blue planet; beacon masts, antennas | **needle pads** (all narrower than any level-1 pad), two **rail pads** with their track drawn, wind, a docked cavern |
+
+Rail pads (any `swing` world) draw their whole slide as a lit rail under the pad. Fairness per level (`levels.test.ts` "five different landings"): gravity in [1, 5], wind <= 0.56 m/s^2, pads >= 3.5 m, fuel >= 85; caved spawns sit in a free side shaft; towers clear the pad by >= 1 m, stay under the cruise and >= 6.7 m from the spawn hull; the honest pilot lands all five on 16 seeds (and 6 more with assist on and off). The pilot waits over the middle for a rail pad to come under it.
+
+**Limits unchanged.** The proof's premises are unchanged on every level: every award is still <= 500 (pad width only scales the centre term), every pad top is y 2 under a y 14 spawn (the 10.65 m minimum drop), every acceleration stays <= 12 + 5 + 0.56 m/s^2, and the fastest loss is three crashes on the first landing, which has no roof or rail: the ceiling takes >= 0.944 s and a tower (L3) >= 0.873 s from 6.7 m, so 3 x 0.873 + 2 x 1.2 = 5.02 s > 5 s (pinned, plus idle / full-thrust / spin-and-burn runs on 12 seeds per level).
+
+### Server limits per level (the proof)
+
+For each level with N=5 planets, landing award per planet is at most 500 (200 softness + 150 centering + 150 fuel reserve).
+1. **Max Score**: maxScore = 5 * 500 + cleanBonus.
+   - L1: 5 * 500 + 300 = 2800
+   - L2: 5 * 500 + 500 = 3000
+   - L3: 5 * 500 + 700 = 3200
+   - L4: 5 * 500 + 900 = 3400
+   - L5: 5 * 500 + 1100 = 3600 (strictly monotonic, 3600 <= 3 * 2800 = 8400)
+2. **Min Duration**: Spawn centre 14 to upright contact centre 3.1 drops 10.9 m; rotated hull radius 1.35 m requires centre drop >= 10.65 m. With max downward acceleration g + 12 <= 17 m/s², minimum flight time per planet is sqrt(2 * 10.65 / 17) >= 1.119 s. Between planets, transition hold is 1.2 s.
+   - For N=5 planets, unconstrained freefall drop + hold time is t_min >= 5 * 1.119 + 4 * 1.2 = 10.395 s.
+   - Conservative safety threshold minDurationMs = 5000 ms for all levels (no run ends earlier with a score).
+3. **Max Points Per Second**: maxPointsPerSec = 200 on every level; `base` grows with the clean bonus,
+   base_L = 800 + (cleanBonus_L - 300) = 800 / 1000 / 1200 / 1400 / 1600.
+   - Prefix k < 5 landings: 500 k <= 800 + 200 t_k holds exactly as on level 1 (each landing needs at
+     least one flight; a larger base only loosens the bound).
+   - The win: 2500 + cleanBonus_L <= base_L + 200 T  <=>  2800 <= 800 + 200 T  <=>  T >= 10 s, the
+     same condition as level 1, and T >= 10.395 s (five falls of >= 1.119 s plus four 1.2 s holds).
+   - So every level holds with the level-1 margin; no unproven minimum campaign time is needed.
+4. **Max Duration**: durationMs (240000 ms) + 2000 ms margin = 242000 ms for all levels.
+
+| Level | maxScore | minDurationMs | maxDurationMs | base | maxPointsPerSec | clearScore |
+|---|---:|---:|---:|---:|---:|---:|
+| 1 | 2800 | 5000 | 242000 | 800 | 200 | 2000 |
+| 2 | 3000 | 5000 | 242000 | 1000 | 200 | 2050 |
+| 3 | 3200 | 5000 | 242000 | 1200 | 200 | 2100 |
+| 4 | 3400 | 5000 | 242000 | 1400 | 200 | 2150 |
+| 5 | 3600 | 5000 | 242000 | 1600 | 200 | 2200 |
+
+### Honest bot vs idle bot results (levels.test.ts)
+
+- **Level 1**: 16/16 seeds clear (100%), 16/16 reach clearScore 2000 (100%). Idle bot: 0% clears, score 0.
+- **Level 2**: 16/16 seeds clear (100%), 16/16 reach clearScore 2050 (100%). Idle bot: 0% clears, score 0.
+- **Level 3**: 16/16 seeds clear (100%), 16/16 reach clearScore 2100 (100%). Idle bot: 0% clears, score 0.
+- **Level 4**: 16/16 seeds clear (100%), 16/16 reach clearScore 2150 (100%). Idle bot: 0% clears, score 0.
+- **Level 5**: 16/16 seeds clear (100%), 16/16 reach clearScore 2200 (100%). Idle bot: 0% clears, score 0.
 ## Controls
 
 `meta.ts`: `scheme: "flight"`; `index.tsx` GameDefinition fields: `touchControls: ["joystick", "jump"]`, `touchLabels: { jump: "Thrust" }`.
@@ -113,6 +175,32 @@ No generation: rocket already imported. `assets.spec.json` records only the owne
 Target **<=30 draw calls**, hard game cap35, platform cap150. Budget: rocket<=5, terrain/cavern3, pad/deck/lights4, starfield1, backdrop2, guide/rings2, cone1, smoke/dust/sparks/debris/confetti pools5, score sprites<=2 =25; reserve5 for mesh splits. One planet resident; no shadow maps, extra lights, Rapier or bloom. Core space lights only. If GLB splits exceed reserve, simplify cosmetic pad/backdrop meshes before raising budget.
 
 Reuse terrain13-vertex top buffers and cavern geometry, one canvas texture, one rocket/pad and fixed scratch matrices/contact buffers. Warm fx kinds once; engine smoke <=8 bursts/s, <=24 particles per burst before quality scaling; touchdown puff16, crash sparks24/debris12, perfect confetti24 (soft>=190,centre>=140), maximum2 score sprites. No new resources or React renders per frame; HUD writes only changed displayed values. Quality reduces stars/fx/backdrop, never collision/pad/guide. Dispose mount-owned resources; perf probe mid-phone p95 target<=33 ms, worst calls<=35, GPU counts flat at30/60/120/240 s and Retryx10 after warm-up. All measurements pending build.
+
+## Look (2026-10-25)
+
+P-114-look-rocket modern-look pass on rocket-landing:
+- **Palette & looks (`looks.ts`)**: Single unified `COLORS` palette providing 2-3 deliberate tones per object. Defined rich visual specifications for all 5 planetary worlds: Moon (monochrome lunar basalt and crater dust), Desert (terracotta sand dunes and canyon rock), Ice (bright cyan glacial ice and frozen spires), Gas moon / Jungle (vibrant emerald alien flora and spore bulbs), and Asteroid / Lava (dark volcanic basalt with glowing magma fissures).
+- **Atmosphere & Stage Lighting**: Seamless `useStageLighting` crossfade per planet (fading lighting preset, background, and fog over 1 s on stage transition). Core `<SkyDome>` with planetary atmospheric gradients. Added cool rim directional light (`position={[-4, 8, -6]}`) illuminating rocket and landing pad silhouette edges against deep space.
+- **Surroundings & Instanced Decor (`Decor.tsx`)**: Themed instanced decor (`<Instanced>`) strictly outside the play area (`PLAY_AREA = { x: [-10.5, 10.5], y: [-1.2, 20.5], z: [-2.6, 2.6] }`), including distant low-poly mountain ridges, surface boulders, and planet-specific props (ice crystals, alien mushrooms, desert spires, basalt columns). Themed celestial body (moon/gas giant with rings) in the distant background sky (`z <= -24`). Micro-satellite drifters via `<DynamicInstanced>`. Tested to ensure zero occlusion of the rocket, pad, or hazards from fitted cameras at 1280x800, 390x844, and 844x390.
+- **Wide Seamless Terrain (`Planet.tsx`)**: Built a wide faceted terrain mesh with 3-tone vertex coloring (sunlit surface, mid cliff, deep bedrock) covering `x: [-40, 40]`, `z: [-16, 8]`, and dropping down to bedrock floor at `y = -14`. Matches the play area `terrain[0..12]` heights byte-for-byte while ensuring zero void or background sky shows below or beside the ground at any viewport size (1280x800, 390x844, 844x390).
+- **Cavern Roof Hazard (`Planet.tsx`)**: Replaced raw grey box with a sculpted volcanic cavern arch slab featuring bevelled edges, underside crags, and a glowing magma fissure vein while preserving the exact physical collision bounding box `[-3, 3] x [9, 10] x [-1.5, 1.5]`.
+- **Landing Pad Glow & Fallback (`Planet.tsx`, `Primitives.tsx`)**: Added a glowing emerald touchdown border (`#10b981`) and pad landing light (`#34d399`, intensity 1.5, distance 7) illuminating the rocket feet on descent. Overhauled `FallbackPad` and `RocketPrimitive` with bevelled shapes, metallic porthole ring, porthole glass glow, red accent band, and dark thruster/struts in 2-3 tones from `COLORS`.
+- **Juicy Feedback**: Added celebratory dust puff and sparkle bursts on touchdown from landing feet, plus dual-layer engine flame plume (bright core + outer plasma cone).
+- **Resource Disposal**: Geometries and materials created once and disposed on unmount. No `dispose={null}` on primitives.
+
+### Draw-Call Estimate
+- SkyDome: 1
+- Starfield: 1
+- Celestial Moon / Ring: 1-2
+- Scenery Decor (Peaks, Rocks, Themed Props): 3
+- Drifter Satellites: 1
+- Wide Terrain (Play Area + Flanks + Skirt): 1 (vertex colored)
+- Cavern Roof (Asteroid planet 4): 1
+- Landing Pad (Hyper3D GLB + Glow Rim + Beacons): 3-4
+- Rocket (Hyper3D GLB + Dual-layer Flame): 3-4
+- Effects (Core FxLayer active bursts, flash): 4-6
+- UI / Guide Line / Markers: 1-2
+**Total: ~18-24 draw calls idle, ~26-32 peak action** (well below budget <= 60).
 
 ## Audio
 

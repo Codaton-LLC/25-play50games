@@ -13,7 +13,12 @@ import { capScore as capToLimits, withinServerLimits as fitsLimits } from "@/arc
 import { createRng } from "@/arcade3d/core/math";
 import { advance, createPath, tangentAt, type Path, type RiderState } from "@/arcade3d/core/path";
 import { EXPANSION_GLB_POINTS, EXPANSION_GLB_SIZE } from "@/arcade3d/core/sharedAssets";
+import type { LevelId, ScoringRules } from "@/arcade3d/types";
+import { LEVELS, type PirateLevel, type WaveSpec } from "./levels";
 import { pirateCannonsMeta } from "./meta";
+
+export type { WaveSpec } from "./levels";
+export { SHIP_POOL } from "./levels";
 
 const DEG = Math.PI / 180;
 
@@ -89,23 +94,8 @@ export const SEA = {
 
 export const ZIG = { period: 16, sloopFromWave: 4, flatHalf: 6, ease: 4 } as const;
 
-export interface WaveSpec {
-   start: number;
-   speed: number;
-   span: number;
-   /** max wind (m/s²) */
-   wind: number;
-   types: readonly ShipType[];
-   /** lane indices (0 = 25 m, 1 = 40 m, 2 = 55 m) */
-   lanes: readonly number[];
-}
-export const WAVES: readonly WaveSpec[] = [
-   { start: 0, speed: 1.0, span: 16, wind: 1.0, types: ["sloop", "sloop", "dinghy"], lanes: [0, 0, 1] },
-   { start: 20, speed: 1.1, span: 16, wind: 1.5, types: ["sloop", "sloop", "dinghy", "galleon"], lanes: [0, 1, 1, 2] },
-   { start: 40, speed: 1.2, span: 16, wind: 2.0, types: ["sloop", "sloop", "dinghy", "dinghy", "galleon"], lanes: [0, 1, 1, 2, 2] },
-   { start: 60, speed: 1.3, span: 16, wind: 2.5, types: ["galleon", "galleon", "sloop", "sloop", "dinghy", "dinghy"], lanes: [0, 0, 1, 1, 2, 2] },
-   { start: 80, speed: 1.4, span: 8, wind: 3.0, types: ["galleon", "sloop", "dinghy", "dinghy"], lanes: [0, 1, 2, 2] },
-];
+/** Today's waves = level 1's (levels.ts). */
+export const WAVES: readonly WaveSpec[] = LEVELS[1].waves;
 export const SPAWN_JITTER = 1.5;
 export const SHIP_COUNT = WAVES.reduce((n, w) => n + w.types.length, 0);
 
@@ -170,12 +160,12 @@ function shuffle<T>(items: readonly T[], rng: () => number): T[] {
 }
 
 /** The run's seeded plan: each wave's ship order, lanes, spawn jitter and wind; the barrels and the chest. */
-export function generatePlan(seed: number): Plan {
+export function generatePlan(seed: number, level: PirateLevel = LEVELS[1]): Plan {
    const rng = createRng(seed);
    const ships: ShipPlan[] = [];
    const waves: WavePlan[] = [];
    const barrels: Plan["barrels"] = [];
-   WAVES.forEach((w, wave) => {
+   level.waves.forEach((w, wave) => {
       const types = shuffle(w.types, rng);
       const lanes = shuffle(w.lanes, rng);
       types.forEach((type, i) => {
@@ -205,18 +195,18 @@ export function zigWeight(x: number): number {
 }
 
 /** A ship's zig-zag amplitude (m). */
-export function zigAmplitude(type: ShipType, wave: number): number {
+export function zigAmplitude(type: ShipType, wave: number, zigFrom: number = ZIG.sloopFromWave): number {
    if (type === "galleon") return SHIPS.galleon.zig;
-   if (type === "sloop" && wave + 1 >= ZIG.sloopFromWave) return SHIPS.sloop.zig;
+   if (type === "sloop" && wave + 1 >= zigFrom) return SHIPS.sloop.zig;
    return 0;
 }
 
 /** The ship's course: from the spawn (bow at SEA.spawnBowX) to SEA.endX, zig-zagging around its lane (1 m polyline). */
-export function shipPath(type: ShipType, lane: number, wave: number): Path {
+export function shipPath(type: ShipType, lane: number, wave: number, zigFrom: number = ZIG.sloopFromWave): Path {
    const half = SHIPS[type].length / 2;
    const x0 = SEA.spawnBowX - half;
    const z = LANES[lane];
-   const amp = zigAmplitude(type, wave);
+   const amp = zigAmplitude(type, wave, zigFrom);
    if (amp === 0) return createPath([{ x: x0, y: 0, z }, { x: SEA.endX, y: 0, z }]);
    const points: Vec3Like[] = [];
    for (let x = x0; x < SEA.endX; x += 1) {
@@ -383,6 +373,8 @@ export interface Events {
 }
 
 export interface RunState {
+   /** the level this run was built from; level 1 is the module constants */
+   level: PirateLevel;
    plan: Plan;
    time: number;
    ticks: number;
@@ -417,18 +409,18 @@ const EVENT_CAP = 16;
 
 const points = (n: number): PointEvent[] => Array.from({ length: n }, () => ({ x: 0, y: 0, z: 0 }));
 
-export function createRun(seed: number): RunState {
-   const plan = generatePlan(seed);
+export function createRun(seed: number, level: PirateLevel = LEVELS[1]): RunState {
+   const plan = generatePlan(seed, level);
    const ships: Ship[] = plan.ships.map((p, index) => {
       const spec = SHIPS[p.type];
-      const path = shipPath(p.type, p.lane, p.wave);
+      const path = shipPath(p.type, p.lane, p.wave, level.zigFrom);
       return {
          ...p,
          index,
          spec,
          state: SHIP_PENDING,
          hp: spec.hp,
-         speed: spec.speed * WAVES[p.wave].speed,
+         speed: spec.speed * level.waves[p.wave].speed,
          current: 0,
          rider: { path, s: 0, position: { x: path.points[0].x, y: 0, z: path.points[0].z }, overflow: 0 },
          hx: 1,
@@ -437,6 +429,7 @@ export function createRun(seed: number): RunState {
       };
    });
    const run: RunState = {
+      level,
       plan,
       time: 0,
       ticks: 0,
@@ -565,7 +558,7 @@ function tick(run: RunState, step: number): void {
    const ev = run.events;
 
    // waves: the wind changes at each start
-   while (run.wave < WAVES.length && t >= WAVES[run.wave].start) {
+   while (run.wave < run.level.waves.length && t >= run.level.waves[run.wave].start) {
       const w = run.plan.waves[run.wave];
       run.wind.x = w.wind.x;
       run.wind.z = w.wind.z;
@@ -851,9 +844,9 @@ export const CHEST_CEILING = POINTS.combo * POINTS.chest;
  * The most points a run can hold at time t (s): every ship, barrel and chest spawned by t at its
  * ceiling, the most valuable first, spawns as early as the generator allows (no jitter, no waits).
  */
-export function ceilingAt(t: number): number {
+export function ceilingAt(t: number, level: PirateLevel = LEVELS[1]): number {
    let total = 0;
-   for (const w of WAVES) {
+   for (const w of level.waves) {
       const n = w.types.length;
       let k = 0;
       for (let i = 0; i < n; i++) if (w.start + (i * w.span) / n <= t + 1e-9) k++;
@@ -869,6 +862,39 @@ export function ceilingAt(t: number): number {
 
 /** The ceiling of a whole run (seed-independent: the multisets are fixed). */
 export const MAX_SCORE = ceilingAt(Infinity);
+
+/** Distance a ship's centre sails from its spawn to the harbour buoys (straight; a zig-zag only lengthens it). */
+export const harbourRun = (type: ShipType) => SEA.harbourX - (SEA.spawnBowX - SHIPS[type].length / 2);
+
+/**
+ * A lower bound on the third harbour crossing (the earliest loss), README "Levels": every spawn slot
+ * (no jitter) gets the fastest crossing any ship of its wave could make (straight, never slowed by the
+ * gap rule or a slot wait); the third smallest of those times. Level 1: 20.54 s (README §4).
+ */
+export function earliestLoss(level: PirateLevel = LEVELS[1]): number {
+   const arrivals: number[] = [];
+   for (const w of level.waves) {
+      let fastest = Infinity;
+      for (const type of w.types) fastest = Math.min(fastest, harbourRun(type) / (SHIPS[type].speed * w.speed));
+      for (let i = 0; i < w.types.length; i++) arrivals.push(w.start + (i * w.span) / w.types.length + fastest);
+   }
+   arrivals.sort((a, b) => a - b);
+   return arrivals[LIVES - 1];
+}
+
+/**
+ * Per-level limits (README "Levels"). Level 1 is the proven 10500 / 19000-92000 ms / 1500 + 110/s.
+ * Each level: maxScore = ceilingAt(Infinity, level) (seed-independent), minDurationMs = 92.5 % of
+ * earliestLoss rounded down to 500 ms, maxDurationMs 92000 (the 90 s clock), base and pps such that
+ * ceilingAt(t, level) <= base + pps t at every spawn time (levels.test.ts).
+ */
+export const PROPOSED_LEVEL_LIMITS: Record<LevelId, ScoringRules> = {
+   1: { kind: "points", maxScore: 10500, minDurationMs: 19000, maxDurationMs: 92000, base: 1500, maxPointsPerSec: 110, unitLabel: "pts", display: "int" },
+   2: { kind: "points", maxScore: 13125, minDurationMs: 16500, maxDurationMs: 92000, base: 1900, maxPointsPerSec: 140, unitLabel: "pts", display: "int" },
+   3: { kind: "points", maxScore: 13125, minDurationMs: 15500, maxDurationMs: 92000, base: 1900, maxPointsPerSec: 140, unitLabel: "pts", display: "int" },
+   4: { kind: "points", maxScore: 14250, minDurationMs: 13500, maxDurationMs: 92000, base: 2000, maxPointsPerSec: 150, unitLabel: "pts", display: "int" },
+   5: { kind: "points", maxScore: 15000, minDurationMs: 13500, maxDurationMs: 92000, base: 2100, maxPointsPerSec: 155, unitLabel: "pts", display: "int" },
+};
 
 export const withinServerLimits = (score: number, durationMs: number) => fitsLimits(score, durationMs, pirateCannonsMeta.scoring);
 export const capScore = (score: number, durationMs: number) => capToLimits(score, durationMs, pirateCannonsMeta.scoring);

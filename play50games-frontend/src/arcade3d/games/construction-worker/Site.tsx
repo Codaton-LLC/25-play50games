@@ -20,10 +20,12 @@ import { createPath } from "@/arcade3d/core/path";
 import { bodyLift, HumanoidModel, useHumanoidPose } from "@/arcade3d/core/rig";
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import { useQuality } from "@/arcade3d/core/quality";
-import { ASSETS, MIXER, MIXER_HEIGHT, WORKER_HAT, WORKER_LANDMARKS, WORKER_SCALE } from "./assets";
-import { COLORS } from "./looks";
+import { ASSETS, MIXER, MIXER_HEIGHT, MIXER_SPOTS, WORKER_HAT, WORKER_LANDMARKS, WORKER_SCALE } from "./assets";
+import { COLORS, THEMES } from "./looks";
+import { Sets } from "./SiteSets";
+import { SETS } from "./sets";
 import { workerPose } from "./poses";
-import { PILE_A, PILE_R, type Run } from "./rules";
+import type { Run } from "./rules";
 import {
    drawPad,
    groundGeo,
@@ -32,6 +34,7 @@ import {
    pileGeos,
    pileMats,
 } from "./Primitives";
+import { useCraneLevel } from "./useCraneLevel";
 import { Decor } from "./Decor";
 
 const FENCE = createPath(
@@ -56,7 +59,6 @@ const CRATES = [
    { x: -6.2, y: 0, z: 4.2 },
 ];
 
-const PILES = PILE_A.map((angle) => ({ x: PILE_R * Math.sin(angle), z: PILE_R * Math.cos(angle) }));
 
 function withColor(raw: BufferGeometry, hex: string): BufferGeometry {
    const geo = raw.index ? raw.toNonIndexed() : raw;
@@ -84,7 +86,7 @@ function Worker({ run }: { run: Run }) {
    }, -0.05);
 
    return (
-      <group ref={group} position={[2.6, 0, 5.35]} name="construction-worker-group">
+      <group ref={group} position={[run.level.worker.x, 0, run.level.worker.z]} name="construction-worker-group">
          <HumanoidModel
             asset={ASSETS.worker}
             pose={pose}
@@ -157,9 +159,28 @@ function MixerFallback() {
    );
 }
 
+/** The ground round the yard (lawn, street or plaza by level), under the site's own ground. */
+function OuterGround({ color }: { color: string }) {
+   return (
+      <mesh rotation-x={-Math.PI / 2} position={[0, -0.02, 5]} name="outer-ground">
+         <circleGeometry args={[70, 48]} />
+         <meshStandardMaterial color={color} roughness={1} />
+      </mesh>
+   );
+}
+
 /** Ground, fence, 5 material piles, worker, props, and surroundings decor. */
-export function Site({ run }: { run: Run }) {
+export function Site({ run, levelId }: { run: Run; levelId?: number }) {
+   const { id: contextLevelId } = useCraneLevel();
+   const effectiveLevel = levelId ?? contextLevelId;
+   const isCommercial = effectiveLevel === 4 || effectiveLevel === 5;
    const pad = useCanvasTexture(512, 512, drawPad);
+   const theme = THEMES[run.level.site];
+   // the level's yard: each pile on its own radius and angle (levels.ts)
+   const piles = useMemo(
+      () => run.level.pileA.map((angle) => ({ x: run.level.pileR * Math.sin(angle), z: run.level.pileR * Math.cos(angle) })),
+      [run.level],
+   );
    const decor = useQuality().tier !== "low";
 
    return (
@@ -167,8 +188,10 @@ export function Site({ run }: { run: Run }) {
          <mesh geometry={groundGeo} rotation-x={-Math.PI / 2} position={[0, 0, 5]} dispose={null} name="site-ground">
             <meshStandardMaterial map={pad} roughness={0.95} />
          </mesh>
-         <Fence path={FENCE} spacing={1.8} height={0.9} color={COLORS.craneOrange} railColor={COLORS.safetyYellow} />
-         {PILES.map((p, i) => (
+         <OuterGround color={theme.outerGround} />
+         <Fence path={FENCE} spacing={1.8} height={0.9} color={theme.fence} railColor={theme.fenceRail} />
+         <Sets site={run.level.site} />
+         {piles.map((p, i) => (
             <mesh
                key={i}
                geometry={pileGeos[i] ?? pileGeos[0]}
@@ -180,17 +203,28 @@ export function Site({ run }: { run: Run }) {
          ))}
          <Worker run={run} />
          {/* Instanced surroundings decor outside the play area */}
-         <Decor />
-         {/* beside the work zone: outside work area, crane wedge and every camera-to-target line (mixer.test.ts) */}
+         <Decor skyline={SETS[run.level.site].skyline} clouds={!theme.flood} />
+         {/* The cement mixer beside the work zone on every level; levels 4-5 (Shop Front, Mini Tower) add three more, all outside the play area */}
          {decor && (
-            <group position={[MIXER.x, 0, MIXER.z]} rotation={[0, MIXER.yaw, 0]} name="cement-mixer-group">
-               <Model asset={ASSETS.cementMixer} fallback={<MixerFallback />} />
-            </group>
+            <InstancedModel
+               asset={ASSETS.cementMixer}
+               spots={isCommercial ? MIXER_SPOTS : MIXER_SPOTS.slice(0, 1)}
+               fallback={
+                  <>
+                     {(isCommercial ? MIXER_SPOTS : MIXER_SPOTS.slice(0, 1)).map((s, i) => (
+                        <group key={i} position={[s.x, 0, s.z]} rotation-y={s.rotY ?? 0}>
+                           <MixerFallback />
+                        </group>
+                     ))}
+                  </>
+               }
+            />
          )}
          {decor && (
             <group position={[-5.4, 0, 1]} rotation={[0, Math.PI / 2, 0]} name="van-group">
                <Model asset={ASSETS.van} fallback={<VanFallback />} />
             </group>
+
          )}
          <InstancedModel
             asset={ASSETS.pallet}

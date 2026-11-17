@@ -394,3 +394,122 @@ export function bridgePieces(): Piece[] {
    }
    return p;
 }
+
+// ---------- level props (levels 2-5) ----------
+
+/** An acacia: a leaning trunk forking into the flat-topped umbrella canopy of the savanna (about 4 m tall). */
+export const acaciaPieces = (): Piece[] => [
+   [new CylinderGeometry(0.16, 0.26, 2.6, 7).rotateZ(0.12).translate(-0.15, 1.3, 0), "#6b4423"],
+   [new CylinderGeometry(0.09, 0.13, 1.4, 6).rotateZ(-0.7).translate(0.45, 2.75, 0), "#5c3a1e"],
+   [new CylinderGeometry(0.09, 0.13, 1.3, 6).rotateZ(0.65).rotateY(1.4).translate(-0.4, 2.8, 0.2), "#5c3a1e"],
+   [new CylinderGeometry(2.2, 1.8, 0.42, 9).translate(0.1, 3.45, 0), "#5f7f2a"],
+   [new CylinderGeometry(1.6, 1.4, 0.34, 9).translate(0.6, 3.75, -0.3), "#7a9a36"],
+   [new CylinderGeometry(1.2, 1.0, 0.3, 8).translate(-0.7, 3.7, 0.5), "#6b8c30"],
+];
+
+/** Savanna tall grass: golden tufts of blades round a 1 m footprint (scaled to the hiding box). */
+export function grassPieces(): Piece[] {
+   const p: Piece[] = [];
+   const tones = ["#d9b54a", "#c49a34", "#e8c96a", "#a88a36"];
+   for (let i = 0; i < 11; i++) {
+      const a = i * 2.39, r = 0.12 + ((i * 37) % 30) / 100;
+      const h = 0.75 + ((i * 53) % 35) / 100;
+      p.push([new ConeGeometry(0.13, h, 5).rotateZ(0.12 * Math.sin(i)).translate(Math.cos(a) * r, h / 2, Math.sin(a) * r), tones[i % tones.length]]);
+   }
+   return p;
+}
+
+/** A safari jeep: khaki body with a zebra stripe, roll bar, spare wheel and a bull bar (drives +z; 1.8 x 3.6 m). */
+export function jeepPieces(): Piece[] {
+   const p: Piece[] = [
+      [new BoxGeometry(1.7, 0.6, 3.4).translate(0, 0.62, 0), "#c8b27a"],
+      [new BoxGeometry(1.72, 0.12, 3.42).translate(0, 0.66, 0), "#1f2937"],
+      [new BoxGeometry(1.6, 0.46, 1.2).translate(0, 1.15, 0.55), "#a8925c"],
+      [new BoxGeometry(1.5, 0.36, 0.06).translate(0, 1.18, 1.17), "#93c5fd"],
+      // roll bar over the open back
+      [new BoxGeometry(0.08, 0.7, 0.08).translate(-0.76, 1.27, -0.9), "#1f2937"],
+      [new BoxGeometry(0.08, 0.7, 0.08).translate(0.76, 1.27, -0.9), "#1f2937"],
+      [new BoxGeometry(1.6, 0.08, 0.08).translate(0, 1.62, -0.9), "#1f2937"],
+      // bull bar and lights
+      [new BoxGeometry(1.5, 0.3, 0.08).translate(0, 0.6, 1.76), "#334155"],
+      [new BoxGeometry(0.26, 0.14, 0.04).translate(-0.58, 0.8, 1.72), COLORS.cone],
+      [new BoxGeometry(0.26, 0.14, 0.04).translate(0.58, 0.8, 1.72), COLORS.cone],
+      // spare wheel on the tail
+      [new CylinderGeometry(0.34, 0.34, 0.2, 12).rotateX(Math.PI / 2).translate(0, 0.85, -1.82), COLORS.black],
+   ];
+   for (const [x, z] of [[-0.82, 1.1], [0.82, 1.1], [-0.82, -1.1], [0.82, -1.1]]) {
+      p.push([new CylinderGeometry(0.36, 0.36, 0.26, 12).rotateZ(Math.PI / 2).translate(x, 0.36, z), COLORS.black]);
+      p.push([new CylinderGeometry(0.17, 0.17, 0.27, 8).rotateZ(Math.PI / 2).translate(x, 0.36, z), COLORS.metal]);
+   }
+   return p;
+}
+
+/** A thatched hut or house unit (1 x 1 footprint, 2.8 m tall; scaled to the prop's box): walls, a door, a pointed roof. */
+export const hutPieces = (wall = "#e7d3a8", roof = "#a16207"): Piece[] => [
+   [new BoxGeometry(1, 1.6, 1).translate(0, 0.8, 0), wall],
+   [new BoxGeometry(1.03, 0.14, 1.03).translate(0, 0.07, 0), "#78350f"],
+   [new BoxGeometry(0.28, 0.9, 0.04).translate(0, 0.45, 0.51), "#78350f"],
+   [new BoxGeometry(0.22, 0.22, 0.04).translate(-0.32, 1.05, 0.51), "#93c5fd"],
+   [new BoxGeometry(0.22, 0.22, 0.04).translate(0.32, 1.05, 0.51), "#93c5fd"],
+   [new ConeGeometry(0.86, 1.2, 4).rotateY(Math.PI / 4).scale(1, 1, 1).translate(0, 2.2, 0), roof],
+];
+
+/** A garden wall / turnstile block (unit cube, scaled to the box): stone with a cap. */
+export const wallPieces = (): Piece[] => [
+   [new BoxGeometry(1, 0.92, 1).translate(0, 0.46, 0), "#a8a29e"],
+   [new BoxGeometry(1.04, 0.08, 1.04).translate(0, 0.96, 0), "#78716c"],
+];
+
+/** A wooden crate (unit cube, scaled): planks and corner battens. */
+export const cratePieces = (): Piece[] => [
+   [new BoxGeometry(0.96, 0.96, 0.96).translate(0, 0.48, 0), "#b45309"],
+   [new BoxGeometry(1.0, 0.12, 1.0).translate(0, 0.1, 0), "#78350f"],
+   [new BoxGeometry(1.0, 0.12, 1.0).translate(0, 0.88, 0), "#78350f"],
+];
+
+/** A visitor (about 1.6 m): a coloured coat, head, cap; `tone` picks the coat. */
+export function visitorPieces(tone: number): Piece[] {
+   const coats = ["#ef4444", "#3b82f6", "#f59e0b", "#a855f7", "#10b981", "#ec4899"];
+   const coat = coats[tone % coats.length];
+   return [
+      [new CylinderGeometry(0.1, 0.12, 0.7, 6).translate(-0.1, 0.35, 0), "#1e293b"],
+      [new CylinderGeometry(0.1, 0.12, 0.7, 6).translate(0.1, 0.35, 0), "#1e293b"],
+      [new CapsuleGeometry(0.22, 0.42, 3, 8).translate(0, 1.0, 0), coat],
+      [new SphereGeometry(0.16, 10, 8).translate(0, 1.45, 0), COLORS.skin],
+      [new CylinderGeometry(0.17, 0.17, 0.08, 10).translate(0, 1.56, 0), tone % 2 ? "#f8fafc" : "#1e293b"],
+   ];
+}
+
+/** A bird: a rounded body, wings, a beak; `kind` 0 a parrot, 1 a flamingo (long legs), 2 a duck. */
+export function birdPieces(kind: number): Piece[] {
+   const body = ["#22c55e", "#f472b6", "#f8fafc"][kind % 3];
+   const wing = ["#2563eb", "#ec4899", "#94a3b8"][kind % 3];
+   const legs = kind % 3 === 1 ? 0.55 : 0.12;
+   return [
+      [new CylinderGeometry(0.015, 0.015, legs, 4).translate(-0.04, legs / 2, 0), "#f97316"],
+      [new CylinderGeometry(0.015, 0.015, legs, 4).translate(0.04, legs / 2, 0), "#f97316"],
+      [new SphereGeometry(0.16, 10, 8).scale(0.9, 0.85, 1.25).translate(0, legs + 0.14, 0), body],
+      [new SphereGeometry(0.1, 8, 6).translate(0, legs + (kind % 3 === 1 ? 0.42 : 0.3), 0.16), body],
+      [new ConeGeometry(0.04, 0.12, 5).rotateX(Math.PI / 2).translate(0, legs + (kind % 3 === 1 ? 0.4 : 0.28), 0.29), "#f59e0b"],
+      [new BoxGeometry(0.06, 0.08, 0.26).translate(-0.15, legs + 0.16, -0.02), wing],
+      [new BoxGeometry(0.06, 0.08, 0.26).translate(0.15, legs + 0.16, -0.02), wing],
+   ];
+}
+
+/** A flower bed patch (unit square, scaled): soil and dots of blooms. */
+export function flowerBedPieces(): Piece[] {
+   const p: Piece[] = [[new BoxGeometry(1, 0.08, 1).translate(0, 0.04, 0), "#5b3a1e"]];
+   const blooms = ["#f43f5e", "#facc15", "#a855f7", "#fb923c", "#f8fafc", "#38bdf8"];
+   for (let i = 0; i < 14; i++) {
+      const x = ((i * 0.618) % 1) - 0.5, z = ((i * 0.381 + 0.17) % 1) - 0.5;
+      p.push([new SphereGeometry(0.08, 6, 5).translate(x * 0.85, 0.16, z * 0.85), blooms[i % blooms.length]]);
+      p.push([new ConeGeometry(0.06, 0.14, 4).translate(x * 0.85 + 0.05, 0.12, z * 0.85), COLORS.leafDark]);
+   }
+   return p;
+}
+
+/** A searchlight lamp head for every tower (the tower GLB has none). */
+export const lampHeadPieces = (): Piece[] => [
+   [new CylinderGeometry(0.28, 0.34, 0.4, 10).rotateX(Math.PI / 2).translate(0, 0, 0), "#1f2937"],
+   [new CylinderGeometry(0.24, 0.24, 0.02, 10).rotateX(Math.PI / 2).translate(0, 0, 0.21), "#fef9c3"],
+];

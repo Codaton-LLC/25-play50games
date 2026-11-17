@@ -229,21 +229,21 @@ function judgeCup(hole: Hole, ball: Ball, ev: BallEvents): boolean {
    const cx = hole.cup.x - ball.x;
    const cz = hole.cup.z - ball.z;
    const d = Math.hypot(cx, cz);
-   if (d > CUP.radius) {
+   if (d > (hole.cupRadius ?? CUP.radius)) {
       ball.inCup = false;
       return false;
    }
    if (ball.inCup) return false;
    ball.inCup = true;
    const sp = Math.hypot(ball.vx, ball.vz);
-   if (sp < CUP.captureSpeed) {
+   if (sp < (hole.captureSpeed ?? CUP.captureSpeed)) {
       capture(hole, ball, ev);
       return true;
    }
    // turned away from the cup's centre, the more the closer the line passes it (dead centre: right, mirrored left)
    const cross = (ball.vx * cz - ball.vz * cx) / sp;
-   const miss = Math.min(Math.abs(cross), CUP.radius);
-   const turn = CUP.lipTurn * (1 - miss / CUP.radius);
+   const miss = Math.min(Math.abs(cross), hole.cupRadius ?? CUP.radius);
+   const turn = CUP.lipTurn * (1 - miss / (hole.cupRadius ?? CUP.radius));
    const a = cross > 0 ? -turn : cross < 0 ? turn : turn * hole.sx;
    const c = Math.cos(a) * CUP.lipKeep;
    const s = Math.sin(a) * CUP.lipKeep;
@@ -359,7 +359,7 @@ function stepRoll(hole: Hole, ball: Ball, t: number, dt: number, ev: BallEvents)
       ball.vx = 0;
       ball.vz = 0;
       ball.mode = "rest";
-      if (Math.hypot(hole.cup.x - ball.x, hole.cup.z - ball.z) <= CUP.radius) {
+      if (Math.hypot(hole.cup.x - ball.x, hole.cup.z - ball.z) <= (hole.cupRadius ?? CUP.radius)) {
          capture(hole, ball, ev);
          return false;
       }

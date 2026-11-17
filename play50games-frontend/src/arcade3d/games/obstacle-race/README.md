@@ -317,6 +317,8 @@ Difficulty is monotone (pinned): counts and speeds never decrease, the blocks' w
 
 Cheap bots (straight, masher, random ×2 seeds, greedy ×1, at 60 fps and random frames, 45 s cap) never post a win outside the window on any level — any win they do find lies above the floor, so no unskilled input reaches a time the proof says is impossible; the idle bot (2 seeds per level) never leaves the start line and never wins. Frame-rate independence is pinned per level: identical frame lists give bit-identical runs, and `COYOTE_MS`/`BUFFER_MS`/`V_RUN`/`MAX_STEP_MS` are level-independent constants.
 
+**Level themes (2026-11-17).** Each level also has its own look (themes.tsx, Decor.tsx), matching its name: palette overrides over the base course colors, per-level lane-rope colors, a per-level environment (lighting/fog, index.tsx) and decor set pieces placed entirely outside the play area (proven per level by themes.test.ts: nothing intersects the |x| ≤ 7.5 m corridor below 3.2 m). Level 1's theme is empty — its palette is the base colors bit for bit and it draws no decor, so level 1 looks exactly as before. Level 2 "Moving Blocks" is a container yard: teal container blocks, amber rails, tower cranes and stacked containers on the decks, warning floats, and one rail beacon per block row whose light flashes as its block slides to that side (a telegraph, looks only). Level 3 "Bridge Run" is a wooden harbor crossing: deck-toned pads and beam, pilings with rope rails and flags along the whole course, and two overhead rope bridges the runner passes under. Level 4 "Spinner Arena" is a night stadium: cool palette with neon rails, floodlight pylons with light cones, a crowd on the decks, striped buoys flanking the disc, and two light cones that sweep with the bar. Level 5 "Championship Course" is the sunset final: crimson-and-gold palette, bunting over the course, crowds on both decks, a winners' podium with a trophy on a raft beside the finish pad, and a confetti burst over the finish on a win. The course geometry, the obstacle timeline and the scoring are untouched by the themes: the decor is looks only and never read by the rules.
+
 ## Scene and camera
 
 - **Follow camera, no yaw.** The course runs up the screen on every device (`yaws: [0]`), so up on the stick is always forward. The camera follows a point `F` that the Scene updates in `useRunFrame` after the step, in every state (run, knocked, lost, spawn), except between a respawn and the cut:
@@ -606,3 +608,10 @@ The 5-levels system is built and proven; this game is the pilot for the rollout 
 (a) `src/arcade3d/registry.sync.test.ts` fails until Claude copies `PROPOSED_LEVEL_LIMITS` into this game's `levels` in `arcade-games.json` (expected at merge; the failure reads "levels: server has none, meta.ts has 5").
 (b) The L4/L5 lighting presets were chosen as `night` / `sunset` with plain dark backgrounds (`#0f172a` / `#431f30`, fog 40–100); the user can re-pick.
 (c) L2 keeps L1's obstacle speeds (the plan's "static obstacle set"): its difficulty is the longer course only.
+
+
+## Clarity
+
+Added a Hud with safe-area HintLine for movement/jump, checkpoint progress, recovery and finish. A green TargetBeacon and off-screen TargetMarkers follow the next checkpoint then finish. Pops mark checkpoints, finish, bar hits, falls and time limit. No item hand-off occurs. Check by eye: off-screen edge arrow, elevated checkpoint rings, fall-to-respawn camera cuts, bar hit without duplicate fall pop and 390px / short landscape controls.
+
+Visuals only: guide helpers read the run without mutation; guide tests compare JSON before/after on all five levels. Rules, score calculations and level configuration are unchanged. Shared HintLine uses 13px phone text and reserves space above touch controls; existing HUD text is at least 12px.

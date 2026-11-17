@@ -13,7 +13,8 @@ import { circlesOverlapXZ, clampToBounds, distanceToBoxXZ, resolveSphereAabb, ty
 import { MAX_FRAME_DT } from "@/arcade3d/core/frameLoop";
 import { capScore as capToLimits, withinServerLimits as fitsLimits } from "@/arcade3d/core/limits";
 import { rngNext, turnTowards, type RngState } from "@/arcade3d/core/math";
-import { cleanCityMeta } from "./meta";
+import type { LevelId, ScoringRules } from "../../types";
+import { COMBO_POINTS, COMBO_WINDOW_MS, EXTRA_BINS, HAZARDS, HAZARD_RADIUS, HAZARD_SLOW, LEVELS, levelIdOf, type CleanLevel } from "./levels";
 
 // ---------- tuning (README "Constants") ----------
 
@@ -88,6 +89,28 @@ export const FASTEST_FINISH_MS = Math.round((GUARANTEED_MIN_ROUTE / RUNNER.speed
 export const BEST_SCORE = MAP_COUNT * ITEMS_PER_MAP * LITTER_POINTS + BONUS_PER_SECOND * Math.floor((DURATION_MS - FASTEST_FINISH_MS) / 1000);
 /** Where a win's score (3000 + bonus) meets the rate cap 1000 + 100 t: 40.0 s. */
 export const BREAK_EVEN_MS = 40_000;
+
+/** L1 retains the production proof. L2-5: 3*[3.2+(items-1)*(spacing-1.6)]/5 seconds
+ * bounds the earliest win. B(t)=3*items*points + combo ceiling + bonus*floor(clock-t).
+ * Delivery, matching and slowing can only increase the required time. See README. */
+export function earliestFinishMs(level: CleanLevel): number {
+   return Math.round((3 * (START_SPACING - PICKUP_REACH + (level.items - 1) * (level.spacing - 2 * PICKUP_REACH)) / RUNNER.speed - MAX_FRAME_DT) * 1000);
+}
+const limitsFor = (level: CleanLevel): ScoringRules => {
+   const earliest = earliestFinishMs(level);
+   const maxScore = 3 * level.items * (level.points + (level.combo ? COMBO_POINTS : 0)) + level.bonus * Math.floor((level.durationMs - earliest) / 1000);
+   return {
+      kind: "points", unitLabel: "pts", display: "int", maxScore,
+      minDurationMs: Math.floor(earliest * 0.96 / 100) * 100,
+      maxDurationMs: level.durationMs + 10000, base: 1000,
+      maxPointsPerSec: Math.ceil((maxScore - 1000) / (earliest / 1000) * 1.04 / 5) * 5,
+   };
+};
+export const PROPOSED_LEVEL_LIMITS: Record<LevelId, ScoringRules> = {
+   1: { kind: "points", maxScore: 4940, minDurationMs: 43000, maxDurationMs: 250000, base: 1000, maxPointsPerSec: 100, unitLabel: "pts", display: "int" },
+   2: limitsFor(LEVELS[2]), 3: limitsFor(LEVELS[3]), 4: limitsFor(LEVELS[4]), 5: limitsFor(LEVELS[5]),
+};
+export const limitsOf = (level: CleanLevel): ScoringRules => level.items === ITEMS_PER_MAP ? PROPOSED_LEVEL_LIMITS[1] : limitsFor(level);
 
 // ---------- the maps (README "Obstacles per map") ----------
 
@@ -170,6 +193,199 @@ export const MAPS: readonly MapConfig[] = [
       ],
    },
 ];
+
+/**
+ * Per-level district map layouts (levels 2-5 each get their own three-stage district obstacles
+ * and ground palette; level 1 is MAPS, the live Pocket Park game). Every obstacle leaves >= 2.2 m
+ * corridors to neighbours, EXTRA_BINS and the floor edge, and keeps the start pad and hazard lanes open.
+ */
+export const LEVEL_MAPS: Record<LevelId, readonly MapConfig[]> = {
+   1: MAPS,
+   // Level 2 — City Square: Civic Plaza, Town Hall Block, Fountain Esplanade
+   2: [
+      {
+         id: "park",
+         ground: "#529e5e",
+         obstacles: [
+            at("bench", -6.5, 5),
+            at("bench", 6.5, 5),
+            at("bench", 0, -7.5),
+            at("tree", -7.5, -5.5),
+            at("tree", 7.5, -5.5),
+            at("bin", -8, 9),
+         ],
+      },
+      {
+         id: "city",
+         ground: "#8693a2",
+         obstacles: [
+            at("building", -8, -6.5),
+            at("building", 8, -6.5),
+            at("building", -8, 3.5),
+            at("building", 8, 3.5),
+            at("lamp", -3.5, -1.5),
+            at("lamp", 3.5, -1.5),
+            at("lamp", -3.5, 7.5),
+            at("lamp", 3.5, 7.5),
+            at("bin", 0, -9.5),
+            at("bin", 10.5, -1.5),
+         ],
+      },
+      {
+         id: "beach",
+         ground: "#e4cc92",
+         obstacles: [
+            at("palm", -8.5, -7.5),
+            at("palm", 8.5, -7.5),
+            at("palm", -8.5, 3.5),
+            at("palm", 8.5, 3.5),
+            at("pole", -4.5, -2.5),
+            at("pole", 4.5, -2.5),
+            at("pole", 0, 4.5),
+            at("bin", 0, -10.5),
+         ],
+      },
+   ],
+   // Level 3 — Shopping Street: Market Green, High Street, Boardwalk Shops
+   3: [
+      {
+         id: "park",
+         ground: "#5ca048",
+         obstacles: [
+            at("bench", -6.5, 3.5),
+            at("bench", 6.5, 3.5),
+            at("bench", 0, -8),
+            at("tree", -6, -6.5),
+            at("tree", 6, -6.5),
+            at("bin", -8, 9.5),
+         ],
+      },
+      {
+         id: "city",
+         ground: "#998c84",
+         obstacles: [
+            at("building", -7.5, -6),
+            at("building", 7.5, -6),
+            at("building", -6.5, 4.5),
+            at("building", 6.5, 4.5),
+            at("lamp", -3, -6),
+            at("lamp", 3, -6),
+            at("lamp", -3, 8.5),
+            at("lamp", 3, 8.5),
+            at("bin", 0, -10.5),
+            at("bin", -10.5, -0.5),
+         ],
+      },
+      {
+         id: "beach",
+         ground: "#e8c484",
+         obstacles: [
+            at("palm", -9, -7),
+            at("palm", 9, -7),
+            at("palm", -8, 4),
+            at("palm", 8, 4),
+            at("pole", -4, -5.5),
+            at("pole", 4, -5.5),
+            at("pole", 0, 4.5),
+            at("bin", 0, -10.5),
+         ],
+      },
+   ],
+   // Level 4 — River Walk: Riverside Lawn, Canal Embankment, Harbour Pier
+   4: [
+      {
+         id: "park",
+         ground: "#489c68",
+         obstacles: [
+            at("bench", -6, -6.5),
+            at("bench", 6, -6.5),
+            at("bench", 0, -9.5),
+            at("tree", -7.5, 3.5),
+            at("tree", 7.5, 3.5),
+            at("bin", 8, 9),
+         ],
+      },
+      {
+         id: "city",
+         ground: "#8292a4",
+         obstacles: [
+            at("building", -8, -6),
+            at("building", 8, -6),
+            at("building", -8, 4.5),
+            at("building", 8, 4.5),
+            at("lamp", -3.5, -6),
+            at("lamp", 3.5, -6),
+            at("lamp", -3.5, 4.5),
+            at("lamp", 3.5, 4.5),
+            at("bin", 0, -10.5),
+            at("bin", 10.5, -1),
+         ],
+      },
+      {
+         id: "beach",
+         ground: "#dbc996",
+         obstacles: [
+            at("palm", -7.5, -8),
+            at("palm", 7.5, -8),
+            at("palm", -9.5, 2.5),
+            at("palm", 9.5, 2.5),
+            at("pole", -4.5, -1.5),
+            at("pole", 4.5, -1.5),
+            at("pole", 0, 4),
+            at("bin", 0, -11),
+         ],
+      },
+   ],
+   // Level 5 — Festival Cleanup: Festival Green, Carnival Midway, Beach Stage
+   5: [
+      {
+         id: "park",
+         ground: "#589e47",
+         obstacles: [
+            at("bench", -7, 4.5),
+            at("bench", 7, 4.5),
+            at("bench", 0, -7.5),
+            at("tree", -8, -6.5),
+            at("tree", 8, -6.5),
+            at("bin", 8, 9),
+         ],
+      },
+      {
+         id: "city",
+         ground: "#92899b",
+         obstacles: [
+            at("building", -7.5, -6.5),
+            at("building", 7.5, -6.5),
+            at("building", -7.5, 4.5),
+            at("building", 7.5, 4.5),
+            at("lamp", -3.5, -0.5),
+            at("lamp", 3.5, -0.5),
+            at("lamp", -3.5, 8.5),
+            at("lamp", 3.5, 8.5),
+            at("bin", 0, -10.5),
+            at("bin", -11, -1),
+         ],
+      },
+      {
+         id: "beach",
+         ground: "#eac682",
+         obstacles: [
+            at("palm", -8.5, -8),
+            at("palm", 8.5, -8),
+            at("palm", -9, 3.5),
+            at("palm", 9, 3.5),
+            at("pole", -4.5, -3),
+            at("pole", 4.5, -3),
+            at("pole", 0, 4.5),
+            at("bin", 0, -10.5),
+         ],
+      },
+   ],
+};
+
+export function mapsForLevel(level: CleanLevel = LEVELS[1]): readonly MapConfig[] {
+   return LEVEL_MAPS[levelIdOf(level)];
+}
 
 /** A square on the ground, tall in y: the runner (y = 0) is always level with it, so pushes are horizontal. */
 export function obstacleBox(o: Obstacle): AABB {
@@ -299,7 +515,7 @@ export const FALLBACK_SPOTS: ReadonlyArray<ReadonlyArray<readonly [number, numbe
 
 /** Kinds 0..3, five of each, in order (shuffled per layout). */
 function fillKinds(out: number[]): void {
-   for (let i = 0; i < ITEMS_PER_MAP; i++) out[i] = Math.floor(i / PER_KIND);
+   for (let i = 0; i < out.length; i++) out[i] = Math.floor(i / (out.length / 4));
 }
 
 function shuffle(values: number[], rng: RngState): void {
@@ -319,13 +535,13 @@ const tooClose = (ax: number, az: number, bx: number, bz: number, spacing: numbe
  * start pad; pick one uniformly, drop every remaining spot closer than 5.4 to it, repeat 20 times.
  * Writes into `x`/`z` and returns false if the list ran out early.
  */
-function placementPass(cache: MapCache, rng: RngState, list: Int32Array, x: number[], z: number[]): boolean {
+function placementPass(cache: MapCache, rng: RngState, list: Int32Array, x: number[], z: number[], level: CleanLevel): boolean {
    let len = 0;
    for (let k = 0; k < cache.spots.length; k++) {
       const s = cache.spots[k];
       if (!tooClose(spotX(s), spotZ(s), START_PAD.x, START_PAD.z, START_SPACING)) list[len++] = s;
    }
-   for (let placed = 0; placed < ITEMS_PER_MAP; placed++) {
+   for (let placed = 0; placed < level.items; placed++) {
       if (len === 0) return false;
       const pick = list[Math.floor(rngNext(rng) * len)];
       const px = spotX(pick);
@@ -335,7 +551,7 @@ function placementPass(cache: MapCache, rng: RngState, list: Int32Array, x: numb
       let keep = 0;
       for (let k = 0; k < len; k++) {
          const s = list[k];
-         if (!tooClose(spotX(s), spotZ(s), px, pz, PAIR_SPACING)) list[keep++] = s;
+         if (!tooClose(spotX(s), spotZ(s), px, pz, level.spacing)) list[keep++] = s;
       }
       len = keep;
    }
@@ -343,23 +559,29 @@ function placementPass(cache: MapCache, rng: RngState, list: Int32Array, x: numb
 }
 
 /** The layout of map `map` for a run seed: up to 40 passes on one stream, then the kinds from the same stream. */
-export function generateLayout(seed: number, map: number, cache: MapCache = buildMapCache(map)): Layout {
+export function generateLayout(seed: number, map: number, cache: MapCache = buildMapCache(map), level: CleanLevel = LEVELS[1]): Layout {
    const s = layoutSeedFor(seed, map);
    const rng: RngState = { s };
    const layout: Layout = {
       map,
       seed: seed >>> 0,
-      x: new Array<number>(ITEMS_PER_MAP).fill(0),
-      z: new Array<number>(ITEMS_PER_MAP).fill(0),
-      kinds: new Array<number>(ITEMS_PER_MAP).fill(0),
+      x: new Array<number>(level.items).fill(0),
+      z: new Array<number>(level.items).fill(0),
+      kinds: new Array<number>(level.items).fill(0),
       passes: 0,
       fallback: false,
    };
    const list = new Int32Array(cache.spots.length);
    let ok = false;
    for (let pass = 1; pass <= MAX_PASSES && !ok; pass++) {
-      ok = placementPass(cache, rng, list, layout.x, layout.z);
+      ok = placementPass(cache, rng, list, layout.x, layout.z, level);
       if (ok) layout.passes = pass;
+   }
+   if (!ok && level !== LEVELS[1]) {
+      // Deterministic rescue stream, still before play. Never return an invalid partial layout.
+      for (let pass = 0; pass < 2000 && !ok; pass++) ok = placementPass(cache, rng, list, layout.x, layout.z, level);
+      if (!ok) throw new Error("No valid clean-city layout");
+      layout.passes = MAX_PASSES + 1;
    }
    if (!ok) {
       FALLBACK_SPOTS[map].forEach(([fx, fz], i) => {
@@ -376,17 +598,17 @@ export function generateLayout(seed: number, map: number, cache: MapCache = buil
 const onGrid = (v: number): boolean => Math.abs(v / SPAWN_GRID - Math.round(v / SPAWN_GRID)) < EDGE_EPS;
 
 /** Everything fairness and the proof rely on (README "A layout must pass isValidLayout"). */
-export function isValidLayout(layout: Layout, cache: MapCache): boolean {
+export function isValidLayout(layout: Layout, cache: MapCache, level: CleanLevel = LEVELS[1]): boolean {
    const { x, z, kinds } = layout;
-   if (layout.map !== cache.map || x.length !== ITEMS_PER_MAP || z.length !== ITEMS_PER_MAP || kinds.length !== ITEMS_PER_MAP) return false;
+   if (layout.map !== cache.map || x.length !== level.items || z.length !== level.items || kinds.length !== level.items) return false;
    const perKind = [0, 0, 0, 0];
-   for (let i = 0; i < ITEMS_PER_MAP; i++) {
+   for (let i = 0; i < level.items; i++) {
       const k = kinds[i];
       if (!Number.isInteger(k) || k < 0 || k >= LITTER_KINDS.length) return false;
       perKind[k] += 1;
    }
-   if (perKind.some((n) => n !== PER_KIND)) return false;
-   for (let i = 0; i < ITEMS_PER_MAP; i++) {
+   if (perKind.some((n) => n !== level.items / 4)) return false;
+   for (let i = 0; i < level.items; i++) {
       const xi = x[i];
       const zi = z[i];
       if (!Number.isFinite(xi) || !Number.isFinite(zi)) return false;
@@ -395,7 +617,7 @@ export function isValidLayout(layout: Layout, cache: MapCache): boolean {
       if (!isClear(cache.obstacles, xi, zi)) return false;
       if (tooClose(xi, zi, START_PAD.x, START_PAD.z, START_SPACING)) return false;
       if (!isReachable(cache, xi, zi)) return false;
-      for (let j = 0; j < i; j++) if (tooClose(xi, zi, x[j], z[j], PAIR_SPACING)) return false;
+      for (let j = 0; j < i; j++) if (tooClose(xi, zi, x[j], z[j], level.spacing)) return false;
    }
    return true;
 }
@@ -420,9 +642,10 @@ export function createRunner(): RunnerState {
  * step back. Mutates `runner`, allocates nothing. Guarantee used by the scoring proof: one step
  * never moves more than 5 · dt, whatever the input, the pushes or the walls do.
  */
-export function stepRunner(runner: RunnerState, dirX: number, dirZ: number, dt: number, obstacles: readonly AABB[]): void {
+export function stepRunner(runner: RunnerState, dirX: number, dirZ: number, dt: number, obstacles: readonly AABB[], speedFactor = 1): void {
    if (!(dt > 0)) return;
-   const { accel, brake, radius, turnRate, speed } = RUNNER;
+   const { accel, brake, radius, turnRate } = RUNNER;
+   const speed = RUNNER.speed * speedFactor;
 
    let len = Math.hypot(dirX, dirZ);
    if (len > 1) {
@@ -483,13 +706,13 @@ export function runScore(collected: number, won: boolean, timeLeftMs: number): n
 }
 
 /** The server's check (core/limits.ts) with this game's limits from meta.ts. */
-export function withinServerLimits(score: number, durationMs: number): boolean {
-   return fitsLimits(score, durationMs, cleanCityMeta.scoring);
+export function withinServerLimits(score: number, durationMs: number, limits: ScoringRules = PROPOSED_LEVEL_LIMITS[1]): boolean {
+   return fitsLimits(score, durationMs, limits);
 }
 
 /** Safety net only (core/limits.ts): the proof shows reachable results never reach the cap. */
-export function capScore(score: number, durationMs: number): number {
-   return capToLimits(score, durationMs, cleanCityMeta.scoring);
+export function capScore(score: number, durationMs: number, limits: ScoringRules = PROPOSED_LEVEL_LIMITS[1]): number {
+   return capToLimits(score, durationMs, limits);
 }
 
 // ---------- the run ----------
@@ -529,6 +752,14 @@ export interface StepEvents {
 }
 
 export interface CleanRun {
+   level: CleanLevel;
+   limits: ScoringRules;
+   /** All pieces gathered: return to the start ring before the map is cleared. */
+   delivering: boolean;
+   targetKind: number;
+   lastPickupMs: number;
+   comboScore: number;
+   slowed: boolean;
    seed: number;
    /** per map: obstacle squares, flood fill, clear reachable spots */
    caches: MapCache[];
@@ -577,7 +808,10 @@ function loadMap(run: CleanRun, map: number): void {
    const layout = run.layouts[map];
    run.map = map;
    run.items = 0;
-   for (let i = 0; i < ITEMS_PER_MAP; i++) {
+   run.delivering = false;
+   run.targetKind = 0;
+   run.lastPickupMs = -COMBO_WINDOW_MS;
+   for (let i = 0; i < run.level.items; i++) {
       const slot = run.litter[i];
       slot.x = layout.x[i];
       slot.z = layout.z[i];
@@ -597,12 +831,24 @@ function loadMap(run: CleanRun, map: number): void {
  * A new run on map 1's start pad: the three caches and the three layouts are built here (Scene
  * calls this once in its useState initializer). Allocates everything the run will ever use.
  */
-export function createRun(seed: number): CleanRun {
+const LEVEL_CACHES = new WeakMap<CleanLevel, MapCache[]>();
+
+export function createRun(seed: number, level: CleanLevel = LEVELS[1]): CleanRun {
    const s = seed >>> 0;
-   const caches = MAPS.map((_m, map) => buildMapCache(map));
-   const layouts = caches.map((cache, map) => generateLayout(s, map, cache));
+   let caches = LEVEL_CACHES.get(level);
+   if (!caches) {
+      const maps = mapsForLevel(level);
+      caches = maps.map((m, map) => buildMapCache(map, [
+         ...m.obstacles.map(obstacleBox),
+         ...EXTRA_BINS.slice(0, level.extraBins).map((p) => obstacleBox({ kind: "bin", ...p, ...HALF.bin })),
+      ]));
+      LEVEL_CACHES.set(level, caches);
+   }
+   const layouts = caches.map((cache, map) => generateLayout(s, map, cache, level));
    const run: CleanRun = {
       seed: s,
+      level, limits: limitsOf(level), delivering: false, targetKind: 0,
+      lastPickupMs: -COMBO_WINDOW_MS, comboScore: 0, slowed: false,
       caches,
       layouts,
       map: 0,
@@ -610,7 +856,7 @@ export function createRun(seed: number): CleanRun {
       carry: 0,
       stepMs: 0,
       runner: createRunner(),
-      litter: Array.from({ length: ITEMS_PER_MAP }, () => ({ x: 0, y: 0, z: 0, kind: 0, active: false })),
+      litter: Array.from({ length: level.items }, () => ({ x: 0, y: 0, z: 0, kind: 0, active: false })),
       items: 0,
       collected: 0,
       score: 0,
@@ -634,8 +880,8 @@ export function advanceClock(run: CleanRun, dtMs: number): number {
    run.carry += Math.min(dtMs, MAX_STEP_MS);
    let stepMs = Math.floor(run.carry);
    run.carry -= stepMs;
-   if (run.simMs + stepMs >= DURATION_MS) {
-      stepMs = DURATION_MS - run.simMs;
+   if (run.simMs + stepMs >= run.level.durationMs) {
+      stepMs = run.level.durationMs - run.simMs;
       run.carry = 0;
    }
    run.stepMs = stepMs;
@@ -665,35 +911,73 @@ export function step(run: CleanRun, dtMs: number, input: StepInput): StepEvents 
    if (run.ended !== null || !(dtMs > 0)) return ev;
 
    const stepMs = advanceClock(run, dtMs);
-   if (run.simMs >= DURATION_MS) {
+   if (run.simMs >= run.level.durationMs) {
       run.ended = "timeup";
       ev.ended = "timeup";
       return ev;
    }
 
-   stepRunner(run.runner, finite(input.moveX), finite(input.moveY), stepMs / 1000, run.caches[run.map].obstacles);
+   run.slowed = false;
+   for (let i = 0; i < run.level.hazards; i++) {
+      if (Math.hypot(run.runner.x - hazardX(i, run.simMs), run.runner.z - HAZARDS[i].z) <= HAZARD_RADIUS) run.slowed = true;
+   }
+   const factor = run.slowed ? HAZARD_SLOW : 1;
+   stepRunner(run.runner, finite(input.moveX), finite(input.moveY), stepMs / 1000, run.caches[run.map].obstacles, factor);
 
-   for (let i = 0; i < ITEMS_PER_MAP; i++) {
+   if (run.delivering) {
+      if (Math.hypot(run.runner.x - START_PAD.x, run.runner.z - START_PAD.z) <= 1) finishMap(run);
+      return ev;
+   }
+
+   for (let i = 0; i < run.level.items; i++) {
       const slot = run.litter[i];
-      if (!slot.active || !inReach(run.runner, slot)) continue;
+      if (!slot.active || (run.level.matching && !matchesKind(run, slot.kind)) || !inReach(run.runner, slot)) continue;
       slot.active = false;
       run.items += 1;
       run.collected += 1;
-      run.score += LITTER_POINTS;
+      run.score += run.level.points;
+      if (run.level.combo && run.simMs - run.lastPickupMs <= COMBO_WINDOW_MS) {
+         run.score += COMBO_POINTS;
+         run.comboScore += COMBO_POINTS;
+      }
+      run.lastPickupMs = run.simMs;
+      if (run.level.matching) {
+         let remaining = false;
+         for (let j = 0; j < run.litter.length; j++) if (run.litter[j].active && matchesKind(run, run.litter[j].kind)) remaining = true;
+         if (!remaining) run.targetKind += 2;
+      }
       ev.collected = i;
-      if (run.items === ITEMS_PER_MAP) {
-         ev.mapCleared = true;
-         if (run.map === MAP_COUNT - 1) {
-            run.ended = "win";
-            run.wonAtMs = run.simMs;
-            run.score = runScore(run.collected, true, DURATION_MS - run.simMs);
-            ev.ended = "win";
-         } else {
-            loadMap(run, run.map + 1);
-            ev.nextMap = run.map;
-         }
+      if (run.items === run.level.items) {
+         if (run.level.delivery) run.delivering = true;
+         else finishMap(run);
       }
       break;
    }
    return ev;
+}
+
+/** Analytic hazard path shared by rules and draw; identical on every device. */
+export function hazardX(index: number, ms: number): number {
+   return HAZARDS[index].x + HAZARDS[index].amplitude * Math.sin(ms / 1600 + index * 2);
+}
+export function finalRunScore(run: CleanRun, timeLeftMs: number): number {
+   return run.collected * run.level.points + run.comboScore + run.level.bonus * Math.floor(Math.max(0, timeLeftMs) / 1000);
+}
+function finishMap(run: CleanRun): void {
+   const ev = run.events;
+   ev.mapCleared = true;
+   if (run.map === MAP_COUNT - 1) {
+      run.ended = "win";
+      run.wonAtMs = run.simMs;
+      run.score = finalRunScore(run, run.level.durationMs - run.simMs);
+      ev.ended = "win";
+   } else {
+      loadMap(run, run.map + 1);
+      ev.nextMap = run.map;
+   }
+}
+
+/** Sorting batches: bottles/bags first, then cans/bananas. Two kinds leave route choice to the player. */
+export function matchesKind(run: CleanRun, kind: number): boolean {
+   return kind >= run.targetKind && kind < run.targetKind + 2;
 }

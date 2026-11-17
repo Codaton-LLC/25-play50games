@@ -1,0 +1,140 @@
+{
+   "slug": "bee-garden",
+   "universe": "garden",
+   "seed": 5050,
+   "_note": "Ready models under menu1-bee-garden/. Adopted files: bee.glb, beehive.glb, flowerA.glb, flowerB.glb, flowerC.glb, nectarOrb.glb, bigLeaf.glb, branchV2.glb, spiderWeb.glb, vegetablePlanter.glb, wateringCan.glb. Excluded: branch.glb (older v1). Stand-ins are deliberate multi-tone bevelled primitives until Claude adds the GLBs to modelManifest.ts.",
+   "assets": [
+      {
+         "id": "bee",
+         "kind": "character",
+         "mode": "text",
+         "prompt": "Cute stylised bumblebee creature, round fuzzy body with yellow and black velvety stripes, translucent iridescent wings, tiny dark antennae and friendly round eyes, stylized premium mobile game look, centered, no ground, no text",
+         "tier": "Gen-2.5-Medium",
+         "qualityOverride": 5000,
+         "attempts": 1,
+         "target": "bee-garden",
+         "budget": { "tris": 8000, "bytes": 800000 },
+         "textureSize": 512
+      },
+      {
+         "id": "beehive",
+         "kind": "prop",
+         "mode": "text",
+         "prompt": "Warm golden wooden beehive box with honey drip accents, bevelled roof lid, small arched entrance slot, premium mobile game look, single isolated prop, clean game-ready low-poly topology",
+         "tier": "Gen-2.5-Low",
+         "qualityOverride": 2000,
+         "attempts": 1,
+         "target": "bee-garden",
+         "budget": { "tris": 4000, "bytes": 300000 },
+         "textureSize": 512
+      },
+      {
+         "id": "flowerA",
+         "kind": "prop",
+         "mode": "text",
+         "prompt": "Blooming garden flower with vibrant rose-red rounded petals, green stem and leaves, golden pollen center, stylized cartoon toy look, clean low-poly topology",
+         "tier": "Gen-2.5-Low",
+         "qualityOverride": 1500,
+         "attempts": 1,
+         "target": "bee-garden",
+         "budget": { "tris": 3000, "bytes": 300000 },
+         "textureSize": 512
+      },
+      {
+         "id": "flowerB",
+         "kind": "prop",
+         "mode": "text",
+         "prompt": "Blooming garden flower with lavender purple petals, green stem and broad leaves, golden center, stylized cartoon toy look, clean low-poly topology",
+         "tier": "Gen-2.5-Low",
+         "qualityOverride": 1500,
+         "attempts": 1,
+         "target": "bee-garden",
+         "budget": { "tris": 3000, "bytes": 300000 },
+         "textureSize": 512
+      },
+      {
+         "id": "flowerC",
+         "kind": "prop",
+         "mode": "text",
+         "prompt": "Blooming garden flower with sky blue rounded petals, green stem and leaves, golden center, stylized cartoon toy look, clean low-poly topology",
+         "tier": "Gen-2.5-Low",
+         "qualityOverride": 1500,
+         "attempts": 1,
+         "target": "bee-garden",
+         "budget": { "tris": 3000, "bytes": 300000 },
+         "textureSize": 512
+      },
+      {
+         "id": "nectarOrb",
+         "kind": "prop",
+         "mode": "text",
+         "prompt": "Glowing golden honey nectar drop, translucent glassy drop of sweet liquid with a soft glowing amber core, clean isolated prop",
+         "tier": "Gen-2.5-Low",
+         "qualityOverride": 1000,
+         "attempts": 1,
+         "target": "bee-garden",
+         "budget": { "tris": 2000, "bytes": 200000 },
+         "textureSize": 256
+      },
+      {
+         "id": "bigLeaf",
+         "kind": "prop",
+         "mode": "text",
+         "prompt": "Broad lush green garden leaf on small stalk, stylized smooth bevelled edges, premium game prop",
+         "tier": "Gen-2.5-Low",
+         "qualityOverride": 1000,
+         "attempts": 1,
+         "target": "bee-garden",
+         "budget": { "tris": 2000, "bytes": 200000 },
+         "textureSize": 256
+      },
+      {
+         "id": "branchV2",
+         "kind": "prop",
+         "mode": "text",
+         "prompt": "Curved woody garden branch log with bark texture and moss patch, clean game obstacle",
+         "tier": "Gen-2.5-Low",
+         "qualityOverride": 1500,
+         "attempts": 1,
+         "target": "bee-garden",
+         "budget": { "tris": 3000, "bytes": 300000 },
+         "textureSize": 512
+      },
+      {
+         "id": "spiderWeb",
+         "kind": "prop",
+         "mode": "text",
+         "prompt": "Silvery circular spider web spun between thin wooden twigs, delicate radial threads, stylized game hazard",
+         "tier": "Gen-2.5-Low",
+         "qualityOverride": 1500,
+         "attempts": 1,
+         "target": "bee-garden",
+         "budget": { "tris": 3000, "bytes": 300000 },
+         "textureSize": 512
+      },
+      {
+         "id": "vegetablePlanter",
+         "kind": "prop",
+         "mode": "text",
+         "prompt": "Terracotta and wooden rectangular garden planter box filled with dark rich soil and tiny green sproutlings",
+         "tier": "Gen-2.5-Low",
+         "qualityOverride": 1500,
+         "attempts": 1,
+         "target": "bee-garden",
+         "budget": { "tris": 3000, "bytes": 300000 },
+         "textureSize": 512
+      },
+      {
+         "id": "wateringCan",
+         "kind": "prop",
+         "mode": "text",
+         "prompt": "Sky blue vintage metal watering can with brass rose sprinkler head and curved handle",
+         "tier": "Gen-2.5-Low",
+         "qualityOverride": 1500,
+         "attempts": 1,
+         "target": "bee-garden",
+         "budget": { "tris": 3000, "bytes": 300000 },
+         "textureSize": 512
+      }
+   ]
+}

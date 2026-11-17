@@ -1,7 +1,10 @@
 // Server-safe contracts for the 3D Arcade.
 // Do NOT import three, @react-three/*, React components or "use client" files here.
 
-/** All 30 games: the 10 originals in rollout order, then the expansion (docs/arcade-expansion/02 §C.1). */
+/**
+ * All 50 Menu 1 games: the 10 originals in rollout order, the expansion (docs/arcade-expansion/02 §C.1),
+ * then the 20 new Menu 1 games 31-50 (docs/menu1-new/specs-31-40.md, specs-41-50.md).
+ */
 export const ARCADE_SLUGS = [
    "robot-collector",
    "food-catcher",
@@ -33,6 +36,26 @@ export const ARCADE_SLUGS = [
    "knight-arena",
    "zoo-escape",
    "rocket-landing",
+   "firefighter-rescue",
+   "taxi-rush-3d",
+   "burger-delivery-scooter",
+   "beach-lifeguard",
+   "farm-tractor-challenge",
+   "cat-vs-robot-vacuum",
+   "hotel-bellboy-rush",
+   "wizard-potion-lab",
+   "haunted-mansion-keys",
+   "bee-garden",
+   "dog-park-fetch",
+   "submarine-treasure-dive",
+   "mars-rover-mission",
+   "train-station-rush",
+   "pizza-kitchen-3d",
+   "jungle-bridge-run",
+   "magic-carpet-ride",
+   "toy-store-night-shift",
+   "aquarium-cleaner",
+   "postman-3d",
 ] as const;
 
 export type ArcadeSlug = (typeof ARCADE_SLUGS)[number];
@@ -114,6 +137,54 @@ export interface LevelMeta {
    clearScore?: number;
 }
 
+/**
+ * One keyboard hint on the start card's keyboard illustration (core/howto, core/README.md "How to
+ * play"). `keys` are alternatives drawn with "or" between them; each is a cap spec:
+ * "WASD" / "Arrows" (the inverted-T cluster), "Left/Right", "A/D", "1-5" (a row of caps), "Space",
+ * "Enter", "Esc", "Mouse", or any single key ("E", "P").
+ */
+export interface HowToKey {
+   /** what the wizard steps point at, e.g. "move" */
+   id: string;
+   keys: string[];
+   /** the caption under the caps: one to three words, e.g. "Steer" */
+   label: string;
+   /** drawn with a HOLD tag */
+   hold?: boolean;
+   /** drawn in the game's accent (the movement keys and the main action) */
+   main?: boolean;
+   /** "move" feeds the wizard's Move step; omitted = derived from the keys */
+   role?: "move" | "action" | "pointer" | "pause";
+}
+
+/** One on-screen control on the phone illustration. Button texts come from GameDefinition.touchLabels. */
+export interface HowToTouch {
+   id: string;
+   control: "joystick" | "jump" | "action" | "tap" | "swipe" | "drag";
+   /** the caption next to the control, e.g. "Steer", "Tap a pile" */
+   label: string;
+   hold?: boolean;
+}
+
+/** One wizard step. `touchText` replaces `text` while the Touch view is shown. */
+export interface HowToStep {
+   title: string;
+   text: string;
+   touchText?: string;
+   /** HowToKey ids lit in this step */
+   keys?: string[];
+   /** HowToTouch ids lit in this step ("pause" lights the HUD's Pause) */
+   touch?: string[];
+}
+
+/** A game's structured "How to play" (ArcadeGameMeta.howTo). Omitted = derived from the controls text. */
+export interface HowTo {
+   keys: HowToKey[];
+   touch: HowToTouch[];
+   /** 3-5 steps: goal, move, main action, avoid / win, tips */
+   steps: HowToStep[];
+}
+
 export interface ArcadeGameMeta {
    slug: ArcadeSlug;
    title: string;
@@ -127,6 +198,12 @@ export interface ArcadeGameMeta {
    difficulty: 1 | 2 | 3;
    orientation: "any" | "landscape" | "portrait";
    controls: { scheme: ControlScheme; keyboard: string; touch: string };
+   /**
+    * The start card's keyboard / touch illustrations and its "How to play" wizard. Omitted = derived
+    * from `controls`, the definition's touchControls / touchLabels and its instructions
+    * (core/howto/howTo.ts). The shell always adds Esc / P = Pause.
+    */
+   howTo?: HowTo;
    scoring: ScoringRules;
    /** /images/3d/<slug>.webp once it exists */
    thumbnail: string | null;
@@ -139,3 +216,10 @@ export interface ArcadeGameMeta {
     */
    levels?: readonly LevelMeta[];
 }
+
+/**
+ * The part of a game's meta the score code reads (scores, the best-score badge, levelMeta, levelProgress).
+ * The /3d grid hands only this to the browser (metaSource.ts), so the registry, which pulls every game's
+ * meta and the rules modules metas compute their limits from, stays out of the grid's bundle.
+ */
+export type GameScoringMeta = Pick<ArcadeGameMeta, "slug" | "title" | "scoring" | "levels">;

@@ -43,7 +43,7 @@ src/
 
 ## Features
 
-- **Modern Games**: Match Shapes, Color Sequence, Number Order, Find the Odd One, Balance the Scale, Sudoku 4x4, and more
+- **Modern Games**: Match Shapes, Color Sequence, Number Order, Find the Odd One, Balance the Scale, Number Grid 4x4, and more
 - **Progress Tracking**: localStorage for guests, WordPress API for logged-in users
 - **Unlock System**: Sequential game unlocking based on completion
 - **Certificate Generation**: PDF certificate after completing all games
@@ -54,7 +54,7 @@ src/
 
 ## Game Types
 
-- **Logic Games**: Match Shapes, Color Sequence, Number Order, Find the Odd One, Balance the Scale, Sudoku 4x4
+- **Logic Games**: Match Shapes, Color Sequence, Number Order, Find the Odd One, Balance the Scale, Number Grid 4x4
 - **Memory Games**: Card Flip Memory
 - **Speed Games**: Click the Green
 - **Skill Games**: Ball Balance

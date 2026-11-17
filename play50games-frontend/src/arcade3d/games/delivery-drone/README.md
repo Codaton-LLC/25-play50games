@@ -49,6 +49,34 @@ Approved provisional limits, applied to `meta.ts` in P-15: **maxScore 3600; dura
 4. Fix1 preserves all inequalities: flight/swing/camera/chunks/rotors add no awards; attached-wall misses only remove awards, add no damage and cannot shorten the loss bound. Loading remains 4 s, count twelve, ceiling 180 s. Keep limits pending bots; do not tighten from timing estimates.
 5. Through `createArcadeStore` + `simulateRun`, run expert/novice route bots on 48 seeds per controller/damping combination (32 at 60 fps, 8 at 20 fps, 8 random 4–50 ms), and idle/spam/collision bots on 32 seeds per control/damping combination (24 at 20 fps, 8 random frames); include 300 ms raw-frame stalls/countdown/pauses via clock tests. Oracle uses legal movement, loading, pendulum and release; pathfinding around towers and analytic impact timing grant knowledge, never teleportation or immunity. Assert `withinServerLimits` and `capScore` no-op on all terminal results; record best/worst durations, score and reasons. Both damping modes, fragile attempts, perfect zero-distance fixtures, idle 100 s expiry and adversarial corner-contact loss included. No bot measurements claimed before build.
 
+### Levels
+
+Level 1 is today's 12-delivery route, so the tests and the approved limits stay put. Levels 2–5 add drops and the plan's hazard knobs (tighter pads, earlier and stronger wind, more pigeons, fragile cargo, a faster drain), and each level is its own district (below). The plan's 3-drop tutorial is not level 1: that would make every later level worth fewer points than today, and it would break the tests that pin `ROUTE.count` at 12. Colliding traffic is not built; only pigeons and towers collide. Loading stays 4 s, the express window stays 10 s and the depot disc stays 1.5 m on every level, for keyboard and touch alike. A level clears on a win, or at its `clearScore`.
+
+**Districts (2026-10-29).** Each level has its own map and look: `levels.ts` `MAPS` (open cells, roof mix, preferred tower cells, drawn tower height) and `looks.ts` `THEMES` (lighting preset, sky, fog, street and block palette, rooftop props, open-cell style, lamps, stars). The rules read only the map: open cells have no building (no collision, no roof), roofs stay 2 / 5 / 8 m, towers stay 16 m walls (the drawn height is taller on later levels; the camera views use the drawn height as solids). Level 1's map draws the same random numbers as before, so its cities are today's.
+
+| Level | District | Layout | Look |
+|---|---|---|---|
+| 1 Training Rooftop | today's city | mixed 2/5/8 m blocks, 8 towers anywhere | day, blue sky, offices with solar panels |
+| 2 Residential Blocks | suburb | mostly 2 m houses, four pocket parks (cells 9, 14, 49, 54), apartment towers prefer the four corners round the depot: tight turns home, and flying low over houses brings the pigeons (4–10 m) into the drone's height | warm morning sky, pastel houses with stepped tile roofs and chimneys, lawns with trees and benches |
+| 3 Downtown | business district | mostly 8 m offices, a civic square north of the depot (cells 19, 20), towers prefer the north-east block (rows 0–2, cols 5–7), drawn 24 m | sunset preset, violet-to-orange sky, glass and steel facades, rooftop billboards, a billboard on every tower, fountain plaza |
+| 4 Windy Towers | wind canyons | towers prefer cols 1 and 6 (two walls along the avenues), drawn 28 m | grey storm sky, concrete facades, orange windsocks on the roofs, brighter white wind streaks |
+| 5 Night Delivery | night city | towers prefer the diagonals, two lit plazas beside the depot (cells 26, 29), drawn 20 m | night preset, stars, glowing windows (a third dark), street lamps with light pools, pads and beacons unchanged (bright) |
+
+Fairness per level (`districts.test.ts`): open cells stay empty, roofs come from the level's mix, the preferred cells carry most towers, every city is valid (the flood fill reaches every pad from the depot), the depot is clear and a parcel loads in 4 s. The bot proofs (`rules.levels*.test.ts`) re-ran on the new districts: human clears 100 / 99 / 100 / 100 / 100 of 100 seeds (level 2's one miss is seed 80, a battery loss after 5 drops), oracle best 3496 / 3790 / 4086 / 4367 / 4667. Limits unchanged: the proof (n drops need 4n s of loading, so score ≤ 300n ≤ 75t) does not depend on the map.
+
+One perfect drop is `DELIVERY_CAP` = 150 + 100 + 50 = 300 (`ROUTE.base`, `ROUTE.precision`, `ROUTE.expressPoints`). n drops need n × `ROUTE.loading` = 4n seconds of depot time, so the score is at most 300n = 75t. That is inside `base 300 + 75 × t` on every level, and `maxScore` is 300 × the delivery count. The earliest empty battery, before any recharge, is `(battery − BATTERY.damage) / (drain + BATTERY.damage)` (`earliestLossSeconds`). It stays above 20 s, so `minDurationMs` stays 20000. `maxDurationMs` is the ceiling plus 2 s.
+
+| Level | Title | Drops | Ceiling | Towers | Pad | Wind | Pigeons | Fragile | Drain | maxScore | clearScore |
+|---|---|---:|---:|---:|---:|---|---|---|---:|---:|---:|
+| 1 | Training Rooftop | 12 | 180 s | 8 | 1.25 | 1.5 from 60 s | 2 / 4 / 6 at 60 / 120 s | from drop 9, precision 40 | 1 | 3600 | 1200 |
+| 2 | Residential Blocks | 13 | 200 s | 9 | 1.125 | 1.5 from 45 s | 2 / 4 / 6 at 45 / 110 s | from drop 9, precision 40 | 1 | 3900 | 2000 |
+| 3 | Downtown | 14 | 220 s | 10 | 1.125 | 2 from 30 s | 3 / 5 / 8 at 30 / 80 s | from drop 8, precision 40 | 1 | 4200 | 2000 |
+| 4 | Windy Towers | 15 | 240 s | 10 | 1.00 | 2.5 from 30 s | 3 / 6 / 8 at 30 / 70 s | from drop 6, precision 50 | 1.25, battery 160 | 4500 | 1200 |
+| 5 | Night Delivery | 16 | 270 s | 11 | 1.00 | 2.5 from 20 s | 4 / 6 / 8 at 20 / 60 s | from drop 5, precision 50 | 1.5, battery 230 | 4800 | 1400 |
+
+Level 1's loss bound is 24.25 s, the same `97 − 4t` proof as above. Level 4's bound is 157 / 4.25 = 36.94 s. Level 5's bound is 227 / 4.5 = 50.44 s. Level 5's maxScore 4800 is 1.33 × level 1, inside the 3× guard. `clearScore` sits under the worst score the cautious route bot posted on seeds 0–99 of that level before the districts (1334, 2140, 2131, 1340, 1592), so a bad city still unlocks the next one. On the districts the worst scores are 1334, 1326, 2930, 2928, 1878: level 2 clears 99 of 100 (the test floor), the rest 100. It does not rise with the level: wind and a faster drain make the worst city score less, and the unlock has to stay reachable. The human route bot is what `rules.levels*.test.ts` (one file per level) measures; those clear rates are the ones in the handoff.
+
 ## Run end
 
 - `end("lose")` when battery reaches 0, including drain or tower damage; falling parcels grant nothing after that instant.
@@ -147,7 +175,7 @@ Fix1 bot counts: expert/novice, 48 seeds each in both damping modes (32 at 60 fp
 Bot reports: terminal reasons, score/duration extrema, per-distance-band delivery times, substep cable clamp seconds/fractions per axis, peak/final energy. No measured values claimed.
 Scoring: sum(150 + precision + express 50), successful pads only; fragile requires precision >=40; express <=10 s; twelve single-use awards, no terminal bonus.
 Limits: max 3600; duration 20000–182000 ms; base 300; 75 points/s. Proof: n parcels require 4n s loading, score <=300n<=75t; twelve awards cap 3600; battery >=97-4t gives loss >=24.25 s; win >=48 s; ceiling 180 s.
-Evidence: screenshots 1280x800 / 390x844 banner open / 844x390 and tools/perf JSON are pending; thumbnail null.
+Evidence: screenshots 1280x800 / 390x844 banner open / 844x390 and tools/perf JSON are pending; thumbnail wired.
 Acceptance [x]: folder implementation; pure seeded rules/core helpers; keyboard/touch bindings in code; dev status; approved meta limits; TypeScript.
 Acceptance [ ]: executed tests/build/gamecheck; legal bot timing and score proof measurements; three-size playtests; real model fit results; fallback playtest; <=70 target / <=80 cap calls; mid-phone p95; Retry x10 GPU/heap stability; screenshot/perf evidence.
 Known limitations: full Vitest game-suite duration remains pending Claude; standalone checks do not measure Vitest overhead. Vehicle fits and phone readability require actual validation. Server catalog pairing belongs to Claude's merge.
@@ -169,3 +197,52 @@ Safety: no production calls, network, Hyper3D credits, generated assets, depende
 - Named cap dimensions derive all rooftop overlays; clearance test added. Pickup tests cover the 7/8 boundary. Same-seed pickup runs compare steady swing. Actual landing fixtures distinguish pickup/release clocks in both directions; reverse fixture deliberately separates timestamps beyond chronological play to catch the wrong clock.
 - Standalone Node assertions passed pickup, steady and both express fixtures. Late swing peaks: normal 0.0491414 rad, steady 0.0264285 rad. Local TypeScript check passed. Build/Vitest/screenshots deferred to Claude.
 - Portrait estimates exceed drone 24 px and outlined parcel 12 px under stated bands. Actual banner/HUD/control rectangles require Claude measurement.
+
+## Look (2026-10-24)
+
+Visual-only modern-look pass (TASK P-83-look-drone) for a polished, premium mobile-game aesthetic:
+1. **Palette (`looks.ts`):** Unified `COLORS` palette covering sky, ground, park lawn, river water, multi-tone building facades, textured rooftops, hazards, delivery pads and vehicles.
+2. **Surroundings & Decor (`Decor.tsx`):**
+   - 280m x 280m ground plane so no void or sky ever shows below the scene at any viewport size or camera angle.
+   - West river running outside play bounds with core `<Water>`, quayside stone embankment and promenade trees.
+   - Distant skyline towers (north, east, west) instanced via `<Instanced>` with 3 architectural tone tiers.
+   - Low-poly cumulus clouds (`<DynamicInstanced>`) placed far outside the play area (z <= -55 or |x| >= 60) so they never cover or occlude the play area at any drift phase.
+   - All decor spots proven strictly outside `PLAY_BOUNDS` ([-30, 30] x [-30, 30]) and non-occluding via `visuals.test.ts`.
+3. **Architectural Buildings & Rooftops (`City.tsx`):**
+   - Multi-tone facades with dark street-level plinths, pilasters, and multi-pane illuminated windows.
+   - Textured rooftops with raised parapet trims, recessed roof deck membrane, stairwell bulkheads, AC compressor units, solar panel arrays, and ducts. Target roofs preserve clean flat landing clearance (r = 1.5m).
+   - Skyscraper towers with stepped crowns, high-contrast hazard warning stripes (coral/amber), and aviation beacons.
+   - Pedestrian sidewalk blocks with curbs around every cell block, and avenue street markings.
+   - Central depot park with lush grass lawn, paved apron plaza, and radial approach paths.
+4. **Deliberate Code Stand-Ins (`Primitives.tsx`):**
+   - `DronePrimitive`: modern aerodynamic quadcopter hull, cyan visor dome, carbon-fiber diagonal arms, motor pods, rotor cowlings, and landing skids.
+   - Multi-part vehicle fallbacks for cars, taxis, vans, and pigeons sharing 1 draw call per pool via `useMergedPart`.
+5. **Lighting & Juicy Feedback (`Scene.tsx`):**
+   - Core daylight lighting preset with sky dome (`#0284c7` to `#bae6fd`) and distance-fitted linear fog (`#dbeafe`).
+   - Rotor downwash air puffs (`fx.burst("puff")`, max 5 bursts/sec) when hovering low or reloading at depot.
+   - Juicy delivery feedback: sparkle + confetti + score text popup + subtle camera shake.
+   - Grounding blob shadows under both the parcel and the drone for height and position readability.
+
+### Draw-call estimate (Total <= 60 budget)
+
+| Component | Draw calls | Notes |
+|---|---:|---|
+| Sky dome | 1 | `<SkyDome>` gradient dome |
+| Ground & River | 3 | 280m ground plane (1), street markings (1), river `<Water>` (1) |
+| Central Park | 2 | Park lawn (1), depot plaza apron (1) |
+| River Quayside | 1 | Stone embankment mesh |
+| Playable City Chunks | 6–10 (max 16) | 16 pre-merged chunks, frustum culled; 1 shared material |
+| Outer Skyline & Blocks | 3 | `<Instanced>` in 3 tone tiers outside play bounds |
+| Outer Trees | 3 | `<Instanced>` trunks (1), foliage crowns in 2 tones (2) |
+| Outer Clouds | 1 | `<DynamicInstanced>` distant clouds |
+| Traffic & Hazards | 5 | Cars (1), taxis (1), vans (1), pigeons (1), wind streaks (1) |
+| Depot Props | 2 | Crates (1), park trees (1) via `<InstancedModel>` |
+| Delivery Pads & Beacons | 5 | 12 pad rings (1), active disc (1), beacon pillar (1), depot ring (1), loading disc (1) |
+| Drone & Parcel | 7 | Drone model (1), rotors (1), parcel (1), silhouette (1), cable/outline (1), cross (1), blob shadows (2) |
+| Core FX (active bursts) | 1–3 | Sparkle / puff / confetti pools (1-2) + score sprite (1) |
+| **Total typical frame** | **~38–46** | **Well within <= 60 budget** |
+| **Total worst-case frame** | **~52–56** | All chunks visible + active delivery bursts + score popup |
+
+## Camera views
+
+Views: default, chase, front, top, free (the drone's camera collides with the buildings). **C** / **T** or the 📷 button cycles them; drag (or two fingers) looks around and switches to the free view, wheel / pinch zooms, **V** recenters. The rules receive the drawn camera's yaw (the fitted yaw in the default view), so a run in the default view is unchanged; no rules, bots, proofs or scoring were touched. Core docs: `core/camera/README.md`.

@@ -6,7 +6,7 @@ import type { Group, Mesh, MeshBasicMaterial, Object3D } from "three";
 import { createAxisAim, followRelativeDrag, type AxisAimOptions } from "@/arcade3d/core/aim";
 import { Model } from "@/arcade3d/core/assets";
 import { playSfx, startLoop, useMuted } from "@/arcade3d/core/audio";
-import { useFx } from "@/arcade3d/core/fx";
+import { useActionPop, useFx } from "@/arcade3d/core/fx";
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import { TargetMarkers } from "@/arcade3d/core/hud";
 import { useInput } from "@/arcade3d/core/input";
@@ -22,6 +22,8 @@ import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useEyeShift } from "@/arcade3d/core/useEyeShift";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { EXHIBIT_LOOK, statueAsset } from "./assets";
+import { GUIDE, hintCode, hintFor } from "./guide";
+import { useMuseumLevel } from "./useMuseumLevel";
 import { SoftBeam } from "./Beam";
 import Gallery from "./Gallery";
 import { BAND, COLORS, EYE, EYE_Y, FOV, MARGIN, PADDING, radarRect } from "./looks";
@@ -31,11 +33,10 @@ import {
    DRAG_PX_PER_TURN,
    FLASH,
    liveRun,
-   PHASES,
    RING,
    TURN_RATE,
    TYPES,
-   beamHalf,
+   beamHalfFor,
    createRun,
    stepGame,
    wrapAngle,
@@ -73,7 +74,7 @@ function secondsLeft(run: Run, index: number): number {
    const ex = run.exhibits[index];
    const ped = run.pedestals[ex.pedestal];
    const dist = Math.hypot(ex.x - ped.exitX, ex.z - ped.exitZ);
-   const speed = ex.coast > 0 ? ex.coastSpeed : TYPES[ex.kind].speed * PHASES.speed[run.phase];
+   const speed = ex.coast > 0 ? ex.coastSpeed : TYPES[ex.kind].speed * run.level.speed[run.phase];
    return (dist - BEAM.alarm) / Math.max(0.05, speed);
 }
 
@@ -154,15 +155,24 @@ function FloorMarks({ run }: { run: Run }) {
 }
 
 export default function Scene() {
+   const { config } = useMuseumLevel();
    const runId = useArcadeStore((s) => s.runId);
    const phase = useArcadeStore((s) => s.phase);
-   const run = useMemo(() => createRun(randomSeed()), [runId]);
+   const run = useMemo(() => createRun(randomSeed(), config), [runId, config]);
    const statues = useMemo(() => INDEXES.map((i) => statueAsset(run.exhibits[i].kind, i)), [run]);
    const input = useInput();
    const fx = useFx();
+   const pop = useActionPop();
+   const hintCodeRef = useRef(-1);
    const time = useGameTime();
    const muted = useMuted();
    const coarse = useCoarsePointer();
+   useEffect(() => {
+      hintCodeRef.current = hintCode(run);
+      GUIDE.set(hintFor(hintCodeRef.current, coarse));
+      return () => GUIDE.reset();
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+   }, [run]);
    const width = useThree((s) => s.size.width);
    const height = useThree((s) => s.size.height);
    const safe = useSafeArea();
@@ -204,7 +214,8 @@ export default function Scene() {
       store.setStat("alarms", run.alarms);
       store.setStat("returns", 0);
       store.setStat("flash", 0);
-      store.setStat("dawn", PHASES.dawn);
+      store.setStat("dawn", run.level.dawn);
+      store.setStat("dawnCap", run.level.dawn);
       return () => {
          if (liveRun.current === run) liveRun.current = null;
       };
@@ -237,6 +248,11 @@ export default function Scene() {
          useArcadeStore.getState()
       );
       if (!dragging) aim.current.x = run.yaw;
+      const code = hintCode(run);
+      if (code !== hintCodeRef.current) {
+         hintCodeRef.current = code;
+         GUIDE.set(hintFor(code, coarseRef.current));
+      }
       yawRef.current = run.yaw;
       if (run.phase !== phaseRef.current) {
          phaseRef.current = run.phase;
@@ -259,7 +275,7 @@ export default function Scene() {
          }
          if (ex.justAlarm) {
             playSfx("alarm", { volume: 0.7 });
-            fx.shake(0.4);
+            pop.fail({ x: ex.x, y: 1.6, z: ex.z }, run.alarms > 0 ? `ALARM! ${run.alarms} left` : "ALARM! Night over", { shake: 0.4 });
          }
       }
       if (run.outcome && !ended.current) {
@@ -315,12 +331,12 @@ export default function Scene() {
    return (
       <>
          <EyeRig position={EYE} yaw={yawRef} fov={FOV} shift={eye.shift} />
-         <Gallery yaw={yawRef} />
+         <Gallery yaw={yawRef} pedestals={run.pedestals} />
          {INDEXES.map((i) => (
             <StatueView key={`${run.seed}-${i}`} index={i} run={run} asset={statues[i]} />
          ))}
          <FloorMarks run={run} />
-         <SoftBeam ref={beamRef} halfAngle={beamHalf(beamPhase, coarse)} range={BEAM.range} height={1.55} color={COLORS.beam} opacity={0.3} light intensity={24} />
+         <SoftBeam ref={beamRef} halfAngle={beamHalfFor(config.beam, beamPhase, coarse)} range={BEAM.range} height={1.55} color={config.palette.beam} opacity={0.3} light intensity={24} />
          <group ref={flashRef}>
             <SoftBeam halfAngle={FLASH.half} range={BEAM.range} height={1.55} color={COLORS.flash} opacity={0.22} />
          </group>

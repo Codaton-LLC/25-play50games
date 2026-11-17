@@ -1,0 +1,109 @@
+/* The shopping list panel: under the shell's buttons on the right, out of the touch controls' way. */
+.panel {
+   position: absolute;
+   top: calc(env(safe-area-inset-top, 0px) + 74px);
+   right: calc(env(safe-area-inset-right, 0px) + 12px);
+   box-sizing: border-box;
+   width: 196px;
+   display: flex;
+   flex-direction: column;
+   gap: 6px;
+   padding: 8px 10px;
+   border: 1px solid var(--stroke, rgba(255, 255, 255, 0.12));
+   border-radius: 12px;
+   background: rgba(11, 16, 32, 0.78);
+   color: #f8fafc;
+   font-size: 13px;
+   line-height: 1.2;
+   pointer-events: none;
+   user-select: none;
+}
+
+.panel:empty {
+   visibility: hidden;
+}
+
+.title {
+   color: #fdba74;
+   font-size: 12px;
+   font-weight: 700;
+   letter-spacing: 0.05em;
+   text-transform: uppercase;
+}
+
+.items {
+   display: flex;
+   flex-wrap: wrap;
+   gap: 4px;
+   margin: 0;
+   padding: 0;
+   list-style: none;
+}
+
+.item {
+   position: relative;
+   display: grid;
+   place-items: center;
+   width: 28px;
+   height: 28px;
+   border: 1px solid rgba(255, 255, 255, 0.14);
+   border-radius: 8px;
+   background: rgba(0, 0, 0, 0.3);
+   font-size: 17px;
+}
+
+.next {
+   border: 2px solid #fb923c;
+   box-shadow: 0 0 8px rgba(251, 146, 60, 0.7);
+}
+
+.taken {
+   opacity: 0.45;
+}
+
+.tick {
+   position: absolute;
+   right: -3px;
+   bottom: -4px;
+   color: #4ade80;
+   font-size: 14px;
+   font-weight: 900;
+   text-shadow: 0 0 3px #000;
+}
+
+.ride {
+   padding: 3px 8px;
+   border-radius: 8px;
+   background: rgba(255, 255, 255, 0.08);
+   color: #cbd5e1;
+   font-size: 12px;
+   font-weight: 700;
+   text-align: center;
+}
+
+.rideOn {
+   background: #fb923c;
+   color: #1c1917;
+}
+
+.sr {
+   position: absolute;
+   width: 1px;
+   height: 1px;
+   overflow: hidden;
+   clip: rect(0 0 0 0);
+   white-space: nowrap;
+}
+
+@media (max-width: 480px) {
+   .panel {
+      width: 152px;
+      padding: 6px 8px;
+   }
+
+   .item {
+      width: 24px;
+      height: 24px;
+      font-size: 14px;
+   }
+}

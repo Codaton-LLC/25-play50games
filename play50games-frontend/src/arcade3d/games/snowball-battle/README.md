@@ -10,9 +10,9 @@ A friendly 1-vs-3 snowball fight in a fenced schoolyard. You scoop snow, hide on
 
 `meta.ts` will say `scheme: "joystick"`, `touchControls: ["joystick", "action", "tap"]`, `touchLabels: { action: "Scoop" }`.
 
-- `keyboard`: "WASD / arrows to move, mouse to aim; hold E or Enter to scoop, Space to throw".
+- `keyboard`: "WASD / arrows to move, mouse to aim; hold E or Enter to pack a snowball (let go when the ring is green), click or Space to throw; right-drag or Q / X turns the camera".
 - `touch`: "Joystick to move, hold Scoop to pack a snowball, tap a rival to throw".
-- `moveX` / `moveY` → `inputToWorld(moveX, moveY, view.yaw)` (up = away from the camera), magnitude clamped to 1. Scoop is `action` held (E / Enter / Scoop). A fine pointer throws with `aimFired(input, { jump: true })` (Space) and a click's `tapDown` does nothing. A coarse pointer throws with `tapDown` on a rival and has no Jump button. One event per throw. Esc / P and a hidden tab pause in the shell. `setStat` keys `time` / `ammo` / `rivals` (labels Time, Ammo, Rivals) feed the shell chips; the mittens sit in `Hud` under those chips.
+- `moveX` / `moveY` → `inputToWorld(moveX, moveY, view.yaw)` (up = away from the camera), magnitude clamped to 1. Scoop is `action` held (E / Enter / Scoop). A fine pointer throws with `aimFired(input, { jump: true })` (Space) or a left click on the canvas (its `tapDown`), both at the highlighted rival. A coarse pointer throws with `tapDown` on a rival and has no Jump button. One event per throw. Esc / P and a hidden tab pause in the shell. `setStat` keys `time` / `ammo` / `rivals` (labels Time, Ammo, Rivals) feed the shell chips; the mittens sit in `Hud` under those chips.
 - Changed from the stub ("hold E to scoop, Space to throw" / "hold Action"): the button is labelled Scoop, and the mouse aim is part of the keyboard line. Changed from the core adoption note that lists this game as aim-drag: no `input.drag`, no `stepAxisAim`, no `TrajectoryDots`. The director's call is auto-target; a drag lob is the free aim that call rejects.
 
 ## Rules
@@ -59,6 +59,52 @@ A scoop-throw cycle pockets one ball per 0.50 s, and flight is at least 0.65 s, 
 
 At 10.9 s, 2,550,000 ≤ 600,000 + 190·10900 = 2,671,000. A forged 2550 at 10.00 s fails (allowed 2500). `capScore` changes none of these rows. minDuration 10000 sits under the 10.65 s loss chain, so the idle bot (score 0 at ~10.65 s) passes. maxDuration 92000 sits 2 s over the 90 s clock.
 
+## Levels
+
+Five arenas on the same 24 × 18 yard (`levels.ts` `LEVELS` + `ARENAS`). Level 1 is the fight above: same rivals, same yard, same look, same 90 s clock, same limits (its `ARENAS[1].forts` are the old `BASE_FORTS`, and `rules.test.ts` is unchanged). A level clears on a win (all three rivals knocked out). There is no `clearScore`, no shot counter and no combo: a hit stays 100, and a run still ends on a win, a loss or the clock. Each later level keeps every harder knob from the level before it.
+
+The plan's stationary gallery, attempt limit and combo scoring have no supporting code and are still not built. "Faster targets" (level 4) is a shorter wind-up and a sooner dodge; the hit spheres stay the sizes the pose tests pin.
+
+### Arenas (2026-10-29: "the same level 5 times")
+
+Each level now has its own fort layout (so the rivals hide in other places), its own ground, its own light and scenery, and one twist. The yard size, the camera windows, the snowman's collision box at the origin and the 10 rules trunks are the same on every level.
+
+| Level | Forts (7, where the rivals hide) | Ground / twist | Light, sky, fog | Drawn |
+|---|---|---|---|---|
+| 1 Snow Yard | today's ring round the snowman | plain snow | `snow`, pale blue | snowball horseshoes, snowman, pines, side forts (unchanged) |
+| 2 Frozen Park | pushed out to the edges: three across the back, one per side, two near you (longer throws) | two frozen ponds: on ice accel × 0.22 and brake × 0.12 (`ICE`), so you slide and stop slowly | `day`, bright blue, light snow | snow-capped hedges, a frozen fountain in the middle, leafy trees, benches and lamps past the wooden fence |
+| 3 Snow Fort | the rivals' wall of five across the back, two bunkers on your side | a fort knocked to 0 HP is packed back to full after 8 s (`Arena.rebuild`), once nobody stands where its walls go; deep drifts at both sides (`DRIFT` top speed × 0.6) | `day` sun under a golden late-afternoon sky (the `sunset` preset turned the snow to sand) | ice-brick walls with merlons and rival pennants, castle towers, banners |
+| 4 Ice Village | igloos in two lanes and a square | an icy square in front of you, four drifts between the huts; igloos start on 2 HP | `snow` at blue hour, indigo sky, heavy snowfall, closer fog | igloos (the igloo GLB scaled to each fort's HP height), a big snowman in the middle, glacier chunks, lamps, the igloo village past the fence |
+| 5 Championship Arena | a ring of barriers round the rink | two rink ice patches, four corner drifts, barriers rebuilt after 10 s | `night`, three floodlights | ice-block barriers, a trophy on a podium in the middle, stands with a cheering crowd, floodlight masts, team banners, rink lines |
+
+Rules (`rules.ts`): `generateYard(seed, hp, arena)` jitters the level's own fort centres and checks them with the same `checkYard` (count, bounds, gaps, snowman gap, flood fill from the start to every pocket, a 6 m line of sight from every peek pocket), plus `checkZones` (no ice or drift within 1 m of the start, or within 0.9 m of a fort's or the snowman's box, so every pocket is plain snow) and, on levels 2-5, `checkPockets` (every fort pocket clears every rules trunk). 300 seeds per level pass with no fallback. `groundAt(level, x, z)` is the zone lookup; `topSpeed(run, kid)` and `accelerate` read it. A rebuilt fort only takes back cover the yard already had at the start (its flood fill was checked with every fort standing), so it can never cut a kid off; `arenas.test.ts` also flattens every fort on levels 3 and 5 and checks, every frame, that no rebuild closes on a kid. The HintLine says "On the ice: you slide…" or "Deep snow slows you…" while the player stands on one (`guide.ts` `GROUND`, Scene stat `ground`). Ice and drift act the same on keyboard and touch.
+
+**Limits: unchanged.** Every bound above is a timing bound (scoop cycle 0.50 s, flight ≥ 0.65 s, stagger 0.45 s, sneaker time, wind-up and slot clock). A layout, ice, a drift or a rebuilt fort adds no score source and makes no throw or scoop faster; ice and drifts only slow or loosen movement, and a rebuilt fort only adds cover. So `B(t)`, the clears and the loss chains below hold on every arena as written, and `meta.scoring`, the level rows and `arcade-games.json` are untouched. The bots in `levels.test.ts` play each level's own arena.
+
+Visuals (`arenaLooks.ts` data, `ArenaDecor.tsx`): forts are drawn inside their 1.80 m square (walls turn by quarter turns only) and at their rules height for each HP (`drawnFortHeight` = `fortHeight`, a 0.14 m stub at 0 HP). Every scenery piece stands outside the fence and never on the camera's side; `arenas.test.ts` sweeps them from the follow camera at 390×844, 844×390 and 1280×800 like the pines (≤ 15 % of a kid). The centre piece hides on the frames it would cover a kid, like the snowman. Reused GLBs: leafyTree, castleTower (shared), bench, lamp (clean-city), glacierChunk, iceBlock (penguin-slide), igloo and snowmanBig (this game), each fitted from measured bounds (`DECOR_GLB`, checked on the meshes). In the chase, front and free views the standing forts and the centre cover are camera solids.
+
+| Level | Title | What changes from the level before | Clear | Limits |
+|---|---|---|---|---|
+| 1 | Snow Yard | today's game | win | 2550 / 10000–92000 / base 600 / 190 pps |
+| 2 | Frozen Park | speed 4.5→4, dodge `[0.30, 0.25, 0.20]`, throw cap 14 m / 0.85 s → 18 m / 0.95 s | win | same as level 1 |
+| 3 | Snow Fort | sneaker 10→8 s, two-peek slot 60→30 s | win | 2550 / 8000–92000 / 600 / 230 |
+| 4 | Ice Village | wind-up 1.2→1.0 s, dodge `[0.25, 0.20, 0.15]`, fort HP 3→2 | win | 2550 / 8000–92000 / 600 / 230 |
+| 5 | Championship Arena | two-peek slot from 0 s, sneaker 8→5 s, dodge `[0.20, 0.17, 0.14]` | win | 2550 / 5000–92000 / 600 / 348 |
+
+The hit cap is 2550 on every level (9×100 + 3×300 + 500 + 250), so a harder level never offers fewer points than level 1, and level 5 is under 3×. The clock stays 90 s, so `maxDurationMs` stays 92000.
+
+**Level 2.** `flightFar` 0.95 at `distFar` 18 has the same lerp slope as level 1: (0.85−0.65)/(14−6) = (0.95−0.65)/(18−6) = 0.025 s/m. Flight at 14 m and under is unchanged, and the minimum flight is still 0.65, so the scoop bound `0.5k + 0.65` and `EARLIEST` do not move. Speed and dodge do not add a score source. The level 1 proof is the level 2 proof.
+
+**Level 3.** The third rival can be hit at 8.00 / 8.45 / 8.90 s in the same stagger model (ammo already packed). `B(8.9) = 2550`. (2550−600)/8.9 = 219.1, and 230 pps is 4.97 % over that slope: 600000 + 230·8900 = 2,647,000 ≥ 2,550,000. A forged 2550 at 8.45 s fails (allowed 2543). The two-peek slot opens at 30 s, after the one-slot loss at 10.65 s, so the loss chain does not move. minDuration 8000 sits 0.9 s under the 8.9 s clear.
+
+**Level 4.** The score schedule is level 3's (the sneaker is still at 8 s). Wind-up 1.0 s shortens the one-slot loss to cover 0.80 + peek 0.40 + wind-up 1.00 = 2.20 s, then four gaps of recover 0.30 + peek 0.40 + wind-up 1.00 = 1.70 s, plus flight 0.65: **9.65 s**. That is still after the 8.9 s clear, so the same 230 pps / 8000 ms window holds. The punish window the witness uses is reaction 0.20 s inside a 1.00 s wind-up, then recover 0.30 s of root: a ball thrown at 0.20 s still lands during the root at the witness's 12 m range (flight 0.80 s on the level 2 line, arrival at 1.00 s). Fort HP does not pay points.
+
+**Level 5.** Sneaker at 5 s: hits at 5.00 / 5.45 / 5.90, `B(5.9) = 2550`. (2550−600)/5.9 = 330.5; 348 pps is `ceil` of 5 % over that slope. 600000 + 348·5900 = 2,653,200 ≥ 2,550,000. A forged 2550 at 5.45 s fails (allowed 2496). Two peek slots from the start put the fifth tag on the third beat of the slot clock: 2.20 + 0.65 + 2×1.70 = **6.25 s**. That is the lower bound (it ignores the walk between forts). minDuration 5000 sits 0.9 s under the 5.9 s clear, which is earlier than that bound.
+
+`PROPOSED_LEVEL_LIMITS` in `rules.ts` is copied into `arcade-games.json` (`levels`, review 2026-10-25); `registry.sync.test.ts` checks the two agree.
+
+**Review tests (levels.test.ts "the simulation reads the level").** Each level knob is checked in the running simulation, not only as data: the sneaker joins at `sneakerAt`, a wind-up lasts `windup`, two rivals share the slot only from `slotAt`, the dodge waits `dodgeAt`, the player's top speed is `speed`, a 16 m rival throw flies `flightTime(16, level)`, an exposed idle player is never tagged out before `lossChainS(level)` (12 seeds per level), and the oracle's running score stays under each level's line on every frame (20 seeds). Reverting any one call site in `rules.ts` to the level-1 constant fails a test. Note: the bots barely feel levels 1-4 (witness and oracle win 60/60 with 0 tags); level 5 is the first where they take tags (59/60).
+
 ## Run end
 
 - `end("win")` on the frame the ninth tag lands, after `setScore` of the full formula. `resultDelayMs: 1200` (cheer, confetti).
@@ -98,7 +144,7 @@ The kid GLB is not tinted. Team colour is the attachment mesh's own material. `a
 
 ## Files
 
-`meta.ts` · `index.tsx` · `rules.ts` · `rules.test.ts` · `poses.ts` · `poses.test.ts` · `assets.ts` · `assets.test.ts` · `Scene.tsx` · `Yard.tsx` · `Kids.tsx` · `Balls.tsx` · `Hud.tsx` · `Hud.module.css` · `Primitives.tsx` · `assets.spec.json` · `README.md`. Thumbnail and `tools/thumbs/inputs/snowball-battle.mjs` come with the build, not this design.
+`meta.ts` · `index.tsx` · `rules.ts` · `rules.test.ts` · `levels.ts` · `levels.test.ts` · `useSnowLevel.ts` · `poses.ts` · `poses.test.ts` · `assets.ts` · `assets.test.ts` · `Scene.tsx` · `Yard.tsx` · `Kids.tsx` · `Balls.tsx` · `Hud.tsx` · `Hud.module.css` · `Primitives.tsx` · `assets.spec.json` · `README.md`. Thumbnail and `tools/thumbs/inputs/snowball-battle.mjs` come with the build, not this design.
 
 ## Test plan
 
@@ -168,3 +214,17 @@ The user approved this design and asked Claude to settle every open question wit
 - Q3: a knocked-down rival is exempt from the 2 s open rule.
 - Q4: a camper's fort is flushed after 6 s (a rival volley on it), so camping never wins.
 - Modern look: the new snowman GLB (`/models/3d/shared/snowman.glb`) as yard decor; soft snow lighting, falling snow (core env SnowFall), puff bursts on hits.
+
+## Camera views
+
+Views: default, chase, front, top, free (the throw aim uses the drawn camera). **C** / **T** or the 📷 button cycles them; a right or middle drag (`mouseButtons: [2, 1]`: a left click throws, so it never turns the camera), **Q / Z / X**, or two fingers look around and switch to the free view, wheel / pinch zooms, **V** recenters. The rules receive the drawn camera's yaw (the fitted yaw in the default view), so a run in the default view is unchanged; no rules, bots, proofs or scoring were touched. Core docs: `core/camera/README.md`.
+
+## Aim and scoop feedback (2026-10-28)
+
+User report: the mouse could not throw or aim, and the scoop timing was invisible. Visual and input only; `rules.ts` gameplay, the bots, the proofs, `meta.scoring` and `arcade-games.json` are unchanged (the one rules addition, `missReason`, is read-only).
+
+- **Click to throw.** On a fine pointer a left click on the canvas (`tapDown`) is a throw press like Space, at the same auto-target (the 38° cone round the mouse aim, line of sight). The camera turns with a right or middle drag only (core/camera `mouseButtons: [2, 1]`), so a click never also turns it. Free throws were rejected: the director's call is auto-target (Controls), and a click with no target pops instead.
+- **Aim.** `Aim.tsx`: a reticle on the ground under the mouse, a dotted arc of the rules' lob (`feedback.ts` `aimArc`: hand at y 1.00, rules flight time, no lead) to the highlighted rival (green) or to the reticle (grey), shown while a ball is packed. The highlighted rival gets the core `TargetBeacon` (green arrow + ring) on every device, so keyboard and touch players see the auto-target too.
+- **No throw, no silence.** A click / Space that does not throw pops "No target in range" (no rival in the cone), "Blocked by cover" (a rival in the cone behind a fort or the snowman) or "No snowball: hold E" (`rules.missReason`). Scooping and the 0.40 s throw gap stay silent.
+- **Scoop meter.** `ScoopMeter.tsx`: while E / Enter / Scoop is held, a ring over the player's head (≥ 128 CSS px) fills over 1.50 s: grey "HOLD…" under 0.50 s, green "LET GO!" from 0.50 s ("HANDS FULL" at 3), orange from 1.38 s, red "ROLLER!" at 1.50 s. A snowball grows in the right hand (`attach.handR`) and stays there while one is packed. Releases pop "+1 snowball", "Too short", "Hands full (3)" or "Roller!"; a new ammo dot bounces in (`Hud.module.css`, reduced motion: none). The HintLine says "Hold E to pack, let go when the ring is green" (touch: Scoop) and "Hands full (3)" at 3.
+- Draw calls: + reticle 1, arc 1, beacon ≤ 4, meter 1, hand ball 1 (≤ 8, inside the 60 cap).

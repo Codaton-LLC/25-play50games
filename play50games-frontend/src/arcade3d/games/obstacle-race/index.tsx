@@ -12,18 +12,20 @@ import { ASSETS } from "./assets";
 import { LEVELS } from "./levels";
 import { STAT, finalScore, type ObstacleLevel } from "./rules";
 import Scene from "./Scene";
+import Hud from "./Hud";
 
 const LEVEL_DESCRIPTIONS: Record<LevelId, string> = {
    1: "The classic course: five platforms, five blocks, one beam.",
-   2: "A longer course: six platforms and six blocks.",
-   3: "Seven blocks and a faster bar, blocks and beam.",
-   4: "Night run: seven platforms, faster hazards, narrower pads.",
-   5: "Championship: eight blocks at full speed on narrow pads.",
+   2: "A container-yard build: six blocks, and beacons that telegraph every slide.",
+   3: "A harbor crossing: rope bridges overhead, pilings alongside, faster hazards.",
+   4: "Night arena: floodlights sweep with the bar on faster, narrower hazards.",
+   5: "The sunset final: bunting, crowds and the fastest blocks on narrow pads.",
 };
 
 const definition: GameDefinition<ObstacleLevel> = {
    slug: "obstacle-race",
    Scene,
+   Hud,
    assets: ASSETS,
    // README "Physics" cut line: the decorative Rapier debris made "ready" more than 0.5 s later on
    // a 4x CPU throttle, so it ships without the layer (no Rapier chunk at all). Rules never used it.
@@ -45,11 +47,15 @@ const definition: GameDefinition<ObstacleLevel> = {
    finalScore,
    // five levels (docs/arcade-levels.md; README "Levels"): level 1 is today's course; the levels
    // flag off makes the core hand level 1's config, so the game is unchanged. No durationMs
-   // override: rules.ts owns the 300 s cap for every level.
+   // override: rules.ts owns the 300 s cap for every level. Each level's theme (themes.ts) —
+   // palette, decor set pieces and environment — matches its name; the course geometry, the
+   // obstacle timeline and the scoring are level 1's shape at every level (levels.test.ts).
    levels: LEVEL_IDS.map((id) => ({
       id,
       description: LEVEL_DESCRIPTIONS[id],
       config: LEVELS[id],
+      ...(id === 2 ? { environment: { lighting: "day", background: "#a9d0ea", fog: ["#a9d0ea", 42, 106] as [string, number, number] } } : {}),
+      ...(id === 3 ? { environment: { lighting: "sunset", background: "#e9a45f", fog: ["#dd8f4e", 36, 96] as [string, number, number] } } : {}),
       ...(id === 4 ? { environment: { lighting: "night", background: "#0f172a", fog: ["#0f172a", 40, 100] as [string, number, number] } } : {}),
       ...(id === 5 ? { environment: { lighting: "sunset", background: "#431f30", fog: ["#431f30", 40, 100] as [string, number, number] } } : {}),
    })),

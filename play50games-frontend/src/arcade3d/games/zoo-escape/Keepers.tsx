@@ -15,10 +15,10 @@ import { DynamicInstanced, useCanvasTexture } from "@/arcade3d/core/render";
 import { HumanoidModel, createPose, useHumanoidPose, wrapPhase } from "@/arcade3d/core/rig";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { ASSETS } from "./assets";
-import { BLOCKERS, STAGE_KEEPERS, TOWER } from "./level";
+import type { Searchlight as SearchlightDef } from "./level";
 import { keeperAmount, keeperPhaseStep, keeperPose } from "./poses";
 import { COLORS, keeperPieces, torchPieces, useMerged } from "./Primitives";
-import { SEARCHLIGHT, VISION, type Keeper, type RunState } from "./rules";
+import { VISION, lightStageFor, type Keeper, type RunState } from "./rules";
 
 export const SLOTS = 3;
 const CONE_HEIGHT = 1.1;
@@ -30,9 +30,10 @@ const HEAD = 2.2;
 /** Which keeper each slot shows this frame (-1 = none), written into `out`. */
 export function assignSlots(run: RunState, aim: { x: number; z: number }, hx: number, hz: number, out: number[]): number[] {
    let n = 0;
-   for (const i of STAGE_KEEPERS[run.stage]) if (n < SLOTS) out[n++] = i;
+   const ids = run.map.stageKeepers;
+   for (const i of ids[run.stage]) if (n < SLOTS) out[n++] = i;
    if (run.stage < 2) {
-      for (const i of STAGE_KEEPERS[run.stage + 1]) {
+      for (const i of ids[run.stage + 1]) {
          const a = run.keepers[i].agent;
          if (n < SLOTS && Math.abs(a.x - aim.x) <= hx + 1 && Math.abs(a.z - aim.z) <= hz + 1) out[n++] = i;
       }
@@ -70,6 +71,7 @@ function KeeperPrimitive() {
 }
 
 function Slot({ run, slots, index }: { run: RunState; slots: number[]; index: number }) {
+   const ranges = useMemo(() => [...new Set(run.map.vision)].sort((a, b) => a - b), [run.map]);
    const time = useGameTime();
    const body = useRef<Group>(null);
    const near = useRef<Group>(null);
@@ -83,8 +85,10 @@ function Slot({ run, slots, index }: { run: RunState; slots: number[]; index: nu
       const k = slots[index];
       const shown = k >= 0;
       if (body.current) body.current.visible = shown;
-      if (near.current) near.current.visible = shown && run.keepers[k].stage < 2;
-      if (far.current) far.current.visible = shown && run.keepers[k].stage === 2;
+      // the cone of the keeper's stage range (the map has at most two: near and far)
+      const range = shown ? run.map.vision[run.keepers[k].stage] : 0;
+      if (near.current) near.current.visible = shown && range === ranges[0];
+      if (far.current) far.current.visible = shown && range !== ranges[0];
       if (!shown) { g.keeper = -1; return; }
       const kp = run.keepers[k];
       const a = kp.agent;
@@ -115,28 +119,32 @@ function Slot({ run, slots, index }: { run: RunState; slots: number[]; index: nu
             <HumanoidModel asset={ASSETS.keeper} pose={pose} attach={{ handR: torch }} fallback={fallback} />
          </group>
          <group ref={near} visible={false}>
-            <Flashlight halfAngle={VISION.halfAngle} range={VISION.range[0]} height={CONE_HEIGHT} color={COLORS.cone} opacity={0.25} light={false} blockers={BLOCKERS} />
+            <Flashlight halfAngle={VISION.halfAngle} range={ranges[0]} height={CONE_HEIGHT} color={COLORS.cone} opacity={0.25} light={false} blockers={run.map.blockers} />
          </group>
          <group ref={far} visible={false}>
-            <Flashlight halfAngle={VISION.halfAngle} range={VISION.range[2]} height={CONE_HEIGHT} color={COLORS.cone} opacity={0.25} light={false} blockers={BLOCKERS} />
+            <Flashlight halfAngle={VISION.halfAngle} range={ranges[ranges.length - 1]} height={CONE_HEIGHT} color={COLORS.cone} opacity={0.25} light={false} blockers={run.map.blockers} />
          </group>
       </>
    );
 }
 
-/** The flashlight groups are the Flashlight's own; the slot wraps them, so they need no offset. */
-function Searchlight({ run }: { run: RunState }) {
+/**
+ * One searchlight of the map on its tower; it sweeps while it is the run's light (its stage's, or
+ * level 1's stage-3 light all run, as the rules sweep it). The flashlight group is the Flashlight's own.
+ */
+function Searchlight({ run, def, stage }: { run: RunState; def: SearchlightDef; stage: number }) {
    const ref = useRef<Group>(null);
    const [g] = useState(() => ({ alert: false }));
    useFrame(() => {
       const o = ref.current;
       if (!o) return;
-      o.position.set(TOWER.x, 0, TOWER.z);
+      o.visible = lightStageFor(run.map, run.stage) === stage;
+      o.position.set(def.x, 0, def.z);
       o.rotation.y = run.light.yaw;
-      const al = run.light.meter > 0;
+      const al = run.light.meter > 0 && run.stage === stage;
       if (al !== g.alert) { g.alert = al; tintCone(o, al ? ALERT : CALM); }
    }, FRAME_PRIORITY.pose);
-   return <Flashlight ref={ref} halfAngle={SEARCHLIGHT.halfAngle} range={SEARCHLIGHT.range} height={LIGHT_HEIGHT} color={COLORS.cone} opacity={0.22} light intensity={30} blockers={BLOCKERS} />;
+   return <Flashlight ref={ref} halfAngle={def.halfAngle} range={def.range} height={LIGHT_HEIGHT} color={COLORS.cone} opacity={0.22} light intensity={30} blockers={run.map.blockers} />;
 }
 
 const glyph = (text: string, color: string) => (ctx: CanvasRenderingContext2D, w: number, h: number) => {
@@ -182,8 +190,9 @@ function Overlays({ run, slots }: { run: RunState; slots: number[] }) {
          p.bang = justCaught(run, k) || kp.meter >= 0.66;
          return true;
       }
-      if (run.stage !== 2) return false;
-      p.x = TOWER.x; p.y = LIGHT_HEIGHT + 0.9; p.z = TOWER.z;
+      const light = run.map.lights[run.stage];
+      if (!light) return false;
+      p.x = light.x; p.y = LIGHT_HEIGHT + 0.9; p.z = light.z;
       p.meter = run.light.meter; p.search = false; p.bang = justCaught(run, -1) || run.light.meter >= 0.66;
       return true;
    };
@@ -246,7 +255,7 @@ export default function Keepers({ run, slots }: { run: RunState; slots: number[]
          {Array.from({ length: SLOTS }, (_, i) => (
             <Slot key={i} run={run} slots={slots} index={i} />
          ))}
-         <Searchlight run={run} />
+         {run.map.lights.map((l, s) => (l ? <Searchlight key={s} run={run} def={l} stage={s} /> : null))}
          <Overlays run={run} slots={slots} />
       </group>
    );

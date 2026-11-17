@@ -5,8 +5,11 @@ import { describe, expect, it } from "vitest";
 import { ARCADE_GAMES, getGameMeta } from "@/arcade3d/registry";
 import { OG_IMAGE_HEIGHT, OG_IMAGE_WIDTH, OG_IMAGES, gameOgImagePath, ogImage } from "./ogImages";
 
-/** Every registered game, including "dev" ones: a dev game gets its card and thumbnail before it leaves dev. */
-const SHOWN_SLUGS = ARCADE_GAMES.map((game) => game.slug);
+/**
+ * Every registered game with a thumbnail, including "dev" ones. A dev game may still have none
+ * (a Menu 1 stub, `thumbnail: null`); it gets its card and thumbnail before it leaves dev.
+ */
+const SHOWN_SLUGS = ARCADE_GAMES.filter((game) => game.thumbnail !== null).map((game) => game.slug);
 
 const PUBLIC = fileURLToPath(new URL("../../../public", import.meta.url));
 
@@ -65,6 +68,11 @@ describe("Open Graph cards", () => {
 });
 
 describe("arcade thumbnails", () => {
+   it("only dev games go without a thumbnail", () => {
+      const missing = ARCADE_GAMES.filter((game) => game.thumbnail === null);
+      expect(missing.filter((game) => game.status !== "dev").map((game) => game.slug)).toEqual([]);
+   });
+
    it.each(SHOWN_SLUGS)("%s meta.thumbnail is a 640x360 WebP under 60 KB", (slug) => {
       const thumbnail = getGameMeta(slug)?.thumbnail;
       expect(thumbnail).toBe(`/images/3d/${slug}.webp`);

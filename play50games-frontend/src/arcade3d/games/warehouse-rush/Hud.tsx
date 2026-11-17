@@ -13,14 +13,20 @@
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import type { CSSProperties } from "react";
 import { COLOURS } from "./rules";
+import { useWarehouseLevel } from "./useWarehouseLevel";
+import CameraViewButton from "@/arcade3d/core/camera/CameraViewButton";
 import styles from "./Hud.module.css";
 
-export default function OrderHud() {
+function OrderHud() {
    const order = useArcadeStore((s) => s.stats.order);
    const carrying = useArcadeStore((s) => (s.stats.carry ?? 0) > 0);
    const drops = useArcadeStore((s) => s.stats.drops ?? 0);
    const right = useArcadeStore((s) => (s.stats.delta ?? 0) > 0);
    const paused = useArcadeStore((s) => s.phase === "paused");
+   // levels with an order deadline: the seconds left show in the box while empty-handed
+   const deadline = useWarehouseLevel().config.orderMs > 0;
+   const left = useArcadeStore((s) => s.stats.left);
+   const timer = deadline && !carrying && left !== undefined;
    const colour = order !== undefined && order >= 0 && order < COLOURS.length ? COLOURS[order] : null;
 
    const pillClass = [styles.pill, drops > 0 ? (right ? styles.right : styles.wrong) : "", paused ? styles.paused : ""]
@@ -40,7 +46,11 @@ export default function OrderHud() {
                   "Get ready"
                )}
             </span>
-            <span className={carrying ? `${styles.icon} ${styles.carrying}` : styles.icon}>{carrying ? "✓" : ""}</span>
+            {timer ? (
+               <span className={left <= 3 ? `${styles.icon} ${styles.timer} ${styles.urgent}` : `${styles.icon} ${styles.timer}`}>{left}</span>
+            ) : (
+               <span className={carrying ? `${styles.icon} ${styles.carrying}` : styles.icon}>{carrying ? "✓" : ""}</span>
+            )}
          </div>
          {/* keyed by the delivery, so a repeated order is announced again */}
          <span key={`sr-${drops}`} className={styles.srOnly}>
@@ -48,4 +58,8 @@ export default function OrderHud() {
          </span>
       </div>
    );
+}
+
+export default function Hud() {
+   return <><CameraViewButton /><OrderHud /></>;
 }

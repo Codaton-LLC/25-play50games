@@ -8,7 +8,7 @@ import { modelParts } from "@/arcade3d/core/assets";
 import { hasModel } from "@/arcade3d/core/modelManifest";
 import { readCharacterGlb } from "@/arcade3d/core/rig/robotGlb";
 import { fitView } from "@/arcade3d/core/view";
-import { ASSETS, MIXER, MIXER_GLB, MIXER_HEIGHT } from "./assets";
+import { ASSETS, MIXER, MIXER_GLB, MIXER_HEIGHT, MIXER_SPOTS } from "./assets";
 import { FOV, LOOK, viewFor } from "./looks";
 import { ANGLE_LIM, JIB_Y, PILE_A, PILE_R, RADIUS_MIN, RADIUS_MAX, SLOT_A, SLOT_R } from "./rules";
 
@@ -164,6 +164,31 @@ describe("construction-worker cement mixer", () => {
          // the lens shift moves the picture by `shift` in NDC
          expect(Math.abs(ndc.x + shot.shift[0]), `${name}: x`).toBeLessThan(0.9);
          expect(Math.abs(ndc.y + shot.shift[1]), `${name}: y`).toBeLessThan(0.9);
+      }
+   });
+
+   it("every level 4-5 mixer spot (and the always-drawn first one) is off every camera line of sight and clear of the play area", async () => {
+      expect(MIXER_SPOTS[0]).toMatchObject({ x: MIXER.x, z: MIXER.z, rotY: MIXER.yaw });
+      const base = await drawn();
+      const area = viewFor(390, 844).area!;
+      const targets: Vector3[] = [];
+      for (let y = 0; y <= JIB_Y; y += 1) targets.push(new Vector3(0, y, 0));
+      for (const a of SLOT_A) for (let y = 0; y <= 6; y += 1) targets.push(new Vector3(SLOT_R * Math.sin(a), y, SLOT_R * Math.cos(a)));
+      for (const a of PILE_A) for (const y of [0.25, 0.8]) targets.push(new Vector3(PILE_R * Math.sin(a), y, PILE_R * Math.cos(a)));
+      targets.push(new Vector3(2.6, 0.2, 5.35), new Vector3(2.6, 1.5, 5.35));
+      for (const spot of MIXER_SPOTS) {
+         const m = new Matrix4().makeRotationY(spot.rotY ?? 0).setPosition(spot.x, 0, spot.z);
+         const points = base.map((p) => p.clone().applyMatrix4(m));
+         const box = new Box3().setFromPoints(points);
+         const radius = Math.max(...points.map((p) => Math.hypot(p.x - spot.x, p.z - spot.z))) + 0.15;
+         const top = Math.max(...points.map((p) => p.y)) + 0.1;
+         const gapX = Math.max(area.min.x - box.max.x, box.min.x - area.max.x, 0);
+         const gapZ = Math.max(area.min.z - box.max.z, box.min.z - area.max.z, 0);
+         expect(Math.hypot(gapX, gapZ), `(${spot.x}, ${spot.z}): gap to the work area`).toBeGreaterThan(0.5);
+         expect(wedgeDistance(spot.x, spot.z) - radius, `(${spot.x}, ${spot.z}): gap to the crane's wedge`).toBeGreaterThan(0.5);
+         for (const { name, shot } of shots()) {
+            for (const t of targets) expect(crosses(shot.camera, t, spot.x, spot.z, radius, top), `${name}: spot (${spot.x}, ${spot.z}) -> (${t.x.toFixed(1)}, ${t.y}, ${t.z.toFixed(1)})`).toBe(false);
+         }
       }
    });
 });

@@ -5,6 +5,7 @@ import { BoxGeometry, Color, CylinderGeometry, Matrix4, MeshStandardMaterial, Qu
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 import type { InstancePart } from "@/arcade3d/core/render";
 import { PIGEON_SHAPES } from "./camera";
+import { MAP_1, type DistrictPalette } from "./maps";
 import { PLAY_HALF_WIDTH, ROW_PITCH, VEHICLE_TYPES } from "./rules";
 
 export const COLORS = {
@@ -27,18 +28,18 @@ function boxAt(x: number, y: number, z: number, sx: number, sy: number, sz: numb
    return new Matrix4().compose(new Vector3(x, y, z), new Quaternion(), new Vector3(sx, sy, sz));
 }
 
-/** Created once per Scene mount; each piece is instanced for every copy, with fixed colours. */
-export function createStreetParts(): StreetParts {
+/** Created once per Scene mount; each piece is instanced for every copy, with level-palette colours. */
+export function createStreetParts(palette: DistrictPalette = MAP_1.palette): StreetParts {
    const rounded = new RoundedBoxGeometry(1, 1, 1, 2, 0.10);
    const wheel = new CylinderGeometry(0.22, 0.22, 0.14, 12);
    const box = new BoxGeometry(1, 1, 1);
    const bodyMat = new MeshStandardMaterial({ color: "#ffffff", roughness: 0.58, metalness: 0.04 });
    const wheelMat = new MeshStandardMaterial({ color: "#253348", roughness: 0.85 });
-   const roadMat = new MeshStandardMaterial({ color: COLORS.road, roughness: 0.95 });
-   const grassMat = new MeshStandardMaterial({ color: COLORS.grass, roughness: 1 });
-   const curbMat = new MeshStandardMaterial({ color: COLORS.curb, roughness: 0.85 });
-   const paintMat = new MeshStandardMaterial({ color: COLORS.markings, roughness: 0.85 });
-   const grassMarkMat = new MeshStandardMaterial({ color: "#a5c38a", roughness: 1 });
+   const roadMat = new MeshStandardMaterial({ color: palette.road, roughness: 0.95 });
+   const grassMat = new MeshStandardMaterial({ color: palette.grass, roughness: 1 });
+   const curbMat = new MeshStandardMaterial({ color: palette.curb, roughness: 0.85 });
+   const paintMat = new MeshStandardMaterial({ color: palette.markings, roughness: 0.85 });
+   const grassMarkMat = new MeshStandardMaterial({ color: palette.grassMarks, roughness: 1 });
    const vehicles: InstancePart[][] = [];
    for (let kind = 0; kind < VEHICLE_TYPES.length; kind++) {
       const type = VEHICLE_TYPES[kind], van = kind === 2;
@@ -81,8 +82,8 @@ export function disposeStreetParts(parts: StreetParts): void {
    for (const material of parts.materials) material.dispose();
 }
 
-export function useStreetParts(): StreetParts {
-   const [parts] = useState(createStreetParts);
+export function useStreetParts(palette: DistrictPalette = MAP_1.palette): StreetParts {
+   const [parts] = useState(() => createStreetParts(palette));
    useEffect(() => () => disposeStreetParts(parts), [parts]);
    return parts;
 }

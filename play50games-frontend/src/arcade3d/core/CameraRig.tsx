@@ -52,11 +52,16 @@ export interface CameraRigProps {
     * lens alone.
     */
    shift?: readonly [number, number];
+   /**
+    * The player's zoom (useCameraZoom): a factor on the offset read every frame (1 = as fitted,
+    * < 1 closer); the camera eases to it with `damping`.
+    */
+   zoom?: { readonly current: number };
 }
 
 const ORIGIN: [number, number, number] = [0, 0, 0];
 
-export default function CameraRig({ camera: config, follow, damping = 5, offset, followFraction = 1, bounds, shift }: CameraRigProps) {
+export default function CameraRig({ camera: config, follow, damping = 5, offset, followFraction = 1, bounds, shift, zoom }: CameraRigProps) {
    const camera = useThree((state) => state.camera);
    const [px, py, pz] = config.position;
    const lookAt = config.lookAt ?? ORIGIN;
@@ -85,7 +90,7 @@ export default function CameraRig({ camera: config, follow, damping = 5, offset,
       followAim(out, lookAt, followFraction, bounds, out);
       return true;
    };
-   const offsetOf = (out: Vector3) => (offset ? out.set(offset[0], offset[1], offset[2]) : out.set(px - lx, py - ly, pz - lz));
+   const offsetOf = (out: Vector3) => (offset ? out.set(offset[0], offset[1], offset[2]) : out.set(px - lx, py - ly, pz - lz)).multiplyScalar(zoom?.current ?? 1);
 
    // place the camera when the config changes; a follow camera only snaps the first time
    useEffect(() => {

@@ -1,9 +1,13 @@
 // The real GLBs behind assets.ts, meshopt-decoded without a loader (core/rig/robotGlb, as
 // delivery-drone/assets.test.ts): the committed sizes are the measured bounds, every fit lands on its
 // target in metres, the liquid disc sits inside the measured rolled rim, and the monster's head anchor
-// is on the head through its profile.
+// is on the head through its profile. The slimeCake decor GLB (levels 4 and 5) is in the manifest,
+// its file exists, its fit lands on the measured bounds and its spots stay outside the play bounds.
 import { Box3, Vector3 } from "three";
 import { describe, expect, it } from "vitest";
+import { existsSync } from "node:fs";
+import { resolve } from "node:path";
+import { hasModel } from "@/arcade3d/core/modelManifest";
 import { readCharacterGlb } from "@/arcade3d/core/rig/robotGlb";
 import {
    APPLE_GLB_LONGEST,
@@ -16,10 +20,15 @@ import {
    LIQUID_R,
    LIQUID_Y,
    MONSTER_HEAD_ANCHOR_GLB,
+   SLIME_CAKE_DIAMETER,
+   SLIME_CAKE_GLB,
+   SLIME_CAKE_SCALE,
    SOCK_GLB_LONGEST,
    STOVE_TOP,
    TIN_CAN_GLB_LONGEST,
 } from "./assets";
+import { PLAY_BOUNDS, SLIME_CAKE_SPOTS, inPlayArea } from "./looks";
+import { LAZY_SUSAN_DIAMETER, LAZY_SUSAN_THICKNESS, POTION_JAR_HEIGHT, STOVE_HEARTH_DRAWN, STOVE_HEARTH_HEIGHT, STOVE_HEARTH_SPOTS, TOP_HAT_BRIM } from "./assets";
 
 /** Decode the real meshopt vertices in root space, without textures, fetch or a DOM. */
 async function bounds(url: string): Promise<Box3> {
@@ -114,4 +123,81 @@ describe("monster-kitchen real GLB fits (assets.ts)", () => {
       expect(top - a.y).toBeGreaterThan(0.05);
       expect(top - a.y).toBeLessThan(0.25);
    });
+});
+
+describe("slimeCake decor GLB (drawn only on levels 4 and 5)", () => {
+   it("is in the manifest and the file exists", () => {
+      expect(hasModel(ASSETS.slimeCake.url)).toBe(true);
+      expect(ASSETS.slimeCake.url).toBe("/models/3d/monster-kitchen/slimeCake.glb");
+      expect(existsSync(resolve("public", ASSETS.slimeCake.url.slice(1)))).toBe(true);
+   });
+
+   it("measures the committed GLB bounds and draws the cake 0.6 m across on the floor", async () => {
+      const b = await bounds(ASSETS.slimeCake.url);
+      const s = b.getSize(new Vector3());
+      expect(b.min.y).toBeCloseTo(0, 2);
+      expect(s.x).toBeCloseTo(SLIME_CAKE_GLB.width, 2);
+      expect(s.y).toBeCloseTo(SLIME_CAKE_GLB.height, 2);
+      expect(s.z).toBeCloseTo(SLIME_CAKE_GLB.depth, 2);
+      const scale = ASSETS.slimeCake.scale ?? 1;
+      expect(scale).toBeCloseTo(SLIME_CAKE_SCALE, 6);
+      expect(s.z * scale).toBeCloseTo(SLIME_CAKE_DIAMETER, 2);
+      // a round cake: the width lands on the same diameter, the height just under it
+      expect(s.x * scale).toBeCloseTo(SLIME_CAKE_DIAMETER, 2);
+      expect(s.y * scale).toBeLessThan(SLIME_CAKE_DIAMETER);
+      // feet (GLB y 0) on the ground: no lift
+      expect(ASSETS.slimeCake.yOffset ?? 0).toBe(0);
+      expect(b.min.y * scale + (ASSETS.slimeCake.yOffset ?? 0)).toBeCloseTo(0, 2);
+   });
+
+   it("places every slime-cake spot outside the play bounds", () => {
+      const r = SLIME_CAKE_DIAMETER / 2;
+      for (const spot of SLIME_CAKE_SPOTS) {
+         expect(inPlayArea(spot.x, spot.z), `spot ${spot.x},${spot.z}`).toBe(false);
+         // the whole footprint clears the bounds, not just the centre
+         const clear =
+            spot.x + r < PLAY_BOUNDS.xMin ||
+            spot.x - r > PLAY_BOUNDS.xMax ||
+            spot.z + r < PLAY_BOUNDS.zMin ||
+            spot.z - r > PLAY_BOUNDS.zMax;
+         expect(clear, `spot ${spot.x},${spot.z}`).toBe(true);
+      }
+   });
+
+describe("Menu 1 adoptions (wheel, hat, jars, hearth)", () => {
+   const drawn = async (asset: (typeof ASSETS)[keyof typeof ASSETS]) => {
+      const b = await bounds(asset.url);
+      const s = (asset.scale ?? 1) as number;
+      const st = ((asset as { stretch?: readonly number[] }).stretch ?? [1, 1, 1]) as readonly number[];
+      const k = new Vector3(s * st[0], s * st[1], s * st[2]);
+      return { size: b.getSize(new Vector3()).multiply(k), minY: b.min.y * k.y + ((asset as { yOffset?: number }).yOffset ?? 0) };
+   };
+   it("lists all six GLBs and has them on disk", () => {
+      for (const asset of [ASSETS.eyeball, ASSETS.slime, ASSETS.lazySusan, ASSETS.topHat, ASSETS.potionJar, ASSETS.stoveHearth]) {
+         expect(hasModel(asset.url), asset.url).toBe(true);
+         expect(existsSync(resolve("public", asset.url.slice(1))), asset.url).toBe(true);
+      }
+   });
+   it("draws the ingredients, wheel, hat, jar and hearth at their README sizes", async () => {
+      expect((await drawn(ASSETS.eyeball)).size.x).toBeCloseTo(0.36, 2);
+      expect((await drawn(ASSETS.slime)).size.x).toBeCloseTo(0.34, 2);
+      const wheel = await drawn(ASSETS.lazySusan);
+      expect(wheel.size.x).toBeCloseTo(LAZY_SUSAN_DIAMETER, 2);
+      expect(wheel.size.y).toBeCloseTo(LAZY_SUSAN_THICKNESS, 3);
+      // the slab's top sits where the wood disc's did (+0.025), so the ingredients keep their height
+      expect(wheel.minY + wheel.size.y).toBeCloseTo(0.025, 3);
+      expect((await drawn(ASSETS.topHat)).size.z).toBeCloseTo(TOP_HAT_BRIM, 2);
+      expect((await drawn(ASSETS.potionJar)).size.y).toBeCloseTo(POTION_JAR_HEIGHT, 2);
+      const hearth = await drawn(ASSETS.stoveHearth);
+      expect(hearth.minY).toBeCloseTo(0, 2);
+      expect(hearth.size.y).toBeCloseTo(STOVE_HEARTH_HEIGHT, 2);
+   });
+   it("keeps the hearth decor outside the play bounds", () => {
+      const r = Math.hypot(STOVE_HEARTH_DRAWN.width, STOVE_HEARTH_DRAWN.depth) / 2;
+      for (const spot of STOVE_HEARTH_SPOTS) {
+         expect(inPlayArea(spot.x, spot.z)).toBe(false);
+         expect(spot.x + r < PLAY_BOUNDS.xMin || spot.x - r > PLAY_BOUNDS.xMax, `${spot.x},${spot.z}`).toBe(true);
+      }
+   });
+});
 });

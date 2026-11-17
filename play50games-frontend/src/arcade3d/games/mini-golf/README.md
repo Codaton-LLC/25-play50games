@@ -165,3 +165,168 @@ HANDOFF (build, 2026-10-09, branch `claude/game-mini-golf`, status `dev`):
 - **Changed from design:** the gentle follow (fraction 0.6, a window of 40 % of the hole) runs wherever the fixed view breaks the size rule at runtime: holes 2, 4, 5, 6 in landscape and 5–6 on a portrait phone (the design expected hole 4 only). A follow hole opens on an establishing shot of the whole hole, and an edge arrow points at the cup while it is off screen.
 - **Known issues:** hole 1's thumbnail shot is plain (the quick capture reaches hole 1 only); sloped rails are drawn as short stepped boards; a first headless desktop run showed p50 33 ms on holes 4–6, not reproduced in the final run (p95 16.8 ms).
 - **Unverified:** real phones; `node tools/gamecheck` (not in this repo); a novice playtest of the tunnel mouth and hole 3's 81 % power.
+
+## Look (2026-10-24)
+
+Modern-look visual pass on mini-golf (P-63): a polished, premium mobile-game look with a warm afternoon coastal resort setting.
+
+- **Lighting & Atmosphere:** core `<SkyDome>` with an azure to warm golden horizon gradient (`#0284c7` to `#fed7aa`), paired with `day` lighting and soft coastal distance fog (`#bae6fd`, 40–130 m). High visual contrast ensures the white ball, red flag and aiming dots pop crisp and clear at all device sizes.
+- **Putting Green Turf:** rich emerald fairway turf with subtle alternating mowing bands and gentle checkerboard texture, finished with crisp stone retaining curbs (`#e2e8f0`) and deep green skirts.
+- **Wooden Bumpers & Rails:** chamfered golden teak top caps (`#d97706`), warm polished mahogany bumper faces (`#92400e`), and dark underside shadow trim (`#78350f`) drawn in a single instanced draw call with vertex colors.
+- **Hazards & Obstacles:** warm golden sand bunker framing around ponds, realistic water with gentle foam crests, rustic wooden trestle support beams under the hole 3 ramp jump gap, two-tone brass collar flanges on hole 5 pipes, and a bevelled brass turntable plate with white protective rubber bumper caps on the spinning obstacle bar.
+- **Regulation Cups & Flags:** 3D recessed cup with dark interior liner, floor and metallic lip ring; tapered fiberglass flagstick with brass ball finial and bevelled pennant flag.
+- **Surroundings Outside Play Area:** instanced low-poly flower bed planters, tropical resort palms, course pennants, distant rolling coastal hills, and a scenic clubhouse pavilion silhouette across the bay. All decor spots sit strictly outside the play bounds of every hole and never occlude the ball, cup or aim path from the camera at 1280x800, 390x844 or 844x390.
+- **Sea & Ground Coverage:** calm crystal sea plane expanded to 260 x 320 m at y = -1.3, verified to completely cover the entire screen view with zero edge gaps or sky void at all three resolutions.
+- **Juicy Feedback:** subtle particle puffs on bumper/rail bounces (`ev.railHit >= 0.3`, `ev.movingHit`), sparkle bursts on every hole sink, and celebratory confetti on birdie/eagle/albatross/ace hole-outs.
+- **Draw Call Estimate (Target <= 60):**
+  - SkyDome: 1
+  - Expanded sea plane: 1
+  - Distant hills: 1
+  - Clubhouse silhouette: 1
+  - Two mounted islands (felt: 2, bases: 2, rails: 1, ponds/gap: 2, cups: 2, flags: 2, obstacle props: 2–3): 11–13
+  - Instanced decor (trees: 1, rocks: 1, palms: 1, flowers: 1, pennants: 1): 5
+  - Ball, blob shadow, power ring, trajectory dots: 4
+  - Pooled particle FX & score popups: 2–4
+  - **Total estimated draw calls: ~28–34** (well within budget cap <= 60). No per-frame allocations; all geometries and materials disposed on unmount.
+
+
+## Levels (P-72)
+
+The core owns selection, unlocking and the sum of level bests. `levels.ts` is the pure configuration;
+`createRun(seed, level)` captures it once. The original `createRun(seed, course)` test seam remains.
+Level 1 keeps the original six-hole course, par 17, physics, scoring, timing, pick-ups and win behavior.
+The frozen pre-level rules fixture is replayed against L1 with identical frames and inputs.
+
+| Level | Course (in order) | Look | Full putt | Pick-up | Cap | Moving obstacles | Cup radius / capture speed | Lighting | Clear score |
+|---|---|---|---|---|---|---|---|---|---|
+| 1 Garden Course | Original 6: First Putt, Dogleg, Ramp Jump, Windmill, Pipe Maze, Turntable Hill (par 17) | mahogany rails, green felt | 4.5 m/s | par + 4 | 600 s | bar 1.2 rad/s, windmill 6 s/turn | 0.10 m / 1.2 m/s | day | 2000 or win |
+| 2 Ramp Course | **Ramp Dogleg**, Ramp Jump, Dogleg, **Ramp Island**, Turntable Hill, First Putt (par 17) | red-and-white painted rails, bright felt | 5 m/s | par + 3 | 480 s | unchanged | 0.10 / 1.2 | day | 2000 or win |
+| 3 Windmill Course | **Windmill Gate**, First Putt, Windmill, Dogleg, **Windmill Pond**, Turntable Hill (par 17) | Dutch blue rails with white caps | 5 | par + 3 | 480 s | bar 1.6, windmill 5 s/turn | 0.10 / 1.2 | sunset | 2000 or win |
+| 4 Neon Course | **Neon Zigzag**, First Putt, Split Fairway, **Neon Diamond**, Twin Banks, Final Needle (par 17) | glowing cyan rails on violet felt | 5 | par + 3 | 480 s | retain L3 | 0.08 / 1.0 | night | 2000 or win |
+| 5 Master Course | Original 6 + Split Fairway, Twin Banks, Final Needle (par 26) | walnut rails with gold caps | 5 | par + 2 | 600 s | retain L3 | 0.08 / 1.0 | sunset | win |
+
+The level holes (course.ts specs 9-14; `levels.ts` `course` lists each level's layouts, levels 1 and 5
+keep theirs): **Ramp Dogleg** (over the ramp, a full-width 45° board throws the ball right into a short
+arm), **Ramp Island** (over the ramp onto a wider green between two ponds), **Windmill Gate** (through
+the windmill onto a wider green with a two-board gate before the cup), **Windmill Pond** (through the
+windmill, a long lane past a side pond), **Neon Zigzag** (two staggered boards from opposite walls; one
+clean diagonal threads both gaps), **Neon Diamond** (a diamond block in the middle: bank round it). Each
+has a robust ace and a human-paced two-putt line at its level's physics, found by grid search (both
+mirrors, nine start ticks; `levelLines.fixture.ts` `NEW_ACE` / `NEW_PAR`), replayed by
+`aces.levels.test.ts` and `solver.levels.test.ts` and played by the level bots; `camera.levels.test.ts`
+checks every new layout's felt and fitted camera on desktop and both phone orientations. Each of levels 2-4 opens on one of its new holes, so the first island already shows the course. The island's rock top sits 1.5 cm under the felt (they shared y 0 and z-fought). The course dress
+(`looks.ts` `COURSE_LOOKS`: felt stripes, rail paint, the Neon Course's emissive rails) is per level.
+
+The master course adds Split Fairway (a central dividing board), Twin Banks (two staggered angled
+boards) and Final Needle (a narrow gate), all par 3 on the same felt/rail system.
+
+Levels 2-5 win after finishing all cups without a pick-up; a completed course containing a pick-up
+ends with `lose`, keeping the earned points. A score of 2000 also clears L1-L4 through the core;
+L5 requires a win. Idle play has zero points and never clears. L1 preserves today's win on any
+completed six-hole card, including pick-ups. L2-L5's par bot uses two strokes on each original hole,
+with a full second after the lag stops before the finish; it needs no frame-perfect release.
+Every human-paced first shot waits at least one second to read and aim. Windmill waits include a
+whole turn; the rounded original-bar period is independently verified over all nine start ticks.
+Touch and keyboard feed the same putt queue, 0.5-second ready gap and obstacle clock on every level.
+The plan's combo scoring is deliberately omitted: `holeScore` remains unchanged.
+
+### Server limits and why they hold: one proof per level
+
+`PROPOSED_LEVEL_LIMITS` is exported from `rules.ts`; its pure data lives in `levels.ts` so server-safe
+metadata never imports the simulation. These values also populate the game's backend `levels` array.
+
+| Level | maxScore | minDurationMs | maxDurationMs | base | maxPointsPerSec | Analytic earliest end |
+|---|---:|---:|---:|---:|---:|---:|
+| 1 | 4100 | 15000 | 602000 | 1200 | 200 | 15.751 s |
+| 2 | 4100 | 15000 | 482000 | 1200 | 200 | 15.294 s |
+| 3 | 4100 | 15000 | 482000 | 1200 | 200 | 15.294 s |
+| 4 | 4100 | 15000 | 482000 | 1200 | 200 | 15.310 s |
+| 5 | 6200 | 24000 | 602000 | 1200 | 210 | 24.847 s |
+
+The only score source is `holeScore`: at most `100 * (par + 2) + 200` once per hole, since a
+capture requires at least one stroke. There is no time, completion or combo bonus. Thus the
+six-hole ceiling is `100 * 17 + 6 * 400 = 4100`; nine holes give `100 * 26 + 9 * 400 = 6200`.
+Each added hole contributes 700. Every level offers at least L1's ceiling; L5 is 1.5122 times L1.
+The committed ace witnesses demonstrate that the ceilings can actually be achieved.
+
+The unchanged `BALL.vCap = 6` bounds rolling, air and post-collision speed, even at the faster bar.
+L2-L5's launch speed 5 stays below it. A bar hit can add at most `(1 + MOVING.barE) * omega * half`,
+now `1.75 * 1.6 * 0.85 = 2.38 m/s` before the same clamp. Blades reverse the normal velocity at
+restitution 0.75. Pipe length divided by `max(entrySpeed, 0.6)` bounds transport at 6 m/s too.
+Water/guard placements return to the last rest point; the windmill placement returns towards the tee.
+For static holes a capture therefore takes at least
+`(distance(tee, cup) - level.cupRadius) / 6` seconds. For L2-L5's turntable hole, conservatively
+subtract another `2 * (bar.half + BALL.radius) = 1.82 m` before dividing by 6: grant all travel
+inside the bar-contact disk for free between first entry and last exit. That covers even moving-wall
+positional overlap corrections, without relying on their speed. Outside that disk the original
+static-wall bound applies. This stronger conservative proof also remains valid on L2's original-speed bar.
+
+Pick-ups need `par + pickUpOver` counted strokes. A putt can count at most two (one putt plus one
+water penalty), and successive putts have `TICK.ready = 0.5` seconds between them. Conservatively,
+a water-capable hole needs at least `(ceil((par + pickUpOver) / 2) - 1) * 0.5` seconds in ready gaps;
+on a dry hole the bound is `(par + pickUpOver - 1) * 0.5`. Taking the minimum of that bound and
+the capture-distance bound for each hole, then adding `(holes - 1) * TICK.holeOut` (2 s), bounds
+every completed course, including a losing card with pick-ups. The three new holes are dry.
+
+1. **L1:** The original capture bounds are 0.917, 0.807, 0.868, 0.718, 1.154, 1.287 s. All pick-up
+   bounds exceed them. Sum plus 10 s transitions = 15.751 s; 15000 ms retains the original margin.
+   `1200 + 200 * 15 = 4200 >= 4100`. The original 600 s cap plus at most one 50 ms frame fits 602000 ms.
+2. **L2 (Ramp Course):** par 17, so the ceiling stays 4100. Ramp Jump 0.868, Ramp Dogleg 0.874, Dogleg
+   0.807, Ramp Island 0.967 (all ramp holes can splash: pick-up 1.0 s is later), Turntable Hill 0.984
+   (bar disk granted free), First Putt 0.917: 5.42 s + 10 s = **15.42 s** ≥ 15000 ms.
+3. **L3 (Windmill Course):** Windmill 0.718, First Putt 0.917, Windmill Gate 0.818 (dry: pick-up 2.5 s),
+   Dogleg 0.807, Windmill Pond 0.818 (pond: pick-up 1.0 s), Turntable Hill 0.984: **15.06 s** ≥ 15000 ms
+   (the two new windmill holes are 6 m long like Windmill, for the camera's size rule).
+   Faster obstacles cannot evade the 6 m/s clamp, the fixed ready gap or the 2 s transitions.
+4. **L4 (Neon Course):** cup 0.08 (a smaller radius only lengthens a capture): First Putt 0.920, Neon
+   Zigzag 1.216, Split Fairway 1.138, Neon Diamond 1.170, Twin Banks 1.176, Final Needle 1.223 (all dry):
+   **16.84 s** ≥ 15000 ms.
+5. **L5:** With par + 2, pipe and hill have 1 s pick-up bounds; the hill capture bound of 0.987 s is lower. The new dry-hole
+   capture bounds are 1.138, 1.176, 1.223 s, below their 2 s pick-up gaps. Sum with 16 s transitions
+   is 24.847 s. Minimum 24000 ms leaves 0.847 s; `1200 + 210 * 24 = 6240 >= 6200`. The 600 s cap
+   plus one frame fits 602000 ms. The final hole and scorecard sizes come from the captured course.
+
+Every level's limits are unchanged (4100 / 15000-482000 or 602000 ms / base 1200 / 200 pps; level 5
+6200 / 24000-602000 / 210). `courses.levels.test.ts` recomputes each level's ceiling from its own pars
+and its earliest end from its own holes (the bound above, generically), and checks both against its limits.
+
+For a level, let M be the ceiling and E the earliest-end bound above. A final submission ends at
+E or later, or at its much later cap. Thus `B(t) <= M <= base + pps * minDurationSeconds` for every
+possible submitted duration; the line grows afterwards. Score prefixes before the run ends are
+not submitted. No result delay or paused time is added to the submitted run clock.
+
+`levels.test.ts` checks these bounds independently, the small-cup lip-outs, launch speed, pick-up
+caps, ready gap, cap clock and final-hole progression. `rules.levels.test.ts` drives the real store
+with human-paced par, ace oracle, input-spam and idle bots on 200 seeds per level and bot, including
+30/60/144 Hz, variable frames and pauses; it checks `withinServerLimits`, `capScore` as a no-op,
+clearing and speed bounds. The old `rules.test.ts`, `course.test.ts` and asset tests are unchanged.
+
+
+Measured level proof (200 seeds per cell, mixed frames and store pauses):
+
+| Level | Human clears / best | Ace oracle clears / best | Spam clears / best | Idle clears / best |
+|---|---|---|---|---|
+| 1 | 200/200 / 2300 | 200/200 / 4100 | 200/200 / 700 (original pick-up win behavior) | 0/200 / 0 |
+| 2 | 200/200 / 2300 | 200/200 / 4100 | 0/200 / 700 | 0/200 / 0 |
+| 3 | 200/200 / 2300 | 200/200 / 4100 | 0/200 / 800 | 0/200 / 0 |
+| 4 | 200/200 / 2300 | 200/200 / 4100 | 0/200 / 800 | 0/200 / 0 |
+| 5 | 200/200 / 4400 | 200/200 / 6200 | 0/200 / 1500 | 0/200 / 0 |
+
+Every measured run passed the server limits; `capScore` was a no-op and peak speed stayed <=6 m/s.
+The human figures include the final stricter rerun with >=1 s before each first putt. Oracle bests
+reach 100% of all five ceilings. Full four-bot matrix: 4000 runs, 1518.91 s wall time on this machine;
+stricter human rerun: another 1000 runs, 158.82 s. Idle cohorts dominate runtime. Game tests total
+150, plus 62 registry-sync tests; all pass across the recorded runs. Four source mutation probes
+(ignored speed, cup radius, course length and cap) all fail the new assertions as intended.
+
+Gate review (Claude, 2026-10-25): `l1Replay.test.ts` pins level 1 bit-exact against digests recorded from
+main's pre-level `rules.ts` / `physics.ts` / `course.ts` (the legacy fixture shares today's physics, so it
+could not catch a physics change). The level bots run one file per level (`rules.levels-<n>.test.ts`,
+`testing/levelBot.ts`: human 100 seeds, oracle 30, spam 20, idle 4; was 200 x 4 per level, about 25 min).
+`levels.gate.test.ts` pins the time-left pill, the lip-out turn and rest-in-cup at the level's cup radius,
+and each level's lighting. One mutation survives by design: `min(|cross|, radius)` in `judgeCup` is
+redundant (|cross| <= d <= radius there).
+
+## Camera views
+
+Views: default and top (the aim keeps the course's own yaw). **C** / **T** or the 📷 button cycles them; drag (or two fingers) looks around and switches to the free view, wheel / pinch zooms, **V** recenters. The rules receive the drawn camera's yaw (the fitted yaw in the default view), so a run in the default view is unchanged; no rules, bots, proofs or scoring were touched. Core docs: `core/camera/README.md`.

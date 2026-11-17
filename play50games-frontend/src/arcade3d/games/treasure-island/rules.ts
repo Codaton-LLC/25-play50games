@@ -9,6 +9,9 @@
 import { distanceToBoxXZ, resolveSphereAabb, type AABB, type Vec3Like } from "@/arcade3d/core/collision";
 import { capScore as capToLimits, withinServerLimits as fitsLimits } from "@/arcade3d/core/limits";
 import { createRng, turnTowards } from "@/arcade3d/core/math";
+import type { LevelId, ScoringRules } from "@/arcade3d/types";
+import { LEVELS, type IslandLevel } from "./levels";
+import type { Bridge, GateSpec, IslandMap } from "./maps";
 import { treasureIslandMeta } from "./meta";
 
 // ---------- tuning ----------
@@ -62,11 +65,71 @@ export const SPACING = { treasures: 6, fromStart: 7, fromProps: 1.5, maxRho: 0.7
  */
 export const IDEAL_ROUTE = { min: 38, max: 56 } as const;
 
+/**
+ * What a level may change about the island. The default is today's constants, so
+ * `generateIsland(seed)` and `isValidIsland(island)` stay the game the tests already pin.
+ */
+export interface IslandLayout {
+   count: number;
+   rx: number;
+   rz: number;
+   spacing: number;
+   maxRho: number;
+   fromStart: number;
+   finalShore: number;
+   routeMin: number;
+   routeMax: number;
+}
+
+/**
+ * A map level's treasures may lie out to this rho (level 1: SPACING.maxRho 0.72). The dig reach round
+ * a spot (0.9 m = 0.082 in rho on the 11 m axis) still ends inside the final tide's reach (0.87).
+ */
+export const MAP_MAX_RHO = 0.78;
+
+/** Today's layout, built from the constants above (level 1, and any level that shares it). */
+export const TODAY_LAYOUT: IslandLayout = {
+   count: TREASURE_COUNT,
+   rx: ISLAND.rx,
+   rz: ISLAND.rz,
+   spacing: SPACING.treasures,
+   maxRho: SPACING.maxRho,
+   fromStart: SPACING.fromStart,
+   finalShore: TIDE.finalShore,
+   routeMin: IDEAL_ROUTE.min,
+   routeMax: IDEAL_ROUTE.max,
+};
+
+/** The layout a level generates. Tide times are not part of it: they do not move the spots. */
+export function layoutFrom(level: IslandLevel): IslandLayout {
+   return {
+      count: level.treasures,
+      rx: level.rx,
+      rz: level.rz,
+      spacing: level.spacing,
+      maxRho: level.map ? MAP_MAX_RHO : SPACING.maxRho,
+      fromStart: SPACING.fromStart,
+      finalShore: level.finalShore,
+      routeMin: level.routeMin,
+      routeMax: level.routeMax,
+   };
+}
+
+/** True when generation, the band and the final shore are today's (level 2 changes only the tide clock). */
+export function layoutIsToday(layout: IslandLayout): boolean {
+   return layout.count === TODAY_LAYOUT.count
+      && layout.rx === TODAY_LAYOUT.rx && layout.rz === TODAY_LAYOUT.rz
+      && layout.spacing === TODAY_LAYOUT.spacing && layout.maxRho === TODAY_LAYOUT.maxRho
+      && layout.fromStart === TODAY_LAYOUT.fromStart && layout.finalShore === TODAY_LAYOUT.finalShore
+      && layout.routeMin === TODAY_LAYOUT.routeMin && layout.routeMax === TODAY_LAYOUT.routeMax;
+}
+
 export const POINTS = { find: 200, clean: 50, perSecond: 10 } as const;
 
 // ---------- the island ----------
 
-export type TreasureType = "coins" | "gem" | "chest";
+/** clue and map are the chain levels' finds (maps.ts `chain`): a clue sends the gull to the next spot at once. */
+export type TreasureType = "coins" | "gem" | "chest" | "clue" | "map";
 
 export interface Circle {
    x: number;
@@ -102,6 +165,19 @@ export interface Island {
    circles: readonly Circle[];
    /** every box footprint: the crate stack, the rowboat and the dock */
    boxes: readonly AABB[];
+   /** a map level's gates (maps.ts), shut until `opensAfter` finds; absent on level 1 */
+   gates?: readonly GateSpec[];
+   /** a map level's finds before each spot can be sensed and dug (gates, the locked chest); absent = 0 */
+   unlockAt?: readonly number[];
+   /** the locked final chest's index (the last spot) on a chain level, else absent */
+   finalChest?: number;
+}
+
+/** The island's ellipse plus, on a map level, the map the ground is drawn from (looks only). */
+export interface IslandShape {
+   rx: number;
+   rz: number;
+   map?: IslandMap;
 }
 
 export const PALM_TRUNK = 0.3;
@@ -154,16 +230,22 @@ export function behindCanopy(p: { x: number; z: number }, palms: readonly Palm[]
    return palms.some((q) => toShadow(p, q.x, q.z, palm.near * q.size, palm.far * q.size) < palm.r * q.size + margin);
 }
 
-/** Elliptic radius: 1 on the full-tide shoreline. */
-export function rho(x: number, z: number): number {
-   return Math.hypot(x / ISLAND.rx, z / ISLAND.rz);
+/** Elliptic radius: 1 on the full-tide shoreline. `shape` defaults to today's ellipse. */
+export function rho(x: number, z: number, shape: { rx: number; rz: number } = ISLAND): number {
+   return Math.hypot(x / shape.rx, z / shape.rz);
 }
 
-/** The shoreline's rho at play time `t` (s). */
-export function shoreAt(t: number): number {
-   if (t <= TIDE.startS) return 1;
-   const k = Math.min(1, (t - TIDE.startS) / (TIDE.endS - TIDE.startS));
-   return 1 - (1 - TIDE.finalShore) * k;
+export interface TideSpec {
+   startS: number;
+   endS: number;
+   finalShore: number;
+}
+
+/** The shoreline's rho at play time `t` (s). Defaults to today's tide. */
+export function shoreAt(t: number, tide: TideSpec = TIDE): number {
+   if (t <= tide.startS) return 1;
+   const k = Math.min(1, (t - tide.startS) / (tide.endS - tide.startS));
+   return 1 - (1 - tide.finalShore) * k;
 }
 
 /** How far the explorer's centre may go (rho) at a given shoreline. */
@@ -184,16 +266,18 @@ const TREASURE_PICKS = 400;
 const PALM_PICKS = 60;
 
 /** A point on the island at elliptic radius `r` and angle `a` (x = rx r cos a, z = rz r sin a). */
-const onIsland = (r: number, a: number) => ({ x: ISLAND.rx * r * Math.cos(a), z: ISLAND.rz * r * Math.sin(a) });
+const onIsland = (r: number, a: number, shape: { rx: number; rz: number } = ISLAND) => ({
+   x: shape.rx * r * Math.cos(a), z: shape.rz * r * Math.sin(a),
+});
 
-function placeRocks(rng: () => number): Rock[] {
+function placeRocks(rng: () => number, layout: IslandLayout = TODAY_LAYOUT): Rock[] {
    const rocks: Rock[] = [];
    for (const side of [1, -1]) {
       // one outcrop east (side 1), one west, within ±60° of the axis
-      let centre = onIsland(0, 0);
+      let centre = onIsland(0, 0, layout);
       for (let pick = 0; pick < 40; pick++) {
          const a = (side > 0 ? 0 : Math.PI) + (rng() * 2 - 1) * (Math.PI / 3);
-         centre = onIsland(OUTCROPS.minRho + rng() * (OUTCROPS.maxRho - OUTCROPS.minRho), a);
+         centre = onIsland(OUTCROPS.minRho + rng() * (OUTCROPS.maxRho - OUTCROPS.minRho), a, layout);
          if (dist(centre, START) >= OUTCROPS.fromStart + OUTCROPS.spread + 1.5 && dist(centre, UMBRELLA_CIRCLE) > 4) break;
       }
       const count = OUTCROPS.rocksMin + Math.floor(rng() * (OUTCROPS.rocksMax - OUTCROPS.rocksMin + 1));
@@ -208,13 +292,13 @@ function placeRocks(rng: () => number): Rock[] {
    return rocks;
 }
 
-function placePalms(rng: () => number, rocks: Rock[]): Palm[] {
+function placePalms(rng: () => number, rocks: Rock[], layout: IslandLayout = TODAY_LAYOUT): Palm[] {
    const palms: Palm[] = [];
    const want = PALMS.min + Math.floor(rng() * (PALMS.max - PALMS.min + 1));
    const fixed = { circles: [UMBRELLA_CIRCLE], boxes: FIXED_BOXES };
    for (let i = 0; i < want; i++) {
       for (let pick = 0; pick < PALM_PICKS; pick++) {
-         const p = onIsland(Math.sqrt(PALMS.minRho ** 2 + rng() * (PALMS.maxRho ** 2 - PALMS.minRho ** 2)), rng() * Math.PI * 2);
+         const p = onIsland(Math.sqrt(PALMS.minRho ** 2 + rng() * (PALMS.maxRho ** 2 - PALMS.minRho ** 2)), rng() * Math.PI * 2, layout);
          if (dist(p, START) < PALMS.fromStart) continue;
          if (palms.some((o) => dist(o, p) < PALMS.apart)) continue;
          if (rocks.some((r) => dist(r, p) - ROCK_FOOTPRINT * r.size - PALM_TRUNK < PALMS.fromRocks)) continue;
@@ -238,22 +322,43 @@ export function footprints(palms: readonly Palm[], rocks: readonly Rock[]): Pick
    };
 }
 
-function fitsTreasure(p: { x: number; z: number }, placed: Array<{ x: number; z: number }>, prints: Pick<Island, "circles" | "boxes">, palms: readonly Palm[]): boolean {
-   if (rho(p.x, p.z) > SPACING.maxRho) return false;
+function fitsTreasure(
+   p: { x: number; z: number },
+   placed: Array<{ x: number; z: number }>,
+   prints: Pick<Island, "circles" | "boxes">,
+   palms: readonly Palm[],
+   layout: IslandLayout = TODAY_LAYOUT,
+): boolean {
+   if (rho(p.x, p.z, layout) > layout.maxRho) return false;
    if (behindCanopy(p, palms)) return false;
-   if (dist(p, START) < SPACING.fromStart) return false;
-   if (placed.some((o) => dist(o, p) < SPACING.treasures)) return false;
+   if (dist(p, START) < layout.fromStart) return false;
+   if (placed.some((o) => dist(o, p) < layout.spacing)) return false;
    return clearance(prints, p.x, p.z) >= SPACING.fromProps;
 }
 
-/** The find order's types: a seeded order of coins, coins, gem, gem with the chest 4th or 5th. */
-function findOrder(rng: () => number): TreasureType[] {
-   const rest: TreasureType[] = ["coins", "coins", "gem", "gem"];
+/**
+ * The find order's types. Five treasures: a seeded order of coins, coins, gem, gem with the chest
+ * 4th or 5th (that branch is the original, so today's seeds do not move). Six: three coin piles,
+ * two gems, chest in the last two finds (one chest and two gems is all the scene draws).
+ */
+function findOrder(rng: () => number, count = TREASURE_COUNT): TreasureType[] {
+   if (count === TREASURE_COUNT) {
+      const rest: TreasureType[] = ["coins", "coins", "gem", "gem"];
+      for (let i = rest.length - 1; i > 0; i--) {
+         const j = Math.floor(rng() * (i + 1));
+         [rest[i], rest[j]] = [rest[j], rest[i]];
+      }
+      rest.splice(rng() < 0.5 ? 3 : 4, 0, "chest");
+      return rest;
+   }
+   const rest: TreasureType[] = [];
+   for (let i = 0; i < count - 3; i++) rest.push("coins");
+   rest.push("gem", "gem");
    for (let i = rest.length - 1; i > 0; i--) {
       const j = Math.floor(rng() * (i + 1));
       [rest[i], rest[j]] = [rest[j], rest[i]];
    }
-   rest.splice(rng() < 0.5 ? 3 : 4, 0, "chest");
+   rest.splice(rng() < 0.5 ? count - 2 : count - 1, 0, "chest");
    return rest;
 }
 
@@ -262,32 +367,43 @@ function findOrder(rng: () => number): TreasureType[] {
  * treasures; one that breaks a rule or the fairness band is thrown away and the next attempt is
  * drawn from the same seed. After ATTEMPTS failures the tested FALLBACK_ISLAND is used.
  */
-export function generateIsland(seed: number): Island {
+export function generateIsland(seed: number, level?: IslandLevel | number): Island {
+   // A level is an object. `.map(generateIsland)` passes the index as the second argument
+   // (the tests do this); a number is not a level, so today's layout stays in force.
+   if (level && typeof level === "object" && level.map) return generateMapIsland(seed, level);
+   const layout = level && typeof level === "object" ? layoutFrom(level) : TODAY_LAYOUT;
    const rng = createRng(seed);
    for (let attempt = 0; attempt < ATTEMPTS; attempt++) {
-      const island = drawIsland(seed, rng);
-      if (island && isValidIsland(island)) return island;
+      const island = drawIsland(seed, rng, layout);
+      if (island && isValidIsland(island, layout)) return island;
+   }
+   // today's seeds never reach here (rules.test.ts). A wider band gets more tries before giving up.
+   if (!layoutIsToday(layout)) {
+      for (let attempt = 0; attempt < 200; attempt++) {
+         const island = drawIsland(seed, rng, layout);
+         if (island && isValidIsland(island, layout)) return island;
+      }
    }
    return { ...FALLBACK_ISLAND, seed };
 }
 
 /** One attempt (null if a treasure found no spot). Exported for the acceptance-rate test. */
-export function drawIsland(seed: number, rng: () => number): Island | null {
-   const rocks = placeRocks(rng);
-   const palms = placePalms(rng, rocks);
+export function drawIsland(seed: number, rng: () => number, layout: IslandLayout = TODAY_LAYOUT): Island | null {
+   const rocks = placeRocks(rng, layout);
+   const palms = placePalms(rng, rocks, layout);
    const prints = footprints(palms, rocks);
    const treasures: Array<{ x: number; z: number }> = [];
-   for (let i = 0; i < TREASURE_COUNT; i++) {
+   for (let i = 0; i < layout.count; i++) {
       for (let pick = 0; pick < TREASURE_PICKS; pick++) {
-         const p = onIsland(SPACING.maxRho * Math.sqrt(rng()), rng() * Math.PI * 2);
-         if (fitsTreasure(p, treasures, prints, palms)) {
+         const p = onIsland(layout.maxRho * Math.sqrt(rng()), rng() * Math.PI * 2, layout);
+         if (fitsTreasure(p, treasures, prints, palms, layout)) {
             treasures.push({ x: Math.round(p.x * 100) / 100, z: Math.round(p.z * 100) / 100 });
             break;
          }
       }
       if (treasures.length !== i + 1) return null;
    }
-   return { seed, palms, rocks, treasures, findTypes: findOrder(rng), circles: prints.circles, boxes: prints.boxes };
+   return { seed, palms, rocks, treasures, findTypes: findOrder(rng, layout.count), circles: prints.circles, boxes: prints.boxes };
 }
 
 // ---------- validity ----------
@@ -305,10 +421,10 @@ const cellOf = (x: number, z: number) => Math.round((x + GRID.halfX) / GRID.cell
  * ground earlier on): inside rho <= reachRho(finalShore), at least the explorer's radius from every
  * footprint. 1 = reachable.
  */
-export function reachableCells(island: Pick<Island, "circles" | "boxes">): Uint8Array {
+export function reachableCells(island: Pick<Island, "circles" | "boxes">, layout: IslandLayout = TODAY_LAYOUT): Uint8Array {
    const free = new Uint8Array(NX * NZ);
-   const limit = reachRho(TIDE.finalShore);
-   for (let i = 0; i < NX; i++) for (let j = 0; j < NZ; j++) if (rho(cellX(i), cellZ(j)) <= limit) free[i * NZ + j] = 1;
+   const limit = reachRho(layout.finalShore);
+   for (let i = 0; i < NX; i++) for (let j = 0; j < NZ; j++) if (rho(cellX(i), cellZ(j), layout) <= limit) free[i * NZ + j] = 1;
    const r = EXPLORER.radius;
    const block = (x0: number, x1: number, z0: number, z1: number, inside: (x: number, z: number) => boolean) => {
       const i0 = Math.max(0, Math.floor((x0 + GRID.halfX) / GRID.cell));
@@ -355,22 +471,30 @@ export function isReachable(seen: Uint8Array, p: { x: number; z: number }): bool
    return seen[cellOf(p.x, p.z)] === 1;
 }
 
-/** Every order of the indices (120 for five). */
+/** Every order of the indices (120 for five, 720 for six). */
 function permutations(items: number[]): number[][] {
    if (items.length <= 1) return [items];
    return items.flatMap((item, i) => permutations([...items.slice(0, i), ...items.slice(i + 1)]).map((rest) => [item, ...rest]));
 }
 const ORDERS = permutations([0, 1, 2, 3, 4]);
+const ORDERS6 = permutations([0, 1, 2, 3, 4, 5]);
+
+function ordersFor(n: number): readonly number[][] {
+   if (n === 5) return ORDERS;
+   if (n === 6) return ORDERS6;
+   return permutations(Array.from({ length: n }, (_, i) => i));
+}
 
 /**
- * Shortest route from the start through all five, over the 120 orders. `reach` = 0: the ideal
- * route, centre to centre. `reach` = DIG.reach: a lower bound on ANY real route, since the
- * explorer's centre only has to come within the reach of each spot (the start leg is at least its
- * centre distance - reach, every other leg at least its centre distance - 2 reach, never below 0).
+ * Shortest route from the start through every treasure. Five uses the original 120 orders.
+ * `reach` = 0: the ideal route, centre to centre. `reach` = DIG.reach: a lower bound on ANY real
+ * route, since the explorer's centre only has to come within the reach of each spot (the start leg
+ * is at least its centre distance - reach, every other leg at least its centre distance - 2 reach,
+ * never below 0).
  */
 export function shortestRoute(treasures: ReadonlyArray<{ x: number; z: number }>, reach = 0): number {
    let best = Infinity;
-   for (const order of ORDERS) {
+   for (const order of ordersFor(treasures.length)) {
       let length = Math.max(0, dist(START, treasures[order[0]]) - reach);
       for (let k = 1; k < order.length; k++) length += Math.max(0, dist(treasures[order[k - 1]], treasures[order[k]]) - 2 * reach);
       if (length < best) best = length;
@@ -378,21 +502,30 @@ export function shortestRoute(treasures: ReadonlyArray<{ x: number; z: number }>
    return best;
 }
 
+/** The type string a layout's find order must sort to, and whether the chest sits in the last two finds. */
+function typesOk(findTypes: readonly TreasureType[], count: number): boolean {
+   const types = [...findTypes].sort().join();
+   if (count === TREASURE_COUNT) return types === "chest,coins,coins,gem,gem" && (findTypes[3] === "chest" || findTypes[4] === "chest");
+   const coins = count - 3;
+   const expect = ["chest", ...Array(coins).fill("coins"), "gem", "gem"].sort().join();
+   const last = count - 1;
+   return types === expect && (findTypes[last - 1] === "chest" || findTypes[last] === "chest");
+}
+
 /** Checks every rule the proof, the fairness band and the tide rely on. */
-export function isValidIsland(island: Island): boolean {
+export function isValidIsland(island: Island, layout: IslandLayout = TODAY_LAYOUT): boolean {
    const { treasures, findTypes, palms, rocks } = island;
-   if (treasures.length !== TREASURE_COUNT) return false;
+   if (treasures.length !== layout.count) return false;
    if (palms.length < PALMS.min || palms.length > PALMS.max) return false;
    const prints = footprints(palms, rocks);
    for (let i = 0; i < treasures.length; i++) {
-      if (!fitsTreasure(treasures[i], treasures.slice(0, i), prints, palms)) return false;
+      if (!fitsTreasure(treasures[i], treasures.slice(0, i), prints, palms, layout)) return false;
    }
-   const types = [...findTypes].sort().join();
-   if (types !== "chest,coins,coins,gem,gem" || (findTypes[3] !== "chest" && findTypes[4] !== "chest")) return false;
-   const seen = reachableCells(prints);
+   if (!typesOk(findTypes, layout.count)) return false;
+   const seen = reachableCells(prints, layout);
    if (!treasures.every((t) => isReachable(seen, t))) return false;
    const ideal = shortestRoute(treasures);
-   return ideal >= IDEAL_ROUTE.min && ideal <= IDEAL_ROUTE.max;
+   return ideal >= layout.routeMin && ideal <= layout.routeMax;
 }
 
 /** A valid island (seed 7's), used only if a seed cannot produce one (tests keep it valid and unused). */
@@ -427,6 +560,289 @@ export const FALLBACK_ISLAND: Island = (() => {
    };
 })();
 
+// ---------- map levels (levels 2-5: maps.ts) ----------
+
+/** Footprint circles along a carve, every this many metres. */
+const CARVE_STEP = 0.4;
+/** Treasures keep this far from a bridge's deck (m), so no dig lands on the planks. */
+const BRIDGE_CLEAR = 1.5;
+/** A prop at least this tall hides the ground north of it from the camera (the sight rule). */
+const TALL = 0.9;
+/** The camera looks 50° down: a thing h tall hides h / tan 50° of ground behind it. */
+const SHADOW_PER_M = 1 / Math.tan((50 * Math.PI) / 180);
+const MAP_ATTEMPTS = 160;
+/**
+ * A map's treasures keep this far from every footprint edge (m). Less than level 1's 1.5 (SPACING.fromProps):
+ * the maps are crowded on purpose. The explorer (r 0.4) still stands on the spot itself (the flood fill
+ * checks the spot's own cell), so the dig reach never depends on a prop.
+ */
+export const MAP_FROM_PROPS = 1.0;
+
+/** The dock's box (every map keeps today's dock and start). */
+const DOCK_BOX = FIXED_BOXES[2];
+
+/** Is (x, z) on the bridge's deck, widened by `widen` on every side? */
+export function inBridge(b: Bridge, x: number, z: number, widen: number): boolean {
+   const along = b.axis === "z" ? z - b.z : x - b.x;
+   const across = b.axis === "z" ? x - b.x : z - b.z;
+   return Math.abs(along) <= b.length / 2 + widen && Math.abs(across) <= b.half + widen;
+}
+
+/** A gate's box footprint. */
+export const gateBox = (g: GateSpec): AABB => box(g.x, g.z, g.hx, g.hz);
+
+/** The static footprints of a map: its props, its carves (minus the bridge gaps) and the dock. */
+export function mapFootprints(map: IslandMap): Pick<Island, "circles" | "boxes"> {
+   const circles: Circle[] = [];
+   const boxes: AABB[] = [DOCK_BOX];
+   for (const p of map.props) {
+      if (p.legs) for (const l of p.legs) circles.push({ x: l.x, z: l.z, r: l.r });
+      else if (p.r !== undefined) circles.push({ x: p.x, z: p.z, r: p.r });
+      else if (p.hx !== undefined && p.hz !== undefined) boxes.push(box(p.x, p.z, p.hx, p.hz));
+   }
+   for (const c of map.carves) {
+      const pts = c.points;
+      // a bridge's gap: no circle whose edge reaches into the deck's width over the bridge's length
+      const add = (x: number, z: number) => {
+         for (const b of map.bridges) {
+            const along = b.axis === "z" ? z - b.z : x - b.x;
+            const across = b.axis === "z" ? x - b.x : z - b.z;
+            if (Math.abs(along) <= b.length / 2 && Math.abs(across) < b.half + c.half) return;
+         }
+         circles.push({ x, z, r: c.half });
+      };
+      if (pts.length === 1) {
+         add(pts[0][0], pts[0][1]);
+         continue;
+      }
+      for (let i = 1; i < pts.length; i++) {
+         const [x0, z0] = pts[i - 1];
+         const [x1, z1] = pts[i];
+         const n = Math.max(1, Math.ceil(Math.hypot(x1 - x0, z1 - z0) / CARVE_STEP));
+         for (let j = i === 1 ? 0 : 1; j <= n; j++) add(x0 + ((x1 - x0) * j) / n, z0 + ((z1 - z0) * j) / n);
+      }
+   }
+   return { circles, boxes };
+}
+
+/** Footprints plus every gate that is shut once `found` treasures are found. */
+export function withGates(prints: Pick<Island, "circles" | "boxes">, gates: readonly GateSpec[], found: number): Pick<Island, "circles" | "boxes"> {
+   const shut = gates.filter((g) => g.opensAfter > found);
+   return shut.length ? { circles: prints.circles, boxes: [...prints.boxes, ...shut.map(gateBox)] } : prints;
+}
+
+/** How tall a gate is drawn (m): its sight strip. */
+export const GATE_HEIGHT = { log: 0.7, vines: 1.9, rockfall: 1.3 } as const;
+
+/**
+ * The map's sight rule: a tall prop or gate hides a strip north of it (its x extent, from its north
+ * edge back by height / tan 50°), a palm its crown strip; no treasure lies in either (+ margin).
+ */
+export function hiddenOnMap(p: { x: number; z: number }, map: IslandMap, palms: readonly Palm[]): boolean {
+   const m = SIGHT.margin;
+   for (const q of map.props) {
+      if (q.h < TALL) continue;
+      // the drawn extents after the prop's turn
+      const c = Math.abs(Math.cos(q.yaw));
+      const sn = Math.abs(Math.sin(q.yaw));
+      const ex = (c * q.w + sn * q.d) / 2;
+      const ez = (sn * q.w + c * q.d) / 2;
+      if (Math.abs(p.x - q.x) < ex + m && p.z <= q.z + ez && p.z >= q.z - ez - q.h * SHADOW_PER_M - m) return true;
+   }
+   for (const g of map.gates) {
+      const h = GATE_HEIGHT[g.kind];
+      if (Math.abs(p.x - g.x) < g.hx + m && p.z <= g.z + g.hz && p.z >= g.z - g.hz - h * SHADOW_PER_M - m) return true;
+   }
+   const { palm } = SIGHT;
+   return palms.some((q) => toShadow(p, q.x, q.z, palm.near * q.size, palm.far * q.size) < palm.r * q.size + m);
+}
+
+function placeMapPalms(rng: () => number, map: IslandMap, prints: Pick<Island, "circles" | "boxes">, shape: { rx: number; rz: number }): Palm[] {
+   const spec = map.palms;
+   const palms: Palm[] = [];
+   const want = spec.min + Math.floor(rng() * (spec.max - spec.min + 1));
+   const blockers = withGates(prints, map.gates, -1);
+   for (let i = 0; i < want; i++) {
+      for (let pick = 0; pick < PALM_PICKS; pick++) {
+         const p = onIsland(Math.sqrt(spec.minRho ** 2 + rng() * (spec.maxRho ** 2 - spec.minRho ** 2)), rng() * Math.PI * 2, shape);
+         if (dist(p, START) < PALMS.fromStart + 1) continue;
+         if (palms.some((o) => dist(o, p) < spec.apart)) continue;
+         // a palm either leaves a comfortable gap (1.4 m) or none to speak of: no 0.8-1 m squeeze
+         if (clearance(blockers, p.x, p.z) - PALM_TRUNK < 1.4) continue;
+         if (map.bridges.some((b) => inBridge(b, p.x, p.z, 1.6))) continue;
+         if (map.chestAt && dist(p, map.chestAt) < 3.5) continue;
+         palms.push({ x: Math.round(p.x * 100) / 100, z: Math.round(p.z * 100) / 100, yaw: rng() * Math.PI * 2, size: 0.9 + rng() * 0.25 });
+         break;
+      }
+   }
+   return palms;
+}
+
+/** Can a treasure lie at p on this map (placement only: reach and the stages are checked after)? */
+export function fitsMapTreasure(
+   p: { x: number; z: number },
+   placed: ReadonlyArray<{ x: number; z: number }>,
+   blockers: Pick<Island, "circles" | "boxes">,
+   map: IslandMap,
+   palms: readonly Palm[],
+   layout: IslandLayout,
+): boolean {
+   if (rho(p.x, p.z, layout) > layout.maxRho) return false;
+   if (dist(p, START) < layout.fromStart) return false;
+   if (placed.some((o) => dist(o, p) < layout.spacing)) return false;
+   if (clearance(blockers, p.x, p.z) < MAP_FROM_PROPS) return false;
+   if (map.bridges.some((b) => inBridge(b, p.x, p.z, BRIDGE_CLEAR))) return false;
+   return !hiddenOnMap(p, map, palms);
+}
+
+/** The static footprints of a map island: the map's and its palms' trunks. */
+export function mapPrints(map: IslandMap, palms: readonly Palm[]): Pick<Island, "circles" | "boxes"> {
+   const base = mapFootprints(map);
+   return { circles: [...base.circles, ...palms.map((p) => ({ x: p.x, z: p.z, r: PALM_TRUNK }))], boxes: base.boxes };
+}
+
+/**
+ * The finds each spot needs before it can be sensed and dug: the lowest gate stage (0 or a gate's
+ * opensAfter) at which the flood fill from the start (final tide) reaches it, Infinity if none does;
+ * the locked chest of a chain level (the last spot) needs every other spot first.
+ */
+export function unlockStages(
+   treasures: ReadonlyArray<{ x: number; z: number }>,
+   prints: Pick<Island, "circles" | "boxes">,
+   map: IslandMap,
+   layout: IslandLayout,
+   chain = Boolean(map.chain),
+): number[] {
+   const stages = [0, ...new Set(map.gates.map((g) => g.opensAfter))].sort((a, b) => a - b);
+   const out = treasures.map(() => Infinity);
+   for (const s of stages) {
+      if (out.every((u) => u < Infinity)) break;
+      const seen = reachableCells(withGates(prints, map.gates, s), layout);
+      treasures.forEach((t, i) => {
+         if (out[i] === Infinity && isReachable(seen, t)) out[i] = s;
+      });
+   }
+   if (chain) out[out.length - 1] = Math.max(out[out.length - 1], treasures.length - 1);
+   return out;
+}
+
+/** With k spots found there is always one more that can be sensed and reached: sorted unlockAt[k] <= k. */
+export function stagesFair(unlockAt: readonly number[]): boolean {
+   const sorted = [...unlockAt].sort((a, b) => a - b);
+   return sorted.every((u, k) => u <= k);
+}
+
+/** One attempt on a map (null if a treasure found no spot). Exported for the acceptance tests. */
+export function drawMapIsland(seed: number, rng: () => number, level: IslandLevel, map: IslandMap): Island | null {
+   const layout = layoutFrom(level);
+   const palms = placeMapPalms(rng, map, mapFootprints(map), layout);
+   const prints = mapPrints(map, palms);
+   const blockers = withGates(prints, map.gates, -1);
+   const treasures: Array<{ x: number; z: number }> = map.chestAt ? [{ ...map.chestAt }] : [];
+   if (map.chestAt && !fitsMapTreasure(map.chestAt, [], blockers, map, palms, layout)) return null;
+   while (treasures.length < layout.count) {
+      let placed = false;
+      for (let pick = 0; pick < TREASURE_PICKS; pick++) {
+         const p = onIsland(layout.maxRho * Math.sqrt(rng()), rng() * Math.PI * 2, layout);
+         if (fitsMapTreasure(p, treasures, blockers, map, palms, layout)) {
+            treasures.push({ x: Math.round(p.x * 100) / 100, z: Math.round(p.z * 100) / 100 });
+            placed = true;
+            break;
+         }
+      }
+      if (!placed) return null;
+   }
+   // the fixed chest goes last; a generated chain's chest is the spot that opens last (the furthest on a tie)
+   if (map.chestAt) treasures.push(treasures.shift()!);
+   else if (map.chain) {
+      const raw = unlockStages(treasures, prints, map, layout, false);
+      let best = 0;
+      for (let i = 1; i < treasures.length; i++) {
+         if (raw[i] > raw[best] || (raw[i] === raw[best] && dist(treasures[i], START) > dist(treasures[best], START))) best = i;
+      }
+      const last = treasures.length - 1;
+      [treasures[best], treasures[last]] = [treasures[last], treasures[best]];
+   }
+   const unlockAt = unlockStages(treasures, prints, map, layout);
+   const findTypes: TreasureType[] = map.chain ? [...map.chain] : findOrder(rng, layout.count);
+   return {
+      seed,
+      palms,
+      rocks: [],
+      treasures,
+      findTypes,
+      circles: prints.circles,
+      boxes: prints.boxes,
+      gates: map.gates,
+      unlockAt,
+      ...(map.chain ? { finalChest: treasures.length - 1 } : {}),
+   };
+}
+
+/** The first rule a map island breaks (null = valid): placement, reach through the gates, the stages, the chain, the band. */
+export function mapIslandProblem(island: Island, level: IslandLevel): string | null {
+   const map = level.map;
+   if (!map) return "no map";
+   const layout = layoutFrom(level);
+   const { treasures, palms } = island;
+   if (treasures.length !== layout.count) return "count";
+   if (palms.length > map.palms.max) return "palms";
+   const prints = mapPrints(map, palms);
+   const blockers = withGates(prints, map.gates, -1);
+   for (let i = 0; i < treasures.length; i++) {
+      if (!fitsMapTreasure(treasures[i], treasures.slice(0, i), blockers, map, palms, layout)) return "placement";
+   }
+   const unlockAt = unlockStages(treasures, prints, map, layout);
+   if (!unlockAt.every((u) => u < Infinity)) return "unreachable";
+   if (!stagesFair(unlockAt)) return "stages";
+   if (!island.unlockAt || island.unlockAt.length !== unlockAt.length || island.unlockAt.some((u, i) => u !== unlockAt[i])) return "unlockAt";
+   if (map.chain) {
+      if (island.findTypes.join() !== map.chain.join() || island.finalChest !== treasures.length - 1) return "chain";
+      if (map.chestAt && dist(treasures[treasures.length - 1], map.chestAt) > 1e-9) return "chestAt";
+   } else if (!typesOk(island.findTypes, layout.count)) return "types";
+   const ideal = shortestRoute(treasures);
+   if (ideal < layout.routeMin) return "band-low";
+   if (ideal > layout.routeMax) return "band-high";
+   return null;
+}
+
+/** Every rule a map island keeps (mapIslandProblem finds none). */
+export const isValidMapIsland = (island: Island, level: IslandLevel) => mapIslandProblem(island, level) === null;
+
+const MAP_FALLBACKS = new Map<number, Island>();
+
+/**
+ * A map level's island: rejection sampling from the seed like today's; if every attempt fails (not
+ * seen on the tested seeds: fairness.level-N), the tested fallback of that map.
+ */
+export function generateMapIsland(seed: number, level: IslandLevel): Island {
+   const map = level.map!;
+   const rng = createRng(seed);
+   for (let attempt = 0; attempt < MAP_ATTEMPTS; attempt++) {
+      const island = drawMapIsland(seed, rng, level, map);
+      if (island && isValidMapIsland(island, level)) return island;
+   }
+   return { ...mapFallback(level), seed };
+}
+
+/** A map level's fallback: the first valid island from seeds 1, 2, 3 ... (memoised). */
+export function mapFallback(level: IslandLevel): Island {
+   const map = level.map!;
+   const known = MAP_FALLBACKS.get(map.id);
+   if (known) return known;
+   for (let s = 1; s < 10_000; s++) {
+      const rng = createRng(s * 7919);
+      for (let attempt = 0; attempt < MAP_ATTEMPTS; attempt++) {
+         const island = drawMapIsland(s, rng, level, map);
+         if (island && isValidMapIsland(island, level)) {
+            MAP_FALLBACKS.set(map.id, island);
+            return island;
+         }
+      }
+   }
+   throw new Error(`treasure-island: no valid island for map ${map.id}`);
+}
+
 // ---------- the scoring proof (constants only: no gameplay) ----------
 
 /**
@@ -453,9 +869,9 @@ export function createExplorer(): ExplorerState {
 }
 
 /** Keeps the explorer's centre within the water's edge plus the shallows (radial, in rho). */
-export function clampToShore(e: { x: number; z: number }, shore: number): void {
+export function clampToShore(e: { x: number; z: number }, shore: number, shape: { rx: number; rz: number } = ISLAND): void {
    const limit = reachRho(shore);
-   const r = rho(e.x, e.z);
+   const r = rho(e.x, e.z, shape);
    if (r > limit) {
       e.x *= limit / r;
       e.z *= limit / r;
@@ -490,7 +906,15 @@ function resolveProps(e: ExplorerState, island: Pick<Island, "circles" | "boxes"
  * rising water may push the explorer inward on top of that (at most rx x the shore's rate), and a
  * prop it is pushed against pushes it back out (not player movement: no time is gained by it).
  */
-export function stepExplorer(e: ExplorerState, island: Pick<Island, "circles" | "boxes">, dirX: number, dirZ: number, dt: number, shore: number): void {
+export function stepExplorer(
+   e: ExplorerState,
+   island: Pick<Island, "circles" | "boxes">,
+   dirX: number,
+   dirZ: number,
+   dt: number,
+   shore: number,
+   shape: { rx: number; rz: number } = ISLAND,
+): void {
    if (!(dt > 0)) return;
    const { maxSpeed, wadeSpeed, accel, brake, turnRate } = EXPLORER;
    let len = Math.hypot(dirX, dirZ);
@@ -499,7 +923,7 @@ export function stepExplorer(e: ExplorerState, island: Pick<Island, "circles" | 
       dirZ /= len;
       len = 1;
    }
-   const top = rho(e.x, e.z) > shore ? wadeSpeed : maxSpeed;
+   const top = rho(e.x, e.z, shape) > shore ? wadeSpeed : maxSpeed;
    let dvx = dirX * top - e.vx;
    let dvz = dirZ * top - e.vz;
    const dv = Math.hypot(dvx, dvz);
@@ -518,7 +942,7 @@ export function stepExplorer(e: ExplorerState, island: Pick<Island, "circles" | 
    // props push out, the water's edge holds; twice, so a push near the edge settles
    for (let k = 0; k < 2; k++) {
       resolveProps(e, island);
-      clampToShore(e, shore);
+      clampToShore(e, shore, shape);
    }
    // speed guard: whatever the pushes did, this step moves at most maxSpeed * dt
    const mx = e.x - fromX;
@@ -533,7 +957,7 @@ export function stepExplorer(e: ExplorerState, island: Pick<Island, "circles" | 
    // have the last word, so the water never leaves the explorer inside one (a squeeze between the
    // two keeps it out of the prop, a little beyond the reach). Before TIDE.startS (shore 1) neither
    // moves it, so the guard's bound holds.
-   clampToShore(e, shore);
+   clampToShore(e, shore, shape);
    if (shore < 1) resolveProps(e, island);
    e.vx = (e.x - fromX) / dt;
    e.vz = (e.z - fromZ) / dt;
@@ -583,11 +1007,24 @@ export interface RunEvents {
    digStarted: boolean;
    /** the tide turned this step (TIDE.startS) */
    tide: boolean;
+   /** the gate that opened this step (index into island.gates), else -1 */
+   gateOpened: number;
+   /** the locked final chest can be sensed from this step on (a chain level's map is complete) */
+   chestUnlocked: boolean;
 }
 
 export interface RunState {
    explorer: ExplorerState;
    dug: boolean[];
+   /** finds that win the run (the island's treasure count) */
+   goal: number;
+   /** this run's tide and ellipse (today's constants when no level is passed) */
+   tide: TideSpec;
+   shape: IslandShape;
+   /** what the explorer bumps into now: the island's footprints plus every gate still shut */
+   prints: Pick<Island, "circles" | "boxes">;
+   /** which of island.gates are open */
+   gateOpen: boolean[];
    found: number;
    cleanFinds: number;
    /** no false dig since the last find (or the start) */
@@ -610,10 +1047,39 @@ export interface StepInput {
    digPressed: boolean;
 }
 
-export function createRun(island: Island): RunState {
+function tideOf(level?: IslandLevel): TideSpec {
+   if (!level || (level.tideStartS === TIDE.startS && level.tideEndS === TIDE.endS && level.finalShore === TIDE.finalShore)) return TIDE;
+   return { startS: level.tideStartS, endS: level.tideEndS, finalShore: level.finalShore };
+}
+
+function shapeOf(level?: IslandLevel): IslandShape {
+   if (level?.map) return { rx: level.rx, rz: level.rz, map: level.map };
+   if (!level || (level.rx === ISLAND.rx && level.rz === ISLAND.rz)) return ISLAND;
+   return { rx: level.rx, rz: level.rz };
+}
+
+/** The island's footprints plus the gates still shut (the island itself when it has none). */
+function currentPrints(island: Island, open: readonly boolean[]): Pick<Island, "circles" | "boxes"> {
+   const gates = island.gates;
+   if (!gates || gates.length === 0) return island;
+   const shut = gates.filter((_g, i) => !open[i]);
+   return { circles: island.circles, boxes: [...island.boxes, ...shut.map(gateBox)] };
+}
+
+/** Can spot i be sensed and dug with `found` finds (its gate stage, the locked chest)? */
+export const isUnlocked = (island: Island, i: number, found: number) => !island.unlockAt || island.unlockAt[i] <= found;
+
+export function createRun(island: Island, level?: IslandLevel): RunState {
+   const goal = level?.treasures ?? island.treasures.length;
+   const gateOpen = (island.gates ?? []).map((g) => g.opensAfter <= 0);
    const run: RunState = {
       explorer: createExplorer(),
-      dug: new Array<boolean>(TREASURE_COUNT).fill(false),
+      dug: new Array<boolean>(goal).fill(false),
+      goal,
+      tide: tideOf(level),
+      shape: shapeOf(level),
+      prints: currentPrints(island, gateOpen),
+      gateOpen,
       found: 0,
       cleanFinds: 0,
       clean: true,
@@ -621,19 +1087,19 @@ export function createRun(island: Island): RunState {
       detector: { target: -1, distance: Infinity, strength: 0, pulse: 0, ready: false },
       hint: { target: -1, since: 0 },
       time: 0,
-      events: { found: -1, foundClean: false, foundType: null, falseDig: false, beep: false, digStarted: false, tide: false },
+      events: { found: -1, foundClean: false, foundType: null, falseDig: false, beep: false, digStarted: false, tide: false, gateOpened: -1, chestUnlocked: false },
    };
    updateDetector(run, island);
    return run;
 }
 
-/** The nearest undug treasure to the explorer's centre (ties: the lower index). */
+/** The nearest undug treasure to the explorer's centre (ties: the lower index); a map level senses only the unlocked ones. */
 export function updateDetector(run: RunState, island: Island): void {
    const det = run.detector;
    det.target = -1;
    det.distance = Infinity;
-   for (let i = 0; i < TREASURE_COUNT; i++) {
-      if (run.dug[i]) continue;
+   for (let i = 0; i < island.treasures.length; i++) {
+      if (run.dug[i] || !isUnlocked(island, i, run.found)) continue;
       const d = Math.hypot(island.treasures[i].x - run.explorer.x, island.treasures[i].z - run.explorer.z);
       if (d < det.distance) {
          det.distance = d;
@@ -646,14 +1112,14 @@ export function updateDetector(run: RunState, island: Island): void {
 
 /** The undug treasure within dig reach of the explorer's centre (lowest index), else -1. */
 export function treasureInReach(run: RunState, island: Island): number {
-   for (let i = 0; i < TREASURE_COUNT; i++) {
-      if (run.dug[i]) continue;
+   for (let i = 0; i < island.treasures.length; i++) {
+      if (run.dug[i] || !isUnlocked(island, i, run.found)) continue;
       if (Math.hypot(island.treasures[i].x - run.explorer.x, island.treasures[i].z - run.explorer.z) <= DIG.reach) return i;
    }
    return -1;
 }
 
-export const isWon = (run: RunState) => run.found >= TREASURE_COUNT;
+export const isWon = (run: RunState) => run.found >= run.goal;
 
 /**
  * One play step: dig (a press starts it, the feet are planted while it is held, it resolves after
@@ -668,10 +1134,14 @@ export function stepRun(run: RunState, island: Island, input: StepInput, dt: num
    ev.falseDig = false;
    ev.beep = false;
    ev.digStarted = false;
-   ev.tide = run.time < TIDE.startS && time >= TIDE.startS;
+   ev.gateOpened = -1;
+   ev.chestUnlocked = false;
+   const tide = run.tide;
+   const shape = run.shape;
+   ev.tide = run.time < tide.startS && time >= tide.startS;
    run.time = time;
    if (!(dt > 0) || isWon(run)) return;
-   const shore = shoreAt(time);
+   const shore = shoreAt(time, tide);
    const e = run.explorer;
    const dig = run.dig;
 
@@ -687,8 +1157,8 @@ export function stepRun(run: RunState, island: Island, input: StepInput, dt: num
       // the feet are planted: no movement, only the rising water may push (never into a prop)
       e.vx = 0;
       e.vz = 0;
-      clampToShore(e, shore);
-      if (shore < 1) resolveProps(e, island);
+      clampToShore(e, shore, shape);
+      if (shore < 1) resolveProps(e, run.prints);
       dig.held += dt;
       if (dig.held >= DIG.holdS) {
          dig.active = false;
@@ -702,14 +1172,17 @@ export function stepRun(run: RunState, island: Island, input: StepInput, dt: num
             if (run.clean) run.cleanFinds += 1;
             run.clean = true;
             run.hint.target = -1;
-            run.hint.since = time;
+            // a clue sends the gull to the next spot at once (the hint check below fires this step)
+            run.hint.since = ev.foundType === "clue" ? time - HINT.afterS : time;
+            openGates(run, island);
+            if (island.finalChest !== undefined && run.found === island.treasures.length - 1) ev.chestUnlocked = true;
          } else {
             ev.falseDig = true;
             run.clean = false;
          }
       }
    } else {
-      stepExplorer(e, island, input.dirX, input.dirZ, dt, shore);
+      stepExplorer(e, run.prints, input.dirX, input.dirZ, dt, shore, shape);
    }
 
    updateDetector(run, island);
@@ -720,6 +1193,21 @@ export function stepRun(run: RunState, island: Island, input: StepInput, dt: num
       ev.beep = det.strength > 0;
    }
    if (run.hint.target < 0 && det.target >= 0 && time - run.hint.since >= HINT.afterS) run.hint.target = det.target;
+}
+
+/** Opens every gate whose find count is reached (a gate only ever opens: nothing is pushed). */
+function openGates(run: RunState, island: Island): void {
+   const gates = island.gates;
+   if (!gates) return;
+   let changed = false;
+   for (let i = 0; i < gates.length; i++) {
+      if (!run.gateOpen[i] && run.found >= gates[i].opensAfter) {
+         run.gateOpen[i] = true;
+         run.events.gateOpened = i;
+         changed = true;
+      }
+   }
+   if (changed) run.prints = currentPrints(island, run.gateOpen);
 }
 
 // ---------- scoring ----------
@@ -734,12 +1222,54 @@ export function runScore(found: number, cleanFinds: number, won: boolean, timeLe
    return POINTS.find * found + POINTS.clean * cleanFinds + (won ? timeBonus(timeLeftMs) : 0);
 }
 
-/** The server's check (core/limits.ts) with this game's limits from meta.ts. */
-export function withinServerLimits(score: number, durationMs: number): boolean {
-   return fitsLimits(score, durationMs, treasureIslandMeta.scoring);
+/**
+ * Travel (m) the fairness band guarantees, after the dig reach is taken off each leg.
+ * Level 1 is MIN_ROUTE (29.9).
+ */
+export function minRouteMetres(level: IslandLevel): number {
+   return level.routeMin - DIG.reach - (level.treasures - 1) * 2 * DIG.reach;
+}
+
+/** Earliest win (ms) at top speed with one dig per treasure. Level 1 is EARLIEST_WIN_MS (8980). */
+export function earliestWinMs(level: IslandLevel): number {
+   return (minRouteMetres(level) / EXPLORER.maxSpeed + level.treasures * DIG.holdS) * 1000;
+}
+
+/**
+ * The limits proposed for one level. Level 1 reproduces meta.scoring exactly (2060 / 8500–92000 /
+ * 1250 + 100/s): the ceiling is every treasure clean at the earliest win, min duration is 95 % of
+ * that win rounded down to 100 ms, max duration is the clock plus 2 s. base is the clean finds
+ * (250 each). 100 pts/s covers the time bonus from that earliest win onward (README "Levels").
+ */
+export function limitsForLevel(level: IslandLevel): ScoringRules {
+   const finds = level.treasures * (POINTS.find + POINTS.clean);
+   const earliest = earliestWinMs(level);
+   return {
+      kind: "points",
+      maxScore: finds + timeBonus(level.durationMs - earliest),
+      minDurationMs: Math.floor((earliest * 0.95) / 100) * 100,
+      maxDurationMs: level.durationMs + 2_000,
+      base: finds,
+      maxPointsPerSec: 100,
+      unitLabel: "pts",
+      display: "int",
+   };
+}
+
+export const PROPOSED_LEVEL_LIMITS: Record<LevelId, ScoringRules> = {
+   1: limitsForLevel(LEVELS[1]),
+   2: limitsForLevel(LEVELS[2]),
+   3: limitsForLevel(LEVELS[3]),
+   4: limitsForLevel(LEVELS[4]),
+   5: limitsForLevel(LEVELS[5]),
+};
+
+/** The server's check (core/limits.ts) with this game's limits from meta.ts, or a level's. */
+export function withinServerLimits(score: number, durationMs: number, limits: ScoringRules = treasureIslandMeta.scoring): boolean {
+   return fitsLimits(score, durationMs, limits);
 }
 
 /** Safety net only: the README proof shows real runs never reach it; rules.test.ts keeps it a no-op. */
-export function capScore(score: number, durationMs: number): number {
-   return capToLimits(score, durationMs, treasureIslandMeta.scoring);
+export function capScore(score: number, durationMs: number, limits: ScoringRules = treasureIslandMeta.scoring): number {
+   return capToLimits(score, durationMs, limits);
 }

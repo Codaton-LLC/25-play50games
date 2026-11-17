@@ -1,12 +1,36 @@
 // Models used by Warehouse Rush. Plain data, no three.js: index.tsx hands them to GameShell (which
 // frees the GLBs when the game closes) and Scene.tsx / Primitives.tsx render them.
-// Only urls listed in core/modelManifest.ts are fetched. All four are there; the instanced stand-ins
+// Only urls listed in core/modelManifest.ts are fetched. All five are there; the instanced stand-ins
 // (Primitives.tsx) stay as the fallback while a GLB loads or if it fails.
 // Scales come from the GLBs' measured bounds (README "Assets"): the robot is 1.90 x 1.72 x 0.60
 // (T-pose), so 0.7 makes it 1.2 tall; the crate is 1.88 x 1.34 x 1.81, so 0.53 gives the
 // 1.0 x 0.71 x 0.96 box on a pallet. Collision never comes from a model (rules.ts).
 import type { ModelAsset } from "@/arcade3d/core/types";
 import { PROP_BUDGET, SHARED_ASSETS } from "@/arcade3d/core/sharedAssets";
+
+/** forkliftTruck.glb raw bounds (m), measured on the mesh (assets.test.ts): feet on y = 0, forks along z. */
+export const FORKLIFT_GLB = { width: 0.70993, height: 1.25058, depth: 1.88839 } as const;
+/** Drawn 2.0 m tall, a real counterbalance forklift; with the asset's rotationY the drawn length is depth x scale. */
+export const FORKLIFT_SCALE = 2.0 / FORKLIFT_GLB.height;
+export const FORKLIFT_DRAWN = {
+   length: FORKLIFT_GLB.depth * FORKLIFT_SCALE,
+   width: FORKLIFT_GLB.width * FORKLIFT_SCALE,
+   height: 2.0,
+} as const;
+/** The night-yard slab's top (levels 4-5 only): a hair below the plinth's -0.01 so the two never z-fight. */
+export const YARD_TOP = -0.025;
+/** The yard slab's half-size (levels 4-5 only): a dark apron around the walls the parked trucks stand on. */
+export const YARD = { halfX: 13.75, halfZ: 8.75 } as const;
+/**
+ * The parked trucks' spots, feet on the yard slab, beyond the walls. Every copy is turned so its
+ * whole footprint clears the arena (|x| ≤ 10, |z| ≤ 6); assets.test.ts checks the rotated corners.
+ */
+export const FORKLIFT_SPOTS = [
+   { x: -6.5, y: YARD_TOP, z: 7.25, rotY: 0.12 },
+   { x: 0.6, y: YARD_TOP, z: 7.3, rotY: -0.08 },
+   { x: 7.4, y: YARD_TOP, z: 7.25, rotY: 0.05 },
+   { x: 11.7, y: YARD_TOP, z: -1.8, rotY: Math.PI / 2 - 0.06 },
+] as const;
 
 export const ASSETS = {
    // shared cast (src/arcade3d/assets/shared.spec.json -> public/models/3d/shared/*.glb)
@@ -33,6 +57,19 @@ export const ASSETS = {
       stretch: [1, 0.55, 1],
       fallback: "box",
       fallbackColor: "#d6a46b",
+      budget: { ...PROP_BUDGET },
+   },
+   // this game only (Hyper3D 2026-10-25, group D adoption): parked trucks in the level 4-5 night
+   // yard outside the walls. The GLB is a real-size 0.71 x 1.25 x 1.89 counterbalance truck, feet
+   // on y = 0 and long in z, so rotationY π/2 parks it parallel to the long walls and no yOffset
+   // is needed. Decor only: it is never in `obstacles` (rules.ts) and never inside the arena.
+   forkliftTruck: {
+      id: "forkliftTruck",
+      url: "/models/3d/warehouse-rush/forkliftTruck.glb",
+      scale: FORKLIFT_SCALE,
+      rotationY: Math.PI / 2,
+      fallback: "box",
+      fallbackColor: "#ea580c",
       budget: { ...PROP_BUDGET },
    },
 } satisfies Record<string, ModelAsset>;

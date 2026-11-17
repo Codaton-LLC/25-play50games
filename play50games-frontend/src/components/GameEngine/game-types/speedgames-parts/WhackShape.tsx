@@ -88,7 +88,7 @@ export default function WhackShape({
    const [currentShareId, setCurrentShareId] = useState<string | null>(null);
    const shareCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-   // Max replays: 5 for Whack-a-Shape, unlimited if shared
+   // Max replays: 5 for Shape Pop, unlimited if shared
    const maxReplays = hasShared ? 0 : 5; // 0 = unlimited
 
    const spawnTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -660,8 +660,8 @@ export default function WhackShape({
       if (navigator.share) {
          try {
             await navigator.share({
-               title: "Whack-a-Shape Game",
-               text: "Check out this awesome Whack-a-Shape game!",
+               title: "Shape Pop Game",
+               text: "Check out this awesome Shape Pop game!",
                url: shareableLink,
             });
             setShareSuccess(true);

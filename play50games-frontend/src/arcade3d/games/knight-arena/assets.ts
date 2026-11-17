@@ -6,6 +6,28 @@ import {
    PROP_BUDGET,
 } from "../../core/sharedAssets";
 import type { ModelAsset } from "../../core/types";
+import type { InstanceSpot } from "../../core/render";
+
+// Measured GLB bounds: 1.656493 x 1.895201 x 0.674425; translated minY = 0.
+export const TRAINING_DUMMY_SPOTS: readonly InstanceSpot[] = [-2.5, 0, 2.5].map((x) => ({
+   x, y: -0.04, z: -4.6, rotY: Math.atan2(-x, 4.6),
+}));
+export const hasTrainingDecor = (level: number): boolean => level === 4 || level === 5;
+
+const dummyAt = (x: number, z: number): InstanceSpot => ({ x, y: -0.04, z, rotY: Math.atan2(-x, -z) });
+/**
+ * The dummies of each training level, in the gaps of that level's own decor (looks.ts LEVEL_LOOKS):
+ * level 4 either side of the north barrel (0, -4.5); level 5 at the east and west, clear of the
+ * braziers and the throne on the north edge. assets.test.ts checks the fence and the decor.
+ */
+export const TRAINING_DUMMY_SPOTS_BY_LEVEL: Readonly<Record<4 | 5, readonly InstanceSpot[]>> = {
+   4: [dummyAt(-1.6, -4.6), dummyAt(1.6, -4.6)],
+   5: [dummyAt(-4.6, -1.2), dummyAt(4.6, -1.2)],
+};
+
+export function trainingDummySpots(level: number): readonly InstanceSpot[] {
+   return level === 4 || level === 5 ? TRAINING_DUMMY_SPOTS_BY_LEVEL[level] : [];
+}
 
 export const KNIGHT_HEIGHT = EXPANSION_CHARACTER_HEIGHT.knight; // 1.75 m (Q4 Decision)
 export const DUMMY_HEIGHT = 1.5;
@@ -44,9 +66,20 @@ export type KnightArenaAssetId =
    | "castleTower"
    | "leafyTree"
    | "sword"
-   | "shield";
+   | "shield"
+   | "trainingDummyT";
 
 export const ASSETS: Record<KnightArenaAssetId, ModelAsset> = {
+   trainingDummyT: {
+      id: "trainingDummyT",
+      url: "/models/3d/knight-arena/trainingDummyT.glb",
+      scale: 1.5 / 1.8952014446258545,
+      rotationY: 0,
+      yOffset: 0,
+      fallback: "box",
+      fallbackColor: "#a57548",
+      budget: { ...PROP_BUDGET },
+   },
    knight: EXPANSION_CHARACTERS.knight,
    dummy: EXPANSION_ASSETS.dummy,
    castleTower: EXPANSION_ASSETS.castleTower,

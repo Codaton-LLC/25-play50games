@@ -22,6 +22,7 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/food-catcher/apple.glb",
    "/models/3d/food-catcher/burger.glb",
    "/models/3d/food-catcher/sock.glb",
+   "/models/3d/food-catcher/kitchenRangeOven.glb",
    "/models/3d/warehouse-rush/shelfRack.glb",
    "/models/3d/warehouse-rush/pallet.glb",
    "/models/3d/obstacle-race/finishArch.glb",
@@ -36,11 +37,14 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/pigeon-crossing/car.glb",
    "/models/3d/pigeon-crossing/taxi.glb",
    "/models/3d/pigeon-crossing/van.glb",
+   "/models/3d/clean-city/festivalStall.glb",
    "/models/3d/clean-city/bottle.glb",
    "/models/3d/clean-city/bag.glb",
    "/models/3d/escape-room/key.glb",
    "/models/3d/escape-room/book.glb",
    "/models/3d/escape-room/door.glb",
+   "/models/3d/escape-room/stoveT.glb",
+   "/models/3d/escape-room/shipConsole.glb",
    "/models/3d/tower-climb/checkpoint-flag.glb",
    // group D props (2026-10-07): image-to-3D from concepts (tools/hyper3d/concepts), Gen-2.5-Medium,
    // 1000-3000 tris. finishArch.glb (listed above) is replaced in place by the single-arch v2. The
@@ -81,11 +85,14 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/ghost-vacuum/vacuum.glb",
    "/models/3d/knight-arena/dummy.glb",
    "/models/3d/castle-defender/goblin.glb",
+   "/models/3d/castle-defender/royalThrone.glb",
+   "/models/3d/castle-defender/siegeCatapultT.glb",
    "/models/3d/alien-farm/glowPod.glb",
    "/models/3d/zoo-escape/panda.glb",
    // expansion tier 3 (2026-10-08): class E decor, Rodin Gen-2.5-Medium text-to-3D, 1500-3000 tris, 512 px
    // (shared rock and luggage-rush suitcase were regenerated as v2 in place, same urls)
    "/models/3d/museum-guard/bust.glb",
+   "/models/3d/museum-guard/sarcophagusT.glb",
    "/models/3d/shared/mushroom.glb",
    "/models/3d/luggage-rush/plane.glb",
    "/models/3d/treasure-island/crab.glb",
@@ -108,8 +115,12 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/castle-defender/siegeLadder.glb",
    "/models/3d/knight-arena/sword.glb",
    "/models/3d/knight-arena/shield.glb",
+   "/models/3d/knight-arena/trainingDummyT.glb",
    "/models/3d/alien-farm/ufo.glb",
    "/models/3d/space-repair/stationModule.glb",
+   // space-repair decor (2026-10-25): comms dish prop for levels 4-5 (External Platform /
+   // Station Emergency), drawn by games/space-repair only there; 1500 tris
+   "/models/3d/space-repair/satelliteDish.glb",
    "/models/3d/shared/snowman.glb",
    "/models/3d/dino-egg-rescue/volcano.glb",
    "/models/3d/treasure-island/shovel.glb",
@@ -118,6 +129,402 @@ export const MODEL_MANIFEST: readonly string[] = [
    // ghost-vacuum hunter (2026-10-24): image-to-3D from the user's own concept (their face, kept outside git),
    // Gen-2.5-Medium, 18k tris, static T-pose for the core auto-rig
    "/models/3d/ghost-vacuum/hunter.glb",
+   "/models/3d/ghost-vacuum/candelabra.glb",
+   // ghost-vacuum attic trunk (2026-10-25): K-g2 decor for levels 4-5 (Attic / Whole Mansion)
+   "/models/3d/ghost-vacuum/atticTrunk.glb",
+   "/models/3d/rocket-landing/landingPad.glb",
+   // zoo-escape props (2026-10-25): batch 5 part A adoptions, Gen-2.5-Medium, 1500-3000 tris,
+   // optimized with tools/hyper3d (kiosk and tower bake in their canopy / platform railing)
+   "/models/3d/zoo-escape/zooKiosk.glb",
+   "/models/3d/zoo-escape/leafyBush.glb",
+   "/models/3d/zoo-escape/woodenFootbridge.glb",
+   "/models/3d/zoo-escape/searchlightTower.glb",
+   "/models/3d/zoo-escape/bambooSnack.glb",
+   // P-121 dev adoptions (2026-10-25): V2 replacements and Group D variety whose QA verdict
+   // starts with OK. Optimized GLBs copied in; not re-optimized. Live games are untouched.
+   "/models/3d/shopping-cart/supermarketShelfV2.glb",
+   "/models/3d/shopping-cart/bakeryStand.glb",
+   "/models/3d/pirate-cannons/lighthouseV2.glb",
+   "/models/3d/delivery-drone/cityBrickApartment.glb",
+   "/models/3d/delivery-drone/cityGlassOffice.glb",
+   "/models/3d/luggage-rush/duffelBag.glb",
+   "/models/3d/luggage-rush/hardCaseTeal.glb",
+   "/models/3d/zoo-escape/zooRocks.glb",
+   "/models/3d/treasure-island/beachRocks.glb",
+   "/models/3d/treasure-island/jungleTotem.glb",
+   "/models/3d/penguin-slide/iceArch.glb",
+   // penguin-slide level 4-5 decor (2026-10-25): Group D adoptions, Gen-2.5-Medium, 1500-3000 tris,
+   // optimized with tools/hyper3d; drawn only on Aurora Run (4) and Glacier Sprint (5)
+   "/models/3d/penguin-slide/auroraCrystal.glb",
+   "/models/3d/penguin-slide/glacierChunk.glb",
+   "/models/3d/mini-golf/golfCastle.glb",
+   // Menu 1 haunted-mansion-keys (2026-10-25): the ready menu1-haunted-mansion-keys GLBs (wallLeverV2,
+   // not wallLever), plus the shared ready furniture; fits measured in
+   // games/haunted-mansion-keys/assets.ts. The detective is auto-rigged.
+   "/models/3d/haunted-mansion-keys/charDetective.glb",
+   "/models/3d/haunted-mansion-keys/skeletonKey.glb",
+   "/models/3d/haunted-mansion-keys/mansionDoor.glb",
+   "/models/3d/haunted-mansion-keys/wallLeverV2.glb",
+   "/models/3d/haunted-mansion-keys/grandfatherClock.glb",
+   "/models/3d/haunted-mansion-keys/paintingFrame.glb",
+   "/models/3d/haunted-mansion-keys/armourStand.glb",
+   "/models/3d/shared/woodenChair.glb",
+   "/models/3d/shared/table.glb",
+   "/models/3d/shared/bookshelf.glb",
+   // Menu 1 beach-lifeguard (2026-10-25): the ready menu1-beach-lifeguard GLBs, copied as optimized.
+   // No surfboard (surfboard / surfboardV2 / surfboardLong are a disc, broken or square) and no alertBuoy
+   // (the alert stays the spec's code torus); fits in games/beach-lifeguard/assets.ts
+   "/models/3d/beach-lifeguard/charLifeguard.glb",
+   "/models/3d/beach-lifeguard/lifeguardTower.glb",
+   "/models/3d/beach-lifeguard/rescueFloat.glb",
+   "/models/3d/beach-lifeguard/beachChair.glb",
+   "/models/3d/beach-lifeguard/beachCooler.glb",
+   "/models/3d/beach-lifeguard/beachgoerNpc.glb",
+   "/models/3d/beach-lifeguard/beachHut.glb",
+   "/models/3d/beach-lifeguard/sandcastle.glb",
+   "/models/3d/beach-lifeguard/rescueJetSki.glb",
+   // Menu 1 pizza-kitchen-3d (2026-10-25): the ready menu1-pizza-kitchen-3d GLBs (mushroomBowlR, prepCounterR,
+   // pizzaPeelCleanT, pizzaBoxClosed; not mushroomBowl / prepCounter / pizzaPeel / pizzaBox / pizzaBoxV2),
+   // copied as optimized; fits measured in games/pizza-kitchen-3d/assets.ts
+   "/models/3d/pizza-kitchen-3d/pizzaBase.glb",
+   "/models/3d/pizza-kitchen-3d/sauceBowl.glb",
+   "/models/3d/pizza-kitchen-3d/cheeseBowl.glb",
+   "/models/3d/pizza-kitchen-3d/mushroomBowlR.glb",
+   "/models/3d/pizza-kitchen-3d/oliveBowl.glb",
+   "/models/3d/pizza-kitchen-3d/pepperoni.glb",
+   "/models/3d/pizza-kitchen-3d/tomato.glb",
+   "/models/3d/pizza-kitchen-3d/onion.glb",
+   "/models/3d/pizza-kitchen-3d/pizzaOven.glb",
+   "/models/3d/pizza-kitchen-3d/pizzaPeelCleanT.glb",
+   "/models/3d/pizza-kitchen-3d/prepCounterR.glb",
+   "/models/3d/pizza-kitchen-3d/pizzaBoxClosed.glb",
+   // Menu 1 burger-delivery-scooter (2026-10-25): the ready menu1-burger-delivery-scooter GLBs (V2 box and
+   // food; burgerShopI = the text-free shop), copied as optimized; fits in games/burger-delivery-scooter/assets.ts.
+   "/models/3d/burger-delivery-scooter/charScooterRider.glb",
+   "/models/3d/burger-delivery-scooter/deliveryScooter.glb",
+   "/models/3d/burger-delivery-scooter/deliveryBoxV2.glb",
+   "/models/3d/burger-delivery-scooter/burgerBag.glb",
+   "/models/3d/burger-delivery-scooter/foodBoxV2.glb",
+   "/models/3d/burger-delivery-scooter/restaurantCounterPlainT.glb",
+   "/models/3d/burger-delivery-scooter/burgerShopI.glb",
+   "/models/3d/burger-delivery-scooter/roadBarrier.glb",
+   "/models/3d/shared/trafficCone.glb",
+   // Menu 1 bee-garden (2026-10-25): the ready menu1-bee-garden GLBs (branchV2, not branch), copied as
+   // optimized; fits measured in games/bee-garden/assets.ts. The garden mushroom is shared decor.
+   "/models/3d/bee-garden/bee.glb",
+   "/models/3d/bee-garden/beehive.glb",
+   "/models/3d/bee-garden/flowerA.glb",
+   "/models/3d/bee-garden/flowerB.glb",
+   "/models/3d/bee-garden/flowerC.glb",
+   "/models/3d/bee-garden/nectarOrb.glb",
+   "/models/3d/bee-garden/bigLeaf.glb",
+   "/models/3d/bee-garden/branchV2.glb",
+   "/models/3d/bee-garden/spiderWeb.glb",
+   "/models/3d/bee-garden/vegetablePlanter.glb",
+   "/models/3d/bee-garden/wateringCan.glb",
+   "/models/3d/shared/gardenMushroom.glb",
+   // hotel-bellboy-rush (2026-10-25): the Hyper3D ready set (menu1-hotel-bellboy-rush/, ledger OK or
+   // adopted as the spec says), optimized GLBs copied in, not re-optimized; the bellboy is a static
+   // T-pose for the core auto-rig. sofa and travellerNpc are the shared ready set (also for 31 / 44).
+   "/models/3d/hotel-bellboy-rush/charBellboy.glb",
+   "/models/3d/hotel-bellboy-rush/bellboyTrolleyV3T.glb",
+   "/models/3d/hotel-bellboy-rush/elevatorDoorsSliding.glb",
+   "/models/3d/hotel-bellboy-rush/hotelRoomDoor.glb",
+   "/models/3d/hotel-bellboy-rush/keyCard.glb",
+   "/models/3d/hotel-bellboy-rush/receptionDesk.glb",
+   "/models/3d/hotel-bellboy-rush/serviceBellV2.glb",
+   "/models/3d/hotel-bellboy-rush/lobbyPlanterR.glb",
+   "/models/3d/shared/sofa.glb",
+   "/models/3d/shared/travellerNpc.glb",
+   // postman-3d (2026-10-26): the ready menu1-postman-3d set (holidayTree included, now ready), copied as
+   // optimized; the postman is a static T-pose for the core auto-rig. trafficLight is the
+   // shared ready set, the dog is menu1-dog-park-fetch's (shared with dog-park-fetch).
+   "/models/3d/postman-3d/charPostman.glb",
+   "/models/3d/postman-3d/letter.glb",
+   "/models/3d/postman-3d/mailbag.glb",
+   "/models/3d/postman-3d/mailbox.glb",
+   "/models/3d/postman-3d/houseA.glb",
+   "/models/3d/postman-3d/houseB.glb",
+   "/models/3d/postman-3d/houseC.glb",
+   "/models/3d/postman-3d/postOffice.glb",
+   "/models/3d/postman-3d/postVan.glb",
+   "/models/3d/postman-3d/streetLampVictorian.glb",
+   "/models/3d/postman-3d/bicycle.glb",
+   "/models/3d/postman-3d/holidayTree.glb",
+   // picket fence (2026-10-27): the ready shared Rodin set, 1500 triangles; drawn on the three fenced houses per level
+   "/models/3d/postman-3d/picketFence.glb",
+   "/models/3d/shared/trafficLight.glb",
+   "/models/3d/shared/dog.glb",
+   // aquarium-cleaner (2026-10-25): menu1 ready set + shared coralI, optimized, character 18k tris
+   "/models/3d/aquarium-cleaner/charDiver.glb",
+   "/models/3d/aquarium-cleaner/aquariumScrubber.glb",
+   "/models/3d/aquarium-cleaner/plasticBottle.glb",
+   "/models/3d/aquarium-cleaner/tropicalFish.glb",
+   "/models/3d/aquarium-cleaner/aquariumCastle.glb",
+   "/models/3d/aquarium-cleaner/aquariumRock.glb",
+   "/models/3d/aquarium-cleaner/filterMachineV3.glb",
+   "/models/3d/aquarium-cleaner/scubaTank.glb",
+   "/models/3d/aquarium-cleaner/shark.glb",
+   "/models/3d/aquarium-cleaner/trashBasket.glb",
+   "/models/3d/aquarium-cleaner/coralI.glb",
+   // train-station-rush (2026-10-25): the Hyper3D ready set (menu1-train-station-rush/, the V2
+   // carriage), optimized GLBs copied in, not re-optimized; the worker is a static T-pose for the core
+   // auto-rig. Left out: trainCar.glb (tram proportions), locomotive.glb (a whole train set).
+   "/models/3d/train-station-rush/charStationWorker.glb",
+   "/models/3d/train-station-rush/trainCarV2.glb",
+   "/models/3d/train-station-rush/locomotiveFront.glb",
+   "/models/3d/train-station-rush/platformCanopy.glb",
+   "/models/3d/train-station-rush/platformSign.glb",
+   "/models/3d/train-station-rush/stationBench.glb",
+   "/models/3d/train-station-rush/stationClock.glb",
+   "/models/3d/train-station-rush/stationTrolley.glb",
+   "/models/3d/train-station-rush/backpack.glb",
+   "/models/3d/train-station-rush/ticketMachine.glb",
+   // toy-store-night-shift (2026-10-25): menu1 ready set, optimized, characters 18k tris
+   "/models/3d/toy-store-night-shift/toyShelfSolidT.glb",
+   "/models/3d/toy-store-night-shift/teddyBear.glb",
+   "/models/3d/toy-store-night-shift/toyCar.glb",
+   "/models/3d/toy-store-night-shift/toyAirplane.glb",
+   "/models/3d/toy-store-night-shift/toyBall.glb",
+   "/models/3d/toy-store-night-shift/toyBlocksPlainT.glb",
+   "/models/3d/toy-store-night-shift/toyTrain.glb",
+   "/models/3d/toy-store-night-shift/toyRobotProp.glb",
+   "/models/3d/toy-store-night-shift/toyRobot.glb",
+   "/models/3d/toy-store-night-shift/toyRobotHero.glb",
+   "/models/3d/toy-store-night-shift/toyBin.glb",
+   "/models/3d/toy-store-night-shift/toyBinPlush.glb",
+   // Menu 1 cat-vs-robot-vacuum (2026-10-25): the ready menu1-cat-vs-robot-vacuum set (catTreeR, and the
+   // regenerated catTreatFish / catToyPlush instead of the flagged originals) plus the shared furniture
+   // (bed, table, bookshelfFull, woodenChair); optimized GLBs copied in, fits in the game's assets.ts.
+   "/models/3d/cat-vs-robot-vacuum/cat.glb",
+   "/models/3d/cat-vs-robot-vacuum/robotVacuum.glb",
+   "/models/3d/cat-vs-robot-vacuum/catTreatFish.glb",
+   "/models/3d/cat-vs-robot-vacuum/catToyPlush.glb",
+   "/models/3d/cat-vs-robot-vacuum/catBox.glb",
+   "/models/3d/cat-vs-robot-vacuum/catTreeR.glb",
+   "/models/3d/shared/bed.glb",
+   "/models/3d/shared/bookshelfFull.glb",
+   // Menu 1 mars-rover-mission (2026-10-25): the ready menu1-mars-rover-mission GLBs (ledger OK; not marsRoverV2,
+   // groundSolarPanel or the broken ancientMarsRuin), copied as optimized; fits measured in its assets.ts.
+   // The astronaut is a static T-pose for the core auto-rig (ASTRONAUT_LANDMARKS).
+   "/models/3d/mars-rover-mission/marsRover.glb",
+   "/models/3d/mars-rover-mission/marsBase.glb",
+   "/models/3d/mars-rover-mission/commsAntenna.glb",
+   "/models/3d/mars-rover-mission/groundSolarPanelV2.glb",
+   "/models/3d/mars-rover-mission/chargingStation.glb",
+   "/models/3d/mars-rover-mission/sampleRock.glb",
+   "/models/3d/mars-rover-mission/beaconLight.glb",
+   "/models/3d/mars-rover-mission/researchCrate.glb",
+   "/models/3d/mars-rover-mission/landingCapsule.glb",
+   "/models/3d/mars-rover-mission/charAstronaut.glb",
+   "/models/3d/mars-rover-mission/marsMesaRock.glb",
+   "/models/3d/mars-rover-mission/marsBoulder.glb",
+   "/models/3d/mars-rover-mission/marsMesaTall.glb",
+   // mars-rover-mission redesign (2026-10-28): ready GLBs adopted from other sets (ledger OK): the crystal
+   // deposit (menu1-wizard-potion-lab magicCrystal), the carried sample (penguin-slide auroraCrystal), the
+   // L5 ancient beacon (menu2 m2RuinLanternPillar) and the L5 ancient arch (menu2 m2CaveTempleArch).
+   "/models/3d/mars-rover-mission/magicCrystal.glb",
+   "/models/3d/mars-rover-mission/auroraCrystal.glb",
+   "/models/3d/mars-rover-mission/m2RuinLanternPillar.glb",
+   "/models/3d/mars-rover-mission/m2CaveTempleArch.glb",
+   // submarine-treasure-dive (gate, 2026-10-25): menu1 ready set, optimized
+   "/models/3d/submarine-treasure-dive/miniSubmarine.glb",
+   "/models/3d/submarine-treasure-dive/amphora.glb",
+   "/models/3d/submarine-treasure-dive/anchor.glb",
+   "/models/3d/submarine-treasure-dive/pearlShellV2.glb",
+   "/models/3d/submarine-treasure-dive/rockArch.glb",
+   "/models/3d/submarine-treasure-dive/ruinColumn.glb",
+   "/models/3d/submarine-treasure-dive/shipwreckI.glb",
+   "/models/3d/submarine-treasure-dive/jellyfish.glb",
+   "/models/3d/submarine-treasure-dive/subDock.glb",
+   "/models/3d/submarine-treasure-dive/coralI.glb",
+   "/models/3d/submarine-treasure-dive/coralBranch.glb",
+   "/models/3d/submarine-treasure-dive/seaweedKelp.glb",
+   "/models/3d/submarine-treasure-dive/tropicalFish.glb",
+   "/models/3d/submarine-treasure-dive/aquariumRock.glb",
+   // wizard-potion-lab (gate, 2026-10-25): menu1 ready set, optimized
+   "/models/3d/wizard-potion-lab/charWizard.glb",
+   "/models/3d/wizard-potion-lab/alchemyTable.glb",
+   "/models/3d/wizard-potion-lab/magicCrystal.glb",
+   "/models/3d/wizard-potion-lab/berryBunch.glb",
+   "/models/3d/wizard-potion-lab/magicFlower.glb",
+   "/models/3d/wizard-potion-lab/herbBundle.glb",
+   "/models/3d/wizard-potion-lab/potionBottle.glb",
+   "/models/3d/wizard-potion-lab/spellBook.glb",
+   "/models/3d/wizard-potion-lab/candle.glb",
+   "/models/3d/wizard-potion-lab/crystalBall.glb",
+   "/models/3d/wizard-potion-lab/bookshelfFull.glb",
+   // magic-carpet-ride (gate, 2026-10-25): menu1 ready set, optimized
+   "/models/3d/magic-carpet-ride/charCarpetRider.glb",
+   "/models/3d/magic-carpet-ride/magicCarpet.glb",
+   "/models/3d/magic-carpet-ride/flyingRing.glb",
+   "/models/3d/magic-carpet-ride/palaceTower.glb",
+   "/models/3d/magic-carpet-ride/desertRooftopV2.glb",
+   "/models/3d/magic-carpet-ride/cloud.glb",
+   "/models/3d/magic-carpet-ride/hangingLantern.glb",
+   "/models/3d/magic-carpet-ride/canyonMesa.glb",
+   "/models/3d/magic-carpet-ride/floatingPalaceR.glb",
+   "/models/3d/magic-carpet-ride/floatingRockV3.glb",
+   // magic-carpet-ride redesign (2026-10-28): flyers, pickups and sky decor adopted from the ready sets
+   "/models/3d/magic-carpet-ride/m2SeaGullDiver.glb",
+   "/models/3d/magic-carpet-ride/m2CaveBat.glb",
+   "/models/3d/magic-carpet-ride/m2StormHawkBoss.glb",
+   "/models/3d/magic-carpet-ride/m2BalloonBunch.glb",
+   "/models/3d/magic-carpet-ride/m2AirshipBg.glb",
+   "/models/3d/magic-carpet-ride/m2SmokeBlimpBoss.glb",
+   "/models/3d/magic-carpet-ride/m2TempleLantern.glb",
+   "/models/3d/magic-carpet-ride/m2GoldCoin.glb",
+   "/models/3d/magic-carpet-ride/treasureGem.glb",
+   "/models/3d/magic-carpet-ride/rocketBooster.glb",
+   "/models/3d/magic-carpet-ride/m2SkyIslandCastle.glb",
+   "/models/3d/magic-carpet-ride/m2SkyIslandWaterfall.glb",
+   "/models/3d/magic-carpet-ride/m2WindmillIsland.glb",
+   "/models/3d/magic-carpet-ride/m2StepPyramidBg.glb",
+   // farm-tractor-challenge (gate, 2026-10-25): menu1 ready set, optimized
+   "/models/3d/farm-tractor-challenge/charFarmer.glb",
+   "/models/3d/farm-tractor-challenge/tractor.glb",
+   "/models/3d/farm-tractor-challenge/farmTrailer.glb",
+   "/models/3d/farm-tractor-challenge/hayBaleBound.glb",
+   "/models/3d/farm-tractor-challenge/appleCrate.glb",
+   "/models/3d/farm-tractor-challenge/barn.glb",
+   "/models/3d/farm-tractor-challenge/farmFence.glb",
+   "/models/3d/farm-tractor-challenge/farmGate.glb",
+   "/models/3d/farm-tractor-challenge/scarecrowPost.glb",
+   "/models/3d/farm-tractor-challenge/grainSiloGroundT.glb",
+   "/models/3d/farm-tractor-challenge/waterTrough.glb",
+   // Menu 1 jungle-bridge-run (2026-10-25): the ready menu1-jungle-bridge-run GLBs (templePillarV2 and
+   // ruinGateR, not the V1s; jungleLogSingle, jungleFern and volcanoBackdrop from the still-needed list are
+   // in the ready folder now), copied as optimized; fits in games/jungle-bridge-run/assets.ts. The explorer
+   // is a static T-pose for the core auto-rig. jungleLog (two logs) and junglePlant (potted) are not used.
+   "/models/3d/jungle-bridge-run/charExplorer.glb",
+   "/models/3d/jungle-bridge-run/woodenBridge.glb",
+   "/models/3d/jungle-bridge-run/ropeBridge.glb",
+   "/models/3d/jungle-bridge-run/jungleRock.glb",
+   "/models/3d/jungle-bridge-run/templePillarV2.glb",
+   "/models/3d/jungle-bridge-run/waterfallCliff.glb",
+   "/models/3d/jungle-bridge-run/ruinGateR.glb",
+   "/models/3d/jungle-bridge-run/jungleLogSingle.glb",
+   "/models/3d/jungle-bridge-run/jungleFern.glb",
+   "/models/3d/jungle-bridge-run/junglePlant.glb",
+   "/models/3d/jungle-bridge-run/volcanoBackdrop.glb",
+   "/models/3d/jungle-bridge-run/hangingVine.glb",
+   // Menu 1 taxi-rush-3d (2026-10-25): the ready menu1-taxi-rush-3d GLBs and the shared traffic light and
+   // cone, copied as optimized; fits measured in games/taxi-rush-3d/assets.ts.
+   "/models/3d/taxi-rush-3d/taxiCab.glb",
+   "/models/3d/taxi-rush-3d/townhouseBlock.glb",
+   "/models/3d/taxi-rush-3d/cornerShop.glb",
+   "/models/3d/taxi-rush-3d/busStop.glb",
+   // taxi-rush-3d modern pass (2026-10-28): taxiCab re-optimized from the raw Rodin file (1024 px textures),
+   // its baked wheels cut out for spinning code wheels; trafficCar = the pigeon-crossing car without its
+   // wheels and with its red paint made grey so per-copy tints colour it.
+   "/models/3d/taxi-rush-3d/trafficCar.glb",
+   // snowball-battle village decor (2026-10-25): extra Hyper3D props drawn only on levels 4-5
+   // (Ice Village, Championship Arena), behind the yard's far fence
+   "/models/3d/snowball-battle/igloo.glb",
+   "/models/3d/snowball-battle/snowmanBig.glb",
+   // dino-egg-rescue lava rock (2026-10-25): batch-5 companion decor (Hyper3D), drawn only on
+   // the volcanic levels 4-5 (Volcanic Pass / Dino Sanctuary) outside the play bounds
+   "/models/3d/dino-egg-rescue/lavaRock.glb",
+   // rocket-landing habitat dome (2026-10-25): batch 5 adoption, Gen-2.5-Medium, ~5.8k tris;
+   // outpost decor drawn only on levels 4-5 (rocket-landing HABITAT_DOME_SPOTS)
+   "/models/3d/rocket-landing/habitatDome.glb",
+   // shopping-cart props (2026-10-25): batch 5 part A adoptions, Gen-2.5-Medium, 1500-3000 tris,
+   // optimized GLBs copied in, not re-optimized; the floor scrubber is level 4-5 decor only
+   "/models/3d/shopping-cart/floorScrubber.glb",
+   // monster-kitchen slimeCake (2026-10-25): extra floor decor drawn only on levels 4 and 5
+   // (Dinner Rush / Grand Feast), Gen-2.5-Medium, optimized with tools/hyper3d
+   "/models/3d/monster-kitchen/slimeCake.glb",
+   // robot-factory (2026-10-25): powerCore decor on levels 4 and 5
+   "/models/3d/robot-factory/powerCore.glb",
+   // zoo-escape extra decor (levels 4-5)
+   "/models/3d/zoo-escape/zooFountain.glb",
+   // Menu 1 adoption A (2026-10-28): ready GLBs of treasure-island, dino-egg-rescue, delivery-drone, shopping-cart,
+   // snowball-battle, alien-farm, pirate-cannons, space-repair, rocket-landing, penguin-slide, monster-kitchen,
+   // construction-worker and robot-factory; fits in each game's assets.ts (assets.test.ts)
+   "/models/3d/treasure-island/palmTreeI.glb",
+   "/models/3d/treasure-island/rowboat.glb",
+   "/models/3d/treasure-island/treasureGem.glb",
+   "/models/3d/dino-egg-rescue/dinoEgg.glb",
+   "/models/3d/dino-egg-rescue/dinoNestV2.glb",
+   "/models/3d/delivery-drone/cardboardParcel.glb",
+   "/models/3d/delivery-drone/cityBuildingTall.glb",
+   "/models/3d/delivery-drone/cityBuildingV2.glb",
+   "/models/3d/shopping-cart/checkoutCounter.glb",
+   "/models/3d/shopping-cart/freezerCase.glb",
+   "/models/3d/shopping-cart/fruitStand.glb",
+   "/models/3d/shopping-cart/wetFloorCone.glb",
+   "/models/3d/snowball-battle/snowFort.glb",
+   "/models/3d/alien-farm/meteorite.glb",
+   "/models/3d/pirate-cannons/harbourBuoy.glb",
+   "/models/3d/space-repair/solarPanelWing.glb",
+   "/models/3d/rocket-landing/landingBeacon.glb",
+   "/models/3d/rocket-landing/landingPadV2.glb",
+   "/models/3d/penguin-slide/iceBlock.glb",
+   "/models/3d/penguin-slide/snowRamp.glb",
+   "/models/3d/monster-kitchen/lazySusan.glb",
+   "/models/3d/monster-kitchen/monsterEyeball.glb",
+   "/models/3d/monster-kitchen/monsterTopHat.glb",
+   "/models/3d/monster-kitchen/potionJar.glb",
+   "/models/3d/monster-kitchen/slimeCube.glb",
+   "/models/3d/monster-kitchen/stoveHearth.glb",
+   "/models/3d/construction-worker/buildColumn.glb",
+   "/models/3d/construction-worker/buildSlab.glb",
+   "/models/3d/construction-worker/buildWall.glb",
+   "/models/3d/construction-worker/buildWindow.glb",
+   "/models/3d/construction-worker/craneHook.glb",
+   "/models/3d/construction-worker/craneJibI.glb",
+   "/models/3d/robot-factory/robotArmClaw.glb",
+   "/models/3d/robot-factory/robotArmDrill.glb",
+   "/models/3d/robot-factory/robotArmWrench.glb",
+   "/models/3d/robot-factory/robotHeadAntenna.glb",
+   "/models/3d/robot-factory/robotHeadBox.glb",
+   "/models/3d/robot-factory/robotHeadDome.glb",
+   // Menu 1 dog-park-fetch (2026-10-26): the ready menu1-dog-park-fetch GLBs the gate adopts (dogHouse*,
+   // dogBone*, agilityHurdle and dogOwnerNpc left out: a dog is baked into each), plus shared civilianNpc
+   // as the owner; fits in games/dog-park-fetch/assets.ts.
+   "/models/3d/dog-park-fetch/dog.glb",
+   "/models/3d/dog-park-fetch/tennisBall.glb",
+   "/models/3d/dog-park-fetch/frisbee.glb",
+   "/models/3d/dog-park-fetch/fetchStick.glb",
+   "/models/3d/dog-park-fetch/parkFountain.glb",
+   "/models/3d/dog-park-fetch/agilityTunnel.glb",
+   "/models/3d/dog-park-fetch/agilityHurdleR.glb",
+   "/models/3d/dog-park-fetch/lawnMower.glb",
+   "/models/3d/dog-park-fetch/parkBush.glb",
+   "/models/3d/dog-park-fetch/festivalTent.glb",
+   "/models/3d/shared/civilianNpc.glb",
+   // office-escape exec decor (2026-10-25): batch 5 extra GLB, adopted as corridor decor drawn only
+   // on levels 4-5 (games/office-escape/assets.ts, Scene.tsx)
+   "/models/3d/office-escape/execDesk.glb",
+   // robot-collector hazard beacon (2026-10-25): Hyper3D prop copied in by Claude; decor on the
+   // wall trim of levels 4-5 (Dark Storage / Mega Warehouse), adopted in games/robot-collector
+   "/models/3d/robot-collector/hazardBeacon.glb",
+   // pigeon-crossing night decor (2026-10-25): batch 5 street props (Gen-2.5-Medium, 1500 / 3000
+   // tris), optimized GLBs copied in; dressing for levels 4 (Night Traffic) and 5 (Rush Hour) only,
+   // fitted and placed in games/pigeon-crossing (assets.ts, Decor.tsx)
+   "/models/3d/pigeon-crossing/streetLampNight.glb",
+   "/models/3d/pigeon-crossing/rushTaxi.glb",
+   // tower-climb storm decor (2026-10-25): batch 5 part B adoption, Gen-2.5-Medium, optimized GLB;
+   // frames levels 4-5 (Storm Tower, Sky Tower) beside the column. Fit in games/tower-climb/assets.ts.
+   "/models/3d/tower-climb/stormCloud.glb",
+   // penalty-hero finalTrophy (2026-10-25): the final's presentation cup (text-to-3D batch, optimized);
+   // level 4-5 decor behind the goal, placed in games/penalty-hero/assets.ts
+   "/models/3d/penalty-hero/finalTrophy.glb",
+   // warehouse-rush forkliftTruck (2026-10-25): parked-yard decor for levels 4-5 only (drawn there
+   // only); the fit lives in games/warehouse-rush/assets.ts
+   "/models/3d/warehouse-rush/forkliftTruck.glb",
+   // Menu 1 firefighter-rescue (2026-10-28): the ready menu1-firefighter-rescue GLBs (exitSignV2, not
+   // exitSign; not the older firefighter-rescue/hero.glb), plus the shared ready cabinet; fits in
+   // games/firefighter-rescue/assets.ts (assets.test.ts). The firefighter is auto-rigged.
+   "/models/3d/firefighter-rescue/charFirefighter.glb",
+   "/models/3d/firefighter-rescue/fireExtinguisher.glb",
+   "/models/3d/firefighter-rescue/fireHydrant.glb",
+   "/models/3d/firefighter-rescue/hoseReel.glb",
+   "/models/3d/firefighter-rescue/fireTruck.glb",
+   "/models/3d/firefighter-rescue/exitSignV2.glb",
+   "/models/3d/firefighter-rescue/fireDoor.glb",
+   "/models/3d/firefighter-rescue/fallingDebris.glb",
+   "/models/3d/shared/cabinet.glb",
 ];
 
 const LISTED: ReadonlySet<string> = new Set(MODEL_MANIFEST);

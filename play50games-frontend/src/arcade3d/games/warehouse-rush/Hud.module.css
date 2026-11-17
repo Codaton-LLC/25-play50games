@@ -77,6 +77,20 @@
    background: var(--order);
 }
 
+/* order deadline (levels 4-5): whole seconds left, white on the dark pill */
+.timer {
+   width: auto;
+   min-width: 24px;
+   padding: 0 3px;
+   color: #fff;
+   font-variant-numeric: tabular-nums;
+}
+
+.urgent {
+   border-color: #f87171;
+   color: #fca5a5;
+}
+
 .right {
    animation: right 0.6s ease-out;
 }

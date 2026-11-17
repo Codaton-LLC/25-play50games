@@ -4,11 +4,16 @@
 // Time game: end("win") only when the rules say the door finished. GameShell scores it.
 // Tap inspects the badge that is on screen (input.tap, on release). A miss does not fall
 // through to the E / Enter nearest-target key. E and the action button use actionPressed.
-import { memo, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { Raycaster, Vector2, Vector3, type Group, type MeshBasicMaterial, type PerspectiveCamera } from "three";
+import { useCameraViews } from "@/arcade3d/core/camera/CameraViews";
+import { useCameraZoom } from "@/arcade3d/core/useCameraZoom";
+import { phoneOffset } from "./cameraViews";
+import { ROOM_STYLES, scenerySolids } from "./roomStyles";
 import CameraRig from "@/arcade3d/core/CameraRig";
 import { playSfx } from "@/arcade3d/core/audio";
+import { useActionPop } from "@/arcade3d/core/fx";
 import type { AABB } from "@/arcade3d/core/collision";
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import { useInput } from "@/arcade3d/core/input";
@@ -25,8 +30,6 @@ import {
    reachPose,
    useHumanoidPose,
    walkPose,
-   walkStride,
-   wrapPhase,
    type HumanoidLandmarks,
    type HumanoidPose,
 } from "@/arcade3d/core/rig";
@@ -34,13 +37,15 @@ import { RUNNER_LANDMARKS } from "@/arcade3d/core/sharedAssets";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useFittedView, type FittedViewOptions } from "@/arcade3d/core/useFittedView";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
+import { useLevel } from "@/arcade3d/core/level";
+import type { EscapeLevel } from "./levels";
 import { RUNNER_ASSET, RUNNER_SCALE } from "./assets";
 import { PrimitiveRunner, Room, createMoving, type RunnerLimbs } from "./Primitives";
+import { gaitFrameDt, stepRunnerGait } from "./gait";
 import { groundRingScale } from "./marker";
 import { BADGE_LOOK, BADGE_PX, MARKER_PX, badgeShowsLoot, hitsBillboard, screenSpriteSize } from "./picker";
 import { armDirection, legDirection, reachSide, type Dir3 } from "./standIn";
 import {
-   DOOR_ID,
    DOOR_POSITION,
    NONE,
    RUNNER,
@@ -70,6 +75,10 @@ const VIEW: FittedViewOptions = {
    shift: true,
    fov: 45,
 };
+const DECOR_VIEW: FittedViewOptions = {
+   ...VIEW,
+   area: { min: { x: -8, y: -0.15, z: -7 }, max: { x: 8, y: 2.3, z: 5.2 } },
+};
 
 const BADGE_Y = 1.2;
 /** A tap that missed the badge. Not null, so it does not fall through to the nearest-target key. */
@@ -86,7 +95,7 @@ const TMP = new Vector3();
 const WORLD_UP = new Vector3(0, 1, 0);
 
 function anchorOf(run: EscapeRun, id: number): { x: number; z: number } {
-   return id === DOOR_ID ? DOOR_POSITION : run.layout.stations[id];
+   return id === run.layout.stations.length ? DOOR_POSITION : run.layout.stations[id];
 }
 
 /** Camera-facing square at the anchor. Writes BADGE and the billboard axes. Returns the world side. */
@@ -104,22 +113,26 @@ function placeBadge(camera: PerspectiveCamera, canvasHeight: number, x: number, 
    return screenSpriteSize(Math.abs(depth), camera.fov, canvasHeight, cssPx);
 }
 
-const Simulation = memo(function Simulation({ run, yaw }: { run: EscapeRun; yaw: number }) {
+const Simulation = memo(function Simulation({ run, yaw }: { run: EscapeRun; yaw: () => number }) {
    const input = useInput();
    const camera = useThree((s) => s.camera) as PerspectiveCamera;
    const height = useThree((s) => s.size.height);
+   const pop = useActionPop();
    const [scratch] = useState(() => ({ dir: { x: 0, z: 0 }, input: createStepInput(), hint: -1, mask: -1, found: -1 }));
 
    useLayoutEffect(() => {
       const store = useArcadeStore.getState();
       store.setStat("found", 0);
+      store.setStat("searched", 0);
       store.setStat("mask", 0);
       store.setStat("hint", 0);
+      store.setStat("nextItem", run.order[0]);
+      store.setStat("exitReady", run.exitReady ? 1 : 0);
    }, []);
 
    useRunFrame((_state, dt) => {
       const now = input.current;
-      inputToWorld(now.moveX, now.moveY, yaw, scratch.dir);
+      inputToWorld(now.moveX, now.moveY, yaw(), scratch.dir);
       const frame = scratch.input;
       frame.moveX = scratch.dir.x;
       frame.moveY = scratch.dir.z;
@@ -154,6 +167,13 @@ const Simulation = memo(function Simulation({ run, yaw }: { run: EscapeRun; yaw:
          store.setStat("mask", run.foundMask);
          playSfx("pickup");
       }
+      if (ev.opened !== NONE || ev.found !== NONE) {
+         let searched = 0;
+         for (let i = 0; i < run.stations.length; i++) if (run.stations[i].phase !== "closed") searched++;
+         store.setStat("searched", searched);
+         store.setStat("nextItem", run.order[run.found] ?? -1);
+         store.setStat("exitReady", run.exitReady ? 1 : 0);
+      }
       let hint = 0;
       if (run.message === "locked") hint = 1;
       else if (run.message === "empty") hint = 2;
@@ -163,8 +183,13 @@ const Simulation = memo(function Simulation({ run, yaw }: { run: EscapeRun; yaw:
       if (hint !== scratch.hint) {
          scratch.hint = hint;
          store.setStat("hint", hint);
+         // the result of a failed try, over the explorer (the checklist says it too)
+         if (hint === 1 || hint === 2) pop.fail({ x: run.player.x, y: 1.7, z: run.player.z }, hint === 1 ? "Locked: find all three first" : "Empty: nothing here", { shake: 0 });
       }
-      if (ev.ended === "win") store.end("win");
+      if (ev.ended === "win") {
+         if (run.level.id !== 1) store.setStat("finishMs", run.finishMs);
+         store.end("win");
+      }
       else if (ev.ended === "timeup") store.end("timeup");
    });
 
@@ -209,9 +234,8 @@ function Badge({ run }: { run: EscapeRun }) {
 
 /** runner.glb's measured joints (the complete set on the shared asset), in GLB units. */
 const RUNNER_LEGS: HumanoidLandmarks = RUNNER_LANDMARKS;
-// RUNNER_ASSET (1.40 m) and RUNNER_SCALE come from assets.ts: the stride and the lift are in
-// world units through the scale the runner is drawn at (assets.test.ts pins both).
-const MIN_STRIDE = 0.1;
+// RUNNER_ASSET (1.40 m) and RUNNER_SCALE come from assets.ts: the stride (gait.ts) and the lift are
+// in world units through the scale the runner is drawn at (assets.test.ts pins both).
 const DOWN = new Vector3(0, -1, 0);
 const LIMB_DIR: Dir3 = { x: 0, y: -1, z: 0 };
 const LIMB_V = new Vector3();
@@ -254,14 +278,13 @@ function Runner({ run }: { run: EscapeRun }) {
       const player = run.player;
       const v = Math.hypot(player.vx, player.vz);
       const g = gait.current;
-      g.amount += (Math.min(1, v / RUNNER.speed) - g.amount) * (1 - Math.exp(-12 * dt));
-      const stride = Math.max(MIN_STRIDE, walkStride(g.amount, RUNNER_LEGS) * RUNNER_SCALE);
-      g.phase = wrapPhase(g.phase + (v * dt / stride) * Math.PI * 2);
+      // the planted foot stays put at every speed up to 2.6 m/s (gait.ts), stepped by the play time
+      stepRunnerGait(g, v, gaitFrameDt(useArcadeStore.getState(), dt));
       if (v > RUNNER.speed * 0.2) g.heading = Math.atan2(player.vx, player.vz);
       const acting = run.action.kind !== "none";
       if (acting) {
          const id = run.action.target;
-         const target = id === DOOR_ID ? DOOR_POSITION : run.layout.stations[id];
+         const target = id === run.layout.stations.length ? DOOR_POSITION : run.layout.stations[id];
          // the arm on the target's side (rig L = +x local), for the stand-in and for runner.glb alike
          g.side = reachSide(g.heading, target.x - player.x, target.z - player.z);
       }
@@ -323,21 +346,54 @@ function Runner({ run }: { run: EscapeRun }) {
 }
 
 export default function Scene() {
-   const view = useFittedView(VIEW);
-   const [run] = useState(() => createRun(randomSeed()));
-   const [moving] = useState(() => ({ current: createMoving() }));
+   const { config } = useLevel<EscapeLevel>();
+   const view = useFittedView(config.id === 1 ? VIEW : DECOR_VIEW);
+   const [run] = useState(() => createRun(randomSeed(), config));
+   const style = ROOM_STYLES[config.id];
+   const solids = useMemo<AABB[]>(() => [
+      ...run.layout.obstacles.map((box) => ({ min: { ...box.min, y: 0 }, max: { ...box.max, y: 1.4 } })),
+      ...scenerySolids(config.id),
+      { min: { x: -6.2, y: 0, z: -5.2 }, max: { x: 6.2, y: 1.2, z: -5.04 } },
+      { min: { x: -6.2, y: 0, z: -5.2 }, max: { x: -6.04, y: 0.32, z: 5.2 } },
+      { min: { x: 6.04, y: 0, z: -5.2 }, max: { x: 6.2, y: 0.32, z: 5.2 } },
+      { min: { x: -0.95, y: 0, z: -5 }, max: { x: 0.95, y: 2.1, z: -4.75 } },
+   ], [run, config.id]);
+   const [moving] = useState(() => ({ current: createMoving(run.stations.length, run.items.length) }));
+   const aspect = useThree((s) => s.size.width / s.size.height);
+   const portrait = aspect < 1;
+   const offset = phoneOffset(view.offset, aspect);
+   const zoom = useCameraZoom({ min: 2 / Math.hypot(...offset), max: Math.max(1, 2 * view.distance / Math.hypot(...offset)) });
+   useEffect(() => { zoom.current = 1; }, [portrait, zoom]);
+   const cam = useCameraViews({
+      slug: "escape-room", subject: "character", steering: "camera", defaultYaw: view.yaw,
+      ...(config.id === 1 ? {} : { solids: (out: AABB[]) => {
+         for (let i = 0; i < solids.length; i++) out[i] = solids[i];
+         return solids.length;
+      } }),
+      framing: { chase: { distance: 4.5, lookUp: 0 }, front: { distance: 4, lookUp: 0 }, free: { distance: 4.5, lookUp: 0 } },
+      target: (o) => {
+         const p = run.player;
+         o.x = p.x; o.y = 0.7; o.z = p.z;
+         o.heading = Math.hypot(p.vx, p.vz) > 0.01 ? Math.atan2(p.vx, p.vz) : Math.PI;
+         o.vx = p.vx; o.vz = p.vz;
+      },
+   });
    const position = useMemo<[number, number, number]>(() => [
-      ROOM_FOCUS[0] + view.offset[0],
-      ROOM_FOCUS[1] + view.offset[1],
-      ROOM_FOCUS[2] + view.offset[2],
-   ], [view.offset]);
+      ROOM_FOCUS[0] + offset[0], ROOM_FOCUS[1] + offset[1], ROOM_FOCUS[2] + offset[2],
+   ], [offset[0], offset[1], offset[2]]);
 
    return (
       <>
-         <Simulation run={run} yaw={view.yaw} />
+         {config.id !== 1 && <>
+            <color attach="background" args={[style.fog]} />
+            <fog attach="fog" args={[style.fog, 24, 65]} />
+         </>}
+         <Simulation run={run} yaw={cam.yaw} />
          <CameraRig
             camera={{ position, fov: 45, lookAt: ROOM_FOCUS }}
-            offset={view.offset}
+            offset={offset}
+            zoom={zoom}
+            follow={aspect < 1 ? run.player : FOCUS[0]}
             shift={view.shift}
          />
          <Room run={run} moving={moving} />

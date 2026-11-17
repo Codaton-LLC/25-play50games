@@ -45,7 +45,7 @@ function show_games_custom_fields() {
                     <option value="circuit-path" data-category="logic">7. Circuit Path</option>
                     <option value="maze-escape" data-category="logic">8. Maze Escape</option>
                     <option value="pattern-completion" data-category="logic">9. Pattern Completion</option>
-                    <option value="sudoku-4x4" data-category="logic">10. Sudoku 4x4</option>
+                    <option value="sudoku-4x4" data-category="logic">10. Number Grid 4x4</option>
                     <option value="rotate-to-fit" data-category="logic">11. Rotate to Fit</option>
                     <option value="mirror-match" data-category="logic">12. Mirror Match</option>
                     <option value="logic-gates" data-category="logic">13. Logic Gates</option>
@@ -69,7 +69,7 @@ function show_games_custom_fields() {
                     <option value="avoid-red" data-category="speed">27. Avoid the Red</option>
                     <option value="reaction-test" data-category="speed">28. Reaction Test</option>
                     <option value="fast-math" data-category="speed">29. Fast Math</option>
-                    <option value="whack-shape" data-category="speed">30. Whack-a-Shape</option>
+                    <option value="whack-shape" data-category="speed">30. Shape Pop</option>
                     <option value="typing-sprint" data-category="speed">31. Typing Sprint</option>
                     <option value="quick-compare" data-category="speed">32. Quick Compare</option>
                     <option value="falling-objects" data-category="speed">33. Falling Objects</option>
@@ -358,7 +358,7 @@ function show_games_custom_fields() {
                 gameConfig: '{"gameType": "pattern-completion", "totalRounds": 20, "shapes": ["Home", "Star", "Heart", "Circle"], "patternRules": [{"rounds": 5, "patternLength": 6, "repeatSize": 3}, {"rounds": 7, "patternLength": 9, "repeatSize": 3}, {"rounds": 8, "patternLength": 13, "repeatSize": 4}]}'
             },
             'sudoku-4x4': {
-                title: 'Sudoku 4x4',
+                title: 'Number Grid 4x4',
                 gameType: 'logic',
                 gameOrder: 10,
                 difficulty: 3,
@@ -578,7 +578,7 @@ function show_games_custom_fields() {
                 gameConfig: '{"gameType": "fast-math", "levels": 20, "levelDuration": 30, "levelRequirements": [{"minCorrectAnswers": 5}, {"minCorrectAnswers": 6}, {"minCorrectAnswers": 7}, {"minCorrectAnswers": 8}, {"minCorrectAnswers": 9}, {"minCorrectAnswers": 10}, {"minCorrectAnswers": 11}, {"minCorrectAnswers": 12}, {"minCorrectAnswers": 13}, {"minCorrectAnswers": 14}, {"minCorrectAnswers": 15}, {"minCorrectAnswers": 16}, {"minCorrectAnswers": 17}, {"minCorrectAnswers": 18}, {"minCorrectAnswers": 19}, {"minCorrectAnswers": 20}, {"minCorrectAnswers": 21}, {"minCorrectAnswers": 22}, {"minCorrectAnswers": 23}, {"minCorrectAnswers": 24}]}'
             },
             'whack-shape': {
-                title: 'Whack-a-Shape',
+                title: 'Shape Pop',
                 gameType: 'speed',
                 gameOrder: 30,
                 difficulty: 2,
@@ -597,7 +597,7 @@ function show_games_custom_fields() {
                 passingScore: 70,
                 unlockRequirement: '',
                 description: 'Test your typing speed and accuracy across 15 unique levels. Progressive difficulty from simple words to complex sentences, numbers, special characters, and master challenges.',
-                gameConfig: '{"gameType": "typing-sprint", "levels": 15, "levelRequirements": [{"minCorrectWords": 3, "duration": 30, "words": ["cat", "dog", "sun", "moon", "star", "tree", "bird", "fish", "book", "pen", "cup", "hat", "car", "bus", "key", "door"]}, {"minCorrectWords": 4, "duration": 30, "words": ["apple", "banana", "orange", "purple", "yellow", "green", "computer", "keyboard", "window", "garden", "forest", "ocean", "planet", "camera", "guitar", "pencil"]}, {"minCorrectWords": 5, "duration": 30, "words": ["beautiful", "wonderful", "adventure", "mountain", "elephant", "butterfly", "chocolate", "dinosaur", "hospital", "university", "keyboard", "computer", "internet", "software", "hardware"]}, {"minCorrectWords": 6, "duration": 30, "words": ["don\'t", "can\'t", "won\'t", "it\'s", "we\'re", "they\'re", "you\'re", "I\'m", "he\'s", "she\'s", "let\'s", "that\'s"]}, {"minCorrectWords": 7, "duration": 30, "words": ["The quick brown fox jumps over the lazy dog", "Practice makes perfect in everything you do", "Learning new skills takes time and dedication", "Success comes to those who never give up"]}, {"minCorrectWords": 8, "duration": 30, "words": ["12345", "67890", "246813579", "9876543210", "314159265", "271828182", "1000000", "9999999"]}, {"minCorrectWords": 9, "duration": 30, "words": ["JavaScript", "TypeScript", "React", "NodeJS", "Python", "Java", "CSharp", "GoLang", "Swift", "Kotlin"]}, {"minCorrectWords": 10, "duration": 30, "words": ["helloworld", "goodmorning", "thankyou", "welcomeback", "seeyoulater", "haveaniceday", "goodluck", "congratulations"]}, {"minCorrectWords": 11, "duration": 30, "words": ["racecar", "level", "radar", "civic", "rotor", "deified", "repaper", "redder"]}, {"minCorrectWords": 12, "duration": 30, "words": ["go", "hi", "ok", "no", "yes", "run", "fly", "jump", "fast", "quick", "rapid", "swift", "speed", "haste"]}, {"minCorrectWords": 13, "duration": 30, "words": ["The early bird catches the worm in the morning", "A picture is worth a thousand words they say", "Actions speak louder than words in real life", "Better late than never is a common saying"]}, {"minCorrectWords": 14, "duration": 30, "words": ["hello@world.com", "user_name", "price$99", "score#1", "item&item", "test+test", "value=100", "key:value"]}, {"minCorrectWords": 15, "duration": 30, "words": ["abc123", "test456", "user789", "code2024", "game50", "level15", "score100", "time60"]}, {"minCorrectWords": 16, "duration": 30, "words": ["The quick brown fox jumps over the lazy dog in the park", "She sells seashells by the seashore every single day", "How much wood would a woodchuck chuck if he could", "Peter Piper picked a peck of pickled peppers today"]}, {"minCorrectWords": 17, "duration": 30, "words": ["Supercalifragilisticexpialidocious", "Pneumonoultramicroscopicsilicovolcanoconiosis", "The quick brown fox jumps over the lazy dog quickly", "JavaScript TypeScript React NodeJS Python Java CSharp"]}]}'
+                gameConfig: '{"gameType": "typing-sprint", "levels": 15, "levelRequirements": [{"minCorrectWords": 3, "duration": 30, "words": ["cat", "dog", "sun", "moon", "star", "tree", "bird", "fish", "book", "pen", "cup", "hat", "car", "bus", "key", "door"]}, {"minCorrectWords": 4, "duration": 30, "words": ["apple", "banana", "orange", "purple", "yellow", "green", "computer", "keyboard", "window", "garden", "forest", "ocean", "planet", "camera", "guitar", "pencil"]}, {"minCorrectWords": 5, "duration": 30, "words": ["beautiful", "wonderful", "adventure", "mountain", "elephant", "butterfly", "chocolate", "dinosaur", "hospital", "university", "keyboard", "computer", "internet", "software", "hardware"]}, {"minCorrectWords": 6, "duration": 30, "words": ["don\'t", "can\'t", "won\'t", "it\'s", "we\'re", "they\'re", "you\'re", "I\'m", "he\'s", "she\'s", "let\'s", "that\'s"]}, {"minCorrectWords": 7, "duration": 30, "words": ["The quick brown fox jumps over the lazy dog", "Practice makes perfect in everything you do", "Learning new skills takes time and dedication", "Success comes to those who never give up"]}, {"minCorrectWords": 8, "duration": 30, "words": ["12345", "67890", "246813579", "9876543210", "314159265", "271828182", "1000000", "9999999"]}, {"minCorrectWords": 9, "duration": 30, "words": ["BlueSky", "GreenTree", "HappyDay", "SunFlower", "MoonLight", "StarFish", "RainBow", "SnowBall", "FireWork", "WaterFall"]}, {"minCorrectWords": 10, "duration": 30, "words": ["helloworld", "goodmorning", "thankyou", "welcomeback", "seeyoulater", "haveaniceday", "goodluck", "congratulations"]}, {"minCorrectWords": 11, "duration": 30, "words": ["racecar", "level", "radar", "civic", "rotor", "deified", "repaper", "redder"]}, {"minCorrectWords": 12, "duration": 30, "words": ["go", "hi", "ok", "no", "yes", "run", "fly", "jump", "fast", "quick", "rapid", "swift", "speed", "haste"]}, {"minCorrectWords": 13, "duration": 30, "words": ["The early bird catches the worm in the morning", "A picture is worth a thousand words they say", "Actions speak louder than words in real life", "Better late than never is a common saying"]}, {"minCorrectWords": 14, "duration": 30, "words": ["hello@world.com", "user_name", "price$99", "score#1", "item&item", "test+test", "value=100", "key:value"]}, {"minCorrectWords": 15, "duration": 30, "words": ["abc123", "test456", "user789", "code2024", "game50", "level15", "score100", "time60"]}, {"minCorrectWords": 16, "duration": 30, "words": ["The quick brown fox jumps over the lazy dog in the park", "She sells seashells by the seashore every single day", "How much wood would a woodchuck chuck if he could", "Peter Piper picked a peck of pickled peppers today"]}, {"minCorrectWords": 17, "duration": 30, "words": ["Antidisestablishmentarianism", "Pneumonoultramicroscopicsilicovolcanoconiosis", "The quick brown fox jumps over the lazy dog quickly", "Bright Green Mountains Reflect Under Calm Blue Skies"]}]}'
             },
             'quick-compare': {
                 title: 'Quick Compare',
@@ -805,7 +805,7 @@ function show_games_custom_fields() {
                 timeLimit: 600,
                 passingScore: 90,
                 unlockRequirement: '',
-                description: 'Complete 4 unique mini-games in sequence: Code Breaker (Logic), Flash Sequence (Memory), Color Switch (Speed), and Precision Tap (Skill). Each challenge must be completed successfully to unlock the next one.',
+                description: 'Complete 4 unique mini-games in sequence: Code Breaker (Logic), Flash Sequence (Memory), Opposite Colors (Speed), and Precision Tap (Skill). Each challenge must be completed successfully to unlock the next one.',
                 gameConfig: '{"gameType": "final-test", "logic": {"rounds": 5}, "memory": {"rounds": 5}, "speed": {"targets": 10}, "skill": {"targets": 10}}'
             }
         };

@@ -32,6 +32,8 @@ export interface RunnerGait {
    facing: number;
    /** the body's height over its lower sole this frame (m): core bodyLift x RUNNER_SCALE (Scene sets it) */
    lift: number;
+   /** 1 while a rocket is burning: the pose pulls both arms back. 0 otherwise. */
+   fly: number;
    /** last frame's rules state, for the runner's own motion */
    lastX: number;
    lastMs: number;
@@ -39,7 +41,7 @@ export interface RunnerGait {
 }
 
 export function createRunnerGait(): RunnerGait {
-   return { phase: 0, amount: 0, air: 0, tuck: 0, cheer: 0, heading: 0, facing: 0, lift: 0, lastX: 0, lastMs: 0, grounded: true };
+   return { phase: 0, amount: 0, air: 0, tuck: 0, cheer: 0, heading: 0, facing: 0, lift: 0, fly: 0, lastX: 0, lastMs: 0, grounded: true };
 }
 
 /** How far the runner's support moved it since `fromMs` (rules `carry`: a moving slab it stands on alone). */
@@ -68,9 +70,11 @@ export function stepRunnerGait(g: RunnerGait, run: TowerRun, playing: boolean, d
    if (!airborne || !live) g.amount += (Math.min(1, speed / V_RUN) - g.amount) * ease(12, dt);
    g.phase = wrapPhase(g.phase + gaitPhaseStep(g.amount, RUNNER_LANDMARKS, RUNNER_SCALE, speed, seconds, RUNNER_MAX_CADENCE));
    g.air += ((airborne ? 1 : 0) - g.air) * ease(18, dt);
-   // stretched at the launch and the landing, tucked near the apex; a walk-off eases into it
-   const tuck = !airborne ? 0 : run.pendingLose ? 0.3 : Math.max(0, 1 - Math.abs(p.vy) / 4);
+   // stretched at the launch and the landing, tucked near the apex; a walk-off eases into it.
+   // A spring leaves the ground faster than a jump (vy > 4), which would otherwise flatten the tuck.
+   const tuck = !airborne ? 0 : run.pendingLose ? 0.3 : p.vy > 4 ? 0.85 : Math.max(0, 1 - Math.abs(p.vy) / 4);
    g.tuck += (tuck - g.tuck) * ease(10, dt);
+   g.fly = run.boostUntilMs >= 0 ? 1 : 0;
    const age = checkpointMs === NONE ? -1 : run.timeMs - checkpointMs;
    g.cheer = !airborne && age >= 0 && age < CHEER_MS ? Math.sin(age / CHEER_MS * Math.PI) : 0;
    if (live && p.vx !== 0) g.facing = p.vx > 0 ? Math.PI / 2 : -Math.PI / 2;

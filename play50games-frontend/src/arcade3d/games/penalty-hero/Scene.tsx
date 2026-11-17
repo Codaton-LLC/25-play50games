@@ -23,16 +23,17 @@ import {
    type MeshBasicMaterial,
 } from "three";
 import CameraRig from "@/arcade3d/core/CameraRig";
+import { InstancedModel } from "@/arcade3d/core/assets";
 import { playSfx } from "@/arcade3d/core/audio";
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import { useInput } from "@/arcade3d/core/input";
 import { randomSeed } from "@/arcade3d/core/math";
-import { BlobShadow } from "@/arcade3d/core/render";
+import { BlobShadow, Instanced } from "@/arcade3d/core/render";
 import { HumanoidModel, blendPoses, createPose, useHumanoidPose } from "@/arcade3d/core/rig";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useFittedView } from "@/arcade3d/core/useFittedView";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
-import { ASSETS } from "./assets";
+import { ASSETS, FINAL_TROPHY_ASSET, FINAL_TROPHY_DRAWN, FINAL_TROPHY_SPOTS } from "./assets";
 import { CAMERA_FOV, CAMERA_LOOK_AT, PENALTY_VIEW } from "./camera";
 import { FEEDBACK } from "./Hud";
 import { KEEPER_BOUNCE, KEEPER_HIP, KEEPER_ROOT, SPOT_Z, STRIKER_ROOT, keeperDip, keeperDivePlacement, keeperSway } from "./layout";
@@ -67,6 +68,44 @@ import { ZONE_IDLE_OPACITY, ZONE_PLANE_Z, zoneOpacity } from "./zones";
 const ZONE_H = 1.22;
 const RING_ON = new Color("#4ade80");
 const RING_OFF = new Color("#fbbf24");
+
+/** The stand-in cup's silhouette (lathe profile, drawn metres): foot, stem, bowl, lip; feet on y = 0. */
+const TROPHY_PROFILE: [number, number][] = [
+   [0.3, 0],
+   [0.3, 0.06],
+   [0.11, 0.1],
+   [0.08, 0.42],
+   [0.16, 0.52],
+   [0.34, 0.62],
+   [0.46, 0.85],
+   [0.5, 1.2],
+   [0.54, 1.32],
+   [0.5, 1.36],
+   [0.46, 1.3],
+];
+const TROPHY_MAX_R = Math.max(...TROPHY_PROFILE.map(([r]) => r));
+const trophyPoints = TROPHY_PROFILE.map(([r, y]) => new Vector2((r * FINAL_TROPHY_DRAWN.width) / (2 * TROPHY_MAX_R), (y * FINAL_TROPHY_DRAWN.height) / 1.36));
+
+/**
+ * The final's presentation cups (levels 4-5 only): instanced copies behind the goal, where the
+ * boards and the floodlights already sit. The game has no level configs on this branch, so the
+ * shell's picked `levelId` (1 until the levels land) is the gate; every spot is outside the play
+ * bounds (assets.test.ts).
+ */
+function FinalTrophies() {
+   return (
+      <InstancedModel
+         asset={FINAL_TROPHY_ASSET}
+         spots={FINAL_TROPHY_SPOTS}
+         fallback={
+            <Instanced spots={FINAL_TROPHY_SPOTS} name="final-trophies">
+               <latheGeometry args={[trophyPoints, 20]} />
+               <meshStandardMaterial color="#facc15" roughness={0.3} metalness={0.65} />
+            </Instanced>
+         }
+      />
+   );
+}
 
 interface Scratch {
    ray: Raycaster;
@@ -422,6 +461,7 @@ function Keeper({ run }: { run: RunState }) {
 
 export default function Scene() {
    const view = useFittedView(PENALTY_VIEW);
+   const levelId = useArcadeStore((s) => s.levelId);
    const [run] = useState<ViewRun>(() =>
       Object.assign(createRun(randomSeed()), { lastShots: 0, aimLeft: 0, goalMask: 0 })
    );
@@ -452,6 +492,7 @@ export default function Scene() {
          />
          <Stadium />
          <Goal />
+         {levelId >= 4 && <FinalTrophies />}
          <Zones run={run} />
          <Reticle run={run} />
          <Keeper run={run} />

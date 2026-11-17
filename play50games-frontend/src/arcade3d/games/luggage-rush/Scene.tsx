@@ -1,12 +1,15 @@
 "use client";
 
 // One useRunFrame: input, then rules, then the store. Visuals only read the run.
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useThree, type RootState } from "@react-three/fiber";
 import { Vector3 } from "three";
 import CameraRig from "@/arcade3d/core/CameraRig";
 import { playSfx, startLoop } from "@/arcade3d/core/audio";
-import { useFx } from "@/arcade3d/core/fx";
+import { SkyDome } from "@/arcade3d/core/env";
+import { useActionPop, useFx } from "@/arcade3d/core/fx";
+import { TargetBeacon } from "@/arcade3d/core/hud";
+import { useCoarsePointer } from "@/arcade3d/core/TouchControls";
 import { useInput } from "@/arcade3d/core/input";
 import { randomSeed } from "@/arcade3d/core/math";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
@@ -14,7 +17,10 @@ import { useFittedView, type FittedViewOptions } from "@/arcade3d/core/useFitted
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { Bags } from "./Bags";
 import { Belts } from "./Belts";
+import { GUIDE, emptyGoal, flightColor, hintCode, hintFor, nextGoal } from "./guide";
 import { Hall } from "./Hall";
+import type { LuggageLevel } from "./levels";
+import { COLORS } from "./looks";
 import {
    DIVERTER_AT,
    comboMult,
@@ -23,6 +29,8 @@ import {
    stepRun,
    type StepInput,
 } from "./rules";
+import { useLuggageLevel } from "./useLuggageLevel";
+import { TarmacSets } from "./TarmacSets";
 
 /** Belts only. The floor and handler past x 8.2 are outside the fit, so the camera can come in. */
 const AREA = {
@@ -72,7 +80,7 @@ function FittedCamera() {
 }
 
 /** Nearest unlocked diverter whose 64 px box contains the pointer. -1 if none. */
-function pickDiverter(state: RootState, tap: { x: number; y: number }, time: number, v: Vector3): number {
+function pickDiverter(state: RootState, tap: { x: number; y: number }, time: number, v: Vector3, level: LuggageLevel): number {
    const w = state.size.width;
    const h = state.size.height;
    const tx = (tap.x * 0.5 + 0.5) * w;
@@ -80,7 +88,7 @@ function pickDiverter(state: RootState, tap: { x: number; y: number }, time: num
    let best = -1;
    let bestD = Infinity;
    for (let i = 0; i < 4; i++) {
-      if (diverterLocked(i, time)) continue;
+      if (diverterLocked(i, time, level)) continue;
       const at = DIVERTER_AT[i];
       v.set(at.x, at.y + 0.55, at.z).project(state.camera);
       if (!(v.z >= -1 && v.z <= 1)) continue;
@@ -96,9 +104,17 @@ function pickDiverter(state: RootState, tap: { x: number; y: number }, time: num
 }
 
 export default function Scene() {
-   const [run] = useState(() => createRun(randomSeed()));
+   const { config, id: levelId } = useLuggageLevel();
+   const [run] = useState(() => createRun(randomSeed(), config));
    const input = useInput();
    const fx = useFx();
+   const pop = useActionPop();
+   const touch = useCoarsePointer();
+   const goal = useRef(emptyGoal()).current;
+   const guideCode = useRef(-1);
+   const flipBeacon = useRef({ x: 0, y: 0.9, z: 0, hidden: true }).current;
+   const chuteBeacon = useRef({ x: 0, y: 0.5, z: 0, hidden: true }).current;
+   const [flightColorNow, setFlightColor] = useState(flightColor(0));
    const phase = useArcadeStore((state) => state.phase);
    const scratch = useMemo(() => ({ v: new Vector3(), flip: { flip: [false, false, false, false] } as StepInput }), []);
 
@@ -112,6 +128,8 @@ export default function Scene() {
       return () => belt.stop();
    }, [phase]);
 
+   useEffect(() => () => GUIDE.reset(), []);
+
    useRunFrame((state, dt, time) => {
       const { pressed, swipe, tapDown } = input.current;
       const flip = scratch.flip.flip;
@@ -124,7 +142,7 @@ export default function Scene() {
          if (pressed.up) flip[3] = true;
       }
       if (tapDown) {
-         const hit = pickDiverter(state, tapDown, time, scratch.v);
+         const hit = pickDiverter(state, tapDown, time, scratch.v, config);
          if (hit >= 0) flip[hit] = true;
       }
       stepRun(run, scratch.flip, dt, time);
@@ -134,14 +152,15 @@ export default function Scene() {
          scratch.v.set(event.x, event.y + 0.4, event.z);
          if (event.kind === "deliver") {
             store.addScore(event.points);
-            fx.burst("sparkle", scratch.v, 12);
+            fx.burst("sparkle", scratch.v, 14);
             fx.score(scratch.v, `+${event.points}`);
             const mult = comboMult(run.streak < 1 ? 1 : run.streak);
             playSfx(run.streak > 1 ? "combo" : "chime", { pitch: 0.9 + 0.15 * (mult - 1) });
          } else if (event.kind === "strike") {
             fx.burst("puff", scratch.v, 14);
             playSfx(event.overflow ? "thud" : "buzz");
-            if (event.overflow) fx.shake(0.35);
+            // small shake on wrong chute, larger shake on overflow
+            pop.fail(scratch.v, event.overflow ? "Overflow! Miss" : "Wrong chute! Miss", { shake: event.overflow ? 0.35 : 0.15 });
          } else if (event.kind === "flip") {
             playSfx("click");
          }
@@ -149,14 +168,32 @@ export default function Scene() {
       store.setStat("strikes", run.strikes);
       store.setStat("combo", comboMult(run.streak < 1 ? 1 : run.streak));
       if (run.lost) store.end("lose");
+      // the beacons and the hint line follow the front bag; the hint is rebuilt only on a change
+      nextGoal(run, goal);
+      flipBeacon.hidden = goal.kind !== "flip";
+      chuteBeacon.hidden = goal.kind !== "chute";
+      const live = goal.kind === "flip" ? flipBeacon : chuteBeacon;
+      live.x = goal.x;
+      live.y = goal.y;
+      live.z = goal.z;
+      const code = hintCode(goal);
+      if (code !== guideCode.current) {
+         guideCode.current = code;
+         GUIDE.set(hintFor(goal, touch));
+         setFlightColor(flightColor(goal.flight));
+      }
    });
 
    return (
       <>
+         <SkyDome top={COLORS.skyTop} bottom={COLORS.skyBottom} />
          <FittedCamera />
          <Hall />
+         <TarmacSets levelId={levelId} />
          <Belts run={run} />
          <Bags run={run} />
+         <TargetBeacon target={flipBeacon} variant="pick" color={flightColorNow} radius={0.7} height={1.0} label="FLIP" />
+         <TargetBeacon target={chuteBeacon} variant="drop-here" color={flightColorNow} radius={0.8} height={1.0} label="CHUTE" />
       </>
    );
 }

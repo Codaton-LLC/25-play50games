@@ -41,6 +41,36 @@ Limits **maxScore 2630, minDurationMs 91000, maxDurationMs 122000, base 1720 (=2
 
 HUD: Ghosts x/12, shell time, ghost progress rings and capture base/combo popup. Before90 show "Last ghost in N s" (ceil(max(0,90-elapsed))); after90 if pending cap-blocked show "Last ghost waiting".
 
+## Levels
+
+One mansion, five rooms (`levels.ts`, read through `useGhostLevel`; `createRun(seed, level)`). **Level 1 is today's game exactly** (12 ghosts, 120 s, today's living rooms and night look; levels.test.ts replays 12 seeds against today's `createRun`). Every level keeps the twelve ghosts, the release schedule (ghost 11 at 90 s), the 120 s clock and the walls; a harder level offers more points (more gold ghosts) and is harder to catch.
+
+**Rooms (2026-10-29).** Each level dresses the four side rooms as its own room (`levels.ts` `rooms`) and the ghosts there keep that room's habit (`rules.ts` `ROOM_HABITS`, a ghost keeps its home room's habit):
+
+| Level | Rooms | Look (`RoomDressing.tsx`, `Mansion.tsx`, `index.tsx` environment) | Furniture (hunter walks round it, `ROOM_FURNITURE`) | Ghost habit |
+|---|---|---|---|---|
+| 1 Living Room | 4 × living | today's: oak floor, lilac walls, desks with candelabras, night | today's desks and chairs | none (today's) |
+| 2 Library | 4 × library | warm `indoor` light, green walls, dark parquet with a green-and-gold rug | 3 bookcases per room (outer wall, far wall, a free-standing one) | **fades into the shelves**: every 5 s a roaming ghost is a faint shimmer for 1.2 s (offset by id); the light cannot catch it then (exposure resets, as out of the cone) |
+| 3 Kitchen | 4 × kitchen | bright cool `indoor` light, tiled walls, teal-and-cream checker tiles, copper pots | an island, a counter, a stove per room; the hidden ghost's host is a work counter | **skids away**: a lit ghost flees at 1.35 × its flee speed |
+| 4 Attic | 4 × attic | dark `night`, close dusty fog, grey board floor with rafter shadows, rafters on the outer walls, cobwebs, dust motes | two trunks and a crate per room; the host is a steamer trunk | **creeps back**: a ghost left unlit for 5 s, roaming in its own room, its trunk free and the hunter over 4.5 m from it, hides in the trunk again (it pops out as before when the hunter comes within 3 m) |
+| 5 Whole Mansion | library (NW), living room / study (SW), kitchen (NE), attic (SE) | night; each wing its own floor, furniture and host | each wing's own | each wing's own habit: the level links all four rooms through the hall |
+
+The habits and furniture only delay a capture: no payment, release time or exposure shortens, so every limit and proof below holds unchanged (levels.test.ts re-runs them). Fairness per level (levels.test.ts "rooms, furniture and habits"): furniture stays inside its room, > 1.6 m from the doorway, > 1.2 m from the desk and off every pop spot; every free cell of the mansion (0.25 m grid, hunter radius) is reachable from the start and every host's reveal ring has a reachable cell; the habit tests (a faded ghost is never lit; a kitchen ghost skids > 1.2 × faster, never past its cap; an attic ghost re-hides after 5 s alone and pops out when the hunter comes; the living room does none of it). The honest bot walks each level's own grid (its furniture included). Not built: the plan's blocked/locked paths, more than twelve ghosts.
+
+| Level | Title | Gold ids | Big ids | Speed | Exposure (big) | Stun | Early cap | Late speed-up | Clear | Limits (max / base) |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 1 | Living Room | 5, 8, 11 | 9, 10 | ×1 | 0.4 (0.8) s | 2 s | 3 until 40 s | 60 s | win or 1500 | 2630 / 1720 |
+| 2 | Library | 2, 5, 8, 11 | 9, 10 | ×1.1 | 0.45 (0.9) s | 1.8 s | 3 until 35 s | 50 s | win or 1600 | 2830 / 1920 |
+| 3 | Kitchen | 2, 5, 7, 8, 11 | 9, 10 | ×1.2 | 0.5 (1.0) s | 1.7 s | 4 until 30 s | 45 s | win or 1700 | 3030 / 2120 |
+| 4 | Attic | 2, 4, 5, 7, 8, 11 | 6, 9, 10 | ×1.3 | 0.5 (1.0) s | 1.6 s | 4 until 25 s | 40 s | win or 1800 | 3230 / 2320 |
+| 5 | Whole Mansion | 1, 2, 4, 5, 7, 8, 11 | 3, 6, 9, 10 | ×1.4 | 0.55 (1.1) s | 1.5 s | 4 until 20 s | 30 s | — | 3430 / 2520 |
+
+All levels: minDurationMs 91000, maxDurationMs 122000, 10 pts/s. Level 5's cap is 1.3× level 1's.
+
+**Proof per level** (level 1's steps, with G gold ghosts). (1) Twelve captures, G gold and at most 11 session extras pay at most 1200 + 200 G + 550 at every prefix. (2) Ghost 11 is gold on every level and released at 90 s; a win needs its exposure (≥ 0.4 s) and the 1 s pull, so tWin ≥ 90 + exposure + 1 ≥ 91.4 s, and minDurationMs 91000 holds; a slower stun or faster ghosts only delay. (3) The time bonus is ≤ 10·floor(120 − 91.4) = 280, so maxScore = 2030 + 200 G. base = maxScore − 910 puts the envelope base + 10 t at maxScore at 91 s. Before 90 s at most the eleven released ghosts pay, ≤ 1100 + 200 (G − 1) + 500 = 1400 + 200 G ≤ base + 10 t for t ≥ 28 s; before 30 s at most five ghosts (ids 0-4, at most three of them gold) pay ≤ 1300 < base. A time-up pays ≤ 1750 + 200 G < base + 1200. Wins ≥ 91.4 s fit maxScore. The early cap, speeds, exposure and stun change no release time and no payment, so they cannot raise a prefix. levels.test.ts checks the prefix bound every 0.01 s and every win time per level.
+
+**Bots** (the rules.test.ts honest bot, copied into levels.test.ts, through the real store at 60 Hz, 20 Hz and random frames, keyboard and coarse): wins 60 of 60 seeds on every level (earliest 95.4-95.5 s), scores 2020-2040 / 2220-2240 / 2420-2440 / 2620-2640 / 2820-2840 (77-83 % of each cap, as on level 1); spam stays legal; idle times out at 0 and never clears.
+
 ## Scene, camera and readability
 
 - Follow pitch62 degrees/yaw0/fov45, shift true, padding8 CSS px/margin0.04; `CameraRig` full follow damping4, origin-local `useFittedView`, no partial follow/followFocus. Separate portrait area x/z+/-4.5, landscape x+/-5,z+/-4.5; gameplay hull y[0,1.56]. Never shrink either axis below suction4+big radius0.5. Walls outside gameplay hull may crop. Ordinary/gold visual height1.0 m and diameter>=1.0 m; big height/diameter1.2 m; rules radii unchanged0.4/0.5.
@@ -75,7 +105,8 @@ No generation/credits. Existing recipe only; manifest tier Gen-2.5-Medium (actua
 |desk/chair|SHARED_ASSETS.desk/chair,1.6/0.6 m wide|boxes/legs|
 |book/door|REUSED_ASSETS.book/door,0.25 m book length lying flat/2.2 m door height|book box/open frame,2 m clearance|
 |ghosts|procedural lathe/wobble/fresnel,1.0/1.2 m,<500 tris,6 visible max|no wobble low tier|
-|rooms/nozzle/decor|procedural; nozzle0.25,candelabra0.6,clock0.4,painting0.8x0.6|same code|
+|candelabra|own `candelabra.glb` (Hyper3D batch 5,1500 tris,110 KB),0.68 m tall x 0.54 w,candles+flame shapes baked in|merged brass stand-in (`fallbackParts`)|
+|rooms/nozzle/decor|procedural; nozzle0.25,clock0.4,painting0.8x0.6|same code|
 
 Game-local files: meta/index/rules/rules.test/assets/assets.test/Scene/Mansion/Ghosts/poses/poses.test/Vacuum/Hud/Hud.module.css; thumbnail paths `public/images/3d/ghost-vacuum.webp` and `tools/thumbs/inputs/ghost-vacuum.mjs`. This revision edits game implementation/tests/README and the requested handoff; assets.spec.json unchanged.
 
@@ -143,7 +174,7 @@ Visual-only modern-look pass giving Ghost Vacuum a polished, premium mobile-game
   - Polished chestnut floorboards with a grand burgundy carpet runner and gold borders running through the central hall.
   - Ornate Victorian rugs under the desks in all four rooms.
   - Warm lamp light pools on the floor beneath each room's candelabra (`DynamicInstanced`), providing cosy warm pools that contrast with the cool moonlit night.
-  - Ornate brass candelabras with ivory candle wax and gently flickering warm flames.
+  - Ornate three-armed candelabra GLB on each desk (Hyper3D, candles and flame tips baked into the model; the procedural wax stalks and flickering flames were dropped when the GLB was adopted, the warm floor pools stay).
   - Victorian wall clock with bevelled brass casing, ivory dial, and black hands.
   - Baroque gilded oil painting frame on the library wall with atmospheric canvas artwork.
   - Deliberate 2-3 tone stand-in fallbacks: panelled wooden door with brass hardware, leather-bound books with parchment pages, and mahogany armchairs with velvet cushions.
@@ -169,7 +200,7 @@ Visual-only modern-look pass giving Ghost Vacuum a polished, premium mobile-game
   - Sparkle burst on ghost stun.
 - **Draw-call Estimate (Peak <= 46, Budget <= 60)**:
   - Mansion architecture (floor, hall runner, room rugs, solid/faded walls, warm light pools): ~7
-  - Interior props (desks, chairs, books, doors, candelabras, clock, painting, icons): ~9
+  - Interior props (desks, chairs, books, doors, candelabra GLB, clock, painting, icons): ~7
   - Hunter & equipment (humanoid model / primitive, pack, nozzle, flashlight & suction cones, suction stream): ~5
   - Ghost pool (ghost bodies, crown/outlines, ground shadows, pull rings): ~4
   - Surroundings decor (hedges, gravestones, bare trees, hills, moon, lawn, path): ~8
@@ -178,3 +209,7 @@ Visual-only modern-look pass giving Ghost Vacuum a polished, premium mobile-game
   - **Total estimated draw calls**: ~39 steady, ~46 peak (well within the <= 60 budget).
   - Geometries and materials created once in `useMemo` and cleanly disposed on unmount; zero per-frame allocations. No `dispose={null}` on primitive geometry attachments.
 
+
+## Camera views
+
+Views: default, chase, front, top, free (the room walls block the chase, front and free cameras). **C** / **T** or the 📷 button cycles them; drag (or two fingers) looks around and switches to the free view, wheel / pinch zooms, **V** recenters. The rules receive the drawn camera's yaw (the fitted yaw in the default view), so a run in the default view is unchanged; no rules, bots, proofs or scoring were touched. Core docs: `core/camera/README.md`.

@@ -123,6 +123,51 @@ No new generation: cart GLB in `EXPANSION_ASSETS.cart`, 3 shoppers generated in 
 - `poses.test.ts` / `assets.test.ts`: runner hands within 3 cm of cart handle at y 0.94 m across full steering range; soles on floor; cart and shopper mesh bounds match catalog.
 - Browser: common criteria (03), banner open/closed, Retry ×10 keeps geometries flat.
 
+## Look (2026-10-24)
+
+Modern visual pass replacing raw stand-in boxes with a polished, vibrant, premium mobile supermarket aesthetic:
+
+1. **Palette & Styling (`looks.ts`)**:
+   - Single unified `COLORS` palette driving all materials, fixtures, and stand-in primitives.
+   - Every code-made stand-in has 2–3 distinct tones and deliberate bevelled/rounded shapes:
+     - `CartPrimitive`: chrome wire basket, red protective top bumper rim, front child seat flap, ergonomic cylindrical red handle with mounting brackets, and 4 castor wheels with dark tires and silver hubs.
+     - `ShopperPrimitive`: stylized 3-tone casual NPC with shoes, trousers, cardigan/hoodie/polo tops (`shopperA` lilac, `shopperB` mint, `shopperC` orange), skin-tone heads, hair volume, and handheld shopping baskets.
+     - `ProductPrimitive`: multi-tone stylized models for all 10 products (apple with stem and leaf, banana bunch, layered sesame burger, tin can with label band, beverage bottle with cap, paper grocery bag with handles, athletic sock with purple cuff, green battery with silver terminal, cartoon fish with fins, bottle gourd).
+     - `ShelfUnitPrimitive`: white retail gondola with dark base kickplate, shelf edge channels, and bright orange top department banners.
+
+2. **Supermarket Environment & Lighting (`Scene.tsx`)**:
+   - Core `indoor` lighting preset with balanced ambient and directional fills.
+   - Tuned linear fog (`FOG.near = 48`, `FOG.far = 96`) so the entire 32 × 24 m store interior is crisp, saturated, and unfogged, while distant concourse elements fade smoothly into the `#0b1220` background.
+   - Core `<SkyDome>` with rich navy gradient (`#0b1220` to `#1e293b`).
+   - Clean, high-gloss floor tiles via procedural canvas texture (`useCanvasTexture`, 512×512) with subtle grout lines and sheen variation (`roughness: 0.18`, `metalness: 0.06`), repeated across the 32 × 24 m interior.
+   - Extended 120 × 120 m concourse floor plane (`#070b14`) ensuring no sky or void shows below the scene at any viewport ratio (1280×800, 390×844, 844×390).
+   - Commercial fixtures: glass reach-in freezer cabinets with cyan LED glow strip (`#38bdf8`), tiered wooden produce island with fresh greens and crate rows, modern checkout counters with conveyor belts and green POS monitors, and interactive exit line mat.
+
+3. **Surroundings Outside Play Area (`Decor.tsx`)**:
+   - Rich perimeter decor strictly outside the play area (`x ∈ [-16, 16], z ∈ [-12, 12]`): outer wall shelving / pallet racks, sliding glass entrance/exit doors, promotional sign totems, shopping cart return corrals, customer service kiosks, and high warm ceiling light panels.
+   - Verified zero occlusion from fitted camera to play area objects across 1280×800, 390×844, and 844×390 in `looks.test.ts`.
+
+4. **Juicy Feedback**:
+   - Uses core `useFx()`: `sparkle` on pickups, `puff` on collisions and puddle drift skids, `debris` on pyramid topples, `confetti` on list completion and checkout win, and camera shake.
+
+5. **Draw Call Estimate**:
+   - Total estimated draw calls: **48–51 calls** (well under the budget cap of 60):
+     - SkyDome: 1
+     - Floor (concourse + supermarket tiles): 2
+     - Walls & fascia: 2
+     - Shelves (bodies, kickplates, banners, signs): 4
+     - Fruit island: 3
+     - Freezer row (cabinets, glass doors, LED strip): 3
+     - Checkout counters & registers: 2
+     - Finish zone mat: 1
+     - Exterior decor (shelving, doors, signs, corrals, kiosks, lights): 8
+     - Cart & runner (cart model, shadow, humanoid runner): 3
+     - Shoppers (3 humanoids + 3 shadows): 6
+     - Shelf items (halos, badges, models): 8
+     - Pyramids & spills: 4
+     - Core FX particles & text (when active): 2–4
+   - All geometries and materials created once and disposed on unmount with zero per-frame allocations.
+
 ## Performance
 
 Target **55** draw calls, cap **70**; triangles ≤ 120k with every GLB (runner 18k, shoppers 3 × 18k, cart 4k, instanced shelves 4, instanced products 6, can pyramids 2, checkout 2, floor 1, decals 1, fx pools ≤ 3). Lights: `indoor` preset only (no extra dynamic lights). Pools warmed at mount (`fx.warm("sparkle", "debris", "confetti", "score")`). No per-frame allocation.
@@ -141,6 +186,67 @@ Shopping list on HUD shows product icons and checkmarks; target items glow with 
 - **Swept collision multi-pass overhead:** 3 passes with 4 shelf boxes and 4 walls is at most 24 AABB sweep tests per frame (pure scalar math, <0.02 ms).
 - **Shopper landmark measurement:** when Claude imports `shopperA|B|C.glb`, landmarks will be verified in `assets.test.ts`; until then, capsule primitives stand in cleanly.
 - **Open questions:** None; all design questions resolved.
+
+## Levels (five per game, 2026-10-25)
+
+Five levels through the core level system (`core/README.md` "Levels"): `levels.ts` holds the pure `ShoppingCartLevel` configs, `createRun(seed, level)` / `stepRun` play one, `index.tsx` declares the five `LevelSpec`s (description, config, instructions, `durationMs`, and `hudStats` with the level's item count), `meta.ts` the titles and limits. **Level 1 is today's game unchanged** (6 items, 75 s clock, 40 s Shopper D, proven 2030 ceiling). A level clears on a **win** or reaching `clearScore`.
+
+| Level | Title | Items | Clock | Shopper D | Shopper speed / wait | clearScore |
+|---|---|---:|---:|---:|---:|---:|
+| 1 | Mini Market | 6 | 75 s | 40 s | 1.8 m/s (0.6 s wait) | 1200 |
+| 2 | Fresh Food | 7 | 100 s | 30 s | 1.9 m/s (0.5 s wait) | 1400 |
+| 3 | Household Aisles | 9 | 150 s | 20 s | 2.0 m/s (0.4 s wait) | 1600 |
+| 4 | Superstore | 12 | 150 s | 15 s | 2.1 m/s (0.3 s wait) | 1800 |
+| 5 | Closing-Time Rush | 15 | 180 s | 0 s (start) | 2.2 m/s (0.2 s wait) | - |
+
+Plan adaptation (GAME 16): 1 base store + 5 level configurations. Since 2026-10-29 each level is also its own store floor and light (below); level 1 is unchanged. Item counts scale 6 -> 7 -> 9 -> 12 -> 15. The 4th shopper (`shopperD`) activates progressively earlier (40 s down to 0 s at rush hour), and shoppers move faster with shorter waypoint pauses. The 52 m tour gate holds across all levels.
+
+### Store floors (2026-10-29: "the same level 5 times")
+
+`levels.ts` `STORES`: each level 2-5 adds its own set pieces (solid, drawn inside their rules box), its own wet floor, floor machines on patrol and, at closing time, a shut lane. The 24 shelf slots, the start, the four shelves, the fruit island, the freezer row, the counters and the finish are the same on every level.
+
+| Level | Floor | Twist | Light |
+|---|---|---|---|
+| 1 Mini Market | today's store | none (unchanged; `STORES[1]` is empty and a level-1 run carries no new state, so the bit-exact replay in `levels.test.ts` still matches) | `indoor`, today's |
+| 2 Fresh Food | two produce stands (fruitStand GLB) in the entrance aisle, two chilled cases (freezerCase GLB) on the east wall, green banners | the misters: two wet patches slick from the start (same grip rule as the spills) | `snow` (cool chilled light), green sky and fog |
+| 3 Household Aisles | stock-pallet zigzags (shared crate GLB on pallets) in aisles 2 and 5, teal banners | a floor scrubber (floorScrubber GLB) patrols the entrance aisle; contact stuns like a shopper (1 s, 1.5 s grace, combo reset) | `indoor`, warm brown sky and fog |
+| 4 Superstore | bakery promo islands (bakeryStand GLB) in both side aisles, the aisle-2 zigzag, orange banners | a stock pallet rolls up and down aisle 5 (same stun) | `day` (roof lights), blue sky |
+| 5 Closing-Time Rush | the aisle-2 zigzag, red banners, mop water by the freezers, a second puddle at 30 s | the scrubber and the pallet both out; at 60 s the left checkout lane's shutter drops (`LANE_GATE`, never onto the cart) | `night`, closer fog |
+
+Rules (`rules.ts`): `solidsFor(level)` = `SOLID_OBSTACLES` + the set pieces' boxes; a level-2-5 run keeps them in `run.solids` (the swept collision and the push-out loop read it), `run.movers` (stepped with `stepPatrol`, bumps reported as `shopperBumped`), and `run.laneClosed`. `inSpillAt` checks the rules spills and the level's own. The HUD, list, hint and beacon are unchanged.
+
+**Limits: unchanged.** Every level's proof is "a win visits the start, its slots' reach discs and the finish, and no frame moves the cart more than the kinematic cap", with the route bound measured over the level-1 solids. A set piece or the lane shutter only adds walls (`solidsFor(level)` starts with every level-1 solid), so every route can only get longer; wet floor and stuns only slow the cart; nothing adds a score source. So the 3500 ms floor, every `maxScore` and every pps line hold as written, and `meta.ts` / `arcade-games.json` are untouched.
+
+Tests: `stores.test.ts` floods the cart-centre configuration space (solids inflated by 0.45 m, the proof's inflation) on every level, with and without the shut lane, and checks every slot's reach disc and the finish stay reachable; that no piece touches a slot's reach disc, the start, a pyramid, the finish, another piece or a shopper / machine route; that a piece stops the cart; that a machine stuns and then gives grace; that the lane shuts at 60 s, not before and never on the cart; and that a level-1 run has no new keys. `levels.test.ts`'s path-following bot plans on each level's own floor (and the east lane at closing time): 40/40 seeds clear on every level.
+
+### Server limits per level (the proof)
+
+The score formula is identical across all levels:
+`runScore(items, comboPoints, listComplete, won, timeLeftMs) = 100 · items + comboPoints + (listComplete ? 300 : 0) + (won ? 10 · floor(timeLeftMs / 1000) : 0)`
+where perfect combo awards $10 \cdot K(K + 1)$ points for $K$ items.
+
+1. **Kinematic floor (3500 ms):** In any frame starting at play time $t$ (dt $\le 0.05$ s), $|v| \le \min(9, 12t + 0.6)$, so at most 28.56 m in 3.5 s. A win on a $K$-item list visits the $K$ reach discs and then the finish box, so it is at least as long as the shortest start → (its first 6 discs) → finish path. Over **every** 6-slot set, gated or not (`fix3-bound2.mjs 0.05 30 all`, the level-1 proof's config-space script, 134,596 sets), that path is $\ge 29.42$ m (sound bound, sampling allowance subtracted). $29.42 > 28.56$, so no win can occur before 3.5 s on any level (`minDurationMs: 3500`), whatever the list length and whether or not the 52 m gate held. (Level 1 keeps its own, larger 30.91 m gated bound.)
+2. **Earliest win & score ceiling:** At $t = 3.5$ s, $\text{timeLeftMs} = \text{durationMs} - 3500$, giving maximum time bonus $10 \cdot \lfloor (\text{durationMs} - 3500) / 1000 \rfloor$.
+3. **Linear envelope:** $S(t) \le \text{base} + \text{maxPointsPerSec} \times t$ holds for all $t \ge 3.5$ s with $\text{pps} = 100$.
+4. **Order of magnitude:** Level 5 `maxScore` (5960) is $2.94\times$ Level 1's (2030), satisfying the $\le \sim 3\times$ guard.
+
+| Level | Title | Items ($K$) | Clock | Items + Combo + Complete | Earliest Win Bonus ($t = 3.5$ s) | `maxScore` | `minDurationMs` | `maxDurationMs` | `base` / `maxPointsPerSec` |
+|---|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| 1 | Mini Market | 6 | 75 s | $600 + 420 + 300 = 1320$ | $10 \times 71 = 710$ | **2030** | 3500 | 77000 | 1700 / 100 |
+| 2 | Fresh Food | 7 | 100 s | $700 + 560 + 300 = 1560$ | $10 \times 96 = 960$ | **2520** | 3500 | 102000 | 2200 / 100 |
+| 3 | Household Aisles | 9 | 150 s | $900 + 900 + 300 = 2100$ | $10 \times 146 = 1460$ | **3560** | 3500 | 152000 | 3250 / 100 |
+| 4 | Superstore | 12 | 150 s | $1200 + 1560 + 300 = 3060$ | $10 \times 146 = 1460$ | **4520** | 3500 | 152000 | 4200 / 100 |
+| 5 | Closing-Time Rush | 15 | 180 s | $1500 + 2400 + 300 = 4200$ | $10 \times 176 = 1760$ | **5960** | 3500 | 182000 | 5650 / 100 |
+
+### Bot clear rates (`levels.test.ts`)
+
+| Level | Path-following bot wins / 40 | Win rate | Walking bot wins / 50 | Walking win rate | Idle score |
+|---|---:|---:|---:|---:|---:|
+| 1 | 40 / 40 | 100% | 50 / 50 | 100% | 0 (never clears) |
+| 2 | 40 / 40 | 100% | 50 / 50 | 100% | 0 (never clears) |
+| 3 | 40 / 40 | 100% | 50 / 50 | 100% | 0 (never clears) |
+| 4 | 40 / 40 | 100% | 50 / 50 | 100% | 0 (never clears) |
+| 5 | 40 / 40 | 100% | 50 / 50 | 100% | 0 (never clears) |
 
 ## Status
 
@@ -171,3 +277,11 @@ Open questions for Claude or the user: None.
 Known issues / follow-ups: None.
 Evidence: public/images/3d/shopping-cart.webp (9.7 KB), tools/thumbs/out/shopping-cart.webp
 ```
+
+## Camera views
+
+Views: default, chase, front, top, free (the shelves and counters block the camera). **C** / **T** or the 📷 button cycles them; drag (or two fingers) looks around and switches to the free view, wheel / pinch zooms, **V** recenters. The rules receive the drawn camera's yaw (the fitted yaw in the default view), so a run in the default view is unchanged; no rules, bots, proofs or scoring were touched. Core docs: `core/camera/README.md`.
+
+## Clarity (2026-10-28, visual only)
+
+`guide.ts` (pure, `guide.test.ts`) picks the item to fetch next: the nearest by `storeDistance`, kept until it is taken unless another is clearly closer (`SWITCH_SHARE` 0.6), then the checkout. A core `TargetBeacon` stands over it (an orange arrow; a green "drop-here" ring with a CHECKOUT label once the list is done). The new `Hud.tsx` shows the shopping list as icons (taken ones ticked and dimmed, the beacon's item ringed), the Ride state ("RIDING: fast, slippery" lit while Space / Ride is held), and the core `HintLine` ("Grab the banana (arrow) · hold Space to go fast", "Next: the fish (arrow) · 3 left", "List done! Drive to the green checkout", a sticky "Bumped a shopper! Wait…" while stunned). A taken product flies on an arc into the basket instead of vanishing; fail pops: "Bumped! Combo lost / Stunned", "Crash! Combo lost / Slowed" (pyramid), "Crash! Combo lost" (a hard wall hit that ends the streak). Rules, scoring and limits are unchanged.

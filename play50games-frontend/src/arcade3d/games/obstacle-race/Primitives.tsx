@@ -35,54 +35,15 @@ import {
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { useCanvasTexture, useInstanceMatrices, type InstanceSpot } from "@/arcade3d/core/render";
 import { ARCH, BAR, BEAM, BLOCK, DISC, HUB, PLATFORM, WATER_Y, type Course, type Support } from "./rules";
+import { BASE_COLORS, useColors, useTheme, type CourseColors } from "./themes";
 
 // ---------- look ----------
 
-export const COLORS = {
-   sky: "#bae6fd",
-   water: "#38bdf8",
-   deck: "#e2e8f0",
-   coping: "#f8fafc",
-   padSide: "#3b82f6",
-   padTop: "#e0f2fe",
-   checkpointTop: "#c7d2fe",
-   finishTop: "#bbf7d0",
-   rim: "#fbbf24",
-   discSide: "#ef4444",
-   discStripeA: "#fff1f2",
-   discStripeB: "#fecaca",
-   hub: "#facc15",
-   hubCap: "#f97316",
-   barRed: "#ef4444",
-   barWhite: "#ffffff",
-   slab: "#16a34a",
-   cushion: "#86efac",
-   pillar: "#e2e8f0",
-   block: "#f59e0b",
-   blockTop: "#fcd34d",
-   rail: "#94a3b8",
-   beam: "#a855f7",
-   beamTop: "#c4b5fd",
-   line: "#ffffff",
-   accent: "#6366f1",
-   reached: "#22c55e",
-   post: "#f8fafc",
-   archLeg: "#ef4444",
-   archTop: "#facc15",
-   ropeA: "#ef4444",
-   ropeB: "#ffffff",
-   ropeC: "#2563eb",
-   splash: "#e0f2fe",
-   hoodie: "#f97316",
-   hood: "#ea580c",
-   pants: "#1e293b",
-   shoes: "#f8fafc",
-   skin: "#f5c9a3",
-   hair: "#3f2a1d",
-   band: "#14b8a6",
-   pack: "#1d4ed8",
-   eye: "#0f172a",
-} as const;
+// The palette lives in themes.ts: BASE_COLORS is level 1's (today's) palette; each level's theme
+// overrides some keys. Components read the resolved palette with useColors() (the theme context
+// is provided once per Scene mount, so what is drawn still always matches the rules). The
+// stand-in runner keeps the base colors: the hero looks the same at every level.
+export const COLORS = BASE_COLORS;
 
 /** How far below the water the course's bodies reach (m): the pool hides the cut. */
 const UNDER = WATER_Y - 0.4;
@@ -102,7 +63,7 @@ const SUPPORTS = (course: Course): readonly Support[] => course.supports;
 const byKind = (course: Course, ...kinds: Support["kind"][]): Support[] => course.supports.filter((s) => kinds.includes(s.kind));
 
 /** Static copies of one geometry with a colour per copy (instanceColor; the material is white). */
-function ColoredInstances({
+export function ColoredInstances({
    spots,
    colors,
    geometry,
@@ -127,7 +88,7 @@ function ColoredInstances({
 }
 
 /** Geometries and materials made once per mount and disposed with it. */
-function useDisposable<T extends Record<string, { dispose(): void }>>(make: () => T): T {
+export function useDisposable<T extends Record<string, { dispose(): void }>>(make: () => T): T {
    // eslint-disable-next-line react-hooks/exhaustive-deps
    const made = useMemo(make, []);
    useEffect(() => () => Object.values(made).forEach((item) => item.dispose()), [made]);
@@ -167,29 +128,31 @@ function drawWater(ctx: CanvasRenderingContext2D, w: number, h: number) {
    }
 }
 
-function drawDiscTop(ctx: CanvasRenderingContext2D, w: number, h: number) {
-   const cx = w / 2;
-   const cy = h / 2;
-   const r = w / 2;
-   const wedges = 16;
-   for (let k = 0; k < wedges; k++) {
-      ctx.fillStyle = k % 2 === 0 ? COLORS.discStripeA : COLORS.discStripeB;
+function drawDiscTopWith(c: CourseColors) {
+   return (ctx: CanvasRenderingContext2D, w: number, h: number) => {
+      const cx = w / 2;
+      const cy = h / 2;
+      const r = w / 2;
+      const wedges = 16;
+      for (let k = 0; k < wedges; k++) {
+         ctx.fillStyle = k % 2 === 0 ? c.discStripeA : c.discStripeB;
+         ctx.beginPath();
+         ctx.moveTo(cx, cy);
+         ctx.arc(cx, cy, r, (k / wedges) * Math.PI * 2, ((k + 1) / wedges) * Math.PI * 2);
+         ctx.closePath();
+         ctx.fill();
+      }
+      // the safe ring near the hub and a red outer band (where the bar's tip runs fastest)
+      ctx.strokeStyle = "#f87171";
+      ctx.lineWidth = w * 0.025;
       ctx.beginPath();
-      ctx.moveTo(cx, cy);
-      ctx.arc(cx, cy, r, (k / wedges) * Math.PI * 2, ((k + 1) / wedges) * Math.PI * 2);
-      ctx.closePath();
+      ctx.arc(cx, cy, r * 0.95, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.fillStyle = "#fde68a";
+      ctx.beginPath();
+      ctx.arc(cx, cy, r * 0.16, 0, Math.PI * 2);
       ctx.fill();
-   }
-   // the safe ring near the hub and a red outer band (where the bar's tip runs fastest)
-   ctx.strokeStyle = "#f87171";
-   ctx.lineWidth = w * 0.025;
-   ctx.beginPath();
-   ctx.arc(cx, cy, r * 0.95, 0, Math.PI * 2);
-   ctx.stroke();
-   ctx.fillStyle = "#fde68a";
-   ctx.beginPath();
-   ctx.arc(cx, cy, r * 0.16, 0, Math.PI * 2);
-   ctx.fill();
+   };
 }
 
 function drawStripes(ctx: CanvasRenderingContext2D, w: number, h: number) {
@@ -224,6 +187,7 @@ function drawChecker(ctx: CanvasRenderingContext2D, w: number, h: number) {
 
 /** The pool: one water plane (Scene.tsx scrolls its texture) and the deck beside the course. */
 export function Pool({ water }: { water: RefObject<MeshStandardMaterial> }) {
+   const c = useColors();
    const ripples = useCanvasTexture(256, 256, drawWater);
    useLayoutEffect(() => {
       ripples.wrapS = RepeatWrapping;
@@ -237,7 +201,7 @@ export function Pool({ water }: { water: RefObject<MeshStandardMaterial> }) {
       <group name="pool">
          <mesh rotation-x={-Math.PI / 2} position={[0, WATER_Y, zMid]}>
             <planeGeometry args={[2 * POOL.halfWidth, length]} />
-            <meshStandardMaterial ref={water} map={ripples} color="#ffffff" roughness={0.35} metalness={0.05} />
+            <meshStandardMaterial ref={water} map={ripples} color={c.waterTint} roughness={0.35} metalness={0.05} />
          </mesh>
          {[-1, 1].map((side) => (
             <group key={side}>
@@ -261,11 +225,12 @@ const ROPE_SPOTS: InstanceSpot[] = (() => {
    for (const x of [-11, 11]) for (let z = 18; z > -150; z -= 0.75) spots.push({ x, y: WATER_Y + 0.06, z, scale: 0.2 });
    return spots;
 })();
-const ROPE_COLORS = [COLORS.ropeA, COLORS.ropeA, COLORS.ropeB, COLORS.ropeB, COLORS.ropeC, COLORS.ropeC].map((c) => new Color(c));
 
 export function LaneRopes() {
+   const theme = useTheme();
+   const colors = useMemo(() => [theme.rope[0], theme.rope[0], theme.rope[1], theme.rope[1], theme.rope[2], theme.rope[2]].map((c) => new Color(c)), [theme]);
    const res = useDisposable(() => ({ ball: new SphereGeometry(1, 10, 8), mat: new MeshStandardMaterial({ color: "#ffffff", roughness: 0.5 }) }));
-   return <ColoredInstances spots={ROPE_SPOTS} colors={ROPE_COLORS} geometry={res.ball} material={res.mat} name="lane-ropes" />;
+   return <ColoredInstances spots={ROPE_SPOTS} colors={colors} geometry={res.ball} material={res.mat} name="lane-ropes" />;
 }
 
 // ---------- the static course ----------
@@ -364,7 +329,7 @@ export function spotsOf(course: Course): CourseSpots {
 
 const LINE_DEPTH = 0.35;
 
-function useCourseParts() {
+function useCourseParts(c: CourseColors) {
    return useDisposable(() => {
       const box = new BoxGeometry(1, 1, 1);
       // a unit tube along z (radius 1, length 1)
@@ -374,16 +339,16 @@ function useCourseParts() {
          box,
          tube,
          flat,
-         padSide: new MeshStandardMaterial({ color: COLORS.padSide, roughness: 0.45 }),
-         padTop: new MeshStandardMaterial({ color: COLORS.padTop, roughness: 0.55 }),
-         checkpointTop: new MeshStandardMaterial({ color: COLORS.checkpointTop, roughness: 0.55 }),
-         finishTop: new MeshStandardMaterial({ color: COLORS.finishTop, roughness: 0.55 }),
-         rim: new MeshStandardMaterial({ color: COLORS.rim, roughness: 0.4 }),
-         slab: new MeshStandardMaterial({ color: COLORS.slab, roughness: 0.45 }),
-         cushion: new MeshStandardMaterial({ color: COLORS.cushion, roughness: 0.5 }),
-         pillar: new MeshStandardMaterial({ color: COLORS.pillar, roughness: 0.6 }),
-         rail: new MeshStandardMaterial({ color: COLORS.rail, roughness: 0.4, metalness: 0.3 }),
-         line: new MeshBasicMaterial({ color: COLORS.line, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }),
+         padSide: new MeshStandardMaterial({ color: c.padSide, roughness: 0.45 }),
+         padTop: new MeshStandardMaterial({ color: c.padTop, roughness: 0.55 }),
+         checkpointTop: new MeshStandardMaterial({ color: c.checkpointTop, roughness: 0.55 }),
+         finishTop: new MeshStandardMaterial({ color: c.finishTop, roughness: 0.55 }),
+         rim: new MeshStandardMaterial({ color: c.rim, roughness: 0.4 }),
+         slab: new MeshStandardMaterial({ color: c.slab, roughness: 0.45 }),
+         cushion: new MeshStandardMaterial({ color: c.cushion, roughness: 0.5 }),
+         pillar: new MeshStandardMaterial({ color: c.pillar, roughness: 0.6 }),
+         rail: new MeshStandardMaterial({ color: c.rail, roughness: 0.4, metalness: 0.3 }),
+         line: new MeshBasicMaterial({ color: c.line, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }),
       };
    });
 }
@@ -397,10 +362,11 @@ function useSpots(spots: readonly InstanceSpot[]): RefObject<InstancedMesh> {
 
 /** Everything of the course that never moves: pads, bridges, rims, platforms, pillars, posts, rails, lines, the disc, the hub. */
 export function CourseStatic({ course }: { course: Course }) {
-   const p = useCourseParts();
+   const c = useColors();
+   const p = useCourseParts(c);
    const spots = useMemo(() => spotsOf(course), [course]);
    const checker = useCanvasTexture(512, 64, drawChecker);
-   const discTop = useCanvasTexture(512, 512, drawDiscTop);
+   const discTop = useCanvasTexture(512, 512, useMemo(() => drawDiscTopWith(c), [c]));
    const padBodies = useSpots(spots.padBodies);
    const padTops = useSpots(spots.padTops);
    const checkpointTops = useSpots(spots.checkpointTops);
@@ -431,22 +397,22 @@ export function CourseStatic({ course }: { course: Course }) {
          {/* the sweeper disc: a red drum with a striped top, a yellow tube round its rim */}
          <mesh position={[DISC.x, (UNDER + DISC.top) / 2, -DISC.p]}>
             <cylinderGeometry args={[DISC.radius, DISC.radius, DISC.top - UNDER, 64, 1, false]} />
-            <meshStandardMaterial attach="material-0" color={COLORS.discSide} roughness={0.45} />
+            <meshStandardMaterial attach="material-0" color={c.discSide} roughness={0.45} />
             <meshStandardMaterial attach="material-1" map={discTop} roughness={0.55} />
-            <meshStandardMaterial attach="material-2" color={COLORS.discSide} />
+            <meshStandardMaterial attach="material-2" color={c.discSide} />
          </mesh>
          <mesh position={[DISC.x, RIM_Y, -DISC.p]} rotation-x={Math.PI / 2}>
             <torusGeometry args={[DISC.radius, RIM_R, 10, 72]} />
-            <meshStandardMaterial color={COLORS.rim} roughness={0.4} />
+            <meshStandardMaterial color={c.rim} roughness={0.4} />
          </mesh>
          {/* the hub: solid, taller than a jump's apex */}
          <mesh position={[DISC.x, HUB.height / 2, -DISC.p]}>
             <cylinderGeometry args={[HUB.radius, HUB.radius, HUB.height, 28]} />
-            <meshStandardMaterial color={COLORS.hub} roughness={0.4} />
+            <meshStandardMaterial color={c.hub} roughness={0.4} />
          </mesh>
          <mesh position={[DISC.x, HUB.height, -DISC.p]} scale={[1, 0.45, 1]}>
             <sphereGeometry args={[HUB.radius, 24, 10, 0, Math.PI * 2, 0, Math.PI / 2]} />
-            <meshStandardMaterial color={COLORS.hubCap} roughness={0.4} />
+            <meshStandardMaterial color={c.hubCap} roughness={0.4} />
          </mesh>
       </group>
    );
@@ -456,6 +422,7 @@ export function CourseStatic({ course }: { course: Course }) {
 
 /** The bar through the hub (Scene.tsx sets the group's rotation.y to rules barAngle). */
 export function SweeperBar({ bar }: { bar: RefObject<Group> }) {
+   const c = useColors();
    const stripes = useCanvasTexture(512, 32, drawStripes);
    const height = BAR.top - BAR.bottom;
    return (
@@ -467,12 +434,12 @@ export function SweeperBar({ bar }: { bar: RefObject<Group> }) {
          {/* a collar on the hub that turns with the bar, and soft pads on the tips */}
          <mesh position-y={(BAR.bottom + BAR.top) / 2}>
             <cylinderGeometry args={[HUB.radius + 0.06, HUB.radius + 0.06, height + 0.1, 24]} />
-            <meshStandardMaterial color={COLORS.barRed} roughness={0.45} />
+            <meshStandardMaterial color={c.barRed} roughness={0.45} />
          </mesh>
          {[-1, 1].map((side) => (
             <mesh key={side} position={[side * (BAR.reach - 0.12), (BAR.bottom + BAR.top) / 2, 0]} rotation-z={Math.PI / 2}>
                <cylinderGeometry args={[0.3, 0.3, 0.26, 16]} />
-               <meshStandardMaterial color={COLORS.barRed} roughness={0.5} />
+               <meshStandardMaterial color={c.barRed} roughness={0.5} />
             </mesh>
          ))}
       </group>
@@ -498,9 +465,10 @@ function tintedBox(width: number, depth: number, y0: number, y1: number, color: 
  * the middle of its top, like the rules' footprint at its x.
  */
 export function useBlockMesh(): { geometry: BufferGeometry; material: MeshStandardMaterial } {
+   const c = useColors();
    return useDisposable(() => {
-      const body = tintedBox(BLOCK.width, BLOCK.depth, -BLOCK.height, -CUSHION, COLORS.block);
-      const top = tintedBox(BLOCK.width, BLOCK.depth, -CUSHION, 0, COLORS.blockTop);
+      const body = tintedBox(BLOCK.width, BLOCK.depth, -BLOCK.height, -CUSHION, c.block);
+      const top = tintedBox(BLOCK.width, BLOCK.depth, -CUSHION, 0, c.blockTop);
       const geometry = mergeGeometries([body, top]);
       body.dispose();
       top.dispose();
@@ -512,17 +480,18 @@ export function useBlockMesh(): { geometry: BufferGeometry; material: MeshStanda
 
 /** The beam: its group's origin is the top centre line, so Scene.tsx tilts it round the walking line. */
 export function BalanceBeam({ beam, course }: { beam: RefObject<Group>; course: Course }) {
+   const c = useColors();
    const s = useMemo(() => course.supports.find((x) => x.kind === "beam") as Support, [course]);
    const length = s.maxP - s.minP;
    return (
       <group ref={beam} position={[0, 0, -(s.minP + s.maxP) / 2]} name="beam">
          <mesh position-y={-(BEAM.thickness + 0.06) / 2}>
             <boxGeometry args={[BEAM.width, BEAM.thickness - 0.06, length]} />
-            <meshStandardMaterial color={COLORS.beam} roughness={0.45} />
+            <meshStandardMaterial color={c.beam} roughness={0.45} />
          </mesh>
          <mesh position-y={-0.03}>
             <boxGeometry args={[BEAM.width, 0.06, length]} />
-            <meshStandardMaterial color={COLORS.beamTop} roughness={0.5} />
+            <meshStandardMaterial color={c.beamTop} roughness={0.5} />
          </mesh>
       </group>
    );
@@ -540,10 +509,11 @@ export interface GateRig {
 
 /** The three gates: posts (one draw call), and per gate a banner and a flag Scene.tsx colours and pops. */
 export function Gates({ rigs, course }: { rigs: GateRig[]; course: Course }) {
+   const c = useColors();
    const spots = useMemo(() => spotsOf(course), [course]);
    const res = useDisposable(() => ({
       post: new CylinderGeometry(0.5, 0.5, 1, 12),
-      postMat: new MeshStandardMaterial({ color: COLORS.post, roughness: 0.5 }),
+      postMat: new MeshStandardMaterial({ color: c.post, roughness: 0.5 }),
       beam: new BoxGeometry(2 * GATE.postX + 0.3, 0.36, 0.16),
       flag: new PlaneGeometry(0.7, 0.45).translate(0.35, 0, 0),
       pole: new CylinderGeometry(0.03, 0.03, 0.9, 6),
@@ -582,6 +552,7 @@ export function createGateRigs(): GateRig[] {
 
 /** Two red inflatable legs (the rules' solid posts), a yellow top tube and a checkered banner. Faces +z. */
 export function FinishArchPrimitive() {
+   const c = useColors();
    const checker = useCanvasTexture(512, 64, drawChecker);
    const legHeight = ARCH.height - 0.6;
    const topY = ARCH.height - 0.42;
@@ -590,12 +561,12 @@ export function FinishArchPrimitive() {
          {[-1, 1].map((side) => (
             <mesh key={side} position={[side * ARCH.postX, legHeight / 2, 0]}>
                <cylinderGeometry args={[ARCH.postRadius, ARCH.postRadius + 0.05, legHeight, 20]} />
-               <meshStandardMaterial color={COLORS.archLeg} roughness={0.35} />
+               <meshStandardMaterial color={c.archLeg} roughness={0.35} />
             </mesh>
          ))}
          <mesh position-y={topY} rotation-z={Math.PI / 2}>
             <capsuleGeometry args={[0.42, ARCH.width - 0.84, 8, 20]} />
-            <meshStandardMaterial color={COLORS.archTop} roughness={0.35} />
+            <meshStandardMaterial color={c.archTop} roughness={0.35} />
          </mesh>
          <mesh position={[0, topY - 0.85, 0]}>
             <planeGeometry args={[2 * (ARCH.postX - ARCH.postRadius), 0.8]} />
@@ -609,12 +580,13 @@ export function FinishArchPrimitive() {
 
 /** Shared pieces for the splash (droplets, ring) and the spawn flash ring. */
 export function useFxParts() {
+   const c = useColors();
    return useDisposable(() => ({
       ring: new RingGeometry(0.55, 0.75, 40).rotateX(-Math.PI / 2),
       splashMat: new MeshBasicMaterial({ color: "#ffffff", transparent: true, opacity: 0, depthWrite: false }),
-      spawnMat: new MeshBasicMaterial({ color: COLORS.accent, transparent: true, opacity: 0, depthWrite: false }),
+      spawnMat: new MeshBasicMaterial({ color: c.accent, transparent: true, opacity: 0, depthWrite: false }),
       marker: new RingGeometry(0.42, 0.56, 32).rotateX(-Math.PI / 2),
-      markerMat: new MeshBasicMaterial({ color: COLORS.accent, transparent: true, opacity: 0.8, depthWrite: false }),
+      markerMat: new MeshBasicMaterial({ color: c.accent, transparent: true, opacity: 0.8, depthWrite: false }),
    }));
 }
 

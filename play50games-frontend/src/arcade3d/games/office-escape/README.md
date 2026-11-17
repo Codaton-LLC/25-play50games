@@ -1,6 +1,6 @@
 # Office Escape
 
-Owner: Claude. Slug: `office-escape`. Game 3 of the 3D Arcade: the first lane runner and the first game with the shared Play50 Runner. **The game is built and playable** (rules, scene, camera, HUD notice, primitives for every model; browser results under "Test plan"). Status stays `"soon"` until it is reviewed. No GLB is generated yet, so every model is drawn by its primitive. The limits in `meta.ts` were tightened on 2026-10-07 to the proven maximum plus about 3% (proof below).
+Owner: Claude. Slug: `office-escape`. Game 3 of the 3D Arcade: the first lane runner and the first game with the shared Play50 Runner. **Level 1 is live.** P-55 adds five configurations through the existing core level system; see "Levels" and "Status" below. Historical gameplay and test-plan sections describe level 1. Existing GLBs and their stand-in fallbacks are reused throughout. The live level-1 scoring limits remain unchanged.
 
 | File | What it owns |
 |---|---|
@@ -9,7 +9,7 @@ Owner: Claude. Slug: `office-escape`. Game 3 of the 3D Arcade: the first lane ru
 | `rules.ts` | Everything that decides the outcome: speed schedule, distance, jump arc, lane moves, input edges, seeded rows and coins, collisions, scoring. Pure: no three.js, React, DOM, `Math.random` or `Date.now`. |
 | `rules.test.ts` | Vitest for `rules.ts`, including the fairness bot and the scoring-limit proof below. |
 | `Scene.tsx` | The frame loop and the moving things: feeds dt and input into `rules.ts`, draws the run (corridor treadmill, obstacles, coins, runner), reports to the store, places the chase camera. |
-| `Primitives.tsx` | Office look: the corridor (floor, walls, ceiling, lane stripes, pillars, plants, cabinets, end window), the obstacle, coin and shadow stand-ins, the local `InstancedProp` and the stand-in runner. |
+| `Primitives.tsx` | Office look: the corridor frame (floor, walls, ceiling, lane stripes, ceiling panels) plus per-department decor from decor.ts and the corridorArt.ts textures, the obstacle, coin and shadow stand-ins, the local `InstancedProp` and the stand-in runner. |
 | `camera.ts` / `camera.test.ts` | `fitChase`: the static chase camera that fits the runner and all three lanes into the safe rect (`chaseInsets` reads it from core `useSafeArea`). Runs on resize and safe-area changes only. The test checks the table below. |
 | `Hud.tsx` / `Hud.module.css` | The "Faster! 9 m/s" notice on every speed-up (see HUD). |
 | `assets.ts` / `assets.spec.json` | Models used (`ModelAsset`s) / the Hyper3D spec for the three props only this game generates. |
@@ -23,6 +23,93 @@ Owner: Claude. Slug: `office-escape`. Game 3 of the 3D Arcade: the first lane ru
   3. **Rows placed by time.** Each obstacle row is placed by the time the runner reaches it, through the exact distance function. The fairness gap therefore holds across speed changes.
   4. **Fixed pools, instanced props.** Rows and coins live in fixed slots that are rewritten in place. Every prop type is one or two `InstancedMesh`es whose matrices and `count` the frame loop rewrites (`PropSlot` in `Primitives.tsx`). Nothing mounts, unmounts or allocates after the first frame.
 - **Do not copy:** the office primitives, the coin spin and the stand-in runner. They are decoration for this game.
+
+## Levels
+
+P-55 uses the shipped core level system and the robot-collector/castle-defender shape:
+pure `levels.ts`, `createRun(seed, level)`, `useOfficeLevel`, definition specs including
+`hudStats`, and metadata clear targets. Level 1 keeps the live layout, RNG streams,
+score formula, inputs, jump/steer timing and scoring limits. `rules.test.ts` is unchanged.
+The legacy test-only `createRun(seed, coinSeed)` call also remains supported.
+
+| Level | Plan title | Speed start/cap (m/s) | Rows / new mechanic | Coin | Clear |
+|---|---|---|---|---|---|
+| 1 | Open Office | 8 / 16 | Original seeded rows | 50 | 760 pts |
+| 2 | Meeting Floor | 8.5 / 16.5 | At least 2 obstacles; extra gaps reduced 100 ms | 55 | 1,000 pts |
+| 3 | Copy Room | 9 / 17 | Moving chairs/carts; every fifth row a printer line; extras -200 ms | 60 | 1,330 pts |
+| 4 | Executive Floor | 9.5 / 17.5 | Three obstacles, printer line every fourth row; faster motion; extras -350 ms | 65 | 1,575 pts |
+| 5 | After-Hours Office | 10 / 18 | Combined patterns, printer line every third row; fastest motion; extras -500 ms | 70 | 1,870 pts |
+
+All runs remain score attacks with the original 29:55 safety horizon. Reaching the target
+clears/unlocks through the shell; it does not stop the run. This adapts the plan's
+5/7/9/11/14 clusters and 60-75/75-90/90-110/100-120/120-second guidance to the already-live
+endless corridor: escalating targets and recurring clusters replace new finite maps.
+Lighting is indoor/day/indoor/night/sunset (the core dramatic preset), with the original
+level-1 environment untouched. No assets or controls were added.
+
+### Level looks
+
+Every level is its own department, dressed through the corridor treadmill (decor.ts holds the
+spot layouts, corridorArt.ts the floor/wall/end-window painters, looks.ts the fog and lighting).
+Only the active level's two corridor textures are created per run; everything is static and
+instanced, so the draw-call budget is unchanged. Level 1 keeps the live layout byte-for-byte.
+
+| Level | Department | Corridor dressing | Fog / palette |
+|---|---|---|---|
+| 1 | Open Office | The live corridor: glass office front, plants, filing cabinets | pale blue `#dbeafe`, 40-75 m |
+| 2 | Meeting Floor | Floor-to-ceiling glass meeting rooms with tables and chairs behind the panes; standing whiteboards and round pod tables between the lanes and the walls | daytime `#cfe3f7`, 45-80 m |
+| 3 | Copy Room | Copier machines and stocked paper shelves crowd the walls; no plants; a yellow safety line runs along the floor just outside the lane edges | cool grey `#c9d4e4`, 40-75 m |
+| 4 | Executive Floor | Night: walnut panels, a library wall, gilt portrait, brass rails; trophy pedestals and warm uplights along the track | night `#131f36`, 34-66 m, lit tower backdrop |
+| 5 | After-Hours Office | Sunset gloom: dark cubicle desks with glowing monitors, an EXIT sign, city windows upstairs; sparse warm floor lamps | sunset `#43304b`, 34-70 m, sunset skyline backdrop |
+
+All decor, including the set pieces, stands between the lane edges (±3 m) and the walls; the
+play area is never touched (looks.test.ts checks every spot). The twists above are look-only:
+the rules, hitboxes, row placement and camera are identical on every level, and level 1 is
+unchanged.
+
+Moving hazards use a seeded-row-phase triangle wave, +/-150 mm sideways, with periods
+2.4/1.8/1.2 seconds in levels 3/4/5. Rendering and collision call the same `obstacleOffset`.
+The motion is real but remains within its lane: neighbouring-lane clearance is at least
+800 mm. It does not change jump lead times. Printer lines are all jumpable; random
+three-obstacle rows retain at least one jumpable lane. The 950 ms recovery minimum,
+700 ms jump, 135 ms buffer and 10 m/s lateral speed stay identical for touch and keyboard.
+Maximum travel per frame is 18 x .05 = .9 m, below the shortest 1 m obstacle overlap.
+Even L5's shortest centre spacing is at least 10 x 1.05 + 1 = 11.5 m. The 87.8 m row
+window holds at most eight rows, so the unchanged eight-slot pool suffices. Coin spacing
+and the coin pool are unchanged. No frame-loop arrays or objects are allocated.
+
+### Server limits and why they hold: one proof per level
+
+These are proposals for Claude to copy into `arcade-games.json`; backend files were not
+edited. Level 1's top-level `meta.scoring` remains exactly the production contract.
+
+For level l let b be its speed bonus and c its coin value. The exact distance is
+`D_l(t) = D_1(t) + b*t` in mm (t in ms). Score sources are one point per full metre
+and c per coin; there are no completion bonuses. At distance D, at most
+`n = max(0, ceil((D + 600 - 20000)/10000))` slots can have been touched. Runs of at most
+six coins followed by at least one empty slot give at most `n-floor(n/7)` coins.
+Thus `B_l(t) = floor(D_l(t)/1000) + c*(n-floor(n/7))`. Removing or missing coins only
+lowers B. The new test checks `B_l(d+50) <= pps*d/1000` for EVERY whole millisecond
+d from 4800 through 1795050, allowing an extra 50 ms over the real store clock.
+
+| Level | D at 1795049 ms (m) | Reached slots | Coin ceiling | Distance pts + coin pts ceiling | maxScore | base | max pps |
+|---|---|---|---|---|---|---|---|
+| 1 | 28000.784 | 2799 | 2400 | 28000 + 120000 = 148000 | 152500 | 0 | 85 |
+| 2 | 28898.309 | 2888 | 2476 | 28898 + 136180 = 165078 | 170500 | 0 | 95 |
+| 3 | 29795.833 | 2978 | 2553 | 29795 + 153180 = 182975 | 189000 | 0 | 106 |
+| 4 | 30693.357 | 3068 | 2630 | 30693 + 170950 = 201643 | 208000 | 0 | 116 |
+| 5 | 31590.882 | 3158 | 2707 | 31590 + 189490 = 221080 | 228000 | 0 | 128 |
+
+Each row is a separate level proof: substitute that row's D and c into B. The chosen
+maximum is 3.0-3.3% above its ceiling. Approximate whole-run rate ceilings are
+82.455/91.966/101.937/112.340/123.168 pts/s; the chosen pps adds about 3-4%.
+All five duration windows are 4800..1800000 ms. The first row is still entered at
+5000 ms, leaving the original 200 ms lower margin. The run stops before 1795050 ms,
+leaving 4950 ms under the upper bound. Pause advances neither game clock nor motion.
+Higher levels keep the full time horizon, increase distance, increase coin value and
+increase both the attainable-source envelope and accepted maximum. L5's 228000 cap is
+1.50x L1's 152500 cap. As an endless runner, the >=90%-of-cap oracle check is inapplicable:
+the cap is a safety envelope, not an objective (Claude's task clarification).
 
 ## Concept
 
@@ -180,7 +267,7 @@ Measured (throwaway probes, deleted): coins actually available per seed (not rem
 ## Scene and camera
 
 - **Floating origin.** The runner stays at x = lane position, z = 0. Rows and coins are drawn at `z = (distance − s) / 1000` m (negative = ahead).
-- **Corridor treadmill.** Floor, walls, ceiling, light panels, lane stripes, pillars, plants and filing cabinets are one static 12 m pattern laid over 120 m of local z (+24 … −96). Scene slides their group by `(distance mod 12000) / 1000` m every frame, so the textures never scroll and nothing is recycled by hand: the floor texture tiles every 2 m, the wall texture every 12 m, dashes every 3 m, light panels every 4 m, pillars and plants every 12 m. The corridor is 9.2 m wide (walls at x = ±4.6, decor between the lane edges at ±3 and the walls) and 9.5 m tall: a two-storey office atrium. **The ceiling sits above every fitted camera** (the highest, portrait, is 7.33 m), so it frames the band above the horizon without ever covering the runner; it hides itself if a camera is ever fitted within 1 m of it. A window with a pale city (`fog: false`) closes the corridor 92 m ahead.
+- **Corridor treadmill.** Floor, walls, ceiling, light panels, lane stripes, pillars, plants and filing cabinets are one static 12 m pattern laid over 120 m of local z (+24 … −96). Scene slides their group by `(distance mod 12000) / 1000` m every frame, so the textures never scroll and nothing is recycled by hand: the floor texture tiles every 2 m, the wall texture every 12 m, dashes every 3 m, light panels every 4 m, pillars and plants every 12 m. On levels 4-5 only (`EXEC_DESK_LEVELS`, `assets.ts`: the two executive floors) the same sliding group also holds the executive desks: `EXEC_DESK_PATTERN` is one desk per 12 m period on each side (a 12 m period, so the wrap stays seamless), turned 90° against the walls at |x| 3.85, outside the lane edges at ±3, drawn by core `<InstancedModel>`. The corridor is 9.2 m wide (walls at x = ±4.6, decor between the lane edges at ±3 and the walls) and 9.5 m tall: a two-storey office atrium. **The ceiling sits above every fitted camera** (the highest, portrait, is 7.33 m), so it frames the band above the horizon without ever covering the runner; it hides itself if a camera is ever fitted within 1 m of it. A window with a pale city (`fog: false`) closes the corridor 92 m ahead.
 - **Chase camera.** It sits behind and above the runner, at x = 0, and never pans sideways, so all three lanes are always on screen. It does not follow jumps. The runner never moves along z, so the camera is static for the whole run and only refits on resize, rotation or a change in the obstruction. A small `ChaseCamera` component renders core `<CameraRig camera={fitted} />` without `follow`; only it re-renders when the safe area changes. There is no FOV kick or shake, because they would break the fit.
 - **Why not core `useFittedView`.** It fits a box around a focus point (at the picture centre, or moved with a lens shift). This camera keeps a fixed 16° pitch and pins the feet at 20% of the safe height instead, so its look point moves ahead as the camera backs off (−15.13 m on the portrait phone, −7.06 m on the laptop). No single `focus` reproduces that, and a lens shift lowers the horizon (more floor, less track ahead). `fitChase` keeps the README rules and numbers exactly; its safe rect comes from core `useSafeArea`.
 - **`fitChase(width, height, insets)`** (`camera.ts`, pure, tested in `camera.test.ts`):
@@ -200,9 +287,9 @@ Measured (throwaway probes, deleted): coins actually available per seed (not rem
   **Measured live** (production build, headless Chrome, 2026-10-05): all three rows match the table within 0.5 px and 0.005 m (for example 1280 × 800: camera (0, 3.789, 6.152) → (0, 0, −7.063), runner 180 px, feet 640, apex 317.3, lane edges 254.2 … 1025.8 at z = +0.3, horizon 154). The shell HUD measures 54 px, so the safe top is the README's 64 px. With the cookie banner open on 375 × 812 (banner top at 650 px) the fit moves the feet to y 520 and the near lane edges to y 528, still on the 8 px side margins.
 - **Frame order.** `<Simulation>` is the Scene's first child and steps in `useRunFrame` (`FRAME_PRIORITY.simulation`, before the camera and every plain `useFrame`), so `Corridor`, `Obstacles`, `Coins` and `Runner` always draw this frame's state. Visual components only read `run` in `useFrame`.
 - **No allocation in the frame loop.** `createRun(seed)` allocates the run once: 8 row slots (each with a fixed lane array), 10 coin slots, both rng closures and the input latches. The visual state (`Fx`: landing, speed-up and crash times, smoothed roll and lean, per-coin pickup times in typed arrays) and the instance slots are made once per Scene mount, and the matrix scratch (`Matrix4`, `Quaternion`, `Euler`, `Vector3`) once per module. A step rewrites fields in place. Instance counts change through `mesh.count`. Store calls happen only when a value changes: `setScore` on a new metre or coin, `setStat` on a pickup, `setLevel(k + 1)` on a stage change. A stage change also flashes the lane stripes amber for 0.5 s (visual only). Heap sampling while playing attributes about 55 KB/s to the game's chunk (number boxing in three.js setter calls, no objects); three.js's own renderer accounts for about 1 MB/s.
-- **Instanced props (`PropSlot`, `PropMeshes`, `InstancedProp` in `Primitives.tsx`).** Each obstacle type is one or two `InstancedMesh`es ("parts") with capacity 24 (8 row slots × 3 lanes). A part is one unit geometry and one material; its pieces (a desktop, two side panels, a laptop …) are extra instances with their own transform and `instanceColor`, so a whole desk is two draw calls whatever the count. Every frame, `Obstacles` walks the 8 row slots once and writes `placement × piece` matrices and `mesh.count` per type, plus one soft contact shadow per obstacle (one more `InstancedMesh`). `frustumCulled = false`, because instances spread 80 m from the mesh origin. `InstancedProp` swaps the stand-in parts for the GLB's own meshes once the model is listed in `core/modelManifest.ts` (core `useModel` + `modelParts`: the node transform and the asset's `scale` / `rotationY` / `yOffset` are folded into the piece matrix), with the same slots and the same matrices; a local error boundary (`PropErrorBoundary`) draws the stand-in parts if a listed GLB breaks while rendering. Core `<InstancedModel>` is not used because its spots are static (matrices written once); here every instance moves every frame. Boxes and shadows are always primitives; the coin is the shared coin GLB through `InstancedProp`, with the stand-in disc as its fallback. Rows look less machine-placed with a fixed per-row turn (chairs up to ±0.6 rad), and the obstacle that was hit rocks back after the crash (looks only).
+- **Instanced props (`PropSlot`, `PropMeshes`, `InstancedProp` in `Primitives.tsx`).** Each obstacle type is one or two `InstancedMesh`es ("parts") with capacity 24 (8 row slots × 3 lanes). A part is one unit geometry and one material; its pieces (a desktop, two side panels, a laptop …) are extra instances with their own transform and `instanceColor`, so a whole desk is two draw calls whatever the count. Every frame, `Obstacles` walks the 8 row slots once and writes `placement × piece` matrices and `mesh.count` per type, plus one soft contact shadow per obstacle (one more `InstancedMesh`). `frustumCulled = false`, because instances spread 80 m from the mesh origin. `InstancedProp` swaps the stand-in parts for the GLB's own meshes once the model is listed in `core/modelManifest.ts` (core `useModel` + `modelParts`: the node transform and the asset's `scale` / `rotationY` / `yOffset` are folded into the piece matrix), with the same slots and the same matrices; a local error boundary (`PropErrorBoundary`) draws the stand-in parts if a listed GLB breaks while rendering. Core `<InstancedModel>` is not used for the obstacles because its spots are static (matrices written once) and here every instance moves every frame; the levels 4-5 executive desks do use it, because their spots are static treadmill-local coordinates inside the sliding corridor group. Boxes and shadows are always primitives; the coin is the shared coin GLB through `InstancedProp`, with the stand-in disc as its fallback. Rows look less machine-placed with a fixed per-row turn (chairs up to ±0.6 rad), and the obstacle that was hit rocks back after the crash (looks only).
 - **Coins.** `ASSETS.coin` is the shared coin GLB (`SHARED_ASSETS.coin`, group D: a gold coin with a raised star on both faces, one mesh, 1000 tris) at `scale` about 0.316 (0.6 / core `COIN_GLB_SIZE.width`: 0.60 m across, 0.59 m tall), `stretch` z 0.7 (0.074 m at the rim) and `yOffset` −0.294, which centres it on the coin's point, so the same spin, bob and pickup matrices place it. While the GLB is missing or broken, the `COIN_STAND_IN` disc (`Primitives.tsx`: r 0.3, 0.07 thick, a star on both faces, 3 material groups) is drawn instead. Each coin has an additive glow quad; 10 instances each. They spin and bob with `useGameTime()`. Raised coins get a bigger glow. A collected coin flies up over the runner's head and shrinks in 0.3 s; a missed one shrinks away 1–2.2 m behind the runner instead of flying past the camera.
-- **Draw calls (measured** in headless Chrome, flagged production build, 2026-10-08, with a bot that changes lanes and jumps: 90 s at 1280 × 800 without a crash, 30 s at 375 × 812): 19–23 on both viewports, budget 150. The most there can be is 23: corridor 12, obstacles 6 with every type in view (the five GLBs and the boxes part, one mesh each; an `InstancedMesh` with `count` 0 issues no draw) plus 1 for the contact shadows, coins 2 (the coin GLB and the glow; 4 with the stand-in disc, 22–24 calls in all), runner 1 (the GLB's skinned mesh; the `RunnerPrimitive` stand-in draws 22) + blob shadow 1. About 31–57 k triangles: the runner 18 k, each obstacle GLB copy 1.5–3 k, each coin in view 1 k (the stand-in disc is 96). 23 geometries, 27 textures and 12 programs, constant over a run and across retries; 58 fps there. No shadow maps.
+- **Draw calls (measured** in headless Chrome, flagged production build, 2026-10-08, with a bot that changes lanes and jumps: 90 s at 1280 × 800 without a crash, 30 s at 375 × 812): 19–23 on both viewports, budget 150. The most there can be is 23: corridor 12, obstacles 6 with every type in view (the five GLBs and the boxes part, one mesh each; an `InstancedMesh` with `count` 0 issues no draw) plus 1 for the contact shadows, coins 2 (the coin GLB and the glow; 4 with the stand-in disc, 22–24 calls in all), runner 1 (the GLB's skinned mesh; the `RunnerPrimitive` stand-in draws 22) + blob shadow 1. About 31–57 k triangles: the runner 18 k, each obstacle GLB copy 1.5–3 k, each coin in view 1 k (the stand-in disc is 96). 23 geometries, 27 textures and 12 programs, constant over a run and across retries; 58 fps there. No shadow maps. (Levels 4-5 add the executive desks: 1 draw call for the desk mesh across all spots, or 1 for the fallback boxes.)
 - `environment`: background and fog `#dbeafe`, fog 40–75 m, `lighting: "indoor"`.
 
 ## Assets
@@ -215,10 +302,11 @@ Measured (throwaway probes, deleted): coins actually available per seed (not rem
 | printer | **this game** `models/3d/office-escape/printer.glb` | `./assets.spec.json` | jump | Grey body, darker lid, paper tray and output paper, teal control panel with a screen (one box part) |
 | coffeeCart | **this game** `models/3d/office-escape/coffeeCart.glb` | `./assets.spec.json` | dodge | Red two-shelf cart with posts, handle and pastry boxes (box part) + silver urn with lid, tap, cup stacks and four wheels (cylinder part) |
 | waterCooler | **this game** `models/3d/office-escape/waterCooler.glb` | `./assets.spec.json` | dodge | White body, tap recess, drip tray, blue and red taps (box part) + blue bottle, neck, cap and cup holder (cylinder part) |
+| execDesk | **this game** `models/3d/office-escape/execDesk.glb` (2026-10-25: 1.90 × 0.99 × 1.29, drawn at scale 1, its real size) | batch 5 extra | level 4-5 corridor decor | A plain box of the same footprint at each spot |
 | coin | **shared** `models/3d/shared/coin.glb` (group D, 2026-10-07: 1000 tris, 1.899 × 1.861 × 0.492, core `COIN_GLB_SIZE`) | `assets/shared.spec.json` | pickup | The `COIN_STAND_IN` gold disc; `coin.test.ts` measures the real mesh against the disc and the 0.7 m rules box |
 | boxes, floor, walls, ceiling, stripes, pillars, plants, cabinets, end window | primitives in code | none | – | (always primitives) |
 
-Every GLB of this table is in `core/modelManifest.ts` now (group A props, the group B runner, the group D coin). The stand-ins use the README drawn sizes, so the hitboxes read right whenever a model is missing or fails to load.
+Every GLB of this table is in `core/modelManifest.ts` now (group A props, the group B runner, the group D coin, the 2026-10-25 execDesk). The stand-ins use the README drawn sizes, so the hitboxes read right whenever a model is missing or fails to load.
 
 - **The runner on the auto-rig** (2026-10-06). `assets.ts`: `{ ...SHARED_ASSETS.runner, scale: 0.825, rotationY: Math.PI }`: the 1.886-tall v2 GLB (2026-10-07) drawn at **1.556 m**, the `RunnerPrimitive`'s height and `camera.ts` `RUNNER_DRAWN` (1.55, `crash.test.ts` measures the real mesh within 1 cm; the 1.3 m hitbox in the rules is unchanged), turned round to run towards −z. Its joints are `RUNNER_LANDMARKS` (`core/sharedAssets.ts`, measured once from the GLB; `core/rig/runner.test.ts`). The Scene draws it with `<HumanoidModel asset pose applyLift={false} fallback={<RunnerPrimitive/>}>` and builds the pose every frame in `useHumanoidPose` (core `FRAME_PRIORITY.pose`, after the step): `walkPose` at the stand-in's stride phase (`distance / 2.4 m`, so the legs move with the ground and stop when it stops; the v2 GLB's own stride is 1.26 m at a full run (1.08 m at the 0.85 amount), so the planted foot slides about half the ground's travel at speed (47–55 %, was 43–52 % with the v1 runner; "Known issues") with an amount easing from 0 (the idle's breath and glance) to 0.85 at 8 m/s and 1 at the 16 m/s cap; the lean into the run and the roll into a lane change go into the spine (`turnBone`), because a whole-body lean about the feet would tip the soles into the floor; `jumpPose` blends in by the airborne blend with the knees tucked at the apex; on a crash `crash.ts` `crashPose` (the root still tumbles onto its back as before, `crashPlacement`): `flailPose`'s waving arms and shaking head with the legs raised and kicking, because `flailPose`'s own knees fold the shins back, which on its back put the shin and foot up to 18 cm through the floor (`crash.test.ts` skins the real runner through the whole end animation: nothing below the floor); `cheerPose` on a win (with the hop). The body group carries the GLB's rise over its planted foot (`bodyLift` × 0.825) instead of the stand-in's bob; the squash on take-off and landing and the wall wobble stay on it. The stand-in keeps its own swung limbs, bob, lean and roll (the Scene sees it through a ref on its wrapper group).
 
@@ -318,3 +406,96 @@ Browser (production build, flags on with the API mock, headless Chrome over CDP)
 - **Runner rig: decided** (2026-10-06). The shared runner is a static T-pose GLB on the core auto-rig (Assets, Runner animation); no clips, no `useAnimations`. Its feet slide at speed (the stand-in's 2.4 m stride phase is kept for both; the v2 GLB's own run stride is 1.26 m at scale 0.825, so the planted foot slides 47–55 % of the ground's travel, 43–52 % with the v1 runner's 1.36 m); the leap's tuck and the crash flail are blends over the run cycle. Follow-up (not in the v2 assets PR): drive the rigged model's phase with core `gaitPhaseStep(amount, RUNNER_LANDMARKS, SCALE, speed, dt, 7)` and keep the stand-in on its 2.4 m cycle (about 6 % slide at the 8 m/s start, 45 % at 16 m/s, where the cap of 7 strides a second binds). Setting `STRIDE_MM` to the own stride instead would beat the legs 12.7 times a second at 16 m/s, a blur at 60 fps. The slide left at top speed needs a longer run stride in core `walkPose`.
 - **Desk monitor.** The shared desk was prompted with a monitor (up to about 0.95 m). The hitbox is the desktop, and a late or early jump can visibly skim the monitor. If players read it as unjumpable, use the primitive desk (a closed laptop, nothing above 0.7 m) or a monitor-free desk in a later shared-spec pass.
 - **Catalog drift.** `skills.md` (models row) still says universe `office` for this game, and plan §4 lists desk and chair under this game's generations. This spec uses `shared-cast` 5050 and generates only the printer, the coffee cart and the water cooler, because the desk and chair are in `shared.spec.json`. Update the catalog in the next pass.
+
+
+## Status
+
+TASK L-office-escape-levels | per-level looks for office-escape | branch kimi/office-escape-levels (kimi). Level 1 is live and byte-identical (rules untouched, openOffice decor spot counts pinned in looks.test.ts). Scoring meta and arcade-games.json unchanged. Added decor.ts (per-department corridor spot layouts), corridorArt.ts (per-department floor/wall/backdrop painters), looks.ts LEVEL_VARIANTS + per-level fog ranges, looks.test.ts (levels differ; every prop stays out of the play area); Scene/Primitives/index route the active level's variant. tsc + vitest on the game folder pass; no browser run (assigned to the wrapper).
+
+TASK P-55-levels-office | 5 levels for office-escape | branch codex/levels-office-escape | allowed: play50games-frontend/src/arcade3d/games/office-escape/**
+
+Implementation delivered for Claude review; acceptance is incomplete: the <60 s whole-suite requirement and exhaustive real-store seed matrix were not met. No commit, push, branch switch, build, server or production access occurred.
+
+Branch checked before edits: `codex/levels-office-escape`, exact match. Scope checked with `git status --porcelain`: only office-escape changes (plus this explicitly requested, ignored handoff artifact).
+
+### Files
+
+All game files below are under `play50games-frontend/src/arcade3d/games/office-escape/`:
+
+- Added `levels.ts`, `levels.test.ts`, `looks.ts`, `useOfficeLevel.ts`.
+- Changed `rules.ts`, `meta.ts`, `index.tsx`, `Scene.tsx`, `Hud.tsx`, `README.md`.
+- `rules.test.ts`, all other existing tests, assets and shared/backend files remain unchanged.
+- `looks.ts` did not previously exist in this folder; the new file only declares per-level core environments.
+
+Used the pilots' pure configuration / createRun / useLevel / definition specs (including hudStats) / meta.levels shape. The original test-only `createRun(seed, coinSeed)` call remains supported alongside `createRun(seed, level)`.
+
+### Five levels
+
+| Level | Title | Speed start/cap | Obstacles and progression | Lighting | Coin pts | Clear score |
+|---|---|---|---|---|---|---|
+| 1 | Open Office | 8/16 m/s | Original layout, RNG, scoring and timing | indoor (unchanged) | 50 | 760 |
+| 2 | Meeting Floor | 8.5/16.5 m/s | At least two static obstacles; extra gaps -100 ms | day | 55 | 1000 |
+| 3 | Copy Room | 9/17 m/s | Moving chairs/carts; every fifth row all printers; extras -200 ms | indoor | 60 | 1330 |
+| 4 | Executive Floor | 9.5/17.5 m/s | Three obstacles, printer line every fourth row; faster movement; extras -350 ms | night | 65 | 1575 |
+| 5 | After-Hours Office | 10/18 m/s | All patterns, printer line every third row; fastest movement; extras -500 ms | sunset (dramatic) | 70 | 1870 |
+
+Plan adaptation: the live endless corridor stays intact. Its recurring clusters and escalating clear scores adapt the plan's cluster counts and target durations; reaching a target unlocks through the existing shell but does not end the run. All five retain the original 1795000 ms safety horizon and existing assets. Higher levels have more distance/coin slots in the same time and higher coin rewards, rather than shorter scoring windows.
+
+Movement is a deterministic simulation-clock triangle wave within +/-150 mm of the hazard's lane, periods 2400/1800/1200 ms for L3/L4/L5. Drawing and collision share the same function. Recovery remains at least 950 ms; jump 700 ms, buffer 135 ms and lateral speed 10 m/s remain device-independent. Neighbouring-lane clearance stays >=800 mm; maximum travel/frame .9 m stays below the shortest 1 m collision overlap. Eight row slots still suffice: centre spacing >=11.5 m across an 87.8 m window. Frame-loop data stays pooled.
+
+### Proposed per-level limits and proofs
+
+`PROPOSED_LEVEL_LIMITS` is exported from rules.ts and agrees with meta.levels. Claude must copy it into backend JSON. Top-level meta.scoring is unchanged: 152500 / 4800 / 1800000 / 0 / 85.
+
+All levels: kind points, unit pts, display int, minDurationMs 4800, maxDurationMs 1800000, base 0.
+
+| Level | maxScore | maxPointsPerSec | Max distance (m) | Slots / coin ceiling | Proven total ceiling |
+|---|---|---|---|---|---|
+| 1 | 152500 | 85 | 28000.784 | 2799 / 2400 | 28000 + 50*2400 = 148000 |
+| 2 | 170500 | 95 | 28898.309 | 2888 / 2476 | 28898 + 55*2476 = 165078 |
+| 3 | 189000 | 106 | 29795.833 | 2978 / 2553 | 29795 + 60*2553 = 182975 |
+| 4 | 208000 | 116 | 30693.357 | 3068 / 2630 | 30693 + 65*2630 = 201643 |
+| 5 | 228000 | 128 | 31590.882 | 3158 / 2707 | 31590 + 70*2707 = 221080 |
+
+Each row is its own proof using its speed bonus b and coin value c:
+
+`D_l(t) = D_1(t) + b*t` in mm, t in ms.
+`n(D) = max(0, ceil((D+600-20000)/10000))` from 10 m coin spacing and the strict pickup overlap.
+Six-coin runs followed by at least one empty slot imply `coins <= n-floor(n/7)`.
+`B_l(t) = floor(D_l(t)/1000) + c*(n-floor(n/7))` bounds every scoring source; there are no bonuses.
+
+The tests evaluate `B_l(d+50) <= pps*d/1000` at EVERY whole millisecond from 4800 through 1795050 for EACH level, and the absolute ceilings at 1795049 ms. Maximum-score margins are 3.0-3.3%; rate margins about 3-4%. The first row is still entered at 5000 ms and a run stops before 1795050 ms, inside the unchanged duration window. At every bot score event capScore is a no-op; between events score is constant and the rate allowance grows. Terminal submissions fit all limits. Pause cannot advance the simulation clock or moving hazards.
+
+L5 maxScore is 1.495x L1, below the 3x guard. The higher-level distance/reward envelopes are monotone; the same full-horizon oracle also earned monotonically higher sampled bests: 60000 / 62337 / 65435 / 69042 / 74220. The >=90%-of-max oracle assertion is omitted as explicitly instructed for this endless runner's safety cap.
+
+### Bots and verification
+
+| Level | Oracle clear | Human-paced clear | Greedy clear | Idle clear |
+|---|---|---|---|---|
+| 1 | 200/200 | 200/200 | 200/200 | 0/200 |
+| 2 | 200/200 | 200/200 | 200/200 | 0/200 |
+| 3 | 200/200 | 200/200 | 200/200 | 0/200 |
+| 4 | 200/200 | 200/200 | 200/200 | 0/200 |
+| 5 | 200/200 | 200/200 | 200/200 | 0/200 |
+
+Human/greedy/idle/spam each use 200 seeds per level, distributed across 30/60/144 Hz (67/67/66 seeds). Oracle uses 200 seeds at 20 Hz; seeds 0..2 run to the full 29:55 horizon on each level, the rest through clear. Human lane actions have a 120 ms cooldown. Human and greedy clear rates are 100% at each tested rate. No bot broke the rate/absolute caps, pools or score formula. Added minimum-gap recovery tests cover all five levels x nine speed stages x three airborne/buffer states x 20/30/144 Hz. Added track determinism, touch/keyboard timing, core declaration/overrides, monotone difficulty and observed score-potential tests.
+
+Coverage deviation: bulk seed sweeps use pure rules. One human/greedy/idle/spam seed per rate per level runs frame by frame through createArcadeStore + advanceRunClock + playedFrameDt. L5 oracle seed 0 also runs the full horizon through the store. The unchanged L1 suite retains its extensive full-run and store-clock checks. This is NOT the requested full Cartesian matrix of every bot x 200 seeds x every rate through the real store; earlier exhaustive attempts exceeded the runtime budget and were stopped. No claim of that stronger coverage is made.
+
+- `npx tsc --noEmit`: PASS, exit 0 after the final implementation/test changes.
+- `npx vitest run src/arcade3d/games/office-escape/levels.test.ts`: config cannot load in this sandbox: esbuild reports `Cannot read directory "../../../..": Access is denied` / cannot resolve vitest.config.mts.
+- Equivalent programmatic Vitest run: PASS, 5 files / 91 tests, 73.21 s wall time. Counts: rules 54, levels 20, crash 6, camera 7, coin 4. New levels file: 21.96 s; unchanged rules file: 69.99 s during that concurrent run. Earlier legacy-suite-only run: 55.61 s. The whole-suite <60 s acceptance requirement remains unmet here.
+- Mutation probe: changed the third-obstacle guard to allow three dodges; new `L2: oracle` test FAILED with `no passable lane` in 88 ms; finally restored rules.ts, then the full suite passed.
+- Existing rules.test.ts SHA-256 before and after: `156292831046BDDC2F2BC512F5F459C60AC5D74AE7EE11CB2629D8DFD76D5810`.
+- Build and browser/headless playtest deliberately not run: assigned to Claude by CLI instructions. No network or production requests.
+
+Reproduce the successful sandbox test route from play50games-frontend:
+
+```powershell
+node --input-type=module -e "import { startVitest } from 'vitest/node'; import path from 'node:path'; const ctx = await startVitest('test', ['src/arcade3d/games/office-escape/'], { config: false, watch: false, maxWorkers: 2, minWorkers: 1 }, { resolve: { alias: { '@': path.resolve('src') } }, esbuild: { jsx: 'automatic' } }); await ctx?.close();"
+```
+
+### Remaining work / open questions for Claude
+
+No product decisions were reopened. Before acceptance/merge, address the <60 s whole-suite runtime and the exhaustive real-store matrix deviation above; both remain unfulfilled rather than silently waived. Then copy proposed limits to arcade-games.json, run the flagged build and all-five-level desktop/phone headless playtests, verify registry/backend parity, and commit after review. No shared/core/backend changes were made to resolve these validation constraints.
+

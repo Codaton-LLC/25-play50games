@@ -1,8 +1,9 @@
 // The list of 3D Arcade games. Server-safe: imports only plain-data meta files.
 // Owned by Claude. Game owners change their own meta.ts, never this file.
-import type { ArcadeCollection, ArcadeGameMeta, ArcadeSlug } from "./types";
+import type { ArcadeCollection, ArcadeGameMeta, ArcadeSlug, GameScoringMeta } from "./types";
 import { ARCADE_COLLECTIONS } from "./types";
 import { ARCADE_PREVIEW } from "./flags";
+import { provideGameMetas, scoringMetaOf } from "./metaSource";
 import { robotCollectorMeta } from "./games/robot-collector/meta";
 import { foodCatcherMeta } from "./games/food-catcher/meta";
 import { officeEscapeMeta } from "./games/office-escape/meta";
@@ -33,6 +34,26 @@ import { monsterKitchenMeta } from "./games/monster-kitchen/meta";
 import { knightArenaMeta } from "./games/knight-arena/meta";
 import { zooEscapeMeta } from "./games/zoo-escape/meta";
 import { rocketLandingMeta } from "./games/rocket-landing/meta";
+import { firefighterRescueMeta } from "./games/firefighter-rescue/meta";
+import { taxiRush3dMeta } from "./games/taxi-rush-3d/meta";
+import { burgerDeliveryScooterMeta } from "./games/burger-delivery-scooter/meta";
+import { beachLifeguardMeta } from "./games/beach-lifeguard/meta";
+import { farmTractorChallengeMeta } from "./games/farm-tractor-challenge/meta";
+import { catVsRobotVacuumMeta } from "./games/cat-vs-robot-vacuum/meta";
+import { hotelBellboyRushMeta } from "./games/hotel-bellboy-rush/meta";
+import { wizardPotionLabMeta } from "./games/wizard-potion-lab/meta";
+import { hauntedMansionKeysMeta } from "./games/haunted-mansion-keys/meta";
+import { beeGardenMeta } from "./games/bee-garden/meta";
+import { dogParkFetchMeta } from "./games/dog-park-fetch/meta";
+import { submarineTreasureDiveMeta } from "./games/submarine-treasure-dive/meta";
+import { marsRoverMissionMeta } from "./games/mars-rover-mission/meta";
+import { trainStationRushMeta } from "./games/train-station-rush/meta";
+import { pizzaKitchen3dMeta } from "./games/pizza-kitchen-3d/meta";
+import { jungleBridgeRunMeta } from "./games/jungle-bridge-run/meta";
+import { magicCarpetRideMeta } from "./games/magic-carpet-ride/meta";
+import { toyStoreNightShiftMeta } from "./games/toy-store-night-shift/meta";
+import { aquariumCleanerMeta } from "./games/aquarium-cleaner/meta";
+import { postman3dMeta } from "./games/postman-3d/meta";
 
 export const ARCADE_GAMES: ArcadeGameMeta[] = [
    robotCollectorMeta,
@@ -65,7 +86,35 @@ export const ARCADE_GAMES: ArcadeGameMeta[] = [
    knightArenaMeta,
    zooEscapeMeta,
    rocketLandingMeta,
+   firefighterRescueMeta,
+   taxiRush3dMeta,
+   burgerDeliveryScooterMeta,
+   beachLifeguardMeta,
+   farmTractorChallengeMeta,
+   catVsRobotVacuumMeta,
+   hotelBellboyRushMeta,
+   wizardPotionLabMeta,
+   hauntedMansionKeysMeta,
+   beeGardenMeta,
+   dogParkFetchMeta,
+   submarineTreasureDiveMeta,
+   marsRoverMissionMeta,
+   trainStationRushMeta,
+   pizzaKitchen3dMeta,
+   jungleBridgeRunMeta,
+   magicCarpetRideMeta,
+   toyStoreNightShiftMeta,
+   aquariumCleanerMeta,
+   postman3dMeta,
 ].sort((a, b) => a.order - b.order);
+
+// Client code reads metas through metaSource.ts; wherever the registry is loaded, it is filled.
+provideGameMetas(ARCADE_GAMES);
+
+/** Every game in the compact form the /3d grid hands the browser (ui/GameMetas.tsx). */
+export function scoringMetas(): GameScoringMeta[] {
+   return ARCADE_GAMES.map(scoringMetaOf);
+}
 
 export function getGameMeta(slug: string): ArcadeGameMeta | undefined {
    return ARCADE_GAMES.find((game) => game.slug === slug);

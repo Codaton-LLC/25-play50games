@@ -1,0 +1,113 @@
+# Farm Tractor Challenge
+
+Owner: kimi. Slug: `farm-tractor-challenge`. Order 35. Status `dev`. Collection `skill`. Points. Difficulty 2. One yard, five level configs. Spec: `.handoff/C-35-farm-tractor-challenge/spec.md`.
+
+## Rules
+
+The field is `width × depth`, centred on the origin. North is +z. The barn bay is the north strip. The tractor starts on the south side, facing north, stopped. A fence ring is the boundary. The gate is a gap (`|x| < 3.8` at `z = depth/2 − 8`); the posts are circles of radius 0.42.
+
+Street-vehicle integrator. Stick up is forward (`moveY` −1). Top speed 6, accel 6, brake 10, reverse 2, steer 1.4 rad/s, radius 1.35, drag 0.8. Positive steer turns right. Reverse flips the steer sign. Below 0.12 m/s the tractor can still turn, at half rate. Keyboard and touch share `step()`. The camera yaw is not used for steering.
+
+A trip's bales wear the tint ring. Overlap at incoming speed under 2 hitches one into the next free trailer slot (the speed is read before drag). At 2 or above the bale stays and a life is spent. A full trailer ignores a further slow overlap. Unarmed bales do not hitch. Slots never exceed `balesPerTrip`.
+
+The trailer is a critically damped spring (`SPRING_K` 26) toward a point 1.15 + 2.4 m behind the tractor. It never writes the tractor. Two slot offsets sit on that point. Drawn (`Scene.tsx`): `farmTrailer.glb` 2.4 m behind the hitch along its own yaw (the spring point once the yaw has caught up, so the bar stays rigid), 2.8 m long and 1.2 m wide (`TRAILER_LENGTH`, sides squashed to 0.8), its yaw easing toward the tractor's heading (`TRAILER_TURN` 3/s); a hitch bar runs from the GLB's drawbar eye to a pin at `hitchPoint`, and the hitched loads sit on the measured bed (`TRAILER_BED`, checked on the real mesh in `assets.test.ts`), one in the middle or two front and back. The slot offsets stay the rules' (bay check). Steering: stick right lowers the yaw (the tractor faces (sin yaw, cos yaw), and +x is the driver's left); the models are drawn with `rotation.y = yaw`.
+
+Mud rects multiply accel, top speed and reverse by 0.55 while the tractor circle overlaps them. Speed above the mud top bleeds with the brake. Mud never covers a bale or the bay (200 seeds).
+
+Fence segments, gate posts and tree boxes push the tractor out. Contact while moving into them above 0.8 m/s spends a life and zeros speed. At 0.8 or below the speed is scrubbed (× 0.15) and no life is spent. One bump per 1.15 s.
+
+Parking: every bale of the trip is hitched, the tractor centre and every slot anchor are inside the bay, and `|speed| < 0.4` for 0.60 s of play time. Then +200, plus +100 if that trip took no bump. The next trip arms. A win is every trip parked. Lives are the level's bump budget; 0 lives is a loss. Timeup is the shell. On a win only, +4 per full second left.
+
+`Bobj = 300 × trips` (the +200 and the clean +100). Bumps add no points.
+
+## Levels
+
+Same yard rules. Each level has its own `theme` (palette, fog, apron scenery in `looks.ts`). Counts, cargo, clock and the core lighting preset still ramp. Level 4 fogs grey (`#a8a29e`, near 22). The others fog toward their sky.
+
+| L | Title | Theme | Trips | Bales | Mud | Trees | Cargo | Lives | Clock | Light |
+|---|---|---|---:|---:|---:|---:|---|---:|---:|---|
+| 1 | Farm Yard | yard | 2 | 1 | 0 | 0 | hay | 6 | 120 s | day `#bae6fd` |
+| 2 | Wheat Field | wheat | 3 | 2 | 0 | 0 | hay | 6 | 150 s | day `#86efac` |
+| 3 | Orchard | orchard | 4 | 2 | 0 | 6 | crate | 5 | 180 s | sunset `#fdba74` |
+| 4 | Mud Farm | mud | 5 | 2 | 3 | 0 | hay | 4 | 180 s | day `#a8a29e` |
+| 5 | Mega Farm | mega | 6 | 2 | 4 | 8 | hay | 4 | 210 s | sunset `#b45309` |
+
+Level 2 is the first trip with two slots. The hitch rule does not change. Trees are solid AABBs (half-extent 0.55). Level 3 swaps the hitch mesh to the apple crate at the same radius. Look twists: L2 wheat crop rows on the apron; L3 blossom trees + crate stacks outside; L4 visible mud pits (rim + wet centre) + boardwalk planks; L5 densifies wheat, orchard and mud apron. Level 1 apron stays empty (today's four barn-side props only).
+
+## Controls
+
+WASD / arrows drive. Touch: joystick only. Scheme `steer`. The 2.0 hitch line, the 0.8 fence line and the 0.60 s park hold are the same on both devices (`rules.test.ts`). The shell owns pause. `clockChip` stays on. Custom HUD is Load `n/size` (`data-arcade-safe-area`). Stat chip: Trips. Score, time and lives (bumps left) are the shell chips. `resultDelayMs` 900.
+
+## Server limits
+
+`base = Bobj`. `maxDurationMs` is the level clock. `minDurationMs = 4000`. `unitLabel: "pts"`, `display: "int"`.
+
+The sketch used an earliest win M and `peak = Bobj + 4 × (durationS − M)`, with level 1 pps 14 at M = 30 s. The oracle wins level 1 in 23.05 s at 984, and `600 + 14 × 23.05 = 922.7` is under that score, so level 1 pps is **22**. A clear at 19.1 s scores the 1000 cap, and `600 + 22 × 19.1 = 1020.2` still accepts it. Levels 2–5 finish after the sketch M, so their sketch pps already covers the score. Their `maxScore` is lower than the sketch so the measured best is at least 90% of the cap. Level 5 `maxScore` 2280 is under `3 × 1000`.
+
+`base + pps × seconds` at the measured earliest win:
+
+| L | Bobj | Measured win | Score | base + pps × seconds | maxScore | Best / max |
+|---|---:|---:|---:|---:|---:|---:|
+| 1 | 600 | 23.05 s | 984 | 600 + 22 × 23.05 = 1107.1 | 1000 | 98.4% |
+| 2 | 900 | 67.27 s | 1228 | 900 + 13 × 67.27 = 1774.51 | 1340 | 91.6% |
+| 3 | 1200 | 84.58 s | 1580 | 1200 + 12 × 84.58 = 2214.96 | 1740 | 90.8% |
+| 4 | 1500 | 110.45 s | 1776 | 1500 + 9 × 110.45 = 2494.05 | 1960 | 90.6% |
+| 5 | 1800 | 141.15 s | 2072 | 1800 + 8 × 141.15 = 2929.2 | 2280 | 90.9% |
+
+Level 1's 23.05 s leaves 96 full seconds (`384 + 600 = 984`). The oracle did not beat 23.05 s in 24 runs plus the 144 Hz run.
+
+Proof (`rules.test.ts`, through `createArcadeStore` + `advanceRunClock` + `withinServerLimits`): per level, 12 seeds at 30 Hz and 60 Hz for an oracle, a human-paced bot (stick 0.9, brake lag 0.18 s), an idle bot and a spam bot, plus one oracle at 144 Hz. Idle scores 0 and does not win. Spam stays inside the limits. Store score matches the rules score on every oracle run. Oracle wins: 24/24 on every level. Every winning best is at least 90% of that level's `maxScore`. Layout: 200 seeds × 5 levels, mud off the bales and the bay, gaps ≥ 4 m.
+
+## Look
+
+Base palette in `looks.ts` (`COLORS`); per-theme ground tones in `LOOKS` (yard / wheat / orchard / mud / mega). Lighting and background come from the level. Chase camera: pitch 46°, yaws `[π, π/2]`, fov 46, follow fraction 0.2, look-ahead 3.5 m, `shift: true`, bounds the field.
+
+The farmer is a seated `HumanoidModel` stand-in (`FarmerFigure`, 1.78 m, `applyLift={false}`) until `charFarmer.glb` is measured. Cheer on a win. Hay or crates are one `DynamicInstancedModel` pool (hidden once delivered, shown on the trailer by the same pool). Fence, trees and mud pits (bed + wet + rim) are instanced. Barn-side decor (silo, trough, scarecrow, shared crate) sits outside the fence; extra apron scenery is `Decor.tsx` / `scenerySpots` (never inside the yard). Grass extends 2.6× the longer side so the chase frame has no void. Fallback posts and cargo are unit meshes scaled by the spot or the instance matrix.
+
+## Known issues
+
+- `charFarmer` has no measured landmarks and `scale` 1. The pose is a game-local sit (no core `sitPose`). Claude's assets PR measures the GLB and keeps the seated height at 1.78 m.
+- Every url under `/models/3d/farm-tractor-challenge/` is unlisted, so those fallbacks draw. The leafy tree and the barn crate are shared meshes already in the manifest.
+- Leave `hero.glb`. Regen still open for `hayBaleBound`, `grainSiloGround` and `scarecrowPost`. The game loads `hayBale`, `grainSilo` and `scarecrow`. `grainSiloR` is the closer interim silo if Claude swaps the file.
+- Draw calls were not measured on a device. The target is about 30, cap 50.
+- Thumbnail: `meta.thumbnail` is `/images/3d/<slug>.webp` (capture via tools/thumbs).
+
+## What Claude registers
+
+The slug is already on main (registry, loader, stub meta). Status stays `dev`. Do not enable the game.
+
+1. `play50games-backend/play50games/includes/arcade-games.json` — copy the five limits. Level 1 is the top-level scoring. `enabled: false`.
+
+```json
+"farm-tractor-challenge": {
+  "title": "Farm Tractor Challenge",
+  "kind": "points",
+  "max_score": 1000,
+  "min_duration_ms": 4000,
+  "max_duration_ms": 120000,
+  "base": 600,
+  "max_pps": 22,
+  "enabled": false,
+  "levels": [
+    { "title": "Farm Yard", "max_score": 1000, "min_duration_ms": 4000, "max_duration_ms": 120000, "base": 600, "max_pps": 22 },
+    { "title": "Wheat Field", "max_score": 1340, "min_duration_ms": 4000, "max_duration_ms": 150000, "base": 900, "max_pps": 13 },
+    { "title": "Orchard", "max_score": 1740, "min_duration_ms": 4000, "max_duration_ms": 180000, "base": 1200, "max_pps": 12 },
+    { "title": "Mud Farm", "max_score": 1960, "min_duration_ms": 4000, "max_duration_ms": 180000, "base": 1500, "max_pps": 9 },
+    { "title": "Mega Farm", "max_score": 2280, "min_duration_ms": 4000, "max_duration_ms": 210000, "base": 1800, "max_pps": 8 }
+  ]
+}
+```
+
+2. Copy the GLBs named in `assets.spec.json` to `public/models/3d/farm-tractor-challenge/` and add them to `core/modelManifest.ts`. Leave `hero.glb`. Then fit scales. The tree and the barn crate are already shared.
+
+## Camera views
+
+Tap 📷 or press **C** (**T** also cycles): Classic (the existing fitted follow camera) / Front / Top / Free. A separate chase view is omitted because Classic already follows the vehicle. WASD / arrows and the joystick keep steering the vehicle in every view.
+
+Drag on empty canvas (one or two fingers on touch) to orbit in Free; wheel / pinch zooms. Q / Z turn left, X turns right, R / F tilt, V recenters. No camera keys conflict with game controls. The core camera button stays at the bottom right, clear of the shell chips and joystick and the top-left Load panel.
+
+Both subject and steering are `vehicle`. Camera collision uses the existing tree AABBs plus boxes around the fence segments and gate posts. Top distance is 18 m (below the mud level’s 22 m fog start). No fitted-pitch labels or view-based scene culling need adjustment. Browser checks, including 390 × 844 with the cookie banner, are left to Claude.
+
+## Clarity (2026-10-28, visual only)
+
+`guide.ts` (pure, `guide.test.ts`) picks the next step: the nearest bale of this trip still in the field, then the barn bay once the trailer is full. A core `TargetBeacon` marks it (a yellow arrow over the bale; a green "drop-here" ring with a PARK label over the bay). The core `HintLine` says it ("Trip 1/2: drive gently into the ringed bale", "1/2 loaded: get the next bale", "Loaded! Drive into the green barn bay", "In the bay: stop and hold still", a sticky "Parking… hold still" and a sticky red "Slow down! Touch the bale under 2 m/s" within 4 m of a bale at hitch speed). The Load chip turns green with "to the bay" when full. A hitched load swings from the field onto the bed and a delivered one is lifted off into the barn (0.45 s arcs) instead of jumping or vanishing; a bump pops "Too fast for the bale! -1 life" next to a bale, else "Bump! -1 life". Rules, scoring and limits are unchanged.

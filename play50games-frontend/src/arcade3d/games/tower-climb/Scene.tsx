@@ -3,28 +3,37 @@
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { PerspectiveCamera, Vector3, type Group, type Matrix4, type Mesh } from "three";
+import { useCameraViews } from "@/arcade3d/core/camera/CameraViews";
+import { useCameraZoom } from "@/arcade3d/core/useCameraZoom";
+import { CAMERA_VIEWS, phoneOffset } from "./cameraViews";
 import CameraRig from "@/arcade3d/core/CameraRig";
 import { DynamicInstancedModel } from "@/arcade3d/core/assets";
 import { playSfx } from "@/arcade3d/core/audio";
 import { FRAME_PRIORITY } from "@/arcade3d/core/frameLoop";
+import { useFx } from "@/arcade3d/core/fx/FxLayer";
+import { useActionPop } from "@/arcade3d/core/fx";
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import { useInput } from "@/arcade3d/core/input";
+import { useLevel } from "@/arcade3d/core/level";
 import { randomSeed } from "@/arcade3d/core/math";
 import { BlobShadow, DynamicInstanced } from "@/arcade3d/core/render";
 import { sameScreenRects, useSafeArea, type SafeArea } from "@/arcade3d/core/safeArea";
 import { RUNNER_LANDMARKS } from "@/arcade3d/core/sharedAssets";
 import {
-   HumanoidModel, POSE_MASK, blendPoses, bodyLift, cheerPose, createPose, idlePose, jumpPose, useHumanoidPose, walkPose,
+   HumanoidModel, POSE_MASK, aimArm, blendPoses, bodyLift, cheerPose, createPose, idlePose, jumpPose, useHumanoidPose, walkPose,
 } from "@/arcade3d/core/rig";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useFittedView } from "@/arcade3d/core/useFittedView";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
-import { ASSETS, RUNNER_SCALE } from "./assets";
+import { ASSETS, RUNNER_SCALE, STORM_CLOUD_SPOTS } from "./assets";
 import { AREA, FOLLOW_DAMPING, FOV, LOOK_AT, VIEW } from "./camera";
+import type { TowerLevel } from "./levels";
 import { RUNNER_ORDER, RunnerPrimitive, useTowerParts, type TowerParts } from "./Primitives";
-import { CHECKPOINT, MOVING, NONE, POOLS, RUNNER, STATIC, createRun, createStepInput, readStepInput, step, type TowerRun } from "./rules";
+import { CHECKPOINT, COIN_POINTS, MOVING, NONE, POOLS, ROCKET, ROCKET_CAP, RUNNER, SPRING_CAP, STATIC, WIND, WIND_CAP, createRun, createStepInput, readStepInput, step, type TowerRun } from "./rules";
 import { createRunnerGait, stepRunnerGait } from "./runnerGait";
-import { createVisualState, runnerFootY, writeCoin, writeFlag, writeSection, writeSlab, writeSpur, type VisualState } from "./visuals";
+import { createVisualState, runnerFootY, writeCoin, writeFlag, writeRocket, writeSection, writeSlab, writeSpring, writeSpur, writeStormCloud, writeWind, type VisualState } from "./visuals";
+
+export const useTowerLevel = () => useLevel<TowerLevel>();
 
 const MOTION_QUERY = "(prefers-reduced-motion: reduce)";
 const subscribeMotion = (changed: () => void) => {
@@ -33,22 +42,57 @@ const subscribeMotion = (changed: () => void) => {
 };
 const readMotion = () => window.matchMedia(MOTION_QUERY).matches;
 const noMotion = () => false;
+/** The coin pop text, built once (the frame callbacks allocate nothing). */
+const COIN_POP = `+${COIN_POINTS}`;
 
 const Simulation = memo(function Simulation({ run, visual }: { run: TowerRun; visual: VisualState }) {
    const input = useInput();
+   const fx = useFx();
+   const pop = useActionPop();
    const [controls] = useState(createStepInput);
+   const [fxPos] = useState(() => new Vector3());
+   useEffect(() => { fx.warm("puff", "sparks", "confetti"); }, [fx]);
    useRunFrame((_state, dt) => {
       const events = step(run, dt * 1000, readStepInput(input.current, controls));
       const store = useArcadeStore.getState();
       if (events.delta) store.addScore(events.delta);
       if (events.height !== NONE) store.setStat("height", events.height);
       if (events.jumped) playSfx("jump");
-      if (events.coin !== NONE) playSfx("pickup");
+      if (events.coin !== NONE) {
+         playSfx("pickup");
+         fxPos.set(run.player.x, run.player.y + 1.2, 0);
+         pop.good(fxPos, COIN_POP);
+      }
       if (events.checkpoint !== NONE) {
          visual.checkpointMs = run.timeMs;
          store.setStat("checkpoint", events.checkpoint);
+         if (run.fireworks) {
+            fxPos.set(0, run.player.y + 0.8, 0);
+            fx.burst("confetti", fxPos, 16);
+            playSfx("chime");
+         }
       }
-      if (events.hit) { store.setStat("fallen", 1); playSfx("hit"); }
+      if (events.sprung !== NONE) {
+         fxPos.set(run.player.x, run.player.y, 0);
+         fx.burst("puff", fxPos, 10);
+         fx.shake(0.22);
+         playSfx("pop");
+      }
+      if (events.rocket !== NONE) {
+         fxPos.set(run.player.x, run.player.y + 0.4, 0);
+         fx.burst("sparks", fxPos, 12);
+         playSfx("whoosh");
+      }
+      if (run.boostUntilMs >= 0 && run.timeMs % 80 < 20) {
+         fxPos.set(run.player.x, run.player.y + 0.2, -0.12);
+         fx.burst("sparks", fxPos, 5);
+      }
+      if (events.hit) {
+         store.setStat("fallen", 1);
+         playSfx("hit");
+         fxPos.set(run.player.x, run.player.y + 1.2, 0);
+         pop.fail(fxPos, "You fell!");
+      }
       if (events.ended) store.end(events.ended);
    });
    return null;
@@ -56,12 +100,30 @@ const Simulation = memo(function Simulation({ run, visual }: { run: TowerRun; vi
 
 const TowerCamera = memo(function TowerCamera({ run }: { run: TowerRun }) {
    const view = useFittedView(VIEW);
+   const aspect = useThree((s) => s.size.width / s.size.height);
+   const portrait = aspect < 1;
+   const offset = phoneOffset(view.offset, aspect);
+   const zoom = useCameraZoom({ min: 1.3 / Math.hypot(...offset), max: Math.max(1, 2 * view.distance / Math.hypot(...offset)) });
+   useEffect(() => { zoom.current = 1; }, [portrait, zoom]);
+   const [target] = useState(() => ({ x: 0, y: 0, z: 0 }));
+   useFrame(() => {
+      target.x = run.player.x;
+      target.y = run.player.y + RUNNER.height / 2;
+   }, FRAME_PRIORITY.camera - 0.01);
+   useCameraViews({
+      slug: "tower-climb", subject: "character", steering: "camera", defaultYaw: view.yaw,
+      views: CAMERA_VIEWS, framing: { top: { distance: 5, lookUp: 0 } },
+      target: (o) => {
+         o.x = run.player.x; o.y = run.player.y + RUNNER.height / 2; o.z = 0;
+         o.heading = 0; o.vx = 0; o.vz = 0;
+      },
+   });
    const active = useThree(s => s.camera);
    useLayoutEffect(() => {
       if (active instanceof PerspectiveCamera) { active.near = 0.1; active.far = 400; active.updateProjectionMatrix(); }
    }, [active]);
-   const camera = useMemo(() => ({ position: view.offset, lookAt: LOOK_AT, fov: FOV }), [view.offset]);
-   return <CameraRig camera={camera} follow={run.cameraTarget} followFraction={1} offset={view.offset} shift={view.shift} damping={FOLLOW_DAMPING} />;
+   const camera = useMemo(() => ({ position: offset, lookAt: LOOK_AT, fov: FOV }), [offset[0], offset[1], offset[2]]);
+   return <CameraRig camera={camera} follow={aspect < 1 ? target : run.cameraTarget} followFraction={1} offset={offset} zoom={zoom} shift={view.shift} damping={FOLLOW_DAMPING} />;
 });
 
 const SlabPool = memo(function SlabPool({ run, kind, parts }: { run: TowerRun; kind: number; parts: TowerParts }) {
@@ -95,6 +157,54 @@ const Flags = memo(function Flags({ run, parts }: { run: TowerRun; parts: TowerP
    return <DynamicInstancedModel asset={ASSETS.flag} count={POOLS.flags} update={update} fallbackParts={parts.flag} name="checkpoint-flags" />;
 });
 
+const SpringPads = memo(function SpringPads({ run, parts }: { run: TowerRun; parts: TowerParts }) {
+   const update = useCallback((i: number, matrix: Matrix4) => {
+      if (i >= run.springCount) return false;
+      const parent = run.springParent[i];
+      const y = run.tower.heights[parent] / 1000;
+      if (y < run.viewBottomY - 0.2 || y > run.maxHeight + 4) return false;
+      const age = run.springPad === parent && run.springMs >= 0 ? run.timeMs - run.springMs : -1;
+      writeSpring(matrix, run.tower.xs[parent] / 1000, y, age);
+   }, [run]);
+   return <DynamicInstanced count={SPRING_CAP} update={update} parts={parts.spring} name="spring-pads" />;
+});
+
+const Rockets = memo(function Rockets({ run, parts }: { run: TowerRun; parts: TowerParts }) {
+   const update = useCallback((i: number, matrix: Matrix4) => {
+      if (i >= run.rocketCount || run.rocketTaken[i] !== 0) return false;
+      const parent = run.rocketParent[i];
+      const y = run.tower.heights[parent] / 1000 + ROCKET.lift;
+      if (y < run.viewBottomY || y > run.maxHeight + 5) return false;
+      return writeRocket(matrix, run.tower.xs[parent] / 1000, y, run.timeMs * 0.003, true);
+   }, [run]);
+   return <DynamicInstancedModel asset={ASSETS.rocket} count={ROCKET_CAP} update={update} fallbackParts={parts.rocket} name="rockets" />;
+});
+
+const WindGusts = memo(function WindGusts({ run, parts }: { run: TowerRun; parts: TowerParts }) {
+   const update = useCallback((i: number, matrix: Matrix4) => {
+      if (i >= run.windCount) return false;
+      const side = i % 2 === 0 ? 1 : -1;
+      // 5.5 m into the band: clear of the checkpoint coins and flags at multiples of 8 m
+      const y = WIND.y0 + i * WIND.gap + 5.5;
+      if (y < run.viewBottomY || y > run.maxHeight + 6) return false;
+      writeWind(matrix, side * (WIND.xInner + 0.12), y, side < 0);
+   }, [run]);
+   return <DynamicInstanced count={WIND_CAP} update={update} parts={parts.wind} name="wind-gusts" />;
+});
+
+/**
+ * The storm clouds of levels 4-5 (Storm Tower, Sky Tower): side decor only. Every spot sits
+ * outside the camera guard box (assets.ts STORM_CLOUD_SPOTS), sinking slowly down a 6 m band above
+ * the danger line and wrapping to the top; visual time only, never any gameplay state.
+ */
+const StormClouds = memo(function StormClouds({ run, parts, reduced }: { run: TowerRun; parts: TowerParts; reduced: boolean }) {
+   const time = useGameTime();
+   const update = useCallback((i: number, matrix: Matrix4) =>
+      writeStormCloud(STORM_CLOUD_SPOTS[i], i, run.viewBottomY, time.now, reduced, matrix), [run, time, reduced]);
+   return <DynamicInstancedModel asset={ASSETS.stormCloud} count={STORM_CLOUD_SPOTS.length} update={update}
+      fallbackParts={parts.stormCloud} name="storm-clouds" />;
+});
+
 const Tower = memo(function Tower({ run, parts }: { run: TowerRun; parts: TowerParts }) {
    const gl = useThree(s => s.gl);
    const update = useCallback((i: number, matrix: Matrix4) => writeSection(run, run.sections[i], matrix), [run]);
@@ -120,6 +230,7 @@ const Tower = memo(function Tower({ run, parts }: { run: TowerRun; parts: TowerP
 const Runner = memo(function Runner({ run, visual, parts }: { run: TowerRun; visual: VisualState; parts: TowerParts }) {
    const time = useGameTime();
    const root = useRef<Group>(null), body = useRef<Group>(null), standIn = useRef<Group>(null), shadow = useRef<Group>(null);
+   const pack = useRef<Group>(null), drop = useRef<Group>(null), flame = useRef<Mesh>(null);
    const [gait] = useState(createRunnerGait);
    const [scratch] = useState(createPose);
    // FRAME_PRIORITY.pose: after the step moved the runner, before the useFrame below reads the lift
@@ -132,6 +243,10 @@ const Runner = memo(function Runner({ run, visual, parts }: { run: TowerRun; vis
       blendPoses(p, idlePose(time.now, scratch), 1 - Math.min(1, gait.amount * 5), p, POSE_MASK.upper);
       if (gait.air > 0.001) blendPoses(p, jumpPose(gait.tuck, scratch), gait.air, p);
       if (gait.cheer > 0.001) blendPoses(p, cheerPose((run.timeMs - visual.checkpointMs) / 1000, scratch), gait.cheer, p, POSE_MASK.arms);
+      if (gait.fly > 0.5) {
+         aimArm(p, 1, 0, -0.2, -1, 0, -0.05, -1);
+         aimArm(p, -1, 0, -0.2, -1, 0, -0.05, -1);
+      }
       gait.lift = bodyLift(p, RUNNER_LANDMARKS) * RUNNER_SCALE;
    });
    useFrame(() => {
@@ -145,6 +260,17 @@ const Runner = memo(function Runner({ run, visual, parts }: { run: TowerRun; vis
          ? Math.abs(Math.sin(gait.phase)) * 0.012 * gait.amount * (1 - gait.air) : gait.lift;
       shadow.current.visible = run.player.grounded && !run.pendingLose;
       shadow.current.position.set(run.player.x, run.player.y + 0.012, 0);
+      if (pack.current) pack.current.visible = run.boostUntilMs >= 0 && !run.pendingLose;
+      if (flame.current) flame.current.scale.set(1, 0.8 + 0.45 * Math.abs(Math.sin(time.now * 31)), 1);
+      if (drop.current) {
+         const age = run.rocketDropMs < 0 ? -1 : run.timeMs - run.rocketDropMs;
+         const falling = age >= 0 && age < 900 && !run.pendingLose;
+         drop.current.visible = falling;
+         if (falling) {
+            const t = age / 1000;
+            drop.current.position.set(run.rocketDropX, run.rocketDropY - 5 * t * t, -0.12);
+         }
+      }
    });
    return (
       <>
@@ -155,7 +281,22 @@ const Runner = memo(function Runner({ run, visual, parts }: { run: TowerRun; vis
                fallback={<group ref={standIn} renderOrder={RUNNER_ORDER}><RunnerPrimitive parts={parts} gait={gait} /></group>}>
                <primitive object={parts.depthReset} dispose={null} />
             </HumanoidModel>
+            {run.rocketCount > 0 && <group ref={pack} position={[0, 0.18, -0.16]} scale={1.3} visible={false}>
+               <mesh geometry={parts.rocketPack} dispose={null}>
+                  <meshStandardMaterial vertexColors roughness={0.42} />
+               </mesh>
+               {/* the flame under the nozzle; its length flickers while the rocket burns */}
+               <mesh ref={flame} position={[0, -0.07, 0]} rotation={[Math.PI, 0, 0]}>
+                  <coneGeometry args={[0.045, 0.16, 10]} />
+                  <meshBasicMaterial color="#fdba74" toneMapped={false} />
+               </mesh>
+            </group>}
          </group></group>
+         {run.rocketCount > 0 && <group ref={drop} scale={1.3} visible={false}>
+            <mesh geometry={parts.rocketPack} dispose={null}>
+               <meshStandardMaterial vertexColors roughness={0.42} />
+            </mesh>
+         </group>}
       </>
    );
 });
@@ -214,8 +355,9 @@ function FitProbe({ run }: { run: TowerRun }) {
    return null;
 }
 
-export default function Scene() {
-   const [run] = useState(() => createRun(randomSeed()));
+function LevelScene() {
+   const { config } = useTowerLevel();
+   const [run] = useState(() => createRun(randomSeed(), config));
    const [visual] = useState(createVisualState);
    const parts = useTowerParts();
    const reduced = useSyncExternalStore(subscribeMotion, readMotion, noMotion);
@@ -236,9 +378,18 @@ export default function Scene() {
          <SpurPool run={run} visual={visual} parts={parts} cracked reduced={reduced} />
          <Coins run={run} parts={parts} reduced={reduced} />
          <Flags run={run} parts={parts} />
+         {run.springCount > 0 && <SpringPads run={run} parts={parts} />}
+         {run.rocketCount > 0 && <Rockets run={run} parts={parts} />}
+         {run.windCount > 0 && <WindGusts run={run} parts={parts} />}
+         {(config.id === 4 || config.id === 5) && <StormClouds run={run} parts={parts} reduced={reduced} />}
          <Runner run={run} visual={visual} parts={parts} />
          <DangerStrip run={run} />
          {process.env.NODE_ENV !== "production" && <FitProbe run={run} />}
       </>
    );
+}
+
+export default function Scene() {
+   const { id } = useTowerLevel();
+   return <LevelScene key={id} />;
 }

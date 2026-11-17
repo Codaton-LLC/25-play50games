@@ -22,7 +22,7 @@ const ev = createBallEvents();
 export function playPutt(hole: Hole, from: P2, upper: boolean, psi: number, power: number, startTick: number): PuttResult {
    const b = createBall(from, upper);
    placeBall(hole, b, from, upper);
-   launchBall(b, psi, BALL.vMax * Math.max(0.1, Math.min(1, power)));
+   launchBall(b, psi, (hole.vMax ?? BALL.vMax) * Math.max(0.1, Math.min(1, power)));
    for (let n = 1; n <= 2400 * 4; n++) {
       clearBallEvents(ev);
       let live = true;
@@ -80,3 +80,67 @@ export const PAR_LINES: LinePutt[][] = [
 
 /** The world heading of a line putt on this (maybe mirrored) hole. */
 export const linePsi = (hole: Hole, putt: LinePutt): number => putt.a * DEG * hole.sx;
+
+/** Beam search at the original solver resolution: 0.5 degrees, 0.01 power, 0.1 s waits.
+ * A robust committed candidate is tried first; otherwise retain the six closest safe rests.
+ * Tests only: never imported by the frame loop.
+ */
+export function solveHole(hole: Hole): LinePutt[] | null {
+   const scale = BALL.vMax / (hole.vMax ?? BALL.vMax);
+   const original = PAR_LINES[hole.index];
+   if (original) {
+      // Reuse the proven lag as a beam seed; a faster obstacle can require a different wait.
+      for (let wait = 0; wait <= 600; wait += 12) {
+         const q = { ...original[0], p: original[0].p * scale, w: wait };
+         const r = robustPutt(hole, hole.tee, hole.terrain === "tiers", linePsi(hole, q), q.p, q.w);
+         if (!r || r.water || r.ticks < 0) continue;
+         if (r.captured) return [q];
+         const base = Math.atan2(hole.cup.x - r.x, -(hole.cup.z - r.z)) / DEG / hole.sx;
+         const w = q.w + r.ticks + ROBUST_WINDOW - 1 + 120;
+         for (let da = 0; da <= 6; da += 0.5) for (const sign of [1, -1]) {
+            for (let pi = 10; pi <= 100; pi++) {
+               const finish = { a: base + sign * da, p: pi / 100, w };
+               if (robustPutt(hole, r, r.upper, linePsi(hole, finish), finish.p, finish.w)?.captured) return [q, finish];
+            }
+         }
+      }
+   }
+   type Node = { x: number; z: number; upper: boolean; next: number; line: LinePutt[]; d: number };
+   let beam: Node[] = [{ ...hole.tee, upper: hole.terrain === "tiers", next: 0, line: [], d: 0 }];
+   for (let depth = 0; depth < hole.par; depth++) {
+      const rests: Node[] = [];
+      for (const node of beam) {
+         const base = Math.atan2(hole.cup.x - node.x, -(hole.cup.z - node.z)) / DEG / hole.sx;
+         // Tee sweep includes bank shots; later shots sweep around the cup heading.
+         const angles = depth === 0 ? Array.from({ length: 121 }, (_, i) => -30 + i * 0.5) : Array.from({ length: 25 }, (_, i) => base - 6 + i * 0.5);
+         for (const a of angles) for (let pi = 10; pi <= 100; pi++) {
+            for (let wait = 0; wait <= (hole.windmill || hole.turntable ? 360 : 0); wait += 12) {
+               const q = { a, p: pi / 100, w: node.next + wait };
+               const r = robustPutt(hole, node, node.upper, linePsi(hole, q), q.p, q.w);
+               if (!r || r.water || r.ticks < 0) continue;
+               const line = [...node.line, q];
+               if (r.captured) return line;
+               if (wait === 0) rests.push({ ...r, next: q.w + ROBUST_WINDOW - 1 + r.ticks + 60, line, d: Math.hypot(r.x - hole.cup.x, r.z - hole.cup.z) });
+            }
+         }
+      }
+      rests.sort((a, b) => a.d - b.d);
+      beam = rests.slice(0, 6);
+   }
+   return null;
+}
+
+/** Find an ace near the original ace at the same (or finer) resolution as its discovery grid. */
+export function solveAce(hole: Hole): LinePutt[] | null {
+   const ace = ACE_LINES[hole.index]?.[0];
+   if (!ace) return null;
+   const power = ace.p * BALL.vMax / (hole.vMax ?? BALL.vMax);
+   const waits = hole.windmill || hole.turntable ? Array.from({ length: 51 }, (_, i) => i * 12) : [0];
+   const offsets = [0, ...Array.from({ length: 12 }, (_, i) => (i + 1) * 0.25).flatMap(a => [a, -a])];
+   const powers = [0, ...Array.from({ length: 12 }, (_, i) => (i + 1) * 0.005).flatMap(a => [a, -a])];
+   for (const da of offsets) for (const dp of powers) for (const w of waits) {
+      const q = { a: ace.a + da, p: power + dp, w };
+      if (robustPutt(hole, hole.tee, hole.terrain === "tiers", linePsi(hole, q), q.p, q.w)?.captured) return [q];
+   }
+   return null;
+}

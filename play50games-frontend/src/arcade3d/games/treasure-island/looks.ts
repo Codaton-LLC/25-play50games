@@ -1,9 +1,101 @@
 // Treasure Island looks that are worth a test: the ground and water heights (so the drawn shoreline
-// is the rules' shore(t)), the follow camera's window per screen, and where the decor crabs sit.
+// is the rules' shore(t)), the follow camera's window per screen, where the decor crabs sit,
+// and the surrounding decor outside the play area.
 // Pure: no three.js, no React. The rules stay flat (y = 0); only the drawing uses these heights.
 import type { AABB } from "@/arcade3d/core/collision";
 import type { FittedViewOptions } from "@/arcade3d/core/useFittedView";
-import { ISLAND, TIDE, clearance, rho, type Island } from "./rules";
+import type { LevelId } from "@/arcade3d/types";
+import type { IslandMap } from "./maps";
+import { FIXED, ISLAND, TIDE, clearance, inBridge, rho, type Island, type IslandShape } from "./rules";
+
+// ---------- unified color palette ----------
+
+export const COLORS = {
+   // Sky & Atmosphere
+   skyTop: "#1e3a8a",
+   skyBottom: "#fdba74",
+   fog: "#fdba74",
+
+   // Ground & Island
+   sand: "#f5d8a0",
+   sandRipple: "#edd092",
+   sandSun: "#fae6be",
+   wetSand: "#c49a62",
+   grass: "#65a30d",
+   grassSun: "#84cc16",
+   grassDark: "#3f6212",
+   jungleEdge: "#4d7c0f",
+
+   // Tropical Sea & Reef
+   sea: "#14b8a6",
+   seaShallow: "#2dd4bf",
+   deep: "#0f766e",
+   deepLagoon: "#0d6e67",
+   oceanBed: "#042f2e",
+   underwaterSand: "#5fa8a3",
+   foam: "#f0fdfa",
+   surfFoam: "#e6fffa",
+
+   // Rocks
+   rock: "#78716c",
+   rockSun: "#a8a29e",
+   rockDark: "#44403c",
+
+   // Palms & Foliage
+   palm: "#4d7c0f",
+   palmLeafSun: "#65a30d",
+   palmTrunk: "#78350f",
+   palmRing: "#9a3412",
+   trunk: "#78350f",
+
+   // Wood & Props
+   wood: "#854d0e",
+   woodLight: "#b45309",
+   woodDark: "#5c2d12",
+   iron: "#334155",
+   deck: "#d97706",
+   deckPlank: "#b45309",
+   hull: "#9a3412",
+   hullTrim: "#fef08a",
+   boatTeal: "#0d9488",
+   boatCream: "#fef3c7",
+   rope: "#d97706",
+
+   // Towel & Umbrella
+   umbrellaRed: "#f43f5e",
+   umbrellaCream: "#fff7ed",
+   towelStripes: ["#f43f5e", "#fde68a", "#38bdf8", "#fde68a"] as const,
+
+   // Characters & Gear
+   hat: "#d4a373",
+   hatBand: "#451a03",
+   shirt: "#0f766e",
+   skin: "#f5c9a0",
+   shovelSteel: "#94a3b8",
+   shovelSteelDark: "#64748b",
+
+   // Treasure
+   gold: "#fbbf24",
+   goldShine: "#fef08a",
+   chest: "#8b5a2b",
+   chestWood: "#78350f",
+   chestIron: "#334155",
+   gemEmerald: "#34d399",
+   gemRuby: "#f43f5e",
+
+   // Fauna
+   gull: "#f8fafc",
+   gullWing: "#94a3b8",
+   gullBeak: "#f59e0b",
+   crab: "#ef4444",
+   crabDark: "#991b1b",
+   hole: "#452e1e",
+   holeEdge: "#714a2c",
+
+   // Shipwreck
+   wreckWood: "#3b2314",
+   wreckTrim: "#27160c",
+} as const;
 
 // ---------- ground and water ----------
 
@@ -25,8 +117,126 @@ export function waterLevel(shore: number): number {
    return (LOW_WATER * (shore - ISLAND.sandFlat)) / (1 - ISLAND.sandFlat);
 }
 
-/** Where a thing standing at (x, z) is drawn: on the sand, or on the sea floor under the water. */
-export const groundAt = (x: number, z: number) => groundHeight(rho(x, z));
+/** Where a thing standing at (x, z) is drawn: on the sand, or on the sea floor under the water; on a map level, its terrain. */
+export const groundAt = (x: number, z: number, shape: IslandShape = ISLAND) => (shape.map ? terrainHeight(x, z, shape.map, shape) : groundHeight(rho(x, z, shape)));
+
+/** Distance from (x, z) to a polyline (or a point). */
+export function distToPolyline(x: number, z: number, points: ReadonlyArray<readonly [number, number]>): number {
+   if (points.length === 1) return Math.hypot(x - points[0][0], z - points[0][1]);
+   let best = Infinity;
+   for (let i = 1; i < points.length; i++) {
+      const d = distanceToSegmentXZ(x, z, points[i - 1][0], points[i - 1][1], points[i][0], points[i][1]);
+      if (d < best) best = d;
+   }
+   return best;
+}
+
+/** How far a carve's bank slopes out beyond its footprint (m, looks). */
+export const BANK = 0.45;
+
+const smooth = (e0: number, e1: number, v: number) => {
+   const t = Math.min(1, Math.max(0, (v - e0) / (e1 - e0)));
+   return t * t * (3 - 2 * t);
+};
+
+/** The hill's height at (x, z) (0 without one): a cosine bump, slopes under 40° (h pi / 2r), steeper than nothing the 50° camera looks down at, so it never hides ground behind it. */
+export function hillHeight(x: number, z: number, map: IslandMap): number {
+   const hill = map.hill;
+   if (!hill) return 0;
+   const d = Math.hypot(x - hill.x, z - hill.z);
+   return d >= hill.r ? 0 : (hill.h * (1 + Math.cos((Math.PI * d) / hill.r))) / 2;
+}
+
+/**
+ * A map level's drawn ground (the rules stay flat): today's beach slope, plus the hill, minus the
+ * carves (stream, tide pools, ravine: the sea plane shows in them and rises with the tide), and the
+ * bridges' decks on top (a rope bridge sags in the middle).
+ */
+export function terrainHeight(x: number, z: number, map: IslandMap, shape: { rx: number; rz: number }): number {
+   for (const b of map.bridges) {
+      if (inBridge(b, x, z, 0.05)) {
+         const along = b.axis === "z" ? z - b.z : x - b.x;
+         const t = Math.min(1, Math.max(0, along / b.length + 0.5));
+         return b.deck - b.sag * Math.sin(Math.PI * t);
+      }
+   }
+   const r = rho(x, z, shape);
+   let y = groundHeight(r) + hillHeight(x, z, map);
+   // the carves fade out past the shoreline, so the seabed shows no channel
+   const sea = smooth(1.08, 0.98, r);
+   if (sea <= 0) return y;
+   for (const c of map.carves) {
+      const d = distToPolyline(x, z, c.points);
+      const edge = c.half + BANK;
+      if (d < edge) y -= c.depth * smooth(edge, c.half * 0.55, d) * sea;
+   }
+   return y;
+}
+
+// ---------- per-level looks ----------
+
+export interface Theme {
+   /** the stage's environment (index.tsx level environment): background, fog and the core lighting preset */
+   lighting: "day" | "sunset" | "indoor" | "night";
+   background: string;
+   fog: readonly [string, number, number];
+   skyTop: string;
+   skyBottom: string;
+   /** ground: dry sand, its sunlit tone, wet sand, the inland ground and its dark tone */
+   sand: string;
+   sandSun: string;
+   wet: string;
+   grass: string;
+   grassDark: string;
+   /** inland ground starts at this rho (sand outside it) */
+   grassRho: number;
+   path: string;
+   rock: string;
+   mud: string;
+   moss: string;
+   ash: string;
+   /** sea colours under this light */
+   sea: string;
+   deep: string;
+   /** an extra light the core preset does not have: colour, intensity and direction (or none) */
+   accent?: { color: string; intensity: number; position: readonly [number, number, number] };
+   /** lightning flashes (Pirate Peak's storm) */
+   storm?: boolean;
+}
+
+/** One palette and light per level: morning, noon, golden hour, jungle shade, a storm at sunset. */
+export const THEMES: Record<LevelId, Theme> = {
+   1: {
+      lighting: "day", background: "#fde4c4", fog: ["#fde4c4", 42, 100], skyTop: "#60a5fa", skyBottom: "#fde4c4",
+      sand: COLORS.sand, sandSun: COLORS.sandSun, wet: COLORS.wetSand, grass: COLORS.grass, grassDark: COLORS.grassDark, grassRho: ISLAND.grass,
+      path: "#e8c98f", rock: COLORS.rock, mud: "#7c5a3a", moss: "#4d7c0f", ash: "#57534e", sea: COLORS.sea, deep: COLORS.deep,
+      accent: { color: "#ffd8a8", intensity: 0.35, position: [-10, 5, 6] },
+   },
+   2: {
+      lighting: "day", background: "#cdeefc", fog: ["#cdeefc", 45, 110], skyTop: "#0ea5e9", skyBottom: "#e0f7ff",
+      sand: "#f8e3b0", sandSun: "#fff1cf", wet: "#cfa66a", grass: "#4ea320", grassDark: "#2f6f14", grassRho: 0.86,
+      path: "#d9b77a", rock: "#8a837c", mud: "#7a5634", moss: "#3f7d18", ash: "#57534e", sea: "#22c5c0", deep: "#0e7f86",
+   },
+   3: {
+      lighting: "sunset", background: "#f7c873", fog: ["#f7c873", 40, 98], skyTop: "#9a3412", skyBottom: "#fde68a",
+      sand: "#efcf95", sandSun: "#fbe2ac", wet: "#b88c58", grass: "#7c8f3a", grassDark: "#55602a", grassRho: 0.5,
+      path: "#d6b07a", rock: "#8c7b6b", mud: "#6b4f37", moss: "#5d6b2a", ash: "#5b524b", sea: "#1aa39a", deep: "#0b5f63",
+      accent: { color: "#ffcf7a", intensity: 0.45, position: [-9, 3.5, 5] },
+   },
+   4: {
+      lighting: "indoor", background: "#3c5a3a", fog: ["#3c5a3a", 26, 78], skyTop: "#14532d", skyBottom: "#9fc98a",
+      sand: "#d9c08a", sandSun: "#e6d09e", wet: "#a78656", grass: "#2f6b1f", grassDark: "#1d4314", grassRho: 0.9,
+      path: "#8a6a44", rock: "#6f6a5e", mud: "#5c4128", moss: "#2c5a1a", ash: "#4b463f", sea: "#178f84", deep: "#0a4d4a",
+      accent: { color: "#d9f99d", intensity: 0.35, position: [4, 9, 3] },
+   },
+   5: {
+      lighting: "night", background: "#5b4a6b", fog: ["#5b4a6b", 34, 92], skyTop: "#1e1b3a", skyBottom: "#f08a4b",
+      sand: "#d8bf92", sandSun: "#e6cfa2", wet: "#9e8058", grass: "#4b6b2a", grassDark: "#2f4519", grassRho: 0.8,
+      path: "#a8865c", rock: "#6b625b", mud: "#5a4330", moss: "#3c5420", ash: "#4a423f", sea: "#1b7f86", deep: "#0b3f4f",
+      accent: { color: "#ffb070", intensity: 1.1, position: [-12, 4, 4] },
+      storm: true,
+   },
+};
 
 // ---------- the follow camera ----------
 
@@ -83,11 +293,11 @@ const CRAB_ANGLES = [3.6, 5.6, 0.9, 2.5, 4.6, 0.2, 1.9, 5.1];
 export const CRAB_INSET = 0.06;
 
 /** Up to three crab spots (an angle on the ellipse each), clear of every footprint by 1.5 m at full tide. */
-export function crabAngles(island: Pick<Island, "circles" | "boxes">): number[] {
+export function crabAngles(island: Pick<Island, "circles" | "boxes">, shape: { rx: number; rz: number } = ISLAND): number[] {
    const out: number[] = [];
    for (const a of CRAB_ANGLES) {
       const r = 1 - CRAB_INSET;
-      if (clearance(island, ISLAND.rx * r * Math.cos(a), ISLAND.rz * r * Math.sin(a)) >= 1.5) out.push(a);
+      if (clearance(island, shape.rx * r * Math.cos(a), shape.rz * r * Math.sin(a)) >= 1.5) out.push(a);
       if (out.length === 3) break;
    }
    return out;
@@ -96,4 +306,142 @@ export function crabAngles(island: Pick<Island, "circles" | "boxes">): number[] 
 /** The tide's progress 0..1 (looks: the water rises, the surf gets louder). */
 export function tideProgress(shore: number): number {
    return (1 - shore) / (1 - TIDE.finalShore);
+}
+
+// ---------- surroundings decor outside the play area ----------
+
+export interface OuterRockSpot {
+   x: number;
+   y: number;
+   z: number;
+   scale: number;
+   rotY: number;
+   surfRadius: number;
+}
+
+export interface OuterPalmSpot {
+   x: number;
+   y: number;
+   z: number;
+   scale: number;
+   rotY: number;
+}
+
+/** Outer rocks emerging from the turquoise shallows/open sea, each with a surf ring. */
+export const OUTER_ROCKS: readonly OuterRockSpot[] = [
+   // North reef (behind the island from the camera's view)
+   { x: -5, y: -0.1, z: -18, scale: 1.4, rotY: 0.5, surfRadius: 0.95 },
+   { x: 6, y: -0.15, z: -19, scale: 1.6, rotY: 1.2, surfRadius: 1.1 },
+   { x: 0, y: -0.1, z: -25, scale: 2.1, rotY: 2.1, surfRadius: 1.4 },
+   { x: -12, y: -0.12, z: -22, scale: 1.5, rotY: 0.8, surfRadius: 1.0 },
+   { x: 13, y: -0.1, z: -22, scale: 1.8, rotY: 1.7, surfRadius: 1.2 },
+   // Northwest reef (near shipwreck)
+   { x: -21, y: -0.1, z: -22, scale: 2.0, rotY: 0.3, surfRadius: 1.35 },
+   { x: -28, y: -0.12, z: -26, scale: 1.9, rotY: 1.1, surfRadius: 1.3 },
+   { x: -18, y: -0.15, z: -17, scale: 1.3, rotY: 2.4, surfRadius: 0.9 },
+   // Northeast reef
+   { x: 21, y: -0.1, z: -21, scale: 2.0, rotY: 0.9, surfRadius: 1.35 },
+   { x: 28, y: -0.12, z: -24, scale: 1.7, rotY: 1.5, surfRadius: 1.15 },
+   { x: 18, y: -0.15, z: -17, scale: 1.4, rotY: 2.8, surfRadius: 0.95 },
+   // Far East sea stacks
+   { x: 26, y: -0.1, z: -6, scale: 1.7, rotY: 0.4, surfRadius: 1.15 },
+   { x: 27, y: -0.12, z: 2, scale: 1.5, rotY: 1.8, surfRadius: 1.0 },
+   // Far West sea stacks
+   { x: -26, y: -0.1, z: -5, scale: 1.6, rotY: 1.9, surfRadius: 1.1 },
+   { x: -27, y: -0.12, z: 3, scale: 1.4, rotY: 0.6, surfRadius: 0.95 },
+];
+
+/** Outer palms standing on distant background islets/sandbars. */
+export const OUTER_PALMS: readonly OuterPalmSpot[] = [
+   // Far Northwest atoll
+   { x: -22, y: 0.05, z: -18, scale: 1.1, rotY: 0.4 },
+   { x: -24, y: 0.08, z: -16, scale: 0.9, rotY: 1.7 },
+   // Far Northeast atoll
+   { x: 22, y: 0.05, z: -18, scale: 1.05, rotY: 2.2 },
+   { x: 25, y: 0.08, z: -16, scale: 0.85, rotY: 0.8 },
+   // Far East atoll
+   { x: 26, y: 0.05, z: -2, scale: 1.0, rotY: 1.1 },
+   { x: 27, y: 0.06, z: 4, scale: 0.8, rotY: 2.5 },
+   // Far West atoll
+   { x: -26, y: 0.05, z: -1, scale: 1.0, rotY: 0.5 },
+   { x: -27, y: 0.06, z: 5, scale: 0.85, rotY: 1.9 },
+   // Far North islet
+   { x: -3, y: 0.05, z: -29, scale: 1.15, rotY: 1.3 },
+   { x: 3, y: 0.06, z: -30, scale: 0.95, rotY: 2.7 },
+];
+
+/** Distant pirate shipwreck silhouette on the northwest reef against the sunset horizon. */
+export const SHIPWRECK = {
+   x: -25,
+   y: -0.3,
+   z: -27,
+   scale: 1.2,
+   rotY: 0.5,
+   roll: -0.25,
+   pitch: 0.12,
+   radius: 4.5,
+} as const;
+
+/** A flock of gulls circling lazily over the ocean / shipwreck reef. */
+export const OUTER_BIRDS = {
+   count: 5,
+   centerX: -18,
+   centerZ: -23,
+   radiusX: 6.5,
+   radiusZ: 4.2,
+   y: 7.2,
+} as const;
+
+// ---------- play area and occlusion verification helpers ----------
+
+/** The maximum walkable boundary is rho 1.12 (the wading limit) plus the dock extension. */
+export const PLAY_LIMITS = {
+   maxRho: 1.12,
+   dockMinX: -FIXED.dock.hx - 0.2,
+   dockMaxX: FIXED.dock.hx + 0.2,
+   dockMinZ: FIXED.dock.fromZ - 0.2,
+   dockMaxZ: FIXED.dock.toZ + 0.2,
+} as const;
+
+/** Returns true if (x, z) is inside or too close to the playable area. */
+export function inPlayArea(x: number, z: number, margin = 0.5): boolean {
+   const r = rho(x, z);
+   if (r <= PLAY_LIMITS.maxRho + margin / Math.min(ISLAND.rx, ISLAND.rz)) return true;
+   if (
+      x >= PLAY_LIMITS.dockMinX - margin &&
+      x <= PLAY_LIMITS.dockMaxX + margin &&
+      z >= PLAY_LIMITS.dockMinZ - margin &&
+      z <= PLAY_LIMITS.dockMaxZ + margin
+   ) {
+      return true;
+   }
+   return false;
+}
+
+function channel(c: number): number {
+   const s = c / 255;
+   return s <= 0.04045 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+}
+
+/** WCAG contrast of two #rrggbb colours. */
+export function contrastRatio(a: string, b: string): number {
+   const lum = (hex: string) => {
+      const n = Number.parseInt(hex.slice(1), 16);
+      return 0.2126 * channel((n >> 16) & 255) + 0.7152 * channel((n >> 8) & 255) + 0.0722 * channel(n & 255);
+   };
+   const hi = Math.max(lum(a), lum(b));
+   const lo = Math.min(lum(a), lum(b));
+   return (hi + 0.05) / (lo + 0.05);
+}
+
+/**
+ * 2D distance between a point (px, pz) and a line segment (x1, z1) -> (x2, z2).
+ */
+export function distanceToSegmentXZ(px: number, pz: number, x1: number, z1: number, x2: number, z2: number): number {
+   const dx = x2 - x1;
+   const dz = z2 - z1;
+   const lenSq = dx * dx + dz * dz;
+   if (lenSq < 1e-8) return Math.hypot(px - x1, pz - z1);
+   const t = Math.max(0, Math.min(1, ((px - x1) * dx + (pz - z1) * dz) / lenSq));
+   return Math.hypot(px - (x1 + t * dx), pz - (z1 + t * dz));
 }

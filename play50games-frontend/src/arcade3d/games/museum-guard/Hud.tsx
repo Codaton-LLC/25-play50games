@@ -2,8 +2,11 @@
 
 // Radar over the canvas. Shapes, not colour alone. Updated from the live run, no setState per frame.
 import { useEffect, useRef } from "react";
+import { HintLine } from "@/arcade3d/core/hud/HintLine";
+import { GUIDE } from "./guide";
 import { COLORS } from "./looks";
-import { liveRun, RING, type ExhibitKind, type Run } from "./rules";
+import { liveRun, type ExhibitKind, type Run } from "./rules";
+import { useMuseumLevel } from "./useMuseumLevel";
 import styles from "./Hud.module.css";
 
 const SLOTS = [0, 1, 2, 3, 4, 5, 6, 7] as const;
@@ -29,7 +32,7 @@ function wedge(yaw: number, half: number): string {
 
 function paint(beam: SVGPathElement, blips: Array<SVGPathElement | null>, run: Run) {
    beam.setAttribute("d", wedge(run.yaw, run.half));
-   for (let i = 0; i < RING.count; i++) {
+   for (let i = 0; i < run.exhibits.length; i++) {
       const node = blips[i];
       const ex = run.exhibits[i];
       if (!node || !ex) continue;
@@ -49,8 +52,10 @@ function paint(beam: SVGPathElement, blips: Array<SVGPathElement | null>, run: R
 }
 
 export default function Hud() {
+   const { config } = useMuseumLevel();
+   const slots = config.roster[0] + config.roster[1] + config.roster[2] + config.roster[3];
    const beam = useRef<SVGPathElement>(null);
-   const blips = useRef<Array<SVGPathElement | null>>(Array.from({ length: RING.count }, () => null));
+   const blips = useRef<Array<SVGPathElement | null>>(Array.from({ length: slots }, () => null));
 
    useEffect(() => {
       let frame = 0;
@@ -64,6 +69,8 @@ export default function Hud() {
    }, []);
 
    return (
+      <>
+      <HintLine signal={GUIDE} />
       <aside className={styles.radar} style={{ color: COLORS.hud }} data-arcade-safe-area aria-label="Statue radar">
          <svg viewBox="0 0 100 100" aria-hidden="true">
             <circle cx="50" cy="50" r="46" fill="none" stroke={COLORS.accent} strokeOpacity="0.35" strokeWidth="1" />
@@ -77,5 +84,6 @@ export default function Hud() {
             <circle cx="50" cy="50" r="2.2" fill={COLORS.hud} />
          </svg>
       </aside>
+      </>
    );
 }

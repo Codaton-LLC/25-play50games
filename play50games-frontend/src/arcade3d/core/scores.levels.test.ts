@@ -20,12 +20,16 @@ vi.mock("../registry", async (importOriginal) => {
 });
 
 import { getGameMeta } from "../registry";
+import { provideGameMetas } from "../metaSource";
 import { normalizeEntry, readLocalScores, submitScore, syncServerScores, unrankedResult, type FinishedRun } from "./scores";
 import { levelBestText, levelClearedText, levelProgress, levelTotalText, pickInitialLevel } from "./levelProgress";
 import { resetLevelSupport } from "./levelSupport";
 import { trackArcade } from "./analytics";
 import { robotCollectorMeta } from "../games/robot-collector/meta";
 import type { LevelId } from "../types";
+
+// scores.ts reads metas through metaSource: hand it the five-level fixtures the registry mock returns.
+provideGameMetas(["robot-collector", "obstacle-race"].map((slug) => getGameMeta(slug)!));
 
 class MemoryStorage {
    private data = new Map<string, string>();
@@ -96,7 +100,7 @@ describe("lazy migration", () => {
    });
 
    it("keeps the best number as it was for a one-level game and with the flag off", () => {
-      expect(normalizeEntry("food-catcher", OLD_ENTRY)).toMatchObject({ best: 900, bestDurationMs: 45000, levels: { "1": { best: 900, cleared: false } } });
+      expect(normalizeEntry("zoo-escape", OLD_ENTRY)).toMatchObject({ best: 900, bestDurationMs: 45000, levels: { "1": { best: 900, cleared: false } } });
       flags.ARCADE_LEVELS = false;
       const stored = { ...OLD_ENTRY, levels: { "1": { ...OLD_ENTRY, cleared: true }, "2": { ...OLD_ENTRY, best: 1200, cleared: false } } };
       expect(normalizeEntry("robot-collector", stored)).toMatchObject({ best: 900, bestDurationMs: 45000 });

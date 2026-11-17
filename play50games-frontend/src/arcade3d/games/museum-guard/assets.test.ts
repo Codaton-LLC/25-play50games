@@ -1,11 +1,13 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { Box3, BufferGeometry, Float32BufferAttribute, Group, Mesh, Vector3 } from "three";
 import { modelParts } from "@/arcade3d/core/assets";
 import { hasModel } from "@/arcade3d/core/modelManifest";
 import { readCharacterGlb } from "@/arcade3d/core/rig/robotGlb";
 import type { ModelAsset } from "@/arcade3d/core/types";
-import { ASSETS, BENCH_SCALE, DOOR_SCALE, KNIGHT_SCALE, ROBOT_SCALE } from "./assets";
+import { ASSETS, BENCH_SCALE, DOOR_SCALE, KNIGHT_SCALE, ROBOT_SCALE, SARCOPHAGUS_SPOTS } from "./assets";
+import { RING } from "./rules";
 
 async function drawnSize(asset: ModelAsset): Promise<Vector3> {
    const { local, node } = await readCharacterGlb(asset.url);
@@ -63,5 +65,45 @@ describe("museum-guard models", () => {
       expect(dino.y).toBeCloseTo(0.8, 2);
       expect(door.y).toBeCloseTo(2.1, 2);
       expect(bench.x).toBeCloseTo(2, 2);
+   });
+});
+
+describe("museum-guard sarcophagus decor", () => {
+   it("has a listed GLB on disk", () => {
+      expect(ASSETS.sarcophagus.url).toBe("/models/3d/museum-guard/sarcophagusT.glb");
+      expect(hasModel(ASSETS.sarcophagus.url)).toBe(true);
+      expect(existsSync(resolve(process.cwd(), "public", ASSETS.sarcophagus.url.slice(1)))).toBe(true);
+   });
+
+   it("fits the measured mesh to a grounded 1.4 m display", async () => {
+      const asset = ASSETS.sarcophagus;
+      const { cloud } = await readCharacterGlb(asset.url);
+      const raw = new Box3();
+      const point = new Vector3();
+      for (let i = 0; i < cloud.length; i += 3) raw.expandByPoint(point.fromArray(cloud, i));
+      const size = raw.getSize(new Vector3());
+      expect(size.x).toBeCloseTo(1.557390, 5);
+      expect(size.y).toBeCloseTo(0.668518, 5);
+      expect(size.z).toBeCloseTo(1.896267, 5);
+      expect(raw.min.y * asset.scale + asset.yOffset).toBeCloseTo(0, 5);
+      const drawn = await drawnSize(asset);
+      expect(drawn.z).toBeCloseTo(1.4, 3);
+      expect(drawn.x).toBeCloseTo(1.149785, 3);
+      expect(drawn.y).toBeCloseTo(0.493552, 3);
+   });
+
+   it("keeps the full displays outside the play bounds and inside the gallery wall", async () => {
+      const size = await drawnSize(ASSETS.sarcophagus);
+      const playRadius = Math.hypot(RING.pedestalR + RING.pedestalHalf, RING.pedestalHalf);
+      expect(SARCOPHAGUS_SPOTS.length).toBeGreaterThanOrEqual(2);
+      expect(SARCOPHAGUS_SPOTS.length).toBeLessThanOrEqual(4);
+      for (const spot of SARCOPHAGUS_SPOTS) {
+         const radius = Math.hypot(spot.x, spot.z);
+         // Long axis is tangent to the wall; the nearest edge clears the entire play disk.
+         expect(radius - size.x / 2).toBeGreaterThan(playRadius);
+         expect(Math.hypot(radius + size.x / 2, size.z / 2)).toBeLessThan(7.9);
+         expect(spot.y).toBe(0);
+         expect(spot.rotY).toBeCloseTo(Math.atan2(spot.x, spot.z) + Math.PI / 2);
+      }
    });
 });

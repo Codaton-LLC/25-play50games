@@ -18,6 +18,7 @@ import { useFrame, useThree } from "@react-three/fiber";
 import { Vector3 } from "three";
 import CameraRig from "@/arcade3d/core/CameraRig";
 import { playSfx, startLoop, useMuted } from "@/arcade3d/core/audio";
+import { SkyDome } from "@/arcade3d/core/env";
 import { FRAME_PRIORITY } from "@/arcade3d/core/frameLoop";
 import { useFx } from "@/arcade3d/core/fx";
 import { TargetMarkers, type MarkerTarget } from "@/arcade3d/core/hud";
@@ -25,14 +26,16 @@ import { useInput } from "@/arcade3d/core/input";
 import { randomSeed } from "@/arcade3d/core/math";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useFittedView } from "@/arcade3d/core/useFittedView";
+import { useCameraViews } from "@/arcade3d/core/camera/CameraViews";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import type { FittedView } from "@/arcade3d/core/view";
 import { createPuttAim, headingTo, resetPuttAim, stepPuttAim, worldHeading } from "./aim";
 import { GolfBall, type AimView } from "./Ball";
-import { HOLE_COUNT, heightAt, type Hole } from "./course";
+import { useMiniGolfLevel } from "./level";
+import { heightAt, type Hole } from "./course";
 import { Decor, Island, Sea } from "./Islands";
 import { HUD_FEED } from "./hudFeed";
-import { COLORS, ESTABLISH_S, FOLLOW_FRACTION, FOV, PITCH, establishView, fixedView, followViews, holeFocus, holeZ, minPxPerMetre, pickCamera } from "./looks";
+import { COLORS, ESTABLISH_S, FOLLOW_FRACTION, FOV, LIGHTING_THEMES, PITCH, establishView, fixedView, followViews, holeFocus, holeZ, minPxPerMetre, pickCamera } from "./looks";
 import { BALL, CUP, previewLength } from "./physics";
 import { TICK, advanceRun, createRun, currentHole, readiness, syncStore, type RunState } from "./rules";
 
@@ -41,7 +44,7 @@ const DROP_TICKS = TICK.drop * TICK.hz;
 const ESTABLISH_TICKS = Math.round(ESTABLISH_S * TICK.hz);
 
 /** The hole the camera shows: the next one once the ball has dropped (the fly-over starts). */
-const shownHole = (run: RunState) => (run.phase === "holeOut" && run.outTicks >= DROP_TICKS ? Math.min(HOLE_COUNT - 1, run.hole + 1) : run.hole);
+const shownHole = (run: RunState) => (run.phase === "holeOut" && run.outTicks >= DROP_TICKS ? Math.min(run.course.length - 1, run.hole + 1) : run.hole);
 
 function holeName(par: number, strokes: number, pickedUp: boolean): string {
    if (pickedUp) return "Picked up";
@@ -118,7 +121,10 @@ export default function Scene() {
    const input = useInput();
    const fx = useFx();
    // a new course every run: GameShell remounts the Scene (and its game time) on start and retry
-   const [run] = useState(() => createRun(randomSeed()));
+   const { id, spec, config } = useMiniGolfLevel();
+   const lighting = spec?.environment?.lighting ?? (id === 4 ? "night" : id === 3 || id === 5 ? "sunset" : "day");
+   const theme = LIGHTING_THEMES[lighting] ?? LIGHTING_THEMES.day;
+   const [run] = useState(() => createRun(randomSeed(), config));
    const [aim] = useState(createPuttAim);
    const [preview] = useState<AimView>(() => ({ on: false, dx: 0, dz: -1, length: 0, power: 0.5 }));
    const [scratch] = useState(() => ({
@@ -148,6 +154,21 @@ export default function Scene() {
    scratch.fit = fit;
    scratch.yaw = fit?.view.yaw ?? 0;
    scratch.follow = fit?.follow ?? false;
+
+   // camera views (core/camera): the rules get the drawn camera's yaw (the fitted yaw in the default view)
+   useCameraViews({
+      slug: "mini-golf",
+      subject: "character",
+      steering: "camera",
+      defaultYaw: scratch.yaw,
+      target: (o) => {
+         const b = run.ball;
+         o.x = b.x; o.y = 0.2; o.z = holeZ(run.hole) + b.z; o.heading = 0; o.vx = 0; o.vz = 0;
+      },
+      framing: { top: { distance: 14 } },
+      views: ["default", "top"],
+   });
+
 
    useEffect(() => fx.warm("sparkle", "splash", "confetti", "puff", "score"), [fx]);
    useEffect(() => {
@@ -195,7 +216,7 @@ export default function Scene() {
       preview.dx = Math.sin(psi);
       preview.dz = -Math.cos(psi);
       preview.power = aim.shown;
-      preview.length = preview.on ? previewLength(currentHole(run), run.ball, preview.dx, preview.dz, BALL.vMax * aim.shown) : 0;
+      preview.length = preview.on ? previewLength(currentHole(run), run.ball, preview.dx, preview.dz, run.config.vMax * aim.shown) : 0;
       HUD_FEED.power = aim.shown;
       HUD_FEED.ready = ready;
 
@@ -213,8 +234,12 @@ export default function Scene() {
       if (ev.railHit >= 0.3 && run.time - scratch.lastThud >= 0.06) {
          scratch.lastThud = run.time;
          playSfx("thud", { pitch: 1.4, volume: Math.min(1, 0.25 + ev.railHit / 3), pan: panAt(ev.railX) });
+         fx.burst("puff", at, 4);
       }
-      if (ev.movingHit) playSfx("thud", { pitch: 0.8 });
+      if (ev.movingHit) {
+         playSfx("thud", { pitch: 0.8 });
+         fx.burst("puff", at, 5);
+      }
       if (ev.lipOut) playSfx("click", { pitch: 1.8 });
       if (ev.pipeIn || ev.pipeOut) playSfx("whoosh", { pan: panAt(b.x) });
       if (ev.water) {
@@ -232,9 +257,10 @@ export default function Scene() {
          fx.score(at, `${holeName(par, s, ev.pickedUp)}${ev.holeScore > 0 ? ` +${ev.holeScore}` : ""}`, { color: s < par ? "#86efac" : "#fff7d6" });
          if (!ev.pickedUp) {
             playSfx("pop");
-            fx.burst("sparkle", at, 14);
+            fx.burst("sparkle", at, 20);
             if (s < par) playSfx("combo", { pitch: Math.min(1.6, 1 + 0.15 * (par - s)) });
             else if (s === par) playSfx("chime");
+            if (s <= par) fx.burst("confetti", at, 32);
          }
          if (s === 1) {
             playSfx("pickup");
@@ -284,7 +310,7 @@ export default function Scene() {
    const shown = run.course[camHole] ?? run.course[0];
    const holes = useMemo(() => run.course.slice(hole, hole + 2), [run, hole]);
    // each hole's camera yaw (its decor keeps off the far side); a hole not fitted yet keeps 0
-   const [yaws] = useState(() => new Array<number>(HOLE_COUNT).fill(0));
+   const [yaws] = useState(() => new Array<number>(run.course.length).fill(0));
    if (fit) yaws[fit.hole] = fit.view.yaw;
    const yawKey = `${yaws[hole] ?? 0},${yaws[hole + 1] ?? 0}`;
    const holeYaws = useMemo(() => yawKey.split(",").map(Number), [yawKey]);
@@ -297,6 +323,7 @@ export default function Scene() {
    }
    return (
       <>
+         <SkyDome top={theme.skyTop} bottom={theme.skyBottom} offset={0.12} exponent={0.85} />
          <HoleFit key={camHole} hole={shown} onFit={onFit} />
          {fit && (
             <CameraRig
@@ -308,11 +335,11 @@ export default function Scene() {
                damping={3}
             />
          )}
-         <Sea />
+         <Sea theme={theme} />
          {holes.map((h) => (
             <Island key={h.index} hole={h} run={run} />
          ))}
-         <Decor holes={holes} yaws={holeYaws} />
+         <Decor holes={holes} yaws={holeYaws} theme={theme} />
          <GolfBall run={run} aim={preview} />
          <TargetMarkers targets={cup} color={COLORS.accent} />
          {debug && <Probe run={run} scratch={scratch} />}

@@ -1,3 +1,11 @@
+import { existsSync } from "node:fs";
+import { BufferGeometry, Float32BufferAttribute, Group, Mesh } from "three";
+import { modelParts } from "@/arcade3d/core/assets";
+import { hasModel } from "@/arcade3d/core/modelManifest";
+import { readCharacterGlb } from "@/arcade3d/core/rig/robotGlb";
+import type { ModelAsset } from "@/arcade3d/core/types";
+import { CATAPULT_SPOTS, THRONE_SPOTS, hasRoyalDecor } from "./assets";
+import { FIELD, TOWERS, hillHeight } from "./looks";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { Box3, Matrix4, Quaternion, Vector3 } from "three";
@@ -59,3 +67,58 @@ describe("solid goblin and shared asset fits", () => {
       expect(size[axis === "width" ? "x" : axis === "height" ? "y" : "z"] * (asset.scale ?? 1)).toBeCloseTo(expected, 1);
    });
 });
+
+describe("late-level royal and siege decor", () => {
+   it.each(["royalThrone", "siegeCatapultT"] as const)("registers the existing %s GLB", (key) => {
+      const asset = ASSETS[key];
+      expect(hasModel(asset.url)).toBe(true);
+      expect(existsSync(resolve("public", asset.url.slice(1)))).toBe(true);
+   });
+
+   it.each([
+      ["royalThrone", 1.8, 0.9473, 0.8358],
+      ["siegeCatapultT", 1.3931, 1.3629, 1.7],
+   ] as const)("fits %s on the real mesh", async (key, height, width, depth) => {
+      const box = await decorBox(ASSETS[key]);
+      const size = box.getSize(new Vector3());
+      expect(box.min.y).toBeCloseTo(0, 3);
+      expect(size.y).toBeCloseTo(height, 2);
+      expect(size.x).toBeCloseTo(width, 2);
+      expect(size.z).toBeCloseTo(depth, 2);
+   });
+
+   it("keeps every complete prop outside the play bounds, on flat ground and clear of towers", async () => {
+      for (const [key, spots] of [["royalThrone", THRONE_SPOTS], ["siegeCatapultT", CATAPULT_SPOTS]] as const) {
+         expect(spots.length).toBeGreaterThanOrEqual(2);
+         expect(spots.length).toBeLessThanOrEqual(4);
+         const local = await decorBox(ASSETS[key]);
+         for (const spot of spots) {
+            const box = local.clone().translate(new Vector3(spot.x, spot.y, spot.z));
+            expect(box.max.x < FIELD.x0 || box.min.x > FIELD.x1 || box.max.z < FIELD.z0 || box.min.z > FIELD.z1).toBe(true);
+            for (const x of [box.min.x, box.max.x]) for (const z of [box.min.z, box.max.z]) expect(hillHeight(x, z)).toBe(0);
+            for (const tower of TOWERS) expect(Math.hypot(spot.x - tower.x, spot.z - tower.z)).toBeGreaterThan(3.5);
+         }
+      }
+   });
+
+   it("shows the extra decor only on selected levels 4 and 5", () => {
+      expect([1, 2, 3, 4, 5].map(hasRoyalDecor)).toEqual([false, false, false, true, true]);
+   });
+});
+
+async function decorBox(asset: ModelAsset): Promise<Box3> {
+   const { local, node } = await readCharacterGlb(asset.url);
+   const geometry = new BufferGeometry();
+   geometry.setAttribute("position", new Float32BufferAttribute(local, 3));
+   const mesh = new Mesh(geometry);
+   mesh.position.fromArray(node);
+   const root = new Group();
+   root.add(mesh);
+   const parts = modelParts(root, asset);
+   expect(parts).toHaveLength(1);
+   const box = new Box3();
+   const point = new Vector3();
+   for (let i = 0; i < local.length; i += 3) box.expandByPoint(point.set(local[i], local[i + 1], local[i + 2]).applyMatrix4(parts[0].matrix));
+   geometry.dispose();
+   return box;
+}

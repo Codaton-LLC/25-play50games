@@ -13,7 +13,7 @@
 //   { click: [0.5, 0.4] }            mouse tap on the canvas, x/y as fractions of canvas size
 //   { zoom: 1.8, at: [0.5, 0.4] }    frame for the shot, not an action: a canvas-shaped window
 //                                    1/zoom of the canvas around `at` (fractions, kept inside the
-//                                    canvas), zoom 1..2. The desktop camera of a top-down game
+//                                    canvas), zoom 1..2; add brighten: 1..3 to lift a dark scene (dim floors). The desktop camera of a top-down game
 //                                    shows the whole board, so its hero is only 10-25 px tall
 //                                    without it. The hero must end the script inside the window.
 
@@ -105,7 +105,7 @@ export const INPUT_SCRIPTS = {
       { hold: "ArrowRight", ms: 600 },
       { down: "ArrowUp" },
       { wait: 600 },
-      { zoom: 1.6, at: [0.5, 0.52] },
+      { zoom: 2, at: [0.48, 0.39] },
    ],
 
    // platformer: run straight up the course and shoot mid-leap (a sidestep falls into the pool)
@@ -114,5 +114,111 @@ export const INPUT_SCRIPTS = {
       { wait: 900 },
       { tap: "Space" },
       { wait: 250 },
+   ],
+
+   // the wide camera keeps the whole floor; the truck and firefighter sit on the right.
+   // same walk as the measured pass, then zoom on that spot so the coat and the truck fill the frame
+   "firefighter-rescue": [
+      { hold: "ArrowDown", ms: 650 },
+      { down: "KeyE" },
+      { wait: 400 },
+      { zoom: 2, at: [0.56, 0.42] },
+   ],
+
+   // yaw 0 drives +z up the first street; still rolling at the shot
+   "taxi-rush-3d": [
+      { down: "ArrowUp" },
+      { wait: 850 },
+      { zoom: 1.8, at: [0.5, 0.5] },
+   ],
+
+   // accelerate east off the shop, hop, shot in the air
+   "burger-delivery-scooter": [
+      { hold: "ArrowUp", ms: 400 },
+      { down: "ArrowUp" },
+      { tap: "Space" },
+      { wait: 180 },
+      { zoom: 1.8, at: [0.5, 0.48] },
+   ],
+
+   // up is -z, toward the water: out past the shore foam, swimming the front crawl
+   "beach-lifeguard": [
+      { down: "ArrowUp" },
+      { wait: 2700 },
+      { zoom: 1.9, at: [0.5, 0.5] },
+   ],
+
+   // a few seconds into the flight, drifting right (the carpet banks), the next ring ahead
+   "magic-carpet-ride": [
+      { wait: 2600 },
+      { hold: "ArrowRight", ms: 350 },
+      { zoom: 1.1, at: [0.5, 0.42] },
+   ],
+
+   // down the hall (+z), hop so the cat is off the floor
+   "cat-vs-robot-vacuum": [
+      { hold: "ArrowDown", ms: 400 },
+      { tap: "Space" },
+      { wait: 160 },
+      { zoom: 2, at: [0.5, 0.5] },
+   ],
+
+   // landscape camera looks across the hall: right is +z, along the corridor
+   "hotel-bellboy-rush": [
+      { down: "ArrowRight" },
+      { wait: 700 },
+      { zoom: 1.7, at: [0.5, 0.5] },
+   ],
+
+   // the lab camera stays wide; walk off the cauldron so the robe is mid-stride, zoomed
+   "wizard-potion-lab": [
+      { down: "ArrowUp" },
+      { wait: 550 },
+      { zoom: 1.4, at: [0.5, 0.5] },
+   ],
+
+   // walk into the house (up is away from the camera)
+   "haunted-mansion-keys": [
+      { down: "ArrowUp" },
+      { wait: 800 },
+      { zoom: 1.8, at: [0.5, 0.48] },
+   ],
+
+   // boost north off the hive into the flowers; the bee is small, so zoom 2
+   "bee-garden": [
+      { down: "ArrowUp" },
+      { down: "Space" },
+      { wait: 700 },
+      { zoom: 2, at: [0.5, 0.48] },
+   ],
+
+   // the chase camera behind the rover: roll off the pad towards the light pillars and the cliffs
+   "mars-rover-mission": [
+      { down: "ArrowUp" },
+      { wait: 900 },
+   ],
+
+   // the cook starts on the dough station: take the dough, then walk the line
+   "pizza-kitchen-3d": [
+      { tap: "KeyE" },
+      { wait: 180 },
+      { down: "ArrowRight" },
+      { wait: 380 },
+      { zoom: 1.7, at: [0.5, 0.55] },
+   ],
+
+   // auto-run at 6 m/s; the first pattern is at z 11. Jump early and shoot near the top of the arc.
+   "jungle-bridge-run": [
+      { wait: 280 },
+      { tap: "Space" },
+      { wait: 200 },
+      { zoom: 1.85, at: [0.5, 0.66] },
+   ],
+
+   // screen-right walks into the lit aisles; the night void sits on the other side of the wall
+   "toy-store-night-shift": [
+      { down: "ArrowRight" },
+      { wait: 900 },
+      { zoom: 2, at: [0.52, 0.40] },
    ],
 };

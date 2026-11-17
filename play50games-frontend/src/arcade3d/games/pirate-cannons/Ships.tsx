@@ -25,14 +25,14 @@ import {
    usePipParts,
    useShipParts,
 } from "./Primitives";
-import { BARREL_FLOATING, BARREL_FUSE, SHIP_ARRIVED, SHIP_COUNT, SHIP_SAILING, SHIP_SUNK, type RunState } from "./rules";
+import { BARREL_FLOATING, BARREL_FUSE, SHIP_ARRIVED, SHIP_POOL, SHIP_SAILING, SHIP_SUNK, type RunState } from "./rules";
 
 /** Looks the rules do not keep: when each ship began to sink (game time, -1 = afloat), extra drift after the run. */
 export interface ShipLooks {
    sunkAt: Float64Array;
    drift: Float64Array;
 }
-export const createShipLooks = (): ShipLooks => ({ sunkAt: new Float64Array(SHIP_COUNT).fill(-1), drift: new Float64Array(SHIP_COUNT) });
+export const createShipLooks = (): ShipLooks => ({ sunkAt: new Float64Array(SHIP_POOL).fill(-1), drift: new Float64Array(SHIP_POOL) });
 
 const SINK_S = 1.6;
 const PIPS = 3;
@@ -66,12 +66,12 @@ export function Ships({ run, looks }: { run: RunState; looks: ShipLooks }) {
    const [frame] = useMemo<[Frame]>(
       () => [
          {
-            shown: new Uint8Array(SHIP_COUNT),
-            matrix: Array.from({ length: SHIP_COUNT }, () => new Matrix4()),
-            x: new Float32Array(SHIP_COUNT),
-            y: new Float32Array(SHIP_COUNT),
-            z: new Float32Array(SHIP_COUNT),
-            k: new Float32Array(SHIP_COUNT),
+            shown: new Uint8Array(SHIP_POOL),
+            matrix: Array.from({ length: SHIP_POOL }, () => new Matrix4()),
+            x: new Float32Array(SHIP_POOL),
+            y: new Float32Array(SHIP_POOL),
+            z: new Float32Array(SHIP_POOL),
+            k: new Float32Array(SHIP_POOL),
          },
       ],
       []
@@ -80,9 +80,11 @@ export function Ships({ run, looks }: { run: RunState; looks: ShipLooks }) {
    // after the simulation and the camera, before the pools draw (visuals, priority 0)
    useFrame(() => {
       const over = useArcadeStore.getState().phase === "over";
-      for (let i = 0; i < SHIP_COUNT; i++) {
+      for (let i = 0; i < SHIP_POOL; i++) {
          const s = run.ships[i];
          frame.shown[i] = 0;
+         // the pools hold the most ships any level sails (SHIP_POOL); this run may have fewer
+         if (!s) continue;
          if (s.state !== SHIP_SAILING && s.state !== SHIP_ARRIVED && s.state !== SHIP_SUNK) continue;
          let sink = 0;
          if (s.state === SHIP_SUNK) {
@@ -135,10 +137,10 @@ export function Ships({ run, looks }: { run: RunState; looks: ShipLooks }) {
 
    return (
       <group name="ships">
-         <DynamicInstancedModel asset={ASSETS.ship} count={SHIP_COUNT} update={placeShip} fallbackParts={shipParts} name="ships" />
-         <DynamicInstanced count={SHIP_COUNT} update={placePennant} parts={pennantParts} tinted name="pennants" />
-         <DynamicInstanced count={SHIP_COUNT} update={placeSails} parts={sailParts} name="galleon-sails" />
-         <DynamicInstanced count={SHIP_COUNT * PIPS} update={placePip} parts={pipParts} name="hp-pips" />
+         <DynamicInstancedModel asset={ASSETS.ship} count={SHIP_POOL} update={placeShip} fallbackParts={shipParts} name="ships" />
+         <DynamicInstanced count={SHIP_POOL} update={placePennant} parts={pennantParts} tinted name="pennants" />
+         <DynamicInstanced count={SHIP_POOL} update={placeSails} parts={sailParts} name="galleon-sails" />
+         <DynamicInstanced count={SHIP_POOL * PIPS} update={placePip} parts={pipParts} name="hp-pips" />
       </group>
    );
 }

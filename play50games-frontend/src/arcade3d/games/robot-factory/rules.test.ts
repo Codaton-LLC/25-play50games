@@ -493,6 +493,22 @@ describe("robot-factory scoring limit proof", () => {
    });
 });
 
+describe("robot-factory level 1 ignores sorter bins", () => {
+   it("a bin press does not change the assembly shift", () => {
+      const left = createRun(4);
+      const right = createRun(4);
+      for (let i = 0; i < 90; i++) {
+         const bin = i % 4;
+         stepRun(left, { grab: false, scrap: false, target: -1, bin }, 1 / 60);
+         stepRun(right, { grab: false, scrap: false, target: -1 }, 1 / 60);
+      }
+      expect(left.score).toBe(right.score);
+      expect(left.partsInstalled).toBe(right.partsInstalled);
+      expect(left.robot).toBe(right.robot);
+      expect(left.parts.map((part) => part.sEq)).toEqual(right.parts.map((part) => part.sEq));
+   });
+});
+
 describe("robot-factory generator sanity", () => {
    it("never runs out of blueprints and keeps the progress index in range", () => {
       const run = createRun(9);

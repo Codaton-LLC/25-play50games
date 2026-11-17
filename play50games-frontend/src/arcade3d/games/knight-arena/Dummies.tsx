@@ -26,11 +26,11 @@ import { ASSETS, DUMMY_HEIGHT } from "./assets";
 import {
    COLORS,
    POSTS,
+   travelXZ,
    type RunState,
    type StrikeDir,
    type TargetCue,
    TARGETS,
-   TIMING,
 } from "./rules";
 
 // Pre-allocated Colors (zero per-frame allocations)
@@ -57,6 +57,7 @@ const scratchRollQuat = new Quaternion();
 const scratchScale = new Vector3();
 const scratchEuler = new Euler();
 const scratchMat = new Matrix4();
+const travelOut = { x: 0, z: 0 };
 const HIDDEN_MATRIX = new Matrix4().makeScale(0, 0, 0);
 
 function directionArrowRoll(dir: StrikeDir): number {
@@ -192,12 +193,17 @@ export function Dummies({ runRef }: DummiesProps): React.ReactElement {
          // Pitch dummy back along its post ray when struck, pivoting at y = 0
          scratchEuler.set(-wobble, post.facingYaw, 0, "YXZ");
          scratchQuat.setFromEuler(scratchEuler);
-         scratchPos.set(post.x, 0, post.z);
+         const cue = findCurrentCueForPost(run, index, run.timeMs);
+         if (cue) travelXZ(cue, run.timeMs, travelOut);
+         else {
+            travelOut.x = post.x;
+            travelOut.z = post.z;
+         }
+         scratchPos.set(travelOut.x, 0, travelOut.z);
          scratchScale.set(1, 1, 1);
          matrix.compose(scratchPos, scratchQuat, scratchScale);
 
          if (color) {
-            const cue = findCurrentCueForPost(run, index, run.timeMs);
             if (!cue) {
                color.copy(COLOR_WHITE);
             } else if (cue.kind === "tomato") {
@@ -233,10 +239,15 @@ export function Dummies({ runRef }: DummiesProps): React.ReactElement {
       for (let i = 0; i < 8; i++) {
          const post = POSTS[i];
          const cue = findCurrentCueForPost(run, i, nowMs);
+         if (cue) travelXZ(cue, nowMs, travelOut);
+         else {
+            travelOut.x = post.x;
+            travelOut.z = post.z;
+         }
 
          // 1. Ground target disc (beat-synced pulse + status colour)
          const discScale = cue ? 1.0 + 0.08 * beatPulse : 1.0 + 0.02 * beatPulse;
-         scratchPos.set(post.x, 0.01, post.z);
+         scratchPos.set(travelOut.x, 0.01, travelOut.z);
          scratchQuat.identity();
          scratchScale.set(discScale, 1, discScale);
          scratchMat.compose(scratchPos, scratchQuat, scratchScale);
@@ -252,7 +263,7 @@ export function Dummies({ runRef }: DummiesProps): React.ReactElement {
          }
 
          const absDelta = Math.abs(nowMs - cue.beatTimeMs);
-         const isOnBeatWindow = absDelta <= TIMING.ON_BEAT_WINDOW_MS;
+         const isOnBeatWindow = absDelta <= run.onBeatWindowMs;
          const leadTotal = Math.max(1, cue.beatTimeMs - cue.spawnTimeMs);
          const progress = Math.max(0, Math.min(1.15, (nowMs - cue.spawnTimeMs) / leadTotal));
 
@@ -268,7 +279,7 @@ export function Dummies({ runRef }: DummiesProps): React.ReactElement {
 
          // 2. Shrinking 3D approach ring on the ground (shrinks from 2.2x down to 1.0x at beatTimeMs)
          const ringRadiusFactor = Math.max(0.85, 2.2 - 1.2 * Math.min(1, progress));
-         scratchPos.set(post.x, 0.024, post.z);
+         scratchPos.set(travelOut.x, 0.024, travelOut.z);
          scratchQuat.identity();
          scratchScale.set(ringRadiusFactor, 1, ringRadiusFactor);
          scratchMat.compose(scratchPos, scratchQuat, scratchScale);
@@ -286,7 +297,7 @@ export function Dummies({ runRef }: DummiesProps): React.ReactElement {
 
          // 3. Overhead billboard icon at y = 1.85 m (0.60 m scale, redundant shape + colour)
          const iconScale = (isOnBeatWindow ? 1.15 : 0.95) + 0.06 * beatPulse;
-         scratchPos.set(post.x, 1.85, post.z);
+         scratchPos.set(travelOut.x, 1.85, travelOut.z);
 
          if (cue.kind === "tomato") {
             // Round tomato decoy icon (distinct non-arrow silhouette)
@@ -309,7 +320,7 @@ export function Dummies({ runRef }: DummiesProps): React.ReactElement {
 
             if (cue.kind === "shield") {
                // Backing shield emblem behind the directional arrow (tilted when cracked on hit 2)
-               scratchPos.set(post.x, 1.85, post.z - 0.04);
+               scratchPos.set(travelOut.x, 1.85, travelOut.z - 0.04);
                scratchQuat.copy(camQuat);
                const shScale = cue.shieldHitIndex === 2 ? iconScale * 0.85 : iconScale * 1.12;
                scratchScale.setScalar(shScale);

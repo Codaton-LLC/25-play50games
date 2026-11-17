@@ -5,16 +5,20 @@
 // the store's hole stats; from 9:00 a "Time left" pill. The shell HUD shows Hole, Par and Strokes.
 import { useEffect, useRef } from "react";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
-import { PARS } from "./course";
+import { useMiniGolfLevel } from "./level";
+import { SPEC_PARS, courseSpecs } from "./course";
 import { HUD_FEED } from "./hudFeed";
 import styles from "./Hud.module.css";
+import CameraViewButton from "@/arcade3d/core/camera/CameraViewButton";
 
 function Card() {
    const stats = useArcadeStore((s) => s.stats);
    const hole = stats.hole ?? 1;
+   const { config } = useMiniGolfLevel();
+   const pars = courseSpecs(config.holes, config.course).map((spec) => SPEC_PARS[spec]);
    return (
-      <div className={styles.card} aria-label="Scorecard">
-         {PARS.map((par, i) => {
+      <div className={styles.card} style={config.holes === 9 ? { gridTemplateColumns: "repeat(9, 1fr)" } : undefined} aria-label="Scorecard">
+         {pars.map((par, i) => {
             const strokes = stats[`h${i + 1}`];
             const tone = strokes === undefined ? "" : strokes < par ? styles.under : strokes > par ? styles.over : "";
             return (
@@ -28,7 +32,7 @@ function Card() {
    );
 }
 
-export default function MiniGolfHud() {
+function GameHud() {
    const fill = useRef<HTMLSpanElement>(null);
    const value = useRef<HTMLSpanElement>(null);
    const timeLeft = useArcadeStore((s) => s.stats.timeLeft);
@@ -64,6 +68,16 @@ export default function MiniGolfHud() {
                Time left {Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, "0")}
             </div>
          )}
+      </>
+   );
+}
+
+/** The game's HUD plus the core 📷 camera-view button (core/camera). */
+export default function MiniGolfHud() {
+   return (
+      <>
+         <CameraViewButton />
+         <GameHud />
       </>
    );
 }

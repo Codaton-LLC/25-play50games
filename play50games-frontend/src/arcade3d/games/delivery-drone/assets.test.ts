@@ -1,8 +1,14 @@
-import { Box3, Vector3 } from "three";
+import { Box3, BufferGeometry, Float32BufferAttribute, Group, Mesh, Vector3 } from "three";
+import { existsSync } from "node:fs";
+import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
+import { modelParts } from "@/arcade3d/core/assets";
+import { hasModel } from "@/arcade3d/core/modelManifest";
 import { readCharacterGlb } from "@/arcade3d/core/rig/robotGlb";
+import type { ModelAsset } from "@/arcade3d/core/types";
 import { EXPANSION_GLB_SIZE } from "@/arcade3d/core/sharedAssets";
-import { ASSETS, BODY_OFFSET, DRONE_HOOK, DRONE_SCALE, ROTORS } from "./assets";
+import { ASSETS, BACK_ROW_Z, BLOCK_HEIGHT, BLOCK_SPOTS, BLOCK_WIDTH, PARCEL_DRAWN, TALL_HEIGHT, TALL_SPOTS, TALL_WIDTH, BODY_OFFSET, BRICK_GLB, BRICK_HEIGHT, BRICK_SPOTS, DRONE_HOOK, DRONE_SCALE, GLASS_GLB, GLASS_HEIGHT, GLASS_SPOTS, ROTORS, SKYLINE_FOOTPRINT, SKYLINE_Z } from "./assets";
+import { OUTER_BUILDING_SPOTS, PLAY_BOUNDS } from "./looks";
 
 /** Decode the real meshopt vertices in root space, without textures, fetch or a DOM. */
 async function bounds(url: string): Promise<Box3> {
@@ -47,4 +53,92 @@ describe("real GLB fits and the logical hook", () => {
          expect(Math.abs(size[axis] * asset.scale - intended)).toBeLessThan(tolerance);
       }
    });
+});
+
+async function fitted(asset: ModelAsset): Promise<Box3> {
+   const { local, node } = await readCharacterGlb(asset.url);
+   const geometry = new BufferGeometry();
+   geometry.setAttribute("position", new Float32BufferAttribute(local, 3));
+   const mesh = new Mesh(geometry);
+   mesh.position.fromArray(node);
+   const root = new Group();
+   root.add(mesh);
+   const parts = modelParts(root, asset);
+   expect(parts).toHaveLength(1);
+   const box = new Box3();
+   const v = new Vector3();
+   for (let i = 0; i < local.length; i += 3) box.expandByPoint(v.set(local[i], local[i + 1], local[i + 2]).applyMatrix4(parts[0].matrix));
+   geometry.dispose();
+   return box;
+}
+
+describe("delivery-drone skyline variety", () => {
+   it("fits the brick and glass towers into the gap north of the play box", async () => {
+      for (const asset of [ASSETS.brick, ASSETS.glass]) {
+         expect(existsSync(resolve("public", asset.url.slice(1)))).toBe(true);
+         expect(hasModel(asset.url)).toBe(true);
+      }
+      const brick = await fitted(ASSETS.brick);
+      const glass = await fitted(ASSETS.glass);
+      expect(brick.min.y).toBeCloseTo(0, 2);
+      expect(glass.min.y).toBeCloseTo(0, 2);
+      expect(brick.max.y - brick.min.y).toBeCloseTo(BRICK_HEIGHT, 2);
+      expect(glass.max.y - glass.min.y).toBeCloseTo(GLASS_HEIGHT, 2);
+      expect(brick.max.x - brick.min.x).toBeCloseTo(SKYLINE_FOOTPRINT, 2);
+      expect(brick.max.z - brick.min.z).toBeCloseTo(SKYLINE_FOOTPRINT, 2);
+      expect(glass.max.x - glass.min.x).toBeCloseTo(SKYLINE_FOOTPRINT, 2);
+      expect(glass.max.z - glass.min.z).toBeCloseTo(SKYLINE_FOOTPRINT, 2);
+      const rawBrick = await bounds(ASSETS.brick.url);
+      const rawGlass = await bounds(ASSETS.glass.url);
+      expect(rawBrick.getSize(new Vector3()).y).toBeCloseTo(BRICK_GLB.height, 2);
+      expect(rawGlass.getSize(new Vector3()).y).toBeCloseTo(GLASS_GLB.height, 2);
+      const half = SKYLINE_FOOTPRINT / 2;
+      for (const spot of [...BRICK_SPOTS, ...GLASS_SPOTS]) {
+         expect(spot.z + half).toBeLessThan(PLAY_BOUNDS.min.z);
+         const mine = { minX: spot.x - half, maxX: spot.x + half, minZ: spot.z - half, maxZ: spot.z + half };
+         for (const other of OUTER_BUILDING_SPOTS) {
+            const hit = mine.minX < other.x + other.w / 2 && mine.maxX > other.x - other.w / 2 && mine.minZ < other.z + other.d / 2 && mine.maxZ > other.z - other.d / 2;
+            expect(hit, `${spot.x},${spot.z} vs ${other.x},${other.z}`).toBe(false);
+         }
+      }
+      expect(SKYLINE_Z).toBe(-42.25);
+   });
+
+describe("Menu 1 adoptions: back-row towers and the parcel", () => {
+   const drawnSize = async (asset: ModelAsset) => {
+      const b = await bounds(asset.url);
+      const m = modelPartsMatrix(asset);
+      return { min: b.min.clone().multiply(m), size: b.getSize(new Vector3()).multiply(m) };
+   };
+   const modelPartsMatrix = (asset: ModelAsset) => {
+      const s = asset.scale ?? 1, st = asset.stretch ?? [1, 1, 1];
+      return new Vector3(s * st[0], s * st[1], s * st[2]);
+   };
+   it("are in the manifest and the folder", () => {
+      for (const asset of [ASSETS.cityTall, ASSETS.cityBlock, ASSETS.parcel]) {
+         expect(hasModel(asset.url), asset.url).toBe(true);
+         expect(existsSync(resolve("public", asset.url.slice(1))), asset.url).toBe(true);
+      }
+   });
+   it("draws the towers and the parcel at the README sizes, floor at y 0", async () => {
+      const tall = await drawnSize(ASSETS.cityTall);
+      expect(tall.size.x).toBeCloseTo(TALL_WIDTH, 1);
+      expect(tall.size.y).toBeCloseTo(TALL_HEIGHT, 1);
+      expect(tall.min.y).toBeCloseTo(0, 2);
+      const block = await drawnSize(ASSETS.cityBlock);
+      expect(block.size.x).toBeCloseTo(BLOCK_WIDTH, 1);
+      expect(block.size.y).toBeCloseTo(BLOCK_HEIGHT, 1);
+      const parcel = await drawnSize(ASSETS.parcel);
+      expect(parcel.size.x).toBeCloseTo(PARCEL_DRAWN.width, 2);
+      expect(parcel.size.y).toBeCloseTo(PARCEL_DRAWN.height, 2);
+      expect(parcel.min.y).toBeCloseTo(0, 2);
+   });
+   it("keeps the back row behind the skyline rows, far outside the play area", () => {
+      expect(TALL_SPOTS.length + BLOCK_SPOTS.length).toBeGreaterThanOrEqual(10);
+      for (const s of [...TALL_SPOTS, ...BLOCK_SPOTS]) {
+         expect(s.z).toBe(BACK_ROW_Z);
+         expect(s.z + 4).toBeLessThan(PLAY_BOUNDS.min.z - 20);
+      }
+   });
+});
 });

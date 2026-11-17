@@ -1,0 +1,95 @@
+# Toy Store Night Shift
+
+Owner: kimi. Slug: `toy-store-night-shift`. Order 48. Status `dev`. Collection `skill`. Points. Difficulty 2. One store, five department layouts. Spec: `docs/menu1-new/specs-41-50.md` §48. Built on `claude/game-toy-store-night-shift`.
+
+**Story.** At night the toys came alive and wrecked the store. You are the store's tidy-up robot: put every toy back on its shelf before morning, while the wild wind-up toys run the aisles. The hero is the plan's wind-up toy robot (user decision 2026-10-28; the night guard `charNightGuard` is gone from the game, its GLB and manifest line removed: no other game used it).
+
+## Rules
+
+The store is `aisles` rows of 4 m shelves (solid boxes, 0.8 m deep, 1.6 m high). Level 1 shelves stand 1.4 m apart and rows 3.6 m apart. Levels 2-5 use their own shelf gaps, row pitches and row offsets from `levels.ts`; wind-up routes follow the same offsets. Every aisle and shelf gap remains at least 1.4 m wide (`rules.test.ts` checks both, and the clearance to the walls, on 200 seeds). The shelves go to the rows in turn. One shelf per toy kind, two from level 3 (either is right). The robot starts in the front left corner.
+
+Toys: `toys` of them on the floor, kinds mixed (kind = index mod `categories`, shuffled), at least 1.5 m apart, never inside a shelf, 2.5 m from the start. A flood fill proves every toy can be picked up and every shelf front reached; `createRun` retries the seed's layout until it does.
+
+On-foot mover: radius 0.38, top speed 4.4, x 0.9 while carrying, accel 22, brake 28.
+
+**Use** (E / Enter / touch "Use", `actionPressed`, one press per action):
+
+- a toy on the floor within 1.2 m: pick it up (one at a time; two, stacked, from level 4);
+- a shelf within 1.2 m (distance to its box) while carrying: drop the TOP toy on the nearest shelf. Its kind matches: the toy stays on the shelf for good, +80, and +20 more if no wrong drop happened since the previous right one. It does not match: the toy falls back to the floor 0.55 m off the shelf's face, 0.50 s stun (no move, no Use), and the clean bonus is gone until the next right drop.
+- with a toy and a shelf both in reach: a matching shelf takes the drop, a wrong shelf never steals the pick-up (only with nothing to pick up, or full hands, does a wrong shelf take the drop). With two carried, the lower toy cannot be delivered before the top one: a wrong top toy blocks the one under it.
+
+Wind-ups (`windups`, from level 2): toy robots and toy cars on `stepPatrol` loops round the rows (8 waypoints, corners cut, 1.8 m from the row's centre line, the middle of an aisle) at `windupSpeed`; the row is `index mod aisles`, odd ones run the other way, and none starts within 6 m of the robot. A touch (centres within 0.95 m) outside the 0.80 s mercy drops every carried toy on the floor where it stands. No lives, no points lost; the toys are only back on the floor.
+
+Score, all integers: +80 per right drop, +20 clean, and on a win +4 per full second left. A toy pays once. `Bobj = 100 x toys`.
+
+**End.** Win: every toy on a shelf. No lose. Timeup is the shell's. Only a win clears the level (no `clearScore`).
+
+Keyboard and touch run the same `step()`: the same stun, mercy and reach on both devices.
+
+## Levels
+
+| L | Title | Aisles | Kinds | Shelves | Toys | Carry | Wind-ups | Speed | Clock | Light |
+|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---|
+| 1 | Toy Shelf | 2 | 3 | 3 | 5 | 1 | 0 | - | 120 s | indoor `#fce7f3` |
+| 2 | Store Floor | 3 | 4 | 4 | 8 | 1 | 1 | 1.4 | 150 s | day `#b8dbd8` |
+| 3 | Warehouse | 4 | 5 | 10 | 10 | 1 | 2 | 1.6 | 180 s | night `#253345` |
+| 4 | Mega Toy Store | 4 | 6 | 12 | 14 | 2 | 3 | 1.8 | 180 s | sunset `#6e4265` |
+| 5 | Toy Chaos | 5 | 7 | 14 | 18 | 2 | 4 | 2.0 | 210 s | night `#17132f` |
+
+### Department layouts
+
+Level 1 is unchanged. Store Floor has alternating retail islands, mint surfaces, three window displays and a longer single-carry route past its first wind-up. Warehouse has paired loading rows, wider aisles, slate surfaces, yellow floor lines and double-stacked shipping crates; two shelves per kind let the player choose a delivery station. Mega Toy Store spreads the rows into a broad zigzag showroom with four coloured department lanes and five bear/train displays; the existing two-toy stack makes route and pickup order matter. Toy Chaos breaks the row alignment, mixes angled displays and crate stacks, and uses violet night fog with green emergency lanes; all seven categories, four wind-ups and two-toy carrying combine for the final shift.
+
+Department scenery stays behind the playable rectangle, including its rotated mesh footprint. New scenery participates in alternate-camera collision. Surface paint is flat and non-colliding. The original hero, sign colours/shapes, target beacons, close follow framing and night street glow remain intact.
+
+## Server limits
+
+`base = Bobj`. `maxDurationMs` is the level clock. `minDurationMs = 4000`. A win at time `t` scores `Bobj + 4 (dur - t)` and the server accepts `base + pps x t`, so `pps >= 4 (dur - t) / t` at the fastest possible win. The sketch assumed a first win at 30 s on level 1; the honest oracle wins level 1 in 5.85 s (the whole store is 5 toys within a few metres of each other). So the limits are re-derived from the measured earliest win `e` (the lowest over the builder's 100-seed run and the gate's 200-seed run per level, the oracle at 30, 60 and 144 Hz; it carries pairs on levels 4-5; the gate's 200 seeds lowered L2 and L5, so their pps and maxScore went up), with `t = 0.85 e` as the allowance for a faster pilot, `pps = ceil(4 (dur - t) / t)` and `maxScore = Bobj + 4 (dur - t)` plus about 3%:
+
+| L | Bobj | earliest win e | t = 0.85 e | base + pps x e | pps | maxScore | best oracle | best / max | maxDurationMs |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| 1 | 500 | 5.85 s | 4.97 s | 500 + 93 x 5.85 = 1044 | 93 | 990 | 956 | 96.6% | 120000 |
+| 2 | 800 | 11.60 s | 9.86 s | 800 + 57 x 11.60 = 1461 | 57 | 1405 | 1352 | 96.2% | 150000 |
+| 3 | 1000 | 16.53 s | 14.05 s | 1000 + 48 x 16.53 = 1793 | 48 | 1715 | 1652 | 96.3% | 180000 |
+| 4 | 1400 | 21.61 s | 18.37 s | 1400 + 36 x 21.61 = 2178 | 36 | 2110 | 2032 | 96.3% | 180000 |
+| 5 | 1800 | 31.37 s | 26.66 s | 1800 + 28 x 31.37 = 2678 | 28 | 2610 | 2512 | 96.2% | 210000 |
+
+Level 5 `maxScore` 2610 is under `3 x 990` (2.64x). The score without a win never passes `Bobj`, which `base` already covers. The table above records the original layout measurements; the department-layout pass leaves these conservative limits unchanged and reruns all five proof suites against the new layouts. The oracle won 100/100 seeds on every level; the human-paced bot (stick 0.9, 0.15 s before each Use, one toy at a time) wins at least 99% of 100 seeds on every level (`levels.test.ts`).
+
+Proof (`proof.level-N.test.ts`, one level per file so they run in parallel; `testing/proof.ts`, bots in `testing/bot.ts`, all through `createArcadeStore` + `advanceRunClock`): per level the proof's arithmetic (`PROOF_EARLIEST_WIN_S` = 0.85 e), 200 oracle seeds and 200 human-paced seeds at 30 / 60 / 144 Hz (each inside the limits, `capScore` a no-op, no win before 0.85 e, at least 99 % wins; measured 200/200 on every level), best oracle at least 90 % of `maxScore`, idle on 200 seeds through the rules and 10 through the store (never wins, scores 0), 40 spam seeds inside the limits. Mutation probes on every level read in `rules.ts`, `index.tsx` and `meta.ts` (18) all fail the tests.
+
+## Look
+
+Shared gameplay colours (`COLORS`) and per-department surface colours (`departmentOf`) in `looks.ts`. Level 1: floor `#e2e8f0` tiles, shelf trims `#f472b6` / `#60a5fa`, accent `#f472b6`. Lighting and background come from the level (core presets + fog). Camera: a close follow camera (`FOLLOW_CAM` in `looks.ts`: portrait 6.4 m at 50 deg, landscape 8.4 m at 52 deg, fov 48), so the robot's silhouette is 0.19 of a 390 x 844 phone's height (1/6-1/5) and 0.145 of a 1280 x 800 desktop (the old fitted 12 x 7 m window drew it at about 3 % / 8 %; `framing.test.ts` pins both). The fitted window (`viewFor`, yaws `[0, pi/2]`, `shift: true`) still picks the yaw (a portrait phone turns to pi/2) and the lens shift that puts the aim in the free area, clear of the kinds panel and the controls. The aim follows the robot (0.4 m ahead, clamped 0.4 m inside the walls), and `framing.test.ts` projects the robot at 390 x 844 and 1280 x 800 from every standable spot clear of the HUD, the panel and the controls. The close view shows about one aisle: the next toy or shelf front gets a core `TargetBeacon` (pick / drop-here) and the `TargetMarkers` edge arrow while it is off screen. The player zoom (`useCameraZoom`: wheel, pinch, + / -; `ZOOM` 0.75-5.4) goes out to the old overview (a 390 x 844 phone's old fitted camera sat about 33 m away). Past the walls the view shows a dark ground that reaches past the fog, so the floor outside never shows a void. Fog starts at 60 m, past the full zoom out plus the window (`looks.test.ts`). The +x wall, on the portrait camera's side, is a 0.7 m counter so it never hides the robot; the back and left walls are 2.6 m.
+
+Shelf signs lie flat on the shelf top, so they read from either camera yaw: a coloured plate with a white frame shape and the toy's silhouette (`glyphs.ts`: circle bears, square cars, triangle planes, diamond balls, hexagon blocks, star trains, pentagon robots). Colour alone fails at night, so the shape and the picture carry the kind. Plates are unlit (`MeshBasicMaterial`), so they read in the dark levels too. The carried toy's plate floats over the robot's head, above the carried toys, and faces the camera. The HUD (`data-arcade-safe-area`) lists the kinds of the level with the same chip and how many are left; the stat chips are Shelved and Carrying.
+
+The shelves are painted cream (a material override: the GLB's olive texture read as a flat monotone) with a coloured trim band and kick plate per row (pink, blue, yellow, mint, lilac). On the night levels a dim warm fill light walks with the robot so it keeps its colours. Shelved toys sit on the shelf top beside the sign (four slots a shelf, a second row behind them). Models: the hero robot (below), the shelf (`toyShelfSolidT`, 4 x 1.6 x 0.8 m), seven toy kinds (one `DynamicInstancedModel` pool per kind, the blocks are `toyBlocksPlainT`), the wild wind-ups (`toyRobot`, the hero's unrigged mesh at 0.95 m tinted dark orange-red per copy (`COLORS.windupTint`) with a `waddle`, so they never read as the hero; `toyCar` with a `hop`, tinted the same, so it never reads as a car to shelve), bins and the shared crate as decor on a display strip behind the back wall (never walkable, so they never meet the robot). Every GLB has a bevelled 2-3 tone stand-in (`Primitives.tsx`). About 30 draw calls by count (cap 60); not measured on a device. Juice: sparkle + score popup on a right drop, puff + shake on a wrong drop, splash + shake on a wind-up hit, `playSfx` on each.
+
+## The hero robot (rig)
+
+`toyRobotHero.glb` is the `toyRobot` generation rigged by Hyper3D (rigging run once, no further credits): a real 52-bone skeleton (Hips, Spine, Spine1, Spine2, Neck, Head, shoulders, arms, forearms, hands with fingers, legs, feet, toes) and six baked clips. `rigged: true` on `ASSETS.hero` (SkeletonUtils clone), not the core humanoid auto-rig. Pipeline: the raw rigged GLB (12 MB, 18000 tris, 2048 PNG textures, up to 12 joint influences a vertex) was reduced to the 4 strongest influences a vertex, renormalised (mean weight lost 1 %; three.js reads `JOINTS_0` / `WEIGHTS_0` only) and its clips resampled (gltf-transform `resample`), then `tools/hyper3d` `import` + `optimize` (a skinned GLB skips weld / simplify): 18000 tris, three 1024 WebP textures, meshopt, 901 KB (budget 20k / 1024 / 1.5 MB). Bind pose 1.636 x 1.894 x 0.71 GLB units, faces +z; drawn `HERO_HEIGHT` 1.20 m (`HERO_SCALE` = 1.2 / 1.894), checked on the real mesh in `assets.test.ts` (plus skeleton, six clips, one influence set, WebP).
+
+`HeroRobot.tsx` runs one `AnimationMixer` at `FRAME_PRIORITY.pose` on `useGameTime().delta` (pause-safe), every change a crossfade (weights eased at 12/s):
+
+| State | Clip | Notes |
+|---|---|---|
+| still (< 0.12 m/s) | `HumanStandingIdle` | |
+| moving < 1.6 m/s / > 2.0 m/s (hysteresis) | `HumanWalking` / `HumanJogging` | root motion stripped (`heroAnim.inPlace`: the hips' straight drift removed, the bob kept); timeScale = ground speed / (clip root speed x scale), so the planted foot stays put (walk 1.20, jog 1.33 GLB units/s = 0.76 / 0.84 m/s at 1.2 m: the robot scurries at up to ~5x at 4.4 m/s) |
+| carrying | walk / jog / idle + both arms raised | bone overrides after the mixer (`aimBone` on Left/Right Arm, ForeArm and Hand: arms up and out past the head, forearms and hands straight up, no wrist bent back); the toy rests on the fingertips just over the head (`CARRY_Y` = 1.18 m, +0.45 m for the second), its sign plate above the stack |
+| right drop, hands empty | `HumanPointingForward` (upper body only) | its own mixer, the point window 1.3-2.9 s squeezed into 1.1 s and laid over the legs' clip by a slerp blend |
+| win | `HumanHappyIdle` | |
+| wrong drop / wind-up hit | a damped 0.55 s roll wobble of the whole robot | |
+
+`HumanCrouchedWalking` is in the GLB but unused (its 0.64 GLB units/s stride would need ~10x playback at carry speed). The stand-in while the GLB is missing is `HeroFigure` (white body, blue visor).
+
+## Controls
+
+WASD / arrows move, E or Enter uses. Touch: joystick and Action "Use". Scheme `joystick`. `touchControls: ["joystick", "action"]`, no jump. 📷 or C cycles the camera views (classic / chase / front / top / free); drag the canvas to look around. A `TargetMarkers` arrow points to the shelf for the carried toy, else to the nearest toy on the floor.
+
+## Known issues
+
+- `toyShelf.glb` has small toys baked onto its shelves and `toyShelfEmpty.glb` is a paper-thin panel, so the shelf is `toyShelfSolidT.glb` (an open frame) squashed to 1.6 m: it reads as a toy-shop unit, but its cubbies are shallower than the real thing. A better empty shelf would let the toys stand inside it.
+- The honest bots do not dodge wind-ups; a touch only costs the carried toys, so the proof stays valid.
+- A toy that is dropped wrong lies 0.55 m off the shelf face, which can be inside the next aisle's wind-up loop. It is a floor toy like any other.
+- Thumbnail: `meta.thumbnail` is `/images/3d/<slug>.webp` (capture via tools/thumbs).

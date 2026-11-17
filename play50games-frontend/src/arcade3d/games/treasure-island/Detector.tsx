@@ -103,8 +103,8 @@ export function DetectorRing({ run }: { run: RunState }) {
       u.uReady.value = det.ready ? 1 : 0;
       u.uProgress.value = run.dig.active ? Math.min(1, run.dig.held / DIG.holdS) : 0;
       // on the sand (the inland side of the slope, so the ring never sinks into it) or on the water
-      const ground = Math.max(groundAt(e.x * 0.9, e.z * 0.9), groundAt(e.x, e.z));
-      m.position.set(e.x, Math.max(ground, waterLevel(shoreAt(run.time))) + 0.04, e.z);
+      const ground = Math.max(groundAt(e.x * 0.9, e.z * 0.9, run.shape), groundAt(e.x, e.z, run.shape));
+      m.position.set(e.x, Math.max(ground, waterLevel(shoreAt(run.time, run.tide))) + 0.04, e.z);
    });
 
    return (

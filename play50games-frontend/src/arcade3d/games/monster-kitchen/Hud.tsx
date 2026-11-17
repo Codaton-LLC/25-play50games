@@ -8,6 +8,7 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { KIND_LABEL, KindIcon, TYPE_TINT } from "./Primitives";
 import { PATIENCE, type IngredientKind, type Order } from "./rules";
+import { useKitchenLevel } from "./useKitchenLevel";
 import styles from "./Hud.module.css";
 
 /** Presses of the ◀ ▶ buttons since the Scene last read them (cleared there each frame). */
@@ -153,7 +154,16 @@ const press = (dir: -1 | 1) => ({
    },
 });
 
+/** Level 1 keeps the original hint. Later levels name the mechanic that level adds. */
+function hintFor(windowBAtS: number, driftEveryS: number, penalty: number): string {
+   if (windowBAtS >= 70) return "Tap a front item to throw it · tap a back item to turn it here";
+   if (penalty > 3) return "Patience is short · a wrong toss costs more";
+   if (driftEveryS < 6) return "The wheel drifts · keep the next ingredient at the front";
+   return "Two monsters can order at once · cook both bubbles";
+}
+
 export default function Hud() {
+   const { config } = useKitchenLevel();
    const [, setTick] = useState(0);
    useEffect(() => {
       const id = setInterval(() => setTick((t) => t + 1), 100);
@@ -169,7 +179,7 @@ export default function Hud() {
             <div role="status" aria-atomic="true">
                <Hand />
             </div>
-            <p className={styles.handHint}>Tap a front item to throw it · tap a back item to turn it here</p>
+            <p className={styles.handHint}>{hintFor(config.windowBAtS, config.driftEveryS, config.penalty)}</p>
          </div>
          <button type="button" className={`${styles.turn} ${styles.turnLeft}`} data-arcade-safe-area aria-label="Turn the wheel left" {...press(-1)}>
             ◀

@@ -8,6 +8,8 @@ import { RingGeometry, type Group, type Mesh, type MeshStandardMaterial } from "
 import { InstancedModel, Model } from "@/arcade3d/core/assets";
 import { Instanced, type InstanceSpot } from "@/arcade3d/core/render";
 import { ASSETS, BOOK_DRAWN, BOOK_GROUP, BOOK_STAND_IN, DOOR_HINGE, DOOR_LEAF, KEY_DRAWN } from "./assets";
+import RoomDecor from "./RoomDecor";
+import { ROOM_STYLES } from "./roomStyles";
 import { LOOT_AT, createCupboardShell, poseCupboard } from "./cupboard";
 import { DRAWER, UNDER_DESK, drawerX, underDeskLid, underDeskX } from "./desk";
 import {
@@ -109,12 +111,14 @@ export function DoorLeaf({ hinge }: { hinge: (group: Group | null) => void }) {
 
 export function Room({ run, moving }: { run: EscapeRun; moving: MutableRefObject<Moving> }) {
    const layout = run.layout;
+   const style = ROOM_STYLES[run.level.id];
    const deskSpots = useMemo<InstanceSpot[]>(() => [0, 2].map((id) => {
       const s = layout.stations[id];
       return { x: bodyOf(s.x), y: 0, z: s.z, rotY: s.x < 0 ? 0 : Math.PI };
    }), [layout]);
    const deskBoxes = useMemo<InstanceSpot[]>(() => deskSpots.map((s) => ({ ...s, y: 0.4 })), [deskSpots]);
-   const chairBoxes = useMemo<InstanceSpot[]>(() => CHAIR_SPOTS.map((s) => ({ ...s, y: 0.4 })), []);
+   const chairs = useMemo<InstanceSpot[]>(() => run.level.id === 1 ? CHAIR_SPOTS : run.level.id === 2 ? [-0.8, 0, 0.8].map((x) => ({ x, y: 0, z: 0, rotY: Math.PI / 2 })) : [], [run]);
+   const chairBoxes = useMemo<InstanceSpot[]>(() => chairs.map((s) => ({ ...s, y: 0.4 })), []);
    const ringSpots = useMemo<InstanceSpot[]>(() => [
       ...layout.stations.map((s) => ({ x: s.x, y: 0.025, z: s.z })),
       { x: DOOR_POSITION.x, y: 0.025, z: DOOR_POSITION.z },
@@ -122,7 +126,7 @@ export function Room({ run, moving }: { run: EscapeRun; moving: MutableRefObject
 
    useFrame(() => {
       const parts = moving.current;
-      for (let i = 0; i < 4; i++) {
+      for (let i = 0; i < run.stations.length; i++) {
          const station = run.stations[i];
          const open = openAmount(station.phase, station.progressMs);
          const toward = run.layout.stations[i].x < 0 ? 1 : -1;
@@ -137,7 +141,7 @@ export function Room({ run, moving }: { run: EscapeRun; moving: MutableRefObject
          const lid = parts.lid[i];
          if (lid) lid.rotation.x = -UNDER_DESK.lidOpen * underDeskLid(open);
       }
-      for (let item = 0; item < 3; item++) {
+      for (let item = 0; item < run.items.length; item++) {
          const loot = parts.loot[item];
          if (loot) loot.visible = run.items[item].visible;
       }
@@ -155,17 +159,18 @@ export function Room({ run, moving }: { run: EscapeRun; moving: MutableRefObject
    const set = moving.current;
    return (
       <group name="room">
+         <RoomDecor id={run.level.id} />
          <Instanced spots={ringSpots} name="anchor-rings">
             <primitive object={FLAT_RING} attach="geometry" />
             <meshBasicMaterial color="#eab308" transparent opacity={0.4} depthWrite={false} />
          </Instanced>
          <mesh rotation-x={-Math.PI / 2} name="floor">
             <planeGeometry args={[12, 10]} />
-            <meshStandardMaterial color="#d6d3d1" roughness={0.95} />
+            <meshStandardMaterial color={style.floor} roughness={0.95} />
          </mesh>
          <Instanced spots={SHELL} name="shell">
             <boxGeometry args={[1, 1, 1]} />
-            <meshStandardMaterial color="#a8a29e" roughness={0.85} />
+            <meshStandardMaterial color={style.wall} roughness={0.85} />
          </Instanced>
          <InstancedModel
             asset={ASSETS.desk}
@@ -179,7 +184,7 @@ export function Room({ run, moving }: { run: EscapeRun; moving: MutableRefObject
          />
          <InstancedModel
             asset={ASSETS.chair}
-            spots={CHAIR_SPOTS}
+            spots={chairs}
             fallback={
                <Instanced spots={chairBoxes}>
                   <boxGeometry args={[0.8, 0.8, 0.8]} />
@@ -203,7 +208,7 @@ export function Room({ run, moving }: { run: EscapeRun; moving: MutableRefObject
                         </mesh>
                         {station.item !== -1 ? (
                            <group ref={(g) => { set.loot[station.item] = g; }} position={[0, DRAWER.lootY, 0]} visible={false} name="loot">
-                              <Loot kind={station.item} />
+                              <Loot kind={station.item === 3 ? 0 : station.item >= 4 ? 2 : station.item} />
                            </group>
                         ) : null}
                      </group>
@@ -229,14 +234,14 @@ export function Room({ run, moving }: { run: EscapeRun; moving: MutableRefObject
                         </group>
                         {station.item !== -1 ? (
                            <group ref={(g) => { set.loot[station.item] = g; }} position={[0, UNDER_DESK.lootY, 0]} visible={false} name="loot">
-                              <Loot kind={station.item} />
+                              <Loot kind={station.item === 3 ? 0 : station.item >= 4 ? 2 : station.item} />
                            </group>
                         ) : null}
                      </group>
                   ) : null}
                   {station.kind === "cupboard" && station.item !== -1 ? (
                      <group ref={(g) => { set.loot[station.item] = g; }} position={LOOT_AT} visible={false} name="loot">
-                        <Loot kind={station.item} />
+                        <Loot kind={station.item === 3 ? 0 : station.item >= 4 ? 2 : station.item} />
                      </group>
                   ) : null}
                </group>
@@ -265,14 +270,14 @@ export function Room({ run, moving }: { run: EscapeRun; moving: MutableRefObject
    );
 }
 
-export function createMoving(): Moving {
+export function createMoving(stations = 4, items = 3): Moving {
    return {
-      drawer: [null, null, null, null],
-      hinge: [null, null, null, null],
-      roof: [null, null, null, null],
-      box: [null, null, null, null],
-      lid: [null, null, null, null],
-      loot: [null, null, null],
+      drawer: Array(stations).fill(null),
+      hinge: Array(stations).fill(null),
+      roof: Array(stations).fill(null),
+      box: Array(stations).fill(null),
+      lid: Array(stations).fill(null),
+      loot: Array(items).fill(null),
       leaf: null,
       glow: null,
    };

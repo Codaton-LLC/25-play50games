@@ -14,8 +14,9 @@ import { Instanced } from "@/arcade3d/core/render/Instanced";
 import type { InstanceSpot } from "@/arcade3d/core/render/useInstanceMatrices";
 import { BlobShadow } from "@/arcade3d/core/render/BlobShadow";
 import { useCanvasTexture } from "@/arcade3d/core/render/useCanvasTexture";
-import { ASSETS } from "./assets";
+import { ASSETS, SNOW_FORT_DRAWN, SNOW_FORT_SPOTS, IGLOO_DRAWN, IGLOO_SPOTS, SNOWMAN_BIG_DRAWN, SNOWMAN_BIG_SPOTS, VILLAGE_LEVEL_IDS } from "./assets";
 import { COLORS, SnowmanStandIn, drawSnow } from "./Primitives";
+import { useSnowLevel } from "./useSnowLevel";
 import {
    FORT_BLOCKS,
    FORT_CONTACT,
@@ -30,6 +31,8 @@ import {
    snowmanCovers,
 } from "./looks";
 import { FORT, type Run } from "./rules";
+import { THEMES } from "./arenaLooks";
+import { Centre, Scenery, ThemedForts, Zones } from "./ArenaDecor";
 
 const FENCE = createPath(
    [
@@ -171,32 +174,104 @@ function Snowman({ run, view }: { run: Run; view: FittedView }) {
    );
 }
 
+/** Igloo stand-in: a half-buried hemisphere at the drawn footprint, used until the GLB is fetched. */
+const IGLOO_FALLBACK_SPOTS = IGLOO_SPOTS.map((s) => ({
+   ...s,
+   sx: IGLOO_DRAWN.width / 2,
+   sy: IGLOO_DRAWN.height,
+   sz: IGLOO_DRAWN.depth / 2,
+}));
+
+function IglooFallback() {
+   return (
+      <Instanced spots={IGLOO_FALLBACK_SPOTS}>
+         <sphereGeometry args={[1, 14, 9, 0, Math.PI * 2, 0, Math.PI / 2]} />
+         <meshStandardMaterial color="#e2e8f0" roughness={0.9} />
+      </Instanced>
+   );
+}
+
+/** Big-snowman stand-in: one stacked sphere lump centred on the drawn height. */
+const SNOWMAN_BIG_FALLBACK_SPOTS = SNOWMAN_BIG_SPOTS.map((s) => ({
+   ...s,
+   y: s.y + SNOWMAN_BIG_DRAWN.height / 2,
+   sx: SNOWMAN_BIG_DRAWN.width / 2,
+   sy: SNOWMAN_BIG_DRAWN.height / 2,
+   sz: SNOWMAN_BIG_DRAWN.depth / 2,
+}));
+
+function SnowmanBigFallback() {
+   return (
+      <Instanced spots={SNOWMAN_BIG_FALLBACK_SPOTS}>
+         <sphereGeometry args={[1, 10, 8]} />
+         <meshStandardMaterial color="#f8fafc" roughness={0.85} />
+      </Instanced>
+   );
+}
+
+/** Levels 4-5 only: igloos and big snowmen behind the far fence, framing the village theme. */
+function Village() {
+   return (
+      <group>
+         <InstancedModel asset={ASSETS.igloo} spots={[...IGLOO_SPOTS]} fallback={<IglooFallback />} />
+         <InstancedModel asset={ASSETS.snowmanBig} spots={[...SNOWMAN_BIG_SPOTS]} fallback={<SnowmanBigFallback />} />
+      </group>
+   );
+}
+
+const SNOW_FORT_FALLBACK_SPOTS = SNOW_FORT_SPOTS.map((s) => ({ ...s, y: SNOW_FORT_DRAWN.height / 2 }));
+
+/** Side-fort stand-in: a low white box at the drawn footprint. */
+function SnowFortFallback() {
+   return (
+      <Instanced spots={SNOW_FORT_FALLBACK_SPOTS}>
+         <boxGeometry args={[SNOW_FORT_DRAWN.width, SNOW_FORT_DRAWN.height, SNOW_FORT_DRAWN.depth]} />
+         <meshStandardMaterial color="#e2e8f0" roughness={0.9} />
+      </Instanced>
+   );
+}
+
 export default function Yard({ run, view }: { run: Run; view: FittedView }) {
    const snow = useCanvasTexture(512, 512, drawSnow);
    const pines = useMemo(() => pineSpots(run.pines), [run]);
    const banks = useMemo(() => bankSpots(run.pines), [run]);
+   const { id } = useSnowLevel();
+   const theme = run.level.arena.theme;
+   const look = THEMES[theme];
+   // level 1 ("yard") draws exactly what it drew before the arenas; the others use ArenaDecor
+   const yard = theme === "yard";
    return (
       <group>
-         <SkyDome top={COLORS.skyTop} bottom={COLORS.skyBottom} />
-         <SnowFall count={360} />
+         <SkyDome top={yard ? COLORS.skyTop : look.skyTop} bottom={yard ? COLORS.skyBottom : look.skyBottom} />
+         <SnowFall count={yard ? 360 : look.snow} />
          <mesh rotation-x={-Math.PI / 2} position={[0, -0.02, 0]}>
-            <circleGeometry args={[16, 24]} />
-            <meshStandardMaterial color={COLORS.shade} />
+            <circleGeometry args={[yard ? 16 : 26, 24]} />
+            <meshStandardMaterial color={yard ? COLORS.shade : look.shade} />
          </mesh>
          <mesh rotation-x={-Math.PI / 2} position={[0, 0, 0]} receiveShadow>
             <planeGeometry args={[24, 18]} />
             <meshStandardMaterial map={snow} color={COLORS.snow} roughness={0.95} />
          </mesh>
-         <Fence path={FENCE} spacing={1.7} height={1.1} color={COLORS.fence} railColor={COLORS.rail} />
-         <Forts run={run} />
+         <Fence path={FENCE} spacing={1.7} height={1.1} color={yard ? COLORS.fence : look.fence} railColor={yard ? COLORS.rail : look.rail} />
+         {!yard && (
+            <>
+               <Zones level={run.level} />
+               <ThemedForts run={run} theme={theme} />
+               <Centre run={run} view={view} theme={theme} />
+               <Scenery theme={theme} />
+            </>
+         )}
+         {yard && <Forts run={run} />}
+         {(yard || theme === "village") && <InstancedModel asset={ASSETS.snowFort} spots={[...SNOW_FORT_SPOTS]} fallback={<SnowFortFallback />} />}
          {banks.length > 0 && (
             <Instanced spots={banks}>
                <sphereGeometry args={[1, 8, 6]} />
                <meshStandardMaterial color={COLORS.snow} roughness={0.9} emissive={COLORS.ice} emissiveIntensity={0.12} />
             </Instanced>
          )}
-         <InstancedModel asset={ASSETS.pine} spots={pines} fallback={<PineFallback spots={pines} />} />
-         <Snowman run={run} view={view} />
+         {(yard || theme === "fort" || theme === "village") && <InstancedModel asset={ASSETS.pine} spots={pines} fallback={<PineFallback spots={pines} />} />}
+         {yard && <Snowman run={run} view={view} />}
+         {VILLAGE_LEVEL_IDS.includes(id) && theme === "village" && <Village />}
       </group>
    );
 }

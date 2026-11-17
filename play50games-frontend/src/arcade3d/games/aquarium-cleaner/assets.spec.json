@@ -1,0 +1,18 @@
+{
+   "slug": "aquarium-cleaner",
+   "universe": "play50-toy-world-premium",
+   "notes": "Adopted from menu1-aquarium-cleaner/ and shared/ (2026-10-25). Left out on purpose: filterMachine / filterMachineV2 (wrong object), bubbleStation / V2 / V3 (glass domes: the bubble column is code), coral / coralV2 / coralBranch / seaweed / seaweedKelp (broken shard meshes), aquarium-cleaner/hero.glb.",
+   "assets": [
+      { "id": "charDiver", "kind": "character", "file": "menu1-aquarium-cleaner/charDiver.glb", "budget": { "tris": 20000, "bytes": 1500000 } },
+      { "id": "aquariumScrubber", "kind": "prop", "file": "menu1-aquarium-cleaner/aquariumScrubber.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "plasticBottle", "kind": "prop", "file": "menu1-aquarium-cleaner/plasticBottle.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "tropicalFish", "kind": "prop", "file": "menu1-aquarium-cleaner/tropicalFish.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "aquariumCastle", "kind": "prop", "file": "menu1-aquarium-cleaner/aquariumCastle.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "aquariumRock", "kind": "prop", "file": "menu1-aquarium-cleaner/aquariumRock.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "filterMachineV3", "kind": "prop", "file": "menu1-aquarium-cleaner/filterMachineV3.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "scubaTank", "kind": "prop", "file": "menu1-aquarium-cleaner/scubaTank.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "shark", "kind": "prop", "file": "menu1-aquarium-cleaner/shark.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "trashBasket", "kind": "prop", "file": "menu1-aquarium-cleaner/trashBasket.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "coralI", "kind": "prop", "file": "coralI.glb", "budget": { "tris": 5000, "bytes": 300000 } }
+   ]
+}

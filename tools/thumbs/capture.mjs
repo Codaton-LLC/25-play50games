@@ -400,7 +400,9 @@ function checkFrame(slug, step) {
    if (typeof zoom !== "number" || !(zoom >= 1 && zoom <= 2) || !Array.isArray(at) || at.length !== 2 || !at.every(fraction)) {
       throw new FatalError(`${slug}: bad frame step ${JSON.stringify(step)} in inputs.mjs (zoom 1..2, at [x, y] in 0..1)`);
    }
-   return { zoom, at };
+   const brighten = step.brighten === undefined ? 1 : step.brighten;
+   if (typeof brighten !== "number" || !(brighten >= 1 && brighten <= 3)) throw new FatalError(`${slug}: bad brighten in ${JSON.stringify(step)} (1..3)`);
+   return { zoom, at, brighten };
 }
 
 /** The screenshot clip: the whole canvas, or a canvas-shaped window zoomed around frame.at (kept inside). */
@@ -526,11 +528,13 @@ async function captureGame(cdp, sessionId, slug) {
    const { channels } = await sharp(png).stats();
    if (channels.slice(0, 3).every((c) => c.stdev < 3)) throw new Error("the canvas is blank (WebGL did not draw)");
 
+   const brighten = frame?.brighten ?? 1;
    // Crop/resize to 16:9 640x360, webp, tune quality down until <= 60 KB.
    let webp = null;
    for (let quality = 82; quality >= 20; quality -= 8) {
       webp = await sharp(png)
          .resize(OUT_W, OUT_H, { fit: "cover" })
+         .modulate({ brightness: brighten })
          .webp({ quality, effort: 6 })
          .toBuffer();
       if (webp.byteLength <= MAX_BYTES) break;

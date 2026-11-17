@@ -9,12 +9,15 @@
 // - visuals (Bay, Ships, Cannon) only read the run state and animate with useGameTime();
 // - a fixed camera behind the cannon (looks.ts viewFor: useFittedView keeps the three lanes clear of
 //   the HUD, the wind vane and the cookie banner).
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useThree } from "@react-three/fiber";
 import CameraRig from "@/arcade3d/core/CameraRig";
 import { playSfx, startLoop, useMuted } from "@/arcade3d/core/audio";
-import { useFx } from "@/arcade3d/core/fx";
+import { useActionPop, useFx } from "@/arcade3d/core/fx";
+import { TargetBeacon } from "@/arcade3d/core/hud";
+import { useCoarsePointer } from "@/arcade3d/core/TouchControls";
 import { useInput } from "@/arcade3d/core/input";
+import { useStageLighting } from "@/arcade3d/core/lighting";
 import { randomSeed } from "@/arcade3d/core/math";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useFittedView } from "@/arcade3d/core/useFittedView";
@@ -22,8 +25,12 @@ import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { createAim, stepAim } from "./aim";
 import { Bay } from "./Bay";
 import { Cannon, createCannonLook, kickCannon } from "./Cannon";
-import { SEA_FOCUS, viewFor } from "./looks";
+import { GUIDE, hintCode, hintFor, targetShip } from "./guide";
+import { COLORS, SEA_FOCUS, viewFor } from "./looks";
 import { advanceRun, createRun, muzzleAt, type RunState } from "./rules";
+import { usePirateLevel } from "./usePirateLevel";
+import { BaySets } from "./BaySets";
+import { BAY_THEMES } from "./looks";
 import { Floaters, Ships, createShipLooks } from "./Ships";
 
 /** Stereo position of a sound at world x (the bay spans about x ±20). */
@@ -39,7 +46,10 @@ function showWind(run: RunState) {
    store.setStat("wind10", Math.round(Math.hypot(x, z) * 10));
 }
 
-export default function Scene() {
+function LevelScene() {
+   const { config, id } = usePirateLevel();
+   // the level's weather, sea and background ships (looks.ts BAY_THEMES); light comes from its environment
+   const theme = BAY_THEMES[id];
    const width = useThree((s) => s.size.width);
    const height = useThree((s) => s.size.height);
    const view = useFittedView(viewFor(width, height));
@@ -48,14 +58,19 @@ export default function Scene() {
    const position = useMemo<[number, number, number]>(() => [SEA_FOCUS[0] + view.offset[0], SEA_FOCUS[1] + view.offset[1], SEA_FOCUS[2] + view.offset[2]], [view.offset]);
    const input = useInput();
    const fx = useFx();
+   const pop = useActionPop();
+   const touch = useCoarsePointer();
+   const guideCode = useRef(-1);
+   const mark = useRef({ x: 0, y: 3.2, z: 0, hidden: true }).current;
    // a new plan every run: GameShell remounts the Scene (and its game time) on start and retry
-   const [run] = useState(() => createRun(randomSeed()));
+   const [run] = useState(() => createRun(randomSeed(), config));
    const [aim] = useState(createAim);
    const [cannon] = useState(createCannonLook);
    const [ships] = useState(createShipLooks);
    const [at] = useState(() => ({ x: 0, y: 0, z: 0 }));
 
-   useEffect(() => fx.warm("smoke", "splash", "debris", "puff", "sparkle", "score"), [fx]);
+   useStageLighting("day", 0, COLORS.sky, COLORS.fog);
+   useEffect(() => fx.warm("smoke", "splash", "debris", "puff", "sparkle", "sparks", "score"), [fx]);
    // the surf under the fort while the run is live; the shell stops every loop on pause, the end and
    // mute, so it starts again on resume and unmute
    const live = useArcadeStore((s) => s.phase === "countdown" || s.phase === "playing");
@@ -68,6 +83,10 @@ export default function Scene() {
    useEffect(() => {
       useArcadeStore.getState().setStat("wave", 1);
       showWind(run);
+      guideCode.current = hintCode(run);
+      GUIDE.set(hintFor(guideCode.current, touch));
+      return () => GUIDE.reset();
+      // eslint-disable-next-line react-hooks/exhaustive-deps
    }, [run]);
 
    // the game: aim, fire, ships, balls, blasts, harbour, score. Only while "playing", before every visual.
@@ -85,7 +104,8 @@ export default function Scene() {
       if (ev.fired > 0) {
          kickCannon(cannon);
          muzzleAt(aim.yaw, aim.elevation, at);
-         fx.burst("smoke", at, 10);
+         fx.burst("smoke", at, 14);
+         fx.burst("sparks", at, 8);
          fx.shake(0.12);
          const pan = panAt(at.x);
          playSfx("boom", { volume: 0.9, pan });
@@ -95,7 +115,8 @@ export default function Scene() {
       }
       for (let i = 0; i < ev.hitCount; i++) {
          const h = ev.hits[i];
-         fx.burst("debris", h, h.sunk ? 16 : 9);
+         fx.burst("debris", h, h.sunk ? 22 : 12);
+         fx.burst("sparks", h, 6);
          const pan = panAt(h.x);
          playSfx("thud", { pan });
          playSfx("pop", { pitch: 0.8, volume: 0.6, pan }); // the wood cracks
@@ -107,14 +128,23 @@ export default function Scene() {
       for (let i = 0; i < ev.splashCount; i++) {
          const p = ev.splashes[i];
          const island = ev.islandFlags[i];
-         fx.burst(island ? "puff" : "splash", p, 12);
+         fx.burst(island ? "puff" : "splash", p, 16);
          if (island) playSfx("thud", { pitch: 1.4, volume: 0.5, pan: panAt(p.x) });
-         else playSfx("splash", { pan: panAt(p.x) });
+         else {
+            playSfx("splash", { pan: panAt(p.x) });
+            if (ev.hitCount === 0 && ev.blastCount === 0) {
+               at.x = p.x;
+               at.y = 2;
+               at.z = p.z;
+               pop.fail(at, "Miss", { shake: 0 });
+            }
+         }
       }
       for (let i = 0; i < ev.blastCount; i++) {
          const p = ev.blasts[i];
-         fx.burst("smoke", p, 22);
-         fx.burst("debris", p, 14);
+         fx.burst("smoke", p, 26);
+         fx.burst("sparks", p, 18);
+         fx.burst("debris", p, 16);
          fx.shake(0.28);
          playSfx("boom", { pitch: 0.7, pan: panAt(p.x) });
       }
@@ -135,15 +165,36 @@ export default function Scene() {
          playSfx("buzz", { volume: 0.8, pan: 0.6 }); // the harbour is on the right
          useArcadeStore.getState().loseLife();
       }
+      // the marked ship (nearest the harbour) and the hint line; the hint is rebuilt only on a change
+      const target = targetShip(run);
+      mark.hidden = !target;
+      if (target) {
+         mark.x = target.rider.position.x;
+         mark.z = target.rider.position.z;
+         mark.y = target.spec.y + 2.4;
+      }
+      const code = hintCode(run);
+      if (code !== guideCode.current) {
+         guideCode.current = code;
+         GUIDE.set(hintFor(code, touch));
+      }
    });
 
    return (
       <>
          <CameraRig camera={{ position, lookAt: SEA_FOCUS }} shift={view.shift} />
-         <Bay run={run} />
+         <Bay run={run} theme={theme} />
+         <BaySets theme={theme} />
          <Ships run={run} looks={ships} />
          <Floaters run={run} />
          <Cannon run={run} aim={aim} look={cannon} />
+         <TargetBeacon target={mark} variant="pick" color="#fde047" radius={2.2} height={1.6} label="TARGET" />
       </>
    );
+}
+
+/** Remounts when another level is picked, so the waves are that level's. */
+export default function Scene() {
+   const { id } = usePirateLevel();
+   return <LevelScene key={id} />;
 }

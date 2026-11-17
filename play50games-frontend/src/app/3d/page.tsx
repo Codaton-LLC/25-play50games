@@ -6,7 +6,8 @@ import SiteFooter from "@/components/Site/SiteFooter";
 import ui from "@/components/Site/ui.module.css";
 import ArcadeGrid from "@/arcade3d/ui/ArcadeGrid";
 import { ARCADE_ENABLED, ARCADE_LEADERBOARD } from "@/arcade3d/flags";
-import { getLiveGames, getVisibleGames, getVisibleSections } from "@/arcade3d/registry";
+import { getLiveGames, getVisibleGames, getVisibleSections, scoringMetas } from "@/arcade3d/registry";
+import GameMetas from "@/arcade3d/ui/GameMetas";
 import type { ArcadeCollection } from "@/arcade3d/types";
 import { arcadeJsonLd, serializeJsonLd } from "@/lib/seo/jsonLd";
 import ArcadeScoreSync from "./ArcadeScoreSync";
@@ -95,26 +96,28 @@ function ArcadeSections() {
 export default function ArcadePage() {
    const jsonLd = arcadeJsonLd(SITE_URL, getLiveGames(), ARCADE_ENABLED);
    return (
-      <div className={`p50 ${styles.page}`}>
-         {jsonLd && (
-            <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }} />
-         )}
-         <SiteHeader active="arcade" />
-
-         <main className={`${ui.wrap} ${styles.content}`}>
-            {ARCADE_ENABLED ? (
-               <>
-                  <ArcadeIntro />
-                  <ArcadeSections />
-                  {ARCADE_LEADERBOARD && <ArcadePrivacyToggle />}
-               </>
-            ) : (
-               <ComingSoon />
+      <GameMetas metas={scoringMetas()}>
+         <div className={`p50 ${styles.page}`}>
+            {jsonLd && (
+               <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }} />
             )}
-         </main>
+            <SiteHeader active="arcade" provideMetas={false} />
 
-         <SiteFooter />
-         {ARCADE_ENABLED && <ArcadeScoreSync />}
-      </div>
+            <main className={`${ui.wrap} ${styles.content}`}>
+               {ARCADE_ENABLED ? (
+                  <>
+                     <ArcadeIntro />
+                     <ArcadeSections />
+                     {ARCADE_LEADERBOARD && <ArcadePrivacyToggle />}
+                  </>
+               ) : (
+                  <ComingSoon />
+               )}
+            </main>
+
+            <SiteFooter />
+            {ARCADE_ENABLED && <ArcadeScoreSync />}
+         </div>
+      </GameMetas>
    );
 }

@@ -22,6 +22,9 @@
 import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { MeshBasicMaterial, PlaneGeometry, Vector3, type Camera, type Group, type Matrix4, type Mesh, type Sprite, type SpriteMaterial } from "three";
+import { useCameraViews } from "@/arcade3d/core/camera/CameraViews";
+import { useCameraZoom } from "@/arcade3d/core/useCameraZoom";
+import { phoneOffset } from "./cameraViews";
 import CameraRig from "@/arcade3d/core/CameraRig";
 import { useModel } from "@/arcade3d/core/assets";
 import { playSfx } from "@/arcade3d/core/audio";
@@ -46,8 +49,10 @@ import { useArcadeStore, type ArcadeStore } from "@/arcade3d/core/useArcadeStore
 import { useFittedView } from "@/arcade3d/core/useFittedView";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { ASSETS } from "./assets";
-import { LOOK_AT, VIEW } from "./camera";
+import { LOOK_AT, SCENERY_VIEW, VIEW } from "./camera";
 import { WAREHOUSE_SCALE, warehousePhaseStep } from "./gait";
+import { LEVELS } from "./levels";
+import { useWarehouseLevel } from "./useWarehouseLevel";
 import {
    ARROW,
    BOX_TURN_MAX,
@@ -195,6 +200,8 @@ interface Published {
    carry: number;
    drops: number;
    delta: number;
+   /** whole seconds left on the order deadline; -1 until the level has one */
+   left: number;
 }
 
 /** Sends only what changed since the last publish. delta before drops: the HUD keys its flash on drops. */
@@ -225,12 +232,19 @@ function publish(run: WarehouseRun, pub: Published): void {
       pub.drops = run.drops;
       store.setStat("drops", run.drops);
    }
+   if (run.config.orderMs > 0) {
+      const left = Math.max(0, Math.ceil((run.config.orderMs - run.orderIdleMs) / 1000));
+      if (left !== pub.left) {
+         pub.left = left;
+         store.setStat("left", left);
+      }
+   }
 }
 
 // ---------- the game ----------
 
 /** Feeds dt and the mapped input into rules.step() and reports what happened. Renders nothing. */
-const Simulation = memo(function Simulation({ run, fx, pub, yaw }: { run: WarehouseRun; fx: Fx; pub: Published; yaw: number }) {
+const Simulation = memo(function Simulation({ run, fx, pub, yaw }: { run: WarehouseRun; fx: Fx; pub: Published; yaw: () => number }) {
    const input = useInput();
    const time = useGameTime();
    const [scratch] = useState(() => ({ dir: { x: 0, z: 0 }, input: createStepInput() }));
@@ -238,11 +252,12 @@ const Simulation = memo(function Simulation({ run, fx, pub, yaw }: { run: Wareho
    useRunFrame((_state, dt) => {
       const now = input.current;
       // screen-relative: up is away from the camera, whatever the yaw
-      inputToWorld(now.moveX, now.moveY, yaw, scratch.dir);
+      inputToWorld(now.moveX, now.moveY, yaw(), scratch.dir);
       scratch.input.moveX = scratch.dir.x;
       scratch.input.moveY = scratch.dir.z;
       scratch.input.actionPressed = now.actionPressed || now.jumpPressed;
       const carried = run.carrying;
+      const misses = run.misses;
       const ev = step(run, dt * 1000, scratch.input);
       const t = time.now;
 
@@ -271,7 +286,7 @@ const Simulation = memo(function Simulation({ run, fx, pub, yaw }: { run: Wareho
          fx.popupKind = popupKind(ev.delta);
          fx.popupZone = ev.zone;
          playSfx(ev.delivered ? "pickup" : "hit");
-      }
+      } else if (run.misses !== misses) playSfx("hit");
 
       publish(run, pub);
       // never reached in the game (the store's clock ends the run first), harmless if it is
@@ -290,7 +305,7 @@ const Simulation = memo(function Simulation({ run, fx, pub, yaw }: { run: Wareho
 const RING_ORDER = 1;
 const OVER_RING = 2;
 
-const Robot = memo(function Robot({ run, fx }: { run: WarehouseRun; fx: Fx }) {
+const Robot = memo(function Robot({ run, fx, lamp }: { run: WarehouseRun; fx: Fx; lamp?: number }) {
    const time = useGameTime();
    const root = useRef<Group>(null);
    const body = useRef<Group>(null);
@@ -349,6 +364,7 @@ const Robot = memo(function Robot({ run, fx }: { run: WarehouseRun; fx: Fx }) {
    return (
       <group ref={root} name="robot">
          <BlobShadow radius={0.55} />
+         {lamp ? <pointLight position={[0, 2.4, 0]} intensity={lamp} distance={10} color="#e0f2fe" /> : null}
          {/* player marker: drawn over the floor, the pallets and the racks (no depth test), so the
              robot is easy to find on a phone, also behind a rack; the robot and the boxes draw over it */}
          <mesh rotation-x={-Math.PI / 2} position-y={0.02} renderOrder={RING_ORDER} name="robot-ring">
@@ -448,7 +464,7 @@ function BoxSlot({ slot, look }: { slot: BoxSlotRefs; look: BoxLook }) {
    );
 }
 
-const Boxes = memo(function Boxes({ run, fx, yaw }: { run: WarehouseRun; fx: Fx; yaw: number }) {
+const Boxes = memo(function Boxes({ run, fx, yaw }: { run: WarehouseRun; fx: Fx; yaw: () => number }) {
    const time = useGameTime();
    const look = useBoxLook();
    const [slots] = useState<BoxSlotRefs[]>(() =>
@@ -478,7 +494,7 @@ const Boxes = memo(function Boxes({ run, fx, yaw }: { run: WarehouseRun; fx: Fx;
       g.rotation.y = turn;
       g.scale.setScalar(scale);
       // the lid letter reads upright from the camera, whatever the box's turn
-      if (slot.spin) slot.spin.rotation.y = yaw - turn;
+      if (slot.spin) slot.spin.rotation.y = yaw() - turn;
    };
 
    useFrame(() => {
@@ -775,31 +791,54 @@ const nextRun: { runId: number; run: WarehouseRun | null } = { runId: -1, run: n
 
 function prepareNextRun(state: ArcadeStore, prev: ArcadeStore): void {
    if (state.runId === prev.runId || state.phase !== "countdown") return;
-   const run = createRun(randomSeed());
+   const run = createRun(randomSeed(), LEVELS[state.levelId]);
    nextRun.runId = state.runId;
    nextRun.run = run;
    state.setStat("order", run.order);
    state.setStat("carry", 0);
+   if (run.config.orderMs > 0) state.setStat("left", run.config.orderMs / 1000);
 }
 
 /** This Scene's run: the one prepared for its runId, or a new one (a new seed every run). */
-function takeRun(): WarehouseRun {
+function takeRun(level: (typeof LEVELS)[1]): WarehouseRun {
    const { runId } = useArcadeStore.getState();
-   return nextRun.run && nextRun.runId === runId ? nextRun.run : createRun(randomSeed());
+   if (nextRun.run && nextRun.runId === runId && nextRun.run.config.id === level.id) return nextRun.run;
+   return createRun(randomSeed(), level);
 }
 
 // ---------- the scene ----------
 
 export default function Scene() {
-   const view = useFittedView(VIEW);
+   const { id } = useWarehouseLevel();
+   return <LevelScene key={id} />;
+}
+
+/** One level's scene. Remounts when the start card picks another level, and on every run. */
+function LevelScene() {
+   const { config } = useWarehouseLevel();
+   const view = useFittedView(config.id === 1 ? VIEW : SCENERY_VIEW);
    // GameShell remounts the Scene (and its game time) on start, retry and restart
    const [run] = useState(() => {
-      const r = takeRun();
+      const r = takeRun(config);
       r.robot.heading = view.yaw; // face the camera on the start pad (heading is looks only)
       return r;
    });
+   const aspect = useThree((s) => s.size.width / s.size.height);
+   const portrait = aspect < 1;
+   const offset = phoneOffset(view.offset, aspect);
+   const zoom = useCameraZoom({ min: 1.7 / Math.hypot(...offset), max: Math.max(1, 2 * view.distance / Math.hypot(...offset)) });
+   useEffect(() => { zoom.current = 1; }, [portrait, zoom]);
+   const cam = useCameraViews({
+      slug: "warehouse-rush", subject: "character", steering: "camera", defaultYaw: view.yaw,
+      framing: { chase: { distance: 4, lookUp: 0 }, front: { distance: 3.5, lookUp: 0 }, free: { distance: 4, lookUp: 0 }, top: { distance: 28 } },
+      target: (o) => {
+         const r = run.robot;
+         o.x = r.x; o.y = 0.6; o.z = r.z;
+         o.heading = r.heading; o.vx = r.vx; o.vz = r.vz;
+      },
+   });
    const [fx] = useState(createFx);
-   const [pub] = useState<Published>(() => ({ score: 0, delivered: 0, order: NONE, carry: 0, drops: 0, delta: 0 }));
+   const [pub] = useState<Published>(() => ({ score: 0, delivered: 0, order: NONE, carry: 0, drops: 0, delta: 0, left: -1 }));
 
    // mount: publish this run's first order (a no-op when prepareNextRun already did; it also covers
    // the Scene of the loading and ready screens) and seed the publish cache
@@ -808,7 +847,8 @@ export default function Scene() {
       const store = useArcadeStore.getState();
       store.setStat("order", run.order);
       store.setStat("carry", 0);
-      Object.assign(pub, { score: 0, delivered: 0, order: run.order, carry: 0, drops: 0, delta: 0 });
+      if (run.config.orderMs > 0) store.setStat("left", run.config.orderMs / 1000);
+      Object.assign(pub, { score: 0, delivered: 0, order: run.order, carry: 0, drops: 0, delta: 0, left: run.config.orderMs > 0 ? run.config.orderMs / 1000 : -1 });
    }, [run, pub]);
 
    // the next start, retry or restart: make that run now (see nextRun)
@@ -816,11 +856,11 @@ export default function Scene() {
 
    return (
       <>
-         <Simulation run={run} fx={fx} pub={pub} yaw={view.yaw} />
-         <CameraRig camera={{ position: view.offset, lookAt: LOOK_AT }} offset={view.offset} shift={view.shift} />
-         <Warehouse layout={run.layout} yaw={view.yaw} />
-         <Robot run={run} fx={fx} />
-         <Boxes run={run} fx={fx} yaw={view.yaw} />
+         <Simulation run={run} fx={fx} pub={pub} yaw={cam.yaw} />
+         <CameraRig camera={{ position: offset, lookAt: LOOK_AT }} follow={aspect < 1 ? run.robot : { x: 0, y: 0, z: 0 }} offset={offset} zoom={zoom} shift={view.shift} />
+         <Warehouse layout={run.layout} yaw={view.yaw} level={config} run={run} />
+         <Robot run={run} fx={fx} lamp={config.lamp} />
+         <Boxes run={run} fx={fx} yaw={cam.yaw} />
          <OrderMarkers run={run} fx={fx} />
          <TargetZone run={run} />
          <Popup fx={fx} />

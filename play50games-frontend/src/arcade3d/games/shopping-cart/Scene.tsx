@@ -4,21 +4,31 @@
 // and renders the supermarket store, cart + runner, shoppers, products, hazards and camera.
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
-import { DoubleSide, Group, Matrix4, MeshStandardMaterial, Vector3 } from "three";
+import { DoubleSide, Group, Matrix4, MeshStandardMaterial, RepeatWrapping } from "three";
 import CameraRig from "@/arcade3d/core/CameraRig";
-import { Model } from "@/arcade3d/core/assets";
+import { InstancedModel, Model } from "@/arcade3d/core/assets";
 import { playSfx, startLoop, type LoopHandle } from "@/arcade3d/core/audio";
-import { useFx } from "@/arcade3d/core/fx";
+import { SkyDome } from "@/arcade3d/core/env";
+import { tossAt, useActionPop, useFx, type TossFrame } from "@/arcade3d/core/fx";
+import { TargetBeacon, TargetMarkers } from "@/arcade3d/core/hud";
+import { useCoarsePointer } from "@/arcade3d/core/TouchControls";
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import { useInput } from "@/arcade3d/core/input";
 import { inputToWorld, randomSeed } from "@/arcade3d/core/math";
-import { BlobShadow, DynamicInstanced, Instanced } from "@/arcade3d/core/render";
+import { BlobShadow, DynamicInstanced, Instanced, useCanvasTexture, type CanvasDraw } from "@/arcade3d/core/render";
 import { HumanoidModel, createPose, useHumanoidPose } from "@/arcade3d/core/rig";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useFittedView } from "@/arcade3d/core/useFittedView";
+import { useCameraViews } from "@/arcade3d/core/camera/CameraViews";
+import type { AABB } from "@/arcade3d/core/collision";
+import { SOLID_OBSTACLES } from "./rules";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
-import { ASSETS } from "./assets";
-import { PITCH, STORE_BOUNDS, viewFor } from "./camera";
+import { ASSETS, MARKET_COLORS, MARKET_DRAWN, MARKET_SPOTS, type MarketKind, BAKERY_DRAWN, BAKERY_FALLBACK_SPOTS, BAKERY_HEIGHT, BAKERY_SPOTS, SCRUBBER_DRAWN, SCRUBBER_FALLBACK_SPOTS, SCRUBBER_HEIGHT, SCRUBBER_SPOTS, SHELF_BAYS } from "./assets";
+import { STORE_BOUNDS, viewFor } from "./camera";
+import { Decor } from "./Decor";
+import StoreSetPieces from "./StoreSetPieces";
+import { STORE_LOOKS } from "./storeLooks";
+import { COLORS, FLOOR } from "./looks";
 import {
    CartPrimitive,
    ProductPrimitive,
@@ -39,17 +49,52 @@ import {
    type RunState,
    type StepInput,
 } from "./rules";
+import { useLevel } from "@/arcade3d/core/level";
+import type { ShoppingCartLevel } from "./levels";
+import { CHECKOUT, GUIDE, LIST, cartHint, hintCode, nextItem } from "./guide";
+
+/** A taken product flies into the cart for this long (s), then is hidden. */
+const INTO_CART_S = 0.42;
+
+/** Copies `src` into the camera hook's box slots. */
+function fillSolids(src: readonly AABB[], out: AABB[]): number {
+   let n = 0;
+   for (const b of src) {
+      if (n >= out.length) break;
+      const o = out[n++];
+      o.min.x = b.min.x; o.min.y = b.min.y; o.min.z = b.min.z;
+      o.max.x = b.max.x; o.max.y = b.max.y; o.max.z = b.max.z;
+   }
+   return n;
+}
 
 export default function Scene() {
    const width = useThree((s) => s.size.width);
    const height = useThree((s) => s.size.height);
    const view = useFittedView(viewFor(width, height));
-   const time = useGameTime();
    const input = useInput();
    const fx = useFx();
 
    // Seeded run state created once per run
-   const [run] = useState<RunState>(() => createRun(randomSeed()));
+   const { config, id: levelId } = useLevel<ShoppingCartLevel>();
+   const [run] = useState<RunState>(() => createRun(randomSeed(), config));
+   const look = STORE_LOOKS[run.level.store.theme];
+
+   // camera views (core/camera): the rules get the drawn camera's yaw (the fitted yaw in the default view)
+   const cam = useCameraViews({
+      slug: "shopping-cart",
+      subject: "vehicle",
+      steering: "camera",
+      defaultYaw: view.yaw,
+      target: (o) => {
+         const c = run.cart;
+         o.x = c.x; o.y = 0.7; o.z = c.z; o.heading = c.heading; o.vx = c.vx; o.vz = c.vz;
+      },
+      // the level's own solids (set pieces, the shut lane) keep the chase / front views out of them too
+      solids: (out: AABB[]) => fillSolids(run.solids ?? SOLID_OBSTACLES, out),
+      framing: { top: { distance: 12 } },
+   });
+
 
    // Live point for camera look-ahead
    const followTarget = useRef<{ x: number; y: number; z: number }>({
@@ -58,11 +103,40 @@ export default function Scene() {
       z: START_POS.z,
    });
 
+   // clarity (visual only): the beacon on the next item / the checkout, the list panel, the hint, fail pops
+   const pop = useActionPop();
+   const touch = useCoarsePointer();
+   const beacon = useRef({ x: 0, y: 0, z: 0, hidden: true }).current;
+   // the same target for the edge arrow when it is off screen or under a HUD panel
+   const edgeTargets = useMemo(() => [beacon], [beacon]);
+   const guide = useRef({ next: -2, code: -1, combo: 0, checkout: false }).current;
+   const kinds = useMemo(() => run.list.map((item) => item.kind), [run]);
+   const [atCheckout, setAtCheckout] = useState(false);
+   useEffect(() => {
+      // the list is up from the countdown on, so the panel's size (a safe-area rect) is settled before play
+      guide.next = nextItem(run, -1);
+      LIST.set({ kinds, taken: 0, next: guide.next, riding: false });
+      guide.code = hintCode(run, guide.next);
+      GUIDE.set(cartHint(run, guide.code, touch));
+      const first = run.list[guide.next];
+      if (first) {
+         beacon.x = first.x;
+         beacon.y = 0.95;
+         beacon.z = first.z;
+         beacon.hidden = false;
+      }
+      return () => {
+         GUIDE.reset();
+         LIST.reset();
+      };
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+   }, [run, kinds, guide, beacon]);
+
    // Cart rolling sound loop (P-06) - sync with play/pause phases
    const rollLoop = useRef<LoopHandle | null>(null);
 
    useEffect(() => {
-      fx.warm("sparkle", "puff", "confetti", "score");
+      fx.warm("sparkle", "puff", "debris", "confetti", "score");
       let handle: LoopHandle | null = null;
       const syncLoop = (phase: string) => {
          if (phase === "playing") {
@@ -89,8 +163,8 @@ export default function Scene() {
       };
    }, [fx]);
 
-const WORLD_MOVE = { x: 0, y: 0, z: 0 };
-const STEP_INPUT: StepInput = { moveX: 0, moveY: 0, ride: false };
+   const WORLD_MOVE = { x: 0, y: 0, z: 0 };
+   const STEP_INPUT: StepInput = { moveX: 0, moveY: 0, ride: false };
 
    // One useRunFrame driving pure rules and arcade store with frame dt and store time
    useRunFrame((_state, dt, time) => {
@@ -100,7 +174,7 @@ const STEP_INPUT: StepInput = { moveX: 0, moveY: 0, ride: false };
       const inp = input.current;
 
       // Screen-relative movement
-      inputToWorld(inp.moveX, inp.moveY, view.yaw, WORLD_MOVE);
+      inputToWorld(inp.moveX, inp.moveY, cam.yaw(), WORLD_MOVE);
       STEP_INPUT.moveX = WORLD_MOVE.x;
       STEP_INPUT.moveY = -WORLD_MOVE.z; // up in screen = north (-z in world)
       STEP_INPUT.ride = inp.jump;       // Space or touch Ride button
@@ -131,7 +205,7 @@ const STEP_INPUT: StepInput = { moveX: 0, moveY: 0, ride: false };
          if (p.combo > 1) {
             playSfx("chime", { pitch: 1.0 + Math.min(0.5, p.combo * 0.1) });
          }
-         fx.burst("sparkle", { x: p.x, y: 0.8, z: p.z }, 16);
+         fx.burst("sparkle", { x: p.x, y: 0.8, z: p.z }, 18);
          fx.score({ x: p.x, y: 1.2, z: p.z }, `+${p.score}`);
       }
 
@@ -139,27 +213,60 @@ const STEP_INPUT: StepInput = { moveX: 0, moveY: 0, ride: false };
          useArcadeStore.getState().addScore(300);
          playSfx("chime", { pitch: 1.3 });
          fx.score({ x: cart.x, y: 1.5, z: cart.z }, "+300 Complete!");
+         fx.burst("confetti", { x: cart.x, y: 1.2, z: cart.z }, 24);
       }
 
       for (const pyr of events.pyramidToppled) {
          playSfx("thud");
          fx.burst("puff", { x: pyr.x, y: 0.4, z: pyr.z }, 16);
+         fx.burst("debris", { x: pyr.x, y: 0.3, z: pyr.z }, 12);
+         fx.shake(0.15);
       }
 
       for (const bump of events.shopperBumped) {
          playSfx("thud");
          fx.shake(0.4);
-         fx.burst("puff", { x: bump.x, y: 1.2, z: bump.z }, 12);
+         fx.burst("puff", { x: bump.x, y: 1.2, z: bump.z }, 16);
       }
 
       if (events.spillSkid) {
          playSfx("splash", { volume: 0.4 });
+         fx.burst("puff", { x: cart.x, y: 0.1, z: cart.z }, 8);
+      }
+
+      // fail pops: a bump, a toppled pyramid, a hard crash that ends the combo streak
+      const hadCombo = guide.combo > 0;
+      if (events.shopperBumped.length > 0) {
+         pop.fail({ x: cart.x, y: 2, z: cart.z }, hadCombo ? "Bumped! Combo lost" : "Bumped! Stunned", { shake: 0 });
+      } else if (events.pyramidToppled.length > 0) {
+         pop.fail({ x: cart.x, y: 2, z: cart.z }, hadCombo ? "Crash! Combo lost" : "Crash! Slowed", { shake: 0 });
+      } else if (hadCombo && run.combo === 0 && events.pickups.length === 0) {
+         pop.fail({ x: cart.x, y: 2, z: cart.z }, "Crash! Combo lost");
+      }
+      guide.combo = run.combo;
+
+      // the next item (or the checkout): beacon, list panel, hint (rebuilt only on a change)
+      guide.next = nextItem(run, guide.next);
+      const target = guide.next >= 0 ? run.list[guide.next] : null;
+      beacon.x = target ? target.x : CHECKOUT.x;
+      beacon.y = target ? 0.95 : 0.1;
+      beacon.z = target ? target.z : CHECKOUT.z;
+      beacon.hidden = run.won;
+      if ((guide.next < 0) !== guide.checkout) setAtCheckout((guide.checkout = guide.next < 0));
+      let taken = 0;
+      for (let i = 0; i < run.list.length; i++) if (run.list[i].collected) taken |= 1 << i;
+      LIST.set({ kinds, taken, next: guide.next, riding: cart.riding });
+      const code = hintCode(run, guide.next);
+      if (code !== guide.code) {
+         guide.code = code;
+         GUIDE.set(cartHint(run, code, touch));
       }
 
       if (events.won) {
          rollLoop.current?.set({ volume: 0 });
          playSfx("win");
-         fx.burst("confetti", { x: cart.x, y: 1.0, z: cart.z }, 30);
+         fx.burst("confetti", { x: cart.x, y: 1.0, z: cart.z }, 36);
+         fx.shake(0.25);
          useArcadeStore.getState().setScore(run.score);
          useArcadeStore.getState().end("win");
       } else if (events.timeup) {
@@ -181,8 +288,32 @@ const STEP_INPUT: StepInput = { moveX: 0, moveY: 0, ride: false };
             shift={view.shift}
          />
 
-         {/* Supermarket Interior Environment (floor, walls, shelves, fixtures) */}
-         <StoreEnvironment run={run} />
+         {/* Sky Dome from core env */}
+         <SkyDome top={look.skyTop} bottom={look.skyBottom} />
+
+         {/* Instanced Decor strictly outside play area standing on the ground */}
+         <Decor />
+
+         {/* Supermarket Interior & Parking Lot Exterior Environment */}
+         <StoreEnvironment run={run} banner={look.banner} />
+
+         {/* Floor scrubbers parked on the north apron: the after-hours cleaning crew,
+             drawn only on levels 4 (Superstore) and 5 (Closing-Time Rush). */}
+         {(levelId === 4 || levelId === 5) && (
+            <InstancedModel
+               asset={ASSETS.scrubber}
+               spots={SCRUBBER_SPOTS}
+               fallback={
+                  <Instanced spots={SCRUBBER_FALLBACK_SPOTS} name="scrubber-fallback">
+                     <boxGeometry args={[SCRUBBER_DRAWN.width, SCRUBBER_HEIGHT, SCRUBBER_DRAWN.depth]} />
+                     <meshStandardMaterial color="#14b8a6" roughness={0.5} />
+                  </Instanced>
+               }
+            />
+         )}
+
+         {/* Levels 2-5: the level's own floor (set pieces, floor machines, the lane shutter, wet floor) */}
+         <StoreSetPieces run={run} />
 
          {/* Cart + Pusher Runner Coupled Group */}
          <CartRunner run={run} />
@@ -193,7 +324,16 @@ const STEP_INPUT: StepInput = { moveX: 0, moveY: 0, ride: false };
          ))}
 
          {/* Shelf Items with glowing 0.8m halos and floating badges */}
-         <ShelfItems items={run.list} />
+         <ShelfItems items={run.list} cart={run.cart} />
+         <TargetBeacon
+            target={beacon}
+            variant={atCheckout ? "drop-here" : "pick"}
+            color={atCheckout ? "#4ade80" : COLORS.halo}
+            radius={atCheckout ? 2.4 : 0.5}
+            height={atCheckout ? 2 : 0.85}
+            label={atCheckout ? "CHECKOUT" : null}
+         />
+         <TargetMarkers targets={edgeTargets} color={atCheckout ? "#4ade80" : COLORS.halo} />
 
          {/* Instanced Can Pyramids */}
          <InstancedCanPyramids pyramids={run.pyramids} />
@@ -203,6 +343,8 @@ const STEP_INPUT: StepInput = { moveX: 0, moveY: 0, ride: false };
       </group>
    );
 }
+
+
 
 // ---------- Cart & Runner Coupled Component ----------
 
@@ -250,7 +392,7 @@ function CartRunner({ run }: { run: RunState }) {
                fallback={
                   <mesh position={[0, 0.7, 0]}>
                      <capsuleGeometry args={[0.25, 0.9]} />
-                     <meshStandardMaterial color="#f97316" />
+                     <meshStandardMaterial color={COLORS.cartRed} />
                   </mesh>
                }
             />
@@ -294,7 +436,7 @@ function ShopperComponent({ shopper }: { shopper: RunState["shoppers"][0] }) {
    });
 
    const fallbackColor =
-      shopper.id === "shopperA" ? "#c084fc" : shopper.id === "shopperB" ? "#86efac" : "#fb923c";
+      shopper.id === "shopperA" ? COLORS.shopperA : shopper.id === "shopperB" ? COLORS.shopperB : COLORS.shopperC;
 
    return (
       <group ref={groupRef}>
@@ -306,11 +448,10 @@ function ShopperComponent({ shopper }: { shopper: RunState["shoppers"][0] }) {
 
 // ---------- Shelf Items with 0.8 m Glow Halo & Bobbing Badges ----------
 
-function ShelfItems({ items }: { items: RunState["list"] }) {
+function ShelfItems({ items, cart }: { items: RunState["list"]; cart: RunState["cart"] }) {
    const time = useGameTime();
 
    // Dynamic instancing for the 0.8 m floor glow halos (1 draw call)
-   // Lie flat on floor (rotate -pi/2 about x), radius 0.4 m (0.8 m across)
    const updateHalos = useMemo(
       () => (index: number, matrix: Matrix4) => {
          const item = items[index];
@@ -337,33 +478,53 @@ function ShelfItems({ items }: { items: RunState["list"] }) {
          {/* 1 draw call for all glowing 0.8 m halo rings lying flat on floor */}
          <DynamicInstanced count={items.length} update={updateHalos}>
             <ringGeometry args={[0.15, 0.4, 32]} />
-            <meshBasicMaterial color="#fb923c" transparent opacity={0.7} side={DoubleSide} />
+            <meshBasicMaterial color={COLORS.halo} transparent opacity={0.7} side={DoubleSide} />
          </DynamicInstanced>
 
          {/* 1 draw call for all floating beacon badges */}
          <DynamicInstanced count={items.length} update={updateBadges}>
             <octahedronGeometry args={[0.22, 0]} />
-            <meshStandardMaterial color="#fb923c" emissive="#fb923c" emissiveIntensity={0.6} roughness={0.3} />
+            <meshStandardMaterial color={COLORS.badge} emissive={COLORS.badge} emissiveIntensity={0.6} roughness={0.3} />
          </DynamicInstanced>
 
-         {/* 3D Model items rotating above shelves - driven dynamically via useFrame */}
+         {/* 3D Model items rotating above shelves */}
          {items.map((item, i) => (
-            <ShelfItem key={i} item={item} index={i} />
+            <ShelfItem key={i} item={item} index={i} cart={cart} />
          ))}
       </group>
    );
 }
 
-function ShelfItem({ item, index }: { item: ListItem; index: number }) {
+function ShelfItem({ item, index, cart }: { item: ListItem; index: number; cart: RunState["cart"] }) {
    const groupRef = useRef<Group>(null);
    const asset = ASSETS[item.kind as keyof typeof ASSETS] ?? ASSETS.apple;
    const gameTime = useGameTime();
+   // a taken product flies on an arc into the basket (visual only), then hides
+   const flight = useRef({ t: -1, from: { x: 0, y: 0, z: 0 }, to: { x: 0, y: 0.9, z: 0 } }).current;
+   const pose = useRef<TossFrame>({ x: 0, y: 0, z: 0, scale: 1 }).current;
 
    useFrame(() => {
       const g = groupRef.current;
       if (!g) return;
       if (item.collected) {
-         g.visible = false;
+         if (flight.t < 0) {
+            flight.t = 0;
+            flight.from.x = g.position.x;
+            flight.from.y = g.position.y;
+            flight.from.z = g.position.z;
+         }
+         if (flight.t >= 1) {
+            if (g.visible) g.visible = false;
+            return;
+         }
+         flight.t = Math.min(1, flight.t + gameTime.delta / INTO_CART_S);
+         flight.to.x = cart.x;
+         flight.to.z = cart.z;
+         tossAt(flight.from, flight.to, flight.t, 0.9, 1, 0.35, pose);
+         g.position.set(pose.x, pose.y, pose.z);
+         g.scale.setScalar(pose.scale);
+         g.rotation.y += gameTime.delta * 9;
+         g.visible = flight.t < 1;
          return;
       }
       g.visible = true;
@@ -423,13 +584,13 @@ function InstancedCanPyramids({ pyramids }: { pyramids: RunState["pyramids"] }) 
    return (
       <group>
          <DynamicInstanced count={18} update={updateBaseCans}>
-            <cylinderGeometry args={[0.08, 0.08, 0.2, 10]} />
-            <meshStandardMaterial color="#cbd5e1" metalness={0.7} />
+            <cylinderGeometry args={[0.08, 0.08, 0.2, 12]} />
+            <meshStandardMaterial color={COLORS.canSilver} metalness={0.75} roughness={0.25} />
          </DynamicInstanced>
 
          <DynamicInstanced count={6} update={updateTopCans}>
-            <cylinderGeometry args={[0.08, 0.08, 0.2, 10]} />
-            <meshStandardMaterial color="#fb923c" metalness={0.7} />
+            <cylinderGeometry args={[0.08, 0.08, 0.2, 12]} />
+            <meshStandardMaterial color={COLORS.canGold} metalness={0.75} roughness={0.25} />
          </DynamicInstanced>
       </group>
    );
@@ -456,27 +617,125 @@ function SpillItem({ spill, run }: { spill: (typeof SPILLS)[number]; run: RunSta
    });
    return (
       <group ref={groupRef} position={[spill.x, 0.01, spill.z]} visible={false}>
-         {/* Slippery puddle */}
+         {/* Slippery glossy puddle */}
          <mesh rotation={[-Math.PI / 2, 0, 0]}>
             <circleGeometry args={[spill.radius, 24]} />
             <meshStandardMaterial
-               color="#38bdf8"
-               roughness={0.1}
-               metalness={0.4}
+               color={COLORS.spillWater}
+               roughness={0.12}
+               metalness={0.3}
                transparent
-               opacity={0.75}
+               opacity={0.8}
             />
          </mesh>
          {/* Warning Caution cone */}
-         <mesh position={[0.8, 0.25, 0]}>
-            <coneGeometry args={[0.15, 0.5, 8]} />
-            <meshStandardMaterial color="#facc15" roughness={0.4} />
-         </mesh>
+         <group position={[0.8, 0, 0]}>
+            <mesh position={[0, 0.25, 0]}>
+               <coneGeometry args={[0.15, 0.5, 8]} />
+               <meshStandardMaterial color={COLORS.coneYellow} roughness={0.35} />
+            </mesh>
+            <mesh position={[0, 0.18, 0]}>
+               <cylinderGeometry args={[0.1, 0.12, 0.06, 8]} />
+               <meshStandardMaterial color={COLORS.coneBlack} roughness={0.6} />
+            </mesh>
+         </group>
       </group>
    );
 }
 
-// ---------- Store Environment (Instanced Shelves, Counters, Outer Bounds) ----------
+// ---------- Store Environment & Floor Tiles ----------
+
+const drawSupermarketFloor: CanvasDraw = (ctx, width, height) => {
+   // Base grout tone
+   ctx.fillStyle = COLORS.floorGrout;
+   ctx.fillRect(0, 0, width, height);
+
+   // 4x4 tile grid on 512x512 canvas -> 128x128 px tiles with 3px clean grout
+   const tiles = 4;
+   const tileSize = width / tiles;
+   const grout = 3;
+
+   for (let ty = 0; ty < tiles; ty++) {
+      for (let tx = 0; tx < tiles; tx++) {
+         const x = tx * tileSize + grout;
+         const y = ty * tileSize + grout;
+         const s = tileSize - grout * 2;
+
+         // Subtle tile-to-tile tonal variation
+         const isAlt = (tx + ty) % 2 === 0;
+         ctx.fillStyle = isAlt ? COLORS.floorTile : COLORS.floorAccent;
+         ctx.fillRect(x, y, s, s);
+
+         // Soft diagonal gloss gradient
+         const grad = ctx.createLinearGradient(x, y, x + s, y + s);
+         grad.addColorStop(0, "rgba(255, 255, 255, 0.45)");
+         grad.addColorStop(0.5, "rgba(255, 255, 255, 0.05)");
+         grad.addColorStop(1, "rgba(241, 245, 249, 0.2)");
+         ctx.fillStyle = grad;
+         ctx.fillRect(x, y, s, s);
+
+         // Crisp bevel border highlight
+         ctx.strokeStyle = "rgba(255, 255, 255, 0.6)";
+         ctx.lineWidth = 1;
+         ctx.strokeRect(x + 0.5, y + 0.5, s - 1, s - 1);
+      }
+   }
+};
+
+const drawParkingLot: CanvasDraw = (ctx, width, height) => {
+   // Asphalt base
+   ctx.fillStyle = COLORS.parkingAsphalt;
+   ctx.fillRect(0, 0, width, height);
+
+   // Tarmac grain texture
+   ctx.fillStyle = "rgba(255, 255, 255, 0.05)";
+   for (let i = 0; i < 400; i++) {
+      const rx = (i * 97) % width;
+      const ry = (i * 131) % height;
+      ctx.fillRect(rx, ry, 2, 2);
+   }
+
+   // Painted white parking stall lines
+   ctx.strokeStyle = COLORS.parkingLine;
+   ctx.lineWidth = 4;
+
+   const row1Y = height * 0.25;
+   const row2Y = height * 0.75;
+   const stallWidth = width / 4;
+
+   for (let i = 0; i <= 4; i++) {
+      const x = i * stallWidth;
+      // Stall dividers
+      ctx.beginPath();
+      ctx.moveTo(x, row1Y - 45);
+      ctx.lineTo(x, row1Y + 45);
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.moveTo(x, row2Y - 45);
+      ctx.lineTo(x, row2Y + 45);
+      ctx.stroke();
+   }
+
+   // Stall back lines
+   ctx.beginPath();
+   ctx.moveTo(0, row1Y + 45);
+   ctx.lineTo(width, row1Y + 45);
+   ctx.stroke();
+
+   ctx.beginPath();
+   ctx.moveTo(0, row2Y - 45);
+   ctx.lineTo(width, row2Y - 45);
+   ctx.stroke();
+
+   // Accent yellow stall marking
+   ctx.strokeStyle = COLORS.parkingLineYellow;
+   ctx.lineWidth = 3;
+   ctx.beginPath();
+   ctx.moveTo(stallWidth, row1Y - 40);
+   ctx.lineTo(stallWidth * 2, row1Y - 40);
+   ctx.stroke();
+};
 
 const SHELF_SPOTS = SHELVES.map((s) => ({
    x: (s.min.x + s.max.x) / 2,
@@ -496,6 +755,12 @@ const SHELF_BANNER_SPOTS = SHELVES.map((s) => ({
    z: (s.min.z + s.max.z) / 2,
 }));
 
+const SHELF_SIGN_SPOTS = SHELVES.map((s) => ({
+   x: (s.min.x + s.max.x) / 2,
+   y: 2.25,
+   z: (s.min.z + s.max.z) / 2,
+}));
+
 const COUNTER_SPOTS = CHECKOUT_COUNTERS.map((c) => ({
    x: (c.min.x + c.max.x) / 2,
    y: 0.5,
@@ -509,10 +774,17 @@ const REGISTER_SPOTS = CHECKOUT_COUNTERS.map((c) => ({
 }));
 
 const WALL_SPOTS = [
-   { x: 0, y: 1.9, z: -12, sx: 32, sy: 3.8, sz: 0.4 },
-   { x: 0, y: 1.9, z: 12, sx: 32, sy: 3.8, sz: 0.4 },
-   { x: -16, y: 1.9, z: 0, sx: 0.4, sy: 3.8, sz: 24 },
-   { x: 16, y: 1.9, z: 0, sx: 0.4, sy: 3.8, sz: 24 },
+   { x: 0, y: 2.0, z: -12, sx: 32, sy: 4.0, sz: 0.4 },
+   { x: 0, y: 2.0, z: 12, sx: 32, sy: 4.0, sz: 0.4 },
+   { x: -16, y: 2.0, z: 0, sx: 0.4, sy: 4.0, sz: 24 },
+   { x: 16, y: 2.0, z: 0, sx: 0.4, sy: 4.0, sz: 24 },
+];
+
+const WALL_FASCIA_SPOTS = [
+   { x: 0, y: 3.75, z: -11.95, sx: 32, sy: 0.5, sz: 0.45 },
+   { x: 0, y: 3.75, z: 11.95, sx: 32, sy: 0.5, sz: 0.45 },
+   { x: -15.95, y: 3.75, z: 0, sx: 0.45, sy: 0.5, sz: 24 },
+   { x: 15.95, y: 3.75, z: 0, sx: 0.45, sy: 0.5, sz: 24 },
 ];
 
 function FinishMat({ run }: { run: RunState }) {
@@ -523,8 +795,8 @@ function FinishMat({ run }: { run: RunState }) {
       if (!matRef.current) return;
       if (prevListCompleteRef.current !== run.listComplete) {
          prevListCompleteRef.current = run.listComplete;
-         matRef.current.color.set(run.listComplete ? "#22c55e" : "#cbd5e1");
-         matRef.current.emissive.set(run.listComplete ? "#16a34a" : "#000000");
+         matRef.current.color.set(run.listComplete ? COLORS.finishGreen : COLORS.finishInactive);
+         matRef.current.emissive.set(run.listComplete ? COLORS.finishGreenGlow : "#000000");
       }
    });
 
@@ -533,46 +805,163 @@ function FinishMat({ run }: { run: RunState }) {
          <planeGeometry args={[9.0, 1.6]} />
          <meshStandardMaterial
             ref={matRef}
-            color={run.listComplete ? "#22c55e" : "#cbd5e1"}
-            emissive={run.listComplete ? "#16a34a" : "#000000"}
-            roughness={0.4}
+            color={run.listComplete ? COLORS.finishGreen : COLORS.finishInactive}
+            emissive={run.listComplete ? COLORS.finishGreenGlow : "#000000"}
+            roughness={0.3}
          />
       </mesh>
    );
 }
 
-function StoreEnvironment({ run }: { run: RunState }) {
+function StoreEnvironment({ run, banner }: { run: RunState; banner: string | null }) {
+   const floorTexture = useCanvasTexture(512, 512, drawSupermarketFloor);
+   const parkingTexture = useCanvasTexture(512, 512, drawParkingLot);
+
+   useEffect(() => {
+      floorTexture.wrapS = floorTexture.wrapT = RepeatWrapping;
+      floorTexture.repeat.set(16, 12);
+      floorTexture.needsUpdate = true;
+   }, [floorTexture]);
+
+   useEffect(() => {
+      parkingTexture.wrapS = parkingTexture.wrapT = RepeatWrapping;
+      parkingTexture.repeat.set(14, 14);
+      parkingTexture.needsUpdate = true;
+   }, [parkingTexture]);
+
    return (
-      <group>
-         {/* Extended dark perimeter floor to prevent any white edge beyond the store */}
-         <mesh position={[0, -0.01, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-            <planeGeometry args={[70, 70]} />
-            <meshStandardMaterial color="#0b1220" roughness={0.9} />
+      <group name="supermarket-environment">
+         {/* Extended asphalt parking lot plane covering full viewport at all screen sizes */}
+         <mesh position={[0, FLOOR.concourseY, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+            <planeGeometry args={[FLOOR.concourseWidth, FLOOR.concourseDepth]} />
+            <meshStandardMaterial
+               map={parkingTexture}
+               roughness={0.88}
+               metalness={0.08}
+            />
          </mesh>
 
-         {/* Store floor plane with supermarket tiles */}
+         {/* Exterior concrete sidewalk / pavement apron surrounding the store building */}
+         <mesh position={[0, FLOOR.pavementY, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+            <planeGeometry args={[FLOOR.pavementWidth, FLOOR.pavementDepth]} />
+            <meshStandardMaterial color={COLORS.pavementConcrete} roughness={0.7} />
+         </mesh>
+
+         {/* Raised kerbs around the perimeter of the sidewalk apron */}
+         <mesh position={[0, 0.04, -FLOOR.pavementDepth / 2]}>
+            <boxGeometry args={[FLOOR.pavementWidth + 0.3, 0.1, 0.3]} />
+            <meshStandardMaterial color={COLORS.kerbStone} roughness={0.8} />
+         </mesh>
+         <mesh position={[0, 0.04, FLOOR.pavementDepth / 2]}>
+            <boxGeometry args={[FLOOR.pavementWidth + 0.3, 0.1, 0.3]} />
+            <meshStandardMaterial color={COLORS.kerbStone} roughness={0.8} />
+         </mesh>
+         <mesh position={[-FLOOR.pavementWidth / 2, 0.04, 0]}>
+            <boxGeometry args={[0.3, 0.1, FLOOR.pavementDepth]} />
+            <meshStandardMaterial color={COLORS.kerbStone} roughness={0.8} />
+         </mesh>
+         <mesh position={[FLOOR.pavementWidth / 2, 0.04, 0]}>
+            <boxGeometry args={[0.3, 0.1, FLOOR.pavementDepth]} />
+            <meshStandardMaterial color={COLORS.kerbStone} roughness={0.8} />
+         </mesh>
+
+         {/* Pedestrian Zebra Crossing in front of South Entrance */}
+         <group position={[0, 0.005, 17.5]} rotation={[-Math.PI / 2, 0, 0]}>
+            {[-3.0, -1.5, 0, 1.5, 3.0].map((zx, idx) => (
+               <mesh key={idx} position={[zx, 0, 0]}>
+                  <planeGeometry args={[0.8, 3.6]} />
+                  <meshStandardMaterial color={COLORS.parkingLine} roughness={0.4} />
+               </mesh>
+            ))}
+         </group>
+
+         {/* Exterior Store Entrance Canopy Overhang */}
+         <group position={[0, 3.85, 13.0]}>
+            <mesh>
+               <boxGeometry args={[18.0, 0.25, 2.4]} />
+               <meshStandardMaterial color={COLORS.wall} roughness={0.5} />
+            </mesh>
+            <mesh position={[0, 0, 1.22]}>
+               <boxGeometry args={[18.05, 0.3, 0.06]} />
+               <meshStandardMaterial color={COLORS.wallBanner} roughness={0.4} />
+            </mesh>
+            {/* Canopy support pillars */}
+            <mesh position={[-8.5, -1.9, 0.9]}>
+               <cylinderGeometry args={[0.12, 0.12, 3.8, 8]} />
+               <meshStandardMaterial color={COLORS.wallTrim} roughness={0.5} metalness={0.1} />
+            </mesh>
+            <mesh position={[8.5, -1.9, 0.9]}>
+               <cylinderGeometry args={[0.12, 0.12, 3.8, 8]} />
+               <meshStandardMaterial color={COLORS.wallTrim} roughness={0.5} metalness={0.1} />
+            </mesh>
+         </group>
+
+         {/* Supermarket glossy tiled floor plane */}
          <mesh position={[0, 0, 0]} rotation={[-Math.PI / 2, 0, 0]}>
             <planeGeometry args={[STORE.width, STORE.depth]} />
-            <meshStandardMaterial color="#f1f5f9" roughness={0.3} metalness={0.1} />
+            <meshStandardMaterial
+               map={floorTexture}
+               roughness={0.18}
+               metalness={0.06}
+            />
          </mesh>
 
-         {/* Instanced 4 Shelf Island Blocks: 3 draw calls total */}
-         <Instanced spots={SHELF_SPOTS}>
-            <boxGeometry args={[1.2, 2.0, 12.0]} />
-            <meshStandardMaterial color="#f8fafc" roughness={0.5} metalness={0.2} />
+         {/* Aisle shelves: one instanced GLB bay, six copies along each of the four islands. */}
+         <InstancedModel
+            asset={ASSETS.shelf}
+            spots={SHELF_BAYS}
+            fallback={
+               <>
+                  <Instanced spots={SHELF_SPOTS} name="shelves-body">
+                     <boxGeometry args={[1.2, 1.8, 12.0]} />
+                     <meshStandardMaterial color={COLORS.shelfBody} roughness={0.4} metalness={0.15} />
+                  </Instanced>
+                  <Instanced spots={SHELF_TRIM_SPOTS} name="shelves-base">
+                     <boxGeometry args={[1.25, 0.2, 12.05]} />
+                     <meshStandardMaterial color={COLORS.shelfBase} roughness={0.7} />
+                  </Instanced>
+               </>
+            }
+         />
+
+         {/* The aisle banners and blue category signs stay on top of the GLB bays (the look pass's readable signs). */}
+         <Instanced spots={SHELF_BANNER_SPOTS} name="shelves-banner">
+            <boxGeometry args={[1.22, 0.12, 12.0]} />
+            <meshStandardMaterial color={banner ?? COLORS.shelfBanner} roughness={0.35} emissive={banner ?? "#000000"} emissiveIntensity={banner ? 0.25 : 0} />
+         </Instanced>
+         <Instanced spots={SHELF_SIGN_SPOTS} name="shelves-signs">
+            <boxGeometry args={[1.15, 0.25, 2.4]} />
+            <meshStandardMaterial color={COLORS.categoryBlue} emissive={COLORS.categoryBlue} emissiveIntensity={0.25} roughness={0.4} />
          </Instanced>
 
-         <Instanced spots={SHELF_TRIM_SPOTS}>
-            <boxGeometry args={[1.25, 0.2, 12.05]} />
-            <meshStandardMaterial color="#64748b" roughness={0.8} />
-         </Instanced>
+         {/* Bakery stalls on the north apron, outside the play box. */}
+         <InstancedModel
+            asset={ASSETS.bakery}
+            spots={BAKERY_SPOTS}
+            fallback={
+               <Instanced spots={BAKERY_FALLBACK_SPOTS} name="bakery-fallback">
+                  <boxGeometry args={[BAKERY_DRAWN.width, BAKERY_HEIGHT, BAKERY_DRAWN.depth]} />
+                  <meshStandardMaterial color="#fde68a" roughness={0.6} />
+               </Instanced>
+            }
+         />
 
-         <Instanced spots={SHELF_BANNER_SPOTS}>
-            <boxGeometry args={[1.22, 0.1, 12.0]} />
-            <meshStandardMaterial color="#fb923c" roughness={0.4} />
-         </Instanced>
+         {/* Checkout counters, freezers, a fruit stand and wet-floor cones on the north apron, outside the play box. */}
+         {(Object.keys(MARKET_SPOTS) as MarketKind[]).map((kind) => (
+            <InstancedModel
+               key={kind}
+               asset={ASSETS[kind]}
+               spots={MARKET_SPOTS[kind]}
+               fallback={
+                  <Instanced spots={MARKET_SPOTS[kind].map((p) => ({ ...p, y: MARKET_DRAWN[kind].height / 2 }))} name={`${kind}-fallback`}>
+                     <boxGeometry args={[MARKET_DRAWN[kind].width, MARKET_DRAWN[kind].height, MARKET_DRAWN[kind].depth]} />
+                     <meshStandardMaterial color={MARKET_COLORS[kind]} roughness={0.6} />
+                  </Instanced>
+               }
+            />
+         ))}
 
-         {/* Fruit Island Display */}
+         {/* Fruit Island Produce Display */}
          <group
             position={[
                (FRUIT_ISLAND.min.x + FRUIT_ISLAND.max.x) / 2,
@@ -580,48 +969,80 @@ function StoreEnvironment({ run }: { run: RunState }) {
                (FRUIT_ISLAND.min.z + FRUIT_ISLAND.max.z) / 2,
             ]}
          >
+            {/* Timber display island stand */}
             <mesh position={[0, 0.45, 0]}>
                <boxGeometry args={[3.0, 0.9, 6.0]} />
-               <meshStandardMaterial color="#a16207" roughness={0.8} />
+               <meshStandardMaterial color={COLORS.produceWood} roughness={0.7} />
             </mesh>
-            <mesh position={[0, 0.95, 0]}>
-               <boxGeometry args={[2.8, 0.1, 5.8]} />
-               <meshStandardMaterial color="#84cc16" roughness={0.6} />
+            {/* Fresh leafy display bed */}
+            <mesh position={[0, 0.92, 0]}>
+               <boxGeometry args={[2.85, 0.1, 5.85]} />
+               <meshStandardMaterial color={COLORS.produceGreen} roughness={0.6} />
+            </mesh>
+            {/* Produce crates */}
+            <mesh position={[0, 1.02, 0]}>
+               <boxGeometry args={[2.7, 0.12, 5.7]} />
+               <meshStandardMaterial color={COLORS.produceCrate} roughness={0.6} />
             </mesh>
          </group>
 
          {/* Freezer Row along North wall */}
          <group position={[0, 0, (FREEZER_ROW.min.z + FREEZER_ROW.max.z) / 2]}>
+            {/* Commercial freezer cabinet body */}
             <mesh position={[0, 1.0, 0]}>
                <boxGeometry args={[24.0, 2.0, 1.2]} />
+               <meshStandardMaterial color={COLORS.freezerBody} roughness={0.3} metalness={0.4} />
+            </mesh>
+            {/* Glass reach-in doors with cyan tint */}
+            <mesh position={[0, 1.0, 0.58]}>
+               <boxGeometry args={[23.8, 1.6, 0.05]} />
                <meshStandardMaterial
-                  color="#bae6fd"
-                  roughness={0.2}
-                  metalness={0.5}
+                  color={COLORS.freezerGlass}
+                  roughness={0.12}
                   transparent
-                  opacity={0.9}
+                  opacity={0.85}
+               />
+            </mesh>
+            {/* Cyan LED interior illumination banner */}
+            <mesh position={[0, 1.9, 0.5]}>
+               <boxGeometry args={[24.0, 0.15, 0.2]} />
+               <meshStandardMaterial
+                  color={COLORS.freezerGlow}
+                  emissive={COLORS.freezerGlow}
+                  emissiveIntensity={0.8}
+                  roughness={0.3}
                />
             </mesh>
          </group>
 
          {/* Instanced Checkout Counters: 2 draw calls total */}
-         <Instanced spots={COUNTER_SPOTS}>
+         <Instanced spots={COUNTER_SPOTS} name="checkout-counters">
             <boxGeometry args={[0.8, 1.0, 1.8]} />
-            <meshStandardMaterial color="#334155" roughness={0.5} />
+            <meshStandardMaterial color={COLORS.checkoutBody} roughness={0.5} />
          </Instanced>
 
-         <Instanced spots={REGISTER_SPOTS}>
+         <Instanced spots={REGISTER_SPOTS} name="checkout-registers">
             <boxGeometry args={[0.3, 0.25, 0.1]} />
-            <meshStandardMaterial color="#22c55e" emissive="#15803d" roughness={0.3} />
+            <meshStandardMaterial
+               color={COLORS.registerScreen}
+               emissive={COLORS.registerScreen}
+               emissiveIntensity={0.6}
+               roughness={0.3}
+            />
          </Instanced>
 
          {/* Finish Zone Line Mat */}
          <FinishMat run={run} />
 
-         {/* Instanced Outer Walls (3.8 m tall): 1 draw call */}
-         <Instanced spots={WALL_SPOTS}>
+         {/* Instanced Outer Walls (4.0 m tall) and Upper Fascia: 2 draw calls */}
+         <Instanced spots={WALL_SPOTS} name="outer-walls">
             <boxGeometry args={[1, 1, 1]} />
-            <meshStandardMaterial color="#1e293b" roughness={0.7} />
+            <meshStandardMaterial color={COLORS.wall} roughness={0.65} />
+         </Instanced>
+
+         <Instanced spots={WALL_FASCIA_SPOTS} name="outer-walls-fascia">
+            <boxGeometry args={[1, 1, 1]} />
+            <meshStandardMaterial color={COLORS.wallBanner} roughness={0.4} />
          </Instanced>
       </group>
    );

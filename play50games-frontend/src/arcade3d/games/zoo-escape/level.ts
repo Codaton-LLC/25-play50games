@@ -1,8 +1,11 @@
-// Zoo Escape map (pure data, hand-authored): three connected stages the panda crosses north (-z),
+// Zoo Escape maps (pure data, hand-authored): three connected stages the panda crosses north (-z),
 // their fences and gates, solids (block movement), sight blockers, bushes (hiding boxes), keeper
-// routes and zones, snack candidates and decor spots. Units m; x east, z south, y up.
+// routes and zones, snack candidates, searchlights, jeeps and birds. Units m; x east, z south, y up.
+// This file is level 1's map (the module constants, today's game) and the ZooMap type every level's
+// map has (maps.ts holds levels 2-5); buildMap derives the solids, blockers and routes.
 // Only the seed varies a run: keeper phases and which snack candidates are used (rules.ts).
 import type { AABB } from "@/arcade3d/core/collision";
+import { createPath, type Path } from "@/arcade3d/core/path";
 
 export type StageIndex = 0 | 1 | 2;
 
@@ -85,10 +88,16 @@ export const BAR_DROP = 1.2;
 
 // ---------- props ----------
 
-export type SolidKind = "fence" | "moat" | "rock" | "bamboo" | "kiosk" | "trunk" | "palm" | "bench" | "bin" | "lamp" | "car" | "tower";
-/** Tall solids also block sight; benches, bins, lamps, palms bases, fences and the moat do not. */
+export type SolidKind =
+   | "fence" | "moat" | "rock" | "bamboo" | "kiosk" | "trunk" | "palm" | "bench" | "bin" | "lamp" | "car" | "tower"
+   | "pond" | "acacia" | "hut" | "jeep" | "fountain" | "perch" | "wall" | "crate";
+/**
+ * Tall solids also block sight; benches, bins, lamps, palm bases, fences, water (moat, ponds) and
+ * perches do not. Acacias block with their trunk box, huts / walls / crates / parked jeeps with their body.
+ */
 export const BLOCKS_SIGHT: Record<SolidKind, boolean> = {
    fence: false, moat: false, rock: true, bamboo: true, kiosk: true, trunk: true, palm: false, bench: false, bin: false, lamp: false, car: true, tower: true,
+   pond: false, acacia: true, hut: true, jeep: true, fountain: true, perch: false, wall: true, crate: true,
 };
 
 export interface Prop {
@@ -98,7 +107,7 @@ export interface Prop {
    yaw: number;
    size: number;
 }
-const prop = (kind: SolidKind, b: AABB, yaw = 0, size = 1): Prop => ({ kind, box: b, yaw, size });
+export const prop = (kind: SolidKind, b: AABB, yaw = 0, size = 1): Prop => ({ kind, box: b, yaw, size });
 
 /** Rock cluster footprint per rock: the drawn rock is `size` m long, the box 80 % of it. */
 const rock = (x: number, z: number, size: number, yaw = 0) => prop("rock", boxAt(x, z, size * 0.8, size * 0.75, 1.4), yaw, size);
@@ -164,6 +173,8 @@ export const FENCE_BOXES: readonly AABB[] = FENCES.map(fenceBox);
 export interface Bush {
    box: AABB;
    stage: StageIndex;
+   /** drawing only: a leafy bush (default; stage 1 of level 1 draws bamboo), tall savanna grass, a flower hedge, a crowd of visitors */
+   look?: "bush" | "grass" | "flowers" | "crowd";
 }
 const bush = (stage: StageIndex, x: number, z: number, w = 1.8, d = 1.8): Bush => ({ box: boxAt(x, z, w, d, 0.9), stage });
 
@@ -201,8 +212,8 @@ export interface KeeperDef {
  * (cycle - 4 waits) · speed = perimeter, so its `free` side (along z) is derived from the fixed one.
  * Corners from (x, z) with width w towards +x and the derived depth towards `dz` (±1).
  */
-function rectRoute(stage: StageIndex, x: number, z: number, w: number, dz: 1 | -1, clockwise: boolean) {
-   const half = ((CYCLES[stage] - 4 * CORNER_WAIT) * ROUTE_SPEED) / 2;
+export function rectRoute(stage: StageIndex, x: number, z: number, w: number, dz: 1 | -1, clockwise: boolean, cycles: readonly number[] = CYCLES) {
+   const half = ((cycles[stage] - 4 * CORNER_WAIT) * ROUTE_SPEED) / 2;
    const d = half - w;
    const a = { x, y: 0, z };
    const b = { x: x + w, y: 0, z };
@@ -211,8 +222,8 @@ function rectRoute(stage: StageIndex, x: number, z: number, w: number, dz: 1 | -
    return clockwise ? [a, b, c, e] : [a, e, c, b];
 }
 /** A there-and-back line (2 waypoints, 2 waits) walked in exactly the stage cycle, from (x, z) along `dir` (rad, 0 = +z). */
-function lineRoute(stage: StageIndex, x: number, z: number, dir: number) {
-   const len = ((CYCLES[stage] - 2 * CORNER_WAIT) * ROUTE_SPEED) / 2;
+export function lineRoute(stage: StageIndex, x: number, z: number, dir: number, cycles: readonly number[] = CYCLES) {
+   const len = ((cycles[stage] - 2 * CORNER_WAIT) * ROUTE_SPEED) / 2;
    return [{ x, y: 0, z }, { x: x + Math.sin(dir) * len, y: 0, z: z + Math.cos(dir) * len }];
 }
 function zoneOf(route: readonly { x: number; z: number }[], pad: number): AABB {
@@ -222,7 +233,7 @@ function zoneOf(route: readonly { x: number; z: number }[], pad: number): AABB {
    }
    return box(x0 - pad, z0 - pad, x1 + pad, z1 + pad, 2);
 }
-function keeper(stage: StageIndex, route: { x: number; y: number; z: number }[], pad = 0.6): KeeperDef {
+export function keeper(stage: StageIndex, route: { x: number; y: number; z: number }[], pad = 0.6): KeeperDef {
    return { stage, route, zone: zoneOf(route, pad) };
 }
 
@@ -250,3 +261,121 @@ export const SNACK_CANDIDATES: readonly (readonly { x: number; z: number }[])[] 
 
 /** Lamp posts by stage index (from PROPS), for the dusk glow. */
 export const LAMPS = PROPS.filter((p) => p.kind === "lamp");
+
+// ---------- the map type every level has (level 1 = the constants above) ----------
+
+/** A searchlight on a tower outside its stage: yaw = baseYaw + sweep · sin(2π (t + φ) / period), φ = its stage's first keeper's offset. */
+export interface Searchlight {
+   x: number;
+   z: number;
+   baseYaw: number;
+   sweep: number;
+   period: number;
+   halfAngle: number;
+   range: number;
+   /** a lost sighting radios the nearest keeper of the stage within this */
+   radioRange: number;
+}
+
+/**
+ * A safari jeep driving a closed, axis-aligned loop at a constant speed: once round per stage cycle,
+ * phased by its stage's first keeper's offset (rules.jeepPose). Touching it is a catch.
+ */
+export interface Jeep {
+   stage: StageIndex;
+   route: readonly { x: number; z: number }[];
+   /** body length along the way it drives and width across, m */
+   length: number;
+   width: number;
+}
+
+/** A bird on its perch: a panda walking (not sneaking) past squawks it, and a keeper comes to look. */
+export interface Bird {
+   stage: StageIndex;
+   x: number;
+   z: number;
+}
+
+/** Drawing-only decor inside a map (never in the rules). */
+export interface MapDecor {
+   kind: "flowers" | "net" | "tallGrass" | "visitor" | "lightPool" | "track" | "plaza" | "lily";
+   x: number;
+   z: number;
+   w: number;
+   d: number;
+   yaw?: number;
+}
+
+export type ThemeId = "enclosure" | "safari" | "garden" | "central" | "night";
+
+export interface MapSpec {
+   id: number;
+   theme: ThemeId;
+   stages: readonly Stage[];
+   cycles: readonly number[];
+   /** keeper vision range per stage, m (at most two different values: the keeper slots draw two cones) */
+   vision: readonly number[];
+   fences: readonly (readonly [number, number, number, number])[];
+   props: readonly Prop[];
+   bushes: readonly Bush[];
+   keepers: readonly KeeperDef[];
+   snacks: readonly (readonly { x: number; z: number }[])[];
+   /** at most one searchlight per stage (null = none) */
+   lights: readonly (Searchlight | null)[];
+   jeeps?: readonly Jeep[];
+   birds?: readonly Bird[];
+   decor?: readonly MapDecor[];
+}
+
+export interface ZooMap extends Required<MapSpec> {
+   solids: readonly AABB[];
+   fenceBoxes: readonly AABB[];
+   bars: readonly AABB[];
+   blockers: readonly AABB[];
+   stageKeepers: readonly (readonly number[])[];
+   routes: readonly Path[];
+   lamps: readonly Prop[];
+   /** the clamp box (level 1: MAP) */
+   box: Rect;
+}
+
+/** The stage whose box holds a centre at z (the gates are the only links). */
+export const stageOf = (map: ZooMap, z: number): StageIndex => (z > map.stages[0].gate.z ? 0 : z > map.stages[1].gate.z ? 1 : 2);
+
+/** A map from its hand-authored parts: solids, blockers, bars, routes and the per-stage keeper lists derived. */
+export function buildMap(spec: MapSpec): ZooMap {
+   const fenceBoxes = spec.fences.map(fenceBox);
+   return {
+      jeeps: [],
+      birds: [],
+      decor: [],
+      ...spec,
+      solids: [...fenceBoxes, ...spec.props.map((p) => p.box)],
+      fenceBoxes,
+      bars: spec.stages.map((st) => box(st.gate.x0, st.gate.z - FENCE_HALF, st.gate.x1, st.gate.z + FENCE_HALF, 1.1)),
+      blockers: [...spec.props.filter((p) => BLOCKS_SIGHT[p.kind]).map((p) => p.box), ...spec.bushes.map((b) => b.box)],
+      stageKeepers: [0, 1, 2].map((st) => spec.keepers.map((k, i) => (k.stage === st ? i : -1)).filter((i) => i >= 0)),
+      routes: spec.keepers.map((k) => createPath(k.route, { closed: true })),
+      lamps: spec.props.filter((p) => p.kind === "lamp"),
+      box: MAP,
+   };
+}
+
+const DEG = Math.PI / 180;
+/** Level 1's searchlight: on the tower east of the parking lot, sweeping the lot. */
+export const LIGHT_1: Searchlight = { x: TOWER.x, z: TOWER.z, baseYaw: -Math.PI / 2, sweep: 0.95, period: 9, halfAngle: 12 * DEG, range: 14, radioRange: 12 };
+
+/** Level 1, Small Enclosure: today's map exactly (the constants above). */
+export const MAP_1: ZooMap = buildMap({
+   id: 1,
+   theme: "enclosure",
+   stages: STAGES,
+   cycles: CYCLES,
+   vision: [7, 7, 9],
+   fences: FENCES,
+   props: PROPS,
+   bushes: BUSHES,
+   keepers: KEEPERS,
+   snacks: SNACK_CANDIDATES,
+   lights: [null, null, LIGHT_1],
+});

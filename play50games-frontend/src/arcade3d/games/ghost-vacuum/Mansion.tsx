@@ -10,6 +10,7 @@ import {
    DoubleSide,
    Group,
    Matrix4,
+   MeshStandardMaterial,
    OctahedronGeometry,
    PlaneGeometry,
    TorusGeometry,
@@ -18,10 +19,25 @@ import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js
 import { DynamicInstancedModel, InstancedModel, Model } from "@/arcade3d/core/assets";
 import { useQuality } from "@/arcade3d/core/quality";
 import { useGameTime } from "@/arcade3d/core/gameTime";
-import { DynamicInstanced } from "@/arcade3d/core/render";
+import { DynamicInstanced, type InstancePart } from "@/arcade3d/core/render";
 import { ASSETS } from "./assets";
 import { COLORS } from "./looks";
 import { active, ROOMS, WALLS, type Run } from "./rules";
+import RoomDressing from "./RoomDressing";
+
+import type { RoomKind } from "./levels";
+
+/** Each level's interior light and wallpaper (the room kinds of levels 2-4; level 5 keeps today's). */
+const INTERIOR: Record<"living" | "library" | "kitchen" | "attic" | "mansion", { ambient: string; intensity: number; wall: string }> = {
+   living: { ambient: "#c7d2fe", intensity: 0.82, wall: COLORS.wall },
+   library: { ambient: "#ffd9a8", intensity: 0.86, wall: "#4f6b57" },
+   kitchen: { ambient: "#e0f2fe", intensity: 1.0, wall: "#93b4c4" },
+   attic: { ambient: "#d6c3a5", intensity: 0.7, wall: "#7a6a5a" },
+   mansion: { ambient: "#c7d2fe", intensity: 0.82, wall: COLORS.wall },
+};
+const interiorOf = (rooms: readonly RoomKind[]) => (rooms.every((k) => k === rooms[0]) ? INTERIOR[rooms[0]] : INTERIOR.mansion);
+/** The host a hidden ghost shakes in: a desk (living room, library), a counter (kitchen) or a trunk (attic). */
+const hostOf = (kind: RoomKind) => (kind === "kitchen" ? "counter" : kind === "attic" ? "trunk" : "desk");
 
 const chairs = ROOMS.map((r) => ({ x: r.x, y: 0, z: r.north * 5.5 }));
 
@@ -81,6 +97,9 @@ function FurnitureFallback() {
 }
 
 export default function Mansion({ run }: { run: Run }) {
+   const rooms = run.level.rooms;
+   const interior = interiorOf(rooms);
+
    const quality = useQuality(), time = useGameTime(), icons = useRef<Array<Group | null>>([]);
    const [reduced] = useState(() => typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
    const hidden = (i: number) => run.ghosts.some((g) => g.room === i && g.mode === "hidden");
@@ -129,39 +148,29 @@ export default function Mansion({ run }: { run: Run }) {
       cupM.dispose();
       cupR.dispose();
 
-      // 2. Ivory candle wax stalks
-      const candle = new CylinderGeometry(0.024, 0.024, 0.22, 6);
-      candle.translate(0, 0.11, 0);
-
-      // 3. Glowing candle flame
-      const flame = new OctahedronGeometry(0.038, 0);
-      flame.scale(0.8, 1.4, 0.8);
-
-      // 4. Wall clock case & dial
+      // 2. Wall clock case & dial
       const clockCase = new CylinderGeometry(0.24, 0.24, 0.07, 24).translate(0, 0, 0);
       const clockBezel = new TorusGeometry(0.23, 0.015, 6, 24);
       const clockFrame = mergeGeometries([clockCase, clockBezel]);
       clockCase.dispose();
       clockBezel.dispose();
 
-      // 5. Picture frame
+      // 3. Picture frame
       const frameOuter = new BoxGeometry(0.86, 0.66, 0.06);
 
-      // 6. Bevelled book fallback (cover + pages)
+      // 4. Bevelled book fallback (cover + pages)
       const bookCover = new BoxGeometry(0.22, 0.06, 0.26);
       const bookPages = new BoxGeometry(0.19, 0.04, 0.23).translate(0.01, 0, 0);
 
-      // 7. Cut gem reveal icon (outer gem + bright inner core)
+      // 5. Cut gem reveal icon (outer gem + bright inner core)
       const gemOuter = new OctahedronGeometry(0.15, 0);
       const gemCore = new OctahedronGeometry(0.075, 0);
 
-      // 8. Warm lamp pool on floor
+      // 6. Warm lamp pool on floor
       const lampPool = new CircleGeometry(2.3, 24).rotateX(-Math.PI / 2);
 
       return {
          candelabraBrass: candelabraBrass!,
-         candle,
-         flame,
          clockFrame: clockFrame!,
          frameOuter,
          bookCover,
@@ -176,10 +185,19 @@ export default function Mansion({ run }: { run: Run }) {
       for (const geometry of Object.values(propsGeo)) geometry.dispose();
    }, [propsGeo]);
 
+   // The brass stand-in rides the same pool update as the GLB (fallbackParts are not scaled by asset.scale).
+   const candelabraParts = useMemo<readonly InstancePart[]>(() => [{
+      geometry: propsGeo.candelabraBrass,
+      material: new MeshStandardMaterial({ color: COLORS.brass, metalness: 0.65, roughness: 0.35 }),
+   }], [propsGeo]);
+   useEffect(() => () => {
+      for (const part of candelabraParts) (part.material as MeshStandardMaterial).dispose();
+   }, [candelabraParts]);
+
    return (
       <group name="mansion">
          {/* Spooky cool moonlit interior fill with high ghost readability */}
-         <ambientLight intensity={0.82} color="#c7d2fe" />
+         <ambientLight intensity={interior.intensity} color={interior.ambient} />
 
          {/* 1. Floor: Readable warm Victorian oak parquet base (>= 3:1 contrast against ghosts) */}
          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} name="mansion-floor-border">
@@ -214,11 +232,11 @@ export default function Mansion({ run }: { run: Run }) {
          {/* 3. Mansion Walls (Victorian lilac-plum wallpaper, as bright as main) */}
          <DynamicInstanced count={WALLS.length * 2} update={(i, m) => wall(i, m, false)} name="walls-solid">
             <boxGeometry />
-            <meshStandardMaterial color={COLORS.wall} roughness={0.75} />
+            <meshStandardMaterial color={interior.wall} roughness={0.75} />
          </DynamicInstanced>
          <DynamicInstanced count={WALLS.length * 2} update={(i, m) => wall(i, m, true)} name="walls-faded">
             <boxGeometry />
-            <meshStandardMaterial color={COLORS.wallFaded} roughness={0.75} transparent opacity={0.15} depthWrite={false} />
+            <meshStandardMaterial color={interior.wall} roughness={0.75} transparent opacity={0.15} depthWrite={false} />
          </DynamicInstanced>
 
          {/* 4. Furniture: Desks & Chairs */}
@@ -226,15 +244,42 @@ export default function Mansion({ run }: { run: Run }) {
             asset={ASSETS.desk}
             count={4}
             update={(i, m) => {
+               if (hostOf(rooms[i]) !== "desk") return false;
                const r = ROOMS[i];
                const shake = hidden(i) && !reduced && quality.tier !== "low" ? Math.sin(time.now * 18 + i) * 0.025 : 0;
                m.makeTranslation(r.x + shake, 0, r.z);
             }}
          />
+         {/* the kitchen's host is a work counter, the attic's a steamer trunk (the same 1.6 x 0.8 box) */}
+         {rooms.some((k) => k === "kitchen") && (
+            <DynamicInstancedModel
+               asset={ASSETS.counter}
+               count={4}
+               update={(i, m) => {
+                  if (hostOf(rooms[i]) !== "counter") return false;
+                  const r = ROOMS[i];
+                  const shake = hidden(i) && !reduced && quality.tier !== "low" ? Math.sin(time.now * 18 + i) * 0.025 : 0;
+                  m.makeScale(1.6, 1.0, 0.8).setPosition(r.x + shake, 0, r.z);
+               }}
+            />
+         )}
+         {rooms.some((k) => k === "attic") && (
+            <DynamicInstancedModel
+               asset={ASSETS.trunkBox}
+               count={4}
+               update={(i, m) => {
+                  if (hostOf(rooms[i]) !== "trunk") return false;
+                  const r = ROOMS[i];
+                  const shake = hidden(i) && !reduced && quality.tier !== "low" ? Math.sin(time.now * 18 + i) * 0.035 : 0;
+                  m.makeScale(1.6, 0.75, 0.8).setPosition(r.x + shake, 0, r.z);
+               }}
+            />
+         )}
+         <RoomDressing level={run.level} />
          <InstancedModel asset={ASSETS.chair} spots={chairs} fallback={<FurnitureFallback />} />
 
          {/* 5. Library Books (leather bound with aged parchment pages) */}
-         {[0, 1, 2, 3].map((i) => (
+         {hostOf(rooms[0]) === "desk" && [0, 1, 2, 3].map((i) => (
             <Model
                key={i}
                asset={ASSETS.book}
@@ -277,53 +322,18 @@ export default function Mansion({ run }: { run: Run }) {
             </group>
          ))}
 
-         {/* 7. Ornate Brass Candelabras on the 4 desks */}
-         <DynamicInstanced
+         {/* 7. Ornate candelabras on the 4 desks (Hyper3D GLB; candles and flame shapes are baked in) */}
+         <DynamicInstancedModel
+            asset={ASSETS.candelabra}
             count={4}
             update={(i, m) => {
+               if (hostOf(rooms[i]) !== "desk") return false;
                const r = ROOMS[i];
                m.makeTranslation(r.x, 0.6, r.z + 0.3);
             }}
+            fallbackParts={candelabraParts}
             name="candelabra-brass-stands"
-         >
-            <primitive object={propsGeo.candelabraBrass} attach="geometry" />
-            <meshStandardMaterial color={COLORS.brass} metalness={0.65} roughness={0.35} />
-         </DynamicInstanced>
-
-         {/* Ivory Candle Stalks (3 per candelabra) */}
-         <DynamicInstanced
-            count={12}
-            update={(i, m) => {
-               const r = ROOMS[Math.floor(i / 3)];
-               const slot = (i % 3) - 1;
-               const yOff = i % 3 === 1 ? 0.05 : 0;
-               m.makeTranslation(r.x + slot * 0.14, 0.91 + yOff, r.z + 0.3);
-            }}
-            name="candle-wax-stalks"
-         >
-            <primitive object={propsGeo.candle} attach="geometry" />
-            <meshStandardMaterial color={COLORS.candleWax} roughness={0.9} />
-         </DynamicInstanced>
-
-         {/* Glowing Candle Flames (3 per candelabra with subtle flicker) */}
-         <DynamicInstanced
-            count={12}
-            update={(i, m) => {
-               const r = ROOMS[Math.floor(i / 3)];
-               const slot = (i % 3) - 1;
-               const yOff = i % 3 === 1 ? 0.05 : 0;
-               const flicker = !reduced ? 1 + Math.sin(time.now * 12 + i * 1.7) * 0.12 : 1;
-               m.makeScale(flicker, flicker * 1.1, flicker).setPosition(
-                  r.x + slot * 0.14,
-                  1.18 + yOff,
-                  r.z + 0.3
-               );
-            }}
-            name="candle-flames"
-         >
-            <primitive object={propsGeo.flame} attach="geometry" />
-            <meshBasicMaterial color={COLORS.candleFlame} />
-         </DynamicInstanced>
+         />
 
          {/* 8. Ornate Victorian Wall Clock on North Hall Wall */}
          <group position={[0, 1.5, -9.75]} rotation={[Math.PI / 2, 0, 0]} name="hall-clock">

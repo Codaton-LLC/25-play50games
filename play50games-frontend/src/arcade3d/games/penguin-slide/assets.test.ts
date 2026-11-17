@@ -1,11 +1,14 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { Box3, BufferGeometry, Float32BufferAttribute, Group, Matrix4, Mesh, Quaternion, Vector3 } from "three";
 import { describe, expect, it } from "vitest";
 import { modelParts } from "@/arcade3d/core/assets";
+import { MODEL_MANIFEST } from "@/arcade3d/core/modelManifest";
 import { readCharacterGlb } from "@/arcade3d/core/rig/robotGlb";
 import { EXPANSION_GLB_SIZE } from "@/arcade3d/core/sharedAssets";
-import { ASSETS, BELLY_LIFT, BELLY_ROTATION_Y, FLAG_BOUNDS, PENGUIN_SCALE, SNOWMAN_GLB, SNOWMAN_SCALE, bellyClearance } from "./assets";
+import { ICE_BLOCK_SIZE, SNOW_RAMP_DRAWN, ASSETS, AURORA_CRYSTAL_GLB, AURORA_CRYSTAL_HEIGHT, AURORA_CRYSTAL_LATERAL, BELLY_LIFT, BELLY_ROTATION_Y, FLAG_BOUNDS, GLACIER_CHUNK_GLB, GLACIER_CHUNK_LATERAL, GLACIER_CHUNK_WIDTH, ICE_ARCH_GLB, ICE_ARCH_LATERAL, ICE_ARCH_WIDTH, PENGUIN_SCALE, SNOWMAN_GLB, SNOWMAN_SCALE, bellyClearance } from "./assets";
+import { PLAY_BOUNDS } from "./looks";
+import { COURSE } from "./rules";
 
 interface Glb {
    accessors: Array<{ min: number[]; max: number[] }>;
@@ -31,6 +34,25 @@ function bounds(url: string): Box3 {
    }
    for (const node of glb.scenes[glb.scene ?? 0].nodes) visit(node, new Matrix4());
    return result;
+}
+
+/** Decode a prop GLB and draw it through core modelParts (what the instanced pool draws). */
+async function fittedBox(url: string, asset: Parameters<typeof modelParts>[1]): Promise<Box3> {
+   expect(existsSync(resolve("public", url.slice(1)))).toBe(true);
+   const { local, node } = await readCharacterGlb(url);
+   const geometry = new BufferGeometry();
+   geometry.setAttribute("position", new Float32BufferAttribute(local, 3));
+   const mesh = new Mesh(geometry);
+   mesh.position.fromArray(node);
+   const root = new Group();
+   root.add(mesh);
+   const parts = modelParts(root, asset);
+   expect(parts).toHaveLength(1);
+   const box = new Box3();
+   const v = new Vector3();
+   for (let i = 0; i < local.length; i += 3) box.expandByPoint(v.set(local[i], local[i + 1], local[i + 2]).applyMatrix4(parts[0].matrix));
+   geometry.dispose();
+   return box;
 }
 
 describe("penguin-slide real GLB fits", () => {
@@ -114,4 +136,74 @@ describe("penguin-slide real GLB fits", () => {
       for (const p of points) if (p.y > 0.9 && (!nose || p.z > nose.z)) nose = p;
       expect(nose!.z).toBeGreaterThan(0.4);
    });
+
+   it("fits the ice arch beside the course, clear of the widest half-width", async () => {
+      expect(existsSync(resolve("public", ASSETS.iceArch.url.slice(1)))).toBe(true);
+      const { local, node } = await readCharacterGlb(ASSETS.iceArch.url);
+      const geometry = new BufferGeometry();
+      geometry.setAttribute("position", new Float32BufferAttribute(local, 3));
+      const mesh = new Mesh(geometry);
+      mesh.position.fromArray(node);
+      const root = new Group();
+      root.add(mesh);
+      const parts = modelParts(root, ASSETS.iceArch);
+      expect(parts).toHaveLength(1);
+      const box = new Box3();
+      const v = new Vector3();
+      for (let i = 0; i < local.length; i += 3) box.expandByPoint(v.set(local[i], local[i + 1], local[i + 2]).applyMatrix4(parts[0].matrix));
+      geometry.dispose();
+      expect(box.min.y).toBeCloseTo(0, 2);
+      expect(box.max.x - box.min.x).toBeCloseTo(ICE_ARCH_WIDTH, 2);
+      expect(box.max.y - box.min.y).toBeCloseTo(ICE_ARCH_GLB.height * (ICE_ARCH_WIDTH / ICE_ARCH_GLB.width), 2);
+      expect(ICE_ARCH_LATERAL - ICE_ARCH_WIDTH / 2).toBeGreaterThan(COURSE.width + 1);
+   });
+
+   it("lists the level 4-5 decor GLBs in the manifest and on disk", () => {
+      expect(MODEL_MANIFEST).toContain(ASSETS.auroraCrystal.url);
+      expect(MODEL_MANIFEST).toContain(ASSETS.glacierChunk.url);
+      expect(existsSync(resolve("public", ASSETS.auroraCrystal.url.slice(1)))).toBe(true);
+      expect(existsSync(resolve("public", ASSETS.glacierChunk.url.slice(1)))).toBe(true);
+   });
+
+   it("fits the aurora crystal to a 2.4 m spire and the glacier chunk to 2.8 m, both sitting on the snow", async () => {
+      const crystal = await fittedBox(ASSETS.auroraCrystal.url, ASSETS.auroraCrystal);
+      expect(crystal.min.y).toBeCloseTo(0, 2);
+      expect(crystal.max.y - crystal.min.y).toBeCloseTo(AURORA_CRYSTAL_HEIGHT, 2);
+      expect(crystal.max.x - crystal.min.x).toBeCloseTo(AURORA_CRYSTAL_GLB.width * ASSETS.auroraCrystal.scale!, 2);
+      const glacier = await fittedBox(ASSETS.glacierChunk.url, ASSETS.glacierChunk);
+      expect(glacier.min.y).toBeCloseTo(0, 2);
+      expect(glacier.max.x - glacier.min.x).toBeCloseTo(GLACIER_CHUNK_WIDTH, 2);
+   });
+
+   it("keeps the level 4-5 decor spots outside the play bounds", () => {
+      const crystalInner = AURORA_CRYSTAL_LATERAL - (AURORA_CRYSTAL_GLB.width * ASSETS.auroraCrystal.scale!) / 2;
+      const glacierInner = GLACIER_CHUNK_LATERAL - (GLACIER_CHUNK_GLB.width * ASSETS.glacierChunk.scale!) / 2;
+      // strictly outside the play bounds' widest lateral reach
+      expect(crystalInner).toBeGreaterThan(PLAY_BOUNDS.x1);
+      expect(glacierInner).toBeGreaterThan(PLAY_BOUNDS.x1);
+      // same margin proof as the ice arch: fully outside the widest corridor half-width
+      expect(crystalInner).toBeGreaterThan(COURSE.width + 1);
+      expect(glacierInner).toBeGreaterThan(COURSE.width + 1);
+   });
+
+describe("penguin-slide ice block and snow ramp (Menu 1 adoption)", () => {
+   it("lists both GLBs and draws them at the README sizes on the snow", async () => {
+      expect(MODEL_MANIFEST).toContain(ASSETS.iceBlock.url);
+      expect(MODEL_MANIFEST).toContain(ASSETS.snowRamp.url);
+      const block = await fittedBox(ASSETS.iceBlock.url, ASSETS.iceBlock);
+      expect(block.min.y).toBeCloseTo(0, 2);
+      expect(block.max.x - block.min.x).toBeCloseTo(ICE_BLOCK_SIZE, 2);
+      expect(block.max.y - block.min.y).toBeCloseTo(ICE_BLOCK_SIZE, 2);
+      const ramp = await fittedBox(ASSETS.snowRamp.url, ASSETS.snowRamp);
+      expect(ramp.min.y).toBeCloseTo(0, 2);
+      expect(ramp.max.x - ramp.min.x).toBeCloseTo(SNOW_RAMP_DRAWN.width, 2);
+      expect(ramp.max.y - ramp.min.y).toBeCloseTo(SNOW_RAMP_DRAWN.height, 2);
+      expect(ramp.max.z - ramp.min.z).toBeCloseTo(SNOW_RAMP_DRAWN.length, 2);
+   });
+   it("covers the rules' collision circle with the ice block and keeps the ramp inside the corridor", () => {
+      expect(ICE_BLOCK_SIZE / 2).toBeGreaterThanOrEqual(0.5);
+      expect(ICE_BLOCK_SIZE / 2).toBeLessThanOrEqual(0.6);
+      expect(SNOW_RAMP_DRAWN.width / 2).toBeLessThan(COURSE.narrow);
+   });
+});
 });

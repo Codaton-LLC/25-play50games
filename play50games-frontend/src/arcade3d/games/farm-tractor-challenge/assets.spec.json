@@ -1,0 +1,18 @@
+{
+   "slug": "farm-tractor-challenge",
+   "universe": "play50-toy-world-premium",
+   "notes": "GLBs are generated already (menu1-farm-tractor-challenge/). This file names the ids the game loads from /models/3d/farm-tractor-challenge/. Claude copies them and adds the manifest lines. Leave farm-tractor-challenge/hero.glb. Regen still open: hayBaleBound (crumpled, no twine), grainSiloGround (both silos on legs; grainSiloR is the closer interim), scarecrowPost (arms down, on legs). The hitch uses hayBale, or appleCrate on level 3. The leafy tree is the shared expansion mesh. The barn crate is the shared crate, not a hitch.",
+   "assets": [
+      { "id": "charFarmer", "kind": "character", "file": "menu1-farm-tractor-challenge/charFarmer.glb", "budget": { "tris": 20000, "bytes": 1500000 } },
+      { "id": "tractor", "kind": "prop", "file": "menu1-farm-tractor-challenge/tractor.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "farmTrailer", "kind": "prop", "file": "menu1-farm-tractor-challenge/farmTrailer.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "hayBale", "kind": "prop", "file": "menu1-farm-tractor-challenge/hayBale.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "appleCrate", "kind": "prop", "file": "menu1-farm-tractor-challenge/appleCrate.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "barn", "kind": "prop", "file": "menu1-farm-tractor-challenge/barn.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "farmFence", "kind": "prop", "file": "menu1-farm-tractor-challenge/farmFence.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "farmGate", "kind": "prop", "file": "menu1-farm-tractor-challenge/farmGate.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "scarecrow", "kind": "prop", "file": "menu1-farm-tractor-challenge/scarecrow.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "grainSilo", "kind": "prop", "file": "menu1-farm-tractor-challenge/grainSilo.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "waterTrough", "kind": "prop", "file": "menu1-farm-tractor-challenge/waterTrough.glb", "budget": { "tris": 5000, "bytes": 300000 } }
+   ]
+}
