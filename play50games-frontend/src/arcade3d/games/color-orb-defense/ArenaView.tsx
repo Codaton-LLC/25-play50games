@@ -5,7 +5,7 @@
 // (the shield rises in the zone's colour while a hero stands on it), the pillars between the lanes (one
 // carries the hidden beacon), the dome beacon in the middle (it dims as it loses hit points), the orbs
 // (the energy orb GLB recoloured every frame; a blinking orb flickers; the Mortar's core orbs are golden
-// orb blobs), the drone on the middle ring and the hero's spawn pad. Visual only.
+// energy orbs with a lob), the portals' telegraph glow, the drone on the middle ring and the hero's spawn pad. Visual only.
 import { useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import { CanvasTexture, Color, Euler, Matrix4, Quaternion, RepeatWrapping, SRGBColorSpace, Vector3, type Group, type Mesh, type MeshStandardMaterial } from "three";
@@ -15,7 +15,7 @@ import { useGameTime } from "@/arcade3d/core/gameTime";
 import type { LevelId } from "@/arcade3d/types";
 import { ASSETS, GLB_SIZE, fit } from "./assets";
 import { COLORS, levelLook } from "./look";
-import { ORB_Y, PALETTE, R_ARENA, R_CORE, R_DRONE, R_PORTAL, ZONE_R, orbColor } from "./arena";
+import { ORB_Y, PALETTE, R_ARENA, R_CORE, R_DRONE, R_PORTAL, TELEGRAPH_MS, ZONE_R, orbColor } from "./arena";
 import { CORE_HP } from "./progression";
 import { dronePos, type DefenseRun } from "./rules";
 
@@ -72,6 +72,7 @@ export default function ArenaView({ run, level }: { run: DefenseRun; level: Leve
    const core = useRef<Mesh>(null);
    const drone = useRef<Group>(null);
    const beacon = useRef<Mesh>(null);
+   const tele = useRef<(Mesh | null)[]>([]);
    const color = useMemo(() => new Color(), []);
 
    const portalSpots = useMemo<InstanceSpot[]>(
@@ -135,9 +136,9 @@ export default function ArenaView({ run, level }: { run: DefenseRun; level: Leve
             if (!o.live || !o.core) continue;
             if (++k !== i) continue;
             const l = A.lanes[o.lane];
-            const s = fit(GLB_SIZE.blob.y, 1.3);
+            const s = fit(GLB_SIZE.orb.y, 1.5);
             const lob = Math.max(0, Math.sin(((R_PORTAL - o.r) / (R_PORTAL - R_CORE)) * Math.PI)) * 2.5;
-            place(m, l.dx * o.r, ORB_Y - 0.6 + lob, l.dz * o.r, s, s, s, time.now * 3);
+            place(m, l.dx * o.r, ORB_Y - 0.75 + lob, l.dz * o.r, s, s, s, time.now * 3);
             const cc = orbColor(o.color, o.alt, o.periodMs, run.simMs - o.bornMs);
             c.copy(PAL[cc]).lerp(GOLD, 0.25);
             return;
@@ -176,6 +177,22 @@ export default function ArenaView({ run, level }: { run: DefenseRun; level: Leve
          const p = dronePos(run, DP);
          d.position.set(p.x, 0.45, p.z);
          d.rotation.y = t * 6;
+      }
+      // the telegraph: a portal glows in the colour of the orb it is about to launch
+      for (let j = 0; j < A.lanes.length; j++) {
+         const g = tele.current[j];
+         if (!g) continue;
+         let k = -1;
+         for (let i = run.nextSpawn; i < A.spawns.length && A.spawns[i].t <= run.simMs + TELEGRAPH_MS; i++) if (A.spawns[i].lane === j) { k = i; break; }
+         g.visible = k >= 0;
+         if (k >= 0) {
+            const u = 1 - (A.spawns[k].t - run.simMs) / TELEGRAPH_MS;
+            const mat = g.material as MeshStandardMaterial;
+            mat.color.copy(PAL[A.spawns[k].color]);
+            mat.emissive.copy(PAL[A.spawns[k].color]);
+            mat.emissiveIntensity = 0.6 + 1.4 * u + 0.4 * Math.sin(t * 14);
+            g.scale.setScalar(0.4 + 0.7 * u);
+         }
       }
       if (beacon.current) {
          beacon.current.visible = !run.secrets.found[2];
@@ -225,6 +242,13 @@ export default function ArenaView({ run, level }: { run: DefenseRun; level: Leve
                </mesh>
             </group>
          ))}
+         {/* the portals' telegraph glows */}
+         {A.lanes.map((l, j) => (
+            <mesh key={`t${j}`} ref={(m) => { tele.current[j] = m; }} position={[l.dx * (R_PORTAL - 0.6), 1.6, l.dz * (R_PORTAL - 0.6)]} visible={false}>
+               <sphereGeometry args={[0.8, 20, 14]} />
+               <meshStandardMaterial transparent opacity={0.85} toneMapped={false} />
+            </mesh>
+         ))}
          {/* the beacon */}
          <InstancedModel asset={ASSETS.beacon} spots={BEACON} fallback={<Instanced spots={BEACON}><cylinderGeometry args={[0.6, 0.8, 1.9, 16]} /><meshStandardMaterial color="#38bdf8" /></Instanced>} />
          <mesh ref={core} position={[0, 3.6, 0]}>
@@ -233,7 +257,7 @@ export default function ArenaView({ run, level }: { run: DefenseRun; level: Leve
          </mesh>
          {/* orbs */}
          <DynamicInstancedModel asset={ASSETS.orb} count={64} update={updateOrb} tinted />
-         {A.boss ? <DynamicInstancedModel asset={ASSETS.blob} count={4} update={updateCoreOrb} tinted /> : null}
+         {A.boss ? <DynamicInstancedModel asset={ASSETS.orb} count={4} update={updateCoreOrb} tinted /> : null}
          {/* the drone */}
          <group ref={drone} visible={false}>
             <mesh castShadow>

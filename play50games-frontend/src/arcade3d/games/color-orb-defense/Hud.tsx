@@ -1,8 +1,8 @@
 "use client";
 
 // The game HUD (menu2/hud HudStack placement, the Menu 2 HUD look): the beacon's hit points, the score,
-// blocks and the hero power with the combo (x1-x5) on the left; the title and level in a banner with the
-// wave counter, the colour of the zone the hero stands on, level 1's coach line, and on level 5 the Orb
+// the hero power with the combo (x1-x5) on the left (the shell shows the score); the title and level in a
+// banner with the wave counter, the shield's colour, level 1's coach line, and on level 5 the Orb
 // Mortar's bar with its hint. The shell keeps Mute / Pause; its clock chip is off. Local multiplayer: the
 // "2-4 players" button, the join screen, per-player chips and the podium. The hero picker and the orbit
 // camera's recenter button / hint are the shared ones.
@@ -64,7 +64,6 @@ function Boss() {
 export default function Hud() {
    const { config } = useLevel<DefenseLevel>();
    const level = config?.id ?? 1;
-   const score = useArcadeStore((s) => s.score);
    const heroStat = useArcadeStore((s) => s.stats[STAT.hero]);
    const powerLeft = useArcadeStore((s) => s.stats[STAT.power] ?? 0);
    const coreHp = useArcadeStore((s) => s.stats[STAT.coreHp] ?? CORE_HP);
@@ -95,9 +94,6 @@ export default function Hud() {
                   <span className={`${styles.meterFill} ${coreHp <= 3 ? styles.meterLow : ""}`} style={{ width: `${(coreHp / CORE_HP) * 100}%` }} />
                </span>
             </div>
-            <div className={styles.pill} aria-label={`${score} points`}>
-               <span className={styles.points}>{score.toLocaleString("en-US")}</span>
-            </div>
             <div className={styles.pill} aria-label={`${hero.name} ${hero.powerLabel}${powerLeft > 0 ? `, ready in ${powerLeft} seconds` : ", ready"}`}>
                <span className={styles.heroDot} style={{ background: hero.color }} aria-hidden="true" />
                <span className={styles.value}>{powerLeft > 0 ? `${powerLeft}s` : hero.powerLabel}</span>
@@ -114,10 +110,11 @@ export default function Hud() {
             <div className={styles.row}>
                <div className={styles.clock} aria-label={`Wave ${Math.min(waves, wave + 1)} of ${waves}`}>
                   <span className={styles.value}>
-                     Wave {Math.min(waves, wave + 1)}/{waves}
+                     <span className={styles.waveWord}>Wave </span>
+                     {Math.min(waves, wave + 1)}/{waves}
                   </span>
                </div>
-               <div className={styles.clock} aria-label={zc ? `On a ${zc.name} zone` : "Off the zones"}>
+               <div className={styles.clock} aria-label={zc ? `Shield ${zc.name}` : "Shield not charged"}>
                   <span className={styles.zoneDot} style={{ background: zc ? zc.hex : "transparent" }} aria-hidden="true" />
                   <span className={styles.value}>{zc ? zc.name : "—"}</span>
                </div>

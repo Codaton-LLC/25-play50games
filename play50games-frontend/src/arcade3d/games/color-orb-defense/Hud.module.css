@@ -197,3 +197,19 @@
 .zoneDot {
    border: 2px solid rgba(255, 255, 255, 0.6);
 }
+
+.waveWord {
+   white-space: nowrap;
+}
+
+/* narrow phones: the wave pill keeps to one short line beside the banner */
+@media (max-width: 600px) {
+   .waveWord {
+      display: none;
+   }
+
+   .row .clock {
+      padding: 3px 10px 3px 6px;
+      white-space: nowrap;
+   }
+}

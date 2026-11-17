@@ -168,7 +168,7 @@ function Simulation({ run, anim, orbit }: { run: DefenseRun; anim: HeroAnim; orb
       if (store.stats[STAT.leaks] !== run.leaks) store.setStat(STAT.leaks, run.leaks);
       const wave = currentWave(run);
       if (store.stats[STAT.wave] !== wave) store.setStat(STAT.wave, wave);
-      const zc = h.zone >= 0 ? run.arena.zones[h.zone].color : -1;
+      const zc = h.color;
       if (store.stats[STAT.zoneColor] !== zc) store.setStat(STAT.zoneColor, zc);
       publishBoss(run);
       const heroStat = run.heroId === "nami" ? 1 : run.heroId === "kiro" ? 2 : run.heroId === "zuno" ? 3 : run.heroId === "vexa" ? 4 : 0;

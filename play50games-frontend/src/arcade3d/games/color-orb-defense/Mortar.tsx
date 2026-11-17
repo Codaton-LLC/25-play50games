@@ -3,7 +3,7 @@
 // The Orb Mortar (level 5): the new m2OrbMortarBoss GLB squatting on the north rim beyond the portals,
 // facing the beacon. He rises out of the clouds when the waves end, rears back in his telegraph, recoils
 // as he lobs his core orbs, glows while they are in the air (his window), flashes white on a hit and sinks
-// when he is beaten. Visual only.
+// when he is beaten. His ammo, a pile of orb blobs, sits at his feet. Visual only.
 import { useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import type { Group, Mesh, MeshBasicMaterial } from "three";
@@ -14,8 +14,9 @@ import { COLORS } from "./look";
 import { R_PORTAL } from "./arena";
 import type { DefenseRun } from "./rules";
 
-const HEIGHT = 7;
-const Z = -(R_PORTAL + 4.5);
+const HEIGHT = 6.5;
+const AMMO: [number, number, number][] = [[-3.2, 0.8, 1.4], [3.0, 0.6, 1.2], [-2.3, -1.6, 1.0]];
+const Z = -(R_PORTAL + 2.2);
 
 export default function Mortar({ run }: { run: DefenseRun }) {
    const time = useGameTime();
@@ -43,6 +44,12 @@ export default function Mortar({ run }: { run: DefenseRun }) {
    return (
       <group ref={root} visible={false}>
          <Model asset={ASSETS.mortar} scale={fit(GLB_SIZE.mortar.y, HEIGHT)} />
+         {/* his ammo: orb blobs piled at his feet */}
+         {AMMO.map(([x, z, s], i) => (
+            <group key={i} position={[x, 0, z]}>
+               <Model asset={ASSETS.blob} scale={fit(GLB_SIZE.blob.y, s)} />
+            </group>
+         ))}
          <mesh ref={glow} position={[0, HEIGHT * 0.55, 0]}>
             <sphereGeometry args={[HEIGHT * 0.45, 20, 14]} />
             <meshBasicMaterial transparent opacity={0.3} depthWrite={false} toneMapped={false} />
