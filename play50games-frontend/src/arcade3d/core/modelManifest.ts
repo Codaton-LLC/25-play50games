@@ -854,6 +854,20 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/portal-hop/m2PortalIsle.glb",
    "/models/3d/portal-hop/m2PortalWyrmBoss.glb",
    "/models/3d/portal-hop/m2VoidCrystal.glb",
+   // Menu 2 game 39 (Color Bridge Builder): p50-assets hyper3d-new (m2BridgeKeeperBoss, m2ColorSwitch, m2BridgeAnchor, m2EnergyNode)
+   // and hyper3d-recovered (m2CrystalSlabBridge, m2BrokenBridgeEnd), optimized with tools/hyper3d; ready/menu2 color-bridge-builder,
+   // laser-maze-run (m2LaserPrism) and shared (m2FactoryDrone)
+   "/models/3d/color-bridge-builder/m2BridgeKeeperBoss.glb",
+   "/models/3d/color-bridge-builder/m2ColorSwitch.glb",
+   "/models/3d/color-bridge-builder/m2BridgeAnchor.glb",
+   "/models/3d/color-bridge-builder/m2EnergyNode.glb",
+   "/models/3d/color-bridge-builder/m2CrystalSlabBridge.glb",
+   "/models/3d/color-bridge-builder/m2BrokenBridgeEnd.glb",
+   "/models/3d/color-bridge-builder/m2BridgePylon.glb",
+   "/models/3d/color-bridge-builder/m2FloatingRockIsle.glb",
+   "/models/3d/color-bridge-builder/m2CanyonBg.glb",
+   "/models/3d/color-bridge-builder/m2LaserPrism.glb",
+   "/models/3d/color-bridge-builder/m2FactoryDrone.glb",
 ];
 
 const LISTED: ReadonlySet<string> = new Set(MODEL_MANIFEST);
