@@ -55,7 +55,7 @@ export function Sprite({ run }: { run: CoreRun }) {
          const m = au.material as MeshBasicMaterial;
          const open = bossOpen(run);
          m.color.set(open ? "#fde047" : b.step === "telegraph" ? "#f43f5e" : "#c084fc");
-         m.opacity = open ? 0.6 : 0.3;
+         m.opacity = open ? 0.45 : 0.18;
          au.scale.setScalar(1 + Math.sin(now * (open ? 10 : 4)) * 0.08);
       }
       const rg = ring.current;
@@ -83,7 +83,7 @@ export function Sprite({ run }: { run: CoreRun }) {
             <Model asset={ASSETS.sprite} />
          </group>
          <mesh ref={aura} visible={false}>
-            <sphereGeometry args={[1.6, 20, 14]} />
+            <sphereGeometry args={[1.25, 20, 14]} />
             <meshBasicMaterial color="#c084fc" transparent opacity={0.3} blending={AdditiveBlending} depthWrite={false} toneMapped={false} />
          </mesh>
          <mesh ref={ring} rotation-x={-Math.PI / 2} visible={false}>

@@ -102,7 +102,7 @@ The honest bot (no routes, the one `?autoplay=1` uses) wins every level at 30, 6
 - with every main orb;
 - never hit.
 
-Submitted times at 60 fps: about 5.8 / 6.2 / 12.2 / 13.2 / 32.1 s.
+Submitted times at 60 fps: about 5.8 / 6.2 / 12.2 / 13.2 / 32.1 s. In the browser (next dev, `?autoplay=1`) every level ends in a win; level 5 with all three stars and the no-hit badge.
 
 Every hero's bot with its own route wins every level and never beats the floor. Vexa takes the ring shard; Nami takes the crate-top sticker.
 
