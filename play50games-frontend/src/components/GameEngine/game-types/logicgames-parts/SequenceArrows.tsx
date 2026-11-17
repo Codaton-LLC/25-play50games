@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import css from "./SequenceArrows.module.css";
+import mobile from "./mobile.module.css";
 import {
    ArrowLeftIcon,
    ArrowRightIcon,
@@ -460,6 +462,7 @@ function SequenceArrows({
 
    return (
       <div
+         className={css.root}
          style={{
             display: "flex",
             flexDirection: "column",
@@ -535,6 +538,7 @@ function SequenceArrows({
 
          {/* Main Content */}
          <div
+            className={css.main}
             style={{
                width: "100%",
                display: "flex",
@@ -544,6 +548,7 @@ function SequenceArrows({
          >
             {/* Sequence Display */}
             <div
+               className={css.sequence}
                style={{
                   background: "var(--card)",
                   borderRadius: "20px",
@@ -568,6 +573,7 @@ function SequenceArrows({
                </div>
                {/* Hint Button */}
                <button
+                  className={css.hint}
                   onClick={() => setShowHint(!showHint)}
                   disabled={isRoundComplete}
                   style={{
@@ -665,6 +671,7 @@ function SequenceArrows({
 
             {/* Options */}
             <div
+               className={css.options}
                style={{
                   display: "grid",
                   gridTemplateColumns: "repeat(4, 1fr)",
@@ -678,6 +685,7 @@ function SequenceArrows({
                   return (
                      <button
                         key={i}
+                        className={`${css.option} ${showFeedback ? (feedback === "correct" ? mobile.pop : mobile.shake) : ""}`}
                         onClick={() => handleSelect(i)}
                         disabled={isRoundComplete}
                         style={{
