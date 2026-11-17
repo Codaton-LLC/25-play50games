@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import m from "./mobile.module.css";
 import {
    CheckCircleIcon,
    XCircleIcon,
@@ -608,6 +609,7 @@ function PathMemory({
 
    return (
       <div
+         className={m.tight}
          style={{
             display: "flex",
             flexDirection: "column",
@@ -751,6 +753,8 @@ function PathMemory({
 
          {/* Game State Display */}
          <div
+            key={gameState}
+            className={gameState === "correct" ? m.feedbackOk : gameState === "wrong" ? m.feedbackBad : undefined}
             style={{
                padding: isMobile ? "12px 16px" : "16px 24px",
 
@@ -867,7 +871,7 @@ function PathMemory({
                         <button
                            key={idx}
                            className={
-                              isFlashing ? "path-cell flash" : "path-cell"
+                              `${isFlashing ? "path-cell flash" : "path-cell"} ${m.card}`
                            }
                            data-idx={idx}
                            onClick={() => handleCellClick(idx)}
@@ -971,6 +975,7 @@ function PathMemory({
          {/* Feedback Message (from Match the Shapes) */}
          {feedback !== null && (
             <div
+               className={feedback === "correct" ? m.feedbackOk : m.feedbackBad}
                style={{
                   padding: "16px 24px",
 
@@ -1016,6 +1021,7 @@ function PathMemory({
             {/* Hint Button */}
             <button
                onClick={handleHint}
+               className={m.btn}
                disabled={
                   (maxHints > 0 && hintsUsed >= maxHints) ||
                   gameState !== "input" ||
@@ -1096,6 +1102,7 @@ function PathMemory({
             {/* Share Button */}
             <button
                onClick={handleShare}
+               className={m.btn}
                style={{
                   display: "flex",
                   alignItems: "center",
