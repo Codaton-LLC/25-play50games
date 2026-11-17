@@ -16,6 +16,9 @@ import {
    getShareStatus,
 } from "@/lib/api/share";
 
+import touch from "./skillTouch.module.css";
+import { usePlayAreaInView } from "./usePlayAreaInView";
+
 interface CursorMazeProps {
    config: Record<string, any>;
    onScoreUpdate: (score: number) => void;
@@ -118,6 +121,10 @@ export default function CursorMaze({
       y: 0,
    });
    const pointerActiveRef = useRef(false);
+   // Touch steering: where the finger landed and where the dot was then. A mouse cursor hovers
+   // beside the dot; a finger would sit on it and hide it, so on touch the dot moves by the
+   // finger's movement from wherever the finger lands (the same wall checks apply).
+   const touchAnchorRef = useRef<{ fx: number; fy: number; px: number; py: number } | null>(null);
    const keysPressedRef = useRef<Set<string>>(new Set());
    const moveSpeedRef = useRef(3); // pixels per frame
    const trailRef = useRef<Array<{ x: number; y: number }>>([]);
@@ -145,6 +152,10 @@ export default function CursorMaze({
       window.addEventListener("resize", checkResponsive);
       return () => window.removeEventListener("resize", checkResponsive);
    }, []);
+
+   // Mobile/tablet: bring the panel and the play area on screen when a round starts
+   const rootRef = useRef<HTMLDivElement>(null);
+   const pad = usePlayAreaInView(rootRef, canvasRef, true, `${gameState}-${currentLevel}`);
 
    // Resize canvas
    const resizeCanvas = useCallback(() => {
@@ -713,8 +724,13 @@ export default function CursorMaze({
          const rect = canvas.getBoundingClientRect();
          const scaleX = canvas.width / rect.width;
          const scaleY = canvas.height / rect.height;
-         const newX = (e.clientX - rect.left) * scaleX;
-         const newY = (e.clientY - rect.top) * scaleY;
+         const anchor = e.pointerType !== "mouse" ? touchAnchorRef.current : null;
+         const newX = anchor
+            ? anchor.px + (e.clientX - anchor.fx) * scaleX
+            : (e.clientX - rect.left) * scaleX;
+         const newY = anchor
+            ? anchor.py + (e.clientY - anchor.fy) * scaleY
+            : (e.clientY - rect.top) * scaleY;
 
          // Clamp to canvas bounds
          const clampedX = Math.max(0, Math.min(newX, canvas.width));
@@ -795,6 +811,16 @@ export default function CursorMaze({
          if (canvas && canvas.setPointerCapture) {
             canvas.setPointerCapture(e.pointerId);
          }
+         if (e.pointerType !== "mouse") {
+            // touch / pen: anchor here; the dot follows the finger's movement, it does not jump to it
+            touchAnchorRef.current = {
+               fx: e.clientX,
+               fy: e.clientY,
+               px: playerRef.current.x,
+               py: playerRef.current.y,
+            };
+            return;
+         }
          handlePointerMove(e);
       },
       [handlePointerMove]
@@ -802,6 +828,7 @@ export default function CursorMaze({
 
    const handlePointerUp = useCallback(() => {
       pointerActiveRef.current = false;
+      touchAnchorRef.current = null;
    }, []);
 
    // Handle next round
@@ -1240,6 +1267,7 @@ export default function CursorMaze({
 
    return (
       <div
+         ref={rootRef}
          style={{
             width: "100%",
             maxWidth: "800px",
@@ -1379,6 +1407,7 @@ export default function CursorMaze({
                   Level {currentLevel + 1} Complete!
                </div>
                <button
+                  className={touch.tapButton}
                   onClick={handleNextRound}
                   disabled={nextRoundLocked}
                   style={{
@@ -1536,6 +1565,8 @@ export default function CursorMaze({
                      margin: "0 auto",
                      background: "rgba(15, 27, 51, 1)",
                   }}
+                  className={touch.playArea}
+                  data-play-area=""
                   onPointerMove={handlePointerMove}
                   onPointerDown={handlePointerDown}
                   onPointerUp={handlePointerUp}
@@ -1590,6 +1621,21 @@ export default function CursorMaze({
                      }}
                   >
                      Green = EXIT
+                  </div>
+                  <div
+                     style={{
+                        padding: "6px 12px",
+                        background: "rgba(255, 255, 255, 0.06)",
+                        border: "1px solid rgba(255, 255, 255, 0.18)",
+                        borderRadius: "8px",
+                        fontSize: isMobile ? "0.75rem" : "0.85rem",
+                        color: "var(--text)",
+                        fontWeight: 600,
+                     }}
+                  >
+                     {isMobile || isTablet
+                        ? "Drag anywhere to steer the dot"
+                        : "Move the mouse to steer the dot"}
                   </div>
                </div>
             </div>
@@ -1674,6 +1720,7 @@ export default function CursorMaze({
                }}
             >
                <button
+                  className={touch.tapButton}
                   onClick={handleReplay}
                   disabled={maxReplays > 0 && replaysUsed >= maxReplays}
                   style={{
@@ -1714,7 +1761,7 @@ export default function CursorMaze({
                      }}
                   />
                   <span>
-                     {isMobile ? "" : "Replay "}
+                     {"Replay "}
                      {maxReplays === 0
                         ? "(∞)"
                         : `(${maxReplays - replaysUsed}/${maxReplays})`}
@@ -1722,6 +1769,7 @@ export default function CursorMaze({
                </button>
 
                <button
+                  className={touch.tapButton}
                   onClick={handleShare}
                   style={{
                      display: "flex",
@@ -1751,6 +1799,7 @@ export default function CursorMaze({
                </button>
             </div>
          </div>
+         {pad > 0 && <div aria-hidden="true" style={{ height: pad, flexShrink: 0 }} />}
       </div>
    );
 }
