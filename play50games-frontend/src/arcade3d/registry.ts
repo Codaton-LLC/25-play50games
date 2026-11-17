@@ -77,6 +77,7 @@ import { icePeakJumperMeta } from "./games/ice-peak-jumper/meta";
 import { candyWorldRunnerMeta } from "./games/candy-world-runner/meta";
 import { alienLaneEscapeMeta } from "./games/alien-lane-escape/meta";
 import { laserMazeRunMeta } from "./games/laser-maze-run/meta";
+import { mirrorDashMeta } from "./games/mirror-dash/meta";
 import { dragonCaveRushMeta } from "./games/dragon-cave-rush/meta";
 import { skyHookSwingMeta } from "./games/sky-hook-swing/meta";
 import { tightropePathMeta } from "./games/tightrope-path/meta";
@@ -86,12 +87,21 @@ import { plateBounceArenaMeta } from "./games/plate-bounce-arena/meta";
 import { mineTunnelRunMeta } from "./games/mine-tunnel-run/meta";
 import { spinPoleClimbMeta } from "./games/spin-pole-climb/meta";
 import { templeGongTimingMeta } from "./games/temple-gong-timing/meta";
+import { crystalTowerMeta } from "./games/crystal-tower/meta";
 import { spacePodJumpMeta } from "./games/space-pod-jump/meta";
 import { neonCubeJumpMeta } from "./games/neon-cube-jump/meta";
 
 import { snowSlideDashMeta } from "./games/snow-slide-dash/meta";
 import { portalHopMeta } from "./games/portal-hop/meta";
+import { colorArenaSurvivalMeta } from "./games/color-arena-survival/meta";
+import { paintThePlatformsMeta } from "./games/paint-the-platforms/meta";
+import { rollDashMeta } from "./games/roll-dash/meta";
 import { crystalCaveSwitchMeta } from "./games/crystal-cave-switch/meta";
+import { colorBridgeBuilderMeta } from "./games/color-bridge-builder/meta";
+import { switchColorHeroMeta } from "./games/switch-color-hero/meta";
+import { colorMatchJumpMeta } from "./games/color-match-jump/meta";
+import { energyCoreHuntMeta } from "./games/energy-core-hunt/meta";
+import { colorBossTowerMeta } from "./games/color-boss-tower/meta";
 
 import { colorOrbDefenseMeta } from "./games/color-orb-defense/meta";
 export const ARCADE_GAMES: ArcadeGameMeta[] = [
@@ -177,13 +187,23 @@ export const ARCADE_GAMES: ArcadeGameMeta[] = [
    magnetCoinLabMeta,
    alienLaneEscapeMeta,
    laserMazeRunMeta,
+   mirrorDashMeta,
    spinPoleClimbMeta,
    templeGongTimingMeta,
+   crystalTowerMeta,
    spacePodJumpMeta,
    neonCubeJumpMeta,
    portalHopMeta,
+   colorArenaSurvivalMeta,
+   paintThePlatformsMeta,
+   switchColorHeroMeta,
+   rollDashMeta,
    crystalCaveSwitchMeta,
    colorOrbDefenseMeta,
+   colorBridgeBuilderMeta,
+   colorMatchJumpMeta,
+   energyCoreHuntMeta,
+   colorBossTowerMeta,
 ].sort((a, b) => a.order - b.order);
 
 export function getGameMeta(slug: string): ArcadeGameMeta | undefined {

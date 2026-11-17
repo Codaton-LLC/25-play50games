@@ -1601,6 +1601,166 @@
         { "title": "Fast Waves", "max_score": 24150, "min_duration_ms": 179600, "max_duration_ms": 261000, "base": 0, "max_pps": 135 },
         { "title": "Orb Defense Master", "max_score": 28450, "min_duration_ms": 171400, "max_duration_ms": 321000, "base": 0, "max_pps": 166 }
       ]
+    },
+    "color-bridge-builder": {
+      "title": "Color Bridge Builder",
+      "kind": "time",
+      "max_score": 14990,
+      "min_duration_ms": 100,
+      "max_duration_ms": 150000,
+      "time_base_ms": 150000,
+      "enabled": false,
+      "levels": [
+        { "title": "Two Switches", "max_score": 14990, "min_duration_ms": 100, "max_duration_ms": 150000, "time_base_ms": 150000 },
+        { "title": "Prisms", "max_score": 17990, "min_duration_ms": 100, "max_duration_ms": 180000, "time_base_ms": 180000 },
+        { "title": "Split Bridge", "max_score": 19990, "min_duration_ms": 100, "max_duration_ms": 200000, "time_base_ms": 200000 },
+        { "title": "Timed Bridge", "max_score": 21970, "min_duration_ms": 300, "max_duration_ms": 220000, "time_base_ms": 220000 },
+        { "title": "Canyon Gate", "max_score": 28380, "min_duration_ms": 16200, "max_duration_ms": 300000, "time_base_ms": 300000 }
+      ]
+    },
+    "crystal-tower": {
+      "title": "Crystal Tower",
+      "kind": "time",
+      "max_score": 8310,
+      "min_duration_ms": 6900,
+      "max_duration_ms": 90000,
+      "time_base_ms": 90000,
+      "enabled": false,
+      "levels": [
+        { "title": "3-Color Sequence", "max_score": 8310, "min_duration_ms": 6900, "max_duration_ms": 90000, "time_base_ms": 90000 },
+        { "title": "4 Colors", "max_score": 11300, "min_duration_ms": 7000, "max_duration_ms": 120000, "time_base_ms": 120000 },
+        { "title": "5 Colors", "max_score": 13380, "min_duration_ms": 16200, "max_duration_ms": 150000, "time_base_ms": 150000 },
+        { "title": "Moving Crystals", "max_score": 15820, "min_duration_ms": 21800, "max_duration_ms": 180000, "time_base_ms": 180000 },
+        { "title": "Memory Tower", "max_score": 20550, "min_duration_ms": 34500, "max_duration_ms": 240000, "time_base_ms": 240000 }
+      ]
+    },
+    "switch-color-hero": {
+      "title": "Switch Color Hero",
+      "kind": "time",
+      "max_score": 10450,
+      "min_duration_ms": 15500,
+      "max_duration_ms": 120000,
+      "time_base_ms": 120000,
+      "enabled": false,
+      "levels": [
+        { "title": "Two Gates", "max_score": 10450, "min_duration_ms": 15500, "max_duration_ms": 120000, "time_base_ms": 120000 },
+        { "title": "Three Colors", "max_score": 12920, "min_duration_ms": 20800, "max_duration_ms": 150000, "time_base_ms": 150000 },
+        { "title": "Fast Switching", "max_score": 16050, "min_duration_ms": 19500, "max_duration_ms": 180000, "time_base_ms": 180000 },
+        { "title": "Mixed Obstacles", "max_score": 18830, "min_duration_ms": 21700, "max_duration_ms": 210000, "time_base_ms": 210000 },
+        { "title": "Color Overdrive", "max_score": 26690, "min_duration_ms": 33100, "max_duration_ms": 300000, "time_base_ms": 300000 }
+      ]
+    },
+    "mirror-dash": {
+      "title": "Mirror Dash",
+      "kind": "time",
+      "max_score": 13430,
+      "min_duration_ms": 15700,
+      "max_duration_ms": 150000,
+      "time_base_ms": 150000,
+      "enabled": false,
+      "levels": [
+        { "title": "Mirror Lane", "max_score": 13430, "min_duration_ms": 15700, "max_duration_ms": 150000, "time_base_ms": 150000 },
+        { "title": "Converge", "max_score": 15560, "min_duration_ms": 14400, "max_duration_ms": 170000, "time_base_ms": 170000 },
+        { "title": "Frosted Glass", "max_score": 16350, "min_duration_ms": 16500, "max_duration_ms": 180000, "time_base_ms": 180000 },
+        { "title": "Echo", "max_score": 17150, "min_duration_ms": 18500, "max_duration_ms": 190000, "time_base_ms": 190000 },
+        { "title": "Glass Hall", "max_score": 21710, "min_duration_ms": 22900, "max_duration_ms": 240000, "time_base_ms": 240000 }
+      ]
+    },
+    "color-match-jump": {
+      "title": "Color Match Jump",
+      "kind": "time",
+      "max_score": 8440,
+      "min_duration_ms": 5599,
+      "max_duration_ms": 90000,
+      "time_base_ms": 90000,
+      "enabled": false,
+      "levels": [
+        { "title": "Two-Tone Steps", "max_score": 8440, "min_duration_ms": 5599, "max_duration_ms": 90000, "time_base_ms": 90000 },
+        { "title": "Three Calls", "max_score": 10656, "min_duration_ms": 13439, "max_duration_ms": 120000, "time_base_ms": 120000 },
+        { "title": "Shifting Hues", "max_score": 12984, "min_duration_ms": 20159, "max_duration_ms": 150000, "time_base_ms": 150000 },
+        { "title": "Fast Countdown", "max_score": 14416, "min_duration_ms": 35839, "max_duration_ms": 180000, "time_base_ms": 180000 },
+        { "title": "Frozen Crown", "max_score": 20992, "min_duration_ms": 30079, "max_duration_ms": 240000, "time_base_ms": 240000 }
+      ]
+    },
+    "energy-core-hunt": {
+      "title": "Energy Core Hunt",
+      "kind": "time",
+      "max_score": 5840,
+      "min_duration_ms": 1600,
+      "max_duration_ms": 60000,
+      "time_base_ms": 60000,
+      "enabled": false,
+      "levels": [
+        { "title": "Simple Hunt", "max_score": 5840, "min_duration_ms": 1600, "max_duration_ms": 60000, "time_base_ms": 60000 },
+        { "title": "Mixed Colors", "max_score": 7430, "min_duration_ms": 700, "max_duration_ms": 75000, "time_base_ms": 75000 },
+        { "title": "Larger Arena", "max_score": 8860, "min_duration_ms": 1400, "max_duration_ms": 90000, "time_base_ms": 90000 },
+        { "title": "Moving Cores", "max_score": 10350, "min_duration_ms": 1500, "max_duration_ms": 105000, "time_base_ms": 105000 },
+        { "title": "Core Master", "max_score": 10520, "min_duration_ms": 14800, "max_duration_ms": 120000, "time_base_ms": 120000 }
+      ]
+    },
+    "roll-dash": {
+      "title": "Roll Dash",
+      "kind": "time",
+      "max_score": 10460,
+      "min_duration_ms": 45400,
+      "max_duration_ms": 150000,
+      "time_base_ms": 150000,
+      "enabled": false,
+      "levels": [
+        { "title": "Gate Street", "max_score": 10460, "min_duration_ms": 45400, "max_duration_ms": 150000, "time_base_ms": 150000 },
+        { "title": "Market Lane", "max_score": 12180, "min_duration_ms": 58200, "max_duration_ms": 180000, "time_base_ms": 180000 },
+        { "title": "Old Town", "max_score": 14000, "min_duration_ms": 70000, "max_duration_ms": 210000, "time_base_ms": 210000 },
+        { "title": "Night Causeway", "max_score": 15990, "min_duration_ms": 80100, "max_duration_ms": 240000, "time_base_ms": 240000 },
+        { "title": "Fortress Bridge", "max_score": 28090, "min_duration_ms": 19100, "max_duration_ms": 300000, "time_base_ms": 300000 }
+      ]
+    },
+    "paint-the-platforms": {
+      "title": "Paint the Platforms",
+      "kind": "time",
+      "max_score": 5990,
+      "min_duration_ms": 100,
+      "max_duration_ms": 60000,
+      "time_base_ms": 60000,
+      "enabled": false,
+      "levels": [
+        { "title": "First Strokes", "max_score": 5990, "min_duration_ms": 100, "max_duration_ms": 60000, "time_base_ms": 60000 },
+        { "title": "Grey Blots", "max_score": 7400, "min_duration_ms": 1000, "max_duration_ms": 75000, "time_base_ms": 75000 },
+        { "title": "Moving Tiles", "max_score": 8950, "min_duration_ms": 500, "max_duration_ms": 90000, "time_base_ms": 90000 },
+        { "title": "Time Attack", "max_score": 10320, "min_duration_ms": 1800, "max_duration_ms": 105000, "time_base_ms": 105000 },
+        { "title": "80% Master", "max_score": 10620, "min_duration_ms": 13800, "max_duration_ms": 120000, "time_base_ms": 120000 }
+      ]
+    },
+    "color-arena-survival": {
+      "title": "Color Arena Survival",
+      "kind": "time",
+      "max_score": 13670,
+      "min_duration_ms": 13300,
+      "max_duration_ms": 150000,
+      "time_base_ms": 150000,
+      "enabled": false,
+      "levels": [
+        { "title": "Slow Rounds", "max_score": 13670, "min_duration_ms": 13300, "max_duration_ms": 150000, "time_base_ms": 150000 },
+        { "title": "Three Colors", "max_score": 15910, "min_duration_ms": 20900, "max_duration_ms": 180000, "time_base_ms": 180000 },
+        { "title": "Five Colors", "max_score": 18890, "min_duration_ms": 31100, "max_duration_ms": 220000, "time_base_ms": 220000 },
+        { "title": "Fast Rounds", "max_score": 20880, "min_duration_ms": 41200, "max_duration_ms": 250000, "time_base_ms": 250000 },
+        { "title": "Survival Master", "max_score": 28100, "min_duration_ms": 19000, "max_duration_ms": 300000, "time_base_ms": 300000 }
+      ]
+    },
+    "color-boss-tower": {
+      "title": "Color Boss Tower",
+      "kind": "time",
+      "max_score": 13920,
+      "min_duration_ms": 10800,
+      "max_duration_ms": 150000,
+      "time_base_ms": 150000,
+      "enabled": false,
+      "levels": [
+        { "title": "Training Guardian", "max_score": 13920, "min_duration_ms": 10800, "max_duration_ms": 150000, "time_base_ms": 150000 },
+        { "title": "Two Colors", "max_score": 16570, "min_duration_ms": 14300, "max_duration_ms": 180000, "time_base_ms": 180000 },
+        { "title": "Three Colors", "max_score": 19210, "min_duration_ms": 17900, "max_duration_ms": 210000, "time_base_ms": 210000 },
+        { "title": "Fast Switch Boss", "max_score": 21620, "min_duration_ms": 23800, "max_duration_ms": 240000, "time_base_ms": 240000 },
+        { "title": "Grand Color Guardian", "max_score": 26880, "min_duration_ms": 31200, "max_duration_ms": 300000, "time_base_ms": 300000 }
+      ]
     }
   }
 }

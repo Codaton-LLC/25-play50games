@@ -64,6 +64,14 @@ Any slug in `ARCADE_SLUGS` is accepted (read from `src/arcade3d/types.ts`; a
 else its entry in `inputs.mjs`, else a generic script (`scripts.mjs`, which
 `tools/perf` reuses through `loadInputScript`).
 
+Menu 2 games open with an intro after Play: the tool clicks its Skip button until the countdown
+starts. Their preview builds have an honest bot (`?autoplay=1`), so they are captured without
+an input script:
+
+```sh
+node tools/thumbs/capture.mjs --base-url http://localhost:3325 --slugs roll-dash,portal-hop --query "?autoplay=1" --auto-wait 4000 --write
+```
+
 Per-game input scripts live in `inputs.mjs` — one data entry per game, easy to
 tune (tap / hold / down / up / click-at-canvas-fraction / wait steps). The shot
 is taken right after the last step, so end a script on a held key (`down`) or a

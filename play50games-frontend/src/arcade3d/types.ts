@@ -93,8 +93,18 @@ export const ARCADE_SLUGS = [
    "space-pod-jump",
    "alien-lane-escape",
    "portal-hop",
+   "crystal-tower",
+   "mirror-dash",
    "laser-maze-run",
    "crystal-cave-switch",
+   "roll-dash",
+   "color-match-jump",
+   "switch-color-hero",
+   "paint-the-platforms",
+   "color-arena-survival",
+   "energy-core-hunt",
+   "color-boss-tower",
+   "color-bridge-builder",
    "color-orb-defense",
 ] as const;
 

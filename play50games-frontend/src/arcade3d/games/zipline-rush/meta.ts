@@ -7,5 +7,5 @@ export const ziplineRushMeta: ArcadeGameMeta = {
    order: 57, status: "dev", collection: "rollheroes", difficulty: 3, orientation: "any", owner: "codex",
    controls: { scheme: "platformer", keyboard: "Down/S tuck, Up/W brake, Space release, Left/Right steer, E power", touch: "Joystick: down tuck, up brake, sideways steer; Release and Power" },
    scoring: limitsFor(1), levels: LEVEL_IDS.map((id) => ({ id, title: LEVELS[id].name, scoring: limitsFor(id) })),
-   thumbnail: null, accent: "#38bdf8",
+   thumbnail: "/images/3d/zipline-rush.webp", accent: "#38bdf8",
 };

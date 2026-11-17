@@ -39,7 +39,7 @@ export const dragonCaveRushMeta: ArcadeGameMeta = {
    },
    scoring: scoring(1),
    levels: LEVEL_IDS.map((id) => ({ id, title: LEVEL_TITLES[id], scoring: scoring(id) })),
-   thumbnail: null,
+   thumbnail: "/images/3d/dragon-cave-rush.webp",
    accent: "#f97316",
    owner: "claude",
 };
