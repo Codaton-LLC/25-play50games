@@ -331,6 +331,29 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/disc-target-throw/m2StoneColumn.glb",
    "/models/3d/disc-target-throw/m2StoneIdolTarget.glb",
    "/models/3d/disc-target-throw/m2TrainingPavilionBg.glb",
+   // Menu 2 game 34 (Spin Pole Climb): pole props from ~/.play50/hyper3d/ready/menu2/spin-pole-climb, plus its
+   // copy of World 3's guardian pair (ready/menu2/shared m2CoilstoneHead / m2CoilstoneSegment)
+   "/models/3d/spin-pole-climb/m2CheckpointDisc.glb",
+   "/models/3d/spin-pole-climb/m2CircularPlatform.glb",
+   "/models/3d/spin-pole-climb/m2CoilstoneHead.glb",
+   "/models/3d/spin-pole-climb/m2CoilstoneSegment.glb",
+   "/models/3d/spin-pole-climb/m2GripLedge.glb",
+   "/models/3d/spin-pole-climb/m2MushroomCapTop.glb",
+   "/models/3d/spin-pole-climb/m2RotatingPole.glb",
+   "/models/3d/spin-pole-climb/m2RotatingPoleV2.glb",
+   "/models/3d/spin-pole-climb/m2SpiralTowerBg.glb",
+   "/models/3d/spin-pole-climb/m2SweeperBar.glb",
+   // Menu 2 game 36 (Temple Gong Timing): stage props from ~/.play50/hyper3d/ready/menu2/temple-gong-timing
+   // (the Great Gong is the code-built menu2/props GreatGong), plus its copy of World 3's guardian pair
+   "/models/3d/temple-gong-timing/m2CeremonyDrum.glb",
+   "/models/3d/temple-gong-timing/m2CoilstoneHead.glb",
+   "/models/3d/temple-gong-timing/m2CoilstoneSegment.glb",
+   "/models/3d/temple-gong-timing/m2GongStage.glb",
+   "/models/3d/temple-gong-timing/m2JungleRuinBg.glb",
+   "/models/3d/temple-gong-timing/m2RuinLanternPillar.glb",
+   "/models/3d/temple-gong-timing/m2StrikerPost.glb",
+   "/models/3d/temple-gong-timing/m2TempleGong.glb",
+   "/models/3d/temple-gong-timing/m2TimingRing.glb",
    // Menu 2 game 15 (Color City Sprint): its props from ready/menu2/color-city-sprint, plus m2FactoryDrone (shared)
    "/models/3d/color-city-sprint/m2CityBarrier.glb",
    "/models/3d/color-city-sprint/m2CityBus.glb",
@@ -678,6 +701,20 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/jungle-vine-jump/m2MossyRuinArch.glb",
    "/models/3d/jungle-vine-jump/m2RuinStone.glb",
    "/models/3d/jungle-vine-jump/m2SnapperPlant.glb",
+   // Menu 2 game 35 (Color Rail Grind): ready/menu2/color-rail-grind, plus m2SnowPine and m2SnowCabinBg (ready/menu2/snow-slide-dash)
+   "/models/3d/color-rail-grind/m2ClockworkTrainBoss.glb",
+   "/models/3d/color-rail-grind/m2ElevatedRailBg.glb",
+   "/models/3d/color-rail-grind/m2GrindRing.glb",
+   "/models/3d/color-rail-grind/m2RailJunction.glb",
+   "/models/3d/color-rail-grind/m2RailJunctionV2.glb",
+   "/models/3d/color-rail-grind/m2RailLaunchRamp.glb",
+   "/models/3d/color-rail-grind/m2RailSegment.glb",
+   "/models/3d/color-rail-grind/m2RailSegmentV2.glb",
+   "/models/3d/color-rail-grind/m2RailSwitch.glb",
+   "/models/3d/color-rail-grind/m2SnowCabinBg.glb",
+   "/models/3d/color-rail-grind/m2SnowPine.glb",
+   "/models/3d/color-rail-grind/m2SupportPillar.glb",
+   "/models/3d/color-rail-grind/m2ToyTrainWagon.glb",
    // Menu 2 game 9 (Ice Peak Jumper): the ready set from ~/.play50/hyper3d/ready/menu2/ice-peak-jumper, plus
    // m2FrostGolemBoss (the L5 boss) and m2IceSlime (L4) from ready/menu2/shared
    "/models/3d/ice-peak-jumper/m2CrackedIcePlatform.glb",
@@ -693,6 +730,19 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/ice-peak-jumper/m2SnowLedgeV2.glb",
    "/models/3d/ice-peak-jumper/m2SnowYeti.glb",
    "/models/3d/ice-peak-jumper/m2SummitCairn.glb",
+   // Menu 2 game 19 (Candy World Runner): the ready set from ~/.play50/hyper3d/ready/menu2/candy-world-runner
+   // (incl. m2FrostedCupcakeTower), plus m2CandyKingBoss (the L5 boss) and m2GummyMonster (L4) from ready/menu2/shared
+   "/models/3d/candy-world-runner/m2CandyCaneArch.glb",
+   "/models/3d/candy-world-runner/m2CandyCastleBg.glb",
+   "/models/3d/candy-world-runner/m2CandyCoin.glb",
+   "/models/3d/candy-world-runner/m2CandyKingBoss.glb",
+   "/models/3d/candy-world-runner/m2ChocoBarPlatform.glb",
+   "/models/3d/candy-world-runner/m2CookieArch.glb",
+   "/models/3d/candy-world-runner/m2DonutPlatform.glb",
+   "/models/3d/candy-world-runner/m2FrostedCupcakeTower.glb",
+   "/models/3d/candy-world-runner/m2GummyMonster.glb",
+   "/models/3d/candy-world-runner/m2JellyCube.glb",
+   "/models/3d/candy-world-runner/m2Lollipop.glb",
    // Menu 2 game 31 (Wall Run Temple): the cliff temple set from ~/.play50/hyper3d/ready/menu2/wall-run-temple (incl. m2SwingingStoneRam)
    "/models/3d/wall-run-temple/m2CliffTempleBg.glb",
    "/models/3d/wall-run-temple/m2GoldRingOrb.glb",
