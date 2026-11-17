@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useRef } from "react";
+import m from "./mobile.module.css";
 import {
    CheckCircleIcon,
    XCircleIcon,
@@ -661,24 +662,13 @@ function CardFlipMemory({
    };
 
    return (
-      <div
-         style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: "32px",
-            padding: "24px",
-            maxWidth: "1200px",
-            margin: "0 auto",
-         }}
-      >
+      <div className={m.root}>
          {/* Header */}
          <div
+            className={m.panel}
             style={{
-               width: "100%",
                background: "var(--card)",
                borderRadius: "16px",
-               padding: "20px",
                boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
             }}
          >
@@ -690,6 +680,7 @@ function CardFlipMemory({
                   gap: "12px",
                   marginBottom: "16px",
                   alignItems: "center",
+                  flexWrap: "wrap",
                }}
             >
                {shareSuccess && (
@@ -754,20 +745,18 @@ function CardFlipMemory({
                )}
                <button
                   onClick={handleShare}
+                  className={`${m.btn} ${m.shareBtn}`}
                   style={{
                      display: "flex",
                      alignItems: "center",
                      gap: "8px",
-                     padding: "10px 20px",
                      background:
                         "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
                      border: "2px solid rgba(59, 130, 246, 0.6)",
 
                      color: "var(--text)",
-                     fontSize: "0.95rem",
                      fontWeight: 600,
                      cursor: "pointer",
-                     transition: "all 0.3s ease",
                   }}
                   onMouseEnter={(e) => {
                      e.currentTarget.style.background =
@@ -798,6 +787,7 @@ function CardFlipMemory({
                </button>
             </div>
             <div
+               className={m.stats}
                style={{
                   display: "flex",
                   justifyContent: "space-between",
@@ -913,6 +903,7 @@ function CardFlipMemory({
             <button
                onClick={handleHint}
                disabled={maxHints > 0 && hintsUsed >= maxHints}
+               className={m.btn}
                style={{
                   display: "flex",
                   alignItems: "center",
@@ -935,7 +926,6 @@ function CardFlipMemory({
                      maxHints > 0 && hintsUsed >= maxHints
                         ? "not-allowed"
                         : "pointer",
-                  transition: "all 0.3s ease",
                   opacity: maxHints > 0 && hintsUsed >= maxHints ? 0.5 : 1,
                }}
                onMouseEnter={(e) => {
@@ -976,12 +966,14 @@ function CardFlipMemory({
             </button>
 
             <div
+               className={m.board}
                style={{
                   display: "grid",
                   gridTemplateColumns: `repeat(${gridWidth}, 1fr)`,
                   gap: "5px",
                   width: "100%",
-                  padding: "20px",
+                  // the whole board fits the screen height (tablet landscape), never wider than the column
+                  maxWidth: `min(100%, calc((100dvh - 140px) * ${gridWidth / gridHeight}))`,
                   background: "var(--card)",
                   borderRadius: "20px",
                   boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
@@ -994,6 +986,7 @@ function CardFlipMemory({
                      <button
                         key={card.id}
                         onClick={() => handleCardClick(card.id)}
+                        className={`${m.card} ${card.matched ? m.matched : card.flipped ? (feedback === "wrong" ? m.wrong : m.flipped) : ""}`}
                         disabled={
                            card.flipped ||
                            card.matched ||
@@ -1037,11 +1030,7 @@ function CardFlipMemory({
                               completionCalled
                                  ? "not-allowed"
                                  : "pointer",
-                           transition: "all 0.3s ease",
-                           transform:
-                              card.flipped || card.matched
-                                 ? "scale(1)"
-                                 : "scale(1)",
+                           transition: "background 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease, transform 0.12s ease",
                            boxShadow:
                               showHint &&
                               hintPair &&
@@ -1104,12 +1093,12 @@ function CardFlipMemory({
             {/* Feedback Message */}
             {feedback && (
                <div
+                  className={feedback === "correct" ? m.feedbackOk : m.feedbackBad}
                   style={{
                      padding: "16px 24px",
 
                      fontSize: "1.1rem",
                      fontWeight: 600,
-                     animation: "slideIn 0.3s ease-out",
                      background:
                         feedback === "correct"
                            ? "rgba(134, 239, 172, 0.2)"
