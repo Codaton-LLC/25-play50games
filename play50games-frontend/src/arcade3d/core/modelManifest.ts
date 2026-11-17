@@ -703,6 +703,16 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/wall-run-temple/m2TempleWallV2.glb",
    "/models/3d/wall-run-temple/m2WallRunMarker.glb",
    "/models/3d/wall-run-temple/m2WallSpikePanel.glb",
+   // Menu 2 game 24 (Portal Hop, W5): ready/menu2/portal-hop (portals, obelisks, anchor pads, void crystals, the Portal Wyrm)
+   "/models/3d/portal-hop/m2ColorBeacon.glb",
+   "/models/3d/portal-hop/m2FloatingRuinBg.glb",
+   "/models/3d/portal-hop/m2GlowObelisk.glb",
+   "/models/3d/portal-hop/m2PortalAnchorPad.glb",
+   "/models/3d/portal-hop/m2PortalFrame.glb",
+   "/models/3d/portal-hop/m2PortalFrameV2.glb",
+   "/models/3d/portal-hop/m2PortalIsle.glb",
+   "/models/3d/portal-hop/m2PortalWyrmBoss.glb",
+   "/models/3d/portal-hop/m2VoidCrystal.glb",
 ];
 
 const LISTED: ReadonlySet<string> = new Set(MODEL_MANIFEST);
