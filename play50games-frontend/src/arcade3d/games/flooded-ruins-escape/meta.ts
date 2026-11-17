@@ -38,7 +38,7 @@ export const floodedRuinsEscapeMeta: ArcadeGameMeta = {
    },
    scoring: scoring(1),
    levels: LEVEL_IDS.map((id) => ({ id, title: LEVEL_TITLES[id], scoring: scoring(id) })),
-   thumbnail: null,
+   thumbnail: "/images/3d/flooded-ruins-escape.webp",
    accent: "#0d9488",
    owner: "cursor",
 };

@@ -20,12 +20,16 @@ vi.mock("../registry", async (importOriginal) => {
 });
 
 import { getGameMeta } from "../registry";
+import { provideGameMetas } from "../metaSource";
 import { normalizeEntry, readLocalScores, submitScore, syncServerScores, unrankedResult, type FinishedRun } from "./scores";
 import { levelBestText, levelClearedText, levelProgress, levelTotalText, pickInitialLevel } from "./levelProgress";
 import { resetLevelSupport } from "./levelSupport";
 import { trackArcade } from "./analytics";
 import { robotCollectorMeta } from "../games/robot-collector/meta";
 import type { LevelId } from "../types";
+
+// scores.ts reads metas through metaSource: hand it the five-level fixtures the registry mock returns.
+provideGameMetas(["robot-collector", "obstacle-race"].map((slug) => getGameMeta(slug)!));
 
 class MemoryStorage {
    private data = new Map<string, string>();

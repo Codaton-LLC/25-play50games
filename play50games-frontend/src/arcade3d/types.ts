@@ -87,9 +87,26 @@ export const ARCADE_SLUGS = [
    "plate-bounce-arena",
    "color-rail-grind",
    "snow-slide-dash",
+   "gem-collector-3d",
    "magnet-coin-lab",
    "neon-cube-jump",
+   "space-pod-jump",
    "alien-lane-escape",
+   "portal-hop",
+   "crystal-tower",
+   "mirror-dash",
+   "laser-maze-run",
+   "crystal-cave-switch",
+   "roll-dash",
+   "color-match-jump",
+   "switch-color-hero",
+   "paint-the-platforms",
+   "color-arena-survival",
+   "energy-core-hunt",
+   "color-boss-tower",
+   "color-bridge-builder",
+   "color-orb-defense",
+   "ultimate-color-trial",
 ] as const;
 
 export type ArcadeSlug = (typeof ARCADE_SLUGS)[number];
@@ -252,3 +269,10 @@ export interface ArcadeGameMeta {
     */
    levels?: readonly LevelMeta[];
 }
+
+/**
+ * The part of a game's meta the score code reads (scores, the best-score badge, levelMeta, levelProgress).
+ * The /3d grid hands only this to the browser (metaSource.ts), so the registry, which pulls every game's
+ * meta and the rules modules metas compute their limits from, stays out of the grid's bundle.
+ */
+export type GameScoringMeta = Pick<ArcadeGameMeta, "slug" | "title" | "scoring" | "levels">;

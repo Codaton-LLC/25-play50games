@@ -13,6 +13,8 @@ npm install sharp --prefix tools/og
 node tools/og/generate.mjs
 ```
 
+`node tools/og/generate.mjs --slugs a,b` writes only those game cards, which is handy when a batch of new thumbnails lands, so the other cards are not rewritten.
+
 `tools/og/package.json` and `node_modules` stay untracked.
 
 The script writes:

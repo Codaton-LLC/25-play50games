@@ -1,36 +1,36 @@
 // Pure helpers over a game's levels (docs/arcade-levels.md §1.2). Server-safe: plain data, no
 // imports beyond types. Re-exported by registry.ts. A game without `meta.levels` is one level,
 // synthesised from `meta.scoring`, so every caller can treat all games the same way.
-import { LEVEL_IDS, type ArcadeGameMeta, type LevelId, type LevelMeta, type ScoringRules } from "./types";
+import { LEVEL_IDS, type GameScoringMeta, type LevelId, type LevelMeta, type ScoringRules } from "./types";
 
 /** The game's levels: its `meta.levels`, or one level 1 made from `meta.scoring`. */
-export function levelsOf(meta: ArcadeGameMeta): readonly LevelMeta[] {
+export function levelsOf(meta: GameScoringMeta): readonly LevelMeta[] {
    if (meta.levels && meta.levels.length > 0) return meta.levels;
    return [{ id: 1, title: meta.title, scoring: meta.scoring }];
 }
 
-export function levelCount(meta: ArcadeGameMeta): 1 | 5 {
+export function levelCount(meta: GameScoringMeta): 1 | 5 {
    return meta.levels && meta.levels.length === LEVEL_IDS.length ? 5 : 1;
 }
 
 /** true when `value` is one of this game's level ids (a game without levels knows only 1). */
-export function isLevelId(meta: ArcadeGameMeta, value: unknown): value is LevelId {
+export function isLevelId(meta: GameScoringMeta, value: unknown): value is LevelId {
    return typeof value === "number" && levelsOf(meta).some((level) => level.id === value);
 }
 
-export function levelMetaFor(meta: ArcadeGameMeta, id: LevelId): LevelMeta {
+export function levelMetaFor(meta: GameScoringMeta, id: LevelId): LevelMeta {
    const level = levelsOf(meta).find((entry) => entry.id === id);
    if (!level) throw new Error(`${meta.slug} has no level ${id}`);
    return level;
 }
 
 /** The limits of one level. Throws on an unknown id. */
-export function scoringFor(meta: ArcadeGameMeta, id: LevelId): ScoringRules {
+export function scoringFor(meta: GameScoringMeta, id: LevelId): ScoringRules {
    return levelMetaFor(meta, id).scoring;
 }
 
 /** The largest possible points total: the sum of the levels' maxScore. */
-export function maxTotal(meta: ArcadeGameMeta): number {
+export function maxTotal(meta: GameScoringMeta): number {
    return levelsOf(meta).reduce((sum, level) => sum + level.scoring.maxScore, 0);
 }
 
@@ -43,7 +43,7 @@ const sameRules = (a: ScoringRules, b: ScoringRules): boolean =>
  * exactly 5, ids 1..5 in order, level 1's scoring equal to `meta.scoring`, one kind / unit /
  * display for all levels, a non-empty title, `clearScore` within `[1, maxScore]`.
  */
-export function levelMetaProblems(meta: ArcadeGameMeta): string[] {
+export function levelMetaProblems(meta: GameScoringMeta): string[] {
    const levels = meta.levels;
    if (!levels) return [];
    const problems: string[] = [];

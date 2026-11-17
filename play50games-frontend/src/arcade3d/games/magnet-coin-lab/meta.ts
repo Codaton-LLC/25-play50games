@@ -32,7 +32,7 @@ export const magnetCoinLabMeta: ArcadeGameMeta = {
    },
    scoring: scoring(1),
    levels: LEVEL_IDS.map((id) => ({ id, title: LEVELS[id].name, scoring: scoring(id) })),
-   thumbnail: null,
+   thumbnail: "/images/3d/magnet-coin-lab.webp",
    accent: "#facc15",
    owner: "claude",
 };

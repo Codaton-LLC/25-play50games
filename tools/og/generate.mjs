@@ -78,6 +78,49 @@ const TITLES = {
    "lava-pillar-jump": "Lava Pillar Jump",
    "cloud-hopper": "Cloud Hopper",
    "ring-jump-challenge": "Ring Jump Challenge",
+   "plate-surf": "Plate Surf",
+   "zipline-rush": "Zipline Rush",
+   "wind-tunnel-escape": "Wind Tunnel Escape",
+   "roll-cannon-jump": "Roll Cannon Jump",
+   "color-city-sprint": "Color City Sprint",
+   "color-door-sprint": "Color Door Sprint",
+   "sky-hook-swing": "Sky Hook Swing",
+   "mine-tunnel-run": "Mine Tunnel Run",
+   "robot-factory-run": "Robot Factory Run",
+   "dragon-cave-rush": "Dragon Cave Rush",
+   "temple-lantern-jump": "Temple Lantern Jump",
+   "jungle-vine-jump": "Jungle Vine Jump",
+   "temple-coin-rush": "Temple Coin Rush",
+   "wall-run-temple": "Wall Run Temple",
+   "spin-pole-climb": "Spin Pole Climb",
+   "temple-gong-timing": "Temple Gong Timing",
+   "disc-target-throw": "Disc Target Throw",
+   "tightrope-path": "Tightrope Path",
+   "ice-peak-jumper": "Ice Peak Jumper",
+   "toy-room-run": "Toy Room Run",
+   "candy-world-runner": "Candy World Runner",
+   "plate-bounce-arena": "Plate Bounce Arena",
+   "color-rail-grind": "Color Rail Grind",
+   "snow-slide-dash": "Snow Slide Dash",
+   "gem-collector-3d": "Gem Collector 3D",
+   "magnet-coin-lab": "Magnet Coin Lab",
+   "neon-cube-jump": "Neon Cube Jump",
+   "space-pod-jump": "Space Pod Jump",
+   "alien-lane-escape": "Alien Lane Escape",
+   "portal-hop": "Portal Hop",
+   "mirror-dash": "Mirror Dash",
+   "laser-maze-run": "Laser Maze Run",
+   "crystal-cave-switch": "Crystal Cave Switch",
+   "color-match-jump": "Color Match Jump",
+   "switch-color-hero": "Switch Color Hero",
+   "energy-core-hunt": "Energy Core Hunt",
+   "roll-dash": "Roll Dash",
+   "crystal-tower": "Crystal Tower",
+   "paint-the-platforms": "Paint the Platforms",
+   "color-arena-survival": "Color Arena Survival",
+   "color-boss-tower": "Color Boss Tower",
+   "color-bridge-builder": "Color Bridge Builder",
+   "color-orb-defense": "Color Orb Defense",
 };
 
 /** One entry per thumbnail in public/images/3d, in filename order. */
@@ -259,7 +302,20 @@ async function gameCard(game) {
    await writeCard(path.join("3d", `${game.slug}.png`), await flatten(layers));
 }
 
+// --slugs a,b writes only those game cards (no hub / classic / arcade card), so a batch of new
+// thumbnails does not rewrite every other card.
+const ONLY = (() => {
+   const i = process.argv.indexOf("--slugs");
+   return i < 0 ? null : (process.argv[i + 1] ?? "").split(",").map((s) => s.trim()).filter(Boolean);
+})();
+
 async function main() {
+   if (ONLY) {
+      const unknown = ONLY.filter((slug) => !GAMES.some((game) => game.slug === slug));
+      if (unknown.length) throw new Error(`--slugs: no thumbnail or title for ${unknown.join(", ")}`);
+      for (const game of GAMES.filter((g) => ONLY.includes(g.slug))) await gameCard(game);
+      return;
+   }
    await writeCard("hub.png", await sharp(hubSvg()).png().toBuffer());
    await writeCard("classic.png", await sharp(classicSvg()).png().toBuffer());
    await writeCard("arcade.png", await sharp(arcadeSvg()).png().toBuffer());

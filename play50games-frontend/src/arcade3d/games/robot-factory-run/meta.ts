@@ -31,7 +31,7 @@ export const robotFactoryRunMeta: ArcadeGameMeta = {
    },
    scoring: scoring(1),
    levels: LEVEL_IDS.map((id) => ({ id, title: LEVELS[id].name, scoring: scoring(id) })),
-   thumbnail: null,
+   thumbnail: "/images/3d/robot-factory-run.webp",
    accent: "#ef4444",
    owner: "codex",
 };

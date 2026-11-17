@@ -1,8 +1,9 @@
 // The list of 3D Arcade games. Server-safe: imports only plain-data meta files.
 // Owned by Claude. Game owners change their own meta.ts, never this file.
-import type { ArcadeCollection, ArcadeGameMeta, ArcadeSlug } from "./types";
+import type { ArcadeCollection, ArcadeGameMeta, ArcadeSlug, GameScoringMeta } from "./types";
 import { ARCADE_COLLECTIONS } from "./types";
 import { ARCADE_PREVIEW } from "./flags";
+import { provideGameMetas, scoringMetaOf } from "./metaSource";
 import { robotCollectorMeta } from "./games/robot-collector/meta";
 import { foodCatcherMeta } from "./games/food-catcher/meta";
 import { officeEscapeMeta } from "./games/office-escape/meta";
@@ -71,10 +72,13 @@ import { rollCannonJumpMeta } from "./games/roll-cannon-jump/meta";
 import { colorCitySprintMeta } from "./games/color-city-sprint/meta";
 import { templeLanternJumpMeta } from "./games/temple-lantern-jump/meta";
 import { toyRoomRunMeta } from "./games/toy-room-run/meta";
+import { gemCollector3dMeta } from "./games/gem-collector-3d/meta";
 import { jungleVineJumpMeta } from "./games/jungle-vine-jump/meta";
 import { icePeakJumperMeta } from "./games/ice-peak-jumper/meta";
 import { candyWorldRunnerMeta } from "./games/candy-world-runner/meta";
 import { alienLaneEscapeMeta } from "./games/alien-lane-escape/meta";
+import { laserMazeRunMeta } from "./games/laser-maze-run/meta";
+import { mirrorDashMeta } from "./games/mirror-dash/meta";
 import { dragonCaveRushMeta } from "./games/dragon-cave-rush/meta";
 import { skyHookSwingMeta } from "./games/sky-hook-swing/meta";
 import { tightropePathMeta } from "./games/tightrope-path/meta";
@@ -84,10 +88,24 @@ import { plateBounceArenaMeta } from "./games/plate-bounce-arena/meta";
 import { mineTunnelRunMeta } from "./games/mine-tunnel-run/meta";
 import { spinPoleClimbMeta } from "./games/spin-pole-climb/meta";
 import { templeGongTimingMeta } from "./games/temple-gong-timing/meta";
+import { crystalTowerMeta } from "./games/crystal-tower/meta";
+import { spacePodJumpMeta } from "./games/space-pod-jump/meta";
 import { neonCubeJumpMeta } from "./games/neon-cube-jump/meta";
 
 import { snowSlideDashMeta } from "./games/snow-slide-dash/meta";
+import { portalHopMeta } from "./games/portal-hop/meta";
+import { colorArenaSurvivalMeta } from "./games/color-arena-survival/meta";
+import { paintThePlatformsMeta } from "./games/paint-the-platforms/meta";
+import { rollDashMeta } from "./games/roll-dash/meta";
+import { crystalCaveSwitchMeta } from "./games/crystal-cave-switch/meta";
+import { colorBridgeBuilderMeta } from "./games/color-bridge-builder/meta";
+import { switchColorHeroMeta } from "./games/switch-color-hero/meta";
+import { colorMatchJumpMeta } from "./games/color-match-jump/meta";
+import { energyCoreHuntMeta } from "./games/energy-core-hunt/meta";
+import { colorBossTowerMeta } from "./games/color-boss-tower/meta";
+import { ultimateColorTrialMeta } from "./games/ultimate-color-trial/meta";
 
+import { colorOrbDefenseMeta } from "./games/color-orb-defense/meta";
 export const ARCADE_GAMES: ArcadeGameMeta[] = [
    robotCollectorMeta,
    foodCatcherMeta,
@@ -153,6 +171,7 @@ export const ARCADE_GAMES: ArcadeGameMeta[] = [
    colorCitySprintMeta,
    templeLanternJumpMeta,
    toyRoomRunMeta,
+   gemCollector3dMeta,
    jungleVineJumpMeta,
    icePeakJumperMeta,
    candyWorldRunnerMeta,
@@ -169,10 +188,34 @@ export const ARCADE_GAMES: ArcadeGameMeta[] = [
    colorRailGrindMeta,
    magnetCoinLabMeta,
    alienLaneEscapeMeta,
+   laserMazeRunMeta,
+   mirrorDashMeta,
    spinPoleClimbMeta,
    templeGongTimingMeta,
+   crystalTowerMeta,
+   spacePodJumpMeta,
    neonCubeJumpMeta,
+   portalHopMeta,
+   colorArenaSurvivalMeta,
+   paintThePlatformsMeta,
+   switchColorHeroMeta,
+   rollDashMeta,
+   crystalCaveSwitchMeta,
+   colorOrbDefenseMeta,
+   colorBridgeBuilderMeta,
+   colorMatchJumpMeta,
+   energyCoreHuntMeta,
+   colorBossTowerMeta,
+   ultimateColorTrialMeta,
 ].sort((a, b) => a.order - b.order);
+
+// Client code reads metas through metaSource.ts; wherever the registry is loaded, it is filled.
+provideGameMetas(ARCADE_GAMES);
+
+/** Every game in the compact form the /3d grid hands the browser (ui/GameMetas.tsx). */
+export function scoringMetas(): GameScoringMeta[] {
+   return ARCADE_GAMES.map(scoringMetaOf);
+}
 
 export function getGameMeta(slug: string): ArcadeGameMeta | undefined {
    return ARCADE_GAMES.find((game) => game.slug === slug);
