@@ -103,5 +103,6 @@ export const GAME_LOADERS: Record<ArcadeSlug, () => Promise<GameModule>> = {
    "color-match-jump": () => import("./games/color-match-jump"),
    "roll-dash": () => import("./games/roll-dash"),
    "crystal-cave-switch": () => import("./games/crystal-cave-switch"),
+   "color-bridge-builder": () => import("./games/color-bridge-builder"),
    "energy-core-hunt": () => import("./games/energy-core-hunt"),
 };

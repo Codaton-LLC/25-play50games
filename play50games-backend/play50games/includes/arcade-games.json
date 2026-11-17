@@ -1248,22 +1248,6 @@
         { "title": "Toybox Finale", "max_score": 18410, "min_duration_ms": 15900, "max_duration_ms": 200000, "time_base_ms": 200000 }
       ]
     },
-    "crystal-tower": {
-      "title": "Crystal Tower",
-      "kind": "time",
-      "max_score": 8310,
-      "min_duration_ms": 6900,
-      "max_duration_ms": 90000,
-      "time_base_ms": 90000,
-      "enabled": false,
-      "levels": [
-        { "title": "3-Color Sequence", "max_score": 8310, "min_duration_ms": 6900, "max_duration_ms": 90000, "time_base_ms": 90000 },
-        { "title": "4 Colors", "max_score": 11300, "min_duration_ms": 7000, "max_duration_ms": 120000, "time_base_ms": 120000 },
-        { "title": "5 Colors", "max_score": 13380, "min_duration_ms": 16200, "max_duration_ms": 150000, "time_base_ms": 150000 },
-        { "title": "Moving Crystals", "max_score": 15820, "min_duration_ms": 21800, "max_duration_ms": 180000, "time_base_ms": 180000 },
-        { "title": "Memory Tower", "max_score": 20550, "min_duration_ms": 34500, "max_duration_ms": 240000, "time_base_ms": 240000 }
-      ]
-    },
     "robot-factory-run": {
       "title": "Robot Factory Run",
       "kind": "time",
@@ -1552,22 +1536,6 @@
         { "title": "Portal Master", "max_score": 28370, "min_duration_ms": 16300, "max_duration_ms": 300000, "time_base_ms": 300000 }
       ]
     },
-    "switch-color-hero": {
-      "title": "Switch Color Hero",
-      "kind": "time",
-      "max_score": 10450,
-      "min_duration_ms": 15500,
-      "max_duration_ms": 120000,
-      "time_base_ms": 120000,
-      "enabled": false,
-      "levels": [
-        { "title": "Two Gates", "max_score": 10450, "min_duration_ms": 15500, "max_duration_ms": 120000, "time_base_ms": 120000 },
-        { "title": "Three Colors", "max_score": 12920, "min_duration_ms": 20800, "max_duration_ms": 150000, "time_base_ms": 150000 },
-        { "title": "Fast Switching", "max_score": 16050, "min_duration_ms": 19500, "max_duration_ms": 180000, "time_base_ms": 180000 },
-        { "title": "Mixed Obstacles", "max_score": 18830, "min_duration_ms": 21700, "max_duration_ms": 210000, "time_base_ms": 210000 },
-        { "title": "Color Overdrive", "max_score": 26690, "min_duration_ms": 33100, "max_duration_ms": 300000, "time_base_ms": 300000 }
-      ]
-    },
     "space-pod-jump": {
       "title": "Space Pod Jump",
       "kind": "time",
@@ -1615,6 +1583,54 @@
         { "title": "Slime Pen", "max_score": 6300, "min_duration_ms": 104500, "max_duration_ms": 111000, "base": 0, "max_pps": 61 },
         { "title": "Chest Rush", "max_score": 7132, "min_duration_ms": 114000, "max_duration_ms": 121000, "base": 0, "max_pps": 63 },
         { "title": "Gumdrop Glutton", "max_score": 14157, "min_duration_ms": 29100, "max_duration_ms": 241000, "base": 0, "max_pps": 487 }
+      ]
+    },
+    "color-bridge-builder": {
+      "title": "Color Bridge Builder",
+      "kind": "time",
+      "max_score": 14990,
+      "min_duration_ms": 100,
+      "max_duration_ms": 150000,
+      "time_base_ms": 150000,
+      "enabled": false,
+      "levels": [
+        { "title": "Two Switches", "max_score": 14990, "min_duration_ms": 100, "max_duration_ms": 150000, "time_base_ms": 150000 },
+        { "title": "Prisms", "max_score": 17990, "min_duration_ms": 100, "max_duration_ms": 180000, "time_base_ms": 180000 },
+        { "title": "Split Bridge", "max_score": 19990, "min_duration_ms": 100, "max_duration_ms": 200000, "time_base_ms": 200000 },
+        { "title": "Timed Bridge", "max_score": 21970, "min_duration_ms": 300, "max_duration_ms": 220000, "time_base_ms": 220000 },
+        { "title": "Canyon Gate", "max_score": 28380, "min_duration_ms": 16200, "max_duration_ms": 300000, "time_base_ms": 300000 }
+      ]
+    },
+    "crystal-tower": {
+      "title": "Crystal Tower",
+      "kind": "time",
+      "max_score": 8310,
+      "min_duration_ms": 6900,
+      "max_duration_ms": 90000,
+      "time_base_ms": 90000,
+      "enabled": false,
+      "levels": [
+        { "title": "3-Color Sequence", "max_score": 8310, "min_duration_ms": 6900, "max_duration_ms": 90000, "time_base_ms": 90000 },
+        { "title": "4 Colors", "max_score": 11300, "min_duration_ms": 7000, "max_duration_ms": 120000, "time_base_ms": 120000 },
+        { "title": "5 Colors", "max_score": 13380, "min_duration_ms": 16200, "max_duration_ms": 150000, "time_base_ms": 150000 },
+        { "title": "Moving Crystals", "max_score": 15820, "min_duration_ms": 21800, "max_duration_ms": 180000, "time_base_ms": 180000 },
+        { "title": "Memory Tower", "max_score": 20550, "min_duration_ms": 34500, "max_duration_ms": 240000, "time_base_ms": 240000 }
+      ]
+    },
+    "switch-color-hero": {
+      "title": "Switch Color Hero",
+      "kind": "time",
+      "max_score": 10450,
+      "min_duration_ms": 15500,
+      "max_duration_ms": 120000,
+      "time_base_ms": 120000,
+      "enabled": false,
+      "levels": [
+        { "title": "Two Gates", "max_score": 10450, "min_duration_ms": 15500, "max_duration_ms": 120000, "time_base_ms": 120000 },
+        { "title": "Three Colors", "max_score": 12920, "min_duration_ms": 20800, "max_duration_ms": 150000, "time_base_ms": 150000 },
+        { "title": "Fast Switching", "max_score": 16050, "min_duration_ms": 19500, "max_duration_ms": 180000, "time_base_ms": 180000 },
+        { "title": "Mixed Obstacles", "max_score": 18830, "min_duration_ms": 21700, "max_duration_ms": 210000, "time_base_ms": 210000 },
+        { "title": "Color Overdrive", "max_score": 26690, "min_duration_ms": 33100, "max_duration_ms": 300000, "time_base_ms": 300000 }
       ]
     },
     "mirror-dash": {
