@@ -4,7 +4,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import type { Group, Mesh, MeshBasicMaterial, Object3D } from "three";
 import { createAxisAim, followRelativeDrag, type AxisAimOptions } from "@/arcade3d/core/aim";
-import { InstancedModel, Model } from "@/arcade3d/core/assets";
+import { Model } from "@/arcade3d/core/assets";
 import { playSfx, startLoop, useMuted } from "@/arcade3d/core/audio";
 import { useActionPop, useFx } from "@/arcade3d/core/fx";
 import { useGameTime } from "@/arcade3d/core/gameTime";
@@ -21,7 +21,7 @@ import type { ModelAsset } from "@/arcade3d/core/types";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useEyeShift } from "@/arcade3d/core/useEyeShift";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
-import { ASSETS, EXHIBIT_LOOK, SARCOPHAGUS_SPOTS, statueAsset } from "./assets";
+import { EXHIBIT_LOOK, statueAsset } from "./assets";
 import { GUIDE, hintCode, hintFor } from "./guide";
 import { useMuseumLevel } from "./useMuseumLevel";
 import { SoftBeam } from "./Beam";
@@ -155,7 +155,7 @@ function FloorMarks({ run }: { run: Run }) {
 }
 
 export default function Scene() {
-   const { id: levelId, config } = useMuseumLevel();
+   const { config } = useMuseumLevel();
    const runId = useArcadeStore((s) => s.runId);
    const phase = useArcadeStore((s) => s.phase);
    const run = useMemo(() => createRun(randomSeed(), config), [runId, config]);
@@ -331,15 +331,12 @@ export default function Scene() {
    return (
       <>
          <EyeRig position={EYE} yaw={yawRef} fov={FOV} shift={eye.shift} />
-         <Gallery yaw={yawRef} />
-         {(levelId === 4 || levelId === 5) && (
-            <InstancedModel asset={ASSETS.sarcophagus} spots={SARCOPHAGUS_SPOTS} fallback={null} />
-         )}
+         <Gallery yaw={yawRef} pedestals={run.pedestals} />
          {INDEXES.map((i) => (
             <StatueView key={`${run.seed}-${i}`} index={i} run={run} asset={statues[i]} />
          ))}
          <FloorMarks run={run} />
-         <SoftBeam ref={beamRef} halfAngle={beamHalfFor(config.beam, beamPhase, coarse)} range={BEAM.range} height={1.55} color={COLORS.beam} opacity={0.3} light intensity={24} />
+         <SoftBeam ref={beamRef} halfAngle={beamHalfFor(config.beam, beamPhase, coarse)} range={BEAM.range} height={1.55} color={config.palette.beam} opacity={0.3} light intensity={24} />
          <group ref={flashRef}>
             <SoftBeam halfAngle={FLASH.half} range={BEAM.range} height={1.55} color={COLORS.flash} opacity={0.22} />
          </group>

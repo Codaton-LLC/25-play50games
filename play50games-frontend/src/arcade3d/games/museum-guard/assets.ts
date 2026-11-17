@@ -5,6 +5,7 @@ import {
    EXPANSION_ASSETS,
    EXPANSION_CHARACTERS,
    EXPANSION_CHARACTER_GLB_HEIGHT,
+   EXPANSION_GLB_SIZE,
    REUSED_ASSETS,
    REUSED_GLB_SIZE,
    SHARED_ASSETS,
@@ -20,6 +21,8 @@ export const ROBOT_SCALE = 1.2 / 1.72;
 export const DOOR_SCALE = 2.1 / REUSED_GLB_SIZE.door.height;
 /** About 2 m wide. Height follows the GLB. */
 export const BENCH_SCALE = 2 / REUSED_GLB_SIZE.bench.width;
+export const ROCKET_SCALE = 1.55 / EXPANSION_GLB_SIZE.rocket.height;
+export const CANNON_SCALE = 1.1 / EXPANSION_GLB_SIZE.cannon.depth;
 
 // Measured decoded GLB: 1.557390 x 0.668518 x 1.896267, minY = 0.
 const SARCOPHAGUS_SCALE = 1.4 / 1.896267294883728;
@@ -68,6 +71,11 @@ export const ASSETS = {
       fallbackColor: COLORS.vase,
       budget: { tris: 3000, bytes: 74380 },
    },
+   bust: { ...EXPANSION_ASSETS.bust, id: "museum-bust", material: "bone" },
+   chest: { ...EXPANSION_ASSETS.chest, id: "museum-chest" },
+   rocket: { ...EXPANSION_ASSETS.rocket, id: "museum-rocket", scale: ROCKET_SCALE },
+   glowPod: { ...EXPANSION_ASSETS.glowPod, id: "museum-glow-pod" },
+   cannon: { ...EXPANSION_ASSETS.cannon, id: "museum-cannon", scale: CANNON_SCALE },
 } as const satisfies Record<string, ModelAsset>;
 
 /** One asset per pedestal so each clone can take its own glow. Same url as the kind. */
