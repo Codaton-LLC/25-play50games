@@ -16,6 +16,9 @@ import {
    getShareStatus,
 } from "@/lib/api/share";
 
+import touch from "./skillTouch.module.css";
+import { usePlayAreaInView } from "./usePlayAreaInView";
+
 interface TimingBarProps {
    config: Record<string, any>;
    onScoreUpdate: (score: number) => void;
@@ -118,6 +121,7 @@ export default function TimingBar({
    const [successfulStops, setSuccessfulStops] = useState(0);
    const [failedStops, setFailedStops] = useState(0);
    const [isStopped, setIsStopped] = useState(false);
+   const [lastStop, setLastStop] = useState<"hit" | "miss" | null>(null); // feedback only
    const [nextRoundLocked, setNextRoundLocked] = useState(false);
 
    // Replay and Share functionality
@@ -159,6 +163,10 @@ export default function TimingBar({
       window.addEventListener("resize", checkResponsive);
       return () => window.removeEventListener("resize", checkResponsive);
    }, []);
+
+   // Mobile/tablet: bring the panel and the play area on screen when a round starts
+   const rootRef = useRef<HTMLDivElement>(null);
+   const pad = usePlayAreaInView(rootRef, arenaRef, true, `${gameState}-${currentLevel}`);
 
    // Clear all timers
    const clearAll = useCallback(() => {
@@ -299,6 +307,7 @@ export default function TimingBar({
       const zoneRight = zoneLeft + zone.offsetWidth;
 
       const hit = barLeft >= zoneLeft && barRight <= zoneRight;
+      setLastStop(hit ? "hit" : "miss");
 
       if (hit) {
          setSuccessfulStops((prev) => {
@@ -329,6 +338,7 @@ export default function TimingBar({
          ) {
             isStoppedRef.current = false;
             setIsStopped(false);
+            setLastStop(null);
             const levelConfig = getLevelConfig(currentLevel);
             const zoneWidth = levelConfig.targetZoneWidth;
             const zoneStart = Math.random() * (100 - zoneWidth);
@@ -747,6 +757,7 @@ export default function TimingBar({
    return (
       <>
          <div
+         ref={rootRef}
             style={{
                display: "flex",
                flexDirection: "column",
@@ -906,7 +917,11 @@ export default function TimingBar({
                            color: "var(--text)",
                         }}
                      >
-                        Successful: {successfulStops}/{minStops}
+                        Successful:{" "}
+                        <span key={successfulStops} className={touch.pop} style={{ display: "inline-block" }}>
+                           {successfulStops}
+                        </span>
+                        /{minStops}
                      </span>
                   </div>
                   <div
@@ -945,6 +960,8 @@ export default function TimingBar({
             {gameState === "playing" ? (
                <div
                   ref={arenaRef}
+                  className={touch.tapArea}
+                  data-play-area=""
                   onClick={handleStop}
                   style={{
                      position: "relative",
@@ -971,6 +988,7 @@ export default function TimingBar({
                   {/* Track */}
                   <div
                      ref={trackRef}
+                     className={lastStop === "miss" ? touch.shake : undefined}
                      style={{
                         width: "80%",
                         height: "16px",
@@ -989,7 +1007,15 @@ export default function TimingBar({
                            bottom: 0,
                            left: `${targetZone.start}%`,
                            width: `${targetZone.end - targetZone.start}%`,
-                           background: "rgba(34, 197, 94, 0.45)",
+                           background:
+                              lastStop === "hit"
+                                 ? "rgba(34, 197, 94, 0.75)"
+                                 : "rgba(34, 197, 94, 0.45)",
+                           boxShadow:
+                              lastStop === "hit"
+                                 ? "0 0 18px rgba(34, 197, 94, 0.7)"
+                                 : "none",
+                           transition: "background 0.15s ease, box-shadow 0.15s ease",
                            borderRadius: "999px",
                         }}
                      />
@@ -1005,13 +1031,33 @@ export default function TimingBar({
                            height: "28px",
                            borderRadius: "6px",
                            background:
-                              "linear-gradient(180deg, rgba(59, 130, 246, 0.9), rgba(59, 130, 246, 0.55))",
+                              lastStop === "hit"
+                                 ? "linear-gradient(180deg, rgba(34, 197, 94, 1), rgba(34, 197, 94, 0.65))"
+                                 : lastStop === "miss"
+                                   ? "linear-gradient(180deg, rgba(239, 68, 68, 1), rgba(239, 68, 68, 0.65))"
+                                   : "linear-gradient(180deg, rgba(59, 130, 246, 0.9), rgba(59, 130, 246, 0.55))",
                            boxShadow: "0 6px 14px rgba(0, 0, 0, 0.35)",
                            transform: "translateX(-50%)",
                            pointerEvents: "none",
                         }}
                      />
                   </div>
+                  {/* hint: the whole arena is the button */}
+                  <span
+                     aria-hidden="true"
+                     style={{
+                        position: "absolute",
+                        bottom: "14px",
+                        left: 0,
+                        right: 0,
+                        textAlign: "center",
+                        fontSize: "0.8rem",
+                        color: "rgba(255, 255, 255, 0.55)",
+                        pointerEvents: "none",
+                     }}
+                  >
+                     {isMobile || isTablet ? "Tap anywhere to stop" : "Click anywhere to stop"}
+                  </span>
                </div>
             ) : null}
 
@@ -1043,6 +1089,7 @@ export default function TimingBar({
                      Successful stops: {successfulStops}/{minStops}
                   </div>
                   <button
+                  className={touch.tapButton}
                      onClick={handleNextRound}
                      disabled={nextRoundLocked}
                      style={{
@@ -1207,6 +1254,7 @@ export default function TimingBar({
                )}
 
                <button
+                  className={touch.tapButton}
                   onClick={handleReplay}
                   disabled={maxReplays > 0 && replaysUsed >= maxReplays}
                   style={{
@@ -1247,7 +1295,7 @@ export default function TimingBar({
                      }}
                   />
                   <span>
-                     {isMobile ? "" : "Replay "}
+                     {"Replay "}
                      {maxReplays === 0
                         ? "(∞)"
                         : `(${maxReplays - replaysUsed}/${maxReplays})`}
@@ -1255,6 +1303,7 @@ export default function TimingBar({
                </button>
 
                <button
+                  className={touch.tapButton}
                   onClick={handleShare}
                   style={{
                      display: "flex",
@@ -1283,6 +1332,7 @@ export default function TimingBar({
                   <span>Share for unlimited</span>
                </button>
             </div>
+            {pad > 0 && <div aria-hidden="true" style={{ height: pad, flexShrink: 0 }} />}
          </div>
       </>
    );
