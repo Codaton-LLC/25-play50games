@@ -1,6 +1,5 @@
 // Roll Cannon Jump's models. The five heroes are the shared Menu 2 armadillos (menu2/heroModels.ts,
-// each its own GLB). This game's props live in public/models/3d/roll-cannon-jump (the target boards are
-// m2TargetRing, the round drums' tops m2LandingPadM2); the colour orbs
+// each its own GLB). This game's props live in public/models/3d/roll-cannon-jump; the colour orbs
 // are the shared menu2 scoreOrb.
 // Every GLB is one mesh, feet on y = 0, centred on x and z. GLB_SIZE is the real bounds
 // (assets.test.ts measures each mesh with the repo's own GLB reader).
@@ -30,14 +29,7 @@ export const GLB_SIZE = {
    boss: { x: 1.8958, y: 1.5166, z: 1.1721 },
    /** the shared menu2 colour orb */
    orb: { x: 1.766, y: 1.901, z: 1.77 },
-   /** m2TargetRing: a round target board, its face along x (thin), feet on 0 */
-   board: { x: 0.637, y: 1.892, z: 1.904 },
-   /** m2LandingPadM2: a padded landing disc with a target ring pattern (a round drum's top) */
-   pad: { x: 1.801, y: 0.031, z: 1.891 },
 } as const;
-
-/** A round drum's padded top is drawn this thick (m) over the drum. */
-export const PAD_TOP_H = 0.05;
 
 /** A cannon is drawn this long (m) along its barrel: m2RollCannon scaled by CANNON_LENGTH / GLB_SIZE.cannon.z. */
 export const CANNON_LENGTH = 2.2;
@@ -79,7 +71,4 @@ export const ASSETS: Record<string, ModelAsset> = {
    boss: { ...prop("m2SmokeBlimpBoss", "#6b7280"), budget: BOSS_BUDGET },
    // the shared menu2 colour orb
    orb: shared("scoreOrb", "#fbbf24"),
-   // the target boards Riko smashes and the round drums' padded tops (ready/menu2, optimized locally)
-   board: prop("m2TargetRing", "#e9dcc2"),
-   pad: prop("m2LandingPadM2", "#e9dcc2"),
 };
