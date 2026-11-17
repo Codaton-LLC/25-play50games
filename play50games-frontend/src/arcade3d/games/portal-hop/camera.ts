@@ -7,7 +7,7 @@
 import type { IntroKeyframe } from "@/arcade3d/core/intro";
 import type { AABB } from "@/arcade3d/core/collision";
 import { orbitPosition, wrapAngle, yawBehind, type OrbitSettings, type OrbitState } from "@/arcade3d/menu2/camera/orbit";
-import { islandOn, type Course } from "./course";
+import { islandOn, type Course, type ExitPose } from "./course";
 import type { PortalRun } from "./rules";
 
 const DEG = Math.PI / 180;
@@ -101,4 +101,19 @@ export function courseSolids(run: PortalRun, x: number, _y: number, z: number, o
       b.max.z = i.z + r;
    }
    return n;
+}
+
+/**
+ * Is this anchor (its obelisk and an exit on it) between the camera and the hero? True while the camera
+ * stands behind the exit (its back half) and the hero is close in front of it: just out of the portal,
+ * the chase camera would look through solid stone. The anchor is hidden then.
+ */
+export function anchorBlocksView(pose: Pick<ExitPose, "ax" | "az" | "dx" | "dz">, cam: { x: number; z: number }, hero: { x: number; z: number }): boolean {
+   const len = Math.hypot(pose.dx, pose.dz) || 1;
+   const fx = pose.dx / len;
+   const fz = pose.dz / len;
+   const camAlong = (cam.x - pose.ax) * fx + (cam.z - pose.az) * fz;
+   const heroAlong = (hero.x - pose.ax) * fx + (hero.z - pose.az) * fz;
+   const heroNear = Math.hypot(hero.x - pose.ax, hero.z - pose.az) < 9;
+   return camAlong < 0.6 && heroAlong > 0 && heroNear && Math.hypot(cam.x - pose.ax, cam.z - pose.az) < 14;
 }

@@ -6,7 +6,7 @@ import { createRng } from "@/arcade3d/core/math";
 import type { AABB } from "@/arcade3d/core/collision";
 import { createOrbit, wrapAngle } from "@/arcade3d/menu2/camera/orbit";
 import { createBot, botInput } from "./bot";
-import { TELEPORT_TURN, afterTeleport, courseSolids, introKeyframes, orbitLookUp, orbitScale, playCamera, portalOrbit } from "./camera";
+import { TELEPORT_TURN, afterTeleport, anchorBlocksView, courseSolids, introKeyframes, orbitLookUp, orbitScale, playCamera, portalOrbit } from "./camera";
 import { PROPOSED_LEVEL_LIMITS, createRun, createStepInput, step, submittedMs, type PortalRun } from "./rules";
 import { DEFAULT_HERO, pickedHero, resetHeroPick, selectHero } from "./heroes";
 
@@ -54,6 +54,21 @@ describe("through a portal", () => {
          afterTeleport(o, vx, vz);
          expect(Math.abs(wrapAngle(o.yaw))).toBeLessThanOrEqual(TELEPORT_TURN + 1e-9);
       }
+   });
+});
+
+describe("an anchor in the way", () => {
+   it("hides only while the camera is behind it and the hero close in front", () => {
+      // an exit at the origin facing -z
+      const pose = { ax: 0, az: 0, dx: 0, dz: -1 };
+      expect(anchorBlocksView(pose, { x: 0, z: 6 }, { x: 0, z: -2 })).toBe(true);
+      // the camera in front of it (looking back at it): drawn
+      expect(anchorBlocksView(pose, { x: 0, z: -12 }, { x: 0, z: -4 })).toBe(false);
+      // the hero behind it, or far away: drawn
+      expect(anchorBlocksView(pose, { x: 0, z: 6 }, { x: 0, z: 2 })).toBe(false);
+      expect(anchorBlocksView(pose, { x: 0, z: 6 }, { x: 0, z: -12 })).toBe(false);
+      // the camera far off: drawn
+      expect(anchorBlocksView(pose, { x: 0, z: 30 }, { x: 0, z: -2 })).toBe(false);
    });
 });
 

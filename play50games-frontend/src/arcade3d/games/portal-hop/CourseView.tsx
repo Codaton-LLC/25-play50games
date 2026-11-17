@@ -10,7 +10,7 @@
 // pressure plate and its bridge, the beacon spikes (m2ColorBeacon) and the goal ring. Shape and fill
 // carry the state, not hue (World 5's readability rule). Obelisks are clickable: a tap opens the exit there.
 import { useMemo, useRef } from "react";
-import { useFrame, type ThreeEvent } from "@react-three/fiber";
+import { useFrame, useThree, type ThreeEvent } from "@react-three/fiber";
 import { AdditiveBlending, DoubleSide, Vector3, type Group, type Mesh, type MeshBasicMaterial } from "three";
 import { DynamicInstancedModel, InstancedModel, Model } from "@/arcade3d/core/assets";
 import { DynamicInstanced, type InstanceSpot } from "@/arcade3d/core/render";
@@ -19,11 +19,13 @@ import { ASSETS, FRAME_W, GLB_SIZE, ISLAND_SY, OBELISK_H, ORB_SIZE } from "./ass
 import { EXIT_UP, exitPose, islandOn, type Anchor, type Course, type ExitPose } from "./course";
 import { COLORS, levelLook } from "./look";
 import { secretIndex } from "./progression";
+import { anchorBlocksView } from "./camera";
 import { pickLatch } from "./latch";
 import { BLOCK_HALF, anchorVisible, pairOpen, previewArc, previewPair, type PortalRun } from "./rules";
 
 
 const POSE: ExitPose = { x: 0, y: 0, z: 0, dx: 0, dy: 0, dz: 0, ax: 0, az: 0, yaw: 0 };
+
 
 function islandSpots(course: Course): InstanceSpot[] {
    const out: InstanceSpot[] = [];
@@ -150,6 +152,7 @@ function Entries({ run }: { run: PortalRun }) {
 
 function Obelisk({ run, a }: { run: PortalRun; a: Anchor }) {
    const root = useRef<Group>(null);
+   const camera = useThree((st) => st.camera);
    const ring = useRef<Mesh>(null);
    const time = useGameTime();
    const c = run.course;
@@ -162,7 +165,7 @@ function Obelisk({ run, a }: { run: PortalRun; a: Anchor }) {
       g.position.set(POSE.ax, a.y, POSE.az);
       g.rotation.y = POSE.yaw;
       const visible = !a.hidden || anchorVisible(run, a) || c.pairs[a.pair].anchors[run.sel[a.pair]] === a.id;
-      g.visible = visible;
+      g.visible = visible && !anchorBlocksView(POSE, camera.position, run.hero);
       const r = ring.current;
       if (r) {
          const selected = c.pairs[a.pair].anchors[run.sel[a.pair]] === a.id;
@@ -195,6 +198,7 @@ function Obelisk({ run, a }: { run: PortalRun; a: Anchor }) {
 /** Each pair's exit frame, in front of its selected anchor (a wire surface while it moves). */
 function Exits({ run }: { run: PortalRun }) {
    const c = run.course;
+   const camera = useThree((st) => st.camera);
    const groups = useRef<(Group | null)[]>([]);
    const mats = useRef<(MeshBasicMaterial | null)[]>([]);
    const time = useGameTime();
@@ -206,6 +210,7 @@ function Exits({ run }: { run: PortalRun }) {
          exitPose(c, a, run.simMs, POSE);
          g.position.set(POSE.x, POSE.y - EXIT_UP, POSE.z);
          g.rotation.set(0, POSE.yaw, 0);
+         g.visible = !anchorBlocksView(POSE, camera.position, run.hero);
          const open = pairOpen(run, p.id);
          const m = mats.current[k];
          if (m) {
