@@ -100,6 +100,13 @@ code wireframe.
 Co-op shares the flip bus (anyone's jump flips everyone: `NeonRun.pendingFlips`); versus keeps each
 player's own flip state and ranks by finish time.
 
+## Playtest (headless Chrome over CDP, next dev :3323, `?autoplay=1`, unlock-all)
+
+All five levels at 1280 x 800 and 390 x 844 with a two-finger orbit on the phone; 0 console errors.
+The solid glyphs were enlarged after the first pass (dark solid cubes under the night light). The
+headless renderer is slow, so the desktop shots land in the countdown and Flipframe's fight was
+checked in the rules tests and the bot, not on screen.
+
 ## Known issues / open
 
 - Energy pads are drawn on the neutral cubes but no level uses a launch pad (the card's "free jump").

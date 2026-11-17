@@ -111,27 +111,27 @@ function Glyphs({ run }: { run: NeonRun }) {
    return (
       <>
          <DynamicInstanced count={n} update={fills.A} name="glyph-a" tinted>
-            <circleGeometry args={[0.55, 4]} />
+            <circleGeometry args={[0.72, 4]} />
             <meshBasicMaterial toneMapped={false} />
          </DynamicInstanced>
          <DynamicInstanced count={n} update={fills.B} name="glyph-b" tinted>
-            <circleGeometry args={[0.6, 3]} />
+            <circleGeometry args={[0.8, 3]} />
             <meshBasicMaterial toneMapped={false} />
          </DynamicInstanced>
          <DynamicInstanced count={n} update={fills.R} name="glyph-r" tinted>
-            <ringGeometry args={[0.32, 0.55, 32]} />
+            <ringGeometry args={[0.42, 0.72, 32]} />
             <meshBasicMaterial toneMapped={false} />
          </DynamicInstanced>
          <DynamicInstanced count={n} update={fills.a} name="glyph-a-outline" tinted>
-            <ringGeometry args={[0.47, 0.55, 4]} />
+            <ringGeometry args={[0.62, 0.72, 4]} />
             <meshBasicMaterial transparent opacity={0.7} toneMapped={false} />
          </DynamicInstanced>
          <DynamicInstanced count={n} update={fills.b} name="glyph-b-outline" tinted>
-            <ringGeometry args={[0.5, 0.6, 3]} />
+            <ringGeometry args={[0.68, 0.8, 3]} />
             <meshBasicMaterial transparent opacity={0.7} toneMapped={false} />
          </DynamicInstanced>
          <DynamicInstanced count={n} update={fills.r} name="glyph-r-outline" tinted>
-            <ringGeometry args={[0.48, 0.55, 32]} />
+            <ringGeometry args={[0.64, 0.72, 32]} />
             <meshBasicMaterial transparent opacity={0.7} toneMapped={false} />
          </DynamicInstanced>
       </>
