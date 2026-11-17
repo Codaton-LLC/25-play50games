@@ -34,10 +34,10 @@ const DESCRIPTIONS: Record<LevelId, string> = {
 
 const ENVIRONMENTS: Record<LevelId, LevelSpec["environment"]> = {
    1: undefined,
-   2: { background: "#13233a", lighting: "day" },
-   3: { background: "#1f1530", lighting: "sunset" },
-   4: { background: "#05070d", lighting: "night" },
-   5: { background: "#2a0f14", lighting: "sunset" },
+   2: { background: "#13233a", lighting: "day", fog: ["#13233a", 45, 85] },
+   3: { background: "#1f1530", lighting: "sunset", fog: ["#1f1530", 42, 80] },
+   4: { background: "#05070d", lighting: "night", fog: ["#05070d", 38, 76] },
+   5: { background: "#2a0f14", lighting: "sunset", fog: ["#2a0f14", 46, 88] },
 };
 
 const definition: GameDefinition<RobotLevel> = {

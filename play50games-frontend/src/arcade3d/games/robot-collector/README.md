@@ -11,6 +11,7 @@ Owner: Claude. Slug: `robot-collector`. Game 1 of the 3D Arcade and the **refere
 | `levels.ts` / `levels.test.ts` / `rules.levels.test.ts` | The five level configs (pure data) / their declarations, worlds and per-level limit proofs / the bot sweeps per level (see "Levels"). |
 | `Scene.tsx` | The frame loop, the camera and the moving things: feeds input + dt into `rules.ts`, draws the result, reports to the store. |
 | `Primitives.tsx` | Warehouse-only look: floor, walls, crates, barrels, the stand-in robot and battery. |
+| `scenery.ts` / `WarehouseScenery.tsx` / `scenery.test.ts` | Per-level palettes and workstation layouts / rounded perimeter set pieces / driving-area clearance and camera bounds. |
 | `assets.ts` / `assets.spec.json` | Models used (`ModelAsset`s) / the Hyper3D spec for models only this game generates. |
 
 ### What a new game copies from here
@@ -45,6 +46,8 @@ Plan adaptation (GAME 02): the plan's 6/8/10/12/15 batteries become 10/12/14/16/
 Every level's warehouse is open (levels.test.ts): no prop near the start, belts clear of every prop and wall, every spawn point reachable; 300 seeds per level give valid layouts (no fallback), and each level has a tested hand-placed fallback.
 
 ### Server limits per level (the proof)
+
+Visual variety: level 1 keeps its original floor, walls, camera fit and environment. Small Warehouse has three open storage racks on the back edge and sage concrete; Conveyor Zone has four roller workstations on opposite edges and violet concrete; Dark Storage has five cyan-striped cabinets and blue-grey concrete; Mega Warehouse has six ribbed freight containers in facing loading banks and warm brown concrete. Painted service bays connect the perimeter landmarks to the floor. Levels 2-5 retain their day/sunset/night/sunset presets and add matching distant fog. All new solid geometry stays beyond the driving walls; a separate fitted camera volume includes it. The existing oil, belt directions/speeds, sequential pairs and stricter time per wave remain the gameplay progression described above. No rules, scoring or seeded battery layouts changed.
 
 The level-1 proof below holds for every level with the level's numbers, because nothing a level adds can move the robot faster than `ROBOT.maxSpeed`: oil lowers the speed it steers to, a belt's drift is added before `stepRobot`'s speed guard (and taken out of the robot's own velocity again), extra props only block. So with N batteries in N/2 waves and a fairness band of at least 16 units per wave:
 
