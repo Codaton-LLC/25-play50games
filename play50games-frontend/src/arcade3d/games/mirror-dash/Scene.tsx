@@ -230,7 +230,7 @@ function RunScene({ multi }: { multi: boolean }) {
                   out.z = -lead.speed;
                }}
                lookUp={aspect < 1 ? 0.6 : 0.3}
-               distanceScale={aspect < 1 ? 1.3 : 1}
+               distanceScale={aspect < 1 ? 1.6 : 1}
                pivotDamping={10}
             />
          )}

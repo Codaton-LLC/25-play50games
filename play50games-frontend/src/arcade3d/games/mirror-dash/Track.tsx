@@ -54,8 +54,14 @@ export function Track({ world, pair, ox }: { world: World; pair: Pair; ox: numbe
    // code parts: the wall panels, the slide bars, ghost glass, secrets
    const parts = useMemo(() => {
       const box = new BoxGeometry(1, 1, 1).translate(0, 0.5, 0);
+      const slab = new BoxGeometry(1, 1, 1).translate(0, 0.5, 0);
+      const local = (sx: number, sy: number, sz: number, y: number) => new Matrix4().compose(new Vector3(0, y, 0), new Quaternion(), new Vector3(sx, sy, sz));
       return {
-         wall: [{ geometry: box, material: new MeshStandardMaterial({ color: "#ffffff", transparent: true, opacity: 0.45, roughness: 0.05, metalness: 0.3, emissive: new Color("#7c3aed"), emissiveIntensity: 0.35, depthWrite: false }) }],
+         tile: [
+            { geometry: slab, material: new MeshStandardMaterial({ color: "#d9b778", emissive: new Color("#8a6a2e"), emissiveIntensity: 0.6, roughness: 0.4, metalness: 0.6 }), locals: [local(LANE_W - 0.02, 0.12, SIZE.tileL - 0.02, 0)] },
+            { geometry: slab, material: new MeshStandardMaterial({ color: "#120c26", emissive: new Color("#3b1d7a"), emissiveIntensity: 0.35, roughness: 0.15, metalness: 0.5 }), locals: [local(LANE_W - 0.14, 0.12, SIZE.tileL - 0.14, 0.02)] },
+         ],
+         wall: [{ geometry: box, material: new MeshStandardMaterial({ color: "#ffffff", transparent: true, opacity: 0.55, roughness: 0.05, metalness: 0.3, emissive: new Color("#a78bfa"), emissiveIntensity: 0.7, depthWrite: false }) }],
          bar: [{ geometry: box, material: new MeshStandardMaterial({ color: "#f0abfc", emissive: new Color("#d946ef"), emissiveIntensity: 1.4, roughness: 0.3 }) }],
          ghost: [{ geometry: box, material: new MeshStandardMaterial({ color: "#c4b5fd", transparent: true, opacity: 0.35, emissive: new Color("#8b5cf6"), emissiveIntensity: 0.8, depthWrite: false }) }],
          finish: [{ geometry: box, material: new MeshStandardMaterial({ color: "#ffffff", emissive: new Color("#c4b5fd"), emissiveIntensity: 1.2 }) }],
@@ -70,6 +76,7 @@ export function Track({ world, pair, ox }: { world: World; pair: Pair; ox: numbe
                p.material.dispose();
             }
       },
+      // (the tile parts share one box geometry; a second dispose is a no-op)
       [parts]
    );
    const zoneTint = useMemo(() => ({ mirror: new Color(ZONE_WALL.mirror.color), frost: new Color(ZONE_WALL.frost.color), echo: new Color(ZONE_WALL.echo.color), merge: new Color("#000000") }), []);
@@ -81,17 +88,17 @@ export function Track({ world, pair, ox }: { world: World; pair: Pair; ox: numbe
    };
    return (
       <>
-         {/* the runways: 3 lanes x 2 runways of 2 m tiles */}
-         <DynamicInstancedModel
-            asset={ASSETS.runway}
+         {/* the runways: 3 lanes x 2 runways of 2 m glass tiles on a brass frame (code: a floor) */}
+         <DynamicInstanced
             count={tiles}
+            parts={parts.tile}
             update={(i, m) => {
                const row = tile0() + Math.floor(i / 6);
                const s = row * SIZE.tileL + SIZE.tileL / 2;
                if (s < 0 || s > endS + 30) return false;
                const k = Math.floor((i % 6) / 3);
                const lane = (i % 3) - 1;
-               place(laneWorldX(k, lane, mergeAt(c, s)), -0.14, s, m);
+               place(laneWorldX(k, lane, mergeAt(c, s)), -0.16, s, m);
             }}
          />
          {/* the mirror wall: a glass panel per 2 m, tinted by zone, gone where the road merges */}
@@ -107,7 +114,7 @@ export function Track({ world, pair, ox }: { world: World; pair: Pair; ox: numbe
                const zone = zi >= 0 && zi < c.zones.length ? c.zones[zi] : "mirror";
                color.copy(zoneTint[zone]);
                if (zone === "echo") color.multiplyScalar(0.75 + 0.25 * Math.sin(time.now * 6 + s * 0.3));
-               place(0, 0, s, m, 0, 0.12, zone === "frost" ? 2.6 : 2.3, SIZE.tileL);
+               place(0, 0, s, m, 0, 0.22, zone === "frost" ? 2.6 : 2.3, SIZE.tileL);
             }}
          />
          <DynamicInstancedModel
@@ -134,7 +141,9 @@ export function Track({ world, pair, ox }: { world: World; pair: Pair; ox: numbe
                   asset={asset}
                   count={lists[k].length}
                   update={(i, m) => {
-                     const { o, i: idx } = lists[k][i];
+                     const e = lists[k][i];
+                     if (!e) return false;
+                     const { o, i: idx } = e;
                      if (!near(o.s) || pair.broken[idx]) return false;
                      const wob = k === "C" ? Math.sin(time.now * 20 + i) * 0.02 : 0;
                      place(laneWorldX(o.body, o.lane, mergeAt(c, o.s)) + wob, 0, o.s, m, k === "B" || k === "C" ? i * 0.7 : 0);
@@ -147,7 +156,8 @@ export function Track({ world, pair, ox }: { world: World; pair: Pair; ox: numbe
                count={lists.H.length}
                parts={parts.bar}
                update={(i, m) => {
-                  const o = lists.H[i].o;
+                  const o = lists.H[i]?.o;
+                  if (!o) return false;
                   if (!near(o.s)) return false;
                   place(laneWorldX(o.body, o.lane, mergeAt(c, o.s)), 0.95, o.s, m, 0, LANE_W - 0.1, 0.32, 0.3);
                }}
@@ -158,7 +168,8 @@ export function Track({ world, pair, ox }: { world: World; pair: Pair; ox: numbe
                count={lists.G.length}
                parts={parts.ghost}
                update={(i, m) => {
-                  const o = lists.G[i].o;
+                  const o = lists.G[i]?.o;
+                  if (!o) return false;
                   if (!near(o.s)) return false;
                   place(laneWorldX(o.body, o.lane, mergeAt(c, o.s)), 0, o.s, m, 0, LANE_W - 0.1, 2.2, 0.6);
                }}
@@ -167,7 +178,7 @@ export function Track({ world, pair, ox }: { world: World; pair: Pair; ox: numbe
          {/* the Sentinel's panes (L5) */}
          {pair.boss && (
             <DynamicInstancedModel
-               asset={ASSETS.block}
+               asset={ASSETS.pane}
                count={12}
                update={(i, m) => {
                   const pn = pair.boss!.panes[i];

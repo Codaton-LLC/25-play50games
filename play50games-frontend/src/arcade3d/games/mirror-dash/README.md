@@ -53,11 +53,11 @@ time (50 / 55 / 55 / 55 / 80 s); the result adds a "Flawless Reflection" badge (
 rows (hero lane, held-late lane changes, a reflection-only nudge against an edge, jump / slide) on a copy
 of the world with the same controller it plays, and keeps the one with fewest cracks and most orbs; used
 by the proofs and by `?autoplay=1`), `coach.ts`, `Scene.tsx` (input mapping: presses, swipes, a stick
-flick), `Track.tsx` (runways, the zone-tinted mirror wall, obstacles, orbs, secrets, gates, finish, panes),
+flick), `Track.tsx` (runways (code glass tiles on a brass frame: m2RunwayPlatform is 3k tris a tile, over 1M on screen), the zone-tinted mirror wall, obstacles, orbs, secrets, gates, finish, panes),
 `Bodies.tsx` (hero + glass reflection), `Sentinel.tsx`, `World.tsx` (hall, stars, light), `Hud.tsx`,
 `StarResult.tsx`, `MultiplayerHud.tsx`, `levelEnd.ts`, `look.ts`, `assets.ts`.
 
-Models (ready, no credits spent): m2RunwayPlatform, m2MirrorStand, m2HazardBlock (also the cracked look
+Models (ready, no credits spent): m2MirrorStand, m2HazardBlock (also the cracked look
 and the Sentinel's panes), m2MirrorHallBg, m2MirrorGate (checkpoint gates), m2GlassSentinelBoss (15k tris,
 794 KB: inside the character budget, tested as such), m2LaserWall and m2NeonSpikeBlock (neon-cube-jump),
 m2Crystal (crystal-tower, the orbs).

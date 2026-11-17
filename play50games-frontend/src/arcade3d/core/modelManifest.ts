@@ -808,7 +808,6 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/mirror-dash/m2MirrorGate.glb",
    "/models/3d/mirror-dash/m2MirrorHallBg.glb",
    "/models/3d/mirror-dash/m2MirrorStand.glb",
-   "/models/3d/mirror-dash/m2RunwayPlatform.glb",
    "/models/3d/mirror-dash/m2LaserWall.glb",
    "/models/3d/mirror-dash/m2NeonSpikeBlock.glb",
    "/models/3d/mirror-dash/m2Crystal.glb",
