@@ -43,6 +43,17 @@ export const COLORS = {
    windupTint: "#c2410c",
 } as const;
 
+/** Department surfaces; gameplay signs and hazard colours stay consistent. */
+export function departmentOf(level: ToyLevel) {
+   switch (level.department) {
+      case "retail": return { floor: "#d8eee8", tile: "#b7d8d0", wall: "#e0f2ee", accent: "#22a894" };
+      case "warehouse": return { floor: "#8896a5", tile: "#738292", wall: "#526276", accent: "#fbbf24" };
+      case "mega": return { floor: "#f1dce8", tile: "#dfbcd3", wall: "#dbc4ec", accent: "#c084fc" };
+      case "chaos": return { floor: "#69718e", tile: "#555d7b", wall: "#30344f", accent: "#4ade80" };
+      default: return { floor: COLORS.floor, tile: COLORS.floorTile, wall: COLORS.wall, accent: COLORS.wallTrim };
+   }
+}
+
 export const PITCH = (58 * Math.PI) / 180;
 export const YAWS = [0, Math.PI / 2] as const;
 export const FOV = 48;
@@ -203,7 +214,7 @@ export function signBaseSpots(run: Run): InstanceSpot[] {
 
 /** Decor against the back wall and in the corners: bins and crates, never in the walkable middle. */
 export interface Decor {
-   kind: "bin" | "binPlush" | "crate";
+   kind: "bin" | "binPlush" | "crate" | "teddy" | "train";
    x: number;
    z: number;
    rotY: number;
@@ -211,6 +222,35 @@ export interface Decor {
 }
 
 export function decorOf(run: Run): Decor[] {
+   if (run.level.department) {
+      const { hx, hz } = run;
+      const out: Decor[] = [];
+      const add = (kind: Decor["kind"], x: number, y = 0, rotY = 0) => out.push({ kind, x, y, z: -hz - 0.72, rotY });
+      switch (run.level.department) {
+         case "retail":
+            // Three shop-window islands: plush, vehicles and a central sale display.
+            for (const x of [-hx + 1.5, 0, hx - 1.5]) { add("bin", x - 0.6); add("binPlush", x + 0.6); }
+            break;
+         case "warehouse":
+            // Paired loading bays; stacks sit entirely on the non-walkable back strip.
+            for (let x = -hx + 1; x < hx - 0.5; x += 1.5) { add("crate", x); add("crate", x, 0.782); }
+            break;
+         case "mega":
+            // Five showroom displays, with trains and bears on the stocked bins.
+            for (let i = 0; i < 5; i++) {
+               const x = -hx + 1.4 + i * (hx * 2 - 2.8) / 4;
+               add(i % 2 ? "bin" : "binPlush", x); add(i % 2 ? "train" : "teddy", x, i % 2 ? 0.61 : 1.13);
+            }
+            break;
+         case "chaos":
+            for (let i = 0; i < 9; i++) {
+               const x = -hx + 1.2 + i * (hx * 2 - 2.4) / 8;
+               add(i % 3 === 0 ? "crate" : i % 2 ? "bin" : "binPlush", x, 0, (i % 2 ? 1 : -1) * 0.2);
+               if (i % 3 === 0) add("crate", x, 0.782, 0.2);
+            }
+      }
+      return out;
+   }
    const rng = createRng((run.seed ^ 0x7075) >>> 0);
    const { hx, hz } = run;
    const out: Decor[] = [];
