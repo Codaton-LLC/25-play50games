@@ -174,11 +174,12 @@ export default function TrackView({ run, level }: { run: SwitchRun; level: Level
       [blockSpots, run],
    );
    const updatePickup = useMemo(
-      () => (k: number, m: Matrix4) => {
+      () => (k: number, m: Matrix4, c: Color) => {
          const p = t.pickups[k];
          if (!p || run.collected[k]) return false;
          const sc = fit(GLB_SIZE.pickup.y, p.main ? 0.85 : 1.0);
          place(m, p.x, p.y - 0.42 + Math.sin(time.now * 3 + k) * 0.08, p.z, sc, sc, sc, time.now * 2 + k);
+         c.set(p.main ? COLORS.pickup : "#a5f3fc");
       },
       [t, run, time],
    );
@@ -321,7 +322,7 @@ export default function TrackView({ run, level }: { run: SwitchRun; level: Level
             </mesh>
          ))}
          {/* pickups, checkpoints */}
-         <DynamicInstancedModel asset={ASSETS.pickup} count={t.pickups.length} update={updatePickup} />
+         <DynamicInstancedModel asset={ASSETS.pickup} count={t.pickups.length} update={updatePickup} tinted />
          {flagSpots.length ? <InstancedModel asset={ASSETS.flag} spots={flagSpots} fallback={<Instanced spots={flagSpots}><boxGeometry args={[0.3, 1.9, 0.3]} /><meshStandardMaterial color="#f8fafc" /></Instanced>} /> : null}
          {padSpots.length ? <InstancedModel asset={ASSETS.pad} spots={padSpots} fallback={<Instanced spots={padSpots}><boxGeometry args={[1.9, 0.2, 1.9]} /><meshStandardMaterial color="#38bdf8" /></Instanced>} /> : null}
          {/* the finish arch (levels 1-4) */}

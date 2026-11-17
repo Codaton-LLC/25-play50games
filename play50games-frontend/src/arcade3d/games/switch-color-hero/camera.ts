@@ -10,8 +10,8 @@ const DEG = Math.PI / 180;
 
 export const RUN_ORBIT: Partial<OrbitSettings> = {
    yaw: 0,
-   pitch: 20 * DEG,
-   distance: 8.5,
+   pitch: 27 * DEG,
+   distance: 9.5,
    minDistance: 4,
    maxDistance: 20,
    autoFollow: true,
@@ -33,11 +33,11 @@ export function orbitScale(aspect: number): number {
 }
 
 export function orbitLookUp(aspect: number): number {
-   return 0.5 + 0.4 * portraitness(aspect);
+   return 0.2 + 0.3 * portraitness(aspect);
 }
 
 /** How far ahead of the hero the camera looks (m). */
-export const LEAD = 6;
+export const LEAD = 3;
 
 /** The pivot: the hero's chest, half way to the track's centre line, led down the track. */
 export function orbitPivot(hx: number, hy: number, hz: number, out: { x: number; y: number; z: number }): { x: number; y: number; z: number } {

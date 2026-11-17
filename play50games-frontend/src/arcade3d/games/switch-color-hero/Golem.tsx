@@ -13,7 +13,7 @@ import { ASSETS, GLB_SIZE, fit } from "./assets";
 import { PALETTE } from "./track";
 import type { SwitchRun } from "./rules";
 
-const HEIGHT = 6;
+const HEIGHT = 4.6;
 const P = new Vector3();
 const Q = new Quaternion();
 const S = new Vector3();

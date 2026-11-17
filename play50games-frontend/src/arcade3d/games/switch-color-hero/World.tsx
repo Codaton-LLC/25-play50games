@@ -37,10 +37,11 @@ export default function World({ track, level }: { track: Track; level: LevelId }
    const spires = useMemo<InstanceSpot[]>(() => {
       const rng = createRng(level * 97);
       const out: InstanceSpot[] = [];
-      for (let z = 40; z > end; z -= 14 + rng() * 10) {
+      for (let z = 40; z > end; z -= 34 + rng() * 22) {
          for (const side of [-1, 1]) {
-            const h = 14 + rng() * 26;
-            out.push({ x: side * (14 + rng() * 22), y: -30, z: z + rng() * 6, sx: fit(GLB_SIZE.spire.x, 3 + rng() * 3), sy: fit(GLB_SIZE.spire.y, h + 30), sz: fit(GLB_SIZE.spire.z, 3 + rng() * 3), rotY: rng() * 6 });
+            // the spire GLB at a uniform scale (it is a tower, not a pole): 16-40 m tall, rising from the haze
+            const h = 16 + rng() * 24;
+            out.push({ x: side * (48 + rng() * 60), y: -34, z: z + rng() * 10, scale: fit(GLB_SIZE.spire.y, h + 14), rotY: rng() * 6 });
          }
       }
       return out;

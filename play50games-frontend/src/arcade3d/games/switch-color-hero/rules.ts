@@ -44,7 +44,7 @@ export const BEAM_H = 0.9;
 export const SWEEP_H = 0.7;
 /** Chroma's core gate lands this far ahead of the hero; he runs this far ahead */
 export const BOSS_THROW = 22;
-export const GOLEM_AHEAD = 30;
+export const GOLEM_AHEAD = 27;
 
 export type Mode = "run" | "air" | "fall" | "spawn";
 

@@ -168,12 +168,11 @@
    font-weight: 800;
 }
 
-/* the colour swatches: bottom centre, a column at the left on narrow phones (clear of Jump / Power) */
+/* the colour swatches: a row at the bottom left (clear of the runner in the middle), a column on narrow phones (clear of Jump / Power) */
 .swatches {
    position: absolute;
-   left: 50%;
+   left: 18px;
    bottom: calc(18px + env(safe-area-inset-bottom, 0px));
-   transform: translateX(-50%);
    display: flex;
    gap: 10px;
    pointer-events: auto;
@@ -224,7 +223,6 @@
 @media (max-width: 600px) {
    .swatches {
       left: 12px;
-      transform: none;
       flex-direction: column-reverse;
       gap: 8px;
       bottom: calc(24px + env(safe-area-inset-bottom, 0px));
