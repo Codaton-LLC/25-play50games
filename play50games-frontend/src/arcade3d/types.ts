@@ -162,3 +162,10 @@ export interface ArcadeGameMeta {
     */
    levels?: readonly LevelMeta[];
 }
+
+/**
+ * The part of a game's meta the score code reads (scores, the best-score badge, levelMeta, levelProgress).
+ * The /3d grid hands only this to the browser (metaSource.ts), so the registry, which pulls every game's
+ * meta and the rules modules metas compute their limits from, stays out of the grid's bundle.
+ */
+export type GameScoringMeta = Pick<ArcadeGameMeta, "slug" | "title" | "scoring" | "levels">;
