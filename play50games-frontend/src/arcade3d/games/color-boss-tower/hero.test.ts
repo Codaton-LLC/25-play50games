@@ -1,5 +1,5 @@
 // The heroes' motion (Hero.tsx writeHeroMotion): the ring's tangent velocity, the power that is up,
-// the one-shot events, the cheer and the slump; and the camera between the shaft and the hero.
+// the one-shot events, the cheer and the slump; and the camera outside the wall facing the hero.
 import { describe, expect, it } from "vitest";
 import { createHeroMotion } from "@/arcade3d/menu2/heroAnim";
 import { createOrbit } from "@/arcade3d/menu2/camera/orbit";
@@ -35,7 +35,7 @@ describe("hero motion", () => {
 });
 
 describe("the tower camera", () => {
-   it("starts between the shaft and the hero, and swings back there after a manual turn", () => {
+   it("starts outside the wall facing the hero, and swings back there after a manual turn", () => {
       const run = createRun(1, 1);
       const o = createOrbit(towerOrbit(run));
       expect(o.yaw).toBeCloseTo(outwardYaw(run.hero.a), 6);

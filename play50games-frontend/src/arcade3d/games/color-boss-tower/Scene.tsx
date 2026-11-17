@@ -310,7 +310,7 @@ function Guide({ run }: { run: CbtRun }) {
       if (c < 0) return;
       const cl = run.claws[c];
       const th = cl.a / R_PATH;
-      const pt = ringPoint(th, CLAW_R - 0.5, cl.y, { x: 0, y: 0, z: 0 });
+      const pt = ringPoint(th, CLAW_R - 0.5, cl.y + 0.4, { x: 0, y: 0, z: 0 });
       m.position.set(pt.x, pt.y, pt.z);
       m.rotation.set(0, th, 0);
       m.scale.setScalar(1 + Math.sin(time.now * 5) * 0.12);

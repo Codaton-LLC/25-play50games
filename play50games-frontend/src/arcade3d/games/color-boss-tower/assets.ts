@@ -33,7 +33,7 @@ export const LEDGE_R = R_WALL - LEDGE_DEPTH / 2;
 export const CANNON_R = R_PATH - 1.1;
 export const CLAW_R = R_WALL - 0.55;
 /** Heights as drawn (m). */
-export const CLAW_H = 1.5;
+export const CLAW_H = 1.0;
 export const CANNON_LEN = 1.7;
 export const STONE_H = 7;
 export const GRAND_H = 8.5;

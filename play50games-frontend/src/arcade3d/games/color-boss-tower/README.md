@@ -81,8 +81,8 @@ hazard orb rolls down at it and hops it, keeps the paired claws for the chain ph
 ## Files
 
 `levels.ts` (the five towers), `progression.ts` (combo, stars, secrets, the guardians' configs), `rules.ts` (pure,
-deterministic, whole-ms steps), `bot.ts`, `heroes.ts`, `look.ts`, `assets.ts`, `camera.ts` (the orbit between the shaft and
-the hero), `Tower.tsx`, `Boss.tsx`, `Hero.tsx` (five animators; the tagged-out hero lingers 300 ms), `Scene.tsx`, `Hud.tsx`
+deterministic, whole-ms steps), `bot.ts`, `heroes.ts`, `look.ts`, `assets.ts`, `camera.ts` (the orbit outside the wall looking
+in: the wall's near side is cut away), `Tower.tsx`, `Boss.tsx`, `Hero.tsx` (five animators; the tagged-out hero lingers 300 ms), `Scene.tsx`, `Hud.tsx`
 (hearts, orbs, charged cannons, flow, boss bar and hint, the glyphs, the portrait strip), `multiplayer.ts`,
 `MultiScene.tsx`, `MultiplayerHud.tsx`, `levelEnd.ts`, `StarResult.tsx`, `meta.ts`, `index.tsx`.
 

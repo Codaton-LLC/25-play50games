@@ -9,17 +9,18 @@
 // a high niche), the checkpoint beacons, the crown of dark spires (m2DarkTowerBg) and the shaft's glow.
 import { useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
-import { BackSide, Color, Matrix4, Quaternion, Vector3, type Group, type Mesh, type MeshStandardMaterial } from "three";
+import { BackSide, Color, Matrix4, Quaternion, RepeatWrapping, Vector3, type Group, type Mesh, type MeshStandardMaterial } from "three";
 import { DynamicInstancedModel, InstancedModel, Model } from "@/arcade3d/core/assets";
 import { FRAME_PRIORITY } from "@/arcade3d/core/frameLoop";
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import type { InstanceSpot } from "@/arcade3d/core/render/useInstanceMatrices";
-import { ASSETS, CANNON_R, CLAW_R, LEDGE_R, LEDGE_SCALE, LEDGE_THICK, SKIP_SCALE } from "./assets";
+import { useCanvasTexture } from "@/arcade3d/core/render/useCanvasTexture";
+import { ASSETS, CANNON_R, CLAW_H, CLAW_R, LEDGE_R, LEDGE_SCALE, LEDGE_THICK, SKIP_SCALE } from "./assets";
 
 export { CANNON_R, CLAW_R, LEDGE_R };
-import { R_PATH, R_WALL, type TowerSpec } from "./levels";
+import { R_PATH, R_WALL } from "./levels";
 import { CRUMBLE_MS, HORB_R, horbY, ledgeSolid, type CbtRun } from "./rules";
-import { COLORS, LOOKS, TAG_HEX } from "./look";
+import { COLORS, LOOKS, TAG_HEX, type TowerLook } from "./look";
 
 const UP = new Vector3(0, 1, 0);
 const q = new Quaternion();
@@ -105,7 +106,7 @@ function Claw({ run, index }: { run: CbtRun; index: number }) {
    const core = useRef<Mesh>(null);
    const time = useGameTime();
    const th = cl.a / R_PATH;
-   const pos = ringPoint(th, CLAW_R, cl.y - 1.15, { x: 0, y: 0, z: 0 });
+   const pos = ringPoint(th, CLAW_R, cl.y - CLAW_H, { x: 0, y: 0, z: 0 });
    const hex = TAG_HEX[cl.colour];
    useFrame(() => {
       const c = core.current;
@@ -129,9 +130,14 @@ function Claw({ run, index }: { run: CbtRun; index: number }) {
    return (
       <group position={[pos.x, pos.y, pos.z]} rotation-y={th + Math.PI}>
          <Model asset={ASSETS.claw} />
-         <mesh ref={core} position={[0, 1.15, 0]}>
-            <icosahedronGeometry args={[0.34, 1]} />
+         {/* the colour core on top of the holder, and a ring of its colour round the base */}
+         <mesh ref={core} position={[0, CLAW_H + 0.4, 0]}>
+            <icosahedronGeometry args={[0.42, 1]} />
             <meshStandardMaterial color={hex} emissive={hex} emissiveIntensity={0.5} roughness={0.25} toneMapped={false} />
+         </mesh>
+         <mesh rotation-x={-Math.PI / 2} position={[0, 0.04, 0]}>
+            <ringGeometry args={[0.62, 0.82, 28]} />
+            <meshBasicMaterial color={hex} toneMapped={false} />
          </mesh>
       </group>
    );
@@ -252,36 +258,48 @@ function Secrets({ run }: { run: CbtRun }) {
    );
 }
 
-/** The glowing cracks in the wall (embers, neon): thin emissive strips, one draw call. */
-function Cracks({ spec, run }: { spec: TowerSpec; run: CbtRun }) {
-   const look = LOOKS[spec.id];
-   const spots = useMemo(() => {
-      const out: InstanceSpot[] = [];
-      const top = run.tower.topY + 6;
-      const count = Math.round(12 + look.crack * 28);
-      for (let i = 0; i < count; i++) {
-         const th = (i * 2.399963) % (Math.PI * 2);
-         const y = ((i * 0.618034) % 1) * top;
-         const pt = ringPoint(th, R_WALL - 0.04, y, { x: 0, y: 0, z: 0 });
-         out.push({ x: pt.x, y: pt.y, z: pt.z, rotY: th, sx: 0.06, sy: 1.2 + ((i * 0.37) % 1) * 2.4, sz: 0.02 });
+/** The wall's stone courses with glowing cracks (one canvas, repeated round and up the tower). */
+function drawWall(look: TowerLook) {
+   return (ctx: CanvasRenderingContext2D, w: number, h: number) => {
+      ctx.fillStyle = look.wall;
+      ctx.fillRect(0, 0, w, h);
+      const rows = 8;
+      const rh = h / rows;
+      for (let r = 0; r < rows; r++) {
+         const off = (r % 2) * 0.5;
+         for (let c = -1; c < 5; c++) {
+            const x = (c + off) * (w / 4);
+            const shade = 0.82 + (((r * 7 + c * 13) % 9) / 9) * 0.3;
+            ctx.fillStyle = `rgba(0,0,0,${(1 - shade) * 0.9 + 0.04})`;
+            ctx.fillRect(x + 3, r * rh + 3, w / 4 - 6, rh - 6);
+            ctx.fillStyle = "rgba(255,255,255,0.06)";
+            ctx.fillRect(x + 3, r * rh + 3, w / 4 - 6, 4);
+         }
+         ctx.fillStyle = "rgba(0,0,0,0.45)";
+         ctx.fillRect(0, r * rh, w, 3);
       }
-      return out;
-   }, [look.crack, run.tower.topY]);
-   return (
-      <instancedMesh args={[undefined, undefined, spots.length]} ref={(m) => {
-         if (!m) return;
-         const mat = new Matrix4();
-         spots.forEach((s, i) => {
-            q.setFromAxisAngle(UP, s.rotY ?? 0);
-            mat.compose(p.set(s.x, s.y, s.z), q, sc.set(s.sx ?? 1, s.sy ?? 1, s.sz ?? 1));
-            m.setMatrixAt(i, mat);
-         });
-         m.instanceMatrix.needsUpdate = true;
-      }}>
-         <boxGeometry args={[1, 1, 1]} />
-         <meshBasicMaterial color={look.crackGlow} transparent opacity={0.35 + look.crack * 0.55} toneMapped={false} />
-      </instancedMesh>
-   );
+      // glowing cracks
+      ctx.strokeStyle = look.crackGlow;
+      ctx.globalAlpha = 0.35 + look.crack * 0.6;
+      ctx.lineWidth = 3;
+      ctx.shadowColor = look.crackGlow;
+      ctx.shadowBlur = 10;
+      const n = Math.round(2 + look.crack * 5);
+      for (let k = 0; k < n; k++) {
+         let x = ((k * 0.37 + 0.11) % 1) * w;
+         let y = ((k * 0.61 + 0.2) % 1) * h;
+         ctx.beginPath();
+         ctx.moveTo(x, y);
+         for (let s2 = 0; s2 < 6; s2++) {
+            x += Math.sin(k * 3 + s2 * 1.7) * 26;
+            y += 28 + (s2 % 3) * 8;
+            ctx.lineTo(x, y);
+         }
+         ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+      ctx.shadowBlur = 0;
+   };
 }
 
 export function Tower({ run }: { run: CbtRun }) {
@@ -289,6 +307,13 @@ export function Tower({ run }: { run: CbtRun }) {
    const look = LOOKS[spec.id];
    const top = run.tower.topY;
    const wallH = top + 10;
+   const draw = useMemo(() => drawWall(look), [look]);
+   const wallTex = useCanvasTexture(512, 512, draw);
+   useMemo(() => {
+      wallTex.wrapS = wallTex.wrapT = RepeatWrapping;
+      wallTex.repeat.set(10, wallH / 5);
+      wallTex.needsUpdate = true;
+   }, [wallTex, wallH]);
    const spires = useMemo<InstanceSpot[]>(() => {
       const out: InstanceSpot[] = [];
       for (let i = 0; i < 8; i++) {
@@ -312,9 +337,8 @@ export function Tower({ run }: { run: CbtRun }) {
          {/* the wall, inner face only */}
          <mesh position={[0, wallH / 2 - 2, 0]}>
             <cylinderGeometry args={[R_WALL, R_WALL, wallH, 64, 1, true]} />
-            <meshStandardMaterial color={look.wall} roughness={0.92} side={BackSide} />
+            <meshStandardMaterial map={wallTex} roughness={0.92} side={BackSide} />
          </mesh>
-         <Cracks spec={spec} run={run} />
          {/* the floor ring and the glowing shaft at the heart */}
          <mesh rotation-x={-Math.PI / 2} position={[0, 0, 0]}>
             <ringGeometry args={[3.4, R_WALL, 64]} />
