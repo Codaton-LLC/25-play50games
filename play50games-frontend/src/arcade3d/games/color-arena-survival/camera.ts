@@ -17,7 +17,7 @@ export const PIVOT_LEAN = 0.4;
 /** The orbit's tuning: behind (south of) the hero and high, out by the arena's size; zoom 6-30 m. */
 export function arenaOrbit(a: Arena): Partial<OrbitSettings> {
    const d = 9 + a.n * 0.9 + (a.cfg.boss ? 2 : 0);
-   return { yaw: 0, pitch: (a.cfg.boss ? 42 : 46) * DEG, distance: d, minDistance: 6, maxDistance: 30, autoFollow: false };
+   return { yaw: 0, pitch: (a.cfg.boss ? 36 : 46) * DEG, distance: d, minDistance: 6, maxDistance: 30, autoFollow: false };
 }
 
 /** How much farther the orbit stands on a portrait screen. */

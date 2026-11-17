@@ -45,7 +45,7 @@ A fall into the pit costs a heart (three a level). You come back on the **safe m
 
 ### Boss: the Prism Keeper (level 5)
 
-`m2PrismArenaBoss` hovers off the north edge. Its attack cycle IS the round:
+`m2PrismArenaBoss` hovers low off the floor's north-west corner, facing the middle (clear of the HUD's top centre). Its attack cycle IS the round:
 
 - its telegraph is the call;
 - its attack is the drop;
@@ -148,7 +148,7 @@ The shared camera frames everyone still in.
 
 World 6 "Prism Fortress" (`look.ts`): a prism sky that goes from a bright morning (L1) to a pink dusk (L3) to a cinematic night (L4-L5).
 
-- **Around the floor:** a glowing pit with rings far under it, the shared fortress gate beyond the Keeper's perch, drifting islands (menu2 islandB-D), turning prism shards, and a stone rim with a glowing strip and corner crystals.
+- **Around the floor:** a glowing pit with rings far under it, the shared fortress gate beyond the north edge, drifting islands (menu2 islandB-D), prism shards turning beyond the far side, and a stone rim with a glowing strip and corner crystals.
 - **Tiles:** one instanced bevelled tile mesh coloured per tile at runtime (the card's "recolorable floor tile"), plus five instanced symbol decals. 18-30 draw calls.
 - **Models:**
   - `m2PrismArenaBoss`: from the user's new Hyper3D batch (`p50-assets/hyper3d-new`), optimized here with `tools/hyper3d`'s optimizer to 15k triangles and 377 KB. No credits spent.
@@ -160,3 +160,16 @@ World 6 "Prism Fortress" (`look.ts`): a prism sky that goes from a bright mornin
 - **Not built from the card:** a separate "Survival Master" endless mode (level 5 is the boss level, like every Menu 2 level 5).
 - **Audio:** no world music stem (`menu2/audio` does not exist yet).
 - **Hidden levels:** `?level=n` only opens levels already unlocked on the slice.
+
+## Playtest (dev server, headless Chrome, bot autoplay)
+
+All five levels at 1280×800 (mouse drag orbit, wheel zoom) and levels 1, 3 and 5 at 390×844 (touch: joystick, Jump, Power, two-finger orbit). Every run cleared or played on cleanly with 0 console errors. Frame p50 16.7 ms, p95 17-19 ms on desktop (spikes to 40-60 ms while the dev server compiles), 30-42 draw calls, 84k-116k triangles.
+
+Fixed from the playtest:
+
+- The called tiles were lerped towards a pastel, which washed them out (blue read grey). They now pulse brighter in their own colour.
+- The Prism Keeper hovered above the frame behind the HUD banner. It now hovers low off the north-west corner, 7 m wide, turned to the floor, and level 5's camera pitch is 36 degrees.
+- The dark slab under the floor read as a strange column in the intro, so it is gone.
+- Prism shards on the camera's side drifted across the floor. They now stay beyond the far side.
+
+Still open: on a 390 px phone the Keeper's corner sits off the left edge at the default camera (two fingers turn it into view).

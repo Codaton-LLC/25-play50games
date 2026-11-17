@@ -14,9 +14,9 @@ import { ASSETS, GLB_SIZE, KEEPER_W } from "./assets";
 import { COLORS } from "./look";
 import { KEEPER, type Arena } from "./rules";
 
-/** Where the Keeper hovers (m): north of the floor, above the beacon. */
+/** Where the Keeper hovers (m): low off the floor's north-west corner (clear of the HUD's top centre), facing the middle. */
 export function keeperHome(a: Arena): { x: number; y: number; z: number } {
-   return { x: 0, y: 6.5, z: -a.half - 7 };
+   return { x: -a.half - 2.5, y: 0.8, z: -a.half - 2.5 };
 }
 
 export default function Keeper({ arena }: { arena: Arena }) {
@@ -33,11 +33,17 @@ export default function Keeper({ arena }: { arena: Arena }) {
       const now = time.now;
       let y = home.y + Math.sin(now * 1.3) * 0.35;
       let z = home.z;
+      let x = home.x;
       let spin = Math.sin(now * 0.7) * 0.12;
       let scale = 1;
       const k = stepProgress(b, KEEPER);
       if (b.step === "intro") y = home.y - 14 * (1 - k) * (1 - k);
-      else if (b.step === "attack") z += Math.sin(k * Math.PI) * 2.2;
+      else if (b.step === "attack") {
+         // a lunge towards the middle
+         const l = Math.sin(k * Math.PI) * 2.2;
+         z += l * 0.7;
+         x += l * 0.7;
+      }
       else if (b.step === "transition") spin += k * Math.PI * 2;
       else if (b.step === "defeat" || b.step === "done") {
          const d = b.step === "done" ? 1 : k;
@@ -45,8 +51,8 @@ export default function Keeper({ arena }: { arena: Arena }) {
          spin += d * 9;
          scale = Math.max(0.05, 1 - d * 0.7);
       }
-      g.position.set(home.x, y, z);
-      g.rotation.y = spin;
+      g.position.set(x, y, z);
+      g.rotation.y = Math.atan2(-home.x, -home.z) + spin;
       g.scale.setScalar(scale);
       g.visible = b.step !== "done";
       const gl = glow.current;

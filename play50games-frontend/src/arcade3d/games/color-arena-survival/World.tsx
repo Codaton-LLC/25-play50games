@@ -49,15 +49,16 @@ const SHARDS = 18;
 const shardM = new Matrix4();
 const shardS = new Vector3();
 
-/** Prism shards turning in the air round the arena (one instanced mesh). */
+/** Prism shards turning in the air beyond the arena's far side (one instanced mesh). */
 function Shards({ a }: { a: Arena }) {
    const ref = useRef<InstancedMesh>(null);
    const time = useGameTime();
    const spots = useMemo(() => {
       const s: { x: number; y: number; z: number; k: number }[] = [];
       for (let i = 0; i < SHARDS; i++) {
-         const t = (i / SHARDS) * Math.PI * 2;
-         const r = a.half + 6 + (i % 4) * 3.5;
+         // the far (north) half only: on the camera's side they would drift across the floor
+         const t = Math.PI * (1.05 + (i / SHARDS) * 0.9);
+         const r = a.half + 9 + (i % 4) * 4;
          s.push({ x: Math.cos(t) * r, y: 2 + (i % 5) * 1.6, z: Math.sin(t) * r, k: i });
       }
       return s;

@@ -42,7 +42,7 @@ export function tileLook(a: Arena, i: number, now: number, out: Color): Color {
       const s = a.swapTiles.indexOf(i);
       if (s >= 0 && !a.swapDone && a.phaseMs >= a.swapAt - SWAP_WARN_MS && Math.floor(now * 8) % 2 === 0) out.set(TILE_COLORS[a.swapTo[s]]);
       if (a.crack[i]) out.multiplyScalar(0.5 + 0.15 * Math.sin(now * 20));
-      else if (tileSafe(a, i)) out.lerp(col.set(TILE_GLOWS[c]), 0.2 + 0.2 * Math.sin(now * 6));
+      else if (tileSafe(a, i)) out.multiplyScalar(1.12 + 0.12 * Math.sin(now * 6));
       else if (a.phaseMs >= a.callLen - WARN_MS) {
          const k = Math.min(1, (a.phaseMs - (a.callLen - WARN_MS)) / WARN_MS);
          out.multiplyScalar(1 - 0.65 * k * (Math.floor(now * 10) % 2 === 0 ? 1 : 0.8));
@@ -173,11 +173,6 @@ function Rim({ a }: { a: Arena }) {
                <meshStandardMaterial color={look.rim} emissive={look.rim} emissiveIntensity={0.7} />
             </mesh>
          ))}
-         {/* the floor's underside: a dark slab that drops away under the tiles */}
-         <mesh position-y={-SINK_DEPTH - 1}>
-            <boxGeometry args={[a.half * 2, 0.4, a.half * 2]} />
-            <meshStandardMaterial color={COLORS.hole} transparent opacity={0.6} />
-         </mesh>
       </>
    );
 }

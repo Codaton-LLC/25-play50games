@@ -26,8 +26,8 @@ export const GLB_SIZE = {
    islandD: { x: 1.761, y: 1.571, z: 1.89 },
 } as const;
 
-/** Drawn sizes (m): the Keeper 5.5 m wide, the arena beacon 4.2 m tall, a tile beacon 1.6 m, the orb 0.6 m, the gate 34 m wide. */
-export const KEEPER_W = 5.5;
+/** Drawn sizes (m): the Keeper 7 m wide, the arena beacon 4.2 m tall, a tile beacon 1.6 m, the orb 0.6 m, the gate 34 m wide. */
+export const KEEPER_W = 7;
 export const BEACON_H = 4.2;
 export const TILE_BEACON_H = 1.6;
 export const ORB_SIZE = 0.6;
