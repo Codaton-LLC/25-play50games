@@ -96,6 +96,7 @@ export const ARCADE_SLUGS = [
    "mirror-dash",
    "laser-maze-run",
    "crystal-cave-switch",
+   "roll-dash",
    "color-match-jump",
    "switch-color-hero",
    "energy-core-hunt",
