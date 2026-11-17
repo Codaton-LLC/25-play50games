@@ -163,3 +163,11 @@ nebulae are code. `assets.test.ts` tests the fits against the measured meshes.
   count (the floor is honest, not tight).
 - Prism Shade is the menu2 shadow armadillo tinted violet; a dedicated dark-crystal boss GLB would suit
   the Neon Cosmos better (no credits were spent).
+
+## Claude gate (browser playtest)
+
+`next dev`, headless Chrome over CDP, the `?autoplay=1` bot playing L1 to L5 in one session through Next level, at 1280 x 800 (mouse drag + wheel orbit) and 390 x 844 (touch: two-finger orbit + pinch). Every level cleared, 0 console errors. Desktop: 18.5 / 22.2 / 45.4 / 97.1 / 113.7 s (all orbs, Prism Shade beaten); phone: 19.0 / 19.3 / 45.1 / 120.6 / 104.7 s (the bot's pace varies with frame timing).
+
+Fixed in the gate: the spire was an 8-facet flat-shaded column that, up close, filled a third of the screen as one flat purple slab (now 16 glossy facets, a weaker glow); the pads and crystals were too dark (brighter hemisphere and key light on every level).
+
+Open: at the start of a tier the beacon can stand between the camera and the hero for a moment (the orbit swings round as he moves); real-phone frame time not measured.
