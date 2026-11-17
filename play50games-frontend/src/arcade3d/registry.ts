@@ -103,6 +103,7 @@ import { colorMatchJumpMeta } from "./games/color-match-jump/meta";
 import { energyCoreHuntMeta } from "./games/energy-core-hunt/meta";
 import { colorBossTowerMeta } from "./games/color-boss-tower/meta";
 
+import { colorOrbDefenseMeta } from "./games/color-orb-defense/meta";
 export const ARCADE_GAMES: ArcadeGameMeta[] = [
    robotCollectorMeta,
    foodCatcherMeta,
@@ -198,6 +199,7 @@ export const ARCADE_GAMES: ArcadeGameMeta[] = [
    switchColorHeroMeta,
    rollDashMeta,
    crystalCaveSwitchMeta,
+   colorOrbDefenseMeta,
    colorBridgeBuilderMeta,
    colorMatchJumpMeta,
    energyCoreHuntMeta,
