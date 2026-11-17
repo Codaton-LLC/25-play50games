@@ -63,7 +63,7 @@ function Corridor({ run, level }: { run: LaserRun; level: LevelId }) {
    }, [panel, len]);
    const accent = accentFor(level);
    const gw = GLB_SIZE.wall;
-   const step = 4;
+   const step = 6;
    const wall = (i: number, m: Matrix4) => {
       const side = i % 2 === 0 ? -1 : 1;
       const k = Math.floor(i / 2);
@@ -72,7 +72,7 @@ function Corridor({ run, level }: { run: LaserRun; level: LevelId }) {
       if (s < -6 || s > len + 4) return false;
       E.set(0, side < 0 ? Math.PI / 2 : -Math.PI / 2, 0);
       Q.setFromEuler(E);
-      m.compose(V.set(side * (HALF + 0.45), 0, -s), Q, S.set(step / gw.x, 3.6 / gw.y, 0.9 / gw.z));
+      m.compose(V.set(side * (HALF + 0.55), 0, -s), Q, S.set(4.6 / gw.x, 3.0 / gw.y, 0.8 / gw.z));
    };
    const gc = GLB_SIZE.cam;
    const cams = useMemo(() => c.zones.map((z, i) => ({ s: z.s0 + 7, side: i % 2 === 0 ? 1 : -1 })), [c]);
@@ -193,7 +193,8 @@ function Lasers({ run }: { run: LaserRun }) {
       m.compose(V.set(end - side * 0.15, Math.max(0, (l.y0 + l.y1) / 2 - 0.25), -s), Q, S.set(k, k, k));
    };
    // the gates stand in a laser frame across the corridor
-   const gates = useMemo(() => items.filter((it) => it.l.kind === "gate"), [items]);
+   // (not the arena's exit beam: the Vault Core hovers right behind it)
+   const gates = useMemo(() => items.filter((it) => it.l.kind === "gate" && it.i !== c.arena?.exit), [items, c]);
    const gf = GLB_SIZE.frame;
    const frame = (i: number, m: Matrix4) => {
       const it = gates[i];

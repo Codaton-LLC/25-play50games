@@ -106,7 +106,7 @@ function Simulation({ run, anim, orbit }: { run: LaserRun; anim: HeroAnim; orbit
    const input = useInput();
    const time = useGameTime();
    const stepInput = useMemo(createStepInput, []);
-   const [bot] = useState(() => (autoplayRequested() ? createBot(run) : null));
+   const [bot] = useState(() => (autoplayRequested() ? createBot(run, 1000 / 60, false) : null));
    const lastFrame = useRef(1000 / 60);
    const juiceFor = useEventJuice();
    const juice = useJuice();
