@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import css from "./PatternCompletion.module.css";
+import mobile from "./mobile.module.css";
 import {
    HomeIcon,
    StarIcon,
@@ -265,7 +267,7 @@ function PatternCompletion({
    }, [handleKeyPress]);
 
    return (
-      <div className="pattern-completion-game">
+      <div className={`pattern-completion-game ${css.root}`}>
          {/* Header */}
          <div className="game-header">
             <div className="header-stats">
@@ -347,7 +349,7 @@ function PatternCompletion({
 
          {/* Feedback */}
          {feedback && (
-            <div className={`game-feedback ${feedback}`}>
+            <div className={`game-feedback ${feedback} ${feedback === "correct" ? mobile.pop : mobile.shake}`}>
                {feedback === "correct" ? (
                   <>
                      <CheckCircleIcon className="feedback-icon" />
