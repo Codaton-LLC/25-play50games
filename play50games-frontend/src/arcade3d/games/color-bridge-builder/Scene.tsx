@@ -213,7 +213,7 @@ function RunScene({ multi }: { multi: boolean }) {
                   out.z = -1;
                }}
                behind={() => 0}
-               distanceScale={aspect < 1 ? 1.5 : 1}
+               distanceScale={aspect < 1 ? 1.9 : 1}
             />
          )}
          {intro?.session && !multi && <GameIntro session={intro.session} keyframes={shots} playCamera={playCamera} hero={intro.hero} />}

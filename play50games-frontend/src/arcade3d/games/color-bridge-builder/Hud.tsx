@@ -103,11 +103,18 @@ export default function Hud() {
                   </div>
                   <ComboMeter chain={stats[STAT.comboChain] ?? 0} multiplier={(stats[STAT.comboMult] ?? 100) / 100} flow={(stats[STAT.comboFlow] ?? 0) / 10} cap={2} />
                   <div className={styles.mix} aria-label="Mixing: red and blue make purple, blue and yellow green, red and yellow orange, all three white">
-                     <Dot mask={1} />+<Dot mask={2} />= <Dot mask={3} />
-                     <Dot mask={2} />+<Dot mask={4} />= <Dot mask={6} />
-                     <Dot mask={1} />+<Dot mask={4} />= <Dot mask={5} />
-                     <span>all</span>= <Dot mask={7} />
-                     <span />
+                     {[
+                        [1, 2, 3],
+                        [2, 4, 6],
+                        [1, 4, 5],
+                     ].map(([a, b, m]) => (
+                        <span key={m} className={styles.mixRow}>
+                           <Dot mask={a} /> + <Dot mask={b} /> = <Dot mask={m} />
+                        </span>
+                     ))}
+                     <span className={styles.mixRow}>
+                        all three = <Dot mask={7} />
+                     </span>
                   </div>
                </div>
                <div className={stack.center} data-arcade-safe-area="">

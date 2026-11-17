@@ -48,7 +48,7 @@ export const ASSETS = {
    anchor: prop("m2BridgeAnchor", SIZE.anchor / BOUNDS.anchor.y, "#cbd5e1", 4000, 109796),
    node: prop("m2EnergyNode", SIZE.node / BOUNDS.node.y, "#f8fafc", 3998, 90360),
    // a light bridge cell: the crystal slab, turned along the bridge, tinted to its colour per copy
-   slab: prop("m2CrystalSlabBridge", 1, "#f8fafc", 3000, 87368, { stretch: [SIZE.slab / BOUNDS.slab.x, 0.5, SIZE.slab / BOUNDS.slab.z] }),
+   slab: prop("m2CrystalSlabBridge", 1, "#f8fafc", 3000, 87368, { material: { color: "#ffffff", roughness: 0.25, metalness: 0.1, emissive: "#3a3a3a" }, stretch: [SIZE.slab / BOUNDS.slab.x, 0.5, SIZE.slab / BOUNDS.slab.z] }),
    broken: prop("m2BrokenBridgeEnd", 2 / BOUNDS.broken.x, "#a8a29e", 3000, 161924),
    pylon: prop("m2BridgePylon", SIZE.pylon / BOUNDS.pylon.y, "#94a3b8", 3000, 129948),
    isle: prop("m2FloatingRockIsle", SIZE.isle / BOUNDS.isle.x, "#78716c", 3000, 140676),

@@ -305,10 +305,9 @@
 
 /* the mix table: three rows of two swatches = one */
 .mix {
-   display: grid;
-   grid-template-columns: repeat(4, auto);
-   align-items: center;
-   gap: 3px 5px;
+   display: flex;
+   flex-direction: column;
+   gap: 4px;
    padding: 6px 10px;
    border: 2px solid rgba(226, 232, 240, 0.35);
    border-radius: 12px;
@@ -316,6 +315,13 @@
    color: #e2e8f0;
    font-size: 0.68rem;
    font-weight: 800;
+}
+
+.mixRow {
+   display: inline-flex;
+   align-items: center;
+   gap: 4px;
+   white-space: nowrap;
 }
 
 .dot {

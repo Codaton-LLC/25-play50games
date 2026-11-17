@@ -25,7 +25,7 @@ const V = new Vector3();
 const S = new Vector3();
 const ONE = new Vector3(1, 1, 1);
 const COLORS: Record<number, Color> = Object.fromEntries(Object.entries(MASK_COLOR).map(([k, v]) => [k, new Color(v)]));
-const DIM = new Color("#3a2a20");
+const DIM = new Color("#6b3412");
 
 export const cellPos = (r: number, c: number) => ({ x: c * CELL, z: r * CELL });
 
