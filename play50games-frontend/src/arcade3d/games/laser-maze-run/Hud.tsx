@@ -61,7 +61,7 @@ function SwitchPrompt() {
    const playing = usePlayers((s) => s.phase === "playing");
    if (!near || !live || playing) return null;
    return (
-      <div className={styles.prompt} role="status">
+      <div className={`${styles.prompt} ${styles.switchPrompt}`} role="status">
          <span className={styles.key}>E</span> Switch
       </div>
    );

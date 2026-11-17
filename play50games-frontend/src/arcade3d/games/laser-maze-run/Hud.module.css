@@ -304,8 +304,12 @@
 
 
 /* Laser Maze Run: the switch prompt, the zap count, the progress bar */
-.switchPrompt {
+/* the switch prompt sits in the centre stack, under the progress bar (clear of the banner on a phone) */
+.prompt.switchPrompt {
+   position: static;
+   transform: none;
    margin-top: 6px;
+   display: inline-block;
 }
 
 .key {
