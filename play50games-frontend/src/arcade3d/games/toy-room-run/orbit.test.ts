@@ -4,10 +4,11 @@
 import { describe, expect, it } from "vitest";
 import { inputToWorld } from "@/arcade3d/core/math";
 import type { AABB } from "@/arcade3d/core/collision";
-import { orbitPosition } from "@/arcade3d/menu2/camera/orbit";
+import { createOrbit, orbitPosition, orbitRotate, stepOrbit } from "@/arcade3d/menu2/camera/orbit";
 import { defaultHeroFor, memoryHeroStorage, setHeroPickStorage } from "@/arcade3d/menu2/heroes/heroPick";
 import { LEVEL_IDS } from "@/arcade3d/types";
-import { roomOrbit, courseSolids, orbitLookUp, orbitScale, playCamera } from "./camera";
+import { BOSS_FRAME, FOV, FOV_PORTRAIT, bossInFrame, roomOrbit, courseSolids, orbitLookUp, orbitPivot, orbitScale, playCamera, steerBossFraming } from "./camera";
+import { createBot, botInput } from "./bot";
 import { createRun, createStepInput, step } from "./rules";
 import { DEFAULT_HERO, pickedHero, resetHeroPick, selectHero } from "./heroes";
 
@@ -68,6 +69,88 @@ describe("camera-relative movement is part of the rules' input", () => {
       expect(before).toBeGreaterThan(0);
       run.wallBroken[0] = 1;
       expect(courseSolids(run, w.x0, w.z0, out)).toBe(before - 1);
+   });
+});
+
+describe("level 5's boss framing keeps Jack in shot", () => {
+   it("through every vulnerable window of an honest run, the hero and Jack stay on screen, under the boss bar (desktop and phone)", () => {
+      for (const aspect of [1280 / 800, 390 / 844]) {
+         for (const fps of [30, 60]) {
+            const dt = 1 / fps;
+            const run = createRun(1, 5);
+            const bot = createBot(run, 1000 / fps);
+            const input = createStepInput();
+            const orbit = createOrbit(roomOrbit(run.course));
+            const fov = aspect < 1 ? FOV_PORTRAIT : FOV;
+            let samples = 0;
+            let framed = 0;
+            for (let f = 0; f < fps * 120 && run.ended === null; f++) {
+               botInput(bot, run, input);
+               step(run, 1000 / fps, input);
+               steerBossFraming(orbit, run, dt, aspect);
+               stepOrbit(orbit, dt, 0, 0, false);
+               if (run.boss && run.boss.hp > 0 && run.boss.step === "vulnerable") {
+                  samples++;
+                  if (bossInFrame(run, orbit.viewYaw, orbit.viewPitch, orbit.viewDistance * orbitScale(aspect), orbitLookUp(aspect), fov, aspect)) framed++;
+               }
+            }
+            expect(run.ended, `${fps}`).toBe("win");
+            expect(samples).toBeGreaterThan(fps * 5);
+            expect(framed, `aspect ${aspect.toFixed(2)} at ${fps} fps`).toBe(samples);
+         }
+      }
+   }, 120_000);
+
+   it("without the framing, the level's own view loses him (the check is not vacuous)", () => {
+      const run = createRun(1, 5);
+      const bot = createBot(run);
+      const input = createStepInput();
+      const orbit = createOrbit(roomOrbit(run.course));
+      let samples = 0;
+      let framed = 0;
+      for (let f = 0; f < 60 * 120 && run.ended === null; f++) {
+         botInput(bot, run, input);
+         step(run, 1000 / 60, input);
+         stepOrbit(orbit, 1 / 60, 0, 0, false);
+         if (run.boss && run.boss.hp > 0 && run.boss.step === "vulnerable") {
+            samples++;
+            if (bossInFrame(run, orbit.viewYaw, orbit.viewPitch, orbit.viewDistance * orbitScale(1.6), orbitLookUp(1.6), FOV, 1.6)) framed++;
+         }
+      }
+      expect(framed).toBeLessThan(samples / 2);
+   }, 60_000);
+
+   it("the pivot leans toward Jack (at most BOSS_FRAME.maxLead); other levels keep the small lead", () => {
+      const run = createRun(1, 5);
+      run.hero.x = 0;
+      run.hero.z = 2;
+      run.jack.x = 0;
+      run.jack.z = 28;
+      const p = orbitPivot(run, { x: 0, y: 0, z: 0 });
+      expect(p.z - run.hero.z).toBeCloseTo(BOSS_FRAME.maxLead, 6);
+      const r1 = createRun(1, 1);
+      const p1 = orbitPivot(r1, { x: 0, y: 0, z: 0 });
+      expect(Math.hypot(p1.x - r1.hero.x, p1.z - r1.hero.z)).toBeLessThanOrEqual(2.5 + 1e-9);
+   });
+
+   it("manual input wins: no steering until the orbit has been idle for its auto-follow delay; none on other levels or after the defeat", () => {
+      const run = createRun(1, 5);
+      run.hero.x = -8;
+      run.hero.z = 4;
+      const orbit = createOrbit(roomOrbit(run.course));
+      orbitRotate(orbit, 1, 0);
+      const yaw = orbit.yaw;
+      expect(steerBossFraming(orbit, run, 1 / 60)).toBe(false);
+      expect(orbit.yaw).toBe(yaw);
+      orbit.idle = orbit.settings.autoFollowDelay;
+      expect(steerBossFraming(orbit, run, 1 / 60)).toBe(true);
+      expect(orbit.yaw).not.toBe(yaw);
+      run.boss!.hp = 0;
+      expect(steerBossFraming(orbit, run, 1 / 60)).toBe(false);
+      const r1 = createRun(1, 1);
+      const o1 = createOrbit(roomOrbit(r1.course));
+      o1.idle = 99;
+      expect(steerBossFraming(o1, r1, 1 / 60)).toBe(false);
    });
 });
 

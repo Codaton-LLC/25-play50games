@@ -1119,6 +1119,22 @@
         { "title": "Golden Roof", "max_score": 33570, "min_duration_ms": 24300, "max_duration_ms": 360000, "time_base_ms": 360000 }
       ]
     },
+    "spin-pole-climb": {
+      "title": "Spin Pole Climb",
+      "kind": "time",
+      "max_score": 14150,
+      "min_duration_ms": 8500,
+      "max_duration_ms": 150000,
+      "time_base_ms": 150000,
+      "enabled": false,
+      "levels": [
+        { "title": "Slow Poles", "max_score": 14150, "min_duration_ms": 8500, "max_duration_ms": 150000, "time_base_ms": 150000 },
+        { "title": "Twin Poles", "max_score": 16810, "min_duration_ms": 11900, "max_duration_ms": 180000, "time_base_ms": 180000 },
+        { "title": "Mixed Rotation", "max_score": 19550, "min_duration_ms": 14500, "max_duration_ms": 210000, "time_base_ms": 210000 },
+        { "title": "Fast Tower", "max_score": 22020, "min_duration_ms": 19800, "max_duration_ms": 240000, "time_base_ms": 240000 },
+        { "title": "Spin Master", "max_score": 28340, "min_duration_ms": 16600, "max_duration_ms": 300000, "time_base_ms": 300000 }
+      ]
+    },
     "jungle-vine-jump": {
       "title": "Jungle Vine Jump",
       "kind": "time",
@@ -1327,6 +1343,55 @@
         { "title": "Moving Beams", "max_score": 22060, "min_duration_ms": 19400, "max_duration_ms": 240000, "time_base_ms": 240000 },
         { "title": "Rotating Path", "max_score": 25990, "min_duration_ms": 20100, "max_duration_ms": 280000, "time_base_ms": 280000 },
         { "title": "Balance Master", "max_score": 33960, "min_duration_ms": 20400, "max_duration_ms": 360000, "time_base_ms": 360000 }
+      ]
+    },
+    "color-rail-grind": {
+      "title": "Color Rail Grind",
+      "kind": "time",
+      "max_score": 9800,
+      "min_duration_ms": 22000,
+      "max_duration_ms": 120000,
+      "time_base_ms": 120000,
+      "enabled": false,
+      "levels": [
+        { "title": "Station Yard", "max_score": 9800, "min_duration_ms": 22000, "max_duration_ms": 120000, "time_base_ms": 120000 },
+        { "title": "Village Loop", "max_score": 12440, "min_duration_ms": 25600, "max_duration_ms": 150000, "time_base_ms": 150000 },
+        { "title": "Ice Bridge", "max_score": 15230, "min_duration_ms": 17700, "max_duration_ms": 170000, "time_base_ms": 170000 },
+        { "title": "Night Express", "max_score": 15400, "min_duration_ms": 26000, "max_duration_ms": 180000, "time_base_ms": 180000 },
+        { "title": "Runaway Express", "max_score": 23510, "min_duration_ms": 24900, "max_duration_ms": 260000, "time_base_ms": 260000 }
+      ]
+    },
+    "candy-world-runner": {
+      "title": "Candy World Runner",
+      "kind": "time",
+      "max_score": 7920,
+      "min_duration_ms": 40800,
+      "max_duration_ms": 120000,
+      "time_base_ms": 120000,
+      "enabled": false,
+      "levels": [
+        { "title": "Candy Lane", "max_score": 7920, "min_duration_ms": 40800, "max_duration_ms": 120000, "time_base_ms": 120000 },
+        { "title": "Cookie Road", "max_score": 9010, "min_duration_ms": 39900, "max_duration_ms": 130000, "time_base_ms": 130000 },
+        { "title": "Sorbet Slopes", "max_score": 11000, "min_duration_ms": 30000, "max_duration_ms": 140000, "time_base_ms": 140000 },
+        { "title": "Gummy Grove", "max_score": 12290, "min_duration_ms": 27100, "max_duration_ms": 150000, "time_base_ms": 150000 },
+        { "title": "Bonbon Palace", "max_score": 16740, "min_duration_ms": 32600, "max_duration_ms": 200000, "time_base_ms": 200000 }
+      ]
+    },
+    "temple-gong-timing": {
+      "title": "Temple Gong Timing",
+      "kind": "points",
+      "max_score": 12790,
+      "min_duration_ms": 72800,
+      "max_duration_ms": 79500,
+      "base": 400,
+      "max_pps": 176,
+      "enabled": false,
+      "levels": [
+        { "title": "Slow Beat", "max_score": 12790, "min_duration_ms": 72800, "max_duration_ms": 79500, "base": 400, "max_pps": 176 },
+        { "title": "Alternating Gongs", "max_score": 13690, "min_duration_ms": 71500, "max_duration_ms": 78154, "base": 400, "max_pps": 187 },
+        { "title": "Moving Targets", "max_score": 14180, "min_duration_ms": 64400, "max_duration_ms": 70572, "base": 400, "max_pps": 215 },
+        { "title": "Fast Rhythm", "max_score": 14790, "min_duration_ms": 41800, "max_duration_ms": 46517, "base": 400, "max_pps": 358 },
+        { "title": "Perfect Timing", "max_score": 28600, "min_duration_ms": 64700, "max_duration_ms": 242000, "base": 5720, "max_pps": 318 }
       ]
     },
     "space-pod-jump": {
