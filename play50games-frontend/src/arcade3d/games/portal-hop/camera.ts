@@ -8,6 +8,7 @@ import type { IntroKeyframe } from "@/arcade3d/core/intro";
 import type { AABB } from "@/arcade3d/core/collision";
 import { orbitPosition, wrapAngle, yawBehind, type OrbitSettings, type OrbitState } from "@/arcade3d/menu2/camera/orbit";
 import { islandOn, type Course, type ExitPose } from "./course";
+import { ISLAND_SY } from "./assets";
 import type { PortalRun } from "./rules";
 
 const DEG = Math.PI / 180;
@@ -91,11 +92,13 @@ export function courseSolids(run: PortalRun, x: number, _y: number, z: number, o
    for (const i of run.course.islands) {
       if (n >= out.length) break;
       if (!islandOn(i, run.gates) || Math.hypot(i.x - x, i.z - z) > SOLID_REACH + i.r) continue;
-      const r = i.r * 0.75;
+      // the slab, and under a plateau or a pillar its whole glass column (CourseView draws it that deep)
+      const column = i.look === "plateau" || i.look === "pillar";
+      const r = i.r * (column ? 0.82 : 0.85);
       const b = out[n++];
       b.min.x = i.x - r;
       b.max.x = i.x + r;
-      b.min.y = i.y - (i.look === "plateau" || i.look === "pillar" ? Math.min(6, i.y + 1) : 1.2);
+      b.min.y = i.y - (column ? ISLAND_SY * 0.6 + Math.min(14, i.y + 6) : ISLAND_SY * 0.8);
       b.max.y = i.y - 0.05;
       b.min.z = i.z - r;
       b.max.z = i.z + r;
