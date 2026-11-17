@@ -323,7 +323,7 @@ function drawWallExecutive(ctx: CanvasRenderingContext2D, w: number, h: number) 
 
 /** Level 5 wall: after hours — dark cubicle glow, an EXIT sign, city windows up top. */
 function drawWallAfterHours(ctx: CanvasRenderingContext2D, w: number, h: number) {
-   const { Y, rect } = wallKit(ctx, w, h);
+   const { X, Y, rect } = wallKit(ctx, w, h);
    rect(0, 0, 12, CORRIDOR.height, "#2b3444");
    rect(0, 0, 12, 0.15, "#0f172a");
    // cubicle row behind a low glass wall: desks and glowing monitors
