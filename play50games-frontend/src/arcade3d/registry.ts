@@ -60,6 +60,7 @@ import { lavaPillarJumpMeta } from "./games/lava-pillar-jump/meta";
 import { ziplineRushMeta } from "./games/zipline-rush/meta";
 import { colorDoorSprintMeta } from "./games/color-door-sprint/meta";
 import { templeCoinRushMeta } from "./games/temple-coin-rush/meta";
+import { colorRailGrindMeta } from "./games/color-rail-grind/meta";
 import { cloudHopperMeta } from "./games/cloud-hopper/meta";
 import { plateSurfMeta } from "./games/plate-surf/meta";
 import { robotFactoryRunMeta } from "./games/robot-factory-run/meta";
@@ -71,6 +72,7 @@ import { templeLanternJumpMeta } from "./games/temple-lantern-jump/meta";
 import { toyRoomRunMeta } from "./games/toy-room-run/meta";
 import { jungleVineJumpMeta } from "./games/jungle-vine-jump/meta";
 import { icePeakJumperMeta } from "./games/ice-peak-jumper/meta";
+import { candyWorldRunnerMeta } from "./games/candy-world-runner/meta";
 import { dragonCaveRushMeta } from "./games/dragon-cave-rush/meta";
 import { skyHookSwingMeta } from "./games/sky-hook-swing/meta";
 import { tightropePathMeta } from "./games/tightrope-path/meta";
@@ -78,6 +80,8 @@ import { discTargetThrowMeta } from "./games/disc-target-throw/meta";
 import { wallRunTempleMeta } from "./games/wall-run-temple/meta";
 import { plateBounceArenaMeta } from "./games/plate-bounce-arena/meta";
 import { mineTunnelRunMeta } from "./games/mine-tunnel-run/meta";
+import { spinPoleClimbMeta } from "./games/spin-pole-climb/meta";
+import { templeGongTimingMeta } from "./games/temple-gong-timing/meta";
 
 export const ARCADE_GAMES: ArcadeGameMeta[] = [
    robotCollectorMeta,
@@ -146,6 +150,7 @@ export const ARCADE_GAMES: ArcadeGameMeta[] = [
    toyRoomRunMeta,
    jungleVineJumpMeta,
    icePeakJumperMeta,
+   candyWorldRunnerMeta,
    dragonCaveRushMeta,
    colorDoorSprintMeta,
    skyHookSwingMeta,
@@ -155,6 +160,9 @@ export const ARCADE_GAMES: ArcadeGameMeta[] = [
    plateBounceArenaMeta,
    templeCoinRushMeta,
    mineTunnelRunMeta,
+   colorRailGrindMeta,
+   spinPoleClimbMeta,
+   templeGongTimingMeta,
 ].sort((a, b) => a.order - b.order);
 
 export function getGameMeta(slug: string): ArcadeGameMeta | undefined {
