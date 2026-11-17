@@ -1,0 +1,369 @@
+/* FastMath (classic Speed game 37): phone / tablet layout and touch styling.
+   Rules, scoring and timing live in FastMath.tsx; this file only sizes and styles the surfaces. */
+
+.root {
+   display: flex;
+   flex-direction: column;
+   align-items: center;
+   width: 100%;
+   max-width: 100%;
+   box-sizing: border-box;
+   /* Below 1024 px the bottom padding is the cookie-banner band (as in ReactionTest): the page ends right
+      under the game, and without it the Replay / Share row could never be scrolled above the banner. */
+   padding: 10px 10px calc(env(safe-area-inset-bottom, 0px) + 184px);
+   gap: 10px;
+   touch-action: manipulation;
+   user-select: none;
+   -webkit-user-select: none;
+   -webkit-touch-callout: none;
+   -webkit-tap-highlight-color: transparent;
+}
+
+@media (min-width: 640px) {
+   .root {
+      padding: 20px 20px calc(env(safe-area-inset-bottom, 0px) + 100px);
+      gap: 20px;
+   }
+}
+
+@media (min-width: 1024px) {
+   .root {
+      padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 20px);
+   }
+}
+
+/* short viewports (landscape phone, tablet with a keyboard up): keep everything within reach */
+@media (max-height: 560px) {
+   .root {
+      padding-top: 8px;
+      gap: 8px;
+   }
+}
+
+.problemCard {
+   position: relative;
+   width: 100%;
+   max-width: 600px;
+   box-sizing: border-box;
+   padding: 16px;
+   background: var(--card);
+   border-radius: var(--radius);
+   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.2);
+   display: flex;
+   flex-direction: column;
+   align-items: center;
+   gap: 14px;
+}
+
+@media (min-width: 640px) {
+   .problemCard {
+      padding: 28px 32px;
+      gap: 24px;
+   }
+}
+
+@media (max-height: 560px) {
+   .problemCard {
+      padding: 10px 14px;
+      gap: 10px;
+   }
+}
+
+.question {
+   font-size: clamp(2rem, 9vw, 3rem);
+   line-height: 1.15;
+   font-weight: 800;
+   color: var(--text);
+   text-align: center;
+   font-variant-numeric: tabular-nums;
+}
+
+@media (max-height: 560px) {
+   .question {
+      font-size: clamp(1.6rem, 5vh, 2.4rem);
+   }
+}
+
+.floatPlus {
+   top: -6px;
+   left: 50%;
+   font-size: 1.4rem;
+   color: var(--ok);
+   z-index: 1;
+}
+
+.optionGrid {
+   display: grid;
+   grid-template-columns: 1fr 1fr;
+   gap: 10px;
+   width: 100%;
+}
+
+@media (min-width: 640px) {
+   .optionGrid {
+      gap: 16px;
+   }
+}
+
+.option {
+   position: relative;
+   min-height: 64px;
+   padding: 12px 12px 10px;
+   font-size: clamp(1.35rem, 6vw, 2rem);
+   font-weight: 700;
+   font-family: monospace;
+   font-variant-numeric: tabular-nums;
+   color: var(--text);
+   background: linear-gradient(135deg, rgba(125, 211, 252, 0.2), rgba(125, 211, 252, 0.1));
+   border: 2px solid rgba(125, 211, 252, 0.6);
+   border-radius: 14px;
+   cursor: pointer;
+   touch-action: manipulation;
+   user-select: none;
+   -webkit-user-select: none;
+   -webkit-tap-highlight-color: transparent;
+   transition: transform 0.08s ease, box-shadow 0.12s ease, background 0.12s ease, border-color 0.12s ease;
+}
+
+@media (min-width: 640px) {
+   .option {
+      min-height: 76px;
+      padding: 18px 16px 14px;
+   }
+}
+
+@media (max-height: 560px) {
+   .option {
+      min-height: 52px;
+      padding: 8px 10px 6px;
+      font-size: clamp(1.2rem, 4.5vh, 1.6rem);
+   }
+}
+
+@media (hover: hover) {
+   .option:not(:disabled):hover {
+      background: linear-gradient(135deg, rgba(125, 211, 252, 0.3), rgba(125, 211, 252, 0.2));
+      border-color: rgba(125, 211, 252, 0.8);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(125, 211, 252, 0.4);
+   }
+}
+
+.option:not(:disabled):active {
+   transform: scale(0.96);
+   background: linear-gradient(135deg, rgba(125, 211, 252, 0.35), rgba(125, 211, 252, 0.22));
+   border-color: rgba(125, 211, 252, 0.9);
+}
+
+.option:disabled {
+   background: rgba(100, 100, 100, 0.2);
+   border-color: rgba(100, 100, 100, 0.4);
+   cursor: not-allowed;
+   opacity: 0.5;
+}
+
+.optionBadge {
+   position: absolute;
+   top: 4px;
+   left: 4px;
+   width: 20px;
+   height: 20px;
+   background: rgba(59, 130, 246, 0.8);
+   border-radius: 6px;
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   font-size: 0.7rem;
+   font-weight: 800;
+   font-family: system-ui, sans-serif;
+   color: white;
+   box-shadow: 0 2px 6px rgba(59, 130, 246, 0.4);
+}
+
+@media (min-width: 640px) {
+   .optionBadge {
+      top: 6px;
+      left: 6px;
+      width: 24px;
+      height: 24px;
+      font-size: 0.8rem;
+   }
+}
+
+.option:disabled .optionBadge {
+   background: rgba(100, 100, 100, 0.4);
+   box-shadow: none;
+}
+
+.optionValue {
+   display: block;
+   margin-top: 6px;
+}
+
+/* a fixed slot for the Correct / Wrong banner, so the row under it never jumps */
+.feedbackSlot {
+   width: 100%;
+   min-height: 44px;
+   display: flex;
+   align-items: center;
+   justify-content: center;
+}
+
+@media (max-height: 560px) {
+   .feedbackSlot {
+      min-height: 36px;
+   }
+}
+
+.feedback {
+   display: inline-flex;
+   align-items: center;
+   gap: 8px;
+   padding: 8px 16px;
+   border-radius: var(--radius);
+   color: white;
+   font-size: 0.95rem;
+   font-weight: 600;
+   min-height: 40px;
+   box-sizing: border-box;
+}
+
+.feedbackOk {
+   background: var(--ok);
+   border: 1px solid var(--ok);
+}
+
+.feedbackBad {
+   background: var(--warn);
+   border: 1px solid var(--warn);
+}
+
+/* Replay / Share row: two keys side by side on phones, each >= 44 px tall */
+.actionRow {
+   display: flex;
+   gap: 10px;
+   justify-content: center;
+   flex-wrap: wrap;
+   width: 100%;
+   max-width: 600px;
+   box-sizing: border-box;
+   padding: 10px;
+   background: var(--card);
+   border-radius: var(--radius);
+}
+
+@media (min-width: 640px) {
+   .actionRow {
+      gap: 12px;
+      padding: 16px;
+   }
+}
+
+.actionBtn {
+   display: inline-flex;
+   align-items: center;
+   justify-content: center;
+   gap: 8px;
+   flex: 1 1 130px;
+   box-sizing: border-box;
+   min-height: 46px;
+   padding: 10px 14px;
+   border-radius: 12px;
+   color: var(--text);
+   font-size: 0.9rem;
+   font-weight: 600;
+   cursor: pointer;
+   touch-action: manipulation;
+   user-select: none;
+   -webkit-user-select: none;
+   -webkit-tap-highlight-color: transparent;
+   transition: transform 0.08s ease, box-shadow 0.12s ease, background 0.12s ease, border-color 0.12s ease;
+}
+
+@media (min-width: 640px) {
+   .actionBtn {
+      flex: 0 1 auto;
+      padding: 10px 20px;
+      font-size: 0.95rem;
+   }
+}
+
+.actionReplay {
+   background: linear-gradient(135deg, rgba(125, 211, 252, 0.2), rgba(125, 211, 252, 0.1));
+   border: 1px solid rgba(125, 211, 252, 0.6);
+}
+
+.actionShare {
+   background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1));
+   border: 1px solid rgba(59, 130, 246, 0.6);
+}
+
+@media (hover: hover) {
+   .actionReplay:not(:disabled):hover {
+      background: linear-gradient(135deg, rgba(125, 211, 252, 0.3), rgba(125, 211, 252, 0.2));
+      border-color: rgba(125, 211, 252, 0.8);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(125, 211, 252, 0.3);
+   }
+   .actionShare:hover {
+      background: linear-gradient(135deg, rgba(59, 130, 246, 0.3), rgba(59, 130, 246, 0.2));
+      border-color: rgba(59, 130, 246, 0.8);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+   }
+}
+
+.actionBtn:not(:disabled):active {
+   transform: scale(0.96);
+}
+
+.actionBtn:disabled {
+   background: rgba(100, 100, 100, 0.2);
+   border: 1px solid rgba(100, 100, 100, 0.4);
+   cursor: not-allowed;
+   opacity: 0.5;
+}
+
+/* Next Round (and other notice buttons) */
+.noticeBtn {
+   display: inline-flex;
+   align-items: center;
+   justify-content: center;
+   gap: 8px;
+   min-height: 48px;
+   min-width: 160px;
+   padding: 12px 28px;
+   border-radius: 12px;
+   color: var(--text);
+   font-size: 1.05rem;
+   font-weight: 700;
+   cursor: pointer;
+   touch-action: manipulation;
+   user-select: none;
+   -webkit-user-select: none;
+   -webkit-tap-highlight-color: transparent;
+   background: linear-gradient(135deg, rgba(134, 239, 172, 0.25), rgba(134, 239, 172, 0.12));
+   border: 2px solid rgba(134, 239, 172, 0.6);
+   transition: transform 0.08s ease, box-shadow 0.12s ease, background 0.12s ease, border-color 0.12s ease;
+}
+
+@media (hover: hover) {
+   .noticeBtn:hover {
+      background: linear-gradient(135deg, rgba(134, 239, 172, 0.35), rgba(134, 239, 172, 0.2));
+      border-color: rgba(134, 239, 172, 0.8);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 14px rgba(134, 239, 172, 0.35);
+   }
+}
+
+.noticeBtn:active {
+   transform: scale(0.96);
+}
+
+@media (prefers-reduced-motion: reduce) {
+   .option,
+   .actionBtn,
+   .noticeBtn {
+      transition: none;
+   }
+}
