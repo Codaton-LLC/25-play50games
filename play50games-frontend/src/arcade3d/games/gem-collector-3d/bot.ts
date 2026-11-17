@@ -6,7 +6,7 @@
 // minis, and drives a 10+ train into his yawn. `mash` adds the hero power whenever it is ready (the
 // proof's power-mashing check); it never changes the plan.
 import { BOSS_HOME } from "./levels";
-import { BANK_R, CUT_SKIP, HERO_R, LINK_SPACING, LINK_WEIGHT, MAX_LINKS, PED_R, inBox, overPit, sunkGroup, sweepBand, beaconActive } from "./arena";
+import { BANK_R, CUT_SKIP, HERO_R, SCATTER_MS, LINK_SPACING, LINK_WEIGHT, MAX_LINKS, PED_R, inBox, overPit, sunkGroup, sweepBand, beaconActive } from "./arena";
 import { BOSS_R, CHEW_MS, GEM, MOUTH_OFFSET, SLAM_R, YAWN_MIN, V_RUN, createRun, createStepInput, step, trainWeight, type GemRun, type StepInput } from "./rules";
 import { heroById, type HeroId } from "./heroes";
 import type { LevelId } from "../../types";
@@ -51,6 +51,8 @@ function reachable(run: GemRun, i: number): boolean {
    const x = run.gx[i];
    const z = run.gz[i];
    if (inBox(a.vault, x, z, 0.3) || (inBox(a.pocket, x, z, 0.3) && !run.wallBroken[0])) return false;
+   // a gem just cut loose lies on the tail's own path: leave it a moment (re-grabbing it loops back into the tail)
+   if (st === GEM.loose && run.fadeAt[i] - run.simMs > SCATTER_MS - 1000) return false;
    // a loose gem about to fade is not worth the trip
    if (st === GEM.loose && run.fadeAt[i] - run.simMs < (Math.hypot(x - run.hero.x, z - run.hero.z) / V_RUN) * 1000 + 300) return false;
    if (overPit(a, x, z, run.simMs) || overPit(a, x, z, run.simMs + 1500)) return false;
@@ -266,7 +268,8 @@ function circle(bot: Bot, run: GemRun, input: StepInput, cx: number, cz: number,
    const tx = uz * bot.circleDir;
    const tz = -ux * bot.circleDir;
    const pull = Math.max(-1.5, Math.min(1.5, (r - d) * 2.5));
-   setMove(input, tx + ux * pull, tz + uz * pull);
+   // a little slower than flat out: the circle stays tight at any frame rate
+   setMove(input, tx + ux * pull, tz + uz * pull, d < r + 1 ? 0.7 : 1);
 }
 
 function collect(bot: Bot, run: GemRun, input: StepInput, bankAt: number, bossR = 0, avoidX = NaN, avoidZ = NaN, avoidR = 0): void {
@@ -341,7 +344,7 @@ function bossPlay(bot: Bot, run: GemRun, input: StepInput): void {
          return;
       }
       const home = Math.hypot(g.x - BOSS_HOME.x, g.z - BOSS_HOME.z) < 0.2;
-      if (b.step === "vulnerable" && home && run.n >= 15) {
+      if (b.step === "vulnerable" && home && run.n >= 13) {
          bot.circling = true;
          circle(bot, run, input, g.x, g.z, BOSS_R + HERO_R + 0.1);
          return;
@@ -352,7 +355,7 @@ function bossPlay(bot: Bot, run: GemRun, input: StepInput): void {
       return;
    }
    if (ph === 1) {
-      if (b.step === "vulnerable" && run.n >= 10) {
+      if (b.step === "vulnerable" && run.n >= 12) {
          let best = -1;
          let bd = Infinity;
          for (let m = 0; m < 3; m++) {

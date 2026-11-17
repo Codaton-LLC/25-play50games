@@ -31,7 +31,7 @@ export const BEACON_H = 2.6;
 export const RIM_H = 0.85;
 /** one rim wall segment spans this much of the circle (m) */
 export const RIM_SPAN = 2.4;
-export const BOSS_H = 2.8;
+export const BOSS_H = 2.4;
 
 const own = (id: string, color: string, budget: { tris: number; bytes: number } = PROP_BUDGET): ModelAsset => ({
    id,

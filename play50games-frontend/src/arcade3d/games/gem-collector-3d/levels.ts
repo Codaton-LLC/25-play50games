@@ -342,7 +342,7 @@ export const LEVELS: Record<LevelId, ArenaSpec> = {
       gems: [
          ...ring(8, 4, "clear", 0, 0, -1),
          ...row(-11, 0, -11, 7, 5, "clear"),
-         ...row(11, 0, 11, 7, 5, "clear"),
+         ...row(9, 2.5, 9, 8, 5, "clear"),
          ...row(-4, -11.5, 4, -11.5, 5, "frost"),
          { x: 6.5, z: 9.5, kind: "gold", pedestal: 0 },
          ...trail(13.6, -60 * DEG, -20 * DEG, 6),
@@ -364,7 +364,7 @@ export const LEVELS: Record<LevelId, ArenaSpec> = {
       waveEveryMs: 20_000,
       waves: [
          ring(12, 4.5, "clear", 0, -6, 0),
-         ring(12, 4.5, "clear", 0, 6, 0),
+         ring(12, 4.5, "clear", 0, 5, 0),
          [...ring(12, 9.5, "clear", 0), ...ring(3, 1.2, "gold", 0, 0, -1)],
          ring(12, 4.5, "clear", 15 * DEG, 0, 6),
          ring(14, 5, "clear", 0, 0, -6),
@@ -392,7 +392,7 @@ export const LEVELS: Record<LevelId, ArenaSpec> = {
    5: {
       id: 5,
       name: "Gumdrop Glutton",
-      durationMs: 200_000,
+      durationMs: 240_000,
       targetScore: 0,
       starTargetMs: 150_000,
       ...base(15),
@@ -402,7 +402,7 @@ export const LEVELS: Record<LevelId, ArenaSpec> = {
       ],
       gems: [
          ...ring(14, 6, "clear", 0),
-         ...ring(10, 10.5, "clear", 9 * DEG),
+         ...ring(10, 9.5, "clear", 9 * DEG),
          ...ring(6, 2.6, "frost", 30 * DEG),
          { x: -9, z: 6, kind: "gold", pedestal: 0 },
          ...trail(13.6, 100 * DEG, 140 * DEG, 6),
@@ -414,16 +414,8 @@ export const LEVELS: Record<LevelId, ArenaSpec> = {
       slimes: [],
       chests: [],
       waveEveryMs: 12_000,
-      waves: [
-         ring(10, 9, "clear", 0),
-         ring(10, 9.5, "clear", 18 * DEG),
-         ring(10, 10.5, "clear", 9 * DEG),
-         ring(10, 9, "clear", 27 * DEG),
-         ring(10, 10, "clear", 4 * DEG),
-         ring(10, 9.5, "clear", 13 * DEG),
-         ring(10, 10.5, "clear", 22 * DEG),
-         ring(10, 9, "clear", 31 * DEG),
-      ],
+      // fourteen refills (through 168 s): rings of ten at 9 - 9.8 m (clear of the cracked wall), each turned a little
+      waves: Array.from({ length: 14 }, (_, k) => ring(10, 9 + (k % 3) * 0.4, "clear", ((k * 13) % 36) * DEG)),
       orbs: [
          { x: -12.6, y: 1, z: 0 },
          { x: 12.6, y: 1, z: 2 },

@@ -103,6 +103,6 @@ export function arenaSolids(run: GemRun, x: number, z: number, out: AABB[]): num
       add(s.x0, s.x1, 0, 2.6, s.z0, s.z1);
    }
    for (const p of a.pedestals) add(p.x - 0.8, p.x + 0.8, 0, p.h, p.z - 0.8, p.z + 0.8);
-   if (run.boss && run.boss.hp > 0) add(run.glutton.x - 1.1, run.glutton.x + 1.1, 0, 2.8, run.glutton.z - 1.1, run.glutton.z + 1.1);
+   if (run.boss && run.boss.hp > 0 && run.boss.phase !== 1) add(run.glutton.x - 1.1, run.glutton.x + 1.1, 0, 2.8, run.glutton.z - 1.1, run.glutton.z + 1.1);
    return n;
 }

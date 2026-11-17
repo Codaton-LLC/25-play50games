@@ -72,9 +72,9 @@ const BUFFER = 110;
 const MAX_STEP_MS = 50;
 
 /** the Glutton: body radius, speeds, how close his mouth is, the yawn bank's least train, his stun */
-export const BOSS_R = 1.15;
+export const BOSS_R = 1.05;
 export const BOSS_CHASE = 2.6;
-export const BOSS_BITE_MS = 500;
+export const BOSS_BITE_MS = 800;
 export const BOSS_LUNGE = 7;
 export const MOUTH_OFFSET = 1.4;
 export const MOUTH_R = 1.8;
@@ -83,7 +83,9 @@ export const STUN_BOSS_MS = 4000;
 export const SLAM_R = 3.5;
 export const MINI_R = 0.5;
 export const MINI_CHASE = 2.8;
-export const MINI_SLOW = 1;
+/** in the window the minis wobble, dizzy, out to their own spot on a ring of MINI_SPOT_R and sit there (lasso one) */
+export const MINI_DIZZY = 3;
+export const MINI_SPOT_R = 6;
 export const SLIME_SPEED = 1.9;
 export const BITE_COOLDOWN = 900;
 /** after a bite a slime sits still, chewing, this long (the moment to lasso it) */
@@ -619,6 +621,7 @@ function respawn(run: GemRun, ev: StepEvents): void {
 
 const STICK = { x: 0, z: 0 };
 const PUSH = { x: 0, z: 0 };
+const KEEP = { x: 0, z: 0 };
 const BAND = { x0: 0, x1: 0 };
 const K_ACCEL = 1 - Math.exp(-ACCEL / 1000);
 
@@ -688,6 +691,18 @@ function stepMs(run: GemRun, ev: StepEvents, sx: number, sz: number, input: Step
    }
    let nx = h.x + mx;
    let nz = h.z + mz;
+   // the Glutton's body (not while he is split into the minis); before the walls, so a wall always wins
+   if (run.boss && run.boss.hp > 0 && run.boss.phase !== 1 && h.y < 2.4) {
+      const g = run.glutton;
+      const dx = nx - g.x;
+      const dz = nz - g.z;
+      const d = Math.hypot(dx, dz);
+      const r = BOSS_R + HERO_R;
+      if (d < r && d > 1e-9) {
+         nx = g.x + (dx / d) * r;
+         nz = g.z + (dz / d) * r;
+      }
+   }
    // solids: the cracked wall (a dash breaks it), the ghost wall (Vexa's phase), the vault and pocket walls
    for (const s of a.solids) {
       if (s.kind === "cracked" && run.wallBroken[s.index]) continue;
@@ -714,18 +729,6 @@ function stepMs(run: GemRun, ev: StepEvents, sx: number, sz: number, input: Step
       if (d < r && d > 1e-9) {
          nx = pd.x + (dx / d) * r;
          nz = pd.z + (dz / d) * r;
-      }
-   }
-   // the Glutton's body
-   if (run.boss && run.boss.hp > 0 && h.y < 2.4) {
-      const g = run.glutton;
-      const dx = nx - g.x;
-      const dz = nz - g.z;
-      const d = Math.hypot(dx, dz);
-      const r = BOSS_R + HERO_R;
-      if (d < r && d > 1e-9) {
-         nx = g.x + (dx / d) * r;
-         nz = g.z + (dz / d) * r;
       }
    }
    // the rim
@@ -962,6 +965,20 @@ function stepBossMs(run: GemRun, ev: StepEvents): void {
          }
       }
    }
+   const keepIn = (x: number, z: number, r: number, out: { x: number; z: number }) => {
+      out.x = x;
+      out.z = z;
+      const rr = run.arena.radius - 0.5 - r;
+      const d = Math.hypot(out.x, out.z);
+      if (d > rr) {
+         out.x *= rr / d;
+         out.z *= rr / d;
+      }
+      for (const s of run.arena.solids) if (pushOutOf(s, out.x, out.z, PUSH, r)) {
+         out.x = PUSH.x;
+         out.z = PUSH.z;
+      }
+   };
    const toHero = (speed: number) => {
       const dx = h.x - g.x;
       const dz = h.z - g.z;
@@ -992,6 +1009,9 @@ function stepBossMs(run: GemRun, ev: StepEvents): void {
          g.z += g.lz * BOSS_LUNGE * 0.001;
       } else if (b.step === "vulnerable") home(6);
       else if (b.step === "transition" || b.step === "intro") home(3);
+      keepIn(g.x, g.z, BOSS_R, KEEP);
+      g.x = KEEP.x;
+      g.z = KEEP.z;
       // touching the train, he eats its last link every BOSS_BITE_MS (not while he squats, full)
       if ((b.step === "telegraph" || b.step === "attack") && ms - g.lastBite > BOSS_BITE_MS && run.n > 0) {
          for (let k = 0; k < run.n; k++) {
@@ -1005,24 +1025,25 @@ function stepBossMs(run: GemRun, ev: StepEvents): void {
       }
    } else if (b.phase === 1) {
       home(3);
-      const speed = b.step === "vulnerable" ? MINI_SLOW : MINI_CHASE;
+      const dizzy = b.step === "vulnerable";
+      const speed = dizzy ? MINI_DIZZY : MINI_CHASE;
       for (let m = 0; m < 3; m++) {
          if (!g.mAlive[m]) continue;
-         const tx = run.n > 0 ? run.linkPos[(run.n - 1) * 2] : h.x;
-         const tz = run.n > 0 ? run.linkPos[(run.n - 1) * 2 + 1] : h.z;
+         // chasing: the tail's end; dizzy (the window): out to their own open spot, where they sit
+         const ang = (m / 3) * Math.PI * 2 + 0.5;
+         const tx = dizzy ? Math.sin(ang) * MINI_SPOT_R : run.n > 0 ? run.linkPos[(run.n - 1) * 2] : h.x;
+         const tz = dizzy ? Math.cos(ang) * MINI_SPOT_R : run.n > 0 ? run.linkPos[(run.n - 1) * 2 + 1] : h.z;
          const dx = tx - g.mx[m];
          const dz = tz - g.mz[m];
          const d = Math.hypot(dx, dz);
-         if (d > 0.05) {
-            g.mx[m] += (dx / d) * speed * 0.001;
-            g.mz[m] += (dz / d) * speed * 0.001;
+         if (d > 0.05 && speed > 0) {
+            const stepM = Math.min(d, speed * 0.001);
+            g.mx[m] += (dx / d) * stepM;
+            g.mz[m] += (dz / d) * stepM;
          }
-         const r = run.arena.radius - 1;
-         const mr = Math.hypot(g.mx[m], g.mz[m]);
-         if (mr > r) {
-            g.mx[m] *= r / mr;
-            g.mz[m] *= r / mr;
-         }
+         keepIn(g.mx[m], g.mz[m], MINI_R, KEEP);
+         g.mx[m] = KEEP.x;
+         g.mz[m] = KEEP.z;
          if (b.step === "vulnerable" || h.shieldUntil >= ms || ms - g.mBite[m] < BITE_COOLDOWN) continue;
          for (let k = 0; k < run.n; k++) {
             if (Math.hypot(run.linkPos[k * 2] - g.mx[m], run.linkPos[k * 2 + 1] - g.mz[m]) < MINI_R + 0.3) {
@@ -1124,7 +1145,7 @@ export const PROPOSED_LEVEL_LIMITS: Record<LevelId, LevelLimits> = {
    2: { kind: "points", maxScore: 5449, minDurationMs: 95000, maxDurationMs: 101000, base: 0, maxPointsPerSec: 58 },
    3: { kind: "points", maxScore: 6300, minDurationMs: 104500, maxDurationMs: 111000, base: 0, maxPointsPerSec: 61 },
    4: { kind: "points", maxScore: 7132, minDurationMs: 114000, maxDurationMs: 121000, base: 0, maxPointsPerSec: 63 },
-   5: { kind: "points", maxScore: 10917, minDurationMs: 29100, maxDurationMs: 201000, base: 0, maxPointsPerSec: 376 },
+   5: { kind: "points", maxScore: 14157, minDurationMs: 29100, maxDurationMs: 241000, base: 0, maxPointsPerSec: 487 },
 };
 
 /** The run's final score for the shell: the points (the duration is the run time). */
