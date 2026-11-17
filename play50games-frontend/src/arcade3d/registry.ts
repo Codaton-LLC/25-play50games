@@ -87,6 +87,7 @@ import { templeGongTimingMeta } from "./games/temple-gong-timing/meta";
 import { neonCubeJumpMeta } from "./games/neon-cube-jump/meta";
 
 import { snowSlideDashMeta } from "./games/snow-slide-dash/meta";
+import { portalHopMeta } from "./games/portal-hop/meta";
 import { crystalCaveSwitchMeta } from "./games/crystal-cave-switch/meta";
 
 export const ARCADE_GAMES: ArcadeGameMeta[] = [
@@ -173,6 +174,7 @@ export const ARCADE_GAMES: ArcadeGameMeta[] = [
    spinPoleClimbMeta,
    templeGongTimingMeta,
    neonCubeJumpMeta,
+   portalHopMeta,
    crystalCaveSwitchMeta,
 ].sort((a, b) => a.order - b.order);
 
