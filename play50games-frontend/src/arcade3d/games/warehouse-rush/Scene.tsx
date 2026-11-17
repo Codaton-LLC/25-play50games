@@ -49,7 +49,7 @@ import { useArcadeStore, type ArcadeStore } from "@/arcade3d/core/useArcadeStore
 import { useFittedView } from "@/arcade3d/core/useFittedView";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { ASSETS } from "./assets";
-import { LOOK_AT, VIEW } from "./camera";
+import { LOOK_AT, SCENERY_VIEW, VIEW } from "./camera";
 import { WAREHOUSE_SCALE, warehousePhaseStep } from "./gait";
 import { LEVELS } from "./levels";
 import { useWarehouseLevel } from "./useWarehouseLevel";
@@ -815,8 +815,8 @@ export default function Scene() {
 
 /** One level's scene. Remounts when the start card picks another level, and on every run. */
 function LevelScene() {
-   const view = useFittedView(VIEW);
    const { config } = useWarehouseLevel();
+   const view = useFittedView(config.id === 1 ? VIEW : SCENERY_VIEW);
    // GameShell remounts the Scene (and its game time) on start, retry and restart
    const [run] = useState(() => {
       const r = takeRun(config);

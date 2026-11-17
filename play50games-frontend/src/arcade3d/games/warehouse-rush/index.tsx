@@ -10,6 +10,7 @@ import Scene from "./Scene";
 import OrderHud from "./Hud";
 import { ASSETS } from "./assets";
 import { FOV } from "./camera";
+import { LOOKS } from "./appearance";
 import { LEVELS, type WarehouseLevel } from "./levels";
 import { DURATION_MS, PROPOSED_LEVEL_LIMITS, capScore } from "./rules";
 
@@ -41,17 +42,16 @@ const DESCRIPTIONS: Record<LevelId, string> = {
    1: "60 seconds. Four pallets, four colour zones.",
    2: "75 seconds. Blue and red lanes slow the robot.",
    3: "90 seconds. Extra shelves narrow both side gates.",
-   4: "Night shift, 105 seconds. A forklift crosses, and orders last 16 seconds.",
+   4: "Rush shift, 105 seconds. A forklift crosses, and orders last 16 seconds.",
    5: "120 seconds. Two faster forklifts and a 12-second order limit.",
 };
 
 const ENVIRONMENTS: Record<LevelId, LevelSpec["environment"]> = {
    1: undefined,
-   2: { background: "#102433", lighting: "day" },
-   3: { background: "#2a1810", lighting: "sunset" },
-   // no fog: the portrait phone camera stands far enough back that fog hid the far zones
-   4: { background: "#070b14", lighting: "night" },
-   5: { background: "#2a0c14", lighting: "sunset" },
+   2: LOOKS[2]!.environment,
+   3: LOOKS[3]!.environment,
+   4: LOOKS[4]!.environment,
+   5: LOOKS[5]!.environment,
 };
 
 const definition: GameDefinition<WarehouseLevel> = {

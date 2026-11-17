@@ -25,3 +25,9 @@ export const VIEW: FittedViewOptions = {
    padding: 8,
    shift: true,
 };
+
+/** Levels 2-5 include the low exterior staging bays; the live level keeps VIEW exactly. */
+export const SCENERY_VIEW: FittedViewOptions = {
+   ...VIEW,
+   area: { min: { x: -11.9, y: 0, z: -7.6 }, max: { x: 11.9, y: 1.3, z: 7.6 } },
+};
