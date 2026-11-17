@@ -1585,6 +1585,23 @@
         { "title": "Gumdrop Glutton", "max_score": 14157, "min_duration_ms": 29100, "max_duration_ms": 241000, "base": 0, "max_pps": 487 }
       ]
     },
+    "color-orb-defense": {
+      "title": "Color Orb Defense",
+      "kind": "points",
+      "max_score": 4940,
+      "min_duration_ms": 51000,
+      "max_duration_ms": 121000,
+      "base": 0,
+      "max_pps": 97,
+      "enabled": false,
+      "levels": [
+        { "title": "Two Colors", "max_score": 4940, "min_duration_ms": 51000, "max_duration_ms": 121000, "base": 0, "max_pps": 97 },
+        { "title": "Three Colors", "max_score": 8890, "min_duration_ms": 83900, "max_duration_ms": 151000, "base": 0, "max_pps": 106 },
+        { "title": "Four Colors", "max_score": 15600, "min_duration_ms": 143400, "max_duration_ms": 211000, "base": 0, "max_pps": 109 },
+        { "title": "Fast Waves", "max_score": 24150, "min_duration_ms": 179600, "max_duration_ms": 261000, "base": 0, "max_pps": 135 },
+        { "title": "Orb Defense Master", "max_score": 28450, "min_duration_ms": 171400, "max_duration_ms": 321000, "base": 0, "max_pps": 166 }
+      ]
+    },
     "color-bridge-builder": {
       "title": "Color Bridge Builder",
       "kind": "time",
@@ -1712,8 +1729,7 @@
         { "title": "Time Attack", "max_score": 10320, "min_duration_ms": 1800, "max_duration_ms": 105000, "time_base_ms": 105000 },
         { "title": "80% Master", "max_score": 10620, "min_duration_ms": 13800, "max_duration_ms": 120000, "time_base_ms": 120000 }
       ]
-    }
-,
+    },
     "color-arena-survival": {
       "title": "Color Arena Survival",
       "kind": "time",
