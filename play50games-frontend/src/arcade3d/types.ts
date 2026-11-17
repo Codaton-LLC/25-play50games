@@ -96,6 +96,7 @@ export const ARCADE_SLUGS = [
    "mirror-dash",
    "laser-maze-run",
    "crystal-cave-switch",
+   "switch-color-hero",
 ] as const;
 
 export type ArcadeSlug = (typeof ARCADE_SLUGS)[number];

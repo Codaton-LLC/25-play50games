@@ -1536,6 +1536,22 @@
         { "title": "Portal Master", "max_score": 28370, "min_duration_ms": 16300, "max_duration_ms": 300000, "time_base_ms": 300000 }
       ]
     },
+    "switch-color-hero": {
+      "title": "Switch Color Hero",
+      "kind": "time",
+      "max_score": 10450,
+      "min_duration_ms": 15500,
+      "max_duration_ms": 120000,
+      "time_base_ms": 120000,
+      "enabled": false,
+      "levels": [
+        { "title": "Two Gates", "max_score": 10450, "min_duration_ms": 15500, "max_duration_ms": 120000, "time_base_ms": 120000 },
+        { "title": "Three Colors", "max_score": 12920, "min_duration_ms": 20800, "max_duration_ms": 150000, "time_base_ms": 150000 },
+        { "title": "Fast Switching", "max_score": 16050, "min_duration_ms": 19500, "max_duration_ms": 180000, "time_base_ms": 180000 },
+        { "title": "Mixed Obstacles", "max_score": 18830, "min_duration_ms": 21700, "max_duration_ms": 210000, "time_base_ms": 210000 },
+        { "title": "Color Overdrive", "max_score": 26690, "min_duration_ms": 33100, "max_duration_ms": 300000, "time_base_ms": 300000 }
+      ]
+    },
     "space-pod-jump": {
       "title": "Space Pod Jump",
       "kind": "time",
