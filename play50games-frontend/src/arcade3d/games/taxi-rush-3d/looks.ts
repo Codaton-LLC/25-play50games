@@ -5,7 +5,7 @@ import type { InstanceSpot } from "@/arcade3d/core/render";
 import type { FittedViewOptions } from "@/arcade3d/core/useFittedView";
 import type { LevelId } from "@/arcade3d/types";
 import { LEVELS, type TaxiLevel } from "./levels";
-import { BLOCK, HALF_STREET, INSET, PITCH as GRID, ROAD_HALF, STREET, U, citySize, streetX, streetZ, type Run } from "./rules";
+import { BLOCK, HALF_STREET, INSET, PITCH as GRID, ROAD_HALF, STREET, U, activePad, citySize, streetX, streetZ, type Run } from "./rules";
 import { FIT } from "./assets";
 
 export const COLORS = {
@@ -59,6 +59,25 @@ export const COLORS = {
    ground: "#1e293b",
 } as const;
 
+/** District art direction. L1 keeps the original palette and dressing verbatim. */
+export function districtFor(id: LevelId) {
+   const palettes = {
+      1: { facades: [COLORS.facadeA, COLORS.facadeB, COLORS.facadeC], pavement: COLORS.sidewalk, court: COLORS.court, roof: COLORS.roof, accent: COLORS.leaves, glow: 0, road: "#ffffff" },
+      2: { facades: ["#abc4d2", "#e0e8ec", "#768d9e"], pavement: "#becbd2", court: "#849ba6", roof: "#34495c", accent: "#66c8db", glow: 0, road: "#e4edf4" },
+      3: { facades: ["#f4dab1", "#df9f85", "#c8dcc7"], pavement: "#ead4b5", court: "#cdbb9f", roof: "#80565a", accent: "#ef916c", glow: 0, road: "#fff0dd" },
+      4: { facades: ["#9eabc9", "#879db9", "#b8a2bd"], pavement: "#a7b6ce", court: "#536581", roof: "#303d5c", accent: "#6ce5f2", glow: 1.6, road: "#e1eaff" },
+      5: { facades: ["#d9c4ae", "#a9b8bd", "#c99d7f"], pavement: "#c7bbaf", court: "#68757c", roof: "#4f555b", accent: "#ffc067", glow: 0.25, road: "#f2dfcd" },
+   };
+   return palettes[id];
+}
+
+/** Downtown introduces office/home destination cues without changing stop or score rules. */
+export function destinationFor(run: Run): { label: string; color: string } | null {
+   const pad = activePad(run);
+   if (run.level !== LEVELS[2] || run.phase !== 1 || !pad) return null;
+   return pad.i % 2 === 0 ? { label: "Office drop-off", color: "#38bdf8" } : { label: "Home drop-off", color: COLORS.dropPad };
+}
+
 export const PITCH = (48 * Math.PI) / 180;
 export const YAWS = [0.35] as const;
 export const FOV = 46;
@@ -101,6 +120,8 @@ export function viewFor(id: LevelId): FittedViewOptions {
 }
 
 export function skyFor(level: TaxiLevel): { top: string; bottom: string } {
+   if (level === LEVELS[2]) return { top: "#68a8cd", bottom: "#e1edf0" };
+   if (level === LEVELS[5]) return { top: "#a56462", bottom: "#efc49b" };
    if (level.lighting === "night") return { top: "#020617", bottom: "#1e293b" };
    if (level.lighting === "sunset") return { top: "#fb923c", bottom: "#fed7aa" };
    return { top: "#38bdf8", bottom: "#e0f2fe" };
@@ -108,6 +129,9 @@ export function skyFor(level: TaxiLevel): { top: string; bottom: string } {
 
 /** Fog from beyond the chase window to past the ring of blocks round the grid. */
 export function fogFor(level: TaxiLevel): [string, number, number] {
+   if (level === LEVELS[2]) return [level.background, 40 * U, 105 * U];
+   if (level === LEVELS[4]) return [level.background, 35 * U, 95 * U];
+   if (level === LEVELS[5]) return [level.background, 38 * U, 100 * U];
    return [level.background, 45 * U, 120 * U];
 }
 
@@ -130,6 +154,8 @@ export const PAVE = HALF_STREET + INSET - ROAD_HALF;
 export const RIDER_SIDE = ROAD_HALF + 1.1;
 
 export interface CitySpots {
+   /** Low courtyard set pieces, entirely within the existing building/camera solids. */
+   landmarks: InstanceSpot[];
    /** GLB pieces (playable blocks) */
    houses: InstanceSpot[];
    shops: InstanceSpot[];
@@ -167,15 +193,20 @@ const BUS_D = FIT.busStopHeight * (1.0217 / 1.239);
  * `glb`: a corner shop and a townhouse (or the level's bus stop) are GLBs, the other 10 cells are code
  * boxes; a ring block is 12 code boxes. A lamp and a courtyard tree on playable blocks only.
  */
-function dressBlock(out: CitySpots, x0: number, z0: number, size: number, rng: () => number, glb: boolean, bus: boolean): void {
+function dressBlock(out: CitySpots, x0: number, z0: number, size: number, rng: () => number, glb: boolean, bus: boolean, id: LevelId, col: number, row: number): void {
    out.slabs.push({ x: x0 + size / 2, y: KERB / 2, z: z0 + size / 2, sx: size + 2 * PAVE, sy: KERB, sz: size + 2 * PAVE });
    out.courts.push({ x: x0 + size / 2, y: KERB + 0.005, z: z0 + size / 2, sx: size - 2 * SHOP_W + 0.4 * U, sy: 0.01, sz: size - 2 * SHOP_W + 0.4 * U });
-   const shopCorner = Math.floor(rng() * 4);
-   const houseCell = Math.floor(rng() * 8);
+   const randomCorner = Math.floor(rng() * 4);
+   const randomCell = Math.floor(rng() * 8);
+   // Ordered business frontages, inward-facing shopping rows, alternating night venues,
+   // and commuter blocks replace the neighborhood's scattered frontages.
+   const shopCorner = id === 1 ? randomCorner : id === 2 ? col % 2 : id === 3 ? (row % 2) * 2 : (col + row + id) % 4;
+   const houseCell = id === 1 ? randomCell : (shopCorner * 2 + (id === 5 ? 3 : 1)) % 8;
    const box = (cx: number, cz: number, w: number, d: number, h: number, quarter: boolean) => {
       const tone = Math.floor(rng() * 3);
-      const sx = quarter ? d : w;
-      const sz = quarter ? w : d;
+      const width = id === 2 ? w * 0.78 : id === 3 ? w * 0.9 : w;
+      const sx = quarter ? d : width;
+      const sz = quarter ? width : d;
       out.boxes[tone].push({ x: cx, y: KERB + h / 2, z: cz, sx, sy: h, sz });
       out.roofs.push({ x: cx, y: KERB + h + 0.1, z: cz, sx: sx + 0.2, sy: 0.2, sz: sz + 0.2 });
    };
@@ -202,7 +233,40 @@ function dressBlock(out: CitySpots, x0: number, z0: number, size: number, rng: (
       // a street lamp on the pavement, 0.7 m in from the kerb
       if (glb && k === (shopCorner + 2) % 4) out.lamps.push({ x: ex + side.ax * (size / 2) - side.nx * (PAVE - 0.7), y: KERB, z: ez + side.az * (size / 2) - side.nz * (PAVE - 0.7), rotY: side.rotY, scale: FIT.lampHeight });
    });
-   if (glb) out.trees.push({ x: x0 + size / 2 + (rng() - 0.5) * U, y: KERB, z: z0 + size / 2 + (rng() - 0.5) * U, rotY: rng() * Math.PI * 2, scale: FIT.treeHeight * (0.85 + rng() * 0.3) });
+   if (glb) {
+      const tree = { x: x0 + size / 2 + (rng() - 0.5) * U, y: KERB, z: z0 + size / 2 + (rng() - 0.5) * U, rotY: rng() * Math.PI * 2, scale: FIT.treeHeight * (0.85 + rng() * 0.3) };
+      if (id !== 1) {
+         tree.x = x0 + size / 2 - 2.5;
+         tree.z = z0 + size / 2 + 2.5;
+      }
+      out.trees.push(tree);
+      const cx = x0 + size / 2;
+      const cz = z0 + size / 2;
+      const piece = (dx: number, dz: number, sx: number, sy: number, sz: number, y = KERB + sy / 2) => out.landmarks.push({ x: cx + dx, y, z: cz + dz, sx, sy, sz });
+      if (id === 2) {
+         // Office forecourts: stepped sculpture and long seating islands.
+         piece(0, 0, 3.4, 0.3, 3.4);
+         piece(0, 0, 1.1, 2.8, 1.1);
+         piece(2.7, 0, 0.7, 0.5, 3.4);
+      } else if (id === 3) {
+         // Two market kiosks per courtyard: counters and floating canopy slabs.
+         for (const z of [-2, 2]) {
+            piece(0.8, z, 2.6, 0.85, 1.4);
+            piece(0.8, z, 3, 0.22, 1.8, KERB + 2.1);
+            for (const x of [-0.4, 2]) piece(x, z, 0.16, 2, 0.16);
+         }
+      } else if (id === 4) {
+         // A luminous venue square with paired entrance fins and a light ribbon.
+         for (const x of [-1.7, 1.7]) piece(x, -1.7, 0.3, 2.7, 0.6);
+         piece(0, -1.7, 3.7, 0.2, 0.6, KERB + 2.7);
+         piece(0, 1, 3.4, 0.12, 0.3);
+      } else if (id === 5 && (col + row) % 2 === 0) {
+         // Commuter interchange: parallel shelter benches and a striped island.
+         for (const z of [-2, 0, 2]) piece(0.8, z, 3.5, 0.45, 0.5);
+         piece(0.8, 0, 4.1, 0.2, 5.4, KERB + 2.5);
+         for (const z of [-2.3, 2.3]) piece(2.5, z, 0.18, 2.4, 0.18);
+      }
+   }
 }
 
 const CITY = new Map<LevelId, CitySpots>();
@@ -217,12 +281,13 @@ export function citySpots(id: LevelId): CitySpots {
    if (city) return city;
    const level = LEVELS[id];
    const rng = createRng(9100 + id);
-   city = { houses: [], shops: [], busStops: [], lamps: [], trees: [], boxes: [[], [], []], roofs: [], slabs: [], courts: [], dashes: [], arrows: [], edges: [], zebras: [] };
+   city = { landmarks: [], houses: [], shops: [], busStops: [], lamps: [], trees: [], boxes: [[], [], []], roofs: [], slabs: [], courts: [], dashes: [], arrows: [], edges: [], zebras: [] };
    const size = BLOCK - INSET * 2;
    for (let r = -1; r <= level.blocksZ; r++) {
       for (let c = -1; c <= level.blocksX; c++) {
          const playable = r >= 0 && c >= 0 && r < level.blocksZ && c < level.blocksX;
-         dressBlock(city, STREET + c * GRID + INSET, STREET + r * GRID + INSET, size, rng, playable, playable && r === 0 && c === 0);
+         const bus = id === 1 ? r === 0 && c === 0 : id === 5 ? r === level.blocksZ - 1 && c === 1 : r === 1 && c === 0;
+         dressBlock(city, STREET + c * GRID + INSET, STREET + r * GRID + INSET, size, rng, playable, playable && bus, id, c, r);
       }
    }
    // road paint along every street segment between two junctions (the ring's streets included)

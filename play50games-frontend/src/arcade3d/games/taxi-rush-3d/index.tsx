@@ -25,6 +25,7 @@ function stats(level: TaxiLevel): GameDefinition["hudStats"] {
 }
 
 function instructionsFor(id: LevelId): string[] {
+   if (id === 2) return [LINES[0], "Gold is pickup. Blue is an office drop-off; green is a home drop-off. Hold still for half a second.", LINES[2]];
    if (id === 4) return [LINES[0], LINES[1], "Night streets. The light is red or green, and running it costs a life."];
    if (id === 5) return [LINES[0], LINES[1], "Eight fares and eight cars. Patience drops faster."];
    return LINES;
