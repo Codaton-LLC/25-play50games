@@ -15,6 +15,30 @@ import {
    trackShareClick,
    getShareStatus,
 } from "@/lib/api/share";
+import { TOUCH_SURFACE, useInstantPress, useRevealOnPlay, useViewport } from "./touch";
+import { keyboardInset, playAreaMaxHeight } from "./TypingSprint.layout";
+import fx from "./speedFx.module.css";
+import styles from "./TypingSprint.module.css";
+
+/** A pointerdown-activated button (Replay, Next Round): instant on touch, the follow-up click swallowed. */
+function InstantButton({
+   onPress,
+   disabled = false,
+   className,
+   children,
+}: {
+   onPress: () => void;
+   disabled?: boolean;
+   className: string;
+   children: React.ReactNode;
+}) {
+   const press = useInstantPress<HTMLButtonElement>(onPress, !disabled);
+   return (
+      <button type="button" className={className} disabled={disabled} {...press}>
+         {children}
+      </button>
+   );
+}
 
 interface TypingSprintProps {
    config: Record<string, any>;
@@ -61,8 +85,17 @@ export default function TypingSprint({
    const [currentText, setCurrentText] = useState("");
    const [input, setInput] = useState("");
    const [wordIndex, setWordIndex] = useState(0);
-   const [isMobile, setIsMobile] = useState(false);
-   const [isTablet, setIsTablet] = useState(false);
+   const viewport = useViewport();
+   const isMobile = viewport.isMobile;
+   // phones and tablets: the typing card leads, the OS keyboard is expected
+   const isCompact = isMobile || viewport.isTablet;
+   const rootRef = useRef<HTMLDivElement>(null);
+   const typingCardRef = useRef<HTMLDivElement>(null);
+   useRevealOnPlay(rootRef, isPlaying);
+   // feedback animation beat (display only: replays the pop / shake per word or wrong character)
+   const [fxBeat, setFxBeat] = useState<{ kind: "ok" | "bad"; n: number } | null>(null);
+   // the on-screen keyboard band (px) and the visible height, from window.visualViewport
+   const [keyboard, setKeyboard] = useState<{ inset: number; height: number }>({ inset: 0, height: 0 });
 
    // Replay and Share functionality
    const [replaysUsed, setReplaysUsed] = useState(0);
@@ -104,15 +137,42 @@ export default function TypingSprint({
       }
    }, [isPlaying, gameState, requirementsMet]);
 
-   // Responsive design
+   // The on-screen keyboard: window.visualViewport shrinks when it opens. Cap the play area to the visible
+   // height and bring the prompt + field back into the visible band on every resize (open, close, rotate).
    useEffect(() => {
-      const checkResponsive = () => {
-         setIsMobile(window.innerWidth < 640);
-         setIsTablet(window.innerWidth >= 640 && window.innerWidth < 1024);
+      if (typeof window === "undefined" || !window.visualViewport) return;
+      const vv = window.visualViewport;
+      let raf = 0;
+      const read = () => {
+         const inset = keyboardInset(window.innerHeight, vv.height, vv.offsetTop);
+         setKeyboard((prev) => {
+            const height = Math.round(vv.height);
+            return prev.inset === inset && prev.height === height ? prev : { inset, height };
+         });
+         return inset;
       };
-      checkResponsive();
-      window.addEventListener("resize", checkResponsive);
-      return () => window.removeEventListener("resize", checkResponsive);
+      const onResize = () => {
+         const inset = read();
+         if (inset <= 0 || window.innerWidth >= 1024) return;
+         const card = typingCardRef.current;
+         if (!card || document.activeElement !== inputRef.current) return;
+         window.cancelAnimationFrame(raf);
+         raf = window.requestAnimationFrame(() => {
+            try {
+               card.scrollIntoView({ block: "start", behavior: "smooth" });
+            } catch {
+               card.scrollIntoView();
+            }
+         });
+      };
+      read();
+      vv.addEventListener("resize", onResize);
+      vv.addEventListener("scroll", read);
+      return () => {
+         window.cancelAnimationFrame(raf);
+         vv.removeEventListener("resize", onResize);
+         vv.removeEventListener("scroll", read);
+      };
    }, []);
 
    useEffect(() => {
@@ -848,6 +908,7 @@ export default function TypingSprint({
             const newWrongChars = wrongCount - prevWrongCountRef.current;
             setWrongWords((prev) => prev + newWrongChars);
             prevWrongCountRef.current = wrongCount;
+            setFxBeat((prev) => ({ kind: "bad", n: (prev?.n ?? 0) + 1 }));
          } else if (wrongCount < prevWrongCountRef.current) {
             // Input was reset or corrected, reset the counter
             prevWrongCountRef.current = wrongCount;
@@ -857,6 +918,7 @@ export default function TypingSprint({
       if (input === wordToCompare) {
          setCorrectWords((prev) => prev + 1);
          setInput("");
+         setFxBeat((prev) => ({ kind: "ok", n: (prev?.n ?? 0) + 1 }));
          // Reset wrong count when word is completed
          prevWrongCountRef.current = 0;
          setTimeout(() => {
@@ -945,28 +1007,23 @@ export default function TypingSprint({
             }
          }
 
-         let color = "var(--text)";
-         let backgroundColor = "transparent";
+         // the character the player types next (display only; the reverse level types from the right)
+         const typed = input ? input.length : 0;
+         const isNext = isReverseLevel
+            ? displayText.length - 1 - index === typed
+            : index === typed;
 
-         if (status === "correct") {
-            color = "var(--ok)";
-            backgroundColor = "rgba(134, 239, 172, 0.2)";
-         } else if (status === "wrong") {
-            color = "var(--warn)";
-            backgroundColor = "rgba(252, 165, 165, 0.2)";
-         }
+         const className = [
+            styles.char,
+            status === "correct" ? styles.charOk : "",
+            status === "wrong" ? styles.charBad : "",
+            isNext && typed < normalText.length ? styles.charNext : "",
+         ]
+            .filter(Boolean)
+            .join(" ");
 
          return (
-            <span
-               key={index}
-               style={{
-                  color: color,
-                  backgroundColor: backgroundColor,
-                  padding: "2px 1px",
-                  borderRadius: "3px",
-                  transition: "all 0.2s ease",
-               }}
-            >
+            <span key={index} className={className}>
                {char === " " ? "\u00A0" : char}
             </span>
          );
@@ -995,71 +1052,67 @@ export default function TypingSprint({
       return descriptions[level] || "Typing Challenge";
    };
 
+   const typingLocked = gameState !== "playing" || requirementsMet;
+   const replayLocked = maxReplays > 0 && replaysUsed >= maxReplays;
+   const cardFx =
+      fxBeat && gameState === "playing"
+         ? fxBeat.kind === "ok"
+            ? `${fx.hitPop} ${fx.flashOk}`
+            : `${fx.missShake} ${fx.flashBad}`
+         : "";
+   // while the keyboard is up on a phone / tablet, the play area is capped to the visible height
+   const capped = isCompact ? playAreaMaxHeight(keyboard.height, keyboard.inset) : null;
+   const hudIconSize = isMobile ? 14 : 16;
+
+   // Focus the field from a tap anywhere on the typing card. The click (after touchend) is the gesture
+   // Chrome / Safari accept for opening the keyboard; the mouse path keeps the old mousedown focus.
+   const focusField = (e: React.MouseEvent<HTMLElement>) => {
+      // The engine's .game-content wrapper focuses itself on every bubbled click (GameEngine
+      // handleGameClick), which would close the keyboard right after it opened: stop the bubble here.
+      e.stopPropagation();
+      if (gameStateRef.current === "playing") {
+         inputRef.current?.focus();
+      }
+   };
+   const onCardPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+      if (gameStateRef.current !== "playing") return;
+      if (e.target === inputRef.current) return;
+      // No compatibility mousedown: the tap must not move focus to the engine's focusable wrapper or
+      // start a selection. The click still follows and focuses the field (touch); mouse focuses now.
+      e.preventDefault();
+      if (e.pointerType === "mouse") {
+         inputRef.current?.focus();
+      }
+   };
+
    return (
       <>
          <div
+            ref={rootRef}
+            className={`${styles.root} ${capped ? styles.rootCapped : ""}`}
             style={{
-               display: "flex",
-               flexDirection: "column",
-               alignItems: "center",
-               justifyContent: "center",
-               minHeight: "100%",
-               width: "100%",
-               padding: isMobile ? "12px" : "20px",
-               gap: isMobile ? "16px" : "24px",
+               ...TOUCH_SURFACE,
+               maxHeight: capped ? `${capped}px` : undefined,
             }}
          >
-            {/* Header Section */}
-            <div
-               style={{
-                  width: "100%",
-                  maxWidth: "800px",
-                  background: "var(--card)",
-                  borderRadius: isMobile ? "14px" : "16px",
-                  padding: isMobile ? "16px" : "20px",
-                  boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
-               }}
-            >
-               <div
-                  style={{
-                     display: "flex",
-                     justifyContent: "space-between",
-                     alignItems: "center",
-                     fontSize: isMobile ? "0.75rem" : "0.875rem",
-                     color: "var(--muted)",
-                     fontWeight: 500,
-                     marginBottom: isMobile ? "10px" : "12px",
-                     flexWrap: isMobile ? "wrap" : "nowrap",
-                     gap: isMobile ? "8px" : "0",
-                  }}
-               >
-                  <span
-                     style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "6px",
-                     }}
-                  >
+            {/* Header Section: level, score, time, the counters, the level kind and progress in one card */}
+            <div className={styles.hudCard}>
+               <div className={styles.hudRow}>
+                  <span className={styles.hudItem}>
                      <ArrowPathIcon
                         style={{
-                           width: isMobile ? 14 : 16,
-                           height: isMobile ? 14 : 16,
+                           width: hudIconSize,
+                           height: hudIconSize,
                            color: "var(--accent)",
                         }}
                      />
                      Level {currentLevel + 1} / {maxLevels}
                   </span>
-                  <span
-                     style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "6px",
-                     }}
-                  >
+                  <span className={styles.hudItem}>
                      <TrophyIcon
                         style={{
-                           width: isMobile ? 14 : 16,
-                           height: isMobile ? 14 : 16,
+                           width: hudIconSize,
+                           height: hudIconSize,
                            color: "var(--ok)",
                         }}
                      />
@@ -1069,522 +1122,207 @@ export default function TypingSprint({
                         : currentScore}{" "}
                      / 100
                   </span>
-                  <span
-                     style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "6px",
-                     }}
-                  >
+                  <span className={styles.hudItem}>
                      <ClockIcon
                         style={{
-                           width: isMobile ? 14 : 16,
-                           height: isMobile ? 14 : 16,
+                           width: hudIconSize,
+                           height: hudIconSize,
                            color: "var(--accent)",
                         }}
                      />
                      Time: {timeLeft}s
                   </span>
                </div>
-               <div
-                  style={{
-                     width: "100%",
-                     height: isMobile ? "6px" : "8px",
-                     background: "rgba(255, 255, 255, 0.1)",
-                     borderRadius: "999px",
-                     overflow: "hidden",
-                  }}
-               >
+               <div className={styles.chipRow}>
+                  <span className={`${styles.chip} ${styles.chipOk}`}>
+                     Correct: {correctWords} / {getMinCorrectWords()}
+                  </span>
+                  <span className={`${styles.chip} ${styles.chipBad}`}>
+                     Wrong: {wrongWords}
+                  </span>
+                  <span className={`${styles.chip} ${styles.chipLevel}`}>
+                     {getLevelDescription(currentLevel)}
+                  </span>
+               </div>
+               <div className={styles.progressTrack}>
                   <div
-                     style={{
-                        width: `${progress}%`,
-                        height: "100%",
-                        background:
-                           "linear-gradient(90deg, var(--accent) 0%, var(--ok) 100%)",
-                        borderRadius: "999px",
-                        transition: "width 0.3s ease",
-                        boxShadow: "0 0 10px rgba(125, 211, 252, 0.5)",
-                     }}
+                     className={styles.progressFill}
+                     style={{ width: `${progress}%` }}
                   />
                </div>
             </div>
 
-            {/* Game Board */}
-            <div
-               style={{
-                  width: "100%",
-                  maxWidth: "800px",
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  gap: isMobile ? "16px" : "24px",
-               }}
-            >
-               {/* Stats */}
+            {/* Typing Area: the prompt with the field right under it (first in the play area on touch) */}
+            {gameState === "playing" && currentText && (
                <div
-                  style={{
-                     display: "flex",
-                     gap: isMobile ? "12px" : "16px",
-                     width: "100%",
-                     justifyContent: "center",
-                     flexWrap: "wrap",
-                  }}
+                  ref={typingCardRef}
+                  key={fxBeat ? `fx-${fxBeat.n}` : "fx-0"}
+                  className={`${styles.typingCard} ${cardFx}`}
+                  onPointerDown={onCardPointerDown}
+                  onClick={focusField}
                >
-                  <div
-                     style={{
-                        padding: isMobile ? "8px 12px" : "10px 16px",
-                        background:
-                           "linear-gradient(135deg, rgba(134, 239, 172, 0.25), rgba(134, 239, 172, 0.12))",
-                        border: "2px solid rgba(134, 239, 172, 0.6)",
-
-                        color: "var(--text)",
-                        fontSize: isMobile ? "0.85rem" : "0.95rem",
-                        fontWeight: 600,
-                     }}
-                  >
-                     Correct: {correctWords} / {getMinCorrectWords()}
-                  </div>
-                  <div
-                     style={{
-                        padding: isMobile ? "8px 12px" : "10px 16px",
-                        background:
-                           "linear-gradient(135deg, rgba(252, 165, 165, 0.25), rgba(252, 165, 165, 0.12))",
-                        border: "2px solid rgba(252, 165, 165, 0.6)",
-
-                        color: "var(--text)",
-                        fontSize: isMobile ? "0.85rem" : "0.95rem",
-                        fontWeight: 600,
-                     }}
-                  >
-                     Wrong: {wrongWords}
-                  </div>
-               </div>
-
-               {/* Level Description */}
-               <div
-                  style={{
-                     padding: isMobile ? "8px 12px" : "10px 16px",
-                     background: "var(--card)",
-
-                     color: "var(--text)",
-                     fontSize: isMobile ? "0.9rem" : "1rem",
-                     fontWeight: 600,
-                     textAlign: "center",
-                  }}
-               >
-                  {getLevelDescription(currentLevel)}
-               </div>
-
-               {/* Typing Area */}
-               {gameState === "playing" && currentText && (
-                  <div
-                     style={{
-                        width: "100%",
-                        maxWidth: "600px",
-                        padding: isMobile ? "24px" : "32px",
-                        background: "var(--card)",
-                        borderRadius: "var(--radius)",
-                        boxShadow: "0 10px 24px rgba(0, 0, 0, 0.2)",
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "center",
-                        gap: "24px",
-                     }}
-                     onMouseDown={(e) => {
-                        if (gameStateRef.current === "playing") {
-                           e.preventDefault();
-                           inputRef.current?.focus();
-                        }
-                     }}
-                     onClick={() => {
-                        if (gameStateRef.current === "playing") {
-                           inputRef.current?.focus();
-                        }
-                     }}
-                     onTouchStart={() => {
-                        if (gameStateRef.current === "playing") {
-                           inputRef.current?.focus();
-                        }
-                     }}
-                  >
-                     <div
-                        style={{
-                           fontSize: isMobile ? "1.5rem" : "2rem",
-                           fontWeight: 800,
-                           textAlign: "center",
-                           wordBreak: "break-word",
-                           minHeight: isMobile ? "60px" : "80px",
-                           display: "flex",
-                           alignItems: "center",
-                           justifyContent: "center",
-                           flexWrap: "wrap",
-                           lineHeight: "1.5",
-                        }}
+                  {fxBeat?.kind === "ok" && (
+                     <span
+                        className={`${fx.floatScore} ${styles.floatPlus}`}
+                        aria-hidden="true"
                      >
-                        {renderHighlightedText()}
-                     </div>
-                     <input
-                        ref={inputRef}
-                        type="text"
-                        value={input}
-                        onChange={(e) => setInput(e.target.value)}
-                        onKeyDown={handleKeyDown}
-                        onClick={(e) => {
-                           e.currentTarget.focus();
-                        }}
-                        onFocus={(e) => {
-                           e.currentTarget.select();
-                        }}
-                        onBlur={() => {
-                           if (gameStateRef.current === "playing") {
-                              setTimeout(() => inputRef.current?.focus(), 0);
-                           }
-                        }}
-                        disabled={gameState !== "playing" || requirementsMet}
-                        style={{
-                           width: "100%",
-                           padding: isMobile ? "16px" : "20px",
-                           fontSize: isMobile ? "1.2rem" : "1.5rem",
-                           fontWeight: 600,
-                           background: "var(--background)",
+                        +1
+                     </span>
+                  )}
+                  <div className={styles.prompt} aria-live="off">
+                     {renderHighlightedText()}
+                  </div>
+                  <input
+                     ref={inputRef}
+                     type="text"
+                     value={input}
+                     onChange={(e) => setInput(e.target.value)}
+                     onKeyDown={handleKeyDown}
+                     onClick={(e) => {
+                        e.stopPropagation();
+                        e.currentTarget.focus();
+                     }}
+                     onFocus={(e) => {
+                        e.currentTarget.select();
+                     }}
+                     onBlur={() => {
+                        // Desktop keeps the caret in the field. On touch the player may close the keyboard
+                        // (or tap Replay / Share): a tap on the typing card brings it back.
+                        if (gameStateRef.current === "playing" && !viewport.isTouch) {
+                           setTimeout(() => inputRef.current?.focus(), 0);
+                        }
+                     }}
+                     disabled={typingLocked}
+                     className={styles.field}
+                     style={{ cursor: typingLocked ? "not-allowed" : "text" }}
+                     autoFocus
+                     autoCapitalize="off"
+                     autoCorrect="off"
+                     spellCheck={false}
+                     autoComplete="off"
+                     enterKeyHint="go"
+                     inputMode="text"
+                     aria-label="Type the text shown above"
+                     placeholder="Type here..."
+                  />
+                  <p className={styles.hint}>
+                     Type the text above. It will auto-submit when correct,
+                     or press Enter to reset if wrong.
+                  </p>
+               </div>
+            )}
 
-                           color: "var(--text)",
-                           textAlign: "center",
-                           outline: "none",
-                           cursor:
-                              gameState === "playing" && !requirementsMet
-                                 ? "text"
-                                 : "not-allowed",
+            {/* Ready for Next Round Message */}
+            {gameState === "ready" && currentLevel + 1 < maxLevels && (
+               <div className={`${styles.notice} ${fx.fadeUp}`}>
+                  <div className={`${styles.noticeBadge} ${styles.noticeBadgeOk}`}>
+                     <CheckCircleIcon style={{ width: 20, height: 20 }} />
+                     Level {currentLevel + 1} Complete
+                  </div>
+                  <div className={styles.noticeText}>
+                     Are you ready for next round?
+                  </div>
+                  <InstantButton
+                     onPress={handleNextRound}
+                     className={`${styles.noticeBtn} ${fx.pressable}`}
+                  >
+                     Next Round
+                  </InstantButton>
+               </div>
+            )}
+
+            {/* Game Complete Message */}
+            {gameState === "ready" && currentLevel + 1 >= maxLevels && (
+               <div className={`${styles.notice} ${fx.fadeUp}`}>
+                  <div className={`${styles.noticeBadge} ${styles.noticeBadgeOk}`}>
+                     <TrophyIcon style={{ width: 20, height: 20 }} />
+                     Game Complete!
+                  </div>
+                  <div className={styles.noticeText} style={{ marginBottom: 0 }}>
+                     All {maxLevels} levels completed!
+                  </div>
+               </div>
+            )}
+
+            {/* Level Failed Message */}
+            {gameState === "failed" && (
+               <div className={`${styles.notice} ${fx.fadeUp}`}>
+                  <div className={`${styles.noticeBadge} ${styles.noticeBadgeBad}`}>
+                     <XCircleIcon style={{ width: 20, height: 20 }} />
+                     Level {currentLevel + 1} Failed
+                  </div>
+                  <div className={styles.noticeText} style={{ marginBottom: 0 }}>
+                     Need: {getMinCorrectWords()} correct words
+                  </div>
+               </div>
+            )}
+
+            {/* Action Buttons: Replay, Share */}
+            {(gameState === "playing" || gameState === "failed") && (
+               <div className={styles.actionRow}>
+                  {/* Share Success Message */}
+                  {shareSuccess && !unlimitedActivated && (
+                     <div className={`${styles.actionNote} ${styles.actionNoteOk} ${fx.fadeUp}`}>
+                        Link copied! Unlimited replay will unlock when
+                        someone opens your link!
+                     </div>
+                  )}
+
+                  {/* Unlimited Activated Message */}
+                  {unlimitedActivated && (
+                     <div className={`${styles.actionNote} ${styles.actionNoteInfo} ${fx.fadeUp}`}>
+                        <CheckCircleIcon
+                           style={{
+                              width: isMobile ? 16 : 18,
+                              height: isMobile ? 16 : 18,
+                              color: "rgba(59, 130, 246, 0.9)",
+                              flexShrink: 0,
+                           }}
+                        />
+                        <span>
+                           🎉 Someone opened your link! Unlimited replay is
+                           now active for 15 minutes!
+                        </span>
+                     </div>
+                  )}
+
+                  <InstantButton
+                     onPress={handleReplay}
+                     disabled={replayLocked}
+                     className={`${styles.actionBtn} ${styles.actionReplay} ${fx.pressable}`}
+                  >
+                     <ArrowPathRoundedSquareIcon
+                        style={{
+                           width: isMobile ? 18 : 20,
+                           height: isMobile ? 18 : 20,
+                           color: replayLocked ? "var(--muted)" : "var(--accent)",
                         }}
-                        autoFocus
-                        placeholder="Type here..."
                      />
-                     <p
-                        style={{
-                           fontSize: isMobile ? "0.85rem" : "0.95rem",
-                           color: "var(--muted)",
-                           textAlign: "center",
-                        }}
-                     >
-                        Type the text above. It will auto-submit when correct,
-                        or press Enter to reset if wrong.
-                     </p>
-                  </div>
-               )}
+                     <span>
+                        {isMobile ? "Replay " : "Replay "}
+                        {maxReplays === 0
+                           ? "(∞)"
+                           : `(${maxReplays - replaysUsed}/${maxReplays})`}
+                     </span>
+                  </InstantButton>
 
-               {/* Ready for Next Round Message */}
-               {gameState === "ready" && currentLevel + 1 < maxLevels && (
-                  <div
-                     style={{
-                        padding: isMobile ? "20px 24px" : "24px 32px",
-                        background: "var(--card)",
-                        borderRadius: "var(--radius)",
-                        color: "var(--text)",
-                        fontSize: isMobile ? "1rem" : "1.1rem",
-                        fontWeight: 700,
-                        textAlign: "center" as const,
-                        boxShadow: "0 10px 24px rgba(0, 0, 0, 0.25)",
-                        width: "100%",
-                     }}
+                  {/* Share stays on click: navigator.share and the clipboard need the activation a
+                      touch pointerdown does not give (only touchend / click do). */}
+                  <button
+                     type="button"
+                     onClick={handleShare}
+                     className={`${styles.actionBtn} ${styles.actionShare} ${fx.pressable}`}
                   >
-                     <div
+                     <ShareIcon
                         style={{
-                           display: "inline-flex",
-                           alignItems: "center",
-                           gap: "8px",
-                           padding: "8px 14px",
-                           borderRadius: "999px",
-                           fontWeight: 800,
-                           fontSize: isMobile ? "0.95rem" : "1.05rem",
-                           background:
-                              "linear-gradient(135deg, rgba(134, 239, 172, 0.25), rgba(134, 239, 172, 0.1))",
-                           border: "2px solid rgba(134, 239, 172, 0.6)",
-                           color: "var(--text)",
-                           marginBottom: "16px",
+                           width: isMobile ? 18 : 20,
+                           height: isMobile ? 18 : 20,
                         }}
-                     >
-                        <CheckCircleIcon style={{ width: 20, height: 20 }} />
-                        Level {currentLevel + 1} Complete
-                     </div>
-                     <div
-                        style={{
-                           fontSize: isMobile ? "1.05rem" : "1.1rem",
-                           fontWeight: 600,
-                           marginBottom: "20px",
-                           marginTop: "16px",
-                        }}
-                     >
-                        Are you ready for next round?
-                     </div>
-                     <button
-                        onClick={handleNextRound}
-                        style={{
-                           padding: isMobile ? "12px 24px" : "14px 28px",
-                           background:
-                              "linear-gradient(135deg, rgba(134, 239, 172, 0.25), rgba(134, 239, 172, 0.12))",
-                           border: "2px solid rgba(134, 239, 172, 0.6)",
-
-                           color: "var(--text)",
-                           fontSize: isMobile ? "1rem" : "1.05rem",
-                           fontWeight: 700,
-                           cursor: "pointer",
-                           transition: "all 0.3s ease",
-                        }}
-                     >
-                        Next Round
-                     </button>
-                  </div>
-               )}
-
-               {/* Game Complete Message */}
-               {gameState === "ready" && currentLevel + 1 >= maxLevels && (
-                  <div
-                     style={{
-                        padding: isMobile ? "20px 24px" : "24px 32px",
-                        background: "var(--card)",
-                        borderRadius: "var(--radius)",
-                        color: "var(--text)",
-                        fontSize: isMobile ? "1rem" : "1.1rem",
-                        fontWeight: 700,
-                        textAlign: "center" as const,
-                        boxShadow: "0 10px 24px rgba(0, 0, 0, 0.25)",
-                        width: "100%",
-                     }}
-                  >
-                     <div
-                        style={{
-                           display: "inline-flex",
-                           alignItems: "center",
-                           gap: "8px",
-                           padding: "8px 14px",
-                           borderRadius: "999px",
-                           fontWeight: 800,
-                           fontSize: isMobile ? "0.95rem" : "1.05rem",
-                           background:
-                              "linear-gradient(135deg, rgba(134, 239, 172, 0.25), rgba(134, 239, 172, 0.1))",
-                           border: "2px solid rgba(134, 239, 172, 0.6)",
-                           color: "var(--text)",
-                           marginBottom: "16px",
-                        }}
-                     >
-                        <TrophyIcon style={{ width: 20, height: 20 }} />
-                        Game Complete!
-                     </div>
-                     <div
-                        style={{
-                           fontSize: isMobile ? "1.05rem" : "1.1rem",
-                           fontWeight: 600,
-                           marginTop: "16px",
-                           marginBottom: "20px",
-                        }}
-                     >
-                        All {maxLevels} levels completed!
-                     </div>
-                  </div>
-               )}
-
-               {/* Level Failed Message */}
-               {gameState === "failed" && (
-                  <div
-                     style={{
-                        padding: isMobile ? "20px 24px" : "24px 32px",
-                        background: "var(--card)",
-                        borderRadius: "var(--radius)",
-                        color: "var(--text)",
-                        fontSize: isMobile ? "1rem" : "1.1rem",
-                        fontWeight: 700,
-                        textAlign: "center" as const,
-                        boxShadow: "0 10px 24px rgba(0, 0, 0, 0.25)",
-                        width: "100%",
-                     }}
-                  >
-                     <div
-                        style={{
-                           display: "inline-flex",
-                           alignItems: "center",
-                           gap: "8px",
-                           padding: "8px 14px",
-                           borderRadius: "999px",
-                           fontWeight: 800,
-                           fontSize: isMobile ? "0.95rem" : "1.05rem",
-                           background:
-                              "linear-gradient(135deg, rgba(252, 165, 165, 0.25), rgba(252, 165, 165, 0.1))",
-                           border: "2px solid rgba(252, 165, 165, 0.6)",
-                           color: "var(--text)",
-                           marginBottom: "16px",
-                        }}
-                     >
-                        <XCircleIcon style={{ width: 20, height: 20 }} />
-                        Level {currentLevel + 1} Failed
-                     </div>
-                     <div
-                        style={{
-                           marginTop: "12px",
-                           fontSize: isMobile ? "0.95rem" : "1.05rem",
-                           fontWeight: 600,
-                           color: "var(--text)",
-                           marginBottom: "18px",
-                        }}
-                     >
-                        Need: {getMinCorrectWords()} correct words
-                     </div>
-                  </div>
-               )}
-
-               {/* Action Buttons: Replay, Share */}
-               {(gameState === "playing" || gameState === "failed") && (
-                  <div
-                     style={{
-                        display: "flex",
-                        gap: "12px",
-                        justifyContent: "center",
-                        flexWrap: "wrap",
-                        padding: isMobile ? "12px" : "16px",
-                        background: "var(--card)",
-
-                        width: "100%",
-                     }}
-                  >
-                     {/* Share Success Message */}
-                     {shareSuccess && !unlimitedActivated && (
-                        <div
-                           style={{
-                              width: "100%",
-                              padding: "12px",
-                              background: "rgba(134, 239, 172, 0.2)",
-                              border: "2px solid rgba(134, 239, 172, 0.6)",
-                              borderRadius: "8px",
-                              fontSize: isMobile ? "0.9rem" : "1rem",
-                              fontWeight: 600,
-                              color: "var(--ok)",
-                              textAlign: "center",
-                              marginBottom: "8px",
-                           }}
-                        >
-                           Link copied! Unlimited replay will unlock when
-                           someone opens your link!
-                        </div>
-                     )}
-
-                     {/* Unlimited Activated Message */}
-                     {unlimitedActivated && (
-                        <div
-                           style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: isMobile ? "6px" : "8px",
-                              padding: isMobile ? "10px 14px" : "8px 16px",
-                              background:
-                                 "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
-                              border: "2px solid rgba(59, 130, 246, 0.6)",
-                              borderRadius: isMobile ? "10px" : "8px",
-                              color: "var(--text)",
-                              fontSize: isMobile ? "0.85rem" : "0.9rem",
-                              fontWeight: 500,
-                              width: "100%",
-                              justifyContent: "center",
-                              textAlign: "center",
-                              flexWrap: "wrap",
-                              marginBottom: "8px",
-                           }}
-                        >
-                           <CheckCircleIcon
-                              style={{
-                                 width: isMobile ? 16 : 18,
-                                 height: isMobile ? 16 : 18,
-                                 color: "rgba(59, 130, 246, 0.9)",
-                                 flexShrink: 0,
-                              }}
-                           />
-                           <span>
-                              🎉 Someone opened your link! Unlimited replay is
-                              now active for 15 minutes!
-                           </span>
-                        </div>
-                     )}
-
-                     <button
-                        onClick={handleReplay}
-                        disabled={maxReplays > 0 && replaysUsed >= maxReplays}
-                        style={{
-                           display: "flex",
-                           alignItems: "center",
-                           gap: isMobile ? "6px" : "8px",
-                           padding: isMobile ? "10px 16px" : "10px 20px",
-                           width: isMobile ? "100%" : "auto",
-                           background:
-                              maxReplays > 0 && replaysUsed >= maxReplays
-                                 ? "rgba(100, 100, 100, 0.2)"
-                                 : "linear-gradient(135deg, rgba(125, 211, 252, 0.2), rgba(125, 211, 252, 0.1))",
-                           border:
-                              maxReplays > 0 && replaysUsed >= maxReplays
-                                 ? "1px solid rgba(100, 100, 100, 0.4)"
-                                 : "1px solid rgba(125, 211, 252, 0.6)",
-
-                           color: "var(--text)",
-                           fontSize: isMobile ? "0.85rem" : "0.95rem",
-                           fontWeight: 600,
-                           cursor:
-                              maxReplays > 0 && replaysUsed >= maxReplays
-                                 ? "not-allowed"
-                                 : "pointer",
-                           opacity:
-                              maxReplays > 0 && replaysUsed >= maxReplays
-                                 ? 0.5
-                                 : 1,
-                           transition: "all 0.3s ease",
-                        }}
-                     >
-                        <ArrowPathRoundedSquareIcon
-                           style={{
-                              width: isMobile ? 18 : 20,
-                              height: isMobile ? 18 : 20,
-                              color:
-                                 maxReplays > 0 && replaysUsed >= maxReplays
-                                    ? "var(--muted)"
-                                    : "var(--accent)",
-                           }}
-                        />
-                        <span>
-                           {isMobile ? "" : "Replay "}
-                           {maxReplays === 0
-                              ? "(∞)"
-                              : `(${maxReplays - replaysUsed}/${maxReplays})`}
-                        </span>
-                     </button>
-
-                     <button
-                        onClick={handleShare}
-                        style={{
-                           display: "flex",
-                           alignItems: "center",
-                           gap: isMobile ? "6px" : "8px",
-                           padding: isMobile ? "10px 16px" : "10px 20px",
-                           width: isMobile ? "100%" : "auto",
-                           background:
-                              "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
-                           border: "1px solid rgba(59, 130, 246, 0.6)",
-
-                           color: "var(--text)",
-                           fontSize: isMobile ? "0.85rem" : "0.95rem",
-                           fontWeight: 600,
-                           cursor: "pointer",
-                           transition: "all 0.3s ease",
-                        }}
-                     >
-                        <ShareIcon
-                           style={{
-                              width: isMobile ? 18 : 20,
-                              height: isMobile ? 18 : 20,
-                           }}
-                        />
-                        <span>
-                           {isMobile ? "Share" : "Share for unlimited"}
-                        </span>
-                     </button>
-                  </div>
-               )}
-            </div>
+                     />
+                     <span>{isMobile ? "Share" : "Share for unlimited"}</span>
+                  </button>
+               </div>
+            )}
          </div>
       </>
    );

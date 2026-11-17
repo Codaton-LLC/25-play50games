@@ -1,0 +1,578 @@
+/* TypingSprint (classic Speed game 39): phone / tablet layout and touch styling.
+   Rules, scoring and timing live in TypingSprint.tsx; this file only sizes and styles the surfaces. */
+
+.root {
+   display: flex;
+   flex-direction: column;
+   align-items: center;
+   width: 100%;
+   max-width: 100%;
+   box-sizing: border-box;
+   /* Below 1024 px the bottom padding is the cookie-banner band: the page ends right under the game, and
+      without it the Replay / Share row could never be scrolled above the banner. */
+   padding: 10px 10px calc(env(safe-area-inset-bottom, 0px) + 184px);
+   gap: 10px;
+   touch-action: manipulation;
+   user-select: none;
+   -webkit-user-select: none;
+   -webkit-touch-callout: none;
+   -webkit-tap-highlight-color: transparent;
+}
+
+@media (min-width: 640px) {
+   .root {
+      padding: 20px 20px calc(env(safe-area-inset-bottom, 0px) + 100px);
+      gap: 20px;
+   }
+}
+
+@media (min-width: 1024px) {
+   .root {
+      min-height: 100%;
+      justify-content: center;
+      padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 20px);
+      gap: 24px;
+   }
+}
+
+/* short viewports (landscape phone, a keyboard up): keep everything within reach */
+@media (max-height: 560px) {
+   .root {
+      padding-top: 6px;
+      gap: 8px;
+   }
+}
+
+/* while the on-screen keyboard is up the root is capped to the visible height and scrolls inside */
+.rootCapped {
+   overflow-y: auto;
+   overscroll-behavior: contain;
+}
+
+.hudCard {
+   width: 100%;
+   max-width: 800px;
+   box-sizing: border-box;
+   background: var(--card);
+   border-radius: 14px;
+   padding: 10px 12px;
+   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+@media (min-width: 640px) {
+   .hudCard {
+      border-radius: 16px;
+      padding: 16px 20px;
+   }
+}
+
+@media (max-height: 560px) {
+   .hudCard {
+      padding: 8px 12px;
+   }
+}
+
+.hudRow {
+   display: flex;
+   justify-content: space-between;
+   align-items: center;
+   flex-wrap: wrap;
+   row-gap: 6px;
+   column-gap: 8px;
+   font-size: 0.8125rem;
+   color: var(--muted);
+   font-weight: 500;
+   margin-bottom: 8px;
+}
+
+@media (min-width: 640px) {
+   .hudRow {
+      font-size: 0.875rem;
+      column-gap: 10px;
+      margin-bottom: 12px;
+   }
+}
+
+.hudItem {
+   display: inline-flex;
+   align-items: center;
+   gap: 6px;
+   white-space: nowrap;
+   font-variant-numeric: tabular-nums;
+}
+
+.chipRow {
+   display: flex;
+   gap: 8px;
+   justify-content: center;
+   align-items: center;
+   flex-wrap: wrap;
+   margin-bottom: 8px;
+}
+
+@media (min-width: 640px) {
+   .chipRow {
+      gap: 12px;
+      margin-bottom: 12px;
+   }
+}
+
+.chip {
+   display: inline-flex;
+   align-items: center;
+   padding: 5px 10px;
+   border-radius: 10px;
+   font-size: 0.8125rem;
+   font-weight: 600;
+   color: var(--text);
+   white-space: nowrap;
+   font-variant-numeric: tabular-nums;
+}
+
+@media (min-width: 640px) {
+   .chip {
+      padding: 8px 14px;
+      font-size: 0.9rem;
+   }
+}
+
+.chipOk {
+   background: linear-gradient(135deg, rgba(134, 239, 172, 0.25), rgba(134, 239, 172, 0.12));
+   border: 2px solid rgba(134, 239, 172, 0.6);
+}
+
+.chipBad {
+   background: linear-gradient(135deg, rgba(252, 165, 165, 0.25), rgba(252, 165, 165, 0.12));
+   border: 2px solid rgba(252, 165, 165, 0.6);
+}
+
+.chipLevel {
+   background: rgba(255, 255, 255, 0.06);
+   border: 1px solid rgba(255, 255, 255, 0.12);
+   color: var(--muted);
+   font-weight: 600;
+}
+
+.progressTrack {
+   width: 100%;
+   height: 6px;
+   background: rgba(255, 255, 255, 0.1);
+   border-radius: 999px;
+   overflow: hidden;
+}
+
+@media (min-width: 640px) {
+   .progressTrack {
+      height: 8px;
+   }
+}
+
+.progressFill {
+   height: 100%;
+   background: linear-gradient(90deg, var(--accent) 0%, var(--ok) 100%);
+   border-radius: 999px;
+   transition: width 0.3s ease;
+   box-shadow: 0 0 10px rgba(125, 211, 252, 0.5);
+}
+
+/* The typing card: prompt on top, the field right under it. On phones and tablets it is the FIRST thing
+   in the play area (order -1) so both stay in the visible band when the keyboard is up. */
+.typingCard {
+   position: relative;
+   width: 100%;
+   max-width: 600px;
+   box-sizing: border-box;
+   padding: 12px;
+   background: var(--card);
+   border-radius: var(--radius);
+   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.2);
+   display: flex;
+   flex-direction: column;
+   align-items: center;
+   gap: 10px;
+   cursor: text;
+   scroll-margin-top: 6px;
+}
+
+@media (max-width: 1023px) {
+   .typingCard {
+      order: -1;
+   }
+}
+
+@media (min-width: 640px) {
+   .typingCard {
+      padding: 20px 24px;
+      gap: 16px;
+   }
+}
+
+@media (min-width: 1024px) {
+   .typingCard {
+      padding: 32px;
+      gap: 24px;
+   }
+}
+
+@media (max-height: 560px) {
+   .typingCard {
+      padding: 8px 10px;
+      gap: 8px;
+   }
+}
+
+.prompt {
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   flex-wrap: wrap;
+   width: 100%;
+   min-height: 40px;
+   font-size: clamp(1.25rem, 5.5vw, 1.6rem);
+   line-height: 1.35;
+   font-weight: 800;
+   text-align: center;
+   word-break: break-word;
+   overflow-wrap: anywhere;
+   color: var(--text);
+}
+
+@media (min-width: 640px) {
+   .prompt {
+      min-height: 56px;
+      font-size: 1.75rem;
+   }
+}
+
+@media (min-width: 1024px) {
+   .prompt {
+      min-height: 80px;
+      font-size: 2rem;
+      line-height: 1.5;
+   }
+}
+
+@media (max-height: 560px) {
+   .prompt {
+      min-height: 32px;
+      font-size: clamp(1.125rem, 4.5vh, 1.5rem);
+      line-height: 1.25;
+   }
+}
+
+.char {
+   padding: 2px 1px;
+   border-radius: 3px;
+   transition: color 0.12s ease, background-color 0.12s ease;
+}
+
+.charOk {
+   color: var(--ok);
+   background-color: rgba(134, 239, 172, 0.2);
+}
+
+.charBad {
+   color: var(--warn);
+   background-color: rgba(252, 165, 165, 0.2);
+   text-decoration: underline;
+   text-decoration-color: rgba(252, 165, 165, 0.8);
+   text-underline-offset: 3px;
+}
+
+/* the next character to type */
+.charNext {
+   box-shadow: inset 0 -3px 0 var(--accent);
+}
+
+.floatPlus {
+   top: -4px;
+   left: 50%;
+   font-size: 1.3rem;
+   color: var(--ok);
+   z-index: 1;
+}
+
+.field {
+   width: 100%;
+   box-sizing: border-box;
+   min-height: 48px;
+   padding: 10px 14px;
+   font-size: 1.125rem; /* >= 16 px so iOS does not zoom the page on focus */
+   font-weight: 600;
+   line-height: 1.3;
+   text-align: center;
+   color: var(--text);
+   background: var(--background);
+   border: 2px solid rgba(125, 211, 252, 0.45);
+   border-radius: 12px;
+   outline: none;
+   caret-color: var(--accent);
+   /* the one surface that keeps text selection */
+   user-select: text;
+   -webkit-user-select: text;
+   touch-action: manipulation;
+   -webkit-tap-highlight-color: transparent;
+   transition: border-color 0.12s ease, box-shadow 0.12s ease;
+}
+
+.field:focus {
+   border-color: var(--accent);
+   box-shadow: 0 0 0 3px rgba(125, 211, 252, 0.2);
+}
+
+.field:disabled {
+   cursor: not-allowed;
+   opacity: 0.7;
+}
+
+@media (min-width: 640px) {
+   .field {
+      min-height: 56px;
+      padding: 14px 18px;
+      font-size: 1.3rem;
+   }
+}
+
+@media (min-width: 1024px) {
+   .field {
+      padding: 20px;
+      font-size: 1.5rem;
+   }
+}
+
+@media (max-height: 560px) {
+   .field {
+      min-height: 44px;
+      padding: 8px 12px;
+      font-size: 1.0625rem;
+   }
+}
+
+.hint {
+   margin: 0;
+   font-size: 0.8125rem;
+   line-height: 1.35;
+   color: var(--muted);
+   text-align: center;
+}
+
+@media (min-width: 640px) {
+   .hint {
+      font-size: 0.95rem;
+   }
+}
+
+/* no room for the hint on a short viewport (the keyboard is up, the prompt and the field matter) */
+@media (max-height: 560px) {
+   .hint {
+      display: none;
+   }
+}
+
+.notice {
+   width: 100%;
+   max-width: 800px;
+   box-sizing: border-box;
+   padding: 16px 18px;
+   background: var(--card);
+   border-radius: var(--radius);
+   color: var(--text);
+   font-size: 1rem;
+   font-weight: 700;
+   text-align: center;
+   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.25);
+}
+
+@media (min-width: 640px) {
+   .notice {
+      padding: 24px 32px;
+      font-size: 1.1rem;
+   }
+}
+
+.noticeBadge {
+   display: inline-flex;
+   align-items: center;
+   gap: 8px;
+   padding: 8px 14px;
+   border-radius: 999px;
+   font-weight: 800;
+   font-size: 0.95rem;
+   color: var(--text);
+   margin-bottom: 12px;
+}
+
+.noticeBadgeOk {
+   background: linear-gradient(135deg, rgba(134, 239, 172, 0.25), rgba(134, 239, 172, 0.1));
+   border: 2px solid rgba(134, 239, 172, 0.6);
+}
+
+.noticeBadgeBad {
+   background: linear-gradient(135deg, rgba(252, 165, 165, 0.25), rgba(252, 165, 165, 0.1));
+   border: 2px solid rgba(252, 165, 165, 0.6);
+}
+
+.noticeText {
+   font-size: 1rem;
+   font-weight: 600;
+   margin: 8px 0 16px;
+}
+
+.noticeBtn {
+   display: inline-flex;
+   align-items: center;
+   justify-content: center;
+   gap: 8px;
+   min-height: 48px;
+   min-width: 160px;
+   padding: 12px 28px;
+   border-radius: 12px;
+   color: var(--text);
+   font-size: 1.05rem;
+   font-weight: 700;
+   cursor: pointer;
+   touch-action: manipulation;
+   user-select: none;
+   -webkit-user-select: none;
+   -webkit-tap-highlight-color: transparent;
+   background: linear-gradient(135deg, rgba(134, 239, 172, 0.25), rgba(134, 239, 172, 0.12));
+   border: 2px solid rgba(134, 239, 172, 0.6);
+   transition: transform 0.08s ease, box-shadow 0.12s ease, background 0.12s ease, border-color 0.12s ease;
+}
+
+@media (hover: hover) {
+   .noticeBtn:hover {
+      background: linear-gradient(135deg, rgba(134, 239, 172, 0.35), rgba(134, 239, 172, 0.2));
+      border-color: rgba(134, 239, 172, 0.8);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 14px rgba(134, 239, 172, 0.35);
+   }
+}
+
+.noticeBtn:active {
+   transform: scale(0.96);
+}
+
+/* Replay / Share row: two keys side by side on phones, each >= 44 px tall */
+.actionRow {
+   display: flex;
+   gap: 10px;
+   justify-content: center;
+   flex-wrap: wrap;
+   width: 100%;
+   max-width: 800px;
+   box-sizing: border-box;
+   padding: 10px;
+   background: var(--card);
+   border-radius: var(--radius);
+}
+
+@media (min-width: 640px) {
+   .actionRow {
+      gap: 12px;
+      padding: 16px;
+   }
+}
+
+.actionNote {
+   width: 100%;
+   box-sizing: border-box;
+   padding: 10px 12px;
+   border-radius: 8px;
+   font-size: 0.875rem;
+   font-weight: 600;
+   text-align: center;
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   gap: 6px;
+   flex-wrap: wrap;
+}
+
+.actionNoteOk {
+   background: rgba(134, 239, 172, 0.2);
+   border: 2px solid rgba(134, 239, 172, 0.6);
+   color: var(--ok);
+}
+
+.actionNoteInfo {
+   background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1));
+   border: 2px solid rgba(59, 130, 246, 0.6);
+   color: var(--text);
+   font-weight: 500;
+}
+
+.actionBtn {
+   display: inline-flex;
+   align-items: center;
+   justify-content: center;
+   gap: 8px;
+   flex: 1 1 130px;
+   box-sizing: border-box;
+   min-height: 46px;
+   padding: 10px 14px;
+   border-radius: 12px;
+   color: var(--text);
+   font-size: 0.9rem;
+   font-weight: 600;
+   cursor: pointer;
+   touch-action: manipulation;
+   user-select: none;
+   -webkit-user-select: none;
+   -webkit-tap-highlight-color: transparent;
+   transition: transform 0.08s ease, box-shadow 0.12s ease, background 0.12s ease, border-color 0.12s ease;
+}
+
+@media (min-width: 640px) {
+   .actionBtn {
+      flex: 0 1 auto;
+      padding: 10px 20px;
+      font-size: 0.95rem;
+   }
+}
+
+.actionReplay {
+   background: linear-gradient(135deg, rgba(125, 211, 252, 0.2), rgba(125, 211, 252, 0.1));
+   border: 1px solid rgba(125, 211, 252, 0.6);
+}
+
+.actionShare {
+   background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1));
+   border: 1px solid rgba(59, 130, 246, 0.6);
+}
+
+@media (hover: hover) {
+   .actionReplay:not(:disabled):hover {
+      background: linear-gradient(135deg, rgba(125, 211, 252, 0.3), rgba(125, 211, 252, 0.2));
+      border-color: rgba(125, 211, 252, 0.8);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(125, 211, 252, 0.3);
+   }
+   .actionShare:hover {
+      background: linear-gradient(135deg, rgba(59, 130, 246, 0.3), rgba(59, 130, 246, 0.2));
+      border-color: rgba(59, 130, 246, 0.8);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+   }
+}
+
+.actionBtn:not(:disabled):active {
+   transform: scale(0.96);
+}
+
+.actionBtn:disabled {
+   background: rgba(100, 100, 100, 0.2);
+   border: 1px solid rgba(100, 100, 100, 0.4);
+   cursor: not-allowed;
+   opacity: 0.5;
+}
+
+@media (prefers-reduced-motion: reduce) {
+   .char,
+   .field,
+   .actionBtn,
+   .noticeBtn,
+   .progressFill {
+      transition: none;
+   }
+}
