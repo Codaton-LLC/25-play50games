@@ -146,10 +146,12 @@ function TrackBed({ run }: { run: AlienRun }) {
                   <boxGeometry args={[LANE_W - 0.2, 2.8, 0.4]} />
                   <meshBasicMaterial color={COLORS.ghost} transparent opacity={0.55} depthWrite={false} toneMapped={false} />
                </mesh>
-               {/* the cave's crystal roof: one stretched slab */}
-               <group position={[laneX(3), 3.0, -(cv.s0 + cv.s1) / 2]} rotation-y={Math.PI / 2} scale={[(cv.s1 - cv.s0) / GLB_SIZE.slab.x, 1.2, (LANE_W + 0.4) / GLB_SIZE.slab.z]}>
-                  <Model asset={ASSETS.slab} />
-               </group>
+               {/* the cave's crystal wall on its outer side (open above, so the camera keeps the hero) */}
+               {Array.from({ length: Math.max(2, Math.floor((cv.s1 - cv.s0) / 6)) }, (_v, k) => (
+                  <group key={k} position={[laneX(3) + LANE_W * 0.75, 0, -(cv.s0 + 3 + k * 6)]} rotation={[0, k * 1.9, -0.25]} scale={[1.3 / GLB_SIZE.crystal.x, 2.6 / GLB_SIZE.crystal.y, 1.3 / GLB_SIZE.crystal.z]}>
+                     <Model asset={ASSETS.crystal} />
+                  </group>
+               ))}
             </group>
          ))}
          {c.mesas.map((m, i) => (
