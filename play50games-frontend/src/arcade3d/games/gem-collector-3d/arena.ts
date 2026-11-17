@@ -16,12 +16,12 @@ export const MAGNET_EXTRA = 1.5;
 export const BANK_R = 1.6;
 /** a bank of n links (gold counts 2) scores min(BANK_CAP, n^2) */
 export const BANK_CAP = 400;
-/** the head this close to a link (from CUT_SKIP back) cuts the train there */
+/** the head this close to a link (from CUT_SKIP back: a U-turn never cuts) cuts the train there */
 export const CUT_R = 0.5;
-export const CUT_SKIP = 3;
+export const CUT_SKIP = 5;
 /** the head back within LASSO_R of a link (from LASSO_MIN back) without cutting closes a loop */
 export const LASSO_R = 1.1;
-export const LASSO_MIN = 4;
+export const LASSO_MIN = 6;
 /** cut links scatter as loose gems for this long */
 export const SCATTER_MS = 3000;
 /** a recorded path sample every PATH_STEP m (the links sit on this polyline) */

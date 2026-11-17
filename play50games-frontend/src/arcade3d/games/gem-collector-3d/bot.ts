@@ -6,7 +6,7 @@
 // minis, and drives a 10+ train into his yawn. `mash` adds the hero power whenever it is ready (the
 // proof's power-mashing check); it never changes the plan.
 import { BOSS_HOME } from "./levels";
-import { BANK_R, HERO_R, LINK_SPACING, LINK_WEIGHT, MAX_LINKS, PED_R, inBox, overPit, sunkGroup, sweepBand, beaconActive } from "./arena";
+import { BANK_R, CUT_SKIP, HERO_R, LINK_SPACING, LINK_WEIGHT, MAX_LINKS, PED_R, inBox, overPit, sunkGroup, sweepBand, beaconActive } from "./arena";
 import { BOSS_R, CHEW_MS, GEM, MOUTH_OFFSET, SLAM_R, YAWN_MIN, V_RUN, createRun, createStepInput, step, trainWeight, type GemRun, type StepInput } from "./rules";
 import { heroById, type HeroId } from "./heroes";
 import type { LevelId } from "../../types";
@@ -55,8 +55,23 @@ function reachable(run: GemRun, i: number): boolean {
    if (st === GEM.loose && run.fadeAt[i] - run.simMs < (Math.hypot(x - run.hero.x, z - run.hero.z) / V_RUN) * 1000 + 300) return false;
    if (overPit(a, x, z, run.simMs) || overPit(a, x, z, run.simMs + 1500)) return false;
    if (run.boss && run.boss.hp > 0 && Math.hypot(x - run.glutton.x, z - run.glutton.z) < BOSS_R + 1.2) return false;
-   if (run.n > 0) for (const bc of a.beacons) if (Math.hypot(bc.x - x, bc.z - z) < BANK_R + 0.6) return false;
+   for (const bc of a.beacons) if (Math.hypot(bc.x - x, bc.z - z) < BANK_R + 0.6) return false;
    return true;
+}
+
+/** Does the straight line from the head to (x, z) pass within 0.8 m of a link from CUT_SKIP back? */
+export function crossesTail(run: GemRun, x: number, z: number): boolean {
+   const h = run.hero;
+   const sx = x - h.x;
+   const sz = z - h.z;
+   const len2 = sx * sx + sz * sz || 1;
+   for (let k = CUT_SKIP; k < run.n; k++) {
+      const lx = run.linkPos[k * 2] - h.x;
+      const lz = run.linkPos[k * 2 + 1] - h.z;
+      const t = Math.max(0, Math.min(1, (lx * sx + lz * sz) / len2));
+      if (Math.hypot(lx - sx * t, lz - sz * t) < 0.8) return true;
+   }
+   return false;
 }
 
 function nearestGem(run: GemRun, avoidX = NaN, avoidZ = NaN, avoidR = 0): number {
@@ -74,7 +89,9 @@ function nearestGem(run: GemRun, avoidX = NaN, avoidZ = NaN, avoidR = 0): number
       const d = Math.hypot(dx, dz);
       if (avoidR > 0 && Math.hypot(run.gx[i] - avoidX, run.gz[i] - avoidZ) < avoidR) continue;
       const back = run.n > 2 ? Math.max(0, (dx * tx + dz * tz) / (tl * (d || 1))) : 0;
-      const cost = d * (1 + 1.5 * back) + (run.arena.gems[i].kind === "frost" ? 2 : 0) - (run.arena.gems[i].kind === "gold" ? 1 : 0);
+      // a straight run there that passes over the tail (from link 3) would cut it
+      const crosses = crossesTail(run, run.gx[i], run.gz[i]);
+      const cost = (crosses ? 40 : 0) + d * (1 + 1.5 * back) + (run.arena.gems[i].kind === "frost" ? 2 : 0) - (run.arena.gems[i].kind === "gold" ? 1 : 0);
       if (cost < bestCost) {
          bestCost = cost;
          best = i;
@@ -90,17 +107,6 @@ function avoid(run: GemRun, input: StepInput, bossR = 0, beacons = false): void 
    const ms = run.simMs;
    let ax = 0;
    let az = 0;
-   // the own tail from link 2 back
-   for (let k = 2; k < run.n; k++) {
-      const dx = h.x - run.linkPos[k * 2];
-      const dz = h.z - run.linkPos[k * 2 + 1];
-      const d = Math.hypot(dx, dz);
-      if (d < 1.6 && d > 1e-6) {
-         const w = (1.6 - d) / 1.6;
-         ax += (dx / d) * w * 2.2;
-         az += (dz / d) * w * 2.2;
-      }
-   }
    // sunk tiles now and the next group
    if (a.tiles) {
       const now = sunkGroup(a.tiles, ms);
@@ -185,10 +191,48 @@ function avoid(run: GemRun, input: StepInput, bossR = 0, beacons = false): void 
          az += (dz / d) * 0.8;
       }
    }
+   // about to roll into its own tail: sidestep along it, on the goal's side
+   const gl = Math.hypot(input.moveX, input.moveZ);
+   if (gl > 0.1) {
+      const gx = input.moveX / gl;
+      const gz = input.moveZ / gl;
+      let worst = -1;
+      let wd = 1.3;
+      for (let k = CUT_SKIP; k < run.n; k++) {
+         const lx = run.linkPos[k * 2] - h.x;
+         const lz = run.linkPos[k * 2 + 1] - h.z;
+         const d = Math.hypot(lx, lz);
+         if (d < wd && (lx * gx + lz * gz) / (d || 1) > 0.5) {
+            wd = d;
+            worst = k;
+         }
+      }
+      if (worst >= 0) {
+         const lx = run.linkPos[worst * 2] - h.x;
+         const lz = run.linkPos[worst * 2 + 1] - h.z;
+         let px = -lz;
+         let pz = lx;
+         if (px * gx + pz * gz < 0) {
+            px = -px;
+            pz = -pz;
+         }
+         ax += px * 2 - lx * 0.8;
+         az += pz * 2 - lz * 0.8;
+      }
+   }
    if (ax === 0 && az === 0) return;
-   const mx = input.moveX + ax;
-   const mz = input.moveZ + az;
-   const m = Math.hypot(mx, mz) || 1;
+   let mx = input.moveX + ax;
+   let mz = input.moveZ + az;
+   let m = Math.hypot(mx, mz);
+   if (m < 0.35 && Math.hypot(input.moveX, input.moveZ) > 0.1) {
+      // boxed in (the goal and the push cancel, e.g. inside its own coil): swing the goal 70 degrees
+      const c = Math.cos(1.22);
+      const sn = Math.sin(1.22);
+      mx = input.moveX * c - input.moveZ * sn;
+      mz = input.moveX * sn + input.moveZ * c;
+      m = Math.hypot(mx, mz);
+   }
+   m = m || 1;
    input.moveX = mx / Math.max(1, m);
    input.moveZ = mz / Math.max(1, m);
 }
@@ -235,7 +279,11 @@ function collect(bot: Bot, run: GemRun, input: StepInput, bankAt: number, bossR 
    const toBeacon = b >= 0 ? Math.hypot(a.beacons[b].x - h.x, a.beacons[b].z - h.z) : Infinity;
    const late = left < (toBeacon / V_RUN) * 1000 + 2500;
    const swallowed = run.boss !== null && run.boss.phase === 2;
-   const banking = b >= 0 && !swallowed && run.n > 0 && (w >= bankAt || run.n >= MAX_LINKS || gem < 0 || late);
+   // nothing in reach: a wave still to come is worth the wait (a partial bank scores only n^2)
+   const every = a.waveEveryMs;
+   const nextWave = every > 0 ? Math.ceil((run.simMs + 1) / every) * every : Infinity;
+   const waveLeft = every > 0 && nextWave / every - 1 < a.spec.waves.length && nextWave < a.durationMs - 6000;
+   const banking = b >= 0 && !swallowed && run.n > 0 && (w >= bankAt || run.n >= MAX_LINKS || (gem < 0 && !waveLeft) || late);
    if (banking) {
       setMove(input, a.beacons[b].x - h.x, a.beacons[b].z - h.z);
    } else if (gem >= 0 && run.n < MAX_LINKS) {

@@ -1393,6 +1393,23 @@
         { "title": "Fast Rhythm", "max_score": 14790, "min_duration_ms": 41800, "max_duration_ms": 46517, "base": 400, "max_pps": 358 },
         { "title": "Perfect Timing", "max_score": 28600, "min_duration_ms": 64700, "max_duration_ms": 242000, "base": 5720, "max_pps": 318 }
       ]
+    },
+    "gem-collector-3d": {
+      "title": "Gem Collector 3D",
+      "kind": "points",
+      "max_score": 4235,
+      "min_duration_ms": 85500,
+      "max_duration_ms": 91000,
+      "base": 0,
+      "max_pps": 50,
+      "enabled": false,
+      "levels": [
+        { "title": "Vault Floor", "max_score": 4235, "min_duration_ms": 85500, "max_duration_ms": 91000, "base": 0, "max_pps": 50 },
+        { "title": "Shifting Tiles", "max_score": 5449, "min_duration_ms": 95000, "max_duration_ms": 101000, "base": 0, "max_pps": 58 },
+        { "title": "Slime Pen", "max_score": 6300, "min_duration_ms": 104500, "max_duration_ms": 111000, "base": 0, "max_pps": 61 },
+        { "title": "Chest Rush", "max_score": 7132, "min_duration_ms": 114000, "max_duration_ms": 121000, "base": 0, "max_pps": 63 },
+        { "title": "Gumdrop Glutton", "max_score": 10917, "min_duration_ms": 29100, "max_duration_ms": 201000, "base": 0, "max_pps": 376 }
+      ]
     }
   }
 }

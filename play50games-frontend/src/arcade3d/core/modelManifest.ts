@@ -689,6 +689,16 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/toy-room-run/m2ToyDrum.glb",
    "/models/3d/toy-room-run/m2ToyRaceCar.glb",
    "/models/3d/toy-room-run/m2WindUpKey.glb",
+   // Menu 2 game 23 (Gem Collector 3D): its vault props from ready/menu2/gem-collector-3d, plus
+   // m2GummyMonster (the L5 boss) from ready/menu2/shared
+   "/models/3d/gem-collector-3d/m2ArenaRimWall.glb",
+   "/models/3d/gem-collector-3d/m2ArenaTileV2.glb",
+   "/models/3d/gem-collector-3d/m2CrystalHillBg.glb",
+   "/models/3d/gem-collector-3d/m2FacetGemI.glb",
+   "/models/3d/gem-collector-3d/m2GemPedestal.glb",
+   "/models/3d/gem-collector-3d/m2GummyMonster.glb",
+   "/models/3d/gem-collector-3d/m2ScoreBeacon.glb",
+   "/models/3d/gem-collector-3d/m2TreasureChest.glb",
    "/models/3d/jungle-vine-jump/m2BranchPlatform.glb",
    "/models/3d/jungle-vine-jump/m2BranchPlatformV2.glb",
    "/models/3d/jungle-vine-jump/m2GiantJungleTreeBg.glb",

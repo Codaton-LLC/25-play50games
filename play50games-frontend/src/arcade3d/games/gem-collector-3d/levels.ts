@@ -256,7 +256,7 @@ export const LEVELS: Record<LevelId, ArenaSpec> = {
       orbs: [
          { x: -12.4, y: 1, z: 0 },
          { x: 12.4, y: 1, z: 0 },
-         { x: 0, y: 1, z: -12.6 },
+         { x: -4.5, y: 1, z: -12 },
          { x: -6, y: 1, z: 11.5 },
          { x: 9, y: 3.1, z: 6 },
       ],
@@ -427,7 +427,7 @@ export const LEVELS: Record<LevelId, ArenaSpec> = {
       orbs: [
          { x: -12.6, y: 1, z: 0 },
          { x: 12.6, y: 1, z: 2 },
-         { x: 0, y: 1, z: -12.6 },
+         { x: 5, y: 1, z: -12 },
          { x: 5, y: 1, z: 11.6 },
          { x: -9, y: 3.1, z: 6 },
       ],

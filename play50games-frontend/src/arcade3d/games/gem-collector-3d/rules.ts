@@ -387,6 +387,23 @@ export function placeLinks(run: GemRun): void {
    }
 }
 
+/** Puts the hero at (x, z) with its train laid straight behind it along (-dx, -dz) (tests, set-ups). */
+export function teleport(run: GemRun, x: number, z: number, dx = 0, dz = 1): void {
+   run.hero.x = x;
+   run.hero.z = z;
+   resetPath(run, dx, dz);
+}
+
+/** Hands the hero a train of these gems (head first), taken from wherever they were (tests, set-ups). */
+export function giveTrain(run: GemRun, gems: readonly number[]): void {
+   run.n = 0;
+   for (const gi of gems) {
+      run.gemState[gi] = GEM.train;
+      run.links[run.n++] = gi;
+   }
+   placeLinks(run);
+}
+
 /** The link weight now in the train (gold counts 2). */
 export function trainWeight(run: GemRun): number {
    let w = 0;
@@ -867,8 +884,7 @@ function stepMs(run: GemRun, ev: StepEvents, sx: number, sz: number, input: Step
    for (let s = 0; s < a.secrets.length; s++) {
       const sp = a.secrets[s];
       if (Math.hypot(sp.x - h.x, sp.z - h.z) > SECRET_R || Math.abs(sp.y - (h.y + 0.8)) > 1.4) continue;
-      const id = SECRETS[run.level][s].id;
-      if (collectSecret(run.secrets, id)) ev.secret = id;
+      if (collectSecret(run.secrets, s)) ev.secret = SECRETS[run.level][s].id;
    }
 
    if (run.reachedAt === Infinity && !run.boss && run.score >= a.spec.targetScore) {
@@ -1104,11 +1120,11 @@ export function proposeLimits(_id: LevelId, a: Arena): LevelLimits {
 
 /** Pinned (literal) limits: equal to proposeLimits (rules.test.ts), meta.ts and arcade-games.json. */
 export const PROPOSED_LEVEL_LIMITS: Record<LevelId, LevelLimits> = {
-   1: { kind: "points", maxScore: 0, minDurationMs: 0, maxDurationMs: 0, base: 0, maxPointsPerSec: 0 },
-   2: { kind: "points", maxScore: 0, minDurationMs: 0, maxDurationMs: 0, base: 0, maxPointsPerSec: 0 },
-   3: { kind: "points", maxScore: 0, minDurationMs: 0, maxDurationMs: 0, base: 0, maxPointsPerSec: 0 },
-   4: { kind: "points", maxScore: 0, minDurationMs: 0, maxDurationMs: 0, base: 0, maxPointsPerSec: 0 },
-   5: { kind: "points", maxScore: 0, minDurationMs: 0, maxDurationMs: 0, base: 0, maxPointsPerSec: 0 },
+   1: { kind: "points", maxScore: 4235, minDurationMs: 85500, maxDurationMs: 91000, base: 0, maxPointsPerSec: 50 },
+   2: { kind: "points", maxScore: 5449, minDurationMs: 95000, maxDurationMs: 101000, base: 0, maxPointsPerSec: 58 },
+   3: { kind: "points", maxScore: 6300, minDurationMs: 104500, maxDurationMs: 111000, base: 0, maxPointsPerSec: 61 },
+   4: { kind: "points", maxScore: 7132, minDurationMs: 114000, maxDurationMs: 121000, base: 0, maxPointsPerSec: 63 },
+   5: { kind: "points", maxScore: 10917, minDurationMs: 29100, maxDurationMs: 201000, base: 0, maxPointsPerSec: 376 },
 };
 
 /** The run's final score for the shell: the points (the duration is the run time). */
@@ -1127,5 +1143,75 @@ export function badgeHits(run: GemRun): number {
    return run.cuts + run.strikes;
 }
 
-/** HUD stats the store publishes. */
-export const STAT = { links: "links", weight: "weight", orbs: "orbs" } as const;
+/** Where the ground arrow points: a full train to a beacon, else the nearest gem; Glutton's windows. */
+export function guidePoint(run: GemRun, out: { x: number; y: number; z: number }): { x: number; y: number; z: number } {
+   const a = run.arena;
+   const h = run.hero;
+   const ms = run.simMs;
+   out.y = 0;
+   const b = run.boss;
+   if (b && b.hp > 0) {
+      const g = run.glutton;
+      if ((b.phase === 0 && b.step === "vulnerable" && g.stunUntil < ms) || b.phase === 2) {
+         out.x = g.x;
+         out.z = b.phase === 2 ? g.z - MOUTH_OFFSET : g.z;
+         return out;
+      }
+   }
+   const full = trainWeight(run) >= MAX_LINKS || (b !== null && b.phase === 0 && run.glutton.stunUntil >= ms && run.n > 0);
+   let best = Infinity;
+   out.x = h.x;
+   out.z = h.z;
+   if (full) {
+      for (let i = 0; i < a.beacons.length; i++) {
+         if (!beaconActive(a, i, ms)) continue;
+         const d = Math.hypot(a.beacons[i].x - h.x, a.beacons[i].z - h.z);
+         if (d < best) {
+            best = d;
+            out.x = a.beacons[i].x;
+            out.z = a.beacons[i].z;
+         }
+      }
+      return out;
+   }
+   for (let i = 0; i < run.gemState.length; i++) {
+      const st = run.gemState[i];
+      if ((st !== GEM.floor && st !== GEM.loose) || (a.gems[i].hidden && !run.revealed[i]) || run.gy[i] > 0.5) continue;
+      const d = Math.hypot(run.gx[i] - h.x, run.gz[i] - h.z);
+      if (d < best) {
+         best = d;
+         out.x = run.gx[i];
+         out.z = run.gz[i];
+      }
+   }
+   return out;
+}
+
+/** The store stats the HUD and the star screen read. */
+export const STAT = {
+   links: "links",
+   weight: "weight",
+   orbs: "orbs",
+   hero: "hero",
+   power: "power",
+   dashes: "dashes",
+   comboChain: "comboChain",
+   comboMult: "comboMult",
+   comboFlow: "comboFlow",
+   banks: "banks",
+   bestBank: "bestBank",
+   target: "target",
+   bossHp: "bossHp",
+   bossPhase: "bossPhase",
+   bossOpen: "bossOpen",
+   bossFlash: "bossFlash",
+   bossOn: "bossOn",
+   bossStun: "bossStun",
+   stars: "stars",
+   newStars: "newStars",
+   noHit: "noHit",
+   secrets: "secrets",
+   newSecrets: "newSecrets",
+   xp: "xp",
+   cuts: "cuts",
+} as const;
