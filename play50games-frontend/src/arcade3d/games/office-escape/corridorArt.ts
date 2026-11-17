@@ -6,6 +6,9 @@
 import { CORRIDOR, FLOOR_TILE, LANE_EDGE } from "./decor";
 import type { CorridorVariant } from "./decor";
 
+/** Primitives.tsx COLORS.skirting (kept here so this canvas module stays React-free). */
+const SKIRTING = "#475569";
+
 // ---------- palettes ----------
 
 export interface FloorPalette {
@@ -141,6 +144,8 @@ export function drawWallOpenOffice(ctx: CanvasRenderingContext2D, w: number, h: 
    ctx.lineTo(X(11.54), Y(1.36));
    ctx.closePath();
    ctx.fill();
+   // the skirting along the floor (main's Primitives COLORS.skirting)
+   rect(0, 0, 12, 0.15, SKIRTING);
    upperStorey(ctx, w, h, { band: "#e0f2fe", mullion: "#94a3b8", skyTop: "#7dd3fc", skyBottom: "#bfdbfe" });
 }
 

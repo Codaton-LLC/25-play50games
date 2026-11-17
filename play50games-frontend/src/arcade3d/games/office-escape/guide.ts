@@ -41,3 +41,8 @@ export function obstacleName(type: number): string {
    if (type < 0 || type >= OBSTACLE_TYPES.length) return "obstacle";
    return OBSTACLE_TYPES[type].name.replace(/([A-Z])/g, " $1").toLowerCase();
 }
+
+/** "a desk", "an office chair", "an obstacle". */
+export function withArticle(name: string): string {
+   return `${/^[aeiou]/i.test(name) ? "an" : "a"} ${name}`;
+}

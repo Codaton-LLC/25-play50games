@@ -5,7 +5,7 @@
 import { useEffect, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import { useActionPop } from "@/arcade3d/core/fx";
-import { GUIDE, hintCode, hintFor, obstacleName } from "./guide";
+import { GUIDE, hintCode, hintFor, obstacleName, withArticle } from "./guide";
 import { COIN, type OfficeRun } from "./rules";
 
 const AT = { x: 0, y: 1.8, z: 0 };
@@ -29,7 +29,7 @@ export function Cues({ run }: { run: OfficeRun }) {
       coins.current = run.coins;
       if (run.over && !over.current) {
          over.current = true;
-         if (run.endReason === "lose") pop.fail(AT, `Crashed into a ${obstacleName(run.events.hitType)}`, { shake: 0 });
+         if (run.endReason === "lose") pop.fail(AT, `Crashed into ${withArticle(obstacleName(run.events.hitType))}`, { shake: 0 });
       }
       const next = hintCode(run);
       if (next !== code.current) {
