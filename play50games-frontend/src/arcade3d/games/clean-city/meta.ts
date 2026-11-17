@@ -48,8 +48,8 @@ export const cleanCityMeta: ArcadeGameMeta = {
          { title: "Beat the clock", text: "Clear all three maps before time runs out; every second left pays extra." },
          {
             title: "Tips",
-            text: "Plan a loop: later levels add moving bins that slow you. Esc or P pauses.",
-            touchText: "Plan a loop: later levels add moving bins that slow you. Tap Pause, top right, to stop.",
+            text: "Plan a loop through each map so you never walk back for one piece. Esc or P pauses.",
+            touchText: "Plan a loop through each map so you never walk back for one piece. Tap Pause, top right, to stop.",
             keys: ["pause"],
             touch: ["pause"],
          },

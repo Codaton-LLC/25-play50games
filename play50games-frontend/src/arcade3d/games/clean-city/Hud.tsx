@@ -7,17 +7,17 @@ import CameraViewButton from "@/arcade3d/core/camera/CameraViewButton";
 import { HintLine } from "@/arcade3d/core/hud/HintLine";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useCleanLevel } from "./useCleanLevel";
+import { LEVEL_MAP_NAMES } from "./levels";
 import { GUIDE } from "./guide";
 import styles from "./Hud.module.css";
 
-const NAMES = ["Park", "City", "Beach"] as const;
-
 function MapHud() {
-   const { config } = useCleanLevel();
+   const { id, config } = useCleanLevel();
    const delivering = useArcadeStore((s) => s.stats.delivering ?? 0);
    const kind = useArcadeStore((s) => s.stats.kind ?? 0);
    const map = useArcadeStore((s) => s.stats.map ?? 1);
-   const name = NAMES[map - 1] ?? NAMES[0];
+   const names = LEVEL_MAP_NAMES[id] ?? LEVEL_MAP_NAMES[1];
+   const name = names[map - 1] ?? names[0];
    return (
       <>
       <HintLine signal={GUIDE} />

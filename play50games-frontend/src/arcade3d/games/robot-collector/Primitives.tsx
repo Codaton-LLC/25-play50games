@@ -22,6 +22,7 @@ import { Instanced, useCanvasTexture } from "@/arcade3d/core/render";
 import { ASSETS, HAZARD_BEACON_SPOTS } from "./assets";
 import { BELTS, BELT_HALF_WIDTH, SLOW_ZONES, type Belt, type RobotLevel } from "./levels";
 import { ARENA, BARREL_RADIUS, CRATE_SIZE, ROBOT_START, type Prop } from "./rules";
+import type { WarehouseLook } from "./scenery";
 
 // ---------- look ----------
 
@@ -88,13 +89,25 @@ function propSpots(props: readonly Prop[]) {
 
 type PropSpots = ReturnType<typeof propSpots>;
 
-function drawFloor(ctx: CanvasRenderingContext2D, w: number, h: number, props: readonly Prop[]) {
+function drawFloor(ctx: CanvasRenderingContext2D, w: number, h: number, props: readonly Prop[], look?: WarehouseLook) {
    const s = w / (ARENA.halfX * 2); // px per unit
    const u = (x: number) => (x + ARENA.halfX) * s;
    const v = (z: number) => (z + ARENA.halfZ) * s;
 
-   ctx.fillStyle = COLORS.floor;
+   ctx.fillStyle = look?.floor ?? COLORS.floor;
    ctx.fillRect(0, 0, w, h);
+
+   if (look) {
+      // Flat painted service bays point to each perimeter workstation; no invisible collisions.
+      ctx.strokeStyle = look.accent;
+      ctx.lineWidth = 0.06 * s;
+      ctx.fillStyle = look.accent + "18";
+      for (const station of look.stations) {
+         const z = station.z < 0 ? -7.4 : 4.8;
+         ctx.fillRect(u(station.x - 1.6), v(z), 3.2 * s, 2.6 * s);
+         ctx.strokeRect(u(station.x - 1.6), v(z), 3.2 * s, 2.6 * s);
+      }
+   }
 
    // 2 x 2 unit concrete tiles
    ctx.strokeStyle = "rgba(255, 255, 255, 0.07)";
@@ -191,9 +204,9 @@ const WALL_SPOTS = (() => {
 const TRIM_SPOTS = WALL_SPOTS.map((spot) => ({ ...spot, y: WALL.height + 0.04, sx: spot.sx + 0.06, sy: 0.08, sz: spot.sz + 0.06 }));
 
 /** Floor, slab, walls, crates and barrels: everything that never moves. `props` = the level's (rules.ts worldOf). */
-export function Warehouse({ props }: { props: readonly Prop[] }) {
+export function Warehouse({ props, look }: { props: readonly Prop[]; look?: WarehouseLook }) {
    const spots = useMemo(() => propSpots(props), [props]);
-   const draw = useMemo(() => (ctx: CanvasRenderingContext2D, w: number, h: number) => drawFloor(ctx, w, h, props), [props]);
+   const draw = useMemo(() => (ctx: CanvasRenderingContext2D, w: number, h: number) => drawFloor(ctx, w, h, props, look), [props, look]);
    const floor = useCanvasTexture(768, 512, draw);
 
    return (
@@ -209,11 +222,11 @@ export function Warehouse({ props }: { props: readonly Prop[] }) {
          </mesh>
          <Instanced spots={WALL_SPOTS}>
             <boxGeometry />
-            <meshStandardMaterial color={COLORS.wall} roughness={0.7} />
+            <meshStandardMaterial color={look?.wall ?? COLORS.wall} roughness={0.7} />
          </Instanced>
          <Instanced spots={TRIM_SPOTS}>
             <boxGeometry />
-            <meshStandardMaterial color={COLORS.trim} roughness={0.5} />
+            <meshStandardMaterial color={look?.accent ?? COLORS.trim} roughness={0.5} />
          </Instanced>
          <Crates spots={spots} />
          <Barrels spots={spots} />

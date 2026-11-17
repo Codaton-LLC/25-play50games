@@ -9,7 +9,10 @@ import { modelParts } from "@/arcade3d/core/assets";
 import { hasModel } from "@/arcade3d/core/modelManifest";
 import { readCharacterGlb } from "@/arcade3d/core/rig/robotGlb";
 import type { ModelAsset } from "@/arcade3d/core/types";
-import { ASSETS, EXEC_DESK_GLB, EXEC_DESK_LEVELS, EXEC_DESK_PATTERN } from "./assets";
+import { ASSETS, EXEC_DESK_GLB, EXEC_DESK_LEVELS, EXEC_DESK_PATTERN, EXEC_DESK_PATTERNS } from "./assets";
+import { CORRIDOR_DECOR } from "./decor";
+import { LEVEL_VARIANTS } from "./looks";
+import { execDeskSpots } from "./Primitives";
 import { LANES } from "./rules";
 
 async function drawnBox(asset: ModelAsset): Promise<Box3> {
@@ -72,11 +75,31 @@ describe("exec desk spots", () => {
    it("places 2-4 desks per period, every one outside the play bounds", () => {
       expect(EXEC_DESK_PATTERN.length).toBeGreaterThanOrEqual(2);
       expect(EXEC_DESK_PATTERN.length).toBeLessThanOrEqual(4);
-      for (const spot of EXEC_DESK_PATTERN) {
+      for (const spot of [...EXEC_DESK_PATTERN, ...EXEC_DESK_PATTERNS[5]!]) {
          const inner = Math.abs(spot.x) - EXEC_DESK_GLB.depth / 2;
          const outer = Math.abs(spot.x) + EXEC_DESK_GLB.depth / 2;
          expect(inner).toBeGreaterThan(LANE_EDGE);
          expect(outer).toBeLessThanOrEqual(WALL_X);
+      }
+   });
+
+   it("levels 4 and 5: no desk overlaps its level's corridor decor (set pieces, plants, cabinets)", () => {
+      for (const level of EXEC_DESK_LEVELS) {
+         const decor = CORRIDOR_DECOR[LEVEL_VARIANTS[level]];
+         const others = [...decor.pots, ...decor.cabinets, ...decor.setPieces.flatMap((p) => p.spots)];
+         for (const d of execDeskSpots(level)) {
+            // the desk is turned 90°: depth across, width along
+            const dx = EXEC_DESK_GLB.depth / 2;
+            const dz = EXEC_DESK_GLB.width / 2;
+            for (const o of others) {
+               const ox = ((o.sx ?? o.scale ?? 0.3) as number) / 2;
+               const oz = ((o.sz ?? o.scale ?? 0.3) as number) / 2;
+               // monitors stand on the desk top (y >= its height): not a clash
+               if (o.y - ((o.sy ?? 0) as number) / 2 >= EXEC_DESK_GLB.height - 0.05) continue;
+               const apart = Math.abs(o.x - d.x) >= dx + ox || Math.abs(o.z - d.z) >= dz + oz;
+               expect(apart, `L${level} desk at ${d.x},${d.z.toFixed(1)} vs ${o.x},${o.z.toFixed(1)}`).toBe(true);
+            }
+         }
       }
    });
 });

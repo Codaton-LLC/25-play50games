@@ -2,7 +2,7 @@
 import { describe, expect, it } from "vitest";
 import { LEVEL_IDS } from "@/arcade3d/types";
 import { LEVELS } from "./levels";
-import { COACHED_ROWS, hintCode, hintFor, nextRow, obstacleName } from "./guide";
+import { COACHED_ROWS, hintCode, hintFor, nextRow, obstacleName, withArticle } from "./guide";
 import { NO_OBSTACLE, OBSTACLE, createRun } from "./rules";
 
 describe("office-escape guide", () => {
@@ -36,5 +36,7 @@ describe("office-escape guide", () => {
       expect(obstacleName(OBSTACLE.coffeeCart)).toBe("coffee cart");
       expect(obstacleName(OBSTACLE.desk)).toBe("desk");
       expect(obstacleName(-1)).toBe("obstacle");
+      expect(withArticle("office chair")).toBe("an office chair");
+      expect(withArticle("desk")).toBe("a desk");
    });
 });

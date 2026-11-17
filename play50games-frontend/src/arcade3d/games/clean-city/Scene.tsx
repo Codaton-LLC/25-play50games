@@ -19,7 +19,7 @@
 //   per kind, all three maps mounted, Worlds sets visible from run.map in a useFrame. The park and
 //   the city also carry their decor (Decor.tsx: ground beyond the floor, parked cars, pigeons),
 //   outside everything the run draws on the floor (decorSpots.ts).
-import { Suspense, memo, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { memo, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { CustomBlending, Euler, GreaterDepth, Matrix4, Quaternion, Vector3, type Group, type Mesh, type MeshBasicMaterial, type Object3D } from "three";
 import { useCameraViews } from "@/arcade3d/core/camera/CameraViews";
@@ -30,7 +30,7 @@ import { playSfx } from "@/arcade3d/core/audio";
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import { useInput } from "@/arcade3d/core/input";
 import { inputToWorld, randomSeed } from "@/arcade3d/core/math";
-import { DynamicInstancedModel, InstancedModel } from "@/arcade3d/core/assets";
+import { DynamicInstancedModel } from "@/arcade3d/core/assets";
 import { BlobShadow, DynamicInstanced } from "@/arcade3d/core/render";
 import {
    BONE,
@@ -52,9 +52,9 @@ import { useFittedView } from "@/arcade3d/core/useFittedView";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { useCleanLevel } from "./useCleanLevel";
 import { EXTRA_BINS, HAZARDS, HAZARD_RADIUS } from "./levels";
-import { ASSETS, CLEANER_LANDMARKS, FESTIVAL_STALL_SPOTS } from "./assets";
+import { ASSETS, CLEANER_LANDMARKS } from "./assets";
 import { DAMPING, FOLLOW, FOV, LOOK_AT, REACH, VIEW } from "./camera";
-import { CityDecor, ParkDecor } from "./Decor";
+import { DistrictDecor } from "./Decor";
 import { Cues } from "./Cues";
 import { CLEANER_SCALE, createCleanerGait, gaitFrameDt, stepCleanerGait } from "./gait";
 import { createPickupMark, localOffset, notePickup, pickupPose, type LocalOffset, type PickupMark } from "./pickup";
@@ -429,16 +429,9 @@ function Cleaner({ run }: { run: CleanRun }) {
 
 // ---------- maps ----------
 
-function FestivalStalls() {
-   return <Suspense fallback={null}>
-      <InstancedModel asset={ASSETS.festivalStall} spots={FESTIVAL_STALL_SPOTS} fallback={null} />
-   </Suspense>;
-}
-
 /** All three maps stay mounted. visible follows run.map in the same frame as the litter move, not a render later. */
 function Worlds({ run }: { run: CleanRun }) {
    const { id } = useCleanLevel();
-   const festival = id === 4 || id === 5;
    const park = useRef<Group>(null);
    const city = useRef<Group>(null);
    const beach = useRef<Group>(null);
@@ -453,17 +446,16 @@ function Worlds({ run }: { run: CleanRun }) {
    return (
       <>
          <group ref={park} name="map-park">
-            <Park />
-            <ParkDecor run={run} />
-            {festival && <FestivalStalls />}
+            <Park levelId={id} />
+            <DistrictDecor levelId={id} map={0} run={run} />
          </group>
          <group ref={city} visible={false} name="map-city">
-            <City />
-            <CityDecor />
-            {festival && <FestivalStalls />}
+            <City levelId={id} />
+            <DistrictDecor levelId={id} map={1} run={run} />
          </group>
          <group ref={beach} visible={false} name="map-beach">
-            <Beach />
+            <Beach levelId={id} />
+            <DistrictDecor levelId={id} map={2} run={run} />
          </group>
       </>
    );
@@ -520,6 +512,7 @@ export default function Scene() {
 }
 
 function LevelProps({ run }: { run: CleanRun }) {
+   const { id } = useCleanLevel();
    const [spots] = useState(() => EXTRA_BINS.slice(0, run.level.extraBins).map((p) => ({ ...p, y: 0 })));
    const moving = useRef<Group>(null);
    useFrame(() => {
@@ -538,6 +531,12 @@ function LevelProps({ run }: { run: CleanRun }) {
             </mesh>
          </group>)}
       </group>
-      {run.level.matching && <pointLight position={[0, 8, 0]} intensity={25} distance={35} color="#dbeafe" />}
+      {id === 2 && <pointLight position={[0, 7, -14]} intensity={12} distance={30} color="#e0f2fe" />}
+      {id === 3 && <pointLight position={[0, 7, -10]} intensity={16} distance={32} color="#fef08a" />}
+      {id === 4 && <pointLight position={[0, 8, 0]} intensity={25} distance={35} color="#dbeafe" />}
+      {id === 5 && <>
+         <pointLight position={[0, 8, 0]} intensity={22} distance={35} color="#fef3c7" />
+         <pointLight position={[0, 5, -15]} intensity={18} distance={26} color="#f59e0b" />
+      </>}
    </>;
 }

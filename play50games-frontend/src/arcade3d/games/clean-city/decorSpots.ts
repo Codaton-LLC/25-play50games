@@ -211,3 +211,116 @@ export function pigeonPose(p: PigeonHome, t: number, scare: number, fleeing: boo
    out.pitch = pitch;
    return out;
 }
+
+// ---------- per-level district set pieces (Levels 2–5, all outside |x|, |z| <= 14.5 and z <= 14) ----------
+
+/** Level 2 — City Square: ornamental civic fountain, townhouse blocks, Victorian lamps & trimmed hedges. */
+export const CITY_SQUARE_SPOTS = {
+   fountain: [{ x: 0, y: 0, z: -17.6 }] as const satisfies readonly InstanceSpot[],
+   townhouses: [
+      { x: -8.5, y: 0, z: -19.2 },
+      { x: 8.5, y: 0, z: -19.2 },
+   ] as const satisfies readonly InstanceSpot[],
+   lamps: [
+      { x: -11.0, y: 0, z: -15.6 },
+      { x: -4.2, y: 0, z: -15.6 },
+      { x: 4.2, y: 0, z: -15.6 },
+      { x: 11.0, y: 0, z: -15.6 },
+   ] as const satisfies readonly InstanceSpot[],
+   bushes: [
+      { x: -7.6, y: 0, z: -15.8 },
+      { x: 7.6, y: 0, z: -15.8 },
+      { x: -16.2, y: 0, z: -5.0 },
+      { x: 16.2, y: 0, z: -5.0 },
+   ] as const satisfies readonly InstanceSpot[],
+   pillars: [
+      { x: -3.2, y: 0.7, z: -15.2, sx: 0.55, sy: 1.4, sz: 0.55 },
+      { x: 3.2, y: 0.7, z: -15.2, sx: 0.55, sy: 1.4, sz: 0.55 },
+      { x: -12.5, y: 0.7, z: -15.2, sx: 0.55, sy: 1.4, sz: 0.55 },
+      { x: 12.5, y: 0.7, z: -15.2, sx: 0.55, sy: 1.4, sz: 0.55 },
+   ] as const satisfies readonly InstanceSpot[],
+} as const;
+
+/** Level 3 — Shopping Street: corner shops, café kiosks, bus stop shelter & traffic signals. */
+export const SHOPPING_STREET_SPOTS = {
+   cornerShops: [
+      { x: -9.0, y: 0, z: -19.6 },
+      { x: 9.0, y: 0, z: -19.6 },
+   ] as const satisfies readonly InstanceSpot[],
+   kiosks: [
+      { x: -3.8, y: 0, z: -19.0 },
+      { x: 3.8, y: 0, z: -19.0 },
+   ] as const satisfies readonly InstanceSpot[],
+   busStop: [{ x: 0, y: 0, z: -16.2 }] as const satisfies readonly InstanceSpot[],
+   trafficLights: [
+      { x: -12.8, y: 0, z: -15.4 },
+      { x: 12.8, y: 0, z: -15.4 },
+   ] as const satisfies readonly InstanceSpot[],
+   bollards: Array.from({ length: 9 }, (_v, i) => ({
+      x: (i - 4) * 3.0,
+      y: 0.35,
+      z: -14.85,
+      sx: 0.22,
+      sy: 0.7,
+      sz: 0.22,
+   })) as readonly InstanceSpot[],
+} as const;
+
+/** Level 4 — River Walk: river channel, wooden footbridge, moored rowboats, harbour buoys, rocks & night lamps. */
+export const RIVER_WALK_SPOTS = {
+   bridge: [{ x: 0, y: 0, z: -18.0 }] as const satisfies readonly InstanceSpot[],
+   rowboats: [
+      { x: -7.2, y: 0, z: -17.6, rotY: 1.2 },
+      { x: 7.8, y: 0, z: -17.8, rotY: -1.3 },
+   ] as const satisfies readonly InstanceSpot[],
+   buoys: [
+      { x: -3.8, y: 0, z: -17.2 },
+      { x: 4.2, y: 0, z: -17.2 },
+   ] as const satisfies readonly InstanceSpot[],
+   nightLamps: [
+      { x: -10.5, y: 0, z: -15.8 },
+      { x: -4.8, y: 0, z: -15.8 },
+      { x: 4.8, y: 0, z: -15.8 },
+      { x: 10.5, y: 0, z: -15.8 },
+   ] as const satisfies readonly InstanceSpot[],
+   rocks: [
+      { x: -11.8, y: 0, z: -18.6, rotY: 0.5 },
+      { x: 11.8, y: 0, z: -18.6, rotY: -0.6 },
+   ] as const satisfies readonly InstanceSpot[],
+   quayBollards: Array.from({ length: 8 }, (_v, i) => ({
+      x: (i - 3.5) * 3.4,
+      y: 0.32,
+      z: -14.8,
+      sx: 0.28,
+      sy: 0.64,
+      sz: 0.28,
+   })) as readonly InstanceSpot[],
+} as const;
+
+/** Level 5 — Festival Cleanup: festival tents, entrance arch, stage deck, speaker stacks & bunting posts. */
+export const FESTIVAL_CLEANUP_SPOTS = {
+   tents: [
+      { x: -10.8, y: 0, z: -19.4 },
+      { x: 11.2, y: 0, z: -19.4 },
+      { x: -16.8, y: 0, z: -6.5, rotY: Math.PI / 2 },
+      { x: 16.8, y: 0, z: -6.5, rotY: -Math.PI / 2 },
+   ] as const satisfies readonly InstanceSpot[],
+   arch: [{ x: 0, y: 0, z: -15.8 }] as const satisfies readonly InstanceSpot[],
+   buntingPosts: Array.from({ length: 7 }, (_v, i) => ({
+      x: (i - 3) * 4.0,
+      y: 1.4,
+      z: -15.1,
+      sx: 0.14,
+      sy: 2.8,
+      sz: 0.14,
+   })) as readonly InstanceSpot[],
+   pennants: Array.from({ length: 18 }, (_v, i) => ({
+      x: -11.3 + i * 1.33,
+      y: 2.55 + Math.sin(i * 0.9) * 0.12,
+      z: -15.1,
+      sx: 0.38,
+      sy: 0.28,
+      sz: 0.08,
+   })) as readonly InstanceSpot[],
+} as const;
+

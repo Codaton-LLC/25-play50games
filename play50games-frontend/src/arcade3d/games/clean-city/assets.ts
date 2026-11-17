@@ -122,6 +122,71 @@ export const ASSETS = {
       id: "van", url: "/models/3d/pigeon-crossing/van.glb", scale: 1.93 * CAR_SIZE, stretch: [0.56, 0.64, 1],
       fallback: "box", fallbackColor: "#e9edf3", budget: { ...PROP_BUDGET },
    },
+   // District set-piece GLBs reused from the manifest for Levels 2–5:
+   // Level 2 — City Square
+   parkFountain: {
+      id: "parkFountain", url: "/models/3d/dog-park-fetch/parkFountain.glb", scale: 1.5,
+      fallback: "cylinder", fallbackColor: "#cbd5e1", budget: { ...PROP_BUDGET },
+   },
+   townhouseBlock: {
+      id: "townhouseBlock", url: "/models/3d/taxi-rush-3d/townhouseBlock.glb", scale: 1.8,
+      fallback: "box", fallbackColor: "#e7e5e4", budget: { ...PROP_BUDGET },
+   },
+   victorianLamp: {
+      id: "victorianLamp", url: "/models/3d/postman-3d/streetLampVictorian.glb", scale: 1.75,
+      fallback: "cylinder", fallbackColor: "#1e293b", budget: { ...PROP_BUDGET },
+   },
+   parkBush: {
+      id: "parkBush", url: "/models/3d/dog-park-fetch/parkBush.glb", scale: 0.95,
+      fallback: "sphere", fallbackColor: "#16a34a", budget: { ...PROP_BUDGET },
+   },
+   // Level 3 — Shopping Street
+   cornerShop: {
+      id: "cornerShop", url: "/models/3d/taxi-rush-3d/cornerShop.glb", scale: 2.0,
+      fallback: "box", fallbackColor: "#f8fafc", budget: { ...PROP_BUDGET },
+   },
+   zooKiosk: {
+      id: "zooKiosk", url: "/models/3d/zoo-escape/zooKiosk.glb", scale: 1.4,
+      fallback: "box", fallbackColor: "#ef4444", budget: { ...PROP_BUDGET },
+   },
+   busStop: {
+      id: "busStop", url: "/models/3d/taxi-rush-3d/busStop.glb", scale: 1.9,
+      fallback: "box", fallbackColor: "#1d4ed8", budget: { ...PROP_BUDGET },
+   },
+   trafficLight: {
+      id: "trafficLight", url: "/models/3d/shared/trafficLight.glb", scale: 1.7,
+      fallback: "box", fallbackColor: "#334155", budget: { ...PROP_BUDGET },
+   },
+   // Level 4 — River Walk
+   woodenFootbridge: {
+      id: "woodenFootbridge", url: "/models/3d/zoo-escape/woodenFootbridge.glb", scale: 2.1,
+      fallback: "box", fallbackColor: "#92400e", budget: { ...PROP_BUDGET },
+   },
+   rowboat: {
+      id: "rowboat", url: "/models/3d/treasure-island/rowboat.glb", scale: 1.45,
+      fallback: "box", fallbackColor: "#92400e", budget: { ...PROP_BUDGET },
+   },
+   harbourBuoy: {
+      id: "harbourBuoy", url: "/models/3d/pirate-cannons/harbourBuoy.glb", scale: 0.9,
+      fallback: "cylinder", fallbackColor: "#f97316", budget: { ...PROP_BUDGET },
+   },
+   streetLampNight: {
+      id: "streetLampNight", url: "/models/3d/pigeon-crossing/streetLampNight.glb", scale: 1.8,
+      fallback: "cylinder", fallbackColor: "#334155", budget: { ...PROP_BUDGET },
+   },
+   beachRocks: {
+      id: "beachRocks", url: "/models/3d/treasure-island/beachRocks.glb", scale: 1.1,
+      fallback: "sphere", fallbackColor: "#64748b", budget: { ...PROP_BUDGET },
+   },
+   // Level 5 — Festival Cleanup
+   festivalTent: {
+      id: "festivalTent", url: "/models/3d/dog-park-fetch/festivalTent.glb", scale: 1.65,
+      fallback: "box", fallbackColor: "#f59e0b", budget: { ...PROP_BUDGET },
+   },
+   finishArch: {
+      id: "finishArch", url: "/models/3d/obstacle-race/finishArch.glb", scale: 2.6, stretch: [1, 1.35, 1],
+      fallback: "box", fallbackColor: "#facc15", budget: { ...PROP_BUDGET },
+   },
 } satisfies Record<string, ModelAsset>;
 
 /** Drawn litter size the stand-ins are built at (the GLBs reach it through LITTER_SCALE). */

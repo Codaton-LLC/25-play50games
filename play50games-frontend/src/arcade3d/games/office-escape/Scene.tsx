@@ -30,6 +30,9 @@ import { randomSeed } from "@/arcade3d/core/math";
 import { capScore as capToLimits } from "@/arcade3d/core/limits";
 import { Cues } from "./Cues";
 import { useOfficeLevel } from "./useOfficeLevel";
+import { LEVEL_VARIANTS } from "./looks";
+import type { LevelId } from "@/arcade3d/types";
+import type { CorridorVariant } from "./decor";
 import { BlobShadow, Instanced } from "@/arcade3d/core/render";
 import {
    BONE,
@@ -57,7 +60,7 @@ import {
    Backdrop,
    COLORS,
    CORRIDOR,
-   EXEC_DESK_SPOTS,
+   execDeskSpots,
    InstancedProp,
    OfficeCorridor,
    PropMeshes,
@@ -228,15 +231,13 @@ const FLASH = new Color(COLORS.accent);
  * whose matrices are rewritten every frame). While the GLB is missing or broken, the same spots
  * draw a plain box of the desk's turned footprint.
  */
-const ExecFloorDesks = memo(function ExecFloorDesks() {
-   const fallbackSpots = useMemo(
-      () => EXEC_DESK_SPOTS.map((s) => ({ ...s, y: EXEC_DESK_GLB.height / 2 })),
-      []
-   );
+const ExecFloorDesks = memo(function ExecFloorDesks({ level }: { level: LevelId }) {
+   const spots = useMemo(() => execDeskSpots(level), [level]);
+   const fallbackSpots = useMemo(() => spots.map((s) => ({ ...s, y: EXEC_DESK_GLB.height / 2 })), [spots]);
    return (
       <InstancedModel
          asset={ASSETS.execDesk}
-         spots={EXEC_DESK_SPOTS}
+         spots={spots}
          fallback={
             <Instanced spots={fallbackSpots} name="exec-desks">
                <boxGeometry args={[EXEC_DESK_GLB.depth, EXEC_DESK_GLB.height, EXEC_DESK_GLB.width]} />
@@ -247,7 +248,7 @@ const ExecFloorDesks = memo(function ExecFloorDesks() {
    );
 });
 
-const Corridor = memo(function Corridor({ run, fx, execFloor }: { run: OfficeRun; fx: Fx; execFloor: boolean }) {
+const Corridor = memo(function Corridor({ run, fx, variant, execLevel }: { run: OfficeRun; fx: Fx; variant: CorridorVariant; execLevel: LevelId | null }) {
    const time = useGameTime();
    const camera = useThree((state) => state.camera);
    const treadmill = useRef<Group>(null);
@@ -270,10 +271,10 @@ const Corridor = memo(function Corridor({ run, fx, execFloor }: { run: OfficeRun
    return (
       <>
          <group ref={treadmill}>
-            <OfficeCorridor stripes={stripes} ceiling={ceiling} />
-            {execFloor && <ExecFloorDesks />}
+            <OfficeCorridor variant={variant} stripes={stripes} ceiling={ceiling} />
+            {execLevel !== null && <ExecFloorDesks level={execLevel} />}
          </group>
-         <Backdrop />
+         <Backdrop variant={variant} />
       </>
    );
 });
@@ -632,7 +633,7 @@ export default function Scene() {
       <>
          <Simulation run={run} fx={fx} />
          <ChaseCamera />
-         <Corridor run={run} fx={fx} execFloor={execFloor} />
+         <Corridor run={run} fx={fx} variant={LEVEL_VARIANTS[id]} execLevel={execFloor ? id : null} />
          <Obstacles run={run} fx={fx} standIns={standIns} />
          <Coins run={run} fx={fx} standIns={standIns} />
          <Runner run={run} fx={fx} />

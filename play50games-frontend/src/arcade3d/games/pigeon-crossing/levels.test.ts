@@ -5,10 +5,16 @@ import { definitionLevelProblems, levelEnvironment, levelHudStats } from "@/arca
 import { advanceRunClock, playedFrameDt } from "@/arcade3d/core/frameLoop";
 import { capScore, withinServerLimits } from "@/arcade3d/core/limits";
 import { createArcadeStore } from "@/arcade3d/core/useArcadeStore";
+import { hasModel } from "@/arcade3d/core/modelManifest";
+import { COVER_HEIGHT } from "./camera";
+import { DISTRICT_PROP_ASSETS } from "./DistrictScenery";
 import { CLEAR_SCORES, LEVELS } from "./levels";
+import { LEVEL_LOOKS } from "./looks";
+import { MAP_1, MAPS } from "./maps";
 import { pigeonCrossingMeta as meta } from "./meta";
 import definition from "./index";
-import { createRun, createStepInput, fillHorizon, firstHit, isLevelGrass, laneFor, NONE, PROPOSED_LEVEL_LIMITS, scoreFor, step, validateLane, type PigeonRun, type StepInput } from "./rules";
+import { COLORS } from "./Primitives";
+import { COVER_INNER_X, PLAY_HALF_WIDTH, ROWS_PER_LEVEL, columnX, createRun, createStepInput, fillHorizon, firstHit, isLevelGrass, laneFor, NONE, parkedColumn, PROPOSED_LEVEL_LIMITS, scoreFor, step, validateLane, type PigeonRun, type StepInput } from "./rules";
 
 vi.mock("./Scene", () => ({ default: () => null }));
 vi.mock("./Hud", () => ({ default: () => null }));
@@ -120,6 +126,79 @@ describe("pigeon-crossing five level declarations", () => {
          }
          expect(tap).toEqual(key);
       }
+   });
+
+   it("gives each level its own district map, look, palette and twist while keeping props out of the play area", () => {
+      expect(LEVELS[1].map).toBe(MAP_1);
+      expect(MAP_1.props).toHaveLength(0);
+      expect(MAP_1.setPieces).toHaveLength(0);
+      expect(MAP_1.palette).toMatchObject(COLORS);
+
+      const themes = new Set(LEVEL_IDS.map((id) => LEVELS[id].map.theme));
+      const palettes = new Set(LEVEL_IDS.map((id) => JSON.stringify(LEVELS[id].map.palette)));
+      const looks = new Set(LEVEL_IDS.map((id) => JSON.stringify(LEVEL_LOOKS[id])));
+      const layouts = new Set(LEVEL_IDS.map((id) => JSON.stringify({
+         props: LEVELS[id].map.props.map((p) => [p.kind, p.x, p.row]),
+         setPieces: LEVELS[id].map.setPieces.map((s) => [s.kind, s.x, s.row]),
+      })));
+      const twists = new Set(LEVEL_IDS.map((id) => `${LEVELS[id].parkedPattern}:${LEVELS[id].vehicleWeights.join(",")}`));
+      expect(themes.size).toBe(5);
+      expect(palettes.size).toBe(5);
+      expect(looks.size).toBe(5);
+      expect(layouts.size).toBe(5);
+      expect(twists.size).toBe(5);
+
+      for (const asset of Object.values(DISTRICT_PROP_ASSETS)) {
+         expect(hasModel(asset.url), asset.url).toBe(true);
+      }
+
+      for (const id of LEVEL_IDS) {
+         const config = LEVELS[id];
+         const map = MAPS[id];
+         expect(config.map).toBe(map);
+         expect(config.vehicleWeights[0] + config.vehicleWeights[1] + config.vehicleWeights[2]).toBe(7);
+         if (id > 1) {
+            expect(LEVEL_LOOKS[id].fog).toBeDefined();
+            expect(map.props.length).toBeGreaterThanOrEqual(20);
+            expect(map.setPieces.length).toBeGreaterThanOrEqual(6);
+         }
+         for (const p of map.props) {
+            expect(Math.abs(p.x) - p.halfX, `L${id} prop ${p.kind} at x=${p.x}`).toBeGreaterThanOrEqual(COVER_INNER_X);
+            expect(Math.abs(p.x) - p.halfX).toBeGreaterThan(PLAY_HALF_WIDTH);
+            expect(p.y, `L${id} prop ${p.kind} y`).toBeGreaterThanOrEqual(COVER_HEIGHT);
+            expect(p.row).toBeGreaterThanOrEqual(0);
+            expect(p.row).toBeLessThan(ROWS_PER_LEVEL);
+         }
+         for (const s of map.setPieces) {
+            expect(Math.abs(s.x) - s.halfX, `L${id} setPiece ${s.kind} at x=${s.x}`).toBeGreaterThanOrEqual(COVER_INNER_X);
+            expect(Math.abs(s.x) - s.halfX).toBeGreaterThan(PLAY_HALF_WIDTH);
+            expect(s.y, `L${id} setPiece ${s.kind} y`).toBeGreaterThanOrEqual(COVER_HEIGHT);
+            expect(s.row).toBeGreaterThanOrEqual(0);
+            expect(s.row).toBeLessThan(ROWS_PER_LEVEL);
+         }
+         // Start row 0 and centre column 3 (x = 0) are never blocked by parked vans on any grass row
+         const run = createRun(7, config);
+         for (let row = 0; row <= ROWS_PER_LEVEL; row++) {
+            if (!isLevelGrass(row, config)) continue;
+            expect(firstHit(run, 3050, 550, 0, -row * 1.8, 0, -row * 1.8, row, row)).toBe(Infinity);
+            if (row > 0 && row < ROWS_PER_LEVEL) {
+               for (let edge = 0; edge < config.parkedEdges; edge++) {
+                  const col = parkedColumn(config, row % ROWS_PER_LEVEL, edge);
+                  expect(col).not.toBe(3);
+                  const vx = columnX(col);
+                  expect(firstHit(run, 3050, 550, vx, -row * 1.8, vx, -row * 1.8, row, row)).toBe(3050);
+               }
+            }
+         }
+      }
+      // Deeper refuge islands reflect each level's distinct parkedPattern
+      expect(parkedColumn(LEVELS[2], 6, 0)).toBe(6);
+      expect(parkedColumn(LEVELS[3], 6, 0)).toBe(0);
+      expect(parkedColumn(LEVELS[3], 6, 1)).toBe(6);
+      expect(parkedColumn(LEVELS[4], 8, 0)).toBe(1);
+      expect(parkedColumn(LEVELS[4], 12, 1)).toBe(5);
+      expect(parkedColumn(LEVELS[5], 10, 0)).toBe(1);
+      expect(parkedColumn(LEVELS[5], 10, 1)).toBe(5);
    });
 });
 

@@ -12,13 +12,13 @@ import { aabbOverlap, distanceToBoxXZ, type AABB } from "@/arcade3d/core/collisi
 import { inViewCone, type Agent, type PatrolState } from "@/arcade3d/core/ai";
 import { createArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import type { LevelId } from "@/arcade3d/types";
-import type { StageIndex } from "./level";
-import { LEVELS } from "./levels";
+import type { StageIndex } from "../level";
+import { LEVELS } from "../levels";
 import {
    BIRDS, KEEPER, PANDA, SNACK, VISION, applyToStore, bushAt, clearSight, createRun, jeepBox, jeepPose, keeperSees, placeOnSchedule, searchlightSees, searchlightYaw, seedLayout, stepRun,
    type JeepState, type RunState, type StepInput,
-} from "./rules";
-import { appendPlan, combinations, emptyPlan, entryBand, followPlan, jeepMask, keeperMask, lightMask, offsetSteps, phasesOf, stageGrid, stageWatchers, startCells, wallMask, type WorldPlan } from "./testkit";
+} from "../rules";
+import { appendPlan, combinations, emptyPlan, entryBand, followPlan, jeepMask, keeperMask, lightMask, offsetSteps, phasesOf, stageGrid, stageWatchers, startCells, wallMask, type WorldPlan } from "../testkit";
 
 const STAGE_LIST: StageIndex[] = [0, 1, 2];
 

@@ -5,13 +5,14 @@
 // fitted cameras. Spots are module-level: <InstancedModel> must never see a new array.
 import type { InstanceSpot } from "@/arcade3d/core/render";
 import type { ModelAsset } from "@/arcade3d/core/types";
+import type { LevelId } from "../../types";
 import { ASSETS } from "./assets";
-import { MAPS, type ObstacleKind } from "./rules";
+import { LEVEL_MAPS, MAPS, type MapConfig, type ObstacleKind } from "./rules";
 
 /** The centres of map `map`'s obstacles of `kind`, feet on y = 0, in MAPS order. */
-export function obstacleCentres(map: number, kind: ObstacleKind): InstanceSpot[] {
+export function obstacleCentres(map: number, kind: ObstacleKind, maps: readonly MapConfig[] = MAPS): InstanceSpot[] {
    const spots: InstanceSpot[] = [];
-   for (const o of MAPS[map].obstacles) if (o.kind === kind) spots.push({ x: o.x, y: 0, z: o.z });
+   for (const o of maps[map].obstacles) if (o.kind === kind) spots.push({ x: o.x, y: 0, z: o.z });
    return spots;
 }
 
@@ -119,3 +120,48 @@ export const BASE_SETS: readonly BaseSet[] = GLB_PROPS.flatMap((set) =>
       spots: set.spots.map((s) => ({ x: s.x, y: part.y + part.height / 2, z: s.z, rotY: (s.rotY ?? 0) + part.turn })),
    }))
 );
+
+export interface LevelPropSet {
+   glbProps: readonly PropSet[];
+   baseSets: readonly BaseSet[];
+   parkTrees: readonly InstanceSpot[];
+   cityBuildings: readonly InstanceSpot[];
+}
+
+function buildLevelPropSet(id: LevelId): LevelPropSet {
+   if (id === 1) {
+      return { glbProps: GLB_PROPS, baseSets: BASE_SETS, parkTrees: PARK_TREE, cityBuildings: CITY_BUILDING };
+   }
+   const maps = LEVEL_MAPS[id];
+   const glbProps: readonly PropSet[] = [
+      { map: 0, kind: "bench", asset: ASSETS.bench, spots: obstacleCentres(0, "bench", maps) },
+      { map: 0, kind: "bin", asset: ASSETS.bin, spots: obstacleCentres(0, "bin", maps) },
+      { map: 1, kind: "lamp", asset: ASSETS.lamp, spots: obstacleCentres(1, "lamp", maps) },
+      { map: 1, kind: "bin", asset: ASSETS.bin, spots: obstacleCentres(1, "bin", maps) },
+      { map: 2, kind: "palm", asset: ASSETS.palm, spots: turned(obstacleCentres(2, "palm", maps), [QUARTER, 0, 0, -QUARTER]) },
+      { map: 2, kind: "pole", asset: ASSETS.umbrella, spots: turned(obstacleCentres(2, "pole", maps), [0, QUARTER, -QUARTER]) },
+      { map: 2, kind: "bin", asset: ASSETS.bin, spots: obstacleCentres(2, "bin", maps) },
+   ];
+   const baseSets: readonly BaseSet[] = glbProps.flatMap((set) =>
+      (PROP_BASE[set.kind] ?? []).map((part) => ({
+         map: set.map,
+         kind: set.kind,
+         part,
+         spots: set.spots.map((s) => ({ x: s.x, y: part.y + part.height / 2, z: s.z, rotY: (s.rotY ?? 0) + part.turn })),
+      }))
+   );
+   return {
+      glbProps,
+      baseSets,
+      parkTrees: obstacleCentres(0, "tree", maps),
+      cityBuildings: obstacleCentres(1, "building", maps),
+   };
+}
+
+export const LEVEL_PROP_SETS: Record<LevelId, LevelPropSet> = {
+   1: buildLevelPropSet(1),
+   2: buildLevelPropSet(2),
+   3: buildLevelPropSet(3),
+   4: buildLevelPropSet(4),
+   5: buildLevelPropSet(5),
+};

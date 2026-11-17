@@ -46,8 +46,8 @@ export const escapeRoomMeta: ArcadeGameMeta = {
          { title: "Escape", text: "With every item in hand, open the exit. You have 10 minutes." },
          {
             title: "Tips",
-            text: "Later levels want the clue order from the checklist. Esc or P pauses.",
-            touchText: "Later levels want the clue order from the checklist. Tap Pause, top right, to stop.",
+            text: "The checklist shows what is still missing: search every container once. Esc or P pauses.",
+            touchText: "The checklist shows what is still missing: search every container once. Tap Pause, top right, to stop.",
             keys: ["pause"],
             touch: ["pause"],
          },

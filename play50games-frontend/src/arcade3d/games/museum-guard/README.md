@@ -64,13 +64,13 @@ Level 1 is the proof above, unchanged. Levels 2–5 use the same ring, the same 
 
 The plan's rooms, blocked paths, locked paths, free pedestal shuffling and a walking patrol are not in this build (`docs/level-briefs/museum-guard.md`). "More thieves" is more departures and, from level 4, three sneaks at once plus a faster roster. "Faster patrols" is the phase speed. "Darker" is a narrower beam plus the core lighting preset. Phase-0 speed stays ×1 on every level, so the short-penguin chain is still the earliest lose.
 
-| Level | Title | Dawn | Departures | Speed | Cap | Gap | Beam ° | Roster k/r/p/d | What changes | Lighting |
+| Level | Title | Dawn | Departures | Speed | Cap | Gap | Beam ° | Roster k/r/p/d | Wing / Twist / Set pieces | Lighting |
 |---|---|---:|---|---|---|---|---|---|---|---|
-| 1 | Main Hall | 90 s | 6+7+8 | 1 / 1.15 / 1.25 | 2/3/3 | 4.2 / 3.6 / 3.2 | 16/14/12 | 2/2/2/2 | today's game | night `#1e1b4b` |
-| 2 | Ancient Wing | 105 s | 7+8+9 | 1 / 1.18 / 1.30 | 2/3/3 | 4.2 / 3.4 / 3.0 | 16/14/12 | 2/2/2/2 | longer night, one more departure each phase | night, darker room `#16142f` |
-| 3 | Art Wing | 120 s | 8+9+10 | 1 / 1.22 / 1.35 | 2/3/3 | 4.2 / 3.2 / 2.8 | 16/13/11 | 2/2/2/2 | narrower beam, tighter late gaps | night `#100e24` |
-| 4 | Science Wing | 120 s | 8+10+11 | 1 / 1.28 / 1.40 | 3/3/3 | 4.0 / 3.0 / 2.6 | 15/13/11 | 1/2/3/2 | three sneaks from the start, three penguins | night `#0b1026` (dusk/night) |
-| 5 | Full Museum Night | 135 s | 9+11+12 | 1 / 1.32 / 1.45 | 3/3/3 | 3.8 / 2.8 / 2.5 | 14/12/10 | 1/1/3/3 | narrowest beam, fastest patrols, most departures | space `#020617` (dramatic) |
+| 1 | Main Hall | 90 s | 6+7+8 | 1 / 1.15 / 1.25 | 2/3/3 | 4.2 / 3.6 / 3.2 | 16/14/12 | 2/2/2/2 | `main-hall` (`none`): today's plum & gold rotunda, 4 vases, 1 bench | night `#1e1b4b` |
+| 2 | Ancient Wing | 105 s | 7+8+9 | 1 / 1.18 / 1.30 | 2/3/3 | 4.2 / 3.4 / 3.0 | 16/14/12 | 2/2/2/2 | `ancient-wing` (`cordon`): sandstone & lapis tomb, 4 obelisks, 2 sarcophagi, 4 busts, 2 chests, cordoned north arc | night `#1c140d` |
+| 3 | Art Wing | 120 s | 8+9+10 | 1 / 1.22 / 1.35 | 2/3/3 | 4.2 / 3.2 / 2.8 | 16/13/11 | 2/2/2/2 | `art-wing` (`paired`): crimson velvet salon, 4 vitrines + chandelier, 6 busts, 2 benches, paired return chains | night `#230d16` |
+| 4 | Science Wing | 120 s | 8+10+11 | 1 / 1.28 / 1.40 | 3/3/3 | 4.0 / 3.0 / 2.6 | 15/13/11 | 1/2/3/2 | `science-wing` (`randomized`): cobalt planetarium, overhead orrery + 4 holo-pylons, 2 rockets, 4 glowPods, 2 sarcophagi, seeded turntables | night `#061527` |
+| 5 | Full Museum Night | 135 s | 9+11+12 | 1 / 1.32 / 1.45 | 3/3/3 | 3.8 / 2.8 / 2.5 | 14/12/10 | 1/1/3/3 | `full-night` (`full-night`): obsidian & gold vault, 6 vault ribs + laser grid, 2 sarcophagi, 4 chests, 2 cannons, 4 busts, alternating exits | space `#020617` |
 
 Per level, `B(t) = 5·floor(min(t, dawn)) + 50·(departures whose 0.7 s hold has finished by t) + (t ≥ dawn ? 450 : 0)`. Departures are placed as early as the gaps allow (the beam never blocks one, the cap never binds). Every one of those holds finishes before dawn, so `B(dawn)` is the ceiling `5·dawn + 50·departures + 450`. `levels.test.ts` checks `B` at every whole second and at every hold instant: `B(t) ≤ 25t` (base 0). `maxScore` is that ceiling plus about 5% (level 1 stays 2050). The earliest lose is three short penguins, one at a time, at phase-0 speed ×1: `earliestLoseS` = 13.79 s on levels 1–3 (gap 4.2), 13.39 s on level 4 (gap 4.0), 12.99 s on level 5 (gap 3.8). `minDurationMs` sits about 1–2 s under that. `maxDurationMs` is dawn + 2 s, the same slack level 1 uses for a frame that stops at 90050 ms. Touch and keys share the 0.7 s hold, the 1.2 s flash, the 10 s cooldown and the π rad/s turn on every level. A coarse pointer still gets the wider beam (×1.2, clamped at 17°), which is aim help, not a timing change.
 

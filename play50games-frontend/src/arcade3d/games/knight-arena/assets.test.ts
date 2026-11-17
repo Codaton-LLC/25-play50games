@@ -26,7 +26,9 @@ import {
    SWORD_LENGTH,
    TOWER_HEIGHT,
    TREE_HEIGHT,
+   trainingDummySpots,
 } from "./assets";
+import { LEVEL_LOOKS } from "./looks";
 import * as decor from "./assets";
 import { ARENA } from "./rules";
 
@@ -59,6 +61,16 @@ describe("late-level training decor", () => {
          expect(spot.y).toBeCloseTo(-0.04, 6);
       }
       expect([1, 2, 3, 4, 5, 6].map(hasTrainingDecor)).toEqual([false, false, false, true, true, false]);
+      for (const level of [4, 5] as const) {
+         const spots = trainingDummySpots(level);
+         expect(spots.length).toBeGreaterThanOrEqual(2);
+         for (const spot of spots) {
+            expect(Math.max(Math.abs(spot.x), Math.abs(spot.z)) - radius, `L${level}`).toBeGreaterThan(ARENA.RADIUS_M);
+            // clear of every decor piece of that level (looks.ts): 1 m between centres at least
+            for (const d of LEVEL_LOOKS[level].decor) expect(Math.hypot(d.x - spot.x, d.z - spot.z), `L${level} ${d.kind}`).toBeGreaterThan(radius + 0.3);
+         }
+      }
+      expect(trainingDummySpots(1)).toEqual([]);
    });
 });
 

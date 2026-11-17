@@ -14,6 +14,21 @@ export const TRAINING_DUMMY_SPOTS: readonly InstanceSpot[] = [-2.5, 0, 2.5].map(
 }));
 export const hasTrainingDecor = (level: number): boolean => level === 4 || level === 5;
 
+const dummyAt = (x: number, z: number): InstanceSpot => ({ x, y: -0.04, z, rotY: Math.atan2(-x, -z) });
+/**
+ * The dummies of each training level, in the gaps of that level's own decor (looks.ts LEVEL_LOOKS):
+ * level 4 either side of the north barrel (0, -4.5); level 5 at the east and west, clear of the
+ * braziers and the throne on the north edge. assets.test.ts checks the fence and the decor.
+ */
+export const TRAINING_DUMMY_SPOTS_BY_LEVEL: Readonly<Record<4 | 5, readonly InstanceSpot[]>> = {
+   4: [dummyAt(-1.6, -4.6), dummyAt(1.6, -4.6)],
+   5: [dummyAt(-4.6, -1.2), dummyAt(4.6, -1.2)],
+};
+
+export function trainingDummySpots(level: number): readonly InstanceSpot[] {
+   return level === 4 || level === 5 ? TRAINING_DUMMY_SPOTS_BY_LEVEL[level] : [];
+}
+
 export const KNIGHT_HEIGHT = EXPANSION_CHARACTER_HEIGHT.knight; // 1.75 m (Q4 Decision)
 export const DUMMY_HEIGHT = 1.5;
 export const TOWER_HEIGHT = 6;

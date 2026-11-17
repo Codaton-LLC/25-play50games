@@ -9,7 +9,7 @@ Owner: Claude. Slug: `office-escape`. Game 3 of the 3D Arcade: the first lane ru
 | `rules.ts` | Everything that decides the outcome: speed schedule, distance, jump arc, lane moves, input edges, seeded rows and coins, collisions, scoring. Pure: no three.js, React, DOM, `Math.random` or `Date.now`. |
 | `rules.test.ts` | Vitest for `rules.ts`, including the fairness bot and the scoring-limit proof below. |
 | `Scene.tsx` | The frame loop and the moving things: feeds dt and input into `rules.ts`, draws the run (corridor treadmill, obstacles, coins, runner), reports to the store, places the chase camera. |
-| `Primitives.tsx` | Office look: the corridor (floor, walls, ceiling, lane stripes, pillars, plants, cabinets, end window), the obstacle, coin and shadow stand-ins, the local `InstancedProp` and the stand-in runner. |
+| `Primitives.tsx` | Office look: the corridor frame (floor, walls, ceiling, lane stripes, ceiling panels) plus per-department decor from decor.ts and the corridorArt.ts textures, the obstacle, coin and shadow stand-ins, the local `InstancedProp` and the stand-in runner. |
 | `camera.ts` / `camera.test.ts` | `fitChase`: the static chase camera that fits the runner and all three lanes into the safe rect (`chaseInsets` reads it from core `useSafeArea`). Runs on resize and safe-area changes only. The test checks the table below. |
 | `Hud.tsx` / `Hud.module.css` | The "Faster! 9 m/s" notice on every speed-up (see HUD). |
 | `assets.ts` / `assets.spec.json` | Models used (`ModelAsset`s) / the Hyper3D spec for the three props only this game generates. |
@@ -46,6 +46,26 @@ clears/unlocks through the shell; it does not stop the run. This adapts the plan
 endless corridor: escalating targets and recurring clusters replace new finite maps.
 Lighting is indoor/day/indoor/night/sunset (the core dramatic preset), with the original
 level-1 environment untouched. No assets or controls were added.
+
+### Level looks
+
+Every level is its own department, dressed through the corridor treadmill (decor.ts holds the
+spot layouts, corridorArt.ts the floor/wall/end-window painters, looks.ts the fog and lighting).
+Only the active level's two corridor textures are created per run; everything is static and
+instanced, so the draw-call budget is unchanged. Level 1 keeps the live layout byte-for-byte.
+
+| Level | Department | Corridor dressing | Fog / palette |
+|---|---|---|---|
+| 1 | Open Office | The live corridor: glass office front, plants, filing cabinets | pale blue `#dbeafe`, 40-75 m |
+| 2 | Meeting Floor | Floor-to-ceiling glass meeting rooms with tables and chairs behind the panes; standing whiteboards and round pod tables between the lanes and the walls | daytime `#cfe3f7`, 45-80 m |
+| 3 | Copy Room | Copier machines and stocked paper shelves crowd the walls; no plants; a yellow safety line runs along the floor just outside the lane edges | cool grey `#c9d4e4`, 40-75 m |
+| 4 | Executive Floor | Night: walnut panels, a library wall, gilt portrait, brass rails; trophy pedestals and warm uplights along the track | night `#131f36`, 34-66 m, lit tower backdrop |
+| 5 | After-Hours Office | Sunset gloom: dark cubicle desks with glowing monitors, an EXIT sign, city windows upstairs; sparse warm floor lamps | sunset `#43304b`, 34-70 m, sunset skyline backdrop |
+
+All decor, including the set pieces, stands between the lane edges (±3 m) and the walls; the
+play area is never touched (looks.test.ts checks every spot). The twists above are look-only:
+the rules, hitboxes, row placement and camera are identical on every level, and level 1 is
+unchanged.
 
 Moving hazards use a seeded-row-phase triangle wave, +/-150 mm sideways, with periods
 2.4/1.8/1.2 seconds in levels 3/4/5. Rendering and collision call the same `obstacleOffset`.
@@ -389,6 +409,8 @@ Browser (production build, flags on with the API mock, headless Chrome over CDP)
 
 
 ## Status
+
+TASK L-office-escape-levels | per-level looks for office-escape | branch kimi/office-escape-levels (kimi). Level 1 is live and byte-identical (rules untouched, openOffice decor spot counts pinned in looks.test.ts). Scoring meta and arcade-games.json unchanged. Added decor.ts (per-department corridor spot layouts), corridorArt.ts (per-department floor/wall/backdrop painters), looks.ts LEVEL_VARIANTS + per-level fog ranges, looks.test.ts (levels differ; every prop stays out of the play area); Scene/Primitives/index route the active level's variant. tsc + vitest on the game folder pass; no browser run (assigned to the wrapper).
 
 TASK P-55-levels-office | 5 levels for office-escape | branch codex/levels-office-escape | allowed: play50games-frontend/src/arcade3d/games/office-escape/**
 
