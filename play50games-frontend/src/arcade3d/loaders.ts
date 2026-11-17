@@ -78,6 +78,7 @@ export const GAME_LOADERS: Record<ArcadeSlug, () => Promise<GameModule>> = {
    "candy-world-runner": () => import("./games/candy-world-runner"),
    "alien-lane-escape": () => import("./games/alien-lane-escape"),
    "laser-maze-run": () => import("./games/laser-maze-run"),
+   "mirror-dash": () => import("./games/mirror-dash"),
    "dragon-cave-rush": () => import("./games/dragon-cave-rush"),
    "color-door-sprint": () => import("./games/color-door-sprint"),
    "sky-hook-swing": () => import("./games/sky-hook-swing"),
@@ -96,5 +97,9 @@ export const GAME_LOADERS: Record<ArcadeSlug, () => Promise<GameModule>> = {
    "space-pod-jump": () => import("./games/space-pod-jump"),
    "neon-cube-jump": () => import("./games/neon-cube-jump"),
    "portal-hop": () => import("./games/portal-hop"),
+   "switch-color-hero": () => import("./games/switch-color-hero"),
+   "color-match-jump": () => import("./games/color-match-jump"),
+   "roll-dash": () => import("./games/roll-dash"),
    "crystal-cave-switch": () => import("./games/crystal-cave-switch"),
+   "energy-core-hunt": () => import("./games/energy-core-hunt"),
 };

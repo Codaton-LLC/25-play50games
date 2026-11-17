@@ -1552,6 +1552,22 @@
         { "title": "Portal Master", "max_score": 28370, "min_duration_ms": 16300, "max_duration_ms": 300000, "time_base_ms": 300000 }
       ]
     },
+    "switch-color-hero": {
+      "title": "Switch Color Hero",
+      "kind": "time",
+      "max_score": 10450,
+      "min_duration_ms": 15500,
+      "max_duration_ms": 120000,
+      "time_base_ms": 120000,
+      "enabled": false,
+      "levels": [
+        { "title": "Two Gates", "max_score": 10450, "min_duration_ms": 15500, "max_duration_ms": 120000, "time_base_ms": 120000 },
+        { "title": "Three Colors", "max_score": 12920, "min_duration_ms": 20800, "max_duration_ms": 150000, "time_base_ms": 150000 },
+        { "title": "Fast Switching", "max_score": 16050, "min_duration_ms": 19500, "max_duration_ms": 180000, "time_base_ms": 180000 },
+        { "title": "Mixed Obstacles", "max_score": 18830, "min_duration_ms": 21700, "max_duration_ms": 210000, "time_base_ms": 210000 },
+        { "title": "Color Overdrive", "max_score": 26690, "min_duration_ms": 33100, "max_duration_ms": 300000, "time_base_ms": 300000 }
+      ]
+    },
     "space-pod-jump": {
       "title": "Space Pod Jump",
       "kind": "time",
@@ -1599,6 +1615,70 @@
         { "title": "Slime Pen", "max_score": 6300, "min_duration_ms": 104500, "max_duration_ms": 111000, "base": 0, "max_pps": 61 },
         { "title": "Chest Rush", "max_score": 7132, "min_duration_ms": 114000, "max_duration_ms": 121000, "base": 0, "max_pps": 63 },
         { "title": "Gumdrop Glutton", "max_score": 14157, "min_duration_ms": 29100, "max_duration_ms": 241000, "base": 0, "max_pps": 487 }
+      ]
+    },
+    "mirror-dash": {
+      "title": "Mirror Dash",
+      "kind": "time",
+      "max_score": 13430,
+      "min_duration_ms": 15700,
+      "max_duration_ms": 150000,
+      "time_base_ms": 150000,
+      "enabled": false,
+      "levels": [
+        { "title": "Mirror Lane", "max_score": 13430, "min_duration_ms": 15700, "max_duration_ms": 150000, "time_base_ms": 150000 },
+        { "title": "Converge", "max_score": 15560, "min_duration_ms": 14400, "max_duration_ms": 170000, "time_base_ms": 170000 },
+        { "title": "Frosted Glass", "max_score": 16350, "min_duration_ms": 16500, "max_duration_ms": 180000, "time_base_ms": 180000 },
+        { "title": "Echo", "max_score": 17150, "min_duration_ms": 18500, "max_duration_ms": 190000, "time_base_ms": 190000 },
+        { "title": "Glass Hall", "max_score": 21710, "min_duration_ms": 22900, "max_duration_ms": 240000, "time_base_ms": 240000 }
+      ]
+    },
+    "color-match-jump": {
+      "title": "Color Match Jump",
+      "kind": "time",
+      "max_score": 8440,
+      "min_duration_ms": 5599,
+      "max_duration_ms": 90000,
+      "time_base_ms": 90000,
+      "enabled": false,
+      "levels": [
+        { "title": "Two-Tone Steps", "max_score": 8440, "min_duration_ms": 5599, "max_duration_ms": 90000, "time_base_ms": 90000 },
+        { "title": "Three Calls", "max_score": 10656, "min_duration_ms": 13439, "max_duration_ms": 120000, "time_base_ms": 120000 },
+        { "title": "Shifting Hues", "max_score": 12984, "min_duration_ms": 20159, "max_duration_ms": 150000, "time_base_ms": 150000 },
+        { "title": "Fast Countdown", "max_score": 14416, "min_duration_ms": 35839, "max_duration_ms": 180000, "time_base_ms": 180000 },
+        { "title": "Frozen Crown", "max_score": 20992, "min_duration_ms": 30079, "max_duration_ms": 240000, "time_base_ms": 240000 }
+      ]
+    },
+    "energy-core-hunt": {
+      "title": "Energy Core Hunt",
+      "kind": "time",
+      "max_score": 5840,
+      "min_duration_ms": 1600,
+      "max_duration_ms": 60000,
+      "time_base_ms": 60000,
+      "enabled": false,
+      "levels": [
+        { "title": "Simple Hunt", "max_score": 5840, "min_duration_ms": 1600, "max_duration_ms": 60000, "time_base_ms": 60000 },
+        { "title": "Mixed Colors", "max_score": 7430, "min_duration_ms": 700, "max_duration_ms": 75000, "time_base_ms": 75000 },
+        { "title": "Larger Arena", "max_score": 8860, "min_duration_ms": 1400, "max_duration_ms": 90000, "time_base_ms": 90000 },
+        { "title": "Moving Cores", "max_score": 10350, "min_duration_ms": 1500, "max_duration_ms": 105000, "time_base_ms": 105000 },
+        { "title": "Core Master", "max_score": 10520, "min_duration_ms": 14800, "max_duration_ms": 120000, "time_base_ms": 120000 }
+      ]
+    },
+    "roll-dash": {
+      "title": "Roll Dash",
+      "kind": "time",
+      "max_score": 10460,
+      "min_duration_ms": 45400,
+      "max_duration_ms": 150000,
+      "time_base_ms": 150000,
+      "enabled": false,
+      "levels": [
+        { "title": "Gate Street", "max_score": 10460, "min_duration_ms": 45400, "max_duration_ms": 150000, "time_base_ms": 150000 },
+        { "title": "Market Lane", "max_score": 12180, "min_duration_ms": 58200, "max_duration_ms": 180000, "time_base_ms": 180000 },
+        { "title": "Old Town", "max_score": 14000, "min_duration_ms": 70000, "max_duration_ms": 210000, "time_base_ms": 210000 },
+        { "title": "Night Causeway", "max_score": 15990, "min_duration_ms": 80100, "max_duration_ms": 240000, "time_base_ms": 240000 },
+        { "title": "Fortress Bridge", "max_score": 28090, "min_duration_ms": 19100, "max_duration_ms": 300000, "time_base_ms": 300000 }
       ]
     }
   }
