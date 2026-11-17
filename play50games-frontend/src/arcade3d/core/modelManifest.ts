@@ -922,6 +922,16 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/energy-core-hunt/m2EnergyCore.glb",
    "/models/3d/energy-core-hunt/m2ReactorBg.glb",
    "/models/3d/energy-core-hunt/m2TeslaCoil.glb",
+   // Menu 2 game 30 (Color Boss Tower, W6): ready/menu2/color-boss-tower + hyper3d-new (the Grand Color Guardian, the ledge, the hazard orb)
+   "/models/3d/color-boss-tower/m2BossArenaDisc.glb",
+   "/models/3d/color-boss-tower/m2ColorGuardianBoss.glb",
+   "/models/3d/color-boss-tower/m2CoreClawHolder.glb",
+   "/models/3d/color-boss-tower/m2DarkTowerBg.glb",
+   "/models/3d/color-boss-tower/m2HazardOrb.glb",
+   "/models/3d/color-boss-tower/m2PrismCannon.glb",
+   "/models/3d/color-boss-tower/m2PrismHeart.glb",
+   "/models/3d/color-boss-tower/m2StoneGuardianBoss.glb",
+   "/models/3d/color-boss-tower/m2TowerLedgePlatform.glb",
 ];
 
 const LISTED: ReadonlySet<string> = new Set(MODEL_MANIFEST);

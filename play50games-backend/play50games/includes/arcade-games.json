@@ -1729,6 +1729,22 @@
         { "title": "Fast Rounds", "max_score": 20880, "min_duration_ms": 41200, "max_duration_ms": 250000, "time_base_ms": 250000 },
         { "title": "Survival Master", "max_score": 28100, "min_duration_ms": 19000, "max_duration_ms": 300000, "time_base_ms": 300000 }
       ]
+    },
+    "color-boss-tower": {
+      "title": "Color Boss Tower",
+      "kind": "time",
+      "max_score": 13920,
+      "min_duration_ms": 10800,
+      "max_duration_ms": 150000,
+      "time_base_ms": 150000,
+      "enabled": false,
+      "levels": [
+        { "title": "Training Guardian", "max_score": 13920, "min_duration_ms": 10800, "max_duration_ms": 150000, "time_base_ms": 150000 },
+        { "title": "Two Colors", "max_score": 16570, "min_duration_ms": 14300, "max_duration_ms": 180000, "time_base_ms": 180000 },
+        { "title": "Three Colors", "max_score": 19210, "min_duration_ms": 17900, "max_duration_ms": 210000, "time_base_ms": 210000 },
+        { "title": "Fast Switch Boss", "max_score": 21620, "min_duration_ms": 23800, "max_duration_ms": 240000, "time_base_ms": 240000 },
+        { "title": "Grand Color Guardian", "max_score": 26880, "min_duration_ms": 31200, "max_duration_ms": 300000, "time_base_ms": 300000 }
+      ]
     }
   }
 }

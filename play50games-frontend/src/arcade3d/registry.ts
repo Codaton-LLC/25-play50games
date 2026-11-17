@@ -101,6 +101,7 @@ import { colorBridgeBuilderMeta } from "./games/color-bridge-builder/meta";
 import { switchColorHeroMeta } from "./games/switch-color-hero/meta";
 import { colorMatchJumpMeta } from "./games/color-match-jump/meta";
 import { energyCoreHuntMeta } from "./games/energy-core-hunt/meta";
+import { colorBossTowerMeta } from "./games/color-boss-tower/meta";
 
 export const ARCADE_GAMES: ArcadeGameMeta[] = [
    robotCollectorMeta,
@@ -200,6 +201,7 @@ export const ARCADE_GAMES: ArcadeGameMeta[] = [
    colorBridgeBuilderMeta,
    colorMatchJumpMeta,
    energyCoreHuntMeta,
+   colorBossTowerMeta,
 ].sort((a, b) => a.order - b.order);
 
 export function getGameMeta(slug: string): ArcadeGameMeta | undefined {
