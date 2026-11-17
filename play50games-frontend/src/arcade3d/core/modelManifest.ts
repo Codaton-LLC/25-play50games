@@ -880,6 +880,17 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/switch-color-hero/m2SciFiSpireBg.glb",
    "/models/3d/mirror-dash/m2Crystal.glb",
    "/models/3d/switch-color-hero/m2SwitchPlatform.glb",
+   // Menu 2 game 29 (Energy Core Hunt, W5): ready/menu2/energy-core-hunt (the card's core, crate and gate, plus
+   // the capsule, pylon, tesla coil, reactor columns and the Core Sprite boss)
+   "/models/3d/energy-core-hunt/m2ArenaCrate.glb",
+   "/models/3d/energy-core-hunt/m2CoreCapsule.glb",
+   "/models/3d/energy-core-hunt/m2CoreGate.glb",
+   "/models/3d/energy-core-hunt/m2CoreGateV2.glb",
+   "/models/3d/energy-core-hunt/m2CorePylon.glb",
+   "/models/3d/energy-core-hunt/m2CoreSprite.glb",
+   "/models/3d/energy-core-hunt/m2EnergyCore.glb",
+   "/models/3d/energy-core-hunt/m2ReactorBg.glb",
+   "/models/3d/energy-core-hunt/m2TeslaCoil.glb",
 ];
 
 const LISTED: ReadonlySet<string> = new Set(MODEL_MANIFEST);

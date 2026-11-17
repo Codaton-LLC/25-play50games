@@ -95,6 +95,7 @@ import { portalHopMeta } from "./games/portal-hop/meta";
 import { switchColorHeroMeta, crystalCaveSwitchMeta } from "./games/switch-color-hero/meta";
 import { crystalCaveSwitchMeta } from "./games/crystal-cave-switch/meta";
 import { colorMatchJumpMeta } from "./games/color-match-jump/meta";
+import { energyCoreHuntMeta } from "./games/energy-core-hunt/meta";
 
 export const ARCADE_GAMES: ArcadeGameMeta[] = [
    robotCollectorMeta,
@@ -188,6 +189,7 @@ export const ARCADE_GAMES: ArcadeGameMeta[] = [
    switchColorHeroMeta,
    crystalCaveSwitchMeta,
    colorMatchJumpMeta,
+   energyCoreHuntMeta,
 ].sort((a, b) => a.order - b.order);
 
 export function getGameMeta(slug: string): ArcadeGameMeta | undefined {
