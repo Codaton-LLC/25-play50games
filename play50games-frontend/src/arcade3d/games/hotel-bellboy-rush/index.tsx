@@ -1,13 +1,14 @@
 "use client";
 
 // Hotel Bellboy Rush. GameShell owns the clock, the lives, pause and the result.
-// Level 1 is the definition; levels 2-5 swap doors, floors, bags, clock and lighting (levels.ts).
+// Level 1 is the definition; levels 2-5 swap theme (look + decor + set pieces), doors, floors,
+// bags, clock and lighting (levels.ts).
 import type { GameDefinition, LevelSpec } from "@/arcade3d/core/types";
 import { LEVEL_IDS, type LevelId } from "@/arcade3d/types";
 import { ASSETS } from "./assets";
 import Hud from "./Hud";
 import { LEVELS, LEVEL_LINES, type HotelLevel } from "./levels";
-import { FOV, restLook } from "./looks";
+import { FOV, fogOf, restLook } from "./looks";
 import Scene from "./Scene";
 
 const LINES = [
@@ -31,7 +32,7 @@ function instructionsFor(id: LevelId): string[] {
 
 const environmentFor = (level: HotelLevel) => ({
    background: level.background,
-   fog: [level.background, 16, 38] as [string, number, number],
+   fog: fogOf(level),
    lighting: level.lighting,
 });
 

@@ -3,7 +3,7 @@
 // Hotel Bellboy Rush scene. One useRunFrame steps rules.ts; visuals read the run and animate with
 // useGameTime. The camera follows a fixed window of the hall (looks.ts), so the door numbers stay
 // readable on every level; the doors' numbers are one canvas atlas redrawn when the floor changes.
-import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { Billboard } from "@react-three/drei";
 import {
@@ -56,6 +56,7 @@ import { GRIP_AHEAD, GRIP_LENGTH, HANDLE_AHEAD, HANDLE_Y, TOW, gripPoint, reachA
 import { nextGoal, type Goal } from "./guide";
 import { ASSETS, BELLBOY_LANDMARKS, BELLBOY_SCALE, DESK_TOP, TROLLEY_DECK } from "./assets";
 import type { HotelLevel } from "./levels";
+import Decor from "./Decor";
 import {
    ATLAS,
    CARD_CELL,
@@ -74,11 +75,13 @@ import {
    frameSpots,
    labelQuads,
    lookBounds,
+   lookFor,
    restLook,
    sconceSpots,
    trimSpots,
    viewFor,
    wallSpots,
+   type HotelLook,
    type LabelQuad,
 } from "./looks";
 import { BellPrimitive, BellboyFigure, DeskPrimitive, DoorsPrimitive, ElevatorPrimitive, GuestPrimitive, KeyCardPrimitive, PlantersPrimitive, SofasPrimitive, SuitcasePrimitive, TrolleyPrimitive } from "./Primitives";
@@ -183,11 +186,33 @@ function labelGeometry(quads: readonly LabelQuad[]): BufferGeometry {
 
 // ---------- floors ----------
 
-function drawCarpet(ctx: CanvasRenderingContext2D, w: number, h: number) {
-   ctx.fillStyle = COLORS.carpet;
+function drawCarpet(ctx: CanvasRenderingContext2D, w: number, h: number, look: HotelLook) {
+   ctx.fillStyle = look.carpet;
    ctx.fillRect(0, 0, w, h);
-   ctx.strokeStyle = COLORS.carpetDeep;
+   ctx.strokeStyle = look.carpetDeep;
    ctx.lineWidth = 6;
+   if (look.carpetStyle === "stripe") {
+      for (let i = 0; i < 8; i++) ctx.fillRect(0, (i * h) / 8, w, h / 16);
+      ctx.fillStyle = look.carpetDeep;
+      for (let i = 0; i < 8; i++) ctx.fillRect(0, (i * h) / 8 + h / 16, w, h / 32);
+      return;
+   }
+   if (look.carpetStyle === "grid") {
+      const s = w / 4;
+      ctx.strokeStyle = look.carpetDeep;
+      ctx.lineWidth = 4;
+      for (let i = 0; i <= 4; i++) {
+         ctx.beginPath();
+         ctx.moveTo(i * s, 0);
+         ctx.lineTo(i * s, h);
+         ctx.stroke();
+         ctx.beginPath();
+         ctx.moveTo(0, i * s);
+         ctx.lineTo(w, i * s);
+         ctx.stroke();
+      }
+      return;
+   }
    const s = w / 4;
    for (let i = -1; i <= 4; i++) {
       for (let j = -1; j <= 4; j++) {
@@ -204,10 +229,10 @@ function drawCarpet(ctx: CanvasRenderingContext2D, w: number, h: number) {
    for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) ctx.fillRect(i * s + s / 2 - 3, j * s + s / 2 - 3, 6, 6);
 }
 
-function drawMarble(ctx: CanvasRenderingContext2D, w: number, h: number) {
+function drawMarble(ctx: CanvasRenderingContext2D, w: number, h: number, look: HotelLook) {
    const s = w / 2;
    for (let i = 0; i < 2; i++) for (let j = 0; j < 2; j++) {
-      ctx.fillStyle = (i + j) % 2 ? COLORS.marble : "#d6d3d1";
+      ctx.fillStyle = (i + j) % 2 ? look.marble : look.marbleAlt;
       ctx.fillRect(i * s, j * s, s, s);
    }
    ctx.strokeStyle = "rgba(120,113,108,0.35)";
@@ -218,15 +243,20 @@ function drawMarble(ctx: CanvasRenderingContext2D, w: number, h: number) {
       ctx.bezierCurveTo((k * 53) % w, h * 0.3, (k * 151) % w, h * 0.6, (k * 71) % w, h);
       ctx.stroke();
    }
-   ctx.strokeStyle = "rgba(161,98,7,0.5)";
+   ctx.strokeStyle = look.brass;
+   ctx.globalAlpha = 0.55;
    ctx.lineWidth = 3;
    ctx.strokeRect(0, 0, w, h);
+   ctx.globalAlpha = 1;
 }
 
 function Floors({ level }: { level: HotelLevel }) {
+   const look = lookFor(level);
    const rects = floorRects(level);
-   const carpet = useCanvasTexture(256, 256, drawCarpet);
-   const marble = useCanvasTexture(256, 256, drawMarble);
+   const paintCarpet = useCallback((ctx: CanvasRenderingContext2D, w: number, h: number) => drawCarpet(ctx, w, h, look), [look]);
+   const paintMarble = useCallback((ctx: CanvasRenderingContext2D, w: number, h: number) => drawMarble(ctx, w, h, look), [look]);
+   const carpet = useCanvasTexture(256, 256, paintCarpet);
+   const marble = useCanvasTexture(256, 256, paintMarble);
    const runnerLen = rects.runner.z1 - rects.runner.z0;
    const lobbyLen = rects.lobby.z1 - rects.lobby.z0;
    useMemo(() => {
@@ -241,11 +271,11 @@ function Floors({ level }: { level: HotelLevel }) {
       <>
          <mesh rotation-x={-Math.PI / 2} position={[0, -0.01, rects.runner.z1 / 2]}>
             <planeGeometry args={[30, rects.runner.z1 + 30]} />
-            <meshStandardMaterial color={COLORS.void} roughness={1} />
+            <meshStandardMaterial color={look.void} roughness={1} />
          </mesh>
          <mesh rotation-x={-Math.PI / 2} position={[0, 0, (rects.runner.z0 + rects.runner.z1) / 2]}>
             <planeGeometry args={[HALF_W * 2, runnerLen]} />
-            <meshStandardMaterial color={COLORS.marbleDark} roughness={0.5} />
+            <meshStandardMaterial color={look.wainscot} roughness={0.5} />
          </mesh>
          <mesh rotation-x={-Math.PI / 2} position={[-0.25, 0.004, (rects.runner.z0 + rects.runner.z1) / 2]}>
             <planeGeometry args={[2.6, runnerLen - 0.2]} />
@@ -446,6 +476,7 @@ function TowHandle({ grip }: { grip: RefObject<Group> }) {
 
 function LevelScene() {
    const { id, config } = useHotelLevel();
+   const look = lookFor(config);
    const portrait = useThree((s) => s.size.height > s.size.width);
    const view = useFittedView(viewFor(id, portrait));
    const input = useInput();
@@ -677,23 +708,23 @@ function LevelScene() {
          <Floors level={config} />
          <Instanced spots={walls} name="walls">
             <boxGeometry args={[1, 1, 1]} />
-            <meshStandardMaterial color={COLORS.wall} roughness={0.85} />
+            <meshStandardMaterial color={look.wall} roughness={0.85} />
          </Instanced>
          <Instanced spots={trims.wainscot} name="wainscot">
             <boxGeometry args={[1, 1, 1]} />
-            <meshStandardMaterial color={COLORS.wainscot} roughness={0.6} />
+            <meshStandardMaterial color={look.wainscot} roughness={0.6} />
          </Instanced>
          <Instanced spots={[...trims.brass, ...frames]} name="brass">
             <boxGeometry args={[1, 1, 1]} />
-            <meshStandardMaterial color={COLORS.brass} metalness={0.7} roughness={0.32} />
+            <meshStandardMaterial color={look.brass} metalness={0.7} roughness={0.32} />
          </Instanced>
          <Instanced spots={sconces} name="sconces">
             <boxGeometry args={[1, 1, 1]} />
-            <meshStandardMaterial color={COLORS.brassDeep} metalness={0.6} roughness={0.4} />
+            <meshStandardMaterial color={look.brassDeep} metalness={0.6} roughness={0.4} />
          </Instanced>
          <Instanced spots={glow} name="sconce-glow">
             <boxGeometry args={[1, 1, 1]} />
-            <meshStandardMaterial color={COLORS.glow} emissive={COLORS.glow} emissiveIntensity={config.lighting === "night" ? 2.2 : 1.2} />
+            <meshStandardMaterial color={look.glow} emissive={look.glow} emissiveIntensity={config.lighting === "night" ? 2.2 : 1.2} />
          </Instanced>
          <mesh geometry={labels} material={atlas.material} name="door-labels" />
          <InstancedModel asset={ASSETS.door} spots={doors} fallback={<DoorsPrimitive spots={doors} />} />
@@ -704,6 +735,7 @@ function LevelScene() {
                <Model asset={ASSETS.guest} fallback={<GuestPrimitive />} />
             </group>
          ))}
+         <Decor level={config} />
          {/* the lobby: desk, bell, the key card beacon */}
          <Model asset={ASSETS.desk} position={[0, 0, (DESK.min.z + DESK.max.z) / 2]} fallback={<DeskPrimitive />} />
          <Model asset={ASSETS.bell} position={[0.7, DESK_TOP, 0.55]} fallback={<BellPrimitive />} />
@@ -720,7 +752,7 @@ function LevelScene() {
          </mesh>
          <mesh ref={beam} position={[PAD_POINT.x, 1.3, PAD_POINT.z]} visible={false}>
             <cylinderGeometry args={[0.62, 0.7, 2.6, 28, 1, true]} />
-            <meshBasicMaterial color={COLORS.glow} transparent opacity={0.22} blending={AdditiveBlending} depthWrite={false} side={2} />
+            <meshBasicMaterial color={look.glow} transparent opacity={0.22} blending={AdditiveBlending} depthWrite={false} side={2} />
          </mesh>
          <group ref={ring} visible={false}>
             <mesh rotation-x={-Math.PI / 2}>
@@ -731,7 +763,7 @@ function LevelScene() {
          {/* the far end: a tall window of light */}
          <mesh position={[0, WALL_H * 0.55, length - 0.005]}>
             <planeGeometry args={[2.2, 1.6]} />
-            <meshStandardMaterial color={COLORS.glow} emissive={COLORS.glow} emissiveIntensity={config.lighting === "night" ? 0.25 : 0.6} side={2} />
+            <meshStandardMaterial color={look.glow} emissive={look.glow} emissiveIntensity={config.lighting === "night" ? 0.25 : 0.6} side={2} />
          </mesh>
          <Bellboy run={run} />
          <Trolley run={run} atlas={atlas.material} quality={quality.decor} />

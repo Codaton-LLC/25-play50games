@@ -10,18 +10,19 @@ desk, ride the elevator pad when the bag is for another floor, and Use the door 
 
 | File | What |
 |---|---|
-| `levels.ts` | `HotelLevel` and the five configs from the spec, titles, start-card lines |
-| `rules.ts` | pure, seeded: `createRun(seed, level)`, `step(run, input, dt, timeLeftMs)`, the bag queue, `earliestWinS`, `PROPOSED_LEVEL_LIMITS` |
+| `levels.ts` | `HotelLevel` and the five configs from the spec (incl. `theme`), titles, start-card lines |
+| `rules.ts` | pure, seeded: `createRun(seed, level)`, `step(run, input, dt, timeLeftMs)`, the bag queue, per-theme `decorFor`, `earliestWinS`, `PROPOSED_LEVEL_LIMITS` |
 | `meta.ts` | server-safe meta, the five limits (= `PROPOSED_LEVEL_LIMITS` = `arcade-games.json`) |
 | `index.tsx` | `GameDefinition<HotelLevel>`: five `LevelSpec`s (clock, light, fog, HUD maxima, instructions) |
-| `Scene.tsx` | one `useRunFrame`, the bellboy (auto-rig), trolley + tow handle, decor, the label atlas, the follow camera |
+| `Scene.tsx` | one `useRunFrame`, the bellboy (auto-rig), trolley + tow handle, theme materials, decor, the label atlas, the follow camera |
+| `Decor.tsx` | per-theme set pieces (directory, chandelier, glass panels, grand columns) — visual only |
 | `cart.ts` | pure: the cart's measured handle geometry, the hitch, the grips, and `reachArm` (two-bone IK onto `aimArm`) |
 | `Hud.tsx` | the key card panel (`data-arcade-safe-area`): room, colour band, next step, the bag's 30 s clock |
-| `looks.ts` | `COLORS`, `FLOOR_COLORS`, camera window, wall / trim / sconce / frame spots, label atlas layout |
+| `looks.ts` | `COLORS`, `LOOKS` per theme, camera window, wall / trim / sconce / frame / set-piece spots, label atlas layout |
 | `assets.ts` | the ten Hyper3D GLBs and their measured fits, `BELLBOY_LANDMARKS` |
 | `Primitives.tsx` | bevelled two-tone stand-ins (only drawn if a GLB fails) |
 | `bots.testing.ts` | test bots (oracle, honest human pace, idle, spam) through the real store; tests only |
-| tests | `rules.test.ts` (rules + per-level proof), `bots.test.ts`, `levels.test.ts`, `bellboy.test.ts`, `assets.test.ts`, `cart.test.ts` (cart follow + grip IK) |
+| tests | `rules.test.ts` (rules + per-level proof), `bots.test.ts`, `levels.test.ts`, `looks.test.ts`, `bellboy.test.ts`, `assets.test.ts`, `cart.test.ts` (cart follow + grip IK) |
 
 ## Rules
 
@@ -52,16 +53,18 @@ desk, ride the elevator pad when the bag is for another floor, and Use the door 
 
 ## Levels
 
-| L | Title | doors | floors | bags | clock | light | clear |
-|---|---|---:|---:|---:|---:|---|---|
-| 1 | Lobby Floor | 4 | 1 (pad dark) | 3 | 120 s | indoor | win |
-| 2 | 3-Floor Hotel | 4 | 3 | 5 | 150 s | indoor | win |
-| 3 | Luxury Hotel | 5 | 3 | 7 | 180 s | indoor | win |
-| 4 | Business Hotel | 5 | 3 | 9 | 180 s | sunset | win |
-| 5 | Grand Hotel | 6 | 4 | 12 | 210 s | night | win |
+| L | Title | theme | doors | floors | bags | clock | light | set pieces |
+|---|---|---|---:|---:|---:|---:|---|---|
+| 1 | Lobby Floor | lobby | 4 | 1 (pad dark) | 3 | 120 s | indoor | none (today's hall) |
+| 2 | 3-Floor Hotel | floors3 | 4 | 3 | 5 | 150 s | indoor | floor directory + strip lights |
+| 3 | Luxury Hotel | luxury | 5 | 3 | 7 | 180 s | indoor | gold chandelier |
+| 4 | Business Hotel | business | 5 | 3 | 9 | 180 s | sunset | glass panels + ceiling strips |
+| 5 | Grand Hotel | grand | 6 | 4 | 12 | 210 s | night | twin chandeliers + columns + directory |
 
-Level 1 is the spec's base game. Difficulty is monotone (doors, floors and bags never drop, the clock per bag shrinks
-40 → 30 → 25.7 → 20 → 17.5 s, the earliest possible win grows). Only a win clears a level (`clearScore` omitted).
+Level 1 is the spec's base game (same solids, same warm palette, no set pieces). Each later level has its own wall /
+carpet / marble / fog palette, lobby prop layout and set pieces (`looks.ts` / `Decor.tsx` / `decorFor`). Difficulty is
+monotone (doors, floors and bags never drop, the clock per bag shrinks 40 → 30 → 25.7 → 20 → 17.5 s, the earliest
+possible win grows). Only a win clears a level (`clearScore` omitted).
 
 ## Server limits and why they hold
 
@@ -102,10 +105,11 @@ before each Use) wins ≥ 99 % of 200 seeds on every level, idle never clears; m
 
 ## Look
 
-- One palette (`looks.ts COLORS`): walls `#44403c`, carpet `#7f1d1d` (canvas diamond runner), marble lobby, brass
-  `#d4a574` rails, frames and sconces, accent `#fbbf24`. Floor colours amber / teal / violet / rose on the plates.
-- Lighting from the core preset per level (indoor L1-L3, sunset L4, night L5) + fog in the level's background colour;
-  emissive sconces brighter at night.
+- Base accents on `COLORS`; each theme overrides wall / carpet / marble / brass / glow / fog via `LOOKS` (lobby /
+  floors3 / luxury / business / grand). Carpet patterns: diamond (L1/L3/L5), stripe (L2), grid (L4). Floor colours
+  amber / teal / violet / rose on the plates stay shared.
+- Lighting from the core preset per level (indoor L1-L3, sunset L4, night L5) + theme fog; emissive sconces brighter
+  at night. Set pieces hang above walk height or sit on the wall face (`looks.test.ts`).
 - Door numbers: one 1024 x 512 canvas atlas (`ATLAS`) and one material for every plate (over the doors, the floor mats
   turned to the camera's yaw, the elevator panel, the key card over the trolley); redrawn only when the floor, the
   ride or the card changes. Mat digits are about 0.4 m tall. Colour plus digits, never colour alone.
