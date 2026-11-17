@@ -164,6 +164,27 @@
    }
 }
 
+/* a board that never gets taller than the screen: its width is capped by the screen height times its
+   aspect ratio (--ar = columns / rows, set inline); --chrome is the height kept for the header above */
+.fitBoard {
+   max-width: min(100%, calc((100dvh - var(--chrome, 170px)) * var(--ar, 1))) !important;
+   margin-left: auto !important;
+   margin-right: auto !important;
+}
+
+/* games that size themselves for phones already: on short landscape screens (tablets, phones on
+   their side) tighten the vertical rhythm and drop the decorative title so the board is in view */
+@media (orientation: landscape) and (max-height: 900px) {
+   .tight {
+      gap: 12px !important;
+      padding-top: 8px !important;
+      padding-bottom: 8px !important;
+   }
+   .landHide {
+      display: none !important;
+   }
+}
+
 @media (prefers-reduced-motion: reduce) {
    .flipped,
    .matched,
