@@ -16,7 +16,7 @@ import { useCoarsePointer } from "@/arcade3d/core/TouchControls";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useFittedView } from "@/arcade3d/core/useFittedView";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
-import { ASSETS, decorX } from "./assets";
+import { ASSETS, decorX, isDecorLevel } from "./assets";
 import {
    COVER_HEIGHT, FOLLOW_DAMPING, FOV, LOOK_AT, STREET_VIEW, configureStreetView,
    createHorizon, createStreetCache, fallbackVertices, fillStreet, modelVertices, pigeonHull,
@@ -233,8 +233,9 @@ export default function Scene() {
          <VehiclePool run={run} kind={2} parts={parts} />
          <SideCover layout={layout} coverColor={config.map.palette.cover} />
          <DistrictScenery run={run} horizon={layout.horizon} />
-         {/* the bundle's lamp and rush-taxi lines, only where the level's own district props leave their line clear */}
-         {decorLineClear(config.map) ? <StreetDecor run={run} horizon={layout.horizon} parts={parts} level={config.id} /> : null}
+         {/* the bundle's lamp and rush-taxi lines (levels 4-5 only, so level 1 never fetches their GLBs),
+             only where the level's own district props leave their line clear */}
+         {isDecorLevel(config.id) && decorLineClear(config.map) ? <StreetDecor run={run} horizon={layout.horizon} parts={parts} level={config.id} /> : null}
          <Pigeon run={run} layout={layout} />
          <Cues run={run} />
       </>
