@@ -1,0 +1,115 @@
+.boards {
+   display: grid;
+   grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+   align-items: start;
+   gap: clamp(24px, 5vw, 72px);
+}
+
+.all {
+   color: var(--p50-coral-text);
+   font-size: 0.9375rem;
+   font-weight: 600;
+}
+
+.all:hover {
+   text-decoration: underline;
+}
+
+.chips {
+   display: flex;
+   flex-wrap: wrap;
+   gap: 8px;
+   margin-bottom: 6px;
+}
+
+.chip,
+.chip:hover {
+   position: relative;
+   height: 36px;
+   padding: 0 14px;
+   border: 1px solid var(--p50-line);
+   border-radius: 999px;
+   background: transparent;
+   color: var(--p50-text-2);
+   font: 500 0.875rem/1 var(--p50-font-body);
+   cursor: pointer;
+}
+
+/* 44px tap area around the 36px chip */
+.chip::after {
+   content: "";
+   position: absolute;
+   inset: -4px 0;
+}
+
+.chip:hover {
+   color: var(--p50-text);
+}
+
+.chip[aria-pressed="true"],
+.chip[aria-pressed="true"]:hover {
+   border-color: transparent;
+   background: var(--p50-coral-wash);
+   color: var(--p50-coral-text);
+}
+
+/* your best scores */
+.yours {
+   display: flex;
+   flex-direction: column;
+   align-items: flex-start;
+   gap: 14px;
+   padding-top: 6px;
+}
+
+.yoursTitle {
+   font: 600 1.25rem/1.2 var(--p50-font-display);
+   letter-spacing: -0.02em;
+}
+
+.yoursText {
+   max-width: 38ch;
+   color: var(--p50-text-2);
+}
+
+.mine {
+   width: 100%;
+}
+
+.mineRow {
+   display: grid;
+   grid-template-columns: 72px minmax(0, 1fr) auto;
+   align-items: center;
+   gap: 12px;
+   min-height: 60px;
+   border-bottom: 1px solid var(--p50-line);
+}
+
+.mineRow img,
+.mineRow > span:first-child {
+   display: block;
+   width: 72px;
+   aspect-ratio: 16 / 9;
+   border-radius: 8px;
+   background: var(--p50-raised);
+   object-fit: cover;
+}
+
+.score {
+   font: 500 1rem/1 var(--p50-font-mono);
+   font-variant-numeric: tabular-nums;
+   white-space: nowrap;
+}
+
+.mineRow b {
+   overflow: hidden;
+   font: 600 1rem/1.3 var(--p50-font-display);
+   text-overflow: ellipsis;
+   white-space: nowrap;
+}
+
+@media (max-width: 899px) {
+   .boards {
+      grid-template-columns: minmax(0, 1fr);
+   }
+}

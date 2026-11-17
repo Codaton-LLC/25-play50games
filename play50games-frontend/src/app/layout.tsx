@@ -1,9 +1,17 @@
 import type { Metadata } from "next";
 import Script from "next/script";
+import { DM_Sans, JetBrains_Mono, Outfit } from "next/font/google";
 import "./globals.css";
+import "./theme.css";
 import { AuthProvider } from "@/contexts/AuthContext";
 import PrivacyConsent from "@/components/PrivacyConsent/PrivacyConsent";
 import { OG_IMAGES, ogImage } from "@/lib/seo/ogImages";
+import { THEME_INIT_SCRIPT } from "@/lib/theme";
+
+// Fonts of the redesigned pages (theme.css reads the variables; the classic pages keep system fonts).
+const fontDisplay = Outfit({ subsets: ["latin"], variable: "--font-display", display: "swap" });
+const fontBody = DM_Sans({ subsets: ["latin"], variable: "--font-body", display: "swap" });
+const fontMono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-mono", display: "swap", preload: false });
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://play50games.com";
 
@@ -88,7 +96,15 @@ export default function RootLayout({
    children: React.ReactNode;
 }) {
    return (
-      <html lang="en" suppressHydrationWarning>
+      <html
+         lang="en"
+         className={`${fontDisplay.variable} ${fontBody.variable} ${fontMono.variable}`}
+         suppressHydrationWarning
+      >
+         <head>
+            {/* sets data-theme from the stored choice before the first paint */}
+            <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+         </head>
          <body suppressHydrationWarning>
             {/* Google Tag Manager */}
             <Script

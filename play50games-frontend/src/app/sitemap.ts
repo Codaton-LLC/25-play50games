@@ -1,5 +1,5 @@
 import { MetadataRoute } from 'next';
-import { ARCADE_ENABLED } from '@/arcade3d/flags';
+import { ARCADE_ENABLED, ARCADE_LEADERBOARD } from '@/arcade3d/flags';
 import { getLiveGames } from '@/arcade3d/registry';
 import { getApiBase } from '@/lib/api/apiBase';
 
@@ -27,6 +27,17 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
           changeFrequency: 'weekly' as const,
           priority: 0.8,
         })),
+        // the leaderboards page exists only with the leaderboard flag on
+        ...(ARCADE_LEADERBOARD
+          ? [
+              {
+                url: `${SITE_URL}/leaderboards`,
+                lastModified: currentDate,
+                changeFrequency: 'daily' as const,
+                priority: 0.6,
+              },
+            ]
+          : []),
       ]
     : [];
 

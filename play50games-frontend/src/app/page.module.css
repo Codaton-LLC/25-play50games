@@ -1,102 +1,227 @@
+/* Hub "/" (docs/design/DESIGN.md §6). Tokens: app/theme.css; shared parts: components/Site/ui.module.css. */
+
 .page {
-   min-height: 100vh;
-   /* clip (not hidden): stops stray hero decoration from causing sideways scroll
-      without creating a scroll container, so the sticky SectionTabs keep working */
-   overflow-x: clip;
+   display: flex;
+   flex-direction: column;
 }
 
-.header {
-   max-width: 1200px;
-   margin: 0 auto;
-   padding: 18px 18px 12px;
+.main {
+   display: flex;
+   flex: 1;
+   flex-direction: column;
+   gap: clamp(3rem, 7vw, 5.5rem);
+   padding-block: clamp(28px, 4vw, 56px) clamp(3rem, 7vw, 5.5rem);
 }
 
-/* SectionTabs is a direct child of .content so it stays sticky through the panels */
-.content {
-   max-width: 1200px;
-   margin: 0 auto;
-   padding: 24px 18px 0;
+/* hero copy */
+.eyebrow {
+   display: inline-flex;
+   align-items: center;
+   gap: 8px;
 }
 
-.panels {
+.h1 {
+   color: var(--p50-text);
+   font: 700 clamp(2.5rem, 5.2vw, 4.5rem)/0.98 var(--p50-font-display);
+   letter-spacing: -0.035em;
+   text-wrap: balance;
+}
+
+/* game art inside the headline, at the height of the letters */
+.h1Art {
+   display: inline-block;
+   width: auto;
+   height: 0.72em;
+   aspect-ratio: 16 / 10;
+   margin-inline: 0.04em;
+   border-radius: 0.2em;
+   object-fit: cover;
+   vertical-align: -0.03em;
+}
+
+.h1Row {
+   display: none;
+   gap: 10px;
+}
+
+.h1Row img {
+   display: block;
+   width: 96px;
+   aspect-ratio: 16 / 10;
+   border-radius: 14px;
+   object-fit: cover;
+}
+
+.sub {
+   max-width: 44ch;
+   color: var(--p50-text-2);
+   font-size: 1.125rem;
+}
+
+.facts {
+   display: flex;
+   flex-wrap: wrap;
+   gap: 8px 0;
+   margin-top: 4px;
+}
+
+.facts li {
+   display: flex;
+   align-items: baseline;
+   gap: 6px;
+   padding: 0 16px;
+   border-left: 1px solid var(--p50-line);
+   color: var(--p50-text-2);
+   font-size: 0.875rem;
+}
+
+.facts li:first-child {
+   padding-left: 0;
+   border-left: 0;
+}
+
+.facts b {
+   color: var(--p50-text);
+   font: 600 1.125rem/1 var(--p50-font-mono);
+   font-variant-numeric: tabular-nums;
+}
+
+/* world art */
+.mosaic {
+   position: absolute;
+   inset: 0;
    display: grid;
-   grid-template-columns: minmax(0, 1fr);
-   gap: 20px;
+   grid-template-columns: 1fr 1fr;
+   grid-auto-rows: 1fr;
+   gap: 2px;
 }
 
-/* keep anchor targets (#classic, #arcade) clear of the sticky tabs */
-.panels > * {
-   scroll-margin-top: 80px;
+.mosaic img {
+   width: 100%;
+   height: 100%;
+   min-width: 0;
+   min-height: 0;
+   object-fit: cover;
 }
 
-.soon {
-   margin: 16px 0;
-   color: var(--muted);
-   font-size: 14px;
-   line-height: 1.55;
+.plateArt {
+   position: absolute;
+   inset: 0;
+   display: grid;
+   place-items: center;
+   color: var(--p50-track);
+   font: 700 clamp(3rem, 10vw, 6rem)/1 var(--p50-font-display);
+   letter-spacing: -0.04em;
 }
 
-.how {
-   margin-top: 56px;
+.statRing {
+   width: 14px;
+   height: 14px;
+   border-width: 3px;
 }
 
-.howTitle {
-   margin-bottom: 20px;
-   color: var(--text);
-   font-size: 1.5rem;
-   font-weight: 700;
-   text-align: center;
+/* "in the arcade": one large tile and four small */
+.more {
+   color: var(--p50-coral-text);
+   font-size: 0.9375rem;
+   font-weight: 600;
 }
 
+.more:hover {
+   text-decoration: underline;
+}
+
+.bento {
+   display: grid;
+   grid-template-columns: repeat(4, minmax(0, 1fr));
+   gap: 28px 24px;
+}
+
+.bentoItem,
+.bentoXl {
+   min-width: 0;
+}
+
+.bentoXl {
+   grid-column: span 2;
+   grid-row: span 2;
+}
+
+/* steps: a real sequence, separated by hairlines */
 .steps {
    display: grid;
-   grid-template-columns: minmax(0, 1fr);
-   gap: 16px;
-   list-style: none;
+   grid-template-columns: repeat(3, minmax(0, 1fr));
+   border-top: 1px solid var(--p50-line);
 }
 
 .step {
-   padding: 20px;
-   border: 1px solid var(--stroke);
-   border-radius: 16px;
-   background: var(--card);
+   display: grid;
+   grid-template-columns: auto minmax(0, 1fr);
+   gap: 2px 14px;
+   padding: 24px 24px 0;
+   border-left: 1px solid var(--p50-line);
+}
+
+.step:first-child {
+   padding-left: 0;
+   border-left: 0;
 }
 
 .stepNumber {
-   display: inline-flex;
-   align-items: center;
-   justify-content: center;
-   width: 32px;
-   height: 32px;
-   margin-bottom: 12px;
-   border-radius: 999px;
-   background: rgba(125, 211, 252, 0.14);
-   color: var(--accent);
-   font-weight: 700;
+   grid-row: span 2;
+   color: var(--p50-coral-text);
+   font: 600 1.0625rem/1.5 var(--p50-font-mono);
 }
 
 .stepTitle {
-   margin-bottom: 6px;
-   color: var(--text);
-   font-size: 1.05rem;
-   font-weight: 700;
+   font: 600 1.0625rem/1.5 var(--p50-font-display);
 }
 
 .stepText {
-   color: var(--muted);
-   font-size: 14px;
-   line-height: 1.55;
+   color: var(--p50-text-2);
+   font-size: 0.9375rem;
 }
 
-@media (min-width: 720px) {
-   .steps {
-      grid-template-columns: repeat(3, minmax(0, 1fr));
+@media (max-width: 1000px) {
+   .bento {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+   }
+
+   .bentoXl {
+      grid-row: auto;
    }
 }
 
-@media (min-width: 900px) {
-   .panels {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 24px;
+@media (max-width: 767px) {
+   .steps {
+      grid-template-columns: minmax(0, 1fr);
+      border-top: 0;
+   }
+
+   .step,
+   .step:first-child {
+      padding: 18px 0;
+      border-top: 1px solid var(--p50-line);
+      border-left: 0;
+   }
+}
+
+@media (max-width: 600px) {
+   .h1Art {
+      display: none;
+   }
+
+   .h1Row {
+      display: flex;
+   }
+}
+
+@media (max-width: 520px) {
+   .bento {
+      grid-template-columns: minmax(0, 1fr);
+   }
+
+   .bentoXl {
+      grid-column: auto;
    }
 }
