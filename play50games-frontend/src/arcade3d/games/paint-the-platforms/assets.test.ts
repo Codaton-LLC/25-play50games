@@ -17,7 +17,7 @@ import { comboConfigProblems } from "@/arcade3d/menu2/combo/combo";
 import { LEVEL_IDS } from "@/arcade3d/types";
 import { ASSETS, GLB_SIZE, TILE_DRAWN, TILE_STRETCH } from "./assets";
 import { TILE, courseFor } from "./course";
-import { BLOB, COMBO, SECRETS, SLAM_R, starSpecFor } from "./progression";
+import { BLOB, COMBO, SECRETS, SLAM_R, paintStarLabels, starSpecFor } from "./progression";
 import { paintThePlatformsMeta } from "./meta";
 import definition from "./index";
 
@@ -96,6 +96,10 @@ describe("definition and menu2 configs", () => {
          expect(c.need).toBe(Math.ceil(c.cfg.goal * c.tiles.length));
          expect(c.targetMs).toBeLessThan(c.durationMs);
       }
+   });
+
+   it("the star screen calls the collectibles paint blobs (the shared label says orbs)", () => {
+      expect(paintStarLabels(1, 3)).toEqual(["Clear the level", "All 3 paint blobs", expect.stringContaining("15")]);
    });
 
    it("boss, secrets, stars and combo have no problems; only level 5 has the boss", () => {

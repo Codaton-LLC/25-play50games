@@ -1,7 +1,7 @@
 // Paint the Platforms' Menu 2 structure (menu2/stars, combo, secrets, boss, progress). Plain data.
 import type { LevelId } from "../../types";
 import type { ComboConfig } from "../../menu2/combo/combo";
-import type { StarSpec } from "../../menu2/stars/stars";
+import { starLabels, type StarSpec } from "../../menu2/stars/stars";
 import type { SecretSpec } from "../../menu2/secrets/secrets";
 import type { BossConfig } from "../../menu2/boss/boss";
 import { LEVELS } from "./levels";
@@ -19,6 +19,13 @@ export const COMBO_BASE_MS = { tile: 0, blob: 0, row: 0, boss: 0 } as const;
 /** Stars: clear, every paint blob, the submitted time at or under the level's target. */
 export function starSpecFor(level: LevelId, blobTotal: number): StarSpec {
    return { orbTotal: blobTotal, goal: { kind: "time", targetMs: LEVELS[level].targetMs } };
+}
+
+/** The star screen's labels: this game's collectibles are paint blobs, not orbs. */
+export function paintStarLabels(level: LevelId, blobTotal: number): [string, string, string] {
+   const labels = starLabels(starSpecFor(level, blobTotal));
+   labels[1] = `All ${blobTotal} paint blobs`;
+   return labels;
 }
 
 /**
