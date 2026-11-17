@@ -1361,6 +1361,22 @@
         { "title": "Runaway Express", "max_score": 23510, "min_duration_ms": 24900, "max_duration_ms": 260000, "time_base_ms": 260000 }
       ]
     },
+    "alien-lane-escape": {
+      "title": "Alien Lane Escape",
+      "kind": "time",
+      "max_score": 8480,
+      "min_duration_ms": 35200,
+      "max_duration_ms": 120000,
+      "time_base_ms": 120000,
+      "enabled": false,
+      "levels": [
+        { "title": "Alien Meadow", "max_score": 8480, "min_duration_ms": 35200, "max_duration_ms": 120000, "time_base_ms": 120000 },
+        { "title": "Crystal Route", "max_score": 9280, "min_duration_ms": 37200, "max_duration_ms": 130000, "time_base_ms": 130000 },
+        { "title": "Meteor Zone", "max_score": 10080, "min_duration_ms": 39200, "max_duration_ms": 140000, "time_base_ms": 140000 },
+        { "title": "Glow Plants", "max_score": 11430, "min_duration_ms": 35700, "max_duration_ms": 150000, "time_base_ms": 150000 },
+        { "title": "Planet Escape", "max_score": 15910, "min_duration_ms": 40900, "max_duration_ms": 200000, "time_base_ms": 200000 }
+      ]
+    },
     "candy-world-runner": {
       "title": "Candy World Runner",
       "kind": "time",

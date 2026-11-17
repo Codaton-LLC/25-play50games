@@ -743,6 +743,19 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/candy-world-runner/m2GummyMonster.glb",
    "/models/3d/candy-world-runner/m2JellyCube.glb",
    "/models/3d/candy-world-runner/m2Lollipop.glb",
+   // Menu 2 game 17 (Alien Lane Escape): the ready set from ~/.play50/hyper3d/ready/menu2/alien-lane-escape
+   // (incl. m2ScannerDrone) plus the shared m2AlienMothership and m2AlienBlob (no new generation)
+   "/models/3d/alien-lane-escape/m2AlienBlob.glb",
+   "/models/3d/alien-lane-escape/m2AlienCrystal.glb",
+   "/models/3d/alien-lane-escape/m2AlienGooPuddle.glb",
+   "/models/3d/alien-lane-escape/m2AlienLaneSlab.glb",
+   "/models/3d/alien-lane-escape/m2AlienMothership.glb",
+   "/models/3d/alien-lane-escape/m2AlienPlant.glb",
+   "/models/3d/alien-lane-escape/m2AlienPod.glb",
+   "/models/3d/alien-lane-escape/m2AlienSpiresBg.glb",
+   "/models/3d/alien-lane-escape/m2FlyingSaucer.glb",
+   "/models/3d/alien-lane-escape/m2MeteorRock.glb",
+   "/models/3d/alien-lane-escape/m2ScannerDrone.glb",
    // Menu 2 game 31 (Wall Run Temple): the cliff temple set from ~/.play50/hyper3d/ready/menu2/wall-run-temple (incl. m2SwingingStoneRam)
    "/models/3d/wall-run-temple/m2CliffTempleBg.glb",
    "/models/3d/wall-run-temple/m2GoldRingOrb.glb",
