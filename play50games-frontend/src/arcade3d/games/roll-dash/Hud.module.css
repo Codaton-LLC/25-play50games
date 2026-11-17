@@ -1,0 +1,290 @@
+/* Roll Dash HUD: smoked-graphite pills with a light slate edge (World 6 keeps the chrome grey so the
+   five hero colours stay the only saturated tones), hearts, the street meter, the spectrum ring and the
+   hero portrait strip (bottom-left). Under the shell's chip row on the left; the banner centred at the
+   top, clear of the shell's Mute / Pause on the right. Every text is at least 12 px. */
+.pill,
+.clock {
+   display: inline-flex;
+   align-items: center;
+   gap: 8px;
+   min-width: 92px;
+   padding: 6px 14px 6px 8px;
+   border: 2px solid rgba(203, 213, 225, 0.35);
+   border-radius: 999px;
+   background: linear-gradient(180deg, rgba(51, 65, 85, 0.92), rgba(17, 24, 39, 0.92));
+   box-shadow: 0 4px 14px rgba(5, 2, 20, 0.45);
+   color: #fff;
+}
+
+.value {
+   font-size: 1.25rem;
+   font-weight: 800;
+   letter-spacing: 0.01em;
+   line-height: 1;
+   font-variant-numeric: tabular-nums;
+   text-shadow: 0 2px 0 rgba(0, 0, 0, 0.25);
+}
+
+.orb {
+   width: 26px;
+   height: 26px;
+   border-radius: 50%;
+   background: radial-gradient(circle at 35% 30%, #fffbea 0, #fde68a 35%, #facc15 70%, #a16207 100%);
+   box-shadow: 0 0 10px rgba(250, 204, 21, 0.75), inset 0 -2px 3px rgba(90, 60, 10, 0.5);
+}
+
+.icon {
+   width: 24px;
+   height: 24px;
+   flex: none;
+}
+
+.banner {
+   display: flex;
+   flex-direction: column;
+   align-items: center;
+   padding: 6px 22px 7px;
+   border: 2px solid rgba(203, 213, 225, 0.38);
+   border-radius: 16px;
+   background: linear-gradient(180deg, rgba(51, 65, 85, 0.94), rgba(17, 24, 39, 0.94));
+   box-shadow: 0 6px 18px rgba(5, 2, 20, 0.45);
+   white-space: nowrap;
+}
+
+.title {
+   color: #fff;
+   font-size: 1.2rem;
+   font-weight: 800;
+   line-height: 1.15;
+}
+
+.level {
+   color: #fde68a;
+   font-size: 0.85rem;
+   font-weight: 700;
+   line-height: 1.2;
+}
+
+.levelShort {
+   display: none;
+}
+
+.clock {
+   min-width: 0;
+   padding: 4px 14px 4px 8px;
+}
+
+.swatch {
+   width: 22px;
+   height: 22px;
+   flex: none;
+   border-radius: 50%;
+   box-shadow: inset 0 -2px 3px rgba(0, 0, 0, 0.35), 0 0 8px rgba(255, 255, 255, 0.35);
+}
+
+/* the speed meter: the speed you would carry into a portal, against the cap */
+.meter {
+   position: relative;
+   width: 78px;
+   height: 10px;
+   border-radius: 999px;
+   background: rgba(255, 255, 255, 0.2);
+   overflow: hidden;
+}
+
+.meterFill {
+   position: absolute;
+   inset: 0 auto 0 0;
+   border-radius: 999px;
+   background: linear-gradient(90deg, #64748b, #e2e8f0);
+   transition: width 90ms linear;
+}
+
+.meterHigh {
+   background: linear-gradient(90deg, #c026d3, #f0abfc);
+   animation: meterPulse 0.5s ease-in-out infinite alternate;
+}
+
+@keyframes meterPulse {
+   from {
+      opacity: 0.6;
+   }
+   to {
+      opacity: 1;
+   }
+}
+
+/* the hearts */
+.heart {
+   width: 22px;
+   height: 22px;
+   fill: #f87171;
+   filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.35));
+}
+
+.heartOff {
+   fill: rgba(255, 255, 255, 0.18);
+}
+
+/* the spectrum ring: one segment per hero that opened a lock in the chain */
+.spectrum {
+   display: inline-flex;
+   gap: 4px;
+   padding: 4px 8px;
+   border-radius: 999px;
+   background: rgba(17, 24, 39, 0.7);
+}
+
+.segment {
+   width: 16px;
+   height: 8px;
+   border-radius: 4px;
+   background: rgba(255, 255, 255, 0.18);
+}
+
+/* the portrait strip (tag): bottom-left, clear of the shell's Jump / Power on the right */
+.strip {
+   position: absolute;
+   left: calc(env(safe-area-inset-left, 0px) + 12px);
+   bottom: calc(env(safe-area-inset-bottom, 0px) + 18px);
+   display: flex;
+   gap: 8px;
+   pointer-events: auto;
+   transition: opacity 120ms linear;
+}
+
+.stripWait .portrait {
+   filter: grayscale(0.7) brightness(0.8);
+}
+
+.portrait {
+   position: relative;
+   width: 52px;
+   height: 52px;
+   border: 3px solid rgba(255, 255, 255, 0.35);
+   border-radius: 14px;
+   display: inline-flex;
+   align-items: center;
+   justify-content: center;
+   cursor: pointer;
+   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+   touch-action: none;
+}
+
+.portraitOn {
+   border-color: #ffffff;
+   transform: translateY(-6px) scale(1.08);
+   box-shadow: 0 0 14px rgba(255, 255, 255, 0.7), 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.portrait:focus-visible {
+   outline: 3px solid #fff;
+   outline-offset: 2px;
+}
+
+.glyph {
+   width: 28px;
+   height: 28px;
+}
+
+.key {
+   position: absolute;
+   left: 3px;
+   top: 1px;
+   font-size: 0.75rem;
+   font-weight: 800;
+   color: rgba(255, 255, 255, 0.9);
+}
+
+.cool {
+   position: absolute;
+   right: 2px;
+   bottom: 1px;
+   min-width: 16px;
+   padding: 0 3px;
+   border-radius: 6px;
+   background: rgba(0, 0, 0, 0.6);
+   font-size: 0.75rem;
+   font-weight: 800;
+   color: #fff;
+}
+
+.chain {
+   position: absolute;
+   inset: 0;
+   border-radius: 11px;
+   background: repeating-linear-gradient(135deg, rgba(31, 41, 55, 0.65) 0 6px, rgba(148, 163, 184, 0.5) 6px 10px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+   .meterHigh {
+      animation: none;
+   }
+}
+
+/* the hero row, portaled onto the page above the start card */
+.mpBtn {
+   min-height: 44px;
+   margin-left: 4px;
+   padding: 0 12px;
+   border: 2px solid #e2e8f0;
+   border-radius: 12px;
+   background: rgba(226, 232, 240, 0.14);
+   color: #fff;
+   font: inherit;
+   font-size: 0.78rem;
+   font-weight: 800;
+   white-space: nowrap;
+   cursor: pointer;
+}
+
+.mpBtn:focus-visible {
+   outline: 3px solid #e2e8f0;
+   outline-offset: 2px;
+}
+
+/* narrow phones: the banner fits between the shell's chips and its buttons with the level's name only
+   (the shell's chip shows the level number, the start card the title) */
+@media (max-width: 520px) {
+   .banner {
+      max-width: 108px;
+      min-height: 46px;
+      box-sizing: border-box;
+      justify-content: center;
+      padding: 4px 10px 5px;
+      border-radius: 12px;
+      white-space: normal;
+      text-align: center;
+   }
+   .title,
+   .levelLong {
+      display: none;
+   }
+   .levelShort {
+      display: inline;
+   }
+   .level {
+      font-size: 0.75rem;
+   }
+   .value {
+      font-size: 1.05rem;
+   }
+   .pill {
+      min-width: 76px;
+      padding: 4px 12px 4px 6px;
+   }
+   .orb {
+      width: 22px;
+      height: 22px;
+   }
+   .meter {
+      width: 56px;
+   }
+   .portrait {
+      width: 46px;
+      height: 46px;
+   }
+   .strip {
+      gap: 6px;
+   }
+}

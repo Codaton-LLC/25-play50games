@@ -812,6 +812,15 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/portal-hop/m2PortalIsle.glb",
    "/models/3d/portal-hop/m2PortalWyrmBoss.glb",
    "/models/3d/portal-hop/m2VoidCrystal.glb",
+   // Menu 2 game 11 (Roll Dash, W6): ready/menu2/roll-dash plus m2ArenaCrate, m2TeslaCoil (energy-core-hunt), m2EnergyBarrierWall (switch-color-hero), m2StormHawkBoss (shared, the grey echo)
+   "/models/3d/roll-dash/m2ArenaCrate.glb",
+   "/models/3d/roll-dash/m2EnergyBarrierWall.glb",
+   "/models/3d/roll-dash/m2GoldCoin.glb",
+   "/models/3d/roll-dash/m2MarketStall.glb",
+   "/models/3d/roll-dash/m2OldTownHouseBg.glb",
+   "/models/3d/roll-dash/m2StormHawkBoss.glb",
+   "/models/3d/roll-dash/m2StreetLamp.glb",
+   "/models/3d/roll-dash/m2TeslaCoil.glb",
 ];
 
 const LISTED: ReadonlySet<string> = new Set(MODEL_MANIFEST);

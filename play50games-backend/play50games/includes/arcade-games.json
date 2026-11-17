@@ -1519,6 +1519,22 @@
         { "title": "Cargo", "max_score": 23950, "min_duration_ms": 500, "max_duration_ms": 240000, "time_base_ms": 240000 },
         { "title": "Portal Master", "max_score": 28370, "min_duration_ms": 16300, "max_duration_ms": 300000, "time_base_ms": 300000 }
       ]
+    },
+    "roll-dash": {
+      "title": "Roll Dash",
+      "kind": "time",
+      "max_score": 10460,
+      "min_duration_ms": 45400,
+      "max_duration_ms": 150000,
+      "time_base_ms": 150000,
+      "enabled": false,
+      "levels": [
+        { "title": "Gate Street", "max_score": 10460, "min_duration_ms": 45400, "max_duration_ms": 150000, "time_base_ms": 150000 },
+        { "title": "Market Lane", "max_score": 12180, "min_duration_ms": 58200, "max_duration_ms": 180000, "time_base_ms": 180000 },
+        { "title": "Old Town", "max_score": 14000, "min_duration_ms": 70000, "max_duration_ms": 210000, "time_base_ms": 210000 },
+        { "title": "Night Causeway", "max_score": 15990, "min_duration_ms": 80100, "max_duration_ms": 240000, "time_base_ms": 240000 },
+        { "title": "Fortress Bridge", "max_score": 28090, "min_duration_ms": 19100, "max_duration_ms": 300000, "time_base_ms": 300000 }
+      ]
     }
   }
 }
