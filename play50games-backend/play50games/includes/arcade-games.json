@@ -1520,5 +1520,22 @@
         { "title": "Portal Master", "max_score": 28370, "min_duration_ms": 16300, "max_duration_ms": 300000, "time_base_ms": 300000 }
       ]
     }
+,
+    "color-arena-survival": {
+      "title": "Color Arena Survival",
+      "kind": "time",
+      "max_score": 13670,
+      "min_duration_ms": 13300,
+      "max_duration_ms": 150000,
+      "time_base_ms": 150000,
+      "enabled": false,
+      "levels": [
+        { "title": "Slow Rounds", "max_score": 13670, "min_duration_ms": 13300, "max_duration_ms": 150000, "time_base_ms": 150000 },
+        { "title": "Three Colors", "max_score": 15910, "min_duration_ms": 20900, "max_duration_ms": 180000, "time_base_ms": 180000 },
+        { "title": "Five Colors", "max_score": 18890, "min_duration_ms": 31100, "max_duration_ms": 220000, "time_base_ms": 220000 },
+        { "title": "Fast Rounds", "max_score": 20880, "min_duration_ms": 41200, "max_duration_ms": 250000, "time_base_ms": 250000 },
+        { "title": "Survival Master", "max_score": 28100, "min_duration_ms": 19000, "max_duration_ms": 300000, "time_base_ms": 300000 }
+      ]
+    }
   }
 }

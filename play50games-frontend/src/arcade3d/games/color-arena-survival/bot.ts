@@ -6,7 +6,7 @@
 // straight, Zuno pulls the orb, Kiro shields against a knock).
 import { heroById } from "./heroes";
 import { SHOCK_SPEED } from "./progression";
-import { BAR_HALF, BAR_INNER, BODY_R, TILE_P, V_RUN, tileAt, tileCentre, tileSafe, tileSolid, wrapPi, type ArenaRun, type StepInput } from "./rules";
+import { BAR_HALF, BAR_INNER, BODY_R, TILE_P, V_RUN, tileAt, tileCentre, tileSafe, tileSolid, type ArenaRun, type StepInput } from "./rules";
 
 export interface Bot {
    /** the frame length the bot plans with (ms) */
@@ -125,6 +125,43 @@ function steer(input: StepInput, h: { x: number; z: number }, x: number, z: numb
    input.moveZ = dz * k;
 }
 
+/**
+ * When the bar's leading face will reach the hero (s), the hero let go of the stick (it slows at the
+ * ground's grip) and the bar turning on: a short look-ahead in 10 ms steps over a second.
+ */
+function barContact(run: ArenaRun): number {
+   const a = run.arena;
+   const h = run.hero;
+   const face = BAR_HALF + BODY_R;
+   const reach = a.half + 0.6;
+   let x = h.x;
+   let z = h.z;
+   let vx = h.vx;
+   let vz = h.vz;
+   let prev = Number.NaN;
+   for (let k = 0; k <= 100; k++) {
+      const t = k * 0.01;
+      const th = a.sweepAngle + a.cfg.sweeper * t;
+      const c0 = Math.cos(th);
+      const s0 = Math.sin(th);
+      const along = x * c0 + z * s0;
+      const perp = -x * s0 + z * c0;
+      if (along >= BAR_INNER && along <= reach) {
+         if (prev >= face && perp < face && perp > -face) return t;
+         prev = perp;
+      } else prev = Number.NaN;
+      const sp = Math.hypot(vx, vz);
+      if (sp > 0) {
+         const ns = Math.max(0, sp - 45 * 0.01);
+         vx *= ns / sp;
+         vz *= ns / sp;
+      }
+      x += vx * 0.01;
+      z += vz * 0.01;
+   }
+   return Infinity;
+}
+
 export function botInput(bot: Bot, run: ArenaRun, input: StepInput): void {
    input.moveX = 0;
    input.moveZ = 0;
@@ -142,18 +179,8 @@ export function botInput(bot: Bot, run: ArenaRun, input: StepInput): void {
    else if (a.phase === "start" || a.phase === "wait") bot.target = -1;
    // in a drop or a rise the bot holds its tile (the beacon's window is the rise)
 
-   // the sweeper bar's face reaching the hero (s, the hero held still), Infinity when it does not
-   const w = a.cfg.sweeper;
-   let barIn = Infinity;
-   if (w > 0 && a.phase !== "start") {
-      const r = Math.hypot(h.x, h.z);
-      if (r >= BAR_INNER - 0.4 && r < a.half + 0.6) {
-         // the face reaches the hero when r sin(diff) = BAR_HALF + BODY_R
-         const diff = wrapPi(Math.atan2(h.z, h.x) - a.sweepAngle);
-         const touch = Math.asin(Math.min(1, (BAR_HALF + BODY_R) / Math.max(r, 1e-3)));
-         if (diff > touch && diff < Math.PI / 2 + touch) barIn = (diff - touch) / w;
-      }
-   }
+   // the sweeper bar's face reaching the hero (s), Infinity when it does not within a second
+   const barIn = a.cfg.sweeper > 0 && a.phase !== "start" ? barContact(run) : Infinity;
 
    if (!h.grounded) {
       // in the air the bot lets go of the stick: it only jumps from a standstill, so it lands where it rose
@@ -180,10 +207,10 @@ export function botInput(bot: Bot, run: ArenaRun, input: StepInput): void {
    }
 
    // the sweeper bar: hold still as its face comes (so the timing is sure), then jump it
-   if (h.grounded && barIn < 0.5) {
+   if (h.grounded && barIn < 0.6) {
       input.moveX = 0;
       input.moveZ = 0;
-      if (barIn < 0.2) {
+      if (barIn < 0.28) {
          if (power === "shield" && ready) input.actionPressed = true;
          else input.jumpPressed = true;
       }

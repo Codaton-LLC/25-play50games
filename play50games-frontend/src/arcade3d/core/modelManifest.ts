@@ -812,6 +812,9 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/portal-hop/m2PortalIsle.glb",
    "/models/3d/portal-hop/m2PortalWyrmBoss.glb",
    "/models/3d/portal-hop/m2VoidCrystal.glb",
+   // Menu 2 game 26 (Color Arena Survival, W6): the Prism Keeper (p50-assets/hyper3d-new m2PrismArenaBoss, optimized locally) and portal-hop's m2ColorBeacon
+   "/models/3d/color-arena-survival/m2ColorBeacon.glb",
+   "/models/3d/color-arena-survival/m2PrismArenaBoss.glb",
 ];
 
 const LISTED: ReadonlySet<string> = new Set(MODEL_MANIFEST);

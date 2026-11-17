@@ -1234,7 +1234,7 @@ export const PROPOSED_LEVEL_LIMITS: Record<LevelId, LevelLimits> = {
    2: { kind: "time", maxScore: 15_910, minDurationMs: 20_900, maxDurationMs: 180_000, timeBaseMs: 180_000 },
    3: { kind: "time", maxScore: 18_890, minDurationMs: 31_100, maxDurationMs: 220_000, timeBaseMs: 220_000 },
    4: { kind: "time", maxScore: 20_880, minDurationMs: 41_200, maxDurationMs: 250_000, timeBaseMs: 250_000 },
-   5: { kind: "time", maxScore: 26_660, minDurationMs: 33_400, maxDurationMs: 300_000, timeBaseMs: 300_000 },
+   5: { kind: "time", maxScore: 28_100, minDurationMs: 19_000, maxDurationMs: 300_000, timeBaseMs: 300_000 },
 };
 
 export { SECRETS, KEEPER };
