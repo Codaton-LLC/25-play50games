@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import fx from "../finalMobile.module.css";
 import {
    CheckCircleIcon,
    XCircleIcon,
@@ -558,6 +559,7 @@ export default function FinalSkillGame({
                   {/* Shrinking circle */}
                   <button
                      onClick={() => handleCircleClick()}
+                     className={fx.tap}
                      style={{
                         width: `${circleSize}%`,
                         height: `${circleSize}%`,
@@ -705,6 +707,7 @@ export default function FinalSkillGame({
                {/* Replay Button */}
                <button
                   onClick={handleReplay}
+                  className={fx.btn}
                   disabled={maxReplays > 0 && replaysUsed >= maxReplays}
                   style={{
                      display: "flex",
@@ -746,6 +749,7 @@ export default function FinalSkillGame({
                {/* Share Button */}
                <button
                   onClick={handleShare}
+                  className={fx.btn}
                   style={{
                      display: "flex",
                      alignItems: "center",
