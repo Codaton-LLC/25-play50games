@@ -1519,6 +1519,22 @@
         { "title": "Cargo", "max_score": 23950, "min_duration_ms": 500, "max_duration_ms": 240000, "time_base_ms": 240000 },
         { "title": "Portal Master", "max_score": 28370, "min_duration_ms": 16300, "max_duration_ms": 300000, "time_base_ms": 300000 }
       ]
+    },
+    "energy-core-hunt": {
+      "title": "Energy Core Hunt",
+      "kind": "time",
+      "max_score": 5840,
+      "min_duration_ms": 1600,
+      "max_duration_ms": 60000,
+      "time_base_ms": 60000,
+      "enabled": false,
+      "levels": [
+        { "title": "Simple Hunt", "max_score": 5840, "min_duration_ms": 1600, "max_duration_ms": 60000, "time_base_ms": 60000 },
+        { "title": "Mixed Colors", "max_score": 7430, "min_duration_ms": 700, "max_duration_ms": 75000, "time_base_ms": 75000 },
+        { "title": "Larger Arena", "max_score": 8860, "min_duration_ms": 1400, "max_duration_ms": 90000, "time_base_ms": 90000 },
+        { "title": "Moving Cores", "max_score": 10350, "min_duration_ms": 1500, "max_duration_ms": 105000, "time_base_ms": 105000 },
+        { "title": "Core Master", "max_score": 10520, "min_duration_ms": 14800, "max_duration_ms": 120000, "time_base_ms": 120000 }
+      ]
     }
   }
 }
