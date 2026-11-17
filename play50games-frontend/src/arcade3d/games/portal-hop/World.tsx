@@ -6,8 +6,8 @@
 // edge strips (look.ts edge).
 import { useEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
-import { AdditiveBlending, BackSide, CanvasTexture, RepeatWrapping, SRGBColorSpace, type Group } from "three";
-import { InstancedModel } from "@/arcade3d/core/assets";
+import { AdditiveBlending, BackSide, CanvasTexture, RepeatWrapping, SRGBColorSpace, type Group, type Material, type Mesh } from "three";
+import { InstancedModel, useModel } from "@/arcade3d/core/assets";
 import type { InstanceSpot } from "@/arcade3d/core/render";
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import { ASSETS, GLB_SIZE } from "./assets";
@@ -99,6 +99,31 @@ export function backdropSpots(run: PortalRun): Backdrop {
    return { ruins, isles };
 }
 
+/**
+ * The ringed planet (space-pod-jump's m2RingedPlanetBg, reused by url): a background far out in the sky,
+ * so its materials are cloned with fog off (the fog would swallow it; the shared GLB keeps its own).
+ */
+function PlanetGlb({ width }: { width: number }) {
+   const { scene } = useModel(ASSETS.planet);
+   const obj = useMemo(() => {
+      if (!scene) return null;
+      scene.traverse((o) => {
+         const m = o as Mesh;
+         if (!m.isMesh) return;
+         const one = (mat: Material) => {
+            const c = mat.clone();
+            (c as Material & { fog?: boolean }).fog = false;
+            return c;
+         };
+         m.material = Array.isArray(m.material) ? m.material.map(one) : one(m.material);
+      });
+      return scene;
+   }, [scene]);
+   if (!obj) return null;
+   const s = width / GLB_SIZE.planet.x;
+   return <primitive object={obj} scale={s} position={[0, (-GLB_SIZE.planet.y * s) / 2, 0]} />;
+}
+
 export default function World({ run }: { run: PortalRun }) {
    const look = levelLook(run.level);
    const sky = useMemo(() => skyTexture(look.skyTop, look.skyBottom, look.stars), [look.skyTop, look.skyBottom, look.stars]);
@@ -133,14 +158,7 @@ export default function World({ run }: { run: PortalRun }) {
          </mesh>
          {/* the ringed planet */}
          <group ref={planet} position={[-120, 40, -150]}>
-            <mesh>
-               <sphereGeometry args={[22, 32, 20]} />
-               <meshStandardMaterial color="#6d28d9" emissive="#2e1065" emissiveIntensity={0.6} roughness={0.8} fog={false} />
-            </mesh>
-            <mesh rotation-x={Math.PI / 2.4}>
-               <ringGeometry args={[30, 42, 64]} />
-               <meshBasicMaterial color={look.edge} transparent opacity={0.35} side={2} fog={false} />
-            </mesh>
+            <PlanetGlb width={84} />
          </group>
          <InstancedModel asset={ASSETS.ruin} spots={back.ruins} fallback={null} />
          <InstancedModel asset={ASSETS.islandB} spots={back.isles.islandB} fallback={null} />

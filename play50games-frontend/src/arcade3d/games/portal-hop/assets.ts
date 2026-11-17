@@ -36,6 +36,8 @@ export const GLB_SIZE = {
    islandD: { x: 1.761, y: 1.571, z: 1.89 },
    /** the shared menu2 colour orb */
    orb: { x: 1.767, y: 1.901, z: 1.77 },
+   /** space-pod-jump's m2RingedPlanetBg (reused by url): a planet with its ring, feet on 0 */
+   planet: { x: 1.852, y: 1.843, z: 1.897 },
 } as const;
 
 /** A frame is drawn 2.4 m wide (its opening the rules' FRAME_HALF_W); an obelisk 2.4 m tall. */
@@ -73,4 +75,5 @@ export const ASSETS: Record<string, ModelAsset> = {
    islandC: menu2("islandC", "#64748b"),
    islandD: menu2("islandD", "#64748b"),
    orb: { id: "scoreOrb", url: "/models/3d/menu2/scoreOrb.glb", fallback: "sphere", fallbackColor: "#c084fc", budget: PROP_BUDGET },
+   planet: { id: "m2RingedPlanetBg", url: "/models/3d/space-pod-jump/m2RingedPlanetBg.glb", fallback: "sphere", fallbackColor: "#6d28d9", budget: PROP_BUDGET },
 };
