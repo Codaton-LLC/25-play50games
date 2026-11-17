@@ -50,4 +50,10 @@ Every run starts at distance zero, must travel the entire level length, and adva
 
 All eight supplied game GLBs are used, including `m2ToySled` under moving snowmen. Existing repo models `m2SnowYeti`, `m2Snowball`, `m2CrackedIcePlatform` are referenced from ice-peak-jumper. All five heroes use `heroModelAsset`. No external copies or generation. `assets.ts` records measured accessor dimensions, with feet-on-ground node translations; scale/stretch derives from them. Repeated GLBs use shared dynamic instancing and a 155 m visibility range. Snow terrain, the avalanche, marker rings and particles are code geometry. No shared implementation was copied into the game.
 
-Browser playtesting and actual draw-call/triangle/FPS measurements are assigned to Claude, per this handoff. No Next build/dev or Chrome was run here. See `.handoff/K-m2-snow/HANDOFF.md` for verification and remaining visual QA.
+## Claude gate (playtest)
+
+Played with the honest bot (`?autoplay=1`, preview flags) on `next dev`, headless Chrome over CDP, L1 to L5 in one session through the result card's Next level, at 1280 x 800 (mouse drag + wheel orbit) and 390 x 844 (touch: two-finger orbit + pinch): every level cleared with all gate stars, 0 console errors; finish times equal the proof bot (34.38 / 37.45 / 34.30 / 36.94 / 44.81 s, Big Drift beaten).
+
+Fixed in the gate: the HUD pills used the site's `--card` (6 % white) and vanished on snow, now solid dark panels; the frost stars were dark specks, now 1.1 m emissive gold, with their own ice-blue racing-line markers; Course drew props only near a hero, so the intro flew over an empty slope, now also near the camera; the L5 hint follows Big Drift's phase (outrun / barrage / cliff) and the gap line sits on a dark pill; the score limits are pinned as literal numbers in `rules.test.ts`.
+
+Not measured yet: real-phone frame time and draw calls, real gamepads, local multiplayer split-screen in a browser, audio. The generic master-plan card puts moving hazards on L3; this game follows the approved World 4 card (ice on L3, crossing snowmen on L4).
