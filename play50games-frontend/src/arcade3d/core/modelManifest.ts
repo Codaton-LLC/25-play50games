@@ -867,6 +867,9 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/portal-hop/m2PortalIsle.glb",
    "/models/3d/portal-hop/m2PortalWyrmBoss.glb",
    "/models/3d/portal-hop/m2VoidCrystal.glb",
+   // Menu 2 game 26 (Color Arena Survival, W6): the Prism Keeper (p50-assets/hyper3d-new m2PrismArenaBoss, optimized locally) and portal-hop's m2ColorBeacon
+   "/models/3d/color-arena-survival/m2ColorBeacon.glb",
+   "/models/3d/color-arena-survival/m2PrismArenaBoss.glb",
    // Menu 2 game 11 (Roll Dash, W6): ready/menu2/roll-dash plus m2ArenaCrate, m2TeslaCoil (energy-core-hunt), m2EnergyBarrierWall (switch-color-hero), m2StormHawkBoss (shared, the grey echo)
    // Menu 2 game 33 (Mirror Dash): ready/menu2/mirror-dash plus m2LaserWall, m2NeonSpikeBlock (neon-cube-jump) and m2Crystal (crystal-tower)
    // Menu 2 game 22 (Switch Color Hero): ready/menu2/switch-color-hero (gate arches, barrier wall, energy pickup, checkpoint flag and pad, spires, the start platform)
