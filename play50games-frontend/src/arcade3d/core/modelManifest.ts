@@ -812,6 +812,15 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/portal-hop/m2PortalIsle.glb",
    "/models/3d/portal-hop/m2PortalWyrmBoss.glb",
    "/models/3d/portal-hop/m2VoidCrystal.glb",
+   // Menu 2 game 22 (Switch Color Hero): ready/menu2/switch-color-hero (gate arches, barrier wall, energy pickup, checkpoint flag and pad, spires, the start platform)
+   "/models/3d/switch-color-hero/m2CheckpointFlagPad.glb",
+   "/models/3d/switch-color-hero/m2CheckpointFlagPadV2.glb",
+   "/models/3d/switch-color-hero/m2ColorGateArch.glb",
+   "/models/3d/switch-color-hero/m2ColorGateArchV2.glb",
+   "/models/3d/switch-color-hero/m2EnergyBarrierWall.glb",
+   "/models/3d/switch-color-hero/m2EnergyPickup.glb",
+   "/models/3d/switch-color-hero/m2SciFiSpireBg.glb",
+   "/models/3d/switch-color-hero/m2SwitchPlatform.glb",
 ];
 
 const LISTED: ReadonlySet<string> = new Set(MODEL_MANIFEST);
