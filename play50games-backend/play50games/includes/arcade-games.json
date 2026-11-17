@@ -1584,6 +1584,22 @@
         { "title": "Chest Rush", "max_score": 7132, "min_duration_ms": 114000, "max_duration_ms": 121000, "base": 0, "max_pps": 63 },
         { "title": "Gumdrop Glutton", "max_score": 14157, "min_duration_ms": 29100, "max_duration_ms": 241000, "base": 0, "max_pps": 487 }
       ]
+    },
+    "mirror-dash": {
+      "title": "Mirror Dash",
+      "kind": "time",
+      "max_score": 13430,
+      "min_duration_ms": 15700,
+      "max_duration_ms": 150000,
+      "time_base_ms": 150000,
+      "enabled": false,
+      "levels": [
+        { "title": "Mirror Lane", "max_score": 13430, "min_duration_ms": 15700, "max_duration_ms": 150000, "time_base_ms": 150000 },
+        { "title": "Converge", "max_score": 15560, "min_duration_ms": 14400, "max_duration_ms": 170000, "time_base_ms": 170000 },
+        { "title": "Frosted Glass", "max_score": 16350, "min_duration_ms": 16500, "max_duration_ms": 180000, "time_base_ms": 180000 },
+        { "title": "Echo", "max_score": 17150, "min_duration_ms": 18500, "max_duration_ms": 190000, "time_base_ms": 190000 },
+        { "title": "Glass Hall", "max_score": 21710, "min_duration_ms": 22900, "max_duration_ms": 240000, "time_base_ms": 240000 }
+      ]
     }
   }
 }
