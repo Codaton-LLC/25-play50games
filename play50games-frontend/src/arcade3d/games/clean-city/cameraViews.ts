@@ -1,5 +1,5 @@
 import type { AABB } from "@/arcade3d/core/collision";
-import { MAPS, hazardX } from "./rules";
+import { mapsForLevel, hazardX } from "./rules";
 import { EXTRA_BINS, HAZARDS, LEVELS, type CleanLevel } from "./levels";
 import { CAR_SPOTS, TAXI_SPOTS, VAN_SPOTS } from "./decorSpots";
 
@@ -30,7 +30,7 @@ const HEIGHT = { tree: 3.65, bench: 1.1, bin: 1.25, building: 2.82, lamp: 3.7, p
 const BIN_HEIGHT = 1.25;
 
 export function cameraSolids(map: number, out: AABB[], level: CleanLevel = LEVELS[1], simMs = 0): number {
-   const props = MAPS[map].obstacles;
+   const props = mapsForLevel(level)[map].obstacles;
    const count = Math.min(props.length, out.length);
    for (let i = 0; i < count; i++) {
       const p = props[i], box = out[i];

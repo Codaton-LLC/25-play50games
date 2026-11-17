@@ -40,13 +40,13 @@ Every variant reuses the park/city/beach, floor, cleaner, litter and bin GLBs; n
 The core owns selection, unlocking and the sum of level bests. Configurations are in `levels.ts`,
 with the pilot's `createRun(seed, level)`, `useLevel`, per-level HUD/environment and meta pattern.
 
-| Level | Title | Items per map / total | Clock | Extra bins per map | New mechanic / pressure | Lighting | Clear score |
-|---|---|---|---|---|---|---|---|
-| 1 | Pocket Park | 20 / 60 | 240 s | 0 | Original auto-pickup and map clear | day | 3000 or win |
-| 2 | City Square | 24 / 72 | 235 s | 1 | Return to the white start pad after gathering each map | day | 5400 or win |
-| 3 | Shopping Street | 28 / 84 | 230 s | 2 | One moving maintenance bin; its amber radius slows walking to 60% | sunset | 6300 or win |
-| 4 | River Walk | 32 / 96 | 225 s | 3 | Two maintenance zones; sort bottles/bags before cans/bananas | night | 7200 or win |
-| 5 | Festival Cleanup | 36 / 108 | 220 s | 4 | Three zones; dense score attack, +10 when pickups are at most 4 s apart | dramatic sunset | 8100 or win |
+| Level | Title | Sub-zones (HUD) | Items per map / total | Clock | Extra bins | District look & set pieces | New mechanic / pressure | Lighting | Clear score |
+|---|---|---|---|---|---|---|---|---|---|
+| 1 | Pocket Park | Park, City, Beach | 20 / 60 | 240 s | 0 | Original lawn + pigeons, city street + parked cars, beach | Original auto-pickup and map clear | day (`#8ec5f0`) | 3000 or win |
+| 2 | City Square | Civic Plaza, Town Hall, Esplanade | 24 / 72 | 235 s | 1 | Concentric plaza rings, civic fountain + water basin, townhouse blocks, Victorian lamps, hedges | Return to the white start pad after gathering each map | day + haze (`#9cc4e4`) | 5400 or win |
+| 3 | Shopping Street | Market Green, High Street, Boardwalk | 28 / 84 | 230 s | 2 | Storefront aprons, corner shops, café kiosks, bus shelter, traffic lights, brass bollards | One moving maintenance bin; its amber radius slows walking to 60% | sunset + haze (`#de9b79`) | 6300 or win |
+| 4 | River Walk | Riverbank, Canal Quay, Harbour Pier | 32 / 96 | 225 s | 3 | River channel, stone quay wall + bollards, wooden footbridge, rowboats, harbour buoys, night lamps | Two maintenance zones; sort bottles/bags before cans/bananas | night (`#0d1b30`) | 7200 or win |
+| 5 | Festival Cleanup | Festival Green, Midway, Beach Stage | 36 / 108 | 220 s | 4 | Festival court ring, stage deck, entrance arch, 3 stalls, 4 festival tents, bunting & pennants | Three zones; dense score attack, +10 when pickups are at most 4 s apart | dramatic sunset (`#c77265`) | 8100 or win |
 
 Levels 2?5 award +75 per pickup and +5 per full second left on a win. This preserves at least
 Level 1's score potential even under a tighter clock: their pickup points alone are 5400 / 6300 /

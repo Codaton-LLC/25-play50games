@@ -14,7 +14,7 @@ import { MAX_FRAME_DT } from "@/arcade3d/core/frameLoop";
 import { capScore as capToLimits, withinServerLimits as fitsLimits } from "@/arcade3d/core/limits";
 import { rngNext, turnTowards, type RngState } from "@/arcade3d/core/math";
 import type { LevelId, ScoringRules } from "../../types";
-import { COMBO_POINTS, COMBO_WINDOW_MS, EXTRA_BINS, HAZARDS, HAZARD_RADIUS, HAZARD_SLOW, LEVELS, type CleanLevel } from "./levels";
+import { COMBO_POINTS, COMBO_WINDOW_MS, EXTRA_BINS, HAZARDS, HAZARD_RADIUS, HAZARD_SLOW, LEVELS, levelIdOf, type CleanLevel } from "./levels";
 
 // ---------- tuning (README "Constants") ----------
 
@@ -193,6 +193,199 @@ export const MAPS: readonly MapConfig[] = [
       ],
    },
 ];
+
+/**
+ * Per-level district map layouts (levels 2-5 each get their own three-stage district obstacles
+ * and ground palette; level 1 is MAPS, the live Pocket Park game). Every obstacle leaves >= 2.2 m
+ * corridors to neighbours, EXTRA_BINS and the floor edge, and keeps the start pad and hazard lanes open.
+ */
+export const LEVEL_MAPS: Record<LevelId, readonly MapConfig[]> = {
+   1: MAPS,
+   // Level 2 — City Square: Civic Plaza, Town Hall Block, Fountain Esplanade
+   2: [
+      {
+         id: "park",
+         ground: "#529e5e",
+         obstacles: [
+            at("bench", -6.5, 5),
+            at("bench", 6.5, 5),
+            at("bench", 0, -7.5),
+            at("tree", -7.5, -5.5),
+            at("tree", 7.5, -5.5),
+            at("bin", -8, 9),
+         ],
+      },
+      {
+         id: "city",
+         ground: "#8693a2",
+         obstacles: [
+            at("building", -8, -6.5),
+            at("building", 8, -6.5),
+            at("building", -8, 3.5),
+            at("building", 8, 3.5),
+            at("lamp", -3.5, -1.5),
+            at("lamp", 3.5, -1.5),
+            at("lamp", -3.5, 7.5),
+            at("lamp", 3.5, 7.5),
+            at("bin", 0, -9.5),
+            at("bin", 10.5, -1.5),
+         ],
+      },
+      {
+         id: "beach",
+         ground: "#e4cc92",
+         obstacles: [
+            at("palm", -8.5, -7.5),
+            at("palm", 8.5, -7.5),
+            at("palm", -8.5, 3.5),
+            at("palm", 8.5, 3.5),
+            at("pole", -4.5, -2.5),
+            at("pole", 4.5, -2.5),
+            at("pole", 0, 4.5),
+            at("bin", 0, -10.5),
+         ],
+      },
+   ],
+   // Level 3 — Shopping Street: Market Green, High Street, Boardwalk Shops
+   3: [
+      {
+         id: "park",
+         ground: "#5ca048",
+         obstacles: [
+            at("bench", -6.5, 3.5),
+            at("bench", 6.5, 3.5),
+            at("bench", 0, -8),
+            at("tree", -6, -6.5),
+            at("tree", 6, -6.5),
+            at("bin", -8, 9.5),
+         ],
+      },
+      {
+         id: "city",
+         ground: "#998c84",
+         obstacles: [
+            at("building", -7.5, -6),
+            at("building", 7.5, -6),
+            at("building", -6.5, 4.5),
+            at("building", 6.5, 4.5),
+            at("lamp", -3, -6),
+            at("lamp", 3, -6),
+            at("lamp", -3, 8.5),
+            at("lamp", 3, 8.5),
+            at("bin", 0, -10.5),
+            at("bin", -10.5, -0.5),
+         ],
+      },
+      {
+         id: "beach",
+         ground: "#e8c484",
+         obstacles: [
+            at("palm", -9, -7),
+            at("palm", 9, -7),
+            at("palm", -8, 4),
+            at("palm", 8, 4),
+            at("pole", -4, -5.5),
+            at("pole", 4, -5.5),
+            at("pole", 0, 4.5),
+            at("bin", 0, -10.5),
+         ],
+      },
+   ],
+   // Level 4 — River Walk: Riverside Lawn, Canal Embankment, Harbour Pier
+   4: [
+      {
+         id: "park",
+         ground: "#489c68",
+         obstacles: [
+            at("bench", -6, -6.5),
+            at("bench", 6, -6.5),
+            at("bench", 0, -9.5),
+            at("tree", -7.5, 3.5),
+            at("tree", 7.5, 3.5),
+            at("bin", 8, 9),
+         ],
+      },
+      {
+         id: "city",
+         ground: "#8292a4",
+         obstacles: [
+            at("building", -8, -6),
+            at("building", 8, -6),
+            at("building", -8, 4.5),
+            at("building", 8, 4.5),
+            at("lamp", -3.5, -6),
+            at("lamp", 3.5, -6),
+            at("lamp", -3.5, 4.5),
+            at("lamp", 3.5, 4.5),
+            at("bin", 0, -10.5),
+            at("bin", 10.5, -1),
+         ],
+      },
+      {
+         id: "beach",
+         ground: "#dbc996",
+         obstacles: [
+            at("palm", -7.5, -8),
+            at("palm", 7.5, -8),
+            at("palm", -9.5, 2.5),
+            at("palm", 9.5, 2.5),
+            at("pole", -4.5, -1.5),
+            at("pole", 4.5, -1.5),
+            at("pole", 0, 4),
+            at("bin", 0, -11),
+         ],
+      },
+   ],
+   // Level 5 — Festival Cleanup: Festival Green, Carnival Midway, Beach Stage
+   5: [
+      {
+         id: "park",
+         ground: "#589e47",
+         obstacles: [
+            at("bench", -7, 4.5),
+            at("bench", 7, 4.5),
+            at("bench", 0, -7.5),
+            at("tree", -8, -6.5),
+            at("tree", 8, -6.5),
+            at("bin", 8, 9),
+         ],
+      },
+      {
+         id: "city",
+         ground: "#92899b",
+         obstacles: [
+            at("building", -7.5, -6.5),
+            at("building", 7.5, -6.5),
+            at("building", -7.5, 4.5),
+            at("building", 7.5, 4.5),
+            at("lamp", -3.5, -0.5),
+            at("lamp", 3.5, -0.5),
+            at("lamp", -3.5, 8.5),
+            at("lamp", 3.5, 8.5),
+            at("bin", 0, -10.5),
+            at("bin", -11, -1),
+         ],
+      },
+      {
+         id: "beach",
+         ground: "#eac682",
+         obstacles: [
+            at("palm", -8.5, -8),
+            at("palm", 8.5, -8),
+            at("palm", -9, 3.5),
+            at("palm", 9, 3.5),
+            at("pole", -4.5, -3),
+            at("pole", 4.5, -3),
+            at("pole", 0, 4.5),
+            at("bin", 0, -10.5),
+         ],
+      },
+   ],
+};
+
+export function mapsForLevel(level: CleanLevel = LEVELS[1]): readonly MapConfig[] {
+   return LEVEL_MAPS[levelIdOf(level)];
+}
 
 /** A square on the ground, tall in y: the runner (y = 0) is always level with it, so pushes are horizontal. */
 export function obstacleBox(o: Obstacle): AABB {
@@ -644,9 +837,10 @@ export function createRun(seed: number, level: CleanLevel = LEVELS[1]): CleanRun
    const s = seed >>> 0;
    let caches = LEVEL_CACHES.get(level);
    if (!caches) {
-      caches = MAPS.map((m, map) => buildMapCache(map, [
-      ...m.obstacles.map(obstacleBox),
-      ...EXTRA_BINS.slice(0, level.extraBins).map((p) => obstacleBox({ kind: "bin", ...p, ...HALF.bin })),
+      const maps = mapsForLevel(level);
+      caches = maps.map((m, map) => buildMapCache(map, [
+         ...m.obstacles.map(obstacleBox),
+         ...EXTRA_BINS.slice(0, level.extraBins).map((p) => obstacleBox({ kind: "bin", ...p, ...HALF.bin })),
       ]));
       LEVEL_CACHES.set(level, caches);
    }

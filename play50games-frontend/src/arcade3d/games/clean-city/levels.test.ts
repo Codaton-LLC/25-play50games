@@ -2,13 +2,22 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { resolve } from "node:path";
 import { beforeAll, describe, expect, it, vi } from "vitest";
+import { Box3, Matrix4, Quaternion, Vector3 } from "three";
+import { aabbOverlap, distanceToBoxXZ, type AABB } from "../../core/collision";
+import { hasModel } from "../../core/modelManifest";
+import { spotMatrix, type InstanceSpot } from "../../core/render";
+import { readCharacterGlb } from "../../core/rig/robotGlb";
+import type { ModelAsset } from "../../core/types";
 import { LEVEL_IDS, type LevelId } from "../../types";
 import { definitionLevelProblems, levelEnvironment, levelHudStats, levelRunConfig } from "../../core/levels";
 import { levelMetaProblems, scoringFor } from "../../levelMeta";
-import { COMBO_POINTS, COMBO_WINDOW_MS, EXTRA_BINS, HAZARDS, HAZARD_SLOW, LEVELS } from "./levels";
+import { ASSETS, FESTIVAL_STALL_SPOTS } from "./assets";
+import { CITY_SQUARE_SPOTS, DECOR_KEEP_OUT, FESTIVAL_CLEANUP_SPOTS, RIVER_WALK_SPOTS, SHOPPING_STREET_SPOTS } from "./decorSpots";
+import { COMBO_POINTS, COMBO_WINDOW_MS, EXTRA_BINS, HAZARDS, HAZARD_SLOW, LEVELS, LEVEL_MAP_NAMES, LEVEL_THEMES } from "./levels";
+import { LEVEL_LOOKS } from "./looks";
 import { cleanCityMeta as meta } from "./meta";
 import definition from "./index";
-import { capScore, createRun, earliestFinishMs, finalRunScore, generateLayout, hazardX, isValidLayout, PROPOSED_LEVEL_LIMITS, RUNNER, step, withinServerLimits, type CleanRun, type StepInput } from "./rules";
+import { FLOOR_HALF, HALF, LEVEL_MAPS, MAPS, MIN_CORRIDOR, START_PAD, acceptsCentre, capScore, createRun, earliestFinishMs, finalRunScore, generateLayout, hazardX, isValidLayout, mapsForLevel, obstacleBox, PROPOSED_LEVEL_LIMITS, RUNNER, SPAWN_HALF, step, withinServerLimits, type CleanRun, type StepInput } from "./rules";
 vi.mock("./Scene", () => ({ default: () => null }));
 vi.mock("./Hud", () => ({ default: () => null }));
 const IDLE = { moveX: 0, moveY: 0 };
@@ -45,6 +54,90 @@ describe("clean-city five level declarations", () => {
          expect(3 * b.items * b.points).toBeGreaterThanOrEqual(meta.scoring.maxScore);
       }
       expect(PROPOSED_LEVEL_LIMITS[5].maxScore).toBeLessThanOrEqual(3 * meta.scoring.maxScore);
+   });
+   it("gives each of the five levels its own district layout, ground palette, HUD sub-zones and environment look", () => {
+      expect(LEVEL_MAPS[1]).toBe(MAPS);
+      const mapSig = (id: LevelId, m: number) => JSON.stringify(LEVEL_MAPS[id][m].obstacles.map((o) => `${o.kind}@${o.x},${o.z}`));
+      for (let m = 0; m < 3; m++) {
+         expect(new Set(LEVEL_IDS.map((id) => mapSig(id, m))).size, `map ${m} obstacle layouts`).toBe(5);
+         expect(new Set(LEVEL_IDS.map((id) => LEVEL_MAPS[id][m].ground)).size, `map ${m} ground palette`).toBe(5);
+         expect(new Set(LEVEL_IDS.map((id) => LEVEL_MAP_NAMES[id][m])).size, `map ${m} HUD names`).toBe(5);
+      }
+      expect(new Set(LEVEL_IDS.map((id) => LEVEL_THEMES[id])).size).toBe(5);
+      expect(new Set(LEVEL_IDS.map((id) => JSON.stringify(LEVEL_LOOKS[id]))).size).toBe(5);
+      for (const id of LEVEL_IDS) {
+         const maps = mapsForLevel(LEVELS[id]);
+         expect(maps).toBe(LEVEL_MAPS[id]);
+         for (let m = 0; m < 3; m++) {
+            const baseBoxes: AABB[] = maps[m].obstacles.map(obstacleBox);
+            const extraBoxes: AABB[] = EXTRA_BINS.slice(0, LEVELS[id].extraBins).map((p) => obstacleBox({ kind: "bin", ...p, ...HALF.bin }));
+            const boxes: AABB[] = [...baseBoxes, ...extraBoxes];
+            let narrowest = Infinity;
+            for (let a = 0; a < baseBoxes.length; a++) {
+               for (let b = a + 1; b < boxes.length; b++) {
+                  const dx = Math.max(0, boxes[b].min.x - baseBoxes[a].max.x, baseBoxes[a].min.x - boxes[b].max.x);
+                  const dz = Math.max(0, boxes[b].min.z - baseBoxes[a].max.z, baseBoxes[a].min.z - boxes[b].max.z);
+                  narrowest = Math.min(narrowest, Math.hypot(dx, dz));
+               }
+               const box = baseBoxes[a];
+               narrowest = Math.min(narrowest, FLOOR_HALF - box.max.x, box.min.x + FLOOR_HALF, FLOOR_HALF - box.max.z, box.min.z + FLOOR_HALF);
+            }
+            expect(narrowest, `L${id} map ${m} corridor`).toBeGreaterThanOrEqual(MIN_CORRIDOR - 1e-9);
+            const padClear = Math.min(...boxes.map((b) => distanceToBoxXZ(START_PAD.x, START_PAD.z, b)));
+            expect(padClear, `L${id} map ${m} start pad`).toBeGreaterThan(RUNNER.radius + 1);
+            expect(acceptsCentre(boxes, START_PAD.x, START_PAD.z)).toBe(true);
+         }
+      }
+   });
+   it("keeps every per-level district set-piece GLB and primitive prop outside the play area and off the near camera side", async () => {
+      const UP = new Vector3(0, 1, 0);
+      const keepOut: AABB = { min: { x: -DECOR_KEEP_OUT, y: -10, z: -DECOR_KEEP_OUT }, max: { x: DECOR_KEEP_OUT, y: 10, z: DECOR_KEEP_OUT } };
+      const burstSquare: AABB = { min: { x: -(SPAWN_HALF + 1.0), y: -10, z: -(SPAWN_HALF + 1.0) }, max: { x: SPAWN_HALF + 1.0, y: 10, z: SPAWN_HALF + 1.0 } };
+      const glbSets: ReadonlyArray<readonly [string, ModelAsset, readonly InstanceSpot[]]> = [
+         ["L2 fountain", ASSETS.parkFountain, CITY_SQUARE_SPOTS.fountain],
+         ["L2 townhouses", ASSETS.townhouseBlock, CITY_SQUARE_SPOTS.townhouses],
+         ["L2 victorianLamps", ASSETS.victorianLamp, CITY_SQUARE_SPOTS.lamps],
+         ["L2 bushes", ASSETS.parkBush, CITY_SQUARE_SPOTS.bushes],
+         ["L3 cornerShops", ASSETS.cornerShop, SHOPPING_STREET_SPOTS.cornerShops],
+         ["L3 kiosks", ASSETS.zooKiosk, SHOPPING_STREET_SPOTS.kiosks],
+         ["L3 busStop", ASSETS.busStop, SHOPPING_STREET_SPOTS.busStop],
+         ["L3 trafficLights", ASSETS.trafficLight, SHOPPING_STREET_SPOTS.trafficLights],
+         ["L4 bridge", ASSETS.woodenFootbridge, RIVER_WALK_SPOTS.bridge],
+         ["L4 rowboats", ASSETS.rowboat, RIVER_WALK_SPOTS.rowboats],
+         ["L4 buoys", ASSETS.harbourBuoy, RIVER_WALK_SPOTS.buoys],
+         ["L4 nightLamps", ASSETS.streetLampNight, RIVER_WALK_SPOTS.nightLamps],
+         ["L4 rocks", ASSETS.beachRocks, RIVER_WALK_SPOTS.rocks],
+         ["L5 stalls", ASSETS.festivalStall, FESTIVAL_STALL_SPOTS],
+         ["L5 tents", ASSETS.festivalTent, FESTIVAL_CLEANUP_SPOTS.tents],
+         ["L5 arch", ASSETS.finishArch, FESTIVAL_CLEANUP_SPOTS.arch],
+      ];
+      for (const [label, asset, spots] of glbSets) {
+         expect(hasModel(asset.url), `${label} manifest`).toBe(true);
+         const { cloud } = await readCharacterGlb(asset.url);
+         const s = asset.scale ?? 1, k = asset.stretch ?? [1, 1, 1];
+         const local = new Matrix4().compose(
+            new Vector3(0, asset.yOffset ?? 0, 0),
+            new Quaternion().setFromAxisAngle(UP, asset.rotationY ?? 0),
+            new Vector3(s * k[0], s * k[1], s * k[2])
+         );
+         for (const spot of spots) {
+            const m = spotMatrix(spot).multiply(local);
+            const box = new Box3();
+            const v = new Vector3();
+            for (let i = 0; i < cloud.length; i += 3) box.expandByPoint(v.set(cloud[i], cloud[i + 1], cloud[i + 2]).applyMatrix4(m));
+            const aabb: AABB = { min: { x: box.min.x, y: box.min.y, z: box.min.z }, max: { x: box.max.x, y: box.max.y, z: box.max.z } };
+            expect(aabbOverlap(aabb, keepOut), `${label} at (${spot.x},${spot.z}) overlaps floor content`).toBe(false);
+            expect(aabbOverlap(aabb, burstSquare), `${label} at (${spot.x},${spot.z}) overlaps burst reach`).toBe(false);
+            expect(box.max.z, `${label} at (${spot.x},${spot.z}) near edge`).toBeLessThanOrEqual(FLOOR_HALF);
+         }
+      }
+      for (const spot of [...CITY_SQUARE_SPOTS.pillars, ...SHOPPING_STREET_SPOTS.bollards, ...RIVER_WALK_SPOTS.quayBollards, ...FESTIVAL_CLEANUP_SPOTS.buntingPosts, ...FESTIVAL_CLEANUP_SPOTS.pennants]) {
+         const hx = (spot.sx ?? 1) / 2, hz = (spot.sz ?? 1) / 2;
+         const aabb: AABB = { min: { x: spot.x - hx, y: 0, z: spot.z - hz }, max: { x: spot.x + hx, y: 3, z: spot.z + hz } };
+         expect(aabbOverlap(aabb, keepOut), `primitive at (${spot.x},${spot.z})`).toBe(false);
+         expect(aabbOverlap(aabb, burstSquare), `primitive at (${spot.x},${spot.z}) burst`).toBe(false);
+         expect(spot.z + hz).toBeLessThanOrEqual(FLOOR_HALF);
+      }
    });
 });
 
