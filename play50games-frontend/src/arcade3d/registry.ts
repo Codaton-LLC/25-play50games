@@ -91,7 +91,8 @@ import { neonCubeJumpMeta } from "./games/neon-cube-jump/meta";
 
 import { snowSlideDashMeta } from "./games/snow-slide-dash/meta";
 import { portalHopMeta } from "./games/portal-hop/meta";
-import { switchColorHeroMeta, crystalCaveSwitchMeta } from "./games/switch-color-hero/meta";
+import { switchColorHeroMeta } from "./games/switch-color-hero/meta";
+import { crystalCaveSwitchMeta } from "./games/crystal-cave-switch/meta";
 
 export const ARCADE_GAMES: ArcadeGameMeta[] = [
    robotCollectorMeta,
