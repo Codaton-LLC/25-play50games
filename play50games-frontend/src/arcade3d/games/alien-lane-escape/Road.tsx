@@ -680,7 +680,7 @@ function Scenery({ run }: { run: AlienRun }) {
       const list = decor.filter((d) => d.kind === kind);
       const g = GLB_SIZE[kind];
       const h = kind === "spires" ? 18 : 3.4;
-      const off = kind === "spires" ? 20 : 7.4;
+      const off = kind === "spires" ? 34 : 7.4;
       return (i: number, m: Matrix4) => {
          const d = list[i];
          if (!d) return false;
