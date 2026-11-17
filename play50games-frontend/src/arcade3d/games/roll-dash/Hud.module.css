@@ -280,11 +280,13 @@
    .meter {
       width: 56px;
    }
+   /* on a phone the shell's Jump / Power sit bottom right: the strip rises above their row */
    .portrait {
-      width: 46px;
-      height: 46px;
+      width: 44px;
+      height: 44px;
    }
    .strip {
       gap: 6px;
+      bottom: calc(env(safe-area-inset-bottom, 0px) + 122px);
    }
 }

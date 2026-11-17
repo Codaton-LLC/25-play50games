@@ -168,3 +168,4 @@ Only the stretch around the roller is drawn (moving pools), so a 1.5 km street c
   - The world music stems.
 - **Level 5's street** is the boss's own: there are no hand-placed obstacles, only what the Hawk drops, and orb lines every 30 m.
 - **The swoop** hurts in its lane on the ground; jumping clears it.
+- **The echo look:** the Hawk is only tinted grey; the W6 `echoMaterial` shader (smoked glass with prism cracks) is a shared-system request that isn't built yet, so its own colours still show through.

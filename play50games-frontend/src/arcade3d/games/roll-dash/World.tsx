@@ -55,8 +55,8 @@ export default function World({ run }: { run: DashRun }) {
                <meshStandardMaterial color={COLORS.graphite} roughness={1} />
             </mesh>
          </group>
-         <hemisphereLight args={[look.skyBottom, COLORS.graphite, night ? 0.35 : 0.8]} />
-         <directionalLight position={[-12, 24, 10]} intensity={night ? 0.35 : 1.1} color={look.lighting === "sunset" ? "#ffd7b0" : night ? "#9fb2ff" : "#ffffff"} />
+         <hemisphereLight args={[night ? "#8ea2d8" : look.skyBottom, COLORS.graphite, night ? 0.7 : 0.8]} />
+         <directionalLight position={[-12, 24, 10]} intensity={night ? 0.6 : 1.1} color={look.lighting === "sunset" ? "#ffd7b0" : night ? "#9fb2ff" : "#ffffff"} />
          <group ref={fortress}>
             <group position={[0, 18, 0]}>
                <Model asset={ASSETS.gate} scale={34 / GLB_SIZE.gate.x} />
