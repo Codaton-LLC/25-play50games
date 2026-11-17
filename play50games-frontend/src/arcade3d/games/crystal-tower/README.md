@@ -145,10 +145,12 @@ catches it once (a strike, no fall).
 
 ## Models
 
-No new Hyper3D generation: every model is an existing GLB reused by url (`assets.ts`, all in the
-manifest): spin-pole-climb's m2CircularPlatform (the pads, tinted by kind and placed per instance to
-their radius), dragon-cave-rush's m2CrystalCluster (the crystals tinted their colour; the dark walls)
-and m2HangingCrystal (the spire's growths, the storm shards), the menu2 checkpointBeacon (the beacons),
+No new Hyper3D generation. The card's own set (ready/menu2/crystal-tower, optimized locally with
+tools/hyper3d, wired in claude/m2-wire-owned): m2Crystal (the tier crystals, tinted their colour) and
+m2SequenceBeacon (the beacons). Its m2CrystalHexPlatform stays out: a crystal spire stands on its top,
+through the hero. Reused by url: spin-pole-climb's m2CircularPlatform (the pads, tinted by kind and
+placed per instance to their radius), dragon-cave-rush's m2CrystalCluster (the dark walls)
+and m2HangingCrystal (the spire's growths, the storm shards),
 color-city-sprint's m2EnergyGem (gems) and m2FactoryDrone (drones), ice-peak-jumper's m2IceCrystal (the
 summit crystal), cloud-hopper's m2SkyStar (far stars), the menu2 m2ShadowArmadillo (Prism Shade) and
 the five menu2 heroes. The spire, rims, rings, the void gates' arch (menu2/props ArchWall) and the

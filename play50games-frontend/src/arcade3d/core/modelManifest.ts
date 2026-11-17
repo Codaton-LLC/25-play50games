@@ -783,6 +783,9 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/toy-room-run/m2WindUpKey.glb",
    // Menu 2 game 23 (Gem Collector 3D): its vault props from ready/menu2/gem-collector-3d, plus
    // m2GummyMonster (the L5 boss) from ready/menu2/shared
+   // Menu 2 game 28 (Crystal Tower): its own ready set (wired in claude/m2-wire-owned)
+   "/models/3d/crystal-tower/m2Crystal.glb",
+   "/models/3d/crystal-tower/m2SequenceBeacon.glb",
    "/models/3d/gem-collector-3d/m2ArenaRimWall.glb",
    "/models/3d/gem-collector-3d/m2ArenaTileV2.glb",
    "/models/3d/gem-collector-3d/m2CrystalHillBg.glb",

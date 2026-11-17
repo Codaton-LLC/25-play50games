@@ -1,7 +1,8 @@
-// Crystal Tower's models. The five heroes are the shared Menu 2 heroes (menu2/heroModels.ts). Every
-// other model is a Hyper3D GLB that already exists under public/models/3d (reused by url, all in
-// the manifest; no new generation): the pads are spin-pole-climb's circular platform, the crystals
-// dragon-cave-rush's crystal cluster tinted per colour, the beacons the menu2 checkpoint beacon,
+// Crystal Tower's models. The five heroes are the shared Menu 2 heroes (menu2/heroModels.ts). The
+// card's own set (ready/menu2/crystal-tower, optimized with tools/hyper3d, no credits): the tier
+// crystals are m2Crystal tinted per colour, the beacons m2SequenceBeacon. The rest are Hyper3D GLBs
+// already under public/models/3d (reused by url): the pads spin-pole-climb's circular platform (the
+// card's m2CrystalHexPlatform has a crystal spire on its top), Riko's walls dragon-cave-rush's crystal cluster,
 // the gems color-city-sprint's energy gem, the drones its factory drone, the summit crystal
 // ice-peak-jumper's ice crystal, the spire's hanging crystals and the storm shards dragon-cave-rush's
 // hanging crystal, the far stars cloud-hopper's sky star, and Prism Shade the menu2 shadow
@@ -12,12 +13,14 @@ import type { ModelAsset } from "@/arcade3d/core/types";
 import { CHARACTER_BUDGET, PROP_BUDGET } from "@/arcade3d/core/sharedAssets";
 
 export const GLB_SIZE = {
-   /** m2CircularPlatform: a flat disc (its top is its y) */
+   /** m2CircularPlatform: a flat disc (its top is its y). The card's m2CrystalHexPlatform has a crystal spire on its top (it would stand through the hero), so it stays out */
    pad: { x: 1.85, y: 0.243, z: 1.902 },
-   /** m2CrystalCluster: a cluster of shards, wide at the base */
-   crystal: { x: 1.9119, y: 1.4206, z: 1.8569 },
-   /** checkpointBeacon: a tall beacon post */
-   beacon: { x: 1.1678, y: 1.9023, z: 0.9893 },
+   /** m2Crystal: a single faceted crystal, neutral (tinted per colour) */
+   crystal: { x: 1.712, y: 1.902, z: 1.805 },
+   /** m2CrystalCluster: a cluster of shards, wide at the base (Riko's dark crystal walls) */
+   wall: { x: 1.9119, y: 1.4206, z: 1.8569 },
+   /** m2SequenceBeacon: a stone pillar with three crystal sockets and a glowing top */
+   beacon: { x: 0.962, y: 1.904, z: 0.972 },
    gem: { x: 1.8655, y: 1.8676, z: 1.8884 },
    /** m2FactoryDrone: rotors along x, front towards +z */
    drone: { x: 1.9001, y: 1.8199, z: 0.8567 },
@@ -60,8 +63,9 @@ export const BOSS_L = 3.4;
 export const ASSETS: Record<string, ModelAsset> = {
    hero: heroModelAsset("vexa"),
    pad: reused("m2CircularPlatform", "/models/3d/spin-pole-climb/m2CircularPlatform.glb", "#4c1d95"),
-   crystal: reused("m2CrystalCluster", "/models/3d/dragon-cave-rush/m2CrystalCluster.glb", "#c084fc"),
-   beacon: { ...reused("checkpointBeacon", "/models/3d/menu2/checkpointBeacon.glb", "#a78bfa"), scale: BEACON_H / GLB_SIZE.beacon.y },
+   crystal: reused("m2Crystal", "/models/3d/crystal-tower/m2Crystal.glb", "#c084fc"),
+   wall: reused("m2CrystalCluster", "/models/3d/dragon-cave-rush/m2CrystalCluster.glb", "#3b0764"),
+   beacon: { ...reused("m2SequenceBeacon", "/models/3d/crystal-tower/m2SequenceBeacon.glb", "#a78bfa"), scale: BEACON_H / GLB_SIZE.beacon.y },
    gem: { ...reused("m2EnergyGem", "/models/3d/color-city-sprint/m2EnergyGem.glb", "#fde68a"), scale: GEM_W / GLB_SIZE.gem.x },
    drone: { ...reused("m2FactoryDrone", "/models/3d/color-city-sprint/m2FactoryDrone.glb", "#f472b6", CHARACTER_BUDGET), scale: DRONE_W / GLB_SIZE.drone.x },
    summit: { ...reused("m2IceCrystal", "/models/3d/ice-peak-jumper/m2IceCrystal.glb", "#e9d5ff"), scale: SUMMIT_H / GLB_SIZE.summit.y },

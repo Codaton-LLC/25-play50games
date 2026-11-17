@@ -2,11 +2,11 @@
 
 // The tower, drawn from the run (rules.ts) every frame. The spire is code (set); every object a
 // player reads is a Hyper3D mesh: the pads (m2CircularPlatform, tinted by kind, shaking as they
-// crumble), the tier crystals (m2CrystalCluster tinted their colour: dim while dormant, bright while
+// crumble), the tier crystals (m2Crystal tinted their colour: dim while dormant, bright while
 // live, pulsing as the beacon shows their colour, bobbing on L4+, gone once the round is done),
 // Prism Shade's five rim crystals (sliding to their new slots on a shuffle, grey in Blackout), the
-// beacons (checkpointBeacon, their ring and show flash coloured by state), the summit crystal
-// (m2IceCrystal), the dark crystal walls, the void gates (menu2/props ArchWall), the spark drones,
+// beacons (m2SequenceBeacon, their ring and show flash coloured by state), the summit crystal
+// (m2IceCrystal), the dark crystal walls (m2CrystalCluster), the void gates (menu2/props ArchWall), the spark drones,
 // the shard storms (m2HangingCrystal raining), the gems and the secrets. Remounted per level.
 import { useMemo, useRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
@@ -299,7 +299,7 @@ function Summit({ run, clock }: { run: TowerRun; clock: VisualClock }) {
 /** Riko's dark crystal walls (gone once shattered). */
 function Walls({ run, clock }: { run: TowerRun; clock: VisualClock }) {
    const c = run.course;
-   const g = GLB_SIZE.crystal;
+   const g = GLB_SIZE.wall;
    const update = (i: number, m: Matrix4, color?: Color) => {
       const w = c.walls[i];
       if (!w || run.wallBroken[i]) return false;
@@ -309,7 +309,7 @@ function Walls({ run, clock }: { run: TowerRun; clock: VisualClock }) {
       color?.copy(C_WALL).lerp(new Color("#ef4444"), 0.15 + 0.1 * Math.sin(clock.ms / 300));
    };
    if (c.walls.length === 0) return null;
-   return <DynamicInstancedModel asset={ASSETS.crystal} count={c.walls.length} update={update} tinted name="walls" />;
+   return <DynamicInstancedModel asset={ASSETS.wall} count={c.walls.length} update={update} tinted name="walls" />;
 }
 
 /** Vexa's void gates: an arch with a shimmering void in it. */
