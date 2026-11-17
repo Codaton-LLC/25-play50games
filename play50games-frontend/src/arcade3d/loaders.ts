@@ -74,6 +74,7 @@ export const GAME_LOADERS: Record<ArcadeSlug, () => Promise<GameModule>> = {
    "toy-room-run": () => import("./games/toy-room-run"),
    "jungle-vine-jump": () => import("./games/jungle-vine-jump"),
    "ice-peak-jumper": () => import("./games/ice-peak-jumper"),
+   "candy-world-runner": () => import("./games/candy-world-runner"),
    "dragon-cave-rush": () => import("./games/dragon-cave-rush"),
    "color-door-sprint": () => import("./games/color-door-sprint"),
    "sky-hook-swing": () => import("./games/sky-hook-swing"),
@@ -82,4 +83,7 @@ export const GAME_LOADERS: Record<ArcadeSlug, () => Promise<GameModule>> = {
    "wall-run-temple": () => import("./games/wall-run-temple"),
    "temple-coin-rush": () => import("./games/temple-coin-rush"),
    "mine-tunnel-run": () => import("./games/mine-tunnel-run"),
+   "color-rail-grind": () => import("./games/color-rail-grind"),
+   "spin-pole-climb": () => import("./games/spin-pole-climb"),
+   "temple-gong-timing": () => import("./games/temple-gong-timing"),
 };
