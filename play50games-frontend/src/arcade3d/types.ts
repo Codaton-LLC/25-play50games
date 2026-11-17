@@ -99,6 +99,7 @@ export const ARCADE_SLUGS = [
    "roll-dash",
    "color-match-jump",
    "switch-color-hero",
+   "paint-the-platforms",
    "energy-core-hunt",
 ] as const;
 

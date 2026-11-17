@@ -380,6 +380,11 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/neon-cube-jump/m2NeonSentryDrone.glb",
    "/models/3d/neon-cube-jump/m2NeonCityBg.glb",
    "/models/3d/neon-cube-jump/m2FlipframeCore.glb",
+   // Paint the Platforms (Menu 2 #25): floor tile, arena wall, paint pickup, Paint Blob boss
+   "/models/3d/paint-the-platforms/m2ArenaFloorTile.glb",
+   "/models/3d/paint-the-platforms/m2ArenaWall.glb",
+   "/models/3d/paint-the-platforms/m2PaintBlobBoss.glb",
+   "/models/3d/paint-the-platforms/m2PaintPickup.glb",
    // Crystal Cave Switch (Menu 2 #44): switch, gate, beacon, slab, bridge, boulder, grotto wall, Hollow Prism
    "/models/3d/crystal-cave-switch/m2CrystalSwitch.glb",
    "/models/3d/crystal-cave-switch/m2CaveGate.glb",
