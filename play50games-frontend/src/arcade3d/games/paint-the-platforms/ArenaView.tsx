@@ -408,8 +408,11 @@ function Roller({ run }: { run: PaintRun }) {
 }
 
 export function Arena({ run }: { run: PaintRun }) {
+   const look = levelLook(run.level);
    return (
       <group>
+         <ambientLight intensity={look.fill} />
+         <directionalLight position={[-12, 18, 10]} intensity={look.fill * 0.8} />
          {run.course.platforms.map((p) => (
             <Base key={p.id} run={run} plat={p} />
          ))}

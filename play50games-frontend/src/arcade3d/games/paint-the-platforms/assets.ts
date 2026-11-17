@@ -43,6 +43,6 @@ export const ASSETS: Record<string, ModelAsset> = {
    wall: prop("m2ArenaWall", "#64748b"),
    pickup: { ...prop("m2PaintPickup", "#f8fafc"), fallback: "sphere" },
    blob: prop("m2PaintBlobBoss", "#64748b", "paint-the-platforms", CHARACTER_BUDGET),
-   island: prop("islandB", "#475569", "menu2"),
-   tower: prop("stoneTower", "#475569", "menu2"),
+   island: { ...prop("islandB", "#475569", "menu2"), material: "stone" },
+   tower: { ...prop("stoneTower", "#475569", "menu2"), material: "stone" },
 };

@@ -35,11 +35,11 @@ function clockText(ms: number): string {
 const HINT_TEXT: Record<number, string> = {
    [HINT.paint]: "Run over the grey tiles to paint them in your colour",
    [HINT.rows]: "Paint a whole row and it sets: nothing can wipe it",
-   [HINT.blots]: "Grey blots wipe the paint they cross: keep clear, or set the rows",
-   [HINT.raft]: "The tile rafts dock at each island for a moment: step on, ride, paint them too",
+   [HINT.blots]: "Blots wipe paint: keep clear, or set whole rows",
+   [HINT.raft]: "Rafts stop at each island: hop on, ride, paint them too",
    [HINT.roller]: "The roller is coming down the glowing lane: get out of it",
    [HINT.slam]: "A slam is coming: get out of the dark ring",
-   [HINT.splat]: "Its core is open: get close and press Action (E) to splat it",
+   [HINT.splat]: "Core open: get close and press Power (E) to splat it",
    [HINT.died]: "Back on the last platform you stood on",
    [HINT.blob]: "Painted enough: now splat the Paint Blob",
    [HINT.last]: "Almost there: a few more tiles",
@@ -145,7 +145,7 @@ function PaintPanel({ level }: { level: 1 | 2 | 3 | 4 | 5 }) {
                <div className={styles.barFill} style={{ width: `${Math.min(100, (painted * 100) / total)}%`, background: hero.color }} />
                <div className={styles.barGoal} style={{ left: `${goalPct}%` }} />
             </div>
-            <span className={styles.leanTag}>{done ? (c.boss ? "SPLAT THE BLOB" : "PAINTED!") : `${Math.max(0, c.need - painted)} TILES TO GO · ${rows} SET`}</span>
+            <span className={styles.leanTag}>{done ? (c.boss ? "SPLAT THE BLOB" : "PAINTED!") : `${Math.max(0, c.need - painted)} TO GO · ${rows} SET`}</span>
          </div>
       </div>
    );

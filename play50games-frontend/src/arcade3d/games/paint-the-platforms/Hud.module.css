@@ -414,6 +414,10 @@
    flex: none;
 }
 
+.paintCol .leanTag {
+   white-space: nowrap;
+}
+
 .paintCol {
    display: flex;
    flex-direction: column;
@@ -486,6 +490,10 @@
    }
    .paintCol {
       min-width: 112px;
+   }
+   .paintCol .leanTag {
+      font-size: 0.68rem;
+      letter-spacing: 0.04em;
    }
    .paintPct {
       font-size: 1.2rem;
