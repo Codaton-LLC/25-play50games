@@ -94,7 +94,6 @@ import { snowSlideDashMeta } from "./games/snow-slide-dash/meta";
 import { portalHopMeta } from "./games/portal-hop/meta";
 import { crystalCaveSwitchMeta } from "./games/crystal-cave-switch/meta";
 import { switchColorHeroMeta } from "./games/switch-color-hero/meta";
-import { crystalCaveSwitchMeta } from "./games/crystal-cave-switch/meta";
 import { colorMatchJumpMeta } from "./games/color-match-jump/meta";
 import { energyCoreHuntMeta } from "./games/energy-core-hunt/meta";
 
