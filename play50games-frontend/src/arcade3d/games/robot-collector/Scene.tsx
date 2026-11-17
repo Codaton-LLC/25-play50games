@@ -51,6 +51,8 @@ import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { followFocus } from "@/arcade3d/core/view";
 import { ASSETS } from "./assets";
 import { ROBOT_SCALE, robotPhaseStep } from "./gait";
+import { SCENERY, SCENERY_AREA } from "./scenery";
+import { Scenery } from "./WarehouseScenery";
 import type { RobotLevel } from "./levels";
 import { BatteryPrimitive, COLORS, HazardMarks, RobotPrimitive, WALL, Warehouse, useBatteryParts } from "./Primitives";
 import {
@@ -100,6 +102,12 @@ const VIEW: FittedViewOptions = {
    margin: { top: 0.11, bottom: 0.07, left: 0.02, right: 0.02 },
    padding: 8,
    shift: true,
+};
+
+// Include every perimeter fixture in the fitted solid volume. Training keeps its original fit.
+const DECORATED_VIEW: FittedViewOptions = {
+   ...VIEW,
+   area: SCENERY_AREA,
 };
 
 // ---------- the robot ----------
@@ -285,9 +293,10 @@ function Batteries({ run }: { run: Run }) {
 
 /** The scene of one level: the Scene below remounts it when another level is picked on the start card. */
 function LevelScene() {
-   const view = useFittedView(VIEW);
+   const { id, config, meta } = useRobotLevel();
+   const look = SCENERY[id];
+   const view = useFittedView(look ? DECORATED_VIEW : VIEW);
    const input = useInput();
-   const { config, meta } = useRobotLevel();
    // a new seed every run: GameShell remounts the Scene (and its game time) on start and retry
    const [dir] = useState({ x: 0, z: 0 });
    const [run] = useState<Run>(() => {
@@ -326,7 +335,8 @@ function LevelScene() {
             shift={view.shift}
             damping={4}
          />
-         <Warehouse props={run.world.props} />
+         <Warehouse props={run.world.props} look={look} />
+         {look && <Scenery look={look} />}
          <HazardMarks level={config} />
          <Robot run={run} lamp={config.lamp} />
          <Batteries run={run} />
