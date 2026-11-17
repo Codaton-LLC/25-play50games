@@ -1,12 +1,12 @@
 # Toy Store Night Shift
 
-Owner: kimi. Slug: `toy-store-night-shift`. Order 48. Status `dev`. Collection `skill`. Points. Difficulty 2. One store, five level configs. Spec: `docs/menu1-new/specs-41-50.md` §48. Built on `claude/game-toy-store-night-shift`.
+Owner: kimi. Slug: `toy-store-night-shift`. Order 48. Status `dev`. Collection `skill`. Points. Difficulty 2. One store, five department layouts. Spec: `docs/menu1-new/specs-41-50.md` §48. Built on `claude/game-toy-store-night-shift`.
 
 **Story.** At night the toys came alive and wrecked the store. You are the store's tidy-up robot: put every toy back on its shelf before morning, while the wild wind-up toys run the aisles. The hero is the plan's wind-up toy robot (user decision 2026-10-28; the night guard `charNightGuard` is gone from the game, its GLB and manifest line removed: no other game used it).
 
 ## Rules
 
-The store is `aisles` rows of 4 m shelves (solid boxes, 0.8 m deep, 1.6 m high). A row's shelves stand 1.4 m apart; rows are 3.6 m apart, so every aisle is 2.8 m wide and every gap 1.4 m (`rules.test.ts` checks both, and the clearance to the walls, on 200 seeds). The shelves go to the rows in turn. One shelf per toy kind, two from level 3 (either is right). The robot starts in the front left corner.
+The store is `aisles` rows of 4 m shelves (solid boxes, 0.8 m deep, 1.6 m high). Level 1 shelves stand 1.4 m apart and rows 3.6 m apart. Levels 2-5 use their own shelf gaps, row pitches and row offsets from `levels.ts`; wind-up routes follow the same offsets. Every aisle and shelf gap remains at least 1.4 m wide (`rules.test.ts` checks both, and the clearance to the walls, on 200 seeds). The shelves go to the rows in turn. One shelf per toy kind, two from level 3 (either is right). The robot starts in the front left corner.
 
 Toys: `toys` of them on the floor, kinds mixed (kind = index mod `categories`, shuffled), at least 1.5 m apart, never inside a shelf, 2.5 m from the start. A flood fill proves every toy can be picked up and every shelf front reached; `createRun` retries the seed's layout until it does.
 
@@ -31,10 +31,16 @@ Keyboard and touch run the same `step()`: the same stun, mercy and reach on both
 | L | Title | Aisles | Kinds | Shelves | Toys | Carry | Wind-ups | Speed | Clock | Light |
 |---|---|---:|---:|---:|---:|---:|---:|---:|---:|---|
 | 1 | Toy Shelf | 2 | 3 | 3 | 5 | 1 | 0 | - | 120 s | indoor `#fce7f3` |
-| 2 | Store Floor | 3 | 4 | 4 | 8 | 1 | 1 | 1.4 | 150 s | indoor `#fbcfe8` |
-| 3 | Warehouse | 4 | 5 | 10 | 10 | 1 | 2 | 1.6 | 180 s | night `#1e293b` |
-| 4 | Mega Toy Store | 4 | 6 | 12 | 14 | 2 | 3 | 1.8 | 180 s | indoor `#f9a8d4` |
-| 5 | Toy Chaos | 5 | 7 | 14 | 18 | 2 | 4 | 2.0 | 210 s | night `#0f172a` |
+| 2 | Store Floor | 3 | 4 | 4 | 8 | 1 | 1 | 1.4 | 150 s | day `#b8dbd8` |
+| 3 | Warehouse | 4 | 5 | 10 | 10 | 1 | 2 | 1.6 | 180 s | night `#253345` |
+| 4 | Mega Toy Store | 4 | 6 | 12 | 14 | 2 | 3 | 1.8 | 180 s | sunset `#6e4265` |
+| 5 | Toy Chaos | 5 | 7 | 14 | 18 | 2 | 4 | 2.0 | 210 s | night `#17132f` |
+
+### Department layouts
+
+Level 1 is unchanged. Store Floor has alternating retail islands, mint surfaces, three window displays and a longer single-carry route past its first wind-up. Warehouse has paired loading rows, wider aisles, slate surfaces, yellow floor lines and double-stacked shipping crates; two shelves per kind let the player choose a delivery station. Mega Toy Store spreads the rows into a broad zigzag showroom with four coloured department lanes and five bear/train displays; the existing two-toy stack makes route and pickup order matter. Toy Chaos breaks the row alignment, mixes angled displays and crate stacks, and uses violet night fog with green emergency lanes; all seven categories, four wind-ups and two-toy carrying combine for the final shift.
+
+Department scenery stays behind the playable rectangle, including its rotated mesh footprint. New scenery participates in alternate-camera collision. Surface paint is flat and non-colliding. The original hero, sign colours/shapes, target beacons, close follow framing and night street glow remain intact.
 
 ## Server limits
 
@@ -48,13 +54,13 @@ Keyboard and touch run the same `step()`: the same stun, mercy and reach on both
 | 4 | 1400 | 21.61 s | 18.37 s | 1400 + 36 x 21.61 = 2178 | 36 | 2110 | 2032 | 96.3% | 180000 |
 | 5 | 1800 | 31.37 s | 26.66 s | 1800 + 28 x 31.37 = 2678 | 28 | 2610 | 2512 | 96.2% | 210000 |
 
-Level 5 `maxScore` 2610 is under `3 x 990` (2.64x). The score without a win never passes `Bobj`, which `base` already covers. The oracle won 100/100 seeds on every level; the human-paced bot (stick 0.9, 0.15 s before each Use, one toy at a time) wins at least 99% of 100 seeds on every level (`levels.test.ts`).
+Level 5 `maxScore` 2610 is under `3 x 990` (2.64x). The score without a win never passes `Bobj`, which `base` already covers. The table above records the original layout measurements; the department-layout pass leaves these conservative limits unchanged and reruns all five proof suites against the new layouts. The oracle won 100/100 seeds on every level; the human-paced bot (stick 0.9, 0.15 s before each Use, one toy at a time) wins at least 99% of 100 seeds on every level (`levels.test.ts`).
 
 Proof (`proof.level-N.test.ts`, one level per file so they run in parallel; `testing/proof.ts`, bots in `testing/bot.ts`, all through `createArcadeStore` + `advanceRunClock`): per level the proof's arithmetic (`PROOF_EARLIEST_WIN_S` = 0.85 e), 200 oracle seeds and 200 human-paced seeds at 30 / 60 / 144 Hz (each inside the limits, `capScore` a no-op, no win before 0.85 e, at least 99 % wins; measured 200/200 on every level), best oracle at least 90 % of `maxScore`, idle on 200 seeds through the rules and 10 through the store (never wins, scores 0), 40 spam seeds inside the limits. Mutation probes on every level read in `rules.ts`, `index.tsx` and `meta.ts` (18) all fail the tests.
 
 ## Look
 
-One palette (`COLORS`) in `looks.ts`: floor `#e2e8f0` tiles, shelf trims `#f472b6` / `#60a5fa`, accent `#f472b6`. Lighting and background come from the level (core presets + fog). Camera: a close follow camera (`FOLLOW_CAM` in `looks.ts`: portrait 6.4 m at 50 deg, landscape 8.4 m at 52 deg, fov 48), so the robot's silhouette is 0.19 of a 390 x 844 phone's height (1/6-1/5) and 0.145 of a 1280 x 800 desktop (the old fitted 12 x 7 m window drew it at about 3 % / 8 %; `framing.test.ts` pins both). The fitted window (`viewFor`, yaws `[0, pi/2]`, `shift: true`) still picks the yaw (a portrait phone turns to pi/2) and the lens shift that puts the aim in the free area, clear of the kinds panel and the controls. The aim follows the robot (0.4 m ahead, clamped 0.4 m inside the walls), and `framing.test.ts` projects the robot at 390 x 844 and 1280 x 800 from every standable spot clear of the HUD, the panel and the controls. The close view shows about one aisle: the next toy or shelf front gets a core `TargetBeacon` (pick / drop-here) and the `TargetMarkers` edge arrow while it is off screen. The player zoom (`useCameraZoom`: wheel, pinch, + / -; `ZOOM` 0.75-5.4) goes out to the old overview (a 390 x 844 phone's old fitted camera sat about 33 m away). Past the walls the view shows a dark ground that reaches past the fog, so the floor outside never shows a void. Fog starts at 60 m, past the full zoom out plus the window (`looks.test.ts`). The +x wall, on the portrait camera's side, is a 0.7 m counter so it never hides the robot; the back and left walls are 2.6 m.
+Shared gameplay colours (`COLORS`) and per-department surface colours (`departmentOf`) in `looks.ts`. Level 1: floor `#e2e8f0` tiles, shelf trims `#f472b6` / `#60a5fa`, accent `#f472b6`. Lighting and background come from the level (core presets + fog). Camera: a close follow camera (`FOLLOW_CAM` in `looks.ts`: portrait 6.4 m at 50 deg, landscape 8.4 m at 52 deg, fov 48), so the robot's silhouette is 0.19 of a 390 x 844 phone's height (1/6-1/5) and 0.145 of a 1280 x 800 desktop (the old fitted 12 x 7 m window drew it at about 3 % / 8 %; `framing.test.ts` pins both). The fitted window (`viewFor`, yaws `[0, pi/2]`, `shift: true`) still picks the yaw (a portrait phone turns to pi/2) and the lens shift that puts the aim in the free area, clear of the kinds panel and the controls. The aim follows the robot (0.4 m ahead, clamped 0.4 m inside the walls), and `framing.test.ts` projects the robot at 390 x 844 and 1280 x 800 from every standable spot clear of the HUD, the panel and the controls. The close view shows about one aisle: the next toy or shelf front gets a core `TargetBeacon` (pick / drop-here) and the `TargetMarkers` edge arrow while it is off screen. The player zoom (`useCameraZoom`: wheel, pinch, + / -; `ZOOM` 0.75-5.4) goes out to the old overview (a 390 x 844 phone's old fitted camera sat about 33 m away). Past the walls the view shows a dark ground that reaches past the fog, so the floor outside never shows a void. Fog starts at 60 m, past the full zoom out plus the window (`looks.test.ts`). The +x wall, on the portrait camera's side, is a 0.7 m counter so it never hides the robot; the back and left walls are 2.6 m.
 
 Shelf signs lie flat on the shelf top, so they read from either camera yaw: a coloured plate with a white frame shape and the toy's silhouette (`glyphs.ts`: circle bears, square cars, triangle planes, diamond balls, hexagon blocks, star trains, pentagon robots). Colour alone fails at night, so the shape and the picture carry the kind. Plates are unlit (`MeshBasicMaterial`), so they read in the dark levels too. The carried toy's plate floats over the robot's head, above the carried toys, and faces the camera. The HUD (`data-arcade-safe-area`) lists the kinds of the level with the same chip and how many are left; the stat chips are Shelved and Carrying.
 

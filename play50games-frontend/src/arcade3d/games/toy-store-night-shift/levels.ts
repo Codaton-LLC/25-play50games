@@ -1,5 +1,5 @@
 // Toy Store Night Shift level configs (docs/menu1-new/specs-41-50.md §48). One store; only the
-// aisles, the categories, the toy count, the carry cap, the wind-ups, the clock and the light change.
+// departments change shelf spacing, row placement, scenery, palette and lighting.
 // Plain data: no three.js, no React.
 import type { LevelId } from "@/arcade3d/types";
 
@@ -12,16 +12,20 @@ export interface ToyLevel {
    windups: number;
    windupSpeed: number;
    durationMs: number;
-   lighting: "indoor" | "night";
+   lighting: "indoor" | "night" | "day" | "sunset";
+   department?: "retail" | "warehouse" | "mega" | "chaos";
+   shelfGap?: number;
+   rowPitch?: number;
+   rowOffsets?: readonly number[];
    background: string;
 }
 
 export const LEVELS: Record<LevelId, ToyLevel> = {
    1: { aisles: 2, categories: 3, shelvesPerCategory: 1, toys: 5, carry: 1, windups: 0, windupSpeed: 0, durationMs: 120_000, lighting: "indoor", background: "#fce7f3" },
-   2: { aisles: 3, categories: 4, shelvesPerCategory: 1, toys: 8, carry: 1, windups: 1, windupSpeed: 1.4, durationMs: 150_000, lighting: "indoor", background: "#fbcfe8" },
-   3: { aisles: 4, categories: 5, shelvesPerCategory: 2, toys: 10, carry: 1, windups: 2, windupSpeed: 1.6, durationMs: 180_000, lighting: "night", background: "#1e293b" },
-   4: { aisles: 4, categories: 6, shelvesPerCategory: 2, toys: 14, carry: 2, windups: 3, windupSpeed: 1.8, durationMs: 180_000, lighting: "indoor", background: "#f9a8d4" },
-   5: { aisles: 5, categories: 7, shelvesPerCategory: 2, toys: 18, carry: 2, windups: 4, windupSpeed: 2.0, durationMs: 210_000, lighting: "night", background: "#0f172a" },
+   2: { department: "retail", shelfGap: 2.0, rowOffsets: [0.8, -0.8, 0.8], aisles: 3, categories: 4, shelvesPerCategory: 1, toys: 8, carry: 1, windups: 1, windupSpeed: 1.4, durationMs: 150_000, lighting: "day", background: "#b8dbd8" },
+   3: { department: "warehouse", shelfGap: 1.8, rowPitch: 4.2, rowOffsets: [-0.7, -0.7, 0.7, 0.7], aisles: 4, categories: 5, shelvesPerCategory: 2, toys: 10, carry: 1, windups: 2, windupSpeed: 1.6, durationMs: 180_000, lighting: "night", background: "#253345" },
+   4: { department: "mega", shelfGap: 2.8, rowPitch: 4.6, rowOffsets: [-1, 1, -1, 1], aisles: 4, categories: 6, shelvesPerCategory: 2, toys: 14, carry: 2, windups: 3, windupSpeed: 1.8, durationMs: 180_000, lighting: "sunset", background: "#6e4265" },
+   5: { department: "chaos", shelfGap: 2.2, rowPitch: 4.0, rowOffsets: [1, -0.6, 0.9, -1, 0.4], aisles: 5, categories: 7, shelvesPerCategory: 2, toys: 18, carry: 2, windups: 4, windupSpeed: 2.0, durationMs: 210_000, lighting: "night", background: "#17132f" },
 };
 
 export const LEVEL_TITLES: Record<LevelId, string> = {
