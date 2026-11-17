@@ -2,7 +2,7 @@
 
 // The stations: one merged, flat-shaded sea-stack geometry for every rock pillar of the level
 // (terrain stays in code: strata, wet base, grass or guano cap), the watch towers (GLB) carrying a
-// steel gantry over each launch, the rear anchor frame each cable ends on, the landing mats with
+// steel gantry over each launch, the rear anchor frame each cable ends on (its posts m2CableAnchor), the landing mats with
 // their three-zone projection, the moving decks of L3/L5, lighthouses with sweeping beams on the
 // night levels and the Tide Bell station at the end. Visual only.
 import { useEffect, useMemo, useRef } from "react";
@@ -12,7 +12,6 @@ import {
    BoxGeometry,
    BufferGeometry,
    Color,
-   CylinderGeometry,
    RingGeometry,
    DoubleSide,
    Float32BufferAttribute,
@@ -24,12 +23,12 @@ import {
    type PointLight,
 } from "three";
 import { Model } from "../../core/assets";
-import { CulledModel } from "./Culled";
+import { CulledModel, type CullSpot } from "./Culled";
 import { useGameTime } from "../../core/gameTime";
 import { createRng } from "../../core/math";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import type { LevelId } from "../../types";
-import { ASSETS, BOUNDS, MAT_TOP } from "./assets";
+import { ANCHOR_POST_W, ASSETS, BOUNDS, MAT_TOP } from "./assets";
 
 /** The mat sinks into the floor so its top sits just over it. */
 const MAT_Y = -0.12;
@@ -125,18 +124,27 @@ function stackGeometry(level: LevelId, sts: Station[], extra: { x: number; z: nu
    return g;
 }
 
-/** Steel gantries: a crossbeam over each launch and an anchor frame behind each landing, merged. */
+/**
+ * The anchor frame's two posts behind each landing: m2CableAnchor (a wooden post with a pulley), slimmed
+ * to a post's 0.6 m and stretched to the frame's height, its pulley turned to the cable (along z).
+ */
+export function anchorSpots(sts: Station[]): CullSpot[] {
+   const out: CullSpot[] = [];
+   const h = HANG + 0.72;
+   for (const st of sts) {
+      if (!st.land) continue;
+      for (const x of [-ANCHOR_X, ANCHOR_X]) out.push({ x, y: st.landY, z: st.land.z + ANCHOR_DZ, rotY: Math.PI / 2, sx: ANCHOR_POST_W / BOUNDS.anchor.x, sy: h / BOUNDS.anchor.y, sz: ANCHOR_POST_W / BOUNDS.anchor.z });
+   }
+   return out;
+}
+
+/** Steel gantries: a crossbeam over each launch and an anchor frame behind each landing (its posts are GLBs), merged. */
 function gantryGeometry(sts: Station[]): BufferGeometry {
    const parts: BufferGeometry[] = [];
    const box = (w: number, h: number, d: number, x: number, y: number, z: number) => {
       const b = new BoxGeometry(w, h, d);
       b.applyMatrix4(new Matrix4().makeTranslation(x, y, z));
       parts.push(b.toNonIndexed());
-   };
-   const post = (r: number, h: number, x: number, y: number, z: number) => {
-      const c = new CylinderGeometry(r, r * 1.15, h, 8);
-      c.applyMatrix4(new Matrix4().makeTranslation(x, y + h / 2, z));
-      parts.push(c.toNonIndexed());
    };
    for (const st of sts) {
       const beamY = st.startY + HANG + 0.42;
@@ -151,11 +159,8 @@ function gantryGeometry(sts: Station[]): BufferGeometry {
          const z = st.land.z + ANCHOR_DZ;
          const y = st.landY;
          const top = y + HANG + 0.42;
-         for (const x of [-ANCHOR_X, ANCHOR_X]) {
-            post(0.16, top - y + 0.3, x, y, z);
-            // a diagonal brace back to the stack
-            box(0.12, 0.12, 1.4, x, y + 0.7, z - 0.55);
-         }
+         // the two posts are m2CableAnchor GLBs (anchorSpots); a diagonal brace back to the stack each
+         for (const x of [-ANCHOR_X, ANCHOR_X]) box(0.12, 0.12, 1.4, x, y + 0.7, z - 0.55);
          box(2 * ANCHOR_X + 0.6, 0.3, 0.32, 0, top, z);
          for (const x of [-1.25, 1.25]) box(0.12, 0.42, 0.12, x, top - 0.3, z);
       }
@@ -361,6 +366,7 @@ export function Stations({ run, runs }: { run: ZipRun; runs: readonly ZipRun[] }
       [sts]
    );
    const lamps = useMemo(() => lampSpots(sts), [sts]);
+   const anchors = useMemo(() => anchorSpots(sts), [sts]);
    const lantern = useRef<PointLight>(null);
    useFrame(() => {
       // one warm light over the station the rider is heading to (night levels)
@@ -379,6 +385,7 @@ export function Stations({ run, runs }: { run: ZipRun; runs: readonly ZipRun[] }
          </mesh>
          <mesh geometry={steel} material={steelMaterial} />
          <CulledModel asset={ASSETS.tower} spots={towers} />
+         <CulledModel asset={ASSETS.anchor} spots={anchors} />
          <CulledModel asset={ASSETS.lighthouse} spots={lights} ahead={300} behind={80} />
          {lights.length > 0 && <Beams run={run} spots={lights} />}
          <Lamps spots={lamps} color={look.lantern} night={c.night} />

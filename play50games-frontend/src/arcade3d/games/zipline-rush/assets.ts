@@ -16,6 +16,8 @@ export const BOUNDS = {
    gull: { x: 1.895, y: 1.393, z: 1.403 },
    bell: { x: 1.888, y: 1.429, z: 1.824 },
    orb: { x: 1.901, y: 1.905, z: 0.439 },
+   /** m2CableAnchor: a wooden post with a pulley wheel (its wheel faces z) */
+   anchor: { x: 0.989, y: 1.897, z: 0.958 },
 };
 const prop = (id: string, scale: number, color: string, tris: number, bytes: number): ModelAsset => ({
    id, url: `/models/3d/zipline-rush/${id}.glb`, scale, fallback: "capsule", fallbackColor: color, budget: { tris, bytes },
@@ -34,6 +36,8 @@ export const SIZE = {
    orb: 0.62,
    eel: 9,
 } as const;
+/** The anchor frame's posts are drawn this wide (m). */
+export const ANCHOR_POST_W = 0.6;
 /** The landing mat's top over its foot (m, as drawn). */
 export const MAT_TOP = BOUNDS.mat.y * (4.6 / BOUNDS.mat.x) * 0.45;
 /** The trolley: the cable runs through its pulley grooves this far over its foot (m, as drawn). */
@@ -55,4 +59,5 @@ export const ASSETS = {
    mat: { ...prop("m2LandingMat", 4.6 / BOUNDS.mat.x, "#4ade80", 3000, 51616), stretch: [1, 0.45, 1] as const },
    canopy: prop("m2ForestCanopyBg", 1, "#4d7c70", 4248, 261888),
    boss: prop("m2VoltEelBoss", SIZE.eel / BOUNDS.boss.z, "#22d3ee", 15000, 622572),
+   anchor: prop("m2CableAnchor", 1, "#8b5a2b", 3000, 184044),
 };
