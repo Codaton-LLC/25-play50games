@@ -11,6 +11,7 @@
 // unlock gives +1 combo, a 1.5 s +1.5 m/s boost and repaints the street behind you. The forward speed is
 // the level's base, plus the boost, plus Riko's dash; nothing else moves you faster (bound.ts).
 import type { RunState } from "@/arcade3d/core/types";
+import { BENCH_RECHARGE, HANDOFF_MS, LINGER_MS, TAG_COOLDOWN_MS } from "@/arcade3d/menu2/heroTag/rules";
 import type { LevelId } from "../../types";
 import { rngNext } from "@/arcade3d/core/math";
 import { comboBreak, comboFlow, comboHit, comboMaxBonus, createCombo, type ComboState } from "@/arcade3d/menu2/combo/combo";
@@ -54,14 +55,13 @@ export const STUMBLE_MS = 600;
 export const INVULN_MS = 1200;
 export const BOUNCE_M = 3;
 export const HEARTS = 3;
-/** the tag: global cooldown, hand-off window, an outgoing power lingers this long after a hand-off */
-export const TAG_COOLDOWN_MS = 500;
-export const HANDOFF_MS = 400;
-export const LINGER_MS = 300;
+/** the tag: global cooldown, hand-off window, an outgoing power lingers this long after a hand-off
+ *  (World 6's shared values, menu2/heroTag) */
+export { TAG_COOLDOWN_MS, HANDOFF_MS, LINGER_MS };
 /** a clutch tag: within this before the lock opens */
 export const CLUTCH_MS = 400;
-/** a benched hero recharges this many times faster */
-export const BENCH_RECHARGE = 2;
+/** a benched hero recharges this many times faster (menu2/heroTag) */
+export { BENCH_RECHARGE };
 export const ORB_REACH = { d: 0.9, x: 1.0, y: 1.0 } as const;
 
 // ---------- the run ----------

@@ -39,7 +39,7 @@ import { HAWK, SECRETS } from "./progression";
 import { levelEndStats } from "./levelEnd";
 import { HERO_COLOURS } from "./look";
 import { laneX } from "./course";
-import { tagLatch } from "./latch";
+import { takeTag, tagIndexOf, useTagKeys } from "@/arcade3d/menu2/heroTag/tagInput";
 import MultiScene from "./MultiScene";
 
 /** Preview builds only: `?autoplay=1` lets the honest bot (bot.ts) play, for screenshots and checks. */
@@ -181,6 +181,8 @@ function Simulation({ run, anim, orbit }: { run: DashRun; anim: HeroAnim; orbit:
    const userRef = useRef<number | null>(null);
    userRef.current = user?.id ?? null;
 
+   const playing = useArcadeStore((s) => s.phase === "playing");
+   useTagKeys(playing);
    useRunFrame((_state, dt) => {
       const i = input.current;
       const sign = laneSign(orbit.viewYaw);
@@ -188,10 +190,11 @@ function Simulation({ run, anim, orbit }: { run: DashRun; anim: HeroAnim; orbit:
       stepInput.jumpPressed = i.jumpPressed || i.pressed.up;
       stepInput.downPressed = i.pressed.down;
       stepInput.actionPressed = i.actionPressed;
-      const digit = i.digit ?? 0;
-      stepInput.tag = digit >= 1 && digit <= 5 ? digit : tagLatch.tag;
-      stepInput.tagCycle = 0;
-      tagLatch.tag = 0;
+      // World 6's shared tag input (keys 1-5, T / Shift+T, the portrait strip): 1-5 a hero, or a cycle
+      const req = takeTag();
+      const q = req ? tagIndexOf(req) : null;
+      stepInput.tag = q && q.hero >= 0 ? q.hero + 1 : 0;
+      stepInput.tagCycle = q ? q.cycle : 0;
       if (bot) {
          bot.frameMs = lastFrame.current;
          botInput(bot, run, stepInput);
