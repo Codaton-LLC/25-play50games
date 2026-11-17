@@ -802,6 +802,14 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/magnet-coin-lab/m2MetalBlockV2.glb",
    "/models/3d/magnet-coin-lab/m2PolarityGate.glb",
    "/models/3d/magnet-coin-lab/m2ToyPiggyBank.glb",
+   // Menu 2 game 21 (Color Match Jump, W6): ready/menu2/color-match-jump (hexes, pillar, beacon, code lamps, fortress islands); the golem and the orb are already listed
+   "/models/3d/color-match-jump/m2CountdownBeacon.glb",
+   "/models/3d/color-match-jump/m2CrackedHexPlatform.glb",
+   "/models/3d/color-match-jump/m2FloatingArenaBg.glb",
+   "/models/3d/color-match-jump/m2HexPillar.glb",
+   "/models/3d/color-match-jump/m2HexPlatform.glb",
+   "/models/3d/color-match-jump/m2HexPlatformV2.glb",
+   "/models/3d/color-match-jump/m2SignalOrbLamp.glb",
    // Menu 2 game 24 (Portal Hop, W5): ready/menu2/portal-hop (portals, obelisks, anchor pads, void crystals, the Portal Wyrm)
    "/models/3d/portal-hop/m2ColorBeacon.glb",
    "/models/3d/portal-hop/m2FloatingRuinBg.glb",
