@@ -1471,6 +1471,22 @@
         { "title": "Drone Lab", "max_score": 31990, "min_duration_ms": 100, "max_duration_ms": 320000, "time_base_ms": 320000 },
         { "title": "Scrap Magnus", "max_score": 34500, "min_duration_ms": 15000, "max_duration_ms": 360000, "time_base_ms": 360000 }
       ]
+    },
+    "neon-cube-jump": {
+      "title": "Neon Cube Jump",
+      "kind": "time",
+      "max_score": 14790,
+      "min_duration_ms": 2100,
+      "max_duration_ms": 150000,
+      "time_base_ms": 150000,
+      "enabled": false,
+      "levels": [
+        { "title": "Static Grid", "max_score": 14790, "min_duration_ms": 2100, "max_duration_ms": 150000, "time_base_ms": 150000 },
+        { "title": "Moving Cubes", "max_score": 17850, "min_duration_ms": 1500, "max_duration_ms": 180000, "time_base_ms": 180000 },
+        { "title": "Blink Grid", "max_score": 19790, "min_duration_ms": 2100, "max_duration_ms": 200000, "time_base_ms": 200000 },
+        { "title": "Laser Grid", "max_score": 21790, "min_duration_ms": 2100, "max_duration_ms": 220000, "time_base_ms": 220000 },
+        { "title": "Neon Overdrive", "max_score": 28750, "min_duration_ms": 12500, "max_duration_ms": 300000, "time_base_ms": 300000 }
+      ]
     }
   }
 }
