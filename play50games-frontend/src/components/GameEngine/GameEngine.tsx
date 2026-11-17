@@ -48,6 +48,8 @@ import FinalGames from "./game-types/FinalGames";
 import KeyboardControls, { MouseControls } from "./KeyboardControls";
 import { trackShareClick } from "@/lib/api/share";
 import Header from "@/components/Header/Header";
+import mobileCss from "./GameEngine.module.css";
+import { useBottomBar } from "./useBottomBar";
 
 // Cursor Maze Example Component - Uses canvas like the actual game
 const CursorMazeExample = () => {
@@ -326,7 +328,7 @@ const MazeExampleGrid = () => {
                background: "rgba(255, 255, 255, 0.1)",
                padding: "4px",
                overflow: "hidden",
-               gridTemplateColumns: `repeat(${gridSize}, 1fr)`,
+               gridTemplateColumns: `repeat(${gridSize}, minmax(0, 1fr))`,
                gridTemplateRows: `repeat(${gridSize}, 1fr)`,
             }}
          >
@@ -402,6 +404,22 @@ export default function GameEngine({
    const [timeLeft, setTimeLeft] = useState(game.time_limit);
    const [isPlaying, setIsPlaying] = useState(false);
    const [isCompleted, setIsCompleted] = useState(false);
+   // phones / short screens: the start screen's Start / Exit row sticks above the cookie banner
+   const startScreenRef = useRef<HTMLDivElement>(null);
+   useBottomBar(startScreenRef, !isPlaying && !isCompleted);
+   // the compact game-page header (phones, short screens): its nav sits behind a Menu button
+   const [menuOpen, setMenuOpen] = useState(false);
+   const pageClass = `${mobileCss.page} ${menuOpen ? mobileCss.menuOpen : ""}`;
+   const menuButton = (
+      <button
+         type="button"
+         className={mobileCss.menuButton}
+         aria-expanded={menuOpen}
+         onClick={() => setMenuOpen((o) => !o)}
+      >
+         {menuOpen ? "Close" : "Menu"}
+      </button>
+   );
 
    // Add final-game class to body when game is final
    // Remove it for specific skill games: line-tracer, stack-blocks, timing-bar, precision-drop
@@ -633,13 +651,15 @@ export default function GameEngine({
       const isFinalGame = game.game_type === "final";
 
       return (
-         <div className="game-engine">
+         <div className={`game-engine ${pageClass}`}>
+            {menuButton}
             <Header
                showSubtitle={true}
                onShowLoginModal={onShowLoginModal}
                onShowRegisterModal={onShowRegisterModal}
             />
             <div
+               ref={startScreenRef}
                className={`game-start-screen ${
                   isFinalGame ? "final-game" : ""
                }`}
@@ -733,7 +753,7 @@ export default function GameEngine({
                            <div
                               style={{
                                  display: "grid",
-                                 gridTemplateColumns: "repeat(4, 1fr)",
+                                 gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
                                  gap: "12px",
                                  maxWidth: "300px",
                                  margin: "0 auto",
@@ -945,6 +965,7 @@ export default function GameEngine({
                                  readOnly
                                  style={{
                                     flex: 1,
+                                    minWidth: 0,
 
                                     background: "rgba(15, 27, 51, 0.7)",
                                     color: "var(--text)",
@@ -1241,7 +1262,7 @@ export default function GameEngine({
                         <div
                            style={{
                               display: "grid",
-                              gridTemplateColumns: "repeat(4, 1fr)",
+                              gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
                               gap: "12px",
                               marginTop: "20px",
                            }}
@@ -1372,7 +1393,7 @@ export default function GameEngine({
                            <div
                               style={{
                                  display: "grid",
-                                 gridTemplateColumns: "repeat(3, 1fr)",
+                                 gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
                                  gap: "14px",
                                  maxWidth: "300px",
                                  margin: "0 auto",
@@ -1883,7 +1904,7 @@ export default function GameEngine({
                            <div
                               style={{
                                  display: "grid",
-                                 gridTemplateColumns: "repeat(3, 1fr)",
+                                 gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
                                  gap: isMobile
                                     ? "10px"
                                     : isTablet
@@ -2166,7 +2187,7 @@ export default function GameEngine({
                            <div
                               style={{
                                  display: "grid",
-                                 gridTemplateColumns: "repeat(3, 1fr)",
+                                 gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
                                  gap: isMobile
                                     ? "12px"
                                     : isTablet
@@ -2261,7 +2282,7 @@ export default function GameEngine({
                               <div
                                  style={{
                                     display: "grid",
-                                    gridTemplateColumns: "repeat(3, 1fr)",
+                                    gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
                                     gap: isMobile
                                        ? "12px"
                                        : isTablet
@@ -2453,7 +2474,7 @@ export default function GameEngine({
                         <div
                            style={{
                               display: "grid",
-                              gridTemplateColumns: "repeat(3, 1fr)",
+                              gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
                               gap: isMobile ? "8px" : "10px",
                               maxWidth: isMobile ? "200px" : "240px",
                               margin: "0 auto",
@@ -2709,7 +2730,7 @@ export default function GameEngine({
                            <div
                               style={{
                                  display: "grid",
-                                 gridTemplateColumns: "repeat(4, 1fr)",
+                                 gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
                                  gap: "3px",
                                  background: "var(--stroke)",
 
@@ -2940,7 +2961,7 @@ export default function GameEngine({
                            <div
                               style={{
                                  display: "grid",
-                                 gridTemplateColumns: "repeat(4, 1fr)",
+                                 gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
                                  gap: "12px",
                                  width: "100%",
                               }}
@@ -3620,7 +3641,7 @@ export default function GameEngine({
                            <div
                               style={{
                                  display: "grid",
-                                 gridTemplateColumns: "repeat(3, 1fr)",
+                                 gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
                                  gap: "16px",
                                  maxWidth: "300px",
                                  margin: "0 auto",
@@ -3846,7 +3867,7 @@ export default function GameEngine({
                            <div
                               style={{
                                  display: "grid",
-                                 gridTemplateColumns: "repeat(3, 1fr)",
+                                 gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
                                  gap: "3px",
                                  background: "var(--stroke)",
 
@@ -6542,7 +6563,7 @@ export default function GameEngine({
                                  display: "grid",
                                  gridTemplateColumns: isMobile
                                     ? "1fr"
-                                    : "repeat(3, 1fr)",
+                                    : "repeat(3, minmax(0, 1fr))",
                                  gap: "12px",
                               }}
                            >
@@ -9194,7 +9215,7 @@ export default function GameEngine({
                                  <div
                                     style={{
                                        display: "grid",
-                                       gridTemplateColumns: "repeat(3, 1fr)",
+                                       gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
                                        gridTemplateRows: "repeat(3, 1fr)",
                                        gap: "12px",
                                        width: "100%",
@@ -11596,8 +11617,8 @@ export default function GameEngine({
                               gridTemplateColumns: isMobile
                                  ? "1fr"
                                  : isTablet
-                                 ? "repeat(2, 1fr)"
-                                 : "repeat(3, 1fr)",
+                                 ? "repeat(2, minmax(0, 1fr))"
+                                 : "repeat(3, minmax(0, 1fr))",
                               gap: isMobile
                                  ? "16px"
                                  : isTablet
@@ -12784,7 +12805,7 @@ export default function GameEngine({
                         <div
                            style={{
                               display: "grid",
-                              gridTemplateColumns: "repeat(2, 1fr)",
+                              gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
                               gap: "16px",
                               marginBottom: "24px",
                            }}
@@ -13083,7 +13104,7 @@ export default function GameEngine({
                            <div
                               style={{
                                  display: "grid",
-                                 gridTemplateColumns: "repeat(2, 1fr)",
+                                 gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
                                  gap: "8px",
                                  width: "200px",
                                  padding: "16px",
@@ -13146,7 +13167,7 @@ export default function GameEngine({
                         <div
                            style={{
                               display: "grid",
-                              gridTemplateColumns: "repeat(2, 1fr)",
+                              gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
                               gap: "16px",
                               marginBottom: "24px",
                            }}
@@ -13285,7 +13306,7 @@ export default function GameEngine({
                         <div
                            style={{
                               display: "grid",
-                              gridTemplateColumns: "repeat(3, 1fr)",
+                              gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
                               gap: "20px",
                               marginBottom: "20px",
                            }}
@@ -14031,7 +14052,7 @@ export default function GameEngine({
                            <div
                               className="light-grid-preview"
                               style={{
-                                 gridTemplateColumns: `repeat(${gridSize}, 1fr)`,
+                                 gridTemplateColumns: `repeat(${gridSize}, minmax(0, 1fr))`,
                                  display: "grid",
                                  gap: "8px",
                                  padding: "12px",
@@ -14241,7 +14262,7 @@ export default function GameEngine({
                   </div>
                </div>
 
-               <div className="game-start-actions">
+               <div className={`game-start-actions ${mobileCss.startActions}`}>
                   <button
                      onClick={startGame}
                      className="start-button"
@@ -14273,7 +14294,8 @@ export default function GameEngine({
    }
 
    return (
-      <div className="game-engine">
+      <div className={`game-engine ${pageClass}`}>
+         {menuButton}
          <Header
             showSubtitle={true}
             onShowLoginModal={onShowLoginModal}
