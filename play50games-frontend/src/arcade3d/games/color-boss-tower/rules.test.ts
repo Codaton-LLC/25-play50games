@@ -9,6 +9,7 @@ import { bossProblems } from "@/arcade3d/menu2/boss/boss";
 import { HERO_OF_COLOUR, TAG_ORDER, type TagHeroId } from "@/arcade3d/menu2/heroTag/rules";
 import { LEVEL_IDS, type LevelId } from "@/arcade3d/types";
 import { botRun } from "./bot";
+import { colorBossTowerMeta } from "./meta";
 import { BOSSES } from "./progression";
 import { LEVELS } from "./levels";
 import {
@@ -27,6 +28,15 @@ import {
    towerFor,
    type CbtRun,
 } from "./rules";
+
+/** minDurationMs, timeBaseMs, maxScore per level (README "Score limits"). */
+const PINNED = [
+   [10800, 150000, 13920],
+   [14300, 180000, 16570],
+   [17900, 210000, 19210],
+   [23800, 240000, 21620],
+   [31200, 300000, 26880],
+];
 
 const submitted = (run: CbtRun) => runTimeMs(run.finishMs, run.orbs, run.combo.bonusTotal);
 const LEADS: readonly TagHeroId[] = TAG_ORDER;
@@ -116,6 +126,16 @@ describe("the honest bot", () => {
 });
 
 describe("the proof", () => {
+   it("the limits are pinned as literals (meta.ts, arcade-games.json and this table move together)", () => {
+      expect(LEVEL_IDS.map((id) => [PROPOSED_LEVEL_LIMITS[id].minDurationMs, PROPOSED_LEVEL_LIMITS[id].timeBaseMs, PROPOSED_LEVEL_LIMITS[id].maxScore])).toEqual(PINNED);
+      for (const id of LEVEL_IDS) {
+         const lv = colorBossTowerMeta.levels![id - 1].scoring;
+         expect(lv.minDurationMs).toBe(PINNED[id - 1][0]);
+         expect(lv.maxScore).toBe(PINNED[id - 1][2]);
+         expect(lv.kind).toBe("time");
+      }
+   });
+
    it("the pinned limits are each tower's proposeLimits, five distinct rows", () => {
       for (const id of LEVEL_IDS) expect(PROPOSED_LEVEL_LIMITS[id]).toEqual(proposeLimits(id, towerFor(id)));
       expect(new Set(LEVEL_IDS.map((id) => JSON.stringify(PROPOSED_LEVEL_LIMITS[id]))).size).toBe(5);

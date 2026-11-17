@@ -37,8 +37,8 @@ export function chainClaw(run: CbtRun, c: number): boolean {
    return pair && (run.level === 4 || isGrand(run));
 }
 
-/** The next claw to go for. */
-function pickClaw(run: CbtRun): number {
+/** The next claw to go for (the bot's target; the Scene's guide ring marks it). -1 none. */
+export function nextClaw(run: CbtRun): number {
    const chain = needsChain(run);
    const lit = litColour(run);
    let best = -1;
@@ -92,7 +92,7 @@ export function botInput(bot: Bot, run: CbtRun, input: StepInput): void {
    }
 
    if (bot.target < 0 || run.claws[bot.target].chargedAt !== -1) {
-      bot.target = pickClaw(run);
+      bot.target = nextClaw(run);
       bot.skipStage = 0;
    }
    const chain = needsChain(run);

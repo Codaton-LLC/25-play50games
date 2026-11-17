@@ -1,6 +1,7 @@
 // The World 6 hero tag-switch (rules.ts): the wheel, the cooldown and the lock, the bench recharge,
 // hand-offs and the linger, fresh legs once per airtime, the spectrum ring, roster limits and co-op.
 import { describe, expect, it } from "vitest";
+import { clearTag, requestTag, tagForKey, takeTag } from "./tagInput";
 import {
    HANDOFF_MS,
    HERO_OF_COLOUR,
@@ -93,5 +94,23 @@ describe("hero tag-switch", () => {
       expect(tagTo(s, "nami", 1000, ["nami"])).toEqual({ ok: false, reason: "taken" });
       expect(tagTo(s, "next", 1000, ["nami", "kiro"]).ok).toBe(true);
       expect(s.active).toBe("zuno");
+   });
+});
+
+
+describe("tag input (keys 1-5, T, the portrait strip)", () => {
+   it("maps keys to requests and latches one request until taken", () => {
+      expect(tagForKey("1")).toBe("riko");
+      expect(tagForKey("5")).toBe("vexa");
+      expect(tagForKey("t")).toBe("next");
+      expect(tagForKey("T", true)).toBe("prev");
+      expect(tagForKey("6")).toBeNull();
+      expect(tagForKey("e")).toBeNull();
+      clearTag();
+      expect(takeTag()).toBeNull();
+      requestTag("kiro");
+      requestTag("zuno");
+      expect(takeTag()).toBe("zuno");
+      expect(takeTag()).toBeNull();
    });
 });

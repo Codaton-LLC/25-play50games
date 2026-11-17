@@ -98,7 +98,7 @@ export const LEVELS: Record<LevelId, TowerSpec> = {
          { kind: "highNiche", ledge: 14, lift: 5.6 },
       ],
       timerMs: 150_000,
-      starTargetMs: 70_000,
+      starTargetMs: 40_000,
       night: false,
    },
    // L2 Two Colors: hazard orbs roll down the spiral (jump them or shield).
@@ -133,7 +133,7 @@ export const LEVELS: Record<LevelId, TowerSpec> = {
          { kind: "highNiche", ledge: 10, lift: 5.6 },
       ],
       timerMs: 180_000,
-      starTargetMs: 90_000,
+      starTargetMs: 50_000,
       night: false,
    },
    // L3 Three Colors: the spiral crumbles (a ledge drops 2 s after you land on it; Riko sprints across).
@@ -169,7 +169,7 @@ export const LEVELS: Record<LevelId, TowerSpec> = {
          { kind: "highNiche", ledge: 12, lift: 5.6 },
       ],
       timerMs: 210_000,
-      starTargetMs: 110_000,
+      starTargetMs: 65_000,
       night: true,
    },
    // L4 Fast Switch Boss: the Stone Guardian at his fury. P1: four claw colours; P2: he climbs alongside
@@ -210,7 +210,7 @@ export const LEVELS: Record<LevelId, TowerSpec> = {
          { kind: "highNiche", ledge: 12, lift: 5.6 },
       ],
       timerMs: 240_000,
-      starTargetMs: 130_000,
+      starTargetMs: 110_000,
       night: true,
    },
    // L5 Grand Color Guardian, the tower's crown. P1 Plate Armour: one claw lights at a time, its cannon
@@ -253,7 +253,7 @@ export const LEVELS: Record<LevelId, TowerSpec> = {
          { kind: "highNiche", ledge: 10, lift: 5.6 },
       ],
       timerMs: 300_000,
-      starTargetMs: 180_000,
+      starTargetMs: 150_000,
       night: false,
    },
 };

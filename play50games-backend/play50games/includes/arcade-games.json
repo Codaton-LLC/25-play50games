@@ -1584,6 +1584,22 @@
         { "title": "Chest Rush", "max_score": 7132, "min_duration_ms": 114000, "max_duration_ms": 121000, "base": 0, "max_pps": 63 },
         { "title": "Gumdrop Glutton", "max_score": 14157, "min_duration_ms": 29100, "max_duration_ms": 241000, "base": 0, "max_pps": 487 }
       ]
+    },
+    "color-boss-tower": {
+      "title": "Color Boss Tower",
+      "kind": "time",
+      "max_score": 13920,
+      "min_duration_ms": 10800,
+      "max_duration_ms": 150000,
+      "time_base_ms": 150000,
+      "enabled": false,
+      "levels": [
+        { "title": "Training Guardian", "max_score": 13920, "min_duration_ms": 10800, "max_duration_ms": 150000, "time_base_ms": 150000 },
+        { "title": "Two Colors", "max_score": 16570, "min_duration_ms": 14300, "max_duration_ms": 180000, "time_base_ms": 180000 },
+        { "title": "Three Colors", "max_score": 19210, "min_duration_ms": 17900, "max_duration_ms": 210000, "time_base_ms": 210000 },
+        { "title": "Fast Switch Boss", "max_score": 21620, "min_duration_ms": 23800, "max_duration_ms": 240000, "time_base_ms": 240000 },
+        { "title": "Grand Color Guardian", "max_score": 26880, "min_duration_ms": 31200, "max_duration_ms": 300000, "time_base_ms": 300000 }
+      ]
     }
   }
 }

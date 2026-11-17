@@ -52,6 +52,8 @@ export const CLAW_REACH = 1.3;
 export const MAGNET_REACH = 6;
 export const KNOCK_V = 5;
 export const STUN_MS = 450;
+/** a fall this far under the highest checkpoint reached puts you back on it (m) */
+export const FALL_CATCH = 4;
 export const HEARTS = 3;
 export const ORB_R = 0.9;
 export const ORB_BONUS_MS = 200;
@@ -165,6 +167,10 @@ export interface StepEvents {
    secret: string | null;
    glyph: number;
    locked: boolean;
+   /** a fall caught: back on the highest checkpoint reached */
+   respawned: boolean;
+   /** a new checkpoint reached (its ledge), -1 none */
+   checkpoint: number;
    ended: boolean;
 }
 
@@ -172,13 +178,14 @@ export function createEvents(): StepEvents {
    return {
       jumped: false, airJumped: false, landed: false, tagged: null, handOff: false, tagRefused: false, powered: false,
       charged: -1, fired: -1, hit: false, bossPhase: false, bossDefeat: false, bossAttack: false, bossOpen: false,
-      knocked: false, shielded: false, crumbled: -1, orb: -1, secret: null, glyph: -1, locked: false, ended: false,
+      knocked: false, shielded: false, crumbled: -1, orb: -1, secret: null, glyph: -1, locked: false, respawned: false, checkpoint: -1, ended: false,
    };
 }
 
 function clearEvents(e: StepEvents): void {
    e.jumped = e.airJumped = e.landed = e.handOff = e.tagRefused = e.powered = e.hit = false;
-   e.bossPhase = e.bossDefeat = e.bossAttack = e.bossOpen = e.knocked = e.shielded = e.locked = e.ended = false;
+   e.bossPhase = e.bossDefeat = e.bossAttack = e.bossOpen = e.knocked = e.shielded = e.locked = e.ended = e.respawned = false;
+   e.checkpoint = -1;
    e.tagged = null;
    e.secret = null;
    e.charged = e.fired = e.crumbled = e.orb = e.glyph = -1;
@@ -505,16 +512,34 @@ function stepMs(run: CbtRun, ev: StepEvents, along: number): void {
          ev.landed = true;
       }
    }
+   // a fall: caught FALL_CATCH below the highest checkpoint reached, back on it
+   const cp = run.highestCheckpoint;
+   if (!h.grounded && cp > 0 && h.y < t.ly[cp] - FALL_CATCH) {
+      h.a = t.la[cp];
+      h.y = t.ly[cp];
+      h.va = 0;
+      h.vy = 0;
+      h.grounded = true;
+      h.stunUntil = ms + STUN_MS;
+      SURF.ledge = cp;
+      SURF.skip = -1;
+      ev.respawned = true;
+      comboBreak(run.combo);
+   }
    h.ledge = h.grounded ? SURF.ledge : -1;
    h.skip = h.grounded ? SURF.skip : -1;
    if (h.grounded && h.ledge >= 0) {
-      if (t.spec.crumbling && run.ledgeTouched[h.ledge] === Infinity) {
+      // (a checkpoint ledge never crumbles: it is where a fall is caught)
+      if (t.spec.crumbling && run.ledgeTouched[h.ledge] === Infinity && !t.checkpoints.includes(h.ledge)) {
          run.ledgeTouched[h.ledge] = ms;
          run.ledgeBack[h.ledge] = ms + CRUMBLE_MS + REFORM_MS;
       }
       if (t.spec.crumbling && run.ledgeTouched[h.ledge] !== Infinity && ms === run.ledgeTouched[h.ledge] + CRUMBLE_MS) ev.crumbled = h.ledge;
       // a checkpoint reached
-      for (const c of t.checkpoints) if (c === h.ledge && c > run.highestCheckpoint) run.highestCheckpoint = c;
+      for (const c of t.checkpoints) if (c === h.ledge && c > run.highestCheckpoint) {
+         run.highestCheckpoint = c;
+         ev.checkpoint = c;
+      }
    }
    // level 3: a crumbled ledge reforms untouched
    if (t.spec.crumbling) for (let i = 0; i < run.ledgeBack.length; i++) if (run.ledgeBack[i] >= 0 && ms >= run.ledgeBack[i] && i !== h.ledge) {
@@ -806,6 +831,15 @@ export const STAT = {
    bossOn: "bossOn",
    glyph: "glyph",
    locked: "locked",
+   /** the active hero's power: ms left to recharge (0 = ready) and each hero's, packed for the strip */
+   cdRiko: "cdRiko",
+   cdNami: "cdNami",
+   cdKiro: "cdKiro",
+   cdZuno: "cdZuno",
+   cdVexa: "cdVexa",
+   /** the charged claws waiting (fire at the next window) */
+   ready: "ready",
+   climb: "climb",
    stars: "stars",
    newStars: "newStars",
    noHit: "noHit",
