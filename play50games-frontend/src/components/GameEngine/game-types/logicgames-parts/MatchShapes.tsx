@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import css from "./MatchShapes.module.css";
+import mobile from "./mobile.module.css";
 import {
    ArrowPathIcon,
    TrophyIcon,
@@ -226,6 +228,7 @@ function MatchShapes({
 
    return (
       <div
+         className={css.root}
          style={{
             display: "flex",
             flexDirection: "column",
@@ -238,6 +241,7 @@ function MatchShapes({
       >
          {/* Header with Round and Score */}
          <div
+            className={css.head}
             style={{
                width: "100%",
                background: "var(--card)",
@@ -301,6 +305,7 @@ function MatchShapes({
 
          {/* Target Shape */}
          <div
+            className={css.target}
             style={{
                background: "var(--card)",
                borderRadius: "20px",
@@ -339,6 +344,7 @@ function MatchShapes({
                }}
             >
                <div
+                  className={css.shape}
                   style={{
                      display: "flex",
                      alignItems: "center",
@@ -362,6 +368,7 @@ function MatchShapes({
 
          {/* Shape Options */}
          <div
+            className={css.options}
             style={{
                display: "grid",
                gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))",
@@ -385,6 +392,7 @@ function MatchShapes({
                return (
                   <button
                      key={shape}
+                     className={`${css.option} ${isCorrectSelection ? mobile.pop : isIncorrectSelection ? mobile.shake : ""}`}
                      onClick={() => handleShapeClick(shape)}
                      disabled={selectedShape !== ""}
                      style={{
@@ -502,6 +510,7 @@ function MatchShapes({
                            }}
                         >
                            <span
+                              className={css.key}
                               style={{
                                  fontSize: "0.75rem",
                                  fontWeight: 500,
@@ -520,6 +529,7 @@ function MatchShapes({
                               })()}
                            </span>
                            <span
+                              className={css.name}
                               style={{
                                  fontSize: "0.875rem",
                                  fontWeight: 600,
@@ -538,6 +548,8 @@ function MatchShapes({
          {/* Feedback Message */}
          {correct !== null && (
             <div
+               className={css.feedback}
+               role="status"
                style={{
                   padding: "16px 24px",
 
