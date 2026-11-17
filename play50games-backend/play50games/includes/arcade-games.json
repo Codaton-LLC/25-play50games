@@ -1535,6 +1535,54 @@
         { "title": "Fast Countdown", "max_score": 14416, "min_duration_ms": 35839, "max_duration_ms": 180000, "time_base_ms": 180000 },
         { "title": "Frozen Crown", "max_score": 20992, "min_duration_ms": 30079, "max_duration_ms": 240000, "time_base_ms": 240000 }
       ]
+    },
+    "laser-maze-run": {
+      "title": "Laser Maze Run",
+      "kind": "time",
+      "max_score": 6930,
+      "min_duration_ms": 5700,
+      "max_duration_ms": 75000,
+      "time_base_ms": 75000,
+      "enabled": false,
+      "levels": [
+        { "title": "Static Lasers", "max_score": 6930, "min_duration_ms": 5700, "max_duration_ms": 75000, "time_base_ms": 75000 },
+        { "title": "Moving Lasers", "max_score": 8290, "min_duration_ms": 7100, "max_duration_ms": 90000, "time_base_ms": 90000 },
+        { "title": "Cross Grid", "max_score": 9620, "min_duration_ms": 8800, "max_duration_ms": 105000, "time_base_ms": 105000 },
+        { "title": "Fast Maze", "max_score": 10950, "min_duration_ms": 10500, "max_duration_ms": 120000, "time_base_ms": 120000 },
+        { "title": "Laser Master", "max_score": 11590, "min_duration_ms": 34100, "max_duration_ms": 150000, "time_base_ms": 150000 }
+      ]
+    },
+    "space-pod-jump": {
+      "title": "Space Pod Jump",
+      "kind": "time",
+      "max_score": 11810,
+      "min_duration_ms": 1900,
+      "max_duration_ms": 120000,
+      "time_base_ms": 120000,
+      "enabled": false,
+      "levels": [
+        { "title": "Dock", "max_score": 11810, "min_duration_ms": 1900, "max_duration_ms": 120000, "time_base_ms": 120000 },
+        { "title": "Pod Line", "max_score": 14220, "min_duration_ms": 7800, "max_duration_ms": 150000, "time_base_ms": 150000 },
+        { "title": "Satellite Field", "max_score": 15370, "min_duration_ms": 6300, "max_duration_ms": 160000, "time_base_ms": 160000 },
+        { "title": "Zero-G Gap", "max_score": 16220, "min_duration_ms": 7800, "max_duration_ms": 170000, "time_base_ms": 170000 },
+        { "title": "Orbital Peak", "max_score": 24400, "min_duration_ms": 16000, "max_duration_ms": 260000, "time_base_ms": 260000 }
+      ]
+    },
+    "crystal-cave-switch": {
+      "title": "Crystal Cave Switch",
+      "kind": "time",
+      "max_score": 17940,
+      "min_duration_ms": 600,
+      "max_duration_ms": 180000,
+      "time_base_ms": 180000,
+      "enabled": false,
+      "levels": [
+        { "title": "Two Crystals", "max_score": 17940, "min_duration_ms": 600, "max_duration_ms": 180000, "time_base_ms": 180000 },
+        { "title": "Three Sequence", "max_score": 20830, "min_duration_ms": 1700, "max_duration_ms": 210000, "time_base_ms": 210000 },
+        { "title": "Hidden Crystal", "max_score": 23720, "min_duration_ms": 2800, "max_duration_ms": 240000, "time_base_ms": 240000 },
+        { "title": "Timed Sequence", "max_score": 26600, "min_duration_ms": 4000, "max_duration_ms": 270000, "time_base_ms": 270000 },
+        { "title": "Crystal Master", "max_score": 34520, "min_duration_ms": 14800, "max_duration_ms": 360000, "time_base_ms": 360000 }
+      ]
     }
   }
 }
