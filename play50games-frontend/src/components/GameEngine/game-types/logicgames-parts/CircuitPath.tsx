@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import css from "./CircuitPath.module.css";
+import mobile from "./mobile.module.css";
 import {
    ArrowPathIcon,
    TrophyIcon,
@@ -525,7 +527,7 @@ function CircuitPath({
    ]);
 
    return (
-      <div className="circuit-path-game">
+      <div className={`circuit-path-game ${css.root}`}>
          {/* Header */}
          <div className="game-header">
             <div className="header-stats">
@@ -690,14 +692,14 @@ function CircuitPath({
 
          {/* Feedback */}
          {feedback === "correct" && (
-            <div className="game-feedback correct">
+            <div className={`game-feedback correct ${mobile.pop}`}>
                <CheckCircleIcon className="feedback-icon" />
                <span>Circuit complete! Great job!</span>
             </div>
          )}
 
          {feedback === "wrong" && (
-            <div className="game-feedback wrong">
+            <div className={`game-feedback wrong ${mobile.shake}`}>
                <XCircleIcon className="feedback-icon" />
                <span>Invalid path! Try again.</span>
             </div>
