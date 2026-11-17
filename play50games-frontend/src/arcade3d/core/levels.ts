@@ -1,7 +1,7 @@
 // The level rules the shell applies (docs/arcade-levels.md §1.4-1.6, §3; core/README.md "Levels").
 // Pure: no React, no storage. A game without levels is one level, so everything here works for it.
 import { ARCADE_LEVELS } from "../flags";
-import { LEVEL_IDS, type ArcadeGameMeta, type LevelId, type LevelKey, type LevelMeta } from "../types";
+import { LEVEL_IDS, type ArcadeGameMeta, type GameScoringMeta, type LevelId, type LevelKey, type LevelMeta } from "../types";
 import { levelCount, levelMetaFor, levelsOf } from "../levelMeta";
 import type { EndReason, GameDefinition, LevelSpec } from "./types";
 import type { RunConfig } from "./useArcadeStore";
@@ -11,7 +11,7 @@ import type { LocalLevelEntry } from "./scores";
  * The level system is on for this game: the NEXT_PUBLIC_ARCADE_LEVELS flag and five levels in
  * meta.ts. Off = level 1 only, exactly the game as it was (no tiles, no chip, totals = level 1).
  */
-export function levelsActive(meta: ArcadeGameMeta, enabled: boolean = ARCADE_LEVELS): boolean {
+export function levelsActive(meta: GameScoringMeta, enabled: boolean = ARCADE_LEVELS): boolean {
    return enabled && levelCount(meta) === 5;
 }
 
@@ -20,7 +20,7 @@ export function levelsActive(meta: ArcadeGameMeta, enabled: boolean = ARCADE_LEV
  * levels active for the game, and the server known to support them (`supported` from
  * levelSupport.ts; null = not known yet = not yet).
  */
-export function levelUiEnabled(meta: ArcadeGameMeta, supported: boolean | null, enabled: boolean = ARCADE_LEVELS): boolean {
+export function levelUiEnabled(meta: GameScoringMeta, supported: boolean | null, enabled: boolean = ARCADE_LEVELS): boolean {
    return levelsActive(meta, enabled) && supported === true;
 }
 
@@ -102,7 +102,7 @@ export type LocalLevels = Partial<Record<LevelKey, LocalLevelEntry>>;
  *   of the levels' time scores, so higher stays better.
  */
 export function levelTotals(
-   meta: ArcadeGameMeta,
+   meta: GameScoringMeta,
    levels: LocalLevels | undefined,
    active: boolean = levelsActive(meta)
 ): { best: number; bestDurationMs: number | null } {
