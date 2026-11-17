@@ -380,6 +380,14 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/tightrope-path/m2RaftPlatform.glb",
    "/models/3d/tightrope-path/m2RockPillarBg.glb",
    "/models/3d/tightrope-path/m2SwingSandbag.glb",
+   // Neon Cube Jump (Menu 2 #7): cube, pad, laser, coin, drone, city, Flipframe core
+   "/models/3d/neon-cube-jump/m2NeonCube.glb",
+   "/models/3d/neon-cube-jump/m2EnergyPad.glb",
+   "/models/3d/neon-cube-jump/m2LaserWall.glb",
+   "/models/3d/neon-cube-jump/m2DigitalCoin.glb",
+   "/models/3d/neon-cube-jump/m2NeonSentryDrone.glb",
+   "/models/3d/neon-cube-jump/m2NeonCityBg.glb",
+   "/models/3d/neon-cube-jump/m2FlipframeCore.glb",
    // P-121 dev adoptions (2026-10-25): V2 replacements and Group D variety whose QA verdict
    // starts with OK. Optimized GLBs copied in; not re-optimized. Live games are untouched.
    "/models/3d/shopping-cart/supermarketShelfV2.glb",
@@ -873,6 +881,24 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/plate-bounce-arena/m2ScoreRingGold.glb",
    "/models/3d/plate-bounce-arena/m2StadiumStandBgV2I.glb",
    "/models/3d/plate-bounce-arena/m2ToyFlipper.glb",
+   "/models/3d/snow-slide-dash/m2FrostStar.glb",
+   "/models/3d/snow-slide-dash/m2IceGate.glb",
+   "/models/3d/snow-slide-dash/m2SnowCabinBg.glb",
+   "/models/3d/snow-slide-dash/m2SnowJumpRamp.glb",
+   "/models/3d/snow-slide-dash/m2Snowman.glb",
+   "/models/3d/snow-slide-dash/m2SnowPine.glb",
+   "/models/3d/snow-slide-dash/m2SnowRock.glb",
+   "/models/3d/snow-slide-dash/m2ToySled.glb",
+   // Menu 2 game 42 (Magnet Coin Lab): ready/menu2/magnet-coin-lab (m2SilverCoin left out: the coins are drawn in code)
+   "/models/3d/magnet-coin-lab/m2HorseshoeMagnet.glb",
+   "/models/3d/magnet-coin-lab/m2LabDrone.glb",
+   "/models/3d/magnet-coin-lab/m2LabMachineBg.glb",
+   "/models/3d/magnet-coin-lab/m2LabPlatform.glb",
+   "/models/3d/magnet-coin-lab/m2LabPlatformV2.glb",
+   "/models/3d/magnet-coin-lab/m2MagnetPad.glb",
+   "/models/3d/magnet-coin-lab/m2MetalBlockV2.glb",
+   "/models/3d/magnet-coin-lab/m2PolarityGate.glb",
+   "/models/3d/magnet-coin-lab/m2ToyPiggyBank.glb",
 ];
 
 const LISTED: ReadonlySet<string> = new Set(MODEL_MANIFEST);

@@ -963,7 +963,8 @@ function stepBeetles(w: World, dt: number) {
          continue;
       }
       const c = b.col + b.dir;
-      if (beetleFree(w, c, b.row)) {
+      // a beetle turns at a ledge: it never walks off into a shaft (it only drops when its own floor is dug)
+      if (beetleFree(w, c, b.row) && !beetleFree(w, c, b.row + 1)) {
          beetleMove(b, c, b.row, (CELL / BEETLE.speed) * 1000);
          continue;
       }

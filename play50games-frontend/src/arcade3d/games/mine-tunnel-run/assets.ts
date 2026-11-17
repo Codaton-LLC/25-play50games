@@ -57,7 +57,9 @@ export const ASSETS = {
    rail: prop("mineRailI", 1.6 / BOUNDS.rail.x, "#78350f", 3000, 166624),
    beetle: prop("m2CaveBeetle", SIZE.beetle / BOUNDS.beetle.z, "#0f766e", 3000, 145212),
    tunneller: prop("m2CaveBeetleR", SIZE.beetle / BOUNDS.tunneller.x, "#115e59", 3000, 119908),
-   boss: prop("caveBeetleI", SIZE.boss / BOUNDS.boss.z, "#6b7280", 3000, 182600),
+   // the drained giant: one stone-grey material over the whole beetle (the GLB's teal glow spots would
+   // survive a tint), its shape read from the geometry and the lights
+   boss: prop("caveBeetleI", SIZE.boss / BOUNDS.boss.z, "#6b7280", 3000, 182600, { material: { color: "#8a8480", roughness: 0.72, metalness: 0.18 } }),
    pile: prop("m2RockfallPile", SIZE.pile / BOUNDS.pile.x, "#78716c", 3000, 159968),
    crystal: prop("m2CrystalCluster", 0.9 / BOUNDS.crystal.x, "#7c3aed", 1500, 118740),
    mushrooms: prop("m2GlowMushrooms", 0.95 / BOUNDS.mushrooms.x, "#a855f7", 1500, 115228),
