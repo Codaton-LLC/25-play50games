@@ -92,6 +92,7 @@ import { neonCubeJumpMeta } from "./games/neon-cube-jump/meta";
 import { snowSlideDashMeta } from "./games/snow-slide-dash/meta";
 import { portalHopMeta } from "./games/portal-hop/meta";
 import { crystalCaveSwitchMeta } from "./games/crystal-cave-switch/meta";
+import { ultimateColorTrialMeta } from "./games/ultimate-color-trial/meta";
 
 export const ARCADE_GAMES: ArcadeGameMeta[] = [
    robotCollectorMeta,
@@ -182,6 +183,7 @@ export const ARCADE_GAMES: ArcadeGameMeta[] = [
    neonCubeJumpMeta,
    portalHopMeta,
    crystalCaveSwitchMeta,
+   ultimateColorTrialMeta,
 ].sort((a, b) => a.order - b.order);
 
 export function getGameMeta(slug: string): ArcadeGameMeta | undefined {
