@@ -78,7 +78,7 @@ export function Boss({ world }: { world: World }) {
       <>
          <group ref={root} visible={false}>
             <group ref={body}>
-               <Model asset={ASSETS.boss} tint="#a3a3a3" />
+               <Model asset={ASSETS.boss} />
             </group>
             <mesh ref={ring}>
                <torusGeometry args={[0.9, 0.08, 8, 32]} />

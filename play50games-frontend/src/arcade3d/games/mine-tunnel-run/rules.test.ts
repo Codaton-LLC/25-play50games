@@ -189,3 +189,11 @@ describe("scoring and the coach", () => {
       expect(COACH[coachFor(w, w.heroes[0])]).toMatch(/lantern/i);
    });
 });
+
+describe("beetles stay on their floor", () => {
+   it("a walking beetle turns at the edge of a shaft instead of dropping into it", () => {
+      const w = mine(["S.....", "s#####", "##.b..", "##.###", "##.###", "######", "E....."]);
+      for (let t = 0; t < 6000; t += 1000 / 60) step(w, 1000 / 60, idleInput());
+      expect(w.beetles[0].row).toBe(2);
+   });
+});

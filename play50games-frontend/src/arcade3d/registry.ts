@@ -61,6 +61,7 @@ import { ziplineRushMeta } from "./games/zipline-rush/meta";
 import { colorDoorSprintMeta } from "./games/color-door-sprint/meta";
 import { templeCoinRushMeta } from "./games/temple-coin-rush/meta";
 import { colorRailGrindMeta } from "./games/color-rail-grind/meta";
+import { magnetCoinLabMeta } from "./games/magnet-coin-lab/meta";
 import { cloudHopperMeta } from "./games/cloud-hopper/meta";
 import { plateSurfMeta } from "./games/plate-surf/meta";
 import { robotFactoryRunMeta } from "./games/robot-factory-run/meta";
@@ -74,14 +75,20 @@ import { gemCollector3dMeta } from "./games/gem-collector-3d/meta";
 import { jungleVineJumpMeta } from "./games/jungle-vine-jump/meta";
 import { icePeakJumperMeta } from "./games/ice-peak-jumper/meta";
 import { candyWorldRunnerMeta } from "./games/candy-world-runner/meta";
+import { alienLaneEscapeMeta } from "./games/alien-lane-escape/meta";
 import { dragonCaveRushMeta } from "./games/dragon-cave-rush/meta";
 import { skyHookSwingMeta } from "./games/sky-hook-swing/meta";
 import { tightropePathMeta } from "./games/tightrope-path/meta";
 import { discTargetThrowMeta } from "./games/disc-target-throw/meta";
 import { wallRunTempleMeta } from "./games/wall-run-temple/meta";
+import { plateBounceArenaMeta } from "./games/plate-bounce-arena/meta";
 import { mineTunnelRunMeta } from "./games/mine-tunnel-run/meta";
 import { spinPoleClimbMeta } from "./games/spin-pole-climb/meta";
 import { templeGongTimingMeta } from "./games/temple-gong-timing/meta";
+import { neonCubeJumpMeta } from "./games/neon-cube-jump/meta";
+
+import { snowSlideDashMeta } from "./games/snow-slide-dash/meta";
+import { portalHopMeta } from "./games/portal-hop/meta";
 
 export const ARCADE_GAMES: ArcadeGameMeta[] = [
    robotCollectorMeta,
@@ -158,11 +165,17 @@ export const ARCADE_GAMES: ArcadeGameMeta[] = [
    tightropePathMeta,
    discTargetThrowMeta,
    wallRunTempleMeta,
+   plateBounceArenaMeta,
    templeCoinRushMeta,
+   snowSlideDashMeta,
    mineTunnelRunMeta,
    colorRailGrindMeta,
+   magnetCoinLabMeta,
+   alienLaneEscapeMeta,
    spinPoleClimbMeta,
    templeGongTimingMeta,
+   neonCubeJumpMeta,
+   portalHopMeta,
 ].sort((a, b) => a.order - b.order);
 
 export function getGameMeta(slug: string): ArcadeGameMeta | undefined {

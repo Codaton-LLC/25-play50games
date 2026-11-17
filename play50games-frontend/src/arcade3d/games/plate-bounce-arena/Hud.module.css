@@ -1,0 +1,189 @@
+/* Plate Bounce Arena HUD (the Menu 2 HUD look, after plate-surf): deep navy pills with a light edge,
+   bold white numbers, a gold level line; balls left, the table points and the plunger gauge with its
+   gold skill-shot band. Placement is menu2/hud HudStack. */
+.pill,
+.clock {
+   display: inline-flex;
+   align-items: center;
+   gap: 8px;
+   min-width: 92px;
+   padding: 6px 14px 6px 8px;
+   border: 2px solid rgba(255, 255, 255, 0.18);
+   border-radius: 999px;
+   background: linear-gradient(180deg, rgba(23, 37, 84, 0.88), rgba(15, 23, 60, 0.88));
+   box-shadow: 0 4px 14px rgba(8, 15, 40, 0.35);
+   color: #fff;
+}
+
+.value {
+   font-size: 1.25rem;
+   font-weight: 800;
+   letter-spacing: 0.01em;
+   line-height: 1;
+   font-variant-numeric: tabular-nums;
+   text-shadow: 0 2px 0 rgba(0, 0, 0, 0.25);
+}
+
+.orb {
+   width: 26px;
+   height: 26px;
+   border-radius: 50%;
+   background: radial-gradient(circle at 35% 30%, #fffbeb 0, #fde68a 35%, #f59e0b 72%, #92400e 100%);
+   box-shadow: 0 0 10px rgba(251, 191, 36, 0.75), inset 0 -2px 3px rgba(90, 50, 8, 0.5);
+}
+
+.icon {
+   width: 24px;
+   height: 24px;
+   flex: none;
+}
+
+.banner {
+   display: flex;
+   flex-direction: column;
+   align-items: center;
+   padding: 6px 22px 7px;
+   border: 2px solid rgba(255, 255, 255, 0.2);
+   border-radius: 16px;
+   background: linear-gradient(180deg, rgba(23, 37, 84, 0.9), rgba(15, 23, 60, 0.9));
+   box-shadow: 0 6px 18px rgba(8, 15, 40, 0.35);
+   white-space: nowrap;
+}
+
+.title {
+   color: #fff;
+   font-size: 1.2rem;
+   font-weight: 800;
+   line-height: 1.15;
+}
+
+.level {
+   color: #ffd257;
+   font-size: 0.85rem;
+   font-weight: 700;
+   line-height: 1.2;
+}
+
+.clock {
+   min-width: 0;
+   padding: 4px 14px 4px 8px;
+}
+
+.swatch {
+   width: 22px;
+   height: 22px;
+   flex: none;
+   border-radius: 50%;
+   box-shadow: inset 0 -2px 3px rgba(0, 0, 0, 0.35), 0 0 8px rgba(255, 255, 255, 0.35);
+}
+
+/* narrow phones: a smaller banner between the left pills and the shell's buttons */
+@media (max-width: 520px) {
+   .banner {
+      padding: 4px 12px 5px;
+      border-radius: 12px;
+   }
+   .title {
+      font-size: 0.95rem;
+   }
+   .level {
+      font-size: 0.7rem;
+   }
+   .value {
+      font-size: 1.05rem;
+   }
+   .pill {
+      min-width: 76px;
+      padding: 4px 12px 4px 6px;
+   }
+   .orb {
+      width: 22px;
+      height: 22px;
+   }
+}
+
+/* the start card's local multiplayer entry (menu2/multiplayer; hidden on phones by device.ts) */
+.mpBtn {
+   min-height: 44px;
+   margin-left: 4px;
+   padding: 0 12px;
+   border: 2px solid #ffd257;
+   border-radius: 12px;
+   background: rgba(255, 210, 87, 0.14);
+   color: #fff;
+   font: inherit;
+   font-size: 0.78rem;
+   font-weight: 800;
+   white-space: nowrap;
+   cursor: pointer;
+}
+
+.mpBtn:focus-visible {
+   outline: 3px solid #ffd257;
+   outline-offset: 2px;
+}
+
+
+/* the plunger gauge: brass as it charges, the gold band is the skill shot */
+.meter {
+   position: relative;
+   width: 96px;
+   height: 10px;
+   border-radius: 999px;
+   background: rgba(255, 255, 255, 0.2);
+   overflow: hidden;
+}
+
+.ropeFill {
+   position: absolute;
+   inset: 0 auto 0 0;
+   border-radius: 999px;
+   background: linear-gradient(90deg, #d6a756, #f5e3b5);
+   transition: width 90ms linear, background-color 120ms linear;
+}
+
+
+
+
+/* the coach line over a bright sky: a navy chip so the gold text reads */
+.coach {
+   padding: 4px 12px;
+   border-radius: 999px;
+   background: rgba(15, 23, 60, 0.82);
+   text-shadow: none;
+}
+
+
+.gold {
+   position: absolute;
+   top: 0;
+   bottom: 0;
+   background: rgba(253, 224, 71, 0.75);
+   box-shadow: 0 0 8px rgba(253, 224, 71, 0.9);
+}
+
+.gaugeLabel {
+   font-size: 0.78rem;
+   font-weight: 700;
+   white-space: nowrap;
+}
+
+.ball {
+   width: 18px;
+   height: 18px;
+   border-radius: 50%;
+   box-shadow: inset 0 -3px 4px rgba(0, 0, 0, 0.35), inset 0 2px 3px rgba(255, 255, 255, 0.45);
+}
+
+.ballGone {
+   opacity: 0.22;
+   filter: grayscale(1);
+}
+
+.points {
+   font-size: 1.05rem;
+   font-weight: 800;
+   color: #fde68a;
+   font-variant-numeric: tabular-nums;
+   letter-spacing: 0.02em;
+}
