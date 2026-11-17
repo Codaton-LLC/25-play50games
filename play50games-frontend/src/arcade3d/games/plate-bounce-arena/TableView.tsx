@@ -5,7 +5,7 @@
 // bounce pads, the GLB bumpers (a light ring flashes on a hit), mushrooms, penguin drop targets (ice
 // blocks on level 3) that sink when knocked down, lanterns, the clear plastic ramps with their gold score
 // rings, the score orbs, Zuno's magnet pads over the coin trail under glass, the exit hole (a candy lid
-// until it opens: m2BouncePadRound), Riko's cracked block (m2ArenaBlock), Nami's raised deck, Vexa's ghost gate and attic, the plunger
+// until it opens), Riko's cracked block, Nami's raised deck, Vexa's ghost gate and attic, the plunger
 // that squeezes with the charge, the flippers (menu2/props Flipper), the chase lights round the rails
 // (faster with the combo) and the backbox with the table's name. Visual only.
 import { useMemo, useRef } from "react";
@@ -14,12 +14,12 @@ import {
    CanvasTexture, CatmullRomCurve3, Color, DoubleSide, Euler, InstancedMesh, Matrix4, Object3D, Quaternion, SRGBColorSpace, Vector3,
    type Group, type Mesh, type MeshStandardMaterial,
 } from "three";
-import { DynamicInstancedModel, InstancedModel, Model } from "@/arcade3d/core/assets";
+import { DynamicInstancedModel, InstancedModel } from "@/arcade3d/core/assets";
 import { Instanced, type InstanceSpot } from "@/arcade3d/core/render";
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import { Flipper, FLIPPER_SIZE } from "@/arcade3d/menu2/props";
 import type { LevelId } from "@/arcade3d/types";
-import { ASSETS, GLB_SIZE, LID_H, fit } from "./assets";
+import { ASSETS, GLB_SIZE, fit } from "./assets";
 import { COLORS, chase, levelLook, type LevelLook } from "./look";
 import { ATTIC, DECK, FLIPPER_LEN, LANE_X, PLUNGER, TILT, buildTable, type Seg, type Table } from "./table";
 import { exitOpen, type PinRun } from "./rules";
@@ -330,9 +330,9 @@ export default function TableView({ run, clock }: { run: PinRun; clock: TableClo
    const crack = useMemo(() => table.segs.find((s) => s.kind === "crack")!, [table]);
    const gate = useMemo(() => table.segs.find((s) => s.kind === "gate") ?? null, [table]);
    const ghostRef = useRef<Mesh>(null);
-   const crackRef = useRef<Group>(null);
+   const crackRef = useRef<Mesh>(null);
    const gateRef = useRef<Mesh>(null);
-   const lidRef = useRef<Group>(null);
+   const lidRef = useRef<Mesh>(null);
    const holeGlow = useRef<Mesh>(null);
    const flipL = useRef<Group>(null);
    const flipR = useRef<Group>(null);
@@ -516,10 +516,10 @@ export default function TableView({ run, clock }: { run: PinRun; clock: TableClo
             <boxGeometry args={[1, 1, 1]} />
             <meshStandardMaterial color={COLORS.ghost} emissive={COLORS.ghost} transparent opacity={0.5} depthWrite={false} />
          </mesh>
-         {/* m2ArenaBlock fitted into the segment's unit box (the matrix stretches it to the wall) */}
-         <group ref={crackRef} matrixAutoUpdate={false} matrix={segSpot(crack, 0, 0.9)}>
-            <Model asset={ASSETS.block} position={[0, -0.5, 0]} scale={[1 / GLB_SIZE.block.x, 1 / GLB_SIZE.block.y, 1 / GLB_SIZE.block.z]} tint={COLORS.crack} />
-         </group>
+         <mesh ref={crackRef} matrixAutoUpdate={false} matrix={segSpot(crack, 0, 0.9)} castShadow>
+            <boxGeometry args={[1, 1, 1]} />
+            <meshStandardMaterial color={COLORS.crack} roughness={0.85} />
+         </mesh>
          {gate ? (
             <mesh ref={gateRef} matrixAutoUpdate={false} matrix={segSpot(gate, 0, 0.45)}>
                <boxGeometry args={[1, 1, 1]} />
@@ -574,10 +574,10 @@ export default function TableView({ run, clock }: { run: PinRun; clock: TableClo
                   <ringGeometry args={[table.hole.r, table.hole.r + 0.18, 32]} />
                   <meshStandardMaterial color={COLORS.rail} metalness={0.5} roughness={0.25} />
                </mesh>
-               {/* the lid: m2BouncePadRound, 0.2 m thick, tinted the level's accent */}
-               <group ref={lidRef}>
-                  <Model asset={ASSETS.lid} scale={[(2 * (table.hole.r + 0.12)) / GLB_SIZE.lid.x, LID_H / GLB_SIZE.lid.y, (2 * (table.hole.r + 0.12)) / GLB_SIZE.lid.z]} tint={look.accent} />
-               </group>
+               <mesh ref={lidRef} position={[0, 0.18, 0]} castShadow>
+                  <cylinderGeometry args={[table.hole.r + 0.05, table.hole.r + 0.12, 0.36, 28]} />
+                  <meshStandardMaterial color={look.accent} roughness={0.35} />
+               </mesh>
                <mesh ref={holeGlow} position={[0, 0.06, 0]} rotation-x={-Math.PI / 2}>
                   <ringGeometry args={[table.hole.r + 0.25, table.hole.r + 0.6, 32]} />
                   <meshBasicMaterial color={COLORS.holeOpen} transparent opacity={0.85} toneMapped={false} />
