@@ -2,6 +2,8 @@
 // is the shared m2ShadowArmadillo; the score orbs are the shared Menu 2 scoreOrb, the coins the shared
 // coin, the slingshot pads the shared bouncePad. Table props live in public/models/3d/plate-bounce-arena.
 // Every GLB has its feet on y = 0, centred on x and z. GLB_SIZE is the real mesh (assets.test.ts).
+// Riko's cracked block is m2ArenaBlock and the exit hole's lid m2BouncePadRound (ready/menu2, optimized
+// locally; the card's m2AngledRamp has no wedge ramp to replace: the ramps are plastic tubes).
 // Code stays for: the playfield, rails, ramps (clear plastic tubes), lanterns and rings, the exit hole,
 // posts, the deck, the glass and the flippers (menu2/props Flipper, a code-built prop).
 import type { ModelAsset } from "@/arcade3d/core/types";
@@ -22,7 +24,14 @@ export const GLB_SIZE = {
    pad: { x: 1.812, y: 0.5, z: 1.892 },
    orb: { x: 1.766, y: 1.901, z: 1.77 },
    rollo: { x: 1.298, y: 1.535, z: 1.894 },
+   /** m2ArenaBlock: a chunky stone block with metal corner caps (Riko's cracked block, fitted to its wall segment) */
+   block: { x: 1.898, y: 1.644, z: 1.865 },
+   /** m2BouncePadRound: a flat round pad with a bevelled rim (the exit hole's lid) */
+   lid: { x: 1.901, y: 0.096, z: 1.9 },
 } as const;
+
+/** The exit hole's lid is drawn this thick (m). */
+export const LID_H = 0.2;
 
 const prop = (id: string, color: string, url = `/models/3d/plate-bounce-arena/${id}.glb`): ModelAsset => ({
    id,
@@ -47,6 +56,8 @@ export const ASSETS: Record<string, ModelAsset> = {
    orb: { ...prop("scoreOrb", "#fbbf24", "/models/3d/menu2/scoreOrb.glb"), fallback: "sphere" },
    coin: SHARED_ASSETS.coin,
    rollo: { ...prop("m2ShadowArmadillo", "#6d28d9", "/models/3d/menu2/m2ShadowArmadillo.glb"), budget: CHARACTER_BUDGET },
+   block: prop("m2ArenaBlock", "#a8a29e"),
+   lid: { ...prop("m2BouncePadRound", "#f472b6"), fallback: "cylinder" },
 };
 
 /** Scale that makes a GLB axis `size` draw as `metres`. */
