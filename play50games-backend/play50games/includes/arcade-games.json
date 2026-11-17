@@ -1439,6 +1439,22 @@
         { "title": "Planet Escape", "max_score": 15910, "min_duration_ms": 40900, "max_duration_ms": 200000, "time_base_ms": 200000 }
       ]
     },
+    "laser-maze-run": {
+      "title": "Laser Maze Run",
+      "kind": "time",
+      "max_score": 6930,
+      "min_duration_ms": 5700,
+      "max_duration_ms": 75000,
+      "time_base_ms": 75000,
+      "enabled": false,
+      "levels": [
+        { "title": "Static Lasers", "max_score": 6930, "min_duration_ms": 5700, "max_duration_ms": 75000, "time_base_ms": 75000 },
+        { "title": "Moving Lasers", "max_score": 8290, "min_duration_ms": 7100, "max_duration_ms": 90000, "time_base_ms": 90000 },
+        { "title": "Cross Grid", "max_score": 9620, "min_duration_ms": 8800, "max_duration_ms": 105000, "time_base_ms": 105000 },
+        { "title": "Fast Maze", "max_score": 10950, "min_duration_ms": 10500, "max_duration_ms": 120000, "time_base_ms": 120000 },
+        { "title": "Laser Master", "max_score": 11590, "min_duration_ms": 34100, "max_duration_ms": 150000, "time_base_ms": 150000 }
+      ]
+    },
     "candy-world-runner": {
       "title": "Candy World Runner",
       "kind": "time",
