@@ -170,4 +170,4 @@ nebulae are code. `assets.test.ts` tests the fits against the measured meshes.
 
 Fixed in the gate: the spire was an 8-facet flat-shaded column that, up close, filled a third of the screen as one flat purple slab (now 16 glossy facets, a weaker glow); the pads and crystals were too dark (brighter hemisphere and key light on every level).
 
-Open: at the start of a tier the beacon can stand between the camera and the hero for a moment (the orbit swings round as he moves); real-phone frame time not measured.
+Fixed (Menu 2 polish pack): at the start of a tier the beacon post could stand between the camera and the hero while the orbit swung round. The post in the way is now left out of the frame (`camera.ts beaconBlocksView`, as Portal Hop hides an anchor); its ring and flash stay. Open: real-phone frame time not measured.

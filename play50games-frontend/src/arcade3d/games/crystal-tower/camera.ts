@@ -19,6 +19,26 @@ export function towerOrbit(course: Course): Partial<OrbitSettings> {
 export const TOWER_COLLISION: ClipOptions = { radius: 0.35, minDistance: 1.4, squeeze: 0.45, liftTo: 64 * DEG };
 
 export const FOV = 52;
+
+/**
+ * Is this beacon post standing between the camera and the hero? (Portal Hop's anchorBlocksView, for a
+ * post.) At the start of a tier the hero steps into the beacon's ring right beside the post, and while
+ * the orbit swings round behind him the post can fill the view. True while the post is within
+ * `BEACON_BLOCK.width` m of the line from the camera to the hero (on the ground plan), between the two,
+ * with the hero close to it: TowerView hides that one post then.
+ */
+export const BEACON_BLOCK = { width: 0.9, heroNear: 6, camNear: 16 } as const;
+
+export function beaconBlocksView(post: { x: number; z: number }, cam: { x: number; z: number }, hero: { x: number; z: number }): boolean {
+   const dx = hero.x - cam.x;
+   const dz = hero.z - cam.z;
+   const len2 = dx * dx + dz * dz;
+   if (len2 < 1e-6) return false;
+   const t = ((post.x - cam.x) * dx + (post.z - cam.z) * dz) / len2;
+   if (t <= 0.02 || t >= 0.98) return false;
+   const off = Math.abs((post.x - cam.x) * dz - (post.z - cam.z) * dx) / Math.sqrt(len2);
+   return off < BEACON_BLOCK.width && Math.hypot(post.x - hero.x, post.z - hero.z) < BEACON_BLOCK.heroNear && Math.hypot(post.x - cam.x, post.z - cam.z) < BEACON_BLOCK.camNear;
+}
 export const FOV_PORTRAIT = 62;
 
 export function portraitAmount(aspect: number): number {
