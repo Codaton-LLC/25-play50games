@@ -1248,6 +1248,22 @@
         { "title": "Toybox Finale", "max_score": 18410, "min_duration_ms": 15900, "max_duration_ms": 200000, "time_base_ms": 200000 }
       ]
     },
+    "crystal-tower": {
+      "title": "Crystal Tower",
+      "kind": "time",
+      "max_score": 8310,
+      "min_duration_ms": 6900,
+      "max_duration_ms": 90000,
+      "time_base_ms": 90000,
+      "enabled": false,
+      "levels": [
+        { "title": "3-Color Sequence", "max_score": 8310, "min_duration_ms": 6900, "max_duration_ms": 90000, "time_base_ms": 90000 },
+        { "title": "4 Colors", "max_score": 11300, "min_duration_ms": 7000, "max_duration_ms": 120000, "time_base_ms": 120000 },
+        { "title": "5 Colors", "max_score": 13380, "min_duration_ms": 16200, "max_duration_ms": 150000, "time_base_ms": 150000 },
+        { "title": "Moving Crystals", "max_score": 15820, "min_duration_ms": 21800, "max_duration_ms": 180000, "time_base_ms": 180000 },
+        { "title": "Memory Tower", "max_score": 20550, "min_duration_ms": 34500, "max_duration_ms": 240000, "time_base_ms": 240000 }
+      ]
+    },
     "robot-factory-run": {
       "title": "Robot Factory Run",
       "kind": "time",
