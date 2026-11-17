@@ -21,6 +21,87 @@ import {
    trackShareClick,
    getShareStatus,
 } from "@/lib/api/share";
+import { useInstantPress, useRevealOnPlay, useViewport } from "./touch";
+import fx from "./speedFx.module.css";
+import styles from "./QuickCompare.module.css";
+
+/**
+ * One number card = one play target: tapping it says "this one is bigger". Activates on pointerdown
+ * (touch, pen and mouse alike, no 100-300 ms click delay); a keyboard activation still clicks.
+ * The button itself is never re-keyed (the click that follows a pointerdown must land on the same
+ * element to be swallowed): the value span is keyed by the pair (`seq`, fades in) and by the answer
+ * (`beat`, pops / shakes), and a keyed ring overlay flashes green / red.
+ */
+function ChoiceCard({
+   side,
+   label,
+   long,
+   seq,
+   disabled,
+   beat,
+   onPick,
+}: {
+   side: "left" | "right";
+   label: string;
+   long: boolean;
+   seq: number;
+   disabled: boolean;
+   beat: { ok: boolean; n: number } | null;
+   onPick: (side: "left" | "right") => void;
+}) {
+   const press = useInstantPress<HTMLButtonElement>(() => onPick(side), !disabled);
+   const tone = beat ? (beat.ok ? styles.choiceOk : styles.choiceBad) : "";
+   const anim = beat ? (beat.ok ? fx.hitPop : fx.missShake) : fx.fadeUp;
+   return (
+      <div className={styles.pairSlot}>
+         <button
+            type="button"
+            className={`${styles.choice} ${long ? styles.choiceLong : ""} ${fx.pressable} ${tone}`}
+            disabled={disabled}
+            aria-label={`${side === "left" ? "Left" : "Right"} number ${label}: tap if it is the bigger one`}
+            {...press}
+         >
+            <span key={`${seq}:${beat ? beat.n : 0}`} className={`${styles.choiceValue} ${anim}`}>
+               {label}
+            </span>
+         </button>
+         {beat && (
+            <span
+               key={`r${beat.n}`}
+               className={`${styles.ring} ${beat.ok ? fx.flashOk : fx.flashBad}`}
+               aria-hidden="true"
+            />
+         )}
+         {beat && beat.ok && (
+            <span key={`f${beat.n}`} className={`${fx.floatScore} ${styles.floatPlus}`} aria-hidden="true">
+               +1
+            </span>
+         )}
+      </div>
+   );
+}
+
+/** A pointerdown-activated button for the other actions (the < / > keys, Replay, Share, Next Round). */
+function InstantButton({
+   onPress,
+   disabled = false,
+   className,
+   ariaLabel,
+   children,
+}: {
+   onPress: () => void;
+   disabled?: boolean;
+   className: string;
+   ariaLabel?: string;
+   children: React.ReactNode;
+}) {
+   const press = useInstantPress<HTMLButtonElement>(onPress, !disabled);
+   return (
+      <button type="button" className={className} disabled={disabled} aria-label={ariaLabel} {...press}>
+         {children}
+      </button>
+   );
+}
 
 interface QuickCompareProps {
    config: Record<string, any>;
@@ -70,8 +151,14 @@ export default function QuickCompare({
       displayRight: string;
    } | null>(null);
    const [feedback, setFeedback] = useState<"correct" | "wrong" | null>(null);
-   const [isMobile, setIsMobile] = useState(false);
-   const [isTablet, setIsTablet] = useState(false);
+   // display only: which card the last answer picked as the bigger one, and whether it was right
+   const [chosen, setChosen] = useState<{ side: "left" | "right"; ok: boolean; n: number } | null>(null);
+   // display only: changes with every new pair so the pair row fades in
+   const [pairSeq, setPairSeq] = useState(0);
+   const viewport = useViewport();
+   const isMobile = viewport.isMobile;
+   const rootRef = useRef<HTMLDivElement>(null);
+   useRevealOnPlay(rootRef, isPlaying);
 
    // Replay and Share functionality
    const [replaysUsed, setReplaysUsed] = useState(0);
@@ -94,17 +181,6 @@ export default function QuickCompare({
    const prevLevelRef = useRef<number | null>(null);
    const forceStartLevelRef = useRef<number | null>(null);
    const completionCalledRef = useRef(false);
-
-   // Responsive design
-   useEffect(() => {
-      const checkResponsive = () => {
-         setIsMobile(window.innerWidth < 640);
-         setIsTablet(window.innerWidth >= 640 && window.innerWidth < 1024);
-      };
-      checkResponsive();
-      window.addEventListener("resize", checkResponsive);
-      return () => window.removeEventListener("resize", checkResponsive);
-   }, []);
 
    useEffect(() => {
       if (!isPlaying) return;
@@ -461,6 +537,7 @@ export default function QuickCompare({
    const generateNextPair = useCallback(() => {
       const pair = generatePair(currentLevel);
       setCurrentPair(pair);
+      setPairSeq((n) => n + 1);
    }, [currentLevel, generatePair]);
 
    useEffect(() => {
@@ -915,9 +992,12 @@ export default function QuickCompare({
             setWrongAnswers((prev) => prev + 1);
             setFeedback("wrong");
          }
+         // the card the answer called bigger (">" = left, "<" = right) pops or shakes
+         setChosen((prev) => ({ side: choice === ">" ? "left" : "right", ok: isCorrect, n: (prev?.n ?? 0) + 1 }));
 
          setTimeout(() => {
             setFeedback(null);
+            setChosen(null);
             if (
                gameStateRef.current === "playing" &&
                !requirementsMetRef.current
@@ -948,10 +1028,11 @@ export default function QuickCompare({
             return;
          }
 
-         if (e.key === "," || e.key === "<") {
+         if (e.key === "," || e.key === "<" || e.key === "ArrowRight") {
+            // "," / "<" = left is smaller; ArrowRight = the right number is the bigger one (same answer)
             e.preventDefault();
             handleComparison("<");
-         } else if (e.key === "." || e.key === ">") {
+         } else if (e.key === "." || e.key === ">" || e.key === "ArrowLeft") {
             e.preventDefault();
             handleComparison(">");
          }
@@ -992,699 +1073,234 @@ export default function QuickCompare({
       return descriptions[level] || "Number Comparison";
    };
 
+   const choicesDisabled = gameState !== "playing" || requirementsMet;
+   const replayDisabled = maxReplays > 0 && replaysUsed >= maxReplays;
+   // a tap on a card calls that number the bigger one: left bigger = ">", right bigger = "<"
+   const pickSide = useCallback(
+      (side: "left" | "right") => handleComparison(side === "left" ? ">" : "<"),
+      [handleComparison]
+   );
+   const pickLess = useCallback(() => handleComparison("<"), [handleComparison]);
+   const pickMore = useCallback(() => handleComparison(">"), [handleComparison]);
+   const opTone =
+      feedback === "wrong" && gameState === "playing"
+         ? styles.opBad
+         : feedback === "correct" && gameState === "playing"
+         ? styles.opOk
+         : "";
+
    return (
       <>
-         <div
-            style={{
-               display: "flex",
-               flexDirection: "column",
-               alignItems: "center",
-               justifyContent: "center",
-               minHeight: "100%",
-               width: "100%",
-               padding: isMobile ? "12px" : "20px",
-               gap: isMobile ? "16px" : "24px",
-            }}
-         >
+         <div ref={rootRef} className={styles.root}>
             {/* Header Section */}
-            <div
-               style={{
-                  width: "100%",
-                  maxWidth: "800px",
-                  background: "var(--card)",
-                  borderRadius: isMobile ? "14px" : "16px",
-                  padding: isMobile ? "16px" : "20px",
-                  boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
-               }}
-            >
-               <div
-                  style={{
-                     display: "flex",
-                     justifyContent: "space-between",
-                     alignItems: "center",
-                     fontSize: isMobile ? "0.75rem" : "0.875rem",
-                     color: "var(--muted)",
-                     fontWeight: 500,
-                     marginBottom: isMobile ? "10px" : "12px",
-                     flexWrap: isMobile ? "wrap" : "nowrap",
-                     gap: isMobile ? "8px" : "0",
-                  }}
-               >
-                  <span
-                     style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "6px",
-                     }}
-                  >
-                     <ArrowPathIcon
-                        style={{
-                           width: isMobile ? 14 : 16,
-                           height: isMobile ? 14 : 16,
-                           color: "var(--accent)",
-                        }}
-                     />
+            <div className={styles.header}>
+               <div className={styles.headerRow}>
+                  <span className={styles.headerItem}>
+                     <ArrowPathIcon className={styles.headerIcon} style={{ color: "var(--accent)" }} />
                      Level {currentLevel + 1} / {maxLevels}
                   </span>
-                  <span
-                     style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "6px",
-                     }}
-                  >
-                     <TrophyIcon
-                        style={{
-                           width: isMobile ? 14 : 16,
-                           height: isMobile ? 14 : 16,
-                           color: "var(--ok)",
-                        }}
-                     />
+                  <span className={styles.headerItem}>
+                     <TrophyIcon className={styles.headerIcon} style={{ color: "var(--ok)" }} />
                      Score:{" "}
                      {currentLevel + 1 >= maxLevels && gameState === "ready"
                         ? 100
                         : currentScore}{" "}
                      / 100
                   </span>
-                  <span
-                     style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "6px",
-                     }}
-                  >
-                     <ClockIcon
-                        style={{
-                           width: isMobile ? 14 : 16,
-                           height: isMobile ? 14 : 16,
-                           color: "var(--accent)",
-                        }}
-                     />
+                  <span className={styles.headerItem}>
+                     <ClockIcon className={styles.headerIcon} style={{ color: "var(--accent)" }} />
                      Time: {timeLeft}s
                   </span>
                </div>
-               <div
-                  style={{
-                     width: "100%",
-                     height: isMobile ? "6px" : "8px",
-                     background: "rgba(255, 255, 255, 0.1)",
-                     borderRadius: "999px",
-                     overflow: "hidden",
-                  }}
-               >
-                  <div
-                     style={{
-                        width: `${progress}%`,
-                        height: "100%",
-                        background:
-                           "linear-gradient(90deg, var(--accent) 0%, var(--ok) 100%)",
-                        borderRadius: "999px",
-                        transition: "width 0.3s ease",
-                        boxShadow: "0 0 10px rgba(125, 211, 252, 0.5)",
-                     }}
-                  />
+               <div className={styles.progressTrack}>
+                  <div className={styles.progressFill} style={{ width: `${progress}%` }} />
                </div>
             </div>
 
             {/* Game Board */}
-            <div
-               style={{
-                  width: "100%",
-                  maxWidth: "800px",
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  gap: isMobile ? "16px" : "24px",
-               }}
-            >
+            <div className={styles.board}>
                {/* Stats */}
-               <div
-                  style={{
-                     display: "flex",
-                     gap: isMobile ? "12px" : "16px",
-                     width: "100%",
-                     justifyContent: "center",
-                     flexWrap: "wrap",
-                  }}
-               >
-                  <div
-                     style={{
-                        padding: isMobile ? "8px 12px" : "10px 16px",
-                        background:
-                           "linear-gradient(135deg, rgba(134, 239, 172, 0.25), rgba(134, 239, 172, 0.12))",
-                        border: "2px solid rgba(134, 239, 172, 0.6)",
-
-                        color: "var(--text)",
-                        fontSize: isMobile ? "0.85rem" : "0.95rem",
-                        fontWeight: 600,
-                     }}
-                  >
+               <div className={styles.stats}>
+                  <div className={`${styles.stat} ${styles.statOk}`}>
                      Correct: {correctAnswers} / {getMinCorrectAnswers()}
                   </div>
-                  <div
-                     style={{
-                        padding: isMobile ? "8px 12px" : "10px 16px",
-                        background:
-                           "linear-gradient(135deg, rgba(252, 165, 165, 0.25), rgba(252, 165, 165, 0.12))",
-                        border: "2px solid rgba(252, 165, 165, 0.6)",
-
-                        color: "var(--text)",
-                        fontSize: isMobile ? "0.85rem" : "0.95rem",
-                        fontWeight: 600,
-                     }}
-                  >
-                     Wrong: {wrongAnswers}
-                  </div>
+                  <div className={`${styles.stat} ${styles.statBad}`}>Wrong: {wrongAnswers}</div>
                </div>
 
                {/* Level Description */}
-               <div
-                  style={{
-                     padding: isMobile ? "8px 12px" : "10px 16px",
-                     background: "var(--card)",
-
-                     color: "var(--text)",
-                     fontSize: isMobile ? "0.9rem" : "1rem",
-                     fontWeight: 600,
-                     textAlign: "center",
-                  }}
-               >
-                  {getLevelDescription(currentLevel)}
-               </div>
+               <div className={styles.levelLine}>{getLevelDescription(currentLevel)}</div>
 
                {/* Comparison Area */}
                {gameState === "playing" && currentPair && (
-                  <div
-                     style={{
-                        width: "100%",
-                        maxWidth: "600px",
-                        padding: isMobile ? "24px" : "32px",
-                        background: "var(--card)",
-                        borderRadius: "var(--radius)",
-                        boxShadow: "0 10px 24px rgba(0, 0, 0, 0.2)",
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "center",
-                        gap: "24px",
-                     }}
-                  >
-                     {/* Numbers Display */}
-                     <div
-                        style={{
-                           display: "flex",
-                           alignItems: "center",
-                           justifyContent: "center",
-                           gap: isMobile ? "20px" : "32px",
-                           fontSize: isMobile ? "2rem" : "3rem",
-                           fontWeight: 900,
-                           color: "var(--text)",
-                           minHeight: isMobile ? "80px" : "120px",
-                        }}
-                     >
-                        <span
-                           style={{
-                              padding: isMobile ? "16px 24px" : "20px 32px",
-                              background: "var(--background)",
-                              borderRadius: "16px",
-                              minWidth: isMobile ? "100px" : "150px",
-                              textAlign: "center",
-                           }}
-                        >
-                           {currentPair.displayLeft}
-                        </span>
-                        <span
-                           style={{
-                              fontSize: isMobile ? "1.5rem" : "2rem",
-                              color: "var(--muted)",
-                           }}
-                        >
+                  <div className={styles.pairCard}>
+                     {/* The two numbers: the play targets */}
+                     <div className={styles.pairRow} role="group" aria-label="Which number is bigger?">
+                        <ChoiceCard
+                           side="left"
+                           label={currentPair.displayLeft}
+                           long={currentPair.displayLeft.length >= 7}
+                           seq={pairSeq}
+                           disabled={choicesDisabled}
+                           beat={chosen && chosen.side === "left" ? { ok: chosen.ok, n: chosen.n } : null}
+                           onPick={pickSide}
+                        />
+                        <span className={styles.qMark} aria-hidden="true">
                            ?
                         </span>
-                        <span
-                           style={{
-                              padding: isMobile ? "16px 24px" : "20px 32px",
-                              background: "var(--background)",
-                              borderRadius: "16px",
-                              minWidth: isMobile ? "100px" : "150px",
-                              textAlign: "center",
-                           }}
-                        >
-                           {currentPair.displayRight}
-                        </span>
+                        <ChoiceCard
+                           side="right"
+                           label={currentPair.displayRight}
+                           long={currentPair.displayRight.length >= 7}
+                           seq={pairSeq}
+                           disabled={choicesDisabled}
+                           beat={chosen && chosen.side === "right" ? { ok: chosen.ok, n: chosen.n } : null}
+                           onPick={pickSide}
+                        />
                      </div>
 
-                     {/* Comparison Buttons */}
-                     <div
-                        style={{
-                           display: "flex",
-                           gap: isMobile ? "16px" : "24px",
-                           width: "100%",
-                           justifyContent: "center",
-                        }}
-                     >
-                        <button
-                           onClick={() => handleComparison("<")}
-                           disabled={gameState !== "playing" || requirementsMet}
-                           style={{
-                              padding: isMobile ? "16px 32px" : "20px 40px",
-                              fontSize: isMobile ? "1.5rem" : "2rem",
-                              fontWeight: 800,
-                              background:
-                                 feedback === "wrong" && gameState === "playing"
-                                    ? "linear-gradient(135deg, rgba(252, 165, 165, 0.3), rgba(252, 165, 165, 0.15))"
-                                    : feedback === "correct" &&
-                                      gameState === "playing"
-                                    ? "linear-gradient(135deg, rgba(134, 239, 172, 0.3), rgba(134, 239, 172, 0.15))"
-                                    : "linear-gradient(135deg, rgba(125, 211, 252, 0.2), rgba(125, 211, 252, 0.1))",
-                              border:
-                                 feedback === "wrong" && gameState === "playing"
-                                    ? "2px solid rgba(252, 165, 165, 0.8)"
-                                    : feedback === "correct" &&
-                                      gameState === "playing"
-                                    ? "2px solid rgba(134, 239, 172, 0.8)"
-                                    : "2px solid rgba(125, 211, 252, 0.6)",
-                              borderRadius: "16px",
-                              color: "var(--text)",
-                              cursor:
-                                 gameState !== "playing" || requirementsMet
-                                    ? "not-allowed"
-                                    : "pointer",
-                              transition: "all 0.2s ease",
-                              opacity:
-                                 gameState !== "playing" || requirementsMet
-                                    ? 0.5
-                                    : 1,
-                           }}
+                     {/* Comparison Buttons (the classic < / > keys) */}
+                     <div className={styles.opRow}>
+                        <InstantButton
+                           onPress={pickLess}
+                           disabled={choicesDisabled}
+                           className={`${styles.opBtn} ${fx.pressable} ${opTone}`}
+                           ariaLabel="Left is smaller"
                         >
-                           &lt;
-                        </button>
-                        <button
-                           onClick={() => handleComparison(">")}
-                           disabled={gameState !== "playing" || requirementsMet}
-                           style={{
-                              padding: isMobile ? "16px 32px" : "20px 40px",
-                              fontSize: isMobile ? "1.5rem" : "2rem",
-                              fontWeight: 800,
-                              background:
-                                 feedback === "wrong" && gameState === "playing"
-                                    ? "linear-gradient(135deg, rgba(252, 165, 165, 0.3), rgba(252, 165, 165, 0.15))"
-                                    : feedback === "correct" &&
-                                      gameState === "playing"
-                                    ? "linear-gradient(135deg, rgba(134, 239, 172, 0.3), rgba(134, 239, 172, 0.15))"
-                                    : "linear-gradient(135deg, rgba(125, 211, 252, 0.2), rgba(125, 211, 252, 0.1))",
-                              border:
-                                 feedback === "wrong" && gameState === "playing"
-                                    ? "2px solid rgba(252, 165, 165, 0.8)"
-                                    : feedback === "correct" &&
-                                      gameState === "playing"
-                                    ? "2px solid rgba(134, 239, 172, 0.8)"
-                                    : "2px solid rgba(125, 211, 252, 0.6)",
-                              borderRadius: "16px",
-                              color: "var(--text)",
-                              cursor:
-                                 gameState !== "playing" || requirementsMet
-                                    ? "not-allowed"
-                                    : "pointer",
-                              transition: "all 0.2s ease",
-                              opacity:
-                                 gameState !== "playing" || requirementsMet
-                                    ? 0.5
-                                    : 1,
-                           }}
+                           <span aria-hidden="true">&lt;</span>
+                           <span className={styles.opCaption} aria-hidden="true">
+                              left is smaller
+                           </span>
+                        </InstantButton>
+                        <InstantButton
+                           onPress={pickMore}
+                           disabled={choicesDisabled}
+                           className={`${styles.opBtn} ${fx.pressable} ${opTone}`}
+                           ariaLabel="Left is larger"
                         >
-                           &gt;
-                        </button>
+                           <span aria-hidden="true">&gt;</span>
+                           <span className={styles.opCaption} aria-hidden="true">
+                              left is larger
+                           </span>
+                        </InstantButton>
                      </div>
 
-                     {/* Feedback Message */}
-                     {feedback && (
-                        <div
-                           style={{
-                              padding: isMobile ? "12px 20px" : "16px 24px",
-                              background:
-                                 feedback === "correct"
-                                    ? "rgba(134, 239, 172, 0.2)"
-                                    : "rgba(252, 165, 165, 0.2)",
-                              border: `2px solid ${
-                                 feedback === "correct"
-                                    ? "rgba(134, 239, 172, 0.6)"
-                                    : "rgba(252, 165, 165, 0.6)"
-                              }`,
-
-                              color:
-                                 feedback === "correct"
-                                    ? "var(--ok)"
-                                    : "var(--warn)",
-                              fontSize: isMobile ? "0.9rem" : "1rem",
-                              fontWeight: 600,
-                              display: "flex",
-                              alignItems: "center",
-                              gap: "8px",
-                           }}
-                        >
-                           {feedback === "correct" ? (
-                              <>
-                                 <CheckCircleIcon
-                                    style={{ width: 20, height: 20 }}
-                                 />
-                                 <span>Correct!</span>
-                              </>
-                           ) : (
-                              <>
-                                 <XCircleIcon
-                                    style={{ width: 20, height: 20 }}
-                                 />
-                                 <span>Wrong!</span>
-                              </>
-                           )}
-                        </div>
-                     )}
+                     {/* Feedback Message (a fixed slot so the rows under it never jump) */}
+                     <div className={styles.feedbackSlot} aria-live="polite">
+                        {feedback && (
+                           <div
+                              key={chosen?.n ?? 0}
+                              className={`${styles.feedback} ${
+                                 feedback === "correct" ? styles.feedbackOk : styles.feedbackBad
+                              } ${fx.fadeUp}`}
+                           >
+                              {feedback === "correct" ? (
+                                 <>
+                                    <CheckCircleIcon style={{ width: 20, height: 20 }} />
+                                    <span>Correct!</span>
+                                 </>
+                              ) : (
+                                 <>
+                                    <XCircleIcon style={{ width: 20, height: 20 }} />
+                                    <span>Wrong!</span>
+                                 </>
+                              )}
+                           </div>
+                        )}
+                     </div>
 
                      {/* Instructions */}
-                     <p
-                        style={{
-                           fontSize: isMobile ? "0.85rem" : "0.95rem",
-                           color: "var(--muted)",
-                           textAlign: "center",
-                        }}
-                     >
-                        Click &lt; if left is smaller, &gt; if left is larger.
-                        <br />
-                        Keyboard: <kbd>,</kbd> for &lt; or <kbd>.</kbd> for &gt;
+                     <p className={styles.hint}>
+                        {viewport.isTouch ? "Tap" : "Click"} the bigger number, or &lt; / &gt; for left vs right.
+                        <span className={styles.hintKeys}>
+                           Keyboard: <kbd>,</kbd> for &lt;, <kbd>.</kbd> for &gt;, or <kbd>←</kbd> / <kbd>→</kbd>
+                        </span>
                      </p>
                   </div>
                )}
 
                {/* Ready for Next Round Message */}
                {gameState === "ready" && currentLevel + 1 < maxLevels && (
-                  <div
-                     style={{
-                        padding: isMobile ? "20px 24px" : "24px 32px",
-                        background: "var(--card)",
-                        borderRadius: "var(--radius)",
-                        color: "var(--text)",
-                        fontSize: isMobile ? "1rem" : "1.1rem",
-                        fontWeight: 700,
-                        textAlign: "center" as const,
-                        boxShadow: "0 10px 24px rgba(0, 0, 0, 0.25)",
-                        width: "100%",
-                     }}
-                  >
-                     <div
-                        style={{
-                           display: "inline-flex",
-                           alignItems: "center",
-                           gap: "8px",
-                           padding: "8px 14px",
-                           borderRadius: "999px",
-                           fontWeight: 800,
-                           fontSize: isMobile ? "0.95rem" : "1.05rem",
-                           background:
-                              "linear-gradient(135deg, rgba(134, 239, 172, 0.25), rgba(134, 239, 172, 0.1))",
-                           border: "2px solid rgba(134, 239, 172, 0.6)",
-                           color: "var(--text)",
-                           marginBottom: "16px",
-                        }}
-                     >
+                  <div className={`${styles.notice} ${fx.fadeUp}`}>
+                     <div className={`${styles.noticeBadge} ${styles.noticeBadgeOk}`}>
                         <CheckCircleIcon style={{ width: 20, height: 20 }} />
                         Level {currentLevel + 1} Complete
                      </div>
-                     <div
-                        style={{
-                           fontSize: isMobile ? "1.05rem" : "1.1rem",
-                           fontWeight: 600,
-                           marginBottom: "20px",
-                           marginTop: "16px",
-                        }}
-                     >
-                        Are you ready for next round?
-                     </div>
-                     <button
-                        onClick={handleNextRound}
-                        style={{
-                           padding: isMobile ? "12px 24px" : "14px 28px",
-                           background:
-                              "linear-gradient(135deg, rgba(134, 239, 172, 0.25), rgba(134, 239, 172, 0.12))",
-                           border: "2px solid rgba(134, 239, 172, 0.6)",
-
-                           color: "var(--text)",
-                           fontSize: isMobile ? "1rem" : "1.05rem",
-                           fontWeight: 700,
-                           cursor: "pointer",
-                           transition: "all 0.3s ease",
-                        }}
-                     >
+                     <div className={styles.noticeText}>Are you ready for next round?</div>
+                     <InstantButton onPress={handleNextRound} className={`${styles.noticeBtn} ${fx.pressable}`}>
                         Next Round
-                     </button>
+                     </InstantButton>
                   </div>
                )}
 
                {/* Game Complete Message */}
                {gameState === "ready" && currentLevel + 1 >= maxLevels && (
-                  <div
-                     style={{
-                        padding: isMobile ? "20px 24px" : "24px 32px",
-                        background: "var(--card)",
-                        borderRadius: "var(--radius)",
-                        color: "var(--text)",
-                        fontSize: isMobile ? "1rem" : "1.1rem",
-                        fontWeight: 700,
-                        textAlign: "center" as const,
-                        boxShadow: "0 10px 24px rgba(0, 0, 0, 0.25)",
-                        width: "100%",
-                     }}
-                  >
-                     <div
-                        style={{
-                           display: "inline-flex",
-                           alignItems: "center",
-                           gap: "8px",
-                           padding: "8px 14px",
-                           borderRadius: "999px",
-                           fontWeight: 800,
-                           fontSize: isMobile ? "0.95rem" : "1.05rem",
-                           background:
-                              "linear-gradient(135deg, rgba(134, 239, 172, 0.25), rgba(134, 239, 172, 0.1))",
-                           border: "2px solid rgba(134, 239, 172, 0.6)",
-                           color: "var(--text)",
-                           marginBottom: "16px",
-                        }}
-                     >
+                  <div className={`${styles.notice} ${fx.fadeUp}`}>
+                     <div className={`${styles.noticeBadge} ${styles.noticeBadgeOk}`}>
                         <TrophyIcon style={{ width: 20, height: 20 }} />
                         Game Complete!
                      </div>
-                     <div
-                        style={{
-                           fontSize: isMobile ? "1.05rem" : "1.1rem",
-                           fontWeight: 600,
-                           marginTop: "16px",
-                           marginBottom: "20px",
-                        }}
-                     >
-                        All {maxLevels} levels completed!
-                     </div>
+                     <div className={styles.noticeText}>All {maxLevels} levels completed!</div>
                   </div>
                )}
 
                {/* Level Failed Message */}
                {gameState === "failed" && (
-                  <div
-                     style={{
-                        padding: isMobile ? "20px 24px" : "24px 32px",
-                        background: "var(--card)",
-                        borderRadius: "var(--radius)",
-                        color: "var(--text)",
-                        fontSize: isMobile ? "1rem" : "1.1rem",
-                        fontWeight: 700,
-                        textAlign: "center" as const,
-                        boxShadow: "0 10px 24px rgba(0, 0, 0, 0.25)",
-                        width: "100%",
-                     }}
-                  >
-                     <div
-                        style={{
-                           display: "inline-flex",
-                           alignItems: "center",
-                           gap: "8px",
-                           padding: "8px 14px",
-                           borderRadius: "999px",
-                           fontWeight: 800,
-                           fontSize: isMobile ? "0.95rem" : "1.05rem",
-                           background:
-                              "linear-gradient(135deg, rgba(252, 165, 165, 0.25), rgba(252, 165, 165, 0.1))",
-                           border: "2px solid rgba(252, 165, 165, 0.6)",
-                           color: "var(--text)",
-                           marginBottom: "16px",
-                        }}
-                     >
+                  <div className={`${styles.notice} ${fx.fadeUp}`}>
+                     <div className={`${styles.noticeBadge} ${styles.noticeBadgeBad}`}>
                         <XCircleIcon style={{ width: 20, height: 20 }} />
                         Level {currentLevel + 1} Failed
                      </div>
-                     <div
-                        style={{
-                           marginTop: "12px",
-                           fontSize: isMobile ? "0.95rem" : "1.05rem",
-                           fontWeight: 600,
-                           color: "var(--text)",
-                           marginBottom: "18px",
-                        }}
-                     >
-                        Need: {getMinCorrectAnswers()} correct answers
-                     </div>
+                     <div className={styles.noticeText}>Need: {getMinCorrectAnswers()} correct answers</div>
                   </div>
                )}
 
                {/* Action Buttons: Replay, Share */}
                {(gameState === "playing" || gameState === "failed") && (
-                  <div
-                     style={{
-                        display: "flex",
-                        gap: "12px",
-                        justifyContent: "center",
-                        flexWrap: "wrap",
-                        padding: isMobile ? "12px" : "16px",
-                        background: "var(--card)",
-
-                        width: "100%",
-                     }}
-                  >
+                  <div className={styles.actionRow}>
                      {/* Share Success Message */}
                      {shareSuccess && !unlimitedActivated && (
-                        <div
-                           style={{
-                              width: "100%",
-                              padding: "12px",
-                              background: "rgba(134, 239, 172, 0.2)",
-                              border: "2px solid rgba(134, 239, 172, 0.6)",
-                              borderRadius: "8px",
-                              fontSize: isMobile ? "0.9rem" : "1rem",
-                              fontWeight: 600,
-                              color: "var(--ok)",
-                              textAlign: "center",
-                              marginBottom: "8px",
-                           }}
-                        >
-                           Link copied! Unlimited replay will unlock when
-                           someone opens your link!
+                        <div className={`${styles.actionNote} ${styles.actionNoteOk}`}>
+                           Link copied! Unlimited replay will unlock when someone opens your link!
                         </div>
                      )}
 
                      {/* Unlimited Activated Message */}
                      {unlimitedActivated && (
-                        <div
-                           style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: isMobile ? "6px" : "8px",
-                              padding: isMobile ? "10px 14px" : "8px 16px",
-                              background:
-                                 "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
-                              border: "2px solid rgba(59, 130, 246, 0.6)",
-                              borderRadius: isMobile ? "10px" : "8px",
-                              color: "var(--text)",
-                              fontSize: isMobile ? "0.85rem" : "0.9rem",
-                              fontWeight: 500,
-                              width: "100%",
-                              justifyContent: "center",
-                              textAlign: "center",
-                              flexWrap: "wrap",
-                              marginBottom: "8px",
-                           }}
-                        >
+                        <div className={`${styles.actionNote} ${styles.actionNoteInfo}`}>
                            <CheckCircleIcon
-                              style={{
-                                 width: isMobile ? 16 : 18,
-                                 height: isMobile ? 16 : 18,
-                                 color: "rgba(59, 130, 246, 0.9)",
-                                 flexShrink: 0,
-                              }}
+                              style={{ width: 18, height: 18, color: "rgba(59, 130, 246, 0.9)", flexShrink: 0 }}
                            />
-                           <span>
-                              🎉 Someone opened your link! Unlimited replay is
-                              now active for 15 minutes!
-                           </span>
+                           <span>🎉 Someone opened your link! Unlimited replay is now active for 15 minutes!</span>
                         </div>
                      )}
 
-                     <button
-                        onClick={handleReplay}
-                        disabled={maxReplays > 0 && replaysUsed >= maxReplays}
-                        style={{
-                           display: "flex",
-                           alignItems: "center",
-                           gap: isMobile ? "6px" : "8px",
-                           padding: isMobile ? "10px 16px" : "10px 20px",
-                           width: isMobile ? "100%" : "auto",
-                           background:
-                              maxReplays > 0 && replaysUsed >= maxReplays
-                                 ? "rgba(100, 100, 100, 0.2)"
-                                 : "linear-gradient(135deg, rgba(125, 211, 252, 0.2), rgba(125, 211, 252, 0.1))",
-                           border:
-                              maxReplays > 0 && replaysUsed >= maxReplays
-                                 ? "1px solid rgba(100, 100, 100, 0.4)"
-                                 : "1px solid rgba(125, 211, 252, 0.6)",
-
-                           color: "var(--text)",
-                           fontSize: isMobile ? "0.85rem" : "0.95rem",
-                           fontWeight: 600,
-                           cursor:
-                              maxReplays > 0 && replaysUsed >= maxReplays
-                                 ? "not-allowed"
-                                 : "pointer",
-                           opacity:
-                              maxReplays > 0 && replaysUsed >= maxReplays
-                                 ? 0.5
-                                 : 1,
-                           transition: "all 0.3s ease",
-                        }}
+                     <InstantButton
+                        onPress={handleReplay}
+                        disabled={replayDisabled}
+                        className={`${styles.actionBtn} ${styles.actionReplay}`}
+                        ariaLabel={
+                           maxReplays === 0
+                              ? "Replay this level (unlimited)"
+                              : `Replay this level (${maxReplays - replaysUsed} of ${maxReplays} left)`
+                        }
                      >
                         <ArrowPathRoundedSquareIcon
-                           style={{
-                              width: isMobile ? 18 : 20,
-                              height: isMobile ? 18 : 20,
-                              color:
-                                 maxReplays > 0 && replaysUsed >= maxReplays
-                                    ? "var(--muted)"
-                                    : "var(--accent)",
-                           }}
+                           className={styles.actionIcon}
+                           style={{ color: replayDisabled ? "var(--muted)" : "var(--accent)" }}
                         />
                         <span>
-                           {isMobile ? "" : "Replay "}
-                           {maxReplays === 0
-                              ? "(∞)"
-                              : `(${maxReplays - replaysUsed}/${maxReplays})`}
+                           Replay {maxReplays === 0 ? "(∞)" : `(${maxReplays - replaysUsed}/${maxReplays})`}
                         </span>
-                     </button>
+                     </InstantButton>
 
-                     <button
-                        onClick={handleShare}
-                        style={{
-                           display: "flex",
-                           alignItems: "center",
-                           gap: isMobile ? "6px" : "8px",
-                           padding: isMobile ? "10px 16px" : "10px 20px",
-                           width: isMobile ? "100%" : "auto",
-                           background:
-                              "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
-                           border: "1px solid rgba(59, 130, 246, 0.6)",
-
-                           color: "var(--text)",
-                           fontSize: isMobile ? "0.85rem" : "0.95rem",
-                           fontWeight: 600,
-                           cursor: "pointer",
-                           transition: "all 0.3s ease",
-                        }}
+                     <InstantButton
+                        onPress={handleShare}
+                        className={`${styles.actionBtn} ${styles.actionShare}`}
+                        ariaLabel="Share for unlimited replays"
                      >
-                        <ShareIcon
-                           style={{
-                              width: isMobile ? 18 : 20,
-                              height: isMobile ? 18 : 20,
-                           }}
-                        />
-                        <span>
-                           {isMobile ? "Share" : "Share for unlimited"}
-                        </span>
-                     </button>
+                        <ShareIcon className={styles.actionIcon} />
+                        <span>{isMobile ? "Share" : "Share for unlimited"}</span>
+                     </InstantButton>
                   </div>
                )}
             </div>
