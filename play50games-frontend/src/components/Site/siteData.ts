@@ -58,12 +58,11 @@ export const SQUAD = [
 ] as const;
 
 /**
- * The group picture of the five heroes, once it exists: one image of the squad together (not a
- * collage of the T-pose concepts), saved as public/images/worlds/scale-squad.webp. Set the path
- * here in the same commit that adds the file. null draws the five as balls in CSS instead
- * (components/Site/SquadArt), so no request is made for a missing image.
+ * The group picture of the five heroes: one image of the squad together, made and approved by
+ * the user (2026-11-17), never a collage of the T-pose concepts. It is the art of the world
+ * wherever it shows. null draws the five as balls in CSS instead (components/Site/SquadArt).
  */
-export const SQUAD_PICTURE: string | null = null;
+export const SQUAD_PICTURE: string | null = "/images/worlds/scale-squad.webp";
 
 /** What the header, the menus and the search need to know about a game: a slim copy of its meta. */
 export interface SiteGame {

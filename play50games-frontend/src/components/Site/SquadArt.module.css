@@ -8,14 +8,15 @@
    background: var(--p50-raised);
 }
 
-/* the group picture fills the panel; its heads sit in the upper half */
+/* the group picture fills the panel. Its heads sit in the upper third, so a wide panel keeps
+   the top and crops the feet; a narrow panel shows the hero in the middle. */
 .picture {
    position: absolute;
    inset: 0;
    width: 100%;
    height: 100%;
    object-fit: cover;
-   object-position: 50% 32%;
+   object-position: 50% 14%;
 }
 
 /* one hero rolled into a ball: its colour, rings of scales, a soft shade on the lower right */

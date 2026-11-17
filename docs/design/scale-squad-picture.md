@@ -32,9 +32,8 @@ Style: the same 3D render style as the sheet, premium mobile game key art, soft 
 
 If the faces or colours drift, answer in the same chat: "Keep the pose, but make each hero match the reference sheet exactly." If a sixth character appears: "Only the five from the sheet, remove everyone else."
 
-## Adding it to the app
+## Status
 
-1. Save the picture as `play50games-frontend/public/images/worlds/scale-squad.webp` (webp, about 1600 px wide, under 200 KB).
-2. Set `SQUAD_PICTURE = "/images/worlds/scale-squad.webp"` in `play50games-frontend/src/components/Site/siteData.ts`, in the same commit.
+Done on 2026-11-17: the user made the picture with the prompt above and approved it. It is in the app as `play50games-frontend/public/images/worlds/scale-squad.webp` (1600 x 900, webp), and `SQUAD_PICTURE` in `play50games-frontend/src/components/Site/siteData.ts` points at it. The original is kept outside the repo at `%USERPROFILE%\.play50\concepts\groupB\B01-scale-squad-group.webp`.
 
-Until then `SQUAD_PICTURE` is `null` and the site draws the five heroes as five balls in their colours (`components/Site/SquadArt`).
+To replace it later: save the new picture over the same file (webp, about 1600 px wide, under 200 KB). `SQUAD_PICTURE = null` falls back to five balls drawn in CSS (`components/Site/SquadArt`).

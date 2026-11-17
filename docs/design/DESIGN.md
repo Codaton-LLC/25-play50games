@@ -278,5 +278,5 @@ What is built on the branch `claude/redesign-hub` (2026-11-17), and how it maps 
 - **Chrome:** `src/components/Site/` (`SiteHeader`, `SearchPalette`, `SiteFooter`, `BoardRows`, `ClassicPath`, `SquadArt`). The world switcher uses real links; the mega panel opens on hover and on keyboard focus.
 - **Pages done:** `/` (hub), `/3d` (catalogue), `/leaderboards` (new, needs the leaderboard flag), `/scale-squad` (new teaser, needs `NEXT_PUBLIC_SQUAD_TEASER`).
 - **Pages not done yet:** the game lobby (`/3d/[slug]`), Classic 50 as a path, the player card, the sign-in sheet (the old login and register modals are still used, in their old dark look), the result panel.
-- **Scale Squad art:** until the group picture of the five heroes exists, the world shows five rolled-up balls in the hero colours, drawn in CSS. No concept image is shipped.
+- **Scale Squad art:** the group picture of the five heroes, `public/images/worlds/scale-squad.webp` (made by the user, approved 2026-11-17), set through `SQUAD_PICTURE` in `components/Site/siteData.ts`. With `null` the world shows five rolled-up balls in the hero colours, drawn in CSS. How the picture was made: `docs/design/scale-squad-picture.md`.
 - **Flags:** with `NEXT_PUBLIC_SQUAD_TEASER` off (the default) the site shows two worlds. With the arcade flag off it shows Classic 50 and the arcade as "soon".
