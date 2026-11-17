@@ -8,7 +8,7 @@ import type { AABB } from "@/arcade3d/core/collision";
 import { createOrbit, orbitPosition, orbitRotate, stepOrbit } from "@/arcade3d/menu2/camera/orbit";
 import { defaultHeroFor, memoryHeroStorage, setHeroPickStorage } from "@/arcade3d/menu2/heroes/heroPick";
 import { LEVEL_IDS } from "@/arcade3d/types";
-import { BOSS_FRAME, FOV, FOV_PORTRAIT, bossInFrame, towerOrbit, courseSolids, orbitLookUp, orbitPivot, orbitScale, playCamera, steerBossFraming } from "./camera";
+import { BOSS_FRAME, FOV, FOV_PORTRAIT, beaconBlocksView, bossInFrame, towerOrbit, courseSolids, orbitLookUp, orbitPivot, orbitScale, playCamera, steerBossFraming } from "./camera";
 import { createBot, botInput } from "./bot";
 import { createRun, createStepInput, step } from "./rules";
 import { DEFAULT_HERO, pickedHero, resetHeroPick, selectHero } from "./heroes";
@@ -159,5 +159,24 @@ describe("the preselected hero", () => {
       selectHero("riko");
       expect(pickedHero()).toBe("riko");
       resetHeroPick();
+   });
+});
+
+describe("a beacon post between the camera and the hero is hidden (polish pack)", () => {
+   it("on the line from the camera to a hero beside it: hidden; off the line, behind the camera or far from the hero: shown", () => {
+      const run = createRun(1, 1);
+      const b = run.course.tiers[0].beacon;
+      // the hero steps into the ring 1.2 m past the post; the camera stands 8 m back on the same line
+      const ux = b.x / (Math.hypot(b.x, b.z) || 1);
+      const uz = b.z / (Math.hypot(b.x, b.z) || 1);
+      const hero = { x: b.x + ux * 1.2, z: b.z + uz * 1.2 };
+      const cam = { x: b.x - ux * 8, z: b.z - uz * 8 };
+      expect(beaconBlocksView(b, cam, hero)).toBe(true);
+      // the orbit swung a quarter round: the post is off the line
+      expect(beaconBlocksView(b, { x: hero.x + uz * 8, z: hero.z - ux * 8 }, hero)).toBe(false);
+      // the camera in front of the hero (the post behind it)
+      expect(beaconBlocksView(b, { x: hero.x + ux * 8, z: hero.z + uz * 8 }, hero)).toBe(false);
+      // the hero far up the tier: the post is not in the way any more
+      expect(beaconBlocksView(b, cam, { x: b.x + ux * 9, z: b.z + uz * 9 })).toBe(false);
    });
 });

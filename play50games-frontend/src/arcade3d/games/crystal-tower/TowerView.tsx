@@ -9,10 +9,10 @@
 // (m2IceCrystal), the dark crystal walls, the void gates (menu2/props ArchWall), the spark drones,
 // the shard storms (m2HangingCrystal raining), the gems and the secrets. Remounted per level.
 import { useMemo, useRef } from "react";
-import { useFrame } from "@react-three/fiber";
+import { useFrame, useThree } from "@react-three/fiber";
 import { AdditiveBlending, Color, DoubleSide, Matrix4, Quaternion, Vector3, type Mesh, type MeshBasicMaterial, type MeshStandardMaterial } from "three";
 import { DynamicInstanced } from "@/arcade3d/core/render";
-import { DynamicInstancedModel, InstancedModel, Model } from "@/arcade3d/core/assets";
+import { DynamicInstancedModel, Model } from "@/arcade3d/core/assets";
 import { ArchWall } from "@/arcade3d/menu2/props";
 import { PALETTE } from "./levels";
 import { CORE_R, CRUMBLE_MS, SHOW_STEP_MS, STORM_ON, STORM_PERIOD, STORM_R, crystalAt, droneAt, padCenterAt, stormIn, stormOn, type Course } from "./tower";
@@ -20,6 +20,7 @@ import { ASSETS, CRYSTAL_W, GLB_SIZE, PAD_T } from "./assets";
 import { COLORS, LOOKS } from "./look";
 import { bossCrystalAt, padAvailable, type TowerRun } from "./rules";
 import { PRISM, SECRETS } from "./progression";
+import { beaconBlocksView } from "./camera";
 
 const pos = new Vector3();
 const quat = new Quaternion();
@@ -212,10 +213,20 @@ function Crystals({ run, clock, fx }: { run: TowerRun; clock: VisualClock; fx: T
    return <DynamicInstancedModel asset={ASSETS.crystal} count={n} update={update} tinted name="crystals" />;
 }
 
-/** The sequence beacons: the post, a ring on the pad, and the flash over it during the show. */
+/**
+ * The sequence beacons: the post, a ring on the pad, and the flash over it during the show. A post
+ * standing between the camera and the hero (camera.ts beaconBlocksView) is left out of the frame; its
+ * ring and flash stay, so the beacon still reads.
+ */
 function Beacons({ run, clock }: { run: TowerRun; clock: VisualClock }) {
    const c = run.course;
-   const spots = useMemo(() => c.tiers.map((t) => ({ x: t.beacon.x, y: t.beacon.y, z: t.beacon.z, rotY: Math.atan2(t.beacon.x, t.beacon.z) })), [c]);
+   const camera = useThree((s) => s.camera);
+   const post = (i: number, m: Matrix4) => {
+      const t = c.tiers[i];
+      if (!t) return false;
+      if (beaconBlocksView(t.beacon, camera.position, run.hero)) return false;
+      place(m, t.beacon.x, t.beacon.y, t.beacon.z, Math.atan2(t.beacon.x, t.beacon.z));
+   };
    const ring = (i: number, m: Matrix4, color?: Color) => {
       const t = c.tiers[i];
       if (!t) return false;
@@ -246,7 +257,7 @@ function Beacons({ run, clock }: { run: TowerRun; clock: VisualClock }) {
    };
    return (
       <>
-         <InstancedModel asset={ASSETS.beacon} spots={spots} fallback={null} />
+         <DynamicInstancedModel asset={ASSETS.beacon} count={c.tiers.length} update={post} name="beaconPosts" />
          <DynamicInstanced count={c.tiers.length} update={ring} name="beaconRings" tinted>
             <ringGeometry args={[1.45, 1.65, 48]} />
             <meshBasicMaterial color="#ffffff" transparent opacity={0.85} blending={AdditiveBlending} depthWrite={false} side={DoubleSide} toneMapped={false} />
