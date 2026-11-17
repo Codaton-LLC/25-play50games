@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { useMobileFit } from "./logicgames-parts/useMobileFit";
+import mobile from "./logicgames-parts/mobile.module.css";
 import MatchShapes from "./logicgames-parts/MatchShapes";
 import ColorSequence from "./logicgames-parts/ColorSequence";
 import NumberOrder from "./logicgames-parts/NumberOrder";
@@ -58,6 +60,9 @@ export default function LogicGames({
    const [score, setScore] = useState(0);
    const [round, setRound] = useState(0);
    const rotateToFitAdvanceRef = useRef<number | null>(null);
+   // phones / tablets: the score bar in view at the start, room under the game for the cookie banner
+   const stageRef = useRef<HTMLDivElement>(null);
+   const bottomRoom = useMobileFit(isPlaying, stageRef);
 
    // Determine max rounds based on game type
    // Balance the Scale, Match Shapes, Maze Escape, and Pattern Completion should have 20 rounds by default
@@ -409,8 +414,9 @@ export default function LogicGames({
    };
 
    return (
-      gameComponents[currentGame] || (
-         <div>Game "{currentGame}" not found. Loading default...</div>
-      )
+      <div ref={stageRef} className={mobile.stage}>
+         {gameComponents[currentGame] || <div>Game "{currentGame}" not found. Loading default...</div>}
+         {bottomRoom > 0 ? <div className={mobile.room} style={{ height: bottomRoom }} aria-hidden="true" /> : null}
+      </div>
    );
 }
