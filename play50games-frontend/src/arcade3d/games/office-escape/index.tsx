@@ -15,10 +15,10 @@ import Scene from "./Scene";
 
 const DESCRIPTIONS: Record<LevelId, string> = {
    1: "The original office run. Reach 760 points (about 60-75 seconds) to clear.",
-   2: "Paired static obstacles, faster pace and 55-point coin lines. Target 1,000.",
-   3: "Moving chairs and carts plus full-width printer lines. Target 1,330.",
-   4: "Night shift: three obstacles per row, faster carts and shorter recovery. Target 1,575.",
-   5: "After-hours high-score run: all patterns, rapid carts and 70-point coins. Target 1,870.",
+   2: "The meeting wing: glass-walled rooms beside the lanes. Paired obstacles, faster pace, 55-point coins. Target 1,000.",
+   3: "The copy room: copiers and paper stacks line the walls. Moving chairs and carts, printer lines. Target 1,330.",
+   4: "The executive floor at night: dark wood, brass and uplights. Three obstacles per row, faster carts. Target 1,575.",
+   5: "After hours under a sunset: glowing monitors, dim desks, everything at once. Target 1,870.",
 };
 
 const definition: GameDefinition<OfficeLevel> = {

@@ -85,12 +85,21 @@ export const EXEC_DESK_LEVELS: readonly LevelId[] = [4, 5];
 /**
  * One desk per 12 m treadmill period on each side, at the wall and facing the corridor (rotY ±90°:
  * the GLB faces +z like the other prop GLBs). The spot z is the offset inside the 12 m period;
- * Primitives.tsx expands the pattern over the corridor's 120 m with the other decor. Turned, the
- * footprint is 1.29 (x) x 1.9 (z), so at |x| 3.85 it spans 3.21..4.49: outside the lane edge at
- * ±3 and inside the wall at ±4.6. The left offset (-4) clears the cabinets (-3) and plants (-6);
- * the right one (-2) clears the cabinets (-9).
+ * Primitives.tsx expands the pattern over the corridor's 120 m. Turned, the footprint is 1.29 (x) x
+ * 1.9 (z), so at |x| 3.85 it spans 3.21..4.49: outside the lane edge at ±3 and inside the wall at ±4.6.
+ * Each level's desks sit in the gaps of its corridor decor (decor.ts, decor.test.ts): level 4 between
+ * the trophy pedestals (-3) and the plants (-6); level 5 on the after-hours wall-desk spot (-3, whose
+ * code box gives way to the GLB; its monitors stand on the desk).
  */
-export const EXEC_DESK_PATTERN = [
-   { x: -3.85, zOffset: -4, rotY: Math.PI / 2 },
-   { x: 3.85, zOffset: -2, rotY: -Math.PI / 2 },
-] as const;
+export const EXEC_DESK_PATTERNS: Partial<Record<LevelId, readonly { x: number; zOffset: number; rotY: number }[]>> = {
+   4: [
+      { x: -3.85, zOffset: -4.5, rotY: Math.PI / 2 },
+      { x: 3.85, zOffset: -4.5, rotY: -Math.PI / 2 },
+   ],
+   5: [
+      { x: -3.85, zOffset: -3, rotY: Math.PI / 2 },
+      { x: 3.85, zOffset: -3, rotY: -Math.PI / 2 },
+   ],
+};
+/** Level 4's pattern (the executive floor); assets.test.ts checks every level's against the lanes and walls. */
+export const EXEC_DESK_PATTERN = EXEC_DESK_PATTERNS[4]!;
