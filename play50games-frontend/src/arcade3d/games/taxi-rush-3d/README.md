@@ -54,6 +54,18 @@ Bots (`testing/bots.ts`, through `createArcadeStore` + `advanceRunClock` like th
 
 ## Look and models
 
+### District variety (2026-11-17)
+
+The street topology, seeded fares, traffic direction, vehicle fits and scoring rules are unchanged. `looks.ts` dresses the existing blocks differently per district; every new rounded set piece is contained in an existing building/camera solid, never on a driving lane or stop pad. Shared GLB counts stay within the original budget. The instanced rounded geometry is counted from the real geometry in `assets.test.ts`.
+
+- **Quiet Neighborhood:** original scattered frontages, courtyard trees, bright day palette and fog, unchanged.
+- **Downtown:** ordered business frontages with slimmer code buildings, stepped office sculptures and seating islands, relocated bus stop and trees, cool concrete/blue-grey palette and clean daylight haze. Blue office versus green home drop-off pads and pickup messages introduce a second destination type; both use the original stop and score rules.
+- **Shopping District:** inward-facing shopping rows, paired courtyard market counters with supported canopies, terracotta/cream facades and sunset light. Five fares, moving traffic and the existing patience meter provide the plan's traffic/resource pressure.
+- **Night City:** alternating venue frontages, entrance fins and cyan emissive ribbons, violet/slate facades, closer blue night fog, existing headlights, signal bulbs and lamp pools. Six fares and five signals keep the existing night-driving challenge.
+- **Rush Hour:** commuter shelter courts with parallel benches and supported roofs, terminal bus stop at the far end, alternating frontages, amber accents and dusty evening haze distinct from the shopping sunset. The eight-car/eight-fare route combines traffic, patience and stopping under the established 250-second fairness clock.
+
+`districts.test.ts` checks distinct art data and set-piece layouts, both Downtown destination cues, and per-level containment/reachability. Existing per-level honest/oracle proofs remain the gameplay and score-limit checks. Browser verification was unavailable; visual checks are listed in the repository-root `.handoff/L-taxi-rush-3d/HANDOFF.md`.
+
 All `menu1-taxi-rush-3d` GLBs are adopted (`public/models/3d/taxi-rush-3d/`: `taxiCab`, `townhouseBlock`, `cornerShop`, `busStop`) plus the shared ready `trafficLight` and `trafficCone` (`public/models/3d/shared/`) and the shared `travellerNpc` already on main. Fits are in `assets.ts` from the measured bounds (`GLB_SIZE`), checked on the real meshes (`assets.test.ts`):
 
 - the cab (`taxiCab`, re-optimized 2026-10-28 from the raw Rodin file: 1024 px WebP textures instead of 512, the raw mesh's own 3000 triangles kept, its baked wheels cut out = 1848 triangles, 283 KB, `HERO_VEHICLE_BUDGET` 18k / 1.2 MB) is 4.55 × 1.83 × 1.52 m along +z (`FIT.cabLength`, `cabStretch`); the rider 1.75 m (unrigged NPC, untinted, a hop on pickup) on the pavement beside the pad; traffic = `trafficCar` (the pigeon-crossing car without its baked wheels, its red paint made grey so the per-copy tints colour it, `rotationY` π because that GLB faces −z), a 4.3 × 1.85 × 1.6 m hatchback inside the rules' 5.04 × 2.28 m body box;

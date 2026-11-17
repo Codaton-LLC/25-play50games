@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
+import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 import { describe, expect, it } from "vitest";
 import { hasModel } from "@/arcade3d/core/modelManifest";
 import { readCharacterGlb } from "@/arcade3d/core/rig/robotGlb";
@@ -134,7 +135,10 @@ describe("taxi triangle budget (<= 250k per frame on every level, every decor co
          const boxes = city.boxes[0].length + city.boxes[1].length + city.boxes[2].length + city.roofs.length + city.slabs.length + city.courts.length + city.dashes.length + city.edges.length + city.zebras.length + stopBars(run).length;
          // the vehicles' code parts: 4 wheels each (428 triangles, Vehicles.tsx), lamps, shadows, beams; 10 code coins (72 each); the guide arrow
          const vehicles = 1 + level.traffic;
-         const code = 12 * boxes + lightPoles(run).length * 240 + 160 + 2 + 8000 + vehicles * (4 * 428 + 4 * 12 + 2 + 2) + 10 * 72 + 10 + city.arrows.length * 6;
+         const landmark = new RoundedBoxGeometry(1, 1, 1, 1, 0.08);
+         const landmarkTris = landmark.getAttribute("position").count / 3;
+         landmark.dispose();
+         const code = city.landmarks.length * landmarkTris + 12 * boxes + lightPoles(run).length * 240 + 160 + 2 + 8000 + vehicles * (4 * 428 + 4 * 12 + 2 + 2) + 10 * 72 + 10 + city.arrows.length * 6;
          expect(glb + code).toBeLessThanOrEqual(250_000);
          // the heavy pieces are GLBs on the playable blocks only
          expect(tri(ASSETS.townhouseBlock)).toBeLessThanOrEqual(3000);
