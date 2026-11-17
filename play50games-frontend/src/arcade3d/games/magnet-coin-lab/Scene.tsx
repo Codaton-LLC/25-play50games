@@ -94,7 +94,7 @@ function RunScene({ multi }: { multi: boolean }) {
    );
    const input = useInput();
    const autoplay = useMemo(autoplayRequested, []);
-   const orbit = useMemo(() => createOrbit({ yaw: 0, pitch: 0.12, distance: 14, minDistance: 6, maxDistance: 30 }), [id, multi]); // eslint-disable-line react-hooks/exhaustive-deps
+   const orbit = useMemo(() => createOrbit({ yaw: 0, pitch: 0.14, distance: 18, minDistance: 7, maxDistance: 34 }), [id, multi]); // eslint-disable-line react-hooks/exhaustive-deps
    const aspect = useThree((s) => s.size.width / s.size.height);
    const intro = useShellIntro();
    const juice = useJuice();
@@ -170,7 +170,7 @@ function RunScene({ multi }: { multi: boolean }) {
    const start = world.rooms[0].def.start;
    const sx = roomX(0) + start.x;
    const sy = start.y;
-   const playCamera = useMemo<IntroKeyframe>(() => ({ position: [sx, sy + 1.2 + 14 * Math.sin(0.12), 14 * Math.cos(0.12)], lookAt: [sx, sy + 1.2, 0] }), [sx, sy]);
+   const playCamera = useMemo<IntroKeyframe>(() => ({ position: [sx, sy + 1.2 + 18 * Math.sin(0.14), 18 * Math.cos(0.14)], lookAt: [sx, sy + 1.2, 0] }), [sx, sy]);
    const shots = useMemo<IntroKeyframe[]>(() => {
       const d = world.rooms[0].def;
       const bx = roomX(0) + d.bank.x;

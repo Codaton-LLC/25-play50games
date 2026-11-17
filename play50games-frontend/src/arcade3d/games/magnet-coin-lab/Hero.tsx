@@ -71,7 +71,7 @@ export function Hero({ world, hero, intro }: { world: World; hero: RunHero; intr
       if (bar.current) bar.current.visible = !plus;
       if (halo.current) {
          halo.current.position.y = 1.85 + Math.sin(time.now * 3) * 0.05;
-         halo.current.rotation.y = time.now * 1.6;
+         halo.current.rotation.z = Math.sin(time.now * 1.6) * 0.25;
       }
       // the flip ripple: a field ring rushing out from the body
       s.ripple = Math.min(1, s.ripple + delta * 2.6);
@@ -109,7 +109,7 @@ export function Hero({ world, hero, intro }: { world: World; hero: RunHero; intr
             <AnimatedHero animator={animator} />
          </group>
          <group ref={halo}>
-            <mesh ref={ring} rotation={[Math.PI / 2, 0, 0]}>
+            <mesh ref={ring}>
                <torusGeometry args={[0.24, 0.06, 10, 28]} />
                <meshStandardMaterial color={POLE.plus} emissive={POLE.plus} emissiveIntensity={1.4} roughness={0.35} />
             </mesh>

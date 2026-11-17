@@ -27,8 +27,8 @@ export function Coins({ world }: { world: World }) {
       const rim = new TorusGeometry(0.17, 0.025, 6, 20);
       const local = new Matrix4();
       return [
-         { geometry: face, material: new MeshStandardMaterial({ color: "#d4d9e0", metalness: 0.85, roughness: 0.28 }), locals: [local] },
-         { geometry: rim, material: new MeshStandardMaterial({ color: "#d9a441", metalness: 0.75, roughness: 0.3 }), locals: [local] },
+         { geometry: face, material: new MeshStandardMaterial({ color: "#e8edf3", metalness: 0.35, roughness: 0.32, emissive: "#5b6470", emissiveIntensity: 0.35 }), locals: [local] },
+         { geometry: rim, material: new MeshStandardMaterial({ color: "#f0b94a", metalness: 0.4, roughness: 0.3, emissive: "#7a4e10", emissiveIntensity: 0.35 }), locals: [local] },
       ];
    }, []);
    useEffect(
