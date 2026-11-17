@@ -43,9 +43,9 @@ export const FROST_GOLEM: BossConfig = {
    defeatMs: 2400,
    slowMo: { scale: 0.3, durationMs: 1800 },
    phases: [
-      { id: "cores", name: "Crack a code onto its glowing core", endsAt: 4 / 7, attacks: [{ id: "slam", telegraphMs: 1200, attackMs: 400, vulnerableMs: 4400 }] },
-      { id: "plate", name: "Stomp hex, double jump, match its plate", endsAt: 1 / 7, attacks: [{ id: "boulder", telegraphMs: 1000, attackMs: 300, vulnerableMs: 3000 }] },
-      { id: "storm", name: "Prism storm: survive 20 s, take 5 shards", endsAt: 0, attacks: [{ id: "storm", telegraphMs: 800, attackMs: 200, vulnerableMs: 3000 }] },
+      { id: "cores", name: "Crack a code onto a core", endsAt: 4 / 7, attacks: [{ id: "slam", telegraphMs: 1200, attackMs: 400, vulnerableMs: 4400 }] },
+      { id: "plate", name: "Stomp its plate", endsAt: 1 / 7, attacks: [{ id: "boulder", telegraphMs: 1000, attackMs: 300, vulnerableMs: 3000 }] },
+      { id: "storm", name: "Prism storm", endsAt: 0, attacks: [{ id: "storm", telegraphMs: 800, attackMs: 200, vulnerableMs: 3000 }] },
    ],
 };
 

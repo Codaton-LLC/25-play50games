@@ -29,16 +29,18 @@ const BASE = "/models/3d/color-match-jump";
 const prop = (id: string, extra: Partial<ModelAsset> = {}, folder = BASE): ModelAsset => ({ id, url: `${folder}/${id}.glb`, fallback: "box", fallbackColor: "#cbd5e1", budget: PROP_BUDGET, ...extra });
 /** One white material per look, so the per-instance tint is the hero colour itself. */
 const WHITE = { color: "#ffffff", roughness: 0.45, metalness: 0.05 } as const;
+/** Hexes glow a little so the darker colours (blue, purple) stay readable at night. */
+const HEX_LOOK = { color: "#ffffff", roughness: 0.45, metalness: 0.05, emissive: "#262626" } as const;
 
 export const ASSETS: Record<string, ModelAsset> = {
    ...Object.fromEntries(M2_HERO_IDS.map((id) => [`hero-${id}`, heroModelAsset(id)])),
-   hex: prop("m2HexPlatform", { stretch: [HEX.w / GLB_SIZE.hex[0], HEX.t / GLB_SIZE.hex[1], HEX.d / GLB_SIZE.hex[2]], yOffset: -HEX.t, material: WHITE }),
+   hex: prop("m2HexPlatform", { stretch: [HEX.w / GLB_SIZE.hex[0], HEX.t / GLB_SIZE.hex[1], HEX.d / GLB_SIZE.hex[2]], yOffset: -HEX.t, material: HEX_LOOK }),
    cracked: prop("m2CrackedHexPlatform", { stretch: [HEX.w / GLB_SIZE.cracked[0], HEX.t / GLB_SIZE.cracked[1], HEX.d / GLB_SIZE.cracked[2]], yOffset: -HEX.t, material: WHITE }),
    crown: prop("m2HexPlatformV2", { stretch: [(HEX.w * 1.3) / GLB_SIZE.hexThin[0], 0.35 / GLB_SIZE.hexThin[1], (HEX.d * 1.3) / GLB_SIZE.hexThin[2]], yOffset: -0.35, material: { color: "#fde68a", emissive: "#a16207", roughness: 0.3, metalness: 0.4 } }),
-   pillar: prop("m2HexPillar", { stretch: [PILLAR.w / GLB_SIZE.pillar[0], PILLAR.h / GLB_SIZE.pillar[1], PILLAR.w / GLB_SIZE.pillar[2]], yOffset: -PILLAR.h, material: { color: "#64748b", roughness: 0.6, metalness: 0.2 } }),
+   pillar: prop("m2HexPillar", { stretch: [PILLAR.w / GLB_SIZE.pillar[0], PILLAR.h / GLB_SIZE.pillar[1], PILLAR.w / GLB_SIZE.pillar[2]], yOffset: -PILLAR.h, material: { color: "#ffffff", roughness: 0.6, metalness: 0.2 } }),
    beacon: prop("m2CountdownBeacon", { scale: BEACON_H / GLB_SIZE.beacon[1] }),
    lamp: prop("m2SignalOrbLamp", { scale: LAMP_H / GLB_SIZE.lamp[1], material: WHITE }),
    arena: prop("m2FloatingArenaBg", { scale: 1 / GLB_SIZE.arena[0] }),
    orb: { id: "scoreOrb", url: "/models/3d/menu2/scoreOrb.glb", scale: ORB_D / GLB_SIZE.orb[1], fallback: "sphere", fallbackColor: "#fde68a", budget: PROP_BUDGET, material: { color: "#fff7cc", emissive: "#b45309", roughness: 0.3, metalness: 0.2 } },
-   golem: prop("m2FrostGolemBoss", { scale: GOLEM_H / GLB_SIZE.golem[1], budget: CHARACTER_BUDGET, material: { color: "#cbd5e1", emissive: "#1e293b", roughness: 0.2, metalness: 0.35 } }, "/models/3d/ice-peak-jumper"),
+   golem: prop("m2FrostGolemBoss", { scale: GOLEM_H / GLB_SIZE.golem[1], budget: CHARACTER_BUDGET, material: { color: "#f1f5f9", emissive: "#334155", roughness: 0.2, metalness: 0.3 } }, "/models/3d/ice-peak-jumper"),
 };
