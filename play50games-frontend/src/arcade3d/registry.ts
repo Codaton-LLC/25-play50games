@@ -77,6 +77,7 @@ import { icePeakJumperMeta } from "./games/ice-peak-jumper/meta";
 import { candyWorldRunnerMeta } from "./games/candy-world-runner/meta";
 import { alienLaneEscapeMeta } from "./games/alien-lane-escape/meta";
 import { laserMazeRunMeta } from "./games/laser-maze-run/meta";
+import { mirrorDashMeta } from "./games/mirror-dash/meta";
 import { dragonCaveRushMeta } from "./games/dragon-cave-rush/meta";
 import { skyHookSwingMeta } from "./games/sky-hook-swing/meta";
 import { tightropePathMeta } from "./games/tightrope-path/meta";
@@ -177,6 +178,7 @@ export const ARCADE_GAMES: ArcadeGameMeta[] = [
    magnetCoinLabMeta,
    alienLaneEscapeMeta,
    laserMazeRunMeta,
+   mirrorDashMeta,
    spinPoleClimbMeta,
    templeGongTimingMeta,
    spacePodJumpMeta,
