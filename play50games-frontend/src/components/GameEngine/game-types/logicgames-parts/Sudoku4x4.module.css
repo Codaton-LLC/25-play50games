@@ -1,0 +1,17 @@
+/* Sudoku 4x4 on phones and tablets (desktop unchanged): the number keypad opens under the grid when a
+   cell is picked, which on a phone was below the fold or under the cookie banner: Sudoku4x4.tsx now
+   scrolls it into view, and its keys are at least 52 px on touch screens. */
+@media (hover: none), (pointer: coarse) {
+   .root :global(.sudoku-keypad) button {
+      min-width: 52px;
+      min-height: 52px;
+      font-size: 1.25rem;
+   }
+}
+
+@media (max-width: 599px) {
+   .root {
+      padding: 10px 4px !important;
+      gap: 14px !important;
+   }
+}
