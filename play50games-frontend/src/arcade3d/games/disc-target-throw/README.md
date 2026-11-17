@@ -19,7 +19,7 @@ status `dev`, owner claude. Design card: `docs/menu2-super/world-3-wild-temples.
 - `bot.ts` an honest planner (tries 48 headings x 3 hooks from a spot grid through the rules' own
   `flyMs`, walks there, aims ~170 ms, lets go, stays for the catch, steps out of volleys).
 - Scene: `Scene.tsx` (solo + `?autoplay=1` bot), `MultiScene.tsx`, `World.tsx`, `CourseView.tsx`,
-  `Disc.tsx` (the shared code-built `TrainingDisc` prop, trail, aim dots, catch ring), `Boss.tsx`,
+  `Disc.tsx` (the m2TrainingDisc GLB from ready/menu2/disc-target-throw, trail, aim dots, catch ring; the card's m2TargetRail stays out: it reads as a fence, not a track), `Boss.tsx`,
   `Hero.tsx`, `camera.ts`, `look.ts`, `assets.ts`, `Hud.tsx`, `StarResult.tsx`, `levelEnd.ts`.
 - Tests: `rules.test.ts`, `proof.test.ts`, `assets.test.ts`, `multiplayer.test.ts`, `orbit.test.ts`.
 

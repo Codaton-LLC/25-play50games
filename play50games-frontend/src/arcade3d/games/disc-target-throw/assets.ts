@@ -1,5 +1,5 @@
 // Disc Target Throw's models. The five heroes are the shared Menu 2 armadillos (menu2/heroModels.ts,
-// each its own GLB); the disc is the shared code-built TrainingDisc (menu2/props). This game's props live
+// each its own GLB); the disc is m2TrainingDisc (ready/menu2/disc-target-throw, optimized locally). This game's props live
 // in public/models/3d/disc-target-throw (Hyper3D, ~/.play50/hyper3d/ready/menu2): the hay and stone idol
 // targets, the palisade, the score marker posts, the pavilion, the stone columns (from Wall Run Temple),
 // the raft (from Tightrope Path), Mother Snapper (m2SnapperPlant at 5x) and the jungle monkey. The colour
@@ -31,6 +31,8 @@ export const GLB_SIZE = {
    monkey: { x: 1.119, y: 1.901, z: 1.867 },
    /** the shared menu2 colour orb */
    orb: { x: 1.767, y: 1.901, z: 1.77 },
+   /** m2TrainingDisc: the padded training disc, lying flat (a ring with a rubber rim) */
+   disc: { x: 1.894, y: 0.398, z: 1.897 },
 } as const;
 
 /** A hay target is drawn 1.9 m tall; a stone idol 1.9 m; a post 1.7 m; a column 3.2 m (the walls' banks). */
@@ -51,6 +53,8 @@ export const SNAPPER_SCALE = SNAPPER_H / GLB_SIZE.snapper.y;
 export const MONKEY_SCALE = 1.1 / GLB_SIZE.monkey.y;
 /** An orb is drawn 0.6 m tall, its centre on the disc's flight height. */
 export const ORB_SIZE = 0.6;
+/** The disc is drawn 0.5 m across (the code TrainingDisc it replaced; the throw scales it 1.4-1.6x). */
+export const DISC_SCALE = 0.5 / GLB_SIZE.disc.x;
 /** The pavilion is drawn 9 m wide out past the north wall. */
 export const PAVILION_SCALE = 9 / GLB_SIZE.pavilion.x;
 
@@ -74,4 +78,5 @@ export const ASSETS: Record<string, ModelAsset> = {
    snapper: prop("m2SnapperPlant", "#3f7d3a"),
    monkey: prop("m2JungleMonkey", "#6b4a2b", CHARACTER_BUDGET),
    orb: { id: "scoreOrb", url: "/models/3d/menu2/scoreOrb.glb", fallback: "sphere", fallbackColor: "#4ade80", budget: PROP_BUDGET },
+   disc: prop("m2TrainingDisc", "#f97316"),
 };

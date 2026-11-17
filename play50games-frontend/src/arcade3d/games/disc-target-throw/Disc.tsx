@@ -10,9 +10,10 @@ import { useFrame } from "@react-three/fiber";
 import { Color, Matrix4, Quaternion, Vector3, type Group, type Mesh, type MeshBasicMaterial } from "three";
 import { DynamicInstanced } from "@/arcade3d/core/render";
 import { useGameTime } from "@/arcade3d/core/gameTime";
-import { TrainingDisc } from "@/arcade3d/menu2/props/TrainingDisc";
+import { Model } from "@/arcade3d/core/assets";
 import { heroAccent } from "@/arcade3d/menu2/heroAnim";
 import { COLORS } from "./look";
+import { ASSETS, DISC_SCALE, GLB_SIZE } from "./assets";
 import { CATCH, CONTACT, DISC, flyMs, launchDisc, type Disc as DiscState, type DiscRun } from "./rules";
 
 /** What the Scene shares about the aim each frame (the camera's heading and the stick's hook). */
@@ -121,7 +122,11 @@ export function DiscView({ run, aim }: { run: DiscRun; aim: AimView }) {
    return (
       <>
          <group ref={root}>
-            <TrainingDisc glow={0.4} />
+            {/* the m2TrainingDisc GLB lies flat (thin along y): turned to face +z like the code disc it
+                replaced, centred on its thickness, so the throw's transforms above still lay it flat and spin it */}
+            <group rotation-x={Math.PI / 2}>
+               <Model asset={ASSETS.disc} scale={DISC_SCALE} position={[0, (-GLB_SIZE.disc.y * DISC_SCALE) / 2, 0]} fallback={null} />
+            </group>
          </group>
          <DynamicInstanced
             count={TRAIL}

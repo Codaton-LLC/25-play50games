@@ -330,6 +330,7 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/disc-target-throw/m2SnapperPlant.glb",
    "/models/3d/disc-target-throw/m2StoneColumn.glb",
    "/models/3d/disc-target-throw/m2StoneIdolTarget.glb",
+   "/models/3d/disc-target-throw/m2TrainingDisc.glb",
    "/models/3d/disc-target-throw/m2TrainingPavilionBg.glb",
    // Menu 2 game 34 (Spin Pole Climb): pole props from ~/.play50/hyper3d/ready/menu2/spin-pole-climb, plus its
    // copy of World 3's guardian pair (ready/menu2/shared m2CoilstoneHead / m2CoilstoneSegment)
