@@ -17,7 +17,7 @@ import { DynamicInstancedModel, InstancedModel, Model } from "@/arcade3d/core/as
 import { Instanced, useCanvasTexture, type InstanceSpot } from "@/arcade3d/core/render";
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import type { ModelAsset } from "@/arcade3d/core/types";
-import { ASHBACK_SCALE, ASSETS, GLB_SIZE, ORB_SIZE, SLOPED_ROOF_TOP } from "./assets";
+import { ASHBACK_SCALE, ASSETS, CHIMNEY_CAP_H, GLB_SIZE, ORB_SIZE, SLOPED_ROOF_TOP, WATER_TANK_H } from "./assets";
 import { COLORS, glowTexture } from "./look";
 import { BillboardField, type Billboard } from "./World";
 import { LEVELS } from "./levels";
@@ -75,6 +75,8 @@ interface Spots {
    cornices: InstanceSpot[];
    fans: InstanceSpot[];
    solar: InstanceSpot[];
+   acs: InstanceSpot[];
+   antennas: InstanceSpot[];
    live: LiveRoof[];
    movers: LiveRoof[];
    chimneys: Support[];
@@ -84,9 +86,11 @@ interface Spots {
 
 function useSpots(course: CourseData): Spots {
    return useMemo(() => {
-      const out: Spots = { roofs: [], slopes: [], wet: [], codeSlopes: [], bodies: [], cornices: [], fans: [], solar: [], live: [], movers: [], chimneys: [], ledges: [], decks: [] };
+      const out: Spots = { roofs: [], slopes: [], wet: [], codeSlopes: [], bodies: [], cornices: [], fans: [], solar: [], acs: [], antennas: [], live: [], movers: [], chimneys: [], ledges: [], decks: [] };
       const fanScale = 1.15 / GLB_SIZE.exhaustFan.y;
       const solarScale = 0.85 / GLB_SIZE.solarRack.y;
+      const acScale = 1.0 / GLB_SIZE.acUnit.y;
+      const antennaScale = 1.9 / GLB_SIZE.antenna.y;
       const body = (s: Support, top: number) => {
          const h = top - STREET_Y;
          out.bodies.push({ x: s.cx, y: STREET_Y + h / 2, z: s.cz, sx: s.hw * 2 - 0.1, sy: h, sz: s.hd * 2 - 0.1 });
@@ -122,12 +126,15 @@ function useSpots(course: CourseData): Spots {
          body(s, deckY(s.top) + 0.02);
          if (s.role === "deck" || s.role === "arenaDeck") out.decks.push(i);
          if (s.kind === "goal" || s.kind === "start" || s.role !== "deck") return;
-         // a fan or a solar rack on a landing deck's back corner, off the landing line
+         // a fan, a solar rack, an AC unit or an antenna on a landing deck's back corner, off the landing line
          const side = s.block % 2 === 0 ? -1 : 1;
          const ax = s.cx + side * Math.max(0.4, s.hw - 0.85);
          const az = s.cz + Math.max(0.35, s.hd - 0.75);
-         if (i % 2 === 0) out.fans.push({ x: ax, y: s.top, z: az, scale: fanScale, rotY: side > 0 ? 0.4 : -0.4 });
-         else out.solar.push({ x: ax, y: s.top, z: az, scale: solarScale, rotY: 0.3 });
+         const k = i % 4;
+         if (k === 0) out.fans.push({ x: ax, y: s.top, z: az, scale: fanScale, rotY: side > 0 ? 0.4 : -0.4 });
+         else if (k === 1) out.solar.push({ x: ax, y: s.top, z: az, scale: solarScale, rotY: 0.3 });
+         else if (k === 2) out.acs.push({ x: ax, y: s.top, z: az, scale: acScale, rotY: side > 0 ? -0.3 : 0.3 });
+         else out.antennas.push({ x: ax, y: s.top, z: az, scale: antennaScale, rotY: side * 0.5 });
       });
       return out;
    }, [course]);
@@ -250,17 +257,15 @@ function Chimney({ s }: { s: Support }) {
       (m.material as MeshBasicMaterial).opacity = 0.16 + 0.08 * Math.sin(t * 7);
       m.scale.set(1 + 0.06 * Math.sin(t * 5), 1, 1 + 0.06 * Math.cos(t * 5));
    });
-   const h = s.top - STREET_Y;
+   // the stack: a code brick shaft from the street, capped by m2Chimney (its top CHIMNEY_CAP_H, the dark cap on the rules' top)
+   const h = s.top - STREET_Y - CHIMNEY_CAP_H;
    return (
       <group position={[s.cx, 0, s.cz]}>
-         <mesh position={[0, STREET_Y + h / 2 - 0.1, 0]}>
-            <boxGeometry args={[s.hw * 2, h - 0.2, s.hd * 2]} />
+         <mesh position={[0, STREET_Y + h / 2, 0]}>
+            <boxGeometry args={[s.hw * 2 * 0.92, h + 0.05, s.hd * 2 * 0.92]} />
             <meshStandardMaterial color="#7f1d1d" roughness={0.8} />
          </mesh>
-         <mesh position={[0, s.top - 0.08, 0]}>
-            <boxGeometry args={[s.hw * 2 + 0.24, 0.16, s.hd * 2 + 0.24]} />
-            <meshStandardMaterial color="#44403c" roughness={0.6} />
-         </mesh>
+         <Model asset={ASSETS.chimney} position={[0, s.top - CHIMNEY_CAP_H, 0]} scale={[(s.hw * 2) / GLB_SIZE.chimney.x, CHIMNEY_CAP_H / GLB_SIZE.chimney.y, (s.hd * 2) / GLB_SIZE.chimney.z]} fallback={null} />
          <mesh ref={col} position={[0, s.top + 2.6, 0]}>
             <cylinderGeometry args={[s.hw * 0.75, s.hw * 0.95, 5.2, 14, 1, true]} />
             <meshBasicMaterial color="#fde68a" transparent opacity={0.2} blending={AdditiveBlending} depthWrite={false} side={DoubleSide} />
@@ -269,7 +274,7 @@ function Chimney({ s }: { s: Support }) {
    );
 }
 
-/** A water-tower ledge: a wooden walkway (the stand rectangle) on steel legs, the barrel tank behind it. */
+/** A water-tower ledge: a wooden walkway (the stand rectangle) on steel legs, the tank (m2WaterTank) behind it. */
 function WaterTower({ s }: { s: Support }) {
    return (
       <group position={[s.cx, s.top, s.cz]}>
@@ -285,22 +290,8 @@ function WaterTower({ s }: { s: Support }) {
                </mesh>
             )),
          )}
-         <group position={[0, 0, -s.hd - 1.1]}>
-            <mesh position={[0, 1.2, 0]}>
-               <cylinderGeometry args={[1.0, 1.05, 2.4, 16]} />
-               <meshStandardMaterial color="#9a3412" roughness={0.75} />
-            </mesh>
-            <mesh position={[0, 2.75, 0]}>
-               <coneGeometry args={[1.15, 0.8, 16]} />
-               <meshStandardMaterial color="#44403c" roughness={0.6} />
-            </mesh>
-            {[0.5, 1.6].map((y) => (
-               <mesh key={y} position={[0, y, 0]}>
-                  <torusGeometry args={[1.06, 0.04, 6, 24]} />
-                  <meshStandardMaterial color="#1f2937" metalness={0.6} />
-               </mesh>
-            ))}
-         </group>
+         {/* the tank behind the walkway: m2WaterTank, 3.2 m tall like the code barrel it replaced */}
+         <Model asset={ASSETS.waterTank} position={[0, 0, -s.hd - 1.1]} scale={WATER_TANK_H / GLB_SIZE.waterTank.y} fallback={null} />
       </group>
    );
 }
@@ -878,6 +869,8 @@ export function Course({ run, clock, won }: { run: RoofRun; clock: VisualClock; 
          <Buildings spots={spots} />
          <InstancedModel asset={ASSETS.exhaustFan} spots={spots.fans} fallback={null} />
          <InstancedModel asset={ASSETS.solarRack} spots={spots.solar} fallback={null} />
+         <InstancedModel asset={ASSETS.acUnit} spots={spots.acs} fallback={null} />
+         <InstancedModel asset={ASSETS.antenna} spots={spots.antennas} fallback={null} />
          {spots.live.length > 0 ? <DynamicInstancedModel asset={ASSETS.rooftopBlock} count={spots.live.length} update={liveUpdate} name="live-roofs" /> : null}
          {spots.movers.map(({ s, index }) => (
             <MoverRig key={index} s={s} crane={crane} clock={clock} />

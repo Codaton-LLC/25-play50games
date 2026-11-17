@@ -24,7 +24,16 @@ export const GLB_SIZE = {
    slopedRoof: { x: 1.5693976879119873, y: 1.4175523519515991, z: 1.8991036415100098 },
    // Ashback, the Shadow Armadillo (menu2/m2ShadowArmadillo, Rooftop Roll Climb's level 5 boss): feet on 0, long along z
    ashback: { x: 1.2982308864593506, y: 1.534679651260376, z: 1.8945307731628418 },
+   // the card's rooftop set (ready/menu2, optimized locally): the updraft chimneys' caps, the water towers' tanks, deck decor
+   chimney: { x: 0.88, y: 1.902, z: 0.893 },
+   waterTank: { x: 1.435, y: 1.892, z: 1.347 },
+   acUnit: { x: 1.793, y: 1.524, z: 1.896 },
+   antenna: { x: 0.97, y: 1.895, z: 1.222 },
 } as const;
+
+/** An updraft chimney's m2Chimney cap is this tall (m) over the code shaft; a water tower's tank this tall. */
+export const CHIMNEY_CAP_H = 2.4;
+export const WATER_TANK_H = 3.2;
 
 /** The sloped-roof GLB's top: its ridge and gutter heights, and the z of each (raw GLB units). */
 export const SLOPED_ROOF_TOP = { ridge: 1.41, lip: 0.45, ridgeZ: -0.9, lipZ: 0.9 } as const;
@@ -56,4 +65,8 @@ export const ASSETS: Record<string, ModelAsset> = {
    slopedRoof: prop("m2SlopedRoofI", "#9f3a2c"),
    ashback: { id: "m2ShadowArmadillo", url: "/models/3d/menu2/m2ShadowArmadillo.glb", fallback: "box", fallbackColor: "#475569", budget: CHARACTER_BUDGET },
    coin: { ...SHARED_ASSETS.coin, scale: ORB_SCALE, stretch: [1, 1, 0.8], yOffset: (-ORB_SCALE * COIN_GLB_SIZE.height) / 2 },
+   chimney: prop("m2Chimney", "#7f1d1d"),
+   waterTank: prop("m2WaterTank", "#64748b"),
+   acUnit: prop("m2AcUnit", "#475569"),
+   antenna: prop("m2Antenna", "#334155"),
 };
