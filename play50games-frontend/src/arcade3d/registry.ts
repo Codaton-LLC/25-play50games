@@ -83,6 +83,8 @@ import { mineTunnelRunMeta } from "./games/mine-tunnel-run/meta";
 import { spinPoleClimbMeta } from "./games/spin-pole-climb/meta";
 import { templeGongTimingMeta } from "./games/temple-gong-timing/meta";
 
+import { snowSlideDashMeta } from "./games/snow-slide-dash/meta";
+
 export const ARCADE_GAMES: ArcadeGameMeta[] = [
    robotCollectorMeta,
    foodCatcherMeta,
@@ -159,6 +161,7 @@ export const ARCADE_GAMES: ArcadeGameMeta[] = [
    wallRunTempleMeta,
    plateBounceArenaMeta,
    templeCoinRushMeta,
+   snowSlideDashMeta,
    mineTunnelRunMeta,
    colorRailGrindMeta,
    spinPoleClimbMeta,

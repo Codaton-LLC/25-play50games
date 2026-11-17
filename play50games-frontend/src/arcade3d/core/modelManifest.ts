@@ -763,6 +763,14 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/plate-bounce-arena/m2ScoreRingGold.glb",
    "/models/3d/plate-bounce-arena/m2StadiumStandBgV2I.glb",
    "/models/3d/plate-bounce-arena/m2ToyFlipper.glb",
+   "/models/3d/snow-slide-dash/m2FrostStar.glb",
+   "/models/3d/snow-slide-dash/m2IceGate.glb",
+   "/models/3d/snow-slide-dash/m2SnowCabinBg.glb",
+   "/models/3d/snow-slide-dash/m2SnowJumpRamp.glb",
+   "/models/3d/snow-slide-dash/m2Snowman.glb",
+   "/models/3d/snow-slide-dash/m2SnowPine.glb",
+   "/models/3d/snow-slide-dash/m2SnowRock.glb",
+   "/models/3d/snow-slide-dash/m2ToySled.glb",
 ];
 
 const LISTED: ReadonlySet<string> = new Set(MODEL_MANIFEST);
