@@ -531,8 +531,365 @@ function drawPaintingsFor(pal: WingPalette, wing: WingTheme): CanvasDraw {
    };
 }
 
+// ---------- level 1 (the main hall): main's own canvas art, drawn exactly as before levels ----------
+// Only wings 2-5 use the themed painters above; the main hall keeps main's wall (the gold rail), floor,
+// ceiling (the moonlit skylight) and its six paintings (stars, tree, waves, fruit...).
+
+function mainHallWall(ctx: CanvasRenderingContext2D, w: number, h: number) {
+   // canvas top = top of the wall (y 4.4 m), 1 m = h / 4.4 px
+   const m = h / WALL_H;
+   const y = (metres: number) => h - metres * m;
+   const grad = ctx.createLinearGradient(0, 0, 0, h);
+   grad.addColorStop(0, COLORS.wallTop);
+   grad.addColorStop(0.35, COLORS.wallMid);
+   grad.addColorStop(0.75, COLORS.wallMid);
+   grad.addColorStop(1, COLORS.wallLow);
+   ctx.fillStyle = grad;
+   ctx.fillRect(0, 0, w, h);
+   // upper panel (behind a painting or a sconce) and lower wainscot panel, inset lines
+   ctx.strokeStyle = COLORS.wallPanel;
+   ctx.lineWidth = 3;
+   ctx.strokeRect(w * 0.12, y(3.75), w * 0.76, (3.75 - 1.15) * m);
+   ctx.strokeStyle = "rgba(205, 190, 255, 0.05)";
+   ctx.lineWidth = 2;
+   ctx.strokeRect(w * 0.15, y(3.65), w * 0.7, (3.65 - 1.25) * m);
+   ctx.strokeStyle = "rgba(205, 190, 255, 0.08)";
+   ctx.lineWidth = 3;
+   ctx.strokeRect(w * 0.12, y(0.9), w * 0.76, (0.9 - 0.24) * m);
+   // wainscot darker below the dado rail
+   ctx.fillStyle = "rgba(4, 3, 12, 0.28)";
+   ctx.fillRect(0, y(1.0), w, 1.0 * m);
+   // gold dado rail, skirting and cornice
+   const gold = (top: number, thick: number) => {
+      const g = ctx.createLinearGradient(0, y(top), 0, y(top - thick));
+      g.addColorStop(0, "#f3d58a");
+      g.addColorStop(0.5, COLORS.trim);
+      g.addColorStop(1, COLORS.trimDark);
+      ctx.fillStyle = g;
+      ctx.fillRect(0, y(top), w, thick * m);
+   };
+   gold(1.04, 0.04);
+   ctx.fillStyle = "#07060f";
+   ctx.fillRect(0, y(0.16), w, 0.16 * m);
+   gold(0.2, 0.035);
+   ctx.fillStyle = "#0a0816";
+   ctx.fillRect(0, 0, w, 0.32 * m);
+   gold(4.1, 0.05);
+   // pilasters at the tile edges
+   const pil = ctx.createLinearGradient(0, 0, w * 0.05, 0);
+   pil.addColorStop(0, "rgba(0, 0, 0, 0.35)");
+   pil.addColorStop(1, "rgba(0, 0, 0, 0)");
+   ctx.fillStyle = pil;
+   ctx.fillRect(0, y(4.05), w * 0.05, 3.85 * m);
+   const pilR = ctx.createLinearGradient(w, 0, w * 0.95, 0);
+   pilR.addColorStop(0, "rgba(0, 0, 0, 0.35)");
+   pilR.addColorStop(1, "rgba(0, 0, 0, 0)");
+   ctx.fillStyle = pilR;
+   ctx.fillRect(w * 0.95, y(4.05), w * 0.05, 3.85 * m);
+}
+
+function mainHallFloor(ctx: CanvasRenderingContext2D, w: number, h: number) {
+   const cx = w / 2;
+   const cy = h / 2;
+   const base = ctx.createRadialGradient(cx, cy, 0, cx, cy, w * 0.5);
+   base.addColorStop(0, COLORS.floorCore);
+   base.addColorStop(0.45, COLORS.floorMid);
+   base.addColorStop(1, COLORS.floorEdge);
+   ctx.fillStyle = base;
+   ctx.fillRect(0, 0, w, h);
+   // marble slabs: concentric courses cut by radial joints
+   ctx.strokeStyle = "rgba(190, 175, 255, 0.07)";
+   ctx.lineWidth = 2;
+   for (let k = 1; k <= 7; k += 1) {
+      ctx.beginPath();
+      ctx.arc(cx, cy, (w * 0.5 * k) / 7.5, 0, Math.PI * 2);
+      ctx.stroke();
+   }
+   for (let k = 0; k < 32; k += 1) {
+      const a = (k / 32) * Math.PI * 2;
+      const r0 = w * 0.5 * (k % 2 === 0 ? 0.14 : 0.28);
+      ctx.beginPath();
+      ctx.moveTo(cx + Math.cos(a) * r0, cy + Math.sin(a) * r0);
+      ctx.lineTo(cx + Math.cos(a) * w * 0.5, cy + Math.sin(a) * w * 0.5);
+      ctx.stroke();
+   }
+   // polished sheen: a soft lighter band around the room
+   const sheen = ctx.createRadialGradient(cx, cy, w * 0.18, cx, cy, w * 0.48);
+   sheen.addColorStop(0, "rgba(160, 140, 255, 0)");
+   sheen.addColorStop(0.55, "rgba(160, 140, 255, 0.10)");
+   sheen.addColorStop(1, "rgba(160, 140, 255, 0)");
+   ctx.fillStyle = sheen;
+   ctx.fillRect(0, 0, w, h);
+   // gold inlay rings: the guard's medallion and the statue lane
+   const ring = (r: number, width: number, alpha: number) => {
+      ctx.strokeStyle = `rgba(212, 166, 74, ${alpha})`;
+      ctx.lineWidth = width;
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx.stroke();
+   };
+   const px = w / 2 / 8.1;
+   ring(5.2 * px, 4, 0.35);
+   ring(6.75 * px, 3, 0.25);
+   ring(1.3 * px, 5, 0.5);
+   ring(1.45 * px, 2, 0.35);
+   // compass star in the medallion
+   ctx.fillStyle = "rgba(212, 166, 74, 0.28)";
+   for (let k = 0; k < 8; k += 1) {
+      const a = (k / 8) * Math.PI * 2;
+      const len = (k % 2 === 0 ? 1.2 : 0.75) * px;
+      ctx.beginPath();
+      ctx.moveTo(cx + Math.cos(a) * len, cy + Math.sin(a) * len);
+      ctx.lineTo(cx + Math.cos(a + 0.25) * 0.22 * px, cy + Math.sin(a + 0.25) * 0.22 * px);
+      ctx.lineTo(cx + Math.cos(a - 0.25) * 0.22 * px, cy + Math.sin(a - 0.25) * 0.22 * px);
+      ctx.closePath();
+      ctx.fill();
+   }
+}
+
+function mainHallCeiling(ctx: CanvasRenderingContext2D, w: number, h: number) {
+   const cx = w / 2;
+   const cy = h / 2;
+   const base = ctx.createRadialGradient(cx, cy, 0, cx, cy, w * 0.5);
+   base.addColorStop(0, "#2d2560");
+   base.addColorStop(0.3, "#151230");
+   base.addColorStop(1, COLORS.ceiling);
+   ctx.fillStyle = base;
+   ctx.fillRect(0, 0, w, h);
+   // coffers: rings and spokes
+   ctx.strokeStyle = "rgba(212, 166, 74, 0.16)";
+   ctx.lineWidth = 3;
+   for (const r of [0.2, 0.3, 0.4, 0.49]) {
+      ctx.beginPath();
+      ctx.arc(cx, cy, w * r, 0, Math.PI * 2);
+      ctx.stroke();
+   }
+   for (let k = 0; k < 16; k += 1) {
+      const a = (k / 16) * Math.PI * 2;
+      ctx.beginPath();
+      ctx.moveTo(cx + Math.cos(a) * w * 0.2, cy + Math.sin(a) * w * 0.2);
+      ctx.lineTo(cx + Math.cos(a) * w * 0.49, cy + Math.sin(a) * w * 0.49);
+      ctx.stroke();
+   }
+   // moonlit skylight: glowing ring and a soft disc
+   const glow = ctx.createRadialGradient(cx, cy, 0, cx, cy, w * 0.19);
+   glow.addColorStop(0, "rgba(220, 210, 255, 0.85)");
+   glow.addColorStop(0.55, "rgba(185, 168, 255, 0.55)");
+   glow.addColorStop(0.8, "rgba(140, 120, 240, 0.25)");
+   glow.addColorStop(1, "rgba(140, 120, 240, 0)");
+   ctx.fillStyle = glow;
+   ctx.beginPath();
+   ctx.arc(cx, cy, w * 0.19, 0, Math.PI * 2);
+   ctx.fill();
+   ctx.strokeStyle = COLORS.skylight;
+   ctx.lineWidth = 6;
+   ctx.beginPath();
+   ctx.arc(cx, cy, w * 0.15, 0, Math.PI * 2);
+   ctx.stroke();
+}
+
+type MainHallPainter = (ctx: CanvasRenderingContext2D, w: number, h: number) => void;
+
+const MAIN_HALL_ART: MainHallPainter[] = [
+   // starry night over hills
+   (ctx, w, h) => {
+      const sky = ctx.createLinearGradient(0, 0, 0, h);
+      sky.addColorStop(0, "#0f1e5a");
+      sky.addColorStop(1, "#2f5fa8");
+      ctx.fillStyle = sky;
+      ctx.fillRect(0, 0, w, h);
+      ctx.strokeStyle = "rgba(180, 210, 255, 0.55)";
+      ctx.lineWidth = 4;
+      for (const [x, y, r] of [[0.35, 0.3, 0.12], [0.6, 0.22, 0.08], [0.2, 0.18, 0.06]]) {
+         ctx.beginPath();
+         ctx.arc(x * w, y * h, r * w, 0.3, Math.PI * 1.7);
+         ctx.stroke();
+      }
+      ctx.fillStyle = "#fde68a";
+      ctx.beginPath();
+      ctx.arc(w * 0.82, h * 0.2, w * 0.07, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "#fef9c3";
+      for (const [x, y] of [[0.1, 0.4], [0.48, 0.12], [0.7, 0.42], [0.92, 0.45], [0.28, 0.5]]) {
+         ctx.beginPath();
+         ctx.arc(x * w, y * h, 3, 0, Math.PI * 2);
+         ctx.fill();
+      }
+      ctx.fillStyle = "#0b1a2e";
+      ctx.beginPath();
+      ctx.moveTo(0, h);
+      ctx.quadraticCurveTo(w * 0.3, h * 0.55, w * 0.6, h * 0.78);
+      ctx.quadraticCurveTo(w * 0.85, h * 0.62, w, h * 0.72);
+      ctx.lineTo(w, h);
+      ctx.fill();
+      ctx.fillStyle = "#06101f";
+      ctx.fillRect(w * 0.16, h * 0.42, w * 0.05, h * 0.5);
+   },
+   // sunset over layered mountains
+   (ctx, w, h) => {
+      const sky = ctx.createLinearGradient(0, 0, 0, h);
+      sky.addColorStop(0, "#f97362");
+      sky.addColorStop(0.5, "#fbbf74");
+      sky.addColorStop(1, "#fde7b0");
+      ctx.fillStyle = sky;
+      ctx.fillRect(0, 0, w, h);
+      ctx.fillStyle = "#fff4d6";
+      ctx.beginPath();
+      ctx.arc(w * 0.5, h * 0.58, w * 0.12, 0, Math.PI * 2);
+      ctx.fill();
+      const layers = ["#b4567a", "#7b3a6b", "#3f2253"];
+      layers.forEach((c, i) => {
+         ctx.fillStyle = c;
+         ctx.beginPath();
+         ctx.moveTo(0, h);
+         const base = h * (0.6 + i * 0.12);
+         for (let k = 0; k <= 6; k += 1) ctx.lineTo((k / 6) * w, base - ((k + i) % 2 === 0 ? h * 0.14 : 0));
+         ctx.lineTo(w, h);
+         ctx.fill();
+      });
+   },
+   // modern abstract: circles and blocks on cream
+   (ctx, w, h) => {
+      ctx.fillStyle = "#f4ecd8";
+      ctx.fillRect(0, 0, w, h);
+      ctx.fillStyle = "#1d3557";
+      ctx.fillRect(w * 0.08, h * 0.55, w * 0.35, h * 0.35);
+      ctx.fillStyle = "#e63946";
+      ctx.beginPath();
+      ctx.arc(w * 0.62, h * 0.38, w * 0.2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "#f2b134";
+      ctx.beginPath();
+      ctx.arc(w * 0.3, h * 0.3, w * 0.1, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = "#111827";
+      ctx.lineWidth = 5;
+      ctx.beginPath();
+      ctx.moveTo(w * 0.05, h * 0.8);
+      ctx.lineTo(w * 0.95, h * 0.15);
+      ctx.stroke();
+      ctx.fillStyle = "#2a9d8f";
+      ctx.fillRect(w * 0.7, h * 0.66, w * 0.2, h * 0.2);
+   },
+   // seascape with a sailboat
+   (ctx, w, h) => {
+      const sky = ctx.createLinearGradient(0, 0, 0, h * 0.55);
+      sky.addColorStop(0, "#9ad1d4");
+      sky.addColorStop(1, "#e0f2f1");
+      ctx.fillStyle = sky;
+      ctx.fillRect(0, 0, w, h * 0.55);
+      const sea = ctx.createLinearGradient(0, h * 0.55, 0, h);
+      sea.addColorStop(0, "#1f7a8c");
+      sea.addColorStop(1, "#0b3c49");
+      ctx.fillStyle = sea;
+      ctx.fillRect(0, h * 0.55, w, h * 0.45);
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.55)";
+      ctx.lineWidth = 3;
+      for (let r = 0; r < 4; r += 1) {
+         ctx.beginPath();
+         for (let x = 0; x <= w; x += 8) ctx.lineTo(x, h * (0.66 + r * 0.08) + Math.sin(x / 18 + r) * 4);
+         ctx.stroke();
+      }
+      ctx.fillStyle = "#7c2d12";
+      ctx.fillRect(w * 0.42, h * 0.56, w * 0.2, h * 0.05);
+      ctx.fillStyle = "#fff7ed";
+      ctx.beginPath();
+      ctx.moveTo(w * 0.52, h * 0.18);
+      ctx.lineTo(w * 0.52, h * 0.54);
+      ctx.lineTo(w * 0.36, h * 0.54);
+      ctx.fill();
+   },
+   // portrait silhouette with a pearl
+   (ctx, w, h) => {
+      const bg = ctx.createRadialGradient(w * 0.5, h * 0.4, 10, w * 0.5, h * 0.5, w * 0.6);
+      bg.addColorStop(0, "#6b4226");
+      bg.addColorStop(1, "#1c120c");
+      ctx.fillStyle = bg;
+      ctx.fillRect(0, 0, w, h);
+      ctx.fillStyle = "#2f3e66";
+      ctx.beginPath();
+      ctx.ellipse(w * 0.5, h * 1.05, w * 0.32, h * 0.38, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "#e8c39e";
+      ctx.beginPath();
+      ctx.ellipse(w * 0.5, h * 0.42, w * 0.11, h * 0.2, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "#facc15";
+      ctx.beginPath();
+      ctx.ellipse(w * 0.5, h * 0.27, w * 0.15, h * 0.1, 0, Math.PI, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "#f8fafc";
+      ctx.beginPath();
+      ctx.arc(w * 0.41, h * 0.5, 5, 0, Math.PI * 2);
+      ctx.fill();
+   },
+   // still life: vase and fruit
+   (ctx, w, h) => {
+      ctx.fillStyle = "#283618";
+      ctx.fillRect(0, 0, w, h);
+      ctx.fillStyle = "#606c38";
+      ctx.fillRect(0, h * 0.68, w, h * 0.32);
+      ctx.fillStyle = "#4361ee";
+      ctx.beginPath();
+      ctx.ellipse(w * 0.36, h * 0.5, w * 0.11, h * 0.2, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillRect(w * 0.32, h * 0.22, w * 0.08, h * 0.12);
+      ctx.strokeStyle = "#84cc16";
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.moveTo(w * 0.36, h * 0.22);
+      ctx.lineTo(w * 0.3, h * 0.08);
+      ctx.moveTo(w * 0.36, h * 0.22);
+      ctx.lineTo(w * 0.44, h * 0.06);
+      ctx.stroke();
+      for (const [x, c] of [[0.6, "#ef4444"], [0.7, "#f59e0b"], [0.8, "#a3e635"]] as const) {
+         ctx.fillStyle = c;
+         ctx.beginPath();
+         ctx.arc(x * w, h * 0.66, w * 0.05, 0, Math.PI * 2);
+         ctx.fill();
+      }
+   },
+];
+
+function mainHallPaintings(ctx: CanvasRenderingContext2D, w: number, h: number) {
+   ctx.fillStyle = "#000";
+   ctx.fillRect(0, 0, w, h);
+   MAIN_HALL_ART.forEach((painter, i) => {
+      const x0 = (i % 3) * CELL_W;
+      const y0 = Math.floor(i / 3) * CELL_H;
+      ctx.save();
+      ctx.translate(x0, y0);
+      // gilded frame
+      const gold = ctx.createLinearGradient(0, 0, CELL_W, CELL_H);
+      gold.addColorStop(0, "#f6dc8f");
+      gold.addColorStop(0.5, COLORS.trim);
+      gold.addColorStop(1, COLORS.trimDark);
+      ctx.fillStyle = gold;
+      ctx.fillRect(0, 0, CELL_W, CELL_H);
+      ctx.strokeStyle = "rgba(60, 40, 10, 0.6)";
+      ctx.lineWidth = 3;
+      ctx.strokeRect(12, 12, CELL_W - 24, CELL_H - 24);
+      ctx.fillStyle = "#1a1206";
+      ctx.fillRect(20, 20, CELL_W - 40, CELL_H - 40);
+      ctx.translate(24, 24);
+      ctx.beginPath();
+      ctx.rect(0, 0, CELL_W - 48, CELL_H - 48);
+      ctx.clip();
+      painter(ctx, CELL_W - 48, CELL_H - 48);
+      // varnish highlight
+      const hl = ctx.createLinearGradient(0, 0, CELL_W - 48, CELL_H - 48);
+      hl.addColorStop(0, "rgba(255, 255, 255, 0.12)");
+      hl.addColorStop(0.4, "rgba(255, 255, 255, 0)");
+      ctx.fillStyle = hl;
+      ctx.fillRect(0, 0, CELL_W - 48, CELL_H - 48);
+      ctx.restore();
+   });
+   ctx.fillStyle = COLORS.trim;
+   ctx.fillRect(960, 0, w - 960, h);
+}
+
 const WALL_DRAWERS: Record<WingTheme, CanvasDraw> = {
-   "main-hall": drawWallFor(LEVELS[1].palette, "main-hall"),
+   "main-hall": mainHallWall,
    "ancient-wing": drawWallFor(LEVELS[2].palette, "ancient-wing"),
    "art-wing": drawWallFor(LEVELS[3].palette, "art-wing"),
    "science-wing": drawWallFor(LEVELS[4].palette, "science-wing"),
@@ -540,7 +897,7 @@ const WALL_DRAWERS: Record<WingTheme, CanvasDraw> = {
 };
 
 const FLOOR_DRAWERS: Record<WingTheme, CanvasDraw> = {
-   "main-hall": drawFloorFor(LEVELS[1].palette, "main-hall"),
+   "main-hall": mainHallFloor,
    "ancient-wing": drawFloorFor(LEVELS[2].palette, "ancient-wing"),
    "art-wing": drawFloorFor(LEVELS[3].palette, "art-wing"),
    "science-wing": drawFloorFor(LEVELS[4].palette, "science-wing"),
@@ -548,7 +905,7 @@ const FLOOR_DRAWERS: Record<WingTheme, CanvasDraw> = {
 };
 
 const CEILING_DRAWERS: Record<WingTheme, CanvasDraw> = {
-   "main-hall": drawCeilingFor(LEVELS[1].palette, "main-hall"),
+   "main-hall": mainHallCeiling,
    "ancient-wing": drawCeilingFor(LEVELS[2].palette, "ancient-wing"),
    "art-wing": drawCeilingFor(LEVELS[3].palette, "art-wing"),
    "science-wing": drawCeilingFor(LEVELS[4].palette, "science-wing"),
@@ -556,7 +913,7 @@ const CEILING_DRAWERS: Record<WingTheme, CanvasDraw> = {
 };
 
 const PAINTING_DRAWERS: Record<WingTheme, CanvasDraw> = {
-   "main-hall": drawPaintingsFor(LEVELS[1].palette, "main-hall"),
+   "main-hall": mainHallPaintings,
    "ancient-wing": drawPaintingsFor(LEVELS[2].palette, "ancient-wing"),
    "art-wing": drawPaintingsFor(LEVELS[3].palette, "art-wing"),
    "science-wing": drawPaintingsFor(LEVELS[4].palette, "science-wing"),
