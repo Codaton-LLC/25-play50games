@@ -16,7 +16,7 @@ import { DynamicInstancedModel, InstancedModel, Model } from "@/arcade3d/core/as
 import type { InstanceSpot } from "@/arcade3d/core/render";
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import { stepProgress } from "@/arcade3d/menu2/boss/boss";
-import { ASSETS, BOSS_SCALE, CANNON_LENGTH, GLB_SIZE, ORB_SIZE } from "./assets";
+import { ASSETS, BOSS_SCALE, CANNON_LENGTH, GLB_SIZE, ORB_SIZE, PAD_TOP_H } from "./assets";
 import { COLORS } from "./look";
 import { LEVELS } from "./levels";
 import { ASHBAG, SECRETS } from "./progression";
@@ -66,17 +66,12 @@ function stripeTexture(a: string, b: string, n: number): CanvasTexture {
    return t;
 }
 
-function targetTexture(): CanvasTexture {
+/** The crack across a target board (Riko's cue that it smashes): lines on a transparent canvas, laid over the m2TargetRing face. */
+function crackTexture(): CanvasTexture {
    const c = document.createElement("canvas");
    c.width = c.height = 128;
    const g = c.getContext("2d")!;
-   const rings = ["#e9dcc2", "#b23a30", "#e9dcc2", "#b23a30", "#f6c453"];
-   rings.forEach((col, i) => {
-      g.fillStyle = col;
-      g.beginPath();
-      g.arc(64, 64, 62 - i * 12, 0, Math.PI * 2);
-      g.fill();
-   });
+   g.clearRect(0, 0, 128, 128);
    g.strokeStyle = "#3a2a20";
    g.lineWidth = 3;
    g.beginPath();
@@ -138,14 +133,8 @@ function Drums({ run }: { run: CannonRun }) {
                         <cylinderGeometry args={[p.hw, p.hw, 0.7, 40, 1, true]} />
                         <meshStandardMaterial map={tex} roughness={0.7} side={DoubleSide} />
                      </mesh>
-                     <mesh rotation-x={-Math.PI / 2} position={[0, 0.005, 0]}>
-                        <circleGeometry args={[p.hw, 40]} />
-                        <meshStandardMaterial color={COLORS.standTop} roughness={0.85} />
-                     </mesh>
-                     <mesh rotation-x={-Math.PI / 2} position={[0, 0.02, 0]}>
-                        <ringGeometry args={[p.hw - 0.25, p.hw, 40]} />
-                        <meshStandardMaterial color={COLORS.brass} metalness={0.5} roughness={0.4} />
-                     </mesh>
+                     {/* the padded top: m2LandingPadM2 across the drum */}
+                     <Model asset={ASSETS.pad} scale={[(2 * p.hw) / GLB_SIZE.pad.x, PAD_TOP_H / GLB_SIZE.pad.y, (2 * p.hw) / GLB_SIZE.pad.z]} />
                   </>
                ) : (
                   <>
@@ -397,7 +386,7 @@ function Rings({ run }: { run: CannonRun }) {
 /** Target boards (hidden once smashed), tent poles, smoke jets, tent walls and trapeze banners. */
 function Obstacles({ run, clock }: { run: CannonRun; clock: VisualClock }) {
    const course = run.course;
-   const target = useMemo(() => targetTexture(), []);
+   const target = useMemo(() => crackTexture(), []);
    const canvas = useMemo(() => stripeTexture(COLORS.cream, "#8d857d", 12), []);
    useEffect(
       () => () => {
@@ -441,13 +430,16 @@ function Obstacles({ run, clock }: { run: CannonRun; clock: VisualClock }) {
                }}
                position={[b.x, b.y, b.z]}
             >
-               <mesh rotation-x={Math.PI / 2}>
-                  <cylinderGeometry args={[Math.max(b.hx, b.hy), Math.max(b.hx, b.hy), b.hz * 2, 32]} />
-                  <meshStandardMaterial color={COLORS.board} roughness={0.8} />
-               </mesh>
-               <mesh position={[0, 0, b.hz + 0.01]}>
-                  <circleGeometry args={[Math.max(b.hx, b.hy) - 0.04, 32]} />
-                  <meshStandardMaterial map={target} roughness={0.8} />
+               {/* m2TargetRing: its face turned from x to the board's z, fitted to the board's radius and thickness, centred */}
+               <Model
+                  asset={ASSETS.board}
+                  rotation-y={-Math.PI / 2}
+                  position={[0, -Math.max(b.hx, b.hy), 0]}
+                  scale={[(2 * b.hz) / GLB_SIZE.board.x, (2 * Math.max(b.hx, b.hy)) / GLB_SIZE.board.y, (2 * Math.max(b.hx, b.hy)) / GLB_SIZE.board.z]}
+               />
+               <mesh position={[0, 0, b.hz + 0.02]}>
+                  <circleGeometry args={[Math.max(b.hx, b.hy) * 0.8, 32]} />
+                  <meshBasicMaterial map={target} transparent depthWrite={false} />
                </mesh>
                <mesh position={[0, -b.y / 2, 0]}>
                   <cylinderGeometry args={[0.08, 0.1, b.y, 6]} />

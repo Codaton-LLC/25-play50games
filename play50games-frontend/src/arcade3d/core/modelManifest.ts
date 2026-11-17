@@ -284,6 +284,8 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/wind-tunnel-escape/m2WindFanTower.glb",
    "/models/3d/wind-tunnel-escape/m2WindTubeBg.glb",
    // Menu 2 game 43 (Roll Cannon Jump, W1): the big-top cannon set from ready/menu2/roll-cannon-jump
+   "/models/3d/roll-cannon-jump/m2LandingPadM2.glb",
+   "/models/3d/roll-cannon-jump/m2TargetRing.glb",
    "/models/3d/roll-cannon-jump/m2BalloonBunch.glb",
    "/models/3d/roll-cannon-jump/m2BigTopTentBg.glb",
    "/models/3d/roll-cannon-jump/m2CannonIsle.glb",
