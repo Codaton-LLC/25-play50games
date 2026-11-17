@@ -81,6 +81,7 @@ export const GAME_LOADERS: Record<ArcadeSlug, () => Promise<GameModule>> = {
    "tightrope-path": () => import("./games/tightrope-path"),
    "disc-target-throw": () => import("./games/disc-target-throw"),
    "wall-run-temple": () => import("./games/wall-run-temple"),
+   "plate-bounce-arena": () => import("./games/plate-bounce-arena"),
    "temple-coin-rush": () => import("./games/temple-coin-rush"),
    "mine-tunnel-run": () => import("./games/mine-tunnel-run"),
    "color-rail-grind": () => import("./games/color-rail-grind"),

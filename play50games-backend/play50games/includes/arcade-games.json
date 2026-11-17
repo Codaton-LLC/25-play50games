@@ -1296,6 +1296,22 @@
         { "title": "Master Wall Run", "max_score": 29300, "min_duration_ms": 7000, "max_duration_ms": 300000, "time_base_ms": 300000 }
       ]
     },
+    "plate-bounce-arena": {
+      "title": "Plate Bounce Arena",
+      "kind": "time",
+      "max_score": 29850,
+      "min_duration_ms": 1500,
+      "max_duration_ms": 300000,
+      "time_base_ms": 300000,
+      "enabled": false,
+      "levels": [
+        { "title": "Practice Table", "max_score": 29850, "min_duration_ms": 1500, "max_duration_ms": 300000, "time_base_ms": 300000 },
+        { "title": "Mushroom Garden", "max_score": 32460, "min_duration_ms": 5400, "max_duration_ms": 330000, "time_base_ms": 330000 },
+        { "title": "Ice Table", "max_score": 35850, "min_duration_ms": 1500, "max_duration_ms": 360000, "time_base_ms": 360000 },
+        { "title": "Multiball", "max_score": 38750, "min_duration_ms": 2500, "max_duration_ms": 390000, "time_base_ms": 390000 },
+        { "title": "Rollo's Table", "max_score": 40680, "min_duration_ms": 13200, "max_duration_ms": 420000, "time_base_ms": 420000 }
+      ]
+    },
     "temple-coin-rush": {
       "title": "Temple Coin Rush",
       "kind": "points",
