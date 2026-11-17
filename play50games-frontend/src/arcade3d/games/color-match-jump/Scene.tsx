@@ -28,7 +28,7 @@ import { COMBO, STORM } from "./progression";
 import { HEX_COLORS } from "./look";
 import { botInput } from "./bot";
 import { levelEndStats } from "./levelEnd";
-import { listenTagKeys, takeTag } from "./tagLatch";
+import { takeTag, tagIndexOf, useTagKeys } from "../../menu2/heroTag/tagInput";
 import type { CmjLevel } from "./levels";
 
 function codeValue(code: number[]): number {
@@ -86,7 +86,8 @@ function Simulation({ run: r, orbit }: { run: CmjRun; orbit: OrbitState }) {
    const stepInput = useMemo<StepInput>(idleInput, []);
    const { user } = useAuth();
    const autoplay = useMemo(() => ARCADE_PREVIEW && typeof window !== "undefined" && new URLSearchParams(window.location.search).get("autoplay") === "1", []);
-   useEffect(() => listenTagKeys(), []);
+   // keys 1-5 and T while the scene is up (Shift+T is T here: this game has no "previous")
+   useTagKeys(true, { shiftPrev: false });
    useEffect(() => publish(r), [r]);
    useRunFrame((_, dt) => {
       const i = input.current;
@@ -95,7 +96,10 @@ function Simulation({ run: r, orbit }: { run: CmjRun; orbit: OrbitState }) {
       stepInput.jumpPressed = i.jumpPressed;
       stepInput.jumpHeld = i.jump;
       stepInput.actionPressed = i.actionPressed;
-      stepInput.tag = takeTag();
+      const req = takeTag();
+      const q = req ? tagIndexOf(req) : null;
+      // the rules' tag: 0-4 a hero, 5 the next one round, -1 none
+      stepInput.tag = !q ? -1 : q.cycle > 0 ? 5 : q.cycle < 0 ? (r.active + 4) % 5 : q.hero;
       stepInput.yaw = orbit.viewYaw;
       if (autoplay) botInput(r, stepInput);
       const ev = step(r, dt * 1000, stepInput);

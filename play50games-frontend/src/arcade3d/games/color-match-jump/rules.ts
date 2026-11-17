@@ -9,6 +9,7 @@ import { createCombo, comboBreak, comboHit, comboTick, type ComboState } from ".
 import { createBoss, createBossEvents, hitBoss, stepBoss, type BossState } from "../../menu2/boss/boss";
 import { collectSecret, createSecretTracker, type SecretTracker } from "../../menu2/secrets/secrets";
 import { LEVELS, type CmjLevel } from "./levels";
+import { BENCH_RECHARGE, LINGER_MS, TAG_COOLDOWN_MS } from "../../menu2/heroTag/rules";
 import { CORE_COLOURS, D, DIRS, GOLEM, GREY, ICE, cellAt, courseFor, indexCourse, type Cell, type Course } from "./course";
 import { HEROES, heroIndex, type HeroId } from "./heroes";
 import { COMBO, FROST_GOLEM, SECRETS, STORM } from "./progression";
@@ -29,8 +30,9 @@ export const CLIMB_DOUBLE = 4.3;
 export const CRACK_MS = 600;
 export const FALL_MS = 900;
 export const SKID_MS = 250;
-export const TAG_MS = 500;
-export const LINGER_MS = 300;
+/** The tag's global cooldown and the hand-off linger: World 6's shared values (menu2/heroTag). */
+export const TAG_MS = TAG_COOLDOWN_MS;
+export { LINGER_MS };
 export const HEARTS = 3;
 export const MAGNET_R = 6;
 /** L5: cracked and boulder hexes grow back (ms). */
@@ -585,7 +587,7 @@ function substep(r: CmjRun, ms: number, input: StepInput, first: boolean): void 
    r.simMs += ms;
    const t = r.simMs;
    comboTick(r.combo, COMBO, t);
-   for (let i = 0; i < 5; i++) if (r.cooldown[i] > 0) r.cooldown[i] = Math.max(0, r.cooldown[i] - ms * (i === r.active ? 1 : 2));
+   for (let i = 0; i < 5; i++) if (r.cooldown[i] > 0) r.cooldown[i] = Math.max(0, r.cooldown[i] - ms * (i === r.active ? 1 : BENCH_RECHARGE));
    // tagging
    if (first && input.tag >= 0 && t >= r.tagReadyAt) {
       const next = input.tag === 5 ? (r.active + 1) % 5 : input.tag;

@@ -1,8 +1,10 @@
 // The World 6 hero tag-switch (rules.ts): the wheel, the cooldown and the lock, the bench recharge,
 // hand-offs and the linger, fresh legs once per airtime, the spectrum ring, roster limits and co-op.
 import { describe, expect, it } from "vitest";
-import { clearTag, requestTag, tagForKey, takeTag } from "./tagInput";
+import { clearTag, requestTag, tagForKey, tagIndexOf, takeTag } from "./tagInput";
 import {
+   BENCH_RECHARGE,
+   TAG_COOLDOWN_MS,
    HANDOFF_MS,
    HERO_OF_COLOUR,
    TAG_COLOUR,
@@ -99,18 +101,28 @@ describe("hero tag-switch", () => {
 
 
 describe("tag input (keys 1-5, T, the portrait strip)", () => {
-   it("maps keys to requests and latches one request until taken", () => {
-      expect(tagForKey("1")).toBe("riko");
-      expect(tagForKey("5")).toBe("vexa");
-      expect(tagForKey("t")).toBe("next");
-      expect(tagForKey("T", true)).toBe("prev");
-      expect(tagForKey("6")).toBeNull();
-      expect(tagForKey("e")).toBeNull();
+   it("maps physical keys to requests and latches one request until taken", () => {
+      expect(tagForKey("Digit1")).toBe("riko");
+      expect(tagForKey("Numpad5")).toBe("vexa");
+      expect(tagForKey("KeyT")).toBe("next");
+      expect(tagForKey("KeyT", true)).toBe("prev");
+      expect(tagForKey("KeyT", true, { shiftPrev: false })).toBe("next");
+      expect(tagForKey("Digit6")).toBeNull();
+      expect(tagForKey("KeyE")).toBeNull();
+      expect(tagIndexOf("kiro")).toEqual({ hero: 2, cycle: 0 });
+      expect(tagIndexOf("next")).toEqual({ hero: -1, cycle: 1 });
+      expect(tagIndexOf("prev")).toEqual({ hero: -1, cycle: -1 });
       clearTag();
       expect(takeTag()).toBeNull();
       requestTag("kiro");
       requestTag("zuno");
       expect(takeTag()).toBe("zuno");
       expect(takeTag()).toBeNull();
+   });
+
+   it("the defaults are the named constants", () => {
+      const s = createTagState({ lead: "riko" });
+      expect(s.tagCooldownMs).toBe(TAG_COOLDOWN_MS);
+      expect(s.benchRecharge).toBe(BENCH_RECHARGE);
    });
 });

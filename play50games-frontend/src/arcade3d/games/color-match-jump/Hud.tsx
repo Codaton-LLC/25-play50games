@@ -15,7 +15,8 @@ import { HINT, STAT } from "./rules";
 import { LEVELS, type CmjLevel } from "./levels";
 import { COMBO, FROST_GOLEM, STORM } from "./progression";
 import { COLOR_NAMES, GLYPH_TEXT, HEX_COLORS } from "./look";
-import { requestTag } from "./tagLatch";
+import { requestTag } from "../../menu2/heroTag/tagInput";
+import { TAG_ORDER } from "../../menu2/heroTag/rules";
 import stack from "../../menu2/hud/HudStack.module.css";
 import styles from "./Hud.module.css";
 
@@ -61,7 +62,7 @@ function TagStrip() {
                aria-pressed={i === active}
                onPointerDown={(e) => {
                   e.preventDefault();
-                  requestTag(i);
+                  requestTag(TAG_ORDER[i]);
                }}
             >
                <span className={styles.glyph}>{GLYPH_TEXT[i]}</span>

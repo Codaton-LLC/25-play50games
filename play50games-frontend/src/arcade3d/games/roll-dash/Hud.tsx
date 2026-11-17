@@ -22,7 +22,8 @@ import { HEARTS, STAT, runTimeMs } from "./rules";
 import type { DashLevel } from "./levels";
 import { COMBO, HAWK } from "./progression";
 import { MultiplayerHud, MultiplayerButton } from "./MultiplayerHud";
-import { tagLatch } from "./latch";
+import { requestTag } from "@/arcade3d/menu2/heroTag/tagInput";
+import { TAG_ORDER } from "@/arcade3d/menu2/heroTag/rules";
 import stack from "@/arcade3d/menu2/hud/HudStack.module.css";
 import styles from "./Hud.module.css";
 
@@ -99,7 +100,7 @@ function Portraits() {
                aria-pressed={i === active}
                onPointerDown={(e) => {
                   e.preventDefault();
-                  tagLatch.tag = i + 1;
+                  requestTag(TAG_ORDER[i]);
                }}
             >
                <Glyph glyph={h.glyph} />

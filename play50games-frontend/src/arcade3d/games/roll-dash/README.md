@@ -24,7 +24,7 @@ A single lock blocks one lane: dodge it, or open it for the orb line behind it. 
 
 A correct unlock gives +1 flow, a 1.5 s +1.5 m/s boost, and repaints the street behind you in colour. The glyphs keep it readable without colour, as the W6 accessibility rule asks.
 
-- **Keyboard:** A / D or Left / Right change lane (0.18 s). Space or Up jumps (1.4 m). S or Down tucks under a sign. **1-5 tag** a hero. E or Enter fires the power. Camera: drag, Q / C, R / F, wheel; V recenters.
+- **Keyboard:** A / D or Left / Right change lane (0.18 s). Space or Up jumps (1.4 m). S or Down tucks under a sign. **1-5 tag** a hero (Digit or Numpad row), **T** the next, Shift+T the previous (World 6's shared `menu2/heroTag/tagInput`). E or Enter fires the power. Camera: drag, Q / C, R / F, wheel; V recenters.
 - **Touch:** swipe left / right / up / down. The **portrait strip** (bottom left) tags: tap a portrait. Each portrait shows its glyph and its power's cooldown, and greys while tagging cools or is locked. Power fires. Two fingers rotate the camera, pinch zooms.
 - **The tag:**
   - Global cooldown 0.5 s.

@@ -33,6 +33,10 @@ export const TAG_GLYPH: Readonly<Record<TagColour, "chevron" | "wave" | "hexagon
 export const TAG_SWAP_MS = 120;
 export const HANDOFF_MS = 400;
 export const LINGER_MS = 300;
+/** The global cooldown after every tag (the default tagCooldownMs). */
+export const TAG_COOLDOWN_MS = 500;
+/** How much faster a benched hero's power recharges (the default benchRecharge). */
+export const BENCH_RECHARGE = 2;
 
 export interface TagOptions {
    /** the heroes in this level (a teaching level may restrict it); always contains the lead */
@@ -74,8 +78,8 @@ export function createTagState(opts: TagOptions): TagState {
       active: opts.lead,
       previous: null,
       lastTagMs: -1e9,
-      tagCooldownMs: opts.tagCooldownMs ?? 500,
-      benchRecharge: opts.benchRecharge ?? 2,
+      tagCooldownMs: opts.tagCooldownMs ?? TAG_COOLDOWN_MS,
+      benchRecharge: opts.benchRecharge ?? BENCH_RECHARGE,
       cooldown: { ...zero },
       powerUntil: { riko: -1, nami: -1, kiro: -1, zuno: -1, vexa: -1 },
       lockedUntil: -1,
