@@ -1393,6 +1393,22 @@
         { "title": "Fast Rhythm", "max_score": 14790, "min_duration_ms": 41800, "max_duration_ms": 46517, "base": 400, "max_pps": 358 },
         { "title": "Perfect Timing", "max_score": 28600, "min_duration_ms": 64700, "max_duration_ms": 242000, "base": 5720, "max_pps": 318 }
       ]
+    },
+    "portal-hop": {
+      "title": "Portal Hop",
+      "kind": "time",
+      "max_score": 14950,
+      "min_duration_ms": 500,
+      "max_duration_ms": 150000,
+      "time_base_ms": 150000,
+      "enabled": false,
+      "levels": [
+        { "title": "Two Portals", "max_score": 14950, "min_duration_ms": 500, "max_duration_ms": 150000, "time_base_ms": 150000 },
+        { "title": "Two Pairs", "max_score": 17920, "min_duration_ms": 800, "max_duration_ms": 180000, "time_base_ms": 180000 },
+        { "title": "Moving Portals", "max_score": 20960, "min_duration_ms": 400, "max_duration_ms": 210000, "time_base_ms": 210000 },
+        { "title": "Cargo", "max_score": 23950, "min_duration_ms": 500, "max_duration_ms": 240000, "time_base_ms": 240000 },
+        { "title": "Portal Master", "max_score": 28370, "min_duration_ms": 16300, "max_duration_ms": 300000, "time_base_ms": 300000 }
+      ]
     }
   }
 }

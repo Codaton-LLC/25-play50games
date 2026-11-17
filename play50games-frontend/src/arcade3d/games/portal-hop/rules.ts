@@ -1130,9 +1130,9 @@ export const STAT = {
 
 /** The level limits proven in proof.test.ts: bound.ts proposeLimits, pinned. */
 export const PROPOSED_LEVEL_LIMITS: Record<LevelId, LevelLimits> = {
-   1: { kind: "time", maxScore: 14_000, minDurationMs: 1_000, maxDurationMs: 150_000, timeBaseMs: 150_000 },
-   2: { kind: "time", maxScore: 17_000, minDurationMs: 1_000, maxDurationMs: 180_000, timeBaseMs: 180_000 },
-   3: { kind: "time", maxScore: 20_000, minDurationMs: 1_000, maxDurationMs: 210_000, timeBaseMs: 210_000 },
-   4: { kind: "time", maxScore: 23_000, minDurationMs: 1_000, maxDurationMs: 240_000, timeBaseMs: 240_000 },
-   5: { kind: "time", maxScore: 29_000, minDurationMs: 1_000, maxDurationMs: 300_000, timeBaseMs: 300_000 },
+   1: { kind: "time", maxScore: 14_950, minDurationMs: 500, maxDurationMs: 150_000, timeBaseMs: 150_000 },
+   2: { kind: "time", maxScore: 17_920, minDurationMs: 800, maxDurationMs: 180_000, timeBaseMs: 180_000 },
+   3: { kind: "time", maxScore: 20_960, minDurationMs: 400, maxDurationMs: 210_000, timeBaseMs: 210_000 },
+   4: { kind: "time", maxScore: 23_950, minDurationMs: 500, maxDurationMs: 240_000, timeBaseMs: 240_000 },
+   5: { kind: "time", maxScore: 28_370, minDurationMs: 16_300, maxDurationMs: 300_000, timeBaseMs: 300_000 },
 };
