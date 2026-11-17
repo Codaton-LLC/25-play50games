@@ -51,7 +51,7 @@ export const gemCollector3dMeta: ArcadeGameMeta = {
       scoring: scoring(id),
       ...(LEVELS[id].targetScore > 0 ? { clearScore: LEVELS[id].targetScore } : {}),
    })),
-   thumbnail: null,
+   thumbnail: "/images/3d/gem-collector-3d.webp",
    accent: "#facc15",
    owner: "claude",
 };

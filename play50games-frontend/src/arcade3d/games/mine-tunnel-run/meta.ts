@@ -32,7 +32,7 @@ export const mineTunnelRunMeta: ArcadeGameMeta = {
    },
    scoring: scoring(1),
    levels: LEVEL_IDS.map((id) => ({ id, title: LEVELS[id].name, scoring: scoring(id) })),
-   thumbnail: null,
+   thumbnail: "/images/3d/mine-tunnel-run.webp",
    accent: "#f97316",
    owner: "claude",
 };

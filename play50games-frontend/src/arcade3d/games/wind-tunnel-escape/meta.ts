@@ -39,7 +39,7 @@ export const windTunnelEscapeMeta: ArcadeGameMeta = {
    },
    scoring: scoring(1),
    levels: LEVEL_IDS.map((id) => ({ id, title: LEVEL_TITLES[id], scoring: scoring(id) })),
-   thumbnail: null,
+   thumbnail: "/images/3d/wind-tunnel-escape.webp",
    accent: "#38bdf8",
    owner: "claude",
 };

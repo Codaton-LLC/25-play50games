@@ -39,7 +39,7 @@ export const energyCoreHuntMeta: ArcadeGameMeta = {
    },
    scoring: scoring(1),
    levels: LEVEL_IDS.map((id) => ({ id, title: LEVEL_TITLES[id], scoring: scoring(id) })),
-   thumbnail: null,
+   thumbnail: "/images/3d/energy-core-hunt.webp",
    accent: "#2dd4bf",
    owner: "claude",
 };

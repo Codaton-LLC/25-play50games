@@ -39,7 +39,7 @@ export const alienLaneEscapeMeta: ArcadeGameMeta = {
    },
    scoring: scoring(1),
    levels: LEVEL_IDS.map((id) => ({ id, title: LEVEL_TITLES[id], scoring: scoring(id) })),
-   thumbnail: null,
+   thumbnail: "/images/3d/alien-lane-escape.webp",
    accent: "#a855f7",
    owner: "claude",
 };

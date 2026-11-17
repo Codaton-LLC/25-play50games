@@ -23,7 +23,7 @@ export const colorMatchJumpMeta: ArcadeGameMeta = {
    },
    scoring: LIMITS[1],
    levels: LEVEL_IDS.map((id) => ({ id, title: LEVELS[id].name, scoring: LIMITS[id] })),
-   thumbnail: null,
+   thumbnail: "/images/3d/color-match-jump.webp",
    accent: "#f472b6",
    owner: "claude",
 };
