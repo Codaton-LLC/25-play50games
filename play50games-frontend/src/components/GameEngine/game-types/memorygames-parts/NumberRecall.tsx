@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import m from "./mobile.module.css";
 import {
    CheckCircleIcon,
    XCircleIcon,
@@ -271,6 +272,7 @@ function NumberRecall({
 
    return (
       <div
+         className={m.tight}
          style={{
             display: "flex",
             flexDirection: "column",
@@ -356,6 +358,8 @@ function NumberRecall({
 
          {/* Game State Display */}
          <div
+            key={gameState}
+            className={gameState === "correct" ? m.feedbackOk : gameState === "wrong" ? m.feedbackBad : undefined}
             style={{
                width: "100%",
                background: "var(--card)",
@@ -526,6 +530,7 @@ function NumberRecall({
                   />
                   <button
                      onClick={handleSubmit}
+                     className={m.btn}
                      disabled={gameState !== "input" || !input.trim()}
                      style={{
                         padding: isMobile ? "12px 20px" : "12px 24px",
@@ -643,6 +648,7 @@ function NumberRecall({
             {/* Hint Button */}
             <button
                onClick={handleHint}
+               className={m.btn}
                disabled={
                   (maxHints > 0 && hintsUsed >= maxHints) ||
                   showing ||
@@ -729,6 +735,7 @@ function NumberRecall({
             {/* Share Button */}
             <button
                onClick={handleShare}
+               className={m.btn}
                style={{
                   display: "flex",
                   alignItems: "center",
@@ -775,6 +782,7 @@ function NumberRecall({
          {/* Feedback Message (from Match the Shapes) */}
          {feedback !== null && (
             <div
+               className={feedback === "correct" ? m.feedbackOk : m.feedbackBad}
                style={{
                   padding: isMobile ? "12px 20px" : "16px 24px",
                   borderRadius: isMobile ? "12px" : "12px",
