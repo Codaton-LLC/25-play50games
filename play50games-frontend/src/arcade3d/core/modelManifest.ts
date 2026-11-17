@@ -380,6 +380,15 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/neon-cube-jump/m2NeonSentryDrone.glb",
    "/models/3d/neon-cube-jump/m2NeonCityBg.glb",
    "/models/3d/neon-cube-jump/m2FlipframeCore.glb",
+   // Crystal Cave Switch (Menu 2 #44): switch, gate, beacon, slab, bridge, boulder, grotto wall, Hollow Prism
+   "/models/3d/crystal-cave-switch/m2CrystalSwitch.glb",
+   "/models/3d/crystal-cave-switch/m2CaveGate.glb",
+   "/models/3d/crystal-cave-switch/m2CrystalBeaconPillar.glb",
+   "/models/3d/crystal-cave-switch/m2CaveSlabPlatform.glb",
+   "/models/3d/crystal-cave-switch/m2CrystalSlabBridge.glb",
+   "/models/3d/crystal-cave-switch/m2CaveBoulder.glb",
+   "/models/3d/crystal-cave-switch/m2GrottoWallBg.glb",
+   "/models/3d/crystal-cave-switch/m2HollowPrismBoss.glb",
    // P-121 dev adoptions (2026-10-25): V2 replacements and Group D variety whose QA verdict
    // starts with OK. Optimized GLBs copied in; not re-optimized. Live games are untouched.
    "/models/3d/shopping-cart/supermarketShelfV2.glb",
@@ -697,6 +706,16 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/toy-room-run/m2ToyDrum.glb",
    "/models/3d/toy-room-run/m2ToyRaceCar.glb",
    "/models/3d/toy-room-run/m2WindUpKey.glb",
+   // Menu 2 game 23 (Gem Collector 3D): its vault props from ready/menu2/gem-collector-3d, plus
+   // m2GummyMonster (the L5 boss) from ready/menu2/shared
+   "/models/3d/gem-collector-3d/m2ArenaRimWall.glb",
+   "/models/3d/gem-collector-3d/m2ArenaTileV2.glb",
+   "/models/3d/gem-collector-3d/m2CrystalHillBg.glb",
+   "/models/3d/gem-collector-3d/m2FacetGemI.glb",
+   "/models/3d/gem-collector-3d/m2GemPedestal.glb",
+   "/models/3d/gem-collector-3d/m2GummyMonster.glb",
+   "/models/3d/gem-collector-3d/m2ScoreBeacon.glb",
+   "/models/3d/gem-collector-3d/m2TreasureChest.glb",
    "/models/3d/jungle-vine-jump/m2BranchPlatform.glb",
    "/models/3d/jungle-vine-jump/m2BranchPlatformV2.glb",
    "/models/3d/jungle-vine-jump/m2GiantJungleTreeBg.glb",
@@ -723,6 +742,18 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/color-rail-grind/m2SnowPine.glb",
    "/models/3d/color-rail-grind/m2SupportPillar.glb",
    "/models/3d/color-rail-grind/m2ToyTrainWagon.glb",
+   // Menu 2 game 10 (Space Pod Jump): ready/menu2/space-pod-jump (incl. m2MiniPlanetoid, m2OrbitWardenBoss, m2GravityBuoy)
+   "/models/3d/space-pod-jump/m2Asteroid.glb",
+   "/models/3d/space-pod-jump/m2DockingArm.glb",
+   "/models/3d/space-pod-jump/m2EnergyOrbBlue.glb",
+   "/models/3d/space-pod-jump/m2GravityBuoy.glb",
+   "/models/3d/space-pod-jump/m2MiniPlanetoid.glb",
+   "/models/3d/space-pod-jump/m2OrbitWardenBoss.glb",
+   "/models/3d/space-pod-jump/m2RingedPlanetBg.glb",
+   "/models/3d/space-pod-jump/m2SatellitePanel.glb",
+   "/models/3d/space-pod-jump/m2SpaceCrate.glb",
+   "/models/3d/space-pod-jump/m2SpacePod.glb",
+   "/models/3d/space-pod-jump/m2StationDeck.glb",
    // Menu 2 game 9 (Ice Peak Jumper): the ready set from ~/.play50/hyper3d/ready/menu2/ice-peak-jumper, plus
    // m2FrostGolemBoss (the L5 boss) and m2IceSlime (L4) from ready/menu2/shared
    "/models/3d/ice-peak-jumper/m2CrackedIcePlatform.glb",

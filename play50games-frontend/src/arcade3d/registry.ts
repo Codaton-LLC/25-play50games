@@ -71,6 +71,7 @@ import { rollCannonJumpMeta } from "./games/roll-cannon-jump/meta";
 import { colorCitySprintMeta } from "./games/color-city-sprint/meta";
 import { templeLanternJumpMeta } from "./games/temple-lantern-jump/meta";
 import { toyRoomRunMeta } from "./games/toy-room-run/meta";
+import { gemCollector3dMeta } from "./games/gem-collector-3d/meta";
 import { jungleVineJumpMeta } from "./games/jungle-vine-jump/meta";
 import { icePeakJumperMeta } from "./games/ice-peak-jumper/meta";
 import { candyWorldRunnerMeta } from "./games/candy-world-runner/meta";
@@ -85,11 +86,12 @@ import { plateBounceArenaMeta } from "./games/plate-bounce-arena/meta";
 import { mineTunnelRunMeta } from "./games/mine-tunnel-run/meta";
 import { spinPoleClimbMeta } from "./games/spin-pole-climb/meta";
 import { templeGongTimingMeta } from "./games/temple-gong-timing/meta";
+import { spacePodJumpMeta } from "./games/space-pod-jump/meta";
 import { neonCubeJumpMeta } from "./games/neon-cube-jump/meta";
 
 import { snowSlideDashMeta } from "./games/snow-slide-dash/meta";
 import { portalHopMeta } from "./games/portal-hop/meta";
-import { switchColorHeroMeta } from "./games/switch-color-hero/meta";
+import { switchColorHeroMeta, crystalCaveSwitchMeta } from "./games/switch-color-hero/meta";
 
 export const ARCADE_GAMES: ArcadeGameMeta[] = [
    robotCollectorMeta,
@@ -156,6 +158,7 @@ export const ARCADE_GAMES: ArcadeGameMeta[] = [
    colorCitySprintMeta,
    templeLanternJumpMeta,
    toyRoomRunMeta,
+   gemCollector3dMeta,
    jungleVineJumpMeta,
    icePeakJumperMeta,
    candyWorldRunnerMeta,
@@ -175,9 +178,11 @@ export const ARCADE_GAMES: ArcadeGameMeta[] = [
    laserMazeRunMeta,
    spinPoleClimbMeta,
    templeGongTimingMeta,
+   spacePodJumpMeta,
    neonCubeJumpMeta,
    portalHopMeta,
    switchColorHeroMeta,
+   crystalCaveSwitchMeta,
 ].sort((a, b) => a.order - b.order);
 
 export function getGameMeta(slug: string): ArcadeGameMeta | undefined {
