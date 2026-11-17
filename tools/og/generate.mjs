@@ -121,6 +121,7 @@ const TITLES = {
    "color-boss-tower": "Color Boss Tower",
    "color-bridge-builder": "Color Bridge Builder",
    "color-orb-defense": "Color Orb Defense",
+   "ultimate-color-trial": "Ultimate Color Trial",
 };
 
 /** One entry per thumbnail in public/images/3d, in filename order. */
