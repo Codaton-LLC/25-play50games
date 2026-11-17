@@ -8,8 +8,8 @@
 import { describe, expect, it } from "vitest";
 import { createGrid, fixedFrames, followPath, freeGrid, randomFrames, simulateRun, steer, type PathFollower } from "@/arcade3d/core/testing/botHarness";
 import { createArcadeStore } from "@/arcade3d/core/useArcadeStore";
-import { LEVELS, type IslandLevel } from "./levels";
-import { treasureIslandMeta as meta } from "./meta";
+import { LEVELS, type IslandLevel } from "../levels";
+import { treasureIslandMeta as meta } from "../meta";
 import {
    DIG,
    EXPLORER,
@@ -38,7 +38,7 @@ import {
    type Island,
    type RunState,
    type StepInput,
-} from "./rules";
+} from "../rules";
 
 export type MapLevelId = 2 | 3 | 4 | 5;
 

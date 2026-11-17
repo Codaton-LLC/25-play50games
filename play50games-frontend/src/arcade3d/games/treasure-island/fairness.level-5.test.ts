@@ -1,6 +1,6 @@
 // Pirate Peak (level 5): the final chest sits on the summit inside a ring of rocks; the rockfall on
 // the south-west path clears when the map is whole (the 5th find).
-import { fairnessSuite } from "./fairnessSuite";
+import { fairnessSuite } from "./testing/fairnessSuite";
 
 const SUMMIT = { x: 2, z: -3.6 };
 
