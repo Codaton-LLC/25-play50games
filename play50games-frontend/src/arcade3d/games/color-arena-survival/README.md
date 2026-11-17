@@ -172,4 +172,4 @@ Fixed from the playtest:
 - The dark slab under the floor read as a strange column in the intro, so it is gone.
 - Prism shards on the camera's side drifted across the floor. They now stay beyond the far side.
 
-Still open: on a 390 px phone the Keeper's corner sits off the left edge at the default camera (two fingers turn it into view).
+Fixed in the Menu 2 polish pack: on a 390 px phone the Keeper's corner sat off the left edge at the default camera. On a portrait screen level 5's orbit now starts turned 0.3 rad towards it (`camera.ts startYaw`; the intro ends on the same pose), so it is in frame.

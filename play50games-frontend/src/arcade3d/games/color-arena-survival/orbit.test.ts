@@ -5,7 +5,8 @@ import { describe, expect, it } from "vitest";
 import { createRng } from "@/arcade3d/core/math";
 import { defaultHeroFor } from "@/arcade3d/menu2/heroes/heroPick";
 import { createBot, botInput } from "./bot";
-import { PIVOT_LEAN, arenaOrbit, arenaPivot, introKeyframes, orbitLookUp, orbitScale, playCamera } from "./camera";
+import { FOV, FOV_PORTRAIT, PIVOT_LEAN, arenaOrbit, arenaPivot, introKeyframes, orbitLookUp, orbitScale, playCamera, startYaw } from "./camera";
+import { keeperHome } from "./Keeper";
 import { PROPOSED_LEVEL_LIMITS, createRun, createStepInput, step, submittedMs, type ArenaRun } from "./rules";
 import { DEFAULT_HERO, pickedHero, resetHeroPick, selectHero } from "./heroes";
 
@@ -84,5 +85,32 @@ describe("the preselected hero", () => {
       selectHero("zuno");
       expect(pickedHero()).toBe("zuno");
       resetHeroPick();
+   });
+});
+
+describe("the Keeper is in frame on a portrait phone (polish pack)", () => {
+   /** The angle (rad) between the start view's axis and the Keeper's centre, on the ground plan. */
+   const offAxis = (aspect: number): number => {
+      const run = createRun(1, 5);
+      const pose = playCamera(run.arena, aspect);
+      const k = keeperHome(run.arena);
+      const ax = pose.lookAt[0] - pose.position[0];
+      const az = pose.lookAt[2] - pose.position[2];
+      const kx = k.x - pose.position[0];
+      const kz = k.z - pose.position[2];
+      return Math.acos((ax * kx + az * kz) / (Math.hypot(ax, az) * Math.hypot(kx, kz)));
+   };
+   const halfH = (fovDeg: number, aspect: number): number => Math.atan(Math.tan(((fovDeg * Math.PI) / 180) / 2) * aspect);
+
+   it("level 5 at 390 x 844: the start pose turns towards it and keeps it inside the horizontal view", () => {
+      const aspect = 390 / 844;
+      expect(startYaw(createRun(1, 5).arena, aspect)).toBeGreaterThan(0.25);
+      expect(offAxis(aspect)).toBeLessThan(halfH(FOV_PORTRAIT, aspect) * 0.8);
+   });
+
+   it("landscape screens and the other levels keep the straight start (yaw 0)", () => {
+      expect(startYaw(createRun(1, 5).arena, 16 / 10)).toBe(0);
+      for (const level of [1, 2, 3, 4] as const) expect(arenaOrbit(createRun(1, level).arena, 390 / 844).yaw).toBe(0);
+      expect(offAxis(16 / 10)).toBeLessThan(halfH(FOV, 16 / 10));
    });
 });
