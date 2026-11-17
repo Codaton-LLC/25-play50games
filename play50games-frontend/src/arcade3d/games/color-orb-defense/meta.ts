@@ -37,7 +37,7 @@ export const colorOrbDefenseMeta: ArcadeGameMeta = {
    },
    scoring: scoring(1),
    levels: LEVEL_IDS.map((id) => ({ id, title: LEVELS[id].name, scoring: scoring(id) })),
-   thumbnail: null,
+   thumbnail: "/images/3d/color-orb-defense.webp",
    accent: "#38bdf8",
    owner: "claude",
 };
