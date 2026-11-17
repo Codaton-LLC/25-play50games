@@ -14,23 +14,23 @@ Why a new image: the concepts are five separate T-pose figures. Cutting them out
 
 ## Prompt for ChatGPT
 
-Attach the five concepts first (`%USERPROFILE%\.play50\concepts\groupB\B01b` to `B01f`), then paste:
+Attach ONE file first: `%USERPROFILE%\.play50\concepts\groupB\B01-five-heroes-sheet.jpg` (a 2400 x 1600 sheet of the five hero concepts: Riko, Nami and Kiro on the top row, Zuno and Vexa on the bottom row). Do not attach `B01-all-six-sheet.jpg`: the user decided on 2026-11-17 that the sixth, dark character (`B12-shadow-plates`) is not in the group picture. Then paste:
 
 ```
-These five reference images are the five heroes of my game team, the Scale Squad: Riko (red), Nami (blue), Kiro (green), Zuno (yellow) and Vexa (purple). They are pangolins who can roll into a ball.
+This reference sheet shows the five heroes of my game team, the Scale Squad. Top row, left to right: Riko (red), Nami (blue), Kiro (green). Bottom row: Zuno (yellow), Vexa (purple). They are pangolins who can roll into a ball.
 
-Create ONE new group picture of all five together as a team.
+Create ONE new group picture of these five together as a team. Exactly five characters, nobody else.
 
-Keep every character exactly as in its reference image: the same face, the same scale colour and glow, the same headphones and visor, the same black suit, belt, shoulder pads and knee pads. Do not change the designs and do not swap the colours.
+Keep every character exactly as on the sheet: the same face, the same scale colour and glow, the same headphones and visor, the same black suit, belt, shoulder pads and knee pads. Do not change the designs and do not swap the colours.
 
 Pose: a natural team pose, not a T-pose and not a line-up. They stand close together and overlap like real friends in a group photo. Riko stands in the centre front with arms crossed. Nami and Kiro stand behind Riko's shoulders, one with a hand on the hip, one giving a thumbs up. Zuno crouches in front on one knee. Vexa is half rolled into a ball at the side, looking at the camera. All of them smile at the camera.
 
 Framing: landscape 16:9. The whole group fits in the middle of the picture with empty space on the left and right. The heads are in the upper half. Full bodies are visible.
 
-Style: the same 3D render style as the references, premium mobile game key art, soft studio light with a coloured rim light on each hero. Background: a plain dark navy studio backdrop with a soft floor shadow. No text, no logo, no frame.
+Style: the same 3D render style as the sheet, premium mobile game key art, soft studio light with a coloured rim light on each hero. Background: a plain dark navy studio backdrop with a soft floor shadow. No text, no logo, no frame.
 ```
 
-If the faces or colours drift, answer in the same chat: "Keep the pose, but make each hero match its reference image exactly."
+If the faces or colours drift, answer in the same chat: "Keep the pose, but make each hero match the reference sheet exactly." If a sixth character appears: "Only the five from the sheet, remove everyone else."
 
 ## Adding it to the app
 
