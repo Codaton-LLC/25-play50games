@@ -2,12 +2,14 @@
 
 // Tiny Escape Room look: a roofless office, four stations, the door and the runner stand-in.
 // Positions come from the run's layout. Opening parts are rigid transforms of existing groups.
-import { Suspense, useLayoutEffect, useMemo, useRef, type MutableRefObject } from "react";
+import { useLayoutEffect, useMemo, useRef, type MutableRefObject } from "react";
 import { useFrame } from "@react-three/fiber";
 import { RingGeometry, type Group, type Mesh, type MeshStandardMaterial } from "three";
 import { InstancedModel, Model } from "@/arcade3d/core/assets";
 import { Instanced, type InstanceSpot } from "@/arcade3d/core/render";
-import { ASSETS, BOOK_DRAWN, BOOK_GROUP, BOOK_STAND_IN, DOOR_HINGE, DOOR_LEAF, KEY_DRAWN, SHIP_CONSOLE_SPOTS, STOVE_SPOTS } from "./assets";
+import { ASSETS, BOOK_DRAWN, BOOK_GROUP, BOOK_STAND_IN, DOOR_HINGE, DOOR_LEAF, KEY_DRAWN } from "./assets";
+import RoomDecor from "./RoomDecor";
+import { ROOM_STYLES } from "./roomStyles";
 import { LOOT_AT, createCupboardShell, poseCupboard } from "./cupboard";
 import { DRAWER, UNDER_DESK, drawerX, underDeskLid, underDeskX } from "./desk";
 import {
@@ -109,12 +111,13 @@ export function DoorLeaf({ hinge }: { hinge: (group: Group | null) => void }) {
 
 export function Room({ run, moving }: { run: EscapeRun; moving: MutableRefObject<Moving> }) {
    const layout = run.layout;
+   const style = ROOM_STYLES[run.level.id];
    const deskSpots = useMemo<InstanceSpot[]>(() => [0, 2].map((id) => {
       const s = layout.stations[id];
       return { x: bodyOf(s.x), y: 0, z: s.z, rotY: s.x < 0 ? 0 : Math.PI };
    }), [layout]);
    const deskBoxes = useMemo<InstanceSpot[]>(() => deskSpots.map((s) => ({ ...s, y: 0.4 })), [deskSpots]);
-   const chairs = useMemo<InstanceSpot[]>(() => run.level.id === 1 ? CHAIR_SPOTS : [-0.8, 0, 0.8].map((x) => ({ x, y: 0, z: 0, rotY: Math.PI / 2 })), [run]);
+   const chairs = useMemo<InstanceSpot[]>(() => run.level.id === 1 ? CHAIR_SPOTS : run.level.id === 2 ? [-0.8, 0, 0.8].map((x) => ({ x, y: 0, z: 0, rotY: Math.PI / 2 })) : [], [run]);
    const chairBoxes = useMemo<InstanceSpot[]>(() => chairs.map((s) => ({ ...s, y: 0.4 })), []);
    const ringSpots = useMemo<InstanceSpot[]>(() => [
       ...layout.stations.map((s) => ({ x: s.x, y: 0.025, z: s.z })),
@@ -156,23 +159,18 @@ export function Room({ run, moving }: { run: EscapeRun; moving: MutableRefObject
    const set = moving.current;
    return (
       <group name="room">
+         <RoomDecor id={run.level.id} />
          <Instanced spots={ringSpots} name="anchor-rings">
             <primitive object={FLAT_RING} attach="geometry" />
             <meshBasicMaterial color="#eab308" transparent opacity={0.4} depthWrite={false} />
          </Instanced>
          <mesh rotation-x={-Math.PI / 2} name="floor">
             <planeGeometry args={[12, 10]} />
-            <meshStandardMaterial color="#d6d3d1" roughness={0.95} />
+            <meshStandardMaterial color={style.floor} roughness={0.95} />
          </mesh>
-         {run.level.id === 4 && <Suspense fallback={null}>
-            <InstancedModel asset={ASSETS.stoveT} spots={STOVE_SPOTS} fallback={null} />
-         </Suspense>}
-         {run.level.id === 5 && <Suspense fallback={null}>
-            <InstancedModel asset={ASSETS.shipConsole} spots={SHIP_CONSOLE_SPOTS} fallback={null} />
-         </Suspense>}
          <Instanced spots={SHELL} name="shell">
             <boxGeometry args={[1, 1, 1]} />
-            <meshStandardMaterial color="#a8a29e" roughness={0.85} />
+            <meshStandardMaterial color={style.wall} roughness={0.85} />
          </Instanced>
          <InstancedModel
             asset={ASSETS.desk}

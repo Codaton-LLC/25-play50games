@@ -10,6 +10,7 @@ import { Raycaster, Vector2, Vector3, type Group, type MeshBasicMaterial, type P
 import { useCameraViews } from "@/arcade3d/core/camera/CameraViews";
 import { useCameraZoom } from "@/arcade3d/core/useCameraZoom";
 import { phoneOffset } from "./cameraViews";
+import { ROOM_STYLES, scenerySolids } from "./roomStyles";
 import CameraRig from "@/arcade3d/core/CameraRig";
 import { playSfx } from "@/arcade3d/core/audio";
 import { useActionPop } from "@/arcade3d/core/fx";
@@ -73,6 +74,10 @@ const VIEW: FittedViewOptions = {
    padding: 24,
    shift: true,
    fov: 45,
+};
+const DECOR_VIEW: FittedViewOptions = {
+   ...VIEW,
+   area: { min: { x: -8, y: -0.15, z: -7 }, max: { x: 8, y: 2.3, z: 5.2 } },
 };
 
 const BADGE_Y = 1.2;
@@ -342,8 +347,17 @@ function Runner({ run }: { run: EscapeRun }) {
 
 export default function Scene() {
    const { config } = useLevel<EscapeLevel>();
-   const view = useFittedView(VIEW);
+   const view = useFittedView(config.id === 1 ? VIEW : DECOR_VIEW);
    const [run] = useState(() => createRun(randomSeed(), config));
+   const style = ROOM_STYLES[config.id];
+   const solids = useMemo<AABB[]>(() => [
+      ...run.layout.obstacles.map((box) => ({ min: { ...box.min, y: 0 }, max: { ...box.max, y: 1.4 } })),
+      ...scenerySolids(config.id),
+      { min: { x: -6.2, y: 0, z: -5.2 }, max: { x: 6.2, y: 1.2, z: -5.04 } },
+      { min: { x: -6.2, y: 0, z: -5.2 }, max: { x: -6.04, y: 0.32, z: 5.2 } },
+      { min: { x: 6.04, y: 0, z: -5.2 }, max: { x: 6.2, y: 0.32, z: 5.2 } },
+      { min: { x: -0.95, y: 0, z: -5 }, max: { x: 0.95, y: 2.1, z: -4.75 } },
+   ], [run, config.id]);
    const [moving] = useState(() => ({ current: createMoving(run.stations.length, run.items.length) }));
    const aspect = useThree((s) => s.size.width / s.size.height);
    const portrait = aspect < 1;
@@ -352,6 +366,10 @@ export default function Scene() {
    useEffect(() => { zoom.current = 1; }, [portrait, zoom]);
    const cam = useCameraViews({
       slug: "escape-room", subject: "character", steering: "camera", defaultYaw: view.yaw,
+      ...(config.id === 1 ? {} : { solids: (out: AABB[]) => {
+         for (let i = 0; i < solids.length; i++) out[i] = solids[i];
+         return solids.length;
+      } }),
       framing: { chase: { distance: 4.5, lookUp: 0 }, front: { distance: 4, lookUp: 0 }, free: { distance: 4.5, lookUp: 0 } },
       target: (o) => {
          const p = run.player;
@@ -366,6 +384,10 @@ export default function Scene() {
 
    return (
       <>
+         {config.id !== 1 && <>
+            <color attach="background" args={[style.fog]} />
+            <fog attach="fog" args={[style.fog, 24, 65]} />
+         </>}
          <Simulation run={run} yaw={cam.yaw} />
          <CameraRig
             camera={{ position, fov: 45, lookAt: ROOM_FOCUS }}
