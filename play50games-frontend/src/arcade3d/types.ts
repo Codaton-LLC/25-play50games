@@ -93,6 +93,7 @@ export const ARCADE_SLUGS = [
    "space-pod-jump",
    "alien-lane-escape",
    "portal-hop",
+   "crystal-tower",
    "mirror-dash",
    "laser-maze-run",
    "crystal-cave-switch",

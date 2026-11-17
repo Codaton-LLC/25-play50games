@@ -87,6 +87,7 @@ import { plateBounceArenaMeta } from "./games/plate-bounce-arena/meta";
 import { mineTunnelRunMeta } from "./games/mine-tunnel-run/meta";
 import { spinPoleClimbMeta } from "./games/spin-pole-climb/meta";
 import { templeGongTimingMeta } from "./games/temple-gong-timing/meta";
+import { crystalTowerMeta } from "./games/crystal-tower/meta";
 import { spacePodJumpMeta } from "./games/space-pod-jump/meta";
 import { neonCubeJumpMeta } from "./games/neon-cube-jump/meta";
 
@@ -185,6 +186,7 @@ export const ARCADE_GAMES: ArcadeGameMeta[] = [
    mirrorDashMeta,
    spinPoleClimbMeta,
    templeGongTimingMeta,
+   crystalTowerMeta,
    spacePodJumpMeta,
    neonCubeJumpMeta,
    portalHopMeta,
