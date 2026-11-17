@@ -275,6 +275,8 @@ export interface CbtRun {
    sweepHit: boolean;
    /** level 5 P3: which glyphs of this window are done */
    glyphs: Uint8Array;
+   /** level 5: a glyph scores flow once per run (the proof counts five) */
+   glyphScored: Uint8Array;
    highestCheckpoint: number;
    strikes: number;
    cannonsFired: number;
@@ -308,6 +310,7 @@ export function createRun(seed: number, level: LevelId = 1, lead: TagHeroId = "r
       sweepA0: 0,
       sweepHit: false,
       glyphs: new Uint8Array(5),
+      glyphScored: new Uint8Array(5),
       highestCheckpoint: 0,
       strikes: 0,
       cannonsFired: 0,
@@ -630,7 +633,10 @@ function stepBossMs(run: CbtRun, ev: StepEvents): void {
       if (k < 5 && !run.glyphs[k] && activeColour(run.tag) === TAG_COLOUR[TAG_ORDER[k]]) {
          run.glyphs[k] = 1;
          ev.glyph = k;
-         addCombo(run, COMBO_BASE_MS.glyph, run.tag.active);
+         if (!run.glyphScored[k]) {
+            run.glyphScored[k] = 1;
+            addCombo(run, COMBO_BASE_MS.glyph, run.tag.active);
+         }
          if (run.glyphs.every((g) => g === 1)) fireHit(run, ev, -1);
       }
       return;
@@ -733,7 +739,7 @@ export function comboSpecOf(t: Tower): ComboLevelSpec {
          { count: t.claws.length, base: COMBO_BASE_MS.charge },
          { count: t.bossCfg.maxHp, base: COMBO_BASE_MS.hit },
          { count: t.orbs.length, base: COMBO_BASE_MS.orb },
-         { count: t.spec.boss === "grand" ? 5 * 3 : 0, base: COMBO_BASE_MS.glyph },
+         { count: t.spec.boss === "grand" ? 5 : 0, base: COMBO_BASE_MS.glyph },
       ],
    };
 }
@@ -759,11 +765,11 @@ export function proposeLimits(_id: LevelId, t: Tower): LevelLimits {
 
 /** Pinned (literal) limits: equal to proposeLimits (rules.test.ts), meta.ts and arcade-games.json. */
 export const PROPOSED_LEVEL_LIMITS: Record<LevelId, LevelLimits> = {
-   1: { kind: "time", maxScore: 0, minDurationMs: 0, maxDurationMs: 0, timeBaseMs: 0 },
-   2: { kind: "time", maxScore: 0, minDurationMs: 0, maxDurationMs: 0, timeBaseMs: 0 },
-   3: { kind: "time", maxScore: 0, minDurationMs: 0, maxDurationMs: 0, timeBaseMs: 0 },
-   4: { kind: "time", maxScore: 0, minDurationMs: 0, maxDurationMs: 0, timeBaseMs: 0 },
-   5: { kind: "time", maxScore: 0, minDurationMs: 0, maxDurationMs: 0, timeBaseMs: 0 },
+   1: { kind: "time", maxScore: 13920, minDurationMs: 10800, maxDurationMs: 150000, timeBaseMs: 150000 },
+   2: { kind: "time", maxScore: 16570, minDurationMs: 14300, maxDurationMs: 180000, timeBaseMs: 180000 },
+   3: { kind: "time", maxScore: 19210, minDurationMs: 17900, maxDurationMs: 210000, timeBaseMs: 210000 },
+   4: { kind: "time", maxScore: 21620, minDurationMs: 23800, maxDurationMs: 240000, timeBaseMs: 240000 },
+   5: { kind: "time", maxScore: 26880, minDurationMs: 31200, maxDurationMs: 300000, timeBaseMs: 300000 },
 };
 
 export function runTimeMs(playMs: number, orbs: number, comboMs = 0): number {
