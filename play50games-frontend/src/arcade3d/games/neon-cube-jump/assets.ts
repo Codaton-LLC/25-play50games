@@ -20,6 +20,8 @@ export const GLB_SIZE = {
    core: { x: 1.9, y: 1.831, z: 0.703 },
    beacon: { x: 1.168, y: 1.902, z: 0.989 },
    orb: { x: 1.767, y: 1.901, z: 1.77 },
+   /** space-pod-jump's m2RingedPlanetBg (reused by url): a planet with its ring, feet on 0 */
+   planet: { x: 1.852, y: 1.843, z: 1.897 },
 } as const;
 
 /** A cube is drawn exactly 2 m on every axis (the rules' cube). */
@@ -53,4 +55,5 @@ export const ASSETS: Record<string, ModelAsset> = {
    core: prop("m2FlipframeCore", "#4c1d95", "neon-cube-jump", CHARACTER_BUDGET),
    beacon: prop("checkpointBeacon", "#4ade80", "menu2"),
    orb: { id: "scoreOrb", url: "/models/3d/menu2/scoreOrb.glb", fallback: "sphere", fallbackColor: "#4ade80", budget: PROP_BUDGET },
+   planet: { id: "m2RingedPlanetBg", url: "/models/3d/space-pod-jump/m2RingedPlanetBg.glb", fallback: "sphere", fallbackColor: "#6d28d9", budget: PROP_BUDGET },
 };

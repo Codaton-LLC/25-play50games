@@ -2,12 +2,12 @@
 
 // The Neon Cosmos void: a violet sky dome, a cyan grid far below that scrolls slowly toward the
 // horizon, neon city towers (m2NeonCityBg, instanced) rising out of the grid round the field, a ringed
-// planet in the sky (code: the card's m2RingedPlanetBg is not in the ready set) and a field of stars.
+// planet in the sky (space-pod-jump's m2RingedPlanetBg, reused by url) and a field of stars.
 // Everything here is scenery: nothing collides.
 import { useEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
-import { BufferGeometry, CanvasTexture, Float32BufferAttribute, RepeatWrapping, SRGBColorSpace, type Group } from "three";
-import { InstancedModel } from "@/arcade3d/core/assets";
+import { BufferGeometry, CanvasTexture, Float32BufferAttribute, RepeatWrapping, SRGBColorSpace, type Group, type Material, type Mesh } from "three";
+import { InstancedModel, useModel } from "@/arcade3d/core/assets";
 import { Instanced, type InstanceSpot } from "@/arcade3d/core/render";
 import { SkyDome } from "@/arcade3d/core/env";
 import { useGameTime } from "@/arcade3d/core/gameTime";
@@ -110,10 +110,34 @@ function City({ course }: { course: Course }) {
    );
 }
 
+/**
+ * The ringed planet (space-pod-jump's m2RingedPlanetBg, reused by url): a background far out in the sky,
+ * so its materials are cloned with fog off (the fog would swallow it; the shared GLB keeps its own).
+ */
+function PlanetGlb({ width }: { width: number }) {
+   const { scene } = useModel(ASSETS.planet);
+   const obj = useMemo(() => {
+      if (!scene) return null;
+      scene.traverse((o) => {
+         const m = o as Mesh;
+         if (!m.isMesh) return;
+         const one = (mat: Material) => {
+            const c = mat.clone();
+            (c as Material & { fog?: boolean }).fog = false;
+            return c;
+         };
+         m.material = Array.isArray(m.material) ? m.material.map(one) : one(m.material);
+      });
+      return scene;
+   }, [scene]);
+   if (!obj) return null;
+   const s = width / GLB_SIZE.planet.x;
+   return <primitive object={obj} scale={s} position={[0, (-GLB_SIZE.planet.y * s) / 2, 0]} />;
+}
+
 function Planet({ course }: { course: Course }) {
    const ref = useRef<Group>(null);
    const time = useGameTime();
-   const look = levelLook(course.level);
    const b = bounds(course);
    useFrame(() => {
       if (ref.current) ref.current.rotation.y = time.now * 0.02;
@@ -121,14 +145,7 @@ function Planet({ course }: { course: Course }) {
    return (
       <group position={[b.cx - 70, 55, b.cz - 120]}>
          <group ref={ref}>
-            <mesh>
-               <sphereGeometry args={[16, 40, 28]} />
-               <meshStandardMaterial color={look.planet} emissive={look.planet} emissiveIntensity={0.35} roughness={0.8} fog={false} />
-            </mesh>
-            <mesh rotation-x={Math.PI / 2.4}>
-               <ringGeometry args={[21, 30, 64]} />
-               <meshBasicMaterial color={look.planet} transparent opacity={0.45} side={2} depthWrite={false} fog={false} toneMapped={false} />
-            </mesh>
+            <PlanetGlb width={60} />
          </group>
       </group>
    );
