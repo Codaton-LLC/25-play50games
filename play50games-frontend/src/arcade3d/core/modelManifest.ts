@@ -951,6 +951,8 @@ export const MODEL_MANIFEST: readonly string[] = [
    // Menu 2 game 26 (Color Arena Survival, W6): the Prism Keeper (p50-assets/hyper3d-new m2PrismArenaBoss, optimized locally) and portal-hop's m2ColorBeacon
    "/models/3d/color-arena-survival/m2ColorBeacon.glb",
    "/models/3d/color-arena-survival/m2PrismArenaBoss.glb",
+   "/models/3d/color-arena-survival/m2SafeMarker.glb",
+   "/models/3d/color-arena-survival/m2SurvivalFloorTile.glb",
    // Menu 2 game 39 (Color Bridge Builder): p50-assets hyper3d-new (m2BridgeKeeperBoss, m2ColorSwitch, m2BridgeAnchor, m2EnergyNode)
    // and hyper3d-recovered (m2CrystalSlabBridge, m2BrokenBridgeEnd), optimized with tools/hyper3d; ready/menu2 color-bridge-builder,
    // laser-maze-run (m2LaserPrism) and shared (m2FactoryDrone)

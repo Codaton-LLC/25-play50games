@@ -1,26 +1,24 @@
 "use client";
 
-// The arena as the rules see it (rules.ts Arena): the colour floor (one instanced, bevelled tile mesh,
-// coloured per tile at runtime: the card's "recolorable floor tile"), each colour's symbol on its tiles
+// The arena as the rules see it (rules.ts Arena): the colour floor (m2SurvivalFloorTile, the card's
+// "recolorable floor tile": one instanced pool, tinted per tile at runtime), each colour's symbol on its tiles
 // (five instanced decals: circle, square, triangle, star, diamond, so the floor reads without hue), the
 // stone rim, the arena's colour beacon (m2ColorBeacon) crowned with the called colour, the orb, the gap
-// shard, the safe marker (menu2/props CheckpointPad) where a fallen hero comes back, the sweeper bar
+// shard, the safe marker (m2SafeMarker) where a fallen hero comes back, the sweeper bar
 // (menu2/props SweeperBar, level 4), the Keeper's tile beacon and the shock ring (level 5).
 // Readability: the called tiles pulse; over the last second of a call the wrong tiles fade dark and
 // blink; a cracked tile shakes darker; a swapping tile blinks between its two colours.
 import { useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import { AdditiveBlending, CircleGeometry, Color, ExtrudeGeometry, Matrix4, Shape, Vector3, type BufferGeometry, type Group, type InstancedMesh, type Mesh, type MeshBasicMaterial, type MeshStandardMaterial } from "three";
-import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
-import { Model } from "@/arcade3d/core/assets";
+import { DynamicInstancedModel, Model } from "@/arcade3d/core/assets";
 import { useGameTime } from "@/arcade3d/core/gameTime";
-import { CheckpointPad, SweeperBar } from "@/arcade3d/menu2/props";
+import { SweeperBar } from "@/arcade3d/menu2/props";
 import { keeperHome } from "./Keeper";
-import { ASSETS, BEACON_H, GLB_SIZE, ORB_SIZE, TILE_BEACON_H } from "./assets";
+import { ASSETS, BEACON_H, GLB_SIZE, ORB_SIZE, SAFE_W, TILE_BEACON_H, TILE_DRAWN_H } from "./assets";
 import { COLORS, SYMBOLS, TILE_COLORS, TILE_GLOWS, levelLook } from "./look";
 import { BAR_INNER, GAP_Y, ORB_Y, RAINBOW, SWAP_WARN_MS, TILE_W, WARN_MS, safeTile, tileCentre, tileSafe, tileSink, type Arena, type ArenaRun } from "./rules";
 
-const TILE_H = 0.5;
 const SINK_DEPTH = 9;
 const m4 = new Matrix4();
 const v3 = new Vector3();
@@ -74,40 +72,43 @@ function symbolGeometries(): BufferGeometry[] {
 }
 
 function Floor({ a }: { a: Arena }) {
-   const tiles = useRef<InstancedMesh>(null);
    const symbols = useRef<(InstancedMesh | null)[]>([]);
    const time = useGameTime();
    const count = a.n * a.n;
-   const tileGeo = useMemo(() => new RoundedBoxGeometry(TILE_W, TILE_H, TILE_W, 3, 0.12), []);
    const symGeos = useMemo(symbolGeometries, []);
+   const sx = TILE_W / GLB_SIZE.tile.x;
+   const sy = TILE_DRAWN_H / GLB_SIZE.tile.y;
+   const sz = TILE_W / GLB_SIZE.tile.z;
+   // the tiles: m2SurvivalFloorTile stretched to the rules' 2 m square, its top on the tile's top, tinted per tile
+   const tile = (i: number, m: Matrix4, color?: Color) => {
+      if (a.hole[i] === 1) return false;
+      const now = time.now;
+      tileCentre(a, i, pt);
+      const top = tileTop(a, i);
+      const shake = a.phase === "call" && a.crack[i] ? Math.sin(now * 40 + i) * 0.03 : 0;
+      const lift = a.phase === "call" && tileSafe(a, i) ? 0.03 + 0.03 * Math.sin(now * 6) : 0;
+      m.makeScale(sx, sy, sz);
+      m.setPosition(pt.x + shake, top - TILE_DRAWN_H + lift, pt.z);
+      if (color) tileLook(a, i, now, color);
+   };
    useFrame(() => {
-      const m = tiles.current;
-      if (!m) return;
       const now = time.now;
       const used = [0, 0, 0, 0, 0];
       const neutral = a.phase === "start" || a.phase === "wait";
       for (let i = 0; i < count; i++) {
-         tileCentre(a, i, pt);
-         const hidden = a.hole[i] === 1;
+         const c = a.colour[i];
+         if (a.hole[i] === 1 || neutral || c === RAINBOW) continue;
          const top = tileTop(a, i);
+         if (top <= -4) continue;
+         const s = symbols.current[c];
+         if (!s) continue;
+         tileCentre(a, i, pt);
          const shake = a.phase === "call" && a.crack[i] ? Math.sin(now * 40 + i) * 0.03 : 0;
          const lift = a.phase === "call" && tileSafe(a, i) ? 0.03 + 0.03 * Math.sin(now * 6) : 0;
-         m4.makeScale(hidden ? 0.001 : 1, hidden ? 0.001 : 1, hidden ? 0.001 : 1);
-         m4.setPosition(pt.x + shake, top - TILE_H / 2 + lift, pt.z);
-         m.setMatrixAt(i, m4);
-         m.setColorAt(i, tileLook(a, i, now, col));
-         const c = a.colour[i];
-         if (!hidden && !neutral && c !== RAINBOW && top > -4) {
-            const s = symbols.current[c];
-            if (s) {
-               m4.makeScale(1, 1, 1);
-               m4.setPosition(pt.x + shake, top + lift + 0.012, pt.z);
-               s.setMatrixAt(used[c]++, m4);
-            }
-         }
+         m4.makeScale(1, 1, 1);
+         m4.setPosition(pt.x + shake, top + lift + 0.012, pt.z);
+         s.setMatrixAt(used[c]++, m4);
       }
-      m.instanceMatrix.needsUpdate = true;
-      if (m.instanceColor) m.instanceColor.needsUpdate = true;
       for (let k = 0; k < 5; k++) {
          const s = symbols.current[k];
          if (!s) continue;
@@ -117,9 +118,7 @@ function Floor({ a }: { a: Arena }) {
    });
    return (
       <>
-         <instancedMesh ref={tiles} args={[tileGeo, undefined, count]} frustumCulled={false}>
-            <meshStandardMaterial roughness={0.35} metalness={0.05} />
-         </instancedMesh>
+         <DynamicInstancedModel asset={ASSETS.tile} count={count} update={tile} tinted name="tiles" />
          {SYMBOLS.map((id, k) => (
             <instancedMesh
                key={id}
@@ -280,8 +279,12 @@ function SafeMarker({ run }: { run: ArenaRun }) {
       g.rotation.y = time.now * 0.8;
    });
    return (
-      <group ref={ref} visible={false} scale={0.9}>
-         <CheckpointPad color="#e2e8f0" accent={COLORS.safe} />
+      <group ref={ref} visible={false}>
+         <Model asset={ASSETS.safe} scale={SAFE_W / GLB_SIZE.safe.x} fallback={null} />
+         <mesh position-y={0.05} rotation-x={-Math.PI / 2}>
+            <ringGeometry args={[SAFE_W * 0.52, SAFE_W * 0.6, 40]} />
+            <meshBasicMaterial color={COLORS.safe} transparent opacity={0.8} depthWrite={false} toneMapped={false} />
+         </mesh>
       </group>
    );
 }

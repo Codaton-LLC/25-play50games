@@ -149,7 +149,7 @@ The shared camera frames everyone still in.
 World 6 "Prism Fortress" (`look.ts`): a prism sky that goes from a bright morning (L1) to a pink dusk (L3) to a cinematic night (L4-L5).
 
 - **Around the floor:** a glowing pit with rings far under it, the shared fortress gate beyond the north edge, drifting islands (menu2 islandB-D), prism shards turning beyond the far side, and a stone rim with a glowing strip and corner crystals.
-- **Tiles:** one instanced bevelled tile mesh coloured per tile at runtime (the card's "recolorable floor tile"), plus five instanced symbol decals. 18-30 draw calls.
+- **Tiles:** `m2SurvivalFloorTile` (the card's "recolorable floor tile", from ready/menu2/color-arena-survival), one instanced pool tinted per tile at runtime and stretched to the rules' 2 m square, plus five instanced symbol decals. The safe marker is `m2SafeMarker` with a glowing ring.
 - **Models:**
   - `m2PrismArenaBoss`: from the user's new Hyper3D batch (`p50-assets/hyper3d-new`), optimized here with `tools/hyper3d`'s optimizer to 15k triangles and 377 KB. No credits spent.
   - `m2ColorBeacon`: Portal Hop's prop, copied in.

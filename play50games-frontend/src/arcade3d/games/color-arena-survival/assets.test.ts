@@ -28,7 +28,7 @@ import { SYMBOLS, TILE_COLORS } from "./look";
 import { COLOUR_COUNT, START_MS, STEP_MS, WARN_MS, createRun, stepArena, tileSafe } from "./rules";
 
 const PUBLIC = fileURLToPath(new URL("../../../../public", import.meta.url));
-const GLB_KEY: Record<keyof typeof GLB_SIZE, string> = { keeper: "keeper", beacon: "beacon", gate: "gate", orb: "orb", islandB: "islandB", islandC: "islandC", islandD: "islandD" };
+const GLB_KEY: Record<keyof typeof GLB_SIZE, string> = { keeper: "keeper", beacon: "beacon", tile: "tile", safe: "safe", gate: "gate", orb: "orb", islandB: "islandB", islandC: "islandC", islandD: "islandD" };
 
 describe("color-arena-survival models", () => {
    for (const [key, asset] of Object.entries(ASSETS)) {
