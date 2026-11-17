@@ -16,6 +16,9 @@ import {
    getShareStatus,
 } from "@/lib/api/share";
 
+import touch from "./skillTouch.module.css";
+import { usePlayAreaInView } from "./usePlayAreaInView";
+
 interface LineTracerProps {
    config: Record<string, any>;
    onScoreUpdate: (score: number) => void;
@@ -150,6 +153,10 @@ export default function LineTracer({
       window.addEventListener("resize", checkResponsive);
       return () => window.removeEventListener("resize", checkResponsive);
    }, []);
+
+   // Mobile/tablet: bring the panel and the play area on screen when a round starts
+   const rootRef = useRef<HTMLDivElement>(null);
+   const pad = usePlayAreaInView(rootRef, arenaRef, true, `${gameState}-${currentLevel}`);
 
    // Clear all timers
    const clearAll = useCallback(() => {
@@ -738,6 +745,13 @@ export default function LineTracer({
             const dy = y - startPoint.y;
             const dist = Math.sqrt(dx * dx + dy * dy);
             isAtStart = dist <= getStartThreshold(currentLevel);
+            // A fingertip covers the start dot and lands less precisely than a mouse: on touch, a
+            // press within 24 px of the start also counts (the scoring of the trace is unchanged).
+            if (!isAtStart && e.pointerType === "touch") {
+               const px = ((x - startPoint.x) / 100) * rect.width;
+               const py = ((y - startPoint.y) / 100) * rect.height;
+               isAtStart = Math.sqrt(px * px + py * py) <= 24;
+            }
          }
 
          startedAtStartRef.current = isAtStart;
@@ -1067,6 +1081,7 @@ export default function LineTracer({
    return (
       <>
          <div
+         ref={rootRef}
             style={{
                display: "flex",
                flexDirection: "column",
@@ -1265,6 +1280,8 @@ export default function LineTracer({
             {gameState === "playing" || gameState === "paused" ? (
                <div
                   ref={arenaRef}
+                  className={touch.playArea}
+                  data-play-area=""
                   onPointerDown={handlePointerDown}
                   onPointerMove={handlePointerMove}
                   onPointerUp={handlePointerUp}
@@ -1336,6 +1353,14 @@ export default function LineTracer({
                         height: "100%",
                      }}
                   />
+                  {/* "Start here": a pulsing ring on the start dot until the trace begins */}
+                  {gameState === "playing" && !isDrawing && targetPath.length > 1 && (
+                     <span
+                        className={touch.startPulse}
+                        aria-hidden="true"
+                        style={{ left: `${targetPath[0].x}%`, top: `${targetPath[0].y}%` }}
+                     />
+                  )}
                </div>
             ) : null}
 
@@ -1412,6 +1437,7 @@ export default function LineTracer({
                )}
 
                <button
+                  className={touch.tapButton}
                   onClick={handleReplay}
                   disabled={maxReplays > 0 && replaysUsed >= maxReplays}
                   style={{
@@ -1452,7 +1478,7 @@ export default function LineTracer({
                      }}
                   />
                   <span>
-                     {isMobile ? "" : "Replay "}
+                     {"Replay "}
                      {maxReplays === 0
                         ? "(∞)"
                         : `(${maxReplays - replaysUsed}/${maxReplays})`}
@@ -1460,6 +1486,7 @@ export default function LineTracer({
                </button>
 
                <button
+                  className={touch.tapButton}
                   onClick={handleShare}
                   style={{
                      display: "flex",
@@ -1518,6 +1545,7 @@ export default function LineTracer({
                      {Math.round(progress)}%
                   </div>
                   <button
+                  className={touch.tapButton}
                      onClick={handleNextRound}
                      disabled={nextRoundClickedRef.current}
                      style={{
@@ -1697,6 +1725,7 @@ export default function LineTracer({
                   </div>
                </div>
             )}
+            {pad > 0 && <div aria-hidden="true" style={{ height: pad, flexShrink: 0 }} />}
          </div>
       </>
    );
