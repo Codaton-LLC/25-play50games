@@ -155,10 +155,6 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/menu2/scoreOrb.glb",
    "/models/3d/sky-tower-jump/skyPlatform.glb",
    // Menu 2 game 02 (Rooftop Roll Climb): city props from ~/.play50/hyper3d/ready/menu2/rooftop-roll-climb
-   "/models/3d/rooftop-roll-climb/m2AcUnit.glb",
-   "/models/3d/rooftop-roll-climb/m2Antenna.glb",
-   "/models/3d/rooftop-roll-climb/m2Chimney.glb",
-   "/models/3d/rooftop-roll-climb/m2WaterTank.glb",
    "/models/3d/rooftop-roll-climb/m2RoofExhaustFan.glb",
    "/models/3d/rooftop-roll-climb/m2RoofSolarRack.glb",
    "/models/3d/rooftop-roll-climb/m2RooftopBlock.glb",
