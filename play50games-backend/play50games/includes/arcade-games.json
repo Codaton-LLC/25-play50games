@@ -1535,6 +1535,22 @@
         { "title": "Cargo", "max_score": 23950, "min_duration_ms": 500, "max_duration_ms": 240000, "time_base_ms": 240000 },
         { "title": "Portal Master", "max_score": 28370, "min_duration_ms": 16300, "max_duration_ms": 300000, "time_base_ms": 300000 }
       ]
+    },
+    "space-pod-jump": {
+      "title": "Space Pod Jump",
+      "kind": "time",
+      "max_score": 11810,
+      "min_duration_ms": 1900,
+      "max_duration_ms": 120000,
+      "time_base_ms": 120000,
+      "enabled": false,
+      "levels": [
+        { "title": "Dock", "max_score": 11810, "min_duration_ms": 1900, "max_duration_ms": 120000, "time_base_ms": 120000 },
+        { "title": "Pod Line", "max_score": 14220, "min_duration_ms": 7800, "max_duration_ms": 150000, "time_base_ms": 150000 },
+        { "title": "Satellite Field", "max_score": 15370, "min_duration_ms": 6300, "max_duration_ms": 160000, "time_base_ms": 160000 },
+        { "title": "Zero-G Gap", "max_score": 16220, "min_duration_ms": 7800, "max_duration_ms": 170000, "time_base_ms": 170000 },
+        { "title": "Orbital Peak", "max_score": 24400, "min_duration_ms": 16000, "max_duration_ms": 260000, "time_base_ms": 260000 }
+      ]
     }
   }
 }
