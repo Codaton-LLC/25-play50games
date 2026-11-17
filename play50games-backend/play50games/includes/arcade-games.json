@@ -1503,6 +1503,22 @@
         { "title": "Laser Grid", "max_score": 21790, "min_duration_ms": 2100, "max_duration_ms": 220000, "time_base_ms": 220000 },
         { "title": "Neon Overdrive", "max_score": 28750, "min_duration_ms": 12500, "max_duration_ms": 300000, "time_base_ms": 300000 }
       ]
+    },
+    "crystal-cave-switch": {
+      "title": "Crystal Cave Switch",
+      "kind": "time",
+      "max_score": 17940,
+      "min_duration_ms": 600,
+      "max_duration_ms": 180000,
+      "time_base_ms": 180000,
+      "enabled": false,
+      "levels": [
+        { "title": "Two Crystals", "max_score": 17940, "min_duration_ms": 600, "max_duration_ms": 180000, "time_base_ms": 180000 },
+        { "title": "Three Sequence", "max_score": 20830, "min_duration_ms": 1700, "max_duration_ms": 210000, "time_base_ms": 210000 },
+        { "title": "Hidden Crystal", "max_score": 23720, "min_duration_ms": 2800, "max_duration_ms": 240000, "time_base_ms": 240000 },
+        { "title": "Timed Sequence", "max_score": 26600, "min_duration_ms": 4000, "max_duration_ms": 270000, "time_base_ms": 270000 },
+        { "title": "Crystal Master", "max_score": 34520, "min_duration_ms": 14800, "max_duration_ms": 360000, "time_base_ms": 360000 }
+      ]
     }
   }
 }

@@ -380,6 +380,15 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/neon-cube-jump/m2NeonSentryDrone.glb",
    "/models/3d/neon-cube-jump/m2NeonCityBg.glb",
    "/models/3d/neon-cube-jump/m2FlipframeCore.glb",
+   // Crystal Cave Switch (Menu 2 #44): switch, gate, beacon, slab, bridge, boulder, grotto wall, Hollow Prism
+   "/models/3d/crystal-cave-switch/m2CrystalSwitch.glb",
+   "/models/3d/crystal-cave-switch/m2CaveGate.glb",
+   "/models/3d/crystal-cave-switch/m2CrystalBeaconPillar.glb",
+   "/models/3d/crystal-cave-switch/m2CaveSlabPlatform.glb",
+   "/models/3d/crystal-cave-switch/m2CrystalSlabBridge.glb",
+   "/models/3d/crystal-cave-switch/m2CaveBoulder.glb",
+   "/models/3d/crystal-cave-switch/m2GrottoWallBg.glb",
+   "/models/3d/crystal-cave-switch/m2HollowPrismBoss.glb",
    // P-121 dev adoptions (2026-10-25): V2 replacements and Group D variety whose QA verdict
    // starts with OK. Optimized GLBs copied in; not re-optimized. Live games are untouched.
    "/models/3d/shopping-cart/supermarketShelfV2.glb",
