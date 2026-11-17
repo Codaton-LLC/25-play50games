@@ -28,6 +28,8 @@ import { useInput } from "@/arcade3d/core/input";
 import { randomSeed } from "@/arcade3d/core/math";
 import { capScore as capToLimits } from "@/arcade3d/core/limits";
 import { useOfficeLevel } from "./useOfficeLevel";
+import { LEVEL_VARIANTS } from "./looks";
+import type { CorridorVariant } from "./decor";
 import { BlobShadow } from "@/arcade3d/core/render";
 import {
    BONE,
@@ -218,7 +220,7 @@ const STAGE_FLASH_S = 0.5;
 const STRIPE = new Color(COLORS.stripe);
 const FLASH = new Color(COLORS.accent);
 
-const Corridor = memo(function Corridor({ run, fx }: { run: OfficeRun; fx: Fx }) {
+const Corridor = memo(function Corridor({ run, fx, variant }: { run: OfficeRun; fx: Fx; variant: CorridorVariant }) {
    const time = useGameTime();
    const camera = useThree((state) => state.camera);
    const treadmill = useRef<Group>(null);
@@ -241,9 +243,9 @@ const Corridor = memo(function Corridor({ run, fx }: { run: OfficeRun; fx: Fx })
    return (
       <>
          <group ref={treadmill}>
-            <OfficeCorridor stripes={stripes} ceiling={ceiling} />
+            <OfficeCorridor variant={variant} stripes={stripes} ceiling={ceiling} />
          </group>
-         <Backdrop />
+         <Backdrop variant={variant} />
       </>
    );
 });
@@ -592,7 +594,7 @@ const Runner = memo(function Runner({ run, fx }: { run: OfficeRun; fx: Fx }) {
 export default function Scene() {
    // a new seed every run: GameShell remounts the Scene (and its game time) on start and retry.
    // createRun fills the first 74 m of rows and 72 m of coins, so the corridor is set during the countdown.
-   const { config } = useOfficeLevel();
+   const { id, config } = useOfficeLevel();
    const [run] = useState(() => createRun(randomSeed(), config));
    const [fx] = useState(createFx);
    const standIns = useStandIns();
@@ -601,7 +603,7 @@ export default function Scene() {
       <>
          <Simulation run={run} fx={fx} />
          <ChaseCamera />
-         <Corridor run={run} fx={fx} />
+         <Corridor run={run} fx={fx} variant={LEVEL_VARIANTS[id]} />
          <Obstacles run={run} fx={fx} standIns={standIns} />
          <Coins run={run} fx={fx} standIns={standIns} />
          <Runner run={run} fx={fx} />

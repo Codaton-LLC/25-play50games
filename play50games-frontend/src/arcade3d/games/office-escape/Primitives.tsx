@@ -39,7 +39,21 @@ import { modelParts, useModel } from "@/arcade3d/core/assets";
 import { Instanced, useCanvasTexture } from "@/arcade3d/core/render";
 import type { InstanceSpot } from "@/arcade3d/core/render";
 import type { ModelAsset } from "@/arcade3d/core/types";
-import { LANES, OBSTACLE_TYPES, type ObstacleType } from "./rules";
+import {
+   CORRIDOR,
+   CORRIDOR_DECOR,
+   DECOR_COLORS,
+   FLOOR_TILE,
+   LANE_EDGE,
+   LENGTH,
+   MID_Z,
+   along,
+   type CorridorVariant,
+} from "./decor";
+import { BACKDROP_PALETTES, FLOOR_PALETTES, drawBackdrop, drawFloor, drawWall } from "./corridorArt";
+import { OBSTACLE_TYPES, type ObstacleType } from "./rules";
+
+export { CORRIDOR } from "./decor";
 
 // ---------- look ----------
 
@@ -75,146 +89,8 @@ export const COLORS = {
    eye: "#0f172a",
 } as const;
 
-/** The corridor (m): half-width at the walls, height, the length it covers and its repeat. */
-export const CORRIDOR = {
-   halfWidth: 4.6,
-   height: 9.5,
-   /** local z range the treadmill's meshes cover (the group slides up to `period` towards +z) */
-   near: 24,
-   far: -96,
-   period: 12,
-} as const;
-const LENGTH = CORRIDOR.near - CORRIDOR.far;
-const MID_Z = (CORRIDOR.near + CORRIDOR.far) / 2;
-/** The lane edges (m): the outer lane centres +/- 1 m. */
-const LANE_EDGE = LANES[LANES.length - 1] / 1000 + 1;
-/** Decor stands outside the lanes, between the lane edge and the wall. */
-const SIDE = { pillar: CORRIDOR.halfWidth - 0.25, plant: 3.95, cabinet: CORRIDOR.halfWidth - 0.32 } as const;
-/** Floor texture tile along the track (m); the treadmill period is a multiple of it. */
-const FLOOR_TILE = 2;
-
-/** Copies `count` of something every `step` m along the treadmill's local z range. */
-function along(step: number, offset: number, make: (z: number) => InstanceSpot[]): InstanceSpot[] {
-   const spots: InstanceSpot[] = [];
-   for (let z = CORRIDOR.near - (((CORRIDOR.near - offset) % step) + step) % step; z >= CORRIDOR.far; z -= step) spots.push(...make(z));
-   return spots;
-}
-
-// ---------- textures (drawn once, module-level draw functions) ----------
-
-function drawFloor(ctx: CanvasRenderingContext2D, w: number, h: number) {
-   // x: -halfWidth..halfWidth across the canvas, one FLOOR_TILE (2 m) of track down it
-   const pxPerM = w / (CORRIDOR.halfWidth * 2);
-   const u = (x: number) => (x + CORRIDOR.halfWidth) * pxPerM;
-   ctx.fillStyle = COLORS.wood;
-   ctx.fillRect(0, 0, w, h);
-   // wood planks outside the lanes
-   ctx.fillStyle = COLORS.woodSeam;
-   for (let x = LANE_EDGE; x < CORRIDOR.halfWidth; x += 0.4) {
-      ctx.fillRect(u(x), 0, 1.5, h);
-      ctx.fillRect(u(-x), 0, 1.5, h);
-   }
-   ctx.fillRect(u(LANE_EDGE + 0.2), h * 0.5, u(LANE_EDGE + 0.6) - u(LANE_EDGE + 0.2), 1.5);
-   ctx.fillRect(u(-LANE_EDGE - 0.6), h * 0.25, u(-LANE_EDGE - 0.2) - u(-LANE_EDGE - 0.6), 1.5);
-   // carpet tiles in the lanes: 1 m squares in a soft checker, every lane one shade
-   const rows = FLOOR_TILE;
-   for (let lane = -LANE_EDGE; lane < LANE_EDGE - 1e-6; lane += 1) {
-      for (let r = 0; r < rows; r++) {
-         const odd = (Math.round(lane + LANE_EDGE) + r) % 2 === 1;
-         ctx.fillStyle = odd ? COLORS.floorTileAlt : COLORS.floorTile;
-         ctx.fillRect(u(lane), (r * h) / rows, pxPerM, h / rows);
-      }
-   }
-   ctx.fillStyle = "rgba(15, 23, 42, 0.08)";
-   for (let lane = -LANE_EDGE; lane <= LANE_EDGE + 1e-6; lane += 1) ctx.fillRect(u(lane) - 0.5, 0, 1, h);
-   for (let r = 0; r < rows; r++) ctx.fillRect(u(-LANE_EDGE), (r * h) / rows, u(LANE_EDGE) - u(-LANE_EDGE), 1);
-}
-
-function drawWall(ctx: CanvasRenderingContext2D, w: number, h: number) {
-   // x: one 12 m treadmill period, y: floor (bottom) to the ceiling (top)
-   const X = (m: number) => (m * w) / CORRIDOR.period;
-   const Y = (m: number) => h - (m * h) / CORRIDOR.height;
-   const rect = (x0: number, y0: number, x1: number, y1: number, color: string) => {
-      ctx.fillStyle = color;
-      ctx.fillRect(X(x0), Y(y1), X(x1) - X(x0), Y(y0) - Y(y1));
-   };
-   rect(0, 0, 12, CORRIDOR.height, COLORS.wall);
-   // ground floor: glass office front (4 panes), a door, a notice board and a picture
-   const glass = ctx.createLinearGradient(0, Y(3.3), 0, Y(0.15));
-   glass.addColorStop(0, COLORS.glassDeep);
-   glass.addColorStop(1, COLORS.glass);
-   ctx.fillStyle = glass;
-   ctx.fillRect(X(0.8), Y(3.3), X(5.6) - X(0.8), Y(0.15) - Y(3.3));
-   ctx.fillStyle = "rgba(255, 255, 255, 0.35)";
-   for (const x of [1.2, 2.5, 3.6, 4.9]) {
-      ctx.beginPath();
-      ctx.moveTo(X(x), Y(3.3));
-      ctx.lineTo(X(x + 0.35), Y(3.3));
-      ctx.lineTo(X(x - 0.25), Y(0.15));
-      ctx.lineTo(X(x - 0.6), Y(0.15));
-      ctx.closePath();
-      ctx.fill();
-   }
-   for (const x of [0.8, 2.0, 3.2, 4.4, 5.6]) rect(x - 0.04, 0.15, x + 0.04, 3.3, COLORS.mullion);
-   rect(0.8, 3.26, 5.6, 3.34, COLORS.mullion);
-   rect(0.8, 1.05, 5.6, 1.1, "rgba(255, 255, 255, 0.8)");
-   // door with a frame, a handle and a coloured sign
-   rect(6.25, 0, 7.45, 2.45, "#cbd5e1");
-   rect(6.33, 0, 7.37, 2.37, "#0f766e");
-   rect(7.15, 1.05, 7.25, 1.2, "#e2e8f0");
-   rect(6.6, 2.65, 7.1, 2.95, COLORS.accent);
-   // notice board with paper notes
-   rect(8.0, 1.25, 9.9, 2.35, "#b45309");
-   rect(8.06, 1.31, 9.84, 2.29, "#d6a77a");
-   const notes = ["#fef08a", "#ffffff", "#bae6fd", "#fecaca", "#bbf7d0", "#ffffff"];
-   notes.forEach((c, i) => rect(8.2 + (i % 3) * 0.55, 1.45 + Math.floor(i / 3) * 0.42, 8.55 + (i % 3) * 0.55, 1.75 + Math.floor(i / 3) * 0.42, c));
-   // framed picture: abstract hills
-   rect(10.4, 1.3, 11.6, 2.2, "#334155");
-   rect(10.46, 1.36, 11.54, 2.14, "#fde68a");
-   ctx.fillStyle = "#16a34a";
-   ctx.beginPath();
-   ctx.moveTo(X(10.46), Y(1.36));
-   ctx.quadraticCurveTo(X(10.9), Y(2.0), X(11.54), Y(1.5));
-   ctx.lineTo(X(11.54), Y(1.36));
-   ctx.closePath();
-   ctx.fill();
-   // skirting, trim, accent stripe, the floor slab of the upper storey
-   rect(0, 0, 12, 0.15, COLORS.skirting);
-   rect(0, 3.62, 12, 3.7, "#cbd5e1");
-   rect(0, 4.0, 12, 4.14, COLORS.accent);
-   rect(0, 4.4, 12, 5.0, "#e2e8f0");
-   rect(0, 4.4, 12, 4.48, "#94a3b8");
-   // upper storey: glass railing, office windows, the cove under the ceiling
-   rect(0, 5.0, 12, 6.0, "#e0f2fe");
-   for (let x = 0.5; x < 12; x += 1.5) rect(x - 0.03, 5.0, x + 0.03, 6.0, "#94a3b8");
-   rect(0, 5.97, 12, 6.05, "#64748b");
-   const upper = ctx.createLinearGradient(0, Y(8.8), 0, Y(6.3));
-   upper.addColorStop(0, "#7dd3fc");
-   upper.addColorStop(1, COLORS.glass);
-   ctx.fillStyle = upper;
-   ctx.fillRect(X(0), Y(8.8), X(12), Y(6.3) - Y(8.8));
-   for (let x = 0; x <= 12; x += 1.5) rect(x - 0.05, 6.3, x + 0.05, 8.8, COLORS.mullion);
-   rect(0, 7.45, 12, 7.5, COLORS.mullion);
-   rect(0, 8.8, 12, CORRIDOR.height, "#e2e8f0");
-}
-
-function drawBackdrop(ctx: CanvasRenderingContext2D, w: number, h: number) {
-   // the bright window at the end of the corridor: a pale city behind the fog
-   const sky = ctx.createLinearGradient(0, 0, 0, h);
-   sky.addColorStop(0, "#f0f9ff");
-   sky.addColorStop(1, COLORS.fog);
-   ctx.fillStyle = sky;
-   ctx.fillRect(0, 0, w, h);
-   ctx.fillStyle = "#c7dcf5";
-   const towers = [0.05, 0.12, 0.2, 0.31, 0.38, 0.47, 0.58, 0.66, 0.74, 0.83, 0.9];
-   towers.forEach((x, i) => {
-      const top = h * (0.45 + ((i * 37) % 23) / 100);
-      ctx.fillRect(x * w, top, w * (0.05 + ((i * 13) % 5) / 100), h - top);
-   });
-   ctx.fillStyle = "#ffffff";
-   for (let x = 0; x <= w; x += w / 4) ctx.fillRect(x - 3, 0, 6, h);
-   ctx.fillRect(0, h * 0.3, w, 5);
-}
+// The corridor floor/wall/backdrop painters live in corridorArt.ts (one palette per department,
+// decor.ts CorridorVariant); the coin, glow and contact-shadow painters below belong to the props.
 
 function drawCoinFace(ctx: CanvasRenderingContext2D, w: number, h: number) {
    const g = ctx.createRadialGradient(w * 0.4, h * 0.35, 4, w / 2, h / 2, w / 2);
@@ -633,6 +509,19 @@ export function InstancedProp(props: InstancedPropProps) {
 
 // ---------- the corridor (static; Scene.tsx slides it) ----------
 
+// Stable draw functions per variant (useCanvasTexture redraws when `draw` changes): cached at
+// module level so each department's texture is drawn once per Scene mount.
+type CanvasDraw = (ctx: CanvasRenderingContext2D, w: number, h: number) => void;
+const drawCache = new Map<string, CanvasDraw>();
+function variantDraw(key: string, make: () => CanvasDraw): CanvasDraw {
+   let draw = drawCache.get(key);
+   if (!draw) {
+      draw = make();
+      drawCache.set(key, draw);
+   }
+   return draw;
+}
+
 const STRIPE_SPOTS: InstanceSpot[] = [
    // lane dividers: 1.4 m dashes every 3 m
    ...along(3, 0, (z) => [-1, 1].map((x) => ({ x, y: 0.004, z, sx: 0.09, sy: 0.006, sz: 1.4 }))),
@@ -640,35 +529,25 @@ const STRIPE_SPOTS: InstanceSpot[] = [
    ...[-LANE_EDGE, LANE_EDGE].map((x) => ({ x, y: 0.004, z: MID_Z, sx: 0.12, sy: 0.006, sz: LENGTH })),
 ];
 const PANEL_SPOTS = along(4, 0, (z) => [-1.8, 1.8].map((x) => ({ x, y: CORRIDOR.height - 0.04, z, sx: 2.6, sy: 0.06, sz: 1.1 })));
-const PILLAR_SPOTS = along(CORRIDOR.period, 0, (z) =>
-   [-SIDE.pillar, SIDE.pillar].map((x) => ({ x, y: CORRIDOR.height / 2, z, sx: 0.5, sy: CORRIDOR.height, sz: 0.62 }))
-);
-const PILLAR_BAND_SPOTS = along(CORRIDOR.period, 0, (z) =>
-   [-SIDE.pillar, SIDE.pillar].flatMap((x) => [
-      { x, y: 1.0, z, sx: 0.54, sy: 0.14, sz: 0.66 },
-      { x, y: 4.07, z, sx: 0.54, sy: 0.14, sz: 0.66 },
-   ])
-);
-const POT_SPOTS = along(CORRIDOR.period, -6, (z) => [-SIDE.plant, SIDE.plant].map((x) => ({ x, y: 0.24, z, sx: 0.46, sy: 0.48, sz: 0.46 })));
-const LEAF_SPOTS = along(CORRIDOR.period, -6, (z) =>
-   [-SIDE.plant, SIDE.plant].flatMap((x, i) => [
-      { x, y: 0.82, z, scale: 0.78, rotY: i },
-      { x: x + 0.08, y: 1.2, z: z - 0.05, scale: 0.5, rotY: i + 1 },
-   ])
-);
-const CABINET_SPOTS = [
-   ...along(CORRIDOR.period, -3, (z) => [{ x: -SIDE.cabinet, y: 0.55, z, sx: 0.5, sy: 1.1, sz: 0.62 }]),
-   ...along(CORRIDOR.period, -9, (z) => [{ x: SIDE.cabinet, y: 0.55, z, sx: 0.5, sy: 1.1, sz: 0.62 }]),
-];
+
+interface CorridorShellProps {
+   variant: CorridorVariant;
+   stripes: RefObject<MeshBasicMaterial>;
+   ceiling: RefObject<Group>;
+}
 
 /**
- * Floor, walls, ceiling and decor: one 12 m pattern laid out over the covered range. Static; the
- * Scene slides its parent group. `stripes` gets the lane-stripe material (it flashes on a
- * speed-up), `ceiling` the ceiling group (hidden under a camera fitted above it).
+ * Floor, walls, ceiling and decor: one 12 m pattern laid out over the covered range, dressed per
+ * department (decor.ts CORRIDOR_DECOR + corridorArt.ts palettes). Static; the Scene slides its
+ * parent group. `stripes` gets the lane-stripe material (it flashes on a speed-up), `ceiling` the
+ * ceiling group (hidden under a camera fitted above it). Level 1 ("openOffice") draws exactly the
+ * live layout; the other variants swap the floor/wall art, the decor colours and the set pieces.
  */
-export function OfficeCorridor({ stripes, ceiling }: { stripes: RefObject<MeshBasicMaterial>; ceiling: RefObject<Group> }) {
-   const floorMap = useCanvasTexture(512, 128, drawFloor);
-   const wallMap = useCanvasTexture(1024, 810, drawWall);
+function CorridorShell({ variant, stripes, ceiling }: CorridorShellProps) {
+   const floorMap = useCanvasTexture(512, 128, variantDraw(`floor:${variant}`, () => (ctx, w, h) => drawFloor(ctx, w, h, FLOOR_PALETTES[variant].palette, FLOOR_PALETTES[variant].edgeLine)));
+   const wallMap = useCanvasTexture(1024, 810, variantDraw(`wall:${variant}`, () => (ctx, w, h) => drawWall(variant, ctx, w, h)));
+   const decor = CORRIDOR_DECOR[variant];
+   const colors = DECOR_COLORS[variant];
    useLayoutEffect(() => {
       floorMap.wrapT = RepeatWrapping;
       floorMap.repeat.set(1, LENGTH / FLOOR_TILE);
@@ -693,44 +572,78 @@ export function OfficeCorridor({ stripes, ceiling }: { stripes: RefObject<MeshBa
          <group ref={ceiling} name="ceiling">
             <mesh rotation-x={Math.PI / 2} position={[0, CORRIDOR.height, MID_Z]}>
                <planeGeometry args={[CORRIDOR.halfWidth * 2, LENGTH]} />
-               <meshBasicMaterial color={COLORS.ceiling} />
+               <meshBasicMaterial color={colors.ceiling} />
             </mesh>
             <Instanced spots={PANEL_SPOTS} name="ceiling-panels">
                <boxGeometry />
-               <meshBasicMaterial color={COLORS.panel} />
+               <meshBasicMaterial color={colors.panel} />
             </Instanced>
          </group>
          <Instanced spots={STRIPE_SPOTS} name="lane-stripes">
             <boxGeometry />
             <meshBasicMaterial ref={stripes} color={COLORS.stripe} />
          </Instanced>
-         <Instanced spots={PILLAR_SPOTS}>
-            <boxGeometry />
-            <meshLambertMaterial color={COLORS.pillar} />
-         </Instanced>
-         <Instanced spots={PILLAR_BAND_SPOTS}>
-            <boxGeometry />
-            <meshLambertMaterial color={COLORS.accent} />
-         </Instanced>
-         <Instanced spots={POT_SPOTS}>
-            <cylinderGeometry args={[0.5, 0.4, 1, 12]} />
-            <meshLambertMaterial color={COLORS.pot} />
-         </Instanced>
-         <Instanced spots={LEAF_SPOTS}>
-            <icosahedronGeometry args={[0.5, 0]} />
-            <meshLambertMaterial color={COLORS.leaf} flatShading />
-         </Instanced>
-         <Instanced spots={CABINET_SPOTS}>
-            <boxGeometry />
-            <meshLambertMaterial color={COLORS.cabinet} />
-         </Instanced>
+         {decor.pillars.length > 0 && (
+            <Instanced spots={decor.pillars}>
+               <boxGeometry />
+               <meshLambertMaterial color={colors.pillar} />
+            </Instanced>
+         )}
+         {decor.pillarBands.length > 0 && (
+            <Instanced spots={decor.pillarBands}>
+               <boxGeometry />
+               <meshLambertMaterial color={colors.band} />
+            </Instanced>
+         )}
+         {decor.pots.length > 0 && (
+            <Instanced spots={decor.pots}>
+               <cylinderGeometry args={[0.5, 0.4, 1, 12]} />
+               <meshLambertMaterial color={colors.pot} />
+            </Instanced>
+         )}
+         {decor.leaves.length > 0 && (
+            <Instanced spots={decor.leaves}>
+               <icosahedronGeometry args={[0.5, 0]} />
+               <meshLambertMaterial color={colors.leaf} flatShading />
+            </Instanced>
+         )}
+         {decor.cabinets.length > 0 && (
+            <Instanced spots={decor.cabinets}>
+               <boxGeometry />
+               <meshLambertMaterial color={colors.cabinet} />
+            </Instanced>
+         )}
+         {decor.setPieces.map((piece) => (
+            <Instanced key={piece.name} spots={piece.spots} name={piece.name}>
+               {piece.kind === "box" ? <boxGeometry /> : piece.kind === "cylinder" ? <cylinderGeometry args={[0.5, 0.5, 1, 12]} /> : <sphereGeometry args={[0.5, 12, 8]} />}
+               {piece.glow ? <meshBasicMaterial color={piece.color} /> : <meshLambertMaterial color={piece.color} />}
+            </Instanced>
+         ))}
       </group>
    );
 }
 
-/** The window at the far end of the corridor (outside the treadmill, unaffected by the fog). */
-export function Backdrop() {
-   const map = useCanvasTexture(512, 512, drawBackdrop);
+/** The corridor for the level's department; each variant is its own component so only the active
+ *  level's two canvas textures are created per run. */
+export function OfficeCorridor({ variant, stripes, ceiling }: CorridorShellProps) {
+   switch (variant) {
+      case "meeting":
+         return <CorridorShell variant="meeting" stripes={stripes} ceiling={ceiling} />;
+      case "copyRoom":
+         return <CorridorShell variant="copyRoom" stripes={stripes} ceiling={ceiling} />;
+      case "executive":
+         return <CorridorShell variant="executive" stripes={stripes} ceiling={ceiling} />;
+      case "afterHours":
+         return <CorridorShell variant="afterHours" stripes={stripes} ceiling={ceiling} />;
+      default:
+         return <CorridorShell variant="openOffice" stripes={stripes} ceiling={ceiling} />;
+   }
+}
+
+/** The window at the far end of the corridor (outside the treadmill, unaffected by the fog):
+ *  a daytime city for 1-3, lit towers for the night executive floor, sunset for after hours. */
+export function Backdrop({ variant }: { variant: CorridorVariant }) {
+   const map = useCanvasTexture(512, 512, variantDraw(`backdrop:${variant}`, () => (ctx, w, h) => drawBackdrop(ctx, w, h, BACKDROP_PALETTES[variant])));
    return (
       <mesh position={[0, CORRIDOR.height / 2, CORRIDOR.far + 4]} name="backdrop">
          <planeGeometry args={[CORRIDOR.halfWidth * 2 + 0.2, CORRIDOR.height + 0.2]} />
