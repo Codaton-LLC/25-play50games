@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import mobile from "./mobile.module.css";
 import {
    ArrowPathIcon,
    TrophyIcon,
@@ -144,9 +145,11 @@ function FindOddOne({
       isTablet: boolean
    ) => {
       if (isMobile) {
-         if (count === 10) return 3; // 3x4 grid for 10 items on mobile
-         if (count === 30) return 4; // 4x8 grid for 30 items on mobile
-         return 5; // 5x10 grid for 50 items on mobile
+         // phones: wide rows keep the whole board on one screen; every cell stays >= 50 px even at
+         // 360 px wide (5 x 2 for 10 items, 5 x 6 for 30, 6 x 9 for 50)
+         if (count === 10) return 5;
+         if (count === 30) return 5;
+         return 6;
       }
       if (isTablet) {
          if (count === 10) return 4; // 4x3 grid for 10 items on tablet
@@ -407,7 +410,7 @@ function FindOddOne({
          <div
             style={{
                display: "grid",
-               gridTemplateColumns: `repeat(${gridColumns}, 1fr)`,
+               gridTemplateColumns: `repeat(${gridColumns}, minmax(0, 1fr))`,
                gap: isMobile
                   ? itemCount >= 50
                      ? "4px"
@@ -449,6 +452,7 @@ function FindOddOne({
                return (
                   <button
                      key={item.id}
+                     className={isCorrect ? mobile.pop : isWrong ? mobile.shake : undefined}
                      onClick={() => handleClick(item.id)}
                      disabled={selected !== null}
                      style={{
