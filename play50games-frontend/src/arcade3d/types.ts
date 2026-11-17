@@ -101,7 +101,9 @@ export const ARCADE_SLUGS = [
    "color-match-jump",
    "switch-color-hero",
    "paint-the-platforms",
+   "color-arena-survival",
    "energy-core-hunt",
+   "color-bridge-builder",
 ] as const;
 
 export type ArcadeSlug = (typeof ARCADE_SLUGS)[number];

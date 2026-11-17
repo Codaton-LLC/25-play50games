@@ -93,9 +93,11 @@ import { neonCubeJumpMeta } from "./games/neon-cube-jump/meta";
 
 import { snowSlideDashMeta } from "./games/snow-slide-dash/meta";
 import { portalHopMeta } from "./games/portal-hop/meta";
+import { colorArenaSurvivalMeta } from "./games/color-arena-survival/meta";
 import { paintThePlatformsMeta } from "./games/paint-the-platforms/meta";
 import { rollDashMeta } from "./games/roll-dash/meta";
 import { crystalCaveSwitchMeta } from "./games/crystal-cave-switch/meta";
+import { colorBridgeBuilderMeta } from "./games/color-bridge-builder/meta";
 import { switchColorHeroMeta } from "./games/switch-color-hero/meta";
 import { colorMatchJumpMeta } from "./games/color-match-jump/meta";
 import { energyCoreHuntMeta } from "./games/energy-core-hunt/meta";
@@ -190,10 +192,12 @@ export const ARCADE_GAMES: ArcadeGameMeta[] = [
    spacePodJumpMeta,
    neonCubeJumpMeta,
    portalHopMeta,
+   colorArenaSurvivalMeta,
    paintThePlatformsMeta,
    switchColorHeroMeta,
    rollDashMeta,
    crystalCaveSwitchMeta,
+   colorBridgeBuilderMeta,
    colorMatchJumpMeta,
    energyCoreHuntMeta,
 ].sort((a, b) => a.order - b.order);
