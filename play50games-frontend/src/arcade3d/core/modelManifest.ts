@@ -802,6 +802,16 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/magnet-coin-lab/m2MetalBlockV2.glb",
    "/models/3d/magnet-coin-lab/m2PolarityGate.glb",
    "/models/3d/magnet-coin-lab/m2ToyPiggyBank.glb",
+   // Menu 2 game 33 (Mirror Dash): ready/menu2/mirror-dash plus m2LaserWall, m2NeonSpikeBlock (neon-cube-jump) and m2Crystal (crystal-tower)
+   "/models/3d/mirror-dash/m2GlassSentinelBoss.glb",
+   "/models/3d/mirror-dash/m2HazardBlock.glb",
+   "/models/3d/mirror-dash/m2MirrorGate.glb",
+   "/models/3d/mirror-dash/m2MirrorHallBg.glb",
+   "/models/3d/mirror-dash/m2MirrorStand.glb",
+   "/models/3d/mirror-dash/m2RunwayPlatform.glb",
+   "/models/3d/mirror-dash/m2LaserWall.glb",
+   "/models/3d/mirror-dash/m2NeonSpikeBlock.glb",
+   "/models/3d/mirror-dash/m2Crystal.glb",
 ];
 
 const LISTED: ReadonlySet<string> = new Set(MODEL_MANIFEST);
