@@ -32,7 +32,7 @@ export const zooEscapeMeta: ArcadeGameMeta = {
    tagline: "Sneak past the keepers.",
    description: "Help a mischievous panda sneak out of the zoo: hide in bushes, slip past the keepers' flashlight gaze and reach the gate.",
    order: 29,
-   status: "dev",
+   status: "live",
    collection: "skill",
    difficulty: 3,
    orientation: "any",

@@ -65,7 +65,7 @@ export const shoppingCartMeta: ArcadeGameMeta = {
    tagline: "Grab the list, dodge the spills.",
    description: "Drift a runaway shopping cart through the aisles, grab everything on your list and dodge shoppers, spills and can pyramids.",
    order: 16,
-   status: "dev",
+   status: "live",
    collection: "adventure",
    difficulty: 1,
    orientation: "any",

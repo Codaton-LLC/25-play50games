@@ -34,7 +34,7 @@ export const pirateCannonsMeta: ArcadeGameMeta = {
    tagline: "Read the wind, sink the ships.",
    description: "Man a seaside fort's cartoon cannon: drag to aim, read the wind, and sink pirate ships before they reach the harbour.",
    order: 23,
-   status: "dev",
+   status: "live",
    collection: "skill",
    difficulty: 2,
    orientation: "any",

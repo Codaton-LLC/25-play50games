@@ -27,7 +27,7 @@ export const burgerDeliveryScooterMeta: ArcadeGameMeta = {
    tagline: "Fresh burgers. Smooth corners. Happy doors.",
    description: "Load an order at the burger shop, ride the scooter through town, hop the barriers and stop at the glowing door before the burger goes cold.",
    order: 33,
-   status: "dev",
+   status: "live",
    collection: "skill",
    difficulty: 2,
    orientation: "any",

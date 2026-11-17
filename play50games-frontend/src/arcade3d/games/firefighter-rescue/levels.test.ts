@@ -12,7 +12,7 @@ describe("firefighter levels", () => {
       expect(levelMetaProblems(firefighterRescueMeta)).toEqual([]);
       expect(definitionLevelProblems(firefighterRescueMeta, definition)).toEqual([]);
       expect(firefighterRescueMeta.slug).toBe("firefighter-rescue");
-      expect(firefighterRescueMeta.status).toBe("dev");
+      expect(firefighterRescueMeta.status).toBe("live");
       expect(firefighterRescueMeta.owner).toBe("cursor");
       expect(firefighterRescueMeta.collection).toBe("adventure");
       expect(firefighterRescueMeta.order).toBe(31);

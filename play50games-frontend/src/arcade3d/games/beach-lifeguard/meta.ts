@@ -20,7 +20,7 @@ export const beachLifeguardMeta: ArcadeGameMeta = {
    tagline: "Run, swim, rescue.",
    description: "Sprint across the sand, wade into the water, grab the swimmer in trouble and bring them back to the beach before the alert runs out.",
    order: 34,
-   status: "dev",
+   status: "live",
    collection: "adventure",
    difficulty: 2,
    orientation: "any",

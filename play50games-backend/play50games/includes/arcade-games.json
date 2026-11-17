@@ -1,5 +1,5 @@
 {
-  "version": 5,
+  "version": 8,
   "games": {
     "robot-collector": {
       "title": "Robot Collector",
@@ -200,7 +200,7 @@
       "max_duration_ms": 92000,
       "base": 1250,
       "max_pps": 100,
-      "enabled": false,
+      "enabled": true,
       "levels": [
         { "title": "Starter Beach", "max_score": 2060, "min_duration_ms": 8500, "max_duration_ms": 92000, "base": 1250, "max_pps": 100 },
         { "title": "Palm Grove", "max_score": 2060, "min_duration_ms": 8500, "max_duration_ms": 92000, "base": 1250, "max_pps": 100 },
@@ -234,7 +234,7 @@
       "max_duration_ms": 122000,
       "base": 0,
       "max_pps": 64,
-      "enabled": false,
+      "enabled": true,
       "levels": [
         { "title": "Training Belt", "max_score": 7620, "min_duration_ms": 10000, "max_duration_ms": 122000, "base": 0, "max_pps": 64 },
         { "title": "Two Destinations", "max_score": 12050, "min_duration_ms": 9500, "max_duration_ms": 152000, "base": 0, "max_pps": 81 },
@@ -251,7 +251,7 @@
       "max_duration_ms": 92000,
       "base": 0,
       "max_pps": 70,
-      "enabled": false,
+      "enabled": true,
       "levels": [
         { "title": "Green Valley", "max_score": 6000, "min_duration_ms": 88000, "max_duration_ms": 92000, "base": 0, "max_pps": 70 },
         { "title": "Fern Forest", "max_score": 6100, "min_duration_ms": 118000, "max_duration_ms": 122000, "base": 0, "max_pps": 52 },
@@ -268,7 +268,7 @@
       "max_duration_ms": 182000,
       "base": 300,
       "max_pps": 75,
-      "enabled": false,
+      "enabled": true,
       "levels": [
         { "title": "Training Rooftop", "max_score": 3600, "min_duration_ms": 20000, "max_duration_ms": 182000, "base": 300, "max_pps": 75 },
         { "title": "Residential Blocks", "max_score": 3900, "min_duration_ms": 20000, "max_duration_ms": 202000, "base": 300, "max_pps": 75 },
@@ -285,7 +285,7 @@
       "max_duration_ms": 77000,
       "base": 1700,
       "max_pps": 100,
-      "enabled": false,
+      "enabled": true,
       "levels": [
         { "title": "Mini Market", "max_score": 2030, "min_duration_ms": 3500, "max_duration_ms": 77000, "base": 1700, "max_pps": 100 },
         { "title": "Fresh Food", "max_score": 2520, "min_duration_ms": 3500, "max_duration_ms": 102000, "base": 2200, "max_pps": 100 },
@@ -302,7 +302,7 @@
       "max_duration_ms": 92000,
       "base": 600,
       "max_pps": 190,
-      "enabled": false,
+      "enabled": true,
       "levels": [
         { "title": "Snow Yard", "max_score": 2550, "min_duration_ms": 10000, "max_duration_ms": 92000, "base": 600, "max_pps": 190 },
         { "title": "Frozen Park", "max_score": 2550, "min_duration_ms": 10000, "max_duration_ms": 92000, "base": 600, "max_pps": 190 },
@@ -319,7 +319,7 @@
       "max_duration_ms": 122000,
       "base": 1720,
       "max_pps": 10,
-      "enabled": false,
+      "enabled": true,
       "levels": [
         { "title": "Living Room", "max_score": 2630, "min_duration_ms": 91000, "max_duration_ms": 122000, "base": 1720, "max_pps": 10 },
         { "title": "Library", "max_score": 2830, "min_duration_ms": 91000, "max_duration_ms": 122000, "base": 1920, "max_pps": 10 },
@@ -336,7 +336,7 @@
       "max_duration_ms": 242000,
       "base": 0,
       "max_pps": 150,
-      "enabled": false,
+      "enabled": true,
       "levels": [
         { "title": "Garden Shed", "max_score": 6100, "min_duration_ms": 9000, "max_duration_ms": 242000, "base": 0, "max_pps": 150 },
         { "title": "Tiny House", "max_score": 6100, "min_duration_ms": 9000, "max_duration_ms": 242000, "base": 0, "max_pps": 150 },
@@ -353,7 +353,7 @@
       "max_duration_ms": 102000,
       "base": 200,
       "max_pps": 250,
-      "enabled": false,
+      "enabled": true,
       "levels": [
         { "title": "Starter Plot", "max_score": 12900, "min_duration_ms": 99000, "max_duration_ms": 102000, "base": 200, "max_pps": 250 },
         { "title": "Crystal Farm", "max_score": 20600, "min_duration_ms": 148000, "max_duration_ms": 153000, "base": 200, "max_pps": 250 },
@@ -370,7 +370,7 @@
       "max_duration_ms": 602000,
       "base": 1200,
       "max_pps": 200,
-      "enabled": false,
+      "enabled": true,
       "levels": [
         {
           "title": "Garden Course",
@@ -422,7 +422,7 @@
       "max_duration_ms": 92000,
       "base": 6000,
       "max_pps": 6000,
-      "enabled": false,
+      "enabled": true,
       "levels": [
         { "title": "Basic Sort", "max_score": 6000, "min_duration_ms": 10000, "max_duration_ms": 92000, "base": 6000, "max_pps": 6000 },
         { "title": "Shape Sort", "max_score": 6370, "min_duration_ms": 10000, "max_duration_ms": 122000, "base": 300, "max_pps": 52 },
@@ -439,7 +439,7 @@
       "max_duration_ms": 92000,
       "base": 1500,
       "max_pps": 110,
-      "enabled": false,
+      "enabled": true,
       "levels": [
         { "title": "Training Deck", "max_score": 10500, "min_duration_ms": 19000, "max_duration_ms": 92000, "base": 1500, "max_pps": 110 },
         { "title": "Harbor Targets", "max_score": 13125, "min_duration_ms": 16500, "max_duration_ms": 92000, "base": 1900, "max_pps": 140 },
@@ -473,7 +473,7 @@
       "max_duration_ms": 182000,
       "base": 440,
       "max_pps": 104,
-      "enabled": false,
+      "enabled": true,
       "levels": [
         { "title": "Snow Hill", "max_score": 18700, "min_duration_ms": 9000, "max_duration_ms": 182000, "base": 440, "max_pps": 104 },
         { "title": "Ice Cave", "max_score": 18700, "min_duration_ms": 9000, "max_duration_ms": 182000, "base": 440, "max_pps": 104 },
@@ -490,7 +490,7 @@
       "max_duration_ms": 122000,
       "base": 400,
       "max_pps": 40,
-      "enabled": false,
+      "enabled": true,
       "levels": [
         { "title": "Docking Bay", "max_score": 4700, "min_duration_ms": 37000, "max_duration_ms": 122000, "base": 400, "max_pps": 40 },
         { "title": "Power Wing", "max_score": 4700, "min_duration_ms": 37000, "max_duration_ms": 122000, "base": 400, "max_pps": 40 },
@@ -507,7 +507,7 @@
       "max_duration_ms": 92000,
       "base": 240,
       "max_pps": 60,
-      "enabled": false,
+      "enabled": true,
       "levels": [
         { "title": "Snack Bar", "max_score": 4830, "min_duration_ms": 12000, "max_duration_ms": 92000, "base": 240, "max_pps": 60 },
         { "title": "Monster Caf\u00e9", "max_score": 6300, "min_duration_ms": 12000, "max_duration_ms": 102000, "base": 240, "max_pps": 62 },
@@ -541,7 +541,7 @@
       "max_duration_ms": 200000,
       "base": 4500,
       "max_pps": 4500,
-      "enabled": false,
+      "enabled": true,
       "levels": [
         { "title": "Small Enclosure", "max_score": 4500, "min_duration_ms": 20000, "max_duration_ms": 200000, "base": 4500, "max_pps": 4500 },
         { "title": "Safari Zone", "max_score": 4500, "min_duration_ms": 20000, "max_duration_ms": 200000, "base": 4500, "max_pps": 4500 },
@@ -558,7 +558,7 @@
       "max_duration_ms": 242000,
       "base": 800,
       "max_pps": 200,
-      "enabled": false,
+      "enabled": true,
       "levels": [
         { "title": "Five Worlds", "max_score": 2800, "min_duration_ms": 5000, "max_duration_ms": 242000, "base": 800, "max_pps": 200 },
         { "title": "Breezy Approach", "max_score": 3000, "min_duration_ms": 5000, "max_duration_ms": 242000, "base": 1000, "max_pps": 200 },
@@ -575,7 +575,7 @@
       "max_duration_ms": 120000,
       "base": 400,
       "max_pps": 96,
-      "enabled": false,
+      "enabled": true,
       "levels": [
         { "title": "Small Apartment", "max_score": 1100, "min_duration_ms": 4000, "max_duration_ms": 120000, "base": 400, "max_pps": 96 },
         { "title": "Family House", "max_score": 1650, "min_duration_ms": 4000, "max_duration_ms": 150000, "base": 800, "max_pps": 40 },
@@ -592,7 +592,7 @@
       "max_duration_ms": 120000,
       "base": 600,
       "max_pps": 15,
-      "enabled": false,
+      "enabled": true,
       "levels": [
         { "title": "Quiet Neighborhood", "max_score": 1075, "min_duration_ms": 4000, "max_duration_ms": 120000, "base": 600, "max_pps": 15 },
         { "title": "Downtown", "max_score": 1390, "min_duration_ms": 4000, "max_duration_ms": 150000, "base": 800, "max_pps": 15 },
@@ -609,7 +609,7 @@
       "max_duration_ms": 120000,
       "base": 420,
       "max_pps": 15,
-      "enabled": false,
+      "enabled": true,
       "levels": [
         { "title": "Neighborhood", "max_score": 810, "min_duration_ms": 4000, "max_duration_ms": 120000, "base": 420, "max_pps": 15 },
         { "title": "City Center", "max_score": 1000, "min_duration_ms": 4000, "max_duration_ms": 150000, "base": 560, "max_pps": 10 },
@@ -626,7 +626,7 @@
       "max_duration_ms": 120000,
       "base": 500,
       "max_pps": 107,
-      "enabled": false,
+      "enabled": true,
       "levels": [
         { "title": "Small Beach", "max_score": 1110, "min_duration_ms": 4000, "max_duration_ms": 120000, "base": 500, "max_pps": 107 },
         { "title": "Busy Beach", "max_score": 1490, "min_duration_ms": 4000, "max_duration_ms": 150000, "base": 750, "max_pps": 64 },
@@ -643,7 +643,7 @@
       "max_duration_ms": 120000,
       "base": 600,
       "max_pps": 22,
-      "enabled": false,
+      "enabled": true,
       "levels": [
         { "title": "Farm Yard", "max_score": 1000, "min_duration_ms": 4000, "max_duration_ms": 120000, "base": 600, "max_pps": 22 },
         { "title": "Wheat Field", "max_score": 1340, "min_duration_ms": 4000, "max_duration_ms": 150000, "base": 900, "max_pps": 13 },
@@ -660,7 +660,7 @@
       "max_duration_ms": 90000,
       "base": 380,
       "max_pps": 81,
-      "enabled": false,
+      "enabled": true,
       "levels": [
         { "title": "Living Room", "max_score": 745, "min_duration_ms": 4000, "max_duration_ms": 90000, "base": 380, "max_pps": 81 },
         { "title": "Kitchen", "max_score": 1020, "min_duration_ms": 4000, "max_duration_ms": 120000, "base": 560, "max_pps": 35 },
@@ -677,7 +677,7 @@
       "max_duration_ms": 122000,
       "base": 360,
       "max_pps": 58,
-      "enabled": false,
+      "enabled": true,
       "levels": [
         { "title": "Lobby Floor", "max_score": 910, "min_duration_ms": 2000, "max_duration_ms": 122000, "base": 360, "max_pps": 58 },
         { "title": "3-Floor Hotel", "max_score": 1250, "min_duration_ms": 2000, "max_duration_ms": 152000, "base": 600, "max_pps": 33 },
@@ -694,7 +694,7 @@
       "max_duration_ms": 120000,
       "base": 760,
       "max_pps": 64,
-      "enabled": false,
+      "enabled": true,
       "levels": [
         { "title": "Beginner Lab", "max_score": 1260, "min_duration_ms": 4000, "max_duration_ms": 120000, "base": 760, "max_pps": 64 },
         { "title": "Mushroom Lab", "max_score": 1710, "min_duration_ms": 4000, "max_duration_ms": 150000, "base": 1140, "max_pps": 28 },
@@ -710,7 +710,7 @@
       "min_duration_ms": 1400,
       "max_duration_ms": 180000,
       "time_base_ms": 180000,
-      "enabled": false,
+      "enabled": true,
       "levels": [
         { "title": "Entrance Hall", "max_score": 17860, "min_duration_ms": 1400, "max_duration_ms": 180000, "time_base_ms": 180000 },
         { "title": "Library", "max_score": 20590, "min_duration_ms": 4100, "max_duration_ms": 210000, "time_base_ms": 210000 },
@@ -727,7 +727,7 @@
       "max_duration_ms": 120000,
       "base": 245,
       "max_pps": 42,
-      "enabled": false,
+      "enabled": true,
       "levels": [
         { "title": "Flower Garden", "max_score": 705, "min_duration_ms": 4000, "max_duration_ms": 120000, "base": 245, "max_pps": 42 },
         { "title": "Vegetable Garden", "max_score": 930, "min_duration_ms": 4000, "max_duration_ms": 150000, "base": 375, "max_pps": 31 },
@@ -744,7 +744,7 @@
       "max_duration_ms": 90000,
       "base": 680,
       "max_pps": 33,
-      "enabled": false,
+      "enabled": true,
       "levels": [
         { "title": "Small Park", "max_score": 1030, "min_duration_ms": 4000, "max_duration_ms": 90000, "base": 680, "max_pps": 33 },
         { "title": "City Park", "max_score": 1410, "min_duration_ms": 4000, "max_duration_ms": 120000, "base": 960, "max_pps": 24 },
@@ -761,7 +761,7 @@
       "max_duration_ms": 120000,
       "base": 600,
       "max_pps": 42,
-      "enabled": false,
+      "enabled": true,
       "levels": [
         { "title": "Shallow Reef", "max_score": 1180, "min_duration_ms": 4000, "max_duration_ms": 120000, "base": 600, "max_pps": 42 },
         { "title": "Coral Reef", "max_score": 1520, "min_duration_ms": 4000, "max_duration_ms": 150000, "base": 800, "max_pps": 40 },
@@ -778,7 +778,7 @@
       "max_duration_ms": 120000,
       "base": 540,
       "max_pps": 48,
-      "enabled": false,
+      "enabled": true,
       "levels": [
         { "title": "Landing Zone", "max_score": 1115, "min_duration_ms": 4000, "max_duration_ms": 120000, "base": 540, "max_pps": 48 },
         { "title": "Rocky Plains", "max_score": 1435, "min_duration_ms": 4000, "max_duration_ms": 150000, "base": 720, "max_pps": 45 },
@@ -795,7 +795,7 @@
       "max_duration_ms": 122000,
       "base": 600,
       "max_pps": 30,
-      "enabled": false,
+      "enabled": true,
       "levels": [
         { "title": "2 Platforms", "max_score": 1110, "min_duration_ms": 17200, "max_duration_ms": 122000, "base": 600, "max_pps": 30 },
         { "title": "4 Platforms", "max_score": 1520, "min_duration_ms": 25900, "max_duration_ms": 152000, "base": 900, "max_pps": 24 },
@@ -812,7 +812,7 @@
       "max_duration_ms": 120000,
       "base": 690,
       "max_pps": 22,
-      "enabled": false,
+      "enabled": true,
       "levels": [
         { "title": "Cheese Pizza", "max_score": 1130, "min_duration_ms": 4000, "max_duration_ms": 120000, "base": 690, "max_pps": 22 },
         { "title": "Two Toppings", "max_score": 1440, "min_duration_ms": 4000, "max_duration_ms": 150000, "base": 920, "max_pps": 16 },
@@ -829,7 +829,7 @@
       "max_duration_ms": 75000,
       "base": 480,
       "max_pps": 30,
-      "enabled": false,
+      "enabled": true,
       "levels": [
         { "title": "Jungle Path", "max_score": 880, "min_duration_ms": 5500, "max_duration_ms": 75000, "base": 480, "max_pps": 30 },
         { "title": "Rope Bridges", "max_score": 1260, "min_duration_ms": 5200, "max_duration_ms": 90000, "base": 800, "max_pps": 23 },
@@ -846,7 +846,7 @@
       "max_duration_ms": 75000,
       "base": 1900,
       "max_pps": 25,
-      "enabled": false,
+      "enabled": true,
       "levels": [
         { "title": "Desert Dawn", "max_score": 2700, "min_duration_ms": 4000, "max_duration_ms": 75000, "base": 1900, "max_pps": 25 },
         { "title": "Red Canyon", "max_score": 3400, "min_duration_ms": 4000, "max_duration_ms": 85000, "base": 2550, "max_pps": 22 },
@@ -863,7 +863,7 @@
       "max_duration_ms": 120000,
       "base": 500,
       "max_pps": 93,
-      "enabled": false,
+      "enabled": true,
       "levels": [
         { "title": "Toy Shelf", "max_score": 990, "min_duration_ms": 4000, "max_duration_ms": 120000, "base": 500, "max_pps": 93 },
         { "title": "Store Floor", "max_score": 1405, "min_duration_ms": 4000, "max_duration_ms": 150000, "base": 800, "max_pps": 57 },
@@ -880,7 +880,7 @@
       "max_duration_ms": 120000,
       "base": 450,
       "max_pps": 52,
-      "enabled": false,
+      "enabled": true,
       "levels": [
         { "title": "Small Tank", "max_score": 925, "min_duration_ms": 4000, "max_duration_ms": 120000, "base": 450, "max_pps": 52 },
         { "title": "Tropical Tank", "max_score": 1180, "min_duration_ms": 4000, "max_duration_ms": 150000, "base": 600, "max_pps": 41 },
@@ -897,7 +897,7 @@
       "max_duration_ms": 120000,
       "base": 560,
       "max_pps": 115,
-      "enabled": false,
+      "enabled": true,
       "levels": [
         { "title": "Small Street", "max_score": 1165, "min_duration_ms": 4000, "max_duration_ms": 120000, "base": 560, "max_pps": 115 },
         { "title": "Neighborhood", "max_score": 1545, "min_duration_ms": 4000, "max_duration_ms": 150000, "base": 840, "max_pps": 38 },

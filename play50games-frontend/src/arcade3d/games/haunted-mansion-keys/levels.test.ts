@@ -12,7 +12,7 @@ describe("haunted-mansion-keys levels", () => {
       expect(levelMetaProblems(hauntedMansionKeysMeta)).toEqual([]);
       expect(definitionLevelProblems(hauntedMansionKeysMeta, definition)).toEqual([]);
       expect(hauntedMansionKeysMeta.slug).toBe("haunted-mansion-keys");
-      expect(hauntedMansionKeysMeta.status).toBe("dev");
+      expect(hauntedMansionKeysMeta.status).toBe("live");
       expect(hauntedMansionKeysMeta.owner).toBe("antigravity");
       expect(hauntedMansionKeysMeta.collection).toBe("adventure");
       expect(hauntedMansionKeysMeta.order).toBe(39);

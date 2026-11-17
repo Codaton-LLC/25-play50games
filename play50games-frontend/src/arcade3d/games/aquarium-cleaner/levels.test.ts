@@ -12,7 +12,7 @@ describe("aquarium levels", () => {
       expect(levelMetaProblems(aquariumCleanerMeta)).toEqual([]);
       expect(definitionLevelProblems(aquariumCleanerMeta, definition)).toEqual([]);
       expect(aquariumCleanerMeta.slug).toBe("aquarium-cleaner");
-      expect(aquariumCleanerMeta.status).toBe("dev");
+      expect(aquariumCleanerMeta.status).toBe("live");
       expect(aquariumCleanerMeta.owner).toBe("kimi");
       expect(aquariumCleanerMeta.order).toBe(49);
       expect(aquariumCleanerMeta.scoring).toEqual(PROPOSED_LEVEL_LIMITS[1]);

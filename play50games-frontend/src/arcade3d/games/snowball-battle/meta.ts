@@ -34,7 +34,7 @@ export const snowballBattleMeta: ArcadeGameMeta = {
    tagline: "Duck, scoop, throw.",
    description: "A friendly 1-vs-3 snowball fight: duck behind snow forts, scoop snowballs and tag the rival kids before they tag you.",
    order: 17,
-   status: "dev",
+   status: "live",
    collection: "adventure",
    difficulty: 3,
    orientation: "any",

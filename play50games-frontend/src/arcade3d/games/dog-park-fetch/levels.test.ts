@@ -12,7 +12,7 @@ describe("dog park levels", () => {
       expect(levelMetaProblems(dogParkFetchMeta)).toEqual([]);
       expect(definitionLevelProblems(dogParkFetchMeta, definition)).toEqual([]);
       expect(dogParkFetchMeta.slug).toBe("dog-park-fetch");
-      expect(dogParkFetchMeta.status).toBe("dev");
+      expect(dogParkFetchMeta.status).toBe("live");
       expect(dogParkFetchMeta.owner).toBe("kimi");
       expect(dogParkFetchMeta.collection).toBe("adventure");
       expect(dogParkFetchMeta.order).toBe(41);

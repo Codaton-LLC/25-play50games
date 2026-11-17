@@ -20,7 +20,7 @@ export const rocketLandingMeta: ArcadeGameMeta = {
    tagline: "Touch down gently.",
    description: "Feather the thrusters of a chunky toy rocket and set it down gently on floating landing pads across five tricky planets.",
    order: 30,
-   status: "dev",
+   status: "live",
    collection: "skill",
    difficulty: 2,
    orientation: "any",

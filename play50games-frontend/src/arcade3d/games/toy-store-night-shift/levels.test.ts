@@ -12,7 +12,7 @@ describe("toy store levels", () => {
       expect(levelMetaProblems(toyStoreNightShiftMeta)).toEqual([]);
       expect(definitionLevelProblems(toyStoreNightShiftMeta, definition)).toEqual([]);
       expect(toyStoreNightShiftMeta.slug).toBe("toy-store-night-shift");
-      expect(toyStoreNightShiftMeta.status).toBe("dev");
+      expect(toyStoreNightShiftMeta.status).toBe("live");
       expect(toyStoreNightShiftMeta.owner).toBe("kimi");
       expect(toyStoreNightShiftMeta.order).toBe(48);
       expect(toyStoreNightShiftMeta.scoring).toEqual(PROPOSED_LEVEL_LIMITS[1]);

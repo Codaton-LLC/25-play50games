@@ -13,9 +13,7 @@ import { REUSED_ASSETS } from "./core/sharedAssets";
 import { hasModel } from "./core/modelManifest";
 
 const ORIGINALS = ARCADE_SLUGS.slice(0, 10);
-/** Expansion games the user took live (go-live batch 1, 2026-10-24). */
-const GONE_LIVE = ["museum-guard", "knight-arena", "castle-defender"];
-/** Menu 1 games 31-50 (docs/menu1-new/specs-31-40.md, specs-41-50.md), all "dev" until each one is built and taken live. */
+/** Menu 1 games 31-50 (docs/menu1-new/specs-31-40.md, specs-41-50.md). Every Menu 1 game is live (user, 2026-11-17: "all of Menu 1"). */
 const MENU1_NEW = ARCADE_SLUGS.slice(30);
 
 describe("registry for 50 games", () => {
@@ -36,10 +34,9 @@ describe("registry for 50 games", () => {
       }
    });
 
-   it("puts the 20 expansion games in dev (except the ones gone live), 10 per collection, each thumbnail null or its own webp", () => {
+   it("has the 20 expansion games live, 10 per collection, each thumbnail null or its own webp", () => {
       const fresh = ARCADE_GAMES.slice(10, 30);
-      expect(fresh.filter((g) => g.status !== "dev").map((g) => g.slug).sort()).toEqual([...GONE_LIVE].sort());
-      expect(fresh.every((g) => g.status === "dev" || g.status === "live")).toBe(true);
+      expect(fresh.filter((g) => g.status !== "live").map((g) => g.slug)).toEqual([]);
       for (const g of fresh) expect([null, `/images/3d/${g.slug}.webp`]).toContain(g.thumbnail);
       expect(fresh.filter((g) => g.collection === "adventure")).toHaveLength(10);
       expect(fresh.filter((g) => g.collection === "skill")).toHaveLength(10);
@@ -49,13 +46,13 @@ describe("registry for 50 games", () => {
       expect(perOwner).toEqual({ claude: 4, codex: 7, antigravity: 3, cursor: 4, kimi: 2 });
    });
 
-   it("adds Menu 1 games 31-50 in plan order, all dev, 10 per collection, five per builder", () => {
+   it("adds Menu 1 games 31-50 in plan order, all live, 10 per collection, five per builder", () => {
       const fresh = ARCADE_GAMES.slice(30);
       expect(fresh.map((g) => g.slug)).toEqual(MENU1_NEW);
       expect(fresh.map((g) => g.order)).toEqual(MENU1_NEW.map((_s, i) => 31 + i));
       expect(MENU1_NEW[0]).toBe("firefighter-rescue");
       expect(MENU1_NEW[19]).toBe("postman-3d");
-      expect(fresh.every((g) => g.status === "dev")).toBe(true);
+      expect(fresh.filter((g) => g.status !== "live").map((g) => g.slug)).toEqual([]);
       for (const g of fresh) expect([null, `/images/3d/${g.slug}.webp`]).toContain(g.thumbnail);
       expect(fresh.filter((g) => g.collection === "adventure")).toHaveLength(10);
       expect(fresh.filter((g) => g.collection === "skill")).toHaveLength(10);
@@ -67,17 +64,17 @@ describe("registry for 50 games", () => {
 });
 
 describe("visibility of dev games", () => {
-   it("without the preview flag shows the ten originals plus the expansion games gone live", () => {
-      const shown = ARCADE_GAMES.filter((g) => ORIGINALS.includes(g.slug) || GONE_LIVE.includes(g.slug)).map((g) => g.slug);
-      expect(getVisibleGames(false).map((g) => g.slug)).toEqual(shown);
-      expect(isGameVisible(getGameMeta("treasure-island")!, false)).toBe(false);
+   it("without the preview flag shows all 50 Menu 1 games (every one is live) in three sections", () => {
+      expect(getVisibleGames(false).map((g) => g.slug)).toEqual(ARCADE_GAMES.map((g) => g.slug));
+      expect(isGameVisible(getGameMeta("treasure-island")!, false)).toBe(true);
       expect(isGameVisible(getGameMeta("robot-collector")!, false)).toBe(true);
-      for (const slug of GONE_LIVE) expect(isGameVisible(getGameMeta(slug)!, false)).toBe(true);
-      for (const slug of MENU1_NEW) expect(isGameVisible(getGameMeta(slug)!, false), slug).toBe(false);
+      for (const slug of MENU1_NEW) expect(isGameVisible(getGameMeta(slug)!, false), slug).toBe(true);
       const sections = getVisibleSections(false);
-      expect(sections[0].id).toBe("originals");
-      expect(sections[0].games).toHaveLength(10);
-      expect(sections.reduce((n, s) => n + s.games.length, 0)).toBe(shown.length);
+      expect(sections.map((s) => [s.id, s.games.length])).toEqual([
+         ["originals", 10],
+         ["adventure", 20],
+         ["skill", 20],
+      ]);
    });
 
    it("with the preview flag shows all 50 in three sections", () => {

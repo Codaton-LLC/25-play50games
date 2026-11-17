@@ -18,7 +18,7 @@ describe("postman-3d levels: declarations", () => {
       expect(meta.scoring).toEqual(PROPOSED_LEVEL_LIMITS[1]);
       expect(meta.levels!.map((l) => l.title)).toEqual(LEVEL_IDS.map((id) => LEVEL_TITLES[id]));
       expect(meta.levels!.every((l) => l.clearScore === undefined)).toBe(true);
-      expect(meta).toMatchObject({ slug: "postman-3d", status: "dev", owner: "claude", collection: "skill", order: 50 });
+      expect(meta).toMatchObject({ slug: "postman-3d", status: "live", owner: "claude", collection: "skill", order: 50 });
    });
 
    it("each level's spec carries its own config, clock, lives, lighting and HUD maxima", () => {

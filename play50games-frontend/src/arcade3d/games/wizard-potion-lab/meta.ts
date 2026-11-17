@@ -21,7 +21,7 @@ export const wizardPotionLabMeta: ArcadeGameMeta = {
    tagline: "Mix it in the right order.",
    description: "Grab ingredients off the shelves and drop them into the cauldron in recipe order to brew every potion.",
    order: 38,
-   status: "dev",
+   status: "live",
    collection: "skill",
    difficulty: 2,
    orientation: "any",

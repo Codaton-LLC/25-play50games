@@ -12,7 +12,7 @@ describe("magic carpet levels", () => {
       expect(levelMetaProblems(magicCarpetRideMeta)).toEqual([]);
       expect(definitionLevelProblems(magicCarpetRideMeta, definition)).toEqual([]);
       expect(magicCarpetRideMeta.slug).toBe("magic-carpet-ride");
-      expect(magicCarpetRideMeta.status).toBe("dev");
+      expect(magicCarpetRideMeta.status).toBe("live");
       expect(magicCarpetRideMeta.owner).toBe("cursor");
       expect(magicCarpetRideMeta.collection).toBe("adventure");
       expect(magicCarpetRideMeta.order).toBe(47);

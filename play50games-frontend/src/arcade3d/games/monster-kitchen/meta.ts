@@ -40,7 +40,7 @@ export const monsterKitchenMeta: ArcadeGameMeta = {
    tagline: "Weird orders, in order.",
    description: "Cook for a queue of hungry, picky monsters: spin the ingredient wheel and toss the right weird ingredients into the bubbling cauldron in order.",
    order: 27,
-   status: "dev",
+   status: "live",
    collection: "skill",
    difficulty: 1,
    orientation: "any",

@@ -428,7 +428,7 @@ describe("robot-factory scoring limit proof", () => {
 
    it("keeps meta.scoring at the provisional set until go-live, which the proposed limits tighten", () => {
       expect(robotFactoryMeta.scoring).toMatchObject({ kind: "points", maxScore: 6000, minDurationMs: 10000, maxDurationMs: 92000, base: 6000, maxPointsPerSec: 6000 });
-      expect(robotFactoryMeta.status).toBe("dev");
+      expect(robotFactoryMeta.status).toBe("live");
    });
 
    it("the oracle installs all 56 parts, 12 robots, 4580 points, at 30 / 60 / 144 Hz and random frames", () => {

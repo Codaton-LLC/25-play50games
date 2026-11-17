@@ -16,7 +16,7 @@ describe("mars-rover-mission levels", () => {
       expect(levelMetaProblems(marsRoverMissionMeta)).toEqual([]);
       expect(definitionLevelProblems(marsRoverMissionMeta, definition)).toEqual([]);
       expect(marsRoverMissionMeta.slug).toBe("mars-rover-mission");
-      expect(marsRoverMissionMeta.status).toBe("dev");
+      expect(marsRoverMissionMeta.status).toBe("live");
       expect(marsRoverMissionMeta.owner).toBe("antigravity");
       expect(marsRoverMissionMeta.collection).toBe("adventure");
       expect(marsRoverMissionMeta.order).toBe(43);

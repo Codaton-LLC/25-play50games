@@ -20,7 +20,7 @@ export const trainStationRushMeta: ArcadeGameMeta = {
    tagline: "Every bag on the right train.",
    description: "Carry luggage and guide passengers to the right platforms before each train pulls out of the station.",
    order: 44,
-   status: "dev",
+   status: "live",
    collection: "skill",
    difficulty: 2,
    orientation: "any",

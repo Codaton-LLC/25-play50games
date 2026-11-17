@@ -18,7 +18,7 @@ describe("jungle-bridge-run levels", () => {
       expect(meta.scoring).toEqual(PROPOSED_LEVEL_LIMITS[1]);
       expect(meta.levels!.map((l) => l.title)).toEqual(LEVEL_IDS.map((id) => LEVEL_TITLES[id]));
       expect(meta.levels!.every((l) => l.clearScore === undefined)).toBe(true);
-      expect(meta).toMatchObject({ slug: "jungle-bridge-run", status: "dev", owner: "antigravity", collection: "adventure", order: 46, difficulty: 2 });
+      expect(meta).toMatchObject({ slug: "jungle-bridge-run", status: "live", owner: "antigravity", collection: "adventure", order: 46, difficulty: 2 });
       expect(meta.controls.scheme).toBe("runner");
    });
 

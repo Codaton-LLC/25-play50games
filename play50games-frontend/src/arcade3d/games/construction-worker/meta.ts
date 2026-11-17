@@ -31,7 +31,7 @@ export const constructionWorkerMeta: ArcadeGameMeta = {
    tagline: "Build it floor by floor.",
    description: "Run the crane on a toy building site: pick the right material for the glowing blueprint slot and swing it into place, floor by floor.",
    order: 19,
-   status: "dev",
+   status: "live",
    collection: "adventure",
    difficulty: 2,
    orientation: "any",

@@ -17,7 +17,7 @@ describe("pizza-kitchen-3d levels", () => {
       expect(meta.slug).toBe("pizza-kitchen-3d");
       expect(meta.owner).toBe("claude");
       expect(meta.collection).toBe("skill");
-      expect(meta.status).toBe("dev");
+      expect(meta.status).toBe("live");
       for (const id of LEVEL_IDS) {
          expect(scoringFor(meta, id)).toEqual(PROPOSED_LEVEL_LIMITS[id]);
          expect(meta.levels![id - 1].title).toBe(LEVEL_TITLES[id]);

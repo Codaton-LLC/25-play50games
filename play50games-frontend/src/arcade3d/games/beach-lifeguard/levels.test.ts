@@ -11,7 +11,7 @@ describe("beach lifeguard levels", () => {
    it("meta, the definition and the proposed limits agree on all five levels", () => {
       expect(levelMetaProblems(beachLifeguardMeta)).toEqual([]);
       expect(definitionLevelProblems(beachLifeguardMeta, definition)).toEqual([]);
-      expect(beachLifeguardMeta).toMatchObject({ slug: "beach-lifeguard", status: "dev", owner: "antigravity", collection: "adventure", order: 34, difficulty: 2 });
+      expect(beachLifeguardMeta).toMatchObject({ slug: "beach-lifeguard", status: "live", owner: "antigravity", collection: "adventure", order: 34, difficulty: 2 });
       expect(beachLifeguardMeta.scoring).toEqual(PROPOSED_LEVEL_LIMITS[1]);
       expect(definition.touchControls).toEqual(["joystick", "action"]);
       expect(definition.touchLabels).toEqual({ action: "Grab" });

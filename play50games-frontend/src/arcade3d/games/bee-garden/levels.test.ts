@@ -18,7 +18,7 @@ describe("bee-garden levels: declarations", () => {
       expect(meta.scoring).toEqual(PROPOSED_LEVEL_LIMITS[1]);
       expect(meta.levels!.map((l) => l.title)).toEqual(["Flower Garden", "Vegetable Garden", "Greenhouse", "Forest Flowers", "Giant Garden"]);
       expect(meta.levels!.every((l) => l.clearScore === undefined)).toBe(true);
-      expect(meta).toMatchObject({ slug: "bee-garden", status: "dev", owner: "antigravity", collection: "skill", order: 40 });
+      expect(meta).toMatchObject({ slug: "bee-garden", status: "live", owner: "antigravity", collection: "skill", order: 40 });
    });
 
    it("each level's spec carries its own config, clock, lighting and fog (no level reads level 1)", () => {

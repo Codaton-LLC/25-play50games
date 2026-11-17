@@ -20,7 +20,7 @@ export const pizzaKitchen3dMeta: ArcadeGameMeta = {
    tagline: "Sauce, cheese, oven, serve.",
    description: "Build each pizza in order with sauce, cheese and toppings, bake it just right and serve it before the next ticket comes in.",
    order: 45,
-   status: "dev",
+   status: "live",
    collection: "skill",
    difficulty: 2,
    orientation: "any",

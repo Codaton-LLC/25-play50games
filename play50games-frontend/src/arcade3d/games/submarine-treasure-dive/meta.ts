@@ -19,7 +19,7 @@ export const submarineTreasureDiveMeta: ArcadeGameMeta = {
    tagline: "Follow the sonar. Mind the battery.",
    description: "Pilot a mini submarine through the reef, dive to the treasure on the sea floor and get back to base before the battery runs out.",
    order: 42,
-   status: "dev",
+   status: "live",
    collection: "adventure",
    difficulty: 2,
    orientation: "any",

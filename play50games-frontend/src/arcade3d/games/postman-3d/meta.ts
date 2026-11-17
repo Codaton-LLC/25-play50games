@@ -9,7 +9,7 @@ export const postman3dMeta: ArcadeGameMeta = {
    tagline: "Right letter, right door.",
    description: "Walk the neighbourhood with a full mailbag and deliver every letter and parcel to the right address.",
    order: 50,
-   status: "dev",
+   status: "live",
    collection: "skill",
    difficulty: 2,
    orientation: "any",

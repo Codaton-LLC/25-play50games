@@ -30,7 +30,7 @@ export const penguinSlideMeta: ArcadeGameMeta = {
    tagline: "Carve, jump, slurp the fish.",
    description: "Belly-slide a penguin down a twisting glacier: carve between ice blocks, launch off ramps and slurp up fish.",
    order: 25,
-   status: "dev",
+   status: "live",
    collection: "skill",
    difficulty: 2,
    orientation: "any",

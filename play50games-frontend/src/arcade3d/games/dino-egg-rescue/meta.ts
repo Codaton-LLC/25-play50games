@@ -40,7 +40,7 @@ export const dinoEggRescueMeta: ArcadeGameMeta = {
    tagline: "Bring the runaway eggs home.",
    description: "A clumsy baby dino carries runaway eggs home to its nest while dodging rolling boulders and sticky mud.",
    order: 14,
-   status: "dev",
+   status: "live",
    collection: "adventure",
    difficulty: 1,
    orientation: "any",

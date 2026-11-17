@@ -37,7 +37,7 @@ export const robotFactoryMeta: ArcadeGameMeta = {
    tagline: "Right part, right order.",
    description: "Build robots from the blueprint, then on the fast shifts sort each part into the bin with the same colour and icon while the belt speeds up.",
    order: 22,
-   status: "dev",
+   status: "live",
    collection: "skill",
    difficulty: 1,
    orientation: "any",

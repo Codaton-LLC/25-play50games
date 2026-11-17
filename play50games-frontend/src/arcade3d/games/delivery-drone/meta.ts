@@ -20,7 +20,7 @@ export const deliveryDroneMeta: ArcadeGameMeta = {
    tagline: "Drop every parcel on its rooftop pad.",
    description: "Fly a zippy delivery drone over a toy city, swing parcels on a winch and drop them onto glowing rooftop pads before the battery runs flat.",
    order: 15,
-   status: "dev",
+   status: "live",
    collection: "adventure",
    difficulty: 2,
    orientation: "any",

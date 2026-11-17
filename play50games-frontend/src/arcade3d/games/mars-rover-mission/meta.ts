@@ -19,7 +19,7 @@ export const marsRoverMissionMeta: ArcadeGameMeta = {
    tagline: "Drill. Scan. Bring it home.",
    description: "One mission per level on the red planet: drill crystals, scan beacons, repair solar panels, then drive back to the lander before the battery or the clock runs out.",
    order: 43,
-   status: "dev",
+   status: "live",
    collection: "adventure",
    difficulty: 2,
    orientation: "any",
