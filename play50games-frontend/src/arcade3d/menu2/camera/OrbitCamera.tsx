@@ -74,6 +74,13 @@ export function useOrbitInput(gestures: OrbitGestures, enabled = true): void {
             // already released
          }
       };
+      // A capture can be lost while the button is still down (seen in Chrome right after the press,
+      // now and then): that is not the end of the drag, the moves keep coming to the canvas. Only a
+      // lost capture with nothing pressed ends it; the window's pointerup ends a drag whose release
+      // lands on the HUD instead of the canvas.
+      const onLost = (e: PointerEvent) => {
+         if (e.buttons === 0) onUp(e);
+      };
       const onWheel = (e: WheelEvent) => {
          if (!turnable()) return;
          e.preventDefault();
@@ -96,7 +103,9 @@ export function useOrbitInput(gestures: OrbitGestures, enabled = true): void {
       element.addEventListener("pointermove", onMove);
       element.addEventListener("pointerup", onUp);
       element.addEventListener("pointercancel", onUp);
-      element.addEventListener("lostpointercapture", onUp);
+      element.addEventListener("lostpointercapture", onLost);
+      window.addEventListener("pointerup", onUp);
+      window.addEventListener("pointercancel", onUp);
       element.addEventListener("wheel", onWheel, { passive: false });
       element.addEventListener("contextmenu", onContext);
       window.addEventListener("keydown", onKeyDown);
@@ -107,7 +116,9 @@ export function useOrbitInput(gestures: OrbitGestures, enabled = true): void {
          element.removeEventListener("pointermove", onMove);
          element.removeEventListener("pointerup", onUp);
          element.removeEventListener("pointercancel", onUp);
-         element.removeEventListener("lostpointercapture", onUp);
+         element.removeEventListener("lostpointercapture", onLost);
+         window.removeEventListener("pointerup", onUp);
+         window.removeEventListener("pointercancel", onUp);
          element.removeEventListener("wheel", onWheel);
          element.removeEventListener("contextmenu", onContext);
          window.removeEventListener("keydown", onKeyDown);
