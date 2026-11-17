@@ -17,6 +17,7 @@ import { Decor } from "./Decor";
 import { COLORS, LEVEL_LOOKS, TOWERS, wallBlocks } from "./looks";
 import { GatePrimitive, TowerFallback } from "./Primitives";
 import type { CastleRun } from "./rules";
+import { LevelScenery } from "./LevelScenery";
 import { Terrain } from "./Terrain";
 
 const drawBricks: CanvasDraw = (ctx, width, height) => {
@@ -172,6 +173,7 @@ export function Castle({ run, reduced }: { run: CastleRun; reduced: boolean }) {
          <SkyDome top={sky.skyTop} bottom={sky.sky} offset={0.12} exponent={0.8} />
          <Terrain reduced={reduced} ground={sky.ground} />
          <Decor reduced={reduced} />
+         <LevelScenery id={id} />
          {hasRoyalDecor(id) && <>
             <InstancedModel asset={ASSETS.royalThrone} spots={THRONE_SPOTS} fallback={null} />
             <InstancedModel asset={ASSETS.siegeCatapultT} spots={CATAPULT_SPOTS} fallback={null} />
