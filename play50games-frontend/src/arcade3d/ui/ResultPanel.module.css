@@ -30,7 +30,8 @@
    overflow-y: auto;
    overscroll-behavior: contain;
    -webkit-overflow-scrolling: touch;
-   scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
+   /* the theme's track colour (a white thumb vanished on the light sheet); the fallback outside .p50 tokens */
+   scrollbar-color: var(--p50-track, rgba(255, 255, 255, 0.25)) transparent;
    scrollbar-width: thin;
    border: 1px solid var(--stroke);
    border-radius: 24px;

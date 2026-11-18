@@ -6,9 +6,11 @@
 //   frame and buttons stay on screen. The mouse wheel over the backdrop beside it scrolls the panel.
 // - StartCard: the lobby (docs/design/DESIGN.md §6 item 3): back link, the game's art, title,
 //   tagline, instructions, controls (core/howto: the keyboard or phone illustration and the "How to
-//   play" wizard), best score, Play, top 10. On a wide screen the sheet has two columns (the stage
-//   with the art, the level tiles and Play on the left; how to play, the controls and the top 10 on
-//   the right); the art shows only there. On a
+//   play" wizard), best score, Play, top 10 (LobbyBoard: the site's board rows, components/Site/
+//   BoardList), "More like this" (ui/MoreLikeThis, only when GameShell passes `related`). On a wide
+//   screen the sheet has two columns (the stage with the art, the level tiles and Play on the left;
+//   how to play, the controls and the top 10 on the right) with "More like this" under both; the
+//   art shows only there. On a
 //   short screen (a landscape phone, a portrait phone under the cookie banner) the card scrolls and
 //   Play stays pinned to its bottom, above the banner, or to its top once the top 10 is scrolled up,
 //   so Play is always on screen. It opens scrolled to the top (title first); Play takes the focus
@@ -31,6 +33,8 @@ import { useInitialFocus } from "./overlayFocus";
 import { scrollPanelFromBackdrop } from "./overlayScroll";
 import BestScoreBadge from "../ui/BestScoreBadge";
 import LeaderboardTable from "../ui/LeaderboardTable";
+import MoreLikeThis from "../ui/MoreLikeThis";
+import BoardList from "@/components/Site/BoardList";
 import LevelTiles from "./LevelTiles";
 import ControlsPanel from "./howto/ControlsPanel";
 import type { LevelProgressSummary } from "./levelProgress";
@@ -216,6 +220,30 @@ export function LeaderboardBlock({ leaderboard, meta }: { leaderboard: Leaderboa
    );
 }
 
+/**
+ * The lobby's top 10 (docs/design/DESIGN.md §4 "Leaderboard row"): shield ranks, mono scores, the
+ * player's own row under the list when they are outside it. The result panel keeps LeaderboardBlock.
+ */
+export function LobbyBoard({ leaderboard, meta }: { leaderboard: LeaderboardState; meta: ArcadeGameMeta }) {
+   if (!leaderboard.enabled) return null;
+   return (
+      <section className={styles.leaderboard} aria-label={`${meta.title} top 10`}>
+         <h2 className={styles.sectionTitle}>Top 10</h2>
+         <BoardList
+            scoring={meta.scoring}
+            entries={leaderboard.data?.entries ?? []}
+            me={leaderboard.data?.me ?? null}
+            loading={leaderboard.loading}
+            error={leaderboard.error}
+            onRetry={leaderboard.retry}
+            empty={<p>No scores yet. Play one round to take first place.</p>}
+            dense
+            ghost
+         />
+      </section>
+   );
+}
+
 /** The start card's level picker (GameShell passes it only while the level UI is on). */
 export interface StartCardLevels {
    progress: LevelProgressSummary;
@@ -236,9 +264,11 @@ export interface StartCardProps {
    onPlay: () => void;
    /** omitted = no level UI (levels off or a one-level game): the card is exactly as before levels */
    levels?: StartCardLevels;
+   /** "More like this": other live games (arcade3d/related.ts); omitted or empty = no row */
+   related?: readonly ArcadeGameMeta[];
 }
 
-export function StartCard({ meta, definition, coarse, exitHref, leaderboard, onPlay, levels }: StartCardProps) {
+export function StartCard({ meta, definition, coarse, exitHref, leaderboard, onPlay, levels, related }: StartCardProps) {
    const instructions = levels ? levels.instructions : definition.instructions;
    const picked = levels?.progress.levels.find((level) => level.id === levels.selected);
    const locked = !!levels && !picked?.unlocked;
@@ -309,7 +339,11 @@ export function StartCard({ meta, definition, coarse, exitHref, leaderboard, onP
             </FocusButton>
          </div>
 
-         <LeaderboardBlock leaderboard={leaderboard} meta={meta} />
+         <LobbyBoard leaderboard={leaderboard} meta={meta} />
+
+         {related && related.length > 0 ? (
+            <MoreLikeThis games={related} className={styles.related} titleClassName={styles.sectionTitle} />
+         ) : null}
       </Overlay>
    );
 }

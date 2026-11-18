@@ -72,6 +72,9 @@
    border-radius: 8px;
    background: var(--p50-raised);
    object-fit: cover;
+   /* the light theme's 1px edge on game art (DESIGN.md §9), drawn inside so the size stays */
+   outline: 1px solid var(--p50-art-line);
+   outline-offset: -1px;
 }
 
 .gameTitle {

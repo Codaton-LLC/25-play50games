@@ -37,6 +37,9 @@
    border-radius: 0.2em;
    object-fit: cover;
    vertical-align: -0.03em;
+   /* the light theme's 1px edge on game art (DESIGN.md §9), drawn inside so the size stays */
+   outline: 1px solid var(--p50-art-line);
+   outline-offset: -1px;
 }
 
 .h1Row {
@@ -50,6 +53,9 @@
    aspect-ratio: 16 / 10;
    border-radius: 14px;
    object-fit: cover;
+   /* the light theme's 1px edge on game art (DESIGN.md §9), drawn inside so the size stays */
+   outline: 1px solid var(--p50-art-line);
+   outline-offset: -1px;
 }
 
 .sub {

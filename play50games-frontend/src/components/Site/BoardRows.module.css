@@ -1,4 +1,10 @@
 /* rows: no cards, hairlines only */
+.rows {
+   margin: 0;
+   padding: 0;
+   list-style: none;
+}
+
 .row {
    display: grid;
    grid-template-columns: 40px minmax(0, 1fr) auto;
@@ -106,6 +112,10 @@
    color: var(--p50-text-2);
 }
 
+.notice p {
+   margin: 0;
+}
+
 @keyframes rise {
    from {
       opacity: 0;
@@ -116,5 +126,94 @@
 @keyframes shimmer {
    50% {
       opacity: 0.5;
+   }
+}
+
+/* the own row under the list, when the player is outside the rows shown */
+.outside {
+   margin-top: 10px;
+}
+
+/* a board inside a sheet (the game lobby): shorter rows, the same parts */
+.dense .row {
+   grid-template-columns: 34px minmax(0, 1fr) auto;
+   min-height: 48px;
+}
+
+.dense .shield {
+   width: 26px;
+   height: 30px;
+}
+
+.dense .you {
+   margin-top: 4px;
+   border-radius: 12px;
+}
+
+.dense .outside {
+   margin-top: 10px;
+}
+
+/* empty: a faint outline of the rows that are missing, then one sentence */
+.empty {
+   padding-bottom: 4px;
+}
+
+.ghost .row {
+   border-bottom-style: dashed;
+   animation: none;
+}
+
+.ghost .row:nth-child(2) {
+   opacity: 0.66;
+}
+
+.ghost .row:nth-child(3) {
+   opacity: 0.36;
+}
+
+.ghost .shield [data-part="shape"] {
+   fill: none;
+   stroke: var(--p50-track);
+   stroke-dasharray: 3 3;
+}
+
+.ghost .shield [data-part="number"] {
+   fill: var(--p50-text-3);
+}
+
+.ghostLine,
+.ghostScore {
+   display: block;
+   height: 12px;
+   border: 1px dashed var(--p50-track);
+   border-radius: 6px;
+}
+
+.ghostLine {
+   width: min(150px, 60%);
+}
+
+.ghostScore {
+   width: 56px;
+}
+
+.emptyText {
+   margin-top: 14px;
+   color: var(--p50-text-2);
+   line-height: 1.5;
+}
+
+.emptyText p {
+   margin: 0;
+}
+
+/* pages wrapped in .p50 get this from theme.css; the game lobby has no .p50 ancestor */
+@media (prefers-reduced-motion: reduce) {
+   .row,
+   .skBox,
+   .skLine,
+   .skScore {
+      animation: none;
    }
 }

@@ -1,0 +1,62 @@
+/* "More like this": the catalogue's tiles in one row. --panel-pad-x is the side padding of the
+   sheet the row sits in (GameShell.module.css .panel); the rail bleeds to the sheet's edges, so a
+   tile scrolls out under the edge and not under a margin. */
+
+.section {
+   min-width: 0;
+}
+
+.title {
+   margin: 0 0 10px;
+   color: var(--p50-text-3);
+   font: 600 0.75rem/1.2 var(--p50-font-body);
+   letter-spacing: 0.08em;
+   text-transform: uppercase;
+}
+
+.rail {
+   display: grid;
+   grid-auto-columns: minmax(220px, 76%);
+   grid-auto-flow: column;
+   gap: 16px;
+   margin: 0 calc(-1 * var(--panel-pad-x, 0px));
+   /* the block padding keeps the focus ring of a tile inside the scroll box */
+   padding: 4px var(--panel-pad-x, 0px);
+   overflow-x: auto;
+   overscroll-behavior-x: contain;
+   list-style: none;
+   scroll-padding-inline: var(--panel-pad-x, 0px);
+   scroll-snap-type: x proximity;
+   scrollbar-width: none;
+   -webkit-overflow-scrolling: touch;
+}
+
+.rail::-webkit-scrollbar {
+   display: none;
+}
+
+.item {
+   min-width: 0;
+   scroll-snap-align: start;
+}
+
+.item a {
+   text-decoration: none;
+}
+
+.item a:focus-visible {
+   border-radius: 20px;
+   outline: 2px solid var(--p50-coral);
+   outline-offset: 2px;
+}
+
+/* the wide lobby: every tile on view, equal columns, nothing to scroll */
+@media (min-width: 1040px) and (min-height: 620px) {
+   .rail {
+      grid-auto-columns: minmax(0, 1fr);
+      gap: 20px;
+      margin: 0;
+      padding: 4px 0;
+      overflow: visible;
+   }
+}

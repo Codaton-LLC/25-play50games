@@ -15,7 +15,7 @@
    border-radius: 10px;
    cursor: crosshair;
    touch-action: none;
-   background: rgba(15, 27, 51, 1);
+   background: var(--board-sunk, rgba(15, 27, 51, 1));
 }
 
 .canvas:focus-visible {

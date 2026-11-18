@@ -10,11 +10,11 @@
    --p50-track: #c9d1df;
    --p50-text: #0e1322;
    --p50-text-2: #4f5a73;
-   --p50-text-3: #626c85;
+   --p50-text-3: #5c667f;
    --p50-coral: #e75f40;
    --p50-coral-hover: #ec7458;
    --p50-coral-press: #c2452a;
-   --p50-coral-text: #c2452a;
+   --p50-coral-text: #b83f26;
    --p50-coral-wash: #fbe6e0;
    --p50-on-coral: #0b0f1a;
    --p50-gold: #e3a72f;
@@ -29,6 +29,14 @@
    --p50-scrim: rgba(14, 19, 34, 0.42);
    --p50-bar: rgba(255, 255, 255, 0.86);
    --p50-art-line: #d9dfea;
+   /* the classic game stage (app/games/[id]): what the boards' legacy variables resolve to */
+   --p50-scheme: light;
+   --p50-accent-rgb: 194, 69, 42;
+   --p50-gold-rgb: 150, 102, 11;
+   --p50-green-text: #1a7d52;
+   --p50-ink-rgb: 14, 19, 34;
+   --p50-shade-rgb: 14, 19, 34;
+   --p50-shade-k: 0.4;
    --p50-ease: cubic-bezier(0.16, 1, 0.3, 1);
    --p50-font-display: var(--font-display), "Trebuchet MS", "Segoe UI", sans-serif;
    --p50-font-body: var(--font-body), "Segoe UI", system-ui, sans-serif;
@@ -44,9 +52,9 @@
       --p50-track: #333d57;
       --p50-text: #f1f3f8;
       --p50-text-2: #a3acbf;
-      --p50-text-3: #7a84a0;
+      --p50-text-3: #8089a5;
       --p50-coral-text: #e75f40;
-      --p50-coral-wash: #2f2129;
+      --p50-coral-wash: #2a1d24;
       --p50-gold-text: #e3a72f;
       --p50-red-text: #f0708a;
       --p50-shadow: 0 0 0 0 transparent;
@@ -56,6 +64,13 @@
       --p50-scrim: rgba(4, 6, 12, 0.66);
       --p50-bar: rgba(18, 23, 38, 0.86);
       --p50-art-line: transparent;
+      --p50-scheme: dark;
+      --p50-accent-rgb: 231, 95, 64;
+      --p50-gold-rgb: 227, 167, 47;
+      --p50-green-text: #3fb57f;
+      --p50-ink-rgb: 255, 255, 255;
+      --p50-shade-rgb: 0, 0, 0;
+      --p50-shade-k: 1;
    }
 }
 
@@ -79,9 +94,9 @@ html {
    --p50-track: #333d57;
    --p50-text: #f1f3f8;
    --p50-text-2: #a3acbf;
-   --p50-text-3: #7a84a0;
+   --p50-text-3: #8089a5;
    --p50-coral-text: #e75f40;
-   --p50-coral-wash: #2f2129;
+   --p50-coral-wash: #2a1d24;
    --p50-gold-text: #e3a72f;
    --p50-red-text: #f0708a;
    --p50-shadow: 0 0 0 0 transparent;
@@ -91,6 +106,13 @@ html {
    --p50-scrim: rgba(4, 6, 12, 0.66);
    --p50-bar: rgba(18, 23, 38, 0.86);
    --p50-art-line: transparent;
+   --p50-scheme: dark;
+   --p50-accent-rgb: 231, 95, 64;
+   --p50-gold-rgb: 227, 167, 47;
+   --p50-green-text: #3fb57f;
+   --p50-ink-rgb: 255, 255, 255;
+   --p50-shade-rgb: 0, 0, 0;
+   --p50-shade-k: 1;
 }
 
 /* A redesigned page: paints its own canvas and maps the legacy variables onto the new palette,

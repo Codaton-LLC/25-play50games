@@ -1211,7 +1211,7 @@ export default function TargetAim({
                      /* the frame is an inset ring, not a border: the targets bounce inside the
                         arena's full bounding box, so a border would cover their edges */
                      border: "none",
-                     boxShadow: "inset 0 0 0 1px rgba(255, 255, 255, 0.12)",
+                     boxShadow: "inset 0 0 0 1px rgba(var(--board-ov, 255, 255, 255), 0.12)",
                      cursor: "crosshair", // Crosshair cursor (plus sign)
                   }}
                >
@@ -1241,8 +1241,8 @@ export default function TargetAim({
                               background: target.clicked
                                  ? "var(--ok)"
                                  : "radial-gradient(circle, rgba(239, 68, 68, 0.9), rgba(220, 38, 38, 0.9))",
-                              border: "3px solid rgba(255, 255, 255, 0.8)",
-                              boxShadow: "0 3px 8px rgba(0, 0, 0, 0.35)",
+                              border: "3px solid rgba(var(--board-ov, 255, 255, 255), 0.8)",
+                              boxShadow: "0 3px 8px rgba(var(--board-shade, 0, 0, 0), calc(0.35 * var(--board-shade-k, 1)))",
                               cursor: "pointer",
                               transition: target.clicked
                                  ? "transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease"
@@ -1275,8 +1275,8 @@ export default function TargetAim({
                            position: "absolute",
                            inset: 0,
                            borderRadius: "50%",
-                           border: "2px solid rgba(255, 255, 255, 0.9)",
-                           boxShadow: "0 0 0 1px rgba(0, 0, 0, 0.35)",
+                           border: "2px solid rgba(var(--board-ov, 255, 255, 255), 0.9)",
+                           boxShadow: "0 0 0 1px rgba(var(--board-shade, 0, 0, 0), calc(0.35 * var(--board-shade-k, 1)))",
                         }}
                      />
                      {/* Inner crosshair */}
@@ -1288,7 +1288,7 @@ export default function TargetAim({
                            transform: "translate(-50%, -50%)",
                            width: "2px",
                            height: "12px",
-                           background: "rgba(255, 255, 255, 0.9)",
+                           background: "rgba(var(--board-ov, 255, 255, 255), 0.9)",
                         }}
                      />
                      <div
@@ -1299,7 +1299,7 @@ export default function TargetAim({
                            transform: "translate(-50%, -50%) rotate(90deg)",
                            width: "2px",
                            height: "12px",
-                           background: "rgba(255, 255, 255, 0.9)",
+                           background: "rgba(var(--board-ov, 255, 255, 255), 0.9)",
                         }}
                      />
                      {/* Center dot */}
@@ -1312,7 +1312,7 @@ export default function TargetAim({
                            width: "4px",
                            height: "4px",
                            borderRadius: "50%",
-                           background: "rgba(255, 255, 255, 0.9)",
+                           background: "rgba(var(--board-ov, 255, 255, 255), 0.9)",
                         }}
                      />
                   </div>

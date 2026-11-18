@@ -19,7 +19,7 @@
    max-width: 360px;
    height: 6px;
    border-radius: 999px;
-   background: rgba(255, 255, 255, 0.1);
+   background: rgba(var(--board-ov, 255, 255, 255), 0.1);
    overflow: hidden;
 }
 
@@ -101,7 +101,7 @@
 .badgeIcon {
    width: 80%;
    height: 80%;
-   color: #0b1020;
+   color: var(--board-on-fill, #0b1020);
 }
 
 @media (max-width: 767px) {

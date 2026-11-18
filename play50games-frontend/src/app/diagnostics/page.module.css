@@ -1,0 +1,167 @@
+/* API diagnostics (docs/design/DESIGN.md §4, §6). Tokens: app/theme.css. */
+
+.view {
+   display: flex;
+   flex-direction: column;
+   gap: clamp(2rem, 5vw, 3rem);
+   min-width: 0;
+}
+
+.bar {
+   display: flex;
+   flex-wrap: wrap;
+   align-items: center;
+   justify-content: space-between;
+   gap: 12px 24px;
+   padding-bottom: 18px;
+   border-bottom: 1px solid var(--p50-line);
+}
+
+.h2 {
+   color: var(--p50-text);
+   font: 600 1.375rem/1.2 var(--p50-font-display);
+   letter-spacing: -0.02em;
+}
+
+.summary {
+   margin-top: 2px;
+   color: var(--p50-text-2);
+   font: 500 0.875rem/1.4 var(--p50-font-mono);
+   font-variant-numeric: tabular-nums;
+}
+
+.run:disabled,
+.run:disabled:hover {
+   background: transparent;
+   color: var(--p50-text-3);
+   cursor: progress;
+}
+
+/* the checks: hairline rows, no cards */
+.list {
+   margin: 0;
+   padding: 0;
+}
+
+.row {
+   display: grid;
+   grid-template-columns: 28px minmax(0, 1fr);
+   align-items: start;
+   gap: 14px;
+   padding-block: 16px;
+   border-bottom: 1px solid var(--p50-line);
+}
+
+.row:last-child {
+   border-bottom: 0;
+   padding-bottom: 0;
+}
+
+.icon {
+   display: grid;
+   place-items: center;
+   width: 28px;
+   height: 28px;
+   border-radius: 999px;
+   background: var(--p50-raised);
+   color: var(--p50-text-3);
+}
+
+.icon svg {
+   width: 16px;
+   height: 16px;
+}
+
+.success {
+   background: color-mix(in srgb, var(--p50-green) 18%, transparent);
+   color: var(--p50-text);
+}
+
+.error {
+   background: color-mix(in srgb, var(--p50-red) 16%, transparent);
+   color: var(--p50-red-text);
+}
+
+.body {
+   display: flex;
+   flex-direction: column;
+   gap: 4px;
+   min-width: 0;
+}
+
+.titleRow {
+   display: flex;
+   flex-wrap: wrap;
+   align-items: center;
+   justify-content: space-between;
+   gap: 6px 12px;
+}
+
+.name {
+   color: var(--p50-text);
+   font: 600 1rem/1.4 var(--p50-font-body);
+}
+
+.badge {
+   display: inline-flex;
+   align-items: center;
+   height: 24px;
+   padding: 0 10px;
+   border-radius: 999px;
+   font: 600 0.75rem/1 var(--p50-font-body);
+   letter-spacing: 0.08em;
+   text-transform: uppercase;
+}
+
+.badge_checking {
+   background: var(--p50-raised);
+   color: var(--p50-text-2);
+}
+
+.badge_success {
+   border: 1px solid var(--p50-line);
+   color: var(--p50-text-2);
+}
+
+.badge_error {
+   background: color-mix(in srgb, var(--p50-red) 14%, transparent);
+   color: var(--p50-red-text);
+}
+
+.message {
+   color: var(--p50-text-2);
+   font-size: 0.9375rem;
+   overflow-wrap: anywhere;
+}
+
+.details summary {
+   width: fit-content;
+   min-height: 44px;
+   display: flex;
+   align-items: center;
+   color: var(--p50-coral-text);
+   font-size: 0.875rem;
+   font-weight: 600;
+   cursor: pointer;
+}
+
+.pre {
+   margin: 4px 0 0.875rem;
+   padding: 12px 14px;
+   overflow-x: auto;
+   border: 1px solid var(--p50-line);
+   border-radius: 14px;
+   background: var(--p50-raised);
+   color: var(--p50-text);
+   font: 500 0.8125rem/1.6 var(--p50-font-mono);
+   white-space: pre-wrap;
+   overflow-wrap: anywhere;
+}
+
+.view code {
+   padding: 1px 6px;
+   border-radius: 8px;
+   background: var(--p50-raised);
+   color: var(--p50-text);
+   font: 500 0.875em var(--p50-font-mono);
+}

@@ -3,16 +3,16 @@
    The page is a page of the site like the hub: the wrapper is .p50 (page.tsx), with the site header
    and footer, and it follows the theme.
 
-   The game itself sits on .stage (GameView.tsx), which carries .p50-night: the start screen, the
-   board and the Game Complete panel are always on the dark values, in both themes, because the 50
-   boards are drawn for a dark surface (white overlays, light text), like the HUD on the 3D canvas.
-   In the dark theme the stage is the page canvas and does not show; in the light theme it is a dark
-   screen on the light page.
+   The game itself sits on .stage (GameView.tsx), which follows the theme like the page: the start
+   screen, the board and the Game Complete panel are on the Night Deck in the dark theme and on the
+   Day Deck in the light theme (the theme switch flips a running board at once). In both themes the
+   stage is the page canvas and does not show as a box.
 
-   Colours: globals.css is on the design palette (its :root variables and the board rules), and
-   .stage sets the legacy variables again, because the .p50 wrapper around it maps them onto the
-   themed tokens: on the stage they are the dark values, with one accent (coral; gold for the final
-   games). Tints a board writes inline (rgba(59, 130, 246, ..) and others) are its own and stay.
+   Colours: .stage sets the boards' legacy variables (--accent, --ok, --card ..) from the themed
+   tokens of theme.css, plus the board variables the 50 boards were rewritten with for the light
+   theme (--board-ov for their white overlays, --board-shade / --board-shade-k for their shadows, and
+   the light-only --board-* list further down). Content colours a board writes inline (the blue
+   player of Avoid the Red, the colour pads) are its own and stay.
 
    What this file restyles: the breadcrumb, the stage, the start screen (title, How to Play card, the
    Example Round panel, tips, the Time limit / Passing score figures, Start / Exit), the play view's
@@ -82,7 +82,7 @@
    text-transform: uppercase;
 }
 
-/* ---------- the stage: the game, always on the dark values (.p50-night on the element) ---------- */
+/* ---------- the stage: the game, on the theme's values ---------- */
 
 .stage {
    max-width: 1040px;
@@ -90,32 +90,90 @@
    border-radius: 28px;
    background: var(--p50-canvas);
    color: var(--p50-text);
-   color-scheme: dark;
+   color-scheme: var(--p50-scheme, dark);
 
-   /* the boards' legacy variables on the design's palette. --card and --stroke stay the translucent
-      whites the boards layer on each other; an opaque surface would hide a card inside a card. */
+   /* the boards' legacy variables on the design's palette, per theme (theme.css). The accent is the
+      one that reads as text on the stage's surfaces: Arcade Coral in the dark, Ember Coral in the
+      light. --card and --stroke stay translucent (white in the dark, ink in the light): the boards
+      layer cards on cards, and an opaque surface would hide a card inside a card. */
    --bg: var(--p50-canvas);
-   --card: rgba(255, 255, 255, 0.06);
+   --card: rgba(var(--p50-ink-rgb, 255, 255, 255), 0.06);
    --text: var(--p50-text);
    --muted: var(--p50-text-2);
-   --stroke: rgba(255, 255, 255, 0.12);
-   --accent: var(--p50-coral);
-   --primary: var(--p50-coral);
-   --secondary: var(--p50-green);
-   --ok: var(--p50-green);
+   --stroke: rgba(var(--p50-ink-rgb, 255, 255, 255), 0.12);
+   --accent: var(--p50-coral-text);
+   --primary: var(--p50-coral-text);
+   --secondary: var(--p50-green-text);
+   --ok: var(--p50-green-text);
    --warn: var(--p50-red-text);
    /* the accent as numbers, for the tints the engine's stylesheets write as rgba(.., a) */
-   --accent-rgb: 231, 95, 64;
+   --accent-rgb: var(--p50-accent-rgb, 231, 95, 64);
+   /* the boards' own overlays and shadows: written rgba(var(--board-ov, 255, 255, 255), a) and
+      rgba(var(--board-shade, 0, 0, 0), calc(a * var(--board-shade-k, 1))), so they are white / black
+      in the dark (as drawn) and ink navy in the light, where the shadows and sunk wells are lighter
+      (DESIGN.md: one diffused ink-tinted shadow). Outside the stage the fallbacks keep the old values. */
+   --board-ov: var(--p50-ink-rgb, 255, 255, 255);
+   --board-shade: var(--p50-shade-rgb, 0, 0, 0);
+   --board-shade-k: var(--p50-shade-k, 1);
 }
 
 /* the five final games: trophy gold instead of the coral accent, and a gold light from the top */
 :global(body.final-game) .stage {
-   --accent: var(--p50-gold);
-   --primary: var(--p50-gold);
-   --accent-rgb: 227, 167, 47;
+   --accent: var(--p50-gold-text);
+   --primary: var(--p50-gold-text);
+   --accent-rgb: var(--p50-gold-rgb, 227, 167, 47);
    background:
       radial-gradient(900px 420px at 50% -120px, rgba(227, 167, 47, 0.16), transparent 70%),
       var(--p50-canvas);
+}
+
+/* light-only board colours. A board writes var(--board-ink, <its dark literal>): in the dark these
+   are not set, so the literal is used and nothing changes; in the light they are the Day Deck values.
+   --board-ink: light text drawn on the dark surface (#fff, #f1f3f8, #d6dbe6 ..)
+   --board-ink-2: the secondary greys
+   --board-sunk: a dark floor drawn under the board's pieces (the maze paths)
+   --board-well: a play area sunk into the board (drawing canvases)
+   --board-gold: the final games' gold as text (globals.css paints it #eab308, 2:1 on white)
+   --board-ok-ink / --board-bad-ink, --board-ok-ring / --board-bad-ring: the mark and the ring of a
+   pastel game piece (a green or red tint with a white mark reads on the dark, not on white)
+   --board-on-fill: the label on a filled accent / green / red / gold (the light fills are the deeper
+   text shades, so the label turns white: 5:1 and up)
+   --board-glass: a dark glass behind var(--text) (pills over a play area), white glass in the light
+   --board-navy: navy-tinted shadows and wells, ink in the light (with --board-shade-k)
+   --board-content-mix: how much of a pale content colour (a sound pad) stays when it is mixed
+   towards ink for its mark and ring (100 % in the dark) */
+@media (prefers-color-scheme: light) {
+   :global(:root:not([data-theme="dark"])) .stage {
+      --board-ink: var(--p50-text);
+      --board-ink-2: var(--p50-text-2);
+      --board-sunk: var(--p50-raised);
+      --board-well: rgba(14, 19, 34, 0.04);
+      --board-gold: var(--p50-gold-text);
+      --board-ok-ink: var(--p50-green-text);
+      --board-bad-ink: var(--p50-red-text);
+      --board-ok-ring: #16a34a;
+      --board-bad-ring: #e11d48;
+      --board-on-fill: #fff;
+      --board-glass: 255, 255, 255;
+      --board-navy: 14, 19, 34;
+      --board-content-mix: 60%;
+   }
+}
+
+:global(:root[data-theme="light"]) .stage {
+   --board-ink: var(--p50-text);
+   --board-ink-2: var(--p50-text-2);
+   --board-sunk: var(--p50-raised);
+   --board-well: rgba(14, 19, 34, 0.04);
+   --board-gold: var(--p50-gold-text);
+   --board-ok-ink: var(--p50-green-text);
+   --board-bad-ink: var(--p50-red-text);
+   --board-ok-ring: #16a34a;
+   --board-bad-ring: #e11d48;
+   --board-on-fill: #fff;
+   --board-glass: 255, 255, 255;
+   --board-navy: 14, 19, 34;
+   --board-content-mix: 60%;
 }
 
 @media (max-width: 599px) {
@@ -151,7 +209,7 @@
 .page :global(.game-start-screen.final-game h2),
 :global(body.final-game) .page :global(.game-start-screen h2) {
    background: none !important;
-   color: var(--p50-gold) !important;
+   color: var(--p50-gold-text) !important;
    -webkit-text-fill-color: currentColor !important;
 }
 
@@ -220,7 +278,7 @@
 }
 
 .page :global .game-instructions-section > div.final-game:not(.instructions-text):not(.game-tips) > div:first-child > h3 {
-   color: var(--p50-gold) !important;
+   color: var(--p50-gold-text) !important;
 }
 
 .page :global(.game-tips) {
@@ -278,7 +336,7 @@
 }
 
 .page :global(.game-start-screen.final-game .info-value) {
-   color: var(--p50-gold);
+   color: var(--p50-gold-text);
 }
 
 /* Start / Exit */
@@ -467,7 +525,7 @@
 }
 
 :global(body.final-game) .stage :global([style*="background-clip: text"]) {
-   color: var(--p50-gold) !important;
+   color: var(--p50-gold-text) !important;
 }
 
 /* ---------- Game Complete ---------- */

@@ -20,6 +20,7 @@ import {
 import touch from "./skillTouch.module.css";
 import ui from "./skillUi.module.css";
 import { usePlayAreaInView } from "./usePlayAreaInView";
+import { useThemeChange } from "./boardTheme";
 
 interface SpeedDrawingProps {
    config: Record<string, any>;
@@ -729,6 +730,8 @@ export default function SpeedDrawing({
       const cssVar = (name: string, fallback: string) => css.getPropertyValue(name).trim() || fallback;
       const textColor = cssVar("--text", "#f1f3f8");
       const accentColor = cssVar("--accent", "#e75f40");
+      // white overlays on the dark stage, ink on the light one
+      const ov = cssVar("--board-ov", "255, 255, 255");
 
       // Clear canvas
       ctx.clearRect(0, 0, width, height);
@@ -741,7 +744,7 @@ export default function SpeedDrawing({
          height
       );
 
-      ctx.strokeStyle = "rgba(255, 255, 255, 0.28)";
+      ctx.strokeStyle = `rgba(${ov}, 0.28)`;
       ctx.lineWidth = 4;
       ctx.setLineDash([8, 8]);
       ctx.beginPath();
@@ -854,6 +857,9 @@ export default function SpeedDrawing({
    useEffect(() => {
       drawCanvas();
    }, [drawCanvas]);
+
+   // the theme switch repaints the canvas at once
+   useThemeChange(drawCanvas);
 
    const scheduleCanvasSync = useCallback(() => {
       let tries = 0;
@@ -2024,7 +2030,7 @@ export default function SpeedDrawing({
                         cursor: isDrawing ? "crosshair" : "default",
                         touchAction: "none",
                         borderRadius: "10px",
-                        background: "rgba(0, 0, 0, 0.18)",
+                        background: "var(--board-well, rgba(0, 0, 0, 0.18))",
                      }}
                   />
                </div>

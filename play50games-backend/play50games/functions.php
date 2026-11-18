@@ -528,7 +528,12 @@
     if (file_exists(get_stylesheet_directory() . '/wt-cpt/arcade-scores-admin.php')) {
         require_once(get_stylesheet_directory() . '/wt-cpt/arcade-scores-admin.php');
     }
-    
+
+    // load contact form API (POST play50/v1/contact + "Contact messages" admin; loaded only when deployed)
+    if (file_exists(get_stylesheet_directory() . '/includes/contact-api.php')) {
+        require_once(get_stylesheet_directory() . '/includes/contact-api.php');
+    }
+
     // load certificate generator
     require_once(get_stylesheet_directory() . '/includes/certificate-generator.php');
 

@@ -912,7 +912,7 @@ export default function TimingBar({
                         width: "80%",
                         height: "16px",
                         borderRadius: "999px",
-                        background: "rgba(255, 255, 255, 0.08)",
+                        background: "rgba(var(--board-ov, 255, 255, 255), 0.08)",
                         position: "relative",
                         overflow: "visible",
                      }}

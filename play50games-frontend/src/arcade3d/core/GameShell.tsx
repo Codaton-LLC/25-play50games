@@ -31,6 +31,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useProgress } from "@react-three/drei";
 import type { ArcadeGameMeta, LevelId } from "../types";
+import { ARCADE_GAMES } from "../registry";
+import { relatedGames } from "../related";
 import type { GameDefinition, GameShellProps, RunState } from "./types";
 import { levelCount, levelMetaFor, scoringFor } from "../levelMeta";
 import {
@@ -246,6 +248,8 @@ export default function GameShell({ meta, definition, exitHref = "/3d" }: GameSh
    // (configure() below hands the store definition.resultDelayMs)
    const resultShown = useArcadeStore(isResultShown);
    const leaderboard = useLeaderboard(meta.slug, { refreshKey: user?.id ?? null });
+   // the lobby's "More like this": live games only
+   const related = useMemo(() => relatedGames(meta, ARCADE_GAMES), [meta]);
 
    // levels: the UI is on only for a five-level game with the flag on and a server that knows levels
    const levelsSupported = useLevelsSupported(levelsActive(meta));
@@ -689,6 +693,7 @@ export default function GameShell({ meta, definition, exitHref = "/3d" }: GameSh
                      coarse={coarse}
                      exitHref={exitHref}
                      leaderboard={leaderboard}
+                     related={related}
                      onPlay={() => {
                         if (levelsOn) writeLastLevel(meta.slug, levelId);
                         if (definition.intro) {
