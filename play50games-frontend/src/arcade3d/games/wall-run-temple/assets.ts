@@ -1,4 +1,4 @@
-// Wall Run Temple's models. The five heroes are the shared Menu 2 heroes (menu2/heroModels.ts); Umbra is
+// Cliff Glyph Run's models. The five heroes are the shared Menu 2 heroes (menu2/heroModels.ts); Umbra is
 // the shared m2ShadowArmadillo. Props live in public/models/3d/wall-run-temple. Every GLB has its feet on
 // y = 0, centred on x and z (the optimizer's pivot). GLB_SIZE is the real mesh (assets.test.ts).
 // Code stays for: the ram's long chains, the hollow-top fillers of the gap platforms, the moss, orbs,

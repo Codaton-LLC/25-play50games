@@ -64,7 +64,7 @@ Six plates in three phases (`progression.ts KEEPER`):
 The card says "restrict any ability that would trivialize this level". No power keeps a wrong tile up or counts as a lock-in.
 
 - **Riko:** a dash (0.35 s at 11 m/s, along the stick) to a far tile in time. Over a hole it carries no footing.
-- **Nami:** a second jump: over a hole, the sweeper, a shock ring.
+- **Nyla:** a second jump: over a hole, the sweeper, a shock ring.
 - **Kiro:** a shield (3 s). A knock passes him, and a drop under him bounces him onto the safe marker instead of costing a heart.
 - **Zuno:** a magnet that pulls the orb from 6 m.
 - **Vexa:** a phase (1.2 s): she walks over holes and dropped tiles. She cannot lock in while phased, and when it ends over the void she falls.
@@ -121,7 +121,7 @@ Secrets (`menu2/secrets`, never score):
 
 - **Rainbow Tile** (a shard, every level): on round 2 one tile shines in every colour; it is safe whatever is called. Be on it when the floor drops.
 - **Quick Lock** (a sticker, L1-L4): lock in under 1.5 s three rounds running.
-- **Over the Gap** (a shard, L2-L3): on round 4 a shard floats over the hole nearest the middle. Vexa phases to it, Nami jumps to it.
+- **Over the Gap** (a shard, L2-L3): on round 4 a shard floats over the hole nearest the middle. Vexa phases to it, Nyla jumps to it.
 - **Bar Hopper** (a sticker, L4): jump the sweeper bar five times.
 - **Beacon Streak** (a sticker, L5): three beacon rounds running, each a hit.
 
@@ -152,7 +152,7 @@ World 6 "Prism Fortress" (`look.ts`): a prism sky that goes from a bright mornin
 - **Tiles:** `m2SurvivalFloorTile` (the card's "recolorable floor tile", from ready/menu2/color-arena-survival), one instanced pool tinted per tile at runtime and stretched to the rules' 2 m square, plus five instanced symbol decals. The safe marker is `m2SafeMarker` with a glowing ring.
 - **Models:**
   - `m2PrismArenaBoss`: from the user's new Hyper3D batch (`p50-assets/hyper3d-new`), optimized here with `tools/hyper3d`'s optimizer to 15k triangles and 377 KB. No credits spent.
-  - `m2ColorBeacon`: Portal Hop's prop, copied in.
+  - `m2ColorBeacon`: Rift Hop's prop, copied in.
 
 ## Open issues
 

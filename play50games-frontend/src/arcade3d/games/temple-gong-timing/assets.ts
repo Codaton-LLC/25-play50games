@@ -17,7 +17,7 @@ export const GLB_SIZE = {
    stage: { x: 1.899, y: 0.169, z: 1.894 },
    /** m2CeremonyDrum: a hold-note drum */
    drum: { x: 1.901, y: 1.892, z: 1.866 },
-   /** m2RuinLanternPillar: a lantern pillar (Nami's high gongs sit on top; the lanterns call the patterns) */
+   /** m2RuinLanternPillar: a lantern pillar (Nyla's high gongs sit on top; the lanterns call the patterns) */
    pillar: { x: 1.085, y: 1.898, z: 1.115 },
    /** m2TimingRing: the flat ring that shrinks onto a gong */
    ring: { x: 1.879, y: 0.334, z: 1.903 },

@@ -1,4 +1,4 @@
-// Candy World Runner's models. The five heroes are the shared Menu 2 armadillos (menu2/heroModels.ts).
+// Sweet Lane Runner's models. The five heroes are the shared Menu 2 armadillos (menu2/heroModels.ts).
 // This game's props live in public/models/3d/candy-world-runner (the ready set from
 // ~/.play50/hyper3d/ready/menu2/candy-world-runner, incl. m2FrostedCupcakeTower, plus m2CandyKingBoss and
 // m2GummyMonster from ready/menu2/shared); the orb and the checkpoint beacon are the shared Menu 2 ones.

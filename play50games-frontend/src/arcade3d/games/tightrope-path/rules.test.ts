@@ -1,6 +1,6 @@
 // Tightrope Path rules: walking a link (camera-relative), the needle (drift per element, the still /
 // sprint / crouch factors, the correction), the wobble and the fall to the last pillar, gaps and jumps
-// (the edge stop, the seeded landing kick, falling into a gap), Nami's double jump and the high orbs,
+// (the edge stop, the seeded landing kick, falling into a gap), Nyla's double jump and the high orbs,
 // gusts, sandbags (crouch), rotating beams, the powers (Riko's dash, Kiro's shield, Zuno's coins,
 // Vexa's ghost bridge and its shard), the clean-element chain, the bird secret, Umbra's joust, the
 // bound, frame-rate independence and the honest bot's clear on every level.
@@ -189,7 +189,7 @@ describe("gaps and jumps", () => {
       expect(fell).toBe(true);
    });
 
-   it("Nami's second jump reaches a high orb over the gap; a single jump never does", () => {
+   it("Nyla's second jump reaches a high orb over the gap; a single jump never does", () => {
       for (const hero of ["nami", "kiro"] as const) {
          const run = createRun(1, 1, hero);
          const o = run.course.orbs.find((q) => q.high)!;

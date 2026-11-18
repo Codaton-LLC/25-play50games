@@ -5,7 +5,7 @@
 // Power (E / Enter / the Power button):
 // - Riko: an air dash (4 m in 0.2 s) that does NOT flip the field: cross a wide gap and land on the set
 //   you left.
-// - Nami: no button: her second jump in the air flips the field again, so she lands on the set she
+// - Nyla: no button: her second jump in the air flips the field again, so she lands on the set she
 //   started on (the same-set ledges).
 // - Kiro: a shield (1.5 s): stand in a live laser's beam, shrug off a drone or a stomp.
 // - Zuno: a magnet (3 s): pulls the coin trails hidden inside hologram cubes from 5 m.
@@ -26,7 +26,7 @@ export interface HeroDef {
 
 export const HEROES: readonly HeroDef[] = [
    { id: "riko", name: "Riko", color: "#EF4444", power: "dash", powerLabel: "Air dash", cooldownMs: 1_200 },
-   { id: "nami", name: "Nami", color: "#2563EB", power: "double", powerLabel: "Double jump", cooldownMs: 0 },
+   { id: "nami", name: "Nyla", color: "#2563EB", power: "double", powerLabel: "Double jump", cooldownMs: 0 },
    { id: "kiro", name: "Kiro", color: "#22C55E", power: "shield", powerLabel: "Shield", cooldownMs: 6_000 },
    { id: "zuno", name: "Zuno", color: "#FACC15", power: "magnet", powerLabel: "Magnet", cooldownMs: 8_000 },
    { id: "vexa", name: "Vexa", color: "#8B5CF6", power: "phase", powerLabel: "Phase", cooldownMs: 2_500 },

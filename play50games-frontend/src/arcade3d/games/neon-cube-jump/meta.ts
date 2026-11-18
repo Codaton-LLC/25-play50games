@@ -27,7 +27,7 @@ export const neonCubeJumpMeta: ArcadeGameMeta = {
    title: "Neon Cube Jump",
    tagline: "Every jump flips the field. Land on the set you make.",
    description:
-      "Neon cubes float over a violet void in two sets, square and triangle, and only one set is solid at a time: every jump flips them, so you plan each jump to land on the set it creates. Walk off an edge without flipping, park sliding cubes, sync to blinking ring cubes, switch lasers with your jumps, then out-think Flipframe, a giant built from the cubes themselves. Pick Riko, Nami, Kiro, Zuno or Vexa.",
+      "Neon cubes float over a violet void in two sets, square and triangle, and only one set is solid at a time: every jump flips them, so you plan each jump to land on the set it creates. Walk off an edge without flipping, park sliding cubes, sync to blinking ring cubes, switch lasers with your jumps, then out-think Flipframe, a giant built from the cubes themselves. Pick Riko, Nyla, Kiro, Zuno or Vexa.",
    order: 83,
    status: "live",
    collection: "rollheroes",

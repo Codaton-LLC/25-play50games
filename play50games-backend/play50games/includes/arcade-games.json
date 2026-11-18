@@ -1297,7 +1297,7 @@
       ]
     },
     "wall-run-temple": {
-      "title": "Wall Run Temple",
+      "title": "Cliff Glyph Run",
       "kind": "time",
       "max_score": 13720,
       "min_duration_ms": 12800,
@@ -1308,7 +1308,7 @@
         { "title": "Training Wall", "max_score": 13720, "min_duration_ms": 12800, "max_duration_ms": 150000, "time_base_ms": 150000 },
         { "title": "Double Wall", "max_score": 16570, "min_duration_ms": 14300, "max_duration_ms": 180000, "time_base_ms": 180000 },
         { "title": "Column Hall", "max_score": 19680, "min_duration_ms": 13200, "max_duration_ms": 210000, "time_base_ms": 210000 },
-        { "title": "Broken Temple", "max_score": 22640, "min_duration_ms": 13600, "max_duration_ms": 240000, "time_base_ms": 240000 },
+        { "title": "Broken Ruins", "max_score": 22640, "min_duration_ms": 13600, "max_duration_ms": 240000, "time_base_ms": 240000 },
         { "title": "Master Wall Run", "max_score": 29300, "min_duration_ms": 7000, "max_duration_ms": 300000, "time_base_ms": 300000 }
       ]
     },
@@ -1325,11 +1325,11 @@
         { "title": "Mushroom Garden", "max_score": 32460, "min_duration_ms": 5400, "max_duration_ms": 330000, "time_base_ms": 330000 },
         { "title": "Ice Table", "max_score": 35850, "min_duration_ms": 1500, "max_duration_ms": 360000, "time_base_ms": 360000 },
         { "title": "Multiball", "max_score": 38750, "min_duration_ms": 2500, "max_duration_ms": 390000, "time_base_ms": 390000 },
-        { "title": "Rollo's Table", "max_score": 40680, "min_duration_ms": 13200, "max_duration_ms": 420000, "time_base_ms": 420000 }
+        { "title": "Gristle's Table", "max_score": 40680, "min_duration_ms": 13200, "max_duration_ms": 420000, "time_base_ms": 420000 }
       ]
     },
     "temple-coin-rush": {
-      "title": "Temple Coin Rush",
+      "title": "Ruin Coin Rush",
       "kind": "points",
       "max_score": 480,
       "min_duration_ms": 1000,
@@ -1338,11 +1338,11 @@
       "max_pps": 12,
       "enabled": true,
       "levels": [
-        { "title": "Temple Entry", "max_score": 480, "min_duration_ms": 1000, "max_duration_ms": 120000, "base": 21, "max_pps": 12 },
+        { "title": "Ruin Entry", "max_score": 480, "min_duration_ms": 1000, "max_duration_ms": 120000, "base": 21, "max_pps": 12 },
         { "title": "Coin Hall", "max_score": 610, "min_duration_ms": 1000, "max_duration_ms": 130000, "base": 36, "max_pps": 14 },
         { "title": "Broken Floors", "max_score": 710, "min_duration_ms": 1000, "max_duration_ms": 140000, "base": 38, "max_pps": 16 },
         { "title": "Rolling Hazards", "max_score": 690, "min_duration_ms": 1000, "max_duration_ms": 150000, "base": 27, "max_pps": 14 },
-        { "title": "Temple Sprint", "max_score": 910, "min_duration_ms": 1000, "max_duration_ms": 240000, "base": 38, "max_pps": 15 }
+        { "title": "Ruin Sprint", "max_score": 910, "min_duration_ms": 1000, "max_duration_ms": 240000, "base": 38, "max_pps": 15 }
       ]
     },
     "snow-slide-dash": {
@@ -1472,7 +1472,7 @@
       ]
     },
     "candy-world-runner": {
-      "title": "Candy World Runner",
+      "title": "Sweet Lane Runner",
       "kind": "time",
       "max_score": 7920,
       "min_duration_ms": 40800,
@@ -1537,7 +1537,7 @@
       ]
     },
     "portal-hop": {
-      "title": "Portal Hop",
+      "title": "Rift Hop",
       "kind": "time",
       "max_score": 14950,
       "min_duration_ms": 500,
@@ -1545,11 +1545,11 @@
       "time_base_ms": 150000,
       "enabled": true,
       "levels": [
-        { "title": "Two Portals", "max_score": 14950, "min_duration_ms": 500, "max_duration_ms": 150000, "time_base_ms": 150000 },
+        { "title": "Two Rifts", "max_score": 14950, "min_duration_ms": 500, "max_duration_ms": 150000, "time_base_ms": 150000 },
         { "title": "Two Pairs", "max_score": 17920, "min_duration_ms": 800, "max_duration_ms": 180000, "time_base_ms": 180000 },
-        { "title": "Moving Portals", "max_score": 20960, "min_duration_ms": 400, "max_duration_ms": 210000, "time_base_ms": 210000 },
+        { "title": "Moving Rifts", "max_score": 20960, "min_duration_ms": 400, "max_duration_ms": 210000, "time_base_ms": 210000 },
         { "title": "Cargo", "max_score": 23950, "min_duration_ms": 500, "max_duration_ms": 240000, "time_base_ms": 240000 },
-        { "title": "Portal Master", "max_score": 28370, "min_duration_ms": 16300, "max_duration_ms": 300000, "time_base_ms": 300000 }
+        { "title": "Rift Master", "max_score": 28370, "min_duration_ms": 16300, "max_duration_ms": 300000, "time_base_ms": 300000 }
       ]
     },
     "space-pod-jump": {

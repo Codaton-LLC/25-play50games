@@ -5,7 +5,7 @@
 //
 // Power (E / Enter / the Power button):
 // - Riko: a dash (+12 m/s for 0.35 s) that also stretches the catch reach by 4 m while it runs.
-// - Nami: a lob: the next throw flies high over the palisade (and over the hay: it reaches what stands
+// - Nyla: a lob: the next throw flies high over the palisade (and over the hay: it reaches what stands
 //   behind the wood).
 // - Kiro: a shield (3 s): the thorn bursts over the best throwing spot and Mother Snapper's thorn
 //   volleys do not touch him (World 3's lead hero).
@@ -29,7 +29,7 @@ export interface HeroDef {
 
 export const HEROES: readonly HeroDef[] = [
    { id: "riko", name: "Riko", color: "#EF4444", power: "dash", powerLabel: "Dash", cooldownMs: 3_000 },
-   { id: "nami", name: "Nami", color: "#2563EB", power: "lob", powerLabel: "Lob throw", cooldownMs: 4_000 },
+   { id: "nami", name: "Nyla", color: "#2563EB", power: "lob", powerLabel: "Lob throw", cooldownMs: 4_000 },
    { id: "kiro", name: "Kiro", color: "#22C55E", power: "shield", powerLabel: "Shield", cooldownMs: 10_000 },
    { id: "zuno", name: "Zuno", color: "#FACC15", power: "magnet", powerLabel: "Magnet", cooldownMs: 8_000 },
    { id: "vexa", name: "Vexa", color: "#8B5CF6", power: "phase", powerLabel: "Phase throw", cooldownMs: 6_000 },

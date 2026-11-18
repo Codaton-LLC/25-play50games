@@ -32,7 +32,7 @@ export const MAX_FRAME_MS = 50;
 /** running speed round the stair (m/s) */
 export const V_RUN = 4.6;
 export const V_JUMP = 7.4;
-/** Nami's second jump */
+/** Nyla's second jump */
 export const V_JUMP2 = 7.2;
 export const GRAV = 22;
 /** a hop from pole to pole (or stair to stair) takes this long */

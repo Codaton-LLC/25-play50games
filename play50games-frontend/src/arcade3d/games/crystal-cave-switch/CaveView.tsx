@@ -5,7 +5,7 @@
 // walls of boulders (m2CaveBoulder) and the cave gates (m2CaveGate) that sink away when a room is
 // solved; the crystal switches (m2CrystalSwitch) tinted per colour with their glyph over them (filled
 // when lit, outlined while waiting; a hidden crystal stays dark until you are near); each room's beacon
-// pillar (m2CrystalBeaconPillar) with its colour order in glyphs; the orbs, Vexa's ghost walls, Nami's
+// pillar (m2CrystalBeaconPillar) with its colour order in glyphs; the orbs, Vexa's ghost walls, Nyla's
 // high crystal and the goal ring.
 import { useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";

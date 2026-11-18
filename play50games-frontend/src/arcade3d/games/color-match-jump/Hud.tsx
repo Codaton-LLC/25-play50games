@@ -22,14 +22,14 @@ import styles from "./Hud.module.css";
 
 const HINTS: Record<number, string> = {
    [HINT.match]: "Land on your own colour. Red is Riko: hop the red hexes",
-   [HINT.tag]: "Blue ahead? Tag Nami (2) in the air before you land",
+   [HINT.tag]: "Blue ahead? Tag Nyla (2) in the air before you land",
    [HINT.code]: "Land the beacon's colours in order to crack its code",
    [HINT.crown]: "Codes cracked: the crown is open. Reach it!",
    [HINT.sink]: "The rear rows are sinking: keep moving",
    [HINT.hues]: "Hexes change colour every 4 s: watch them fade",
    [HINT.glassy]: "Pale glassy hexes skid: a short wait before the next jump",
    [HINT.cores]: "Crack the code; land its last colour on the glowing core behind the golem",
-   [HINT.stomp]: "Stomp hex, jump at the golem, double-jump as Nami, tag the plate colour",
+   [HINT.stomp]: "Stomp hex, jump at the golem, double-jump as Nyla, tag the plate colour",
    [HINT.storm]: "Prism storm: take 5 shards on matching hexes and hold out 20 s",
    [HINT.fell]: "Fell! A heart is lost",
 };

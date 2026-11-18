@@ -163,7 +163,7 @@ describe("the scan mechanic", () => {
       }
    });
 
-   it("the powers hide you anywhere: Riko's dash, Kiro's bubble, Nami on the mesa; Vexa phased inside a crystal", () => {
+   it("the powers hide you anywhere: Riko's dash, Kiro's bubble, Nyla on the mesa; Vexa phased inside a crystal", () => {
       for (const hero of ["riko", "kiro", "vexa"] as const) {
          const run = createRun(1, 1, hero);
          const cv = run.course.covers[0];

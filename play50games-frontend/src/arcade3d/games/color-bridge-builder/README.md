@@ -10,7 +10,7 @@ A light puzzle across a canyon seen from above (one cell = 2 m, `levels.ts` maps
 colour beams; a beam that reaches an anchor turns every chasm cell it crosses into a light bridge of its
 colour. Where beams cross, the colour after the crossing is the mix (a union of red 1, blue 2, yellow 4):
 red + blue purple, blue + yellow green, red + yellow orange (flickers 0.8 s on / 0.8 s off), all three
-white. Only the hero of a bridge's colour walks it: Riko red, Nami blue, Zuno yellow, Vexa purple, Kiro
+white. Only the hero of a bridge's colour walks it: Riko red, Nyla blue, Zuno yellow, Vexa purple, Kiro
 green; orange and white are anyone's. The wrong hero (or the chasm, or orange in its dark beat) drops the
 hero; it is back on its last rock cell a second later.
 
@@ -18,15 +18,15 @@ hero; it is back on its last rock cell a second later.
 - Prisms turn a beam 90°; walking into one rotates it (once per push).
 - Tag (Space / the Tag button): to the hero the cell ahead needs, else the next hero. Tagging during a
   step lands the new hero on the new cell: that is how you cross a red-to-purple seam mid-bridge.
-- Powers (E / Enter / Power): Riko dashes 3 cells (gaps, cracked rock), Nami leaps 2, Zuno's magnet pulls
+- Powers (E / Enter / Power): Riko dashes 3 cells (gaps, cracked rock), Nyla leaps 2, Zuno's magnet pulls
   the prism ahead (2-4 cells) one cell closer, Vexa walks any light for 1.5 s (orange's dark beat too),
   Kiro's shield (3 s) blocks a beam at his cell.
 - Drones (L4) swallow the beam they fly through: the bridge behind them goes dark while they pass.
 
 | Level | Twist | Bot |
 |---|---|---|
-| 1 Two Switches | the card's three beats: red bridge (Riko), a dark node switched to blue (Nami), red crossing blue into purple: tag Vexa mid-bridge | 10.3 s |
-| 2 Prisms | bump a prism to aim yellow (Zuno); blue crossing yellow into green (Nami then Kiro); the green ledge's sticker | 10.6 s |
+| 1 Two Switches | the card's three beats: red bridge (Riko), a dark node switched to blue (Nyla), red crossing blue into purple: tag Vexa mid-bridge | 10.3 s |
+| 2 Prisms | bump a prism to aim yellow (Zuno); blue crossing yellow into green (Nyla then Kiro); the green ledge's sticker | 10.6 s |
 | 3 Split Bridge | red + yellow = flickering orange; two half-bridges side by side; yellow (orange) or blue (purple) at the top; Vexa's phase over the flicker gap to the shard | 10.7 s |
 | 4 Timed Bridge | two drones over two bridges; a node lit 10 s from a far switch; Riko's dash through cracked rock to the shard | 12.9 s |
 | 5 Canyon Gate | a purple approach, then the Bridge Keeper | 18.8 s |
@@ -76,7 +76,7 @@ power / tag mashing and random input.
 
 ## Known issues / follow-ups
 
-- The levels are short puzzles (the bot crosses each in 10-19 s); Nami's leap, Zuno's magnet and Kiro's
+- The levels are short puzzles (the bot crosses each in 10-19 s); Nyla's leap, Zuno's magnet and Kiro's
   shield are in the rules and tests but no level requires them yet. Splitter prisms and the versus
   "Bridge Duel" are not built; multiplayer is a bridge crew on one canyon.
 - The loose L1-L4 floors: the orb bonus outweighs the cell-distance bound.

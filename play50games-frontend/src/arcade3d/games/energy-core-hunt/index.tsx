@@ -42,7 +42,7 @@ const definition: GameDefinition<CoreLevel> = {
       "Cores drop in waves: the next wave lands as soon as this one's share of the order is in. A core of a color that is already full (or a flickering decoy) jolts you: keep off them.",
       "WASD / arrows (or the stick) move, Space (or Jump) jumps. Some cores circle a pylon; some sit sealed in a capsule: stand by it and press E / Enter (or Action). Keep clear of the tesla coils while they spark.",
       "Order complete: the core gate opens at the far end. Walk in to finish. On level 5 jump the Core Sprite's shock rings and touch it while it is dazed.",
-      "E / Enter away from a capsule is your power: Riko dashes, Nami jumps again in the air (the orbs high over the crate stacks), Kiro's shield shrugs off sparks and shocks, Zuno's magnet pulls in the golden orbs (not the cores), Vexa phases through crates (into the crate ring).",
+      "E / Enter away from a capsule is your power: Riko dashes, Nyla jumps again in the air (the orbs high over the crate stacks), Kiro's shield shrugs off sparks and shocks, Zuno's magnet pulls in the golden orbs (not the cores), Vexa phases through crates (into the crate ring).",
       "Turn the camera: drag the view (or two fingers), mouse wheel / pinch zooms, Q / C turn, R / F tilt, V recenters.",
    ],
    resultDelayMs: 1800,

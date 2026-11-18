@@ -9,7 +9,7 @@ import { V_AIR, V_JUMP, V_RUN, G, courseFor } from "./rules";
 import { inZone } from "./room";
 import { SECRETS } from "./progression";
 
-/** The longest jump anyone makes on flat ground: Nami's double, or Riko's dash in the air. */
+/** The longest jump anyone makes on flat ground: Nyla's double, or Riko's dash in the air. */
 const airtime = (vy: number) => (2 * vy) / G;
 const NAMI = V_RUN * (V_JUMP / G + V_AIR / G + Math.sqrt((2 * ((V_JUMP * V_JUMP) / 60 + (V_AIR * V_AIR) / 60)) / G));
 const RIKO = V_RUN * airtime(V_JUMP) + DASH_BOOST * (POWER_MS.dash / 1000);
@@ -75,7 +75,7 @@ describe("placement", () => {
       });
    }
 
-   it("every level has every hero's route: a cracked wall (Riko), a pencil and a ledge (Nami), a cascade (Kiro), hidden coins (Zuno), a ghost door (Vexa)", () => {
+   it("every level has every hero's route: a cracked wall (Riko), a pencil and a ledge (Nyla), a cascade (Kiro), hidden coins (Zuno), a ghost door (Vexa)", () => {
       for (const id of LEVEL_IDS) {
          const c = courseFor(id);
          expect(c.walls.length, `L${id}`).toBeGreaterThan(0);

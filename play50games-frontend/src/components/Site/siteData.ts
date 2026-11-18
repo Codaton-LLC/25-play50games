@@ -51,7 +51,7 @@ export const WORLDS: Record<WorldId, World> = {
  */
 export const SQUAD = [
    { name: "Riko", ability: "Dash", color: "#EF4444" },
-   { name: "Nami", ability: "Double Jump", color: "#2563EB" },
+   { name: "Nyla", ability: "Double Jump", color: "#2563EB" },
    { name: "Kiro", ability: "Shield", color: "#22C55E" },
    { name: "Zuno", ability: "Coin Magnet", color: "#FACC15" },
    { name: "Vexa", ability: "Phase", color: "#8B5CF6" },

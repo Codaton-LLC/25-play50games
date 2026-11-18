@@ -7,7 +7,7 @@ export const LEVELS = {
    1: { name: "Training Wall" },
    2: { name: "Double Wall" },
    3: { name: "Column Hall" },
-   4: { name: "Broken Temple" },
+   4: { name: "Broken Ruins" },
    5: { name: "Master Wall Run" },
 } as const;
 

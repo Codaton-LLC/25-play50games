@@ -16,7 +16,7 @@ The card's touch fix: with the stick at rest the hero rolls to the next note's g
 
 `levels.ts` (5 configs) · `chart.ts` (the stage geometry, the bar DSL, the songs of levels 1-4, level 5's units) · `rules.ts` (the pure, fixed-step simulation) · `bound.ts` (the score bound) · `progression.ts` (combo, points, stars, secrets, Coilstone) · `heroes.ts` · `bot.ts` (the honest bot, `?autoplay=1` in preview builds) · `Scene.tsx` (beat drums through `playSfx`) · `StageView.tsx` · `World.tsx` · `Coilstone.tsx` · `Hero.tsx` · `camera.ts` · `Hud.tsx` + CSS · `StarResult.tsx` + `levelEnd.ts` · `multiplayer.ts` + `MultiScene.tsx` + `MultiplayerHud.tsx` · `look.ts` · `assets.ts` · tests `rules`, `proof`, `orbit`, `multiplayer`, `assets`.
 
-Chart DSL (`writeBars`): a bar is 4 (or 8) slots; `gN` a note on gong N, `dN` / `DN` a drum (`D` held), `XN` a cross-stage note (Riko), `PN` a pillar note (Nami), `H` the ghost gong (Vexa), `G` the Great Gong, `!` a lantern call, `~` its answer (no ring), `^` a shockwave, `.` a rest.
+Chart DSL (`writeBars`): a bar is 4 (or 8) slots; `gN` a note on gong N, `dN` / `DN` a drum (`D` held), `XN` a cross-stage note (Riko), `PN` a pillar note (Nyla), `H` the ghost gong (Vexa), `G` the Great Gong, `!` a lantern call, `~` its answer (no ring), `^` a shockwave, `.` a rest.
 
 ## Levels (the card)
 
@@ -41,7 +41,7 @@ A failed unit repeats; the run is capped at 240 s. Only the first `PAID_UNITS` (
 ## Heroes (passive perks)
 
 - **Riko:** his dash crosses the stage in a beat (14 m/s, others roll at 9), so he alone takes the cross-stage notes worth double (`rules.test.ts` checks every cross note needs more than the roll and less than the dash).
-- **Nami:** double-jumps to the pillar-top gongs (bonus notes, 1.7 m of air).
+- **Nyla:** double-jumps to the pillar-top gongs (bonus notes, 1.7 m of air).
 - **Kiro:** his shield saves one miss or one shockwave every 20 s (the combo survives).
 - **Zuno:** his magnet pulls echo orbs from 4 m.
 - **Vexa:** phases to the ghost gong (bonus notes and the ghost chord's shard).

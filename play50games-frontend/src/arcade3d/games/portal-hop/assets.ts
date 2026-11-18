@@ -1,8 +1,8 @@
-// Portal Hop's models. The five heroes are the shared Menu 2 armadillos (menu2/heroModels.ts, each its
+// Rift Hop's models. The five heroes are the shared Menu 2 armadillos (menu2/heroModels.ts, each its
 // own GLB). This game's props live in public/models/3d/portal-hop (copied from
 // ~/.play50/hyper3d/ready/menu2/portal-hop): the entry frames, the exit frame, the anchor obelisks and
 // their pads, the void crystals (cargo and the Wyrm's body), the beacon spikes, the floating ruins and
-// the Portal Wyrm's head. The floating islands are the shared menu2 islandA-D, the colour orb menu2's
+// the Rift Serpent's head. The floating islands are the shared menu2 islandA-D, the colour orb menu2's
 // scoreOrb. Every GLB is one mesh, feet on y = 0, centred on x and z. GLB_SIZE is the real bounds
 // (assets.test.ts measures each mesh with the repo's own GLB reader).
 import { heroModelAsset } from "@/arcade3d/menu2/heroModels";

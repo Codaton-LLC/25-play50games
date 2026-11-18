@@ -27,7 +27,7 @@ export const crystalCaveSwitchMeta: ArcadeGameMeta = {
    title: "Crystal Cave Switch",
    tagline: "Strike the crystals in the beacon's order. Open the cave.",
    description:
-      "A crystal cave of linked rooms floats over a violet chasm. Each room's gate opens only when you strike its crystals in the order its beacon shows: ruby, sapphire, emerald, topaz, each with its own shape. Ride a moving slab to a crystal island, find crystals that glow only up close, beat the timers past the decoys, then crack the Hollow Prism by striking the colour codes it flashes. Pick Riko, Nami, Kiro, Zuno or Vexa.",
+      "A crystal cave of linked rooms floats over a violet chasm. Each room's gate opens only when you strike its crystals in the order its beacon shows: ruby, sapphire, emerald, topaz, each with its own shape. Ride a moving slab to a crystal island, find crystals that glow only up close, beat the timers past the decoys, then crack the Hollow Prism by striking the colour codes it flashes. Pick Riko, Nyla, Kiro, Zuno or Vexa.",
    order: 90,
    status: "live",
    collection: "rollheroes",

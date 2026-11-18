@@ -1,7 +1,7 @@
 "use client";
 
 // The active hero, animated by the shared Menu 2 animator (menu2/heroAnim): the signature ball-roll down
-// the street (Roll Dash is a ball-roll runner), uncurling for a jump, Nami's somersault, Riko's dash,
+// the street (Roll Dash is a ball-roll runner), uncurling for a jump, Nyla's somersault, Riko's dash,
 // the hurt recoil, the cheer, the intro's drop. A tag swaps the drawn hero at once (all five GLBs are
 // loaded with the level; only the active one is drawn): `HeroSwap` re-keys the animator on the new id.
 // A blob shadow sits on the street under the feet.

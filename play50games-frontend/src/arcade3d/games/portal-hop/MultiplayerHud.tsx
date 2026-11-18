@@ -1,6 +1,6 @@
 "use client";
 
-// Portal Hop's multiplayer HUD (menu2/multiplayer adoption): the "2-4 players" button on the
+// Rift Hop's multiplayer HUD (menu2/multiplayer adoption): the "2-4 players" button on the
 // hero row, the join screen while the lobby is open, the per-player chips during the runs, and the
 // podium once the result delay is over.
 import { useMemo } from "react";
@@ -61,7 +61,7 @@ export function MultiplayerHud() {
       return (
          <JoinScreen
             heroes={MP_HEROES}
-            title="Portal Hop"
+            title="Rift Hop"
             onStart={() => {
                // the intro shows one hero: a multiplayer run starts straight into the countdown
                if (arcadeStore.getState().phase === "ready") arcadeStore.getState().start();
@@ -77,7 +77,7 @@ export function MultiplayerHud() {
       return {
          ...s,
          heroId: p.heroId,
-         detail: s.finished ? `${seconds(s.timeMs ?? 0)} · ${p.score} orbs` : `${p.progress} portals · ${p.score} orbs`,
+         detail: s.finished ? `${seconds(s.timeMs ?? 0)} · ${p.score} orbs` : `${p.progress} rifts · ${p.score} orbs`,
       };
    });
    const team = mode === "coop" ? teamResult(players.map(standingOf)) : null;

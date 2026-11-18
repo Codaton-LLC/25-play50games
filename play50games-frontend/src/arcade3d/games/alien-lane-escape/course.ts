@@ -6,7 +6,7 @@
 // leaning over a lane, a rock, a hovering pod drifting into its lane (level 2), a meteor crater that only
 // forms once the meteor lands (level 3). Each cover's shadow is a 3 m strip on its lane; low covers only
 // hide a hero who slides. Around the scans: rocks to jump, low arches to slide under, goo, glow plants
-// that wash the shadows out for 3 s when brushed (level 4), and the hero routes (Nami's high mesa, Vexa's
+// that wash the shadows out for 3 s when brushed (level 4), and the hero routes (Nyla's high mesa, Vexa's
 // ghost-crystal cave, Zuno's goo trails, Kiro's goo crossings, Riko's open-ground orbs). Level 5's launch
 // road repeats until the Mothership is down. README "Levels" lists each layout.
 import type { LevelId } from "@/arcade3d/types";
@@ -25,7 +25,7 @@ export const LATERAL_MS = 1500;
 export const TELEGRAPH_MS = 1500;
 /** a cover's shadow: this strip of its lane behind it (m from the cover) */
 export const STRIP = { from: 0.5, to: 3.5 } as const;
-/** the high mesa lane (Nami) runs this high over the middle lane */
+/** the high mesa lane (Nyla) runs this high over the middle lane */
 export const MESA_Y = 2.4;
 export const ORB_Y = 1.0;
 
@@ -128,7 +128,7 @@ export interface Course {
    meteors: Meteor[];
    /** level 4's glow plants (brushed: they wash out the shadows near them for 3 s) */
    plants: { s: number; lane: number }[];
-   /** Nami's high mesa over the middle lane */
+   /** Nyla's high mesa over the middle lane */
    mesas: { s0: number; s1: number }[];
    /** Vexa's caves (lane 3) behind a ghost-crystal wall at s0 (two per level; the first holds the shard) */
    caves: { s0: number; s1: number }[];
@@ -212,7 +212,7 @@ class Builder {
       for (let i = 0; i < n; i++) this.orb(this.s + from + i * spacing, lane, h, bonus);
    }
 
-   /** Nami's high mesa over the middle lane, its orbs (and the sticker on levels 1 and 4). */
+   /** Nyla's high mesa over the middle lane, its orbs (and the sticker on levels 1 and 4). */
    mesa(from: number, len: number, sticker: boolean): void {
       const s0 = this.s + from;
       this.mesas.push({ s0, s1: s0 + len });

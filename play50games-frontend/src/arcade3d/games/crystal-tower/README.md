@@ -36,14 +36,14 @@ R / F, V.
 | 5 | Memory Tower | Four tiers with every hazard (a sliding bridge, glass, crumbling pads, bobbing crystals from tier 3, storms, two drone patrols), then the summit arena with Prism Shade (below): eight sequences in all. |
 
 Every level also has a dark crystal wall in front of a side nook (Riko's shard), a void gate in front of
-a second nook (Vexa's sticker), a sky ledge 4.4 m over a beacon pad (Nami's shard and two gems), hidden
+a second nook (Vexa's sticker), a sky ledge 4.4 m over a beacon pad (Nyla's shard and two gems), hidden
 gems in the crystal dust (Zuno), and a storm column (Kiro).
 
 ## Hero roles (every level has all five)
 
 - **Riko**: the dash (+6 m/s for 0.4 s, 3 charges a run) crosses a wide gap and shatters the dark crystal
   wall in front of a side nook. Its shard is inside.
-- **Nami**: the second jump goes up to the sky ledge (4.4 m over its pad: a plain jump tops out at 3.27 m).
+- **Nyla**: the second jump goes up to the sky ledge (4.4 m over its pad: a plain jump tops out at 3.27 m).
 - **Kiro**: the shield: shard storms, spark drones, the boss's shockwave and a wrong crystal's shove do not
   knock him (a wrong crystal still resets the sequence).
 - **Zuno**: the magnet: gems from 6 m, the hidden gems rise out of the dust, and the NEXT crystal of the
@@ -129,7 +129,7 @@ catches it once (a strike, no fall).
 
 - Stars (`menu2/stars`): clear the level, collect every main gem, and beat the target time (50, 70, 95,
   120 and 150 s). No-hit badge: never knocked (a storm, a drone, the shockwave) and never a wrong crystal.
-- Secrets (`menu2/secrets`): the void sticker (Vexa), the dark shard (Riko), the sky shard (Nami).
+- Secrets (`menu2/secrets`): the void sticker (Vexa), the dark shard (Riko), the sky shard (Nyla).
 - Flow (`menu2/combo`): a right crystal, a round, a beacon reached, a gem, a hit on Prism Shade. The link
   window is 2.5 s, x2 cap.
 
@@ -163,7 +163,7 @@ nebulae are code. `assets.test.ts` tests the fits against the measured meshes.
   (`layouts.test.ts`) and the hero-route tests (`rules.test.ts`), not by a bot run.
 - On L4 the bot's share of maxScore is 50 %: the bobbing crystals cost waiting time the floor does not
   count (the floor is honest, not tight).
-- Prism Shade is the menu2 shadow armadillo tinted violet; a dedicated dark-crystal boss GLB would suit
+- Prism Shade is the menu2 shadow pangolin tinted violet; a dedicated dark-crystal boss GLB would suit
   the Neon Cosmos better (no credits were spent).
 
 ## Claude gate (browser playtest)
@@ -172,4 +172,4 @@ nebulae are code. `assets.test.ts` tests the fits against the measured meshes.
 
 Fixed in the gate: the spire was an 8-facet flat-shaded column that, up close, filled a third of the screen as one flat purple slab (now 16 glossy facets, a weaker glow); the pads and crystals were too dark (brighter hemisphere and key light on every level).
 
-Fixed (Menu 2 polish pack): at the start of a tier the beacon post could stand between the camera and the hero while the orbit swung round. The post in the way is now left out of the frame (`camera.ts beaconBlocksView`, as Portal Hop hides an anchor); its ring and flash stay. Open: real-phone frame time not measured.
+Fixed (Menu 2 polish pack): at the start of a tier the beacon post could stand between the camera and the hero while the orbit swung round. The post in the way is now left out of the frame (`camera.ts beaconBlocksView`, as Rift Hop hides an anchor); its ring and flash stay. Open: real-phone frame time not measured.

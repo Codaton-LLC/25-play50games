@@ -3,7 +3,7 @@
 // picker chooses the LEAD (the hero who starts); the rest follow in colour-wheel order. Powers use the
 // W6 tag tuning (shorter cooldowns; a benched hero recharges twice as fast):
 // - Riko: dash (0.3 s, +8 m/s): breaks a red cracked barricade.
-// - Nami: double jump: clears a blue 3 m barrier; her high orb lines over it.
+// - Nyla: double jump: clears a blue 3 m barrier; her high orb lines over it.
 // - Kiro: shield (1.5 s): passes a green drain spray / tesla arc.
 // - Zuno: magnet (3 s, 6 m): rips the coin trail out of a yellow vault and opens it.
 // - Vexa: phase (0.8 s): through a purple ghost wall.
@@ -28,7 +28,7 @@ export interface HeroDef {
 
 export const HEROES: readonly HeroDef[] = [
    { id: "riko", name: "Riko", color: "#EF4444", power: "dash", powerLabel: "Dash", durationMs: 300, cooldownMs: 3_000, glyph: "chevron" },
-   { id: "nami", name: "Nami", color: "#2563EB", power: "doubleJump", powerLabel: "Double", durationMs: 0, cooldownMs: 0, glyph: "wave" },
+   { id: "nami", name: "Nyla", color: "#2563EB", power: "doubleJump", powerLabel: "Double", durationMs: 0, cooldownMs: 0, glyph: "wave" },
    { id: "kiro", name: "Kiro", color: "#22C55E", power: "shield", powerLabel: "Shield", durationMs: 1_500, cooldownMs: 5_000, glyph: "hexagon" },
    { id: "zuno", name: "Zuno", color: "#FACC15", power: "magnet", powerLabel: "Magnet", durationMs: 3_000, cooldownMs: 7_000, glyph: "horseshoe" },
    { id: "vexa", name: "Vexa", color: "#8B5CF6", power: "phase", powerLabel: "Phase", durationMs: 800, cooldownMs: 5_000, glyph: "spiral" },

@@ -22,7 +22,7 @@ export function starSpecFor(level: LevelId, orbTotal: number): StarSpec {
 
 /**
  * Secrets per level (placed by course.ts): the golden mitten sticker frozen in an ice cube (Riko's
- * dash breaks it), the summit-cairn shortcut flag on a high cornice (levels 2 and 4, Nami's re-aimed
+ * dash breaks it), the summit-cairn shortcut flag on a high cornice (levels 2 and 4, Nyla's re-aimed
  * jump), the hidden ledge behind the background peak (a max-speed launch, 8.5 m/s and up), and the
  * shard in the ghost-ice cave (Vexa's phase).
  */

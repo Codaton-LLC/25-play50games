@@ -4,7 +4,7 @@
 //
 // - Riko: a dash (450 ms burst, never past the top speed) that smashes a cracked fake door into the
 //   hidden side corridor (3 orbs, it skips the next 2 walls).
-// - Nami: a double jump: over the floor bars' high orb arcs, and from level 3 into the upper door row
+// - Nyla: a double jump: over the floor bars' high orb arcs, and from level 3 into the upper door row
 //   over the tall walls (a bonus orb lane).
 // - Kiro: a shield (3 s, every 20 s): it absorbs one wrong door (no bounce), the floor bars, the low
 //   beams and the flame vents.
@@ -27,7 +27,7 @@ export interface HeroDef {
 
 export const HEROES: readonly HeroDef[] = [
    { id: "riko", name: "Riko", color: "#EF4444", power: "dash", powerLabel: "Dash", cooldownMs: 6_000 },
-   { id: "nami", name: "Nami", color: "#2563EB", power: "doubleJump", powerLabel: "Double jump", cooldownMs: 1_500 },
+   { id: "nami", name: "Nyla", color: "#2563EB", power: "doubleJump", powerLabel: "Double jump", cooldownMs: 1_500 },
    { id: "kiro", name: "Kiro", color: "#22C55E", power: "shield", powerLabel: "Shield", cooldownMs: 20_000 },
    { id: "zuno", name: "Zuno", color: "#FACC15", power: "magnet", powerLabel: "Magnet", cooldownMs: 12_000 },
    { id: "vexa", name: "Vexa", color: "#8B5CF6", power: "phase", powerLabel: "Phase", cooldownMs: 10_000 },

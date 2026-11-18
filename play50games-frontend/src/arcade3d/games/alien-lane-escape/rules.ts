@@ -30,7 +30,7 @@ export const STEP_MS = 4;
 export const MAX_FRAME_MS = 50;
 /** a lane change (ms): the card's 0.18 s */
 export const LANE_MS = 180;
-/** a jump: apex 1.35 m, 0.6 s (Nami's second jump in the air reaches the mesa) */
+/** a jump: apex 1.35 m, 0.6 s (Nyla's second jump in the air reaches the mesa) */
 export const V_HOP = 9;
 export const G = 30;
 /** a jump clears a rock while this high */
@@ -478,7 +478,7 @@ function substep(run: AlienRun, ms: number, input: StepInput, first: boolean, dt
    } else r.x = tx;
    const inLane = (l: number) => Math.abs(r.x - laneX(l)) < LANE_HALF;
 
-   // the jump: buffered; Nami's second jump in the air
+   // the jump: buffered; Nyla's second jump in the air
    if (first && input.jumpPressed && !held) {
       if (r.h <= 0.001 || r.onMesa) r.bufferUntil = ms + BUFFER_MS;
       else airJump(run);
@@ -507,7 +507,7 @@ function substep(run: AlienRun, ms: number, input: StepInput, first: boolean, dt
    r.s += speedNow(run, ms) * dt;
    const b = r.s;
 
-   // up and down (the mesa holds Nami up while it runs); the beam holds you in the air
+   // up and down (the mesa holds Nyla up while it runs); the beam holds you in the air
    if (held) {
       r.h = Math.min(1.8, r.h + 3 * dt);
       r.vy = 0;

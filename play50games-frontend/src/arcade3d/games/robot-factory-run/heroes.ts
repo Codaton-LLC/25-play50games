@@ -4,7 +4,7 @@
 //
 // - Riko: a dash (12 m/s for 0.35 s): it flicks a cell beside him one belt over (a one-shot
 //   reroute), breaks cracked crates and knocks a jammed turntable free.
-// - Nami: a double jump: catwalk switches and the orb ledge.
+// - Nyla: a double jump: catwalk switches and the orb ledge.
 // - Kiro: a shield (2.5 s): through a laser gate (the short line) and past the hazards.
 // - Zuno: a magnet (3 s): a cell within 4 m hops one belt towards him; orbs fly in from 4 m.
 // - Vexa: a phase (1.6 s): through ghost crates into the maintenance shortcut.
@@ -24,7 +24,7 @@ export interface HeroDef {
 
 export const HEROES: readonly HeroDef[] = [
    { id: "riko", name: "Riko", color: "#EF4444", power: "dash", powerLabel: "Dash", cooldownMs: 5_000 },
-   { id: "nami", name: "Nami", color: "#2563EB", power: "doubleJump", powerLabel: "Double", cooldownMs: 0 },
+   { id: "nami", name: "Nyla", color: "#2563EB", power: "doubleJump", powerLabel: "Double", cooldownMs: 0 },
    { id: "kiro", name: "Kiro", color: "#22C55E", power: "shield", powerLabel: "Shield", cooldownMs: 9_000 },
    { id: "zuno", name: "Zuno", color: "#FACC15", power: "magnet", powerLabel: "Magnet", cooldownMs: 7_000 },
    { id: "vexa", name: "Vexa", color: "#8B5CF6", power: "phase", powerLabel: "Phase", cooldownMs: 8_000 },

@@ -5,7 +5,7 @@ import type { M2HeroId } from "../../menu2/heroModels";
 export const HEROES = [
    { id: "vexa" as const, name: "Vexa", color: "#a78bfa", powerLabel: "Phase · both bodies pass 0.8 s, ghost glass" },
    { id: "riko" as const, name: "Riko", color: "#ef4444", powerLabel: "Dash · breaks cracked blocks on both runways" },
-   { id: "nami" as const, name: "Nami", color: "#3b82f6", powerLabel: "Double jump · copied by the reflection" },
+   { id: "nami" as const, name: "Nyla", color: "#3b82f6", powerLabel: "Double jump · copied by the reflection" },
    { id: "kiro" as const, name: "Kiro", color: "#22c55e", powerLabel: "Shield · covers both bodies 1 s" },
    { id: "zuno" as const, name: "Zuno", color: "#facc15", powerLabel: "Magnet · orbs from both runways" },
 ];

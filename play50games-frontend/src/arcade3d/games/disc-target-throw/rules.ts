@@ -40,7 +40,7 @@ export const DISC = {
    /** things one throw can hit (targets, orbs, posts, monkeys, pods, the boss) */
    hits: 3,
    r: 0.25,
-   /** the flight height and a lob's peak (Nami: over the palisade) */
+   /** the flight height and a lob's peak (Nyla: over the palisade) */
    y: 1.1,
    lobY: 2.3,
    /** the hook: up to 35 deg over the outbound flight (18 m at 15 m/s = 1.2 s) */
@@ -132,7 +132,7 @@ export interface Hero {
    dashZ: number;
    shieldUntil: number;
    magnetUntil: number;
-   /** the next throw is a lob (Nami) or phases the ghost walls (Vexa) */
+   /** the next throw is a lob (Nyla) or phases the ghost walls (Vexa) */
    lobArmed: boolean;
    phaseArmed: boolean;
 }

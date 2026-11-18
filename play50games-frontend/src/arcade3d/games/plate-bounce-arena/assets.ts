@@ -1,4 +1,4 @@
-// Plate Bounce Arena's models. The five heroes are the shared Menu 2 heroes (menu2/heroModels.ts); Rollo
+// Plate Bounce Arena's models. The five heroes are the shared Menu 2 heroes (menu2/heroModels.ts); Gristle
 // is the shared m2ShadowArmadillo; the score orbs are the shared Menu 2 scoreOrb, the coins the shared
 // coin, the slingshot pads the shared bouncePad. Table props live in public/models/3d/plate-bounce-arena.
 // Every GLB has its feet on y = 0, centred on x and z. GLB_SIZE is the real mesh (assets.test.ts).

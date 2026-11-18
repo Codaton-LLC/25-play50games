@@ -40,7 +40,7 @@ const definition: GameDefinition<GongLevel> = {
       "A ring shrinks onto a gong: when it closes (it turns gold), press Strike (E, Enter or the Strike button). Within 45 ms is a Perfect, within 90 ms a Good: the same on every device.",
       "Leave the stick at rest and your hero rolls to the next gong by itself; the stick takes over to chase echo orbs and bonus notes. Hold Strike on a ceremony drum until its ring empties.",
       "Jump (Space) the violet shockwaves. Every struck note links the combo (x2 at most); a miss or a shockwave breaks it. Every Perfect throws out an echo orb (+20) and grows a flower round the stage.",
-      "Heroes: Riko's dash roll makes the cross-stage notes (double points), Nami double-jumps to the pillar gongs, Kiro's shield saves one miss or shockwave, Zuno's magnet pulls echo orbs, Vexa strikes the ghost gong.",
+      "Heroes: Riko's dash roll makes the cross-stage notes (double points), Nyla double-jumps to the pillar gongs, Kiro's shield saves one miss or shockwave, Zuno's magnet pulls echo orbs, Vexa strikes the ghost gong.",
       "Turn the camera: drag (or two fingers), wheel / pinch zooms, Q / C turn, R / F tilt, V recenters.",
    ],
    resultDelayMs: 1800,

@@ -1,6 +1,6 @@
 "use client";
 
-// Plate Bounce Arena: the run stepped in useRunFrame, the hall, the tilted table, the hero ball, Rollo,
+// Plate Bounce Arena: the run stepped in useRunFrame, the hall, the tilted table, the hero ball, Gristle,
 // the orbit camera on the table view and the intro. Juice: a bumper's light ring flashes with a 0.04 s
 // hit-stop and a pop, the flipper clacks with a small camera kick, the chase lights speed up with the
 // combo, a ramp shot whooshes and rings, lanterns chime, penguins thud (ice shatters), the jackpot throws

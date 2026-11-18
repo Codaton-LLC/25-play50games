@@ -1,5 +1,5 @@
 // The hero's motion writer (Hero.tsx writeHeroMotion, pure): what the shared animator gets from the run.
-// Riding a current curls the hero into the armoured ball (the signature roll), Nami's hop out of one
+// Riding a current curls the hero into the armoured ball (the signature roll), Nyla's hop out of one
 // unrolls her, a dash is the dash power, moments become one-frame events (each once).
 import { afterEach, describe, expect, it } from "vitest";
 import { createHeroMotion } from "@/arcade3d/menu2/heroAnim";
@@ -23,7 +23,7 @@ describe("writeHeroMotion", () => {
       expect(m.power).toBe(null);
    });
 
-   it("in a current the hero rolls as the ball; Nami's hop out of it unrolls her", () => {
+   it("in a current the hero rolls as the ball; Nyla's hop out of it unrolls her", () => {
       const run = createRun(1, 1, "nami");
       const f = run.course.rooms[1].solution[0].fan;
       run.world.dir[f] = dirIndex("n");
@@ -79,7 +79,7 @@ describe("writeHeroMotion", () => {
 describe("hero pick", () => {
    afterEach(() => selectHero(DEFAULT_HERO));
 
-   it("World 2's lead, Nami, is preselected; a new pick notifies once; every hero has its own GLB", () => {
+   it("World 2's lead, Nyla, is preselected; a new pick notifies once; every hero has its own GLB", () => {
       expect(DEFAULT_HERO).toBe("nami");
       expect(pickedHero()).toBe("nami");
       let calls = 0;

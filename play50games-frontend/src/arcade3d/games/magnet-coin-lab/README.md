@@ -30,7 +30,7 @@ Levels (5 / 5 / 5 / 5 / 3 rooms):
 
 | Level | Twist | Rooms |
 |---|---|---|
-| 1 Basic Magnet | the three beats: follow + bank, pull across, launch up; then pull-then-launch, a hop with Nami's shelf | 5 |
+| 1 Basic Magnet | the three beats: follow + bank, pull across, launch up; then pull-then-launch, a hop with Nyla's shelf | 5 |
 | 2 Two Poles | gates: pass as +, flip for the pad; two gates; - gate + - pad (Vexa's storage room); spark floor; gate maze | 5 |
 | 3 Moving Metal | push a block out over a rail gap and hop it; push it to a step; push it into a vent (vault shard); ride a block across a long gap; ride it into a vent | 5 |
 | 4 Drone Lab | one drone; two drones over a gap; glass vault (Zuno's sticker); the hangar (three drones + launch); drones over a gap with Riko's cracked alcove | 5 |
@@ -45,7 +45,7 @@ Levels (5 / 5 / 5 / 5 / 3 rooms):
 - P3 Core (1 hit): his core rises 4.6 m; + on a floor pad launches you into it.
 
 Hero roles: Zuno's overcharge doubles every field (coins through glass, the sticker behind glass);
-Riko's dash breaks cracked glass (spare coins in L4) and makes a 1.5x launch; Nami's double jump
+Riko's dash breaks cracked glass (spare coins in L4) and makes a 1.5x launch; Nyla's double jump
 (always on) reaches the spare-coin shelf in L1; Kiro's shield crosses spark floors and takes one hit;
 Vexa phases through ghost walls (the storage-room shard in L2).
 

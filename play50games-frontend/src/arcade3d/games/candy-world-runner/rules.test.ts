@@ -1,4 +1,4 @@
-// Candy World Runner's rules (README "Rules" and "Server limits and why they hold"): the road's shape,
+// Sweet Lane Runner's rules (README "Rules" and "Server limits and why they hold"): the road's shape,
 // the size mechanic, the twists, the scoring hand-off, the proof's bound and its guards (never faster
 // than the level's speed, random and spam players), and the honest bot through the real store.
 import { describe, expect, it } from "vitest";

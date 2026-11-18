@@ -41,7 +41,7 @@ const definition: GameDefinition<TrialSpec> = {
       "The corridor is made of sections, each one trial: jump the pads, pass the rings in order, charge a colour on a switch and take the door of that colour, hop the laser beams, outlast the rolling orbs, carry the energy core to its receptor.",
       "A section with a goal has a gate at its end: it opens when the goal is done. Fall and you are back at the section's start.",
       "On the summit the Chroma Sentinel's beacon asks: a colour (take it to him through its door), his three rings in order, or his core to his receptor. Jump his sweeps.",
-      "Power (E, Enter, or the Power button): Riko's dash (3 a run) shatters the crystal wall, Nami jumps again, Kiro's shield, Zuno's magnet pulls gems and the core, Vexa phases through the void gate.",
+      "Power (E, Enter, or the Power button): Riko's dash (3 a run) shatters the crystal wall, Nyla jumps again, Kiro's shield, Zuno's magnet pulls gems and the core, Vexa phases through the void gate.",
       "Turn the camera: drag the view (or two fingers), mouse wheel / pinch zooms, Q / C turn, R / F tilt, V recenters. Up on the stick runs away from the camera.",
    ],
    resultDelayMs: 1500,

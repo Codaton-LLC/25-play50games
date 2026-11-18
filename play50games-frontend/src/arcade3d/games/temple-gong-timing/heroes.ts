@@ -3,7 +3,7 @@
 //
 // - Riko: his roll is a dash (14 m/s, the others 9): he crosses the stage in a beat or two, so he alone
 //   makes the cross-stage bonus notes (worth double).
-// - Nami: a second jump in the air: the high gongs on the lantern pillars are struck from up there.
+// - Nyla: a second jump in the air: the high gongs on the lantern pillars are struck from up there.
 // - Kiro: his shield (World 3's lead hero perk) absorbs one shockwave, or saves the combo from one miss;
 //   it recharges in 20 s.
 // - Zuno: his magnet pulls the echo orbs (the green orbs a Perfect throws out) from 4 m.
@@ -23,7 +23,7 @@ export interface HeroDef {
 
 export const HEROES: readonly HeroDef[] = [
    { id: "riko", name: "Riko", color: "#EF4444", power: "dash", powerLabel: "Dash roll" },
-   { id: "nami", name: "Nami", color: "#2563EB", power: "doubleJump", powerLabel: "Double" },
+   { id: "nami", name: "Nyla", color: "#2563EB", power: "doubleJump", powerLabel: "Double" },
    { id: "kiro", name: "Kiro", color: "#22C55E", power: "shield", powerLabel: "Shield" },
    { id: "zuno", name: "Zuno", color: "#FACC15", power: "magnet", powerLabel: "Magnet" },
    { id: "vexa", name: "Vexa", color: "#8B5CF6", power: "phase", powerLabel: "Phase" },

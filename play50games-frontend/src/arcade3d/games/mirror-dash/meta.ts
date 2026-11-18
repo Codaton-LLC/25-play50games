@@ -18,7 +18,7 @@ export const mirrorDashMeta: ArcadeGameMeta = {
    title: "Mirror Dash",
    tagline: "One input, two runners: your hero and its glass reflection, where left and right are swapped.",
    description:
-      "Run two runways at once through a hall of mirrors. Your hero takes the left one, its glass reflection the right one, and every lane change you make is mirrored for it. Find the one move that saves both bodies, through merging roads, frosted glass that copies instead of mirrors, echoes that repeat you half a second late, and the Glass Sentinel at the end of the hall. Pick Vexa, Riko, Nami, Kiro or Zuno.",
+      "Run two runways at once through a hall of mirrors. Your hero takes the left one, its glass reflection the right one, and every lane change you make is mirrored for it. Find the one move that saves both bodies, through merging roads, frosted glass that copies instead of mirrors, echoes that repeat you half a second late, and the Glass Sentinel at the end of the hall. Pick Vexa, Riko, Nyla, Kiro or Zuno.",
    order: 88,
    status: "live",
    collection: "rollheroes",

@@ -58,7 +58,7 @@ export { buildCourse, courseFor };
 export const V_RUN = 6.5;
 export const G = 30;
 export const V_JUMP = 14;
-/** Nami's second jump. */
+/** Nyla's second jump. */
 export const V_AIR = 10;
 /** A knock throws you at this speed (about 0.7 m). */
 export const V_BOUNCE = 5;

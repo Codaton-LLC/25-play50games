@@ -1,7 +1,7 @@
-# Temple Coin Rush (Menu 2, game 16)
+# Ruin Coin Rush (Menu 2, game 16)
 
 World 3 "Wild Temples" (green), lead hero Kiro. Design card: `docs/menu2-super/world-3-wild-temples.md`
-"16 Temple Coin Rush" (branch `claude/m2-super-plan`). Status `dev`, order 69, a **points** game.
+"16 Ruin Coin Rush" (branch `claude/m2-super-plan`). Status `dev`, order 69, a **points** game.
 
 **Core verb: COLLECT AND PAY.** A three-lane auto-runner through a collapsing jungle temple with a
 boulder at your heels. Coins fill a purse that lasts only for the run. Every 12-18 s a toll gate
@@ -46,7 +46,7 @@ Unspent coins score double at the finish, so every gate is a choice: buy speed o
   passes falls 0.5 s later; a grounded hero on the pit falls: a life), side-ramp boulders (level 4: they
   roll across the hall once you are 13 m away). A stumble: 45 % speed for 0.7 s, the combo broken.
 - **Hero roles (the card):** Riko's dash into a gate's cracked side wall is a free toll into the fast
-  lane; Nami's double jump reaches the ledge coins over the slow lanes (out of a single jump's reach);
+  lane; Nyla's double jump reaches the ledge coins over the slow lanes (out of a single jump's reach);
   Kiro's shield walks through the fire jets and takes a knock; Zuno's magnet pulls the hidden coin veins
   out of the walls (8-10 coins each); Vexa's phase opens the ghost gate, a hidden toll-free passage with
   coins and a shard (its traps skipped). Every level has a route for each power, and every relic orb sits
@@ -56,11 +56,11 @@ Unspent coins score double at the finish, so every gate is a choice: buy speed o
 
 | Level | Speed | Gates | Twist |
 |---|---|---|---|
-| 1 Temple Entry | 8 m/s | 3 | three beats: a coin line then a 5-coin gate; a 15-coin gate no plain run can afford yet (tested); a rich stretch, then pay or bank |
+| 1 Ruin Entry | 8 m/s | 3 | three beats: a coin line then a 5-coin gate; a 15-coin gate no plain run can afford yet (tested); a rich stretch, then pay or bank |
 | 2 Coin Hall | 9 m/s | 4 | gates in pairs (a cheap and a dear toll), spike tiles on a 1.5 s rhythm |
 | 3 Broken Floors | 9.5 m/s | 4 | the rumble drops the broken tiles; the 50-coin jackpot gate |
 | 4 Rolling Hazards | 10.5 m/s | 5 | side-ramp boulders; price surges |
-| 5 Temple Sprint | 11 m/s | 2 + the arena | Coilstone, the Temple Serpent |
+| 5 Ruin Sprint | 11 m/s | 2 + the arena | Coilstone, the Temple Serpent |
 
 ## Coilstone (level 5)
 
@@ -97,7 +97,7 @@ submits it with the played time.
   coins: every hit needs its own paid arena section (one payment per plane), so the last of 9 payments
   is at section 8's plane at the earliest, and the grand gate then stands 45 m further on.
 - **The bank.** `heroBankBound(course, hero)`: every common coin the hero can reach (the veins only for
-  Zuno) plus, at each gate, the best of its lanes (a slow lane's coins, the ledge coins only for Nami,
+  Zuno) plus, at each gate, the best of its lanes (a slow lane's coins, the ledge coins only for Nyla,
   the ghost passage only for Vexa; a toll lane's coins less its price, or free for Riko at a cracked
   wall), ignoring whether it could afford the toll. `bankCap` is the best hero's; level 5's arena coins
   are for paying (`ARENA_BANK` 0).
@@ -154,7 +154,7 @@ shield, Zuno's magnet and Vexa's phase cover the team. Never ranked.
 `m2StepPyramidBg` (ready/menu2/temple-coin-rush), and `m2CoilstoneHead`, `m2CoilstoneSegment`
 (ready/menu2/shared: World 3's shared boss, 15k triangles each, the character budget). World 3's set
 already shipped with temple-lantern-jump is reused by its manifest urls (no copy): `m2TempleBeam` (the
-low beams), `m2TempleLedge` (Nami's ledges), `m2StoneBrazier` (the wall-top fires),
+low beams), `m2TempleLedge` (Nyla's ledges), `m2StoneBrazier` (the wall-top fires),
 `m2TempleTowerBg`. Code parts: the side walls (a carved-sandstone canvas texture with a jade band and
 moss), the canopy, the pillars, dividers and portcullis bars, the flames, the chevrons, the relic gems,
 the bells, the pits. GLB coins near the hero (40), cheap gold discs beyond.

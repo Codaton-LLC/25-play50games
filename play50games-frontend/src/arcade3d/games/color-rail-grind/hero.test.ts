@@ -28,7 +28,7 @@ describe("writeHeroMotion", () => {
       expect(m.vz).toBeCloseTo(0, 6);
    });
 
-   it("turns the Scene's stamps into one-frame events once each (jump, Nami's flip, hurt)", () => {
+   it("turns the Scene's stamps into one-frame events once each (jump, Nyla's flip, hurt)", () => {
       const run = createRun(1, 1, "nami");
       const m = createHeroMotion();
       const memo = createMotionMemo();

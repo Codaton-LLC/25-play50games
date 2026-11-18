@@ -2,13 +2,13 @@
 //
 // The stage is a round ruin floor (radius STAGE_R). Gongs stand on striker posts round its back, facing
 // the middle; the hero strikes a gong from its strike point (in front of it). Ceremony drums stand on the
-// floor (hold notes), Nami's high gongs sit on lantern pillars between the floor gongs, Vexa's ghost
+// floor (hold notes), Nyla's high gongs sit on lantern pillars between the floor gongs, Vexa's ghost
 // gong floats on the front of the stage, and level 5 raises the Great Gong in the middle.
 //
 // A chart is written bar by bar in a tiny language: a bar is 4 (quarters) or 8 (eighths) tokens.
 //   gN  a tap on gong N          dN  a tap on drum N        DN  a hold on drum N for two beats
 //   XN  Riko's cross-stage bonus note on gong N (worth double; only a dash gets there in time)
-//   PN  Nami's bonus note on pillar gong N (strike it in the air: a double jump)
+//   PN  Nyla's bonus note on pillar gong N (strike it in the air: a double jump)
 //   H   one note of Vexa's ghost-gong chord (bonus; all three in a level hold the shard)
 //   G   the Great Gong (level 5's last note)
 //   ~gN a silent note: no ring (the answer to a call)    !gN a call: the gong glows, nothing to hit
@@ -242,7 +242,7 @@ const LEAD_IN = [". . . ."];
 
 const SONGS: Record<1 | 2 | 3 | 4, string[]> = {
    // Slow Beat: one gong; then two alternating; then the drum hold; then all four, a cross note for
-   // Riko, a pillar note for Nami and Vexa's ghost chord in the breaks
+   // Riko, a pillar note for Nyla and Vexa's ghost chord in the breaks
    1: [
       ...LEAD_IN,
       "g1 . g1 .", "g1 . g1 .", "g1 . g1 .", "g1 . g1 .", "g1 . g1 .", "g1 . g1 .",

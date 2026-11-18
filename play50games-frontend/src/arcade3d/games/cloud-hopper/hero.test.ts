@@ -159,7 +159,7 @@ describe("cloud-hopper: the run -> the animator's motion", () => {
       expect(m.celebrating).toBe(true);
    });
 
-   it("a glide reads as a slow fall (GLIDE_FALL), the intro's drop is the ball, Nami's air jump is the somersault, Riko's dash the streak", () => {
+   it("a glide reads as a slow fall (GLIDE_FALL), the intro's drop is the ball, Nyla's air jump is the somersault, Riko's dash the streak", () => {
       const run = createRun(1, 1, "nami");
       Object.assign(run.hero, { grounded: false, support: -1, gliding: true, glideMs: 2000, y: 20 });
       const m = createHeroMotion();

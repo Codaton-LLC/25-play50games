@@ -1,5 +1,5 @@
 // The one-line coach: what to do right now. L1 teaches the three beats (walk the red bridge as Riko,
-// switch the dark node to blue for Nami, tag Vexa where red turns purple); then the coach reads the
+// switch the dark node to blue for Nyla, tag Vexa where red turns purple); then the coach reads the
 // cell ahead and the Keeper's windows. Pure: reads the world, returns a code the Scene publishes.
 import { DC, DR, T } from "./levels";
 import { HERO_MASK, heroForMask, tileAt, type Team, type World } from "./rules";
@@ -7,7 +7,7 @@ import { HERO_MASK, heroForMask, tileAt, type Team, type World } from "./rules";
 export const COACH = [
    "Light the way: walk onto a switch to colour its node",
    "A red bridge: only Riko walks red. Tag to Riko (Space / Tag)",
-   "A dark node: step on its switch to turn it blue, then cross as Nami",
+   "A dark node: step on its switch to turn it blue, then cross as Nyla",
    "Red crosses blue: purple ahead. Step on, and tag Vexa as you go",
    "Bump a prism to turn its beam toward an anchor",
    "Orange flickers: step on as it lights up, and keep going",

@@ -85,7 +85,7 @@ function line(d: Draft, from: number, lane: number, n: number, y = 0.8): void {
    for (let k = 0; k < n; k++) d.orbs.push({ d: from + k * 2.5, lane, y });
 }
 
-/** The lock reward: a line of orbs right behind a single lock (Nami's high over her barrier). */
+/** The lock reward: a line of orbs right behind a single lock (Nyla's high over her barrier). */
 function reward(d: Draft, it: Item): void {
    line(d, it.d + it.depth + 1.5, it.lane, 4, it.colour === "nami" ? 2.4 : 0.8);
 }
@@ -104,7 +104,7 @@ function level1(cfg: DashLevel): Draft {
       at += v * 4.2;
    }
    line(d, at - 20, 1, 5);
-   // beat 2: blue barriers: tag Nami and hop one
+   // beat 2: blue barriers: tag Nyla and hop one
    for (const lane of [1, 2, 0]) {
       reward(d, add(d, "lock", at, lane, "nami"));
       add(d, "sign", at + v * 2.2, (lane + 2) % 3);

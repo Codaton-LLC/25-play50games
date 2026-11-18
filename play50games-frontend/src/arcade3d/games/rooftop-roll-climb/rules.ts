@@ -65,7 +65,7 @@ export const GRIP_MS = 1600;
 export const THICKNESS = 1.4;
 /** coins: pickup radius around the hero's middle, the time bonus each, the middle's height over the feet */
 export const ORB = { pickup: 0.95, bonusMs: 400, centerY: 0.6 } as const;
-/** Nami's second jump is a flutter: at most this fast across (m/s) */
+/** Nyla's second jump is a flutter: at most this fast across (m/s) */
 export const V_FLUTTER = V_RUN / 2;
 /** a spark arc's column height (air arcs) */
 export const ARC_HEIGHT = 2.6;
@@ -333,7 +333,7 @@ export function coyoteJumpS(dy: number): number {
    return c + V_JUMP / G + Math.sqrt(r2 - c * c);
 }
 
-/** How a flight may be stretched, per hero (README proof step 4): none, Riko's dash, Nami's second jump. */
+/** How a flight may be stretched, per hero (README proof step 4): none, Riko's dash, Nyla's second jump. */
 export type FlightExtra = 0 | 1 | 2;
 export const EXTRA_NONE = 0;
 export const EXTRA_DASH = 1;
@@ -345,7 +345,7 @@ export const DASH_EXTRA_M = ((POWER_MS.dash + 1) / 1000) * (V_TOP - V_RUN);
 /**
  * The most ground a flight can cover (m) to land dy above its launch (README proof step 4): at most
  * `vh` (the take-off cap + the carry) through the coyote time (100 ms) and the longest launch (a jump,
- * or the support's updraft). With Nami's second jump, its arc on top: at most V_FLUTTER across (rules.ts
+ * or the support's updraft). With Nyla's second jump, its arc on top: at most V_FLUTTER across (rules.ts
  * tryDoubleJump caps it), landing back at the same height, 2 sqrt(2 (H - dy) / G) more air. With a
  * dash, DASH_EXTRA_M more. Negative when no launch lands that high.
  */
@@ -762,7 +762,7 @@ export const MAX_POWERED = 8;
 
 /**
  * The least ms to stand on each support, for every hero (README proof step 5): the plain heroes
- * (Kiro, Zuno, Vexa: their powers add no reach), Riko (each dash stretches one flight) and Nami (each
+ * (Kiro, Zuno, Vexa: their powers add no reach), Riko (each dash stretches one flight) and Nyla (each
  * second jump stretches one). A run that used k powers lasted at least (k - 1) cooldowns, so its
  * arrival is at least max(arrival with k powered flights, (k - 1) x cooldown). The least over all.
  */
@@ -882,7 +882,7 @@ export interface Hero extends Vec3Like {
    curled: boolean;
    /** this flight is a rolled leap (left a slope curled at ROLLED_MIN or more) */
    rolled: boolean;
-   /** the fastest this flight may go (its take-off's ground cap; the air stick may still reach V_RUN); -1 = Nami's flutter (V_FLUTTER) */
+   /** the fastest this flight may go (its take-off's ground cap; the air stick may still reach V_RUN); -1 = Nyla's flutter (V_FLUTTER) */
    flightCap: number;
    /** the uphill-most downhill distance stood at since getting onto this support (the speed cap's start) */
    slopeMin: number;
@@ -904,7 +904,7 @@ export interface Hero extends Vec3Like {
    dashX: number;
    dashZ: number;
    dashSpeed: number;
-   /** Nami's extra jump is still available this flight */
+   /** Nyla's extra jump is still available this flight */
    airJump: boolean;
    /** feet may not go above this on the current flight (a double jump cannot add reach) */
    apexCap: number;
@@ -1231,7 +1231,7 @@ export function heroSpeed(h: Hero): number {
 }
 
 /**
- * Nami's second jump. The new apex is capped at the flight's existing apexCap, so it cannot reach a
+ * Nyla's second jump. The new apex is capped at the flight's existing apexCap, so it cannot reach a
  * platform a single jump (or the updraft that started the flight) could not already reach.
  */
 function tryDoubleJump(run: RoofRun, ms: number): boolean {
@@ -1250,7 +1250,7 @@ function tryDoubleJump(run: RoofRun, ms: number): boolean {
    return true;
 }
 
-/** Fire the run's hero power if it is off cooldown. A press that cannot fire (Nami on the ground) does not start the cooldown. */
+/** Fire the run's hero power if it is off cooldown. A press that cannot fire (Nyla on the ground) does not start the cooldown. */
 function tryPower(run: RoofRun, ms: number, mx: number, mz: number): void {
    if (ms < run.powerReadyAt) return;
    const def = heroById(run.heroId);

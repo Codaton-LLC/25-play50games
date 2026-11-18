@@ -26,7 +26,7 @@ export const cloudHopperMeta: ArcadeGameMeta = {
    slug: "cloud-hopper",
    title: "Cloud Hopper",
    tagline: "Cross a sinking cloud sea before sunset. Glide on feathers.",
-   description: "Hop across a drifting cloud sea as a Scale Squad pangolin: every cloud sinks under you, feathers buy glide time, wind bands push you. Pick Riko, Nami, Kiro, Zuno or Vexa and reach the rainbow bridge before the sun sets.",
+   description: "Hop across a drifting cloud sea as a Scale Squad pangolin: every cloud sinks under you, feathers buy glide time, wind bands push you. Pick Riko, Nyla, Kiro, Zuno or Vexa and reach the rainbow bridge before the sun sets.",
    order: 55,
    status: "live",
    collection: "rollheroes",

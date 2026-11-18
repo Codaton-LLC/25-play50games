@@ -40,7 +40,7 @@ const definition: GameDefinition<LabLevel> = {
       "Walk past a coin pile and the coins follow you as a swarm. They lag behind, and they fall into pits.",
       "Tap Action (E, Enter, or Flip) to switch between + (a ring) and - (a bar). An opposite pad pulls you, a matching floor pad launches you.",
       "Gates let one sign through, and your coins carry your sign. Metal blocks slide away from a matching sign and towards an opposite one.",
-      "Hold Action for your hero power: Zuno's overcharge, Riko's dash, Kiro's shield, Vexa's phase. Nami double-jumps any time.",
+      "Hold Action for your hero power: Zuno's overcharge, Riko's dash, Kiro's shield, Vexa's phase. Nyla double-jumps any time.",
       "Turn the camera: drag the view (or two fingers), mouse wheel / pinch zooms, Q / C turn, R / F tilt, V recenters.",
    ],
    resultDelayMs: 1800,

@@ -24,7 +24,7 @@ You climb ancient stone poles by running round their spiral stairs: every lap li
 | 4 Fast Tower | one wide tower (core 2.4 m), four stairs at 3.0 / 3.6 / 4.2 / 4.8 m a lap | push in + Jump onto a steeper stair; spike collars ride up and down the steep ones | 36 m | 130 s |
 | 5 Spin Master | the central pole, two side poles, the ghost pole | the boss | 18 m | 170 s |
 
-Each level has a gated route or reward for every hero (never a hard block): **Riko** dashes through the cracked urn on the stair (its orb), **Nami** double-jumps to the orb floating 2.3 m over the steps (a single jump peaks at 1.24 m), **Kiro** shields into the still spore veil for the orb inside it (the veil hurts nobody; the timed vents do, and the shield stops them, the sweepers and the spikes), **Zuno**'s magnet pulls the orb out of the hollow pole from 6 m, **Vexa** phases to hop onto the translucent ghost pole whose stair leads to the colour shard.
+Each level has a gated route or reward for every hero (never a hard block): **Riko** dashes through the cracked urn on the stair (its orb), **Nyla** double-jumps to the orb floating 2.3 m over the steps (a single jump peaks at 1.24 m), **Kiro** shields into the still spore veil for the orb inside it (the veil hurts nobody; the timed vents do, and the shield stops them, the sweepers and the spikes), **Zuno**'s magnet pulls the orb out of the hollow pole from 6 m, **Vexa** phases to hop onto the translucent ghost pole whose stair leads to the colour shard.
 
 ### Boss: Coilstone, the Temple Serpent (level 5)
 

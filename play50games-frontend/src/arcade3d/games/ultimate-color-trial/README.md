@@ -40,14 +40,14 @@ R / F, V recenters.
 | 4 | Mixed Trial | fast runway (3 beams, 4 m/s), tight sliding pads (r 1.55), 3 door rows, 7 rings (3 high), round (4 orbs, 10 s), core (3 orbs) | Everything, harder. |
 | 5 | Grand Hero Trial | pads, runway, 6 rings, 2 door rows, round (12 s), core, then the Sentinel's arena | The finale: every section, then the boss. |
 
-Every level also has a crystal wall nook (Riko), a void gate nook (Vexa), a sky ledge 4.4 m up (Nami),
+Every level also has a crystal wall nook (Riko), a void gate nook (Vexa), a sky ledge 4.4 m up (Nyla),
 hidden gems off the trail (Zuno) and orbs to shrug off (Kiro).
 
 ## Hero roles (every level has all five)
 
 - **Riko**: the dash (+6 m/s for 0.4 s, 3 charges a run) shatters the crystal wall in front of a side nook
   (its shard is inside) and catches a sliding pad.
-- **Nami**: the second jump reaches the sky ledge (a flat jump peaks at 3.27 m, the ledge is 4.4 m) and
+- **Nyla**: the second jump reaches the sky ledge (a flat jump peaks at 3.27 m, the ledge is 4.4 m) and
   its shard, and makes the high rings easy.
 - **Kiro**: the shield (3 s): beams and orbs do not knock him, so he keeps the core and the no-hit badge
   and walks through level 1's guard orb to its gem.
@@ -138,7 +138,7 @@ every level.
 
 Three stars (`menu2/stars`): the win, every main gem, the level's target time (`starTargetMs`). Three
 secrets per level (`SECRETS`): the void-gate sticker (Vexa), the crystal-wall shard (Riko), the sky shard
-(Nami). The flow meter (`COMBO`: 2.5 s window, +0.25 per link, cap x2) links rings, doors, sections, gems,
+(Nyla). The flow meter (`COMBO`: 2.5 s window, +0.25 per link, cap x2) links rings, doors, sections, gems,
 cores and boss hits. Juice (`Scene.tsx`): a chime per ring, the switch's colour burst, a door's whoosh, the
 exit gate lifting, laser and orb knocks, the round's start, the core picked up and delivered, the
 Sentinel's wake, sweeps, hits and his slow-mo tumble.

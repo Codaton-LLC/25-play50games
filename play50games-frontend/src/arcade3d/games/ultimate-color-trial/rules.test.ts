@@ -288,7 +288,7 @@ describe("hero routes", () => {
       expect(tryNook(createRun(1, 1, "zuno"), "gate", true)).toBe(false);
    });
 
-   it("the sky ledge: Nami's second jump reaches it, a plain jump does not", () => {
+   it("the sky ledge: Nyla's second jump reaches it, a plain jump does not", () => {
       const c = courseFor(1);
       const ledge = c.ledge;
       for (const hero of ["zuno", "nami"] as const) {

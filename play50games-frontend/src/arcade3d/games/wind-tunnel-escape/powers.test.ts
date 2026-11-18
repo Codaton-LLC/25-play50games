@@ -30,7 +30,7 @@ function bonusOrbs(run: WindRun, hero: HeroId): number[] {
 const got = (run: WindRun, list: number[]) => list.filter((i) => run.world.collected[i]).length;
 
 describe("hero roles (level 1's side routes)", () => {
-   it("Nami's double jump reaches the 3.5 m shelf and its orbs; a plain jump does not", () => {
+   it("Nyla's double jump reaches the 3.5 m shelf and its orbs; a plain jump does not", () => {
       for (const hero of ["nami", "riko"] as HeroId[]) {
          const run = createRun(1, 1, hero);
          const orbs = bonusOrbs(run, "nami");

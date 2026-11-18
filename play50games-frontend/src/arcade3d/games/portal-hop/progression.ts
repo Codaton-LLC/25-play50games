@@ -1,4 +1,4 @@
-// Portal Hop's Menu 2 game structure (menu2/stars, combo, secrets, boss, progress). Plain data and tiny
+// Rift Hop's Menu 2 game structure (menu2/stars, combo, secrets, boss, progress). Plain data and tiny
 // pure helpers; rules.ts uses the combo, the secrets and the boss, Scene.tsx the stars and progress.
 import type { LevelId } from "../../types";
 import type { ComboConfig } from "../../menu2/combo/combo";
@@ -24,28 +24,28 @@ export function starSpecFor(level: LevelId, orbTotal: number): StarSpec {
 /**
  * The card's secrets, in the order rules.ts collects them: Vexa's colour shard behind a frame (phase
  * through it instead of being teleported), "Terminal Velocity" (come out of an exit at 18 m/s or more),
- * "Portal Economy" (finish with no more anchor switches than the level's par) and, where a level has
+ * "Rift Economy" (finish with no more anchor switches than the level's par) and, where a level has
  * one, the hidden anchor that only shows from one spot. Secrets never add score.
  */
 export const SECRETS: Record<LevelId, readonly SecretSpec[]> = {
    1: [
       { id: "ghost-frame", kind: "shard", name: "Behind the frame", hero: "vexa" },
       { id: "terminal", kind: "sticker", name: "Terminal Velocity" },
-      { id: "economy", kind: "sticker", name: "Portal Economy" },
+      { id: "economy", kind: "sticker", name: "Rift Economy" },
    ],
    2: [
       { id: "ghost-frame", kind: "shard", name: "Behind the frame", hero: "vexa" },
       { id: "hidden-anchor", kind: "sticker", name: "The Hidden Anchor" },
-      { id: "economy", kind: "sticker", name: "Portal Economy" },
+      { id: "economy", kind: "sticker", name: "Rift Economy" },
    ],
    3: [
       { id: "ghost-frame", kind: "shard", name: "Behind the frame", hero: "vexa" },
       { id: "terminal", kind: "sticker", name: "Terminal Velocity" },
-      { id: "economy", kind: "sticker", name: "Portal Economy" },
+      { id: "economy", kind: "sticker", name: "Rift Economy" },
    ],
    4: [
       { id: "ghost-frame", kind: "shard", name: "Behind the frame", hero: "vexa" },
-      { id: "economy", kind: "sticker", name: "Portal Economy" },
+      { id: "economy", kind: "sticker", name: "Rift Economy" },
    ],
    5: [
       { id: "ghost-frame", kind: "shard", name: "Behind the frame", hero: "vexa" },
@@ -59,7 +59,7 @@ export function secretIndex(level: LevelId, id: string): number {
 }
 
 /**
- * Level 5's boss: the Portal Wyrm, a long serpent of void glass (m2PortalWyrmBoss head, m2VoidCrystal
+ * Level 5's boss: the Rift Serpent, a long serpent of void glass (m2PortalWyrmBoss head, m2VoidCrystal
  * body segments) that swims through YOUR portals. Six plates:
  * P1 "Bonk it on a beacon" (hp 6 -> 3): each window it dives into the west frame and comes out of pair
  *    A's exit; open that exit facing an intact beacon spike and it bonks its head (the spike shatters).
@@ -72,7 +72,7 @@ export function secretIndex(level: LevelId, id: string): number {
  */
 export const WYRM: BossConfig = {
    id: "portal-wyrm",
-   name: "Portal Wyrm",
+   name: "Rift Serpent",
    maxHp: 6,
    introMs: 1500,
    transitionMs: 1600,

@@ -201,7 +201,7 @@ describe("hero powers", () => {
       expect(colOf(n.hero.x)).toBe(6);
    });
 
-   it("Nami's double jump reaches the catwalk (2.2 m); a plain jump does not", () => {
+   it("Nyla's double jump reaches the catwalk (2.2 m); a plain jump does not", () => {
       for (const [hero, up] of [["nami", true], ["kiro", false]] as const) {
          const run = createRun(1, 1, hero);
          // L1's catwalk (5,1)-(6,1): from (5,2) north

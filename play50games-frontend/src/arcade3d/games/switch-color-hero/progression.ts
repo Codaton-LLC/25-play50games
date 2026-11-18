@@ -18,7 +18,7 @@ export function starSpecFor(level: LevelId, orbTotal: number): StarSpec {
 }
 
 /**
- * Secrets, the same three on every level: 0 the high prism over a gap (Nami's double jump); 1 the colour
+ * Secrets, the same three on every level: 0 the high prism over a gap (Nyla's double jump); 1 the colour
  * streak sticker (8 true gates in a row); 2 the ghost lane shard behind an energy block (Vexa's phase,
  * or Riko's dash).
  */

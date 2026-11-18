@@ -43,7 +43,7 @@ describe("the orbit faces along the docks", () => {
       }
    });
 
-   it("the intro and the play camera are finite, and Nami is the default", () => {
+   it("the intro and the play camera are finite, and Nyla is the default", () => {
       const course = courseFor(1);
       const play = playCamera(course, 16 / 9);
       expect(play.position.every((n) => Number.isFinite(n))).toBe(true);

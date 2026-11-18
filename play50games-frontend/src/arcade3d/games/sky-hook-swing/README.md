@@ -24,7 +24,7 @@ and let go at the peak to fly to the next one. The rope is an analytic pendulum 
   behind the hero (`camera.ts SWING_ORBIT`), so screen-up walks along the docks toward the rings and a
   swing reads as an arc with depth; a portrait phone leads less so the hero stays centred;
   it pulls back on a big, fast arc. Movement and aim are camera-relative (`StepInput.yaw`).
-- Hero choice: the shared picker on the start card, the pause menu and the result; Nami (W2's lead) is
+- Hero choice: the shared picker on the start card, the pause menu and the result; Nyla (W2's lead) is
   preselected.
 
 ## Files
@@ -71,7 +71,7 @@ Every level is a chain of beats at the spacing the swing was tuned on (a rest de
 | Hero | Power | Pocket |
 |---|---|---|
 | Riko | dash out of a release, 6 m straight | a cracked crate stack on a side deck with orbs packed inside: only the dash breaks in |
-| Nami | a second jump in the air | a high ledge beside a rest deck (over one jump, under two) with an orb loop |
+| Nyla | a second jump in the air | a high ledge beside a rest deck (over one jump, under two) with an orb loop |
 | Kiro | shield 2.5 s | a spark line on an airship cable (level 5: cannon smoke) with orbs strung on it |
 | Zuno | magnet 6 m | an orb string in the clouds under a swing's lowest point, out of reach of any hand |
 | Vexa | phase 1.6 s | a ghost hull round a hidden inner deck (orbs and the sticker); she walks back out |

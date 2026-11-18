@@ -7,7 +7,7 @@
 // bonus, never required:
 // - Riko: a dash in the air after a release (+9 m/s along the flight for 350 ms): a second impulse that
 //   stretches a short swing to the next vine.
-// - Nami: a double jump on Jump in the air (once a flight): up to the high canopy leaf and its emeralds.
+// - Nyla: a double jump on Jump in the air (once a flight): up to the high canopy leaf and its emeralds.
 // - Kiro: a shield (3 s): fruit pods, snapper bites and the King's swing do not knock him off.
 // - Zuno: a magnet (3 s): emeralds and orbs fly to him from 6 m.
 // - Vexa: a phase (3 s): she walks through the ghost-root wall into the trunk hollow (the shard).
@@ -24,13 +24,13 @@ export interface HeroDef {
    power: PowerId;
    /** short label on the picker and the HUD */
    powerLabel: string;
-   /** ms before the power can fire again (0 for Nami: a free double jump) */
+   /** ms before the power can fire again (0 for Nyla: a free double jump) */
    cooldownMs: number;
 }
 
 export const HEROES: readonly HeroDef[] = [
    { id: "riko", name: "Riko", color: "#EF4444", power: "dash", powerLabel: "Dash", cooldownMs: 3_000 },
-   { id: "nami", name: "Nami", color: "#2563EB", power: "doubleJump", powerLabel: "Double jump", cooldownMs: 0 },
+   { id: "nami", name: "Nyla", color: "#2563EB", power: "doubleJump", powerLabel: "Double jump", cooldownMs: 0 },
    { id: "kiro", name: "Kiro", color: "#22C55E", power: "shield", powerLabel: "Shield", cooldownMs: 9_000 },
    { id: "zuno", name: "Zuno", color: "#FACC15", power: "magnet", powerLabel: "Magnet", cooldownMs: 9_000 },
    { id: "vexa", name: "Vexa", color: "#8B5CF6", power: "phase", powerLabel: "Phase", cooldownMs: 8_000 },

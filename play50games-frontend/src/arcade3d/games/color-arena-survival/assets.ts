@@ -1,7 +1,7 @@
 // Color Arena Survival's models. The five heroes are the shared Menu 2 armadillos (menu2/heroModels.ts,
 // each its own GLB). This game's own: the Prism Keeper (m2PrismArenaBoss, from the user's new Hyper3D
 // batch in p50-assets/hyper3d-new, optimized here with tools/hyper3d's optimizer: 15k triangles, 1024 px
-// webp, no credits spent) and the colour beacon (m2ColorBeacon, the same Hyper3D prop Portal Hop uses,
+// webp, no credits spent) and the colour beacon (m2ColorBeacon, the same Hyper3D prop Rift Hop uses,
 // copied in), the floor tile (m2SurvivalFloorTile, the card's recolourable tile, tinted per tile) and the
 // safe marker (m2SafeMarker), both from ready/menu2/color-arena-survival. Shared menu2: the fortress gate
 // (the backdrop), islands B-D (drifting decor) and the colour orb. The arena rim, the pit, the sweeper bar

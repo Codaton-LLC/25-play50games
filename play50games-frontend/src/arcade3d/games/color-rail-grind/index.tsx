@@ -42,7 +42,7 @@ const definition: GameDefinition<RailLevel> = {
       "A track switch ahead lights up 1.5 s before you reach it: press E / Enter (or tap the view) to throw it and take its branch. Orb branches and shortcuts pay; dead ends hit a buffer stop (3 s lost).",
       "Jump (Space / up) the gaps and through the grind rings; crouch (S / down) downhill for speed. A missed gap costs 2 s on the hook.",
       "Each orb takes 0.15 s off your time, each ring 0.1 s, and riding the rails 90 % of the run relights the lamps (1.5 s more).",
-      "Power (E / Enter with no switch lit, or the Power button): Riko's dash clears the long broken rail and smashes barriers, Nami double jumps to the high rails, Kiro's shield crosses icicle tunnels, Zuno's magnet rides the loop and pulls coins from the snow, Vexa phases through the ghost door.",
+      "Power (E / Enter with no switch lit, or the Power button): Riko's dash clears the long broken rail and smashes barriers, Nyla double jumps to the high rails, Kiro's shield crosses icicle tunnels, Zuno's magnet rides the loop and pulls coins from the snow, Vexa phases through the ghost door.",
       "Turn the camera: drag the view (two fingers on touch), mouse wheel / pinch zooms, Q / C turn, R / F tilt, V recenters.",
    ],
    resultDelayMs: 1600,

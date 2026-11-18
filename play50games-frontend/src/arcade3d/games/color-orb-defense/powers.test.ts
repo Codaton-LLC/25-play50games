@@ -1,4 +1,4 @@
-// Each hero's power (the card) and the secrets: Riko's dash outruns everyone, Nami's double jump reaches
+// Each hero's power (the card) and the secrets: Riko's dash outruns everyone, Nyla's double jump reaches
 // the pillar beacon, Kiro's shield keeps the beacon whole, Zuno's magnet blocks from farther, Vexa phases
 // through the drone; the rainbow chain and the perfect wave.
 import { describe, expect, it } from "vitest";
@@ -34,7 +34,7 @@ describe("powers", () => {
       expect(go("riko")).toBeGreaterThan(go("kiro") + 1);
    });
 
-   it("Nami's double jump reaches the pillar beacon; a single jump does not", () => {
+   it("Nyla's double jump reaches the pillar beacon; a single jump does not", () => {
       for (const [hero, want] of [["nami", 1], ["riko", 0]] as const) {
          const run = createRun(1, 1, hero);
          const b = run.arena.beacon;

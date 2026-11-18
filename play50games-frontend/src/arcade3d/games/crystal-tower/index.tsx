@@ -42,7 +42,7 @@ const definition: GameDefinition<TowerSpec> = {
       "Climb the pads and touch the tier's crystals in that order. A wrong one shoves you back and the sequence starts over (step back into the beacon to see it again).",
       "A full sequence lights the next beacon up the tower. The summit crystal ends the run once every tier is done.",
       "Shard storms, spark drones and the boss's shockwave knock you; step aside, wait, or jump over it. Fall and you are back at your beacon.",
-      "Power (E, Enter, or the Power button): Riko's dash (3 a run) shatters the dark crystal wall, Nami jumps again, Kiro's shield, Zuno's magnet pulls gems and the next crystal, Vexa phases through the void gate.",
+      "Power (E, Enter, or the Power button): Riko's dash (3 a run) shatters the dark crystal wall, Nyla jumps again, Kiro's shield, Zuno's magnet pulls gems and the next crystal, Vexa phases through the void gate.",
       "Turn the camera: drag the view (or two fingers), mouse wheel / pinch zooms, Q / C turn, R / F tilt, V recenters. Up on the stick runs away from the camera.",
    ],
    resultDelayMs: 1500,

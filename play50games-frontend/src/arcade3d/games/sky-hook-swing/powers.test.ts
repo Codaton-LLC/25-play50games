@@ -40,7 +40,7 @@ function powered(level: LevelId, hero: HeroId, x: number, y: number, z: number):
 const apex = (V_JUMP * V_JUMP) / (2 * G);
 
 describe("hero roles", () => {
-   it("lists the five powers and preselects Nami", () => {
+   it("lists the five powers and preselects Nyla", () => {
       expect(HEROES.map((h) => h.power)).toEqual(["dash", "doubleJump", "shield", "magnet", "phase"]);
       expect(DEFAULT_HERO).toBe("nami");
       expect(V_DASH * (POWER_MS.dash / 1000)).toBeCloseTo(6, 5);
@@ -59,7 +59,7 @@ describe("hero roles", () => {
             const cz = (c.z0 + c.z1) / 2;
             const inside = course.orbs.filter((o) => o.kind === "bonus" && o.x > c.x0 && o.x < c.x1 && o.z > c.z0 && o.z < c.z1 && o.y > c.y0 && o.y < c.y1);
             expect(inside.length).toBeGreaterThanOrEqual(2);
-            // Nami pressed against it from the side gets nothing
+            // Nyla pressed against it from the side gets nothing
             const nami = at(level, "nami", c.x0 - 0.3, c.y0 + 0.4, cz);
             for (let i = 0; i < 20; i++) step(nami, 16, createStepInput());
             expect(nami.orbs).toBe(0);
@@ -104,7 +104,7 @@ describe("hero roles", () => {
             expect(zuno.orbs).toBeGreaterThanOrEqual(2);
          });
 
-         it("Nami: a high ledge beside a rest deck, over one jump and under a double jump, an orb loop on it", () => {
+         it("Nyla: a high ledge beside a rest deck, over one jump and under a double jump, an orb loop on it", () => {
             const ledges = course.islands.filter((s) => s.kind === "deck" && course.islands.some((d) => d.cp && d.x === s.x && s.y - d.y > apex + 0.3 && s.y - d.y < 2 * apex - 0.3));
             expect(ledges.length).toBeGreaterThanOrEqual(1);
             const l = ledges[0];

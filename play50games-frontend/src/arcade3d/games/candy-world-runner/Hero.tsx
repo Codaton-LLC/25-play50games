@@ -2,7 +2,7 @@
 
 // The runner: the picked hero's own GLB animated by the shared Menu 2 animator (menu2/heroAnim), the
 // code stand-in (Armadillo.tsx) as the fallback. Every frame the run becomes the animator's HeroMotion:
-// the run cycle at the road's speed, the hop (Nami's second hop = the somersault), the sugar-burn roll
+// the run cycle at the road's speed, the hop (Nyla's second hop = the somersault), the sugar-burn roll
 // (the armoured ball), a stumble on a size miss, the cheer at the finish. The size here is the card's
 // distinct scale (0.7 / 1.0 / 1.4), eased with a squash-and-stretch pop on each grow and shrink; the
 // lean into a lane change and the blob shadow stay here too.

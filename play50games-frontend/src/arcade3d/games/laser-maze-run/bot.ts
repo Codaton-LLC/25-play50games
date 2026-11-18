@@ -5,12 +5,12 @@
 // past a barrier on the side that stays open, and in the Vault Core's arena hold a pylon, jump its
 // sweeps and overload it while it is open. With `routes` it plays its hero's own route too: Vexa phases
 // into the cages, Zuno pulls their orbs with the magnet, Kiro shields across the live floor, Riko
-// dash-jumps the short floor, Nami double-jumps the high orbs. After a hit it starts the room again.
+// dash-jumps the short floor, Nyla double-jumps the high orbs. After a hit it starts the room again.
 import { HALF, LOW, ZONE, type Course, type Step } from "./course";
 import { BODY_R, SPEED, V_HOP, G, barrierX, bossOpen, coreSweepS, laserOn, laserS, pulseLeft, switchNear, type LaserRun, type StepInput } from "./rules";
 import { DASH_X, type HeroId } from "./heroes";
 
-/** The bot's own steps on top of the plan's: Action for the power, Nami's double hop. */
+/** The bot's own steps on top of the plan's: Action for the power, Nyla's double hop. */
 type BotStep = (Step | { t: "power"; x: number; s: number } | { t: "dashjump"; x: number; s: number } | { t: "hop2"; x: number; s: number }) & { route?: boolean };
 
 export interface Bot {

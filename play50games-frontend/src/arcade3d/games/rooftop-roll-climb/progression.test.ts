@@ -1,5 +1,5 @@
 // Menu 2 systems in Rooftop Roll Climb: stars, the flow meter's bound, the secrets and their hero gates,
-// and Ashback, the Shadow Armadillo (menu2/boss), raced and rammed on level 5's helipad arena.
+// and Ashback, the Shadow Pangolin (menu2/boss), raced and rammed on level 5's helipad arena.
 import { describe, expect, it } from "vitest";
 import { LEVEL_IDS, type LevelId } from "@/arcade3d/types";
 import { bossProblems, createBoss, phaseMarks } from "@/arcade3d/menu2/boss/boss";
@@ -116,7 +116,7 @@ describe("secrets: 1 to 3 per level, each behind its hero's gate", () => {
       }
    });
 
-   it("Nami's water-tower ledges are past a plain leap's reach from their deck, but some hero reaches each", () => {
+   it("Nyla's water-tower ledges are past a plain leap's reach from their deck, but some hero reaches each", () => {
       expect(LEDGE_GAP).toBeGreaterThan(reachMax(V_RUN, 0, 0));
       for (const id of LEVEL_IDS) {
          const c = courseFor(id);
@@ -128,7 +128,7 @@ describe("secrets: 1 to 3 per level, each behind its hero's gate", () => {
    });
 });
 
-describe("Ashback, the Shadow Armadillo (level 5)", () => {
+describe("Ashback, the Shadow Pangolin (level 5)", () => {
    it("is a valid race boss: three phases (race 2 hits, grey paint 2, helipad duel 3), a slow-mo finish", () => {
       expect(bossProblems(ASHBACK)).toEqual([]);
       expect(ASHBACK.phases.map((p) => p.id)).toEqual(["race", "paint", "duel"]);

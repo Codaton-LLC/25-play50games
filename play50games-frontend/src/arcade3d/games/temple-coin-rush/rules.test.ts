@@ -1,4 +1,4 @@
-// Temple Coin Rush rules (rules.ts): the temples (temples.ts), the purse and the tolls (pay, shut and
+// Ruin Coin Rush rules (rules.ts): the temples (temples.ts), the purse and the tolls (pay, shut and
 // pushed, the free toll, the ghost gate, the held-open lane), the sections (no lane changes, the slow
 // lane, the perfect lane), the boulder gap and the lives, the hazards (blocks, beams, jets, spikes,
 // broken tiles and the rumble, side-ramp boulders), the five hero gates, Coilstone, the score, the
@@ -146,7 +146,7 @@ describe("the temples", () => {
       expect(c.gates[0].lanes[1].price).toBe(5);
       expect(before(c.gates[0].z)).toBeGreaterThanOrEqual(10);
       expect(c.gates[1].lanes[1].price).toBe(15);
-      // the most a non-Zuno, non-Nami run can hold at the second gate: the common coins before it, the
+      // the most a non-Zuno, non-Nyla run can hold at the second gate: the common coins before it, the
       // best of the first gate's lanes (its toll lane's coins less 5, or a slow lane's low coins)
       const lane = (l: number) => c.coins.filter((q) => q.gate === 0 && q.lane === l && q.y < 2).length;
       const best0 = Math.max(lane(1) - 5, lane(0), lane(2));
@@ -430,7 +430,7 @@ describe("the hero gates", () => {
       expect(vein.filter((q) => b.collected[c.coins.indexOf(q)]).length).toBeGreaterThanOrEqual(6);
    });
 
-   it("Nami: the ledge coins over a slow lane are out of a single jump's reach and within the double jump's", () => {
+   it("Nyla: the ledge coins over a slow lane are out of a single jump's reach and within the double jump's", () => {
       const nami = botRun(1, 60, "nami");
       const kiro = botRun(1, 60, "kiro");
       const ledge = (r: TempleRun) => r.course.coins.filter((q, i) => q.y > 2 && r.collected[i]).length;

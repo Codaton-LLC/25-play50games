@@ -12,7 +12,7 @@
 //   p  the next hop cloud pulses on the 0.75 s beat (level 4)
 //   m  an orb in mid-air on the next glide gap's line (the downwind sprints of level 3)
 //   + - > <   a wind band from here: tail (40 m), head (30 m, hops only: a glide into it is half as fast), cross to +x, cross to -x (30 m)
-//   N  Nami's sun shelf beside the next glide gap (a double jump out of the glide reaches it)
+//   N  Nyla's sun shelf beside the next glide gap (a double jump out of the glide reaches it)
 //   R  Riko's storm shelf beside this cloud, behind a storm-cloud wall an air dash breaks
 //   V  Vexa's night path beside this cloud, behind a one-way ghost-cloud wall
 //   Z  Zuno's rain column beside this cloud (orbs only the magnet draws out)
@@ -284,7 +284,7 @@ class Builder {
          this.midOrbNext = false;
       }
       if (this.sunNext) {
-         // Nami's sun shelf: beside the glide line, 4.2 m over the launch (a jump's apex is 2.8 m)
+         // Nyla's sun shelf: beside the glide line, 4.2 m over the launch (a jump's apex is 2.8 m)
          this.sunNext = false;
          const side = this.flip();
          const top = round2(a.top + 4.2);

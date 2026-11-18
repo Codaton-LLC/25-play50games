@@ -6,7 +6,7 @@
 //   first (versus: a race for orbs; co-op: the team's orbs).
 // - Co-op (MODES.coop): checkpoints are shared (a fallen hero respawns on the highest lamp any friend lit), and powers
 //   combine through onAllyPower: Kiro's shield and Vexa's phase cover the team, Zuno's magnet
-//   pulls orbs for everyone. Riko's dash and Nami's double jump stay personal here. The team clears
+//   pulls orbs for everyone. Riko's dash and Nyla's double jump stay personal here. The team clears
 //   the level when every hero stands on the helipad.
 // - Versus race: first to the helipad wins; the others get finishGraceMs to finish, then the run ends.
 // A solo run never comes here: Scene.tsx keeps the solo path exactly as before, and multiplayer runs

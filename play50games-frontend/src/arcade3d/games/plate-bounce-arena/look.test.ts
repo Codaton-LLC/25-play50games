@@ -5,7 +5,7 @@ import definition from "./index";
 import { LEVEL_LOOK, chase, levelEnvironment } from "./look";
 
 describe("a light per table", () => {
-   it("warm hall, garden, ice, neon night, Rollo's stage", () => {
+   it("warm hall, garden, ice, neon night, Gristle's stage", () => {
       expect(new Set(LEVEL_IDS.map((id) => LEVEL_LOOK[id].background)).size).toBe(5);
       for (const id of LEVEL_IDS) expect(definition.levels![id - 1].environment).toEqual(levelEnvironment(id));
       expect(LEVEL_LOOK[1].lighting).toBe("indoor");

@@ -7,7 +7,7 @@
 // reach it THROWS the ember (3 s of ember); otherwise it fires the hero's power, if it is ready; in the
 // air with nothing to throw at and no power it throws a flare.
 // - Riko: a dash (+12 m/s for 500 ms, once a flight): the wide gaps, the galleries.
-// - Nami: a double jump on Jump in the air (once a flight): skips a lantern in a chain; no Action power.
+// - Nyla: a double jump on Jump in the air (once a flight): skips a lantern in a chain; no Action power.
 // - Kiro: a shield (3 s): the fire jets of the express column and the soot bats do not hurt him.
 // - Zuno: a magnet (3 s): ember sparks in the soot walls fly to him (+2 s of ember each); orbs from 6 m.
 // - Vexa: a phase (3 s): she walks through the ghost wall into the hidden lantern room (the shard).
@@ -24,13 +24,13 @@ export interface HeroDef {
    power: PowerId;
    /** short label on the picker and the HUD */
    powerLabel: string;
-   /** ms before the power can fire again (0 for Nami: a free double jump) */
+   /** ms before the power can fire again (0 for Nyla: a free double jump) */
    cooldownMs: number;
 }
 
 export const HEROES: readonly HeroDef[] = [
    { id: "riko", name: "Riko", color: "#EF4444", power: "dash", powerLabel: "Dash", cooldownMs: 4_000 },
-   { id: "nami", name: "Nami", color: "#2563EB", power: "doubleJump", powerLabel: "Double jump", cooldownMs: 0 },
+   { id: "nami", name: "Nyla", color: "#2563EB", power: "doubleJump", powerLabel: "Double jump", cooldownMs: 0 },
    { id: "kiro", name: "Kiro", color: "#22C55E", power: "shield", powerLabel: "Shield", cooldownMs: 10_000 },
    { id: "zuno", name: "Zuno", color: "#FACC15", power: "magnet", powerLabel: "Magnet", cooldownMs: 10_000 },
    { id: "vexa", name: "Vexa", color: "#8B5CF6", power: "phase", powerLabel: "Phase", cooldownMs: 9_000 },

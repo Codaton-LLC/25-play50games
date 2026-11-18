@@ -3,7 +3,7 @@
 // up, let go to sink, a Jump press at the surface leaps out), the air meter and bubble spouts, stone
 // levers that set each chamber's water level (it moves at 0.8 m/s, a closed form of rules time),
 // floating crates, the storm tide (the escape clock), steam jets, whirlpools and cave bats, the hero
-// powers (Riko's dash breaks cracked brick, Nami's breach jump, Kiro's shield, Zuno's magnet pulls
+// powers (Riko's dash breaks cracked brick, Nyla's breach jump, Kiro's shield, Zuno's magnet pulls
 // buried orbs, Vexa's phase passes ghost panels), checkpoints, losses and respawns, orbs and the
 // flow meter (time bonuses), secrets, the level 5 boss (menu2/boss), the finish, and the lower bound
 // behind the server limits. Pure and deterministic: no three.js, React, DOM, Math.random or
@@ -87,7 +87,7 @@ export const WHIRL_PULL = 3;
 /** apex heights and times (m, ms) */
 export const H_JUMP = (V_JUMP * V_JUMP) / (2 * G);
 export const APEX_MS = (1000 * V_JUMP) / G;
-/** Nami's breach jump from the surface: the speed that reaches BREACH_HEIGHT */
+/** Nyla's breach jump from the surface: the speed that reaches BREACH_HEIGHT */
 export const V_BREACH = Math.sqrt(2 * G * BREACH_HEIGHT);
 export const H_BREACH = BREACH_HEIGHT;
 /**
@@ -789,7 +789,7 @@ export interface Hero extends Vec3Like {
    dashUntil: number;
    dashX: number;
    dashZ: number;
-   /** Nami's extra jump is still available this flight */
+   /** Nyla's extra jump is still available this flight */
    airJump: boolean;
    /** feet may not go above this on the current flight (a double jump cannot add reach) */
    apexCap: number;
@@ -831,7 +831,7 @@ export interface StepEvents {
    jumped: boolean;
    /** a leap out of the water (a jump from the surface) */
    leapt: boolean;
-   /** Nami's breach jump */
+   /** Nyla's breach jump */
    breached: boolean;
    /** the hero went into the water */
    splash: boolean;
@@ -1053,7 +1053,7 @@ function freshHero(x: number, y: number, z: number, support: number): Hero {
 
 /**
  * A new run on the start block: at rest, grounded (the countdown is the start freeze). Allocates
- * everything the run will ever use. `heroId` defaults to Nami (World 2's lead hero); the Scene passes the overlay's pick.
+ * everything the run will ever use. `heroId` defaults to Nyla (World 2's lead hero); the Scene passes the overlay's pick.
  * The power is ready at the start and its cooldown resets each run.
  */
 export function createRun(seed: number, level: LevelId = 1, heroId: HeroId = DEFAULT_HERO): RuinRun {
@@ -1137,7 +1137,7 @@ function solid(run: RuinRun, i: number, ms: number): boolean {
 }
 
 /**
- * Nami's second jump in the air. Its apex is capped at the flight's existing apexCap, so it cannot
+ * Nyla's second jump in the air. Its apex is capped at the flight's existing apexCap, so it cannot
  * reach a block a single jump (or the leap that started the flight) could not already reach.
  */
 function tryDoubleJump(run: RuinRun, ms: number): boolean {

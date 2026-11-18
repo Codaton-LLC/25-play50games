@@ -26,7 +26,7 @@ export const windTunnelEscapeMeta: ArcadeGameMeta = {
    slug: "wind-tunnel-escape",
    title: "Wind Tunnel Escape",
    tagline: "Turn the fans, ride your own currents, outrun the storm.",
-   description: "Escape a storm tunnel as a Scale Squad pangolin: turn the fans and switch the vents so the currents chain across gaps and up shafts, ride them out, and stay ahead of the violet storm front. Pick Riko, Nami, Kiro, Zuno or Vexa, then jam the Gale Engine and ring the Tide Bell in the open sky.",
+   description: "Escape a storm tunnel as a Scale Squad pangolin: turn the fans and switch the vents so the currents chain across gaps and up shafts, ride them out, and stay ahead of the violet storm front. Pick Riko, Nyla, Kiro, Zuno or Vexa, then jam the Gale Engine and ring the Tide Bell in the open sky.",
    order: 59,
    status: "live",
    collection: "rollheroes",

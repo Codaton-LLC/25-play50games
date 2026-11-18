@@ -236,7 +236,7 @@ describe("hero orbs", () => {
       }
    });
 
-   it("Nami's orb floats out of a single jump's reach", () => {
+   it("Nyla's orb floats out of a single jump's reach", () => {
       for (const hero of ["nami", "kiro"] as const) {
          const r = createRun(1, 1, hero);
          const i = orbOf(1, "nami");

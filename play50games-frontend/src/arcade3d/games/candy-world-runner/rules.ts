@@ -1,4 +1,4 @@
-// Candy World Runner's rules: pure and deterministic (no three.js, React, DOM, Math.random or Date).
+// Sweet Lane Runner's rules: pure and deterministic (no three.js, React, DOM, Math.random or Date).
 // Scene.tsx calls step() from one useRunFrame; the same seed + level + hero + inputs always give the
 // same run, at any frame rate (the simulation advances in fixed STEP_MS steps).
 //
@@ -32,7 +32,7 @@ export const LANE_MS = 180;
 export const ICE_LANE_MS = 450;
 /** the sugar-burn roll: one size down per 0.6 s held */
 export const BURN_MS = 600;
-/** a hop: apex 1.35 m, 0.6 s (Nami's second hop in the air reaches the rail) */
+/** a hop: apex 1.35 m, 0.6 s (Nyla's second hop in the air reaches the rail) */
 export const V_HOP = 9;
 export const G = 30;
 /** a donut bounces a Small hero this high */
@@ -393,7 +393,7 @@ function substep(run: CandyRun, ms: number, input: StepInput, first: boolean, dt
       if (k >= 1) r.swapAt = -1;
    } else r.x = tx;
 
-   // the jump: buffered; Nami's second hop (Jump in the air)
+   // the jump: buffered; Nyla's second hop (Jump in the air)
    if (first && input.jumpPressed) {
       if (r.h <= 0.001 || r.onRail) r.bufferUntil = ms + BUFFER_MS;
       else if (run.heroId === "nami" && r.airHops < 1) {
@@ -425,7 +425,7 @@ function substep(run: CandyRun, ms: number, input: StepInput, first: boolean, dt
    r.s += speedNow(run, ms) * dt;
    const b = r.s;
 
-   // up and down (the rail holds Nami up while it runs)
+   // up and down (the rail holds Nyla up while it runs)
    if (r.onRail && !onRailSpan(run, b)) r.onRail = false;
    if (!r.onRail && (r.h > 0 || r.vy > 0)) {
       const prev = r.h;

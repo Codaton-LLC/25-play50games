@@ -39,7 +39,7 @@ describe("hero roles", () => {
       }
    });
 
-   it("Nami: a second jump in the air reaches the candy-cane rail (one jump never does)", () => {
+   it("Nyla: a second jump in the air reaches the candy-cane rail (one jump never does)", () => {
       for (const hero of ["nami", "zuno"] as HeroId[]) {
          const run = createRun(1, 1, hero);
          const r = run.course.rails[0];

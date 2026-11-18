@@ -46,7 +46,7 @@ describe("hero roles (level 1's side tracks)", () => {
       }
    });
 
-   it("Nami's second hop at the scaffold ramp lifts the cart onto the upper track: its orbs and the ember shard", () => {
+   it("Nyla's second hop at the scaffold ramp lifts the cart onto the upper track: its orbs and the ember shard", () => {
       for (const hero of ["nami", "riko"] as HeroId[]) {
          const run = createRun(1, 1, hero);
          const r = run.course.ramps[0];

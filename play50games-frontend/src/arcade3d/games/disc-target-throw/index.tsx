@@ -41,7 +41,7 @@ const definition: GameDefinition<DiscLevel> = {
       "Hold Throw (Space / the Throw button) to aim where the camera looks, push sideways to hook up to 35 degrees, and let go.",
       "Stone walls and columns bank the disc: one bank doubles a hit, two triple it. Wood stops it. One throw can break three targets.",
       "The disc swings back to where you threw it: stand on the gold ring for a clean catch (the combo). A miss drops it for 1.5 s.",
-      "Power (E, Enter or the Power button): Riko dashes for a far catch, Nami lobs over the palisade, Kiro shields the thorn zone, Zuno's magnet pulls the disc in, Vexa's disc phases the ghost walls.",
+      "Power (E, Enter or the Power button): Riko dashes for a far catch, Nyla lobs over the palisade, Kiro shields the thorn zone, Zuno's magnet pulls the disc in, Vexa's disc phases the ghost walls.",
       "Turn the camera: drag the view (or two fingers), mouse wheel / pinch zooms, Q / C turn, R / F tilt, V recenters.",
    ],
    resultDelayMs: 1800,

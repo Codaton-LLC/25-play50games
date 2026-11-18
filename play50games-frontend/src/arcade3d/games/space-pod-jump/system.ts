@@ -206,7 +206,7 @@ function level2(): Sys {
       s.line(sx, sy, tx, ty, i === 0 ? 3 : 2);
    }
    s.ring(bs[0], 2, 100 * DEG, 40 * DEG);
-   // Riko's high-orbit shard above body 3, behind a cracked panel; Nami's high bonus orbs over body 1
+   // Riko's high-orbit shard above body 3, behind a cracked panel; Nyla's high bonus orbs over body 1
    s.secrets.shard = { x: 60, y: 13.5, need: "spot", body: NONE, angle: 0 };
    s.panels.push({ x: 60, y: 11.2, r: 1.2 });
    s.ring(bs[1], 3, 80 * DEG, 10 * DEG, 4.2, "bonus");

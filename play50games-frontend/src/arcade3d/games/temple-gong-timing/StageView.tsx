@@ -4,7 +4,7 @@
 // their stone frames (m2TempleGong; level 3's ride round the stage) with their striker posts
 // (m2StrikerPost), each swinging on a hit; the timing rings (m2TimingRing) shrinking onto the next notes'
 // gongs (none for an answer to a call), turning gold inside the Perfect window; the ceremony drums
-// (m2CeremonyDrum), the lantern pillars (m2RuinLanternPillar) with Nami's small high gongs on top, Vexa's
+// (m2CeremonyDrum), the lantern pillars (m2RuinLanternPillar) with Nyla's small high gongs on top, Vexa's
 // ghost gong as a violet shimmer, the calls (a target glowing orange on its beat), the echo orbs (menu2
 // scoreOrb), the off-beat shockwaves (a violet ring running out from the middle) and the card's colour
 // return: flowers and moss grow round the rim with every Perfect.

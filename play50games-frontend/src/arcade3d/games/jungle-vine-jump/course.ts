@@ -104,7 +104,7 @@ export interface Course {
    ghost: { x: number; z: number; r: number; y0: number; y1: number };
    /** the vine that glows at the full 6 m grip (the hidden emerald vine) */
    glow: number;
-   /** Nami's high canopy pad over a platform */
+   /** Nyla's high canopy pad over a platform */
    canopy: number;
    arena: Arena | null;
    /** the goal (the last platform; level 5: the arena) */
@@ -230,7 +230,7 @@ export function courseFor(level: LevelId): Course {
    const hollow = addPad("hollow", hx, host.y, hz, 1.1, -1);
    const ghost = { x: hx, z: hz, r: 1.6, y0: host.y - 0.5, y1: host.y + 3 };
 
-   // Nami's canopy leaf: 3.4 m over the fourth route platform, a little outward
+   // Nyla's canopy leaf: 3.4 m over the fourth route platform, a little outward
    const under = routePads[Math.min(4, routePads.length - 2)];
    const out = Math.hypot(under.x, under.z) || 1;
    const canopy = addPad("canopy", under.x + (under.x / out) * 0.6, under.y + 3.4, under.z + (under.z / out) * 0.6, 1.1, -1);

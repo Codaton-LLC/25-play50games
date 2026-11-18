@@ -171,7 +171,7 @@ describe("the domino wave", () => {
 });
 
 describe("hero routes", () => {
-   it("only Nami's second jump off the pencil ramp reaches the high ledge", () => {
+   it("only Nyla's second jump off the pencil ramp reaches the high ledge", () => {
       expect(PENCIL_H + apex(V_JUMP)).toBeLessThan(LEDGE_Y);
       expect(PENCIL_H + apex(V_JUMP) + apex(V_AIR)).toBeGreaterThan(LEDGE_Y + 0.5);
       expect(apex(V_JUMP) + apex(V_AIR)).toBeLessThan(LEDGE_Y);

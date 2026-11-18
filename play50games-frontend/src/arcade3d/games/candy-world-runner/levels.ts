@@ -1,4 +1,4 @@
-// Candy World Runner's five levels: pure data (no React, no three.js). core/README.md "Levels".
+// Sweet Lane Runner's five levels: pure data (no React, no three.js). core/README.md "Levels".
 // One candy kingdom and five configurations of the same verb (SUGAR SIZE, the design card): an
 // auto-forward runner on three lanes where you eat candy coins to grow (Small -> Normal -> Big) and
 // sugar-burn roll to shrink, so you arrive at each obstacle at the size it needs. course.ts builds each

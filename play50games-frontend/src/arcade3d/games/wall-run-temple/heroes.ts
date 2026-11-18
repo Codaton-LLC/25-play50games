@@ -1,12 +1,12 @@
-// The five Color Roll Heroes (CLAUDE.md decision 5) and what each one does in Wall Run Temple (the
-// card's hero roles, docs/menu2-super/world-3-wild-temples.md "6 Wall Run Temple"). Each hero is its
+// The five Color Roll Heroes (CLAUDE.md decision 5) and what each one does in Cliff Glyph Run (the
+// card's hero roles, docs/menu2-super/world-3-wild-temples.md "6 Cliff Glyph Run"). Each hero is its
 // own GLB (menu2/heroModels.ts); the colour here is the picker swatch. The picked hero is a run option:
 // the picker (menu2/heroes HeroPicker) writes it here and the next createRun copies it.
 //
 // Action on a wall rolls the hero into ball form (spike panels pass over); in the air or on a pad it
 // fires the hero's power, if it is ready.
 // - Riko: a dash (12 m/s for 500 ms): it smashes the cracked stone panels into their orb alcoves.
-// - Nami: a double jump on Jump in the air: at the end of a run it reaches the upper wall tier.
+// - Nyla: a double jump on Jump in the air: at the end of a run it reaches the upper wall tier.
 // - Kiro: a shield (3 s, 20 s cooldown: the world's rule): the dart vents and the rams do not hurt him.
 // - Zuno: a magnet (3 s): the gold ring orbs in the cliff face fly to him from 6 m.
 // - Vexa: a phase (3 s): she walks through a ghost wall into the hidden room with the shard.
@@ -23,13 +23,13 @@ export interface HeroDef {
    power: PowerId;
    /** short label on the picker and the HUD */
    powerLabel: string;
-   /** ms before the power can fire again (0 for Nami: a free double jump) */
+   /** ms before the power can fire again (0 for Nyla: a free double jump) */
    cooldownMs: number;
 }
 
 export const HEROES: readonly HeroDef[] = [
    { id: "riko", name: "Riko", color: "#EF4444", power: "dash", powerLabel: "Dash", cooldownMs: 4_000 },
-   { id: "nami", name: "Nami", color: "#2563EB", power: "doubleJump", powerLabel: "Double jump", cooldownMs: 0 },
+   { id: "nami", name: "Nyla", color: "#2563EB", power: "doubleJump", powerLabel: "Double jump", cooldownMs: 0 },
    { id: "kiro", name: "Kiro", color: "#22C55E", power: "shield", powerLabel: "Shield", cooldownMs: 20_000 },
    { id: "zuno", name: "Zuno", color: "#FACC15", power: "magnet", powerLabel: "Magnet", cooldownMs: 10_000 },
    { id: "vexa", name: "Vexa", color: "#8B5CF6", power: "phase", powerLabel: "Phase", cooldownMs: 9_000 },

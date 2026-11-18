@@ -69,7 +69,7 @@ Units m, the show runs towards -z, the clock is whole ms (the fraction carried),
 | Hero | Power (cooldown) | What it opens |
 |---|---|---|
 | Riko | in-flight dash, +8 m/s for 500 ms = exactly 4 m, once a flight (5 s) | smashes a cracked target board; the hidden cannon behind it fires a bonus orb line |
-| Nami | double jump in flight: vy back up to 12 m/s, once a flight (2 s) | the high trapeze orbs, over the reach of any plain shot (L1: the trapeze sticker) |
+| Nyla | double jump in flight: vy back up to 12 m/s, once a flight (2 s) | the high trapeze orbs, over the reach of any plain shot (L1: the trapeze sticker) |
 | Kiro | shield 2.5 s (10 s) | flies through a smoke column with its orbs (L3: the smoke sticker in the timed jet) |
 | Zuno | magnet 3 s, 4 m (10 s) | the orb trail hidden in the tent canvas shows and flies in |
 | Vexa | phase 1.5 s (9 s) | the flat line through a ghost tent pole that everyone else lobs over (L4: the ghost-pole sticker) |
@@ -107,7 +107,7 @@ The run is a chain of rests (in a cannon, on a platform, on a balloon, off a tra
 flights. For every input:
 1. **Across:** a flight covers at most `Vh t + 1.5 t^2 / 2` (the launch's horizontal speed plus the
    nudge), plus Riko's one 4 m dash. Walls, poles and boards only end flights.
-2. **Up:** the height is at most the free arc `Vy t - G t^2 / 2` (a dive only pulls down); Nami's one
+2. **Up:** the height is at most the free arc `Vy t - G t^2 / 2` (a dive only pulls down); Nyla's one
    reset to 12 m/s is taken at its best moment (exact, the envelope is concave).
 3. **Rests:** a cannon costs its 0.4 s hit-stop and a shot of power P waits (P - 0.6) / 0.4 * 600 ms;
    a fixed / wheel / auto cannon fires its locked shot at once; a balloon hangs 350 ms then pulses;
@@ -115,7 +115,7 @@ flights. For every input:
 Every rest is a node (a rail cannon is the box its rail sweeps; hidden cannons count as open). An
 edge costs the least wait plus flight over a 40 x 50 grid of (power, pitch) cells, each cell taken at
 its fastest corner, with the target's reach (1.2 m catch, the ring, the trampoline and platform
-edges) taken off both the gap and the climb. Dijkstra from cannon 0, for plain heroes, Riko and Nami,
+edges) taken off both the gap and the climb. Dijkstra from cannon 0, for plain heroes, Riko and Nyla,
 gives the least arrival at the finish (level 5: at the stage, plus Ashbag's least defeat time,
 every window hit at its first ms = 25 900 ms). Less 2 ms per node for the whole-ms steps. The least
 duration then takes off every orb (100 ms each, bonus orbs included) and the most flow bonus
@@ -151,7 +151,7 @@ level's row matches another level's proposeLimits.
 
 - **Stars:** clear, every main orb, the target time (20 / 26 / 34 / 34 / 60 s). **Badge:** no fall and
   no bonk. The star screen adds the card's golf line: shots against par (stored, never scored).
-- **Secrets** (two a level): L1 ember shard (aim wide off beat 2) + trapeze sticker (Nami); L2 ticket
+- **Secrets** (two a level): L1 ember shard (aim wide off beat 2) + trapeze sticker (Nyla); L2 ticket
   stub on a tent wall + target-board shard (Riko); L3 rail shard + smoke sticker (Kiro); L4 one-shot
   shard (the 100 % perch) + ghost-pole sticker (Vexa); L5 ash shard under the stage's edge + the valve
   sticker over the blimp (on the chain's last arc).

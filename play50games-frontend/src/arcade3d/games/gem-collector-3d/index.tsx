@@ -44,7 +44,7 @@ const definition: GameDefinition<ArenaSpec> = {
       "Drive into a score beacon to bank the train: n links score n x n (gold counts 2), up to 400.",
       "Cross your own tail and it snaps there: the cut gems fall loose for 3 seconds.",
       "Bring your head back beside your tail without crossing it and the loop lassoes what is inside: a slime, the Glutton.",
-      "Power (E, Enter, or the Power button): Riko's dash breaks the crystal wall and snaps the train straight, Nami jumps again (the pedestal's gold), Kiro's shield guards the tail, Zuno's magnet reaches further and pulls the rim's hidden gems, Vexa's phase lets the train cross itself and opens the ghost wall.",
+      "Power (E, Enter, or the Power button): Riko's dash breaks the crystal wall and snaps the train straight, Nyla jumps again (the pedestal's gold), Kiro's shield guards the tail, Zuno's magnet reaches further and pulls the rim's hidden gems, Vexa's phase lets the train cross itself and opens the ghost wall.",
       "Turn the camera: drag the view (or two fingers), mouse wheel / pinch zooms, Q / C turn, R / F tilt, V recenters. Up on the stick rolls away from the camera.",
    ],
    resultDelayMs: 1500,

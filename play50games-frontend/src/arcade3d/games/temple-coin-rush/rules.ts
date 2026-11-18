@@ -1,4 +1,4 @@
-// Temple Coin Rush rules (the design card's COLLECT AND PAY): a three-lane auto-run along -z through a
+// Ruin Coin Rush rules (the design card's COLLECT AND PAY): a three-lane auto-run along -z through a
 // collapsing temple with a rolling boulder at your heels. Coins go into a purse that lasts only for
 // the run. Every 12-18 s a toll gate splits the path: run through a toll lane with enough coins and
 // they are spent (the gate opens onto a short, clean, coin-rich fast lane with a run boost); without
@@ -6,7 +6,7 @@
 // gains 1.5 m). Unspent coins at the finish score double, so every gate is a choice: buy speed or bank
 // points. The boulder chases at a 6 m gap that shrinks with every stumble and grows with every perfect
 // lane; when it catches you it costs a life (3 lives). Hero gates: Riko's cracked side walls (a free
-// toll), Nami's ledge coins (double jump), Kiro's shield (fire-jet pillars, knocks), Zuno's hidden coin
+// toll), Nyla's ledge coins (double jump), Kiro's shield (fire-jet pillars, knocks), Zuno's hidden coin
 // veins (magnet), Vexa's ghost gate (phase). Level 2 spike tiles, level 3 broken tiles that fall
 // behind the boulder's rumble wave, level 4 side-ramp boulders and price surges, level 5 Coilstone,
 // the Temple Serpent (menu2/boss), paid with bells and offering bowls.
@@ -39,7 +39,7 @@ export const SLOW_FACTOR = 0.9;
 export const STUMBLE = { factor: 0.45, ms: 700 } as const;
 /** sideways (m/s): a lane change of 2.4 m takes about 0.17 s */
 export const LANE_V = 14;
-/** a jump (apex about 1.29 m, 0.61 s), Nami's second jump (apex about 1.61 m more) */
+/** a jump (apex about 1.29 m, 0.61 s), Nyla's second jump (apex about 1.61 m more) */
 export const V_JUMP = 8.5;
 export const V_JUMP2 = 9.5;
 export const G = 28;
@@ -842,7 +842,7 @@ function tryPower(run: TempleRun, ms: number): void {
    ev.powered = true;
 }
 
-/** Nami's second jump in the air (once per air). */
+/** Nyla's second jump in the air (once per air). */
 function airJump(run: TempleRun): boolean {
    const h = run.hero;
    if (h.grounded || !h.airJump || heroById(run.heroId).power !== "doubleJump") return false;
@@ -906,7 +906,7 @@ function tick(run: TempleRun): void {
       tryPower(run, ms);
       run.actionMs = NONE;
    }
-   // jumping (a press buffered 130 ms), Nami's air jump, gravity, landing
+   // jumping (a press buffered 130 ms), Nyla's air jump, gravity, landing
    if (run.pressMs !== NONE) {
       if (h.grounded && ms >= h.rollUntil) {
          h.grounded = false;

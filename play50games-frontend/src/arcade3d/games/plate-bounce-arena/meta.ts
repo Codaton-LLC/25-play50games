@@ -14,7 +14,7 @@ export const plateBounceArenaMeta: ArcadeGameMeta = {
    title: "Plate Bounce Arena",
    tagline: "You are the pinball. Flip, bounce, sink the exit.",
    description:
-      "Curl up into the ball on a toy pinball table: the flippers throw you into bumpers, up ramps and onto the mushroom orbit. Light the lanterns, knock down the penguins, then sink the exit hole before your three balls run out. Pick any Scale Squad hero. Level 5 is Rollo, the shadow pangolin who steals your flippers.",
+      "Curl up into the ball on a toy pinball table: the flippers throw you into bumpers, up ramps and onto the mushroom orbit. Light the lanterns, knock down the penguins, then sink the exit hole before your three balls run out. Pick any Scale Squad hero. Level 5 is Gristle, the shadow pangolin who steals your flippers.",
    order: 78,
    status: "live",
    collection: "rollheroes",

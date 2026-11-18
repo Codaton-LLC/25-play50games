@@ -46,7 +46,7 @@ three secrets.
 - **Riko:** the dash (+7 m/s for 0.4 s, 3 charges) breaks the cracked crystal wall into the sealed
   pocket (two gold gems and the pocket shard). It also snaps the train straight behind him, so a tight
   turn is safe while it lasts.
-- **Nami:** the second jump lands on the 2.2 m pedestal (a plain jump peaks at 1.2 m) for its gold gem
+- **Nyla:** the second jump lands on the 2.2 m pedestal (a plain jump peaks at 1.2 m) for its gold gem
   and the pedestal shard.
 - **Kiro:** the shield keeps the tail safe from the frost sweepers, the slimes' and minis' bites (not
   from the hero's own crossings or a fall).
@@ -131,7 +131,7 @@ with ragged frames all stay inside the limits (`rules.test.ts`, `proof.test.ts`)
 - **Stars** (`menu2/stars`): the clear (target score / the Glutton down), all five orbs, and the clear
   reached in time (60, 75, 90, 90 and 150 s). No-cut badge: never cut, bitten or knocked.
 - **Secrets** (`menu2/secrets`): the vault sticker (Vexa), the pocket shard (Riko), the pedestal shard
-  (Nami).
+  (Nyla).
 - **Flow** (`menu2/combo`): first pickups, banks, lassos and hits chain within 3 s, ×2 cap.
 
 ## Multiplayer (1-4, `multiplayer.ts`)

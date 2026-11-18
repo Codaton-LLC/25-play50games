@@ -1,5 +1,5 @@
 // Gem Collector 3D's five vaults: the signature, every gem on open floor inside the rim (or on its
-// pedestal, in the pocket or the vault), every hero's route on every level (Riko's pocket, Nami's
+// pedestal, in the pocket or the vault), every hero's route on every level (Riko's pocket, Nyla's
 // pedestal gold, Kiro's tail hazard, Zuno's rim trail, Vexa's vault), beacons clear of the walls,
 // five orbs, three secrets, and a target the level's gems can reach.
 import { describe, expect, it } from "vitest";
@@ -35,7 +35,7 @@ describe("the vaults", () => {
          const a = arenaFor(id);
          // Riko: gold behind the cracked wall (in the pocket)
          expect(a.gems.some((g) => g.kind === "gold" && inBox(a.pocket, g.x, g.z))).toBe(true);
-         // Nami: gold on the high pedestal (above a plain jump's 1.2 m apex)
+         // Nyla: gold on the high pedestal (above a plain jump's 1.2 m apex)
          expect(a.gems.some((g) => g.kind === "gold" && g.y >= 2)).toBe(true);
          // Kiro: something that cuts the tail (a frost sweeper, slimes, or the Glutton's minis)
          expect(a.sweepers.length + a.spec.slimes.length + (a.spec.boss ? 1 : 0)).toBeGreaterThan(0);

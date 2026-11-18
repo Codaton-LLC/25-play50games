@@ -1,4 +1,4 @@
-// Temple Coin Rush's look per level (pure data, no three.js): World 3 Wild Temples, green. A carved
+// Ruin Coin Rush's look per level (pure data, no three.js): World 3 Wild Temples, green. A carved
 // sandstone temple corridor with jade inlays and moss in a jungle drained grey by Shadow Plates; the
 // colour comes back as the gates are cleared (the World 3 restore). The card's light per level: misty
 // morning (L1), green noon (L2), golden hour (L3), blue night with torches (L4), and a storm-grey sky

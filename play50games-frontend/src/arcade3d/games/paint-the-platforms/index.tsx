@@ -41,7 +41,7 @@ const definition: GameDefinition<PaintLevel> = {
       "Every tile you run over takes your hero's colour. Paint the share the level asks for (the bar at the bottom) before the timer runs out.",
       "Paint a whole row of a platform and it sets: it glows and nothing can wipe it again.",
       "Grey blots, the roller and the Paint Blob wipe unset paint back to grey. Paint blobs splash the tiles round them.",
-      "E, Enter or the Power button fires your hero: Riko dashes, Kiro's shield freezes blots and stops the roller, Zuno's magnet pulls paint blobs, Vexa phases; Nami double jumps. On level 5 the same button splats the Blob while its core is open.",
+      "E, Enter or the Power button fires your hero: Riko dashes, Kiro's shield freezes blots and stops the roller, Zuno's magnet pulls paint blobs, Vexa phases; Nyla double jumps. On level 5 the same button splats the Blob while its core is open.",
       "Turn the camera: drag the view (or two fingers), mouse wheel / pinch zooms, Q / C turn, R / F tilt, V recenters.",
    ],
    resultDelayMs: 1700,

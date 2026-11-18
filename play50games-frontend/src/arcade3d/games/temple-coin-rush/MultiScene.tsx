@@ -1,6 +1,6 @@
 "use client";
 
-// Temple Coin Rush with 2-4 local players (menu2/multiplayer): each hero runs its own corridor, side
+// Ruin Coin Rush with 2-4 local players (menu2/multiplayer): each hero runs its own corridor, side
 // by side, the same seed for everyone (versus: the coins are shared and a paid lane is held open for the
 // hero behind; co-op: one shared purse). One temple per player (World + Course offset along x), the solo
 // juice, the runs stepped together by multiplayer.ts with each player's own device (PlayerInputLatch +

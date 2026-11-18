@@ -35,7 +35,7 @@ export function starSpecFor(level: LevelId, orbTotal: number): StarSpec {
 
 /**
  * Where a secret hides (roofs.ts places each one off the main line):
- * - tower: a water-tower ledge 8 m to the side of a deck, too far for a plain jump (Nami's second jump, or a fast curled turn);
+ * - tower: a water-tower ledge 8 m to the side of a deck, too far for a plain jump (Nyla's second jump, or a fast curled turn);
  * - gutter: out over the street beside a slope's roll line (Zuno's magnet pulls it in from the slope);
  * - skylight: inside a cracked skylight box on a deck (Riko's dash smashes it);
  * - billboard: inside a purple-outlined ghost billboard on a deck (Vexa phases into it);
@@ -71,7 +71,7 @@ export const SECRETS: Record<LevelId, readonly SecretSpec[]> = {
 };
 
 /**
- * Level 5's boss: Ashback, the Shadow Armadillo (m2ShadowArmadillo), fought on the helipad arena (a
+ * Level 5's boss: Ashback, the Shadow Pangolin (m2ShadowArmadillo), fought on the helipad arena (a
  * half-pipe: deck, ramp, pad, ramp, deck). Every attack ends with him open at the foot of the ramp on
  * your side: roll down it into him (curled, fast) to score a hit.
  * - P1 Race: he kicks a water tank down your ramp (wobble telegraph, 1 s rolling tank), then stands

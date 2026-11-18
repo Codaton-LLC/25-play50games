@@ -6,7 +6,7 @@
 // against the motion, 1.2 s of fuel, refilled on landing). Touching a body lands on it. Leaving the map
 // outside every SOI is "lost in space": back to the last planetoid after 1 s. Solar flares, debris and
 // closed slingshot gates knock the hero back (Kiro's shield crosses them). Hero gates: Riko's prograde
-// burn and her cracked panel, Nami's second impulse, Kiro's shield, Zuno's magnet, Vexa's chord through a
+// burn and her cracked panel, Nyla's second impulse, Kiro's shield, Zuno's magnet, Vexa's chord through a
 // planetoid and her ghost hatch. Level 4: floating crates to push off. Level 5: the Orbit Warden.
 // Pure and deterministic: no three.js, React, DOM, Math.random or Date.now.
 //
@@ -38,7 +38,7 @@ export const V_JUMP = 4.5;
 export const POD = { min: 5, max: 9, chargeMs: 800, aim: (50 * Math.PI) / 180, reach: 0.22 } as const;
 /** the retro jets: 1.5 m/s^2 for 1.2 s of fuel (the card) */
 export const JETS = { accel: 1.5, fuelMs: 1200 } as const;
-/** Riko's prograde burn, Nami's second impulse (m/s) */
+/** Riko's prograde burn, Nyla's second impulse (m/s) */
 export const BURN = { dash: 2.5, nami: 3 } as const;
 /** Vexa's chord through a planetoid (m/s) */
 export const CHORD_V = 6;
@@ -305,7 +305,7 @@ export interface Hero {
 export interface StepInput {
    /** the stick / A-D (-1..1): walk round the body; aims a pod launch */
    moveX: number;
-   /** up held (W / up): Nami's second impulse goes straight out */
+   /** up held (W / up): Nyla's second impulse goes straight out */
    up: boolean;
    /** Jump held: charges a pod launch, fires the jets in flight */
    jump: boolean;

@@ -1,6 +1,6 @@
 // The five shows (the design card's levels). Each level is one big top with its own layout; the
 // cannons stand on code-built stands and Hyper3D isles (Course.tsx). Every level carries all five
-// hero lines (bonus orbs, never required): Riko's cracked board and hidden cannon, Nami's high
+// hero lines (bonus orbs, never required): Riko's cracked board and hidden cannon, Nyla's high
 // trapeze orbs over the reach of any plain shot, Kiro's orbs inside a smoke column, Zuno's orb trail
 // hidden in the canvas, Vexa's flat line through a ghost pole that everyone else must lob over.
 // The `route` is the honest bot's (bot.ts); the proof (bound.ts) never reads it.
@@ -58,7 +58,7 @@ function l1(b: ShowBuilder): void {
    const board = b.board(7, 8.4, -33.2, 1.3, 1.3, 0.18);
    b.cannon(7, 8.4, -34.6, { board, at: [-3, -45] });
    b.orbLine([6.5, 10.5, -36.5], [-1.5, 11.5, -43], 3, { hero: "riko" });
-   // Nami: the high trapeze over the long shot (out of any plain shot's reach)
+   // Nyla: the high trapeze over the long shot (out of any plain shot's reach)
    b.wall(1.5, 5.5, 17.6, 17.8, -37.6, -37.4, "trapeze");
    b.orb(3.5, 18.6, -36.6, { hero: "nami" });
    b.orb(2, 18.8, -38.4, { hero: "nami" });
@@ -72,7 +72,7 @@ function l1(b: ShowBuilder): void {
    b.pole(-1.5, -60.9, 0, 10.4, true);
    b.orb(-2.2, 9.6, -58.6, { hero: "vexa" });
    b.orb(-0.8, 9.7, -63.2, { hero: "vexa" });
-   // secrets: the ember shard off to the left of beat 2 (aim wide), the trapeze sticker (Nami)
+   // secrets: the ember shard off to the left of beat 2 (aim wide), the trapeze sticker (Nyla)
    b.secret(-6.5, 9.8, -16.5);
    b.secret(2.6, 19.4, -37.6);
    b.crowd(-14, -30, 1);
@@ -116,7 +116,7 @@ function l2(b: ShowBuilder): void {
    const board = b.board(4, 8.6, -55.5, 1.3, 1.3, 0.18);
    b.cannon(4, 8.6, -57, { board, at: [0, -70] });
    b.orbLine([3.4, 10.2, -59.5], [1, 10.4, -67], 3, { hero: "riko" });
-   // Nami: high orbs over the first wall
+   // Nyla: high orbs over the first wall
    b.orb(1.5, 17.6, -27.5, { hero: "nami" });
    b.orb(0, 17.8, -29.5, { hero: "nami" });
    // Kiro: a smoke column with two orbs, right of the banner
@@ -181,7 +181,7 @@ function l3(b: ShowBuilder): void {
    const board = b.board(5, 8.4, -22.4, 1.3, 1.3, 0.18);
    b.cannon(5, 8.4, -24, { board, at: [-5, -37.2] });
    b.orbLine([4, 10.2, -27], [-3, 11, -34], 3, { hero: "riko" });
-   // Nami: high orbs over the wheel
+   // Nyla: high orbs over the wheel
    b.orb(-3, 17.8, -29, { hero: "nami" });
    b.orb(-4, 18, -31, { hero: "nami" });
    // Kiro: orbs inside the timed jet (and the smoke sticker past it)
@@ -240,7 +240,7 @@ function l4(b: ShowBuilder): void {
    const board = b.board(-6.5, 9.2, -64.5, 1.3, 1.3, 0.18);
    b.cannon(-6.5, 9.2, -66, { board, at: [0, -102] });
    b.orbLine([-6, 12, -70], [-2, 12.5, -94], 3, { hero: "riko" });
-   // Nami: high orbs over the balloon
+   // Nyla: high orbs over the balloon
    b.orb(0, 22.6, -44, { hero: "nami" });
    b.orb(-0.5, 22.8, -47, { hero: "nami" });
    // Kiro: orbs in the jet
@@ -335,7 +335,7 @@ function l5(b: ShowBuilder): void {
    const board = b.board(-6, 9, -12, 1.3, 1.3, 0.18);
    b.cannon(-6, 9, -13.5, { board, at: [0, -46] });
    b.orbLine([-5.6, 11.2, -17], [-2, 12.4, -38], 3, { hero: "riko" });
-   // Nami: high orbs over c3
+   // Nyla: high orbs over c3
    b.orb(0, 18.8, -31, { hero: "nami" });
    b.orb(0.5, 19, -33, { hero: "nami" });
    // Kiro: the smoke column beside the stage

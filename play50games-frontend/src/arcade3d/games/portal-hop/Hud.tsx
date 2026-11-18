@@ -4,7 +4,7 @@
 // the flow meter on the left, and the EXIT control: the nearest portal's anchors as numbered dots (a
 // filled dot = the exit is there, hollow = an anchor it can move to, a spinning one = moving) with an
 // "Exit" button that cycles it (touch) and the 1-4 keys; the title and level in a banner at the top
-// centre with the run clock, and on level 5 the Portal Wyrm's health bar with a hint for the phase. The
+// centre with the run clock, and on level 5 the Rift Serpent's health bar with a hint for the phase. The
 // shell keeps Mute / Pause; its clock chip is off (index.tsx). Local multiplayer (menu2/multiplayer): a
 // "2-4 players" button on the shared hero picker, the join screen, per-player chips and the podium.
 import { useEffect, useSyncExternalStore } from "react";
@@ -35,9 +35,9 @@ function clockText(ms: number): string {
 const HERO_STAT: HeroId[] = ["riko", "nami", "kiro", "zuno", "vexa"];
 
 const HINTS = [
-   "Before it dives, open the west portal's exit at an intact beacon spike",
+   "Before it dives, open the west rift's exit at an intact beacon spike",
    "Up to the plateau, off its edge into the pad: the pillar flings you onto its back",
-   "Set both portals on their magenta loop anchors, then touch its knotted head",
+   "Set both rifts on their magenta loop anchors, then touch its knotted head",
 ];
 
 function HeroPick() {
@@ -145,12 +145,12 @@ export default function Hud() {
          </div>
          <div className={stack.center} data-arcade-safe-area="">
             <div className={styles.banner}>
-               <span className={styles.title}>Portal Hop</span>
+               <span className={styles.title}>Rift Hop</span>
                <span className={styles.level}>
                   <span className={styles.levelLong}>
-                     Level {level} · {config?.name ?? "Two Portals"}
+                     Level {level} · {config?.name ?? "Two Rifts"}
                   </span>
-                  <span className={styles.levelShort}>{config?.name ?? "Two Portals"}</span>
+                  <span className={styles.levelShort}>{config?.name ?? "Two Rifts"}</span>
                </span>
             </div>
             <div className={styles.clock} role="timer" aria-label="Run time">

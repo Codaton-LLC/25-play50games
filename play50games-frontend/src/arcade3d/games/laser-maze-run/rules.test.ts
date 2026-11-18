@@ -82,7 +82,7 @@ describe("the vault (rooms, lasers, the hero routes)", () => {
          }
          for (const sw of c.switches) expect(Math.abs(sw.x)).toBeLessThan(HALF);
          expect(c.secrets.map((s) => s.id)).toEqual(SECRETS[id].map((s) => s.id));
-         // the routes: a cage on every level; Nami's high orbs on 1, 2, 4, 5
+         // the routes: a cage on every level; Nyla's high orbs on 1, 2, 4, 5
          expect(c.lasers.some((l) => l.kind === "cage")).toBe(true);
          expect(c.orbs.some((o) => o.bonus === "floor")).toBe(true);
       });
@@ -246,7 +246,7 @@ describe("bots (README 'What the bots reached')", () => {
       }, 120_000);
    }
 
-   it("every hero's bot with its own route wins every level, never under the floor; Vexa takes the cage shard, Nami the high sticker", () => {
+   it("every hero's bot with its own route wins every level, never under the floor; Vexa takes the cage shard, Nyla the high sticker", () => {
       for (const level of LEVEL_IDS) {
          for (const h of HEROES) {
             const run = botRun(level, 60, h.id, true);

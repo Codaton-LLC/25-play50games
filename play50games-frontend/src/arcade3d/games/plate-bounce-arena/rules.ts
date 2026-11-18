@@ -7,7 +7,7 @@
 // rests on that.
 //
 // A table is a list of objectives (the card's sections, in order); each one's pieces count only while
-// it is the current one. When all are done the exit hole opens: sink the ball to win. Level 5 is Rollo:
+// it is the current one. When all are done the exit hole opens: sink the ball to win. Level 5 is Gristle:
 // his defeat is the win. Three balls per table: the last one drained ends the run "lose" (unranked).
 import type { LevelId } from "@/arcade3d/types";
 import type { RunState } from "@/arcade3d/core/types";
@@ -828,7 +828,7 @@ function rollStep(run: PinRun, dt: number, input: StepInput, ev: StepEvents): vo
             b.vz -= 1.5 * along * r.dz;
          }
       }
-      // Rollo; while he jams a flipper a toy post guards that side of the drain
+      // Gristle; while he jams a flipper a toy post guards that side of the drain
       if (run.boss && run.rollo.visible) bossTouch(run, ev);
       if (run.rollo.jam >= 0) hitCircle(b, guardPost(run.rollo.jam, GUARD), 0, 0.6);
       hitFlippers(run, b);
@@ -919,7 +919,7 @@ function win(run: PinRun, ev: StepEvents): void {
    ev.finished = true;
 }
 
-// ---------------- the boss: Rollo ----------------
+// ---------------- the boss: Gristle ----------------
 
 function bossFrame(run: PinRun, dtMs: number, ev: StepEvents): void {
    const b = run.boss;
@@ -1154,7 +1154,7 @@ export function step(run: PinRun, dtMs: number, input: StepInput): StepEvents {
 
 let bossFloor = 0;
 
-/** The least rules ms to land every Rollo hit, striking at the first moment of each window. */
+/** The least rules ms to land every Gristle hit, striking at the first moment of each window. */
 export function bossMinMs(): number {
    if (bossFloor > 0) return bossFloor;
    const s = createBoss(ROLLO);

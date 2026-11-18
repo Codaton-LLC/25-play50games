@@ -5,7 +5,7 @@
 // Action (E / Enter / the Action button) held is the crouch for every hero (half the drift, no
 // walking, sandbags and plates pass over); its press also fires the hero power:
 // - Riko: on a cracked dash rope, a dash across the whole rope in 0.4 s that ignores the lean.
-// - Nami: no button power: Jump in the air is a second jump, up to the high orbs over the gaps.
+// - Nyla: no button power: Jump in the air is a second jump, up to the high orbs over the gaps.
 // - Kiro: a shield (3 s): the needle does not drift, gusts and hits do not move it (the lead hero).
 // - Zuno: a magnet (3 s): pulls the coin arcs up out of the river mist within 4 m.
 // - Vexa: a phase (6 s): leaving a pillar with a ghost bridge, she walks the invisible planks to the shard.
@@ -25,7 +25,7 @@ export interface HeroDef {
 
 export const HEROES: readonly HeroDef[] = [
    { id: "riko", name: "Riko", color: "#EF4444", power: "dash", powerLabel: "Rope dash", cooldownMs: 2_000 },
-   { id: "nami", name: "Nami", color: "#2563EB", power: "double", powerLabel: "Double jump", cooldownMs: 0 },
+   { id: "nami", name: "Nyla", color: "#2563EB", power: "double", powerLabel: "Double jump", cooldownMs: 0 },
    { id: "kiro", name: "Kiro", color: "#22C55E", power: "shield", powerLabel: "Shield", cooldownMs: 10_000 },
    { id: "zuno", name: "Zuno", color: "#FACC15", power: "magnet", powerLabel: "Magnet", cooldownMs: 8_000 },
    { id: "vexa", name: "Vexa", color: "#8B5CF6", power: "phase", powerLabel: "Phase", cooldownMs: 9_000 },

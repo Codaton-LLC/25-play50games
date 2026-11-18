@@ -3,7 +3,7 @@
 //
 // - Riko: a dash (V_RED for half a second, never faster than a red lane) that smashes the cracked
 //   construction hoarding: the site behind it is a diagonal cut through its block.
-// - Nami: a second jump. From a bus roof it reaches the elevated rail, a fast ring road with orbs.
+// - Nyla: a second jump. From a bus roof it reaches the elevated rail, a fast ring road with orbs.
 // - Kiro: a shield. Sludge, steam vents and Greyout's drones do not slow or knock him.
 // - Zuno: a magnet. Storm drains and fountains give up their hidden coin trails, and orbs come from 6 m.
 // - Vexa: a phase. The ghost shop-fronts (purple glow) let her through the block.
@@ -23,7 +23,7 @@ export interface HeroDef {
 
 export const HEROES: readonly HeroDef[] = [
    { id: "riko", name: "Riko", color: "#EF4444", power: "dash", powerLabel: "Dash", cooldownMs: 4_000 },
-   { id: "nami", name: "Nami", color: "#2563EB", power: "doubleJump", powerLabel: "Double jump", cooldownMs: 0 },
+   { id: "nami", name: "Nyla", color: "#2563EB", power: "doubleJump", powerLabel: "Double jump", cooldownMs: 0 },
    { id: "kiro", name: "Kiro", color: "#22C55E", power: "shield", powerLabel: "Shield", cooldownMs: 9_000 },
    { id: "zuno", name: "Zuno", color: "#FACC15", power: "magnet", powerLabel: "Magnet", cooldownMs: 9_000 },
    { id: "vexa", name: "Vexa", color: "#8B5CF6", power: "phase", powerLabel: "Phase", cooldownMs: 7_000 },

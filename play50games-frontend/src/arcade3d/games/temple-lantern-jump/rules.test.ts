@@ -359,7 +359,7 @@ describe("the five heroes", () => {
       expect(step(run, FRAME, { ...idle(), actionPressed: true }).powered).toBe(true);
    });
 
-   it("Nami: a second jump in the air, once a flight, refreshed on landing", () => {
+   it("Nyla: a second jump in the air, once a flight, refreshed on landing", () => {
       const run = run1("nami");
       let ev = step(run, FRAME, { ...idle(), jumpPressed: true });
       expect(ev.jumped).toBe(true);

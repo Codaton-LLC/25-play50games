@@ -5,7 +5,7 @@
 // Big beat its lane carries the candy coins that grow you there (3 per size); before a Small beat it
 // carries none (sugar-burn roll down). On levels 1-2 another lane at each beat is always free, so a
 // beat never forces a guess. Around the beats: decoy coins, orbs as rewards, and the hero routes
-// (Riko's bonus lane behind a gingerbread wall, Nami's candy-cane rail, Kiro's popping fields, Zuno's
+// (Riko's bonus lane behind a gingerbread wall, Nyla's candy-cane rail, Kiro's popping fields, Zuno's
 // frosting trails, Vexa's hidden fourth lane). Level 5's palace section repeats until King Bonbon is
 // free (his drum, throne and crown are beats too). README "Levels" lists each layout.
 import type { LevelId } from "@/arcade3d/types";
@@ -21,7 +21,7 @@ export const NORMAL: Size = 1;
 export const BIG: Size = 2;
 /** candy coins eaten per size step */
 export const COINS_PER_SIZE = 3;
-/** the candy-cane rail runs this high over the middle lane (Nami) */
+/** the candy-cane rail runs this high over the middle lane (Nyla) */
 export const RAIL_Y = 2.4;
 /** the orbs float this high */
 export const ORB_Y = 1.0;
@@ -109,7 +109,7 @@ export interface Course {
    gummies: { s: number; lane: number }[];
    /** popping-candy fields (knock you down a size unless Kiro's shield is up); `kiro`: the one with his orbs */
    fields: (LaneSpan & { kiro: boolean })[];
-   /** Nami's candy-cane rail over the middle lane */
+   /** Nyla's candy-cane rail over the middle lane */
    rails: Span[];
    /** Zuno's frosting walls (outside lane 0) with coin trails frozen in them */
    trails: Span[];
@@ -208,7 +208,7 @@ class Builder {
       if (shard) this.secrets.push({ s: s0 + len - 6, lane: 3, h: ORB_Y });
    }
 
-   /** Nami's candy-cane rail over the middle lane, its orbs. */
+   /** Nyla's candy-cane rail over the middle lane, its orbs. */
    rail(from: number, len: number): void {
       const s0 = this.s + from;
       this.rails.push({ s0, s1: s0 + len });

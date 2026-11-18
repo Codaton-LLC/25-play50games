@@ -260,7 +260,7 @@ function drainEntry(): CourseDraft {
    b.block("wall", -5.0, -3.5, -46, -44, 8, 7.0);
    b.block("wall", -5.5, -3, -49, -46, 8, -10);
    b.block("wall", -3, 3, -28, -27, 8, 0.9);
-   // Nami's nest over the flooded trench: only her breach jump from the water reaches it
+   // Nyla's nest over the flooded trench: only her breach jump from the water reaches it
    b.block("ledge", 2.0, 3.0, -31, -29.8, 5.8, 5.2);
    const x1 = b.block("ledge", -3, 3, -40, -37, 1.2, -10);
    const x2 = b.block("ledge", -3, 3, -43, -40, 3.2, -10);
@@ -272,7 +272,7 @@ function drainEntry(): CourseDraft {
    const r2 = [b.ledge(9, -58.5, 12.4), b.ledge(4.5, -58.5, 14.2), b.ledge(0, -58.5, 16.0), b.ledge(-4.5, -58.5, 17.8)];
    const r3 = [b.ledge(-4.5, -64.5, 19.6), b.ledge(0, -64.5, 21.4), b.ledge(4.5, -64.5, 23.2), b.ledge(9, -64.5, 25.0)];
    const goal = b.ledge(9, -70, 26.8, 6, 5, "goal");
-   // orbs on the way (15), Zuno's buried trail and Nami's nest (bonus)
+   // orbs on the way (15), Zuno's buried trail and Nyla's nest (bonus)
    b.orb(1.4, -1.2, -10.5);
    b.orb(0, 1.6, -14.68);
    b.orb(0.5, 5.0, -15.8);
@@ -465,7 +465,7 @@ function valveShaft(): CourseDraft {
    b.d.bats.push({ x: bp.x, y: 9.4, z: bp.z, zone: zS, dryBelow: 6, radius: 1.2, periodMs: 2600, phase: 0 });
    const jp = ringPoint(r, cz, 24 * step);
    b.jet(jp.x, 18.5, jp.z, 3000, 0.2, 0.35, 0.9, 2.2);
-   // orbs (placed on the honest route; README "Levels"), Zuno's trail on the floor, Nami's nest over gap 1
+   // orbs (placed on the honest route; README "Levels"), Zuno's trail on the floor, Nyla's nest over gap 1
    for (const [x, y, z] of SHAFT_ORBS) b.orb(x, y, z);
    for (const x of [-3, 0, 3]) b.orb(x, -1.3, cz, true, zS);
    const np = ringPoint(r, cz, 4 * step);

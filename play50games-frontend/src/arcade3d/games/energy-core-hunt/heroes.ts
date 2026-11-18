@@ -4,7 +4,7 @@
 // (menu2/heroes): Vexa, World 5's purple lead, unless the player picked someone else here.
 //
 // - Riko: a dash (x1.6 for 0.6 s) across the arena.
-// - Nami: a second jump in the air reaches the orbs (and the sticker) high beside the crate stacks.
+// - Nyla: a second jump in the air reaches the orbs (and the sticker) high beside the crate stacks.
 // - Kiro: a shield that shrugs off the tesla sparks and the Core Sprite's shock ring for 1.2 s.
 // - Zuno: a magnet (3 s) that pulls in the golden orbs, never the cores (the order stays a hunt).
 // - Vexa: a phase (2.6 s): she walks through crates, into the closed crate ring (its orbs, the shard).
@@ -24,7 +24,7 @@ export interface HeroDef {
 
 export const HEROES: readonly HeroDef[] = [
    { id: "riko", name: "Riko", color: "#EF4444", power: "dash", powerLabel: "Dash", cooldownMs: 5_000 },
-   { id: "nami", name: "Nami", color: "#2563EB", power: "doubleJump", powerLabel: "Double", cooldownMs: 0 },
+   { id: "nami", name: "Nyla", color: "#2563EB", power: "doubleJump", powerLabel: "Double", cooldownMs: 0 },
    { id: "kiro", name: "Kiro", color: "#22C55E", power: "shield", powerLabel: "Shield", cooldownMs: 8_000 },
    { id: "zuno", name: "Zuno", color: "#FACC15", power: "magnet", powerLabel: "Magnet", cooldownMs: 8_000 },
    { id: "vexa", name: "Vexa", color: "#8B5CF6", power: "phase", powerLabel: "Phase", cooldownMs: 7_000 },

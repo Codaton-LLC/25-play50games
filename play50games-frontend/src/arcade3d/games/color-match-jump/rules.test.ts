@@ -131,7 +131,7 @@ describe("landings", () => {
       expect(ev.matched).toBe(true);
       expect(r.cell).toBe(red.id);
       expect(r.codeStep).toBe(1);
-      // now as Nami (blue) onto a red hex: it cracks, and staying on it is a fall
+      // now as Nyla (blue) onto a red hex: it cracks, and staying on it is a fall
       tag(r, 1);
       const next = cellFrom(r, red.x, red.z, 1, 1) ?? cellFrom(r, red.x, red.z, 2, 1)!;
       expect(colourAt(r, next)).toBe(0);
@@ -174,7 +174,7 @@ describe("hero roles", () => {
       }
       throw new Error("no neighbour");
    }
-   it("Nami: the 4 m pillar needs her double jump (a plain hop bounces back)", () => {
+   it("Nyla: the 4 m pillar needs her double jump (a plain hop bounces back)", () => {
       const r = createRun(1, 2, "nami");
       const tall = r.course.cells.find((c) => c.tall)!;
       const b = beside(r, tall);

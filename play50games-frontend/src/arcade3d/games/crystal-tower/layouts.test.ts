@@ -107,7 +107,7 @@ describe("placement", () => {
          }
       });
 
-      it(`level ${id}: every hero's route: a crystal wall and nook (Riko), a sky ledge only the double jump reaches (Nami), a storm (Kiro), hidden gems (Zuno), a void gate and nook (Vexa); the secrets sit where their hero gets in`, () => {
+      it(`level ${id}: every hero's route: a crystal wall and nook (Riko), a sky ledge only the double jump reaches (Nyla), a storm (Kiro), hidden gems (Zuno), a void gate and nook (Vexa); the secrets sit where their hero gets in`, () => {
          const c = courseFor(id);
          expect(c.walls.length).toBeGreaterThan(0);
          expect(c.gates.length).toBeGreaterThan(0);

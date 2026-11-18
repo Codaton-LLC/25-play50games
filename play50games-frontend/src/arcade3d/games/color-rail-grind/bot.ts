@@ -150,7 +150,7 @@ export function botTargetLane(run: RailRun): number {
       if (jLane === NONE) {
          // Zuno: his loop's lane
          if (zuno) for (const lp of c.loops) if (h.z - lp.z0 > 0 && h.z - lp.z0 < 30 && !laneBad(run, lp.lane, 30)) lane = lp.lane;
-         // Nami: a high rail ahead
+         // Nyla: a high rail ahead
          if (heroById(run.heroId).power === "doubleJump") {
             for (let l = 0; l < GRID; l++) {
                const top = pieceAt(c, l, 1, h.z - 12);
@@ -230,7 +230,7 @@ export function botInput(bot: RailBot, run: RailRun, out: StepInput = createStep
          bot.lastPress = ms;
       }
    }
-   // jumps: a gap ahead on its rail, a ring over a gap, Nami's high rail, the wagons, the roof stomps
+   // jumps: a gap ahead on its rail, a ring over a gap, Nyla's high rail, the wagons, the roof stomps
    let jump = false;
    const p = h.piece !== NONE ? c.pieces[h.piece] : null;
    if (h.grounded && p && p.end === END.gap) {

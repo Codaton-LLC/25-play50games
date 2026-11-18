@@ -147,7 +147,7 @@ describe("hero powers", () => {
       run(k, 500);
       expect(k.pairs[0].hits).toBe(0);
    });
-   it("Zuno's magnet takes orbs from both runways at once; Nami jumps twice", () => {
+   it("Zuno's magnet takes orbs from both runways at once; Nyla jumps twice", () => {
       const o = parseCourse(1).orbs.filter((x) => x.s === parseCourse(1).orbs.find((y) => y.body === 0)!.s);
       const w = createRun(1, "zuno");
       at(w, o[0].s - 5, 0, 0);

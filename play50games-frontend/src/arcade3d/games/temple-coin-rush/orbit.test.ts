@@ -1,4 +1,4 @@
-// Temple Coin Rush with the shared orbit camera (menu2/camera): camera-relative lane presses through
+// Ruin Coin Rush with the shared orbit camera (menu2/camera): camera-relative lane presses through
 // the rules' own input (StepInput.yaw), the default view (behind the runner: right is right), the speed
 // guard for any yaw, the intro ending on the orbit's first pose, the solid boxes, and the preselected
 // hero (World 3: Kiro).

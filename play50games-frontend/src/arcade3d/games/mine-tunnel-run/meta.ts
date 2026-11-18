@@ -18,7 +18,7 @@ export const mineTunnelRunMeta: ArcadeGameMeta = {
    title: "Mine Tunnel Run",
    tagline: "Dig your own tunnel. Drop the boulders you loosen exactly where you want them.",
    description:
-      "Bore down through a cross-section mine as a Scale Squad pangolin: soft soil gives way fast, packed soil slowly, rock never. Loosen a boulder and it wobbles, then falls on whatever is below: beetles, cracked floors, or Rockjaw the Tunnel Beetle. Pick Riko, Nami, Kiro, Zuno or Vexa and reach the lift.",
+      "Bore down through a cross-section mine as a Scale Squad pangolin: soft soil gives way fast, packed soil slowly, rock never. Loosen a boulder and it wobbles, then falls on whatever is below: beetles, cracked floors, or Rockjaw the Tunnel Beetle. Pick Riko, Nyla, Kiro, Zuno or Vexa and reach the lift.",
    order: 64,
    status: "live",
    collection: "rollheroes",

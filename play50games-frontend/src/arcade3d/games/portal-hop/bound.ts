@@ -14,7 +14,7 @@
 //     own time, or the speed of an earlier flight that can reach the entry plus what gravity adds; the
 //     fixed point over the pairs gives each exit's speed S (never over V_CAP). A flight then moves at
 //     most hypot(S cos(pitch), V_RUN) (the stick's air control) for at most its longest time (straight
-//     up, with Nami's second jump, down to the lowest surface of the level); the rest of the leg is walked.
+//     up, with Nyla's second jump, down to the lowest surface of the level); the rest of the leg is walked.
 // A leg ends at an entry (a free jump to any of its pair's exits) or at the goal ring; each node keeps
 // the reach a body may cut (the ring's radius, a frame's half width, a pad's radius, the hero's radius).
 // Level 5: the win is the Wyrm's defeat: bossMinMs() runs menu2/boss with a perfect hitter that lands a
@@ -44,7 +44,7 @@ export function bossMinMs(): number {
 
 const POSE: ExitPose = { x: 0, y: 0, z: 0, dx: 0, dy: 0, dz: 0, ax: 0, az: 0, yaw: 0 };
 
-/** What a hero brings to the bound: Riko's dash (+4 into a portal on a grounded run-in, its walk allowance), Nami's second jump. */
+/** What a hero brings to the bound: Riko's dash (+4 into a portal on a grounded run-in, its walk allowance), Nyla's second jump. */
 export interface HeroCaps {
    dash: boolean;
    jump2: boolean;

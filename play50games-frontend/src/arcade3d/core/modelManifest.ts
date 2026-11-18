@@ -237,7 +237,7 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/color-door-sprint/m2MineLanternPost.glb",
    "/models/3d/color-door-sprint/m2ScoreOrb.glb",
    "/models/3d/color-door-sprint/m2SlidingDoor.glb",
-   // Menu 2 game 16 (Temple Coin Rush): ready/menu2/temple-coin-rush plus m2CoilstoneHead and m2CoilstoneSegment (shared, W3's boss)
+   // Menu 2 game 16 (Ruin Coin Rush): ready/menu2/temple-coin-rush plus m2CoilstoneHead and m2CoilstoneSegment (shared, W3's boss)
    "/models/3d/temple-coin-rush/m2BrokenTile.glb",
    "/models/3d/temple-coin-rush/m2CoilstoneHead.glb",
    "/models/3d/temple-coin-rush/m2CoilstoneSegment.glb",
@@ -876,7 +876,7 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/ice-peak-jumper/m2SnowLedgeV2.glb",
    "/models/3d/ice-peak-jumper/m2SnowYeti.glb",
    "/models/3d/ice-peak-jumper/m2SummitCairn.glb",
-   // Menu 2 game 19 (Candy World Runner): the ready set from ~/.play50/hyper3d/ready/menu2/candy-world-runner
+   // Menu 2 game 19 (Sweet Lane Runner): the ready set from ~/.play50/hyper3d/ready/menu2/candy-world-runner
    // (incl. m2FrostedCupcakeTower), plus m2CandyKingBoss (the L5 boss) and m2GummyMonster (L4) from ready/menu2/shared
    "/models/3d/candy-world-runner/m2CandyCaneArch.glb",
    "/models/3d/candy-world-runner/m2CandyCastleBg.glb",
@@ -913,7 +913,7 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/laser-maze-run/m2SecurityCam.glb",
    "/models/3d/laser-maze-run/m2VaultCoreBoss.glb",
    "/models/3d/laser-maze-run/m2VaultWallBg.glb",
-   // Menu 2 game 31 (Wall Run Temple): the cliff temple set from ~/.play50/hyper3d/ready/menu2/wall-run-temple (incl. m2SwingingStoneRam)
+   // Menu 2 game 31 (Cliff Glyph Run): the cliff temple set from ~/.play50/hyper3d/ready/menu2/wall-run-temple (incl. m2SwingingStoneRam)
    "/models/3d/wall-run-temple/m2CliffTempleBg.glb",
    "/models/3d/wall-run-temple/m2GoldRingOrb.glb",
    "/models/3d/wall-run-temple/m2StoneColumn.glb",
@@ -959,7 +959,7 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/color-match-jump/m2HexPlatform.glb",
    "/models/3d/color-match-jump/m2HexPlatformV2.glb",
    "/models/3d/color-match-jump/m2SignalOrbLamp.glb",
-   // Menu 2 game 24 (Portal Hop, W5): ready/menu2/portal-hop (portals, obelisks, anchor pads, void crystals, the Portal Wyrm)
+   // Menu 2 game 24 (Rift Hop, W5): ready/menu2/portal-hop (portals, obelisks, anchor pads, void crystals, the Rift Serpent)
    "/models/3d/portal-hop/m2ColorBeacon.glb",
    "/models/3d/portal-hop/m2FloatingRuinBg.glb",
    "/models/3d/portal-hop/m2GlowObelisk.glb",

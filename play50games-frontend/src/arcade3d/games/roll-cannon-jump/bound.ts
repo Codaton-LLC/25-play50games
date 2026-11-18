@@ -7,7 +7,7 @@
 // - Horizontal: the launch's horizontal speed Vh, plus at most the air nudge (1.5 m/s^2), plus Riko's
 //   one dash (exactly 4 m). Nothing else pushes forward (walls and poles only end a flight).
 // - Vertical: the height is at most the launch's free arc (Vy t - G t^2 / 2); a dive only pulls
-//   down; Nami's second arc resets vy to 12 at the best moment (computed exactly).
+//   down; Nyla's second arc resets vy to 12 at the best moment (computed exactly).
 // - The rests themselves: a cannon catch costs its 0.4 s hit-stop and the power ring starts at
 //   60 %, so a shot of power P waits at least (P - 0.6) / 0.4 * 600 ms; a balloon hangs 350 ms;
 //   a trampoline throws at most 4 m/s across and 24 m/s up; a platform walk is 4 m/s with a 7 m/s hop.
@@ -196,7 +196,7 @@ function gapH(a: Box, b: Box): number {
    return Math.hypot(dx, dz);
 }
 
-/** The highest the hero's middle can be `t` s into a flight launched at vy (Nami: with her one reset to NAMI_VY). */
+/** The highest the hero's middle can be `t` s into a flight launched at vy (Nyla: with her one reset to NAMI_VY). */
 export function heightEnvelope(vy: number, t: number, nami: boolean): number {
    const plain = vy * t - (G / 2) * t * t;
    if (!nami) return plain;
@@ -227,7 +227,7 @@ export function flightLowerBound(d: number, climb: number, vh: number, vy: numbe
       const t = Math.max(th, up);
       return t <= down ? t : Infinity;
    }
-   // Nami: the envelope is concave in t; find its peak, then the rising crossing
+   // Nyla: the envelope is concave in t; find its peak, then the rising crossing
    let lo = 0;
    let hi = (2 * (vy + NAMI_VY)) / G + 0.5;
    for (let k = 0; k < 80; k++) {
@@ -334,7 +334,7 @@ export function bossMinMs(): number {
    return Infinity;
 }
 
-/** The least progress ms over the three motion variants (plain heroes, Riko's dash, Nami's second arc). */
+/** The least progress ms over the three motion variants (plain heroes, Riko's dash, Nyla's second arc). */
 export function progressFloorMs(course: Course): number {
    const nodes = buildNodes(course);
    let best = Infinity;

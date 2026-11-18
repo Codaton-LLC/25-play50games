@@ -1,7 +1,7 @@
 "use client";
 
 // The picked hero, animated by the shared Menu 2 animator (menu2/heroAnim): idle, run, takeoff, rise,
-// fall, land, Nami's somersault, Riko's dash, the hurt recoil, the cheer, the intro's drop, and the
+// fall, land, Nyla's somersault, Riko's dash, the hurt recoil, the cheer, the intro's drop, and the
 // signature ball-roll for every fling out of an exit (a flight faster than a run). A blob shadow sits
 // on the island top under the feet. This file turns the run + the Scene's moments (HeroAnim) into the
 // animator's motion.

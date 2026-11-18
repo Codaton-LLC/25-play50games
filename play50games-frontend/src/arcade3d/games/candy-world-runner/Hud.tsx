@@ -119,7 +119,7 @@ export default function Hud() {
          </div>
          <div className={stack.center} data-arcade-safe-area="">
             <div className={styles.banner}>
-               <span className={styles.title}>Candy World Runner</span>
+               <span className={styles.title}>Sweet Lane Runner</span>
                <span className={styles.level}>
                   Level {level} · {config?.name ?? "Candy Lane"}
                </span>

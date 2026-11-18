@@ -50,7 +50,7 @@ export function MultiplayerHud() {
       return (
          <JoinScreen
             heroes={MP_HEROES}
-            title="Wall Run Temple"
+            title="Cliff Glyph Run"
             onStart={() => {
                if (arcadeStore.getState().phase === "ready") arcadeStore.getState().start();
             }}

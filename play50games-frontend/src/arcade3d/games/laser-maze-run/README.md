@@ -48,7 +48,7 @@ A precision maze through a vault of lasers, room by room: time the pulses, jump 
 | Hero | Power | What it opens |
 |---|---|---|
 | Riko | Dash: x1.6 for 0.6 s, every 5 s | Dash-jumps the short live floors (4 m) to their orbs. |
-| Nami | A second jump in the air (2.25 m) | Clears a full wall without waiting; takes the high orbs and the high-beam sticker. |
+| Nyla | A second jump in the air (2.25 m) | Clears a full wall without waiting; takes the high orbs and the high-beam sticker. |
 | Kiro | Shield: 1.2 s, every 8 s | Soaks laser touches (not a cage), carries him across the live floors to their orbs. |
 | Zuno | Magnet: 3 s, every 8 s | Pulls the orbs out of the laser cages from outside. |
 | Vexa | Phase: 2.6 s, every 7 s | Passes through every beam, into the cages (the cage shard). |
@@ -75,7 +75,7 @@ It hovers at the far end of its arena. Each attack is telegraphed, then it sweep
 - **No-hit badge:** never touched a laser.
 - **Flow meter:** a link within 3 s, +0.25 per link, capped at x2. An orb links 30 ms; a room crossed clean (and a core hit) links 120 ms.
 - **Secrets:**
-  - Level 1: the cage shard (Vexa) and the high-beam sticker (Nami).
+  - Level 1: the cage shard (Vexa) and the high-beam sticker (Nyla).
   - Levels 2, 3, 5: the cage shard.
   - Level 4: the cage shard and the high-beam sticker.
 
@@ -90,7 +90,7 @@ The bound (`minFinishMs`, `minDurationMsOf` in `rules.ts`):
 - **Speed.** Nothing moves the hero down the corridor faster than the walk, except Riko's dash (x1.6 for 0.6 s, at most once every 5 s from the first frame). So `d` metres take at least `leastRunMs(d) = (d / 5.5 - 0.36) / 1.072` s. Phase, jumps and shields only let a hero skip a wait, never go faster.
 - **Level 5.** The core wakes as you enter its arena, and the exit beam stays on until its least defeat time (a hit in the first ms of every open window).
 - **Bonuses.** From the floor we subtract:
-  - every main orb, plus the largest route set one hero can reach (`ROUTES`: Riko dash + floor, Nami high + dash + floor, Kiro floor + dash, Zuno and Vexa cage);
+  - every main orb, plus the largest route set one hero can reach (`ROUTES`: Riko dash + floor, Nyla high + dash + floor, Kiro floor + dash, Zuno and Vexa cage);
   - the most flow bonus the course can feed (`comboSpecOf`).
 - **The limit.** The bound less 5 %, rounded down to 100 ms (`proposeLimits`), pinned in `rules.test.ts`.
 
@@ -113,7 +113,7 @@ The guards in the tests:
 
 The honest bot (the plan, no routes) wins every level at 30, 60 and 144 fps, never zapped, with every main orb. Submitted times at 60 fps: about 8.2 / 12.2 / 15.0 / 18.1 / 47.3 s.
 
-Every hero's bot with its own route wins every level and never beats the floor. Vexa takes the cage shard; Nami takes the high sticker.
+Every hero's bot with its own route wins every level and never beats the floor. Vexa takes the cage shard; Nyla takes the high sticker.
 
 ## Models
 

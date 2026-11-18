@@ -3,7 +3,7 @@
 // is your aim), SNOW patches (grip: stop, turn, re-aim; the checkpoints), CRACKED ice (shatters 1.2 s
 // after the first touch, back after 4 s). Each link of the main route is one slide-launch in one of the
 // four compass directions, so the route runs straight through every platform's centre. Hero side routes
-// branch off it: Riko's speed ledges and cracked walls, Nami's high cornices, Kiro's icicle chute, Zuno's
+// branch off it: Riko's speed ledges and cracked walls, Nyla's high cornices, Kiro's icicle chute, Zuno's
 // frozen coin trails, Vexa's ghost-ice caves. README "Levels" lists each layout.
 //
 // Units: 1 = 1 m, y up. North is -z.
@@ -276,7 +276,7 @@ class Builder {
       return p;
    }
 
-   /** Nami: a high cornice `rise` m over `from` (only a second jump reaches it), its orbs. */
+   /** Nyla: a high cornice `rise` m over `from` (only a second jump reaches it), its orbs. */
    highLedge(from: Plat, dir: Dir, rise: number): Plat {
       const p = this.beyond(from, dir, 0.6, rise, 2, 2, { surface: "snow", kind: "side" });
       this.orbRow(p, dir, 2, "nami", 1.4);
@@ -338,7 +338,7 @@ class Builder {
       return p;
    }
 
-   /** The shortcut flag on a high cornice (Nami): a high ledge with the secret on it. */
+   /** The shortcut flag on a high cornice (Nyla): a high ledge with the secret on it. */
    flag(from: Plat, dir: Dir, rise: number): Plat {
       const p = this.highLedge(from, dir, rise);
       this.secrets.push({ x: p.x, y: p.y + 0.9, z: p.z });

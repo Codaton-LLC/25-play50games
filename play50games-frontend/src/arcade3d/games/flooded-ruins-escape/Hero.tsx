@@ -6,7 +6,7 @@
 // animator's HeroMotion: velocity, grounded (a swimmer paddles: it counts as grounded with its swim
 // speed, so the animator's run cycle is the paddle), the power that is up, the ball (Riko's dash
 // through cracked brick, the intro drop, a loss), the cheer at the gate, and one-frame events (jump,
-// a leap out of the water, Nami's breach, land, a hit). Around the hero: the card's air meter as a
+// a leap out of the water, Nyla's breach, land, a hit). Around the hero: the card's air meter as a
 // ring (not UI text) while the head is under water, and a blob shadow on the floor or the water.
 import { useMemo, useRef, type MutableRefObject } from "react";
 import { useFrame } from "@react-three/fiber";
@@ -45,7 +45,7 @@ export interface MotionMemo {
    /** the last airborne vertical speed (m/s): the landing's impact */
    fallSpeed: number;
    wasGrounded: boolean;
-   /** the hero's airJump last frame: true -> false in the air is Nami's double jump */
+   /** the hero's airJump last frame: true -> false in the air is Nyla's double jump */
    airJump: boolean;
 }
 
@@ -83,7 +83,7 @@ export function writeHeroMotion(m: HeroMotion, memo: MotionMemo, run: RuinRun, a
    m.defeated = false;
    if (anim.jumpAt !== memo.jumpAt) {
       memo.jumpAt = anim.jumpAt;
-      // Nami's double jump spends her air jump in the air: the somersault; any other jump takes off
+      // Nyla's double jump spends her air jump in the air: the somersault; any other jump takes off
       if (!memo.wasGrounded && memo.airJump && !h.airJump) m.events.airJumped = true;
       else m.events.jumped = true;
    }

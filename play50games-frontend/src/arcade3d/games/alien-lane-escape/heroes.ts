@@ -5,7 +5,7 @@
 //
 // - Riko: a dash (x1.6 for 0.75 s): the scanner cannot lock onto her mid-dash, so she can take the orbs
 //   in open ground (the speed route with no cover).
-// - Nami: a second jump in the air onto the high mesa lane, which the scan cannot see (its orbs, a sticker).
+// - Nyla: a second jump in the air onto the high mesa lane, which the scan cannot see (its orbs, a sticker).
 // - Kiro: a shield, a scan-proof bubble for 1.2 s; it also carries him through goo without slowing.
 // - Zuno: a magnet that pulls the coin trails out of the goo puddles.
 // - Vexa: a phase: she hides inside any crystal (perfect cover, shadow or not) and walks through the
@@ -26,7 +26,7 @@ export interface HeroDef {
 
 export const HEROES: readonly HeroDef[] = [
    { id: "riko", name: "Riko", color: "#EF4444", power: "dash", powerLabel: "Dash", cooldownMs: 5_000 },
-   { id: "nami", name: "Nami", color: "#2563EB", power: "doubleJump", powerLabel: "Double", cooldownMs: 0 },
+   { id: "nami", name: "Nyla", color: "#2563EB", power: "doubleJump", powerLabel: "Double", cooldownMs: 0 },
    { id: "kiro", name: "Kiro", color: "#22C55E", power: "shield", powerLabel: "Shield", cooldownMs: 8_000 },
    { id: "zuno", name: "Zuno", color: "#FACC15", power: "magnet", powerLabel: "Magnet", cooldownMs: 8_000 },
    { id: "vexa", name: "Vexa", color: "#8B5CF6", power: "phase", powerLabel: "Phase", cooldownMs: 7_000 },

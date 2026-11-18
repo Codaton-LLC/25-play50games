@@ -4,7 +4,7 @@
 // with a glowing edge; every tile (m2ArenaFloorTile, one instanced pool) tinted grey or in its
 // painter's colour, popping up as it is painted, and glowing once its row is set; the rims
 // (m2ArenaWall); the rafts riding their rails; the paint blobs (m2PaintPickup) in the hero's colour;
-// Vexa's glass cage and Nami's pillar; the grey blots (small Paint Blobs, m2PaintBlobBoss); the roller's
+// Vexa's glass cage and Nyla's pillar; the grey blots (small Paint Blobs, m2PaintBlobBoss); the roller's
 // lane glow and drum.
 import { useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
@@ -226,7 +226,7 @@ function ledgeOf(run: PaintRun, kind: Box["kind"]): Box[] {
    return run.course.boxes.filter((b) => b.kind === kind);
 }
 
-/** Vexa's glass cage (four ghost panels, a lid, the prism blob inside) and Nami's pillar with its gold blob. */
+/** Vexa's glass cage (four ghost panels, a lid, the prism blob inside) and Nyla's pillar with its gold blob. */
 function Secrets({ run }: { run: PaintRun }) {
    const c = run.course;
    const time = useGameTime();

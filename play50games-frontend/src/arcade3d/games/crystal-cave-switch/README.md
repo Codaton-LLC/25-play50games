@@ -11,7 +11,7 @@ guardian) is the level 5 boss.
 
 - `levels.ts` the five level rows; `course.ts` the rooms (12 x 10 m floors, a north wall of rock with
   a gate in the middle, a crystal bridge to the next room), crystals, beacons, ledges and boulder steps,
-  the moving slab, Vexa's ghost alcoves, Nami's high pillar, orbs, the goal pad, the Prism's arena and
+  the moving slab, Vexa's ghost alcoves, Nyla's high pillar, orbs, the goal pad, the Prism's arena and
   the bot's route.
 - `rules.ts` pure deterministic rules (1 ms steps): running, jumping, landing on boxes, striking
   crystals, the room sequences (order, decoys, timers), gates, the slab, the chasm and the room
@@ -38,7 +38,7 @@ guardian) is the level 5 boss.
 | Hero | Power |
 |---|---|
 | Riko | dash: 4 m in 0.2 s, ground or air (cooldown 1.2 s) |
-| Nami | double jump: the high crystal on its pillar (a sticker) |
+| Nyla | double jump: the high crystal on its pillar (a sticker) |
 | Kiro | shield 1.5 s: the Prism's beam passes him |
 | Zuno | magnet 3 s: strikes crystals from 4 m |
 | Vexa | phase 0.6 s: through the ghost wall to the alcove crystal (a shard) |
@@ -54,7 +54,7 @@ guardian) is the level 5 boss.
    a colour code over itself: strike the arena's corner crystals in that order (P1 one colour x3, P2
    two x2, P3 three: the finish).
 
-Secrets: Flawless (no wrong crystal all level), Vexa's ghost alcove crystal, Nami's high crystal.
+Secrets: Flawless (no wrong crystal all level), Vexa's ghost alcove crystal, Nyla's high crystal.
 
 ## Scoring and server limits (why they hold)
 

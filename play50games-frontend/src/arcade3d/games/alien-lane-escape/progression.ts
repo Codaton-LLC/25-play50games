@@ -19,7 +19,7 @@ export function starSpecFor(level: LevelId, orbTotal: number): StarSpec {
 
 /**
  * Secrets per level (placed by course.ts): the cave behind a ghost-crystal wall (Vexa's phase), the
- * sticker on the high mesa (Nami's double jump), and on level 3 the "abducted shard" you only reach by
+ * sticker on the high mesa (Nyla's double jump), and on level 3 the "abducted shard" you only reach by
  * letting the beam take you once inside the abduction zone.
  */
 export const SECRETS: Record<LevelId, readonly SecretSpec[]> = {

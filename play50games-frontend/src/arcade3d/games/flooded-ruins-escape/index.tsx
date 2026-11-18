@@ -45,7 +45,7 @@ const definition: GameDefinition<RuinLevel> = {
       "Flood a room to float up to high ledges; drain it to walk through low doors. Floating crates rise with the water.",
       "In the water you swim: hold Jump to swim up, let go to sink, press Jump at the surface to leap out. Bubble spouts refill your air.",
       "The storm tide rises from below and cannot be stopped. Each orb takes 0.3 s off your time; chain orbs, ledges and levers for the flow bonus.",
-      "Power (E, Enter, or the Power button): Riko dashes through cracked brick, Nami breaches 4 m out of the water, Kiro's shield blocks steam and whirlpools, Zuno's magnet pulls buried orbs, Vexa phases through ghost doors.",
+      "Power (E, Enter, or the Power button): Riko dashes through cracked brick, Nyla breaches 4 m out of the water, Kiro's shield blocks steam and whirlpools, Zuno's magnet pulls buried orbs, Vexa phases through ghost doors.",
       "Turn the camera: drag the view (or two fingers), mouse wheel / pinch zooms, Q / C turn, R / F tilt, V recenters.",
    ],
    // the hero hops and spins at the gate before the result panel

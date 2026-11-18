@@ -9,7 +9,7 @@ export const colorMatchJumpMeta: ArcadeGameMeta = {
    title: "Color Match Jump",
    tagline: "Only your own colour holds. Tag the right hero in mid-air.",
    description:
-      "Hop across hex pillars over the void, where a landing holds only in your own colour: switch heroes in mid-air so the right one touches down, crack the beacon's colour codes before the field sinks, and reach the crown. Riko dashes the void, Nami double-jumps the tall pillars, Kiro shields through lightning, Zuno pulls orb trails and Vexa phases through ghost pillars. Level 5: the Echo Frost Golem.",
+      "Hop across hex pillars over the void, where a landing holds only in your own colour: switch heroes in mid-air so the right one touches down, crack the beacon's colour codes before the field sinks, and reach the crown. Riko dashes the void, Nyla double-jumps the tall pillars, Kiro shields through lightning, Zuno pulls orb trails and Vexa phases through ghost pillars. Level 5: the Echo Frost Golem.",
    order: 92,
    status: "live",
    collection: "rollheroes",
@@ -17,7 +17,7 @@ export const colorMatchJumpMeta: ArcadeGameMeta = {
    orientation: "any",
    controls: {
       scheme: "platformer",
-      keyboard: "WASD / arrows aim, Space hops (hold for a long jump; Space again in the air: Nami's double jump), 1-5 or T tag a hero, E / Enter hero power; drag, Q / C turn, wheel zooms",
+      keyboard: "WASD / arrows aim, Space hops (hold for a long jump; Space again in the air: Nyla's double jump), 1-5 or T tag a hero, E / Enter hero power; drag, Q / C turn, wheel zooms",
       touch: "Joystick aims, Hop (hold = long jump), the hero portraits tag, Power; two fingers turn the camera, pinch zooms",
    },
    scoring: LIMITS[1],

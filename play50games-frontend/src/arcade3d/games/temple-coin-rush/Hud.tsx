@@ -179,9 +179,9 @@ export default function Hud() {
          </div>
          <div className={stack.center} data-arcade-safe-area="">
             <div className={styles.banner}>
-               <span className={styles.title}>Temple Coin Rush</span>
+               <span className={styles.title}>Ruin Coin Rush</span>
                <span className={styles.level}>
-                  Level {level} · {config?.name ?? "Temple Entry"}
+                  Level {level} · {config?.name ?? "Ruin Entry"}
                </span>
             </div>
             <div className={styles.clock} role="timer" aria-label={`Score ${score}, run time`}>

@@ -18,7 +18,7 @@ export const colorBridgeBuilderMeta: ArcadeGameMeta = {
    title: "Color Bridge Builder",
    tagline: "Mix light beams into bridges across the canyon, and tag the hero who can walk each colour.",
    description:
-      "Energy nodes shoot beams across a canyon; a beam that reaches an anchor becomes a bridge of light. Step on switches to colour the nodes, bump prisms to aim them, and cross the beams to mix new colours: red and blue make purple, blue and yellow green, red and yellow a flickering orange, all three white. Only the hero of a bridge's colour can walk it, so tag between Riko, Nami, Zuno, Vexa and Kiro mid-bridge, and finally light the Bridge Keeper's plate to open the canyon gate.",
+      "Energy nodes shoot beams across a canyon; a beam that reaches an anchor becomes a bridge of light. Step on switches to colour the nodes, bump prisms to aim them, and cross the beams to mix new colours: red and blue make purple, blue and yellow green, red and yellow a flickering orange, all three white. Only the hero of a bridge's colour can walk it, so tag between Riko, Nyla, Zuno, Vexa and Kiro mid-bridge, and finally light the Bridge Keeper's plate to open the canyon gate.",
    order: 98,
    status: "live",
    collection: "rollheroes",

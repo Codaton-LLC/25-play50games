@@ -25,7 +25,7 @@ function at(run: AlienRun, lane: number, s: number): void {
 }
 
 describe("hero roles", () => {
-   it("Nami: a second jump in the air lands on the high mesa (one jump never does)", () => {
+   it("Nyla: a second jump in the air lands on the high mesa (one jump never does)", () => {
       for (const [hero, twice] of [["nami", true], ["nami", false], ["riko", true]] as [HeroId, boolean][]) {
          const run = createRun(1, 1, hero);
          const m = run.course.mesas[0];

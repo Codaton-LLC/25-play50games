@@ -1,4 +1,4 @@
-// Portal Hop with the shared orbit camera (menu2/camera): the bot is unchanged at camera yaw 0, a
+// Rift Hop with the shared orbit camera (menu2/camera): the bot is unchanged at camera yaw 0, a
 // random yaw never beats the floor, a teleport turns the camera at most 90 degrees, the camera helpers,
 // and the preselected hero (World 5: Vexa).
 import { describe, expect, it } from "vitest";

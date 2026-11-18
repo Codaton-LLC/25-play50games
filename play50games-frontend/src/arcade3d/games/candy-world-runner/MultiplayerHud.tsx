@@ -1,6 +1,6 @@
 "use client";
 
-// Candy World Runner's multiplayer HUD (menu2/multiplayer adoption): the "2-4 players" button on the
+// Sweet Lane Runner's multiplayer HUD (menu2/multiplayer adoption): the "2-4 players" button on the
 // hero row, the join screen while the lobby is open, the per-player chips during the runs, and the
 // podium once the result delay is over.
 import { useMemo } from "react";
@@ -61,7 +61,7 @@ export function MultiplayerHud() {
       return (
          <JoinScreen
             heroes={MP_HEROES}
-            title="Candy World Runner"
+            title="Sweet Lane Runner"
             onStart={() => {
                // the intro shows one hero: a multiplayer run starts straight into the countdown
                if (arcadeStore.getState().phase === "ready") arcadeStore.getState().start();

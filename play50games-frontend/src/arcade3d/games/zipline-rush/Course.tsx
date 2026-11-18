@@ -3,7 +3,7 @@
 // The playable course: the cables (one merged tube geometry for every line of the level, one draw;
 // a hop wobbles the line it leaves, the night levels light them only where a lighthouse beam
 // sweeps), the hazards (spark storms, the Volt Eel's charged line, the gull flock), the hero routes
-// (Nami's express line, Riko's cracked wall, Vexa's ghost gate, the L4 beam line), the orbs and
+// (Nyla's express line, Riko's cracked wall, Vexa's ghost gate, the L4 beam line), the orbs and
 // the boss. The stations and the world around them: Stations.tsx, World.tsx.
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
@@ -448,7 +448,7 @@ function CrackedWall({ run }: { run: ZipRun }) {
    );
 }
 
-/** Vexa's ghost signal gate across the inner line, and Nami's lantern shard over the express line. */
+/** Vexa's ghost signal gate across the inner line, and Nyla's lantern shard over the express line. */
 function HeroRoutes({ run }: { run: ZipRun }) {
    const gate = useRef<Group>(null);
    const shard = useRef<Group>(null);

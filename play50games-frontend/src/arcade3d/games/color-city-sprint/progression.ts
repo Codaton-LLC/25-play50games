@@ -26,7 +26,7 @@ export function starSpecFor(level: LevelId, orbTotal: number): StarSpec {
 
 /**
  * Secrets (no score), in the order of each level's `secrets` spots: the rooftop sticker at the far
- * end of the elevated rail (Nami), the colour shard inside the ghost shop (Vexa), the hoarding shard
+ * end of the elevated rail (Nyla), the colour shard inside the ghost shop (Vexa), the hoarding shard
  * inside the construction site (Riko); level 4's third is the perfect loop, which only lights once
  * every street of its ring is red.
  */

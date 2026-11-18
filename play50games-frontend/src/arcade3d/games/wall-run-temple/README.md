@@ -1,7 +1,7 @@
-# Wall Run Temple (Menu 2, game 31, World 3 Wild Temples): WALL-RUN
+# Cliff Glyph Run (Menu 2, game 31, World 3 Wild Temples): WALL-RUN
 
 Status: **dev** (preview builds only, `enabled: false` in `arcade-games.json`), order 70. Built by Claude
-on 2026-10-29 to the approved card (`docs/menu2-super/world-3-wild-temples.md` "31 Wall Run Temple" on
+on 2026-10-29 to the approved card (`docs/menu2-super/world-3-wild-temples.md` "31 Cliff Glyph Run" on
 `claude/m2-super-plan`, framework `00-framework.md`) on the menu2 shared systems.
 
 ## Concept and controls
@@ -48,7 +48,7 @@ before the run droops, whip round stone columns at the corners, and rest on the 
    panel is out while yours is in); an in panel is not runnable and sits 1.2 m back (still solid).
 3. **Column Hall** (golden hour, 100 s): whip-to-whip chains of two and three columns, and spike panels on
    both walls that you roll under.
-4. **Broken Temple** (blue night with torches, 120 s): crumbling 6 m panels crack 0.8 s after a run on
+4. **Broken Ruins** (blue night with torches, 120 s): crumbling 6 m panels crack 0.8 s after a run on
    them starts (the timer runs with the run, a seam buys no time; respawns and checkpoints mend them),
    and stone rams swing down the corridors' middles (wall-runners pass beside them; a kick meets them).
 5. **Master Wall Run** (the storm, 150 s), boss **Umbra** (`m2ShadowArmadillo`):
@@ -63,7 +63,7 @@ before the run droops, whip round stone columns at the corners, and rest on the 
 | Hero | Power | Pocket |
 |---|---|---|
 | Riko | dash 12 m/s, 0.5 s | a cracked stone panel on a pad with orbs packed inside: only the dash breaks in |
-| Nami | a second jump in the air | the upper wall tier over a pad: above a kick's reach, inside a kick plus a double jump |
+| Nyla | a second jump in the air | the upper wall tier over a pad: above a kick's reach, inside a kick plus a double jump |
 | Kiro | shield 3 s (20 s cooldown, the world's rule) | a dart-vent line high on a corridor wall, orbs threaded through it (the shield also stops rams and plates) |
 | Zuno | magnet 6 m | gold ring orbs (`m2GoldRingOrb`) set in the cliff face behind a wall, past any hand |
 | Vexa | phase 3 s | a ghost-walled room beside a pad: orbs and the shard |

@@ -5,7 +5,7 @@
 //
 // - Riko: an in-flight dash, a horizontal burst of 4 m extra (+8 m/s for 500 ms, once a flight); it
 //   smashes cracked target boards, which open a hidden cannon line.
-// - Nami: a double jump in flight, a second arc (vy back up to 12 m/s, once a flight): the high
+// - Nyla: a double jump in flight, a second arc (vy back up to 12 m/s, once a flight): the high
 //   trapeze orbs.
 // - Kiro: a shield (2.5 s): grey smoke jets do not knock him off his arc.
 // - Zuno: a magnet (3 s): orb trails hidden in the tent canvas come out and fly to him from 4 m.
@@ -28,7 +28,7 @@ export interface HeroDef {
 
 export const HEROES: readonly HeroDef[] = [
    { id: "riko", name: "Riko", color: "#EF4444", power: "dash", powerLabel: "Air dash", cooldownMs: 5_000 },
-   { id: "nami", name: "Nami", color: "#2563EB", power: "doubleJump", powerLabel: "Double", cooldownMs: 2_000 },
+   { id: "nami", name: "Nyla", color: "#2563EB", power: "doubleJump", powerLabel: "Double", cooldownMs: 2_000 },
    { id: "kiro", name: "Kiro", color: "#22C55E", power: "shield", powerLabel: "Shield", cooldownMs: 10_000 },
    { id: "zuno", name: "Zuno", color: "#FACC15", power: "magnet", powerLabel: "Magnet", cooldownMs: 10_000 },
    { id: "vexa", name: "Vexa", color: "#8B5CF6", power: "phase", powerLabel: "Phase", cooldownMs: 9_000 },
@@ -52,7 +52,7 @@ export const POWER_MS = { dash: 500, shield: 2500, magnet: 3000, phase: 1500 } a
 /** Riko's dash: +8 m/s along the flight for 500 ms = exactly 4 m extra (the card), once a flight. */
 export const V_DASH = 8;
 export const DASH_EXTRA_M = (V_DASH * POWER_MS.dash) / 1000;
-/** Nami's second arc: the vertical speed goes back up to this (m/s), once a flight; the horizontal is kept. */
+/** Nyla's second arc: the vertical speed goes back up to this (m/s), once a flight; the horizontal is kept. */
 export const NAMI_VY = 12;
 /** Zuno's magnet: hidden canvas orbs show and every orb flies in from this far (m). */
 export const MAGNET_REACH = 4;

@@ -27,7 +27,7 @@ export const spacePodJumpMeta: ArcadeGameMeta = {
    title: "Space Pod Jump",
    tagline: "Fall into real orbits, slingshot past moons and launch for the dock.",
    description:
-      "Leap between tiny planetoids and station pods as a Scale Squad pangolin: down is wherever the nearest body is, so you walk round worlds, fall into true orbits and charge pod launches to cross the void, braking with retro jets and slingshotting past moving moons. Riko, Nami, Kiro, Zuno and Vexa each bend the rules of orbit their own way. Level 5: bring down the Orbit Warden.",
+      "Leap between tiny planetoids and station pods as a Scale Squad pangolin: down is wherever the nearest body is, so you walk round worlds, fall into true orbits and charge pod launches to cross the void, braking with retro jets and slingshotting past moving moons. Riko, Nyla, Kiro, Zuno and Vexa each bend the rules of orbit their own way. Level 5: bring down the Orbit Warden.",
    order: 84,
    status: "live",
    collection: "rollheroes",

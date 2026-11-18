@@ -1,7 +1,7 @@
 "use client";
 
 // The picked hero on the factory floor, animated by the shared Menu 2 animator (menu2/heroAnim):
-// walk / run with the belt's push, jump, Nami's flip, the roll-drop (the armoured ball), a hit's
+// walk / run with the belt's push, jump, Nyla's flip, the roll-drop (the armoured ball), a hit's
 // recoil, the cheer at the exit; the intro drops it in curled up. A blob shadow follows it.
 import { useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";

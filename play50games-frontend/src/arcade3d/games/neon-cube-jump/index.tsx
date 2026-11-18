@@ -41,7 +41,7 @@ const definition: GameDefinition<NeonLevel> = {
       "Cubes come in two sets: square (A) and triangle (B). Only one set is solid; the other is a wireframe you fall through.",
       "Every jump flips which set is solid, on takeoff, so every jump lands on the other set. Walking off an edge does not flip. The big glyph at the bottom shows the solid set.",
       "Moving cubes slide only while solid; ring cubes blink on their own clock; lasers and drones only bite while their set is solid.",
-      "Power (E, Enter or the Power button): Riko air-dashes without a flip, Kiro's shield stands in a laser, Zuno's magnet pulls coins out of the cubes, Vexa phases (holograms hold her, ghost walls let her through); Nami's second jump flips twice.",
+      "Power (E, Enter or the Power button): Riko air-dashes without a flip, Kiro's shield stands in a laser, Zuno's magnet pulls coins out of the cubes, Vexa phases (holograms hold her, ghost walls let her through); Nyla's second jump flips twice.",
       "Turn the camera: drag the view (or two fingers), mouse wheel / pinch zooms, Q / C turn, R / F tilt, V recenters.",
    ],
    resultDelayMs: 1700,

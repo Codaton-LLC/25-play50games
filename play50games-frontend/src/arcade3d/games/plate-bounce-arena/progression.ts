@@ -30,7 +30,7 @@ const SET: readonly SecretSpec[] = [
 export const SECRETS: Record<LevelId, readonly SecretSpec[]> = { 1: SET, 2: SET, 3: SET, 4: SET, 5: SET };
 
 /**
- * Level 5's boss: Rollo (m2ShadowArmadillo), a dark armadillo curled up and rolling round the table.
+ * Level 5's boss: Gristle (m2ShadowArmadillo), a dark armadillo curled up and rolling round the table.
  * P1 Clash: hit him at 9 m/s or faster while his pockets are lit: 3 hits.
  * P2 Armour: only a golden ball cracks him (a ramp shot makes you golden for 10 s): 2 hits.
  * P3 Flipper thief: he jams one flipper, the other every 8 s; the jackpot ramp in his window launches
@@ -38,7 +38,7 @@ export const SECRETS: Record<LevelId, readonly SecretSpec[]> = { 1: SET, 2: SET,
  */
 export const ROLLO: BossConfig = {
    id: "rollo",
-   name: "Rollo",
+   name: "Gristle",
    maxHp: 6,
    introMs: 2000,
    transitionMs: 1500,

@@ -4,7 +4,7 @@
 // Powers (E / Enter / Power):
 // - Riko red: a dash. In the air it carries the jump two hexes further (the void lines); on the
 //   ground it is a three-hex dash hop.
-// - Nami blue: the double jump (Space again in the air, or Power): clears the 4 m pillars and the golem.
+// - Nyla blue: the double jump (Space again in the air, or Power): clears the 4 m pillars and the golem.
 // - Kiro green: a shield (1.5 s) to cross the lightning curtains.
 // - Zuno yellow: a magnet (3 s) that pulls the floating orb trails in from 6 m.
 // - Vexa purple: a phase (0.8 s) to pass and land through ghost pillars.
@@ -29,7 +29,7 @@ export interface HeroDef {
 /** Index = colour index in the rules (0 red .. 4 purple) = World 6's TAG_ORDER; the glyphs are its TAG_GLYPH. */
 const BASE: readonly Omit<HeroDef, "glyph">[] = [
    { id: "riko", name: "Riko", color: "#EF4444", powerLabel: "Dash", cooldownMs: 3000, powerMs: 0 },
-   { id: "nami", name: "Nami", color: "#2563EB", powerLabel: "Double jump", cooldownMs: 0, powerMs: 0 },
+   { id: "nami", name: "Nyla", color: "#2563EB", powerLabel: "Double jump", cooldownMs: 0, powerMs: 0 },
    { id: "kiro", name: "Kiro", color: "#22C55E", powerLabel: "Shield", cooldownMs: 5000, powerMs: 1500 },
    { id: "zuno", name: "Zuno", color: "#FACC15", powerLabel: "Magnet", cooldownMs: 7000, powerMs: 3000 },
    { id: "vexa", name: "Vexa", color: "#8B5CF6", powerLabel: "Phase", cooldownMs: 5000, powerMs: 800 },

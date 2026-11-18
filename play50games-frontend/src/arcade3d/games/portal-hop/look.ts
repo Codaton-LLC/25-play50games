@@ -1,4 +1,4 @@
-// Portal Hop's look: World 5 "Neon Cosmos" (the card): a deep violet void with a faint cyan grid on the
+// Rift Hop's look: World 5 "Neon Cosmos" (the card): a deep violet void with a faint cyan grid on the
 // horizon, floating ruins, a ringed planet; grey glass with dead edge strips that light up purple, then
 // cyan, then magenta as the colour returns. Gameplay states read by SHAPE and FILL, never by hue alone:
 // the selected exit is a filled frame with a ring, an unselected anchor a hollow outline; a closed

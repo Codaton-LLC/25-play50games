@@ -10,7 +10,7 @@ Sky Tower Jump is the reference adoption (`heroes.ts`, `Hud.tsx`, `Scene.tsx`).
 | World | Lead (preselected) |
 |---|---|
 | W1 Ember Heights | Riko |
-| W2 Sky & Sea (Sky Tower Jump) | Nami |
+| W2 Sky & Sea (Sky Tower Jump) | Nyla |
 | W3 | Kiro |
 | W4 | Zuno |
 | W5 | Vexa |

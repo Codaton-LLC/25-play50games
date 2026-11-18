@@ -1,4 +1,4 @@
-// Candy World Runner's Menu 2 game structure (menu2/stars, combo, secrets, boss, progress). Plain data
+// Sweet Lane Runner's Menu 2 game structure (menu2/stars, combo, secrets, boss, progress). Plain data
 // and tiny pure helpers. README "Stars, flow, secrets".
 import type { LevelId } from "../../types";
 import type { ComboConfig } from "../../menu2/combo/combo";

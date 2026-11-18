@@ -6,7 +6,7 @@ import * as sky from "../sky-tower-jump/heroes";
 
 for (const [name, h] of [["rooftop-roll-climb", roof], ["sky-tower-jump", sky]] as const) {
    describe(`${name}: live hero pick`, () => {
-      // Sky Tower Jump preselects Nami (W2): start every case from a known pick
+      // Sky Tower Jump preselects Nyla (W2): start every case from a known pick
       beforeEach(() => h.selectHero("riko"));
       afterEach(() => h.selectHero("riko"));
 

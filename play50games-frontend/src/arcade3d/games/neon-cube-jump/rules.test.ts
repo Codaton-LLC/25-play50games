@@ -1,6 +1,6 @@
 // Neon Cube Jump rules: the flip on takeoff (every jump lands on the other set; walking off an edge
 // does not flip), holograms you fall through, the void and the checkpoint (the field restored), the
-// jump's reach, Nami's second jump flipping again, Riko's dash not flipping, Vexa's phase holding her
+// jump's reach, Nyla's second jump flipping again, Riko's dash not flipping, Vexa's phase holding her
 // on a hologram, Kiro's shield in a live laser, Zuno's coins, rails that slide only while solid, rogue
 // clocks, lasers and drones by set, the parity shard, the bound, frame-rate independence and the
 // honest bot's clear on every level with every hero.
@@ -84,7 +84,7 @@ describe("the flip", () => {
 });
 
 describe("hero powers", () => {
-   it("Nami's second jump flips again (lands on the set she left); the others' does nothing", () => {
+   it("Nyla's second jump flips again (lands on the set she left); the others' does nothing", () => {
       for (const hero of ["nami", "kiro"] as const) {
          const run = createRun(1, 1, hero);
          step(run, 1, { ...createStepInput(), jumpPressed: true });

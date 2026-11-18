@@ -27,7 +27,7 @@ export const spinPoleClimbMeta: ArcadeGameMeta = {
    title: "Spin Pole Climb",
    tagline: "Run round the pole. Every lap carries you up.",
    description:
-      "Climb ancient stone poles by running round their spiral stairs: every lap lifts you 3 m. The poles turn, carrying you up like an escalator or treadmilling you down, so read the spin and hop to the neighbour pole that turns your way. Jump the sweeper bars, spike collars and gaps, pick Riko, Nami, Kiro, Zuno or Vexa, and on level 5 climb past Coilstone, the Temple Serpent, to ring the gong on top.",
+      "Climb ancient stone poles by running round their spiral stairs: every lap lifts you 3 m. The poles turn, carrying you up like an escalator or treadmilling you down, so read the spin and hop to the neighbour pole that turns your way. Jump the sweeper bars, spike collars and gaps, pick Riko, Nyla, Kiro, Zuno or Vexa, and on level 5 climb past Coilstone, the Temple Serpent, to ring the gong on top.",
    order: 71,
    status: "live",
    collection: "rollheroes",

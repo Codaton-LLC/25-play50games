@@ -40,7 +40,7 @@ const definition: GameDefinition<SpinLevel> = {
    instructions: [
       "Run round the pole (A / D, the arrows or the joystick: left and right on the screen) to climb its spiral stair: every lap lifts you 3 m. Jump (Space) hops a sweeper bar, a spike collar or a gap.",
       "The poles turn. Green chevrons: the spin carries you up. Red: it drags you down. Facing a neighbour pole, Jump while pushing towards it to hop across (a gold ring shows where you land).",
-      "Five green orbs a level, each 0.1 s off your time. Power (E, Enter or the Power button): Riko dashes and smashes the cracked urn, Kiro shields, Zuno's magnet pulls the orb from the hollow pole, Vexa phases onto the ghost pole; Nami jumps again in the air.",
+      "Five green orbs a level, each 0.1 s off your time. Power (E, Enter or the Power button): Riko dashes and smashes the cracked urn, Kiro shields, Zuno's magnet pulls the orb from the hollow pole, Vexa phases onto the ghost pole; Nyla jumps again in the air.",
       "Turn the camera: drag the view (or two fingers), mouse wheel / pinch zooms, Q / C turn, R / F tilt, V recenters. Left alone, it swings back out behind you.",
    ],
    resultDelayMs: 1700,

@@ -74,7 +74,7 @@ export interface Arena {
    lastSpawnMs: number;
    wavesEndMs: number;
    pillars: { x: number; z: number }[];
-   /** the hidden beacon over one pillar (Nami's double jump) */
+   /** the hidden beacon over one pillar (Nyla's double jump) */
    beacon: { x: number; y: number; z: number };
    boss: boolean;
 }

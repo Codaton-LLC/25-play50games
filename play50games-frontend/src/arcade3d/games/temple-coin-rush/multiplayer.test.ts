@@ -1,4 +1,4 @@
-// Temple Coin Rush local multiplayer (multiplayer.ts): parallel corridors from the same seed, versus'
+// Ruin Coin Rush local multiplayer (multiplayer.ts): parallel corridors from the same seed, versus'
 // shared coins and held-open toll lanes, co-op's shared purse, ally powers, the end rules and the podium.
 import { describe, expect, it } from "vitest";
 import { createBot, botInput } from "./bot";

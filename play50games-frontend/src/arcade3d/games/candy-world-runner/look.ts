@@ -1,4 +1,4 @@
-// Candy World Runner's look: one palette (strawberry pink, mint, lemon, chocolate, a frosting blue for
+// Sweet Lane Runner's look: one palette (strawberry pink, mint, lemon, chocolate, a frosting blue for
 // level 3), the sky per level, the light. Pure.
 import type { LevelId } from "@/arcade3d/types";
 

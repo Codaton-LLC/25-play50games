@@ -5,7 +5,7 @@
 // fallback. Every frame the run (rules.ts) and the Scene's moments (HeroAnim) become the animator's
 // HeroMotion: velocity, grounded, the power that is up, the ball (the signature roll: riding a current
 // the hero curls into the armoured ball and tumbles with it; the intro drop; a fall), the cheer at the
-// exit, and one-frame events (jump, Nami's air jump = the somersault, land, a hit). The lean into the
+// exit, and one-frame events (jump, Nyla's air jump = the somersault, land, a hit). The lean into the
 // current, the pop-in on respawn, the shrink of a fall and the blob shadow stay here.
 import { useMemo, useRef, type MutableRefObject } from "react";
 import { useFrame } from "@react-three/fiber";
@@ -49,7 +49,7 @@ export function createMotionMemo(): MotionMemo {
    return { jumpAt: -9, airJumpAt: -9, landAt: -9, hitAt: -9, fallSpeed: 0 };
 }
 
-/** The hero rides curled up as a ball: in a current (not on Nami's hop out of one). */
+/** The hero rides curled up as a ball: in a current (not on Nyla's hop out of one). */
 export function rollsInCurrent(run: WindRun): boolean {
    const h = run.hero;
    return h.state === "play" && h.riding > 0 && run.ms > h.hopUntil && run.ms > h.dashUntil;

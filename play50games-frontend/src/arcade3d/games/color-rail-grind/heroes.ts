@@ -4,7 +4,7 @@
 //
 // - Riko: a dash (450 ms): in the air it carries him over the long broken rail gap (a shortcut), and it
 //   breaks the wooden barrier of a side spur.
-// - Nami: a double jump up onto the high rails (faster, with orbs).
+// - Nyla: a double jump up onto the high rails (faster, with orbs).
 // - Kiro: a shield (3 s, every 20 s): straight through the icicle tunnels.
 // - Zuno: a magnet: its grip takes him round the upside-down loop (a boost and a shard), and it pulls
 //   the coin trails out of the snowbanks beside the rails.
@@ -26,7 +26,7 @@ export interface HeroDef {
 
 export const HEROES: readonly HeroDef[] = [
    { id: "riko", name: "Riko", color: "#EF4444", power: "dash", powerLabel: "Dash", cooldownMs: 6_000 },
-   { id: "nami", name: "Nami", color: "#2563EB", power: "doubleJump", powerLabel: "Double jump", cooldownMs: 1_500 },
+   { id: "nami", name: "Nyla", color: "#2563EB", power: "doubleJump", powerLabel: "Double jump", cooldownMs: 1_500 },
    { id: "kiro", name: "Kiro", color: "#22C55E", power: "shield", powerLabel: "Shield", cooldownMs: 20_000 },
    { id: "zuno", name: "Zuno", color: "#FACC15", power: "magnet", powerLabel: "Magnet", cooldownMs: 12_000 },
    { id: "vexa", name: "Vexa", color: "#8B5CF6", power: "phase", powerLabel: "Phase", cooldownMs: 10_000 },

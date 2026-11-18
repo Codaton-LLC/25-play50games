@@ -1,6 +1,6 @@
 // The hero's motion writer (pure): what the shared menu2/heroAnim animator is told every frame in a
 // free-fall: standing on the column, the leap, the spread fall (tipped belly-down), the Dive (the
-// armoured ball), Nami's flip (the somersault), the powers' auras, a hit, the landing and the cheer.
+// armoured ball), Nyla's flip (the somersault), the powers' auras, a hit, the landing and the cheer.
 import { describe, expect, it } from "vitest";
 import { createHeroMotion } from "@/arcade3d/menu2/heroAnim";
 import { SKYDIVE_TIP, createHeroAnim, createMotionMemo, skydiveTip, writeHeroMotion } from "./Hero";
@@ -20,7 +20,7 @@ describe("writeHeroMotion", () => {
       expect(m.events.jumped).toBe(true);
    });
 
-   it("a spread fall tips belly-down; a Dive is the ball (no tip); Nami's flip is the somersault", () => {
+   it("a spread fall tips belly-down; a Dive is the ball (no tip); Nyla's flip is the somersault", () => {
       const run = createRun(1, 1, "nami");
       const leap = createStepInput();
       leap.jumpPressed = true;

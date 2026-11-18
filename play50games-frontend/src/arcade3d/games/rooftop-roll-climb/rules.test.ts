@@ -405,7 +405,7 @@ describe("the lower bound (README proof)", () => {
       expect(coyoteJumpS(H_JUMP + 0.01)).toBe(-1);
    });
 
-   it("every support is reachable by some hero (the water-tower ledges by Nami), and a power only ever lowers an arrival", () => {
+   it("every support is reachable by some hero (the water-tower ledges by Nyla), and a power only ever lowers an arrival", () => {
       for (const id of LEVEL_IDS) {
          const c = courseFor(id);
          const arrive = minArrivalMs(c);

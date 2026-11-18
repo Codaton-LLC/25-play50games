@@ -18,7 +18,7 @@ export const magnetCoinLabMeta: ArcadeGameMeta = {
    title: "Magnet Coin Lab",
    tagline: "Flip your polarity, fly between magnet pads, herd a swarm of steel coins into the bank.",
    description:
-      "Zuno's tinker lab is frozen and its coins are scattered. Tap to flip between + and -: an opposite pad pulls you across a gap, a matching one launches you to the high door, and the coins you sweep up follow in a jingling swarm that lags, catches on corners and falls into pits. Polarity gates, sliding metal blocks, coin-stealing drones and Scrap Magnus the golem stand between you and every piggy bank. Pick Zuno, Riko, Nami, Kiro or Vexa.",
+      "Zuno's tinker lab is frozen and its coins are scattered. Tap to flip between + and -: an opposite pad pulls you across a gap, a matching one launches you to the high door, and the coins you sweep up follow in a jingling swarm that lags, catches on corners and falls into pits. Polarity gates, sliding metal blocks, coin-stealing drones and Scrap Magnus the golem stand between you and every piggy bank. Pick Zuno, Riko, Nyla, Kiro or Vexa.",
    order: 82,
    status: "live",
    collection: "rollheroes",

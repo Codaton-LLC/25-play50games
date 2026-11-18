@@ -99,7 +99,7 @@ describe("hero powers", () => {
       expect(touch.powerReadyAt).toBe(key.powerReadyAt);
    });
 
-   it("Double Jump (Nami) lifts a falling hero and stays under the single-jump apex", () => {
+   it("Double Jump (Nyla) lifts a falling hero and stays under the single-jump apex", () => {
       const run = createRun(1, 1, "nami");
       const input = createStepInput();
       input.moveX = 1;
@@ -127,7 +127,7 @@ describe("hero powers", () => {
       expect(run.events.powered).toBe(false);
    });
 
-   it("Nami's power on the ground does not start the cooldown", () => {
+   it("Nyla's power on the ground does not start the cooldown", () => {
       const run = createRun(1, 1, "nami");
       const input = createStepInput();
       input.actionPressed = true;

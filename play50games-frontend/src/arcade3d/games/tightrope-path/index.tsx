@@ -41,7 +41,7 @@ const definition: GameDefinition<TightLevel> = {
       "Walk the gorge (stick or W): every step tips the lean needle. Push the stick sideways against it to stay upright; past 100 % you wobble, and 0.5 s later you fall back to the last pillar.",
       "Hold forward to sprint (twice as fast, the needle drifts 3x); stand still and it drifts slowly. Hold Action to crouch: half the drift, and sandbags pass over you.",
       "Jump the gaps (Space / Jump). Each landing kicks the needle the same way every time: learn them.",
-      "Action's press fires your hero: Riko dashes a cracked rope, Kiro's shield stops the drift 3 s, Zuno's magnet pulls coins out of the mist, Vexa phases onto the ghost bridge; Nami double jumps to the high orbs.",
+      "Action's press fires your hero: Riko dashes a cracked rope, Kiro's shield stops the drift 3 s, Zuno's magnet pulls coins out of the mist, Vexa phases onto the ghost bridge; Nyla double jumps to the high orbs.",
       "Turn the camera: drag the view (or two fingers), mouse wheel / pinch zooms, Q / C turn, R / F tilt, V recenters.",
    ],
    resultDelayMs: 1700,

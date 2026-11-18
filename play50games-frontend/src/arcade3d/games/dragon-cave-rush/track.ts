@@ -1,6 +1,6 @@
 // The crystal cave's rails: the course data and the five level layouts (pure data, no React, no three.js).
 // A level is one rail line through the cave, built from straights and curves (each a lean), with side
-// tracks that exist for stretches: forks (swap lanes), the upper scaffold track (Nami's double hop), the
+// tracks that exist for stretches: forks (swap lanes), the upper scaffold track (Nyla's double hop), the
 // purple ghost rails (Vexa's phase) and the shortcut behind a cracked barricade (Riko's boost). Hazards
 // sit on the track by distance: gaps and rocks to hop, beams to duck, falling crystals and lavafalls to
 // swap round, and the dragon's breaths, triggered as you pass. Level 5 adds a loop round Cindermaw that
@@ -210,7 +210,7 @@ function secret(b: Builder, id: string, s: number, laneId: number, h = 1.2): voi
    b.secrets[id] = { s, lane: laneId, h };
 }
 
-/** Nami: the upper scaffold track from s for len m, a ramp just before it; three orbs on it and the shard at its end. */
+/** Nyla: the upper scaffold track from s for len m, a ramp just before it; three orbs on it and the shard at its end. */
 function scaffold(b: Builder, s: number, len: number, shard: boolean): void {
    const l = lane(b, "scaffold", 0, SCAFFOLD_Y, s, s + len);
    b.ramps.push({ s: s - 4, lane: l });

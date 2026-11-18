@@ -39,7 +39,7 @@ export const STEP_MS = 1000 / 120;
 export const MAX_FRAME_MS = 50;
 export const V_RUN = 6;
 export const V_JUMP = 8;
-/** Nami's second jump */
+/** Nyla's second jump */
 export const V_JUMP2 = 7.5;
 export const GRAV = 20;
 export const GROUND_ACCEL = 45;

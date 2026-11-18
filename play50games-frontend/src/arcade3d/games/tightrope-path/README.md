@@ -42,7 +42,7 @@ owner claude, a **time** game. Design card: `docs/menu2-super/world-3-wild-templ
 | Hero | Power |
 |---|---|
 | Riko | on a cracked dash rope's first 1.2 m: dash across it in 0.4 s, the needle frozen |
-| Nami | a second jump in the air: the high orbs over the gaps |
+| Nyla | a second jump in the air: the high orbs over the gaps |
 | Kiro | shield 3 s: no drift, no kicks (and covers the team in co-op) |
 | Zuno | magnet 3 s: pulls the coin arcs out of the mist within 4 m |
 | Vexa | phase 6 s: leaving a ghost pillar she takes the ghost bridge to the shard |

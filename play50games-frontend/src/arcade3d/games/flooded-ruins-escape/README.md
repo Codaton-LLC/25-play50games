@@ -2,7 +2,7 @@
 
 Owner: Cursor (rebuilt by Claude to the approved super-game card). Status: **dev** (preview builds only, `enabled: false` in `arcade-games.json`).
 Design card: `docs/menu2-super/world-2-sky-and-sea.md` game 3 (branch `claude/m2-super-plan`).
-The hero is one of the five Color Roll Heroes armadillos (`menu2/heroModels.ts`); World 2's lead, **Nami**, is preselected.
+The hero is one of the five Color Roll Heroes armadillos (`menu2/heroModels.ts`); World 2's lead, **Nyla**, is preselected.
 
 ## Concept and controls
 
@@ -63,7 +63,7 @@ swim and water level depends only on rules ms, the same at 30, 60 or 144 fps. No
 | Hero | Power (cooldown) | What it opens |
 |---|---|---|
 | Riko | Dash 280 ms at 12.5 m/s (15 s) | breaks cracked brick: level 2's plug into the cistern tunnel (the cistern shard) |
-| Nami | Double jump (10 s) | from the water's surface it is the **breach jump**, a 4 m leap onto the orb nests (levels 1-3) that a plain leap (3.27 m from the float height) cannot reach. In the air it is a double jump capped at the flight's apex |
+| Nyla | Double jump (10 s) | from the water's surface it is the **breach jump**, a 4 m leap onto the orb nests (levels 1-3) that a plain leap (3.27 m from the float height) cannot reach. In the air it is a double jump capped at the flight's apex |
 | Kiro | Shield 2.5 s (20 s) | walks through steam jets (levels 2, 3) and swims through whirlpools (level 4) |
 | Zuno | Magnet 2.5 s, 4.2 m reach (20 s) | pulls the buried orb trails out of a drained floor (levels 1, 2, 3, 5); flooded, they stay buried |
 | Vexa | Phase 1.2 s (20 s) | passes the ghost panels to the sticker niches (every level; level 3's is the hidden spiral niche in the shaft wall) |
@@ -177,7 +177,7 @@ worn rims and chipped corners, cracks, moss in the grout), mapped in world space
 ## Open issues
 
 - Not playtested in a browser yet (rules and visuals are covered by the tests only).
-- The honest bot does not take the hero routes (Riko's cistern tunnel, Nami's nests and so on). Those are covered by `powers.test.ts` scenes.
+- The honest bot does not take the hero routes (Riko's cistern tunnel, Nyla's nests and so on). Those are covered by `powers.test.ts` scenes.
 - The level 4 bound is loose (see the proof). A tighter one would model the crypt roof's sealed cells for swimmers.
 - Versus "levers flood your rival's side" (the card) is not built: in versus the chambers are shared like in co-op.
 - Co-op: levers are shared but each run's re-arm is its own, so a second hero walking through a lever's trigger pulls it again and can undo a teammate's pull. A rules fix would count a lever only when the hero steers into it.

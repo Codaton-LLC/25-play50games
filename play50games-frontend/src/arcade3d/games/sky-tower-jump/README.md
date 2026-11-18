@@ -29,7 +29,7 @@ costs time and sends you back to the last beacon.
   the shared camera turns round the group (mouse, two fingers or P1's camera keys), every stick relative to it.
 - Touch: the core joystick + Jump + a Power button (`touchLabels.action`). **The same timing for both** (decision 7): one jump press
   and one action press (`jumpPressed`, `actionPressed`), the same 130 ms buffer and 100 ms coyote time, no device-specific help.
-- The shared Menu 2 hero picker (`menu2/heroes`) picks Riko (Dash), Nami (Double Jump), Kiro (Shield), Zuno (Magnet) or Vexa (Phase) on the start card, in the pause menu and on the result screen (a "change hero" chip on phones). The pick is the next run's option; a running run keeps its hero. Preselected: the player's own last pick in this game, else **Nami** (W2 Sky & Sea's lead hero, `defaultHeroFor`). The shared module stores it; the game never writes localStorage.
+- The shared Menu 2 hero picker (`menu2/heroes`) picks Riko (Dash), Nyla (Double Jump), Kiro (Shield), Zuno (Magnet) or Vexa (Phase) on the start card, in the pause menu and on the result screen (a "change hero" chip on phones). The pick is the next run's option; a running run keeps its hero. Preselected: the player's own last pick in this game, else **Nyla** (W2 Sky & Sea's lead hero, `defaultHeroFor`). The shared module stores it; the game never writes localStorage.
 
 ## Files
 
@@ -76,7 +76,7 @@ obstacle-race): every jump arc depends only on the ms since take-off, the same a
   each takes `ORB.bonusMs` 400 ms off the submitted time. Level 1 has 18.
 - **Hero power** (E, Enter, or the Power button — one `actionPressed`, same ms on touch and keyboard).
   The cooldown starts when the power actually fires and is ready again at the start of every run.
-  Riko Dash: 280 ms at 12.5 m/s, then 15 s. Nami Double Jump: a second jump in the air whose apex
+  Riko Dash: 280 ms at 12.5 m/s, then 15 s. Nyla Double Jump: a second jump in the air whose apex
   cannot pass the flight's existing apex (a ground jump's `H_JUMP`, or a bounce's `H_BOUNCE`), then 10 s;
   a press on the ground does not start the cooldown. Kiro Shield: 2.5 s ignoring gusts and lightning, then 20 s.
   Zuno Magnet: 2.5 s at the wider pickup, then 20 s. Vexa Phase: 1.2 s ignoring gusts and lightning, then 20 s.
@@ -251,10 +251,10 @@ helmet and visor, tan muzzle, charcoal suit). Each hero is drawn from its own GL
 **Animation (2026-10-27): the shared Menu 2 animator** (`menu2/heroAnim`, its README). `Hero.tsx`
 turns the run into a `HeroMotion` every frame (`writeHeroMotion`, pure, `hero.test.ts`): velocity,
 grounded, the power that is up, the ball (bounce flights, the intro drop, a fall), the cheer at the
-gate, and one-frame events (jump, Nami's double jump = her air jump spent in the air, landing with
+gate, and one-frame events (jump, Nyla's double jump = her air jump spent in the air, landing with
 its fall speed, a lightning hit = lost while standing). `useHeroAnimator` + `<AnimatedHero>` then
 blend idle (breathing, looking around), the run with planted feet (`heroStride`, about 5 strides a
-second at 6.5 m/s, no foot slide), takeoff / rise / fall / land squash, Nami's somersault, the
+second at 6.5 m/s, no foot slide), takeoff / rise / fall / land squash, Nyla's somersault, the
 ball-roll (the hero curls and an armoured shell in its own colours closes round it and rolls with
 the travel speed), Riko's dash streak, hurt and cheer. The respawn pop-in, the fall's shrink, the
 spin at the gate and the blob shadow stay in `Hero.tsx`.
@@ -326,7 +326,7 @@ the hips and the spine.
 2-4 heroes on one device, the framework's reference adoption (`menu2/multiplayer/README.md`).
 `multiplayer.ts` (pure, `multiplayer.test.ts`): N `SkyRun`s from the same seed, stepped together;
 orbs are shared (first to reach one gets it); co-op shares checkpoints, combines Kiro's shield,
-Zuno's magnet and Vexa's phase through `onAllyPower` (Riko's dash and Nami's double jump stay
+Zuno's magnet and Vexa's phase through `onAllyPower` (Riko's dash and Nyla's double jump stay
 personal) and clears only when every hero is on the gate; versus ends 15 s after the first
 finisher, ranked by run time (finish minus the orb bonus and the flow bonus), then height. `MultiScene.tsx` draws one
 animated hero per player (menu2/heroAnim) inside the same menu2/juice JuiceLayer as solo, with a player-coloured ring, the shared camera frames every hero still climbing

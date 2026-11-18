@@ -290,7 +290,7 @@ export interface Hero {
    onLift: number;
    coyoteUntil: number;
    bufferUntil: number;
-   /** Nami's air jumps used this flight; she hops out of a current's hold until hopUntil */
+   /** Nyla's air jumps used this flight; she hops out of a current's hold until hopUntil */
    airJumps: number;
    hopUntil: number;
    hearts: number;
@@ -1229,7 +1229,7 @@ function substep(run: WindRun, ms: number, input: StepInput, first: boolean): vo
       if (dy !== 0) moveAxis(run, 1, dy, phasing);
    }
    run.seenLift.set(w.liftY);
-   // jumping (buffered, coyote time), Nami's air jump on a second press
+   // jumping (buffered, coyote time), Nyla's air jump on a second press
    if (h.bufferUntil >= ms && !dashing) {
       if (h.grounded || ms <= h.coyoteUntil) {
          h.vy = V_JUMP;

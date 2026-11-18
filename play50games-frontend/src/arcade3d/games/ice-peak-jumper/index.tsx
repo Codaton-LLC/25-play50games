@@ -42,7 +42,7 @@ const definition: GameDefinition<PeakLevel> = {
       "On ice the stick (WASD / arrows) builds your slide up to 9 m/s and nothing slows you; pull back (S / Down, or the stick down) to brake.",
       "Snow patches grip: walk, stop, turn and re-aim there. Each one is a checkpoint: a fall drops you back on the last one. Cracked ice shatters 1.2 s after you touch it.",
       "Levels 1-2 show a dotted arc where a jump would land. A landing on a platform's centre is perfect: it feeds the flow meter.",
-      "E / Enter is your power: Riko dashes (+4 m/s on ice: the far ledges, and it smashes ice cubes), Nami jumps again in the air and re-aims, Kiro's shield crosses the icicle chute, Zuno's magnet pulls the coins frozen in the ice walls, Vexa phases through ghost ice.",
+      "E / Enter is your power: Riko dashes (+4 m/s on ice: the far ledges, and it smashes ice cubes), Nyla jumps again in the air and re-aims, Kiro's shield crosses the icicle chute, Zuno's magnet pulls the coins frozen in the ice walls, Vexa phases through ghost ice.",
       "Turn the camera: drag the view (or two fingers), mouse wheel / pinch zooms, Q / C turn, R / F tilt, V recenters.",
    ],
    resultDelayMs: 1800,

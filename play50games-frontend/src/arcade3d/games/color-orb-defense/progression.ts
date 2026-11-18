@@ -27,7 +27,7 @@ export function starSpecFor(level: LevelId, orbTotal: number, maxScore: number):
 /**
  * Secrets, the same three on every level: 0 the perfect wave (every orb of one wave blocked at the
  * outermost zone); 1 the rainbow chain (one block of every colour of the level in a row); 2 the hidden
- * beacon on top of a pillar outside the ring (Nami's double jump).
+ * beacon on top of a pillar outside the ring (Nyla's double jump).
  */
 const SET: readonly SecretSpec[] = [
    { id: "perfect-wave", kind: "sticker", name: "Perfect wave" },

@@ -1,6 +1,6 @@
 "use client";
 
-// Temple Coin Rush's scene: the run (rules.ts) stepped in useRunFrame, the temple (World.tsx), the gates
+// Ruin Coin Rush's scene: the run (rules.ts) stepped in useRunFrame, the temple (World.tsx), the gates
 // and props (Course.tsx), the hero (Hero.tsx, menu2/heroAnim), the free orbit camera (menu2/camera:
 // two fingers / mouse drag / wheel / pinch; lane presses are camera-relative through StepInput.yaw;
 // one finger stays a swipe), the intro (core/intro) and the juice (menu2/juice): every coin pings with a

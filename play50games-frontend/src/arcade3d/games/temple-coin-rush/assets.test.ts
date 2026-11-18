@@ -1,4 +1,4 @@
-// Temple Coin Rush's GLBs: listed in the manifest, on disk, within their budgets, GLB_SIZE equal to
+// Ruin Coin Rush's GLBs: listed in the manifest, on disk, within their budgets, GLB_SIZE equal to
 // the real (meshopt-decoded) meshes with their feet on y = 0, the fits the rules rely on (a block no
 // taller than BLOCK_CLEAR, the gate over the hero, the beam over a rolling hero and under a standing
 // one), and the definition's levels.

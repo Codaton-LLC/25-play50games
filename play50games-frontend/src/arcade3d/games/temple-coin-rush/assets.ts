@@ -1,4 +1,4 @@
-// Temple Coin Rush's models. The five heroes are the shared Menu 2 armadillos (menu2/heroModels.ts).
+// Ruin Coin Rush's models. The five heroes are the shared Menu 2 armadillos (menu2/heroModels.ts).
 // This game's props live in public/models/3d/temple-coin-rush, copied from ready/menu2/temple-coin-rush
 // (the gate, the coin, the offering bowl, the boulder, the stone block, the spike tile, the broken tile,
 // the fire-jet pillar, the step pyramid) and ready/menu2/shared (m2CoilstoneHead, m2CoilstoneSegment:

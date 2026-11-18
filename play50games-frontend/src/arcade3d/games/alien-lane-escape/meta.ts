@@ -26,7 +26,7 @@ export const alienLaneEscapeMeta: ArcadeGameMeta = {
    slug: "alien-lane-escape",
    title: "Alien Lane Escape",
    tagline: "Outrun the mothership: be in a shadow when its scan line passes.",
-   description: "A three-lane runner across an alien valley with a mothership behind you. Its violet scan lines sweep forward over the track: break line of sight by being in a crystal's or a rock's shadow when a line passes, slide into low shadows, jump rocks and slide under energy bars. Hide behind drifting pods, fresh meteor craters and glow plants that wash shadows out, then bring the Mothership down on the planet escape. Pick Riko, Nami, Kiro, Zuno or Vexa.",
+   description: "A three-lane runner across an alien valley with a mothership behind you. Its violet scan lines sweep forward over the track: break line of sight by being in a crystal's or a rock's shadow when a line passes, slide into low shadows, jump rocks and slide under energy bars. Hide behind drifting pods, fresh meteor craters and glow plants that wash shadows out, then bring the Mothership down on the planet escape. Pick Riko, Nyla, Kiro, Zuno or Vexa.",
    order: 85,
    status: "live",
    collection: "rollheroes",

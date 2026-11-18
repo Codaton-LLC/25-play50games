@@ -1,4 +1,4 @@
-// Wall Run Temple's five levels: pure data. One cliff temple and five configurations of the same verb
+// Cliff Glyph Run's five levels: pure data. One cliff temple and five configurations of the same verb
 // (wall-run, kick, whip). course.ts places each level's walls, columns and pads.
 import type { LevelId } from "@/arcade3d/types";
 
@@ -18,6 +18,6 @@ export const LEVELS: Record<LevelId, WallLevel> = {
    1: { id: 1, name: "Training Wall", durationMs: 150_000, starTargetMs: 60_000, boss: false },
    2: { id: 2, name: "Double Wall", durationMs: 180_000, starTargetMs: 80_000, boss: false },
    3: { id: 3, name: "Column Hall", durationMs: 210_000, starTargetMs: 100_000, boss: false },
-   4: { id: 4, name: "Broken Temple", durationMs: 240_000, starTargetMs: 120_000, boss: false },
+   4: { id: 4, name: "Broken Ruins", durationMs: 240_000, starTargetMs: 120_000, boss: false },
    5: { id: 5, name: "Master Wall Run", durationMs: 300_000, starTargetMs: 150_000, boss: true },
 };

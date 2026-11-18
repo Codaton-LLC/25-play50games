@@ -55,7 +55,7 @@ Sprint across an alien valley while a mothership's scanner sweeps over you. Be i
 | Hero | Power | What it does |
 |---|---|---|
 | Riko | Dash: x1.6 for 0.75 s, every 5 s | The scanner cannot lock on mid-dash. She takes the three orbs in open ground at a scan's meeting point instead of the cover's two. |
-| Nami | A second jump in the air | Reaches the high mesa over the middle lane, which the scan cannot see (its orbs; the sticker on levels 1 and 4). |
+| Nyla | A second jump in the air | Reaches the high mesa over the middle lane, which the scan cannot see (its orbs; the sticker on levels 1 and 4). |
 | Kiro | Bubble, 1.2 s, every 8 s | Scan-proof, and carries him through goo at full speed (the goo's orb). In co-op it covers the team. |
 | Zuno | Magnet, 3 s, every 8 s | Pulls the coin trails buried in the goo puddles from the next lane. |
 | Vexa | Phase, 2.6 s, every 7 s | Hides inside any crystal within 4 m, strip or not. Walks through the ghost-crystal walls into the caves: two per level, the first with the shard. |
@@ -90,7 +90,7 @@ The launch road (200 m) repeats until it is down. The drawn track runs on, so it
 - **No-hit badge.** The card's "Ghost Run": never caught and never stumbled.
 - **Flow meter.** A link within 3 s, +0.25 per link, capped at x2. Each orb links 30 ms; each scan passed unseen (and each boss hit charged) links 80 ms.
 - **Secrets.**
-  - Level 1: the cave shard (Vexa) and the mesa sticker (Nami).
+  - Level 1: the cave shard (Vexa) and the mesa sticker (Nyla).
   - Level 2: the cave shard.
   - Level 3: the cave shard and the abducted shard.
   - Level 4: the cave shard and the mesa sticker.
@@ -107,7 +107,7 @@ The bound (`minFinishMs`, `minDurationMsOf` in `rules.ts`):
 - **Speed.** Nothing makes the runner faster than the level's speed except Riko's dash (x1.6 for 0.75 s, at most once every 5 s from the first frame). So covering `d` metres takes at least `leastRunMs(d) = (d / v - 0.45) / 1.09` seconds.
 - **Level 5.** It adds the Mothership: once it wakes at the launch road, nobody leaves the loop before its least defeat time (a hit in the first ms of every open window) or one lap.
 - **Bonuses.** From the floor we subtract:
-  - the most orbs one hero can take: the main orbs, Kiro's goo orbs and every open-ground orb, plus the largest of Nami's, Zuno's and Vexa's own route orbs;
+  - the most orbs one hero can take: the main orbs, Kiro's goo orbs and every open-ground orb, plus the largest of Nyla's, Zuno's and Vexa's own route orbs;
   - the most flow bonus the course can feed (`comboSpecOf`).
 - **The limit.** The bound less 5 %, rounded down to 100 ms (`proposeLimits`), pinned in `rules.test.ts`.
 

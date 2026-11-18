@@ -5,7 +5,7 @@
 // Every hero paints in its own colour. Action (E / Enter / the Power button) fires the hero power; next
 // to the Paint Blob while its core is open it splats the Blob instead.
 // - Riko: a dash (4 m in 0.2 s, on the ground or in the air): a fast streak of paint.
-// - Nami: no button: her second jump in the air reaches the gold blob on the high pillar (a sticker).
+// - Nyla: no button: her second jump in the air reaches the gold blob on the high pillar (a sticker).
 // - Kiro: a shield (1.5 s): a grey blot he touches freezes for 3 s, the roller stops on him, the
 //   Blob's slam passes him.
 // - Zuno: a magnet (3 s): paint blobs come to him from 5 m.
@@ -26,7 +26,7 @@ export interface HeroDef {
 
 export const HEROES: readonly HeroDef[] = [
    { id: "riko", name: "Riko", color: "#EF4444", power: "dash", powerLabel: "Dash", cooldownMs: 1_200 },
-   { id: "nami", name: "Nami", color: "#2563EB", power: "double", powerLabel: "Double jump", cooldownMs: 0 },
+   { id: "nami", name: "Nyla", color: "#2563EB", power: "double", powerLabel: "Double jump", cooldownMs: 0 },
    { id: "kiro", name: "Kiro", color: "#22C55E", power: "shield", powerLabel: "Shield", cooldownMs: 5_000 },
    { id: "zuno", name: "Zuno", color: "#FACC15", power: "magnet", powerLabel: "Magnet", cooldownMs: 8_000 },
    { id: "vexa", name: "Vexa", color: "#8B5CF6", power: "phase", powerLabel: "Phase", cooldownMs: 2_500 },

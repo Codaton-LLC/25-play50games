@@ -3,7 +3,7 @@
 // The Menu 2 hero in free-fall: the picked hero's own GLB animated by the shared Menu 2 animator
 // (menu2/heroAnim). Every frame the run (rules.ts) becomes the animator's HeroMotion: standing on the
 // column, the leap (a jump), the spread fall (the fall pose, the body tipped belly-down into the
-// skydive), the Dive (the armoured ball, spinning), Nami's air-brake flip (the somersault), the
+// skydive), the Dive (the armoured ball, spinning), Nyla's air-brake flip (the somersault), the
 // powers' auras, a knock or a splash (hurt), the landing and the cheer. The body tip, the splash
 // sink and the respawn pop stay here.
 import { useMemo, useRef } from "react";

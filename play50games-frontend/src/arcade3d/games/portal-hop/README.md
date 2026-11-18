@@ -1,6 +1,6 @@
-# Portal Hop (Menu 2, game 24, World 5 Neon Cosmos): CHOOSE WHERE THE EXIT OPENS
+# Rift Hop (Menu 2, game 24, World 5 Neon Cosmos): CHOOSE WHERE THE EXIT OPENS
 
-Card: `docs/master-plan/PLAY50_MENU_2_50_COLOR_ROLL_HEROES_FULL.md` / the W5 card "24 Portal Hop". Slug `portal-hop`, order 86, owner claude, status dev, lead hero Vexa (`defaultHeroFor`, World 5). A time game.
+Card: `docs/master-plan/PLAY50_MENU_2_50_COLOR_ROLL_HEROES_FULL.md` / the W5 card "24 Rift Hop". Slug `portal-hop`, order 86, owner claude, status dev, lead hero Vexa (`defaultHeroFor`, World 5). A time game.
 
 ## Concept and controls
 
@@ -17,7 +17,7 @@ Floating void ruins crossed through portal PAIRS. Each pair has one fixed ENTRY 
 - `course.ts` (islands, pairs, anchors, orbs, crystals, plates, beacons, the bot's route; pure)
 - `rules.ts` (the pure fixed-step simulation, 1000/120 ms)
 - `bound.ts` (the score bound)
-- `progression.ts` (combo, stars, secrets, the Portal Wyrm)
+- `progression.ts` (combo, stars, secrets, the Rift Serpent)
 - `heroes.ts`
 - `bot.ts` (the honest bot, `?autoplay=1` in preview builds)
 - `latch.ts` (a tapped obelisk and the Exit button, handed to the rules)
@@ -30,13 +30,13 @@ Floating void ruins crossed through portal PAIRS. Each pair has one fixed ENTRY 
 
 | Level | Name | Target | What it adds |
 |---|---|---|---|
-| L1 | Two Portals | 45 s | Three beats: (1) walk into a frame and pop out on the next island; (2) choose between 2 anchors, the plateau one leads to an orb; (3) walk off an 8 m cliff into a floor pad and fling out of the pillar's 30 degree exit across a 17 m gap. |
+| L1 | Two Rifts | 45 s | Three beats: (1) walk into a frame and pop out on the next island; (2) choose between 2 anchors, the plateau one leads to an orb; (3) walk off an 8 m cliff into a floor pad and fling out of the pillar's 30 degree exit across a 17 m gap. |
 | L2 | Two Pairs | 60 s | Fall from the plateau into pad A; its exit opens 18 m up, pointing down at pad B. The speed stacks (to the 24 m/s cap) and B's launcher flings you 30 m to the goal. Every pair has 3 anchors, one a false lead (back onto the plateau, back to the orb island). A hidden anchor shows only from one corner of the plateau. |
-| L3 | Moving Portals | 75 s | The three exits ride round their tower at 20 degrees/s, facing out. You choose when you drop in as well as where (the arc shows it); the orb island and the goal lie in different directions. |
-| L4 | Cargo | 90 s | Push a void crystal into the frame: on the right anchor it slides onto the pressure plate and raises the bridge. Then push the second crystal to the foot of the 2.4 m ledge and use it as a step (Nami double-jumps it without). |
-| L5 | Portal Master | 150 s | The Portal Wyrm (below). |
+| L3 | Moving Rifts | 75 s | The three exits ride round their tower at 20 degrees/s, facing out. You choose when you drop in as well as where (the arc shows it); the orb island and the goal lie in different directions. |
+| L4 | Cargo | 90 s | Push a void crystal into the frame: on the right anchor it slides onto the pressure plate and raises the bridge. Then push the second crystal to the foot of the 2.4 m ledge and use it as a step (Nyla double-jumps it without). |
+| L5 | Rift Master | 150 s | The Rift Serpent (below). |
 
-### Boss: the Portal Wyrm (level 5)
+### Boss: the Rift Serpent (level 5)
 
 The `m2PortalWyrmBoss` head, with its body a chain of `m2VoidCrystal` segments that follow its own trail. It swims through YOUR portals (`progression.ts WYRM`, six plates).
 
@@ -48,7 +48,7 @@ The `m2PortalWyrmBoss` head, with its body a chain of `m2VoidCrystal` segments t
 ## Heroes
 
 - **Riko:** a dash. Dashing into a frame on the ground adds +4 m/s, and the dash smashes the cracked crystal round her orb (L1).
-- **Nami:** a double jump. It stretches an arc after an exit and reaches the orbs 3.3 m over a landing.
+- **Nyla:** a double jump. It stretches an arc after an exit and reaches the orbs 3.3 m over a landing.
 - **Kiro:** a shield. It passes the laser cages round his orbs (L2, L3).
 - **Zuno:** a magnet. It pulls the orbs floating off an island's edge, from 6 m.
 - **Vexa (lead):** a phase. It carries her THROUGH a frame without teleporting, onto the ghost route behind it where her shard waits (every level).
@@ -67,7 +67,7 @@ The submitted time is the finish less 0.1 s an orb and the flow bonus. The flow 
   - Riko's dash adds a bounded allowance (one dash per 6 s).
 - **Only a flight out of an exit moves faster.**
   - The exit's speed is what went in. That is at most one of: a run-in (Riko +4 on the ground), a jump, a fall from an island its walker can reach in time, or an earlier flight that can actually reach the entry. That last check is direction-aware: along the exit's line, plus the stick's drift.
-  - The flight is then timed at its longest (with Nami's second jump) down to the lowest surface.
+  - The flight is then timed at its longest (with Nyla's second jump) down to the lowest surface.
 - **The level's floor is the least over the five heroes.**
 
 **Level 5.** The floor is `bossMinMs()`, menu2/boss with a perfect hitter.
@@ -104,7 +104,7 @@ Secrets (`menu2/secrets`, never score):
 
 - **Behind the frame** (Vexa's shard, every level).
 - **Terminal Velocity** (out of an exit at 18 m/s or more: L1, L3, L5).
-- **Portal Economy** (finish with no more anchor switches than the level's par: L1-L4).
+- **Rift Economy** (finish with no more anchor switches than the level's par: L1-L4).
 - **The Hidden Anchor** (L2).
 
 Stars: the clear, the five main orbs, the target time; no-hit is the badge. The level end goes through `menu2/progress` (`levelEnd.ts`). The star screen is `StarResult.tsx`.

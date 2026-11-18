@@ -9,7 +9,7 @@ card: scratchpad `m2b/w5-neon-cosmos.md` "7 Neon Cube Jump".
 ## Files
 
 - `levels.ts` the five level rows; `course.ts` the cube fields (grid cell (i, j, h): a 2 m cube at
-  x = 2i, z = -2j, top 2h), orbs, coins, ghost walls, drones, the parity shard, Nami's ledge, the bot's
+  x = 2i, z = -2j, top 2h), orbs, coins, ghost walls, drones, the parity shard, Nyla's ledge, the bot's
   route and Flipframe's arena.
 - `rules.ts` pure deterministic rules (1 ms steps, `MAX_STEP_MS` 50): the run, the jump and the flip,
   landing and walking off, rails, rogue clocks, lasers, drones, the void and the checkpoint, powers,
@@ -38,7 +38,7 @@ card: scratchpad `m2b/w5-neon-cosmos.md` "7 Neon Cube Jump".
 | Hero | Power |
 |---|---|
 | Riko | air dash: 4 m in 0.2 s, no flip (cooldown 1.2 s) |
-| Nami | her second jump in the air flips again: she lands on the set she left (the same-set ledge) |
+| Nyla | her second jump in the air flips again: she lands on the set she left (the same-set ledge) |
 | Kiro | shield 1.5 s: stand in a live laser, shrug off a drone or a stomp |
 | Zuno | magnet 3 s: the coin trails hidden inside the cubes, from 5 m |
 | Vexa | phase 0.6 s: holograms hold her; ghost walls let her through (two per level) |
@@ -48,7 +48,7 @@ card: scratchpad `m2b/w5-neon-cosmos.md` "7 Neon Cube Jump".
 1. Static Grid: B holograms ahead (jump and they turn solid), the A cube behind that vanishes on
    your next jump, a six-cube A / B staircase.
 2. Moving Cubes: B cubes on rails, moving only while solid.
-3. Blink Grid: rogue ring cubes on their own 1.6 s clock; Nami's same-set ledge sticker.
+3. Blink Grid: rogue ring cubes on their own 1.6 s clock; Nyla's same-set ledge sticker.
 4. Laser Grid: set lasers and sentry drones; Kiro's laser route.
 5. Neon Overdrive: Flipframe (7 hp), a 3 x 3 giant of cubes round its core (m2FlipframeCore on a
    sentry drone). P1: it stomps the set it shows (and the floor): be on the other set (3 dodges crack
@@ -56,7 +56,7 @@ card: scratchpad `m2b/w5-neon-cosmos.md` "7 Neon Cube Jump".
    Overdrive: the field flips by itself every 1.2 s too: climb the tower to the core (1 hit).
 
 Secrets: the parity shard (taken only after an even number of jumps since the checkpoint), two Vexa
-ghost-wall crystals (level 3: one, and Nami's ledge). Stars: clear, all 12 orbs, target time; the no-hit
+ghost-wall crystals (level 3: one, and Nyla's ledge). Stars: clear, all 12 orbs, target time; the no-hit
 badge counts falls, lasers, drones and stomps.
 
 ## Scoring and server limits (why they hold)

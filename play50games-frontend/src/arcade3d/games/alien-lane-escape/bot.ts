@@ -4,7 +4,7 @@
 // (the course's beats), steering in once the glow plant before it is behind; it slides under low covers
 // and arches, jumps rocks, keeps out of goo, takes the track's orbs, and on level 5 lures the abduction
 // beams (in the lane as it locks, out before it lands) and jumps into the underside. It plays its hero's
-// route too: Vexa phases into the crystal cave, Nami double-jumps onto the mesa, Zuno pulls the goo's
+// route too: Vexa phases into the crystal cave, Nyla double-jumps onto the mesa, Zuno pulls the goo's
 // orbs with the magnet, Kiro shields through the goo, Riko dashes for the orbs in open ground.
 import { CLEAR_H, LURE_LOCK, caveAt, inPhase, type AlienRun, type StepInput } from "./rules";
 import { MESA_Y, type Beat, type BossEvent } from "./course";

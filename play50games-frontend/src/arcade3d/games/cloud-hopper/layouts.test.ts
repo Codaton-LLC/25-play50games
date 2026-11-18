@@ -83,11 +83,11 @@ describe("one twist per level (the card)", () => {
 
 describe("every hero matters (pillar 2)", () => {
    for (const id of LEVEL_IDS) {
-      it(`level ${id}: Riko's storm wall, Nami's sun shelf, Kiro's thunderhead orb, Zuno's hidden trail and Vexa's ghost veil are all on the level`, () => {
+      it(`level ${id}: Riko's storm wall, Nyla's sun shelf, Kiro's thunderhead orb, Zuno's hidden trail and Vexa's ghost veil are all on the level`, () => {
          const c = courseFor(id);
          const script = SCRIPTS[id];
          expect(c.walls.some((w) => w.kind === "storm"), "Riko").toBe(true);
-         expect(c.clouds.some((x) => x.kind === "shelf"), "Nami").toBe(true);
+         expect(c.clouds.some((x) => x.kind === "shelf"), "Nyla").toBe(true);
          expect(c.orbs.some((o) => o.hero === "kiro"), "Kiro").toBe(true);
          expect(c.orbs.some((o) => o.hidden && o.hero === "zuno"), "Zuno").toBe(true);
          expect(c.walls.some((w) => w.kind === "ghost"), "Vexa").toBe(true);
@@ -98,7 +98,7 @@ describe("every hero matters (pillar 2)", () => {
       });
    }
 
-   it("Nami's sun shelf is out of a plain jump's reach from the glide line, and inside a double jump's", () => {
+   it("Nyla's sun shelf is out of a plain jump's reach from the glide line, and inside a double jump's", () => {
       for (const id of LEVEL_IDS) {
          const c = courseFor(id);
          for (const s of c.clouds.filter((x) => x.kind === "shelf")) {

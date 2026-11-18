@@ -42,7 +42,7 @@ const definition: GameDefinition<ArenaLevel> = {
       "Each round a colour is called (the beacon's crown and the chip at the top, with its symbol). When the call runs out every tile of another colour drops: be on the called colour.",
       "Stand still on the called colour to LOCK IN: the floor drops at once and your time gets better. Five orbs float over the called colour on some rounds.",
       "Fall into the pit and you lose a heart (three a level) and come back on the safe marker.",
-      "Power (E, Enter or the Power button): Riko dashes, Kiro's shield blocks a knock and saves a fall, Zuno's magnet pulls the orb, Vexa phases over holes; Nami jumps again in the air.",
+      "Power (E, Enter or the Power button): Riko dashes, Kiro's shield blocks a knock and saves a fall, Zuno's magnet pulls the orb, Vexa phases over holes; Nyla jumps again in the air.",
       "Turn the camera: drag the view (or two fingers), mouse wheel / pinch zooms, Q / C turn, R / F tilt, V recenters.",
    ],
    resultDelayMs: 1700,

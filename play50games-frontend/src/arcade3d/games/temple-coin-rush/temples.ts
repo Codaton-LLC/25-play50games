@@ -4,7 +4,7 @@
 // boulders (level 4), Zuno's hidden coin veins in the walls, and the toll gates. A toll gate splits
 // the path for a section: each lane behind it is its own channel (stone dividers, no lane changes),
 // a toll lane (pay its price: a clean, coin-rich fast lane) or a slow lane (free: longer, with traps,
-// and the boulder gains on you), with Nami's ledge coins over the slow lanes, Riko's cracked side
+// and the boulder gains on you), with Nyla's ledge coins over the slow lanes, Riko's cracked side
 // walls (a free toll), Vexa's ghost gate (a hidden toll-free passage to a shard), and level 3's
 // jackpot gate. Everything here is fixed per level; only the run (rules.ts) moves.
 import type { LevelId } from "@/arcade3d/types";
@@ -22,7 +22,7 @@ export function laneX(lane: number): number {
    return (lane - (LANES - 1) / 2) * LANE_W;
 }
 
-/** Coins: the line height, the spacing along a line, the jump arc's top, Nami's ledge coins. */
+/** Coins: the line height, the spacing along a line, the jump arc's top, Nyla's ledge coins. */
 export const COIN = { y: 0.8, spacing: 1.6, arcTop: 1.9, ledgeY: 3.2, rollY: 0.45, veinInset: 0.35 } as const;
 
 /** A lane behind a gate: 0 slow (free), 1 cheap toll, 2 dear toll, 3 the jackpot. */
@@ -305,7 +305,7 @@ const SCRIPTS: Record<LevelId, Unit[]> = {
 
 // ---------- the builder ----------
 
-/** A slow lane's content per section: blocks to jump, a few coins, Nami's ledge coins over it. */
+/** A slow lane's content per section: blocks to jump, a few coins, Nyla's ledge coins over it. */
 const SLOW = { blocks: 2, coins: 2, ledge: 5 } as const;
 /** A toll lane's coins per tier, and its boost (m/s). */
 const TOLL_COINS = [0, 7, 12, 10] as const;
@@ -422,7 +422,7 @@ export function buildTemple(level: TempleLevel): TempleDraft {
                const r = lanes[l];
                const s0 = gz - 4;
                if (r.tier === TIER.slow) {
-                  // slow: blocks, a few coins between them, Nami's ledge coins high over the lane
+                  // slow: blocks, a few coins between them, Nyla's ledge coins high over the lane
                   for (let b = 0; b < SLOW.blocks; b++) hazards.push({ kind: HAZ.block, lane: l, z: s0 - 6 - b * 12, phase: 0, gate: index });
                   if (level.id >= 2) hazards.push({ kind: HAZ.spike, lane: l, z: s0 - 12, phase: (spikeN++ * 500) % 1500, gate: index });
                   if (level.id >= 3) hazards.push({ kind: HAZ.broken, lane: l, z: s0 - 24, phase: 0, gate: index });

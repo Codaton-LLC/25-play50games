@@ -6,7 +6,7 @@
 // one is complete. Then the gate opens. The twists: cores that fade and drop again elsewhere (level 2
 // on), cores orbiting a pylon and cores sealed in capsules (Action opens one; level 3 on), flickering
 // decoy cores and tesla coils (level 4 on), and on level 5 the Core Sprite holding the last cores.
-// Around them the hero routes: orbs high over the crate stacks (Nami), orbs and the shard inside a ring of
+// Around them the hero routes: orbs high over the crate stacks (Nyla), orbs and the shard inside a ring of
 // crates (Vexa phases in; Zuno's magnet pulls the orbs), orbs by the tesla coils (Kiro's shield).
 // README "Levels" lists each layout.
 import type { LevelId } from "@/arcade3d/types";
@@ -130,7 +130,7 @@ class Builder {
       this.crates.push({ x, z, stack });
    }
 
-   /** A stack of crates with Nami's high orbs hanging beside its top (and the sticker): only a second jump reaches them. */
+   /** A stack of crates with Nyla's high orbs hanging beside its top (and the sticker): only a second jump reaches them. */
    stack(x: number, z: number, sticker: boolean): void {
       this.crate(x, z, 2);
       this.crate(x + 1.5, z, 1);

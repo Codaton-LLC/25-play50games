@@ -1,4 +1,4 @@
-// Each hero's role (the card) and the secrets: Riko's dash cracks the block, Nami's double hop lands on
+// Each hero's role (the card) and the secrets: Riko's dash cracks the block, Nyla's double hop lands on
 // the deck, Kiro's shield saves a drain once per ball, Zuno sticks to a magnet pad, aims and pulls the
 // coins, Vexa phases into the attic for the shard; the skill shot and the penguin sticker.
 import { describe, expect, it } from "vitest";
@@ -39,7 +39,7 @@ describe("hero powers", () => {
       expect(step(run, 16, again).powered).toBe(false);
    });
 
-   it("Nami: a hop, then a double hop under the deck lands her on it (layer 1)", () => {
+   it("Nyla: a hop, then a double hop under the deck lands her on it (layer 1)", () => {
       const run = createRun(1, 1, "nami");
       placeBall(run, 2.9, -20.5, 0, 0);
       const hop = createStepInput();

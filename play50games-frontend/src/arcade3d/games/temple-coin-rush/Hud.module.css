@@ -1,4 +1,4 @@
-/* Temple Coin Rush HUD (the Menu 2 HUD look in World 3's jungle green): dark jade pills with a light
+/* Ruin Coin Rush HUD (the Menu 2 HUD look in World 3's jungle green): dark jade pills with a light
    edge, bold white numbers, a gold level line; the coin purse, the hearts, the boulder's gap meter, the
    next gate's card and the edges that darken as the boulder closes in. Placement is menu2/hud HudStack. */
 .pill,
@@ -245,7 +245,7 @@
    }
 }
 
-/* ---- Temple Coin Rush ---- */
+/* ---- Ruin Coin Rush ---- */
 .purse {
    border-color: rgba(250, 204, 21, 0.55);
 }

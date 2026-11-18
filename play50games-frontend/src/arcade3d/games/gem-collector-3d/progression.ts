@@ -26,7 +26,7 @@ export function starSpecFor(level: LevelId, orbTotal: number): StarSpec {
 /**
  * Secrets, in each level's `secrets` order: the sticker in the back vault (Vexa phases through its
  * ghost wall), the shard in the sealed pocket (Riko's dash breaks its cracked crystal wall), the shard
- * on the high pedestal (Nami's double jump).
+ * on the high pedestal (Nyla's double jump).
  */
 const BASE: readonly SecretSpec[] = [
    { id: "vault-sticker", kind: "sticker", name: "Vault sticker", hero: "vexa" },

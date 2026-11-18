@@ -27,7 +27,7 @@ export const templeLanternJumpMeta: ArcadeGameMeta = {
    title: "Temple Lantern Jump",
    tagline: "Carry the flame. Make the darkness hold you.",
    description:
-      "Climb a pitch-dark jungle-temple shaft by bouncing on stone cage lanterns. Each lantern throws you high, refills your fading ember and lights the gold sun-glyph ledges around it; in the dark those ledges fade and drop you. Throw the ember down to relight a lantern, light the galleries' braziers, and pick Riko, Nami, Kiro, Zuno or Vexa. Level 5 is a boss fight against the Soot Bat Queen.",
+      "Climb a pitch-dark jungle-temple shaft by bouncing on stone cage lanterns. Each lantern throws you high, refills your fading ember and lights the gold sun-glyph ledges around it; in the dark those ledges fade and drop you. Throw the ember down to relight a lantern, light the galleries' braziers, and pick Riko, Nyla, Kiro, Zuno or Vexa. Level 5 is a boss fight against the Soot Bat Queen.",
    order: 67,
    status: "live",
    collection: "rollheroes",

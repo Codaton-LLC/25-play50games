@@ -1067,7 +1067,7 @@ function threadRings(run: RingRun, ms: number, prevY: number, ev: StepEvents): v
          run.rings += 1;
          if (centre) run.centres += 1;
          if (run.missed[i] === 1) {
-            // Nami's rescue: a missed ring threaded after all is no longer a miss
+            // Nyla's rescue: a missed ring threaded after all is no longer a miss
             run.missed[i] = 0;
             run.misses -= 1;
          }

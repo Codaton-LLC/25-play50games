@@ -517,7 +517,7 @@ function stepHero(w: World, h: Hero, input: StepInput, dt: number) {
    }
    h.vy = Math.max(-MAX_FALL, h.vy);
 
-   // jumps: the ground (with coyote time) or, for Nami, once in the air
+   // jumps: the ground (with coyote time) or, for Nyla, once in the air
    if (h.bufferMs > 0 && !stunned) {
       if (h.grounded || h.coyoteMs > 0) {
          h.vy = JUMP;

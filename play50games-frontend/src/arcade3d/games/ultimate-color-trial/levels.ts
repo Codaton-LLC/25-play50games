@@ -111,10 +111,10 @@ export interface TrialSpec {
    finish: XZ;
    sections: SectionSpec[];
    nooks: [NookSpec, NookSpec];
-   /** Nami's sky ledge: a pad LEDGE_LIFT over the floor with her shard */
+   /** Nyla's sky ledge: a pad LEDGE_LIFT over the floor with her shard */
    ledge: XZ;
    gems: GemSpec[];
-   /** in progression.ts SECRETS order: the gate sticker (Vexa), the wall shard (Riko), the ledge shard (Nami) */
+   /** in progression.ts SECRETS order: the gate sticker (Vexa), the wall shard (Riko), the ledge shard (Nyla) */
    secrets: XYZ[];
    boss: boolean;
    /** level 5: the boss hovers at the arena's far end; the beacon stands at its near end */
@@ -123,7 +123,7 @@ export interface TrialSpec {
 
 /** The corridor's half width; the start strip and every solid section span it. */
 export const HALF_W = 6;
-/** Nami's ledge floats this high over the floor (a plain jump tops out at 3.27 m). */
+/** Nyla's ledge floats this high over the floor (a plain jump tops out at 3.27 m). */
 export const LEDGE_LIFT = 4.4;
 
 // ---------------------------------------------------------------------------------------------

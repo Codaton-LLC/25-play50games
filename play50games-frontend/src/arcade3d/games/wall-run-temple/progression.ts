@@ -1,4 +1,4 @@
-// Wall Run Temple's Menu 2 structure: combo (the wall-kick chain), stars, secrets, the boss. Plain data.
+// Cliff Glyph Run's Menu 2 structure: combo (the wall-kick chain), stars, secrets, the boss. Plain data.
 import type { LevelId } from "../../types";
 import type { ComboConfig } from "../../menu2/combo/combo";
 import type { StarSpec } from "../../menu2/stars/stars";

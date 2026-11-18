@@ -103,7 +103,7 @@ describe("the rides (a wave, along -z)", () => {
             expect(o.z).toBeLessThan(c.startZ);
             expect(o.z).toBeGreaterThan(c.finishZ);
          }
-         // the five routes: Riko's cracked lane, Vexa's ghost lane, Nami's ledges, Kiro's spray, Zuno's hidden trail
+         // the five routes: Riko's cracked lane, Vexa's ghost lane, Nyla's ledges, Kiro's spray, Zuno's hidden trail
          expect(c.lanes.some((l) => l.kind === "cracked")).toBe(true);
          expect(c.lanes.some((l) => l.kind === "ghost")).toBe(true);
          expect(c.orbs.some((o) => o.y >= c.H + LEDGE_UP - 0.01)).toBe(true);
@@ -300,7 +300,7 @@ describe("airs and tricks", () => {
       expect(TRICK_MS).toBeGreaterThan(0);
    });
 
-   it("Nami's double air reaches the ledge orbs a single air cannot", () => {
+   it("Nyla's double air reaches the ledge orbs a single air cannot", () => {
       const c = courseFor(1);
       const reach = (power: boolean) => {
          const run = createRun(1, 1, "nami");

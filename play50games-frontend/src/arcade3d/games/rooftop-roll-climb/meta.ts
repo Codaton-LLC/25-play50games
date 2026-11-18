@@ -25,7 +25,7 @@ export const rooftopRollClimbMeta: ArcadeGameMeta = {
    slug: "rooftop-roll-climb",
    title: "Rooftop Roll Climb",
    tagline: "Bank speed down slanted roofs, then leap the street.",
-   description: "Climb a zigzag city skyline as a Scale Squad pangolin: curl into a ball on the slanted tin roofs to bank speed, then spend it on huge leaps across the streets. Pick Riko, Nami, Kiro, Zuno or Vexa, grab coins to cut your time, and beat Ashback on the helipad.",
+   description: "Climb a zigzag city skyline as a Scale Squad pangolin: curl into a ball on the slanted tin roofs to bank speed, then spend it on huge leaps across the streets. Pick Riko, Nyla, Kiro, Zuno or Vexa, grab coins to cut your time, and beat Ashback on the helipad.",
    order: 52,
    status: "live",
    collection: "rollheroes",

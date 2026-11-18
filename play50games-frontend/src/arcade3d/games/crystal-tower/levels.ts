@@ -98,7 +98,7 @@ export interface TowerSpec {
    start: XYZ;
    /** the route, in climb order (beacons, crystal pads and plain climbing pads) */
    pads: PadSpec[];
-   /** off the route: Riko's and Vexa's nooks, Nami's ledges */
+   /** off the route: Riko's and Vexa's nooks, Nyla's ledges */
    side: PadSpec[];
    tiers: TierSpec[];
    /** the summit crystal (the finish; level 5: the arena's centre, unused) */
@@ -107,7 +107,7 @@ export interface TowerSpec {
    gates: DiscSpec[];
    drones: DroneSpec[];
    orbs: OrbSpec[];
-   /** in progression.ts SECRETS order: the gate sticker (Vexa), the wall shard (Riko), the ledge shard (Nami) */
+   /** in progression.ts SECRETS order: the gate sticker (Vexa), the wall shard (Riko), the ledge shard (Nyla) */
    secrets: XYZ[];
    boss: boolean;
    /** level 5: the summit arena (a wide pad) where Prism Shade waits; its beacon is the last tier's */
@@ -132,7 +132,7 @@ function crystal(deg: number, radius: number, y: number, color: number, side: 1 
    return { ...polar(deg, radius + side * CRYSTAL_OUT), y, color, bob };
 }
 
-/** Nami's ledge: this far above its pad (a plain jump reaches 3.27 m; the double jump 4.9 m). */
+/** Nyla's ledge: this far above its pad (a plain jump reaches 3.27 m; the double jump 4.9 m). */
 export const LEDGE_LIFT = 4.4;
 /** A nook (Riko's, Vexa's): a small pad touching the outer edge of a route pad, the barrier between. */
 export const NOOK_R = 1.3;
@@ -146,7 +146,7 @@ function nook(deg: number, radius: number, y: number, padR: number): { pad: PadS
    return { pad: p, disc: d, spot: { ...polar(deg, nr + 0.3), y: y + 1 } };
 }
 
-/** Nami's ledge hangs this far outside its pad's centre (a jump between pads never lands on it). */
+/** Nyla's ledge hangs this far outside its pad's centre (a jump between pads never lands on it). */
 export const LEDGE_OUT = 2.6;
 
 function ledge(deg: number, radius: number, y: number): { pad: PadSpec; spot: XYZ } {

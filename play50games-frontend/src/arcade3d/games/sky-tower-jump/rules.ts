@@ -461,7 +461,7 @@ export interface Hero extends Vec3Like {
    dashUntil: number;
    dashX: number;
    dashZ: number;
-   /** Nami's extra jump is still available this flight */
+   /** Nyla's extra jump is still available this flight */
    airJump: boolean;
    /** feet may not go above this on the current flight (a double jump cannot add reach) */
    apexCap: number;
@@ -717,7 +717,7 @@ function hazardImmune(h: Hero, ms: number): boolean {
 }
 
 /**
- * Nami's second jump. The new apex is capped at the flight's existing apexCap, so it cannot
+ * Nyla's second jump. The new apex is capped at the flight's existing apexCap, so it cannot
  * reach a platform a single jump (or the bounce that started the flight) could not already reach.
  */
 function tryDoubleJump(run: SkyRun, ms: number): boolean {
@@ -734,7 +734,7 @@ function tryDoubleJump(run: SkyRun, ms: number): boolean {
    return true;
 }
 
-/** Fire the run's hero power if it is off cooldown. A press that cannot fire (Nami on the ground) does not start the cooldown. */
+/** Fire the run's hero power if it is off cooldown. A press that cannot fire (Nyla on the ground) does not start the cooldown. */
 function tryPower(run: SkyRun, ms: number, mx: number, mz: number): void {
    if (ms < run.powerReadyAt) return;
    const def = heroById(run.heroId);

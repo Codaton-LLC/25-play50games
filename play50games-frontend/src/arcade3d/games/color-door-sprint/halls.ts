@@ -1,7 +1,7 @@
 // The Hall of Doors (pure data, no three.js): the lanes, the five door colours (each with its own
 // shape and chime, the card's colour-blind fix), and each level's static course: the door walls
 // (where, which rule, how many open doors, the specials: Riko's cracked fake door, Vexa's ghost door,
-// Nami's upper door row, the sliding doors), the rule lamps (echo lamps hang two walls early), the
+// Nyla's upper door row, the sliding doors), the rule lamps (echo lamps hang two walls early), the
 // colour orbs (main orbs in a slalom between walls; bonus orbs behind the hero gates), the floor bars
 // and low beams, the speed pads, Kiro's flame vents, Zuno's hidden wall trails, Riko's side corridors
 // and the secrets. Which colour each door gets, and so which door is true, is rolled per run
@@ -64,7 +64,7 @@ export interface WallDef {
    /** special lanes (NONE = none) */
    cracked: number;
    ghost: number;
-   /** a tall wall's upper door over this lane (Nami's double jump) */
+   /** a tall wall's upper door over this lane (Nyla's double jump) */
    upper: number;
    /** the doors slide one lane over during the approach */
    slide: boolean;
@@ -191,7 +191,7 @@ function wallSpecs(id: LevelId, lanes: number): WallSpec[] {
             { mode: "sound", dim: true, open: 3 },
          ];
       case 3:
-         // sliding doors, cracked fake doors, the NOT rule; Nami's upper doors over the tall walls
+         // sliding doors, cracked fake doors, the NOT rule; Nyla's upper doors over the tall walls
          return [
             { open: 3 },
             { open: 3 },
@@ -308,7 +308,7 @@ export function buildHall(level: DoorLevel): HallDraft {
          if (lane === ventLane) lane = (lane + 1) % lanes;
          orbs.push({ x: laneX(lane, lanes), y: orbY, z: fz(g === 0 ? 0.35 + k * 0.15 : wide ? 0.3 + k * 0.07 : 0.22 + k * 0.12), kind: "main", hidden: false });
       }
-      // floor bars and low beams (from L1's last beat), Nami's high orbs over the bars
+      // floor bars and low beams (from L1's last beat), Nyla's high orbs over the bars
       const obstacle = id === 1 ? (g === 6 ? "bar" : g === 7 ? "beam" : null) : g >= 1 && g % (id >= 3 ? 1 : 2) === 0 ? (g % 4 === 0 || (id >= 3 && g % 3 === 1) ? "beam" : "bar") : null;
       if (obstacle) {
          const bz = fz(0.7);
@@ -340,7 +340,7 @@ export function buildHall(level: DoorLevel): HallDraft {
       for (let k = 0; k < 3; k++) orbs.push({ x, y: orbY, z: w.z - 10 - k * ((w.z - z1 - 22) / 2), kind: "bonus", hidden: false });
       if (!secrets.side) secrets.side = { x, y: 0.8, z: z1 + 4, need: "side", wall: w.index };
    }
-   // Nami's upper door rows: a bonus orb lane just past the tall wall, the sticker in the first one
+   // Nyla's upper door rows: a bonus orb lane just past the tall wall, the sticker in the first one
    for (const w of walls) {
       if (w.upper === NONE) continue;
       const x = laneX(w.upper, lanes);

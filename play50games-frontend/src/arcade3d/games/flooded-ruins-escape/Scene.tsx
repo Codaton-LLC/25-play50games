@@ -5,7 +5,7 @@
 // (menu2/camera: the player turns it; movement is camera-relative through StepInput.yaw), the
 // intro's camera (core/intro, opted in by index.tsx `intro: true`), and the juice (menu2/juice:
 // pooled particles, floating time bonuses, camera kicks and shake, short hit-stops that only slow the
-// visuals) and sounds: jumps, splashes, Nami's breach (a splash crown and a one-frame freeze), lever
+// visuals) and sounds: jumps, splashes, Nyla's breach (a splash crown and a one-frame freeze), lever
 // rumbles, broken brick, bubbles, orbs, checkpoints, the tide, losses, the boss and the finish.
 // Remounted for every run (runId). Local multiplayer runs (2-4 heroes) render MultiScene.tsx.
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
@@ -113,7 +113,7 @@ function Simulation({ run, anim, clock, won, orbit }: { run: RuinRun; anim: Hero
          playSfx("splash", { volume: 0.4, pitch: 1.3 });
       }
       if (ev.breached) {
-         // Nami's breach: a big splash crown and a one-frame freeze (the card)
+         // Nyla's breach: a big splash crown and a one-frame freeze (the card)
          juice.burst("checkpoint", feet, 40, { color: "#bae6fd" });
          juice.burst("dust", feet, 24, { color: "#e0f7ff" });
          juice.kick(0, 1, 0, 3);

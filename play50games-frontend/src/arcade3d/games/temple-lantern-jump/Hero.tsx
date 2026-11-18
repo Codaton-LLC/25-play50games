@@ -1,7 +1,7 @@
 "use client";
 
 // The picked hero, animated by the shared Menu 2 animator (menu2/heroAnim): idle, run, takeoff, rise, fall,
-// land, Nami's somersault, Riko's dash, the hurt recoil, the cheer and the intro's drop. The ember is the
+// land, Nyla's somersault, Riko's dash, the hurt recoil, the cheer and the intro's drop. The ember is the
 // hero's own light: a warm glow ball at the chest that dims and shrinks as the meter burns down and
 // gutters out at 0, so the player reads the meter on the hero itself. A blob shadow follows the ledge
 // under the feet. This file turns the run + the Scene's moments (HeroAnim) into the animator's motion.

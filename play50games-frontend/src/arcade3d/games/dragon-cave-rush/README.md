@@ -45,7 +45,7 @@ stole. Lead hero Riko. Status `dev`, order 66, collection `rollheroes`, owner `c
 | Hero | Power | What it opens |
 |---|---|---|
 | Riko | Boost (4 s cooldown) | smashes a cracked barricade onto a shortcut track (+20 distance, its orbs; L4: the hidden hoard room shard) |
-| Nami | Double hop | the second hop near a scaffold ramp lifts the cart onto the upper track (its orbs, the ember shard) |
+| Nyla | Double hop | the second hop near a scaffold ramp lifts the cart onto the upper track (its orbs, the ember shard) |
 | Kiro | Shield (3 s, 8 s cooldown) | absorbs one breath or lavafall; the lavafall fork's orbs |
 | Zuno | Magnet (3 s, 8 s cooldown) | pulls a crystal trail of orbs off the cave wall |
 | Vexa | Phase (2.6 s, 7 s cooldown) | the purple ghost rails are solid only while phasing (a rockfall bypass, the sticker); anyone else falls through |
@@ -114,7 +114,7 @@ The tests cover:
   bonus badge is "never below 50 distance" once she woke.
 - **Flow meter:** a chain within 2.5 s, +0.25 per link, capped at ×2. Orbs, perfect leans and cleared
   obstacles feed it.
-- **Secrets:** the ember shard at the end of the scaffold track (Nami) and the sticker in the ghost-rail
+- **Secrets:** the ember shard at the end of the scaffold track (Nyla) and the sticker in the ghost-rail
   cave (Vexa). On L4, the hoard shard sits behind Riko's cracked barricade.
 - `levelEnd.ts` records the result through menu2/progress.
 

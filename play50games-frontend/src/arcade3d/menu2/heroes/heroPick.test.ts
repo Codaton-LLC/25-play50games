@@ -6,7 +6,7 @@ import { HERO_PICK_KEY, createHeroPick, defaultHeroFor, initialHeroFor, memoryHe
 describe("defaultHeroFor", () => {
    beforeEach(() => setHeroPickStorage(memoryHeroStorage()));
 
-   it("each world's games default to its lead hero: W1 Riko, W2 Nami, W3 Kiro, W4 Zuno, W5 Vexa", () => {
+   it("each world's games default to its lead hero: W1 Riko, W2 Nyla, W3 Kiro, W4 Zuno, W5 Vexa", () => {
       const lead = { 1: "riko", 2: "nami", 3: "kiro", 4: "zuno", 5: "vexa" } as const;
       for (const w of WORLDS) {
          if (w.id === 6) continue;

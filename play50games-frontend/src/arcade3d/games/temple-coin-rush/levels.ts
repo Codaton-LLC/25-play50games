@@ -1,4 +1,4 @@
-// Temple Coin Rush's five levels: pure data (no React, no three.js). core/README.md "Levels".
+// Ruin Coin Rush's five levels: pure data (no React, no three.js). core/README.md "Levels".
 // One collapsing temple, five configurations of the same verb (PAY, the design card): a three-lane
 // auto-run along -z with a boulder at your heels, coins to grab, and a toll gate every 12-18 s that
 // splits the path into a paid fast lane and a free slow lane. temples.ts builds each level's course.
@@ -23,9 +23,9 @@ export interface TempleLevel {
 }
 
 export const LEVELS: Record<LevelId, TempleLevel> = {
-   1: { id: 1, name: "Temple Entry", durationMs: 120_000, speed: 8, parMs: 58_000, finishBonus: 150, bankTarget: 20, boss: false },
+   1: { id: 1, name: "Ruin Entry", durationMs: 120_000, speed: 8, parMs: 58_000, finishBonus: 150, bankTarget: 20, boss: false },
    2: { id: 2, name: "Coin Hall", durationMs: 130_000, speed: 9, parMs: 64_000, finishBonus: 200, bankTarget: 30, boss: false },
    3: { id: 3, name: "Broken Floors", durationMs: 140_000, speed: 9.5, parMs: 66_000, finishBonus: 250, bankTarget: 35, boss: false },
    4: { id: 4, name: "Rolling Hazards", durationMs: 150_000, speed: 10.5, parMs: 66_000, finishBonus: 300, bankTarget: 40, boss: false },
-   5: { id: 5, name: "Temple Sprint", durationMs: 240_000, speed: 11, parMs: 95_000, finishBonus: 400, bankTarget: 30, boss: true },
+   5: { id: 5, name: "Ruin Sprint", durationMs: 240_000, speed: 11, parMs: 95_000, finishBonus: 400, bankTarget: 30, boss: true },
 };

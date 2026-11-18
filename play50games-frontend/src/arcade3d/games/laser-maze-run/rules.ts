@@ -5,7 +5,7 @@
 // The signature mechanic (card GAME 38, "navigate through a laser maze using timing, jumps and phase
 // windows"): the hero walks freely (5.5 m/s) down a corridor of laser rooms. A laser touched is a hit:
 // back to the room's checkpoint pad, 0.7 s frozen. Low beams are jumped; full walls are timed (pulses),
-// found through (gaps), switched off (gates: E on a switch pad) or, for Nami, cleared with a second jump;
+// found through (gaps), switched off (gates: E on a switch pad) or, for Nyla, cleared with a second jump;
 // low beams sliding along a room are jumped as they pass; barriers slide across and block; live floor
 // tiles burn. Phasing Vexa passes through every beam; Kiro's shield soaks touches for 1.2 s. Level 5's
 // Vault Core sweeps its arena and is overloaded from its pylons while it is open.
@@ -28,7 +28,7 @@ export const STEP_MS = 4;
 export const MAX_FRAME_MS = 50;
 /** the walk (m/s); Riko's dash x1.6 */
 export const SPEED = 5.5;
-/** a jump: apex 1.125 m, 0.6 s (Nami's second jump reaches 2.25 m: over a full wall) */
+/** a jump: apex 1.125 m, 0.6 s (Nyla's second jump reaches 2.25 m: over a full wall) */
 export const V_HOP = 7.5;
 export const G = 25;
 /** the hero's body: a capsule this wide (radius) and this tall */
@@ -367,7 +367,7 @@ function substep(run: LaserRun, ms: number, input: StepInput, first: boolean, dt
    comboTick(run.combo, COMBO, ms);
    const held = ms < r.heldUntil;
 
-   // Action: a switch in reach, else the power; Nami's second jump is Jump (or Action) in the air
+   // Action: a switch in reach, else the power; Nyla's second jump is Jump (or Action) in the air
    if (first && input.actionPressed && !held) {
       const sw = switchNear(run);
       if (sw >= 0) press(run, ms, sw);

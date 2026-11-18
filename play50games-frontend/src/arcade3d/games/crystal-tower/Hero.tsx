@@ -1,7 +1,7 @@
 "use client";
 
 // The picked hero, its own GLB animated by the shared Menu 2 animator (menu2/heroAnim): runs, jumps,
-// Nami's flip, landings, the shoves and knocks, the cheer at the summit; a fall into the cosmos
+// Nyla's flip, landings, the shoves and knocks, the cheer at the summit; a fall into the cosmos
 // curls it into the ball. A blob shadow on whatever pad it stands over.
 import { useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";

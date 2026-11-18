@@ -5,7 +5,7 @@
 // flip, grab): a landed trick links the flow meter and buys 1 s of curl buffer, a trick landed half
 // done is a bail. Rocks wipe you out, buoys slow you, jellies, diving gulls and the violet storm
 // spray sting you (Kiro's shield shrugs them off). Side lanes behind the reef (Riko's cracked walls,
-// Vexa's ghost arches), Nami's high ledges, Zuno's hidden foam trails, checkpoints, orbs (a time
+// Vexa's ghost arches), Nyla's high ledges, Zuno's hidden foam trails, checkpoints, orbs (a time
 // bonus), the flow meter, secrets, the level 5 boss and the lower bound behind the server limits.
 // Pure and deterministic: no three.js, React, DOM, Math.random or Date.now. Scene.tsx passes the stick
 // plus the orbit camera's yaw (StepInput.yaw); step() turns it camera-relative with core inputToWorld.
@@ -276,7 +276,7 @@ export interface Hero extends Vec3Like {
    state: HeroState;
    grounded: boolean;
    timerMs: number;
-   /** Nami's second air is still up this air */
+   /** Nyla's second air is still up this air */
    airJump: boolean;
    /** the trick held this air (TrickKind) and how long (ms) */
    trick: TrickKind;

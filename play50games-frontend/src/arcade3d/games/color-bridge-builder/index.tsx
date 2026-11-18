@@ -15,7 +15,7 @@ import Hud from "./Hud";
 import StarResult from "./StarResult";
 
 const DESCRIPTIONS: Record<LevelId, string> = {
-   1: "Two Switches: walk a red bridge as Riko, switch a dark node to blue for Nami, and tag Vexa where red crosses blue into purple.",
+   1: "Two Switches: walk a red bridge as Riko, switch a dark node to blue for Nyla, and tag Vexa where red crosses blue into purple.",
    2: "Prisms: bump a prism to aim the yellow beam for Zuno; blue crossing yellow makes green for Kiro, and a green ledge holds a sticker.",
    3: "Split Bridge: red crossing yellow flickers orange; two half-bridges side by side; yellow or blue at the top: orange to time, or purple for Vexa.",
    4: "Timed Bridge: drones swallow the beams they fly through, a node shines only 10 s after its far switch, and a cracked rock hides a shard.",
@@ -39,9 +39,9 @@ const definition: GameDefinition<BridgeLevel> = {
       "Cross the canyon to the gate. Energy nodes shoot beams; a beam that reaches an anchor becomes a bridge of light.",
       "Step on a switch to change its node's colour. Walk into a prism to turn it.",
       "Crossing beams mix: red + blue = purple, blue + yellow = green, red + yellow = orange (it flickers), all three = white.",
-      "Only the hero of a bridge's colour walks it: Riko red, Nami blue, Zuno yellow, Vexa purple, Kiro green. Orange and white: anyone.",
+      "Only the hero of a bridge's colour walks it: Riko red, Nyla blue, Zuno yellow, Vexa purple, Kiro green. Orange and white: anyone.",
       "Tag (Space / Tag) swaps to the hero the bridge ahead needs. Mid-bridge, tag as you step onto the new colour.",
-      "Power (E / Enter): Riko dashes 3 cells, Nami leaps 2, Zuno pulls a prism, Vexa walks any light 1.5 s, Kiro's shield blocks a beam.",
+      "Power (E / Enter): Riko dashes 3 cells, Nyla leaps 2, Zuno pulls a prism, Vexa walks any light 1.5 s, Kiro's shield blocks a beam.",
    ],
    resultDelayMs: 1800,
    finalScore,

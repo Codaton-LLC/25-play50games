@@ -21,7 +21,7 @@ function place(run: LaserRun, x: number, s: number): void {
 const forward = (): StepInput => ({ ...createStepInput(), moveY: -1 });
 
 describe("hero roles", () => {
-   it("Nami: a second jump in the air clears a full wall (2.25 m) and reaches the high orbs; one jump never does", () => {
+   it("Nyla: a second jump in the air clears a full wall (2.25 m) and reaches the high orbs; one jump never does", () => {
       for (const twice of [true, false]) {
          const run = createRun(1, 1, "nami");
          place(run, 0, 6);

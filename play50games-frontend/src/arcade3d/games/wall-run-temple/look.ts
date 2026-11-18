@@ -1,4 +1,4 @@
-// Wall Run Temple's look: one palette (carved sandstone, jade inlays, moss, the ashen grey Shadow Plates
+// Cliff Glyph Run's look: one palette (carved sandstone, jade inlays, moss, the ashen grey Shadow Plates
 // left behind) and a sky and light per level, the world's arc: misty morning (L1), green noon (L2),
 // golden hour (L3), blue night with torches (L4), storm grey that breaks into sun on Umbra's fall (L5).
 // Plain data (index.tsx reads the environment from here).

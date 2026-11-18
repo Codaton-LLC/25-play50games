@@ -38,7 +38,7 @@ the colour is the hero's, and the gates span the track.)
   | Hero | Power | Effect |
   |---|---|---|
   | Riko | Dash | +6 m/s for 0.5 s; smashes blocks |
-  | Nami | Double jump | the high prism over the gaps |
+  | Nyla | Double jump | the high prism over the gaps |
   | Kiro | Shield | 3 s: hazards pass, a wrong gate keeps its heart but still bounces |
   | Zuno | Magnet | 4 s, pickups from 6 m |
   | Vexa | Phase | 2 s through blocks, walls, beams and sweepers |
@@ -68,7 +68,7 @@ colour in the window is a hit.
 **Stars:** clear; all main pickups; the card's timer. Badge: a clean run (no wrong gate, hazard or fall).
 
 **Secrets:**
-- the high prism over a gap (Nami);
+- the high prism over a gap (Nyla);
 - the colour streak (8 true gates in a row);
 - the ghost lane shard behind an energy block (Vexa's phase or Riko's dash).
 

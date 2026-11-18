@@ -40,7 +40,7 @@ export type HeroPowerKind = "dash" | "doubleJump" | "shield" | "magnet" | "phase
 export interface HeroMotionEvents {
    /** a jump from the ground */
    jumped: boolean;
-   /** a jump in the air (Nami's double jump): the somersault */
+   /** a jump in the air (Nyla's double jump): the somersault */
    airJumped: boolean;
    /** the feet touched down; `landSpeed` = the fall speed then (m/s, > 0) */
    landed: boolean;

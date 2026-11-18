@@ -8,7 +8,7 @@ import { DEFAULT_HERO, HEROES, pickedHero, selectHero, subscribeHero } from "./h
 describe("cloud-hopper: live hero pick", () => {
    afterEach(() => selectHero(DEFAULT_HERO));
 
-   it("World 2's lead, Nami, is preselected", () => {
+   it("World 2's lead, Nyla, is preselected", () => {
       expect(DEFAULT_HERO).toBe("nami");
       expect(pickedHero()).toBe("nami");
    });

@@ -1,5 +1,5 @@
 // Ring Jump Challenge rules: the canyon of each level, the fall (spread, dive, boost, updrafts),
-// threading, misses and Nami's rescue, the landings and the splash, the hero powers, the hazards, the
+// threading, misses and Nyla's rescue, the landings and the splash, the hero powers, the hazards, the
 // hand-off to the store, and the server-limit proof (README "Server limits and why they hold"): the
 // vy clamp on every ms, the pinned limits, and an honest, an idle and a spam bot, driven through the
 // real store like the shell does.
@@ -242,7 +242,7 @@ describe("the fall", () => {
 });
 
 describe("threading", () => {
-   it("the centre (inner 30 %) doubles a ring; inside it scores; a near pass is a miss that breaks the flow; Nami's flip can still thread it after", () => {
+   it("the centre (inner 30 %) doubles a ring; inside it scores; a near pass is a miss that breaks the flow; Nyla's flip can still thread it after", () => {
       const c = courseFor(1);
       const r = c.rings[0];
       const centre = falling(1, r.x, r.y + 1, r.z);
@@ -258,7 +258,7 @@ describe("threading", () => {
       hold(miss, 120, createStepInput());
       expect(miss.misses).toBe(1);
       expect(miss.rings).toBe(0);
-      // Nami: flip back up 3 m and steer in
+      // Nyla: flip back up 3 m and steer in
       const flip = createStepInput();
       flip.actionPressed = true;
       step(miss, 16, flip);
@@ -343,7 +343,7 @@ describe("the hero powers (the card's roles)", () => {
       expect(POWER_MS.dash * 32 / 1000).toBeCloseTo(8, 5);
    });
 
-   it("Nami's flip rises 3 m", () => {
+   it("Nyla's flip rises 3 m", () => {
       const run = falling(1, 0, 150, 0, "nami");
       const input = createStepInput();
       input.actionPressed = true;

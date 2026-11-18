@@ -3,7 +3,7 @@
 // The Menu 2 hero on the rails: the picked hero's own GLB animated by the shared Menu 2 animator
 // (menu2/heroAnim: useHeroAnimator + <AnimatedHero>). Every frame the run (rules.ts) and the Scene's
 // moments (HeroAnim) become the animator's HeroMotion: the grind (feet planted, a slight crouch), the
-// hops, jumps, Nami's somersault, the crouch downhill (the shell ball), Riko's dash streak, the shield /
+// hops, jumps, Nyla's somersault, the crouch downhill (the shell ball), Riko's dash streak, the shield /
 // magnet / phase auras, a bonk's recoil, the hook's dangle across a missed gap, Zuno's ride round the
 // loop, the cheer at the finish. The intro drop and a blob shadow stay here.
 import { useMemo, useRef } from "react";

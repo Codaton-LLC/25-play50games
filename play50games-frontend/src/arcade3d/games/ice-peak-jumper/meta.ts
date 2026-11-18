@@ -26,7 +26,7 @@ export const icePeakJumperMeta: ArcadeGameMeta = {
    slug: "ice-peak-jumper",
    title: "Ice Peak Jumper",
    tagline: "You can't stop on ice: build your slide, launch off the edge.",
-   description: "Climb a frozen peak where the ice has no grip: build your slide, launch off the edge, and the run-up is your aim. Stop and re-aim on the snow patches, leave cracked ice before it shatters, dodge icicles, a snowball-throwing yeti and ice slimes on the lantern-lit night slopes, then out-climb the Frost Golem at the summit cairn. Pick Riko, Nami, Kiro, Zuno or Vexa.",
+   description: "Climb a frozen peak where the ice has no grip: build your slide, launch off the edge, and the run-up is your aim. Stop and re-aim on the snow patches, leave cracked ice before it shatters, dodge icicles, a snowball-throwing yeti and ice slimes on the lantern-lit night slopes, then out-climb the Frost Golem at the summit cairn. Pick Riko, Nyla, Kiro, Zuno or Vexa.",
    order: 75,
    status: "live",
    collection: "rollheroes",

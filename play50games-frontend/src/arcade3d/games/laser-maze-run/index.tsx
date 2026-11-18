@@ -42,7 +42,7 @@ const definition: GameDefinition<LaserLevel> = {
       "WASD / arrows (or the stick) move, Space (or Jump) jumps. Amber beams are low: jump them. Red walls of light: find the gap, or wait until a pulsing wall goes dark.",
       "A beam sliding along the floor: jump it as it reaches you. A barrier sliding across: slip past on the open side.",
       "Magenta gates: stand on a switch pad and press E / Enter (or Action) to drop the gate for a few seconds. Some switches open one gate and close another; on level 4 some are decoys.",
-      "E / Enter away from a switch is your power: Riko dashes (and dash-jumps the short live floors), Nami jumps again in the air (over a full wall), Kiro's shield soaks lasers for 1.2 s (and crosses live floors), Zuno's magnet pulls the orbs out of the laser cages, Vexa phases through every beam (into the cages).",
+      "E / Enter away from a switch is your power: Riko dashes (and dash-jumps the short live floors), Nyla jumps again in the air (over a full wall), Kiro's shield soaks lasers for 1.2 s (and crosses live floors), Zuno's magnet pulls the orbs out of the laser cages, Vexa phases through every beam (into the cages).",
       "Turn the camera: drag the view (or two fingers), mouse wheel / pinch zooms, Q / C turn, R / F tilt, V recenters.",
    ],
    resultDelayMs: 1800,

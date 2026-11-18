@@ -1,4 +1,4 @@
-// Each hero's power (the card) and the secrets: Nami's second jump reaches the high prism, Kiro's shield
+// Each hero's power (the card) and the secrets: Nyla's second jump reaches the high prism, Kiro's shield
 // shrugs off a hazard and a wrong gate's heart (never the bounce), Zuno's magnet pulls pickups from 6 m,
 // Vexa's phase takes her to the ghost lane shard; the colour streak sticker after 8 true gates.
 import { describe, expect, it } from "vitest";
@@ -16,7 +16,7 @@ function place(run: SwitchRun, z: number, lane = 1) {
 }
 
 describe("powers", () => {
-   it("Nami double jumps (higher than anyone else) and reaches the high prism over a gap", () => {
+   it("Nyla double jumps (higher than anyone else) and reaches the high prism over a gap", () => {
       const peak = (hero: "nami" | "riko") => {
          const run = createRun(1, 4, hero);
          const t = run.track;

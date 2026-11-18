@@ -42,7 +42,7 @@ const definition: GameDefinition<CannonLevel> = {
       "In a cannon the stick turns the barrel: left / right to aim, up / down to lob or fire flat. The power ring pulses 60-100 %: press Fire (Space) at the power you need.",
       "In flight the stick nudges a little; press Fire again and hold it to roll-dive steeper. Cannons catch you when you pass close; trampolines bounce you up; balloons give a free re-aim.",
       "A fall into the net or a bonk puts you back in the last cannon. Each orb takes 0.1 s off your time.",
-      "Power (E, Enter, or the Power button): Riko air-dashes and smashes target boards, Nami jumps again in flight, Kiro shields through smoke, Zuno's magnet pulls hidden orbs, Vexa phases through ghost poles.",
+      "Power (E, Enter, or the Power button): Riko air-dashes and smashes target boards, Nyla jumps again in flight, Kiro shields through smoke, Zuno's magnet pulls hidden orbs, Vexa phases through ghost poles.",
       "Turn the camera: drag the view (or two fingers), mouse wheel / pinch zooms, Q / C turn, R / F tilt, V recenters.",
    ],
    resultDelayMs: 1600,

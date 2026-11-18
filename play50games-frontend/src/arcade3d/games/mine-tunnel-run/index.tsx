@@ -40,7 +40,7 @@ const definition: GameDefinition<MineLevel> = {
       "Down digs down, Up digs up, Jump hops two cells. Down in the air is a roll-drop.",
       "A boulder with nothing under it wobbles, then falls: on beetles, on cracked floors, and on you. Step aside.",
       "Lanterns are checkpoints. Red ore holds orbs: each one takes 0.4 s off your time.",
-      "Power (E, Enter, or the Power button): Riko's dash bores four cells and smashes cracked rock, Nami double-jumps to air pockets, Kiro's shield takes a boulder or gas, Zuno's magnet pulls orbs through rock, Vexa phases through ghost rock.",
+      "Power (E, Enter, or the Power button): Riko's dash bores four cells and smashes cracked rock, Nyla double-jumps to air pockets, Kiro's shield takes a boulder or gas, Zuno's magnet pulls orbs through rock, Vexa phases through ghost rock.",
       "Turn the camera: drag the view (or two fingers), mouse wheel / pinch zooms, Q / C turn, R / F tilt, V recenters.",
    ],
    resultDelayMs: 1800,

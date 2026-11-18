@@ -19,7 +19,7 @@ export function starSpecFor(level: LevelId, orbTotal: number): StarSpec {
 
 /**
  * Secrets per level (placed by course.ts): the shard inside a closed ring of crates (Vexa's phase walks
- * in) and the sticker high over a crate stack (Nami's second jump).
+ * in) and the sticker high over a crate stack (Nyla's second jump).
  */
 export const SECRETS: Record<LevelId, readonly SecretSpec[]> = {
    1: [

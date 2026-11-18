@@ -34,7 +34,7 @@ export const discTargetThrowMeta: ArcadeGameMeta = {
    title: "Disc Target Throw",
    tagline: "Throw, bank off the stone, catch it coming back.",
    description:
-      "Stand in a jungle-ruin courtyard and throw a returning training disc: hook it round pillars, bank it off the carved walls for double and triple points, and be on the spot when it swings back to keep your catch combo. Moving rail targets, colour-order idols, a drifting raft and disc-snatching monkeys, then Mother Snapper on level 5. Pick Riko, Nami, Kiro, Zuno or Vexa.",
+      "Stand in a jungle-ruin courtyard and throw a returning training disc: hook it round pillars, bank it off the carved walls for double and triple points, and be on the spot when it swings back to keep your catch combo. Moving rail targets, colour-order idols, a drifting raft and disc-snatching monkeys, then Mother Snapper on level 5. Pick Riko, Nyla, Kiro, Zuno or Vexa.",
    order: 73,
    status: "live",
    collection: "rollheroes",

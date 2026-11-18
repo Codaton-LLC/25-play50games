@@ -20,7 +20,7 @@ export function starSpecFor(level: LevelId, orbTotal: number): StarSpec {
 
 /**
  * The card's secrets, in the order rules.ts collects them: the parity shard (picked up only after an
- * even number of jumps since the checkpoint), Vexa's two ghost-wall crystals, and on level 3 Nami's
+ * even number of jumps since the checkpoint), Vexa's two ghost-wall crystals, and on level 3 Nyla's
  * same-set ledge sticker in place of the second crystal. Secrets never add time.
  */
 const BASE: readonly SecretSpec[] = [

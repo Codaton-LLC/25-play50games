@@ -20,7 +20,7 @@ export function starSpecFor(level: LevelId, orbTotal: number): StarSpec {
 /**
  * Two secrets a level, in factory.ts order: one for anyone who explores (L1: the hidden sixth
  * turntable's secret charger, fed a cell; L3: the roof window the arm lifts you to), one behind a
- * hero power (Vexa's ghost-crate maintenance rooms, Nami's catwalk sticker).
+ * hero power (Vexa's ghost-crate maintenance rooms, Nyla's catwalk sticker).
  */
 export const SECRETS: Record<LevelId, readonly SecretSpec[]> = {
    1: [

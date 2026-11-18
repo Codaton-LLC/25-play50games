@@ -43,7 +43,7 @@ A third-person mission arena. Fill the order: take exactly the coloured energy c
 | Hero | Power | What it opens |
 |---|---|---|
 | Riko | Dash: x1.6 for 0.6 s, every 5 s | Speed across the arena. |
-| Nami | A second jump in the air | The orbs and the sticker high beside the crate stacks. |
+| Nyla | A second jump in the air | The orbs and the sticker high beside the crate stacks. |
 | Kiro | Shield: 1.2 s, every 8 s | Shrugs off tesla sparks and the Core Sprite's shock ring. |
 | Zuno | Magnet: 3 s, every 8 s | Pulls in the golden orbs, including the crate ring's from outside; never the cores. |
 | Vexa | Phase: 2.6 s, every 7 s | Walks through crates, into the closed crate ring (its orbs, the shard). |
@@ -70,7 +70,7 @@ It wakes once the last wave is in, holding the order's last four cores, which ci
 - **No-hit badge:** no wrong pick, no zap, no shock.
 - **Flow meter:** a link within 3 s, +0.25 per link, capped at x2. An orb links 30 ms; a core of the order links 90 ms.
 - **Secrets:**
-  - Levels 1 and 4: the crate-ring shard (Vexa) and the crate-top sticker (Nami).
+  - Levels 1 and 4: the crate-ring shard (Vexa) and the crate-top sticker (Nyla).
   - Levels 2, 3, 5: the crate-ring shard.
 
 ## Scoring
@@ -114,7 +114,7 @@ The honest bot (no routes, the one `?autoplay=1` uses) wins every level at 30, 6
 
 Submitted times at 60 fps: about 5.8 / 6.2 / 12.2 / 13.2 / 32.1 s.
 
-Every hero's bot with its own route wins every level and never beats the floor. Vexa takes the ring shard; Nami takes the crate-top sticker.
+Every hero's bot with its own route wins every level and never beats the floor. Vexa takes the ring shard; Nyla takes the crate-top sticker.
 
 ## Models
 

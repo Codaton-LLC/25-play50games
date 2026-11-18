@@ -24,7 +24,7 @@ sky).
 - Camera (menu2/camera): drag / two fingers orbit, wheel / pinch zoom, Q / C turn, R / F tilt, V recenters;
   movement is camera-relative (`StepInput.yaw`). The tunnel's walls, ledges and lifts are its collision
   boxes. The intro flies from the exit back over the roofless rooms to the start.
-- Hero choice: the shared Menu 2 picker on the start card, the pause menu and the result; **Nami** (W2's
+- Hero choice: the shared Menu 2 picker on the start card, the pause menu and the result; **Nyla** (W2's
   lead, `defaultHeroFor`) is preselected; the player's own last pick here is remembered.
 
 ## Files
@@ -76,7 +76,7 @@ same at 30, 60 or 144 fps.
 | Hero | Power (cooldown) | What it opens |
 |---|---|---|
 | Riko | dash 300 ms at 12 m/s (5 s) | breaks a cracked vent cover (`m2FlyingCrate`): its vent blows him up through two orbs (a jump from the cover's top cannot reach them) |
-| Nami | a second jump in the air, **also out of a current mid-ride** (no cooldown, once per flight) | the 3.5 m shelves (a plain jump makes 2 m) and their orbs |
+| Nyla | a second jump in the air, **also out of a current mid-ride** (no cooldown, once per flight) | the 3.5 m shelves (a plain jump makes 2 m) and their orbs |
 | Kiro | shield 3 s (9 s) | crosses the static-shock vents and takes their orbs; drones and the blast do not hurt him |
 | Zuno | magnet 3 s, 7 m reach (9 s) | pulls orbs hung where no current goes, 6 m off the route he rides |
 | Vexa | phase 1.6 s (7 s) | through the ghost fan housing into the maintenance duct (two orbs, the sticker), whose vent lifts her back in on the upper floor: a quiet shortcut |
@@ -147,7 +147,7 @@ checks the JSON. Level 5 is worth 2.3x level 1.
 
 | Bot | Result |
 |---|---|
-| Honest bot (Nami, the plan in tunnel.ts, no power) | wins every level at 30 / 60 / 144 Hz with every main orb: 60 Hz submitted 18.2 / 38.4 / 30.1 / 47.2 / 60.9 s = 91 / 81 / 90 / 84 / 92 % of maxScore |
+| Honest bot (Nyla, the plan in tunnel.ts, no power) | wins every level at 30 / 60 / 144 Hz with every main orb: 60 Hz submitted 18.2 / 38.4 / 30.1 / 47.2 / 60.9 s = 91 / 81 / 90 / 84 / 92 % of maxScore |
 | Every hero, plain and with its power mashed (Riko at 30/60/144) | every plain run clears; no mashed finish beats the floor (`proof.test.ts`) |
 | Through the real store, ragged frames | a ranked win inside the limits, the score recomputed from the time |
 | Idle | the timer ("timeup", unranked) |

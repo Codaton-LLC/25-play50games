@@ -5,7 +5,7 @@
 // bounce pads, the GLB bumpers (a light ring flashes on a hit), mushrooms, penguin drop targets (ice
 // blocks on level 3) that sink when knocked down, lanterns, the clear plastic ramps with their gold score
 // rings, the score orbs, Zuno's magnet pads over the coin trail under glass, the exit hole (a candy lid
-// until it opens), Riko's cracked block, Nami's raised deck, Vexa's ghost gate and attic, the plunger
+// until it opens), Riko's cracked block, Nyla's raised deck, Vexa's ghost gate and attic, the plunger
 // that squeezes with the charge, the flippers (menu2/props Flipper), the chase lights round the rails
 // (faster with the combo) and the backbox with the table's name. Visual only.
 import { useMemo, useRef } from "react";
@@ -593,7 +593,7 @@ export default function TableView({ run, clock }: { run: PinRun; clock: TableClo
             <octahedronGeometry args={[0.38, 0]} />
             <meshStandardMaterial color={COLORS.ghost} emissive={COLORS.ghost} emissiveIntensity={1.2} toneMapped={false} />
          </mesh>
-         {/* Nami's deck */}
+         {/* Nyla's deck */}
          <mesh position={[(DECK.x0 + DECK.x1) / 2, DECK.h - 0.08, (DECK.z0 + DECK.z1) / 2]} receiveShadow castShadow>
             <boxGeometry args={[DECK.x1 - DECK.x0, 0.16, DECK.z1 - DECK.z0]} />
             <meshStandardMaterial color={COLORS.deck} transparent opacity={0.8} roughness={0.2} />

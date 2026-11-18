@@ -18,7 +18,7 @@ export const LANE = { x0: -5.5, x1: -1.2, ramp: 14 } as const;
 export const ORB_UP = 0.6;
 /** out of reach while riding the crest (the middle is 0.6 up), in reach through most of an air */
 export const LIP_ORB_UP = 2.0;
-/** Nami's spray-ledge orbs float this high over the crest: one air's apex leaves them out of reach, a double air reaches them */
+/** Nyla's spray-ledge orbs float this high over the crest: one air's apex leaves them out of reach, a double air reaches them */
 export const LEDGE_UP = 3.6;
 /** a lip gate's centre over the crest and its radius: never passed while riding the crest */
 export const GATE = { up: 2.1, r: 1.1 } as const;
@@ -125,7 +125,7 @@ export interface WaveDraft {
    /** checkpoint beacons (z), in ride order */
    checkpoints: number[];
    secrets: Record<string, SecretSpot>;
-   /** decor: cliff arches by Nami's ledges (z) and canyon walls (z0, z1) */
+   /** decor: cliff arches by Nyla's ledges (z) and canyon walls (z0, z1) */
    arches: number[];
    canyon: { z0: number; z1: number } | null;
    /** level 5: King Breaker rises once the rider passes this z (NaN = no boss) */
@@ -190,7 +190,7 @@ function placer(H: number, d: WaveDraft) {
          const mid = (LANE.x0 + LANE.x1) / 2;
          for (let i = 0; i < orbs; i++) d.orbs.push({ x: mid, y: ORB_UP, z: z(d0 + ((i + 1) * (d1 - d0)) / (orbs + 1)), kind: "bonus" });
       },
-      /** Nami: a spray ledge by a cliff arch, a row of orbs over the crest only a double air reaches */
+      /** Nyla: a spray ledge by a cliff arch, a row of orbs over the crest only a double air reaches */
       ledge(dist: number, n = 3) {
          d.arches.push(z(dist + 4));
          for (let i = 0; i < n; i++) d.orbs.push({ x: FACE_W - 0.5, y: H + LEDGE_UP, z: z(dist + i * 4), kind: "bonus" });

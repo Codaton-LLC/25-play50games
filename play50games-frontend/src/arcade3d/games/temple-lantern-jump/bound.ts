@@ -2,7 +2,7 @@
 //
 // A win's submitted time is the finish less 0.1 s an orb and the flow bonus. The floor on a finish:
 //   - the climb: no hero rises faster on average than V_CLIMB_MAX = V_BOUNCE / 2 (a bounce landing on
-//     its apex: the lantern throws vy = V_BOUNCE; Nami's second jump, a stomp or a dash is slower), so
+//     its apex: the lantern throws vy = V_BOUNCE; Nyla's second jump, a stomp or a dash is slower), so
 //     a level of height H takes at least H / V_CLIMB_MAX;
 //   - level 5: after the arena is entered the Queen's machine must run its intro, three phases and
 //     her defeat: bossMinMs() runs menu2/boss with a perfect hitter that lands a hit in the first ms

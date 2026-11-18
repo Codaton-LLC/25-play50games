@@ -1,10 +1,10 @@
-// The five Color Roll Heroes and what each one does in Portal Hop (the card's hero roles). Each hero is
+// The five Color Roll Heroes and what each one does in Rift Hop (the card's hero roles). Each hero is
 // its own GLB (menu2/heroModels.ts). The picked hero is a run option: the picker writes it here and the
 // next createRun copies it.
 //
 // - Riko: a dash (0.35 s at 11 m/s). Dashing into a portal adds +4 m/s to the speed in, and the dash
 //   smashes the cracked void crystals that hold an orb.
-// - Nami: a second jump in the air: after an exit it stretches the arc, and it reaches the orbs that
+// - Nyla: a second jump in the air: after an exit it stretches the arc, and it reaches the orbs that
 //   float 3.3 m over a landing.
 // - Kiro: a shield: the laser cages round some orbs (and the Wyrm's tail, level 5) pass through him.
 // - Zuno: a magnet that pulls orbs from 6 m (the ones floating off an island's edge).
@@ -26,7 +26,7 @@ export interface HeroDef {
 
 export const HEROES: readonly HeroDef[] = [
    { id: "riko", name: "Riko", color: "#EF4444", power: "dash", powerLabel: "Dash", cooldownMs: 6_000 },
-   { id: "nami", name: "Nami", color: "#2563EB", power: "doubleJump", powerLabel: "Double", cooldownMs: 0 },
+   { id: "nami", name: "Nyla", color: "#2563EB", power: "doubleJump", powerLabel: "Double", cooldownMs: 0 },
    { id: "kiro", name: "Kiro", color: "#22C55E", power: "shield", powerLabel: "Shield", cooldownMs: 10_000 },
    { id: "zuno", name: "Zuno", color: "#FACC15", power: "magnet", powerLabel: "Magnet", cooldownMs: 8_000 },
    { id: "vexa", name: "Vexa", color: "#8B5CF6", power: "phase", powerLabel: "Phase", cooldownMs: 6_000 },
@@ -38,7 +38,7 @@ export function heroById(id: HeroId): HeroDef {
    return BY_ID[id];
 }
 
-/** How long each power stays up after it fires (ms). Nami's double jump is instant. */
+/** How long each power stays up after it fires (ms). Nyla's double jump is instant. */
 export const POWER_MS = { dash: 350, shield: 3000, magnet: 3000, phase: 1500 } as const;
 
 /** Riko's dash speed (m/s), the speed a dash adds going into a portal, and Zuno's magnet reach (m). */

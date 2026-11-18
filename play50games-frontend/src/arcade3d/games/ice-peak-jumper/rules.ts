@@ -475,7 +475,7 @@ function launch(run: PeakRun, air: boolean): void {
    let s = Math.hypot(h.vx, h.vz);
    const sl = Math.hypot(STICK.x, STICK.z);
    if (air) {
-      // Nami: re-aim along the stick, keeping the speed
+      // Nyla: re-aim along the stick, keeping the speed
       if (sl > 0.3) {
          const v = Math.max(s, V_LAUNCH_MIN);
          h.vx = (STICK.x / sl) * v;
@@ -1004,7 +1004,7 @@ export function badgeHits(run: PeakRun): number {
 
 /**
  * The most orbs one hero can take on a level: the main route's, the snowball ride's and Kiro's chute
- * (anyone can take a chute's icicles to reach them), plus the one hero route (Riko's speed ledges, Nami's
+ * (anyone can take a chute's icicles to reach them), plus the one hero route (Riko's speed ledges, Nyla's
  * cornices, Zuno's frozen trails, Vexa's ghost caves) that is its own: the others' are out of reach
  * without their power (powers.test.ts).
  */

@@ -10,7 +10,7 @@ function frames(run: CoreRun, n: number, input: StepInput = createStepInput()): 
 }
 
 describe("hero roles", () => {
-   it("Nami: a second jump in the air reaches the high orbs; one jump never does", () => {
+   it("Nyla: a second jump in the air reaches the high orbs; one jump never does", () => {
       for (const twice of [true, false]) {
          const run = createRun(1, 1, "nami");
          run.hero.x = 0;

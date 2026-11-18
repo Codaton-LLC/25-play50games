@@ -18,7 +18,7 @@ export function starSpecFor(level: LevelId, orbTotal: number): StarSpec {
 
 /**
  * The secrets, in the order rules.ts collects them: "Flawless" (the level without a single wrong
- * crystal: a sticker), Vexa's ghost-wall crystal (a shard), Nami's high crystal on its pillar (a
+ * crystal: a sticker), Vexa's ghost-wall crystal (a shard), Nyla's high crystal on its pillar (a
  * sticker). Secrets never add time.
  */
 const LIST: readonly SecretSpec[] = [

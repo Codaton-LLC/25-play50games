@@ -1,4 +1,4 @@
-// Candy World Runner local multiplayer (menu2/multiplayer, phase M1): 2-4 runners on the same road.
+// Sweet Lane Runner local multiplayer (menu2/multiplayer, phase M1): 2-4 runners on the same road.
 // Pure: N CandyRuns from the SAME seed and level (rules.ts unchanged), stepped in lock-step with the
 // framework's stepPlayerSims. The runners start in a short column (P1 in front, START_GAP m apart; a
 // runner's head start is added back to its time, so the order is no advantage). Each runner eats its own

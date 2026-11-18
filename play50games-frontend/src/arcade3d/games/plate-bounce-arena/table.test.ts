@@ -16,7 +16,7 @@ describe("tables", () => {
       }
    });
 
-   it("the card's sections in order, Rollo on level 5", () => {
+   it("the card's sections in order, Gristle on level 5", () => {
       const kinds = LEVEL_IDS.map((id) => buildTable(id).objectives.map((o) => o.kind).join(","));
       expect(kinds).toEqual(["bumpers,ramp,lanterns", "orbits,bank", "bank,ramp,bank", "lanterns,ramp", "boss"]);
       expect(buildTable(2).objectives[0]).toMatchObject({ kind: "orbits", n: 3 });

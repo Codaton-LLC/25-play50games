@@ -52,7 +52,7 @@ export interface Pickup {
    x: number;
    y: number;
    z: number;
-   /** counts toward the "all pickups" star (high ones over gaps are Nami's bonus) */
+   /** counts toward the "all pickups" star (high ones over gaps are Nyla's bonus) */
    main: boolean;
 }
 
@@ -177,7 +177,7 @@ function build(level: LevelId): Track {
       if (i % 4 === 3) checkpoints.push(gz - 2.5);
    }
    const finishZ = endZ;
-   // the high prism: over the first gap (Nami's double jump), else over the middle of the course
+   // the high prism: over the first gap (Nyla's double jump), else over the middle of the course
    const gap = obstacles.find((o) => o.kind === "gap");
    const midZ = (START_Z + finishZ) / 2;
    const high = { x: 0, y: 3.4, z: gap ? gap.z - gap.len / 2 : midZ };

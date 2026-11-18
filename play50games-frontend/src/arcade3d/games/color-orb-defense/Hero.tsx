@@ -1,6 +1,6 @@
 "use client";
 
-// The picked hero on menu2/heroAnim (run, jump, Nami's flip, a stagger when the drone knocks him, cheer
+// The picked hero on menu2/heroAnim (run, jump, Nyla's flip, a stagger when the drone knocks him, cheer
 // when the waves are held), with a ring at his feet in the colour of the zone he stands on (white off a
 // zone) and his power's aura. Visual only.
 import { useMemo, useRef } from "react";

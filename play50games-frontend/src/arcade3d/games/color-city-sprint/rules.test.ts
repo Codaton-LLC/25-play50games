@@ -175,7 +175,7 @@ describe("hero routes", () => {
       }
    });
 
-   it("off the ramp onto the parked bus; only Nami's second jump reaches the rail from its roof", () => {
+   it("off the ramp onto the parked bus; only Nyla's second jump reaches the rail from its roof", () => {
       for (const hero of ["nami", "riko"] as const) {
          const run = createRun(1, 1, hero);
          const r = run.course.ramps[0];
@@ -194,7 +194,7 @@ describe("hero routes", () => {
             if (run.hero.onBus >= 0) roof = true;
          }
          expect(roof, hero).toBe(true);
-         // on the roof: jump, then (Nami) jump again at the top
+         // on the roof: jump, then (Nyla) jump again at the top
          const up = createStepInput();
          up.jumpPressed = true;
          step(run, 16, up);

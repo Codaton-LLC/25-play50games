@@ -27,7 +27,7 @@ export const paintThePlatformsMeta: ArcadeGameMeta = {
    title: "Paint the Platforms",
    tagline: "Run it, paint it, set it. Beat the clock.",
    description:
-      "Shadow Plates drained the Prism Fortress's courtyard grey. Every tile you run over takes your hero's colour: paint the share each level asks for before the timer runs out. Whole rows set and stay; grey blots, a giant roller and the Paint Blob wipe the rest. Ride tile rafts between islands, splash paint blobs and splat the Blob on level 5. Pick Riko, Nami, Kiro, Zuno or Vexa.",
+      "Shadow Plates drained the Prism Fortress's courtyard grey. Every tile you run over takes your hero's colour: paint the share each level asks for before the timer runs out. Whole rows set and stay; grey blots, a giant roller and the Paint Blob wipe the rest. Ride tile rafts between islands, splash paint blobs and splat the Blob on level 5. Pick Riko, Nyla, Kiro, Zuno or Vexa.",
    order: 94,
    status: "live",
    collection: "rollheroes",

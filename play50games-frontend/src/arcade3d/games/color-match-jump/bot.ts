@@ -103,7 +103,7 @@ export function botInput(r: CmjRun, out: StepInput = idleInput()): StepInput {
    if (r.cell < 0 || t < r.skidUntil) return out;
    const here = r.course.cells[r.cell];
 
-   // L5 P2: from the stomp hex, Nami jumps at the golem, double-jumps, and tags into the plate colour
+   // L5 P2: from the stomp hex, Nyla jumps at the golem, double-jumps, and tags into the plate colour
    if (b && b.phase === 1 && b.step !== "transition") {
       if (here.stomp) {
          if (r.active !== 1) {

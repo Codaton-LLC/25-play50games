@@ -1,6 +1,6 @@
 "use client";
 
-// Portal Hop with 2-4 local players (menu2/multiplayer): the same island chain as solo, drawn once (the
+// Rift Hop with 2-4 local players (menu2/multiplayer): the same island chain as solo, drawn once (the
 // orbs, the bridge and the crystals are shared; in co-op the portals too), one animated Hero per player
 // with a ring in the player's colour under it, the solo juice (quieter), the runs stepped together by
 // multiplayer.ts with each player's own device (PlayerInputLatch + playerInputFor), and the card's

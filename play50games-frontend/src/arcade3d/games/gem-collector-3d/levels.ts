@@ -27,7 +27,7 @@ export interface GemSpec extends XZ {
    hidden?: boolean;
 }
 
-/** A high pedestal: a solid column; its top (y = h) holds a gold gem. Only Nami's double jump gets up. */
+/** A high pedestal: a solid column; its top (y = h) holds a gold gem. Only Nyla's double jump gets up. */
 export interface PedestalSpec extends XZ {
    h: number;
 }
@@ -90,7 +90,7 @@ export interface ArenaSpec {
    waveEveryMs: number;
    /** 5 hidden colour orbs (the second star) */
    orbs: XYZ[];
-   /** in SECRETS order: the vault sticker (Vexa), the pocket shard (Riko), the pedestal shard (Nami) */
+   /** in SECRETS order: the vault sticker (Vexa), the pocket shard (Riko), the pedestal shard (Nyla) */
    secrets: XYZ[];
    night: boolean;
    boss: boolean;

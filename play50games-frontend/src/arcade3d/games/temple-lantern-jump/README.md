@@ -52,7 +52,7 @@ her wings. Phase 2 (dive): bounce into her dive over the glowing lantern. Phase 
 ember into the roof brazier. Winning is her defeat, not the roof.
 
 ### Hero roles (all bonus, never required)
-Riko dashes (12 m/s, 0.5 s); Nami double jumps on Jump; Kiro shields the fire jets 3 s; Zuno's magnet
+Riko dashes (12 m/s, 0.5 s); Nyla double jumps on Jump; Kiro shields the fire jets 3 s; Zuno's magnet
 (6 m, 3 s) pulls sparks and orbs; Vexa phases through the ghost wall to the ghost-room orb.
 
 ## Scoring
@@ -70,7 +70,7 @@ or quitting is unranked.
 | 5 | 24300 | 360000 | 33570 |
 
 ### Server limits and why they hold (`bound.ts`, `proof.test.ts`)
-No hero rises faster on average than `V_CLIMB_MAX = V_BOUNCE / 2` (a bounce landing on its apex; Nami's
+No hero rises faster on average than `V_CLIMB_MAX = V_BOUNCE / 2` (a bounce landing on its apex; Nyla's
 second jump, a stomp and a dash are slower), so a shaft of height H takes at least H / V_CLIMB_MAX.
 Level 5 adds the Queen's least defeat time (`bossMinMs`: a perfect hitter in the first ms of every
 vulnerable window). The row is that floor less the largest bonus (5 orbs + the flow meter at x2 on

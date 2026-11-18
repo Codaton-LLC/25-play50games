@@ -13,10 +13,10 @@ Status `dev` (preview builds only), owner Claude, order 56, collection `rollhero
 | File | What |
 |---|---|
 | `levels.ts` | the five level rows (drop, shaft radius, run clock cap, par time, boss) |
-| `canyon.ts` | pure course builder: rings (static, sliding, orbiting, speed, gold, bonus, the closing trio), orbs (main and hero-gated), updraft geysers, blade gates, wall pockets (open niche, Riko's seal, Vexa's ghost panel), Kiro's storm pockets, ledges (Nami's nooks, geyser shelves), level 4's slots, the pad and the pool, level 5's storm eye, decor spots |
+| `canyon.ts` | pure course builder: rings (static, sliding, orbiting, speed, gold, bonus, the closing trio), orbs (main and hero-gated), updraft geysers, blade gates, wall pockets (open niche, Riko's seal, Vexa's ghost panel), Kiro's storm pockets, ledges (Nyla's nooks, geyser shelves), level 4's slots, the pad and the pool, level 5's storm eye, decor spots |
 | `rules.ts` | the pure, deterministic run (1 ms steps), scoring, the boss fight, the limits proof |
 | `progression.ts` | combo config, star specs, secrets per level, Cyclone Ray's `BossConfig` |
-| `heroes.ts` | the five heroes, their power tuning, the shared hero pick (Nami preselected) |
+| `heroes.ts` | the five heroes, their power tuning, the shared hero pick (Nyla preselected) |
 | `bot.ts` | the honest bot (tests, proofs, `?autoplay=1` on preview builds) |
 | `camera.ts` | orbit tuning (steep, looking down the shaft), the speed FOV, the intro shots |
 | `Scene.tsx` / `MultiScene.tsx` | solo and 2-4 player scenes |
@@ -37,7 +37,7 @@ Status `dev` (preview builds only), owner Claude, order 56, collection `rollhero
 - **Rings.** Crossing a ring's plane with the hero's centre inside the opening threads it: 100 points,
   200 in the inner 30 % (a centre thread), +2 m/s of fall (a speed ring +6), the extra capped at +10 and
   wearing off at 3 m/s². Passing within 5 m of a main ring's rim without threading it is a **miss**: the
-  flow breaks and the Perfect Streak badge is gone, unless the ring is threaded after all (Nami's flip).
+  flow breaks and the Perfect Streak badge is gone, unless the ring is threaded after all (Nyla's flip).
 - **Moving rings** (level 2, 5) slide or orbit at 2-4 m/s; the closing trio of level 1 shrinks shut
   4.3 / 4.6 / 4.9 s after the hero passes the top of its gap (a spread fall is too slow: hold Dive).
 - **Updrafts** hold the fall to 6 m/s (10 diving). **Storm pockets** blow anyone but a shielded Kiro out.
@@ -57,7 +57,7 @@ Status `dev` (preview builds only), owner Claude, order 56, collection `rollhero
 | Hero | Power (cooldown) | What it opens |
 |---|---|---|
 | Riko | air dash 8 m in 0.25 s (3 s) | cracked seals over the side shafts (3 orbs each; level 4's seal shard) |
-| **Nami** (lead, preselected) | air-brake flip: the fall stops, she hops 3 m back up (2.5 s) | the orb under each wall ledge; re-threading a ring she just missed (the miss is forgiven) |
+| **Nyla** (lead, preselected) | air-brake flip: the fall stops, she hops 3 m back up (2.5 s) | the orb under each wall ledge; re-threading a ring she just missed (the miss is forgiven) |
 | Kiro | shield 3 s (9 s) | storm pockets (3 orbs each); blade gates and Cyclone Ray's lightning can't touch him |
 | Zuno | magnet 3 s, 7 m reach (8 s) | the orbs hidden in the canyon wall (only glints until the magnet is up) |
 | Vexa | phase 1.5 s (6 s) | ghost panels into the inner shaft with bonus rings (and the sticker on levels 2 and 5) |
@@ -135,7 +135,7 @@ For each level (`rules.ts` `proposeLimits`, pinned in `rules.test.ts`):
 
 `meta.scoring` / `meta.levels`, `arcade-games.json` (`enabled: false`) and the pinned test move together.
 
-### What the bots reached (60 fps, Nami)
+### What the bots reached (60 fps, Nyla)
 
 | Level | finish | score | rings (centres) / main | main orbs | misses |
 |---|---|---|---|---|---|

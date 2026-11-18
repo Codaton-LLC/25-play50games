@@ -28,8 +28,8 @@ King Breaker is down, ring the Tide Bell on the beach).
   `StepInput.yaw` and `step()` turns the stick with core `inputToWorld`. Tricks read the raw stick, so a
   turned camera never changes which trick a direction is. Bots and tests use yaw 0.
 - Hero choice: the shared picker (menu2/heroes `HeroPicker`) on the start card, the pause menu and the
-  result; `createHeroPick("plate-surf")`: **Nami** (W2's lead) is preselected; the rules' own default
-  (`DEFAULT_HERO`) is Nami too.
+  result; `createHeroPick("plate-surf")`: **Nyla** (W2's lead) is preselected; the rules' own default
+  (`DEFAULT_HERO`) is Nyla too.
 
 ## Files
 
@@ -84,7 +84,7 @@ level 1, 8 m after). The clock is whole ms with the fraction carried, one ms at 
 | Hero | Power (cooldown) | What it opens |
 |---|---|---|
 | Riko | dash carve 450 ms: +4 m/s (never past 24) and a sideways push (6 s) | breaks the cracked reef walls into the hidden lagoon lanes (bonus orbs; the reef shard on L2 and L5) |
-| Nami | a second air in the air (1.5 s) | the spray ledges' orb rows 3.6 m over the crest by the cliff arches (one air peaks at 1.69 m); L4's cliff-cave shard |
+| Nyla | a second air in the air (1.5 s) | the spray ledges' orb rows 3.6 m over the crest by the cliff arches (one air peaks at 1.69 m); L4's cliff-cave shard |
 | Kiro | shield 3 s (12 s) | rides straight through the violet storm spray over the lip (its bonus orbs), jellies, gulls and bubble mines |
 | Zuno | magnet 4 s, reach 6 m (12 s) | the hidden orb trails in the trough's foam only show and come under it |
 | Vexa | phase 2 s (12 s) | slips through the ghost rock arches into the calm inner lane (bonus orbs, the sticker on L1, L3, L5) |
@@ -131,7 +131,7 @@ this table; `rules.test.ts` pins it; `registry.sync.test.ts` checks the JSON.
 
 | Bot | Result |
 |---|---|
-| Honest bot (Nami, no power; pumps in rhythm, steers onto a main orb only when its pump would miss it, keeps a free line, airs at the lip with a held spin) | wins every level at 30 / 60 / 144 Hz, never swallowed: L1 9 320-9 324 (87.8 %), L2 10 373-10 687 (84.8-87.3 %), L3 12 303-12 328 (88.7-88.9 %), L4 13 620-13 805 (89.0-90.2 %), L5 17 603-17 608 (89.0-89.1 %, King Breaker beaten); every main orb on L1-L4, 22 / 28 on L5 |
+| Honest bot (Nyla, no power; pumps in rhythm, steers onto a main orb only when its pump would miss it, keeps a free line, airs at the lip with a held spin) | wins every level at 30 / 60 / 144 Hz, never swallowed: L1 9 320-9 324 (87.8 %), L2 10 373-10 687 (84.8-87.3 %), L3 12 303-12 328 (88.7-88.9 %), L4 13 620-13 805 (89.0-90.2 %), L5 17 603-17 608 (89.0-89.1 %, King Breaker beaten); every main orb on L1-L4, 22 / 28 on L5 |
 | Every hero, plain and with its power mashed (60 Hz; Riko 30/60/144) | every plain run clears; no mashed finish beats the floor (`proof.test.ts`) |
 | Through the real store, ragged frames | a ranked win inside the limits, the score recomputed from the time |
 | Idle | the curl takes every heart ("lose", unranked) on every level |
@@ -175,7 +175,7 @@ hit-stop on the finish (visual only).
 - **Flow:** 2 s window, +0.25, x2 cap; orbs 40, gates 30, tricks 30 (the first 24).
 - **Secrets:** a **pearl shard** on every level in a hidden tube section (taken only at 21 m/s or more);
   Vexa's sticker in the calm lane (L1, L3, L5); Riko's reef shard in the lagoon (L2, L5); L4's cliff-cave
-  shard only Nami's double air reaches.
+  shard only Nyla's double air reaches.
 - **Progress:** `levelEndStats` -> `recordLevelResult` on a win, a time-up and a lose.
 
 ## Juice

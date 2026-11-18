@@ -1,6 +1,6 @@
 "use client";
 
-// Wall Run Temple: the run stepped in useRunFrame, the temple, the hero, Umbra, the orbit camera behind
+// Cliff Glyph Run: the run stepped in useRunFrame, the temple, the hero, Umbra, the orbit camera behind
 // the corridor and the intro. Juice: dust from the feet on a wall, a camera kick and a "thunk" whose
 // pitch rises through the kick chain, a 0.1 s slow-mo on a column whip, sparks off a crumbling panel,
 // confetti on Umbra's hits and the capstone's slow-mo. Walls you have run turn moss green. Local

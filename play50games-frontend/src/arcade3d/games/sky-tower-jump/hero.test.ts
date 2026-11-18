@@ -197,7 +197,7 @@ describe("sky-tower-jump: the run -> the animator's motion", () => {
       expect(Math.hypot(m.vx, m.vz)).toBeGreaterThan(V_RUN);
    });
 
-   it("Nami's double jump (her air jump spent in the air) is the somersault", () => {
+   it("Nyla's double jump (her air jump spent in the air) is the somersault", () => {
       const run = createRun(1, 1, "nami");
       const anim = createHeroAnim();
       const m = createHeroMotion();

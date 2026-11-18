@@ -132,7 +132,7 @@ export interface SecretSpot extends Vec3Like {
    x: number;
    y: number;
    z: number;
-   /** the power that must be up (a double jump's flight for Nami), or null (the spot itself is the gate) */
+   /** the power that must be up (a double jump's flight for Nyla), or null (the spot itself is the gate) */
    need: "dash" | "phase" | "shield" | "magnet" | "doubleJump" | null;
    reach: number;
    /** the pillar it belongs to (for the drawing) */
@@ -614,7 +614,7 @@ export interface Hero extends Vec3Like {
    dashUntil: number;
    dashX: number;
    dashZ: number;
-   /** Nami's extra jump is still available this flight */
+   /** Nyla's extra jump is still available this flight */
    airJump: boolean;
    /** feet may not go above this on the current flight (a double jump cannot add reach) */
    apexCap: number;
@@ -988,7 +988,7 @@ function setHeatOn(run: LavaRun, next: number, ms: number): void {
 }
 
 /**
- * Nami's second jump. The new apex is capped at the flight's existing apexCap, so it cannot
+ * Nyla's second jump. The new apex is capped at the flight's existing apexCap, so it cannot
  * reach a platform a single jump (or the launch that started the flight) could not already reach.
  */
 function tryDoubleJump(run: LavaRun, ms: number): boolean {
@@ -1007,7 +1007,7 @@ function tryDoubleJump(run: LavaRun, ms: number): boolean {
    return true;
 }
 
-/** Fire the run's hero power if it is off cooldown. A press that cannot fire (Nami on the ground) does not start the cooldown. */
+/** Fire the run's hero power if it is off cooldown. A press that cannot fire (Nyla on the ground) does not start the cooldown. */
 function tryPower(run: LavaRun, ms: number, mx: number, mz: number): void {
    if (ms < run.powerReadyAt) return;
    const def = heroById(run.heroId);

@@ -70,7 +70,7 @@ describe("progression and the floors", () => {
       }
    });
 
-   it("every level has the five hero lines: Riko's cracked crate, Nami's high orbs, Kiro's laser orbs, Zuno's orb in the machinery, Vexa's ghost crate", () => {
+   it("every level has the five hero lines: Riko's cracked crate, Nyla's high orbs, Kiro's laser orbs, Zuno's orb in the machinery, Vexa's ghost crate", () => {
       for (const id of LEVEL_IDS) {
          const f = floorFor(id);
          const kinds = new Set(f.tiles.map((t) => t.k));

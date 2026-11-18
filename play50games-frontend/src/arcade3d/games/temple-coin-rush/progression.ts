@@ -1,4 +1,4 @@
-// Temple Coin Rush's Menu 2 game structure (menu2/stars, combo, secrets, boss, progress): plain data
+// Ruin Coin Rush's Menu 2 game structure (menu2/stars, combo, secrets, boss, progress): plain data
 // and tiny pure helpers; rules.ts uses the combo, the secrets and the boss, the Scene the stars and
 // progress. README "Stars, combo, secrets, boss".
 import type { LevelId } from "../../types";

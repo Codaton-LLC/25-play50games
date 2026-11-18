@@ -42,7 +42,7 @@ above a chamber, four boulders sitting on soil plugs over open chutes.
 | | Power | Route |
 |---|---|---|
 | Riko | dash bores four cells at once, smashes cracked rock | the sealed vaults behind cracked rock (secret 3 on L1, L2, L4, L5), cracked bands as shortcuts |
-| Nami | double jump (four cells) | the sealed air pockets high over a shaft (the sticker, secret 2) |
+| Nyla | double jump (four cells) | the sealed air pockets high over a shaft (the sticker, secret 2) |
 | Kiro | shield: one boulder / gas / bite; water does not slow it | gas pockets as shortcuts; the L3 flooded room's shard only counts under the shield |
 | Zuno | magnet pulls orbs within 2 cells, through rock | the orb trails sealed in rock beside shafts |
 | Vexa | phase through ghost rock | the ghost-rock shafts to the shard (secret 1) |

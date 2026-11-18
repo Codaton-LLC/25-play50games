@@ -1,4 +1,4 @@
-// Wall Run Temple's course: a cliff temple with no floor. Gap platforms (rests and checkpoints),
+// Cliff Glyph Run's course: a cliff temple with no floor. Gap platforms (rests and checkpoints),
 // glyph-marked walls in facing pairs (the wall-run and the wall-kick), stone columns at the corners
 // (the column whip), and per level: sliding wall panels, spike panels, crumbling walls, swinging stone
 // rams, and the five hero pockets. Pure data plus the time functions the rules and the scene share.
@@ -412,7 +412,7 @@ class Build {
       this.orb(c.x, a.y + 1.9, c.z, "bonus");
    }
 
-   /** Nami: an upper wall tier over the current pad: out of a kick's reach, in reach of a kick plus a double jump */
+   /** Nyla: an upper wall tier over the current pad: out of a kick's reach, in reach of a kick plus a double jump */
    upper(side: 1 | -1): void {
       const a = this.pads[this.at];
       this.wall(-2.5, 3.5, side * HALF_W, a.y + 3.4, a.y + 6.4, "upper");
@@ -602,7 +602,7 @@ function spikesOn(b: Build, c: { a: number; b: number }, f: number): void {
    }
 }
 
-/** Level 4 Broken Temple: walls crumble 0.8 s after you start running on them; stone rams sweep the gaps. */
+/** Level 4 Broken Ruins: walls crumble 0.8 s after you start running on them; stone rams sweep the gaps. */
 function level4(): Course {
    const b = new Build(4);
    b.corridor(18);

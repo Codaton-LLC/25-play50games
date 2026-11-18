@@ -3,7 +3,7 @@
 // The Menu 2 hero in the hall: the picked hero's own GLB animated by the shared Menu 2 animator
 // (menu2/heroAnim: useHeroAnimator + <AnimatedHero>). Every frame the run (rules.ts) and the Scene's
 // moments (HeroAnim) become the animator's HeroMotion: the run down the hall (feet planted), the lane
-// changes, jumps, Nami's somersault, the roll under the low beams (the shell ball), the dash and the
+// changes, jumps, Nyla's somersault, the roll under the low beams (the shell ball), the dash and the
 // red rush (the dash streak), the shield / magnet / phase auras, a wrong door's recoil, a stumble, the
 // cheer at the finish. The intro drop and a blob shadow stay here.
 import { useMemo, useRef } from "react";

@@ -3,7 +3,7 @@
 // chime, NOT this colour; the echo rule shows the wall after next). Doors lock 0.6 s before impact: a
 // lane change after that does nothing. The true door gives a 0.5 s speed surge and a flow link; a wrong
 // door bounces you back (1.5 s) and breaks the flow. Jump over floor bars, roll under low beams. Hero
-// gates: Riko's cracked fake doors (dash: a side corridor that skips two walls), Nami's upper doors
+// gates: Riko's cracked fake doors (dash: a side corridor that skips two walls), Nyla's upper doors
 // (double jump), Kiro's shield (absorbs a wrong door, bars, beams and flame vents), Zuno's hidden wall
 // trails (magnet), Vexa's ghost doors (phase). Level 5: Flicker, the Fire Spirit (menu2/boss).
 // Pure and deterministic: no three.js, React, DOM, Math.random or Date.now. Each run rolls the door
@@ -65,7 +65,7 @@ export const BOUNCE_BACK_MS = 300;
 export const STUMBLE = { factor: 0.45, ms: 700 } as const;
 /** sideways (m/s): a lane change of 2.4 m takes about 0.17 s */
 export const LANE_V = 14;
-/** a jump (apex about 1.29 m, 0.61 s), Nami's second jump (apex about 1.61 m more) */
+/** a jump (apex about 1.29 m, 0.61 s), Nyla's second jump (apex about 1.61 m more) */
 export const V_JUMP = 8.5;
 export const V_JUMP2 = 9.5;
 export const G = 28;
@@ -778,7 +778,7 @@ function tryPower(run: DoorRun, ms: number): void {
    ev.powered = true;
 }
 
-/** Nami's second jump in the air (once per air). */
+/** Nyla's second jump in the air (once per air). */
 function airJump(run: DoorRun): boolean {
    const h = run.hero;
    if (h.grounded || !h.airJump || heroById(run.heroId).power !== "doubleJump") return false;
@@ -834,7 +834,7 @@ function tick(run: DoorRun): void {
       tryPower(run, ms);
       run.actionMs = NONE;
    }
-   // jumping (a press buffered 130 ms), Nami's air jump, gravity, landing
+   // jumping (a press buffered 130 ms), Nyla's air jump, gravity, landing
    if (run.pressMs !== NONE) {
       if (h.grounded && ms >= h.rollUntil) {
          h.grounded = false;

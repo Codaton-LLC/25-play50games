@@ -25,7 +25,7 @@ export function starSpecFor(level: LevelId, orbTotal: number): StarSpec {
 }
 
 /**
- * Secrets per level (placed by halls.ts): the card's Riko side-corridor shard (L1, L3), Nami's
+ * Secrets per level (placed by halls.ts): the card's Riko side-corridor shard (L1, L3), Nyla's
  * sticker in the upper door row (L3 to L5), and a colour shard behind every level's ghost door (Vexa).
  */
 export const SECRETS: Record<LevelId, readonly SecretSpec[]> = {

@@ -2,7 +2,7 @@
 //
 // A win's submitted time is the finish less 0.1 s an orb and the combo bonus. The floor on a finish:
 //   - the climb: no hero ever rises faster than V_RISE_MAX (rules.ts: the full 75 degree swing at the
-//     6 m grip at its fastest, plus the grip pulled in at 3 m/s, plus a bobbing anchor; a jump, Nami's
+//     6 m grip at its fastest, plus the grip pulled in at 3 m/s, plus a bobbing anchor; a jump, Nyla's
 //     second jump, a dash or a knock is slower), so a climb to the goal's top H takes at least
 //     H / V_RISE_MAX;
 //   - level 5: after the arena is reached the King's machine must run its intro, three phases and his

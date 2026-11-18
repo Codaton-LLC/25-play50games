@@ -30,7 +30,7 @@ describe("writeHeroMotion", () => {
       expect(m.rolling).toBe(true);
    });
 
-   it("one-frame events fire once per stamp: jump, Nami's double air, landing, a sting / bail / wipeout as a hurt", () => {
+   it("one-frame events fire once per stamp: jump, Nyla's double air, landing, a sting / bail / wipeout as a hurt", () => {
       const run = createRun(1);
       const m = createHeroMotion();
       const memo = createMotionMemo();

@@ -2,7 +2,7 @@
 
 // The runner: the picked hero's own GLB animated by the shared Menu 2 animator (menu2/heroAnim), the
 // code stand-in (Armadillo.tsx) as the fallback. Every frame the run becomes the animator's HeroMotion:
-// the run cycle at the track's speed, the jump (Nami's second jump = the somersault), the slide (the
+// the run cycle at the track's speed, the jump (Nyla's second jump = the somersault), the slide (the
 // armoured ball, tucked low into the shadow), a stumble, the cheer at the finish. Caught by the tractor
 // beam the hero is lifted and spun round (the card's funny hurt), and phasing Vexa turns half ghost.
 // The lean into a lane change and the blob shadow stay here too.

@@ -1,6 +1,6 @@
 "use client";
 
-// Candy World Runner with 2-4 local players (menu2/multiplayer): the same road as solo, one runner per
+// Sweet Lane Runner with 2-4 local players (menu2/multiplayer): the same road as solo, one runner per
 // player (each on its own device: PlayerInputLatch + playerInputFor, each at its own size), the orbs
 // shared, the solo juice (quieter), and the shared camera framing every runner still running (held on
 // the leader in versus). The road (its coins and smashed obstacles) and King Bonbon are drawn from the

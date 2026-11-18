@@ -76,7 +76,7 @@ export interface Orb {
    link: number;
    /** along the link (a high orb hangs over the start of the link after a gap) */
    s: number;
-   /** a high orb hangs 1.8 m up: only a double jump (Nami) reaches it */
+   /** a high orb hangs 1.8 m up: only a double jump (Nyla) reaches it */
    high: boolean;
 }
 

@@ -5,7 +5,7 @@
 // picked someone else here.
 //
 // - Riko: a dash (x1.6 for 0.6 s) through a pulse alley's short off window (its orbs).
-// - Nami: a second jump in the air clears the tall beams (and takes the high orbs over them).
+// - Nyla: a second jump in the air clears the tall beams (and takes the high orbs over them).
 // - Kiro: a shield that soaks one laser touch for 1.2 s, and carries him across the live floor tiles.
 // - Zuno: a magnet that pulls the orbs out of the laser cages (3 s).
 // - Vexa: a phase: she passes through laser beams and walls for 2.6 s (the cage shard).
@@ -25,7 +25,7 @@ export interface HeroDef {
 
 export const HEROES: readonly HeroDef[] = [
    { id: "riko", name: "Riko", color: "#EF4444", power: "dash", powerLabel: "Dash", cooldownMs: 5_000 },
-   { id: "nami", name: "Nami", color: "#2563EB", power: "doubleJump", powerLabel: "Double", cooldownMs: 0 },
+   { id: "nami", name: "Nyla", color: "#2563EB", power: "doubleJump", powerLabel: "Double", cooldownMs: 0 },
    { id: "kiro", name: "Kiro", color: "#22C55E", power: "shield", powerLabel: "Shield", cooldownMs: 8_000 },
    { id: "zuno", name: "Zuno", color: "#FACC15", power: "magnet", powerLabel: "Magnet", cooldownMs: 8_000 },
    { id: "vexa", name: "Vexa", color: "#8B5CF6", power: "phase", powerLabel: "Phase", cooldownMs: 7_000 },

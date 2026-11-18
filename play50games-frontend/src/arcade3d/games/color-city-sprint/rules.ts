@@ -76,7 +76,7 @@ export const ROLL_BLEED = 3;
 export const SLUDGE = 0.6;
 export const G = 30;
 export const V_JUMP = 14;
-/** Nami's second jump. */
+/** Nyla's second jump. */
 export const V_AIR = 10;
 /** Leaving a ramp's lip on your feet kicks you up a little. */
 export const V_KICK = 4;

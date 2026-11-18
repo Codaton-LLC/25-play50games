@@ -7,11 +7,11 @@ import { PROPOSED_LEVEL_LIMITS } from "./limits";
 // the finish bonus and the time bonus (README "Scoring"). Each level row carries its own proven limits
 // (PROPOSED_LEVEL_LIMITS in rules.ts). order 69.
 const LEVEL_TITLES: Record<LevelId, string> = {
-   1: "Temple Entry",
+   1: "Ruin Entry",
    2: "Coin Hall",
    3: "Broken Floors",
    4: "Rolling Hazards",
-   5: "Temple Sprint",
+   5: "Ruin Sprint",
 };
 
 const scoring = (id: LevelId): ScoringRules => ({
@@ -22,10 +22,10 @@ const scoring = (id: LevelId): ScoringRules => ({
 
 export const templeCoinRushMeta: ArcadeGameMeta = {
    slug: "temple-coin-rush",
-   title: "Temple Coin Rush",
+   title: "Ruin Coin Rush",
    tagline: "Grab the coins, pay the gates, outrun the boulder. Or bank it all.",
    description:
-      "Run from a rolling boulder through a collapsing jungle temple as a Scale Squad pangolin. Grab coins and pay the toll gates that open the fast lanes, or keep them: unspent coins score double at the finish. Spike tiles, falling floors and side-ramp boulders, and Riko, Nami, Kiro, Zuno or Vexa each find their own way through. Level 5: outrun Coilstone, the Temple Serpent, and pay the bells that bring it down.",
+      "Run from a rolling boulder through a collapsing jungle temple as a Scale Squad pangolin. Grab coins and pay the toll gates that open the fast lanes, or keep them: unspent coins score double at the finish. Spike tiles, falling floors and side-ramp boulders, and Riko, Nyla, Kiro, Zuno or Vexa each find their own way through. Level 5: outrun Coilstone, the Temple Serpent, and pay the bells that bring it down.",
    order: 69,
    status: "live",
    collection: "rollheroes",

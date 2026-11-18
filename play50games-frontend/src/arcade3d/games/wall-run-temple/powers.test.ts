@@ -76,7 +76,7 @@ describe("hero roles", () => {
             expect(riko.orbs).toBeGreaterThanOrEqual(1);
          });
 
-         it("Nami: an upper wall tier over a pad, above a jump and a kick, inside a kick plus a double jump", () => {
+         it("Nyla: an upper wall tier over a pad, above a jump and a kick, inside a kick plus a double jump", () => {
             const w = course.walls.find((x) => x.kind === "upper")!;
             expect(w).toBeTruthy();
             const pad = course.pads.find((p) => w.y0 - p.y > 3 && w.y0 - p.y < 3.6 && Math.abs((w.axis === "x" ? p.x : p.z) - (w.a0 + w.a1) / 2) < 2)!;

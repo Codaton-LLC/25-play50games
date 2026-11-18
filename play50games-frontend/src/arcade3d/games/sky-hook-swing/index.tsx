@@ -37,7 +37,7 @@ const definition: GameDefinition<SwingLevel> = {
       "Aim the stick at a grapple ring (the glowing one is the one Hook takes) and press Hook. Up on the stick reels in, down reels out. Hook again to release.",
       "Release while the ring flashes green for a faster fling. Chain four releases without touching down to fill the flow meter.",
       "A safety net catches the first gap. Landing off a checkpoint breaks the sky chain.",
-      "Power: Riko dashes and smashes crates, Nami jumps again after a release, Kiro shields sparks and smoke, Zuno pulls orbs from under the arc, Vexa phases through ghost panels.",
+      "Power: Riko dashes and smashes crates, Nyla jumps again after a release, Kiro shields sparks and smoke, Zuno pulls orbs from under the arc, Vexa phases through ghost panels.",
       "Turn the camera with a drag (two fingers on a phone), Q and C, or the on-screen control. Screen-up walks along the docks.",
    ],
    resultDelayMs: 1100,

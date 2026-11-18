@@ -1,4 +1,4 @@
-// Wall Run Temple's rules (pure, deterministic, fixed 8 ms substeps).
+// Cliff Glyph Run's rules (pure, deterministic, fixed 8 ms substeps).
 // - Wall-run: jump at a glyph wall moving toward it (or holding toward it: a 150 ms grace) and you
 //   stick, running along it at 7 m/s. The run holds its height for 0.6 s, then droops at 1.5 m/s²;
 //   after 1.6 s on one wall you drop off.

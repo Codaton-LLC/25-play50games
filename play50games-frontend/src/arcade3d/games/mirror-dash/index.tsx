@@ -40,7 +40,7 @@ const definition: GameDefinition<MirrorLevel> = {
       "Left / Right (A / D, a swipe or a stick flick) change lane, and the reflection goes the other way. Up / Space jumps, Down slides: both copy it.",
       "Find the one move that gets both bodies past their obstacles. Three cracks shatter you back to the last gate.",
       "Merge zones join the runways: never both in the middle. Frosted glass makes the reflection copy you; echo makes it repeat you 0.5 s late.",
-      "E / Enter / Power: Vexa phases both bodies, Riko dashes through cracked blocks, Kiro shields both, Zuno pulls orbs from both runways; Nami double-jumps.",
+      "E / Enter / Power: Vexa phases both bodies, Riko dashes through cracked blocks, Kiro shields both, Zuno pulls orbs from both runways; Nyla double-jumps.",
       "Turn the camera: two fingers or the right mouse button, mouse wheel / pinch zooms, Q / C turn, R / F tilt, V recenters.",
    ],
    resultDelayMs: 1800,

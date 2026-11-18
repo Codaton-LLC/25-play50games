@@ -267,7 +267,7 @@ describe("hero powers (the card's roles)", () => {
       expect(r3.hits).toBe(1);
    });
 
-   it("Nami's double jump sets vy to 12 m/s once a flight, keeping the horizontal", () => {
+   it("Nyla's double jump sets vy to 12 m/s once a flight, keeping the horizontal", () => {
       const run = createRun(1, 1, "nami");
       launch(run, 0, 30, 0, 3, -5, -4);
       step(run, 1, { ...createStepInput(), actionPressed: true });

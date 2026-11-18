@@ -135,7 +135,7 @@ describe("hero powers", () => {
       expect(tileAt(w, 5, 0)).toBe(T.EMPTY);
       expect(DASH.cells).toBe(4);
    });
-   it("Nami's double jump reaches four cells up; a plain hop only two", () => {
+   it("Nyla's double jump reaches four cells up; a plain hop only two", () => {
       for (const id of ["nami", "riko"] as const) {
          const w = mine([".k....", ".#....", "......", "......", "......", "S.....", "######", "E....."]);
          w.heroes[0].heroId = id;

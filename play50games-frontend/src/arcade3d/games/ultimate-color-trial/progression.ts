@@ -24,7 +24,7 @@ export function starSpecFor(level: LevelId, orbTotal: number): StarSpec {
 
 /**
  * Secrets, in each level's `secrets` order: the sticker behind a void gate (Vexa phases through), the
- * shard behind a crystal wall (Riko's dash shatters it), the shard on the sky ledge (Nami's second
+ * shard behind a crystal wall (Riko's dash shatters it), the shard on the sky ledge (Nyla's second
  * jump).
  */
 const BASE: readonly SecretSpec[] = [

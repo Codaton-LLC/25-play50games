@@ -5,7 +5,7 @@
 // craters level 3's meteors leave) and the painted SHADOW STRIP behind each one (washed out while a glow
 // plant near it shines; a low cover's strip carries a SLIDE sign); the scan line itself (a violet sheet
 // sweeping forward, or on level 4 a lateral one crossing the lanes); rocks to jump and the energy bars
-// to slide under; the meteors falling on their rings; the glow plants; the goo; Nami's mesa; Vexa's
+// to slide under; the meteors falling on their rings; the glow plants; the goo; Nyla's mesa; Vexa's
 // caves behind their ghost-crystal walls; the orbs, the secrets; level 5's decoy pods, abduction beams,
 // saucer stepping stones and the launch pad. On level 5 the launch road is drawn twice while it repeats
 // (this lap and the next), so the track ahead never runs out.
@@ -102,7 +102,7 @@ function windowed<T extends { s: number; phase?: number }>(run: AlienRun, items:
    return cache.list[i] ?? null;
 }
 
-/** The track: a violet strip with glowing lane lines and edges, the caves' floor, Nami's mesa, the goo. */
+/** The track: a violet strip with glowing lane lines and edges, the caves' floor, Nyla's mesa, the goo. */
 function TrackBed({ run }: { run: AlienRun }) {
    const c = run.course;
    const len = c.finishS + 80 + (c.loop ? 8 * (c.loop.s1 - c.loop.s0) : 0);

@@ -42,7 +42,7 @@ const definition: GameDefinition<DoorLevel> = {
       "Change lanes with A / D or the arrows (swipe on touch). Doors lock 0.6 s before you reach them.",
       "Match the lamp's colour (each colour has its own shape and chime). A crossed-out lamp means NOT that colour; a dim lamp: listen to the chime; a ringed lamp shows the wall after next.",
       "The true door surges you on. A wrong door bounces you back 1.5 s. Jump (Space / up) the floor bars, roll (S / down) under the low beams. Each orb takes 0.15 s off your time.",
-      "Power (E, Enter, or the Power button): Riko's dash smashes cracked fake doors, Nami double jumps to the upper doors, Kiro's shield absorbs a wrong door, Zuno's magnet pulls hidden orbs, Vexa phases through ghost doors.",
+      "Power (E, Enter, or the Power button): Riko's dash smashes cracked fake doors, Nyla double jumps to the upper doors, Kiro's shield absorbs a wrong door, Zuno's magnet pulls hidden orbs, Vexa phases through ghost doors.",
       "Turn the camera: drag the view (two fingers on touch), mouse wheel / pinch zooms, Q / C turn, R / F tilt, V recenters.",
    ],
    resultDelayMs: 1600,

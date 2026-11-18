@@ -105,7 +105,7 @@ export interface Course {
    ghostWalls: GhostWall[];
    /** the parity shard (picked up only after an even number of jumps since the checkpoint) */
    shard: Point;
-   /** level 3: Nami's same-set ledge sticker */
+   /** level 3: Nyla's same-set ledge sticker */
    ledge: Point | null;
    drones: Drone[];
    route: RouteStep[];
@@ -326,7 +326,7 @@ function level2(): Course {
 
 /**
  * L3 Blink Grid: rogue ring cubes flip on their own 1.6 s clock, whatever you do; sync your jumps to
- * them. Nami's same-set ledge (a double jump flips twice) holds a sticker.
+ * them. Nyla's same-set ledge (a double jump flips twice) holds a sticker.
  */
 function level3(): Course {
    const b = new Builder();
@@ -343,7 +343,7 @@ function level3(): Course {
    b.step("jump", "B", 0, 17, 2);
    b.step("jump", "A", 0, 19, 2);
    b.step("jump", "N", 0, 21, 2, { goal: true });
-   // Nami's ledge: a same-set A cube 4 m up beside the A pair
+   // Nyla's ledge: a same-set A cube 4 m up beside the A pair
    b.cube("A", 2, 6, 2);
    b.cube("N", -1, 11, 0);
    b.cube("A", 1, 5, 0);

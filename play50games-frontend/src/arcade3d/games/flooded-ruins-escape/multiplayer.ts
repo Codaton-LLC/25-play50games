@@ -10,7 +10,7 @@
 //   one still in does), so any hero's hit counts.
 // - Co-op (MODES.coop): checkpoints are shared, and powers combine through onAllyPower: Kiro's
 //   shield covers the team from whirlpools and jets, Zuno's magnet pulls orbs for everyone, Vexa's
-//   phase is shared; Riko's dash and Nami's breach stay personal. The team clears the level when
+//   phase is shared; Riko's dash and Nyla's breach stay personal. The team clears the level when
 //   every hero is at the flood gate.
 // - Versus race: first to the gate wins; the others get finishGraceMs to finish, then the run ends.
 // A solo run never comes here: Scene.tsx keeps the solo path as it is, and multiplayer runs are

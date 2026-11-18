@@ -5,7 +5,7 @@
 // fallback. Every frame the run (rules.ts) and the Scene's moments (HeroAnim) become the animator's
 // HeroMotion: on snow the walk, on ice a glide (no stride: the ice carries you; a short push while the
 // stick builds the slide), grounded, the power that is up, the ball (the intro drop, a fall), the cheer at
-// the summit, and one-frame events (jump, Nami's re-aimed air jump = the somersault, land, a hit). The
+// the summit, and one-frame events (jump, Nyla's re-aimed air jump = the somersault, land, a hit). The
 // lean into a slide and a brake, the pop-in on respawn, the shrink of a fall and the blob shadow stay here.
 import { useMemo, useRef, type MutableRefObject } from "react";
 import { useFrame } from "@react-three/fiber";

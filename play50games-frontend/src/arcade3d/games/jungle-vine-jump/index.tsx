@@ -36,7 +36,7 @@ const INSTRUCTIONS = [
    "Climb the giant tree. Jump into a vine to grab it; Space (or Jump) lets go along the swing.",
    "On a vine, Up / Down slides your grip: short swings fast, long swings slow but reaches far. Left / Right in time with the swing pumps it higher (up to 75 degrees).",
    "Catch vine to vine within 1.2 s for a combo. Five green orbs a level hang on the swings, each 0.1 s off your time.",
-   "Action (E, Enter or the Power button) fires your hero power: Riko dashes after a release, Kiro shields, Zuno's magnet pulls emeralds, Vexa phases into the trunk hollow; Nami double jumps on Jump. Turn the camera by dragging (or two fingers); wheel / pinch zooms.",
+   "Action (E, Enter or the Power button) fires your hero power: Riko dashes after a release, Kiro shields, Zuno's magnet pulls emeralds, Vexa phases into the trunk hollow; Nyla double jumps on Jump. Turn the camera by dragging (or two fingers); wheel / pinch zooms.",
 ];
 
 const definition: GameDefinition<VineLevel> = {

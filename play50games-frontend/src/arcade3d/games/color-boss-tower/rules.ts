@@ -481,7 +481,7 @@ function stepMs(run: CbtRun, ev: StepEvents, along: number): void {
       h.airJumps = nami ? 1 : 0;
       ev.jumped = true;
    } else if (h.buffer > 0 && !h.grounded && !stunned) {
-      // Nami's second jump; fresh legs: a hero tagged in mid-air gets one fresh air action per airtime
+      // Nyla's second jump; fresh legs: a hero tagged in mid-air gets one fresh air action per airtime
       const fresh = freshLegs(run.tag, h.airtime, h.taggedInAir) ? (nami ? 1 : 0) : 0;
       if (h.airJumps + fresh > 0 && nami) {
          if (h.airJumps > 0) h.airJumps -= 1;

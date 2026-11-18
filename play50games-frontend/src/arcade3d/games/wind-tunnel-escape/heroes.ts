@@ -1,10 +1,10 @@
 // The five Color Roll Heroes (CLAUDE.md decision 5) and what each one does in Wind Tunnel Escape (the
 // card's hero roles, docs/menu2-super/world-2-sky-and-sea.md "41 Wind Tunnel Escape"). Each hero is
 // its own GLB (menu2/heroModels.ts); the colour here is the picker swatch. The pick is the shared
-// Menu 2 hero pick (menu2/heroes): Nami, W2's lead, unless the player picked someone else here.
+// Menu 2 hero pick (menu2/heroes): Nyla, W2's lead, unless the player picked someone else here.
 //
 // - Riko: a dash (Action away from a fan) that breaks cracked vent covers, opening a vent that skips ahead.
-// - Nami: a second jump in the air, also out of a current mid-ride, up to the high orb shelves.
+// - Nyla: a second jump in the air, also out of a current mid-ride, up to the high orb shelves.
 // - Kiro: a shield: the static-shock vents, the drones and the Gale Engine's blast do not hurt him.
 // - Zuno: a magnet: orbs come to him from 7 m, out of currents he did not ride.
 // - Vexa: a phase: she slips through ghost fan housings into the maintenance ducts.
@@ -26,7 +26,7 @@ export interface HeroDef {
 
 export const HEROES: readonly HeroDef[] = [
    { id: "riko", name: "Riko", color: "#EF4444", power: "dash", powerLabel: "Vent dash", cooldownMs: 5_000 },
-   { id: "nami", name: "Nami", color: "#2563EB", power: "doubleJump", powerLabel: "Double", cooldownMs: 0 },
+   { id: "nami", name: "Nyla", color: "#2563EB", power: "doubleJump", powerLabel: "Double", cooldownMs: 0 },
    { id: "kiro", name: "Kiro", color: "#22C55E", power: "shield", powerLabel: "Shield", cooldownMs: 9_000 },
    { id: "zuno", name: "Zuno", color: "#FACC15", power: "magnet", powerLabel: "Magnet", cooldownMs: 9_000 },
    { id: "vexa", name: "Vexa", color: "#8B5CF6", power: "phase", powerLabel: "Phase", cooldownMs: 7_000 },

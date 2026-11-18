@@ -1,7 +1,7 @@
 // Plate Bounce Arena's look: World 4's sugarfrost workshop (mint and strawberry plastic, vanilla rails,
 // candy glass, frosty blue) in the Pinball Hall, and one light per table: a warm morning hall (L1), the
 // pink-and-green glow of the mushroom garden (L2), the frozen blue ice table (L3), neon night for the
-// multiball (L4) and Rollo's violet stage (L5). Plain data (index.tsx reads the environment from here).
+// multiball (L4) and Gristle's violet stage (L5). Plain data (index.tsx reads the environment from here).
 import type { LevelId } from "@/arcade3d/types";
 
 export const COLORS = {
@@ -52,7 +52,7 @@ export const LEVEL_LOOK: Record<LevelId, LevelLook> = {
    2: { mood: "Mushroom garden glow", background: "#d9f2d0", fog: ["#d9f2d0", 45, 130], lighting: "day", field: "#e9fbe3", stripe: "#c9f1bb", accent: "#e8457a", hall: "#bfe3b4", lamp: "#fff2d0", lampIntensity: 1.1, neon: "#7ee0c3" },
    3: { mood: "Frozen ice table", background: "#d5ecfb", fog: ["#d5ecfb", 42, 120], lighting: "snow", field: "#eaf7ff", stripe: "#cfe9fb", accent: "#38bdf8", hall: "#b9d9ef", lamp: "#eaf6ff", lampIntensity: 1.0, neon: "#7dd3fc" },
    4: { mood: "Neon multiball night", background: "#1d1640", fog: ["#1d1640", 40, 115], lighting: "night", field: "#3a2d80", stripe: "#4a3a99", accent: "#f472b6", hall: "#241a52", lamp: "#f0abfc", lampIntensity: 1.6, neon: "#22d3ee" },
-   5: { mood: "Rollo's violet stage", background: "#2a1a3f", fog: ["#2a1a3f", 40, 115], lighting: "night", field: "#4a2f73", stripe: "#5b3a8a", accent: "#fde047", hall: "#2f1f4a", lamp: "#e9d5ff", lampIntensity: 1.5, neon: "#a855f7" },
+   5: { mood: "Gristle's violet stage", background: "#2a1a3f", fog: ["#2a1a3f", 40, 115], lighting: "night", field: "#4a2f73", stripe: "#5b3a8a", accent: "#fde047", hall: "#2f1f4a", lamp: "#e9d5ff", lampIntensity: 1.5, neon: "#a855f7" },
 };
 
 export function levelLook(id: number): LevelLook {

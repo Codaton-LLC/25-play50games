@@ -40,7 +40,7 @@ const definition: GameDefinition<TempleLevel> = {
    instructions: [
       "Climb the dark shaft. Land on a stone cage lantern to bounce 1.4x as high, refill your 8-second ember and light it for 12 seconds.",
       "Gold glyph ledges hold you only in light: your ember (6 m wide, shrinking as it burns), a lit lantern or a flare. In the dark they fade and drop you. Plain stone is always solid.",
-      "Ember (E, Enter or the Ember button) in the air throws light down at a lantern for 3 seconds of ember; on the ground it fires your hero power: Riko dashes, Kiro shields the fire jets, Zuno's magnet pulls sparks and orbs, Vexa phases through the ghost wall; Nami double jumps on Jump.",
+      "Ember (E, Enter or the Ember button) in the air throws light down at a lantern for 3 seconds of ember; on the ground it fires your hero power: Riko dashes, Kiro shields the fire jets, Zuno's magnet pulls sparks and orbs, Vexa phases through the ghost wall; Nyla double jumps on Jump.",
       "Five green orbs a level (two in the dark side galleries), each 0.1 s off your time. A brazier in a gallery lights the whole shaft for 20 s.",
       "Turn the camera: drag the view (or two fingers), mouse wheel / pinch zooms, Q / C turn, R / F tilt, V recenters.",
    ],

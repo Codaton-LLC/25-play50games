@@ -1,6 +1,6 @@
 "use client";
 
-// The Portal Wyrm (level 5; visuals only: rules.ts owns the fight). Its head is m2PortalWyrmBoss, its
+// The Rift Serpent (level 5; visuals only: rules.ts owns the fight). Its head is m2PortalWyrmBoss, its
 // body a chain of m2VoidCrystal segments (one instanced pool) that follow the head's own trail. It swims
 // round the centre island, dives into pair A's frame and comes out of whichever exit you opened (a bonk
 // on a beacon spike makes it recoil), coils round the centre in phase 2 with its glowing back crystal

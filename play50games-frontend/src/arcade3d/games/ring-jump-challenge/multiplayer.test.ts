@@ -1,6 +1,6 @@
 // Local multiplayer (menu2/multiplayer M1): the canyon is shared (versus: the first to thread a ring
 // takes it), co-op powers cover the team, every bot lands, the race ends after the grace, and the
-// podium ranks by points. The live hero pick stays per game (Nami preselected).
+// podium ranks by points. The live hero pick stays per game (Nyla preselected).
 import { afterEach, describe, expect, it } from "vitest";
 import { M2_HERO_IDS, heroModelAsset } from "@/arcade3d/menu2/heroModels";
 import { createBot, botInput } from "./bot";
@@ -47,7 +47,7 @@ describe("ring-jump-challenge multiplayer", () => {
 describe("live hero pick", () => {
    afterEach(() => selectHero(DEFAULT_HERO));
 
-   it("Nami is preselected; a new pick notifies, the same pick does not", () => {
+   it("Nyla is preselected; a new pick notifies, the same pick does not", () => {
       expect(pickedHero()).toBe("nami");
       let calls = 0;
       const off = subscribeHero(() => calls++);

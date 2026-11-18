@@ -29,7 +29,7 @@ export const SECRETS: Record<LevelId, readonly SecretSpec[]> = {
  * P1 "Crack the cores" (7 -> 4): it slams a ring of hexes into grey ice; crack a 4-colour code whose
  *    last hex is the glowing core hex behind it (3 hits).
  * P2 "Stomp the plate" (4 -> 1): boulders delete the hex you stand on; land the stomp hex beside it,
- *    jump at it, double-jump (Nami) and be the plate's colour as you land on its shoulder (3 hits).
+ *    jump at it, double-jump (Nyla) and be the plate's colour as you land on its shoulder (3 hits).
  * P3 "Prism storm" (1 -> 0): every hex recolours every 2 s; survive 20 s and take 5 prism shards.
  */
 export const FROST_GOLEM: BossConfig = {

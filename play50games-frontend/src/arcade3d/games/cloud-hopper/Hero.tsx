@@ -4,7 +4,7 @@
 // (menu2/heroAnim: useHeroAnimator + <AnimatedHero>), the code stand-in (Armadillo.tsx) as the
 // fallback. Every frame the run (rules.ts) and the Scene's moments (HeroAnim) become the animator's
 // HeroMotion: velocity, grounded, the power that is up, the ball (the intro drop and a fall), the
-// cheer at the bell, and one-frame events (jump, Nami's air jump = the somersault, land, a hit).
+// cheer at the bell, and one-frame events (jump, Nyla's air jump = the somersault, land, a hit).
 // A glide reads as the animator's fall state held at the glide's slow sink (arms out, legs reaching),
 // with a feather trail streamed by the Scene. The pop-in on respawn, the shrink of a fall, a slight
 // forward lean while gliding and the blob shadow stay here.

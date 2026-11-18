@@ -1,13 +1,13 @@
 // Color Match Jump's fields (pure, seeded per level, so every player gets the same field): hex cells on
 // one lattice, 2.3 m apart in all six directions. L1-L4 are a field of rows running away from the
 // camera (-z) to the crown; L5 is a ring around the Echo Frost Golem. Every level also lays the five
-// hero routes of the card: Nami's tall pillar, Kiro's curtained alcove, Riko's dash island, Zuno's
+// hero routes of the card: Nyla's tall pillar, Kiro's curtained alcove, Riko's dash island, Zuno's
 // floating orb trail and Vexa's ghost pillar, each holding an orb ("all orbs" needs every hero).
 import { createRng } from "../../core/math";
 import type { LevelId } from "../../types";
 import { LEVELS, type CmjLevel } from "./levels";
 
-/** Hero colours by index (the hero order): 0 red Riko, 1 blue Nami, 2 green Kiro, 3 yellow Zuno, 4 purple Vexa. */
+/** Hero colours by index (the hero order): 0 red Riko, 1 blue Nyla, 2 green Kiro, 3 yellow Zuno, 4 purple Vexa. */
 export const GREY = 5;
 /** The golem's frozen hexes (L5 P1): neutral and slippery. */
 export const ICE = 6;
@@ -42,7 +42,7 @@ export interface Cell {
    /** L4: a landing skids */
    glassy: boolean;
    orb: boolean;
-   /** Nami: a 4 m pillar (double jump) */
+   /** Nyla: a 4 m pillar (double jump) */
    tall: boolean;
    /** Riko: across the void (dash) */
    island: boolean;

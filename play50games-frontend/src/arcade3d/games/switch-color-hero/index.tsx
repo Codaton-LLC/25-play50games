@@ -37,7 +37,7 @@ const definition: GameDefinition<SwitchLevel> = {
       "You run on your own. Switch your colour to match each energy gate before you reach it: keys 1-5, a click or tap anywhere, or the colour swatches.",
       "A wrong colour bounces you back and costs a heart; so do energy blocks, low walls, beams, gaps and sweepers. Three hearts.",
       "A / D or Left / Right (or a swipe) change lanes, Space or Up jumps, S or Down slides. Split gates have a colour per lane; blinking gates change as you arrive.",
-      "Power (E / Enter / Power): Riko dashes through energy blocks, Nami double jumps, Kiro's shield shrugs off hazards, Zuno pulls pickups, Vexa phases through blocks and beams.",
+      "Power (E / Enter / Power): Riko dashes through energy blocks, Nyla double jumps, Kiro's shield shrugs off hazards, Zuno pulls pickups, Vexa phases through blocks and beams.",
       "Turn the camera with a right-drag (two fingers on a phone), Q and C, or pinch to zoom.",
    ],
    resultDelayMs: 1200,

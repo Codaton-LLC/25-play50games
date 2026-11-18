@@ -23,7 +23,7 @@ export function cablePoint(c: ZipLevel, section: number, lane: number, t: number
    let x = side * 1.25 * (c.crossing ? Math.cos(Math.PI * u) : 1);
    let y = 24 - section * 2 - u * 2 - (c.sag + (section === 1 ? 1 : 0)) * 4 * u * (1 - u);
    let z = -section * (c.length + 8) - u * c.length;
-   if (lane === 2) y += 2.6 * Math.sin(u * Math.PI); // Nami's high express line
+   if (lane === 2) y += 2.6 * Math.sin(u * Math.PI); // Nyla's high express line
    if (lane === 3) x += 4.8 * Math.sin(u * Math.PI); // Riko's distant cracked-stair cable
    if (lane === 4) { x = -1.25; y += 0.4; } // Vexa's inner signal line
    if (c.boss && section === 3) {

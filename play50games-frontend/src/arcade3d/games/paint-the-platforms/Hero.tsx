@@ -1,7 +1,7 @@
 "use client";
 
 // The picked hero, animated by the shared Menu 2 animator (menu2/heroAnim): idle, run, the jump and
-// Nami's second jump, Riko's dash, the hurt recoil (a blot, the roller, a slam), the fall into the void, the cheer and the
+// Nyla's second jump, Riko's dash, the hurt recoil (a blot, the roller, a slam), the fall into the void, the cheer and the
 // intro's drop. A shield bubble, Vexa's phase glow and a blob shadow on the tiles below ride along.
 import { useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";

@@ -13,7 +13,7 @@ You roll forward on your own down Greytown's grey causeway to the Prism Fortress
 | Lock | Colour / glyph | Opened by |
 |---|---|---|
 | cracked barricade | red / chevron | Riko's dash |
-| 3 m barrier | blue / wave | Nami's double jump |
+| 3 m barrier | blue / wave | Nyla's double jump |
 | drain spray / tesla arc | green / hexagon | Kiro's shield |
 | coin vault | yellow / horseshoe | Zuno's magnet |
 | ghost wall | purple / spiral | Vexa's phase |
@@ -41,7 +41,7 @@ A correct unlock gives +1 flow, a 1.5 s +1.5 m/s boost, and repaints the street 
   | Kiro | shield (it also takes a crash) | 1.5 s | 5 s |
   | Zuno | magnet (pulls orbs from 6 m) | 3 s | 7 s |
   | Vexa | phase | 0.8 s | 5 s |
-  | Nami | double jump (her Jump; Power does nothing) | — | — |
+  | Nyla | double jump (her Jump; Power does nothing) | — | — |
 
 - **Camera (`camera.ts`):** the shared orbit, behind and above, looking down the street. It auto-follows behind you, and a boost pushes the field of view out (speed lines). The lanes stay screen-relative: if you turn the camera to look back, left and right swap (`laneSign`).
 

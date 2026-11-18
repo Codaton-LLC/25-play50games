@@ -273,7 +273,7 @@ describe("hero roles (every level has all five)", () => {
       }
    });
 
-   it("Nami's second jump lands on the high pedestal and takes its gold; a plain jump never gets up", () => {
+   it("Nyla's second jump lands on the high pedestal and takes its gold; a plain jump never gets up", () => {
       for (const hero of ["nami", "zuno"] as const) {
          for (const id of LEVEL_IDS) {
             const run = createRun(1, id, hero);

@@ -1,6 +1,6 @@
 "use client";
 
-// Candy World Runner's scene: the run (rules.ts) stepped in useRunFrame, the candy road (World + Road),
+// Sweet Lane Runner's scene: the run (rules.ts) stepped in useRunFrame, the candy road (World + Road),
 // the runner (the shared menu2/heroAnim animator, drawn at its size), King Bonbon (level 5), the free
 // orbit camera (menu2/camera; it pulls back as you grow), the intro's camera (core/intro), the patter
 // of the run, and the juice (RunnerJuice.tsx). Remounted for every run (runId). Local multiplayer runs

@@ -2,7 +2,7 @@
 // (lanes 0-3; lane 4 is level 2's golden-caboose spur beyond lane 3), each a list of rail pieces with
 // their ends (an open end, a gap to jump, a buffer stop, a merge back into a neighbour), the junctions
 // (a switch that sends a hero, or a toy train, from its rail onto a branch), the branches (they curve
-// away from the grid, so a hop cannot reach them: only a switch can), Nami's high rails, Zuno's loop,
+// away from the grid, so a hop cannot reach them: only a switch can), Nyla's high rails, Zuno's loop,
 // Riko's long broken gap and the cracked barrier of a side spur, Vexa's ghost door, Kiro's icicle
 // tunnels, the grind rings, the orbs, the downhill stretches (crouch) and level 4's toy trains, built
 // from each level's hand-written script. Fixed per level; only the run (rules.ts) moves.
@@ -18,7 +18,7 @@ export const LANE_W = 2.8;
 /** a branch curves this far out of its lane, over BEND m */
 export const BRANCH_OUT = 3.2;
 export const BEND = 9;
-/** Nami's high rails: their top over the low rails (m) */
+/** Nyla's high rails: their top over the low rails (m) */
 export const HIGH_Y = 2.6;
 /** the grid's half width with the margin (the camera's and the decor's) */
 export const HALF = (GRID * LANE_W) / 2 + 1.2;
@@ -39,7 +39,7 @@ export interface Piece {
    /** from z0 down to z1 (z0 > z1) */
    z0: number;
    z1: number;
-   /** 1: Nami's high rail (HIGH_Y up) */
+   /** 1: Nyla's high rail (HIGH_Y up) */
    tier: number;
    /** a branch curves out to this side (-1 / +1; 0 a grid rail) and cannot be hopped onto or off */
    side: number;
@@ -454,7 +454,7 @@ export function buildNetwork(level: RailLevel): NetDraft {
             break;
          }
          case "high": {
-            // Nami's high rail over a grid lane: double jump up onto it (faster, with orbs)
+            // Nyla's high rail over a grid lane: double jump up onto it (faster, with orbs)
             const piece = addPiece({ lane: unit.lane, z0: z - 4, z1: z - 4 - unit.len, tier: 1, side: 0, branch: NONE, end: END.open, mergeTo: NONE, frozen: frozenLevel, boost: 3 });
             orbLine(unit.lane, z - 10, unit.orbs, HIGH_Y + 1.0, "bonus", piece);
             z -= unit.len + 8;

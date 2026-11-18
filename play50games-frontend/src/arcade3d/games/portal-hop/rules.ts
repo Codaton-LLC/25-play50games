@@ -1,4 +1,4 @@
-// Portal Hop's rules: pure and deterministic (no three.js, React, DOM, Math.random or Date). Scene.tsx
+// Rift Hop's rules: pure and deterministic (no three.js, React, DOM, Math.random or Date). Scene.tsx
 // calls step() from one useRunFrame; the same level + hero + inputs always give the same run at any
 // frame rate (the simulation advances in fixed 1000/120 ms steps).
 //
@@ -29,7 +29,7 @@ export const STEP_MS = 1000 / 120;
 export const MAX_FRAME_MS = 50;
 export const V_RUN = 6;
 export const V_JUMP = 8;
-/** Nami's second jump */
+/** Nyla's second jump */
 export const V_JUMP2 = 7.5;
 export const GRAV = 20;
 /** no speed anywhere goes over this (falls, exits, dashes): the score proof's bound */

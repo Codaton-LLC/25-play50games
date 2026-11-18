@@ -284,7 +284,7 @@ describe("the hero gates", () => {
       expect(b.stumbles).toBe(1);
    });
 
-   it("Zuno's magnet takes him round the loop (a boost and the shard); Nami's double jump reaches the high rails", () => {
+   it("Zuno's magnet takes him round the loop (a boost and the shard); Nyla's double jump reaches the high rails", () => {
       const c = courseFor(1);
       const lp = c.loops[0];
       const z = createRun(1, 1, "zuno");

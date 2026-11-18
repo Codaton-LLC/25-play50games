@@ -1,10 +1,10 @@
-// The five Color Roll Heroes and what each one does in Temple Coin Rush (the card's hero roles,
-// docs/menu2-super/world-3-wild-temples.md "16 Temple Coin Rush"). Each hero is its own GLB
+// The five Color Roll Heroes and what each one does in Ruin Coin Rush (the card's hero roles,
+// docs/menu2-super/world-3-wild-temples.md "16 Ruin Coin Rush"). Each hero is its own GLB
 // (menu2/heroModels.ts); the colour here is the picker swatch.
 //
 // - Riko: a dash (450 ms burst, never past the top speed) that breaks a cracked side wall at a gate: a
 //   free toll into the fast lane (it skips the gate without paying).
-// - Nami: a double jump onto the ledge coin arcs high over the slow lanes.
+// - Nyla: a double jump onto the ledge coin arcs high over the slow lanes.
 // - Kiro: a shield (3 s, every 20 s): straight through the fire-jet pillars (he keeps his coin line),
 //   and it takes a stumble's knock (blocks, beams, spikes, side boulders, the serpent's coils).
 // - Zuno: a magnet: the hidden coin veins come out of the walls (+8 to +10 coins a vein).
@@ -26,7 +26,7 @@ export interface HeroDef {
 
 export const HEROES: readonly HeroDef[] = [
    { id: "riko", name: "Riko", color: "#EF4444", power: "dash", powerLabel: "Dash", cooldownMs: 6_000 },
-   { id: "nami", name: "Nami", color: "#2563EB", power: "doubleJump", powerLabel: "Double jump", cooldownMs: 1_500 },
+   { id: "nami", name: "Nyla", color: "#2563EB", power: "doubleJump", powerLabel: "Double jump", cooldownMs: 1_500 },
    { id: "kiro", name: "Kiro", color: "#22C55E", power: "shield", powerLabel: "Shield", cooldownMs: 20_000 },
    { id: "zuno", name: "Zuno", color: "#FACC15", power: "magnet", powerLabel: "Magnet", cooldownMs: 12_000 },
    { id: "vexa", name: "Vexa", color: "#8B5CF6", power: "phase", powerLabel: "Phase", cooldownMs: 10_000 },

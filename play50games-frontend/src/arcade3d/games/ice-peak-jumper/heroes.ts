@@ -4,7 +4,7 @@
 // hero pick (menu2/heroes): Zuno, W4's lead, unless the player picked someone else here.
 //
 // - Riko: a dash, +4 m/s at once on ice: the far speed ledges, and it breaks cracked ice walls and the mitten cube.
-// - Nami: a second jump in the air that re-aims the launch: the high cornice ledges and their orbs.
+// - Nyla: a second jump in the air that re-aims the launch: the high cornice ledges and their orbs.
 // - Kiro: a shield: crosses the icicle-rain chute (the fast shortcut) and blocks one snowball.
 // - Zuno: a magnet that pulls the coin trails frozen inside the ice walls.
 // - Vexa: a phase through the frosted ghost-ice walls into a back cave with a shard.
@@ -24,7 +24,7 @@ export interface HeroDef {
 
 export const HEROES: readonly HeroDef[] = [
    { id: "riko", name: "Riko", color: "#EF4444", power: "dash", powerLabel: "Dash", cooldownMs: 4_000 },
-   { id: "nami", name: "Nami", color: "#2563EB", power: "doubleJump", powerLabel: "Double", cooldownMs: 0 },
+   { id: "nami", name: "Nyla", color: "#2563EB", power: "doubleJump", powerLabel: "Double", cooldownMs: 0 },
    { id: "kiro", name: "Kiro", color: "#22C55E", power: "shield", powerLabel: "Shield", cooldownMs: 8_000 },
    { id: "zuno", name: "Zuno", color: "#FACC15", power: "magnet", powerLabel: "Magnet", cooldownMs: 8_000 },
    { id: "vexa", name: "Vexa", color: "#8B5CF6", power: "phase", powerLabel: "Phase", cooldownMs: 7_000 },

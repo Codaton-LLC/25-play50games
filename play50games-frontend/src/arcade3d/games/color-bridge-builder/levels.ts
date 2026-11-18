@@ -57,7 +57,7 @@ const L1: BridgeLevel = {
    name: "Two Switches",
    durationMs: 150_000,
    targetMs: 75_000,
-   // beat 1 (bottom): a red bridge, walk it as Riko; beat 2: switch the dark node to blue, walk it as Nami;
+   // beat 1 (bottom): a red bridge, walk it as Riko; beat 2: switch the dark node to blue, walk it as Nyla;
    // beat 3: switch the red node on: it crosses the blue beam, red turns purple mid-bridge: tag Vexa
    map: [
       "#####E######",
@@ -94,7 +94,7 @@ const L2: BridgeLevel = {
    name: "Prisms",
    durationMs: 180_000,
    targetMs: 100_000,
-   // bump the prism to aim the yellow beam (Zuno); a blue beam crosses yellow into green (Nami, then Kiro);
+   // bump the prism to aim the yellow beam (Zuno); a blue beam crosses yellow into green (Nyla, then Kiro);
    // the green ledge holds the sticker; a dark node you colour yourself for the last crossing
    map: [
       "######E#####",

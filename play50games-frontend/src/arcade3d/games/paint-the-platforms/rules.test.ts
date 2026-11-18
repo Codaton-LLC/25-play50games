@@ -196,7 +196,7 @@ describe("the arena", () => {
       }
    });
 
-   it("Nami's pillar: above a single jump even from the rim, within her double jump", () => {
+   it("Nyla's pillar: above a single jump even from the rim, within her double jump", () => {
       const single = (V_JUMP * V_JUMP) / (2 * GRAV);
       expect(RIM_H + single).toBeLessThan(PILLAR_TOP);
       expect(single + (9 * 9) / (2 * GRAV)).toBeGreaterThan(PILLAR_TOP);

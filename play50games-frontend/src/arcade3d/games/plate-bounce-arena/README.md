@@ -8,7 +8,7 @@ in `docs/menu2-super/world-4-frost-and-sweets.md`, "32 Plate Bounce Arena").
 | File | What |
 |---|---|
 | `table.ts` | The five tables as data in table coordinates (x across, z up the table, h height): walls, kickers, flippers, bumpers, mushrooms, penguin targets, lanterns, ramps / the orbit, orbs, magnet pads, the deck, the attic, the exit hole and each level's objectives in order. |
-| `rules.ts` | The deterministic pinball (8 ms substeps), objectives, balls, powers, secrets, Rollo, the proof (`chainFloorM`, `bossMinMs`, `proposeLimits`). Pure. |
+| `rules.ts` | The deterministic pinball (8 ms substeps), objectives, balls, powers, secrets, Gristle, the proof (`chainFloorM`, `bossMinMs`, `proposeLimits`). Pure. |
 | `bot.ts` | The honest bot: flips only. Near the flippers it tries flips (which, when, how long, or a cradle) on copies of the run 1.5 s ahead and keeps the best one. |
 | `TableView.tsx`, `World.tsx`, `Ball.tsx`, `Rollo.tsx` | The table, the hall, the hero ball, the boss. Visual only. |
 | `Scene.tsx`, `camera.ts`, `Hud.tsx` | Simulation and juice, the orbit camera (the card's table view as the default pose), the HUD. |
@@ -28,9 +28,9 @@ Sections (objectives) count only while current; when all are done the exit hole 
 2. Mushroom Garden: the mushrooms throw the ball onto the orbit; 3 orbits in a row (15 s apart at most) light the 2× table multiplier; then knock down 3 penguins.
 3. Ice Table: 30 % less drag, a 15 % steeper slope; the left ice blocks, a ramp shot, the right ice blocks.
 4. Multiball: 3 lanterns release 2 steel marbles (they score but cannot be nudged and never count for sections); 2 jackpot ramp shots (3× jackpot while all three are alive).
-5. Rollo (m2ShadowArmadillo, 6 HP): P1 Clash: hit him at ≥ 9 m/s in his window (3); P2 Armour: only a golden ball (10 s after a ramp shot) counts (2); P3 Flipper thief: he jams one flipper, the other every 8 s, while a toy post guards that side of the drain; the jackpot ramp in his window is the finish (1).
+5. Gristle (m2ShadowArmadillo, 6 HP): P1 Clash: hit him at ≥ 9 m/s in his window (3); P2 Armour: only a golden ball (10 s after a ramp shot) counts (2); P3 Flipper thief: he jams one flipper, the other every 8 s, while a toy post guards that side of the drain; the jackpot ramp in his window is the finish (1).
 
-Heroes: Riko dash (once per ball) breaks the cracked block into the skill lane; Nami hop and double hop (from under the deck onto the raised deck with its own bumpers); Kiro shield (4 s, once per ball) saves a drain; Zuno sticks to a magnet pad (hold Action, ≤ 1.5 s), aims with the stick, fires at 15 m/s and pulls the coins under the glass; Vexa phase (3 s) through the ghost gate into the attic. Secrets: the skill shot, the penguin sticker behind the lone penguin, the attic shard.
+Heroes: Riko dash (once per ball) breaks the cracked block into the skill lane; Nyla hop and double hop (from under the deck onto the raised deck with its own bumpers); Kiro shield (4 s, once per ball) saves a drain; Zuno sticks to a magnet pad (hold Action, ≤ 1.5 s), aims with the stick, fires at 15 m/s and pulls the coins under the glass; Vexa phase (3 s) through the ghost gate into the attic. Secrets: the skill shot, the penguin sticker behind the lone penguin, the attic shard.
 
 Stars: clear; every main orb (8 / 10 / 12 / 14 / 10); the time 90 / 110 / 120 / 140 / 180 s. Badge: no ball lost.
 
@@ -46,7 +46,7 @@ the only jump is the respawn onto the plunger. Sections count only while current
 order, a piece of each section (a bumper, the ramp mouth then the whole ramp, the lanterns or the bank in any
 order, the mushrooms then the orbit path, each time) and then the hole. `chainFloorM` is the shortest such
 chain between contact discs, where every leg may instead start from the plunger; the floor is
-`chainFloorM / V_MAX`. On level 5 the floor is `bossMinMs` (every Rollo hit at the first moment of each
+`chainFloorM / V_MAX`. On level 5 the floor is `bossMinMs` (every Gristle hit at the first moment of each
 window). The combo meter counts at most 24 bumper and 8 ramp/orbit links; `comboMaxBonus` bounds it.
 
 Tests: `proof.test.ts` (the bot through the real store with ragged frames, ranked inside the row; the travel
@@ -62,7 +62,7 @@ The pinned rows (`limits.ts` = `meta.levels[n].scoring` = `arcade-games.json`, c
 | 2 | Mushroom Garden | 32460 | 5400 | 330000 |
 | 3 | Ice Table | 35850 | 1500 | 360000 |
 | 4 | Multiball | 38750 | 2500 | 390000 |
-| 5 | Rollo's Table | 40680 | 13200 | 420000 |
+| 5 | Gristle's Table | 40680 | 13200 | 420000 |
 
 ## Assets
 

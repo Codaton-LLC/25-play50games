@@ -78,7 +78,7 @@ export function botInput(bot: Bot, run: TightRun, input: StepInput): void {
          bot.jumpWait = 0;
       }
    } else bot.jumpWait = 0;
-   // Nami: the second jump on the way up, for the high orb over the far side of this gap
+   // Nyla: the second jump on the way up, for the high orb over the far side of this gap
    if (hero === "nami" && h.air && h.jumps === 1 && h.vy < 2.5 && c.orbs.some((o) => o.high && (o.link === l.id || o.link === l.next) && !run.taken[o.id])) input.jumpPressed = true;
 
    // powers

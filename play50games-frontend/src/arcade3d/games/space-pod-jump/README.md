@@ -41,7 +41,7 @@ back to the last planetoid.
   cracked panel: a knock (bounced back at half speed, 0.6 s of grace). Kiro's shield crosses flares and
   debris.
 - **Hero roles (the card):** Riko's prograde burn (+2.5 m/s in flight) and her dash breaks a cracked
-  panel (levels 2 and 5's high-orbit shard); Nami's second impulse in flight (+3 m/s, prograde, or straight
+  panel (levels 2 and 5's high-orbit shard); Nyla's second impulse in flight (+3 m/s, prograde, or straight
   out with up held); Kiro's shield; Zuno's magnet (orbs from 6 m); Vexa's chord: her phase on a planetoid
   drops her straight through it to the far side at 6 m/s, and phasing on the ghost hatch (every level) or
   through level 4's big planetoid (its core sticker) finds a secret.

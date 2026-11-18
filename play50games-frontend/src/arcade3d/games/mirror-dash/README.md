@@ -38,7 +38,7 @@ m2GlassSentinelBoss GLB, ~44 m ahead of the pair):
 - P3 Chest crystal (1 hit): the runways merge; both bodies jump as the closing ring reaches them.
 
 Hero roles: Vexa (lead) phases both bodies for 0.8 s (ghost glass, the ghost-runway shard on L4); Riko's
-dash (x1.5, 0.32 s) breaks cracked blocks on both runways (the shortcut sticker on L2); Nami's double jump
+dash (x1.5, 0.32 s) breaks cracked blocks on both runways (the shortcut sticker on L2); Nyla's double jump
 is copied by the reflection; Kiro's shield covers both bodies for 1 s; Zuno's magnet pulls orbs from both
 runways (two lanes either side, 9 m ahead) for 3 s.
 

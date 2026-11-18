@@ -3,7 +3,7 @@
 //
 // - Riko: a dash (+7 m/s for 0.4 s, 3 charges a run) breaks the cracked crystal wall to the sealed
 //   gem pocket, and snaps the train straight behind him (a tight turn is safe while it lasts).
-// - Nami: a second jump up to the high pedestal's gold gem; the train follows through the air.
+// - Nyla: a second jump up to the high pedestal's gold gem; the train follows through the air.
 // - Kiro: a shield: the frost sweepers, the sinking tiles and the slimes cannot cut his tail.
 // - Zuno: a magnet: +1.5 m pickup reach, and it pulls the hidden gem trail out of the rim. His
 //   train is no longer than anyone's.
@@ -25,7 +25,7 @@ export interface HeroDef {
 
 export const HEROES: readonly HeroDef[] = [
    { id: "riko", name: "Riko", color: "#EF4444", power: "dash", powerLabel: "Dash", cooldownMs: 2_500 },
-   { id: "nami", name: "Nami", color: "#2563EB", power: "doubleJump", powerLabel: "Double jump", cooldownMs: 0 },
+   { id: "nami", name: "Nyla", color: "#2563EB", power: "doubleJump", powerLabel: "Double jump", cooldownMs: 0 },
    { id: "kiro", name: "Kiro", color: "#22C55E", power: "shield", powerLabel: "Shield", cooldownMs: 8_000 },
    { id: "zuno", name: "Zuno", color: "#FACC15", power: "magnet", powerLabel: "Magnet", cooldownMs: 8_000 },
    { id: "vexa", name: "Vexa", color: "#8B5CF6", power: "phase", powerLabel: "Phase", cooldownMs: 6_000 },

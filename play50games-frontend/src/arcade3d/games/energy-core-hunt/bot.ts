@@ -4,7 +4,7 @@
 // round crates, unwanted cores, flickering decoys and live tesla coils, takes the golden orbs near its
 // path, and walks into the gate once it opens. On level 5 it jumps the Core Sprite's shock rings and runs
 // into it while it is dazed. With `routes` it first plays its hero's own route: Vexa phases into the
-// crate ring, Zuno pulls its orbs with the magnet, Nami double-jumps over the crate stack.
+// crate ring, Zuno pulls its orbs with the magnet, Nyla double-jumps over the crate stack.
 import { CRATE_R, type Course } from "./course";
 import { CORE_SPRITE } from "./progression";
 import {

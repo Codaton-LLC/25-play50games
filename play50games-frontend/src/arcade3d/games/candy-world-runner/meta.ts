@@ -24,9 +24,9 @@ const scoring = (id: LevelId): ScoringRules => ({
 
 export const candyWorldRunnerMeta: ArcadeGameMeta = {
    slug: "candy-world-runner",
-   title: "Candy World Runner",
+   title: "Sweet Lane Runner",
    tagline: "Eat sweets to grow, burn them off to shrink: your size is the key.",
-   description: "An auto-runner on three candy lanes where your size decides everything: eat candy coins to grow from Small to Normal to Big, sugar-burn roll to shrink, and arrive at each obstacle at the size it needs. Big smashes jelly cubes and chocolate walls, Small slips under cookie arches. Cross cracking chocolate bridges, frosted ice and gummy monsters, then chase King Bonbon through his palace. Pick Riko, Nami, Kiro, Zuno or Vexa.",
+   description: "An auto-runner on three candy lanes where your size decides everything: eat candy coins to grow from Small to Normal to Big, sugar-burn roll to shrink, and arrive at each obstacle at the size it needs. Big smashes jelly cubes and chocolate walls, Small slips under cookie arches. Cross cracking chocolate bridges, frosted ice and gummy monsters, then chase King Bonbon through his palace. Pick Riko, Nyla, Kiro, Zuno or Vexa.",
    order: 77,
    status: "live",
    collection: "rollheroes",

@@ -5,7 +5,7 @@
 //
 // - Riko: an air dash (cooldown 3 s) that crosses 8 m sideways in a quarter second; it shatters the
 //   cracked ring seals over the side shafts.
-// - Nami: the air-brake flip: the fall stops and she hops 3 m back up, so she can thread a ring she
+// - Nyla: the air-brake flip: the fall stops and she hops 3 m back up, so she can thread a ring she
 //   just missed or reach the orb tucked under a wall ledge.
 // - Kiro: a shield: storm shear pockets, blade gates and Cyclone Ray's lightning do not touch him.
 // - Zuno: a magnet: orbs come from 7 m, and the orb trails hidden in the canyon wall come out.
@@ -28,7 +28,7 @@ export interface HeroDef {
 
 export const HEROES: readonly HeroDef[] = [
    { id: "riko", name: "Riko", color: "#EF4444", power: "dash", powerLabel: "Air dash", cooldownMs: 3_000 },
-   { id: "nami", name: "Nami", color: "#2563EB", power: "flip", powerLabel: "Air brake", cooldownMs: 2_500 },
+   { id: "nami", name: "Nyla", color: "#2563EB", power: "flip", powerLabel: "Air brake", cooldownMs: 2_500 },
    { id: "kiro", name: "Kiro", color: "#22C55E", power: "shield", powerLabel: "Shield", cooldownMs: 9_000 },
    { id: "zuno", name: "Zuno", color: "#FACC15", power: "magnet", powerLabel: "Magnet", cooldownMs: 8_000 },
    { id: "vexa", name: "Vexa", color: "#8B5CF6", power: "phase", powerLabel: "Phase", cooldownMs: 6_000 },
@@ -52,7 +52,7 @@ export const POWER_MS = { dash: 250, flip: 900, shield: 3000, magnet: 3000, phas
 /** Riko's air dash: 32 m/s sideways for 250 ms = 8 m (the card). Horizontal only: it never speeds the fall. */
 export const V_DASH = 32;
 
-/** Nami's flip: an upward kick that rises 3 m against G_FLIP (the card's "hops her back up 3 m"). */
+/** Nyla's flip: an upward kick that rises 3 m against G_FLIP (the card's "hops her back up 3 m"). */
 export const FLIP_RISE = 3;
 export const G_FLIP = 30;
 export const V_FLIP = Math.sqrt(2 * G_FLIP * FLIP_RISE);

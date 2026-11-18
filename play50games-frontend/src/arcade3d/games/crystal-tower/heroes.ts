@@ -3,7 +3,7 @@
 //
 // - Riko: a dash (+6 m/s for 0.4 s, 3 charges a run) that crosses a wide gap and shatters the dark
 //   crystal wall in front of a side nook. Its shard is inside.
-// - Nami: a second jump: up to the sky ledge over a pad (the ledge shard and its gems).
+// - Nyla: a second jump: up to the sky ledge over a pad (the ledge shard and its gems).
 // - Kiro: a shield: shard storms, spark drones, the boss's shockwave and a wrong crystal's shove do
 //   not knock him (a wrong crystal still resets the sequence).
 // - Zuno: a magnet: gems come from 6 m, the hidden gems rise out of the crystal dust, and the NEXT
@@ -25,7 +25,7 @@ export interface HeroDef {
 
 export const HEROES: readonly HeroDef[] = [
    { id: "riko", name: "Riko", color: "#EF4444", power: "dash", powerLabel: "Dash", cooldownMs: 2_500 },
-   { id: "nami", name: "Nami", color: "#2563EB", power: "doubleJump", powerLabel: "Double jump", cooldownMs: 0 },
+   { id: "nami", name: "Nyla", color: "#2563EB", power: "doubleJump", powerLabel: "Double jump", cooldownMs: 0 },
    { id: "kiro", name: "Kiro", color: "#22C55E", power: "shield", powerLabel: "Shield", cooldownMs: 8_000 },
    { id: "zuno", name: "Zuno", color: "#FACC15", power: "magnet", powerLabel: "Magnet", cooldownMs: 8_000 },
    { id: "vexa", name: "Vexa", color: "#8B5CF6", power: "phase", powerLabel: "Phase", cooldownMs: 6_000 },

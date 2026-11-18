@@ -27,9 +27,9 @@ once Gloom Nimbus is down).
   input gets the shared camera's yaw). Bots and tests leave it 0, so every bot and proof result is
   unchanged (`orbit.test.ts`); turning keeps the stick's length, so the speed bounds hold for any yaw.
 - Hero choice: the shared Menu 2 picker (menu2/heroes `HeroPicker`) on the start card, the pause menu
-  and the result screen; `heroes.ts` uses `createHeroPick("cloud-hopper")`, so **Nami** (W2's lead) is
+  and the result screen; `heroes.ts` uses `createHeroPick("cloud-hopper")`, so **Nyla** (W2's lead) is
   preselected and the player's own last pick here is remembered. A run keeps the hero it started with.
-  The rules' own default (`DEFAULT_HERO`, bots and proofs) is Nami too.
+  The rules' own default (`DEFAULT_HERO`, bots and proofs) is Nyla too.
 
 ## Files
 
@@ -84,7 +84,7 @@ Units: 1 = 1 m; forward is -z. The clock is whole ms with the fraction carried, 
 | Hero | Power (cooldown) | What it opens |
 |---|---|---|
 | Riko | air dash 500 ms at 12 m/s (6 m), costs 1 s glide, once a flight (8 s) | crashes through storm-cloud walls onto a storm shelf (bonus orbs; the storm shard on L2 and L5) |
-| Nami | air jump at full `V_JUMP`, refreshed once per glide (2.5 s) | the sun shelf 4.2 m over a glide gap (bonus orbs) |
+| Nyla | air jump at full `V_JUMP`, refreshed once per glide (2.5 s) | the sun shelf 4.2 m over a glide gap (bonus orbs) |
 | Kiro | shield 2.5 s (15 s) | glides through thunderheads (an orb in one on every level; the thunder shard on L4), shrugs off strikes and hail |
 | Zuno | magnet 2.5 s, reach 6 m (15 s) | pulls feathers and orbs in, and the rain column's hidden orbs only show and come under it |
 | Vexa | phase 1.5 s (12 s) | slips through a one-way ghost veil onto the night path (bonus orbs, the night sticker) |
@@ -133,7 +133,7 @@ were 7 100-20 700 ms / 8 290-18 930 points; the server still has those until the
 
 | Bot | Result |
 |---|---|
-| Honest bot (Nami, no power; look-ahead jumps, glides only when a plain fall lands short, takes each cloud's orb and the feather before a glide gap) | wins every level at 30 / 60 / 144 Hz with no hit and every main orb: L1 10 036-10 039 (91.5 %), L2 11 319-11 324 (91.8 %), L3 14 206-14 216 (91.5 %), L4 15 943-15 945 (92.8 %), L5 18 269-18 431 (91.2-92.0 %, Gloom Nimbus beaten, 7 hits) |
+| Honest bot (Nyla, no power; look-ahead jumps, glides only when a plain fall lands short, takes each cloud's orb and the feather before a glide gap) | wins every level at 30 / 60 / 144 Hz with no hit and every main orb: L1 10 036-10 039 (91.5 %), L2 11 319-11 324 (91.8 %), L3 14 206-14 216 (91.5 %), L4 15 943-15 945 (92.8 %), L5 18 269-18 431 (91.2-92.0 %, Gloom Nimbus beaten, 7 hits) |
 | Every hero, plain and with its power mashed (60 Hz; Riko 30/60/144) | every plain run clears; no mashed finish beats the floor (`proof.test.ts`) |
 | Through the real store, ragged frames | a ranked win inside the limits, the score recomputed from the time |
 | Idle | the sunset on every level ("timeup", unranked); on level 5 the chase keeps catching it |

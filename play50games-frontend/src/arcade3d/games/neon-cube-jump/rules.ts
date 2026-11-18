@@ -1,6 +1,6 @@
 // Neon Cube Jump rules (the design card's FLIP): a field of 2 m neon cubes in sets A and B; only one set
 // is solid at a time and every jump flips it on takeoff, so each jump lands on the other set. Walking
-// off an edge does not flip. Nami's second jump flips again; Riko's air dash does not. Rogue ring cubes
+// off an edge does not flip. Nyla's second jump flips again; Riko's air dash does not. Rogue ring cubes
 // keep their own 1.6 s clock; B cubes on rails slide only while solid; laser walls and sentry drones
 // belong to a set and only bite while it is solid. Level 5 is Flipframe.
 // The hero is a 0.7 x 1.5 m box that runs at 6 m/s (camera-relative stick), jumps 2 cubes across and 1
@@ -32,7 +32,7 @@ export const ACCEL_AIR = 22;
 export const GRAV = 24;
 /** a jump clears 2.6 m (one cube up with room), lands 4-5.6 m on (two cubes across) */
 export const V_JUMP = 11.2;
-/** Nami's second jump */
+/** Nyla's second jump */
 export const V_JUMP2 = 9;
 export const COYOTE_MS = 90;
 export const BUFFER_MS = 110;
@@ -728,7 +728,7 @@ function stepMs(run: NeonRun, jumpPressed: boolean, actionPressed: boolean, ev: 
    if (actionPressed) power(run, ev);
    if (jumpPressed) h.jumpBuf = ms + BUFFER_MS;
    const stunned = ms <= h.stunUntil;
-   // the jump: from the ground or within the coyote time; Nami's second jump in the air
+   // the jump: from the ground or within the coyote time; Nyla's second jump in the air
    if (h.jumpBuf >= ms && !stunned) {
       const coyote = h.ground < 0 && !h.jumpedSinceGround && h.leftGroundMs >= 0 && ms - h.leftGroundMs <= COYOTE_MS;
       if (h.ground >= 0 || coyote) {

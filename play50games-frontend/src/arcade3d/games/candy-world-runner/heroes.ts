@@ -1,10 +1,10 @@
-// The five Color Roll Heroes (CLAUDE.md decision 5) and what each one does in Candy World Runner (the
-// card's hero roles, docs/menu2-super/world-4-frost-and-sweets.md "19 Candy World Runner"). Each hero is its
+// The five Color Roll Heroes (CLAUDE.md decision 5) and what each one does in Sweet Lane Runner (the
+// card's hero roles, docs/menu2-super/world-4-frost-and-sweets.md "19 Sweet Lane Runner"). Each hero is its
 // own GLB (menu2/heroModels.ts); the colour here is the picker swatch. The pick is the shared Menu 2
 // hero pick (menu2/heroes): Zuno, W4's lead, unless the player picked someone else here.
 //
 // - Riko: a dash; at Big it is a sugar charge that breaks the reinforced gingerbread walls into a bonus lane.
-// - Nami: a second jump in the air onto the candy-cane rail above the lanes (fewer coins: a Small run).
+// - Nyla: a second jump in the air onto the candy-cane rail above the lanes (fewer coins: a Small run).
 // - Kiro: a shield that crosses the popping-candy fields (crackling ground that knocks you down a size).
 // - Zuno: a magnet he switches on and off (he chooses when to grow): it pulls the coin trails out of the
 //   frosting walls and the candy coins round him.
@@ -25,7 +25,7 @@ export interface HeroDef {
 
 export const HEROES: readonly HeroDef[] = [
    { id: "riko", name: "Riko", color: "#EF4444", power: "dash", powerLabel: "Dash", cooldownMs: 4_000 },
-   { id: "nami", name: "Nami", color: "#2563EB", power: "doubleJump", powerLabel: "Double", cooldownMs: 0 },
+   { id: "nami", name: "Nyla", color: "#2563EB", power: "doubleJump", powerLabel: "Double", cooldownMs: 0 },
    { id: "kiro", name: "Kiro", color: "#22C55E", power: "shield", powerLabel: "Shield", cooldownMs: 8_000 },
    { id: "zuno", name: "Zuno", color: "#FACC15", power: "magnet", powerLabel: "Magnet", cooldownMs: 1_000 },
    { id: "vexa", name: "Vexa", color: "#8B5CF6", power: "phase", powerLabel: "Phase", cooldownMs: 7_000 },

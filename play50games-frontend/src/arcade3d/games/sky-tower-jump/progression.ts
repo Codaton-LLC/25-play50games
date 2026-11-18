@@ -32,7 +32,7 @@ export function starSpecFor(level: LevelId, orbTotal: number): StarSpec {
 
 /**
  * Secrets per level (placed by rules.ts secretSpots): the sky shard hangs over the first bounce pad's
- * apex (straight up from the pad, Nami's double jump steadies the hover), the ledge shard floats off
+ * apex (straight up from the pad, Nyla's double jump steadies the hover), the ledge shard floats off
  * the side of a mid-route island (a jump out and back; Zuno's magnet reaches it from the edge), and
  * the sticker drifts beside the gate on levels 1 and 5.
  */

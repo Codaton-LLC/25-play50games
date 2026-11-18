@@ -4,7 +4,7 @@
 // (menu2/heroAnim: useHeroAnimator + <AnimatedHero>), with the code stand-in (Armadillo.tsx) as the
 // fallback. Every frame the run (rules.ts) and the Scene's moments (HeroAnim) are turned into the
 // animator's HeroMotion: velocity, grounded, the power that is up, the ball (a geyser vent's flight,
-// Kalder's throw, the intro drop, a fall), the cheer at the goal, and one-frame events (jump, Nami's
+// Kalder's throw, the intro drop, a fall), the cheer at the goal, and one-frame events (jump, Nyla's
 // double jump, land, a rock hit, a crumbled top). The animator picks and blends idle, run (feet planted), takeoff / rise / fall /
 // land, the somersault, the ball-roll, the dash streak, hurt and cheer. The pop-in on respawn and
 // the shrink of a fall stay here, and a blob shadow sits on the platform under the hero.
@@ -46,7 +46,7 @@ export interface MotionMemo {
    /** the last airborne vertical speed (m/s): the landing's impact */
    fallSpeed: number;
    wasGrounded: boolean;
-   /** the hero's airJump last frame: true -> false in the air is Nami's double jump */
+   /** the hero's airJump last frame: true -> false in the air is Nyla's double jump */
    airJump: boolean;
 }
 
@@ -86,7 +86,7 @@ export function writeHeroMotion(m: HeroMotion, memo: MotionMemo, run: LavaRun, a
    // the events, once per stamp
    if (anim.jumpAt !== memo.jumpAt) {
       memo.jumpAt = anim.jumpAt;
-      // Nami's double jump spends her air jump in the air: the somersault; any other jump takes off
+      // Nyla's double jump spends her air jump in the air: the somersault; any other jump takes off
       if (!memo.wasGrounded && memo.airJump && !h.airJump) m.events.airJumped = true;
       else m.events.jumped = true;
    }

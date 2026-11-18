@@ -30,7 +30,7 @@ status `dev`, owner claude. Design card: `docs/menu2-super/world-3-wild-temples.
   bend over the flight). A shorter tap does nothing.
 - Flight: 15 m/s, 18 m. Stone (walls, columns) banks it: a reflection and 15 % speed loss; a fourth
   contact or wood (the palisade) ends the outbound. Ghost walls stop it unless Vexa's phase is armed.
-  Nami's lob flies over the palisade (y 2.3).
+  Nyla's lob flies over the palisade (y 2.3).
 - Hits: at most 3 per throw; points are the target's base x the bank multiplier (x1, x2, x3 after
   0, 1, 2+ banks). Hay 100 (rail 150), idol 150, post 100, orb 50.
 - Return: from wherever the outbound ends, 1 s on an arc back to the throw spot. On the spot (0.6 m)
@@ -43,7 +43,7 @@ status `dev`, owner claude. Design card: `docs/menu2-super/world-3-wild-temples.
 | Hero | Power | Use here |
 |---|---|---|
 | Riko | Dash (+12 m/s, 350 ms) | reach the catch, catch reach +4 m while dashing |
-| Nami | Lob throw | the next throw flies over the palisade |
+| Nyla | Lob throw | the next throw flies over the palisade |
 | Kiro | Shield 3 s | blocks the thorn bursts and the volley |
 | Zuno | Magnet 3 s | pulls the disc in from 3 m, always a clean catch |
 | Vexa | Phase throw | the next throw passes ghost walls (the shrine shard) |

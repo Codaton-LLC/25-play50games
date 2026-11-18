@@ -16,7 +16,7 @@ export const HERO_HEIGHT_M = 1.45;
 /** Measured on the real GLBs (2026-10-26): the height (y), the arm reach (|x|) and the tail depth (|z|), GLB units. */
 export const HERO_GLB: Record<M2HeroId, { name: string; height: number; reach: number; depth: number }> = {
    riko: { name: "Riko", height: 1.9035283327102661, reach: 0.7524892687797546, depth: 0.8000152111 },
-   nami: { name: "Nami", height: 1.9057738781, reach: 0.7717772722, depth: 0.7975129485 },
+   nami: { name: "Nyla", height: 1.9057738781, reach: 0.7717772722, depth: 0.7975129485 },
    kiro: { name: "Kiro", height: 1.8979462385, reach: 0.7966410518, depth: 0.8858175874 },
    zuno: { name: "Zuno", height: 1.9003524780, reach: 0.7822100520, depth: 0.7974335551 },
    vexa: { name: "Vexa", height: 1.8991692066, reach: 0.7852765322, depth: 0.7899929285 },

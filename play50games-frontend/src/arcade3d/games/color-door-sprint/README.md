@@ -43,7 +43,7 @@ purple hexagon) on the doors, the lamp and the HUD's rule card, and a chime.
 | `levelEnd.ts`, `StarResult.tsx` | stars, the no-hit badge (no wrong door), secrets and XP to menu2/progress |
 | `bot.ts` | the honest bot (tests, `?autoplay=1` on preview builds) |
 | `multiplayer.ts`, `MultiScene.tsx`, `MultiplayerHud.tsx` | local 2-4 players (menu2/multiplayer) |
-| `Hero.tsx` | the picked hero's GLB on menu2/heroAnim (run, jump, Nami's flip, the roll ball, dash streak, auras, recoil, cheer) |
+| `Hero.tsx` | the picked hero's GLB on menu2/heroAnim (run, jump, Nyla's flip, the roll ball, dash streak, auras, recoil, cheer) |
 | `Course.tsx` | door walls, coloured / shut / cracked / ghost doors, glyphs, the upper row, lamps, floor arrows, orbs, bars, beams, vents, pads, secrets, the finish gate, Flicker |
 | `World.tsx` | the ember sky, the hall's floor, the side walls, the lanterns, the galleries beyond |
 | `look.ts` | the palette per level |
@@ -65,7 +65,7 @@ the fraction carried, one ms at a time (the same run at 30, 60 or 144 fps).
   geometry (where the walls, specials, orbs and hazards are) is fixed per level.
 - **The lock:** within `v · 0.6 s` of a wall the lane is fixed. A sliding wall's doors shift one lane
   1.6 s before impact (1.0 s to react before the lock, never under the card's 0.9 s).
-- **The judgement** at the wall's plane: the side corridor skips it; Nami's upper door (feet ≥ 2.25 m in
+- **The judgement** at the wall's plane: the side corridor skips it; Nyla's upper door (feet ≥ 2.25 m in
   its lane); a cracked door during Riko's dash (the side corridor); a ghost door during Vexa's phase; the
   true door; else wrong (Kiro's shield absorbs it: no bounce). A wrong door: 1.5 s bounce (knocked 3 m
   back), the flow and the streak reset, then the true door opens and the hero hops into its lane.
@@ -77,7 +77,7 @@ the fraction carried, one ms at a time (the same run at 30, 60 or 144 fps).
 | Hero | Power (cooldown) | What it opens |
 |---|---|---|
 | Riko | dash 0.45 s (6 s) | smashes a cracked fake door (always the wrong colour) into the hidden side corridor: 3 orbs, it skips the next 2 walls (every level; the shard on L1 and L3) |
-| Nami | a second jump in the air (Jump or Power, 1.5 s) | the upper door row over the tall walls (L3-L5: a bonus orb lane, the sticker), the high orbs over the floor bars |
+| Nyla | a second jump in the air (Jump or Power, 1.5 s) | the upper door row over the tall walls (L3-L5: a bonus orb lane, the sticker), the high orbs over the floor bars |
 | Kiro | shield 3 s (20 s) | absorbs a wrong door, bars, beams, flame vents and Flicker's fire; the vents' bonus orbs |
 | Zuno | magnet 4 s, reach 5 m (12 s) | the orb trails hidden in the corridor walls |
 | Vexa | phase 2 s (10 s) | the ghost door (always right, a faint shimmer) and the colour shard behind it (every level) |
@@ -140,7 +140,7 @@ matches another level's course or timer.
 |---|---:|---:|---:|---:|---|
 | 1 Two Doors | 10 m/s | 2 | 8 | 90 s | three beats: one door open (the ghost / cracked one reads as shut), then two colours with the lamp's colour on the floor arrows, then the lamp alone, a bar and a beam, and speed pads after the last wall |
 | 2 Three Doors | 12 m/s | 3 | 10 | 110 s | three lanes and the chimes; halfway the lamp dims (the sound rule): hear the chime; speed pads in one lane |
-| 3 Fake Door | 14 m/s | 3 | 12 | 130 s | sliding doors, cracked fake doors (two side corridors), the NOT rule, Nami's upper doors, a dimmed sliding wall |
+| 3 Fake Door | 14 m/s | 3 | 12 | 130 s | sliding doors, cracked fake doors (two side corridors), the NOT rule, Nyla's upper doors, a dimmed sliding wall |
 | 4 Fast Gates | 16 m/s | 5 | 14 | 150 s | the echo rule (a ringed lamp two walls early) on ten walls, 4-5 open doors, NOT, upper doors |
 | 5 Door Sprint Master | 18 m/s | 4 | 5 + arena | 240 s | a warm-up with every rule once, then **Flicker** |
 
@@ -164,7 +164,7 @@ gold ring burns under him; the HUD bar pulses. 8 hp, one hit per window, a hit-s
 - **Stars:** clear, every main orb, the target time (34 / 33 / 33 / 33 / 70 s, a little slower than the honest bot). **Badge:** no wrong door.
 - **Flow:** 4.5 s window (a wall every 2-4.5 s), +0.25, x2 cap; orbs 30, true doors 40.
 - **Secrets:** a colour shard behind every level's ghost door (Vexa); Riko's side-corridor shard (L1,
-  L3); Nami's sticker in the upper door row (L3, L4, L5).
+  L3); Nyla's sticker in the upper door row (L3, L4, L5).
 - **Progress:** `levelEndStats` -> `recordLevelResult` on a win and a time-up.
 
 ## Juice

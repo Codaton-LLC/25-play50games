@@ -17,7 +17,7 @@ export const robotFactoryRunMeta: ArcadeGameMeta = {
    slug: "robot-factory-run",
    title: "Robot Factory Run",
    tagline: "Rewire a live factory line: turn conveyor junctions, route the power cells, overload Overseer M-8.",
-   description: "A grey, powered-down robot factory. Step on red switch plates to turn conveyor turntables, route the power cells riding the belts into the exit charger, and ride the belts yourself. Klaxon belts that run backwards, robot arms that lift cells (and you), laser gates wired to the plates, and Overseer M-8, Shadow Plates' foreman. Pick Riko, Nami, Kiro, Zuno or Vexa.",
+   description: "A grey, powered-down robot factory. Step on red switch plates to turn conveyor turntables, route the power cells riding the belts into the exit charger, and ride the belts yourself. Klaxon belts that run backwards, robot arms that lift cells (and you), laser gates wired to the plates, and Overseer M-8, Shadow Plates' foreman. Pick Riko, Nyla, Kiro, Zuno or Vexa.",
    order: 65,
    status: "live",
    collection: "rollheroes",

@@ -113,7 +113,7 @@ describe("hero powers", () => {
       expect(w.tiles[6 * w.map.w + 10]).toBe(T.ROCK);
       expect(w.teams[0].secrets.found[2]).toBeTruthy();
    });
-   it("Nami leaps two cells; Vexa's phase walks any light; Kiro's shield blocks a beam", () => {
+   it("Nyla leaps two cells; Vexa's phase walks any light; Kiro's shield blocks a beam", () => {
       const n = createRun(1, "nami");
       put(n, 6, 8);
       n.teams[0].facing = 3;

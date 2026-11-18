@@ -97,7 +97,7 @@ export interface CitySpec {
 }
 
 const Y = 0.75;
-/** the rail deck's height (m); a jump from a bus roof falls short of it, Nami's second jump does not */
+/** the rail deck's height (m); a jump from a bus roof falls short of it, Nyla's second jump does not */
 export const RAIL_Y = 7.4;
 const RY = RAIL_Y + 0.75;
 const n = (ix: number, iz: number): XZ => ({ x: ix * CELL, z: iz * CELL });

@@ -42,7 +42,7 @@ const definition: GameDefinition<CitySpec> = {
       "The streets you ran between two beacons turn red. From lap 2 a red street is 30 % faster and you roll into the ball: plan a loop.",
       "Chain red streets, beacons and gems for the flow meter. Grey sludge slows you, steam vents knock you, buses shove you aside.",
       "Ramps launch you onto bus roofs. Each gem takes 0.2 s off your time.",
-      "Power (E, Enter, or the Power button): Riko's dash smashes the cracked hoarding, Nami jumps again (bus roof to the rail), Kiro's shield, Zuno's magnet pulls gems out of drains, Vexa phases through the ghost shop.",
+      "Power (E, Enter, or the Power button): Riko's dash smashes the cracked hoarding, Nyla jumps again (bus roof to the rail), Kiro's shield, Zuno's magnet pulls gems out of drains, Vexa phases through the ghost shop.",
       "Turn the camera: drag the view (or two fingers), mouse wheel / pinch zooms, Q / C turn, R / F tilt, V recenters. Up on the stick runs away from the camera.",
    ],
    resultDelayMs: 1500,

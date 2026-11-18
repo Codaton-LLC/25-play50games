@@ -1,4 +1,4 @@
-// Temple Coin Rush local multiplayer (menu2/multiplayer, phase M1): 2-4 heroes, each in its own
+// Ruin Coin Rush local multiplayer (menu2/multiplayer, phase M1): 2-4 heroes, each in its own
 // corridor side by side, the same seed and level for everyone, stepped in lock-step with the
 // framework's stepPlayerSims. Pure.
 // - Versus race (the card's best fit): the coins are shared: a coin one hero grabs is gone from every

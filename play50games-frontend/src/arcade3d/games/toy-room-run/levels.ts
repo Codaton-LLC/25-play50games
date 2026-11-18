@@ -100,7 +100,7 @@ export interface ToySpec {
    ghosts: ZoneSpec[];
    /** the castle body (solid) */
    castles: ZoneSpec[];
-   /** Nami: a pencil ramp (lip, rising toward dir) */
+   /** Nyla: a pencil ramp (lip, rising toward dir) */
    pencils: { x: number; z: number; dir: "+x" | "-x" | "+z" | "-z" }[];
    checkpoints: XZ[];
    orbs: OrbSpec[];
@@ -117,9 +117,9 @@ const line = (x: number, z0: number, z1: number, n: number, y = Y, main = true):
    Array.from({ length: n }, (_v, i) => ({ x, y, z: z0 + ((z1 - z0) * i) / Math.max(1, n - 1), main }));
 const hidden = (x: number, z0: number, z1: number, n: number): OrbSpec[] => line(x, z0, z1, n, 0.6, false).map((o) => ({ ...o, hidden: true }));
 
-/** the ledge height: a plain jump (3.27 m) never reaches it; Nami's second jump off a pencil ramp does */
+/** the ledge height: a plain jump (3.27 m) never reaches it; Nyla's second jump off a pencil ramp does */
 export const LEDGE_Y = 5.4;
-/** a shelf: only the drum's launch (or Nami's double jump) gets you up */
+/** a shelf: only the drum's launch (or Nyla's double jump) gets you up */
 export const SHELF_Y = 4;
 
 export const LEVELS: Record<LevelId, ToySpec> = {

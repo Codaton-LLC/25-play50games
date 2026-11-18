@@ -13,7 +13,7 @@ each run plays one hero, picked on the start card.
 
 - `levels.ts` the five level rows (goal, timer, target, which hazards); `course.ts` the platforms cut
   into 2 m tiles on one fixed lattice, rims, rafts and their docks, grey blots' loops, paint blobs,
-  Vexa's glass cage, Nami's pillar, the Blob's pedestal, and the links the bot crosses.
+  Vexa's glass cage, Nyla's pillar, the Blob's pedestal, and the links the bot crosses.
 - `rules.ts` pure deterministic rules (1 ms steps): running, jumping, painting, rows setting, blots,
   the roller, rafts, the Paint Blob, the bound (`freeSources`, `minPathM`, `minFinishMs`,
   `proposeLimits`).
@@ -42,7 +42,7 @@ each run plays one hero, picked on the start card.
 | Hero | Power |
 |---|---|
 | Riko | dash: 4 m in 0.2 s (cooldown 1.2 s): a fast streak |
-| Nami | double jump: the gold blob on the 4 m pillar (a sticker) |
+| Nyla | double jump: the gold blob on the 4 m pillar (a sticker) |
 | Kiro | shield 1.5 s: a blot he touches freezes 3 s, the roller stops on him, the slam passes him |
 | Zuno | magnet 3 s: paint blobs come to him from 5 m |
 | Vexa | phase 0.8 s: into the glass cage (a shard), through the blots |
@@ -59,7 +59,7 @@ each run plays one hero, picked on the start card.
    slams and greys every unset tile inside; after a slam its core opens: splat it. P1 slam (2.4 m), P2
    wide slam (3.2 m), P3 twin slam (the ring and its mirror across the Blob).
 
-Secrets: Full mural (every tile painted at once), Vexa's caged prism blob, Nami's gold pillar blob.
+Secrets: Full mural (every tile painted at once), Vexa's caged prism blob, Nyla's gold pillar blob.
 Stars: clear, every paint blob, the target time.
 
 ## Scoring and server limits (why they hold)

@@ -8,7 +8,7 @@
 //   L  lantern (checkpoint)            E  the lift                S  start
 //   b  beetle    t  tunnelling beetle  =  rail (an open line you ride at 10 m/s)
 //   *  free orb (air bubble)           z  orb sealed in rock (Zuno's magnet)
-//   K  ghost-shaft shard (secret 1)    k  air-pocket sticker (secret 2, Nami)
+//   K  ghost-shaft shard (secret 1)    k  air-pocket sticker (secret 2, Nyla)
 //   V  vault shard (secret 3, behind cracked rock)   Q  flooded-room shard (secret 3, L3, under Kiro's shield)
 //   P  arena plug (soft soil under a boulder)        R  Rockjaw's spawn on the arena floor (L5)
 import type { LevelId } from "../../types";

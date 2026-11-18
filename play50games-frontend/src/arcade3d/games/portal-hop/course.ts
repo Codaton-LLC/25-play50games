@@ -1,4 +1,4 @@
-// Portal Hop's courses: pure geometry (no three.js, React or DOM). Each level is a set of floating
+// Rift Hop's courses: pure geometry (no three.js, React or DOM). Each level is a set of floating
 // islands (walkable discs), portal pairs and the honest bot's route.
 //
 // A pair is one fixed ENTRY (a wall frame you run into, or a floor pad you fall into) and 1-4 ANCHOR
@@ -171,7 +171,7 @@ export function yawTo(x0: number, z0: number, x1: number, z1: number): number {
    return Math.atan2(x1 - x0, z1 - z0);
 }
 
-// ---------- level 1: Two Portals (three beats) ----------
+// ---------- level 1: Two Rifts (three beats) ----------
 
 function level1(): Course {
    const d: Draft = { islands: [], pairs: [], anchors: [] };
@@ -281,7 +281,7 @@ function level2(): Course {
    return finish(2, d, orbs, route, { start: { x: 0, y: 10, z: 2.5 }, goal: { x: 4, y: 0, z: -83, r: 1.6 }, shard: { x: -14, y: 1.1, z: -28.6 } });
 }
 
-// ---------- level 3: Moving Portals ----------
+// ---------- level 3: Moving Rifts ----------
 
 /** L3's tower: three anchors ride round it, facing outwards. */
 export const L3_TOWER = { x: 0, y: 4, z: -30, r: 2.2 } as const;
@@ -411,7 +411,7 @@ function level4(): Course {
    });
 }
 
-// ---------- level 5: Portal Master (the Portal Wyrm) ----------
+// ---------- level 5: Rift Master (the Rift Serpent) ----------
 
 /** L5's centre island: the Wyrm coils round it; its back crystal (phase 2) rests over the middle. */
 export const L5_CENTRE = { x: 0, y: 0, z: 0, r: 7 } as const;

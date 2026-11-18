@@ -131,7 +131,7 @@ export default function Hud() {
          </div>
          <div className={stack.center} data-arcade-safe-area="">
             <div className={styles.banner}>
-               <span className={styles.title}>Wall Run Temple</span>
+               <span className={styles.title}>Cliff Glyph Run</span>
                <span className={styles.level}>
                   Level {level} · {config?.name ?? "Training Wall"}
                </span>

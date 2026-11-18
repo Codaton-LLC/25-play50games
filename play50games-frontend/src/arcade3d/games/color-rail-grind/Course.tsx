@@ -7,7 +7,7 @@
 // buffer stops of the dead ends (m2RailJunctionV2), the grind rings (m2GrindRing stood up over the rail),
 // the orbs (gold baubles), Zuno's coin trails in the snowbanks (glints until his magnet pulls them out),
 // Riko's wooden barrier, Vexa's ghost door, Kiro's icicle tunnels (timber frames with m2Icicle hanging),
-// Zuno's loop, Nami's high rails, the toy trains (m2ToyTrainWagon), the station arch at the finish, and on
+// Zuno's loop, Nyla's high rails, the toy trains (m2ToyTrainWagon), the station arch at the finish, and on
 // level 5 the Clockwork Express (m2ClockworkTrainBoss), its arena switches and buffer spurs, the launch
 // ramps (m2RailLaunchRamp), the rings and its dropped wagons.
 import { useEffect, useMemo, useRef } from "react";

@@ -42,7 +42,7 @@ const definition: GameDefinition<SurfLevel> = {
       "Pump for speed: carve up the face, then hard down through the glowing band. Stop pumping and the curl catches up.",
       "At the lip, Jump to air. Hold a direction in the air for a trick: it buys time from the curl. Land it fully or you bail.",
       "Rocks wipe you out, buoys slow you, jellies, gulls and the violet spray sting. Each orb takes 0.25 s off your time.",
-      "Power (E, Enter, or the Power button): Riko's dash carve breaks the reef walls, Nami airs twice, Kiro's shield, Zuno's magnet shows hidden orbs, Vexa phases through ghost arches.",
+      "Power (E, Enter, or the Power button): Riko's dash carve breaks the reef walls, Nyla airs twice, Kiro's shield, Zuno's magnet shows hidden orbs, Vexa phases through ghost arches.",
       "Turn the camera: drag the view (or two fingers), mouse wheel / pinch zooms, Q / C turn, R / F tilt, V recenters.",
    ],
    resultDelayMs: 1600,

@@ -2,7 +2,7 @@
 
 // The picked hero, its own GLB animated by the shared Menu 2 animator (menu2/heroAnim). At red-lane
 // speed (the rail, a dash) it curls into the armoured ball and rolls, and keeps rolling while it
-// coasts; jumps, Nami's flip, landings, bumps and stings, the cheer at the finish. A blob shadow on
+// coasts; jumps, Nyla's flip, landings, bumps and stings, the cheer at the finish. A blob shadow on
 // whatever it stands over (street, ramp, bus roof, rail).
 import { useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";

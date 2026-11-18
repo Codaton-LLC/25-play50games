@@ -46,7 +46,7 @@ since take-off, the same at 30, 60 or 144 fps. `StepInput.yaw` (the orbit camera
 - **Checkpoint lamps** every second deck; **falls** 7 m under the last top: 900 ms out of view, then 600 ms frozen on the lamp.
 - **Coins:** within 0.95 m of the hero's middle (4.2 m with Zuno's magnet); 400 ms off the submitted time each.
 - **Hero powers** (E / Enter / Power). Riko Dash: 280 ms at 12.5 m/s, or 3 m/s over a banked roll up to `V_TOP` 15.5 m/s (the card's
-  burst), then 15 s; it smashes cracked skylights. Nami Double Jump: a flutter (at most 3.25 m/s across) whose apex never passes the
+  burst), then 15 s; it smashes cracked skylights. Nyla Double Jump: a flutter (at most 3.25 m/s across) whose apex never passes the
   flight's, then 10 s. Kiro Shield 2.5 s, Zuno Magnet 2.5 s, Vexa Phase 1.2 s (through ghost billboards), then 20 s each.
 - **Finish:** standing on the helipad; on L5 (solo) Ashback's defeat is the finish. The level timer ends the run unranked.
 
@@ -58,7 +58,7 @@ since take-off, the same at 30, 60 or 144 fps. `StepInput.yaw` (the orbit camera
 | 2 | Office Roofs | 120 s | 6 | window-cleaner gondolas slide mid-street (2.4 s): time the roll so the leap meets one |
 | 3 | Moving Rooftops | 150 s | 7 | crane-swung slabs (3.2 s), rain-wet tin slopes (1.5× the roll, no braking), a blinking deck |
 | 4 | Night Skyline | 180 s | 7 | chimney updrafts, neon spark arcs on a 2.8 s cycle, night look |
-| 5 | High-Rise Climb | 240 s | 7 | everything, then **Ashback, the Shadow Armadillo** on the helipad arena |
+| 5 | High-Rise Climb | 240 s | 7 | everything, then **Ashback, the Shadow Pangolin** on the helipad arena |
 
 **Ashback** (`m2ShadowArmadillo`, `progression.ts ASHBACK`, menu2/boss): the arena is a half-pipe (deck, ramp, pad, ramp, deck).
 Every attack ends with him open at the foot of the ramp on your side: roll down it into him, curled and fast, for a hit.
@@ -74,7 +74,7 @@ Local multiplayer plays the arena as a plain finish on the pad.
 - **Flow meter** (menu2/combo): each coin, each first landing on a roof and each slope's first banked leap is a link within 1.2 s
   (the card's 0.6 s is shorter than a rolled leap's flight), +0.25 per link, up to ×2. The bonus comes off the submitted time and is
   bounded in the proof (`comboSpecOf`).
-- **Secrets** (menu2/secrets, no score): L1 water-tower sticker (Nami's ledge 8 m past a deck), gutter shard (Zuno's magnet, out
+- **Secrets** (menu2/secrets, no score): L1 water-tower sticker (Nyla's ledge 8 m past a deck), gutter shard (Zuno's magnet, out
   over the street beside a slope), skylight shard (Riko's dash smashes the cracked skylight); L2 ghost-billboard shard (Vexa),
   water-tower sticker; L3 the red shard on a crane hook over a street (a perfect rolled leap), skylight sticker; L4 neon shard inside
   a live arc (Kiro), billboard shard, gutter sticker; L5 skylight, water-tower and neon.
@@ -87,18 +87,18 @@ A **time game**: `score = floor((timeBaseMs − duration_ms) / 10)`, recomputed 
 ### Server limits and why they hold
 
 1. **Clock.** `simMs ≤ elapsedMs`, `finishMs ≤ elapsedMs`.
-2. **Height only grows in flight.** An arc starts at `V_JUMP`, 0 (walk-off, head bump), an updraft's launch, or Nami's capped
+2. **Height only grows in flight.** An arc starts at `V_JUMP`, 0 (walk-off, head bump), an updraft's launch, or Nyla's capped
    second jump. A landing sets y to a surface just crossed downwards.
 3. **Speed caps, by construction.** The rules clamp the hero every ms (`capAt`): on a support the speed is at most
    `sqrt(vIn² + 2 · accel · (d − dMin))` (the roll from the uphill-most point stood on, `d` downhill), never above `V_ROLL_MAX`;
    `vIn` is `V_RUN` everywhere except `keep` slopes and the arena (`V_ROLL_MAX`). In the air at most the take-off's cap (the stick
-   may still reach `V_RUN`), Nami's flutter `V_FLUTTER`; a dash at most `V_TOP` for 281 ms.
+   may still reach `V_RUN`), Nyla's flutter `V_FLUTTER`; a dash at most `V_TOP` for 281 ms.
 4. **Flights.** From a node to a support's slice at most `reachMax` away: `vh` times the longest flight, where a jump's flight with the
    coyote walk-off first is `coyoteJumpS` (closed form: the walk-off drops the jump's start, the maximum is at `c = R / √2`), an updraft
-   adds its own arc, Nami's flutter its own, a dash 2.53 m. The least time is `max(gap / vh, the rise's arc for dy > 0, the free fall
+   adds its own arc, Nyla's flutter its own, a dash 2.53 m. The least time is `max(gap / vh, the rise's arc for dy > 0, the free fall
    from rest for a drop)`.
 5. **Least finish.** Dijkstra over (support, slope slice, entry slice, boundary) nodes: rolling across a slice costs its width at the
-   faster end's cap, so the bound cannot teleport along a slope. Riko's and Nami's powered flights are layers of the graph, with at
+   faster end's cap, so the bound cannot teleport along a slope. Riko's and Nyla's powered flights are layers of the graph, with at
    least `(k − 1)` cooldowns for `k` powered flights (`minArrivalMs`). L5 adds Ashback's least defeat time (`bossMinMs`: every hit on
    the first ms of every open window) to the first stand on the arena.
 6. **Least duration.** The least finish minus every coin and the most flow bonus (`minDurationMsOf`):

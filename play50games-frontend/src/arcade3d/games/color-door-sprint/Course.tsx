@@ -3,7 +3,7 @@
 // The run's props, drawn from the rules (rules.ts / halls.ts): the door walls (stone pillars and
 // lintels, the coloured doors m2DoorwayV2 tinted per door with their shape glyphs, the shut doors
 // m2SlidingDoor, Riko's cracked fake doors with glowing cracks, Vexa's ghost doors as shimmering stone,
-// Nami's upper door row in gold over the tall walls), the rule lamps (m2MineLanternPost hung on a chain
+// Nyla's upper door row in gold over the tall walls), the rule lamps (m2MineLanternPost hung on a chain
 // with the rule's glowing globe and glyph, dimmed for the sound rule, crossed out for NOT, a double
 // ring for the echo rule), level 1's floor arrows, the orbs (m2ScoreOrb; Zuno's wall trails only
 // under his magnet), floor bars and low beams, the speed pads (m2ChevronSpeedPad), Kiro's flame vents,
@@ -242,7 +242,7 @@ function WallBodies({ run }: { run: DoorRun }) {
                return place(laneX(k, lanes) - LANE_W / 2, H + 0.1, z, pillar + 0.2, 0.2, DOOR.thick + 0.3);
             }}
          />
-         {/* Nami's upper door row: a gold frame high over its lane on a tall wall */}
+         {/* Nyla's upper door row: a gold frame high over its lane on a tall wall */}
          <Pool
             geometry={geo}
             material={gold}

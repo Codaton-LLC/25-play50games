@@ -22,7 +22,7 @@ export function starSpecFor(level: LevelId, orbTotal: number): StarSpec {
 
 /**
  * Secrets per level (placed by track.ts): the colour shard at the end of the upper scaffold track
- * (Nami's double hop), the sticker in the ghost-rail cave (Vexa), and on level 4 the hidden hoard room
+ * (Nyla's double hop), the sticker in the ghost-rail cave (Vexa), and on level 4 the hidden hoard room
  * behind a cracked barricade (Riko's boost).
  */
 export const SECRETS: Record<LevelId, readonly SecretSpec[]> = {

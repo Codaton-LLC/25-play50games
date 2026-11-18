@@ -1,7 +1,7 @@
 "use client";
 
 // The picked hero, animated by the shared Menu 2 animator (menu2/heroAnim): idle, run, takeoff, rise,
-// fall, land, Nami's somersault, the hurt recoil, the cheer and the intro's drop. On a vine the hero
+// fall, land, Nyla's somersault, the hurt recoil, the cheer and the intro's drop. On a vine the hero
 // hangs from the hands (a hang pose blended over the animator: arms up on the rope, legs swinging with
 // the arc) and the whole body turns about the grip with the swing angle, facing along the swing plane.
 // A blob shadow follows the platform under the feet. This file turns the run + the Scene's moments

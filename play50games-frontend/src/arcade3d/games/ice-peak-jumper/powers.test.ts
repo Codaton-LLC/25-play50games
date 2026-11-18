@@ -59,7 +59,7 @@ describe("hero roles", () => {
       expect((V_ICE + DASH_DV) * 0.5 + V_ICE * (t - 0.5)).toBeGreaterThan(SPEED_GAP + 0.3);
    });
 
-   it("Nami: a second jump in the air re-aims along the stick and rises again; her cornices are higher than one jump", () => {
+   it("Nyla: a second jump in the air re-aims along the stick and rises again; her cornices are higher than one jump", () => {
       const run = createRun(1, 1, "nami");
       press(run, (i) => (i.jumpPressed = true));
       frames(run, 20);

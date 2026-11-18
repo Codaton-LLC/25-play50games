@@ -86,7 +86,7 @@ export const V_SWING_MAX = Math.sqrt(2 * GRAV * GRIP_MAX * (1 - Math.cos(MAX_AMP
 export const V_ANCHOR_MAX = BOB.amp * ((2 * Math.PI) / (BOB.periodMs / 1000));
 /**
  * The fastest the hero can rise (m/s), used by the proof: a swing (tangential) plus the grip pulled in
- * (radial) plus a bobbing anchor; a jump or Nami's second jump is slower.
+ * (radial) plus a bobbing anchor; a jump or Nyla's second jump is slower.
  */
 export const V_RISE_MAX = Math.max(V_JUMP, V_SWING_MAX + GRIP_V + V_ANCHOR_MAX);
 
@@ -649,7 +649,7 @@ function sub(run: VineRun, input: StepInput, jumpEdge: boolean, actionEdge: bool
             h.vz *= before / after;
          }
       }
-      // jump: on a pad or a hair after it; Nami once more in the air
+      // jump: on a pad or a hair after it; Nyla once more in the air
       const grounded = h.grounded || ms - h.lastGroundMs <= COYOTE_MS;
       if (jumpEdge && !ev.released) {
          if (grounded && h.vy <= 0.01) {

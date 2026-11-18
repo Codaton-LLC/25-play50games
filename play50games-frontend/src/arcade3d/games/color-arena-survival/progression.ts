@@ -27,7 +27,7 @@ export function starSpecFor(level: LevelId): StarSpec {
  * - "Rainbow Tile" (a shard, every level): once a level one tile shines in every colour; it is safe
  *   whatever is called. Be on it when the floor drops.
  * - "Quick Lock" (a sticker, every level): lock in under 1.5 s three rounds running.
- * - "Over the Gap" (a shard, L2-L3): a shard floats over a hole; Vexa phases to it, Nami jumps to it.
+ * - "Over the Gap" (a shard, L2-L3): a shard floats over a hole; Vexa phases to it, Nyla jumps to it.
  * - "Bar Hopper" (a sticker, L4): jump the sweeper bar five times.
  * - "Beacon Streak" (a sticker, L5): three beacon rounds running, each one a hit on the Keeper.
  * Level 5 has no lock-in (the Keeper sets the pace), so it has no "Quick Lock".

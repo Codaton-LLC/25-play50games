@@ -30,7 +30,7 @@ export function paintStarLabels(level: LevelId, blobTotal: number): [string, str
 
 /**
  * The secrets, in the order rules.ts collects them: "Full mural" (every tile painted at once: a
- * sticker), Vexa's caged prism blob (a shard), Nami's gold blob on the high pillar (a sticker). Secrets
+ * sticker), Vexa's caged prism blob (a shard), Nyla's gold blob on the high pillar (a sticker). Secrets
  * never add time.
  */
 const LIST: readonly SecretSpec[] = [

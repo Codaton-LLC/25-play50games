@@ -6,7 +6,7 @@
 //
 // - Vexa's cage: a glass cage on a ledge outside the rim, four ghost panels round a prism blob (a
 //   shard); only her phase passes them, and a lid keeps everyone out from above.
-// - Nami's pillar: 4 m high outside the rim (a single jump from the rim reaches 3.6 m), a gold blob on
+// - Nyla's pillar: 4 m high outside the rim (a single jump from the rim reaches 3.6 m), a gold blob on
 //   top (a sticker).
 import type { LevelId } from "../../types";
 import { LEVELS, type PaintLevel } from "./levels";
@@ -249,7 +249,7 @@ class Builder {
       this.cage = { x: cx, y: 0.75, z: cz };
    }
 
-   /** Nami's pillar (1.5 x 1.5 m) centred at (cx, cz). */
+   /** Nyla's pillar (1.5 x 1.5 m) centred at (cx, cz). */
    pillarAt(cx: number, cz: number): void {
       this.box(cx - 0.75, cx + 0.75, cz - 0.75, cz + 0.75, PILLAR_TOP, "pillar", -1);
       this.high = { x: cx, y: PILLAR_TOP + 0.75, z: cz };

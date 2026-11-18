@@ -19,7 +19,7 @@ const definition: GameDefinition<SnowLevel> = {
       "Roll downhill with free steering. Thread ice gates: each consecutive gate adds speed, up to six.",
       "Hold Down / pull the joystick down to carve a tighter turn at 15% less speed. Blue ice has no steering: aim before entering.",
       "Ramps launch you. Hold Left/Right to spin or Up/Down to flip; release after a full turn. Land within 20 degrees to boost. Space / Hop makes a small jump.",
-      "Power opens your hero's side route: Riko's cracked pond, Nami's high ridge, Kiro's snow-dump forest, Zuno's creek trail or Vexa's ghost gully.",
+      "Power opens your hero's side route: Riko's cracked pond, Nyla's high ridge, Kiro's snow-dump forest, Zuno's creek trail or Vexa's ghost gully.",
       "Big Drift: chain three gates, then land clean ramp tricks and pass gates to fire frost stars. Finish with two spins onto his head.",
       "Drag / two fingers orbit; wheel / pinch zoom; Q/C turn, R/F tilt, V recenters. Local co-op adds drafting and twin-gate boosts.",
    ],

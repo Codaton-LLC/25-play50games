@@ -3,7 +3,7 @@
 //
 // - Riko: a dash (+6 m/s for 0.4 s, 3 charges a run) that catches a lost wave and knocks down the
 //   cracked toy-block wall in front of a side nook.
-// - Nami: a second jump: off the pencil ramp to the high bookshelf ledge (the 2x orb route).
+// - Nyla: a second jump: off the pencil ramp to the high bookshelf ledge (the 2x orb route).
 // - Kiro: a shield: the toppling block cascades and the spinning tops do not knock him.
 // - Zuno: a magnet: coin trails come out from under the rug, and a spare piece slides into its
 //   stalled slot from 5 m.
@@ -24,7 +24,7 @@ export interface HeroDef {
 
 export const HEROES: readonly HeroDef[] = [
    { id: "riko", name: "Riko", color: "#EF4444", power: "dash", powerLabel: "Dash", cooldownMs: 2_500 },
-   { id: "nami", name: "Nami", color: "#2563EB", power: "doubleJump", powerLabel: "Double jump", cooldownMs: 0 },
+   { id: "nami", name: "Nyla", color: "#2563EB", power: "doubleJump", powerLabel: "Double jump", cooldownMs: 0 },
    { id: "kiro", name: "Kiro", color: "#22C55E", power: "shield", powerLabel: "Shield", cooldownMs: 8_000 },
    { id: "zuno", name: "Zuno", color: "#FACC15", power: "magnet", powerLabel: "Magnet", cooldownMs: 8_000 },
    { id: "vexa", name: "Vexa", color: "#8B5CF6", power: "phase", powerLabel: "Phase", cooldownMs: 6_000 },

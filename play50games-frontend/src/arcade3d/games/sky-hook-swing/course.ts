@@ -300,7 +300,7 @@ class Build {
       for (let k = 0; k < 4; k++) this.orb(at - 1.8 + k * 1.2, this.y - 4.4, 0, "magnet");
    }
 
-   /** Nami: a high ledge beside a rest deck, out of one jump's reach, an orb loop over it */
+   /** Nyla: a high ledge beside a rest deck, out of one jump's reach, an orb loop over it */
    ledge(deck: number, side: number): void {
       const d = this.islands[deck];
       const z = side * (d.r + 1.4);

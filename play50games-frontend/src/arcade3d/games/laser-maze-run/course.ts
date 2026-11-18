@@ -7,7 +7,7 @@
 // - a laser gate a switch turns off for a few seconds (level 3 on: one switch turns the next gate ON, so
 //   the switches depend on each other; level 4: decoy switches that wake a sweep);
 // - a moving barrier (a solid block sliding across the room) to slip past.
-// Around them the hero routes: high orbs over the beams (Nami's second jump), live floor tiles (Kiro's
+// Around them the hero routes: high orbs over the beams (Nyla's second jump), live floor tiles (Kiro's
 // shield; Riko's dash jump clears the short ones), laser cages (Vexa's phase walks in, Zuno's magnet pulls
 // their orbs out). Level 5 ends in the Vault Core's arena. README "Levels" lists each layout.
 import type { LevelId } from "@/arcade3d/types";
@@ -18,11 +18,11 @@ import { SECRETS } from "./progression";
 export const HALF = 4.5;
 /** A room's length (m). */
 export const ZONE = 14;
-/** Beam heights: a low beam (jump it), a full wall (time it, switch it, phase it; Nami's double jump clears it). */
+/** Beam heights: a low beam (jump it), a full wall (time it, switch it, phase it; Nyla's double jump clears it). */
 export const LOW: [number, number] = [0.05, 0.45];
 export const FULL: [number, number] = [0.05, 1.7];
 export const ORB_Y = 1.0;
-/** Nami's high orbs and sticker: only a second jump reaches them. */
+/** Nyla's high orbs and sticker: only a second jump reaches them. */
 export const HIGH_Y = 3.1;
 
 export type LaserKind = "beam" | "pulse" | "sweep" | "gate" | "cage";
@@ -225,7 +225,7 @@ class Builder {
       this.orb(0, this.s0 + at + 2);
    }
 
-   /** Nami's high orbs over a beam (and the sticker). */
+   /** Nyla's high orbs over a beam (and the sticker). */
    high(at: number, x: number, sticker = false): void {
       for (let k = 0; k < 2; k++) this.orb(x, this.s0 + at - 0.6 + k * 1.2, HIGH_Y, "high");
       if (sticker) this.secrets.push({ id: "high", x, s: this.s0 + at + 2.2, h: HIGH_Y });

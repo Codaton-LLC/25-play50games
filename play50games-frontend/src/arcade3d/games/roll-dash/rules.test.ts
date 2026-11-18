@@ -83,7 +83,7 @@ describe("Prism Locks", () => {
       expect(speedOf(r)).toBeCloseTo(base + BOOST, 6);
    });
 
-   it("Nami's barrier needs her second jump (one jump never reaches BARRIER_H)", () => {
+   it("Nyla's barrier needs her second jump (one jump never reaches BARRIER_H)", () => {
       const r = createRun(1, 1, "riko");
       step(r, STEP_MS, { ...createStepInput(), jumpPressed: true });
       let top = 0;

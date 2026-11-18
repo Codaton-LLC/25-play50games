@@ -25,7 +25,7 @@ export function starSpecFor(level: LevelId, orbTotal: number): StarSpec {
 /**
  * Two secrets a level, placed by layouts.ts in this order: one anyone can find by exploring (an odd
  * shot off the line), one behind a hero power (the card: Riko's cracked board opens a hidden cannon,
- * Nami's sticker on the high trapeze, Kiro's in the smoke, Vexa's behind the ghost poles), and L4's
+ * Nyla's sticker on the high trapeze, Kiro's in the smoke, Vexa's behind the ghost poles), and L4's
  * shard on the 100 % one-shot line. Secrets never add score.
  */
 export const SECRETS: Record<LevelId, readonly SecretSpec[]> = {

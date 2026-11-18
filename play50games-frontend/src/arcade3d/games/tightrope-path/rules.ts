@@ -35,7 +35,7 @@ export const V_PILLAR = 3.0;
 export const V_MAX = 3.0;
 export const SPRINT_HOLD_MS = 600;
 export const ACCEL = 10;
-/** the jump: up-speed, gravity, the least forward speed of a hop (m/s); Nami's second jump */
+/** the jump: up-speed, gravity, the least forward speed of a hop (m/s); Nyla's second jump */
 export const V_JUMP = 4.4;
 export const V_JUMP2 = 5.5;
 export const GRAV = 14;
@@ -683,7 +683,7 @@ function stepMs(run: TightRun, input: StepInput, jumpPressed: boolean, actionPre
    stepBossMs(run, jumpPressed, actionPressed, ev);
    if (run.ended !== null) return;
 
-   // the jump (Nami: a second one in the air)
+   // the jump (Nyla: a second one in the air)
    if (jumpPressed && !dashing) {
       if (!h.air && !h.crouch) {
          h.air = true;

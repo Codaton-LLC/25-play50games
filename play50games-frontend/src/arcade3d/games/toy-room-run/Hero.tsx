@@ -1,7 +1,7 @@
 "use client";
 
 // The picked hero, its own GLB animated by the shared Menu 2 animator (menu2/heroAnim): runs, jumps,
-// Nami's flip, the drum's throw, landings, bounces off a standing piece and knocks, the cheer at the
+// Nyla's flip, the drum's throw, landings, bounces off a standing piece and knocks, the cheer at the
 // finish; a fall to the carpet curls it into the ball. A blob shadow on whatever it stands over
 // (desk, shelf, bridge, drum, car roof).
 import { useMemo, useRef } from "react";

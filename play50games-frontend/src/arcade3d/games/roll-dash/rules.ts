@@ -4,7 +4,7 @@
 //
 // The signature mechanic (the World 6 card "Prism Locks"): a 3-lane ball-roll runner, auto-forward.
 // Every Prism Lock carries a hero colour and glyph and opens only to that hero's power: Riko's dash
-// breaks a red barricade, Nami's double jump clears a blue 3 m barrier, Kiro's shield passes a green
+// breaks a red barricade, Nyla's double jump clears a blue 3 m barrier, Kiro's shield passes a green
 // spray, Zuno's magnet opens a yellow vault, Vexa phases through a purple ghost wall. The whole squad
 // rolls together: TAG the right hero (1-5, or the portrait strip), then fire. A single lock blocks one
 // lane (dodge it, or open it for its orbs); a full lock spans all three: you must answer it. A correct
@@ -30,7 +30,7 @@ export const MAX_FRAME_MS = 50;
 /** a lane change takes this long */
 export const LANE_MS = 180;
 export const GRAV = 32;
-/** a jump reaches 1.4 m (the card); Nami's second jump about as much again */
+/** a jump reaches 1.4 m (the card); Nyla's second jump about as much again */
 export const V_JUMP = Math.sqrt(2 * GRAV * 1.4);
 export const V_JUMP2 = Math.sqrt(2 * GRAV * 1.4);
 /** a tuck lasts this long; tucked, the body is this tall (else BODY_H) */

@@ -168,7 +168,7 @@ describe("co-op", () => {
       expect(kiro.shieldUntil).toBeLessThanOrEqual(m.simMs + POWER_MS.shield + 1);
    });
 
-   it("Riko's dash and Nami's breach do nothing to an ally", () => {
+   it("Riko's dash and Nyla's breach do nothing to an ally", () => {
       const run = createMultiRun(1, 1, ["riko", "kiro"], "coop");
       const before = { ...run.runs[1].hero };
       onAllyPower({ from: 0, to: 1, power: "dash", source: run.runs[0], ally: run.runs[1] });

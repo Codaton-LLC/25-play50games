@@ -42,7 +42,7 @@ const definition: GameDefinition<AlienLevel> = {
       "A scan line sweeps forward over the track (the bar at the top and the violet glow warn you 1.5 s ahead). Be in a cover's dark shadow strip when it passes: UNSEEN.",
       "Crystals, rocks, drifting pods and fresh meteor craters cast shadows; under a low cover (SLIDE sign) hold Down / S (or pull the stick down) to slide into it. Caught, the tractor beam lifts you away for a moment.",
       "← / → (A / D, a swipe, or a flick of the stick) change lane; Space / Up / Jump jumps rocks; slide under the glowing energy bars. Goo slows you down; a brushed glow plant washes the shadows near it out.",
-      "E / Enter is your power: Riko's dash outruns the scan (and takes the orbs in open ground), Nami's second jump reaches the high mesa, Kiro's bubble hides him (and crosses goo), Zuno's magnet pulls orbs out of the goo, Vexa phases inside any crystal and through the ghost-crystal walls.",
+      "E / Enter is your power: Riko's dash outruns the scan (and takes the orbs in open ground), Nyla's second jump reaches the high mesa, Kiro's bubble hides him (and crosses goo), Zuno's magnet pulls orbs out of the goo, Vexa phases inside any crystal and through the ghost-crystal walls.",
       "Turn the camera: right-drag the view (or two fingers), mouse wheel / pinch zooms, Q / C turn, R / F tilt, V recenters.",
    ],
    resultDelayMs: 1800,

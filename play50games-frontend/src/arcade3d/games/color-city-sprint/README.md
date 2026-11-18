@@ -33,7 +33,7 @@ Power. Camera: the shared free orbit (`menu2/camera`): drag / two fingers, wheel
 
 - **Riko**: the dash (V_RED for 0.5 s, never faster than a red lane) smashes the cracked hoarding of the
   construction site: the whole block opens as a diagonal cut. The site's shard is inside.
-- **Nami**: the second jump. Off a ramp onto a bus roof (3.4 m, above a plain jump's 3.27 m), then only her
+- **Nyla**: the second jump. Off a ramp onto a bus roof (3.4 m, above a plain jump's 3.27 m), then only her
   second jump reaches the elevated rail (7.4 m): a fast deck (always 8.5 m/s) with two bonus gems and the
   rooftop sticker at its end.
 - **Kiro**: the shield: sludge, steam vents and Greyout's drones neither slow nor knock him.
@@ -123,7 +123,7 @@ busiest), 60 fps (p95 frame 17 ms in headless).
 
 - Stars (`menu2/stars`): clear, every main gem (spread so no single lap line gets them all), target time
   (44 / 58 / 78 / 96 / 92 s). No-hit badge: never bumped, vented, struck.
-- Secrets (`menu2/secrets`): the rooftop sticker (rail, Nami), the ghost-shop shard (Vexa), the hoarding
+- Secrets (`menu2/secrets`): the rooftop sticker (rail, Nyla), the ghost-shop shard (Vexa), the hoarding
   shard (Riko); L4 the perfect loop instead of the hoarding shard.
 - Juice (`menu2/juice`): red paint spray behind a ball on red, a speed ripple into a red lane, dust and a
   horn on bus-roof landings, a ramp kick, lap-split pops (`Lap 2 · 0:14.2`), "+3 red" on a beacon,

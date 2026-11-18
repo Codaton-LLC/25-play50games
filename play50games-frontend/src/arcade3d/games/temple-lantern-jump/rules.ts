@@ -570,7 +570,7 @@ function sub(run: TempleRun, input: StepInput, jumpEdge: boolean, actionEdge: bo
    h.vx = vx;
    h.vz = vz;
 
-   // jump: on a ledge or a hair after it; Nami once more in the air
+   // jump: on a ledge or a hair after it; Nyla once more in the air
    const grounded = h.grounded || ms - h.lastGroundMs <= COYOTE_MS;
    if (jumpEdge) {
       if (grounded && h.vy <= 0.01) {

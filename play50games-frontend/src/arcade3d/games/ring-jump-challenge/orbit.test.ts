@@ -1,6 +1,6 @@
 // Ring Jump Challenge with the shared orbit camera (menu2/camera): camera-relative steering through
 // the rules' own input (StepInput.yaw), the honest bot unchanged at the default yaw, the FOV that opens
-// with the fall, the intro ending on the orbit's first pose, and the preselected hero (W2: Nami).
+// with the fall, the intro ending on the orbit's first pose, and the preselected hero (W2: Nyla).
 import { describe, expect, it } from "vitest";
 import { inputToWorld } from "@/arcade3d/core/math";
 import { createOrbit, orbitPosition } from "@/arcade3d/menu2/camera/orbit";
@@ -118,7 +118,7 @@ describe("the camera", () => {
       }
    });
 
-   it("World 2's lead, Nami, is preselected and is the rules' default", () => {
+   it("World 2's lead, Nyla, is preselected and is the rules' default", () => {
       expect(defaultHeroFor("ring-jump-challenge", null)).toBe("nami");
       expect(DEFAULT_HERO).toBe("nami");
       expect(createRun(1).heroId).toBe("nami");

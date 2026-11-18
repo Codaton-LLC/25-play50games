@@ -1,6 +1,6 @@
 "use client";
 
-// The picked hero running on menu2/heroAnim (run, jump, Nami's second jump, the slide as the curled ball,
+// The picked hero running on menu2/heroAnim (run, jump, Nyla's second jump, the slide as the curled ball,
 // a stagger after a bounce, cheer at the finish), wrapped in a shell of its current colour: a glowing
 // ring at the feet and a translucent aura that flashes on every switch, with the colour's shape floating
 // over its head. Kiro's shield, Vexa's phase and Riko's dash show as their own auras. Visual only.

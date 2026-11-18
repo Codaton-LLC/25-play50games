@@ -41,7 +41,7 @@ const definition: GameDefinition<FactoryLevel> = {
       "Step on a red switch plate: the junction wired to it turns a quarter turn (its arrow shows where it sends cells). Step off and on again for another turn.",
       "Belts carry you too. Space jumps; Space again in the air roll-drops. Presses, tread bots and M-8 knock you back.",
       "A cell that runs off a belt end or under a press is scrap: the dispenser lets out another on its beat.",
-      "Power (E, Enter, or the Power button): Riko dashes (flicks a cell one belt over, smashes cracked crates), Nami jumps again, Kiro shields through lasers, Zuno's magnet pulls cells and orbs, Vexa phases through ghost crates.",
+      "Power (E, Enter, or the Power button): Riko dashes (flicks a cell one belt over, smashes cracked crates), Nyla jumps again, Kiro shields through lasers, Zuno's magnet pulls cells and orbs, Vexa phases through ghost crates.",
       "Turn the camera: drag the view (or two fingers), mouse wheel / pinch zooms, Q / C turn, R / F tilt, V recenters.",
    ],
    resultDelayMs: 1800,

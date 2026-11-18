@@ -19,7 +19,7 @@ export const RISE = 0.7;
 export const LOOP_RISE = RISE * STEPS_PER_LOOP;
 /** a ledge's length along the ring (the rest of a step is the gap you jump) */
 export const LEDGE_LEN = 4.0;
-/** Nami's loop skip: two skip ledges above a ledge, SKIP_RISE apart, then the ledge one loop up */
+/** Nyla's loop skip: two skip ledges above a ledge, SKIP_RISE apart, then the ledge one loop up */
 export const SKIP_RISE = LOOP_RISE / 3;
 /** a yellow claw sits this high on the wall over its ledge: past a plain jump, inside Zuno's magnet */
 export const YELLOW_LIFT = 4.5;
@@ -28,7 +28,7 @@ export interface ClawSpec {
    /** the ledge it stands on (its spiral index) */
    ledge: number;
    colour: TagColour;
-   /** on a skip ledge (Nami) or high on the wall (Zuno's magnet reaches it from its ledge): height above the ledge */
+   /** on a skip ledge (Nyla) or high on the wall (Zuno's magnet reaches it from its ledge): height above the ledge */
    lift?: number;
 }
 
@@ -44,7 +44,7 @@ export interface TowerSpec {
    name: string;
    /** the level's ledges: 0 .. ledges - 1 */
    ledges: number;
-   /** ledges with a Nami loop skip above them (skip ledges at +SKIP_RISE and +2 SKIP_RISE) */
+   /** ledges with a Nyla loop skip above them (skip ledges at +SKIP_RISE and +2 SKIP_RISE) */
    skips: number[];
    claws: ClawSpec[];
    /** L3: every ledge crumbles CRUMBLE_MS after you land on it, back after REFORM_MS */
@@ -68,7 +68,7 @@ export interface TowerSpec {
 
 export const LEVELS: Record<LevelId, TowerSpec> = {
    // L1 Training Guardian: three beats. Climb two loops and charge a red claw as Riko (the cannon fires
-   // at the dozing guardian and he wakes); his slow sweep (jump it); a blue claw on a high ledge for Nami.
+   // at the dozing guardian and he wakes); his slow sweep (jump it); a blue claw on a high ledge for Nyla.
    1: {
       id: 1,
       name: "Training Guardian",

@@ -2,7 +2,7 @@
 
 Hang under a pulley trolley and race down sagging cables between sea-stack towers: tuck (Down) to
 gain speed, brake (Up) to lose it, hop (Jump + sideways) between lines, release onto the landing mat
-in the green band. Five levels, Volt Eel boss on L5. Default hero Nami (W2 lead). Status `dev`.
+in the green band. Five levels, Volt Eel boss on L5. Default hero Nyla (W2 lead). Status `dev`.
 
 Built by Codex (rules, levels, proofs, multiplayer), gated and brought up to the Menu 2 bar by Claude
 (world, stations, rider, boss staging, HUD, audio/juice pass).
@@ -17,7 +17,7 @@ Built by Codex (rules, levels, proofs, multiplayer), gated and brought up to the
 | `look.ts` | one palette per level (sky, sun/moon, sea, rock, cable, clouds, stars, lantern, storm) + `lightningFlash` |
 | `World.tsx` | sky dome, world-space sea (stack foam, sun path), clouds, rain + lightning (L5), scenery GLBs (culled by distance), key/rim lights |
 | `Stations.tsx` | merged flat-shaded sea-stack geometry, steel gantries + anchor frames, watch towers, lamps, landing mats with the three-zone projection, moving decks (L3/L5), night lighthouses with beams, Tide Bell station |
-| `Course.tsx` | cables (one merged tube mesh: hop wobble, beam-lit on night levels, fade near the camera), spark-storm and eel-charge glows with lightning ribbons, the L4 beam line, orbs, gulls, Riko's rock barrier, Vexa's ghost gate, Nami's shard |
+| `Course.tsx` | cables (one merged tube mesh: hop wobble, beam-lit on night levels, fade near the camera), spark-storm and eel-charge glows with lightning ribbons, the L4 beam line, orbs, gulls, Riko's rock barrier, Vexa's ghost gate, Nyla's shard |
 | `Boss.tsx` | Volt Eel staging per phase (cables / coiled / plunge), weak-point ring, arcs, defeat fall |
 | `Hero.tsx` | the hero on the shared animator + a hang pose (`hangPose`: hands on the T-grip, dangling legs, tuck, brake lean), pendulum swing, trolley riding the cable, the walk across the station deck |
 | `Culled.tsx` | static spots through `<DynamicInstancedModel>` skipping copies far from the camera |

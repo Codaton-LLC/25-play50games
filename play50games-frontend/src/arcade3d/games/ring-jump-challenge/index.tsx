@@ -42,7 +42,7 @@ const definition: GameDefinition<RingLevel> = {
       "Hold Dive (Space / the Dive button) to tuck into a ball and fall fast; let go to spread out and steer better.",
       "Each ring scores and speeds you up; its bright centre doubles it. Passing close by a ring without threading it breaks your streak.",
       "Land on the target pad (the bull's-eye pays most) or in the marked pool. A splash anywhere else drops you again.",
-      "Power (E, Enter, or the Power button): Riko air-dashes through cracked seals, Nami air-brakes back up, Kiro shields through storms and blades, Zuno's magnet pulls orbs out of the walls, Vexa phases through ghost panels.",
+      "Power (E, Enter, or the Power button): Riko air-dashes through cracked seals, Nyla air-brakes back up, Kiro shields through storms and blades, Zuno's magnet pulls orbs out of the walls, Vexa phases through ghost panels.",
       "Turn the camera: drag the view (or two fingers), mouse wheel / pinch zooms, Q / C turn, R / F tilt, V recenters.",
    ],
    resultDelayMs: 1800,

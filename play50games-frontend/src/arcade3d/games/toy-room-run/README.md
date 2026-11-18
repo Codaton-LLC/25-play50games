@@ -37,7 +37,7 @@ rug and four checkpoints.
 
 - **Riko**: the dash (+6 m/s for 0.4 s, 3 charges a run) catches a lost wave and breaks the cracked block
   wall in front of a side nook. Its shard is inside.
-- **Nami**: the second jump goes from the pencil ramp to the high bookshelf ledge (the orb route and the
+- **Nyla**: the second jump goes from the pencil ramp to the high bookshelf ledge (the orb route and the
   shelf shard).
 - **Kiro**: the shield: block cascades and spinning tops do not knock him.
 - **Zuno** (lead): the magnet: coin trails come out from under the rug, and a spare piece slides into its
@@ -121,7 +121,7 @@ with a mouse drag or two-finger orbit mid-run. Every run won with 0 console erro
 - Stars (`menu2/stars`): clear the level, collect every main orb, and beat the target time (55, 75, 90, 105
   and 140 s). No-hit badge: never knocked by a cascade, a top, a car or Jack. Bounces off pieces don't
   count.
-- Secrets (`menu2/secrets`): the castle sticker (Vexa), the wall shard (Riko), the shelf shard (Nami).
+- Secrets (`menu2/secrets`): the castle sticker (Vexa), the wall shard (Riko), the shelf shard (Nyla).
 - Flow (`menu2/combo`): a chain started, a gap crossed (doubled when surfing within 3 m of the wave front),
   an orb, a hit on Jack. The link window is 2.5 s, x2 cap.
 

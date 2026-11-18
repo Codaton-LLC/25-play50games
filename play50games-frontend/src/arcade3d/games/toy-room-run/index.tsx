@@ -42,7 +42,7 @@ const definition: GameDefinition<ToySpec> = {
       "Fallen pieces over a gap are your bridge, for a moment: stay close behind the wave. Run into a standing piece and you bounce back.",
       "A chain stalls at a missing piece: push the spare lying beside it into the gap. Forks give you a choice of route.",
       "Stand on a toy drum as the wave hits it and it throws you up to the shelf. Race cars start too: dodge them or ride one.",
-      "Power (E, Enter, or the Power button): Riko's dash (3 a run) breaks the cracked block wall, Nami jumps again, Kiro's shield, Zuno's magnet pulls gems and spare pieces, Vexa phases through the castle's ghost door.",
+      "Power (E, Enter, or the Power button): Riko's dash (3 a run) breaks the cracked block wall, Nyla jumps again, Kiro's shield, Zuno's magnet pulls gems and spare pieces, Vexa phases through the castle's ghost door.",
       "Turn the camera: drag the view (or two fingers), mouse wheel / pinch zooms, Q / C turn, R / F tilt, V recenters. Up on the stick runs away from the camera.",
    ],
    resultDelayMs: 1500,

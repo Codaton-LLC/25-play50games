@@ -1,6 +1,6 @@
 // The honest bot (pure). It climbs like a careful player: up the spiral ledge by ledge (a jump near each
 // ledge's end), tagging to the next claw's hero a few ledges early; at the claw's ledge it walks to the
-// centre and charges it: by touch, Zuno's magnet for a yellow claw on the wall, Nami's jumps up the two
+// centre and charges it: by touch, Zuno's magnet for a yellow claw on the wall, Nyla's jumps up the two
 // skip ledges for a high blue one. It plants itself for the guardian's sweep and jumps as the arm comes
 // round, and jumps the hazard orbs. In the chain phases it keeps the paired claws for them and charges a
 // pair at a telegraph (inside the drain); on level 5's Grey Heart it tags through the five glyphs as they
@@ -111,7 +111,7 @@ export function botInput(bot: Bot, run: CbtRun, input: StepInput): void {
 
    if (!h.grounded) {
       if (bot.skipStage > 0) {
-         // a skip climb (straight up): Nami's second jump near the top of the first
+         // a skip climb (straight up): Nyla's second jump near the top of the first
          if (!bot.doubled && h.vy < 0.8 && run.tag.active === "nami") {
             input.jumpPressed = true;
             bot.doubled = true;

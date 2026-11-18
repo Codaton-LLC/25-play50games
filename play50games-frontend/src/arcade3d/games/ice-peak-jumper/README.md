@@ -43,7 +43,7 @@ You can't stop on ice. You build your slide, then launch off the edge, and the r
 | Hero | Power | What it opens |
 |---|---|---|
 | Riko | Dash, +4 m/s on ice for 0.5 s (4 s cooldown) | Speed ledges 6.8 m off a run (9 m/s carries only 6.7 m); smashes the golden-mitten ice cube |
-| Nami | Second jump in the air, which re-aims along the stick | High cornices 3.6 m up (one jump rises 2.2 m), the cairn flag |
+| Nyla | Second jump in the air, which re-aims along the stick | High cornices 3.6 m up (one jump rises 2.2 m), the cairn flag |
 | Kiro | Shield (3 s, blocks one hit) | Crosses the icicle-rain chute; blocks a snowball |
 | Zuno | Magnet (3 s) | Pulls the coin trails frozen inside the ice walls |
 | Vexa | Phase (2.6 s) | Goes through the ghost-ice walls into the back caves (a shard) |
@@ -117,7 +117,7 @@ The bound is honest but loose: the real runs take 30-50 s. The time on ice goes 
 - **Flow meter:** a link within 3 s, +0.25 per link, capped at ×2. Orbs and perfect landings feed it.
 - **Secrets:**
   - the golden mitten in its ice cube (Riko);
-  - the cairn flag on a high cornice (levels 2 and 4, Nami);
+  - the cairn flag on a high cornice (levels 2 and 4, Nyla);
   - the hidden ledge behind the peak (a launch of 8.8 m/s or more);
   - the ghost-ice shard (Vexa).
 - `levelEnd.ts` records the result through menu2/progress.

@@ -1,6 +1,6 @@
 // The hero roles (the card): one action press each (keyboard E/Enter and the touch Power button both
 // set actionPressed, the same timing), and what each power opens in the drowned temple: Riko dashes
-// through cracked brick, Nami's breach jump leaps 4 m out of the water to the orb nests, Kiro's
+// through cracked brick, Nyla's breach jump leaps 4 m out of the water to the orb nests, Kiro's
 // shield walks through steam jets and whirlpools, Zuno's magnet pulls buried orbs out of a drained
 // floor, Vexa phases through ghost panels to the stickers.
 import { describe, expect, it } from "vitest";
@@ -33,7 +33,7 @@ function swimAt(run: RuinRun, x: number, y: number, z: number): void {
 const find = (level: 1 | 2 | 3 | 4 | 5, pred: (s: ReturnType<typeof courseFor>["supports"][number]) => boolean) => courseFor(level).supports.findIndex(pred);
 
 describe("the five heroes", () => {
-   it("lists the powers and the plan's cooldowns; Nami (World 2's lead) is the rules' and the picker's default", () => {
+   it("lists the powers and the plan's cooldowns; Nyla (World 2's lead) is the rules' and the picker's default", () => {
       expect(HEROES.map((h) => h.power)).toEqual(["dash", "doubleJump", "shield", "magnet", "phase"]);
       expect(HEROES.map((h) => h.cooldownMs)).toEqual([15_000, 10_000, 20_000, 20_000, 20_000]);
       expect(DEFAULT_HERO).toBe("nami");
@@ -68,7 +68,7 @@ describe("Riko: the dash breaks cracked brick (level 2's plug into the cistern t
    });
 });
 
-describe("Nami: the breach jump out of the water", () => {
+describe("Nyla: the breach jump out of the water", () => {
    it("from the surface her power leaps BREACH_HEIGHT (4 m) onto level 1's orb nest; a plain leap (H_JUMP) falls short", () => {
       const nest = find(1, (s) => s.kind === "ledge" && s.top === 5.8);
       expect(nest).toBeGreaterThanOrEqual(0);
@@ -101,7 +101,7 @@ describe("Nami: the breach jump out of the water", () => {
       const riko = leap("riko", false) as RuinRun & { landedNest: boolean };
       expect(riko.landedNest).toBe(false);
       expect(riko.orbs).toBe(0);
-      // Nami's plain leap (Jump, not the power) falls short too
+      // Nyla's plain leap (Jump, not the power) falls short too
       const plain = leap("nami", false) as RuinRun & { landedNest: boolean };
       expect(plain.landedNest).toBe(false);
    });
@@ -243,7 +243,7 @@ describe("one press, one timing", () => {
          step(run, 16, input);
          expect(run.powerReadyAt, `${h.id} jump`).toBe(0);
          if (h.power === "doubleJump") {
-            // Nami's power needs the air (or the water's surface): in the air it fires
+            // Nyla's power needs the air (or the water's surface): in the air it fires
             hold(run, 100, createStepInput());
          }
          const p = createStepInput();

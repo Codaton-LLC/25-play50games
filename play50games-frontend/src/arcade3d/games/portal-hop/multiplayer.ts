@@ -1,4 +1,4 @@
-// Portal Hop local multiplayer (menu2/multiplayer, phase M1): 2-4 heroes on the same island chain.
+// Rift Hop local multiplayer (menu2/multiplayer, phase M1): 2-4 heroes on the same island chain.
 // Pure: N PortalRuns from the SAME seed and level (rules.ts unchanged), stepped in lock-step with the
 // framework's stepPlayerSims, plus the mode rules:
 // - The field is shared: an orb taken by one hero is gone for the others (orbTaken is one array), a

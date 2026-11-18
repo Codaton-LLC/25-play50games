@@ -388,7 +388,7 @@ describe("the z guard (the proof's one rule)", () => {
 
 describe("bots (README 'What the bots reached')", () => {
    for (const level of LEVEL_IDS) {
-      it(`level ${level}: the honest bot (Nami) reaches the exit at 30, 60 and 144 fps with every main orb, never under the floor, at least 80 % of maxScore`, () => {
+      it(`level ${level}: the honest bot (Nyla) reaches the exit at 30, 60 and 144 fps with every main orb, never under the floor, at least 80 % of maxScore`, () => {
          const lim = PROPOSED_LEVEL_LIMITS[level];
          for (const fps of FPS) {
             const run = botRun(level, fps);

@@ -4,7 +4,7 @@
 // once): the pink road with its lane lines, the obstacles (jelly cubes, chocolate walls, frozen blocks,
 // cookie / candy-cane / frozen arches, lollipop wheels, the king's drum, throne and crown), each with
 // its size sign (BIG / SMALL) shown 2 s ahead (3 s on level 1), the candy coins, the orbs, the side
-// lanes and their gates (Riko's gingerbread wall, Vexa's ghost wall), Nami's candy-cane rail, Zuno's
+// lanes and their gates (Riko's gingerbread wall, Vexa's ghost wall), Nyla's candy-cane rail, Zuno's
 // frosting walls, Kiro's popping fields, level 2's chocolate bridges and donuts, level 3's frosted ice,
 // level 4's gummy monsters, and the finish gate. On level 5 the palace section is drawn twice while it
 // repeats (this lap and the next), so the road ahead never runs out.
@@ -306,7 +306,7 @@ function Orbs({ run }: { run: CandyRun }) {
    );
 }
 
-/** The side lanes' gates, Nami's rail, Zuno's frosting walls, the donuts, the gummies, the secrets. */
+/** The side lanes' gates, Nyla's rail, Zuno's frosting walls, the donuts, the gummies, the secrets. */
 function Features({ run }: { run: CandyRun }) {
    const c = run.course;
    const time = useGameTime();

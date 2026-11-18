@@ -16,7 +16,7 @@ beacon by 1, a perfect wave (no leak) by 2.
 - Each portal lights up in its orb's colour 2 s before it launches it (read it, charge, run).
 - Camera: the menu2 orbit camera, a high view of the arena from the south that follows the hero a little;
   drag, two fingers, pinch, Q / C; V recenters.
-- Powers: Riko dash (14 m/s for 0.3 s), Nami double jump (the pillar beacon), Kiro shields the beacon (3 s),
+- Powers: Riko dash (14 m/s for 0.3 s), Nyla double jump (the pillar beacon), Kiro shields the beacon (3 s),
   Zuno's magnet widens his block to 3.2 m (3 s), Vexa phases through the drone and runs 40 % faster (2 s).
   No power blocks an orb of the wrong colour.
 - Hero: the shared picker; `DEFAULT_HERO` Riko (`defaultHeroFor`: not on the world map yet).
@@ -40,7 +40,7 @@ the beacon fizzles.
 **Scoring (points):** a block 100, +50 early (blocked 8.5 m or farther from the core), a perfect wave 250,
 the combo (blocks within 2.5 s, x1-x5), a Mortar hit 600, his defeat 2000. Stars: clear; every regular
 orb blocked; 60 % of the level's maximum. Badge: no leak and no knock. Secrets: a perfect wave blocked
-all early; the rainbow chain (one block of every colour in a row); the pillar beacon (Nami).
+all early; the rainbow chain (one block of every colour in a row); the pillar beacon (Nyla).
 Multiplayer: one arena, seat 0's run owns the orbs, the beacon and the boss; every hero's block scores for
 him; co-op holds the beacon together, versus ranks by score.
 

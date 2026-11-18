@@ -4,7 +4,7 @@
 //
 // - Riko: a dash (+6 m/s for 0.4 s, 3 charges a run) that crosses the widest pad gaps and shatters
 //   the crystal wall of a side nook. His shard is inside.
-// - Nami: a second jump: up to the sky ledge over the corridor (her shard and two gems).
+// - Nyla: a second jump: up to the sky ledge over the corridor (her shard and two gems).
 // - Kiro: a shield: laser beams, rolling orbs and the Sentinel's sweeps do not knock him (he keeps
 //   the energy core he carries).
 // - Zuno: a magnet: gems from 6 m, the hidden gems rise out of the floor light, and the energy core
@@ -26,7 +26,7 @@ export interface HeroDef {
 
 export const HEROES: readonly HeroDef[] = [
    { id: "riko", name: "Riko", color: "#EF4444", power: "dash", powerLabel: "Dash", cooldownMs: 2_500 },
-   { id: "nami", name: "Nami", color: "#2563EB", power: "doubleJump", powerLabel: "Double jump", cooldownMs: 0 },
+   { id: "nami", name: "Nyla", color: "#2563EB", power: "doubleJump", powerLabel: "Double jump", cooldownMs: 0 },
    { id: "kiro", name: "Kiro", color: "#22C55E", power: "shield", powerLabel: "Shield", cooldownMs: 8_000 },
    { id: "zuno", name: "Zuno", color: "#FACC15", power: "magnet", powerLabel: "Magnet", cooldownMs: 8_000 },
    { id: "vexa", name: "Vexa", color: "#8B5CF6", power: "phase", powerLabel: "Phase", cooldownMs: 6_000 },

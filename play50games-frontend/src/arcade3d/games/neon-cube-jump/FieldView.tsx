@@ -6,7 +6,7 @@
 // reads by shape and fill, not by hue. Neutral cubes carry an energy pad (m2EnergyPad); checkpoints and
 // the goal a beacon. Laser walls (m2LaserWall) shine while their set is solid; sentry drones
 // (m2NeonSentryDrone) dim while theirs is not. Orbs, Zuno's coins (m2DigitalCoin) inside the cubes,
-// Vexa's ghost walls and crystals, the parity shard, Nami's ledge sticker, and the landing preview: a
+// Vexa's ghost walls and crystals, the parity shard, Nyla's ledge sticker, and the landing preview: a
 // ring on the top the hero will land on.
 import { useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
@@ -280,7 +280,7 @@ function Coins({ run }: { run: NeonRun }) {
    );
 }
 
-/** Vexa's ghost walls (faint, bright while she phases), their crystals, the parity shard, Nami's ledge sticker. */
+/** Vexa's ghost walls (faint, bright while she phases), their crystals, the parity shard, Nyla's ledge sticker. */
 function Secrets({ run }: { run: NeonRun }) {
    const c = run.course;
    const time = useGameTime();

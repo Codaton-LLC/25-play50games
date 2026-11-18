@@ -67,7 +67,7 @@ export function createArmadilloPose(): ArmadilloPose {
    return { run: 0, phase: 0, tuck: 0, roll: 0, spin: 0, time: 0, cheer: 0 };
 }
 
-/** Riko's colours: the plates are the hero colour (a recolour makes Nami, Kiro, Zuno, Vexa). */
+/** Riko's colours: the plates are the hero colour (a recolour makes Nyla, Kiro, Zuno, Vexa). */
 export const HERO_COLORS = {
    plate: "#ef4444",
    plateDark: "#b42323",

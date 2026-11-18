@@ -3,7 +3,7 @@ import { createRun, step, idleInput, cablePoint } from "./rules";
 import { botInput } from "./bot";
 import { defaultHeroFor } from "../../menu2/heroes/heroPick";
 describe("heroes have physical roles", () => {
-   it("preselects the W2 lead Nami", () => expect(defaultHeroFor("zipline-rush")).toBe("nami"));
+   it("preselects the W2 lead Nyla", () => expect(defaultHeroFor("zipline-rush")).toBe("nami"));
    for (const hero of ["nami", "riko"] as const) it(`${hero} catches a genuinely separate cable after an airborne power`, () => {
       const r = createRun(2, hero); let jumped = false, reached = false;
       for (let f = 0; f < 5000 && !r.ended; f++) {

@@ -55,7 +55,7 @@ describe("placement", () => {
       });
    }
 
-   it("every level has every hero's route: a site (Riko), a bus under the rail and a ramp (Nami), sludge or vents (Kiro), drains (Zuno), a ghost shop (Vexa)", () => {
+   it("every level has every hero's route: a site (Riko), a bus under the rail and a ramp (Nyla), sludge or vents (Kiro), drains (Zuno), a ghost shop (Vexa)", () => {
       for (const id of LEVEL_IDS) {
          const c = courseFor(id);
          expect(c.blocks.some((b) => b.kind === "site"), `L${id} site`).toBe(true);

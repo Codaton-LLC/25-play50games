@@ -30,7 +30,7 @@ export const ORB_BONUS_MS = 400;
 /** the fastest a hero ever covers one cell (a dash) */
 export const MIN_CELL_MS = DASH.ms / DASH.cells;
 
-/** the colour each hero walks (red Riko, blue Nami, yellow Zuno, purple Vexa, green Kiro) */
+/** the colour each hero walks (red Riko, blue Nyla, yellow Zuno, purple Vexa, green Kiro) */
 export const HERO_MASK: Record<M2HeroId, number> = { riko: 1, nami: 2, zuno: 4, vexa: 3, kiro: 6 };
 export const MASK_NAME: Record<number, string> = { 0: "dark", 1: "red", 2: "blue", 4: "yellow", 3: "purple", 6: "green", 5: "orange", 7: "white" };
 

@@ -328,7 +328,7 @@ function Updrafts({ run }: { run: RingRun }) {
    );
 }
 
-/** The stone ledges (Nami's nooks and the geysers' shelves): one instanced slab each, turned to its wall. */
+/** The stone ledges (Nyla's nooks and the geysers' shelves): one instanced slab each, turned to its wall. */
 function Ledges({ run }: { run: RingRun }) {
    const c = run.course;
    const ref = useRef<InstancedMesh>(null);

@@ -21,7 +21,7 @@ export const TOWER_COLLISION: ClipOptions = { radius: 0.35, minDistance: 1.4, sq
 export const FOV = 52;
 
 /**
- * Is this beacon post standing between the camera and the hero? (Portal Hop's anchorBlocksView, for a
+ * Is this beacon post standing between the camera and the hero? (Rift Hop's anchorBlocksView, for a
  * post.) At the start of a tier the hero steps into the beacon's ring right beside the post, and while
  * the orbit swings round behind him the post can fill the view. True while the post is within
  * `BEACON_BLOCK.width` m of the line from the camera to the hero (on the ground plan), between the two,

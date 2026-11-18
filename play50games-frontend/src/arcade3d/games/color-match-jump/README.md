@@ -37,13 +37,13 @@ The card asks for codes of 5–6 on L4. They are 4 here, so that the 16 codes st
 ## Hero roles (every level; each route holds an orb, so the "all orbs" star needs every hero)
 
 - **Riko (red):** the air dash carries a hop two hexes further. It crosses the void to the dash island; on the ground it is a 3-hex dash hop.
-- **Nami (blue):** the double jump clears the 4 m pillars. On L5 it is also the way up onto the golem's shoulder.
+- **Nyla (blue):** the double jump clears the 4 m pillars. On L5 it is also the way up onto the golem's shoulder.
 - **Kiro (green):** his shield crosses the lightning curtains. Without it, a curtain zaps you for a heart.
 - **Zuno (yellow):** his magnet pulls the floating orb trail in from 6 m.
 - **Vexa (purple):** her phase passes and lands through ghost pillars, which bounce everyone else back.
 
 Secrets (one per level):
-- L1: Nami's second high pillar.
+- L1: Nyla's second high pillar.
 - L2: the hex inside a ghost pillar.
 - L3: Riko's far island.
 - L4: a code cracked in under 4 s.
@@ -58,7 +58,7 @@ The golem is the ice-peak-jumper `m2FrostGolemBoss` drawn in grey glass. Hits ar
    - Crack a 4-colour code whose last colour you land on the glowing core hex behind it. That is 3 hits.
 2. **Plate:**
    - Boulders delete the hex you stand on (1 s shadow telegraph, gone for 8 s). The stomp hex is never targeted.
-   - From the stomp hex, jump at the golem, double-jump as Nami, and be the plate's colour at touchdown (tag mid-air). That is 3 hits.
+   - From the stomp hex, jump at the golem, double-jump as Nyla, and be the plate's colour at touchdown (tag mid-air). That is 3 hits.
 3. **Prism storm:**
    - Every hex recolours every 2 s.
    - Take 5 prism shards on matching hexes and hold out 20 s. The last hit gives the slow-mo finish.

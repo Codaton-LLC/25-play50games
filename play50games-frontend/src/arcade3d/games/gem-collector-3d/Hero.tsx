@@ -1,7 +1,7 @@
 "use client";
 
 // The picked hero, its own GLB animated by the shared Menu 2 animator (menu2/heroAnim): rolls, jumps,
-// Nami's flip, landings, knocks, the cheer at the end; a fall into a sunk tile curls it into the
+// Nyla's flip, landings, knocks, the cheer at the end; a fall into a sunk tile curls it into the
 // ball; Riko's dash rolls it. A blob shadow on the floor or the pedestal top it stands over.
 import { useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";

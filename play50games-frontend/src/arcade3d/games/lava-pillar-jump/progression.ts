@@ -35,7 +35,7 @@ export function starSpecFor(level: LevelId, emberTotal: number): StarSpec {
  * - ghost (Vexa): a shard inside a ghost obsidian wall at a pillar's edge, taken only while phasing;
  * - spray (Kiro): a shard in a vent's spray column, taken only while shielded;
  * - trail (Zuno): an ember-shard low over the lava beside a pillar, in the magnet's reach from the edge only;
- * - overhang (Nami): a sticker over a gap, caught only in a double jump's flight;
+ * - overhang (Nyla): a sticker over a gap, caught only in a double jump's flight;
  * - vent3 (level 3): a shard over the vent that fires on every third beat, at its launch's height;
  * - core (level 5): a sticker over Kalder's head, on a slam geyser's line.
  */

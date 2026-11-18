@@ -1,7 +1,7 @@
 // Plate Surf with the shared orbit camera (menu2/camera): camera-relative movement through the rules'
 // own input (StepInput.yaw), the default view's stick (right climbs the face, it never brakes), the
 // proof's z guard for any yaw, the intro ending on the orbit's first pose, the camera's solid boxes,
-// and the preselected hero (W2: Nami).
+// and the preselected hero (W2: Nyla).
 import { describe, expect, it } from "vitest";
 import { createRng, inputToWorld } from "@/arcade3d/core/math";
 import type { AABB } from "@/arcade3d/core/collision";
@@ -112,7 +112,7 @@ describe("the camera", () => {
 });
 
 describe("the hero pick", () => {
-   it("World 2's lead, Nami, is preselected; the player's pick is remembered", () => {
+   it("World 2's lead, Nyla, is preselected; the player's pick is remembered", () => {
       setHeroPickStorage(memoryHeroStorage());
       resetHeroPick();
       expect(defaultHeroFor("plate-surf")).toBe("nami");

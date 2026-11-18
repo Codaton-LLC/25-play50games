@@ -3,7 +3,7 @@
 // it here and the next createRun copies it.
 //
 // - Riko: a dash out of a release, 6 m straight. It smashes cracked crate stacks on the docks.
-// - Nami: a double jump after a release, the height for the high anchor ledges.
+// - Nyla: a double jump after a release, the height for the high anchor ledges.
 // - Kiro: a shield. Cannon smoke and cable sparks do not knock him off the rope.
 // - Zuno: a magnet. Orb strings under the arc come in from 6 m.
 // - Vexa: a phase. Ghost hull panels let her onto the inner deck.
@@ -23,7 +23,7 @@ export interface HeroDef {
 
 export const HEROES: readonly HeroDef[] = [
    { id: "riko", name: "Riko", color: "#EF4444", power: "dash", powerLabel: "Dash", cooldownMs: 8_000 },
-   { id: "nami", name: "Nami", color: "#2563EB", power: "doubleJump", powerLabel: "Double", cooldownMs: 2_500 },
+   { id: "nami", name: "Nyla", color: "#2563EB", power: "doubleJump", powerLabel: "Double", cooldownMs: 2_500 },
    { id: "kiro", name: "Kiro", color: "#22C55E", power: "shield", powerLabel: "Shield", cooldownMs: 12_000 },
    { id: "zuno", name: "Zuno", color: "#FACC15", power: "magnet", powerLabel: "Magnet", cooldownMs: 12_000 },
    { id: "vexa", name: "Vexa", color: "#8B5CF6", power: "phase", powerLabel: "Phase", cooldownMs: 10_000 },
@@ -41,7 +41,7 @@ export function heroById(id: HeroId): HeroDef {
    return BY_ID[id];
 }
 
-/** How long each power stays up after it fires (ms). Nami's double jump is instant. */
+/** How long each power stays up after it fires (ms). Nyla's double jump is instant. */
 export const POWER_MS = { dash: 400, shield: 2500, magnet: 2500, phase: 1600 } as const;
 
 /** Riko's dash: 15 m/s for 400 ms (6 m), under the free-flight speed cap. */

@@ -2,7 +2,7 @@
 // Jump, Green Shield, Yellow Magnet, Purple Phase). No power ever passes a gate in the wrong colour: the
 // gates are the game. Action fires the power:
 // - Riko: a dash (+6 m/s for 0.5 s) that smashes an energy block in its lane.
-// - Nami: a second jump in the air (the high prism over the gaps).
+// - Nyla: a second jump in the air (the high prism over the gaps).
 // - Kiro: a shield (3 s): hazards do not stop him, and a wrong gate costs no heart (it still bounces).
 // - Zuno: a magnet (4 s): energy pickups fly to him from 6 m.
 // - Vexa: a phase (2 s): she passes blocks, walls, beams and sweepers (the ghost lane shard).
@@ -22,7 +22,7 @@ export interface HeroDef {
 
 export const HEROES: readonly HeroDef[] = [
    { id: "riko", name: "Riko", color: "#EF4444", power: "dash", powerLabel: "Dash", cooldownMs: 5_000 },
-   { id: "nami", name: "Nami", color: "#2563EB", power: "doubleJump", powerLabel: "Double jump", cooldownMs: 0 },
+   { id: "nami", name: "Nyla", color: "#2563EB", power: "doubleJump", powerLabel: "Double jump", cooldownMs: 0 },
    { id: "kiro", name: "Kiro", color: "#22C55E", power: "shield", powerLabel: "Shield", cooldownMs: 15_000 },
    { id: "zuno", name: "Zuno", color: "#FACC15", power: "magnet", powerLabel: "Magnet", cooldownMs: 10_000 },
    { id: "vexa", name: "Vexa", color: "#8B5CF6", power: "phase", powerLabel: "Phase", cooldownMs: 8_000 },

@@ -1,7 +1,7 @@
 "use client";
 
-// Portal Hop's scene: the run (rules.ts) stepped in useRunFrame, the void (World), the islands and
-// portals (CourseView), the Portal Wyrm (level 5), the hero (menu2/heroAnim), the free orbit camera
+// Rift Hop's scene: the run (rules.ts) stepped in useRunFrame, the void (World), the islands and
+// portals (CourseView), the Rift Serpent (level 5), the hero (menu2/heroAnim), the free orbit camera
 // (menu2/camera: the stick is camera-relative through StepInput.yaw = orbit.viewYaw; through a portal it
 // keeps your facing and turns at most 90 degrees), the intro (core/intro) and the juice (menu2/juice):
 // a swirl and a speed-line burst out of every exit with a whoosh whose pitch rises with the speed, a
@@ -165,7 +165,7 @@ export function usePortalJuice() {
          playSfx("thud", { pitch: 0.5, volume: 0.7 * loud });
       }
       if (ev.wyrmDive) {
-         juice.popup(chest, "It dives into the west portal!", { color: "#e9d5ff", size: 0.06 });
+         juice.popup(chest, "It dives into the west rift!", { color: "#e9d5ff", size: 0.06 });
          playSfx("whoosh", { pitch: 0.45, volume: 0.6 * loud });
       }
       if (ev.wyrmBonk >= 0) {
@@ -178,7 +178,7 @@ export function usePortalJuice() {
       }
       if (ev.bossHit) {
          juice.burst("hit", chest, 34, { color: COLORS.wyrmGlow });
-         juice.popup(chest, ev.bossDefeated ? "The Wyrm is free of the void!" : "Plate cracked!", { color: "#fde68a", size: 0.08 });
+         juice.popup(chest, ev.bossDefeated ? "The Serpent is free of the void!" : "Plate cracked!", { color: "#fde68a", size: 0.08 });
          juice.shake(0.32);
          juice.hitStop(90);
          playSfx("thud", { pitch: 1.2 });

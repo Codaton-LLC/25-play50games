@@ -4,7 +4,7 @@
 // Action (E / Enter / the Power button) strikes the crystal you stand at; away from a crystal it fires
 // the hero power:
 // - Riko: a dash (4 m in 0.2 s, on the ground or in the air): beat a sequence timer.
-// - Nami: no button: her second jump in the air reaches the high crystal on its pillar (a sticker).
+// - Nyla: no button: her second jump in the air reaches the high crystal on its pillar (a sticker).
 // - Kiro: a shield (1.5 s): the Hollow Prism's beams pass him by.
 // - Zuno: a magnet (3 s): strikes crystals from 4 m instead of 1.6 m.
 // - Vexa: a phase (0.6 s): through the ghost walls to the hidden crystal alcoves (World 5's lead).
@@ -24,7 +24,7 @@ export interface HeroDef {
 
 export const HEROES: readonly HeroDef[] = [
    { id: "riko", name: "Riko", color: "#EF4444", power: "dash", powerLabel: "Dash", cooldownMs: 1_200 },
-   { id: "nami", name: "Nami", color: "#2563EB", power: "double", powerLabel: "Double jump", cooldownMs: 0 },
+   { id: "nami", name: "Nyla", color: "#2563EB", power: "double", powerLabel: "Double jump", cooldownMs: 0 },
    { id: "kiro", name: "Kiro", color: "#22C55E", power: "shield", powerLabel: "Shield", cooldownMs: 6_000 },
    { id: "zuno", name: "Zuno", color: "#FACC15", power: "magnet", powerLabel: "Magnet", cooldownMs: 8_000 },
    { id: "vexa", name: "Vexa", color: "#8B5CF6", power: "phase", powerLabel: "Phase", cooldownMs: 2_500 },

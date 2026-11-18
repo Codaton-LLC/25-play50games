@@ -5,7 +5,7 @@
 // (menu2/heroes defaultHeroFor).
 //
 // - Riko: a dash (0.35 s at 11 m/s): the far colour in time.
-// - Nami: a second jump in the air: over a hole, a sweeper bar or a shock ring.
+// - Nyla: a second jump in the air: over a hole, a sweeper bar or a shock ring.
 // - Kiro: a shield (3 s): a knock (the sweeper, the Keeper's shock ring) passes through him, and a drop
 //   under him while it is up bounces him onto the safe marker instead of costing a life.
 // - Zuno: a magnet that pulls the colour orbs from 6 m.
@@ -27,7 +27,7 @@ export interface HeroDef {
 
 export const HEROES: readonly HeroDef[] = [
    { id: "riko", name: "Riko", color: "#EF4444", power: "dash", powerLabel: "Dash", cooldownMs: 6_000 },
-   { id: "nami", name: "Nami", color: "#2563EB", power: "doubleJump", powerLabel: "Double", cooldownMs: 0 },
+   { id: "nami", name: "Nyla", color: "#2563EB", power: "doubleJump", powerLabel: "Double", cooldownMs: 0 },
    { id: "kiro", name: "Kiro", color: "#22C55E", power: "shield", powerLabel: "Shield", cooldownMs: 12_000 },
    { id: "zuno", name: "Zuno", color: "#FACC15", power: "magnet", powerLabel: "Magnet", cooldownMs: 8_000 },
    { id: "vexa", name: "Vexa", color: "#8B5CF6", power: "phase", powerLabel: "Phase", cooldownMs: 8_000 },
@@ -39,7 +39,7 @@ export function heroById(id: HeroId): HeroDef {
    return BY_ID[id];
 }
 
-/** How long each power stays up after it fires (ms). Nami's double jump is instant. */
+/** How long each power stays up after it fires (ms). Nyla's double jump is instant. */
 export const POWER_MS = { dash: 350, shield: 3000, magnet: 3000, phase: 1200 } as const;
 
 /** Riko's dash speed (m/s) and Zuno's magnet reach (m). */

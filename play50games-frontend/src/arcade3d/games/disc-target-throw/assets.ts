@@ -1,7 +1,7 @@
 // Disc Target Throw's models. The five heroes are the shared Menu 2 armadillos (menu2/heroModels.ts,
 // each its own GLB); the disc is m2TrainingDisc (ready/menu2/disc-target-throw, optimized locally). This game's props live
 // in public/models/3d/disc-target-throw (Hyper3D, ~/.play50/hyper3d/ready/menu2): the hay and stone idol
-// targets, the palisade, the score marker posts, the pavilion, the stone columns (from Wall Run Temple),
+// targets, the palisade, the score marker posts, the pavilion, the stone columns (from Cliff Glyph Run),
 // the raft (from Tightrope Path), Mother Snapper (m2SnapperPlant at 5x) and the jungle monkey. The colour
 // orb is the shared menu2 scoreOrb. Every GLB is one mesh, feet on y = 0, centred on x and z. GLB_SIZE is
 // the real bounds (assets.test.ts measures each mesh with the repo's own GLB reader).

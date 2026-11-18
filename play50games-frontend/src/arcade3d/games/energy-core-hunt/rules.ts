@@ -395,7 +395,7 @@ function substep(run: CoreRun, ms: number, input: StepInput, first: boolean, dtM
    comboTick(run.combo, COMBO, ms);
    const held = ms < h.heldUntil;
 
-   // Action: a capsule in reach opens; else the power (Nami's second jump in the air)
+   // Action: a capsule in reach opens; else the power (Nyla's second jump in the air)
    if (first && input.actionPressed && !held) {
       const cap = capsuleNear(run);
       if (cap >= 0) {

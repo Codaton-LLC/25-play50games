@@ -64,7 +64,7 @@ describe("progression", () => {
       }
    });
 
-   it("every level carries all five hero lines (Riko's board and hidden cannon, Nami's high orbs, Kiro's smoke orbs, Zuno's hidden trail, Vexa's ghost pole)", () => {
+   it("every level carries all five hero lines (Riko's board and hidden cannon, Nyla's high orbs, Kiro's smoke orbs, Zuno's hidden trail, Vexa's ghost pole)", () => {
       for (const id of LEVEL_IDS) {
          const c = courseFor(id);
          expect(c.boards.length, `L${id}`).toBeGreaterThan(0);

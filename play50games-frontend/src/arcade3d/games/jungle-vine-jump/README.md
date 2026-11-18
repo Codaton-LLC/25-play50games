@@ -65,7 +65,7 @@ counts (one a window).
   slow-mo finish.
 
 ### Hero roles (all bonus, never required)
-Riko dashes in the air after a release (+9 m/s impulse along the flight); Nami double jumps to the high
+Riko dashes in the air after a release (+9 m/s impulse along the flight); Nyla double jumps to the high
 canopy leaf (its emeralds); Kiro's shield (3 s) blocks pods, bites and the King's swing; Zuno's magnet
 (3 s, 6 m) pulls emeralds and orbs; Vexa phases through the ghost-root wall into the trunk hollow (the
 shard). Emerald trails sit beside two swings, in the hollow and on the canopy leaf.
@@ -88,7 +88,7 @@ unranked.
 ### Server limits and why they hold (`bound.ts`, `proof.test.ts`)
 No hero ever rises faster than `V_RISE_MAX` = the full 75 degree swing at the 6 m grip at its fastest
 (`sqrt(2 g 6 (1 - cos 75°))` = 14.3 m/s, kept by the energy cap at every grip) + the grip pulled in
-(3 m/s) + a bobbing anchor (1.26 m/s) = 18.6 m/s; a jump (9.4), Nami's second jump, Riko's dash
+(3 m/s) + a bobbing anchor (1.26 m/s) = 18.6 m/s; a jump (9.4), Nyla's second jump, Riko's dash
 (vy ≤ 2) and a knock (3) are slower. A respawn only returns to a platform already stood on. So a climb
 to a goal H m up takes at least H / V_RISE_MAX. Level 5 adds the King's least defeat time
 (`bossMinMs`: a perfect hitter in the first ms of every vulnerable window, 21.5 s). The row is that floor

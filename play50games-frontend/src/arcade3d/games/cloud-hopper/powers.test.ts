@@ -23,7 +23,7 @@ const press = (): StepInput => ({ ...createStepInput(), actionPressed: true });
 afterEach(() => selectHero(DEFAULT_HERO));
 
 describe("the five heroes", () => {
-   it("lists the powers and this game's cooldowns; Nami (World 2's lead) is preselected", () => {
+   it("lists the powers and this game's cooldowns; Nyla (World 2's lead) is preselected", () => {
       expect(HEROES.map((h) => h.power)).toEqual(["dash", "doubleJump", "shield", "magnet", "phase"]);
       expect(HEROES.map((h) => h.cooldownMs)).toEqual([8000, 2500, 15000, 15000, 12000]);
       expect(DEFAULT_HERO).toBe("nami");
@@ -87,7 +87,7 @@ describe("Riko: the air dash", () => {
    });
 });
 
-describe("Nami: the air jump, refreshed by a glide", () => {
+describe("Nyla: the air jump, refreshed by a glide", () => {
    it("a second jump in the air at full V_JUMP; spent until a glide refreshes it once that flight", () => {
       const run = createRun(1, 1, "nami");
       airborne(run, 0, 40, -10, 4000);

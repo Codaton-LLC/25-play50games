@@ -4,7 +4,7 @@
 // toll lane with a bronze portcullis that grinds up once paid, an offering bowl m2OfferingBowl beside
 // it, the jackpot arch in gold, Vexa's ghost gate as a violet shimmer, Riko's cracked side wall glowing
 // orange; the price floats over the arch on a billboard badge, never as text on the mesh), the lane
-// dividers of each section, the fast lanes' gold chevrons, Nami's ledges over the slow lanes
+// dividers of each section, the fast lanes' gold chevrons, Nyla's ledges over the slow lanes
 // (m2TempleLedge), the coins (m2TempleCoin spinning near the hero, cheap gold discs farther off; Zuno's
 // vein coins as glints in the wall until his magnet pulls them out), the relic orbs, the stone blocks
 // (m2StoneObstacle), the low beams (m2TempleBeam on two posts), the fire-jet pillars (m2FireJetPillar)
@@ -570,7 +570,7 @@ export function Course({ run, offsetX = 0 }: { run: TempleRun; offsetX?: number 
                return place(offsetX + laneX(l), 0.03, z, 1.2, 0.5 + pulse * 0.1, 1, 0, -Math.PI / 2);
             }}
          />
-         {/* Nami's ledges over the slow lanes (under the ledge coins) */}
+         {/* Nyla's ledges over the slow lanes (under the ledge coins) */}
          <DynamicInstancedModel
             asset={ASSETS.ledge}
             count={GATE_SLOTS * LANES}

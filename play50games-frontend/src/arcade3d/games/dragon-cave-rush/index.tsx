@@ -42,7 +42,7 @@ const definition: GameDefinition<CaveLevel> = {
       "Lean into every curve (A / D or the stick): the right lean is +15 % speed. A wrong lean on a sharp curve tips you onto two wheels; a second one derails you.",
       "Space / Hop jumps gaps and rocks; S / Down (stick down) ducks under beams and breath. At a fork, tap ← / → (or swipe) to swap tracks.",
       "Keep the distance meter up: hits shrink it, perfect leans and boosts grow it. At 0 she catches you and you restart at the last lantern. An orange glow and a roar warn of each breath 1 s ahead.",
-      "E / Enter is your power: Riko boosts through cracked barricades onto shortcuts, Nami's second hop reaches the upper scaffold, Kiro's shield takes a breath or a lavafall, Zuno's magnet pulls crystal trails, Vexa phases onto the ghost rails.",
+      "E / Enter is your power: Riko boosts through cracked barricades onto shortcuts, Nyla's second hop reaches the upper scaffold, Kiro's shield takes a breath or a lavafall, Zuno's magnet pulls crystal trails, Vexa phases onto the ghost rails.",
       "Turn the camera: right-drag the view (or two fingers), mouse wheel / pinch zooms, Q / C turn, R / F tilt, V recenters.",
    ],
    resultDelayMs: 1800,

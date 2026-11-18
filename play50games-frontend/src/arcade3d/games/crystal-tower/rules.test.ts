@@ -382,13 +382,13 @@ describe("hero routes and hazards", () => {
       expect(w.y1 - w.y0).toBeGreaterThan((14 * 14) / (2 * 30) + 0.2);
    });
 
-   it("the sky ledge is LEDGE_LIFT up: Nami's second jump reaches it, a plain jump does not", () => {
+   it("the sky ledge is LEDGE_LIFT up: Nyla's second jump reaches it, a plain jump does not", () => {
       const c = courseFor(1);
       const ledge = c.pads.find((p) => p.kind === "ledge")!;
       const under = c.spec.pads.find((p) => Math.abs(p.y + LEDGE_LIFT - ledge.y) < 0.01)!;
       for (const hero of ["zuno", "nami"] as const) {
          const run = createRun(1, 1, hero);
-         // stand at the pad's outer rim under the ledge, jump out and (Nami) again at the apex
+         // stand at the pad's outer rim under the ledge, jump out and (Nyla) again at the apex
          const d = Math.hypot(under.x, under.z);
          teleport(run, (under.x / d) * (d + under.r - 0.3), under.y, (under.z / d) * (d + under.r - 0.3));
          const p = go(under.x, under.z);

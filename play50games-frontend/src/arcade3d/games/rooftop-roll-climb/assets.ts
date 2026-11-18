@@ -22,7 +22,7 @@ export const GLB_SIZE = {
    // the slanted tin roof (m2SlopedRoofI): a block whose top falls along +z from 1.42 (the ridge, z -0.95)
    // to 0.45 (the gutter lip, z +0.95), close to a straight line; Course.tsx turns +z to the slope's dir
    slopedRoof: { x: 1.5693976879119873, y: 1.4175523519515991, z: 1.8991036415100098 },
-   // Ashback, the Shadow Armadillo (menu2/m2ShadowArmadillo, Rooftop Roll Climb's level 5 boss): feet on 0, long along z
+   // Ashback, the Shadow Pangolin (menu2/m2ShadowArmadillo, Rooftop Roll Climb's level 5 boss): feet on 0, long along z
    ashback: { x: 1.2982308864593506, y: 1.534679651260376, z: 1.8945307731628418 },
 } as const;
 

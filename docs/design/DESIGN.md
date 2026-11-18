@@ -65,7 +65,7 @@ One cool ink-navy neutral family in both themes (it comes from the navy shield i
 
 ### Content colours (Scale Squad heroes only)
 
-The five heroes keep their own colours, shown only as the ring around a hero portrait and the hero's ability chip: Riko Red (#EF4444), Nami Blue (#2563EB), Kiro Green (#22C55E), Zuno Yellow (#FACC15), Vexa Violet (#8B5CF6). They never colour buttons, links, tabs or headings.
+The five heroes keep their own colours, shown only as the ring around a hero portrait and the hero's ability chip: Riko Red (#EF4444), Nyla Blue (#2563EB), Kiro Green (#22C55E), Zuno Yellow (#FACC15), Vexa Violet (#8B5CF6). They never colour buttons, links, tabs or headings.
 
 ### Banned colour patterns
 

@@ -2,7 +2,7 @@
 
 // The hero: the picked hero's own GLB animated by the shared Menu 2 animator (menu2/heroAnim), the
 // code stand-in (Armadillo.tsx) as the fallback. Every frame the run becomes the animator's HeroMotion:
-// the walk at the hero's own velocity (it turns to face its way), the jump (Nami's second jump = the
+// the walk at the hero's own velocity (it turns to face its way), the jump (Nyla's second jump = the
 // somersault), the hurt on a laser touch, the cheer at the finish. The blob shadow stays here too.
 import { useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";

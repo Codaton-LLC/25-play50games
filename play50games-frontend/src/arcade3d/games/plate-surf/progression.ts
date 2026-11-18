@@ -27,7 +27,7 @@ export function starSpecFor(level: LevelId, orbTotal: number): StarSpec {
 /**
  * Secrets per level (placed by waves.ts): the pearl shard in a hidden tube section (only at top
  * speed), Vexa's sticker in the calm inner lane, the reef shard in Riko's lagoon, and on level 4 the
- * cliff-cave shard only Nami's double air reaches.
+ * cliff-cave shard only Nyla's double air reaches.
  */
 export const SECRETS: Record<LevelId, readonly SecretSpec[]> = {
    1: [

@@ -1,6 +1,6 @@
 "use client";
 
-// Rollo (level 5): the shared m2ShadowArmadillo rolling round the upper table in table coordinates.
+// Gristle (level 5): the shared m2ShadowArmadillo rolling round the upper table in table coordinates.
 // It faces where it rolls and bobs; it glows gold and its lit pockets pulse while it is open (its
 // vulnerable window), flashes white on a hit, spins in a charge, and sits on the flipper it jams (a red
 // warning ring there, and the toy post that guards that side of the drain). Visual only.

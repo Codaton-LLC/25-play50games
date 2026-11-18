@@ -17,7 +17,7 @@ costs 3 s, a missed gap 2 s on the hook.
 | File | What |
 |---|---|
 | `levels.ts` | the five levels' numbers (speed, clock, star time, main orbs, boss) |
-| `network.ts` | each level's hand-written script and the builder: rail pieces per lane (ends: open, gap, buffer, merge), switches and branches (orb, dead end, shortcut, Riko's barrier spur, Vexa's ghost spur, level 2's caboose), Nami's high rails, Zuno's loop, Riko's long gap, Kiro's icicle tunnels, rings, orbs, downhill stretches, level 4's trains |
+| `network.ts` | each level's hand-written script and the builder: rail pieces per lane (ends: open, gap, buffer, merge), switches and branches (orb, dead end, shortcut, Riko's barrier spur, Vexa's ghost spur, level 2's caboose), Nyla's high rails, Zuno's loop, Riko's long gap, Kiro's icicle tunnels, rings, orbs, downhill stretches, level 4's trains |
 | `rules.ts` | the pure, deterministic run (1 ms steps), the bound and `PROPOSED_LEVEL_LIMITS` |
 | `progression.ts` | the flow combo, the stars, the secrets, the Clockwork Express's `BossConfig` |
 | `bot.ts` | the honest bot (tests and `?autoplay=1` on preview builds) |
@@ -40,7 +40,7 @@ costs 3 s, a missed gap 2 s on the hook.
   third of the speed long); a missed one drops the hero into the hook, which carries it to the nearest
   rail ahead in at least 2 s and never faster than the level's speed.
 - **Hero roles (the card):** Riko's dash in the air clears the 11 m broken rail (a jump covers about
-  9.5 m) and breaks a side spur's wooden barrier (else a bump: 1.5 s); Nami's double jump lands on the
+  9.5 m) and breaks a side spur's wooden barrier (else a bump: 1.5 s); Nyla's double jump lands on the
   high rails (+3 m/s, bonus orbs); Kiro's shield crosses an icicle tunnel (judged on the way in; else a
   stumble); Zuno's magnet takes him round the loop (+6 m/s and a shard) and pulls the coin trails out of
   the snowbanks; Vexa's phase goes through the ghost door to the hidden spur (else a bump).

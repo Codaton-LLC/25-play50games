@@ -6,7 +6,7 @@
 //   versus mind game), the feathers (`featherAt`) and the broken storm walls (`broken`).
 // - Co-op (MODES.coop): checkpoints are shared (one hero's beacon is everyone's respawn), and powers
 //   combine through onAllyPower: Kiro's shield and Vexa's phase cover the team, Zuno's magnet
-//   pulls orbs and feathers for everyone. Riko's dash and Nami's double jump stay personal here. The
+//   pulls orbs and feathers for everyone. Riko's dash and Nyla's double jump stay personal here. The
 //   team clears the level when every hero stands on the rainbow bridge.
 // - Versus race: first to the bridge wins; the others get finishGraceMs to finish, then the run ends.
 // A solo run never comes here: Scene.tsx keeps the solo path exactly as before, and multiplayer runs

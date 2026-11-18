@@ -1,7 +1,7 @@
 // Paint the Platforms' models. The five heroes are the shared Menu 2 heroes (menu2/heroModels.ts). This
 // game's props live in public/models/3d/paint-the-platforms (Hyper3D, generated for this game, neutral
 // pale materials recoloured at runtime): the arena floor tile (every tile, tinted by its paint), the
-// arena wall (the rims), the paint pickup (paint blobs, Vexa's caged blob, Nami's gold blob) and the
+// arena wall (the rims), the paint pickup (paint blobs, Vexa's caged blob, Nyla's gold blob) and the
 // Paint Blob (the level 5 boss; small and grey, the blots). Shared from menu2: the floating islands
 // and stone towers of the fortress backdrop. Every GLB stands on y = 0, centred on x and z; GLB_SIZE is
 // the real bounds (assets.test.ts measures each mesh with the repo's own GLB reader).

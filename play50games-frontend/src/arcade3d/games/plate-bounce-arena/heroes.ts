@@ -3,7 +3,7 @@
 // always curled in ball form. Action fires the hero's power:
 // - Riko: a nudge-dash (once per ball): +9 m/s along the stick; it smashes the cracked toy block in
 //   front of the skill lane.
-// - Nami: a hop, and a double hop in the air: from under the raised deck the double hop lands on it.
+// - Nyla: a hop, and a double hop in the air: from under the raised deck the double hop lands on it.
 // - Kiro: a shield (4 s, once per ball): a drain under the shield bounces back up instead.
 // - Zuno: magnet pads: hold Action on a pad to stick there (up to 1.5 s), aim with the stick, let go to
 //   fire; while he sticks, the coins under the glass fly to him.
@@ -27,7 +27,7 @@ export interface HeroDef {
 
 export const HEROES: readonly HeroDef[] = [
    { id: "riko", name: "Riko", color: "#EF4444", power: "dash", powerLabel: "Dash", cooldownMs: 0, perBall: true },
-   { id: "nami", name: "Nami", color: "#2563EB", power: "hop", powerLabel: "Hop", cooldownMs: 0, perBall: false },
+   { id: "nami", name: "Nyla", color: "#2563EB", power: "hop", powerLabel: "Hop", cooldownMs: 0, perBall: false },
    { id: "kiro", name: "Kiro", color: "#22C55E", power: "shield", powerLabel: "Shield", cooldownMs: 0, perBall: true },
    { id: "zuno", name: "Zuno", color: "#FACC15", power: "magnet", powerLabel: "Magnet", cooldownMs: 0, perBall: false },
    { id: "vexa", name: "Vexa", color: "#8B5CF6", power: "phase", powerLabel: "Phase", cooldownMs: 9_000, perBall: false },

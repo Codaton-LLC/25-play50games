@@ -1,7 +1,7 @@
 "use client";
 
 // The picked hero, animated by the shared Menu 2 animator (menu2/heroAnim): idle, run round the stair,
-// takeoff, rise, fall, land, Nami's somersault, Riko's dash, the hurt recoil, the cheer, the intro's
+// takeoff, rise, fall, land, Nyla's somersault, Riko's dash, the hurt recoil, the cheer, the intro's
 // drop, and the signature ball-roll for every hop from pole to pole. A blob shadow sits on the step under
 // the feet. This file turns the run + the Scene's moments (HeroAnim) into the animator's motion.
 import { useMemo, useRef } from "react";

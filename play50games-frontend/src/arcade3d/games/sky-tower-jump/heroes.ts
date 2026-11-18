@@ -19,7 +19,7 @@ export interface HeroDef {
 
 export const HEROES: readonly HeroDef[] = [
    { id: "riko", name: "Riko", color: "#EF4444", power: "dash", powerLabel: "Dash", cooldownMs: 15_000 },
-   { id: "nami", name: "Nami", color: "#2563EB", power: "doubleJump", powerLabel: "Double", cooldownMs: 10_000 },
+   { id: "nami", name: "Nyla", color: "#2563EB", power: "doubleJump", powerLabel: "Double", cooldownMs: 10_000 },
    { id: "kiro", name: "Kiro", color: "#22C55E", power: "shield", powerLabel: "Shield", cooldownMs: 20_000 },
    { id: "zuno", name: "Zuno", color: "#FACC15", power: "magnet", powerLabel: "Magnet", cooldownMs: 20_000 },
    { id: "vexa", name: "Vexa", color: "#8B5CF6", power: "phase", powerLabel: "Phase", cooldownMs: 20_000 },
@@ -47,7 +47,7 @@ export const V_DASH = 12.5;
 export const MAGNET_REACH = 4.2;
 
 // The pick is the shared Menu 2 hero pick (menu2/heroes): it starts as the player's own last pick in
-// this game, else the world's lead hero (Sky Tower Jump is in W2 "Sky & Sea": Nami). The shared
+// this game, else the world's lead hero (Sky Tower Jump is in W2 "Sky & Sea": Nyla). The shared
 // module remembers it; this file never touches storage.
 const pick = createHeroPick("sky-tower-jump");
 

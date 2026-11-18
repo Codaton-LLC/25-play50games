@@ -18,7 +18,7 @@ const definition: GameDefinition<ZipLevel> = {
       "Jump to grab the trolley. Hold Down / S to tuck (+40%); Up / W to brake (−60%). Read the green speed band: 6 to 8 m/s is a bullseye.",
       "Jump + sideways releases into a neighbouring cable within 3 m. Your sideways steering follows the camera. Release near the landing mat (last 16% of the line).",
       "Every mat has three zones. Too fast overshoots, too slow falls short. A miss retries the current line; orbs and landings pay only once.",
-      "Power: Riko air-dashes to distant lines; Nami double-jumps to the high express cable; Kiro shields spark storms; Zuno pulls parallel orbs; Vexa phases through ghost signals.",
+      "Power: Riko air-dashes to distant lines; Nyla double-jumps to the high express cable; Kiro shields spark storms; Zuno pulls parallel orbs; Vexa phases through ghost signals.",
       "Collect every orb, beat the target time, and centre every landing for the Bullseye badge. Power or Jump rings the final Tide Bell.",
       "Drag to orbit; two fingers rotate, pinch or wheel zooms. V recenters. Volt Eel: evade the glowing cable, hop onto its open head three times, tuck-release into the spiral gill, then survive the plunge.",
    ],

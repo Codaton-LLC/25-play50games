@@ -3,7 +3,7 @@
 // src/arcade3d/menu2/limitsSync.test.ts fails if this file and them ever differ.
 
 /** Level fields meta.ts reads (name); levels.ts holds the full levels. */
-export const LEVELS = { 1: { name: "Practice Table" }, 2: { name: "Mushroom Garden" }, 3: { name: "Ice Table" }, 4: { name: "Multiball" }, 5: { name: "Rollo's Table" } } as const;
+export const LEVELS = { 1: { name: "Practice Table" }, 2: { name: "Mushroom Garden" }, 3: { name: "Ice Table" }, 4: { name: "Multiball" }, 5: { name: "Gristle's Table" } } as const;
 
 /** PROPOSED_LEVEL_LIMITS from rules.ts (derived there; menu2/limitsSync.test.ts checks this copy). */
 export const PROPOSED_LEVEL_LIMITS = {

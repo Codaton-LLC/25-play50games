@@ -42,7 +42,7 @@ const definition: GameDefinition<WindLevel> = {
       "Next to a fan, tap E / Enter (the Fan button) to turn it 90°, hold it to switch the fan off or on. A vent switches with a tap.",
       "A current carries you on its own: steer a little inside it, you drop out at its end. Where two currents cross, they add up.",
       "The violet storm front follows you and costs a heart a second inside it. It waits while a room's fans are not set yet. Stuck for 20 s? A gold ghost shows the setup.",
-      "Away from fans, E is your power: Riko dashes through cracked vent covers, Nami double-jumps (also out of a current), Kiro's shield crosses shock vents, Zuno's magnet pulls far orbs, Vexa phases into the ducts.",
+      "Away from fans, E is your power: Riko dashes through cracked vent covers, Nyla double-jumps (also out of a current), Kiro's shield crosses shock vents, Zuno's magnet pulls far orbs, Vexa phases into the ducts.",
       "Turn the camera: drag the view (or two fingers), mouse wheel / pinch zooms, Q / C turn, R / F tilt, V recenters.",
    ],
    resultDelayMs: 1800,

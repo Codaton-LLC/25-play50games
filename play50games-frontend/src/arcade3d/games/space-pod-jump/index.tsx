@@ -42,7 +42,7 @@ const definition: GameDefinition<PodLevel> = {
       "Space jumps (it always comes back down). On a pod cradle hold Space to charge (5 to 9 m/s), aim with A / D, let go to launch.",
       "In flight only the nearest body pulls: watch the dots, they turn green when you will land. Hold Space for the retro jets (1.2 s of fuel, refilled on landing).",
       "Reach the dock's capture ring to finish: your time is the score. Grab every orb for the second star; slingshot gates open at 8 m/s.",
-      "Power (E, Enter or the Power button): Riko burns prograde, Nami gives a second impulse, Kiro's shield crosses flares and debris, Zuno's magnet pulls orbs, Vexa phases through a planetoid to its far side.",
+      "Power (E, Enter or the Power button): Riko burns prograde, Nyla gives a second impulse, Kiro's shield crosses flares and debris, Zuno's magnet pulls orbs, Vexa phases through a planetoid to its far side.",
       "Turn the camera: drag the view (two fingers on touch), wheel / pinch zooms. The view rolls with the local down; 'Up: fixed' stops it.",
    ],
    resultDelayMs: 1600,

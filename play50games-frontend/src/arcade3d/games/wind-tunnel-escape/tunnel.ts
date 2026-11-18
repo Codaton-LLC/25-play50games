@@ -353,7 +353,7 @@ function closeRoom(b: Builder, r: RoomDef, z1: number, top: number): void {
 
 // ---------- the heroes' side routes (kits): bonus orbs, never needed for the exit ----------
 
-/** Nami: a shelf 3.5 m up (a plain jump reaches 2 m, her double jump 4 m) with two orbs. */
+/** Nyla: a shelf 3.5 m up (a plain jump reaches 2 m, her double jump 4 m) with two orbs. */
 function namiShelf(b: Builder, side: 1 | -1, zc: number, F: number): void {
    const x0 = side * 4.7;
    const x1 = side * HALF_W;
@@ -454,7 +454,7 @@ function roomVent(b: Builder, o: { rise: number; on: boolean; vx?: number; len?:
 
 /**
  * BRIDGE: a fan at the gap's edge; turn it to face forward (n) and its current carries you over an 11 m
- * gap (a jump makes 5 m, Nami's double 8). `crosswind`: a side fan on a bracket over the gap whose
+ * gap (a jump makes 5 m, Nyla's double 8). `crosswind`: a side fan on a bracket over the gap whose
  * current (pointing w) crosses the bridge and blows you into the left wall: switch it off (hold) or turn it.
  */
 function roomBridge(

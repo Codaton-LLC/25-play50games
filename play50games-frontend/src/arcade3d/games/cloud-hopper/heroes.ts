@@ -4,7 +4,7 @@
 // picker (menu2/heroes HeroPicker) writes it here and the next createRun copies it.
 //
 // - Riko: an air dash (one per flight) that spends 1 s of glide for a 6 m burst; it breaks storm-cloud walls.
-// - Nami: a second jump in the air, refreshed once per glide: hopping out of a glide re-launches it.
+// - Nyla: a second jump in the air, refreshed once per glide: hopping out of a glide re-launches it.
 // - Kiro: a shield: thunderheads, rim strikes and hail do not drop him.
 // - Zuno: a magnet: feathers and orbs come from 6 m, and hidden orb trails in the rain columns show.
 // - Vexa: a phase: she slips through ghost-cloud walls into the night path (and past hazards).
@@ -26,7 +26,7 @@ export interface HeroDef {
 
 export const HEROES: readonly HeroDef[] = [
    { id: "riko", name: "Riko", color: "#EF4444", power: "dash", powerLabel: "Air dash", cooldownMs: 8_000 },
-   { id: "nami", name: "Nami", color: "#2563EB", power: "doubleJump", powerLabel: "Double", cooldownMs: 2_500 },
+   { id: "nami", name: "Nyla", color: "#2563EB", power: "doubleJump", powerLabel: "Double", cooldownMs: 2_500 },
    { id: "kiro", name: "Kiro", color: "#22C55E", power: "shield", powerLabel: "Shield", cooldownMs: 15_000 },
    { id: "zuno", name: "Zuno", color: "#FACC15", power: "magnet", powerLabel: "Magnet", cooldownMs: 15_000 },
    { id: "vexa", name: "Vexa", color: "#8B5CF6", power: "phase", powerLabel: "Phase", cooldownMs: 12_000 },
@@ -58,7 +58,7 @@ export const MAGNET_REACH = 6;
 export const DEFAULT_HERO: HeroId = "nami";
 
 // The pick is the shared Menu 2 hero pick (menu2/heroes): it starts as the player's own last pick in
-// this game, else the world's lead hero (Cloud Hopper is in W2 "Sky & Sea": Nami, the same as
+// this game, else the world's lead hero (Cloud Hopper is in W2 "Sky & Sea": Nyla, the same as
 // DEFAULT_HERO, the rules' own default for bots and proofs). The shared module remembers it; this
 // file never touches storage.
 const pick = createHeroPick("cloud-hopper");

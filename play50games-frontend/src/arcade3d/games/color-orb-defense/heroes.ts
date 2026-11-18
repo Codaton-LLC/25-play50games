@@ -2,7 +2,7 @@
 // Jump, Green Shield, Yellow Magnet, Purple Phase). Only a zone of the orb's colour ever blocks it: no
 // power turns a wrong colour into a block. Action fires the power:
 // - Riko: a dash (14 m/s for 0.3 s) to reach a far zone in time.
-// - Nami: a second jump in the air (over the drone; the hidden beacon on the pillar).
+// - Nyla: a second jump in the air (over the drone; the hidden beacon on the pillar).
 // - Kiro: a shield over the core (3 s): an orb that reaches the core costs no hit points.
 // - Zuno: a magnet (3 s): while he stands on a zone it also blocks matching orbs of the neighbouring lanes
 //   within MAGNET_REACH of him.
@@ -23,7 +23,7 @@ export interface HeroDef {
 
 export const HEROES: readonly HeroDef[] = [
    { id: "riko", name: "Riko", color: "#EF4444", power: "dash", powerLabel: "Dash", cooldownMs: 4_000 },
-   { id: "nami", name: "Nami", color: "#2563EB", power: "doubleJump", powerLabel: "Double jump", cooldownMs: 0 },
+   { id: "nami", name: "Nyla", color: "#2563EB", power: "doubleJump", powerLabel: "Double jump", cooldownMs: 0 },
    { id: "kiro", name: "Kiro", color: "#22C55E", power: "shield", powerLabel: "Core shield", cooldownMs: 18_000 },
    { id: "zuno", name: "Zuno", color: "#FACC15", power: "magnet", powerLabel: "Magnet", cooldownMs: 10_000 },
    { id: "vexa", name: "Vexa", color: "#8B5CF6", power: "phase", powerLabel: "Phase", cooldownMs: 8_000 },

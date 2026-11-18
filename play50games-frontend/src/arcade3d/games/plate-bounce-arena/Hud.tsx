@@ -3,7 +3,7 @@
 // The game HUD (menu2/hud HudStack placement, the Menu 2 HUD look): balls left, orbs, the hero power,
 // the table points and the combo (x1-x5) on the left; the title and the level in a banner with the run
 // clock (play time, the orb and flow bonus taken off), the current section's goal with its count, the
-// plunger gauge (gold band = the skill shot) while the ball sits on the plunger, and on level 5 Rollo's
+// plunger gauge (gold band = the skill shot) while the ball sits on the plunger, and on level 5 Gristle's
 // health bar with its hint. The shell keeps Mute / Pause; its clock chip is off (index.tsx clockChip:
 // false). Local multiplayer: the "2-4 players" button, the join screen, per-player chips and the podium.
 // The shared hero picker shows on the start card, the pause menu and the result; the orbit camera's
@@ -37,12 +37,12 @@ const HERO_STAT: HeroId[] = ["riko", "nami", "kiro", "zuno", "vexa"];
 export function goalLine(level: number, stage: number, count: number): string {
    const t = courseFor((level >= 1 && level <= 5 ? level : 1) as 1 | 2 | 3 | 4 | 5);
    const o = t.objectives[stage];
-   if (!o) return t.boss ? "Rollo is down!" : "Exit open: sink the ball in the hole!";
+   if (!o) return t.boss ? "Gristle is down!" : "Exit open: sink the ball in the hole!";
    if (o.kind === "bumpers" || o.kind === "ramp" || o.kind === "orbits") return `${o.label} ${Math.min(count, o.n)}/${o.n}`;
    return o.label;
 }
 
-/** Rollo's hint per phase (what opens him). */
+/** Gristle's hint per phase (what opens him). */
 export function bossHint(phase: number, open: boolean, golden: boolean, jam: number): string {
    if (phase === 0) return open ? "His pockets glow: hit him hard!" : "Dodge him: wait for the glow";
    if (phase === 1) return golden ? (open ? "Golden! Hit him now!" : "Golden: wait for his glow") : "Shoot the ramp to turn golden";
@@ -67,7 +67,7 @@ function Boss() {
    return (
       <div className={stack.boss}>
          <BossHealthBar name={ROLLO.name} phaseName={ROLLO.phases[phase]?.name} hp={hp} maxHp={ROLLO.maxHp} marks={phaseMarks(ROLLO)} vulnerable={open} flash={flash} accent="#7c3aed" />
-         <div className={stack.hint}>{hp > 0 ? bossHint(phase, open, golden, jam) : "Rollo is down!"}</div>
+         <div className={stack.hint}>{hp > 0 ? bossHint(phase, open, golden, jam) : "Gristle is down!"}</div>
       </div>
    );
 }

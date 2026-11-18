@@ -43,7 +43,7 @@ A hit flashes him (hit-stop 90 ms, kick, shake); the defeat is the finish (`fini
 ## Hero roles (any hero clears every level; the gates are secrets)
 
 - **Riko:** dash through the cracked basalt cap on a mid-route pillar (the chimney shard; taken only while dashing).
-- **Nami:** the overhang sticker over a gap, caught only in a double jump's flight.
+- **Nyla:** the overhang sticker over a gap, caught only in a double jump's flight.
 - **Kiro:** the shard in a vent's spray column (only while shielded); the shield also rides any vent off the beat.
 - **Zuno:** the lava shard low beside a pillar, 3 m out: only the magnet reaches it from the edge.
 - **Vexa:** the shard in a ghost obsidian wall at a pillar's edge (purple-outlined), taken only while phasing.
@@ -52,12 +52,12 @@ A hit flashes him (hit-stop 90 ms, kick, shake); the defeat is the finish (`fini
 
 - **Stars** (`menu2/stars`): clear, every ember, and the submitted time at or under 17 / 15 / 21 / 35 / 56 s (about 1.5x the honest bot). No-hit = no fall, rock or lava. The run also counts `crumbles` (the card's "no crumbled pillar" bonus is published as the `crumbles` stat; the star screen has no slot for a second badge yet).
 - **Flow** (`menu2/combo`): a link within 2 s, +0.25 per link, x2 cap; each ember (40 ms) and the first landing on each support (20 ms). A fall breaks it. The bonus comes off the submitted time; `<ComboMeter>` in the HUD.
-- **Secrets** (`menu2/secrets`, 2-3 per level): L1 chimney (Riko), lava shard (Zuno), overhang sticker (Nami); L2 obsidian (Vexa), spray (Kiro); L3 third-beat shard (over the every-third-beat vent, at its launch height; any hero), chimney, lava shard; L4 obsidian, spray, overhang; L5 spray, obsidian, the core sticker over Kalder's head on a slam geyser's line. No score.
+- **Secrets** (`menu2/secrets`, 2-3 per level): L1 chimney (Riko), lava shard (Zuno), overhang sticker (Nyla); L2 obsidian (Vexa), spray (Kiro); L3 third-beat shard (over the every-third-beat vent, at its launch height; any hero), chimney, lava shard; L4 obsidian, spray, overhang; L5 spray, obsidian, the core sticker over Kalder's head on a slam geyser's line. No score.
 - **Progress** (`menu2/progress`): `levelEnd.ts levelEndStats` on a win (before `end("win")`), a time-up and a lava loss; `StarResult.tsx` is `GameDefinition.ResultExtra`.
 
 ## Rules (units: 1 = 1 m, forward is -z, up is +y; whole-ms clock, the same at 30, 60 and 144 fps)
 
-Hero cylinder r 0.32 h 1.2; run 6.5 m/s; gravity 30; jump 14 m/s (apex 3.27 m); vent 19.8 m/s (apex 6.53 m). Pillars are rectangles, 1.4 m deep colliders; landing crosses a top downwards with the centre over it (grown by 0.15). A fall 7 m under the last top, or feet in the lava, costs 900 + 600 ms and respawns on the last crystal; if the lava covers that crystal the run ends `"lose"` (unranked). Sinking shelves drop 3.6 s after you land; blinking pillars hold 1.6 s under you. Rocks hit only a grounded hero at the rim (the centre is outside); shield and phase ignore them and the heat gusts. Powers: Riko dash 280 ms at 12.5 m/s (15 s), Nami double jump capped at the flight's apex (10 s), Kiro shield 2.5 s (20 s), Zuno magnet 2.5 s reach 4.2 (20 s), Vexa phase 1.2 s (20 s).
+Hero cylinder r 0.32 h 1.2; run 6.5 m/s; gravity 30; jump 14 m/s (apex 3.27 m); vent 19.8 m/s (apex 6.53 m). Pillars are rectangles, 1.4 m deep colliders; landing crosses a top downwards with the centre over it (grown by 0.15). A fall 7 m under the last top, or feet in the lava, costs 900 + 600 ms and respawns on the last crystal; if the lava covers that crystal the run ends `"lose"` (unranked). Sinking shelves drop 3.6 s after you land; blinking pillars hold 1.6 s under you. Rocks hit only a grounded hero at the rim (the centre is outside); shield and phase ignore them and the heat gusts. Powers: Riko dash 280 ms at 12.5 m/s (15 s), Nyla double jump capped at the flight's apex (10 s), Kiro shield 2.5 s (20 s), Zuno magnet 2.5 s reach 4.2 (20 s), Vexa phase 1.2 s (20 s).
 
 Camera-relative input: `StepInput.yaw` is the orbit camera's drawn yaw; `step()` turns the stick with core `inputToWorld(moveX, moveZ, yaw)` (NaN / Infinity count as 0). Bots and tests leave it 0, so every bot and proof result is unchanged (`orbit.test.ts` checks the honest bot on all five levels, and random-yaw spam against the floor: turning keeps the stick's length).
 
@@ -66,7 +66,7 @@ Camera-relative input: `StepInput.yaw` is the orbit camera's drawn yaw; `step()`
 A **time game**: `score = floor((timeBaseMs − duration_ms) / 10)`. Submitted duration = `finishMs − 400 · embers − flow bonus` (`finalScore`, `runTimeMs`). Only a win is ranked.
 
 1. **Clock:** `simMs ≤ elapsedMs`, `finishMs ≤ elapsedMs`.
-2. **Height only grows in flight:** an arc starts at `V_JUMP`, `V_VENT` (a vent pillar) or 0; Nami's double jump never passes the flight's apex; landing sets y to a top crossed downwards; Kalder's throw is a jump's arc from his zone.
+2. **Height only grows in flight:** an arc starts at `V_JUMP`, `V_VENT` (a vent pillar) or 0; Nyla's double jump never passes the flight's apex; landing sets y to a top crossed downwards; Kalder's throw is a jump's arc from his zone.
 3. **Horizontal speed** ≤ `(V_RUN + maxCarry) / 1000` m per ms (the throw is ≤ V_RUN; wind is clamped).
 4. **Edge bound** `edgeMinMs`: `max(gap / (V_RUN + maxCarry), rise time)`, the rise time the faster of a jump and (from a vent pillar) the vent's launch. A vent is taken as open at any ms, which covers the beat and Kiro's off-beat ride. Heat, crumbles, sinking and blinking only remove supports, and the lava only ends runs, so they never lower the bound. Boss zones are nodes too.
 5. **Least finish:** Dijkstra (`minArrivalMs`) to the goal; level 5: the least arrival on a ring pillar plus `bossMinMs(KALDER)` = 15 900 ms (the boss machine stepped 1 ms at a time with a hit on the first ms of every open window).

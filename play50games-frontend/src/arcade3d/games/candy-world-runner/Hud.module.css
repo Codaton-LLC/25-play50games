@@ -302,7 +302,7 @@
    }
 }
 
-/* Candy World Runner: the size pips (Small, Normal, Big), the coins towards the next size, the sign */
+/* Sweet Lane Runner: the size pips (Small, Normal, Big), the coins towards the next size, the sign */
 .sizes {
    display: flex;
    align-items: flex-end;

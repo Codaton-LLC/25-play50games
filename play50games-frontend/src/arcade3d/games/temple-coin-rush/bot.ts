@@ -4,7 +4,7 @@
 // when the power is ready), takes that lane early (level 4's surge punishes hesitation) and keeps it.
 // Between gates it steers for the coins ahead, jumps blocks, spikes and broken tiles, rolls under
 // beams, steps out of fire jets (Kiro shields through them instead), dodges the side-ramp boulders,
-// uses Zuno's magnet at the veins and Nami's double jump at the ledges, and on level 5 leaves the
+// uses Zuno's magnet at the veins and Nyla's double jump at the ledges, and on level 5 leaves the
 // lunge's lane, jumps and rolls the coils and pays every bell and bowl. With `mash` it also presses
 // the power every frame (tests). Pure: it only reads the run and writes the step input.
 import { heroById } from "./heroes";
@@ -232,7 +232,7 @@ export function botInput(bot: TempleBot, run: TempleRun, out: StepInput = create
       if (bh.kind === 1) jump = true;
       else roll = true;
    }
-   // Nami: the ledge coins over a slow lane
+   // Nyla: the ledge coins over a slow lane
    let ledge = false;
    if (power === "doubleJump" && h.route !== NONE) {
       for (let i = 0; i < c.coins.length; i++) {

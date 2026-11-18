@@ -4,7 +4,7 @@
 // hero pick (menu2/heroes): Riko, W1's lead, unless the player picked someone else here.
 //
 // - Riko: a cart boost (Action) that smashes a cracked barricade onto the shortcut track and gains 20 distance.
-// - Nami: a second hop in the air lifts the cart onto the upper scaffold track, which carries orbs.
+// - Nyla: a second hop in the air lifts the cart onto the upper scaffold track, which carries orbs.
 // - Kiro: a shield that absorbs one breath or lavafall.
 // - Zuno: a magnet that pulls the crystal trails off the cave walls as you pass.
 // - Vexa: a phase: the purple ghost rails are solid for her, through a rockfall.
@@ -24,7 +24,7 @@ export interface HeroDef {
 
 export const HEROES: readonly HeroDef[] = [
    { id: "riko", name: "Riko", color: "#EF4444", power: "boost", powerLabel: "Boost", cooldownMs: 4_000 },
-   { id: "nami", name: "Nami", color: "#2563EB", power: "doubleJump", powerLabel: "Double", cooldownMs: 0 },
+   { id: "nami", name: "Nyla", color: "#2563EB", power: "doubleJump", powerLabel: "Double", cooldownMs: 0 },
    { id: "kiro", name: "Kiro", color: "#22C55E", power: "shield", powerLabel: "Shield", cooldownMs: 8_000 },
    { id: "zuno", name: "Zuno", color: "#FACC15", power: "magnet", powerLabel: "Magnet", cooldownMs: 8_000 },
    { id: "vexa", name: "Vexa", color: "#8B5CF6", power: "phase", powerLabel: "Phase", cooldownMs: 7_000 },

@@ -37,7 +37,7 @@ const definition: GameDefinition<DefenseLevel> = {
       "Energy orbs fly from the portals down their lane to the beacon in the middle. They are harmless, but each one that reaches the beacon costs it a hit point.",
       "Every lane has colour zones. Stand on the zone that matches the orb's colour as it passes and your shield blocks it. The outer zone scores more; a wave with no leak scores a bonus.",
       "WASD / arrows or the joystick to run (camera-relative), Space / Jump to hop over the drone that sweeps the middle ring.",
-      "Power (E / Enter / Power): Riko dashes, Nami double jumps, Kiro shields the beacon, Zuno's magnet blocks matching orbs near him, Vexa phases through the drone and runs faster.",
+      "Power (E / Enter / Power): Riko dashes, Nyla double jumps, Kiro shields the beacon, Zuno's magnet blocks matching orbs near him, Vexa phases through the drone and runs faster.",
       "Turn the camera with a drag (two fingers on a phone), Q and C, or pinch to zoom.",
    ],
    resultDelayMs: 1200,

@@ -3,7 +3,7 @@
 // it here and the next createRun copies it.
 //
 // - Riko: a dash round the stair (0.35 s at 11 m/s); it smashes the cracked urn and frees its orb.
-// - Nami: a second jump in the air: the orb ledges float 2.3 m over the steps.
+// - Nyla: a second jump in the air: the orb ledges float 2.3 m over the steps.
 // - Kiro: a shield (World 3's lead hero): sweepers, spikes and spore puffs pass through him, and the
 //   still spore veil gives him the orb hidden in it.
 // - Zuno: a magnet that pulls the orb out of the hollow pole from 6 m.
@@ -24,7 +24,7 @@ export interface HeroDef {
 
 export const HEROES: readonly HeroDef[] = [
    { id: "riko", name: "Riko", color: "#EF4444", power: "dash", powerLabel: "Dash", cooldownMs: 8_000 },
-   { id: "nami", name: "Nami", color: "#2563EB", power: "doubleJump", powerLabel: "Double", cooldownMs: 0 },
+   { id: "nami", name: "Nyla", color: "#2563EB", power: "doubleJump", powerLabel: "Double", cooldownMs: 0 },
    { id: "kiro", name: "Kiro", color: "#22C55E", power: "shield", powerLabel: "Shield", cooldownMs: 12_000 },
    { id: "zuno", name: "Zuno", color: "#FACC15", power: "magnet", powerLabel: "Magnet", cooldownMs: 10_000 },
    { id: "vexa", name: "Vexa", color: "#8B5CF6", power: "phase", powerLabel: "Phase", cooldownMs: 10_000 },
@@ -36,7 +36,7 @@ export function heroById(id: HeroId): HeroDef {
    return BY_ID[id];
 }
 
-/** How long each power stays up after it fires (ms). Nami's double jump is instant. */
+/** How long each power stays up after it fires (ms). Nyla's double jump is instant. */
 export const POWER_MS = { dash: 350, shield: 3000, magnet: 3000, phase: 2500 } as const;
 
 /** Riko's dash speed round the stair (m/s), and Zuno's magnet reach (m). */

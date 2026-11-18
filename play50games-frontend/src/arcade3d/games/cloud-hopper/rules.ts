@@ -333,7 +333,7 @@ export interface Hero extends Vec3Like {
    dashX: number;
    dashZ: number;
    dashUsed: boolean;
-   /** Nami: the air jump is up; it was refreshed by a glide this flight */
+   /** Nyla: the air jump is up; it was refreshed by a glide this flight */
    airJump: boolean;
    glideRefresh: boolean;
    shieldUntil: number;
@@ -367,7 +367,7 @@ export function createStepInput(): StepInput {
 
 export interface StepEvents {
    jumped: boolean;
-   /** Nami's air jump (the somersault) */
+   /** Nyla's air jump (the somersault) */
    airJumped: boolean;
    glideStarted: boolean;
    landed: boolean;
@@ -928,7 +928,7 @@ function playMs(run: CloudRun, mx: number, mz: number, held: boolean): void {
       if (!h.gliding && held && h.glideMs > 0 && heroVy(h, ms) <= 0) {
          h.gliding = true;
          ev.glideStarted = true;
-         // Nami: a glide refreshes her air jump once a flight
+         // Nyla: a glide refreshes her air jump once a flight
          if (!h.glideRefresh) {
             h.glideRefresh = true;
             h.airJump = true;

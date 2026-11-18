@@ -1,4 +1,4 @@
-# Candy World Runner (Menu 2, game 19, World 4 Frost & Sweets)
+# Sweet Lane Runner (Menu 2, game 19, World 4 Frost & Sweets)
 
 Eat sweets to grow, burn them off to shrink. Your size decides what you smash, what you squeeze through and what holds your weight.
 
@@ -44,7 +44,7 @@ Eat sweets to grow, burn them off to shrink. Your size decides what you smash, w
 | Hero | Power | What it opens |
 |---|---|---|
 | Riko | Dash: at Big it is a sugar charge | Breaks the gingerbread wall into the left bonus lane (its orbs) |
-| Nami | A second jump in the air | Reaches the candy-cane rail over the middle lane (its orbs); one jump never does |
+| Nyla | A second jump in the air | Reaches the candy-cane rail over the middle lane (its orbs); one jump never does |
 | Kiro | Shield (3 s) | Crosses the popping-candy field (its orbs); anyone else is knocked down a size |
 | Zuno | Magnet, switched on and off (1 s cooldown) | Pulls the coin trails out of the frosting wall, and the candy coins round him: he chooses when to grow |
 | Vexa | Phase (2.6 s) | Through the ghost wall into the hidden fourth lane (its orbs and the shard) |

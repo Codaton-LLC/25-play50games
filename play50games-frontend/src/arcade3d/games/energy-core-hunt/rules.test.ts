@@ -242,7 +242,7 @@ describe("bots (README 'What the bots reached')", () => {
       }, 120_000);
    }
 
-   it("every hero's bot with its own route wins every level, never under the floor; Vexa takes the ring shard, Nami the crate-top sticker", () => {
+   it("every hero's bot with its own route wins every level, never under the floor; Vexa takes the ring shard, Nyla the crate-top sticker", () => {
       for (const level of LEVEL_IDS) {
          for (const h of HEROES) {
             const run = botRun(level, 60, h.id, true);

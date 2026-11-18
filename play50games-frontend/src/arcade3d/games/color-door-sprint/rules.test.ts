@@ -109,7 +109,7 @@ describe("the halls (along -z)", () => {
       });
    }
 
-   it("every level has all five hero gates: a cracked door (Riko), a ghost door (Vexa), Nami's high orbs or upper row, a flame vent (Kiro), a hidden trail (Zuno)", () => {
+   it("every level has all five hero gates: a cracked door (Riko), a ghost door (Vexa), Nyla's high orbs or upper row, a flame vent (Kiro), a hidden trail (Zuno)", () => {
       for (const id of LEVEL_IDS) {
          const c = courseFor(id);
          expect(c.walls.some((w) => w.cracked >= 0), `L${id} cracked`).toBe(true);
@@ -284,7 +284,7 @@ describe("read and commit", () => {
 });
 
 describe("jumps, rolls, bars and beams", () => {
-   it("a jump's apex is V_JUMP²/2G; Nami's second jump in the air goes higher (the upper door row); others cannot", () => {
+   it("a jump's apex is V_JUMP²/2G; Nyla's second jump in the air goes higher (the upper door row); others cannot", () => {
       const apex = (V_JUMP * V_JUMP) / (2 * G);
       expect(apex).toBeLessThan(UPPER_FEET);
       for (const hero of ["nami", "riko"] as HeroId[]) {
@@ -405,7 +405,7 @@ describe("the hero gates", () => {
       }
    });
 
-   it("Nami's double jump goes through a tall wall's upper door (a true pass) and finds the sticker", () => {
+   it("Nyla's double jump goes through a tall wall's upper door (a true pass) and finds the sticker", () => {
       const c = courseFor(3);
       const w = c.walls.find((q) => q.upper >= 0)!;
       const run = createRun(4, 3, "nami");

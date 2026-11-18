@@ -1,7 +1,7 @@
 "use client";
 
 // The picked hero, animated by the shared Menu 2 animator (menu2/heroAnim): idle (swaying to the beat),
-// the roll across the stage, jumps, Nami's somersault, the hurt recoil on a shockwave, the cheer, the
+// the roll across the stage, jumps, Nyla's somersault, the hurt recoil on a shockwave, the cheer, the
 // intro's drop, and the card's strike: the hero curls into its ball (the signature roll) and slams into
 // the gong. A blob shadow sits under the feet.
 import { useMemo, useRef } from "react";

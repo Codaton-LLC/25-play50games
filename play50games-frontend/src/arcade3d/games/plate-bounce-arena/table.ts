@@ -5,7 +5,7 @@
 //
 // Every table shares one frame: the side walls, the plunger lane on the right, the top arc, two
 // flippers over the drain, the slingshots, the left inlane, Vexa's attic behind the ghost gate on the
-// left wall, Riko's cracked block in front of the skill lane, Nami's raised deck and Zuno's magnet pads
+// left wall, Riko's cracked block in front of the skill lane, Nyla's raised deck and Zuno's magnet pads
 // over the coin trail under glass. Each level adds its own bumpers, mushrooms, ramps, lanterns,
 // penguin drop targets, the exit hole and its objectives (the card's sections, in order).
 import type { LevelId } from "@/arcade3d/types";
@@ -24,7 +24,7 @@ export const BALL_R = 0.5;
 export const PLUNGER = { x: 6.3, z: -0.85 } as const;
 /** the top arc's centre and radius */
 export const ARC = { x: 0, z: -22, r: 7 } as const;
-/** Nami's raised deck: a play deck on posts, DECK_H over the field; its lower edge is open */
+/** Nyla's raised deck: a play deck on posts, DECK_H over the field; its lower edge is open */
 export const DECK = { x0: 1.2, x1: 4.6, z0: -26.2, z1: -22.6, h: 1.6 } as const;
 /** the zone under the deck a double hop lifts the ball from */
 export const DECK_ZONE = { x0: 0.6, x1: 5.2, z0: -22.6, z1: -18.6 } as const;
@@ -43,7 +43,7 @@ export interface Seg {
    kind: SegKind;
    /** "kick": the outgoing speed (m/s) along the face normal toward `side` */
    kick: number;
-   /** 0 the playfield, 1 Nami's deck */
+   /** 0 the playfield, 1 Nyla's deck */
    layer: 0 | 1;
    /** "gate": solid while the objective stage is below this */
    until: number;
@@ -132,7 +132,7 @@ export interface Table {
    objectives: Objective[];
    /** the orbit (level 2): the mushrooms feed it */
    orbit: number;
-   /** level 5: Rollo's roll band (centre, half extents) */
+   /** level 5: Gristle's roll band (centre, half extents) */
    boss: { x: number; z: number; ax: number; az: number; r: number } | null;
    /** level 3: the ice table (less friction, a faster slope) */
    ice: boolean;
@@ -265,7 +265,7 @@ function frame(): { segs: Seg[]; posts: Circle[] } {
    segs.push(seg(-3.85, -22.0, -3.85, -27.6));
    segs.push(seg(-2.15, -22.0, -2.15, -28.3));
    segs.push(seg(-3.85, -22.0, -2.15, -22.0, "crack", { r: 0.2 }));
-   // Nami's deck: its rim on the deck layer (the lower edge open)
+   // Nyla's deck: its rim on the deck layer (the lower edge open)
    segs.push(seg(DECK.x0, DECK.z1, DECK.x0, DECK.z0, "rim", { layer: 1 }));
    segs.push(seg(DECK.x0, DECK.z0, DECK.x1, DECK.z0, "rim", { layer: 1 }));
    segs.push(seg(DECK.x1, DECK.z0, DECK.x1, DECK.z1, "rim", { layer: 1 }));
@@ -286,7 +286,7 @@ const FLIPPERS: Flipper[] = [
    { px: 3.6, pz: -2.5, side: -1 },
 ];
 
-/** Pocket orbs every table shares: the skill lane (Riko), the deck (Nami), the attic (Vexa), the coins (Zuno). */
+/** Pocket orbs every table shares: the skill lane (Riko), the deck (Nyla), the attic (Vexa), the coins (Zuno). */
 function pocketOrbs(): Orb[] {
    return [
       bonus(-3.0, -24.2, "lane"),
@@ -406,7 +406,7 @@ function build(level: LevelId): Table {
       t.hole = circle(0, -9999, HOLE_R);
       lone(-1.8, -11.6);
       t.orbs.push(rampOrb(r, 0.38), rampOrb(r, 0.62), field(-2.4, -8.6), field(2.4, -8.6), field(-5.4, -15.2), field(4.6, -19.6), field(0, -24.6), field(-2.8, -22.6), field(2.0, -11.2), field(-1.0, -14.4));
-      t.objectives = [{ kind: "boss", label: "Beat Rollo" }];
+      t.objectives = [{ kind: "boss", label: "Beat Gristle" }];
    }
    for (const r of t.ramps) if (r.kind === "ramp") rampPosts(r, t.posts);
    t.orbs.push(...pocketOrbs());

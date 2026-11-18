@@ -65,7 +65,7 @@ export const CROUCH_MS = 900;
 /** a hop to the next rail takes 0.35 s (the card) */
 export const HOP_MS = 350;
 export const LANE_V = LANE_W / (HOP_MS / 1000);
-/** a jump (apex about 1.29 m, 0.61 s); Nami's second jump (up onto the high rails at HIGH_Y) */
+/** a jump (apex about 1.29 m, 0.61 s); Nyla's second jump (up onto the high rails at HIGH_Y) */
 export const V_JUMP = 8.5;
 export const V_JUMP2 = 10;
 export const G = 28;
@@ -966,7 +966,7 @@ function tick(run: RailRun): void {
       tryPower(run, ms);
       run.actionMs = NONE;
    }
-   // jumping (a press buffered 130 ms), Nami's air jump, gravity
+   // jumping (a press buffered 130 ms), Nyla's air jump, gravity
    if (run.pressMs !== NONE) {
       if (h.grounded) {
          h.grounded = false;

@@ -10,7 +10,7 @@ full animation set from one hook. Sky Tower Jump is the reference adoption (`gam
 | idle | breathing (chest and arms), a sway, looking left / right / back on a 7 s loop | `heroIdlePose`, `lookAround` |
 | run | walk to sprint; **feet planted**: at a run each foot is down for `RUN_DUTY` (0.3) of the cycle and the hero flies between steps, so the stride is `heroStride` (walkStride / (2 x duty), about 5 strides a second at 6.5 m/s); a few cm of body `surge` keeps the planted foot exactly still | `heroRunPose`, `advanceHeroGait` |
 | takeoff, rise, fall, land | push-off with the arms swung up; tuck towards the apex; legs reaching down, arms out; a landing crouch (feet flat, deeper on a hard landing) plus a squash spring | `takeoffPose`, `risePose`, `fallPose`, `landPose` |
-| flip | Nami's double jump: a tight tuck and one forward somersault about the curled body's middle (0.5 s) | `flipPose`, `body.roll` |
+| flip | Nyla's double jump: a tight tuck and one forward somersault about the curled body's middle (0.5 s) | `flipPose`, `body.roll` |
 | ball | the signature move: the body curls (`curlPose`) and shrinks into an armoured shell (`HeroBall`: eight shingled plates in the hero's colours round the roll axis, glowing seams) that closes round it; the ball rests on the floor and rolls with the travel speed (`speed / radius`), then unrolls the short way back to upright | `curlPose`, `body.ball/shell/spin` |
 | dash | hard forward lean, arms swept back, stretched along the facing; a streak of glints in the hero colour (juice) | `dashPose`, `body.streak` |
 | hurt | recoil (back and head thrown back, arms out), a head shake, tipped along the push with a hop | `hurtPose`, `body.tiltX/tiltZ/hop` |

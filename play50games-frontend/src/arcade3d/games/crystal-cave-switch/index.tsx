@@ -41,7 +41,7 @@ const definition: GameDefinition<CaveLevel> = {
       "Each room's gate opens when you strike its crystals in the order its beacon shows. The order is also at the bottom of the screen.",
       "Strike a crystal by standing at it and pressing E, Enter or the Strike button. Colours have shapes: ruby triangle, sapphire square, emerald diamond, topaz circle.",
       "A wrong crystal or a decoy resets the room. In timed rooms, finish the sequence before the lights fade.",
-      "Away from a crystal, the same button fires your hero: Riko dashes, Kiro shields the Prism's beam, Zuno's magnet strikes from 4 m, Vexa phases through ghost walls; Nami double jumps.",
+      "Away from a crystal, the same button fires your hero: Riko dashes, Kiro shields the Prism's beam, Zuno's magnet strikes from 4 m, Vexa phases through ghost walls; Nyla double jumps.",
       "Turn the camera: drag the view (or two fingers), mouse wheel / pinch zooms, Q / C turn, R / F tilt, V recenters.",
    ],
    resultDelayMs: 1700,

@@ -1,7 +1,7 @@
 "use client";
 
 // The bay round the wave (no collision): the coast of sea cliffs (m2SeaCliffBg) far out in front of
-// the wave, sea stacks out on the open ocean behind it, the cliff arches by Nami's spray ledges, and on
+// the wave, sea stacks out on the open ocean behind it, the cliff arches by Nyla's spray ledges, and on
 // level 4 the canyon: cliff walls close on both sides of the wave. One instanced pool for every cliff,
 // only the ones within CLIFF_REACH of the rider drawn.
 // The sea, the wave and the sky are Wave.tsx; the playable props Course.tsx.
@@ -33,7 +33,7 @@ export function cliffSpots(course: Course, seed: number, decor = 1): InstanceSpo
       const w = 12 + rng() * 10;
       out.push({ x: FACE_W + 60 + rng() * 60, y: -1, z, rotY: rng() * Math.PI * 2, sx: w * unit, sy: (14 + rng() * 10) * unit * 1.4, sz: w * unit });
    }
-   // Nami's spray ledges: a cliff arch just behind the crest
+   // Nyla's spray ledges: a cliff arch just behind the crest
    for (const z of course.arches) out.push({ x: FACE_W + 9, y: course.H - 3, z, rotY: Math.PI / 2, sx: 9 * unit, sy: 9 * unit * 1.2, sz: 7 * unit });
    // level 4's canyon: walls close on both sides of the wave
    if (course.canyon) {

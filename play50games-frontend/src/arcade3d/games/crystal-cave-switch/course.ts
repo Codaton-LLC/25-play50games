@@ -122,7 +122,7 @@ export interface Course {
    goal: number;
    orbs: Point[];
    ghostWalls: GhostWall[];
-   /** Nami's high crystal (a sticker), on a pillar only a double jump reaches */
+   /** Nyla's high crystal (a sticker), on a pillar only a double jump reaches */
    high: Point;
    route: RouteStep[];
    boss: BossSpec | null;
@@ -210,7 +210,7 @@ function goalPad(b: Builder, rooms: number): number {
    return g;
 }
 
-/** Nami's high crystal: a stone pillar 4 m tall beside room k, its crystal on top. */
+/** Nyla's high crystal: a stone pillar 4 m tall beside room k, its crystal on top. */
 function highPillar(b: Builder, k: number, x: number, depth: number): Point {
    const z = b.z0(k) - depth;
    b.box("pillar", x - 0.8, x + 0.8, z - 0.8, z + 0.8, 3.4, 4.6);

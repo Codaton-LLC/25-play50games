@@ -1,6 +1,6 @@
 "use client";
 
-// Candy World Runner (Menu 2, game 19): the GameDefinition GameShell runs (loaded lazily by loaders.ts).
+// Sweet Lane Runner (Menu 2, game 19): the GameDefinition GameShell runs (loaded lazily by loaders.ts).
 // The shell owns the screens, Mute / Pause, the score submit and the intro (intro: true, core/intro).
 // A time game: no durationMs (rules.ts ends the run at its own timer, "timeup", unranked); a win
 // submits the finish ms minus the orb and flow bonus (finalScore).
@@ -42,7 +42,7 @@ const definition: GameDefinition<CandyLevel> = {
       "Eat 3 candy coins to grow a size (Small, Normal, Big). Hold Down (S, or the stick pulled down) to sugar-burn roll: one size down every 0.6 s.",
       "Big smashes jelly cubes, chocolate walls and frozen blocks; Small slips under cookie, candy-cane and frozen arches. The sign over each one shows the size it needs.",
       "← / → (A / D, a swipe, or a flick of the stick) change lane; Space / Jump hops. Meet an obstacle at the wrong size and you stumble through it slowly.",
-      "E / Enter is your power: Riko's Big dash breaks gingerbread walls into a bonus lane, Nami's second jump reaches the candy-cane rail, Kiro's shield crosses popping candy, Zuno switches his magnet on and off (coins and frosting trails), Vexa phases into the hidden fourth lane.",
+      "E / Enter is your power: Riko's Big dash breaks gingerbread walls into a bonus lane, Nyla's second jump reaches the candy-cane rail, Kiro's shield crosses popping candy, Zuno switches his magnet on and off (coins and frosting trails), Vexa phases into the hidden fourth lane.",
       "Turn the camera: right-drag the view (or two fingers), mouse wheel / pinch zooms, Q / C turn, R / F tilt, V recenters.",
    ],
    resultDelayMs: 1800,

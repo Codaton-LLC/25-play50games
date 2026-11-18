@@ -1,6 +1,6 @@
 "use client";
 
-// The active hero of a team, on the shared menu2 animator: it steps cell to cell (a hop on Nami's leap,
+// The active hero of a team, on the shared menu2 animator: it steps cell to cell (a hop on Nyla's leap,
 // a streak on Riko's dash), sinks into the abyss and pops back on its last rock, and swaps to another
 // hero on a Tag (the model is re-made for the new hero with a flash of its colour). Kiro's shield
 // bubble; Vexa's phase turns her see-through.

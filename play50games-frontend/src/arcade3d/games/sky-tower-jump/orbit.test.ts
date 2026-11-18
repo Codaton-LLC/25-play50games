@@ -1,7 +1,7 @@
 // Sky Tower Jump with the shared orbit camera (menu2/camera): camera-relative movement through the
 // rules' own input (StepInput.yaw), the honest bot unchanged at the default yaw, the proof's bounds
 // for any yaw, the intro ending on the orbit's first pose, the camera's solid boxes, and the
-// preselected hero (W2: Nami).
+// preselected hero (W2: Nyla).
 import { describe, expect, it } from "vitest";
 import { createRng, inputToWorld } from "@/arcade3d/core/math";
 import type { AABB } from "@/arcade3d/core/collision";
@@ -134,7 +134,7 @@ describe("orbit camera adoption", () => {
 });
 
 describe("the preselected hero", () => {
-   it("Sky Tower Jump (W2 Sky & Sea) preselects Nami; the player's own pick is kept", () => {
+   it("Sky Tower Jump (W2 Sky & Sea) preselects Nyla; the player's own pick is kept", () => {
       setHeroPickStorage(memoryHeroStorage());
       resetHeroPick();
       expect(pickedHero()).toBe("nami");

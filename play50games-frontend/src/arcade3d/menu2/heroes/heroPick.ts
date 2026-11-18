@@ -1,6 +1,6 @@
 // Which hero a Menu 2 game starts with, and the player's own pick (README.md). Plain TS, no React.
 //
-// - defaultHeroFor(slug): the game's world's lead hero (menu2/worldMap worlds.ts): W1 Riko, W2 Nami,
+// - defaultHeroFor(slug): the game's world's lead hero (menu2/worldMap worlds.ts): W1 Riko, W2 Nyla,
 //   W3 Kiro, W4 Zuno, W5 Vexa; W6 (all five) the player's last pick in any game, or Riko. A slug in
 //   no world gets Riko.
 // - The player's own last pick per game wins over that default: initialHeroFor(slug).

@@ -42,7 +42,7 @@ moving piece on the board: belts carry you too.
 | Hero | Power (cooldown) | What it opens |
 |---|---|---|
 | Riko | dash 12 m/s for 0.35 s (5 s) | flicks a cell beside him one belt over, smashes cracked crates (an orb inside), knocks a jammed table free |
-| Nami | a second jump in the air | the catwalk (2.2 m) and its orbs / sticker |
+| Nyla | a second jump in the air | the catwalk (2.2 m) and its orbs / sticker |
 | Kiro | shield 2.5 s (9 s) | walks through laser gates (orbs in the beams) |
 | Zuno | magnet 3 s, 4 m (7 s) | a cell hops one belt towards him; orbs hidden in the machinery fly out |
 | Vexa | phase 1.6 s (8 s) | walks through ghost crates into the maintenance rooms |

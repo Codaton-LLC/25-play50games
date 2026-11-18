@@ -1,6 +1,6 @@
 // The sea canyon of every level, as pure data (no React, no three.js): rings, orbs, updraft geysers,
 // blade gates, wall pockets (the open niche with the gold ring, Riko's cracked seal, Vexa's ghost
-// panel into the inner shaft), Kiro's storm-shear pockets, Zuno's orbs hidden in the wall, Nami's
+// panel into the inner shaft), Kiro's storm-shear pockets, Zuno's orbs hidden in the wall, Nyla's
 // ledge nooks, the narrow slot sections, the target pad and the marked pool, and on level 5 the storm
 // eye where Cyclone Ray fights. The same level is the same canyon for every run (no randomness here).
 //
@@ -106,7 +106,7 @@ export interface LedgeDef {
    half: number;
    y0: number;
    y1: number;
-   /** the spring pad of an updraft stands on it (visual), else Nami's nook */
+   /** the spring pad of an updraft stands on it (visual), else Nyla's nook */
    geyser: boolean;
 }
 
@@ -306,7 +306,7 @@ function wallTrail(c: Draft, a: number, y: number): void {
    for (let k = 0; k < 3; k++) orb(c, polarX(a + k * 3, r), y - k * 5, polarZ(a + k * 3, r), "zuno");
 }
 
-/** Nami's nook: a stone ledge with an orb tucked under it against the wall. */
+/** Nyla's nook: a stone ledge with an orb tucked under it against the wall. */
 function ledgeNook(c: Draft, a: number, y: number): void {
    const R = radiusOf(c, y);
    c.ledges.push({ a, inner: R - 4.2, half: 2.6, y0: y - 1.2, y1: y, geyser: false });

@@ -256,7 +256,7 @@ describe("moving portals (level 3)", () => {
    });
 });
 
-describe("the Portal Wyrm (level 5)", () => {
+describe("the Rift Serpent (level 5)", () => {
    it("phase 1: a dive comes out of pair A's exit; at an intact beacon it bonks (a hit), elsewhere nothing", () => {
       for (const beacon of [true, false]) {
          const r = run(5);

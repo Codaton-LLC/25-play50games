@@ -16,12 +16,12 @@ vulnerable window), a charged cannon fires: one hit.
 - Local multiplayer (2-4): Down on a player's stick tags their next hero, Up the previous.
 
 The tag (menu2/heroTag): a 0.5 s global cooldown; a benched hero's power recharges at 2x; a tag inside the combo window
-is a Hand-off; a hero tagged in mid-air gets one fresh air action (Nami's jump); Prism Lock (level 5) freezes the roster.
+is a Hand-off; a hero tagged in mid-air gets one fresh air action (Nyla's jump); Prism Lock (level 5) freezes the roster.
 
 | Hero | Colour | Power here |
 |---|---|---|
 | Riko | red | dash (20 m/s for 0.3 s, 3 s): across a gap, through the cracked window |
-| Nami | blue | a second jump (fresh after a tag): up the two skip ledges to a high blue claw |
+| Nyla | blue | a second jump (fresh after a tag): up the two skip ledges to a high blue claw |
 | Kiro | green | shield (1.5 s, 5 s): the sweep and the hazard orbs bounce off |
 | Zuno | yellow | magnet (3 s, 7 s): charges a yellow claw high on the wall from 6 m |
 | Vexa | purple | phase (0.8 s, 5 s): through a hazard orb, and through the ghost panel to its niche |
@@ -32,7 +32,7 @@ One tower, five configurations (`levels.ts`):
 
 | Level | Name | Ledges | Claws | Twist | Guardian | Timer | 3rd star |
 |---|---|---:|---:|---|---|---:|---:|
-| 1 | Training Guardian | 30 | 4 | three beats: red claw, the slow sweep, Nami's high blue claw | Stone, 2 cycles | 150 s | 40 s |
+| 1 | Training Guardian | 30 | 4 | three beats: red claw, the slow sweep, Nyla's high blue claw | Stone, 2 cycles | 150 s | 40 s |
 | 2 | Two Colors | 40 | 6 | hazard orbs roll down the spiral (one per telegraph) | Stone, 3 | 180 s | 50 s |
 | 3 | Three Colors | 48 | 7 | the ledges crumble 2 s after you land (back 4 s later; checkpoints never crumble) | Stone, 4 | 210 s | 65 s |
 | 4 | Fast Switch Boss | 52 | 11 | his fury: phase 2 needs a chain charge, two cannons within 4 s | Stone, 5 | 240 s | 110 s |
@@ -73,7 +73,7 @@ two to two and a half times those.
 
 
 `bot.ts` climbs like a careful player: up the spiral (a jump near each ledge's end), tagging to the next claw's hero three
-ledges early; at the claw it charges by touch, Zuno's magnet for a yellow claw on the wall, or Nami's two jumps up the skip
+ledges early; at the claw it charges by touch, Zuno's magnet for a yellow claw on the wall, or Nyla's two jumps up the skip
 ledges for a high blue one. It plants itself for the sweep and jumps as the arm comes round, holds its ledge while a
 hazard orb rolls down at it and hops it, keeps the paired claws for the chain phases, and tags through the glyphs on level
 5. `?autoplay=1` (preview builds) lets it play.

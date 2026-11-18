@@ -81,7 +81,7 @@ const L1: RoomDef[] = [
       "#......................#",
       "#S.C.........+.........#",
       "######....##############"),
-   R(8, "A hop with a swarm in tow. Nami: a double jump reaches the spare coins on the shelf.",
+   R(8, "A hop with a swarm in tow. Nyla: a double jump reaches the spare coins on the shelf.",
       "########################",
       "#......................#",
       "#......................#",

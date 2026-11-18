@@ -1,7 +1,7 @@
 // Dragon Cave Rush rules (the design card's CHASE CART): a mine cart on rails at the level's track speed,
 // leaning into curves (the right lean +15 % speed; a wrong lean on a sharp curve tips the cart onto two
 // wheels, a second derails it), hopping gaps and rocks, ducking beams and breath, swapping lanes at forks
-// round falling crystals and lavafalls, the hero roles (Riko's boost through cracked barricades, Nami's
+// round falling crystals and lavafalls, the hero roles (Riko's boost through cracked barricades, Nyla's
 // double hop to the scaffold, Kiro's shield, Zuno's wall-trail magnet, Vexa's ghost rails), Cindermaw's
 // distance meter (0 = caught), orbs (a time bonus), the flow meter, secrets, the level 5 boss on the loop,
 // and the lower bound behind the server limits.
@@ -57,7 +57,7 @@ export const ORB = { pickup: 1.25, bonusMs: 250, centerY: 0.9 } as const;
 export const SECRET_R = 1.4;
 /** Riko's boost reaches a barricade from this far before it */
 export const BOOST_REACH = 16;
-/** Nami's second hop near a scaffold ramp lifts her onto it */
+/** Nyla's second hop near a scaffold ramp lifts her onto it */
 export const RAMP_REACH = { before: 10, after: 6 } as const;
 
 // ---------- the course ----------
@@ -559,7 +559,7 @@ function tryPower(run: CaveRun, ms: number): void {
    run.events.powered = true;
 }
 
-/** Nami's second hop: higher, and next to a scaffold ramp it lifts the cart onto the upper track. */
+/** Nyla's second hop: higher, and next to a scaffold ramp it lifts the cart onto the upper track. */
 function airHop(run: CaveRun, ms: number): void {
    const c = run.cart;
    if (c.h <= 0.01 || c.airHops >= 1 || c.state !== "ride") return;
@@ -657,7 +657,7 @@ function substep(run: CaveRun, ms: number, input: StepInput, first: boolean): vo
    }
    const want = co.lanes[c.lane].d;
    if (c.d !== want) c.d = c.d < want ? Math.min(want, c.d + V_SWAP * dt) : Math.max(want, c.d - V_SWAP * dt);
-   // hop (buffered), Nami's second hop
+   // hop (buffered), Nyla's second hop
    if (c.bufferUntil >= ms) {
       if (c.h <= 0.01) {
          c.vy = V_HOP;

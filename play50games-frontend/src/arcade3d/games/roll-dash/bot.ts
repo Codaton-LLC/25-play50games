@@ -1,7 +1,7 @@
 // The honest bot (tests, and `?autoplay=1` in preview builds): it plays through the same StepInput a
 // player gives. Each frame it reads the street ahead (what a player sees: the locks light up leadS
 // ahead), picks the best lane (a single lock it can answer for its orbs, else a free lane), tags the
-// right hero for the next lock and fires its power on time (Nami: jump, then her second jump at the
+// right hero for the next lock and fires its power on time (Nyla: jump, then her second jump at the
 // top), jumps crates and carts and tucks under signs. On level 5 it also answers the Hawk: its swoop
 // lane, its glowing plate (be that hero, jump into it) and the five plates.
 import { cartX, laneX } from "./course";
