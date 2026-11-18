@@ -1,4 +1,7 @@
-/* Reflex Arrow: layout and feedback styles (mobile/tablet pass). Rules and scoring live in the component. */
+/* Reflex Arrow: layout and feedback styles (mobile/tablet pass + modern pass). Rules and scoring live in
+   the component. Shape scale: panels 16 px, buttons 12 px, messages 10 px, bars / chips / badges pill.
+   One accent (the site --accent, gold in the final games through the variable); ok / warn tints are
+   colour-mixed from --ok / --warn. The four direction colours are game content and come in as CSS vars. */
 
 .root {
    display: flex;
@@ -16,7 +19,7 @@
    box-sizing: border-box;
    background: var(--card);
    border-radius: 16px;
-   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+   box-shadow: inset 0 0 0 1px var(--stroke), 0 8px 24px rgba(0, 0, 0, 0.2);
 }
 
 .headerRow {
@@ -27,6 +30,7 @@
    gap: 6px 10px;
    font-weight: 600;
    color: var(--text);
+   font-variant-numeric: tabular-nums;
 }
 
 .headerItem {
@@ -39,17 +43,18 @@
 .progress {
    width: 100%;
    height: 6px;
-   background: rgba(255, 255, 255, 0.1);
+   background: var(--stroke);
    border-radius: 999px;
    overflow: hidden;
 }
 
+/* a full-width solid accent fill, scaled from the left (the component sets transform: scaleX(p)) */
 .progressFill {
+   width: 100%;
    height: 100%;
-   background: linear-gradient(90deg, var(--accent) 0%, var(--ok) 100%);
-   border-radius: 999px;
-   transition: width 0.3s ease;
-   box-shadow: 0 0 10px rgba(var(--accent-rgb, 125, 211, 252), 0.5);
+   background: var(--accent);
+   transform-origin: left center;
+   transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .board {
@@ -75,23 +80,23 @@
    color: var(--text);
    white-space: nowrap;
    line-height: 1;
+   font-variant-numeric: tabular-nums;
 }
 
 .chipOk {
-   background: linear-gradient(135deg, rgba(134, 239, 172, 0.2), rgba(34, 197, 94, 0.1));
-   border: 1px solid rgba(134, 239, 172, 0.4);
+   background: color-mix(in srgb, var(--ok) 16%, transparent);
+   border: 1px solid color-mix(in srgb, var(--ok) 45%, transparent);
 }
 
 .chipBad {
-   background: linear-gradient(135deg, rgba(252, 165, 165, 0.2), rgba(239, 68, 68, 0.1));
-   border: 1px solid rgba(252, 165, 165, 0.4);
+   background: color-mix(in srgb, var(--warn) 16%, transparent);
+   border: 1px solid color-mix(in srgb, var(--warn) 45%, transparent);
 }
 
 .chipMs {
    background: rgba(var(--accent-rgb, 125, 211, 252), 0.12);
    border: 1px solid rgba(var(--accent-rgb, 125, 211, 252), 0.4);
-   color: var(--accent);
-   font-variant-numeric: tabular-nums;
+   color: var(--text);
 }
 
 /* The prompt + pad: a column (prompt above) or a row (prompt beside the pad on short screens). */
@@ -120,6 +125,7 @@
    flex-shrink: 0;
 }
 
+/* The border is 4 px in every state: only its colour, the fill and the shadow change. */
 .prompt {
    border-radius: 50%;
    display: flex;
@@ -127,9 +133,9 @@
    justify-content: center;
    box-sizing: border-box;
    border: 4px solid var(--accent);
-   background: rgba(59, 130, 246, 0.15);
-   box-shadow: 0 8px 24px rgba(59, 130, 246, 0.3);
-   transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+   background: rgba(var(--accent-rgb, 125, 211, 252), 0.12);
+   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.28);
+   transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .promptIdle {
@@ -140,14 +146,12 @@
 
 .promptOk {
    border-color: var(--ok);
-   background: rgba(134, 239, 172, 0.2);
-   box-shadow: 0 8px 24px rgba(134, 239, 172, 0.4);
+   background: color-mix(in srgb, var(--ok) 20%, transparent);
 }
 
 .promptBad {
    border-color: var(--warn);
-   background: rgba(252, 165, 165, 0.2);
-   box-shadow: 0 8px 24px rgba(252, 165, 165, 0.4);
+   background: color-mix(in srgb, var(--warn) 20%, transparent);
 }
 
 .promptHint {
@@ -175,23 +179,30 @@
    color: var(--warn);
 }
 
+/* 3 x 3 equal tracks; the component sets the pad's side (3 cells + 2 gaps, whole pixels) and the gap. */
 .pad {
    display: grid;
+   grid-template-columns: repeat(3, minmax(0, 1fr));
+   grid-template-rows: repeat(3, minmax(0, 1fr));
    flex-shrink: 0;
 }
 
+/* A direction button. The 2 px border never changes width: hit / miss / press change colour, fill, an
+   inset ring or the transform only, so a button never changes size or pushes its neighbours. */
 .dir {
    display: flex;
    align-items: center;
    justify-content: center;
+   box-sizing: border-box;
    padding: 0;
    margin: 0;
-   border-radius: 18px;
+   border-radius: 12px;
    border: 2px solid var(--dir-color);
    background: var(--dir-bg);
    color: var(--text);
    cursor: pointer;
-   transition: transform 0.08s ease, background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+   transition: transform 0.1s ease-out, background-color 0.15s ease, border-color 0.15s ease,
+      box-shadow 0.15s ease;
 }
 
 .dir:disabled {
@@ -200,18 +211,31 @@
 }
 
 .dir:not(:disabled):active {
-   transform: scale(0.94);
+   transform: scale(0.96);
+}
+
+.dir:focus-visible,
+.btn:focus-visible {
+   outline: 2px solid var(--text);
+   outline-offset: 2px;
+}
+
+@media (hover: hover) {
+   .dir:not(:disabled):hover {
+      background: var(--dir-bg-hot);
+   }
 }
 
 .dirOk {
    background: var(--dir-bg-hot);
-   border-color: var(--dir-color);
-   box-shadow: 0 0 0 3px rgba(134, 239, 172, 0.35);
+   border-color: var(--ok);
+   box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--ok) 55%, transparent);
 }
 
 .dirBad {
-   background: rgba(252, 165, 165, 0.3);
+   background: color-mix(in srgb, var(--warn) 26%, transparent);
    border-color: var(--warn);
+   box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--warn) 55%, transparent);
 }
 
 .centre {
@@ -223,6 +247,7 @@
    font-weight: 600;
    color: var(--muted);
    line-height: 1.2;
+   min-width: 0;
 }
 
 .desc {
@@ -232,13 +257,12 @@
    text-align: center;
 }
 
-/* Level end notices (next round / failed / complete). */
+/* Level end notices (next round / failed / complete): a 16 px panel like every other card. */
 .notice {
    color: var(--text);
    font-weight: 700;
    text-align: center;
-   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.25);
-   border-radius: var(--radius);
+   font-variant-numeric: tabular-nums;
 }
 
 .badge {
@@ -252,13 +276,13 @@
 }
 
 .badgeOk {
-   background: linear-gradient(135deg, rgba(134, 239, 172, 0.25), rgba(134, 239, 172, 0.1));
-   border: 2px solid rgba(134, 239, 172, 0.6);
+   background: color-mix(in srgb, var(--ok) 18%, transparent);
+   border: 1px solid color-mix(in srgb, var(--ok) 55%, transparent);
 }
 
 .badgeBad {
-   background: linear-gradient(135deg, rgba(252, 165, 165, 0.25), rgba(252, 165, 165, 0.1));
-   border: 2px solid rgba(252, 165, 165, 0.6);
+   background: color-mix(in srgb, var(--warn) 18%, transparent);
+   border: 1px solid color-mix(in srgb, var(--warn) 55%, transparent);
 }
 
 .actions {
@@ -271,13 +295,14 @@
    box-sizing: border-box;
    padding: 10px;
    background: var(--card);
-   border-radius: 12px;
+   border-radius: 16px;
+   box-shadow: inset 0 0 0 1px var(--stroke);
 }
 
 .btn {
    min-height: 44px;
    min-width: 44px;
-   border-radius: 10px;
+   border-radius: 12px;
    display: inline-flex;
    align-items: center;
    justify-content: center;
@@ -286,6 +311,7 @@
    color: var(--text);
    cursor: pointer;
    box-sizing: border-box;
+   font-variant-numeric: tabular-nums;
 }
 
 .btn:disabled {
@@ -299,19 +325,38 @@
    white-space: nowrap;
 }
 
+/* Replay and Share: one look (accent tint, 1 px accent border). The accent is gold in the final games. */
+.btnTint {
+   background: rgba(var(--accent-rgb, 125, 211, 252), 0.14);
+   border: 1px solid rgba(var(--accent-rgb, 125, 211, 252), 0.55);
+}
+
+.btnTint:disabled {
+   background: rgba(255, 255, 255, 0.04);
+   border-color: var(--stroke);
+   color: var(--muted);
+   opacity: 0.6;
+}
+
+@media (hover: hover) {
+   .btnTint:not(:disabled):hover {
+      background: rgba(var(--accent-rgb, 125, 211, 252), 0.22);
+   }
+}
+
 .msg {
    width: 100%;
    box-sizing: border-box;
    padding: 10px 12px;
-   border-radius: 8px;
+   border-radius: 10px;
    font-weight: 600;
    text-align: center;
 }
 
 .msgOk {
-   background: rgba(134, 239, 172, 0.2);
-   border: 2px solid rgba(134, 239, 172, 0.6);
-   color: var(--ok);
+   background: color-mix(in srgb, var(--ok) 16%, transparent);
+   border: 1px solid color-mix(in srgb, var(--ok) 55%, transparent);
+   color: var(--text);
 }
 
 .msgInfo {
@@ -320,8 +365,20 @@
    justify-content: center;
    flex-wrap: wrap;
    gap: 6px;
-   background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1));
-   border: 2px solid rgba(59, 130, 246, 0.6);
+   background: rgba(var(--accent-rgb, 125, 211, 252), 0.14);
+   border: 1px solid rgba(var(--accent-rgb, 125, 211, 252), 0.55);
    color: var(--text);
    font-weight: 500;
+}
+
+@media (prefers-reduced-motion: reduce) {
+   .progressFill,
+   .prompt,
+   .dir {
+      transition: none;
+   }
+
+   .dir:not(:disabled):active {
+      transform: none;
+   }
 }
