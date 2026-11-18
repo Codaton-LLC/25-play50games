@@ -76,7 +76,7 @@ describe("crystal-tower models", () => {
       expect(definition.clockChip).toBe(false);
       expect(crystalTowerMeta.scoring.kind).toBe("time");
       expect(crystalTowerMeta.order).toBe(87);
-      expect(crystalTowerMeta.status).toBe("dev");
+      expect(crystalTowerMeta.status).toBe("live");
       expect(crystalTowerMeta.collection).toBe("rollheroes");
       expect(crystalTowerMeta.levels!.map((l) => l.title)).toEqual(["3-Color Sequence", "4 Colors", "5 Colors", "Moving Crystals", "Memory Tower"]);
    });

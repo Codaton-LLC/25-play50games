@@ -27,7 +27,7 @@ export const crystalTowerMeta: ArcadeGameMeta = {
    tagline: "Watch the beacon flash its colours, then climb the crystal spire and touch them in that order.",
    description: "A memory climb up a neon crystal tower in the Neon Cosmos. Each tier's beacon shows a colour sequence; remember it, climb the pads and touch the tier's crystals in that order to arm the next beacon. Sliding bridges, glass and crumbling pads, shard storms and spark drones get in the way, the crystals start bobbing out of reach, and on the summit Prism Shade turns the sequences into his attacks: shuffled, blacked out, mirrored.",
    order: 87,
-   status: "dev",
+   status: "live",
    collection: "rollheroes",
    difficulty: 2,
    orientation: "any",

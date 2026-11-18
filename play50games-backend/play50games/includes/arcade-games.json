@@ -913,7 +913,7 @@
       "min_duration_ms": 10200,
       "max_duration_ms": 90000,
       "time_base_ms": 90000,
-      "enabled": false,
+      "enabled": true,
       "levels": [
         { "title": "Training Sky", "max_score": 7980, "min_duration_ms": 10200, "max_duration_ms": 90000, "time_base_ms": 90000 },
         { "title": "Cloud Steps", "max_score": 9970, "min_duration_ms": 20300, "max_duration_ms": 120000, "time_base_ms": 120000 },
@@ -929,7 +929,7 @@
       "min_duration_ms": 11300,
       "max_duration_ms": 90000,
       "time_base_ms": 90000,
-      "enabled": false,
+      "enabled": true,
       "levels": [
         { "title": "Low Roofs", "max_score": 7870, "min_duration_ms": 11300, "max_duration_ms": 90000, "time_base_ms": 90000 },
         { "title": "Office Roofs", "max_score": 10390, "min_duration_ms": 16100, "max_duration_ms": 120000, "time_base_ms": 120000 },
@@ -945,7 +945,7 @@
       "min_duration_ms": 7900,
       "max_duration_ms": 180000,
       "time_base_ms": 180000,
-      "enabled": false,
+      "enabled": true,
       "levels": [
         { "title": "Drain Entry", "max_score": 17210, "min_duration_ms": 7900, "max_duration_ms": 180000, "time_base_ms": 180000 },
         { "title": "Pipe Maze", "max_score": 20510, "min_duration_ms": 4900, "max_duration_ms": 210000, "time_base_ms": 210000 },
@@ -961,7 +961,7 @@
       "min_duration_ms": 3200,
       "max_duration_ms": 90000,
       "time_base_ms": 90000,
-      "enabled": false,
+      "enabled": true,
       "levels": [
         { "title": "Warm Cavern", "max_score": 8680, "min_duration_ms": 3200, "max_duration_ms": 90000, "time_base_ms": 90000 },
         { "title": "Pillar Field", "max_score": 11740, "min_duration_ms": 2600, "max_duration_ms": 120000, "time_base_ms": 120000 },
@@ -977,7 +977,7 @@
       "min_duration_ms": 20300,
       "max_duration_ms": 130000,
       "time_base_ms": 130000,
-      "enabled": false,
+      "enabled": true,
       "levels": [
         { "title": "Soft Clouds", "max_score": 10970, "min_duration_ms": 20300, "max_duration_ms": 130000, "time_base_ms": 130000 },
         { "title": "Moving Clouds", "max_score": 12330, "min_duration_ms": 26700, "max_duration_ms": 150000, "time_base_ms": 150000 },
@@ -993,7 +993,7 @@
       "min_duration_ms": 13800,
       "max_duration_ms": 120000,
       "time_base_ms": 120000,
-      "enabled": false,
+      "enabled": true,
       "levels": [
         { "title": "Training Swell", "max_score": 10620, "min_duration_ms": 13800, "max_duration_ms": 120000, "time_base_ms": 120000 },
         { "title": "Rocky Path", "max_score": 12240, "min_duration_ms": 17600, "max_duration_ms": 140000, "time_base_ms": 140000 },
@@ -1010,7 +1010,7 @@
       "max_duration_ms": 151000,
       "base": 1460,
       "max_pps": 0,
-      "enabled": false,
+      "enabled": true,
       "levels": [
         {
           "title": "Training Line",
@@ -1062,7 +1062,7 @@
       "max_duration_ms": 91000,
       "base": 0,
       "max_pps": 1545,
-      "enabled": false,
+      "enabled": true,
       "levels": [
         { "title": "Wide Rings", "max_score": 9421, "min_duration_ms": 6100, "max_duration_ms": 91000, "base": 0, "max_pps": 1545 },
         { "title": "Moving Rings", "max_score": 11935, "min_duration_ms": 7800, "max_duration_ms": 101000, "base": 0, "max_pps": 1531 },
@@ -1078,7 +1078,7 @@
       "min_duration_ms": 8100,
       "max_duration_ms": 120000,
       "time_base_ms": 120000,
-      "enabled": false,
+      "enabled": true,
       "levels": [
         { "title": "Gentle Wind", "max_score": 11190, "min_duration_ms": 8100, "max_duration_ms": 120000, "time_base_ms": 120000 },
         { "title": "Cross Wind", "max_score": 13700, "min_duration_ms": 13000, "max_duration_ms": 150000, "time_base_ms": 150000 },
@@ -1094,7 +1094,7 @@
       "min_duration_ms": 1400,
       "max_duration_ms": 75000,
       "time_base_ms": 75000,
-      "enabled": false,
+      "enabled": true,
       "levels": [
         { "title": "Short Launch", "max_score": 7360, "min_duration_ms": 1400, "max_duration_ms": 75000, "time_base_ms": 75000 },
         { "title": "Angle Practice", "max_score": 8790, "min_duration_ms": 2100, "max_duration_ms": 90000, "time_base_ms": 90000 },
@@ -1110,7 +1110,7 @@
       "min_duration_ms": 1300,
       "max_duration_ms": 180000,
       "time_base_ms": 180000,
-      "enabled": false,
+      "enabled": true,
       "levels": [
         { "title": "Temple Gate", "max_score": 17870, "min_duration_ms": 1300, "max_duration_ms": 180000, "time_base_ms": 180000 },
         { "title": "Lantern Hall", "max_score": 20740, "min_duration_ms": 2600, "max_duration_ms": 210000, "time_base_ms": 210000 },
@@ -1126,7 +1126,7 @@
       "min_duration_ms": 8500,
       "max_duration_ms": 150000,
       "time_base_ms": 150000,
-      "enabled": false,
+      "enabled": true,
       "levels": [
         { "title": "Slow Poles", "max_score": 14150, "min_duration_ms": 8500, "max_duration_ms": 150000, "time_base_ms": 150000 },
         { "title": "Twin Poles", "max_score": 16810, "min_duration_ms": 11900, "max_duration_ms": 180000, "time_base_ms": 180000 },
@@ -1142,7 +1142,7 @@
       "min_duration_ms": 900,
       "max_duration_ms": 200000,
       "time_base_ms": 200000,
-      "enabled": false,
+      "enabled": true,
       "levels": [
         { "title": "Green Start", "max_score": 19910, "min_duration_ms": 900, "max_duration_ms": 200000, "time_base_ms": 200000 },
         { "title": "Branch Climb", "max_score": 23880, "min_duration_ms": 1200, "max_duration_ms": 240000, "time_base_ms": 240000 },
@@ -1158,7 +1158,7 @@
       "min_duration_ms": 36400,
       "max_duration_ms": 90000,
       "time_base_ms": 90000,
-      "enabled": false,
+      "enabled": true,
       "levels": [
         { "title": "Crystal Entry", "max_score": 5360, "min_duration_ms": 36400, "max_duration_ms": 90000, "time_base_ms": 90000 },
         { "title": "Rockfall", "max_score": 7670, "min_duration_ms": 33300, "max_duration_ms": 110000, "time_base_ms": 110000 },
@@ -1174,7 +1174,7 @@
       "min_duration_ms": 15400,
       "max_duration_ms": 90000,
       "time_base_ms": 90000,
-      "enabled": false,
+      "enabled": true,
       "levels": [
         { "title": "Two Doors", "max_score": 7460, "min_duration_ms": 15400, "max_duration_ms": 90000, "time_base_ms": 90000 },
         { "title": "Three Doors", "max_score": 9530, "min_duration_ms": 14700, "max_duration_ms": 110000, "time_base_ms": 110000 },
@@ -1190,7 +1190,7 @@
       "min_duration_ms": 3000,
       "max_duration_ms": 100000,
       "time_base_ms": 100000,
-      "enabled": false,
+      "enabled": true,
       "levels": [
         { "title": "Single Swing", "max_score": 9700, "min_duration_ms": 3000, "max_duration_ms": 100000, "time_base_ms": 100000 },
         { "title": "Double Swing", "max_score": 13320, "min_duration_ms": 6800, "max_duration_ms": 140000, "time_base_ms": 140000 },
@@ -1207,7 +1207,7 @@
       "max_duration_ms": 151000,
       "base": 0,
       "max_pps": 4299,
-      "enabled": false,
+      "enabled": true,
       "levels": [
         { "title": "Static Targets", "max_score": 14616, "min_duration_ms": 3400, "max_duration_ms": 151000, "base": 0, "max_pps": 4299 },
         { "title": "Moving Targets", "max_score": 12816, "min_duration_ms": 3400, "max_duration_ms": 161000, "base": 0, "max_pps": 3770 },
@@ -1223,7 +1223,7 @@
       "min_duration_ms": 17100,
       "max_duration_ms": 100000,
       "time_base_ms": 100000,
-      "enabled": false,
+      "enabled": true,
       "levels": [
         { "title": "Red Block", "max_score": 8290, "min_duration_ms": 17100, "max_duration_ms": 100000, "time_base_ms": 100000 },
         { "title": "Bus Line", "max_score": 10360, "min_duration_ms": 26400, "max_duration_ms": 130000, "time_base_ms": 130000 },
@@ -1239,7 +1239,7 @@
       "min_duration_ms": 12500,
       "max_duration_ms": 120000,
       "time_base_ms": 120000,
-      "enabled": false,
+      "enabled": true,
       "levels": [
         { "title": "Desk Start", "max_score": 10750, "min_duration_ms": 12500, "max_duration_ms": 120000, "time_base_ms": 120000 },
         { "title": "Book Bridge", "max_score": 13690, "min_duration_ms": 13100, "max_duration_ms": 150000, "time_base_ms": 150000 },
@@ -1255,7 +1255,7 @@
       "min_duration_ms": 6700,
       "max_duration_ms": 100000,
       "time_base_ms": 100000,
-      "enabled": false,
+      "enabled": true,
       "levels": [
         { "title": "Jump Trial", "max_score": 9330, "min_duration_ms": 6700, "max_duration_ms": 100000, "time_base_ms": 100000 },
         { "title": "Runner Trial", "max_score": 10700, "min_duration_ms": 13000, "max_duration_ms": 120000, "time_base_ms": 120000 },
@@ -1271,7 +1271,7 @@
       "min_duration_ms": 7200,
       "max_duration_ms": 90000,
       "time_base_ms": 90000,
-      "enabled": false,
+      "enabled": true,
       "levels": [
         { "title": "Assembly Start", "max_score": 8280, "min_duration_ms": 7200, "max_duration_ms": 90000, "time_base_ms": 90000 },
         { "title": "Conveyor Hall", "max_score": 9650, "min_duration_ms": 13500, "max_duration_ms": 110000, "time_base_ms": 110000 },
@@ -1287,7 +1287,7 @@
       "min_duration_ms": 2400,
       "max_duration_ms": 180000,
       "time_base_ms": 180000,
-      "enabled": false,
+      "enabled": true,
       "levels": [
         { "title": "Base Camp", "max_score": 17760, "min_duration_ms": 2400, "max_duration_ms": 180000, "time_base_ms": 180000 },
         { "title": "Icicle Steps", "max_score": 20940, "min_duration_ms": 600, "max_duration_ms": 210000, "time_base_ms": 210000 },
@@ -1303,7 +1303,7 @@
       "min_duration_ms": 12800,
       "max_duration_ms": 150000,
       "time_base_ms": 150000,
-      "enabled": false,
+      "enabled": true,
       "levels": [
         { "title": "Training Wall", "max_score": 13720, "min_duration_ms": 12800, "max_duration_ms": 150000, "time_base_ms": 150000 },
         { "title": "Double Wall", "max_score": 16570, "min_duration_ms": 14300, "max_duration_ms": 180000, "time_base_ms": 180000 },
@@ -1319,7 +1319,7 @@
       "min_duration_ms": 1500,
       "max_duration_ms": 300000,
       "time_base_ms": 300000,
-      "enabled": false,
+      "enabled": true,
       "levels": [
         { "title": "Practice Table", "max_score": 29850, "min_duration_ms": 1500, "max_duration_ms": 300000, "time_base_ms": 300000 },
         { "title": "Mushroom Garden", "max_score": 32460, "min_duration_ms": 5400, "max_duration_ms": 330000, "time_base_ms": 330000 },
@@ -1336,7 +1336,7 @@
       "max_duration_ms": 120000,
       "base": 21,
       "max_pps": 12,
-      "enabled": false,
+      "enabled": true,
       "levels": [
         { "title": "Temple Entry", "max_score": 480, "min_duration_ms": 1000, "max_duration_ms": 120000, "base": 21, "max_pps": 12 },
         { "title": "Coin Hall", "max_score": 610, "min_duration_ms": 1000, "max_duration_ms": 130000, "base": 36, "max_pps": 14 },
@@ -1352,7 +1352,7 @@
       "min_duration_ms": 14771,
       "max_duration_ms": 100000,
       "time_base_ms": 100000,
-      "enabled": false,
+      "enabled": true,
       "levels": [
         {
           "title": "Bunny Hill",
@@ -1398,7 +1398,7 @@
       "min_duration_ms": 1100,
       "max_duration_ms": 90000,
       "time_base_ms": 90000,
-      "enabled": false,
+      "enabled": true,
       "levels": [
         { "title": "Dry Tunnel", "max_score": 8890, "min_duration_ms": 1100, "max_duration_ms": 90000, "time_base_ms": 90000 },
         { "title": "Pipe Zone", "max_score": 11730, "min_duration_ms": 2700, "max_duration_ms": 120000, "time_base_ms": 120000 },
@@ -1414,7 +1414,7 @@
       "min_duration_ms": 13900,
       "max_duration_ms": 150000,
       "time_base_ms": 150000,
-      "enabled": false,
+      "enabled": true,
       "levels": [
         { "title": "Wide Beams", "max_score": 13610, "min_duration_ms": 13900, "max_duration_ms": 150000, "time_base_ms": 150000 },
         { "title": "Narrow Beams", "max_score": 18410, "min_duration_ms": 15900, "max_duration_ms": 200000, "time_base_ms": 200000 },
@@ -1430,7 +1430,7 @@
       "min_duration_ms": 22000,
       "max_duration_ms": 120000,
       "time_base_ms": 120000,
-      "enabled": false,
+      "enabled": true,
       "levels": [
         { "title": "Station Yard", "max_score": 9800, "min_duration_ms": 22000, "max_duration_ms": 120000, "time_base_ms": 120000 },
         { "title": "Village Loop", "max_score": 12440, "min_duration_ms": 25600, "max_duration_ms": 150000, "time_base_ms": 150000 },
@@ -1446,7 +1446,7 @@
       "min_duration_ms": 35200,
       "max_duration_ms": 120000,
       "time_base_ms": 120000,
-      "enabled": false,
+      "enabled": true,
       "levels": [
         { "title": "Alien Meadow", "max_score": 8480, "min_duration_ms": 35200, "max_duration_ms": 120000, "time_base_ms": 120000 },
         { "title": "Crystal Route", "max_score": 9280, "min_duration_ms": 37200, "max_duration_ms": 130000, "time_base_ms": 130000 },
@@ -1462,7 +1462,7 @@
       "min_duration_ms": 5700,
       "max_duration_ms": 75000,
       "time_base_ms": 75000,
-      "enabled": false,
+      "enabled": true,
       "levels": [
         { "title": "Static Lasers", "max_score": 6930, "min_duration_ms": 5700, "max_duration_ms": 75000, "time_base_ms": 75000 },
         { "title": "Moving Lasers", "max_score": 8290, "min_duration_ms": 7100, "max_duration_ms": 90000, "time_base_ms": 90000 },
@@ -1478,7 +1478,7 @@
       "min_duration_ms": 40800,
       "max_duration_ms": 120000,
       "time_base_ms": 120000,
-      "enabled": false,
+      "enabled": true,
       "levels": [
         { "title": "Candy Lane", "max_score": 7920, "min_duration_ms": 40800, "max_duration_ms": 120000, "time_base_ms": 120000 },
         { "title": "Cookie Road", "max_score": 9010, "min_duration_ms": 39900, "max_duration_ms": 130000, "time_base_ms": 130000 },
@@ -1495,7 +1495,7 @@
       "max_duration_ms": 79500,
       "base": 400,
       "max_pps": 176,
-      "enabled": false,
+      "enabled": true,
       "levels": [
         { "title": "Slow Beat", "max_score": 12790, "min_duration_ms": 72800, "max_duration_ms": 79500, "base": 400, "max_pps": 176 },
         { "title": "Alternating Gongs", "max_score": 13690, "min_duration_ms": 71500, "max_duration_ms": 78154, "base": 400, "max_pps": 187 },
@@ -1511,7 +1511,7 @@
       "min_duration_ms": 100,
       "max_duration_ms": 180000,
       "time_base_ms": 180000,
-      "enabled": false,
+      "enabled": true,
       "levels": [
         { "title": "Basic Magnet", "max_score": 17990, "min_duration_ms": 100, "max_duration_ms": 180000, "time_base_ms": 180000 },
         { "title": "Two Poles", "max_score": 23990, "min_duration_ms": 100, "max_duration_ms": 240000, "time_base_ms": 240000 },
@@ -1527,7 +1527,7 @@
       "min_duration_ms": 2100,
       "max_duration_ms": 150000,
       "time_base_ms": 150000,
-      "enabled": false,
+      "enabled": true,
       "levels": [
         { "title": "Static Grid", "max_score": 14790, "min_duration_ms": 2100, "max_duration_ms": 150000, "time_base_ms": 150000 },
         { "title": "Moving Cubes", "max_score": 17850, "min_duration_ms": 1500, "max_duration_ms": 180000, "time_base_ms": 180000 },
@@ -1543,7 +1543,7 @@
       "min_duration_ms": 500,
       "max_duration_ms": 150000,
       "time_base_ms": 150000,
-      "enabled": false,
+      "enabled": true,
       "levels": [
         { "title": "Two Portals", "max_score": 14950, "min_duration_ms": 500, "max_duration_ms": 150000, "time_base_ms": 150000 },
         { "title": "Two Pairs", "max_score": 17920, "min_duration_ms": 800, "max_duration_ms": 180000, "time_base_ms": 180000 },
@@ -1559,7 +1559,7 @@
       "min_duration_ms": 1900,
       "max_duration_ms": 120000,
       "time_base_ms": 120000,
-      "enabled": false,
+      "enabled": true,
       "levels": [
         { "title": "Dock", "max_score": 11810, "min_duration_ms": 1900, "max_duration_ms": 120000, "time_base_ms": 120000 },
         { "title": "Pod Line", "max_score": 14220, "min_duration_ms": 7800, "max_duration_ms": 150000, "time_base_ms": 150000 },
@@ -1575,7 +1575,7 @@
       "min_duration_ms": 600,
       "max_duration_ms": 180000,
       "time_base_ms": 180000,
-      "enabled": false,
+      "enabled": true,
       "levels": [
         { "title": "Two Crystals", "max_score": 17940, "min_duration_ms": 600, "max_duration_ms": 180000, "time_base_ms": 180000 },
         { "title": "Three Sequence", "max_score": 20830, "min_duration_ms": 1700, "max_duration_ms": 210000, "time_base_ms": 210000 },
@@ -1592,7 +1592,7 @@
       "max_duration_ms": 91000,
       "base": 0,
       "max_pps": 50,
-      "enabled": false,
+      "enabled": true,
       "levels": [
         { "title": "Vault Floor", "max_score": 4235, "min_duration_ms": 85500, "max_duration_ms": 91000, "base": 0, "max_pps": 50 },
         { "title": "Shifting Tiles", "max_score": 5449, "min_duration_ms": 95000, "max_duration_ms": 101000, "base": 0, "max_pps": 58 },
@@ -1609,7 +1609,7 @@
       "max_duration_ms": 121000,
       "base": 0,
       "max_pps": 97,
-      "enabled": false,
+      "enabled": true,
       "levels": [
         { "title": "Two Colors", "max_score": 4940, "min_duration_ms": 51000, "max_duration_ms": 121000, "base": 0, "max_pps": 97 },
         { "title": "Three Colors", "max_score": 8890, "min_duration_ms": 83900, "max_duration_ms": 151000, "base": 0, "max_pps": 106 },
@@ -1625,7 +1625,7 @@
       "min_duration_ms": 100,
       "max_duration_ms": 150000,
       "time_base_ms": 150000,
-      "enabled": false,
+      "enabled": true,
       "levels": [
         { "title": "Two Switches", "max_score": 14990, "min_duration_ms": 100, "max_duration_ms": 150000, "time_base_ms": 150000 },
         { "title": "Prisms", "max_score": 17990, "min_duration_ms": 100, "max_duration_ms": 180000, "time_base_ms": 180000 },
@@ -1641,7 +1641,7 @@
       "min_duration_ms": 6900,
       "max_duration_ms": 90000,
       "time_base_ms": 90000,
-      "enabled": false,
+      "enabled": true,
       "levels": [
         { "title": "3-Color Sequence", "max_score": 8310, "min_duration_ms": 6900, "max_duration_ms": 90000, "time_base_ms": 90000 },
         { "title": "4 Colors", "max_score": 11300, "min_duration_ms": 7000, "max_duration_ms": 120000, "time_base_ms": 120000 },
@@ -1657,7 +1657,7 @@
       "min_duration_ms": 15500,
       "max_duration_ms": 120000,
       "time_base_ms": 120000,
-      "enabled": false,
+      "enabled": true,
       "levels": [
         { "title": "Two Gates", "max_score": 10450, "min_duration_ms": 15500, "max_duration_ms": 120000, "time_base_ms": 120000 },
         { "title": "Three Colors", "max_score": 12920, "min_duration_ms": 20800, "max_duration_ms": 150000, "time_base_ms": 150000 },
@@ -1673,7 +1673,7 @@
       "min_duration_ms": 15700,
       "max_duration_ms": 150000,
       "time_base_ms": 150000,
-      "enabled": false,
+      "enabled": true,
       "levels": [
         { "title": "Mirror Lane", "max_score": 13430, "min_duration_ms": 15700, "max_duration_ms": 150000, "time_base_ms": 150000 },
         { "title": "Converge", "max_score": 15560, "min_duration_ms": 14400, "max_duration_ms": 170000, "time_base_ms": 170000 },
@@ -1689,7 +1689,7 @@
       "min_duration_ms": 5599,
       "max_duration_ms": 90000,
       "time_base_ms": 90000,
-      "enabled": false,
+      "enabled": true,
       "levels": [
         { "title": "Two-Tone Steps", "max_score": 8440, "min_duration_ms": 5599, "max_duration_ms": 90000, "time_base_ms": 90000 },
         { "title": "Three Calls", "max_score": 10656, "min_duration_ms": 13439, "max_duration_ms": 120000, "time_base_ms": 120000 },
@@ -1705,7 +1705,7 @@
       "min_duration_ms": 1600,
       "max_duration_ms": 60000,
       "time_base_ms": 60000,
-      "enabled": false,
+      "enabled": true,
       "levels": [
         { "title": "Simple Hunt", "max_score": 5840, "min_duration_ms": 1600, "max_duration_ms": 60000, "time_base_ms": 60000 },
         { "title": "Mixed Colors", "max_score": 7430, "min_duration_ms": 700, "max_duration_ms": 75000, "time_base_ms": 75000 },
@@ -1721,7 +1721,7 @@
       "min_duration_ms": 45400,
       "max_duration_ms": 150000,
       "time_base_ms": 150000,
-      "enabled": false,
+      "enabled": true,
       "levels": [
         { "title": "Gate Street", "max_score": 10460, "min_duration_ms": 45400, "max_duration_ms": 150000, "time_base_ms": 150000 },
         { "title": "Market Lane", "max_score": 12180, "min_duration_ms": 58200, "max_duration_ms": 180000, "time_base_ms": 180000 },
@@ -1737,7 +1737,7 @@
       "min_duration_ms": 100,
       "max_duration_ms": 60000,
       "time_base_ms": 60000,
-      "enabled": false,
+      "enabled": true,
       "levels": [
         { "title": "First Strokes", "max_score": 5990, "min_duration_ms": 100, "max_duration_ms": 60000, "time_base_ms": 60000 },
         { "title": "Grey Blots", "max_score": 7400, "min_duration_ms": 1000, "max_duration_ms": 75000, "time_base_ms": 75000 },
@@ -1753,7 +1753,7 @@
       "min_duration_ms": 13300,
       "max_duration_ms": 150000,
       "time_base_ms": 150000,
-      "enabled": false,
+      "enabled": true,
       "levels": [
         { "title": "Slow Rounds", "max_score": 13670, "min_duration_ms": 13300, "max_duration_ms": 150000, "time_base_ms": 150000 },
         { "title": "Three Colors", "max_score": 15910, "min_duration_ms": 20900, "max_duration_ms": 180000, "time_base_ms": 180000 },
@@ -1769,7 +1769,7 @@
       "min_duration_ms": 10800,
       "max_duration_ms": 150000,
       "time_base_ms": 150000,
-      "enabled": false,
+      "enabled": true,
       "levels": [
         { "title": "Training Guardian", "max_score": 13920, "min_duration_ms": 10800, "max_duration_ms": 150000, "time_base_ms": 150000 },
         { "title": "Two Colors", "max_score": 16570, "min_duration_ms": 14300, "max_duration_ms": 180000, "time_base_ms": 180000 },

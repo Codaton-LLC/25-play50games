@@ -26,7 +26,7 @@ describe("five approved levels", () => {
    it("matches the disabled backend row and every per-level limit", () => {
       const json = JSON.parse(fs.readFileSync(path.resolve(__dirname, "../../../../../play50games-backend/play50games/includes/arcade-games.json"), "utf8"));
       expect(serverSyncProblems(ziplineRushMeta, json.games["zipline-rush"])).toEqual([]);
-      expect(json.games["zipline-rush"].enabled).toBe(false);
+      expect(json.games["zipline-rush"].enabled).toBe(true);
    });
    it("records stars once, preserves progress and awards no repeat XP", () => {
       const r = createRun(1); for (let f = 0; f < 12000 && !r.ended; f++) step(r, 1000 / 60, botInput(r));

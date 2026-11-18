@@ -21,7 +21,7 @@ export const mirrorDashMeta: ArcadeGameMeta = {
    description:
       "Run two runways at once through a hall of mirrors. Your hero takes the left one, its glass reflection the right one, and every lane change you make is mirrored for it. Find the one move that saves both bodies, through merging roads, frosted glass that copies instead of mirrors, echoes that repeat you half a second late, and the Glass Sentinel at the end of the hall. Pick Vexa, Riko, Nami, Kiro or Zuno.",
    order: 88,
-   status: "dev",
+   status: "live",
    collection: "rollheroes",
    difficulty: 3,
    orientation: "any",

@@ -27,7 +27,7 @@ export const templeCoinRushMeta: ArcadeGameMeta = {
    description:
       "Run from a rolling boulder through a collapsing jungle temple as a Color Roll Heroes armadillo. Grab coins and pay the toll gates that open the fast lanes, or keep them: unspent coins score double at the finish. Spike tiles, falling floors and side-ramp boulders, and Riko, Nami, Kiro, Zuno or Vexa each find their own way through. Level 5: outrun Coilstone, the Temple Serpent, and pay the bells that bring it down.",
    order: 69,
-   status: "dev",
+   status: "live",
    collection: "rollheroes",
    difficulty: 2,
    orientation: "any",

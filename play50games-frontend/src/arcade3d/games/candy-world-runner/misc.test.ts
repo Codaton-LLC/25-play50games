@@ -51,7 +51,7 @@ describe("candy-world-runner models", () => {
       expect(definition.touchControls).toEqual(["joystick", "jump", "action", "swipe"]);
       expect(definition.intro).toBe(true);
       expect(candyWorldRunnerMeta.order).toBe(77);
-      expect(candyWorldRunnerMeta.status).toBe("dev");
+      expect(candyWorldRunnerMeta.status).toBe("live");
    });
 });
 

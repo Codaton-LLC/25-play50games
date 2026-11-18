@@ -27,7 +27,7 @@ export const colorBossTowerMeta: ArcadeGameMeta = {
    tagline: "Climb the guardian's tower and turn it into your weapon: charge the colour claws with the right hero and fire the prism cannons.",
    description: "A boss fight that is a climb. The Stone Guardian waits in the shaft of a hollow tower; you never hit him yourself. Run the spiral of ledges, tag in the hero whose colour matches each claw to charge its prism cannon, and the cannon fires when his weak plate opens. Jump his sweeping arm, dodge the hazard orbs, chain charges on the fast levels, and finish the Grand Color Guardian with all five heroes in turn.",
    order: 97,
-   status: "dev",
+   status: "live",
    collection: "rollheroes",
    difficulty: 3,
    orientation: "any",

@@ -28,7 +28,7 @@ export const rollCannonJumpMeta: ArcadeGameMeta = {
    tagline: "Aim, time the pulse, and fire yourself cannon-to-cannon under the big top.",
    description: "A grey, colour-drained circus: climb into the cannons, aim the yaw and pitch, let the power ring pulse, and fire yourself ballistically across the big top. Catch the moving cannons, bounce the trampolines, pop the balloon bunches, and reach the finish ring before the show ends. Pick Riko, Nami, Kiro, Zuno or Vexa; level 5 is a boss fight against Ashbag, the Smoke Blimp.",
    order: 60,
-   status: "dev",
+   status: "live",
    collection: "rollheroes",
    difficulty: 2,
    orientation: "any",

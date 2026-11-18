@@ -28,7 +28,7 @@ export const dragonCaveRushMeta: ArcadeGameMeta = {
    tagline: "Ride the mine cart, lean into the curves, keep ahead of the dragon.",
    description: "Ride a mine cart through a crystal cave with Cindermaw the drained dragon on your tail: lean into curves for speed, hop gaps and rocks, duck beams and breath, swap tracks round falling crystals and lavafalls. Pick Riko, Nami, Kiro, Zuno or Vexa, break the dragon's grey collar and bring her egg home.",
    order: 66,
-   status: "dev",
+   status: "live",
    collection: "rollheroes",
    difficulty: 3,
    orientation: "any",

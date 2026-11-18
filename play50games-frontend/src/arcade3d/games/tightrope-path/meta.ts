@@ -29,7 +29,7 @@ export const tightropePathMeta: ArcadeGameMeta = {
    description:
       "Cross a misty jungle gorge on planks, narrow beams and sagging ropes with a long balance pole. Every step tips the needle: push against it, sprint where you dare, crouch under swinging sandbags, brace for the gusts and jump the gaps. Rotating beams in the night fog, then a rope joust against Umbra on level 5. Pick Riko, Nami, Kiro, Zuno or Vexa.",
    order: 74,
-   status: "dev",
+   status: "live",
    collection: "rollheroes",
    difficulty: 3,
    orientation: "any",

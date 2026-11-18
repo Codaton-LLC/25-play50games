@@ -71,7 +71,7 @@ describe("toy-room-run models", () => {
       expect(definition.clockChip).toBe(false);
       expect(toyRoomRunMeta.scoring.kind).toBe("time");
       expect(toyRoomRunMeta.order).toBe(76);
-      expect(toyRoomRunMeta.status).toBe("dev");
+      expect(toyRoomRunMeta.status).toBe("live");
       expect(toyRoomRunMeta.collection).toBe("rollheroes");
    });
 });

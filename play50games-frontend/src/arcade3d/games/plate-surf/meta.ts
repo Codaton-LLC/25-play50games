@@ -28,7 +28,7 @@ export const plateSurfMeta: ArcadeGameMeta = {
    tagline: "Ride a giant rolling wave. Pump for speed, air off the lip, outrun the curl.",
    description: "Surf a curling wave on a hero plate as a Color Roll Heroes armadillo: carve up and down the face to pump for speed, launch off the lip for spins, flips and grabs, and stay ahead of the curl. Pick Riko, Nami, Kiro, Zuno or Vexa and ride to the lagoon.",
    order: 56,
-   status: "dev",
+   status: "live",
    collection: "rollheroes",
    difficulty: 2,
    orientation: "any",

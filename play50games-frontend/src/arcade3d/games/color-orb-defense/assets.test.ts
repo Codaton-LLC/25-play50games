@@ -50,7 +50,7 @@ describe("definition", () => {
       expect(definition.clockChip).toBe(false);
       expect(definition.touchLabels).toEqual({ action: "Power" });
       expect(definition.touchControls).toEqual(["joystick", "jump", "action"]);
-      expect(colorOrbDefenseMeta.status).toBe("dev");
+      expect(colorOrbDefenseMeta.status).toBe("live");
       expect(colorOrbDefenseMeta.collection).toBe("rollheroes");
       expect(colorOrbDefenseMeta.order).toBe(99);
       expect(colorOrbDefenseMeta.owner).toBe("claude");

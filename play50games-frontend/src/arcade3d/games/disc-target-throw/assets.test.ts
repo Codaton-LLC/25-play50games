@@ -73,7 +73,7 @@ describe("definition and menu2 configs", () => {
       expect(definition.clockChip).toBe(false);
       expect(definition.touchControls).toEqual(["joystick", "jump", "action"]);
       expect(definition.touchLabels).toEqual({ jump: "Throw", action: "Power" });
-      expect(discTargetThrowMeta.status).toBe("dev");
+      expect(discTargetThrowMeta.status).toBe("live");
       expect(discTargetThrowMeta.collection).toBe("rollheroes");
       expect(discTargetThrowMeta.order).toBe(73);
       expect(discTargetThrowMeta.scoring.kind).toBe("points");

@@ -29,7 +29,7 @@ export const portalHopMeta: ArcadeGameMeta = {
    description:
       "Cross floating void ruins through portal pairs. Each entry is fixed, but you choose which anchor obelisk its exit opens at, and whatever speed you carry in, you carry out: fall into a floor portal and fling yourself across a gap. Chain two pairs so the speed stacks, time portals that ride round their tower, push void crystals through to press switches and build steps, then turn your own portals against the Portal Wyrm. Riko, Nami, Kiro, Zuno and Vexa each open their own routes.",
    order: 86,
-   status: "dev",
+   status: "live",
    collection: "rollheroes",
    difficulty: 3,
    orientation: "any",

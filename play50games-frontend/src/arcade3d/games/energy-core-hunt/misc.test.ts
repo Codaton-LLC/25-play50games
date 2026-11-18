@@ -51,7 +51,7 @@ describe("energy-core-hunt models", () => {
       expect(definition.touchControls).toEqual(["joystick", "jump", "action"]);
       expect(definition.intro).toBe(true);
       expect(energyCoreHuntMeta.order).toBe(96);
-      expect(energyCoreHuntMeta.status).toBe("dev");
+      expect(energyCoreHuntMeta.status).toBe("live");
    });
 });
 

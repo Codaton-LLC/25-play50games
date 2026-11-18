@@ -27,7 +27,7 @@ export const colorCitySprintMeta: ArcadeGameMeta = {
    tagline: "Pick your own line through an open city. The streets you run turn red, and red is fast next lap.",
    description: "Race an open city drained grey by Shadow Plates. Beacons light one at a time and you choose the route; the streets you run between them turn red, and on the next lap a red street is 30 % faster. Ramp onto buses, dash through hoardings, phase through ghost shops, then beat Greyout, the Street Sweeper.",
    order: 61,
-   status: "dev",
+   status: "live",
    collection: "rollheroes",
    difficulty: 2,
    orientation: "any",

@@ -35,7 +35,7 @@ export const gemCollector3dMeta: ArcadeGameMeta = {
    tagline: "Every gem joins a glowing train behind you. Bank long trains, never cross your own tail.",
    description: "Roll through the Ornament Vault as a Color Roll Hero: every gem you grab joins a train that follows your exact path, and a long train banked at a score beacon is worth its length squared. Cross your own tail and it snaps; close a loop round a slime and it freezes to gold. Sinking tiles, frost sweepers, treasure chests and the Gumdrop Glutton, who eats your tail.",
    order: 81,
-   status: "dev",
+   status: "live",
    collection: "rollheroes",
    difficulty: 2,
    orientation: "any",

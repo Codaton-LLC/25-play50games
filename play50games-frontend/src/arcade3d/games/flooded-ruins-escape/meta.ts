@@ -27,7 +27,7 @@ export const floodedRuinsEscapeMeta: ArcadeGameMeta = {
    tagline: "Decide where the water goes, then escape the tide.",
    description: "Escape a drowned temple as a Color Roll Heroes armadillo. Pull stone levers to flood a chamber and float up, or drain it to walk under a low door, while the storm tide rises behind you. Pick Riko, Nami, Kiro, Zuno or Vexa, grab orbs to cut your time, and beat Umbra Roller at the Tide Bell.",
    order: 53,
-   status: "dev",
+   status: "live",
    collection: "rollheroes",
    difficulty: 2,
    orientation: "any",

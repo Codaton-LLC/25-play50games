@@ -16,7 +16,7 @@ export const skyHookSwingMeta: ArcadeGameMeta = {
    tagline: "Aim, reel, release. Chain the rings across the docks.",
    description: "Swing an analytic rope between grapple rings over the sky docks. Reel in to clear a wall, release on the green flash for a faster fling, and chain four releases without touching down. Pick any Color Roll Hero. Level 5 is the Gust Galleon.",
    order: 63,
-   status: "dev",
+   status: "live",
    collection: "rollheroes",
    difficulty: 2,
    orientation: "any",

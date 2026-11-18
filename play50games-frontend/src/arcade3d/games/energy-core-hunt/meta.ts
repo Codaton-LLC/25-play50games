@@ -28,7 +28,7 @@ export const energyCoreHuntMeta: ArcadeGameMeta = {
    tagline: "Fill the order: grab exactly the colored energy cores it asks for, then out through the gate.",
    description: "A third-person mission arena: the order asks for a mix of colored energy cores, and they drop into the reactor arena in waves. Take exactly what the order wants (a core of a color that is already full jolts you), dodge crates, flickering decoys and tesla coils, open the sealed capsules, catch the cores circling their pylons, then leave through the core gate. On the last level the Core Sprite holds the final cores. Pick Riko, Nami, Kiro, Zuno or Vexa.",
    order: 96,
-   status: "dev",
+   status: "live",
    collection: "rollheroes",
    difficulty: 3,
    orientation: "any",

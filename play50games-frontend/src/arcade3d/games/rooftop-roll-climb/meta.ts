@@ -27,7 +27,7 @@ export const rooftopRollClimbMeta: ArcadeGameMeta = {
    tagline: "Bank speed down slanted roofs, then leap the street.",
    description: "Climb a zigzag city skyline as a Color Roll Heroes armadillo: curl into a ball on the slanted tin roofs to bank speed, then spend it on huge leaps across the streets. Pick Riko, Nami, Kiro, Zuno or Vexa, grab coins to cut your time, and beat Ashback on the helipad.",
    order: 52,
-   status: "dev",
+   status: "live",
    collection: "rollheroes",
    difficulty: 2,
    orientation: "any",

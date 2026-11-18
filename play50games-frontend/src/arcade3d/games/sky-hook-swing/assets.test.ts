@@ -75,7 +75,7 @@ describe("definition", () => {
       expect(definition.intro).toBe(true);
       expect(definition.clockChip).toBe(false);
       expect(definition.touchLabels).toEqual({ action: "Hook" });
-      expect(skyHookSwingMeta.status).toBe("dev");
+      expect(skyHookSwingMeta.status).toBe("live");
       expect(skyHookSwingMeta.collection).toBe("rollheroes");
       expect(skyHookSwingMeta.order).toBe(63);
       expect(skyHookSwingMeta.owner).toBe("cursor");

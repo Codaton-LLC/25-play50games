@@ -56,7 +56,7 @@ describe("the five mines", () => {
    it("matches the disabled backend row and every per-level limit", () => {
       const json = JSON.parse(fs.readFileSync(path.resolve(__dirname, "../../../../../play50games-backend/play50games/includes/arcade-games.json"), "utf8"));
       expect(serverSyncProblems(mineTunnelRunMeta, json.games["mine-tunnel-run"])).toEqual([]);
-      expect(json.games["mine-tunnel-run"].enabled).toBe(false);
+      expect(json.games["mine-tunnel-run"].enabled).toBe(true);
       expect(mineTunnelRunMeta.order).toBe(64);
    });
    it("records stars once, keeps progress and pays no repeat XP", () => {

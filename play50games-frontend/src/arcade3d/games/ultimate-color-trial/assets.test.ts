@@ -83,7 +83,7 @@ describe("ultimate-color-trial models", () => {
       expect(definition.clockChip).toBe(false);
       expect(ultimateColorTrialMeta.scoring.kind).toBe("time");
       expect(ultimateColorTrialMeta.order).toBe(100);
-      expect(ultimateColorTrialMeta.status).toBe("dev");
+      expect(ultimateColorTrialMeta.status).toBe("live");
       expect(ultimateColorTrialMeta.collection).toBe("rollheroes");
    });
 });

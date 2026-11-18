@@ -84,6 +84,6 @@ describe("wind-tunnel-escape models", () => {
       expect(definition.touchControls).toEqual(["joystick", "jump", "action"]);
       expect(definition.intro).toBe(true);
       expect(windTunnelEscapeMeta.collection).toBe("rollheroes");
-      expect(windTunnelEscapeMeta.status).toBe("dev");
+      expect(windTunnelEscapeMeta.status).toBe("live");
    });
 });

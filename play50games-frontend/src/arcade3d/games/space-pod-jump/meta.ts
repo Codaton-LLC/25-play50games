@@ -29,7 +29,7 @@ export const spacePodJumpMeta: ArcadeGameMeta = {
    description:
       "Leap between tiny planetoids and station pods as a Color Roll Heroes armadillo: down is wherever the nearest body is, so you walk round worlds, fall into true orbits and charge pod launches to cross the void, braking with retro jets and slingshotting past moving moons. Riko, Nami, Kiro, Zuno and Vexa each bend the rules of orbit their own way. Level 5: bring down the Orbit Warden.",
    order: 84,
-   status: "dev",
+   status: "live",
    collection: "rollheroes",
    difficulty: 3,
    orientation: "any",

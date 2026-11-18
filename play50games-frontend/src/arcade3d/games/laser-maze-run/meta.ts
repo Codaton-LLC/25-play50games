@@ -28,7 +28,7 @@ export const laserMazeRunMeta: ArcadeGameMeta = {
    tagline: "Thread a vault of lasers: time the pulses, jump the beams, flip the switches.",
    description: "A precision maze through a vault of lasers, room by room. Jump the low beams, find the gap in a wall of light, wait for a pulsing wall to go dark, jump the beams that slide along the floor, press a switch to drop a gate (and learn which switch opens the next one), and slip past the moving barriers. Touch a laser and you are back on the room's checkpoint pad. Then overload the Vault Core from its pylons. Pick Riko, Nami, Kiro, Zuno or Vexa.",
    order: 89,
-   status: "dev",
+   status: "live",
    collection: "rollheroes",
    difficulty: 3,
    orientation: "any",

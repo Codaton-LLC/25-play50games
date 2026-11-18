@@ -16,7 +16,7 @@ export const wallRunTempleMeta: ArcadeGameMeta = {
    tagline: "No floor. Run the walls, kick across, whip round the columns.",
    description: "Cross a cliff temple with no floor: jump onto the glyph walls and run along them, kick from wall to wall before the run droops, and whip round stone columns at the corners. Sliding panels, spike panels, crumbling walls and swinging rams. Pick any Color Roll Hero. Level 5 is Umbra, the rival wall runner.",
    order: 70,
-   status: "dev",
+   status: "live",
    collection: "rollheroes",
    difficulty: 3,
    orientation: "any",

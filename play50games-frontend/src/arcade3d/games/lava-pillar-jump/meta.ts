@@ -28,7 +28,7 @@ export const lavaPillarJumpMeta: ArcadeGameMeta = {
    tagline: "Climb the pillars before the lava does.",
    description: "Out-climb a lava tide that surges on the volcano's heartbeat as a Color Roll Hero. Basalt tops heat under your feet and crumble, geysers fire on the beat, and Kalder the Magma Golem waits in the core.",
    order: 54,
-   status: "dev",
+   status: "live",
    collection: "rollheroes",
    difficulty: 2,
    orientation: "any",

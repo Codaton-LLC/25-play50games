@@ -127,7 +127,7 @@ describe("definition and camera", () => {
       expect(definition.touchLabels).toEqual({ action: "Power" });
       expect(lavaPillarJumpMeta.controls.touch).toContain("Power");
       expect(lavaPillarJumpMeta.controls.keyboard).toContain("Enter");
-      expect(lavaPillarJumpMeta.status).toBe("dev");
+      expect(lavaPillarJumpMeta.status).toBe("live");
       expect(lavaPillarJumpMeta.collection).toBe("rollheroes");
       expect(lavaPillarJumpMeta.order).toBe(54);
       expect(lavaPillarJumpMeta.owner).toBe("cursor");

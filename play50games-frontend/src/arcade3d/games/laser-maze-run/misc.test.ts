@@ -51,7 +51,7 @@ describe("laser-maze-run models", () => {
       expect(definition.touchControls).toEqual(["joystick", "jump", "action"]);
       expect(definition.intro).toBe(true);
       expect(laserMazeRunMeta.order).toBe(89);
-      expect(laserMazeRunMeta.status).toBe("dev");
+      expect(laserMazeRunMeta.status).toBe("live");
    });
 });
 

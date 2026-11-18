@@ -103,7 +103,7 @@ describe("definition and camera", () => {
       expect(definition.touchLabels).toEqual({ action: "Power" });
       expect(floodedRuinsEscapeMeta.controls.touch).toContain("Power");
       expect(floodedRuinsEscapeMeta.controls.keyboard).toContain("Enter");
-      expect(floodedRuinsEscapeMeta.status).toBe("dev");
+      expect(floodedRuinsEscapeMeta.status).toBe("live");
       expect(floodedRuinsEscapeMeta.collection).toBe("rollheroes");
       expect(floodedRuinsEscapeMeta.order).toBe(53);
       expect(floodedRuinsEscapeMeta.owner).toBe("cursor");

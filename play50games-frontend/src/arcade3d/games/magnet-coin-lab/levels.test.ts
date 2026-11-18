@@ -66,7 +66,7 @@ describe("the five labs", () => {
    it("matches the disabled backend row and every per-level limit", () => {
       const json = JSON.parse(fs.readFileSync(path.resolve(__dirname, "../../../../../play50games-backend/play50games/includes/arcade-games.json"), "utf8"));
       expect(serverSyncProblems(magnetCoinLabMeta, json.games["magnet-coin-lab"])).toEqual([]);
-      expect(json.games["magnet-coin-lab"].enabled).toBe(false);
+      expect(json.games["magnet-coin-lab"].enabled).toBe(true);
       expect(magnetCoinLabMeta.order).toBe(82);
    });
    it("records stars once, keeps progress and pays no repeat XP", () => {

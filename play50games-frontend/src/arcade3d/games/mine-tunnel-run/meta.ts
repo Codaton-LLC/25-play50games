@@ -21,7 +21,7 @@ export const mineTunnelRunMeta: ArcadeGameMeta = {
    description:
       "Bore down through a cross-section mine as a Color Roll Heroes armadillo: soft soil gives way fast, packed soil slowly, rock never. Loosen a boulder and it wobbles, then falls on whatever is below: beetles, cracked floors, or Rockjaw the Tunnel Beetle. Pick Riko, Nami, Kiro, Zuno or Vexa and reach the lift.",
    order: 64,
-   status: "dev",
+   status: "live",
    collection: "rollheroes",
    difficulty: 3,
    orientation: "any",

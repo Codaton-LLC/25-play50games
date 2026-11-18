@@ -73,7 +73,7 @@ describe("definition and menu2 configs", () => {
       expect(definition.clockChip).toBe(false);
       expect(definition.touchControls).toEqual(["joystick", "jump", "action"]);
       expect(definition.touchLabels).toEqual({ jump: "Jump", action: "Power" });
-      expect(neonCubeJumpMeta.status).toBe("dev");
+      expect(neonCubeJumpMeta.status).toBe("live");
       expect(neonCubeJumpMeta.collection).toBe("rollheroes");
       expect(neonCubeJumpMeta.order).toBe(83);
       expect(neonCubeJumpMeta.scoring.kind).toBe("time");

@@ -103,7 +103,7 @@ describe("definition and camera", () => {
       expect(definition.touchLabels).toEqual({ action: "Power" });
       expect(skyTowerJumpMeta.controls.touch).toContain("Power");
       expect(skyTowerJumpMeta.controls.keyboard).toContain("Enter");
-      expect(skyTowerJumpMeta.status).toBe("dev");
+      expect(skyTowerJumpMeta.status).toBe("live");
       expect(skyTowerJumpMeta.levels!.map((l) => l.title)).toEqual(["Training Sky", "Cloud Steps", "Moving Platforms", "Storm Heights", "Infinite Tower"]);
    });
 

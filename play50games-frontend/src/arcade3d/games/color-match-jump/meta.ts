@@ -12,7 +12,7 @@ export const colorMatchJumpMeta: ArcadeGameMeta = {
    description:
       "Hop across hex pillars over the void, where a landing holds only in your own colour: switch heroes in mid-air so the right one touches down, crack the beacon's colour codes before the field sinks, and reach the crown. Riko dashes the void, Nami double-jumps the tall pillars, Kiro shields through lightning, Zuno pulls orb trails and Vexa phases through ghost pillars. Level 5: the Echo Frost Golem.",
    order: 92,
-   status: "dev",
+   status: "live",
    collection: "rollheroes",
    difficulty: 3,
    orientation: "any",

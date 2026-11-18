@@ -116,7 +116,7 @@ describe("definition and camera", () => {
       expect(definition.touchLabels).toEqual({ action: "Power" });
       expect(cloudHopperMeta.controls.touch).toContain("Power");
       expect(cloudHopperMeta.controls.keyboard).toContain("Enter");
-      expect(cloudHopperMeta.status).toBe("dev");
+      expect(cloudHopperMeta.status).toBe("live");
       expect(cloudHopperMeta.collection).toBe("rollheroes");
       expect(cloudHopperMeta.order).toBe(55);
       expect(cloudHopperMeta.owner).toBe("cursor");

@@ -50,7 +50,7 @@ describe("definition", () => {
       expect(definition.clockChip).toBe(false);
       expect(definition.touchLabels).toEqual({ jump: "Flip", action: "Power" });
       expect(definition.touchControls).toEqual(["joystick", "jump", "action"]);
-      expect(plateBounceArenaMeta.status).toBe("dev");
+      expect(plateBounceArenaMeta.status).toBe("live");
       expect(plateBounceArenaMeta.collection).toBe("rollheroes");
       expect(plateBounceArenaMeta.order).toBe(78);
       expect(plateBounceArenaMeta.owner).toBe("claude");

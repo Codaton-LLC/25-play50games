@@ -80,7 +80,7 @@ describe("definition and menu2 configs", () => {
       expect(definition.clockChip).toBe(false);
       expect(definition.touchControls).toEqual(["joystick", "jump", "action"]);
       expect(definition.touchLabels).toEqual({ jump: "Jump", action: "Power" });
-      expect(paintThePlatformsMeta.status).toBe("dev");
+      expect(paintThePlatformsMeta.status).toBe("live");
       expect(paintThePlatformsMeta.collection).toBe("rollheroes");
       expect(paintThePlatformsMeta.order).toBe(94);
       expect(paintThePlatformsMeta.scoring.kind).toBe("time");

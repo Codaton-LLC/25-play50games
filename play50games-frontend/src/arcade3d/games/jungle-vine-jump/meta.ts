@@ -29,7 +29,7 @@ export const jungleVineJumpMeta: ArcadeGameMeta = {
    description:
       "Climb a giant jungle tree by swinging on vines. Slide your grip up and down mid-swing: a short grip swings fast, a long one reaches far. Pump in time with the swing, let go along its arc and catch the next vine, chain catches for a combo, and pick Riko, Nami, Kiro, Zuno or Vexa. Dry vines snap, monkeys throw fruit, and level 5 is a duel with the Howler King in the canopy.",
    order: 68,
-   status: "dev",
+   status: "live",
    collection: "rollheroes",
    difficulty: 3,
    orientation: "any",

@@ -29,7 +29,7 @@ export const rollDashMeta: ArcadeGameMeta = {
    description:
       "Roll down Greytown's causeway to the Prism Fortress, three lanes wide, where every Prism Lock opens only to one hero's power: Riko's dash breaks the red barricades, Nami's double jump clears the blue barriers, Kiro's shield passes the green sprays, Zuno's magnet opens the gold vaults and Vexa phases through the ghost walls. Tag the right hero, fire, and the street repaints behind you. Dodge what you can't answer, chain the unlocks for speed, and beat the Echo Storm Hawk on the Fortress Bridge.",
    order: 91,
-   status: "dev",
+   status: "live",
    collection: "rollheroes",
    difficulty: 3,
    orientation: "any",

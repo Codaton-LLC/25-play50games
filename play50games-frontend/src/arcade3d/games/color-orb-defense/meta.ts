@@ -26,7 +26,7 @@ export const colorOrbDefenseMeta: ArcadeGameMeta = {
    description:
       "Energy orbs fly from the portals round a floating castle arena toward its beacon. Run to the colour zone on each orb's lane that matches it and your shield blocks it; the outer zones score more. Waves grow, a drone sweeps the ring, orbs blink between colours and come in pairs. Pick any Color Roll Hero. Level 5 is the Orb Mortar, who lobs golden core orbs you send back.",
    order: 99,
-   status: "dev",
+   status: "live",
    collection: "rollheroes",
    difficulty: 3,
    orientation: "any",

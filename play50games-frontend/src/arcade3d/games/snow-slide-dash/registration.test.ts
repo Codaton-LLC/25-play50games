@@ -8,7 +8,7 @@ describe("Snow Slide Dash registration", () => {
       const wp = JSON.parse(readFileSync(new URL("../../../../../play50games-backend/play50games/includes/arcade-games.json", import.meta.url), "utf8"));
       const entry = wp.games["snow-slide-dash"];
       expect(entry.title).toBe(snowSlideDashMeta.title);
-      expect(entry.enabled).toBe(false);
+      expect(entry.enabled).toBe(true);
       expect(entry.levels.map((l: { title: string }) => l.title)).toEqual(snowSlideDashMeta.levels!.map((l) => l.title));
       expect(snowSlideDashMeta.order).toBe(80);
       expect(defaultHeroFor("snow-slide-dash")).toBe("zuno");

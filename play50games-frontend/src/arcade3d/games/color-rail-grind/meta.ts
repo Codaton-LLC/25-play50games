@@ -29,7 +29,7 @@ export const colorRailGrindMeta: ArcadeGameMeta = {
    description:
       "Grind the Sugarfrost Workshop's toy train line as a Color Roll Heroes armadillo: hop between parallel rails, jump the gaps, and throw the track switches ahead to pick your branch: orbs, shortcuts, dead ends with buffer stops, hidden spurs. Frozen switches need a stomp, toy trains follow the switches too, and Riko, Nami, Kiro, Zuno and Vexa each find their own line. Level 5: route the runaway Clockwork Express into its buffers and ride its roof.",
    order: 79,
-   status: "dev",
+   status: "live",
    collection: "rollheroes",
    difficulty: 3,
    orientation: "any",

@@ -59,7 +59,7 @@ describe("ice-peak-jumper models", () => {
       expect(definition.intro).toBe(true);
       expect(definition.clockChip).toBe(false);
       expect(icePeakJumperMeta.collection).toBe("rollheroes");
-      expect(icePeakJumperMeta.status).toBe("dev");
+      expect(icePeakJumperMeta.status).toBe("live");
       expect(icePeakJumperMeta.order).toBe(75);
    });
 });

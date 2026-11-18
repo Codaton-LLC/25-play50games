@@ -17,7 +17,7 @@ export const plateBounceArenaMeta: ArcadeGameMeta = {
    description:
       "Curl up into the ball on a toy pinball table: the flippers throw you into bumpers, up ramps and onto the mushroom orbit. Light the lanterns, knock down the penguins, then sink the exit hole before your three balls run out. Pick any Color Roll Hero. Level 5 is Rollo, the armadillo who steals your flippers.",
    order: 78,
-   status: "dev",
+   status: "live",
    collection: "rollheroes",
    difficulty: 3,
    orientation: "any",

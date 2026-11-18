@@ -73,7 +73,7 @@ describe("definition and menu2 configs", () => {
       expect(definition.clockChip).toBe(false);
       expect(definition.touchControls).toEqual(["joystick", "jump", "action"]);
       expect(definition.touchLabels).toEqual({ jump: "Jump", action: "Duck" });
-      expect(tightropePathMeta.status).toBe("dev");
+      expect(tightropePathMeta.status).toBe("live");
       expect(tightropePathMeta.collection).toBe("rollheroes");
       expect(tightropePathMeta.order).toBe(74);
       expect(tightropePathMeta.scoring.kind).toBe("time");

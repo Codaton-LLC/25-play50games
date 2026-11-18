@@ -35,7 +35,7 @@ export const templeGongTimingMeta: ArcadeGameMeta = {
    description:
       "A rhythm game in a ruined jungle temple: rings shrink onto the giant gongs, and your hero rolls into each one on the beat (Perfect within 45 ms, the same on touch and keyboard). Hold the ceremony drums, answer the lanterns' calls with no rings, lead the gongs as the stage turns, jump the off-beat shockwaves, and every Perfect grows the arena back green. Level 5 is the World 3 finale: free Coilstone, the Temple Serpent, with a duel on the drums and one last strike on the Great Gong.",
    order: 72,
-   status: "dev",
+   status: "live",
    collection: "rollheroes",
    difficulty: 3,
    orientation: "any",

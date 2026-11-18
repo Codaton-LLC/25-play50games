@@ -29,7 +29,7 @@ export const colorArenaSurvivalMeta: ArcadeGameMeta = {
    description:
       "A floor of colour tiles hangs over a glowing pit. Each round a colour is called, and when the call runs out every other tile drops. Run to the colour, stand still to lock in and drop the floor at once, and survive round after round: three colours, then five, cracked tiles that leave holes, tiles that swap mid-call, a sweeping bar to jump, and the Prism Keeper, who cracks, shakes and repaints the floor until you strike it from its own beacon. Riko, Nami, Kiro, Zuno and Vexa each help in their own way.",
    order: 95,
-   status: "dev",
+   status: "live",
    collection: "rollheroes",
    difficulty: 2,
    orientation: "any",

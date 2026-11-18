@@ -136,7 +136,7 @@ describe("definition and camera", () => {
       expect(definition.touchLabels).toEqual({ action: "Power" });
       expect(rooftopRollClimbMeta.controls.touch).toContain("Power");
       expect(rooftopRollClimbMeta.controls.keyboard).toContain("Enter");
-      expect(rooftopRollClimbMeta.status).toBe("dev");
+      expect(rooftopRollClimbMeta.status).toBe("live");
       expect(rooftopRollClimbMeta.collection).toBe("rollheroes");
       expect(rooftopRollClimbMeta.order).toBe(52);
       expect(rooftopRollClimbMeta.owner).toBe("cursor");

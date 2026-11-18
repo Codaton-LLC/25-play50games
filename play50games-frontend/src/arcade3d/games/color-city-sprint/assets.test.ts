@@ -94,7 +94,7 @@ describe("color-city-sprint models", () => {
       expect(definition.clockChip).toBe(false);
       expect(colorCitySprintMeta.scoring.kind).toBe("time");
       expect(colorCitySprintMeta.order).toBe(61);
-      expect(colorCitySprintMeta.status).toBe("dev");
+      expect(colorCitySprintMeta.status).toBe("live");
       expect(colorCitySprintMeta.collection).toBe("rollheroes");
    });
 });

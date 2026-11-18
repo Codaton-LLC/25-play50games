@@ -17,7 +17,7 @@ export const switchColorHeroMeta: ArcadeGameMeta = {
    description:
       "Run a floating neon track and switch your hero's colour to pass the energy gates: full gates, split gates with a colour per lane, blinking gates that change as you arrive. Dodge energy blocks, jump walls and gaps, slide under beams. Three hearts. Pick any Color Roll Hero. Level 5 is Chroma, the golem that throws its core gates at you.",
    order: 93,
-   status: "dev",
+   status: "live",
    collection: "rollheroes",
    difficulty: 3,
    orientation: "any",

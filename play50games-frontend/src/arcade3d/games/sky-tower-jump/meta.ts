@@ -28,7 +28,7 @@ export const skyTowerJumpMeta: ArcadeGameMeta = {
    tagline: "Jump the floating islands to the top of the sky.",
    description: "Climb a tower of floating islands as a Color Roll Heroes armadillo. Pick Riko, Nami, Kiro, Zuno or Vexa, grab orbs to cut your time, and reach the sky gate.",
    order: 51,
-   status: "dev",
+   status: "live",
    collection: "rollheroes",
    difficulty: 1,
    orientation: "any",

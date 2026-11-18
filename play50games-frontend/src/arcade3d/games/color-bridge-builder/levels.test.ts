@@ -49,7 +49,7 @@ describe("the five canyons", () => {
    it("matches the disabled backend row and every per-level limit", () => {
       const json = JSON.parse(fs.readFileSync(path.resolve(__dirname, "../../../../../play50games-backend/play50games/includes/arcade-games.json"), "utf8"));
       expect(serverSyncProblems(colorBridgeBuilderMeta, json.games["color-bridge-builder"])).toEqual([]);
-      expect(json.games["color-bridge-builder"].enabled).toBe(false);
+      expect(json.games["color-bridge-builder"].enabled).toBe(true);
       expect(colorBridgeBuilderMeta.order).toBe(98);
    });
    it("records stars once, keeps progress and pays no repeat XP", () => {

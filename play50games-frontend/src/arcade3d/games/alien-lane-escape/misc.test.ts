@@ -51,7 +51,7 @@ describe("alien-lane-escape models", () => {
       expect(definition.touchControls).toEqual(["joystick", "jump", "action", "swipe"]);
       expect(definition.intro).toBe(true);
       expect(alienLaneEscapeMeta.order).toBe(85);
-      expect(alienLaneEscapeMeta.status).toBe("dev");
+      expect(alienLaneEscapeMeta.status).toBe("live");
    });
 });
 

@@ -75,7 +75,7 @@ describe("gem-collector-3d models", () => {
       expect(definition.clockChip).toBe(false);
       expect(gemCollector3dMeta.scoring.kind).toBe("points");
       expect(gemCollector3dMeta.order).toBe(81);
-      expect(gemCollector3dMeta.status).toBe("dev");
+      expect(gemCollector3dMeta.status).toBe("live");
       expect(gemCollector3dMeta.collection).toBe("rollheroes");
    });
 });

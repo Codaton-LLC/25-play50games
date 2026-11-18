@@ -28,7 +28,7 @@ export const candyWorldRunnerMeta: ArcadeGameMeta = {
    tagline: "Eat sweets to grow, burn them off to shrink: your size is the key.",
    description: "An auto-runner on three candy lanes where your size decides everything: eat candy coins to grow from Small to Normal to Big, sugar-burn roll to shrink, and arrive at each obstacle at the size it needs. Big smashes jelly cubes and chocolate walls, Small slips under cookie arches. Cross cracking chocolate bridges, frosted ice and gummy monsters, then chase King Bonbon through his palace. Pick Riko, Nami, Kiro, Zuno or Vexa.",
    order: 77,
-   status: "dev",
+   status: "live",
    collection: "rollheroes",
    difficulty: 3,
    orientation: "any",

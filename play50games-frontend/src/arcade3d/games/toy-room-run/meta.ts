@@ -27,7 +27,7 @@ export const toyRoomRunMeta: ArcadeGameMeta = {
    tagline: "Knock over the first domino, then run the falling chain like a moving bridge across a giant playroom.",
    description: "Start domino chains and race the toppling wave across a giant toy room: the fallen pieces bridge the gaps between desks, but only for a moment. Push spares into stalled chains, ride a drum's throw to the shelf, dodge race cars, and topple a giant book line onto Jack Wobble.",
    order: 76,
-   status: "dev",
+   status: "live",
    collection: "rollheroes",
    difficulty: 2,
    orientation: "any",

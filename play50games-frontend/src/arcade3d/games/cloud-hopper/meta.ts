@@ -28,7 +28,7 @@ export const cloudHopperMeta: ArcadeGameMeta = {
    tagline: "Cross a sinking cloud sea before sunset. Glide on feathers.",
    description: "Hop across a drifting cloud sea as a Color Roll Heroes armadillo: every cloud sinks under you, feathers buy glide time, wind bands push you. Pick Riko, Nami, Kiro, Zuno or Vexa and reach the rainbow bridge before the sun sets.",
    order: 55,
-   status: "dev",
+   status: "live",
    collection: "rollheroes",
    difficulty: 2,
    orientation: "any",

@@ -63,7 +63,7 @@ describe("definition", () => {
       expect(definition.intro).toBe(true);
       expect(definition.clockChip).toBe(false);
       expect(definition.touchLabels).toEqual({ action: "Roll" });
-      expect(wallRunTempleMeta.status).toBe("dev");
+      expect(wallRunTempleMeta.status).toBe("live");
       expect(wallRunTempleMeta.collection).toBe("rollheroes");
       expect(wallRunTempleMeta.order).toBe(70);
       expect(wallRunTempleMeta.owner).toBe("claude");

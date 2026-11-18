@@ -2,7 +2,7 @@ import { LEVEL_IDS, type ArcadeGameMeta } from "../../types";
 import { LEVELS } from "./levels";
 import { LIMITS } from "./rules";
 export const snowSlideDashMeta: ArcadeGameMeta = {
-   slug: "snow-slide-dash", title: "Snow Slide Dash", order: 80, owner: "codex", status: "dev",
+   slug: "snow-slide-dash", title: "Snow Slide Dash", order: 80, owner: "codex", status: "live",
    collection: "rollheroes", accent: "#facc15", thumbnail: "/images/3d/snow-slide-dash.webp", difficulty: 2, orientation: "any",
    tagline: "Carve the mountain. Chain ice gates. Outrun Big Drift.",
    description: "Roll freely down the Sugarfrost Workshop's sledding slopes. Thread ice gates for speed, spin and flip off ramps, pre-aim over gripless ice, and turn Big Drift's avalanche into gold snow.",

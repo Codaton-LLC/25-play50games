@@ -64,7 +64,7 @@ describe("dragon-cave-rush models", () => {
       expect(definition.intro).toBe(true);
       expect(definition.clockChip).toBe(false);
       expect(dragonCaveRushMeta.collection).toBe("rollheroes");
-      expect(dragonCaveRushMeta.status).toBe("dev");
+      expect(dragonCaveRushMeta.status).toBe("live");
       expect(dragonCaveRushMeta.order).toBe(66);
    });
 });

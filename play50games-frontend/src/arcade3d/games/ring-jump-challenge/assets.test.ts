@@ -104,7 +104,7 @@ describe("definition", () => {
       expect(definition.clockChip).toBe(false);
       expect(definition.touchControls).toEqual(["joystick", "jump", "action"]);
       expect(definition.touchLabels).toEqual({ jump: "Dive", action: "Power" });
-      expect(ringJumpChallengeMeta.status).toBe("dev");
+      expect(ringJumpChallengeMeta.status).toBe("live");
       expect(ringJumpChallengeMeta.collection).toBe("rollheroes");
       expect(ringJumpChallengeMeta.order).toBe(58);
       expect(ringJumpChallengeMeta.scoring.kind).toBe("points");
