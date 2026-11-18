@@ -59,7 +59,10 @@
    }
 }
 
-:root[data-theme="dark"] {
+/* .p50-night pins the dark values on one island, whatever the theme: the sheets (login, register)
+   of a page that keeps the old dark look, and the HUD on the 3D canvas, which is never themed. */
+:root[data-theme="dark"],
+.p50-night {
    --p50-canvas: #0b0f1a;
    --p50-surface: #121726;
    --p50-raised: #1a2133;
@@ -133,23 +136,6 @@ html:has(.p50) body {
    .p50 {
       padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px));
    }
-}
-
-/* Older pieces that are not redesigned yet (the login and register modals) keep the dark
-   legacy palette wherever they are mounted. */
-.p50-legacy {
-   --bg: #0b1020;
-   --card: rgba(255, 255, 255, 0.06);
-   --text: rgba(255, 255, 255, 0.92);
-   --muted: rgba(255, 255, 255, 0.7);
-   --stroke: rgba(255, 255, 255, 0.12);
-   --ok: #86efac;
-   --warn: #fca5a5;
-   --accent: #7dd3fc;
-   --primary: #7dd3fc;
-   --secondary: #86efac;
-   color: var(--text);
-   font-family: system-ui, -apple-system, "Segoe UI", "Roboto", "Arial", sans-serif;
 }
 
 @media (prefers-reduced-motion: reduce) {

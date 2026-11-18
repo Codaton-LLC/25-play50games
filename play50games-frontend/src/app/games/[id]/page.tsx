@@ -118,24 +118,27 @@ export default function GamePage() {
             onShowLoginModal={() => setShowLoginModal(true)}
             onShowRegisterModal={() => setShowRegisterModal(true)}
          />
-         <LoginModal
-            isOpen={showLoginModal}
-            onClose={() => setShowLoginModal(false)}
-            onLogin={login}
-            onSwitchToRegister={() => {
-               setShowLoginModal(false);
-               setShowRegisterModal(true);
-            }}
-         />
-         <RegisterModal
-            isOpen={showRegisterModal}
-            onClose={() => setShowRegisterModal(false)}
-            onRegister={register}
-            onSwitchToLogin={() => {
-               setShowRegisterModal(false);
-               setShowLoginModal(true);
-            }}
-         />
+         {/* this page keeps the old dark look, so its sheets take the dark values (theme.css) */}
+         <div className="p50-night">
+            <LoginModal
+               isOpen={showLoginModal}
+               onClose={() => setShowLoginModal(false)}
+               onLogin={login}
+               onSwitchToRegister={() => {
+                  setShowLoginModal(false);
+                  setShowRegisterModal(true);
+               }}
+            />
+            <RegisterModal
+               isOpen={showRegisterModal}
+               onClose={() => setShowRegisterModal(false)}
+               onRegister={register}
+               onSwitchToLogin={() => {
+                  setShowRegisterModal(false);
+                  setShowLoginModal(true);
+               }}
+            />
+         </div>
       </div>
    );
 }

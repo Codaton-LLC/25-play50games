@@ -493,21 +493,18 @@ export default function SiteHeaderClient({ active, games }: SiteHeaderClientProp
             boards={BOARDS}
          />
 
-         {/* the login and register modals are not redesigned yet: they keep the legacy dark palette */}
-         <div className="p50-legacy">
-            <LoginModal
-               isOpen={modal === "login"}
-               onClose={() => setModal(null)}
-               onLogin={login}
-               onSwitchToRegister={() => setModal("register")}
-            />
-            <RegisterModal
-               isOpen={modal === "register"}
-               onClose={() => setModal(null)}
-               onRegister={register}
-               onSwitchToLogin={() => setModal("login")}
-            />
-         </div>
+         <LoginModal
+            isOpen={modal === "login"}
+            onClose={() => setModal(null)}
+            onLogin={login}
+            onSwitchToRegister={() => setModal("register")}
+         />
+         <RegisterModal
+            isOpen={modal === "register"}
+            onClose={() => setModal(null)}
+            onRegister={register}
+            onSwitchToLogin={() => setModal("login")}
+         />
       </>
    );
 }
