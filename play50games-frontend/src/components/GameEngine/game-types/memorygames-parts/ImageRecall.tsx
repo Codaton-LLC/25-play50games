@@ -50,6 +50,9 @@ function ImageRecall({
    const [hintRevealed, setHintRevealed] = useState<number[]>([]);
    const [currentShareId, setCurrentShareId] = useState<string | null>(null);
    const shareCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
+   // this board's own card grid and reveal-flash timers (never document-wide)
+   const boardRef = useRef<HTMLDivElement | null>(null);
+   const flashTimersRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
 
    // Max hints: 10 for Image Recall, unlimited if shared
    const maxHints = hasShared ? 0 : 10; // 0 = unlimited
@@ -429,20 +432,24 @@ function ImageRecall({
 
       // Show sequence with flashes
       let flashIndex = 0;
+      let inputTimer: ReturnType<typeof setTimeout> | null = null;
       const flashInterval = setInterval(() => {
          if (flashIndex < newSequence.length) {
             flashIndex++;
          } else {
             clearInterval(flashInterval);
             // Hide after sequence
-            setTimeout(() => {
+            inputTimer = setTimeout(() => {
                setGameState("input");
             }, 250);
          }
       }, 650);
 
       // Cleanup
-      return () => clearInterval(flashInterval);
+      return () => {
+         clearInterval(flashInterval);
+         if (inputTimer) clearTimeout(inputTimer);
+      };
    }, [currentRound, gridSize, currentImages.length]);
 
    // Start first round
@@ -636,22 +643,39 @@ function ImageRecall({
 
    // Flash card animation: a module class (the old global .image-card.flash scaled the whole cell)
    const flashCard = (idx: number) => {
-      const card = document.querySelector(
+      const card = boardRef.current?.querySelector(
          `.image-card[data-idx="${idx}"]`
-      ) as HTMLElement;
+      ) as HTMLElement | null;
       if (card) {
          card.classList.add(ir.flashCue);
-         setTimeout(() => card.classList.remove(ir.flashCue), 320);
+         const t = setTimeout(() => {
+            flashTimersRef.current.delete(t);
+            card.classList.remove(ir.flashCue);
+         }, 320);
+         flashTimersRef.current.add(t);
       }
    };
 
    // Show sequence with flashes
    useEffect(() => {
       if (gameState === "memorizing" && sequence.length > 0) {
-         const timers = sequence.map((idx, i) =>
-            setTimeout(() => flashCard(idx), 600 + i * 650)
-         );
-         return () => timers.forEach(clearTimeout);
+         const timers = flashTimersRef.current;
+         const board = boardRef.current;
+         sequence.forEach((idx, i) => {
+            const t = setTimeout(() => {
+               timers.delete(t);
+               flashCard(idx);
+            }, 600 + i * 650);
+            timers.add(t);
+         });
+         // new board / replay / unmount: drop every pending flash and its clear
+         return () => {
+            timers.forEach(clearTimeout);
+            timers.clear();
+            board
+               ?.querySelectorAll(`.${ir.flashCue}`)
+               .forEach((el) => el.classList.remove(ir.flashCue));
+         };
       }
    }, [gameState, sequence]);
 
@@ -757,6 +781,7 @@ function ImageRecall({
          {/* Image Grid (dynamic size) */}
          <div
             key={currentRound}
+            ref={boardRef}
             className={`${m.board} ${m.stagger}`}
             style={{
                gridTemplateColumns: `repeat(${gridSize}, minmax(0, 1fr))`,
