@@ -96,6 +96,18 @@ export default function TargetAim({
    const [replaysUsed, setReplaysUsed] = useState(0);
    const [hasShared, setHasShared] = useState(false);
    const [shareSuccess, setShareSuccess] = useState(false);
+   // Hides the "shared" notice after 15 s; cleared on unmount
+   const shareSuccessTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+      null
+   );
+   useEffect(
+      () => () => {
+         if (shareSuccessTimeoutRef.current) {
+            clearTimeout(shareSuccessTimeoutRef.current);
+         }
+      },
+      []
+   );
    const [unlimitedActivated, setUnlimitedActivated] = useState(false);
    const [currentShareId, setCurrentShareId] = useState<string | null>(null);
    const shareCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -318,8 +330,12 @@ export default function TargetAim({
             // Remove target after lifetime
             setTimeout(() => {
                setTargets((prev) => {
+                  // Inspect the current target: a click replaces the object,
+                  // so newTarget.clicked would always be false here.
+                  const current = prev.find((t) => t.id === newTarget.id);
+                  if (!current) return prev;
                   const updated = prev.filter((t) => t.id !== newTarget.id);
-                  if (!newTarget.clicked) {
+                  if (!current.clicked) {
                      setTargetsMissed((prevMissed) => prevMissed + 1);
                   }
                   return updated;
@@ -871,7 +887,13 @@ export default function TargetAim({
                url: shareableLink,
             });
             setShareSuccess(true);
-            setTimeout(() => setShareSuccess(false), 15000);
+            if (shareSuccessTimeoutRef.current) {
+               clearTimeout(shareSuccessTimeoutRef.current);
+            }
+            shareSuccessTimeoutRef.current = setTimeout(
+               () => setShareSuccess(false),
+               15000
+            );
          } catch (error: any) {
             if (error.name !== "AbortError") {
                handleCopyLink(shareId);
@@ -889,7 +911,13 @@ export default function TargetAim({
       try {
          await navigator.clipboard.writeText(shareableLink);
          setShareSuccess(true);
-         setTimeout(() => setShareSuccess(false), 15000);
+         if (shareSuccessTimeoutRef.current) {
+            clearTimeout(shareSuccessTimeoutRef.current);
+         }
+         shareSuccessTimeoutRef.current = setTimeout(
+            () => setShareSuccess(false),
+            15000
+         );
       } catch (error) {
          const textArea = document.createElement("textarea");
          textArea.value = shareableLink;
@@ -900,7 +928,13 @@ export default function TargetAim({
          try {
             document.execCommand("copy");
             setShareSuccess(true);
-            setTimeout(() => setShareSuccess(false), 15000);
+            if (shareSuccessTimeoutRef.current) {
+               clearTimeout(shareSuccessTimeoutRef.current);
+            }
+            shareSuccessTimeoutRef.current = setTimeout(
+               () => setShareSuccess(false),
+               15000
+            );
          } catch (err) {
             // Failed to copy
          }

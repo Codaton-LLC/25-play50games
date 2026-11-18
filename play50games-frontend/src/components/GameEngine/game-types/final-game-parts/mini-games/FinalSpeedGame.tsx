@@ -16,6 +16,7 @@ import {
    trackShareClick,
    getShareStatus,
 } from "@/lib/api/share";
+import { useCompleteOnce } from "../useCompleteOnce";
 
 interface FinalSpeedGameProps {
    config: Record<string, any>;
@@ -44,11 +45,24 @@ export default function FinalSpeedGame({
    const [replaysUsed, setReplaysUsed] = useState(0);
    const [hasShared, setHasShared] = useState(false);
    const [shareSuccess, setShareSuccess] = useState(false);
+   // Hides the "shared" notice after 15 s; cleared on unmount
+   const shareSuccessTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+      null
+   );
+   useEffect(
+      () => () => {
+         if (shareSuccessTimeoutRef.current) {
+            clearTimeout(shareSuccessTimeoutRef.current);
+         }
+      },
+      []
+   );
    const [unlimitedActivated, setUnlimitedActivated] = useState(false);
    const [currentShareId, setCurrentShareId] = useState<string | null>(null);
    const shareCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
    const maxReplays = hasShared ? 0 : 5; // 0 = unlimited
+   const { completeLater, rearm } = useCompleteOnce();
 
 
    // Color mapping (opposite colors)
@@ -117,7 +131,7 @@ export default function FinalSpeedGame({
             setTimeout(() => {
                if (currentTarget + 1 >= maxTargets) {
                   // Wait longer before completing to show final message
-                  setTimeout(() => onComplete(100), 2500);
+                  completeLater(() => onComplete(100), 2500);
                } else {
                   setCurrentTarget((prev) => prev + 1);
                }
@@ -135,6 +149,7 @@ export default function FinalSpeedGame({
          currentScore,
          currentTarget,
          onComplete,
+         completeLater,
       ]
    );
 
@@ -200,7 +215,13 @@ export default function FinalSpeedGame({
                url: shareableLink,
             });
             setShareSuccess(true);
-            setTimeout(() => setShareSuccess(false), 15000);
+            if (shareSuccessTimeoutRef.current) {
+               clearTimeout(shareSuccessTimeoutRef.current);
+            }
+            shareSuccessTimeoutRef.current = setTimeout(
+               () => setShareSuccess(false),
+               15000
+            );
          } catch (error: any) {
             if (error.name !== "AbortError") {
                handleCopyLink(shareId);
@@ -218,7 +239,13 @@ export default function FinalSpeedGame({
       try {
          await navigator.clipboard.writeText(shareableLink);
          setShareSuccess(true);
-         setTimeout(() => setShareSuccess(false), 15000);
+         if (shareSuccessTimeoutRef.current) {
+            clearTimeout(shareSuccessTimeoutRef.current);
+         }
+         shareSuccessTimeoutRef.current = setTimeout(
+            () => setShareSuccess(false),
+            15000
+         );
       } catch (error) {
          const textArea = document.createElement("textarea");
          textArea.value = shareableLink;
@@ -229,7 +256,13 @@ export default function FinalSpeedGame({
          try {
             document.execCommand("copy");
             setShareSuccess(true);
-            setTimeout(() => setShareSuccess(false), 15000);
+            if (shareSuccessTimeoutRef.current) {
+               clearTimeout(shareSuccessTimeoutRef.current);
+            }
+            shareSuccessTimeoutRef.current = setTimeout(
+               () => setShareSuccess(false),
+               15000
+            );
          } catch (err) {
             // Failed to copy
          }
@@ -396,6 +429,7 @@ export default function FinalSpeedGame({
       setTimeLeft(2);
       setFeedback(null);
       setReplaysUsed((prev) => prev + 1);
+      rearm();
 
       // Force re-initialize by generating new color
       setTimeout(() => {
@@ -404,7 +438,7 @@ export default function FinalSpeedGame({
          setCurrentColor(randomColor);
          setGameState("playing");
       }, 0);
-   }, [maxReplays, replaysUsed]);
+   }, [maxReplays, replaysUsed, rearm]);
 
    const progress =
       maxTargets > 0 ? Math.round(((currentTarget + 1) / maxTargets) * 100) : 0;

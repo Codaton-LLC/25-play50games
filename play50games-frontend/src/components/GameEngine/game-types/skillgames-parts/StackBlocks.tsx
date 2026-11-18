@@ -182,6 +182,18 @@ export default function StackBlocks({
    const [replaysUsed, setReplaysUsed] = useState(0);
    const [hasShared, setHasShared] = useState(false);
    const [shareSuccess, setShareSuccess] = useState(false);
+   // Hides the "shared" notice after 15 s; cleared on unmount
+   const shareSuccessTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+      null
+   );
+   useEffect(
+      () => () => {
+         if (shareSuccessTimeoutRef.current) {
+            clearTimeout(shareSuccessTimeoutRef.current);
+         }
+      },
+      []
+   );
    const [unlimitedActivated, setUnlimitedActivated] = useState(false);
    const [currentShareId, setCurrentShareId] = useState<string | null>(null);
    const shareCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -408,6 +420,19 @@ export default function StackBlocks({
          countdownTimerRef.current = null;
       }
    }, []);
+
+   // A delayed start must not run once the game has exited (unmounted or
+   // stopped), or it would restart the countdown and animation after cleanup.
+   const mountedRef = useRef(true);
+   const isPlayingRef = useRef(isPlaying);
+   isPlayingRef.current = isPlaying;
+   useEffect(() => {
+      mountedRef.current = true;
+      return () => {
+         mountedRef.current = false;
+         clearAll();
+      };
+   }, [clearAll]);
 
    useEffect(() => {
       if (!isPlaying) {
@@ -816,6 +841,7 @@ export default function StackBlocks({
       setTimeLeft(levelDur);
       clearAll();
       setTimeout(() => {
+         if (!mountedRef.current || !isPlayingRef.current) return;
          startLevel(currentLevel);
       }, 100);
       if (maxReplays > 0) {
@@ -874,7 +900,13 @@ export default function StackBlocks({
                url: shareableLink,
             });
             setShareSuccess(true);
-            setTimeout(() => setShareSuccess(false), 15000);
+            if (shareSuccessTimeoutRef.current) {
+               clearTimeout(shareSuccessTimeoutRef.current);
+            }
+            shareSuccessTimeoutRef.current = setTimeout(
+               () => setShareSuccess(false),
+               15000
+            );
          } catch (error: any) {
             if (error.name !== "AbortError") {
                handleCopyLink(shareId);
@@ -892,7 +924,13 @@ export default function StackBlocks({
       try {
          await navigator.clipboard.writeText(shareableLink);
          setShareSuccess(true);
-         setTimeout(() => setShareSuccess(false), 15000);
+         if (shareSuccessTimeoutRef.current) {
+            clearTimeout(shareSuccessTimeoutRef.current);
+         }
+         shareSuccessTimeoutRef.current = setTimeout(
+            () => setShareSuccess(false),
+            15000
+         );
       } catch (error) {
          const textArea = document.createElement("textarea");
          textArea.value = shareableLink;
@@ -903,7 +941,13 @@ export default function StackBlocks({
          try {
             document.execCommand("copy");
             setShareSuccess(true);
-            setTimeout(() => setShareSuccess(false), 15000);
+            if (shareSuccessTimeoutRef.current) {
+               clearTimeout(shareSuccessTimeoutRef.current);
+            }
+            shareSuccessTimeoutRef.current = setTimeout(
+               () => setShareSuccess(false),
+               15000
+            );
          } catch (err) {
             // Failed to copy
          }
@@ -1094,12 +1138,14 @@ export default function StackBlocks({
 
       if (currentLevel === 0) {
          setTimeout(() => {
+            if (!mountedRef.current || !isPlayingRef.current) return;
             if (startLevelRef.current) {
                startLevelRef.current(0);
             }
          }, 0);
       } else {
          setTimeout(() => {
+            if (!mountedRef.current || !isPlayingRef.current) return;
             if (startLevelRef.current) {
                startLevelRef.current(currentLevel);
             }

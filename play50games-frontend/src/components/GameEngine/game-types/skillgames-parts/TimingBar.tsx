@@ -20,6 +20,12 @@ import touch from "./skillTouch.module.css";
 import ui from "./skillUi.module.css";
 import { usePlayAreaInView } from "./usePlayAreaInView";
 
+// One 60 Hz frame. The bar moves by elapsed time scaled to this, so it runs
+// at the same speed on every refresh rate (and exactly as before at 60 Hz).
+const FRAME_MS = 1000 / 60;
+// Cap one step (tab switch, long stall) so the bar never jumps far.
+const MAX_STEP_MS = 100;
+
 interface TimingBarProps {
    config: Record<string, any>;
    onScoreUpdate: (score: number) => void;
@@ -129,6 +135,18 @@ export default function TimingBar({
    const [replaysUsed, setReplaysUsed] = useState(0);
    const [hasShared, setHasShared] = useState(false);
    const [shareSuccess, setShareSuccess] = useState(false);
+   // Hides the "shared" notice after 15 s; cleared on unmount
+   const shareSuccessTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+      null
+   );
+   useEffect(
+      () => () => {
+         if (shareSuccessTimeoutRef.current) {
+            clearTimeout(shareSuccessTimeoutRef.current);
+         }
+      },
+      []
+   );
    const [unlimitedActivated, setUnlimitedActivated] = useState(false);
    const [currentShareId, setCurrentShareId] = useState<string | null>(null);
    const shareCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -153,6 +171,7 @@ export default function TimingBar({
    const zoneRef = useRef<HTMLDivElement>(null);
    const barRef = useRef<HTMLDivElement>(null);
    const nextRoundClickedRef = useRef(false);
+   const restartTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
    // Responsive design
    useEffect(() => {
@@ -181,6 +200,19 @@ export default function TimingBar({
       }
    }, []);
 
+   // A delayed start must not run once the game has exited (unmounted or
+   // stopped), or it would restart the countdown and animation after cleanup.
+   const mountedRef = useRef(true);
+   const isPlayingRef = useRef(isPlaying);
+   isPlayingRef.current = isPlaying;
+   useEffect(() => {
+      mountedRef.current = true;
+      return () => {
+         mountedRef.current = false;
+         clearAll();
+      };
+   }, [clearAll]);
+
    useEffect(() => {
       if (!isPlaying) {
          clearAll();
@@ -198,6 +230,13 @@ export default function TimingBar({
          if (animationFrameRef.current) {
             cancelAnimationFrame(animationFrameRef.current);
             animationFrameRef.current = null;
+         }
+
+         // A pending 700 ms restart from the previous attempt must not start
+         // a second bar loop on top of this level's loop.
+         if (restartTimeoutRef.current) {
+            clearTimeout(restartTimeoutRef.current);
+            restartTimeoutRef.current = null;
          }
 
          // Reset all state before starting new level
@@ -246,7 +285,8 @@ export default function TimingBar({
 
          // Start bar animation (similar to HTML version)
          let pos = initialPos; // 0..1
-         const animate = () => {
+         let lastTs: number | null = null;
+         const animate = (ts: number) => {
             if (
                gameStateRef.current !== "playing" ||
                requirementsMetRef.current ||
@@ -257,7 +297,10 @@ export default function TimingBar({
 
             const speed = levelConfig.barSpeed;
             const direction = barDirectionRef.current;
-            pos += direction * speed * 0.006;
+            const dt =
+               lastTs === null ? FRAME_MS : Math.min(ts - lastTs, MAX_STEP_MS);
+            lastTs = ts;
+            pos += direction * speed * 0.006 * (dt / FRAME_MS);
 
             if (pos >= 1) {
                pos = 1;
@@ -332,8 +375,12 @@ export default function TimingBar({
       }
 
       // Reset for next attempt after delay (similar to HTML version - 700ms)
-      setTimeout(() => {
+      if (restartTimeoutRef.current) clearTimeout(restartTimeoutRef.current);
+      restartTimeoutRef.current = setTimeout(() => {
+         restartTimeoutRef.current = null;
          if (
+            mountedRef.current &&
+            isPlayingRef.current &&
             gameStateRef.current === "playing" &&
             !requirementsMetRef.current
          ) {
@@ -353,7 +400,8 @@ export default function TimingBar({
 
             // Restart animation
             let pos = newPos;
-            const animate = () => {
+            let lastTs: number | null = null;
+            const animate = (ts: number) => {
                if (
                   gameStateRef.current !== "playing" ||
                   requirementsMetRef.current ||
@@ -364,7 +412,10 @@ export default function TimingBar({
 
                const speed = levelConfig.barSpeed;
                const direction = barDirectionRef.current;
-               pos += direction * speed * 0.006;
+               const dt =
+                  lastTs === null ? FRAME_MS : Math.min(ts - lastTs, MAX_STEP_MS);
+               lastTs = ts;
+               pos += direction * speed * 0.006 * (dt / FRAME_MS);
 
                if (pos >= 1) {
                   pos = 1;
@@ -519,7 +570,13 @@ export default function TimingBar({
                url: shareableLink,
             });
             setShareSuccess(true);
-            setTimeout(() => setShareSuccess(false), 15000);
+            if (shareSuccessTimeoutRef.current) {
+               clearTimeout(shareSuccessTimeoutRef.current);
+            }
+            shareSuccessTimeoutRef.current = setTimeout(
+               () => setShareSuccess(false),
+               15000
+            );
          } catch (error: any) {
             if (error.name !== "AbortError") {
                handleCopyLink(shareId);
@@ -537,7 +594,13 @@ export default function TimingBar({
       try {
          await navigator.clipboard.writeText(shareableLink);
          setShareSuccess(true);
-         setTimeout(() => setShareSuccess(false), 15000);
+         if (shareSuccessTimeoutRef.current) {
+            clearTimeout(shareSuccessTimeoutRef.current);
+         }
+         shareSuccessTimeoutRef.current = setTimeout(
+            () => setShareSuccess(false),
+            15000
+         );
       } catch (error) {
          const textArea = document.createElement("textarea");
          textArea.value = shareableLink;
@@ -548,7 +611,13 @@ export default function TimingBar({
          try {
             document.execCommand("copy");
             setShareSuccess(true);
-            setTimeout(() => setShareSuccess(false), 15000);
+            if (shareSuccessTimeoutRef.current) {
+               clearTimeout(shareSuccessTimeoutRef.current);
+            }
+            shareSuccessTimeoutRef.current = setTimeout(
+               () => setShareSuccess(false),
+               15000
+            );
          } catch (err) {
             // Failed to copy
          }
@@ -740,10 +809,12 @@ export default function TimingBar({
 
       if (currentLevel === 0) {
          setTimeout(() => {
+            if (!mountedRef.current || !isPlayingRef.current) return;
             startLevelRef.current(0);
          }, 0);
       } else {
          setTimeout(() => {
+            if (!mountedRef.current || !isPlayingRef.current) return;
             startLevelRef.current(currentLevel);
          }, 1200);
       }

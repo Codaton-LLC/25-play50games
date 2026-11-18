@@ -13,6 +13,13 @@ import {
    trackShareClick,
    getShareStatus,
 } from "@/lib/api/share";
+import { useCompleteOnce } from "../useCompleteOnce";
+
+// One 60 Hz frame. The circle shrinks by elapsed time scaled to this, so the
+// deadline is the same on every refresh rate (and exactly as before at 60 Hz).
+const FRAME_MS = 1000 / 60;
+// Cap one step (tab switch, long stall) so the circle never jumps far.
+const MAX_STEP_MS = 100;
 
 interface FinalSkillGameProps {
    config: Record<string, any>;
@@ -41,11 +48,24 @@ export default function FinalSkillGame({
    const [replaysUsed, setReplaysUsed] = useState(0);
    const [hasShared, setHasShared] = useState(false);
    const [shareSuccess, setShareSuccess] = useState(false);
+   // Hides the "shared" notice after 15 s; cleared on unmount
+   const shareSuccessTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+      null
+   );
+   useEffect(
+      () => () => {
+         if (shareSuccessTimeoutRef.current) {
+            clearTimeout(shareSuccessTimeoutRef.current);
+         }
+      },
+      []
+   );
    const [unlimitedActivated, setUnlimitedActivated] = useState(false);
    const [currentShareId, setCurrentShareId] = useState<string | null>(null);
    const shareCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
    const maxReplays = hasShared ? 0 : 5; // 0 = unlimited
+   const { completeLater, rearm } = useCompleteOnce();
 
 
    // Get target zone based on target number
@@ -79,7 +99,11 @@ export default function FinalSkillGame({
    useEffect(() => {
       if (gameState !== "playing" || !isShrinking) return;
 
-      const animate = () => {
+      let lastTs: number | null = null;
+      const animate = (ts: number) => {
+         const dt =
+            lastTs === null ? FRAME_MS : Math.min(ts - lastTs, MAX_STEP_MS);
+         lastTs = ts;
          setCircleSize((prev) => {
             if (prev <= 0) {
                setIsShrinking(false);
@@ -87,7 +111,8 @@ export default function FinalSkillGame({
                handleCircleClick(true);
                return 0;
             }
-            return prev - 0.5; // Shrink by 0.5% per frame
+            // Shrink by 0.5% per 60 Hz frame
+            return Math.max(0, prev - 0.5 * (dt / FRAME_MS));
          });
          animationRef.current = requestAnimationFrame(animate);
       };
@@ -126,7 +151,7 @@ export default function FinalSkillGame({
 
          setTimeout(() => {
             if (currentTarget + 1 >= maxTargets) {
-               setTimeout(() => onComplete(100), 1000);
+               completeLater(() => onComplete(100), 1000);
             } else {
                setCurrentTarget((prev) => prev + 1);
             }
@@ -174,7 +199,13 @@ export default function FinalSkillGame({
                url: shareableLink,
             });
             setShareSuccess(true);
-            setTimeout(() => setShareSuccess(false), 15000);
+            if (shareSuccessTimeoutRef.current) {
+               clearTimeout(shareSuccessTimeoutRef.current);
+            }
+            shareSuccessTimeoutRef.current = setTimeout(
+               () => setShareSuccess(false),
+               15000
+            );
          } catch (error: any) {
             if (error.name !== "AbortError") {
                handleCopyLink(shareId);
@@ -192,7 +223,13 @@ export default function FinalSkillGame({
       try {
          await navigator.clipboard.writeText(shareableLink);
          setShareSuccess(true);
-         setTimeout(() => setShareSuccess(false), 15000);
+         if (shareSuccessTimeoutRef.current) {
+            clearTimeout(shareSuccessTimeoutRef.current);
+         }
+         shareSuccessTimeoutRef.current = setTimeout(
+            () => setShareSuccess(false),
+            15000
+         );
       } catch (error) {
          const textArea = document.createElement("textarea");
          textArea.value = shareableLink;
@@ -203,7 +240,13 @@ export default function FinalSkillGame({
          try {
             document.execCommand("copy");
             setShareSuccess(true);
-            setTimeout(() => setShareSuccess(false), 15000);
+            if (shareSuccessTimeoutRef.current) {
+               clearTimeout(shareSuccessTimeoutRef.current);
+            }
+            shareSuccessTimeoutRef.current = setTimeout(
+               () => setShareSuccess(false),
+               15000
+            );
          } catch (err) {
             // Failed to copy
          }
@@ -369,12 +412,13 @@ export default function FinalSkillGame({
       setCurrentScore(0);
       setFeedback(null);
       setReplaysUsed((prev) => prev + 1);
+      rearm();
 
       // Force re-initialize by calling startTarget
       setTimeout(() => {
          startTarget();
       }, 0);
-   }, [maxReplays, replaysUsed, startTarget]);
+   }, [maxReplays, replaysUsed, startTarget, rearm]);
 
    const progress =
       maxTargets > 0 ? Math.round(((currentTarget + 1) / maxTargets) * 100) : 0;
