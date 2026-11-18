@@ -372,9 +372,20 @@
 @media (max-width: 520px) and (min-height: 461px) {
    .center {
       left: auto;
-      right: calc(env(safe-area-inset-right, 0px) + 100px);
+      /* 110px: the shell's Mute button starts 104px from the right edge */
+      right: calc(env(safe-area-inset-right, 0px) + 110px);
       transform: none;
       align-items: flex-end;
+   }
+   /* the pills keep their own width (never stretched to the flow meter's), and the teaching line
+      hangs at the screen's right edge under the shell's buttons, so it never covers the left column */
+   .left {
+      align-items: flex-start;
+   }
+   .hint {
+      margin-right: -100px;
+      max-width: min(200px, calc(100vw - 190px));
+      border-radius: 14px;
    }
 }
 
@@ -402,5 +413,23 @@
    .bossDock .boss > div {
       width: 100%;
       box-sizing: border-box;
+   }
+}
+
+/* phones, a points game: the shell's Score chip takes the top row beside the Level chip, so the
+   banner is the level's name alone (the chip already says "L1") and never wider than the gap
+   between that chip and the shell's buttons */
+@media (max-width: 520px) and (min-height: 461px) {
+   .levelNo {
+      display: none;
+   }
+   .banner {
+      box-sizing: border-box;
+      max-width: calc(100vw - 262px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px));
+   }
+   .level {
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
    }
 }

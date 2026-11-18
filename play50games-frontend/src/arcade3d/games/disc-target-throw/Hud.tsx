@@ -156,7 +156,7 @@ export default function Hud() {
             <div className={styles.banner}>
                <span className={styles.title}>Disc Target Throw</span>
                <span className={styles.level}>
-                  Level {level} — {config?.name ?? "Static Targets"}
+                  <span className={styles.levelNo}>Level {level} — </span>{config?.name ?? "Static Targets"}
                </span>
             </div>
             <div className={styles.clock} role="timer" aria-label="Run time">
