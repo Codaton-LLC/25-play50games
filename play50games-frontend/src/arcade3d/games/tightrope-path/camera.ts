@@ -20,7 +20,7 @@ export function yawBehind(dx: number, dz: number): number {
 /** The orbit's tuning: behind the first link, a little above, swinging behind the walk when left alone. */
 export function tightOrbit(course: Course): Partial<OrbitSettings> {
    const l = course.links[course.links[course.start].next];
-   return { yaw: yawBehind(l.dx, l.dz), pitch: (course.arenaStart >= 0 ? 20 : 17) * DEG, distance: 6, minDistance: 3, maxDistance: 14, autoFollow: true, autoFollowDelay: 1.6, autoFollowRate: 1.6, autoFollowMinSpeed: 0.4, autoFollowFullSpeed: 2 };
+   return { yaw: yawBehind(l.dx, l.dz), pitch: (course.arenaStart >= 0 ? 20 : 17) * DEG, distance: 7, minDistance: 3, maxDistance: 14, autoFollow: true, autoFollowDelay: 1.6, autoFollowRate: 1.6, autoFollowMinSpeed: 0.4, autoFollowFullSpeed: 2 };
 }
 
 /** How much farther the orbit stands on a portrait screen. */
