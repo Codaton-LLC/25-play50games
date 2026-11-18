@@ -21,7 +21,7 @@ export const hauntedMansionKeysMeta: ArcadeGameMeta = {
    tagline: "Find the keys. Find the way out.",
    description: "Search a dark mansion room by room for coloured keys, open the matching doors and escape as fast as you can.",
    order: 39,
-   status: "dev",
+   status: "live",
    collection: "adventure",
    difficulty: 2,
    orientation: "any",

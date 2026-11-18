@@ -21,7 +21,7 @@ export const farmTractorChallengeMeta: ArcadeGameMeta = {
    tagline: "Hitch, haul, park.",
    description: "Drive a tractor across the farm, roll gently into hay bales to load the trailer and park them in the barn bay.",
    order: 35,
-   status: "dev",
+   status: "live",
    collection: "skill",
    difficulty: 2,
    orientation: "any",

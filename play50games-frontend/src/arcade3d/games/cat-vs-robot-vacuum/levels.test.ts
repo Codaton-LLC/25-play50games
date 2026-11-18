@@ -13,7 +13,7 @@ describe("cat-vs-robot-vacuum levels", () => {
       expect(levelMetaProblems(catVsRobotVacuumMeta)).toEqual([]);
       expect(definitionLevelProblems(catVsRobotVacuumMeta, definition)).toEqual([]);
       expect(catVsRobotVacuumMeta.slug).toBe("cat-vs-robot-vacuum");
-      expect(catVsRobotVacuumMeta.status).toBe("dev");
+      expect(catVsRobotVacuumMeta.status).toBe("live");
       expect(catVsRobotVacuumMeta.owner).toBe("kimi");
       expect(catVsRobotVacuumMeta.collection).toBe("adventure");
       expect(catVsRobotVacuumMeta.order).toBe(36);

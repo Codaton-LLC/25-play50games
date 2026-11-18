@@ -20,7 +20,7 @@ export const hotelBellboyRushMeta: ArcadeGameMeta = {
    tagline: "Right bag, right door.",
    description: "Push the luggage trolley through the hotel, ride the elevator and deliver every bag to the room on its key card.",
    order: 37,
-   status: "dev",
+   status: "live",
    collection: "skill",
    difficulty: 2,
    orientation: "any",

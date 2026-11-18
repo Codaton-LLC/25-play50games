@@ -40,7 +40,7 @@ export const luggageRushMeta: ArcadeGameMeta = {
    tagline: "Every bag to the right flight.",
    description: "Flip conveyor switches so every suitcase rides to the flight with its colour and symbol before the baggage hall overflows.",
    order: 13,
-   status: "dev",
+   status: "live",
    collection: "adventure",
    difficulty: 1,
    orientation: "any",

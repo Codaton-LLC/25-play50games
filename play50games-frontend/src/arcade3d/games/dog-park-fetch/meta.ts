@@ -21,7 +21,7 @@ export const dogParkFetchMeta: ArcadeGameMeta = {
    tagline: "Fetch it. Bring it back.",
    description: "Chase balls, sticks and frisbees around the park as a happy dog and bring each one back to your owner.",
    order: 41,
-   status: "dev",
+   status: "live",
    collection: "adventure",
    difficulty: 1,
    orientation: "any",

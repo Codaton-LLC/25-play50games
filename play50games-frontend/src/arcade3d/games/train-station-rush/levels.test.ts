@@ -43,7 +43,7 @@ describe("station levels: declarations", () => {
          expect(definition.levels?.[id - 1].description).toBe(LEVEL_LINES[id]);
       }
       expect(meta.scoring).toEqual(PROPOSED_LEVEL_LIMITS[1]);
-      expect(meta).toMatchObject({ slug: "train-station-rush", status: "dev", owner: "claude", order: 44, collection: "skill", difficulty: 2 });
+      expect(meta).toMatchObject({ slug: "train-station-rush", status: "live", owner: "claude", order: 44, collection: "skill", difficulty: 2 });
       expect(definition.touchControls).toEqual(["joystick", "action"]);
       expect(definition.touchLabels).toEqual({ action: "Use" });
       expect(definition.lives).toBe(3);

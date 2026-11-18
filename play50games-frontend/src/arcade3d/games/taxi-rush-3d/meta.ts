@@ -13,7 +13,7 @@ export const taxiRush3dMeta: ArcadeGameMeta = {
    tagline: "Stop for the fare. Stop for the drop.",
    description: "Drive a cab on a small street grid. Stop in the gold pad to pick up, then stop in the destination pad to drop off.",
    order: 32,
-   status: "dev",
+   status: "live",
    collection: "skill",
    difficulty: 2,
    orientation: "any",

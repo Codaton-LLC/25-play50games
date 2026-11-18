@@ -46,7 +46,7 @@ export const treasureIslandMeta: ArcadeGameMeta = {
    tagline: "Follow the detector, dig up the treasure.",
    description: "Explore a tiny tropical island with a buzzing treasure detector and dig up five buried treasures before the tide comes in.",
    order: 11,
-   status: "dev",
+   status: "live",
    collection: "adventure",
    difficulty: 1,
    orientation: "any",

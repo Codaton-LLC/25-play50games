@@ -12,7 +12,7 @@ describe("wizard potion lab levels", () => {
       expect(levelMetaProblems(wizardPotionLabMeta)).toEqual([]);
       expect(definitionLevelProblems(wizardPotionLabMeta, definition)).toEqual([]);
       expect(wizardPotionLabMeta.slug).toBe("wizard-potion-lab");
-      expect(wizardPotionLabMeta.status).toBe("dev");
+      expect(wizardPotionLabMeta.status).toBe("live");
       expect(wizardPotionLabMeta.owner).toBe("cursor");
       expect(wizardPotionLabMeta.collection).toBe("skill");
       expect(wizardPotionLabMeta.order).toBe(38);

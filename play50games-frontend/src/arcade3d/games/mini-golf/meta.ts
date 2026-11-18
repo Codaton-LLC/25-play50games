@@ -11,7 +11,7 @@ export const miniGolfMeta: ArcadeGameMeta = {
    tagline: "Six holes, as few strokes as you can.",
    description: "Six bite-size toy holes with ramps, tunnels and a spinning windmill: drag, aim and sink it in as few strokes as possible.",
    order: 21,
-   status: "dev",
+   status: "live",
    collection: "skill",
    difficulty: 3,
    orientation: "any",

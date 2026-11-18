@@ -60,7 +60,7 @@ describe("five level contracts", () => {
       const meta = burgerDeliveryScooterMeta;
       expect(levelMetaProblems(meta)).toEqual([]);
       expect(definitionLevelProblems(meta, definition)).toEqual([]);
-      expect(meta.status).toBe("dev");
+      expect(meta.status).toBe("live");
       expect(meta.owner).toBe("claude");
       expect(meta.collection).toBe("skill");
       expect(meta.scoring).toEqual(LIMITS[0]);

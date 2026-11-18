@@ -8,7 +8,7 @@ export const spaceRepairMeta: ArcadeGameMeta = {
    tagline: "Fix the station before the power runs out.",
    description: "Jetpack around a tiny space station in zero gravity and fix sparking modules before the station's power runs out.",
    order: 26,
-   status: "dev",
+   status: "live",
    collection: "skill",
    difficulty: 2,
    orientation: "any",

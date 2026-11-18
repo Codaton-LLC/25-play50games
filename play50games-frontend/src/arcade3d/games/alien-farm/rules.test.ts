@@ -81,7 +81,7 @@ describe("constants (pinned by value)", () => {
    it("proven limits, copied into meta (and arcade-games.json via registry.sync)", () => {
       expect(PROPOSED_LIMITS).toEqual({ kind: "points", maxScore: 12900, minDurationMs: 99000, maxDurationMs: 102000, base: 200, maxPointsPerSec: 250, unitLabel: "pts", display: "int" });
       expect(alienFarmMeta.scoring).toEqual(PROPOSED_LIMITS);
-      expect(alienFarmMeta.status).toBe("dev");
+      expect(alienFarmMeta.status).toBe("live");
    });
 });
 

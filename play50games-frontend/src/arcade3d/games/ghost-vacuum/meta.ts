@@ -33,7 +33,7 @@ export const ghostVacuumMeta: ArcadeGameMeta = {
    tagline: "Light them up, suck them in.",
    description: "Bust giggling ghosts out of a toy haunted mansion with a backpack vacuum: light them up to stun them, then suck them in.",
    order: 18,
-   status: "dev",
+   status: "live",
    collection: "adventure",
    difficulty: 2,
    orientation: "any",

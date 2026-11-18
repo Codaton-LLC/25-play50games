@@ -20,7 +20,7 @@ export const alienFarmMeta: ArcadeGameMeta = {
    tagline: "Harvest at the brightest pulse.",
    description: "Tend a moonlit alien garden: harvest each glowing crop at its brightest pulse and beam the harvest up to your hovering saucer.",
    order: 20,
-   status: "dev",
+   status: "live",
    collection: "adventure",
    difficulty: 2,
    orientation: "any",

@@ -1,7 +1,7 @@
 import type { ArcadeGameMeta, LevelMeta, ScoringRules } from "@/arcade3d/types";
 
 // Plain data only (server-safe). scoring must match WP includes/arcade-games.json.
-// Provisional limits (docs/arcade-expansion/02 §C.4): set for real in the game's "assets + limits" PR.
+// The proven limits: rules.ts PROPOSED_LIMITS / PROPOSED_LEVEL_LIMITS (README "Levels").
 const SCORING: ScoringRules = {
    kind: "points",
    maxScore: 18700,
@@ -30,7 +30,7 @@ export const penguinSlideMeta: ArcadeGameMeta = {
    tagline: "Carve, jump, slurp the fish.",
    description: "Belly-slide a penguin down a twisting glacier: carve between ice blocks, launch off ramps and slurp up fish.",
    order: 25,
-   status: "dev",
+   status: "live",
    collection: "skill",
    difficulty: 2,
    orientation: "any",

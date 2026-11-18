@@ -18,7 +18,7 @@ export const beeGardenMeta: ArcadeGameMeta = {
    tagline: "Buzz, gather, deliver.",
    description: "Fly a busy bee over the garden, gather nectar from the flowers and bring it home to the hive while dodging spider webs.",
    order: 40,
-   status: "dev",
+   status: "live",
    collection: "skill",
    difficulty: 1,
    orientation: "any",

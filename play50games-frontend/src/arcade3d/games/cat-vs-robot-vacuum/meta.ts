@@ -21,7 +21,7 @@ export const catVsRobotVacuumMeta: ArcadeGameMeta = {
    tagline: "Snack fast. Stay clean.",
    description: "Sneak around the house as a cat, collect every treat and hop away from the robot vacuums before curling up on the bed.",
    order: 36,
-   status: "dev",
+   status: "live",
    collection: "adventure",
    difficulty: 1,
    orientation: "any",

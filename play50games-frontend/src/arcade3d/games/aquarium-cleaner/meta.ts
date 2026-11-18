@@ -22,7 +22,7 @@ export const aquariumCleanerMeta: ArcadeGameMeta = {
    tagline: "Scrub, collect, keep breathing.",
    description: "Walk the floor of a giant aquarium as a diver, scrub the algae, collect the trash and check the machines before your air runs low.",
    order: 49,
-   status: "dev",
+   status: "live",
    collection: "adventure",
    difficulty: 2,
    orientation: "any",

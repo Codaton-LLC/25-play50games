@@ -21,7 +21,7 @@ export const firefighterRescueMeta: ArcadeGameMeta = {
    tagline: "Put the fires out. Walk the neighbours clear.",
    description: "Enter one floor at a time, hold your spray on each fire and walk the neighbours one by one out to the exit sign.",
    order: 31,
-   status: "dev",
+   status: "live",
    collection: "adventure",
    difficulty: 2,
    orientation: "any",

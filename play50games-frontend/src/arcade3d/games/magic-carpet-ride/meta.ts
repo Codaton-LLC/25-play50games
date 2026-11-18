@@ -21,7 +21,7 @@ export const magicCarpetRideMeta: ArcadeGameMeta = {
    tagline: "Fly the rings, dodge the flock.",
    description: "Steer a magic carpet through desert skies, a red canyon and a lantern-lit night: fly through rings for combos, grab coins and boosts, dodge gulls and rocks.",
    order: 47,
-   status: "dev",
+   status: "live",
    collection: "adventure",
    difficulty: 2,
    orientation: "any",

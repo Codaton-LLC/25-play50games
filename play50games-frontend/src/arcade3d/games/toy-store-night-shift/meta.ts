@@ -22,7 +22,7 @@ export const toyStoreNightShiftMeta: ArcadeGameMeta = {
    tagline: "Tidy up the toy store before morning.",
    description: "At night the toys came alive and wrecked the store. You are the store's tidy-up robot: put every toy back on its shelf before morning, while the wild wind-up toys run the aisles.",
    order: 48,
-   status: "dev",
+   status: "live",
    collection: "skill",
    difficulty: 2,
    orientation: "any",

@@ -1,8 +1,8 @@
 import type { ArcadeGameMeta, LevelMeta, ScoringRules } from "@/arcade3d/types";
 
 // Plain data only (server-safe). scoring must match WP includes/arcade-games.json.
-// Provisional limits (docs/arcade-expansion/02 §C.4): set for real in the game's "assets + limits" PR
-// (proposed in README.md "Server limits and why they hold": 10500, 19000-92000 ms, 1500 + 110/s).
+// The proven limits (README "Server limits and why they hold": 10500, 19000-92000 ms, 1500 + 110/s at
+// level 1; rules.ts PROPOSED_LEVEL_LIMITS for every level).
 const CLEAR = [3000, 3500, 4000, 4500] as const;
 
 const SCORING: ScoringRules = {
@@ -34,7 +34,7 @@ export const pirateCannonsMeta: ArcadeGameMeta = {
    tagline: "Read the wind, sink the ships.",
    description: "Man a seaside fort's cartoon cannon: drag to aim, read the wind, and sink pirate ships before they reach the harbour.",
    order: 23,
-   status: "dev",
+   status: "live",
    collection: "skill",
    difficulty: 2,
    orientation: "any",

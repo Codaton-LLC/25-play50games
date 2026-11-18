@@ -22,7 +22,7 @@ export const jungleBridgeRunMeta: ArcadeGameMeta = {
    tagline: "Jump the gaps. Cross the bridges.",
    description: "Race an explorer through the jungle over rope bridges, logs and gaps, collecting gems on the way to the finish.",
    order: 46,
-   status: "dev",
+   status: "live",
    collection: "adventure",
    difficulty: 2,
    orientation: "any",
