@@ -19,12 +19,13 @@
 }
 
 .fadeUp {
-   animation: speedFadeUp 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
+   animation: speedFadeUp 0.28s cubic-bezier(0.16, 1, 0.3, 1) backwards;
 }
 
-/* result / level panels: the direct children come in one after another */
+/* result / level panels: the direct children come in one after another. Fill is "backwards" on
+   purpose: a forwards fill would keep holding transform and cancel the press scale of a button inside. */
 .staggerIn > * {
-   animation: speedFadeUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+   animation: speedFadeUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) backwards;
 }
 
 .staggerIn > *:nth-child(2) {
