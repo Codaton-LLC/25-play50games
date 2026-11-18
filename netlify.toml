@@ -4,7 +4,10 @@
 # Netlify did not add the runtime by itself and served the .next folder as plain files.
 #
 # Environment variables are NOT set here: add them in the Netlify UI
-# (Project configuration > Environment variables), the same ones Vercel has.
+# (Project configuration > Environment variables): NEXT_PUBLIC_ARCADE_ENABLED,
+# NEXT_PUBLIC_ARCADE_LEADERBOARD, NEXT_PUBLIC_ARCADE_LEVELS, NEXT_PUBLIC_SITE_URL and
+# NEXT_PUBLIC_WORDPRESS_API_URL. Never the preview-only flags (CLAUDE.md "Feature flags").
+# Netlify is the live address since 2026-11-18 (CLAUDE.md "Deploy").
 
 [build]
   base = "play50games-frontend"

@@ -455,7 +455,7 @@ entry in `arcade-games.json` for **dev** games (Claude re-derives it at review; 
 2. **Pilots (Claude)**: `robot-collector` (live points game, the reference proof, simple spawn-count configs),
    `castle-defender` (dev, already wave-based: the plan's 3/4/5/6/8 waves map onto `COUNTS`/`STARTS`), `obstacle-race`
    (live **time** game: course length and hazard configs, exercises time-score totals). After each: Claude limits commit,
-   user uploads the JSON, merge, Vercel preview with `NEXT_PUBLIC_ARCADE_LEVELS=1` checked live.
+   user uploads the JSON, merge, a preview on the live host with `NEXT_PUBLIC_ARCADE_LEVELS=1` checked live.
 3. Production flag `NEXT_PUBLIC_ARCADE_LEVELS=1` once the three pilots and the backend are live (until then production
    behaves as level 1 everywhere, even for converted games).
 4. Remaining 7 live games one by one (as Release 2 go-lives), then the 20 dev games by their owners, in parallel.
@@ -537,7 +537,7 @@ The 10 live games keep working at every step: old frontends send no `level`, whi
    - wp-admin → Arcade Scores (the user, or Claude with the user's OK): header "DB version: 3 · Table: exists · Level table: exists"; the board rows unchanged.
    - `features.levels: false` means the migration has not run or failed: the PHP error log has `play50 arcade: table install failed` or `level backfill failed`; the site keeps working as before (level 1 only) and the install retries hourly.
    - With the user's OK only: the "Levels cases" curl table in `docs/arcade-api.md` §13 as the arcade-test user, then delete only the arcade-test rows (never Reset game on a live board).
-6. **Only then** set `NEXT_PUBLIC_ARCADE_LEVELS=1` (Vercel, Preview first, Production when the pilots are live, §6.4) and redeploy. Until a game has levels in `meta.ts` and in the server JSON, the flag changes nothing visible.
+6. **Only then** set `NEXT_PUBLIC_ARCADE_LEVELS=1` (on the live host: Netlify since 2026-11-18, CLAUDE.md "Deploy"; Preview first, Production when the pilots are live, §6.4) and redeploy. Until a game has levels in `meta.ts` and in the server JSON, the flag changes nothing visible.
 7. **Each pilot later:** Claude's limits commit adds that game's `levels` to `arcade-games.json` → the user uploads the JSON **before** the game's frontend merge (exactly like a go-live) → Claude checks `GET /arcade/games` shows its 5 `levels` → merge. For a **time** game (obstacle-race), uploading its levels takes its current players off the board until they finish all 5 levels (user decision 4); announce it.
 
 Rollback: re-upload the previous `arcade-api.php` (and admin page) from the backup. The old file ignores the level table, re-records DB version 2 on its first request and keeps run tokens working; the level table can stay. Re-uploading the new file later re-runs the backfill, which only adds missing level-1 rows.

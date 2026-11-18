@@ -12,7 +12,7 @@ export const ARCADE_LEADERBOARD = on(process.env.NEXT_PUBLIC_ARCADE_LEADERBOARD)
 /** Replaces the WordPress arcade API with an in-memory mock (development only). */
 export const ARCADE_API_MOCK = on(process.env.NEXT_PUBLIC_ARCADE_API_MOCK);
 
-/** Shows "dev" games on /3d and serves their routes (preview builds only, never on Vercel production). */
+/** Shows "dev" games on /3d and serves their routes (preview builds only, never on a production host: Netlify, Vercel). */
 export const ARCADE_PREVIEW = on(process.env.NEXT_PUBLIC_ARCADE_PREVIEW);
 
 /**
@@ -28,5 +28,5 @@ export const ARCADE_LEVELS = on(process.env.NEXT_PUBLIC_ARCADE_LEVELS);
  */
 export const SQUAD_TEASER = on(process.env.NEXT_PUBLIC_SQUAD_TEASER);
 
-/** Preview builds only: every level of every game is open, so a tester can jump to any level. Never set on Vercel. */
+/** Preview builds only: every level of every game is open, so a tester can jump to any level. Never set on a production host (Netlify, Vercel). */
 export const ARCADE_UNLOCK_ALL = on(process.env.NEXT_PUBLIC_ARCADE_UNLOCK_ALL);
