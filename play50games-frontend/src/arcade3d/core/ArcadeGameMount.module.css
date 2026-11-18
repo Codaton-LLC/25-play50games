@@ -1,4 +1,5 @@
-/* Full-screen loading / error state shown before GameShell is ready. */
+/* Full-screen loading / error state shown before GameShell is ready. It follows the theme
+   (tokens: app/theme.css). globals.css styles every <button>: the buttons set both states. */
 .screen {
    position: fixed;
    top: 0;
@@ -13,30 +14,31 @@
    height: 100dvh;
    padding: 24px max(16px, env(safe-area-inset-right, 0px)) 24px max(16px, env(safe-area-inset-left, 0px));
    overflow-y: auto;
-   background: var(--bg);
-   color: var(--text);
+   background: var(--p50-canvas);
+   color: var(--p50-text);
+   font-family: var(--p50-font-body);
    text-align: center;
 }
 
+/* a dot that breathes, not a spinner */
 .spinner {
-   width: 44px;
-   height: 44px;
+   width: 10px;
+   height: 10px;
    margin-bottom: 16px;
-   border: 4px solid rgba(255, 255, 255, 0.15);
-   border-top-color: var(--accent);
    border-radius: 50%;
-   animation: spin 0.9s linear infinite;
+   background: var(--p50-coral);
+   animation: breathe 1.6s ease-in-out infinite;
 }
 
 .title {
    margin: 0 0 8px;
-   font-size: 1.5rem;
-   font-weight: 800;
+   font: 700 1.75rem/1.1 var(--p50-font-display);
+   letter-spacing: -0.03em;
 }
 
 .text {
    margin: 0;
-   color: var(--muted);
+   color: var(--p50-text-2);
    line-height: 1.5;
 }
 
@@ -55,34 +57,43 @@
    justify-content: center;
    min-height: 48px;
    padding: 0 20px;
-   border-radius: 12px;
-   font: inherit;
-   font-weight: 700;
+   border-radius: 14px;
+   font: 600 1rem/1 var(--p50-font-body);
    text-decoration: none;
    cursor: pointer;
 }
 
-.primary {
+.primary,
+.primary:hover {
    border: none;
-   background: var(--accent);
-   color: #0b1020;
+   background: var(--p50-coral);
+   color: var(--p50-on-coral);
 }
 
-.secondary {
-   border: 1px solid var(--stroke);
+.primary:hover {
+   background: var(--p50-coral-hover);
+}
+
+.secondary,
+.secondary:hover {
+   border: 1px solid var(--p50-line);
    background: transparent;
-   color: var(--text);
+   color: var(--p50-text);
+}
+
+.secondary:hover {
+   background: var(--p50-raised);
 }
 
 .primary:focus-visible,
 .secondary:focus-visible {
-   outline: 3px solid #fff;
+   outline: 2px solid var(--p50-coral);
    outline-offset: 2px;
 }
 
-@keyframes spin {
-   to {
-      transform: rotate(360deg);
+@keyframes breathe {
+   50% {
+      opacity: 0.35;
    }
 }
 

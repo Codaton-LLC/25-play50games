@@ -1,7 +1,9 @@
-/* The start card's level picker (LevelTiles.tsx). On a wide card (desktop) the five tiles share the
-   row and fit without a scrollbar; on a narrow screen the row scrolls sideways inside the card, its
-   first and last tile snapped clear of the card edge; every tile is at least 44 px tall; a long
-   title wraps to two lines. */
+/* The start card's level picker (LevelTiles.tsx; docs/design/DESIGN.md §6 item 3): the number and
+   the best in mono, the name, a check on a cleared level and a lock on a locked one; the picked
+   tile is washed in coral. On a wide card (desktop) the five tiles share the row and fit without a
+   scrollbar; on a narrow screen the row scrolls sideways inside the card, its first and last tile
+   snapped clear of the card edge; every tile is at least 44 px tall; a long title wraps to two
+   lines. globals.css styles every <button>, so the tile sets its background for both states. */
 .levels {
    margin: 16px 0 14px;
 }
@@ -20,7 +22,8 @@
    -webkit-overflow-scrolling: touch;
 }
 
-.tile {
+.tile,
+.tile:hover {
    display: flex;
    flex: 1 0 100px;
    flex-direction: column;
@@ -28,10 +31,10 @@
    min-width: 100px;
    min-height: 44px;
    padding: 8px 10px;
-   border: 1px solid var(--stroke);
-   border-radius: 12px;
-   background: var(--card);
-   color: var(--text);
+   border: 1px solid var(--p50-line);
+   border-radius: 14px;
+   background: transparent;
+   color: var(--p50-text);
    font: inherit;
    text-align: left;
    cursor: pointer;
@@ -50,24 +53,32 @@
       min-width: 0;
       padding: 8px;
    }
+
+   .tile:hover {
+      flex: 1 1 0;
+      min-width: 0;
+      padding: 8px;
+   }
 }
 
 .tile:hover {
-   border-color: var(--muted);
+   background: var(--p50-raised);
 }
 
 .tile:focus-visible {
-   outline: 2px solid var(--accent);
+   outline: 2px solid var(--p50-coral);
    outline-offset: 2px;
 }
 
-.selected {
-   border-color: var(--game-accent, var(--accent));
-   box-shadow: inset 0 0 0 1px var(--game-accent, var(--accent));
+.selected,
+.selected:hover {
+   border-color: var(--p50-coral);
+   background: var(--p50-coral-wash);
+   box-shadow: inset 0 0 0 1px var(--p50-coral);
 }
 
 .tile[data-state="locked"] {
-   color: var(--muted);
+   color: var(--p50-text-3);
 }
 
 .top {
@@ -77,8 +88,9 @@
 }
 
 .number {
+   font-family: var(--p50-font-mono);
    font-size: 18px;
-   font-weight: 800;
+   font-weight: 600;
    font-variant-numeric: tabular-nums;
 }
 
@@ -88,7 +100,7 @@
 }
 
 .tile[data-state="cleared"] .icon {
-   color: var(--game-accent, var(--accent));
+   color: var(--p50-coral-text);
 }
 
 /* a long title ("Royal Defense") wraps to a second line instead of being cut; a third line is
@@ -97,7 +109,7 @@
    display: -webkit-box;
    overflow: hidden;
    font-size: 12px;
-   font-weight: 700;
+   font-weight: 600;
    line-height: 1.2;
    overflow-wrap: break-word;
    -webkit-box-orient: vertical;
@@ -112,23 +124,50 @@
 
 .best {
    margin-top: auto;
-   color: var(--muted);
+   color: var(--p50-text-2);
+   font-family: var(--p50-font-mono);
    font-size: 12px;
    font-variant-numeric: tabular-nums;
+}
+
+.tile[data-state="locked"] .best {
+   color: var(--p50-text-3);
 }
 
 .description {
    min-height: 1.4em;
    margin: 8px 0 0;
-   color: var(--muted);
+   color: var(--p50-text-2);
    font-size: 14px;
    line-height: 1.4;
 }
 
 .total {
    margin: 6px 0 0;
-   color: var(--text);
+   color: var(--p50-text);
+   font-family: var(--p50-font-mono);
    font-size: 14px;
-   font-weight: 700;
+   font-weight: 600;
    font-variant-numeric: tabular-nums;
+}
+
+/* the wide lobby (GameShell.module.css): the tiles have room for the small text size */
+@media (min-width: 1040px) and (min-height: 620px) {
+   .tile,
+   .tile:hover {
+      gap: 4px;
+      padding: 10px 12px;
+   }
+
+   .title {
+      font-size: 0.875rem;
+   }
+
+   .title[data-long] {
+      font-size: 0.75rem;
+   }
+
+   .best {
+      font-size: 0.8125rem;
+   }
 }

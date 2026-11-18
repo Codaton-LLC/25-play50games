@@ -4,8 +4,11 @@
 // - Overlay: a full-screen dialog whose panel never outgrows the free area (the overlay's padding
 //   keeps the notch and the cookie banner clear), so a tall panel scrolls inside itself and its
 //   frame and buttons stay on screen. The mouse wheel over the backdrop beside it scrolls the panel.
-// - StartCard: back link, title, tagline, instructions, controls (core/howto: the keyboard or phone
-//   illustration and the "How to play" wizard), best score, Play, top 10. On a
+// - StartCard: the lobby (docs/design/DESIGN.md §6 item 3): back link, the game's art, title,
+//   tagline, instructions, controls (core/howto: the keyboard or phone illustration and the "How to
+//   play" wizard), best score, Play, top 10. On a wide screen the sheet has two columns (the stage
+//   with the art, the level tiles and Play on the left; how to play, the controls and the top 10 on
+//   the right); the art shows only there. On a
 //   short screen (a landscape phone, a portrait phone under the cookie banner) the card scrolls and
 //   Play stays pinned to its bottom, above the banner, or to its top once the top 10 is scrolled up,
 //   so Play is always on screen. It opens scrolled to the top (title first); Play takes the focus
@@ -244,17 +247,24 @@ export function StartCard({ meta, definition, coarse, exitHref, leaderboard, onP
          <Link href={exitHref} className={styles.backLink}>
             <ArrowLeftIcon aria-hidden="true" /> 3D Arcade
          </Link>
+         {/* the art of the wide lobby; lazy, so a narrow card (where it is hidden) never fetches it */}
+         {meta.thumbnail ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img className={styles.art} src={meta.thumbnail} alt="" loading="lazy" />
+         ) : null}
          <h1 className={styles.title}>{meta.title}</h1>
          <p className={styles.tagline}>{meta.tagline}</p>
 
          {levels && (
-            <LevelTiles
-               meta={meta}
-               progress={levels.progress}
-               selected={levels.selected}
-               description={levels.description}
-               onSelect={levels.onSelect}
-            />
+            <div className={styles.levelSlot}>
+               <LevelTiles
+                  meta={meta}
+                  progress={levels.progress}
+                  selected={levels.selected}
+                  description={levels.description}
+                  onSelect={levels.onSelect}
+               />
+            </div>
          )}
 
          {instructions.length > 0 && (

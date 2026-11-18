@@ -1,14 +1,21 @@
 /* "How to play": the start card's controls block, its keyboard and phone illustrations and the
-   wizard (core/README.md "How to play"). Navy like the card, the game's accent (--game-accent, set
-   by GameShell from meta.accent) on the main keys and the lit ones. Only transform and opacity
-   animate; prefers-reduced-motion stops every loop and keeps the highlight. */
+   wizard (core/README.md "How to play"). It follows the theme through the --p50-* tokens
+   (app/theme.css; docs/design/DESIGN.md §4 "Keycap"): keycaps are hairline caps with a darker
+   bottom edge and mono letters, the main keys and the lit ones are washed in coral (--game-accent
+   is coral inside a shell overlay, never the game's colour). The phone illustration is a picture of
+   a device with the game on its screen, so its screen stays dark in both themes. Only transform
+   and opacity animate; prefers-reduced-motion stops every loop and keeps the highlight.
+   globals.css styles every <button>, so each button class sets its background for both states. */
 
 .block {
-   --deck-ink: #e8edf8;
-   --cap-top: #263152;
-   --cap-bottom: #1b2440;
-   --cap-edge: #0a1022;
-   --accent-soft: color-mix(in srgb, var(--game-accent, var(--accent)) 22%, transparent);
+   --game-accent: var(--p50-coral);
+   --accent-soft: var(--p50-coral-wash);
+   --deck-ink: var(--p50-text);
+   --cap-top: var(--p50-surface);
+   --cap-bottom: var(--p50-surface);
+   --cap-edge: var(--p50-track);
+   /* on the dark screen of the phone illustration */
+   --screen-ink: #f1f3f8;
 
    margin: 0 0 16px;
 }
@@ -23,7 +30,7 @@
 
 .eyebrow {
    margin: 0;
-   color: var(--muted);
+   color: var(--p50-text-2);
    font-size: 11px;
    font-weight: 700;
    letter-spacing: 0.1em;
@@ -37,9 +44,9 @@
    grid-template-columns: 1fr 1fr;
    flex: none;
    padding: 3px;
-   border: 1px solid var(--stroke);
+   border: 0;
    border-radius: 999px;
-   background: rgba(6, 10, 24, 0.55);
+   background: var(--p50-raised);
 }
 
 .toggle::before {
@@ -50,8 +57,8 @@
    left: 3px;
    width: calc(50% - 3px);
    border-radius: 999px;
-   background: rgba(255, 255, 255, 0.1);
-   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+   background: var(--p50-surface);
+   box-shadow: var(--p50-seg-shadow);
    transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -59,7 +66,8 @@
    transform: translateX(100%);
 }
 
-.toggleButton {
+.toggleButton,
+.toggleButton:hover {
    position: relative;
    display: inline-flex;
    align-items: center;
@@ -71,7 +79,7 @@
    border: 0;
    border-radius: 999px;
    background: transparent;
-   color: var(--muted);
+   color: var(--p50-text-2);
    font: inherit;
    font-size: 13px;
    font-weight: 700;
@@ -84,8 +92,9 @@
    height: 16px;
 }
 
-.toggleButton[aria-pressed="true"] {
-   color: var(--text);
+.toggleButton[aria-pressed="true"],
+.toggleButton[aria-pressed="true"]:hover {
+   color: var(--p50-text);
 }
 
 .toggleButton:focus-visible,
@@ -93,7 +102,7 @@
 .navButton:focus-visible,
 .skip:focus-visible,
 .dot:focus-visible {
-   outline: 3px solid #fff;
+   outline: 2px solid var(--p50-coral);
    outline-offset: 2px;
 }
 
@@ -101,12 +110,9 @@
 .stage {
    position: relative;
    padding: 16px 14px 14px;
-   border: 1px solid rgba(255, 255, 255, 0.08);
-   border-radius: 16px;
-   background:
-      radial-gradient(120% 90% at 50% 0%, color-mix(in srgb, var(--game-accent, var(--accent)) 9%, transparent), transparent 70%),
-      rgba(5, 9, 22, 0.6);
-   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+   border: 1px solid var(--p50-line);
+   border-radius: 20px;
+   background: var(--p50-raised);
    overflow: hidden;
 }
 
@@ -164,7 +170,7 @@
 .or {
    align-self: center;
    padding: 0 2px;
-   color: var(--muted);
+   color: var(--p50-text-2);
    font-size: 11px;
    font-style: italic;
    opacity: 0.8;
@@ -197,17 +203,14 @@
    min-width: var(--cap);
    height: var(--cap);
    padding: 0 7px;
-   border: 1px solid rgba(255, 255, 255, 0.09);
-   border-radius: 9px;
-   background: linear-gradient(180deg, var(--cap-top), var(--cap-bottom));
-   box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.14),
-      inset 0 -2px 0 rgba(0, 0, 0, 0.18),
-      0 3px 0 var(--cap-edge),
-      0 6px 12px rgba(3, 6, 18, 0.55);
+   border: 1px solid var(--p50-line);
+   border-radius: 8px;
+   background: var(--cap-top);
+   box-shadow: 0 2px 0 var(--cap-edge);
    color: var(--deck-ink);
+   font-family: var(--p50-font-mono);
    font-size: 13px;
-   font-weight: 800;
+   font-weight: 600;
    line-height: 1;
    letter-spacing: 0.01em;
    transform: translateY(0);
@@ -227,18 +230,10 @@
 }
 
 .groupMain .cap {
-   border-color: color-mix(in srgb, var(--game-accent, var(--accent)) 55%, transparent);
-   background: linear-gradient(
-      180deg,
-      color-mix(in srgb, var(--game-accent, var(--accent)) 30%, var(--cap-top)),
-      color-mix(in srgb, var(--game-accent, var(--accent)) 14%, var(--cap-bottom))
-   );
-   box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.2),
-      inset 0 -2px 0 rgba(0, 0, 0, 0.18),
-      0 3px 0 color-mix(in srgb, var(--game-accent, var(--accent)) 30%, var(--cap-edge)),
-      0 6px 14px rgba(3, 6, 18, 0.55);
-   color: #fff;
+   border-color: var(--p50-coral);
+   background: var(--accent-soft);
+   box-shadow: 0 2px 0 var(--p50-coral);
+   color: var(--p50-coral-text);
 }
 
 /* resting card: the main keys tap one after another, slowly */
@@ -274,10 +269,8 @@
    35% {
       transform: translateY(2px);
       box-shadow:
-         inset 0 1px 0 rgba(255, 255, 255, 0.2),
          0 1px 0 var(--cap-edge),
-         0 0 0 4px var(--accent-soft),
-         0 3px 8px rgba(3, 6, 18, 0.5);
+         0 0 0 4px var(--accent-soft);
    }
 }
 
@@ -286,7 +279,7 @@
    align-items: center;
    gap: 6px;
    max-width: 15ch;
-   color: var(--text);
+   color: var(--p50-text);
    font-size: 12px;
    font-weight: 700;
    line-height: 1.25;
@@ -294,7 +287,7 @@
 }
 
 .groupQuiet .caption {
-   color: var(--muted);
+   color: var(--p50-text-2);
    font-weight: 600;
 }
 
@@ -303,7 +296,7 @@
    padding: 2px 5px;
    border-radius: 5px;
    background: var(--accent-soft);
-   color: var(--game-accent, var(--accent));
+   color: var(--p50-coral-text);
    font-size: 9px;
    font-weight: 800;
    letter-spacing: 0.08em;
@@ -323,22 +316,22 @@
 
 .mouseBody {
    fill: var(--cap-bottom);
-   stroke: rgba(255, 255, 255, 0.3);
+   stroke: var(--p50-text-3);
    stroke-width: 1.5;
 }
 
 .mouseLine {
    fill: none;
-   stroke: rgba(255, 255, 255, 0.2);
+   stroke: var(--p50-track);
    stroke-width: 1.2;
 }
 
 .mouseButton {
-   fill: color-mix(in srgb, var(--game-accent, var(--accent)) 60%, transparent);
+   fill: color-mix(in srgb, var(--p50-coral) 60%, transparent);
 }
 
 .mouseWheel {
-   fill: rgba(255, 255, 255, 0.55);
+   fill: var(--p50-text-2);
 }
 
 .deckLarge .cap {
@@ -396,7 +389,7 @@
    overflow: hidden;
    border-radius: 20px;
    background:
-      radial-gradient(80% 70% at 50% 110%, color-mix(in srgb, var(--game-accent, var(--accent)) 30%, transparent), transparent 70%),
+      radial-gradient(80% 70% at 50% 110%, color-mix(in srgb, var(--p50-coral) 30%, transparent), transparent 70%),
       linear-gradient(180deg, #1a2547 0%, #101a36 55%, #0c1530 100%);
 }
 
@@ -438,7 +431,7 @@
    height: 22px;
    border-radius: 7px;
    background: rgba(255, 255, 255, 0.14);
-   color: var(--text);
+   color: var(--screen-ink);
 }
 
 .stick {
@@ -450,7 +443,7 @@
    aspect-ratio: 1;
    border: 2px solid rgba(255, 255, 255, 0.22);
    border-radius: 50%;
-   background: radial-gradient(circle at 50% 50%, rgba(125, 211, 252, 0.16), rgba(11, 16, 32, 0.45) 70%);
+   background: radial-gradient(circle at 50% 50%, rgba(231, 95, 64, 0.18), rgba(11, 16, 32, 0.45) 70%);
 }
 
 .phonePortrait .stick {
@@ -465,7 +458,7 @@
    aspect-ratio: 1;
    border: 2px solid rgba(255, 255, 255, 0.55);
    border-radius: 50%;
-   background: rgba(125, 211, 252, 0.55);
+   background: rgba(231, 95, 64, 0.7);
    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.35);
    transform: translate(-50%, -50%);
    animation: knob 3.2s cubic-bezier(0.45, 0, 0.55, 1) infinite;
@@ -505,7 +498,7 @@
    border: 2px solid rgba(255, 255, 255, 0.35);
    border-radius: 50%;
    background: rgba(11, 16, 32, 0.6);
-   color: var(--text);
+   color: var(--screen-ink);
    font-size: 9px;
    font-weight: 800;
    letter-spacing: 0.02em;
@@ -516,7 +509,7 @@
 .stick[data-lit],
 .pad[data-lit],
 .pauseMock[data-lit] {
-   border-color: var(--game-accent, var(--accent));
+   border-color: var(--p50-coral);
    box-shadow: 0 0 0 4px var(--accent-soft);
 }
 
@@ -576,7 +569,7 @@
    width: 18px;
    height: 18px;
    margin: -9px 0 0 -9px;
-   border: 2px solid var(--game-accent, var(--accent));
+   border: 2px solid var(--p50-coral);
    border-radius: 50%;
    animation: ripple 1.6s ease-out infinite;
 }
@@ -618,7 +611,7 @@
    height: 2px;
    margin-top: -1px;
    border-radius: 2px;
-   background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--game-accent, var(--accent)) 70%, transparent), transparent);
+   background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--p50-coral) 70%, transparent), transparent);
 }
 
 @keyframes swipeFinger {
@@ -647,7 +640,7 @@
    width: 2px;
    height: 70%;
    margin-left: -1px;
-   background: linear-gradient(180deg, color-mix(in srgb, var(--game-accent, var(--accent)) 80%, transparent), transparent);
+   background: linear-gradient(180deg, color-mix(in srgb, var(--p50-coral) 80%, transparent), transparent);
    transform-origin: top;
    animation: dragLine 2.2s cubic-bezier(0.65, 0, 0.35, 1) infinite;
 }
@@ -700,21 +693,21 @@
    gap: 7px;
    min-height: 32px;
    padding: 4px 10px 4px 6px;
-   border: 1px solid var(--stroke);
+   border: 1px solid var(--p50-line);
    border-radius: 999px;
-   background: rgba(255, 255, 255, 0.03);
+   background: var(--p50-surface);
    font-size: 12px;
    line-height: 1.25;
    transition: opacity 0.3s ease, border-color 0.3s ease;
 }
 
 .legendItem[data-lit] {
-   border-color: color-mix(in srgb, var(--game-accent, var(--accent)) 60%, transparent);
+   border-color: var(--p50-coral);
    background: var(--accent-soft);
 }
 
 .legendName {
-   color: var(--text);
+   color: var(--p50-text);
    font-weight: 800;
 }
 
@@ -722,44 +715,45 @@
    display: inline-flex;
    align-items: center;
    gap: 5px;
-   color: var(--muted);
+   color: var(--p50-text-2);
 }
 
 .glyph {
    flex: none;
    width: 20px;
    height: 20px;
-   border: 2px solid rgba(255, 255, 255, 0.4);
+   border: 2px solid var(--p50-text-3);
    border-radius: 50%;
-   background: rgba(11, 16, 32, 0.6);
+   background: var(--p50-raised);
 }
 
 .glyph[data-control="joystick"] {
-   background: radial-gradient(circle, rgba(125, 211, 252, 0.7) 0 30%, rgba(11, 16, 32, 0.6) 32%);
+   background: radial-gradient(circle, var(--p50-coral) 0 30%, var(--p50-raised) 32%);
 }
 
 .glyph[data-control="jump"],
 .glyph[data-control="action"] {
-   border-color: var(--game-accent, var(--accent));
+   border-color: var(--p50-coral);
 }
 
 .glyph[data-control="tap"],
 .glyph[data-control="swipe"],
 .glyph[data-control="drag"] {
    border-style: dashed;
-   background: rgba(255, 255, 255, 0.2);
+   background: var(--p50-surface);
 }
 
 .glyph[data-control="pause"] {
    border-radius: 6px;
    background:
-      linear-gradient(90deg, transparent 30%, rgba(255, 255, 255, 0.7) 30% 43%, transparent 43% 57%, rgba(255, 255, 255, 0.7) 57% 70%, transparent 70%) center / 100% 50% no-repeat,
-      rgba(11, 16, 32, 0.6);
+      linear-gradient(90deg, transparent 30%, var(--p50-text-2) 30% 43%, transparent 43% 57%, var(--p50-text-2) 57% 70%, transparent 70%) center / 100% 50% no-repeat,
+      var(--p50-raised);
 }
 
 /* ---------- the start card's "How to play" button ---------- */
 
-.howButton {
+.howButton,
+.howButton:hover {
    display: flex;
    align-items: center;
    gap: 12px;
@@ -767,10 +761,10 @@
    min-height: 52px;
    margin-top: 10px;
    padding: 8px 14px 8px 8px;
-   border: 1px solid var(--stroke);
+   border: 1px solid var(--p50-line);
    border-radius: 14px;
-   background: rgba(255, 255, 255, 0.035);
-   color: var(--text);
+   background: transparent;
+   color: var(--p50-text);
    font: inherit;
    text-align: left;
    cursor: pointer;
@@ -778,8 +772,7 @@
 }
 
 .howButton:hover {
-   border-color: color-mix(in srgb, var(--game-accent, var(--accent)) 50%, transparent);
-   background: rgba(255, 255, 255, 0.06);
+   background: var(--p50-raised);
 }
 
 .howButton:active {
@@ -794,7 +787,7 @@
    height: 36px;
    border-radius: 10px;
    background: var(--accent-soft);
-   color: var(--game-accent, var(--accent));
+   color: var(--p50-coral-text);
 }
 
 .howIcon svg {
@@ -810,12 +803,12 @@
 
 .howTitle {
    font-size: 15px;
-   font-weight: 800;
+   font-weight: 600;
 }
 
 .howSub {
    overflow: hidden;
-   color: var(--muted);
+   color: var(--p50-text-2);
    font-size: 12px;
    text-overflow: ellipsis;
    white-space: nowrap;
@@ -825,7 +818,7 @@
    flex: none;
    width: 18px;
    height: 18px;
-   color: var(--muted);
+   color: var(--p50-text-2);
    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -843,7 +836,7 @@
    z-index: 30;
    display: flex;
    padding: var(--overlay-pad-top, 16px) var(--overlay-pad-right, 16px) var(--overlay-pad-bottom, 16px) var(--overlay-pad-left, 16px);
-   background: rgba(6, 10, 24, 0.72);
+   background: var(--p50-scrim);
    -webkit-backdrop-filter: blur(6px);
    backdrop-filter: blur(6px);
    animation: fadeIn 0.25s ease;
@@ -856,11 +849,14 @@
 }
 
 .sheet {
-   --deck-ink: #e8edf8;
-   --cap-top: #263152;
-   --cap-bottom: #1b2440;
-   --cap-edge: #0a1022;
-   --accent-soft: color-mix(in srgb, var(--game-accent, var(--accent)) 22%, transparent);
+   --game-accent: var(--p50-coral);
+   --accent-soft: var(--p50-coral-wash);
+   --deck-ink: var(--p50-text);
+   --cap-top: var(--p50-surface);
+   --cap-bottom: var(--p50-surface);
+   --cap-edge: var(--p50-track);
+   /* on the dark screen of the phone illustration */
+   --screen-ink: #f1f3f8;
 
    display: flex;
    flex-direction: column;
@@ -870,10 +866,11 @@
    margin: auto;
    overflow-y: auto;
    overscroll-behavior: contain;
-   border: 1px solid var(--stroke);
-   border-radius: 22px;
-   background: rgb(13, 19, 38);
-   box-shadow: 0 30px 70px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+   border: 1px solid var(--p50-line);
+   border-radius: 28px;
+   background: var(--p50-surface);
+   box-shadow: var(--p50-float), var(--p50-edge);
+   color: var(--p50-text);
    touch-action: pan-y;
    animation: sheetIn 0.45s cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -897,7 +894,7 @@
    height: 4px;
    overflow: hidden;
    border-radius: 999px;
-   background: rgba(255, 255, 255, 0.08);
+   background: var(--p50-track);
 }
 
 .progressFill {
@@ -905,26 +902,27 @@
    width: 100%;
    height: 100%;
    border-radius: inherit;
-   background: var(--game-accent, var(--accent));
+   background: var(--p50-coral);
    transform-origin: left;
    transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .counter {
-   color: var(--muted);
+   color: var(--p50-text-2);
    font-size: 12px;
    font-weight: 700;
    font-variant-numeric: tabular-nums;
 }
 
-.skip {
+.skip,
+.skip:hover {
    min-width: 44px;
    min-height: 44px;
    padding: 0 12px;
    border: 0;
    border-radius: 10px;
    background: transparent;
-   color: var(--muted);
+   color: var(--p50-text-2);
    font: inherit;
    font-size: 14px;
    font-weight: 700;
@@ -932,7 +930,7 @@
 }
 
 .skip:hover {
-   color: var(--text);
+   color: var(--p50-text);
 }
 
 .sheetBody {
@@ -944,7 +942,7 @@
 .sheetGame {
    margin: 0;
    overflow: hidden;
-   color: var(--muted);
+   color: var(--p50-text-2);
    font-size: 13px;
    font-weight: 700;
    text-overflow: ellipsis;
@@ -985,26 +983,27 @@
 
 .stepNumber {
    grid-row: span 2;
-   color: var(--game-accent, var(--accent));
-   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+   color: var(--p50-coral-text);
+   font-family: var(--p50-font-mono);
    font-size: 28px;
-   font-weight: 800;
+   font-weight: 600;
    line-height: 1;
    letter-spacing: -0.04em;
 }
 
 .stepTitle {
    margin: 0;
-   font-size: 20px;
-   font-weight: 800;
+   font-family: var(--p50-font-display);
+   font-size: 22px;
+   font-weight: 600;
    line-height: 1.2;
-   letter-spacing: -0.01em;
+   letter-spacing: -0.02em;
 }
 
 .stepText {
    max-width: 60ch;
    margin: 0;
-   color: var(--muted);
+   color: var(--p50-text-2);
    font-size: 15px;
    line-height: 1.55;
 }
@@ -1017,7 +1016,7 @@
    align-items: center;
    gap: 12px;
    padding: 12px 20px 18px;
-   background: rgb(13, 19, 38);
+   background: var(--p50-surface);
 }
 
 .dots {
@@ -1025,7 +1024,8 @@
    gap: 2px;
 }
 
-.dot {
+.dot,
+.dot:hover {
    display: grid;
    place-items: center;
    width: 28px;
@@ -1041,12 +1041,12 @@
    width: 8px;
    height: 8px;
    border-radius: 999px;
-   background: rgba(255, 255, 255, 0.22);
+   background: var(--p50-track);
    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.3s ease;
 }
 
 .dot[aria-current="step"]::before {
-   background: var(--game-accent, var(--accent));
+   background: var(--p50-coral);
    transform: scaleX(2.2);
 }
 
@@ -1057,10 +1057,10 @@
    gap: 6px;
    min-height: 48px;
    padding: 0 18px;
-   border-radius: 12px;
+   border-radius: 14px;
    font: inherit;
    font-size: 15px;
-   font-weight: 800;
+   font-weight: 600;
    cursor: pointer;
    transition: transform 0.12s ease, background-color 0.15s ease, opacity 0.2s ease;
 }
@@ -1074,11 +1074,16 @@
    transform: scale(0.97);
 }
 
-.back {
+.back,
+.back:hover {
    justify-self: start;
-   border: 1px solid var(--stroke);
-   background: rgba(255, 255, 255, 0.04);
-   color: var(--text);
+   border: 1px solid var(--p50-line);
+   background: transparent;
+   color: var(--p50-text);
+}
+
+.back:hover {
+   background: var(--p50-raised);
 }
 
 .back:disabled {
@@ -1086,21 +1091,22 @@
    pointer-events: none;
 }
 
-.next {
+.next,
+.next:hover {
    justify-self: end;
    border: 0;
-   background: var(--game-accent, var(--accent));
-   color: #0b1020;
+   background: var(--p50-coral);
+   color: var(--p50-on-coral);
 }
 
 .next:hover {
-   filter: brightness(1.08);
+   background: var(--p50-coral-hover);
 }
 
 .keyHint {
    margin: 0;
    padding: 0 20px 14px;
-   color: var(--muted);
+   color: var(--p50-text-2);
    font-size: 12px;
    text-align: center;
    opacity: 0.8;
@@ -1108,7 +1114,7 @@
 
 .keyHint kbd {
    padding: 1px 5px;
-   border: 1px solid var(--stroke);
+   border: 1px solid var(--p50-line);
    border-bottom-width: 2px;
    border-radius: 5px;
    font: inherit;
@@ -1372,7 +1378,6 @@
    .group[data-lit] .cap {
       transform: translateY(2px);
       box-shadow:
-         inset 0 1px 0 rgba(255, 255, 255, 0.2),
          0 1px 0 var(--cap-edge),
          0 0 0 4px var(--accent-soft);
    }
