@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import m from "./mobile.module.css";
+import ir from "./SequenceRecall.module.css";
 import {
    CheckCircleIcon,
    XCircleIcon,
@@ -10,7 +11,6 @@ import {
    ArrowPathIcon,
    TrophyIcon,
    PuzzlePieceIcon,
-   SparklesIcon,
 } from "@heroicons/react/24/outline";
 import {
    registerShare,
@@ -56,6 +56,8 @@ function PathMemory({
    const [hintRevealed, setHintRevealed] = useState<number[]>([]);
    const [currentShareId, setCurrentShareId] = useState<string | null>(null);
    const shareCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
+   // the flash timers of the current round, cleared on a new round and on unmount
+   const roundTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
    // Max hints: 10 for Path Memory, unlimited if shared
    const maxHints = hasShared ? 0 : 10; // 0 = unlimited
@@ -421,21 +423,30 @@ function PathMemory({
       setSelectedCellIndex(null);
       setFlashingCellIndex(null);
 
-      // Flash path sequence using state
+      // Flash path sequence using state (same delays as before; every timer is kept so it can be cleared)
+      roundTimersRef.current.forEach(clearTimeout);
+      const timers: ReturnType<typeof setTimeout>[] = [];
+      roundTimersRef.current = timers;
       newPath.forEach((idx, i) => {
-         setTimeout(() => {
-            setFlashingCellIndex(idx);
+         timers.push(
             setTimeout(() => {
-               setFlashingCellIndex(null);
-            }, 320);
-         }, 600 + i * 480);
+               setFlashingCellIndex(idx);
+               timers.push(
+                  setTimeout(() => {
+                     setFlashingCellIndex(null);
+                  }, 320)
+               );
+            }, 600 + i * 480)
+         );
       });
 
       // Switch to input phase after path is shown
-      setTimeout(() => {
-         setGameState("input");
-         setFlashingCellIndex(null);
-      }, 600 + newPath.length * 480 + 200);
+      timers.push(
+         setTimeout(() => {
+            setGameState("input");
+            setFlashingCellIndex(null);
+         }, 600 + newPath.length * 480 + 200)
+      );
    }, [currentRound, getPathLength, generateRandomPath]);
 
    // Start first round
@@ -443,6 +454,10 @@ function PathMemory({
       if (currentRound < maxRounds) {
          startRound();
       }
+      return () => {
+         roundTimersRef.current.forEach(clearTimeout);
+         roundTimersRef.current = [];
+      };
    }, [currentRound, maxRounds, startRound]);
 
    // Update score
@@ -606,172 +621,47 @@ function PathMemory({
 
    const completedRounds = currentRound;
    const pathLength = path.length;
+   const hintDisabled =
+      (maxHints > 0 && hintsUsed >= maxHints) ||
+      gameState !== "input" ||
+      hintRevealed.length >= path.length;
 
    return (
-      <div
-         className={m.tight}
-         style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: isMobile ? "16px" : "20px",
-            padding: isMobile ? "16px" : "24px",
-            maxWidth: "100%",
-            margin: "0 auto",
-         }}
-      >
+      <div className={`${m.root} ${m.tight}`} style={{ maxWidth: "700px" }}>
          {/* Header */}
-         <div
-            style={{
-               display: "flex",
-               flexDirection: "column",
-               gap: isMobile ? "12px" : "16px",
-               paddingBottom: isMobile ? "12px" : "16px",
-               borderBottom: "1px solid var(--stroke)",
-            }}
-         >
-            <div
-               style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: isMobile ? "8px" : "12px",
-                  paddingBottom: isMobile ? "12px" : "16px",
-                  marginBottom: isMobile ? "12px" : "16px",
-                  borderBottom: "1px solid var(--stroke)",
-               }}
-            >
-               <PuzzlePieceIcon
-                  style={{
-                     width: isMobile ? 24 : 28,
-                     height: isMobile ? 24 : 28,
-                     color: "var(--accent)",
-                  }}
-               />
-               <h2
-                  style={{
-                     fontSize: isMobile ? "1.25rem" : "1.5rem",
-                     fontWeight: 700,
-                     margin: 0,
-                     background:
-                        "linear-gradient(135deg, var(--accent) 0%, var(--ok) 100%)",
-                     WebkitBackgroundClip: "text",
-                     WebkitTextFillColor: "transparent",
-                     backgroundClip: "text",
-                     textShadow: "0 2px 8px rgba(125, 211, 252, 0.3)",
-                  }}
-               >
-                  Path Memory
-               </h2>
-               <SparklesIcon
-                  style={{
-                     width: isMobile ? 24 : 28,
-                     height: isMobile ? 24 : 28,
-                     color: "var(--ok)",
-                  }}
-               />
+         <div className={m.panel}>
+            <div className={`${ir.title} ${m.landHide}`}>
+               <PuzzlePieceIcon className={ir.titleIcon} />
+               <h2 className={ir.titleText}>Path Memory</h2>
             </div>
-            <div
-               style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  flexWrap: "wrap",
-                  gap: isMobile ? "8px" : "12px",
-               }}
-            >
-               <div
-                  style={{
-                     display: "flex",
-                     alignItems: "center",
-                     gap: isMobile ? "6px" : "8px",
-                     fontSize: isMobile ? "0.875rem" : "1rem",
-                     color: "var(--text)",
-                  }}
-               >
-                  <ArrowPathIcon
-                     style={{
-                        width: isMobile ? 16 : 18,
-                        height: isMobile ? 16 : 18,
-                        color: "var(--accent)",
-                     }}
-                  />
-                  <span>
-                     Round {currentRound + 1} / {maxRounds}
-                  </span>
-               </div>
-               <div
-                  style={{
-                     display: "flex",
-                     alignItems: "center",
-                     gap: isMobile ? "6px" : "8px",
-                     fontSize: isMobile ? "0.875rem" : "1rem",
-                     color: "var(--text)",
-                  }}
-               >
-                  <TrophyIcon
-                     style={{
-                        width: isMobile ? 16 : 18,
-                        height: isMobile ? 16 : 18,
-                        color: "var(--ok)",
-                     }}
-                  />
-                  <span>Score: {currentScore} / 100</span>
-               </div>
-               <div
-                  style={{
-                     display: "flex",
-                     alignItems: "center",
-                     gap: isMobile ? "6px" : "8px",
-                     fontSize: isMobile ? "0.875rem" : "1rem",
-                     color: "var(--text)",
-                  }}
-               >
-                  <span>Path length: {pathLength}</span>
-               </div>
+            <div className={m.stats}>
+               <span className={m.stat}>
+                  <ArrowPathIcon className={m.statIcon} />
+                  Round <b>{Math.min(currentRound + 1, maxRounds)} / {maxRounds}</b>
+               </span>
+               <span className={m.stat}>
+                  <TrophyIcon className={m.statIcon} />
+                  Score <b>{currentScore} / 100</b>
+               </span>
+               <span className={m.stat}>
+                  Path length <b>{pathLength}</b>
+               </span>
             </div>
             {/* Progress Bar */}
-            <div
-               style={{
-                  width: "100%",
-                  height: isMobile ? "6px" : "8px",
-                  background: "rgba(255, 255, 255, 0.1)",
-                  borderRadius: "999px",
-                  overflow: "hidden",
-               }}
-            >
+            <div className={m.progress}>
                <div
+                  className={m.progressFill}
                   style={{
-                     width: `${((currentRound + 1) / maxRounds) * 100}%`,
-                     height: "100%",
-                     background:
-                        "linear-gradient(90deg, var(--accent) 0%, var(--ok) 100%)",
-                     transition: "width 0.3s ease",
+                     transform: `scaleX(${Math.min((currentRound + 1) / maxRounds, 1)})`,
                   }}
                />
             </div>
          </div>
 
          {/* Game State Display */}
-         <div
-            key={gameState}
-            className={gameState === "correct" ? m.feedbackOk : gameState === "wrong" ? m.feedbackBad : undefined}
-            style={{
-               padding: isMobile ? "12px 16px" : "16px 24px",
-
-               background: "rgba(255, 255, 255, 0.05)",
-               display: "flex",
-               justifyContent: "space-between",
-               alignItems: "center",
-               gap: "12px",
-            }}
-         >
+         <div key={gameState} className={`${m.panel} ${ir.statusRow}`}>
             <div>
-               <b
-                  style={{
-                     fontSize: isMobile ? "0.95rem" : "1.1rem",
-                     color: "var(--text)",
-                  }}
-               >
+               <div className={ir.statusLine}>
                   {gameState === "memorizing"
                      ? "Watch the path…"
                      : gameState === "input"
@@ -779,40 +669,21 @@ function PathMemory({
                      : gameState === "correct"
                      ? "Correct! Great job!"
                      : "Wrong! Try again."}
-               </b>
+               </div>
                {gameState === "memorizing" && (
-                  <small
-                     style={{
-                        display: "block",
-                        color: "var(--muted)",
-                        marginTop: "4px",
-                        fontSize: isMobile ? "0.75rem" : "0.875rem",
-                     }}
-                  >
+                  <div className={ir.statusSub}>
                      After it disappears, click the cells in the same order
-                  </small>
+                  </div>
                )}
             </div>
             <span
-               style={{
-                  padding: "6px 12px",
-                  borderRadius: "999px",
-                  fontSize: isMobile ? "0.75rem" : "0.875rem",
-                  fontWeight: 700,
-                  border: "1px solid rgba(255, 255, 255, 0.12)",
-                  background:
-                     gameState === "correct"
-                        ? "rgba(54, 211, 153, 0.15)"
-                        : gameState === "wrong"
-                        ? "rgba(251, 113, 133, 0.15)"
-                        : "rgba(15, 27, 51, 0.55)",
-                  color:
-                     gameState === "correct"
-                        ? "var(--ok)"
-                        : gameState === "wrong"
-                        ? "var(--warn)"
-                        : "var(--text)",
-               }}
+               className={`${ir.chip} ${
+                  gameState === "correct"
+                     ? ir.chipOk
+                     : gameState === "wrong"
+                     ? ir.chipBad
+                     : ""
+               }`}
             >
                {gameState === "memorizing"
                   ? "Memorizing"
@@ -826,183 +697,75 @@ function PathMemory({
 
          {/* Game Board */}
          <div
+            key={currentRound}
+            className={`${m.board} ${m.stagger}`}
             style={{
-               display: "flex",
-               justifyContent: "center",
-               alignItems: "center",
-               padding: isMobile ? "12px" : "16px",
+               gridTemplateColumns: `repeat(${gridSize}, minmax(0, 1fr))`,
+               // square board: fits the screen height, and a cell never grows past 72 px
+               maxWidth: `min(100%, calc(100dvh - 170px), ${gridSize * 72}px)`,
             }}
          >
-            <div
-               style={{
-                  borderRadius: "18px",
-                  border: "1px solid rgba(255, 255, 255, 0.1)",
-                  background:
-                     "radial-gradient(320px 220px at 30% 30%, rgba(110, 168, 255, 0.1), transparent 55%), linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02))",
-                  boxShadow: "0 10px 18px rgba(0, 0, 0, 0.22)",
-                  padding: isMobile ? "12px" : "16px",
-                  width: "max-content",
-                  margin: "0 auto",
-               }}
-            >
-               <div
-                  style={{
-                     display: "grid",
-                     gridTemplateColumns: `repeat(${gridSize}, ${
-                        isMobile ? "48px" : "52px"
-                     })`,
-                     gap: isMobile ? "9px" : "10px",
-                  }}
-               >
-                  {Array.from({ length: gridSize * gridSize }).map((_, idx) => {
-                     const isInPath = path.includes(idx);
-                     const isSelected = playerPath.includes(idx);
-                     const isHinted = hintRevealed.some(
-                        (hintIdx) => path[hintIdx] === idx
-                     );
-                     const isFlashing = flashingCellIndex === idx;
-                     const orderInPath = path.indexOf(idx);
-                     const orderInInput = playerPath.indexOf(idx);
-                     const isCorrect =
-                        isSelected && orderInInput === orderInPath;
-                     const isWrong = isSelected && orderInInput !== orderInPath;
+            {Array.from({ length: gridSize * gridSize }).map((_, idx) => {
+               const isSelected = playerPath.includes(idx);
+               const isHinted = hintRevealed.some(
+                  (hintIdx) => path[hintIdx] === idx
+               );
+               const isFlashing = flashingCellIndex === idx;
+               const orderInPath = path.indexOf(idx);
+               const orderInInput = playerPath.indexOf(idx);
+               const isCorrect = isSelected && orderInInput === orderInPath;
+               const isWrong = isSelected && orderInInput !== orderInPath;
+               const stateClass = isFlashing
+                  ? ir.flashCue
+                  : isCorrect
+                  ? `${m.cardMatched} ${m.matched}`
+                  : isWrong
+                  ? `${m.cardWrong} ${m.wrong}`
+                  : isHinted
+                  ? m.cardHint
+                  : selectedCellIndex === idx
+                  ? m.cardSelected
+                  : "";
 
-                     return (
-                        <button
-                           key={idx}
-                           className={
-                              `${isFlashing ? "path-cell flash" : "path-cell"} ${m.card}`
-                           }
-                           data-idx={idx}
-                           onClick={() => handleCellClick(idx)}
-                           disabled={gameState !== "input" || isSelected}
-                           style={{
-                              width: isMobile ? "48px" : "52px",
-                              height: isMobile ? "48px" : "52px",
-                              borderRadius: "16px",
-                              border: `${
-                                 isFlashing
-                                    ? "2px solid rgba(110, 168, 255, 0.9)"
-                                    : isCorrect
-                                    ? "2px solid rgba(54, 211, 153, 0.55)"
-                                    : isWrong
-                                    ? "2px solid rgba(251, 113, 133, 0.55)"
-                                    : isSelected
-                                    ? "2px solid rgba(110, 168, 255, 0.35)"
-                                    : isHinted
-                                    ? "2px solid rgba(251, 191, 36, 0.6)"
-                                    : selectedCellIndex === idx
-                                    ? "2px solid rgba(251, 191, 36, 0.8)"
-                                    : "1px solid rgba(255, 255, 255, 0.1)"
-                              }`,
-                              outline:
-                                 selectedCellIndex === idx &&
-                                 !isSelected &&
-                                 !isFlashing
-                                    ? "2px solid rgba(251, 191, 36, 0.5)"
-                                    : "none",
-                              outlineOffset:
-                                 selectedCellIndex === idx ? "2px" : "0",
-                              background: isFlashing
-                                 ? "rgba(110, 168, 255, 0.25)"
-                                 : isCorrect
-                                 ? "rgba(54, 211, 153, 0.1)"
-                                 : isWrong
-                                 ? "rgba(251, 113, 133, 0.1)"
-                                 : isSelected
-                                 ? "rgba(110, 168, 255, 0.1)"
-                                 : isHinted
-                                 ? "rgba(251, 191, 36, 0.15)"
-                                 : selectedCellIndex === idx && !isSelected
-                                 ? "rgba(251, 191, 36, 0.1)"
-                                 : "rgba(15, 27, 51, 0.45)",
-                              boxShadow: isFlashing
-                                 ? "0 0 30px rgba(110, 168, 255, 0.8), 0 0 50px rgba(110, 168, 255, 0.5), inset 0 0 20px rgba(110, 168, 255, 0.3)"
-                                 : isCorrect || isWrong
-                                 ? `0 10px 24px ${
-                                      isCorrect
-                                         ? "rgba(54, 211, 153, 0.18)"
-                                         : "rgba(251, 113, 133, 0.18)"
-                                   }`
-                                 : "0 10px 18px rgba(0, 0, 0, 0.16)",
-                              cursor:
-                                 gameState === "input" && !isSelected
-                                    ? "pointer"
-                                    : "not-allowed",
-                              userSelect: "none",
-                              position: "relative",
-                              overflow: "hidden",
-                              transition: isFlashing
-                                 ? "all 0.32s ease-out"
-                                 : "all 0.12s",
-                              transform: isFlashing
-                                 ? "translateY(-2px) scale(1.05)"
-                                 : "translateY(0)",
-                              zIndex: isFlashing ? 10 : 1,
-                           }}
-                        >
-                           {(isSelected || isHinted) && (
-                              <div
-                                 style={{
-                                    position: "absolute",
-                                    inset: "auto 10px 10px auto",
-                                    width: "26px",
-                                    height: "26px",
-                                    borderRadius: "999px",
-                                    background: "rgba(15, 27, 51, 0.62)",
-                                    border:
-                                       "1px solid rgba(255, 255, 255, 0.12)",
-                                    display: "grid",
-                                    placeItems: "center",
-                                    fontWeight: 900,
-                                    fontSize: "12px",
-                                    color: "rgba(232, 238, 252, 0.95)",
-                                    zIndex: 2,
-                                 }}
-                              >
-                                 {isSelected
-                                    ? orderInInput + 1
-                                    : orderInPath + 1}
-                              </div>
-                           )}
-                        </button>
-                     );
-                  })}
-               </div>
-            </div>
+               return (
+                  <button
+                     key={idx}
+                     className={`path-cell ${m.card} ${stateClass}`}
+                     data-idx={idx}
+                     onClick={() => handleCellClick(idx)}
+                     disabled={gameState !== "input" || isSelected}
+                     aria-label={`Cell ${idx + 1}`}
+                     style={{ ["--i" as string]: idx }}
+                  >
+                     <span className={`${m.face} ${ir.step}`}>
+                        {isSelected
+                           ? orderInInput + 1
+                           : isHinted
+                           ? orderInPath + 1
+                           : ""}
+                     </span>
+                  </button>
+               );
+            })}
          </div>
 
-         {/* Feedback Message (from Match the Shapes) */}
+         {/* Feedback Message */}
          {feedback !== null && (
             <div
-               className={feedback === "correct" ? m.feedbackOk : m.feedbackBad}
-               style={{
-                  padding: "16px 24px",
-
-                  fontSize: "1.1rem",
-                  fontWeight: 600,
-                  animation: "slideIn 0.3s ease-out",
-                  background:
-                     feedback === "correct"
-                        ? "rgba(134, 239, 172, 0.2)"
-                        : "rgba(252, 165, 165, 0.2)",
-                  border: `1px solid ${
-                     feedback === "correct" ? "var(--ok)" : "var(--warn)"
-                  }`,
-                  color: feedback === "correct" ? "var(--ok)" : "var(--warn)",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "10px",
-               }}
+               role="status"
+               className={`${m.feedback} ${
+                  feedback === "correct" ? m.feedbackOk : m.feedbackBad
+               }`}
+               style={{ maxWidth: "none" }}
             >
                {feedback === "correct" ? (
                   <>
-                     <CheckCircleIcon style={{ width: 24, height: 24 }} />
+                     <CheckCircleIcon className={m.feedbackIcon} />
                      <span>Correct! Great job!</span>
                   </>
                ) : (
                   <>
-                     <XCircleIcon style={{ width: 24, height: 24 }} />
+                     <XCircleIcon className={m.feedbackIcon} />
                      <span>Try again! You can do it!</span>
                   </>
                )}
@@ -1010,172 +773,30 @@ function PathMemory({
          )}
 
          {/* Action Buttons: Hint, Share */}
-         <div
-            style={{
-               display: "flex",
-               gap: isMobile ? "12px" : "16px",
-               flexWrap: "wrap",
-               justifyContent: "center",
-            }}
-         >
+         <div className={ir.actions}>
             {/* Hint Button */}
             <button
                onClick={handleHint}
-               className={m.btn}
-               disabled={
-                  (maxHints > 0 && hintsUsed >= maxHints) ||
-                  gameState !== "input" ||
-                  hintRevealed.length >= path.length
-               }
-               style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: isMobile ? "6px" : "8px",
-                  padding: isMobile ? "10px 16px" : "10px 20px",
-                  width: isMobile ? "100%" : "auto",
-                  background:
-                     maxHints > 0 && hintsUsed >= maxHints
-                        ? "rgba(100, 100, 100, 0.2)"
-                        : "linear-gradient(135deg, rgba(251, 191, 36, 0.2), rgba(251, 191, 36, 0.1))",
-                  border: `1px solid ${
-                     maxHints > 0 && hintsUsed >= maxHints
-                        ? "rgba(100, 100, 100, 0.3)"
-                        : "rgba(251, 191, 36, 0.6)"
-                  }`,
-
-                  color:
-                     maxHints > 0 && hintsUsed >= maxHints
-                        ? "rgba(255, 255, 255, 0.4)"
-                        : "var(--text)",
-                  fontSize: isMobile ? "0.875rem" : "0.95rem",
-                  fontWeight: 600,
-                  cursor:
-                     (maxHints > 0 && hintsUsed >= maxHints) ||
-                     gameState !== "input" ||
-                     hintRevealed.length >= path.length
-                        ? "not-allowed"
-                        : "pointer",
-                  opacity:
-                     (maxHints > 0 && hintsUsed >= maxHints) ||
-                     gameState !== "input" ||
-                     hintRevealed.length >= path.length
-                        ? 0.5
-                        : 1,
-                  transition: "all 0.3s ease",
-               }}
-               onMouseEnter={(e) => {
-                  if (
-                     !(maxHints > 0 && hintsUsed >= maxHints) &&
-                     gameState === "input" &&
-                     hintRevealed.length < path.length
-                  ) {
-                     e.currentTarget.style.background =
-                        "linear-gradient(135deg, rgba(251, 191, 36, 0.3), rgba(251, 191, 36, 0.2))";
-                     e.currentTarget.style.borderColor =
-                        "rgba(251, 191, 36, 0.8)";
-                     e.currentTarget.style.transform = "translateY(-2px)";
-                     e.currentTarget.style.boxShadow =
-                        "0 4px 12px rgba(251, 191, 36, 0.3)";
-                  }
-               }}
-               onMouseLeave={(e) => {
-                  if (
-                     !(maxHints > 0 && hintsUsed >= maxHints) &&
-                     gameState === "input" &&
-                     hintRevealed.length < path.length
-                  ) {
-                     e.currentTarget.style.background =
-                        "linear-gradient(135deg, rgba(251, 191, 36, 0.2), rgba(251, 191, 36, 0.1))";
-                     e.currentTarget.style.borderColor =
-                        "rgba(251, 191, 36, 0.6)";
-                     e.currentTarget.style.transform = "translateY(0)";
-                     e.currentTarget.style.boxShadow = "none";
-                  }
-               }}
+               className={`${m.btn} ${m.pill}`}
+               disabled={hintDisabled}
             >
-               <LightBulbIcon style={{ width: 18, height: 18 }} />
+               <LightBulbIcon className={m.pillIcon} />
                <span>
                   Hint ({hintsUsed}/{maxHints === 0 ? "∞" : maxHints})
                </span>
             </button>
 
             {/* Share Button */}
-            <button
-               onClick={handleShare}
-               className={m.btn}
-               style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: isMobile ? "6px" : "8px",
-                  padding: isMobile ? "10px 16px" : "10px 20px",
-                  width: isMobile ? "100%" : "auto",
-                  background:
-                     "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
-                  border: "1px solid rgba(59, 130, 246, 0.6)",
-
-                  color: "var(--text)",
-                  fontSize: isMobile ? "0.85rem" : "0.95rem",
-                  fontWeight: 600,
-                  cursor: "pointer",
-                  transition: "all 0.3s ease",
-               }}
-               onMouseEnter={(e) => {
-                  e.currentTarget.style.background =
-                     "linear-gradient(135deg, rgba(59, 130, 246, 0.3), rgba(59, 130, 246, 0.2))";
-                  e.currentTarget.style.borderColor = "rgba(59, 130, 246, 0.8)";
-                  e.currentTarget.style.transform = "translateY(-2px)";
-                  e.currentTarget.style.boxShadow =
-                     "0 4px 12px rgba(59, 130, 246, 0.3)";
-               }}
-               onMouseLeave={(e) => {
-                  e.currentTarget.style.background =
-                     "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))";
-                  e.currentTarget.style.borderColor = "rgba(59, 130, 246, 0.6)";
-                  e.currentTarget.style.transform = "translateY(0)";
-                  e.currentTarget.style.boxShadow = "none";
-               }}
-            >
-               <ShareIcon
-                  style={{
-                     width: isMobile ? 18 : 20,
-                     height: isMobile ? 18 : 20,
-                     color: "rgba(59, 130, 246, 0.9)",
-                  }}
-               />
+            <button onClick={handleShare} className={`${m.btn} ${m.pill}`}>
+               <ShareIcon className={m.pillIcon} />
                <span>{isMobile ? "Share" : "Share for Unlimited Hints"}</span>
             </button>
          </div>
 
          {/* Share Success Messages */}
          {shareSuccess && (
-            <div
-               style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: isMobile ? "6px" : "8px",
-                  padding: isMobile ? "10px 14px" : "8px 16px",
-                  background:
-                     "linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(34, 197, 94, 0.1))",
-                  border: "2px solid rgba(34, 197, 94, 0.6)",
-                  borderRadius: isMobile ? "10px" : "8px",
-                  color: "var(--text)",
-                  fontSize: isMobile ? "0.85rem" : "0.9rem",
-                  fontWeight: 500,
-                  width: "100%",
-                  justifyContent: "center",
-                  textAlign: "center",
-                  flexWrap: "wrap",
-                  animation: "slideIn 0.3s ease",
-               }}
-            >
-               <CheckCircleIcon
-                  style={{
-                     width: isMobile ? 16 : 18,
-                     height: isMobile ? 16 : 18,
-                     color: "rgba(34, 197, 94, 0.9)",
-                     flexShrink: 0,
-                  }}
-               />
+            <div className={`${m.note} ${m.noteOk}`} style={{ width: "100%" }}>
+               <CheckCircleIcon className={m.noteIcon} />
                <span>
                   {isMobile
                      ? "Link copied! Unlimited hints unlock when someone opens it!"
@@ -1185,38 +806,12 @@ function PathMemory({
          )}
 
          {unlimitedActivated && (
-            <div
-               style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: isMobile ? "6px" : "8px",
-                  padding: isMobile ? "10px 14px" : "8px 16px",
-                  background:
-                     "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
-                  border: "2px solid rgba(59, 130, 246, 0.6)",
-                  borderRadius: isMobile ? "10px" : "8px",
-                  color: "var(--text)",
-                  fontSize: isMobile ? "0.85rem" : "0.9rem",
-                  fontWeight: 500,
-                  width: "100%",
-                  justifyContent: "center",
-                  textAlign: "center",
-                  flexWrap: "wrap",
-                  animation: "slideIn 0.3s ease",
-               }}
-            >
-               <CheckCircleIcon
-                  style={{
-                     width: isMobile ? 16 : 18,
-                     height: isMobile ? 16 : 18,
-                     color: "rgba(59, 130, 246, 0.9)",
-                     flexShrink: 0,
-                  }}
-               />
+            <div className={m.note} style={{ width: "100%" }}>
+               <CheckCircleIcon className={m.noteIcon} />
                <span>
                   {isMobile
-                     ? "🎉 Unlimited hints active for 15 minutes!"
-                     : "🎉 Someone opened your link! Unlimited hints are now active for 15 minutes!"}
+                     ? "Unlimited hints active for 15 minutes!"
+                     : "Someone opened your link! Unlimited hints are now active for 15 minutes!"}
                </span>
             </div>
          )}
