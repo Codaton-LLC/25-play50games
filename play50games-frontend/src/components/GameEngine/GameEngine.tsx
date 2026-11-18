@@ -591,7 +591,7 @@ export default function GameEngine({
             32: "quick-compare",
             33: "falling-objects",
             34: "tap-counter",
-            35: "reflex-arrows",
+            35: "reflex-arrow",
          };
          if (gameOrderToType[game.game_order]) {
             gameConfig.gameType = gameOrderToType[game.game_order];
