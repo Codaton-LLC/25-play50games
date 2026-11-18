@@ -248,22 +248,24 @@
    }
 }
 
-/* ---------- play view ---------- */
+/* ---------- play view ----------
+   Only the engine's own score bar (a direct child of .game-engine): six logic games draw a
+   .game-header of their own inside the board, and many boards use .stat. Those are not touched. */
 
-.page :global(.game-header) {
+.page :global(.game-engine > .game-header) {
    border: 1px solid var(--p50-line);
    border-radius: 18px 18px 0 0;
    background: var(--p50-surface);
    color: var(--p50-text);
 }
 
-.page :global(.game-title) {
+.page :global(.game-engine > .game-header .game-title) {
    color: var(--p50-text);
    font: 600 1.125rem/1.2 var(--p50-font-display);
    letter-spacing: -0.01em;
 }
 
-.page :global(.game-stats .stat) {
+.page :global(.game-engine > .game-header .game-stats .stat) {
    padding: 8px 12px;
    border-radius: 12px;
    background: var(--p50-raised);
@@ -273,7 +275,7 @@
    text-transform: uppercase;
 }
 
-.page :global(.game-stats .stat strong) {
+.page :global(.game-engine > .game-header .game-stats .stat strong) {
    color: var(--p50-text);
    font: 600 0.9375rem/1 var(--p50-font-mono);
    font-variant-numeric: tabular-nums;
@@ -296,20 +298,24 @@
    background: var(--p50-raised);
 }
 
-/* phones: the three figures stay one row beside the exit X (GameEngine.module.css) */
+/* phones: title | Score Time Target | X stay one row (GameEngine.module.css sets the grid, the
+   paddings and the 11px figures; the sizes here keep to them) */
 @media (max-width: 599px) {
-   .page :global(.game-stats .stat) {
-      font-size: 0.75rem;
+   .page :global(.game-engine > .game-header .game-title) {
+      line-height: 1.15;
+   }
+   .page :global(.game-engine > .game-header .game-stats .stat) {
+      font-size: 11px;
       letter-spacing: 0;
       text-transform: none;
    }
-   .page :global(.game-stats .stat strong) {
-      font-size: 0.8125rem;
+   .page :global(.game-engine > .game-header .game-stats .stat strong) {
+      font-size: 12px;
    }
 }
 
 /* the board: its own surface and the font it was laid out with; nothing inside is restyled */
-.page :global(.game-content) {
+.page :global(.game-engine > .game-content) {
    border: 1px solid var(--p50-line);
    border-top: 0;
    border-radius: 0 0 18px 18px;
