@@ -54,14 +54,13 @@
    max-width: 800px;
    box-sizing: border-box;
    background: var(--card);
-   border-radius: 14px;
+   border-radius: 16px;
    padding: 10px 12px;
    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
 }
 
 @media (min-width: 640px) {
    .hudCard {
-      border-radius: 16px;
       padding: 16px 20px;
    }
 }
@@ -121,7 +120,7 @@
    display: inline-flex;
    align-items: center;
    padding: 5px 10px;
-   border-radius: 10px;
+   border-radius: 999px;
    font-size: 0.8125rem;
    font-weight: 600;
    color: var(--text);
@@ -137,18 +136,18 @@
 }
 
 .chipOk {
-   background: linear-gradient(135deg, rgba(134, 239, 172, 0.25), rgba(134, 239, 172, 0.12));
-   border: 2px solid rgba(134, 239, 172, 0.6);
+   background: color-mix(in srgb, var(--ok) 18%, transparent);
+   border: 1px solid color-mix(in srgb, var(--ok) 60%, transparent);
 }
 
 .chipBad {
-   background: linear-gradient(135deg, rgba(252, 165, 165, 0.25), rgba(252, 165, 165, 0.12));
-   border: 2px solid rgba(252, 165, 165, 0.6);
+   background: color-mix(in srgb, var(--warn) 18%, transparent);
+   border: 1px solid color-mix(in srgb, var(--warn) 60%, transparent);
 }
 
 .chipLevel {
-   background: rgba(255, 255, 255, 0.06);
-   border: 1px solid rgba(255, 255, 255, 0.12);
+   background: var(--card);
+   border: 1px solid var(--stroke);
    color: var(--muted);
    font-weight: 600;
 }
@@ -167,12 +166,13 @@
    }
 }
 
+/* a full-width fill scaled on X (never an animated width); solid accent, clipped by the pill track */
 .progressFill {
+   width: 100%;
    height: 100%;
-   background: linear-gradient(90deg, var(--accent) 0%, var(--ok) 100%);
-   border-radius: 999px;
-   transition: width 0.3s ease;
-   box-shadow: 0 0 10px rgba(var(--accent-rgb, 125, 211, 252), 0.5);
+   background: var(--accent);
+   transform-origin: left center;
+   transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* The typing card: prompt on top, the field right under it. On phones and tablets it is the FIRST thing
@@ -184,7 +184,7 @@
    box-sizing: border-box;
    padding: 12px;
    background: var(--card);
-   border-radius: var(--radius);
+   border-radius: 16px;
    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.2);
    display: flex;
    flex-direction: column;
@@ -260,27 +260,32 @@
    }
 }
 
+/* The prompt characters. Their states use colour, background and underline only: no weight, size, padding
+   or border change, so a character never changes width and the line never reflows while typing.
+   Hierarchy: still to type = full text colour; typed right = green, quiet; typed wrong = pink on a pink
+   tint with an underline (the loudest); the next one to type = an accent tint with an accent bar under it. */
 .char {
    padding: 2px 1px;
-   border-radius: 3px;
+   border-radius: 4px;
    transition: color 0.12s ease, background-color 0.12s ease;
 }
 
 .charOk {
    color: var(--ok);
-   background-color: rgba(134, 239, 172, 0.2);
 }
 
 .charBad {
    color: var(--warn);
-   background-color: rgba(252, 165, 165, 0.2);
+   background-color: color-mix(in srgb, var(--warn) 24%, transparent);
    text-decoration: underline;
-   text-decoration-color: rgba(252, 165, 165, 0.8);
+   text-decoration-color: var(--warn);
+   text-decoration-thickness: 2px;
    text-underline-offset: 3px;
 }
 
 /* the next character to type */
 .charNext {
+   background-color: rgba(var(--accent-rgb, 125, 211, 252), 0.2);
    box-shadow: inset 0 -3px 0 var(--accent);
 }
 
@@ -302,10 +307,12 @@
    line-height: 1.3;
    text-align: center;
    color: var(--text);
-   background: var(--background);
+   /* a well in the card (the board is always on a dark surface); the old var(--background) never existed */
+   background: rgba(0, 0, 0, 0.24);
    border: 2px solid rgba(var(--accent-rgb, 125, 211, 252), 0.45);
    border-radius: 12px;
    outline: none;
+   font-variant-numeric: tabular-nums;
    caret-color: var(--accent);
    /* the one surface that keeps text selection */
    user-select: text;
@@ -315,9 +322,15 @@
    transition: border-color 0.12s ease, box-shadow 0.12s ease;
 }
 
+.field::placeholder {
+   color: var(--muted);
+   opacity: 0.8;
+}
+
+/* the focus ring: the border colour plus a tight ring (never a border-width change) */
 .field:focus {
    border-color: var(--accent);
-   box-shadow: 0 0 0 3px rgba(var(--accent-rgb, 125, 211, 252), 0.2);
+   box-shadow: 0 0 0 3px rgba(var(--accent-rgb, 125, 211, 252), 0.25);
 }
 
 .field:disabled {
@@ -375,12 +388,13 @@
    box-sizing: border-box;
    padding: 16px 18px;
    background: var(--card);
-   border-radius: var(--radius);
+   border-radius: 16px;
    color: var(--text);
    font-size: 1rem;
    font-weight: 700;
    text-align: center;
    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.25);
+   font-variant-numeric: tabular-nums;
 }
 
 @media (min-width: 640px) {
@@ -403,13 +417,21 @@
 }
 
 .noticeBadgeOk {
-   background: linear-gradient(135deg, rgba(134, 239, 172, 0.25), rgba(134, 239, 172, 0.1));
-   border: 2px solid rgba(134, 239, 172, 0.6);
+   background: color-mix(in srgb, var(--ok) 18%, transparent);
+   border: 1px solid color-mix(in srgb, var(--ok) 60%, transparent);
+}
+
+.noticeBadgeOk svg {
+   color: var(--ok);
 }
 
 .noticeBadgeBad {
-   background: linear-gradient(135deg, rgba(252, 165, 165, 0.25), rgba(252, 165, 165, 0.1));
-   border: 2px solid rgba(252, 165, 165, 0.6);
+   background: color-mix(in srgb, var(--warn) 18%, transparent);
+   border: 1px solid color-mix(in srgb, var(--warn) 60%, transparent);
+}
+
+.noticeBadgeBad svg {
+   color: var(--warn);
 }
 
 .noticeText {
@@ -435,22 +457,34 @@
    user-select: none;
    -webkit-user-select: none;
    -webkit-tap-highlight-color: transparent;
-   background: linear-gradient(135deg, rgba(134, 239, 172, 0.25), rgba(134, 239, 172, 0.12));
-   border: 2px solid rgba(134, 239, 172, 0.6);
-   transition: transform 0.08s ease, box-shadow 0.12s ease, background 0.12s ease, border-color 0.12s ease;
+   /* the same accent-tint look as Replay (one accent per game) */
+   background: rgba(var(--accent-rgb, 125, 211, 252), 0.18);
+   border: 1px solid rgba(var(--accent-rgb, 125, 211, 252), 0.6);
+   transition: transform 0.1s ease-out, box-shadow 0.12s ease, background-color 0.12s ease, border-color 0.12s ease;
 }
 
 @media (hover: hover) {
    .noticeBtn:hover {
-      background: linear-gradient(135deg, rgba(134, 239, 172, 0.35), rgba(134, 239, 172, 0.2));
-      border-color: rgba(134, 239, 172, 0.8);
-      transform: translateY(-2px);
-      box-shadow: 0 6px 14px rgba(134, 239, 172, 0.35);
+      background: rgba(var(--accent-rgb, 125, 211, 252), 0.28);
+      border-color: rgba(var(--accent-rgb, 125, 211, 252), 0.85);
+      box-shadow: 0 6px 14px rgba(0, 0, 0, 0.28);
    }
 }
 
 .noticeBtn:active {
    transform: scale(0.96);
+}
+
+.noticeBtn:focus-visible,
+.actionBtn:focus-visible {
+   outline: 2px solid var(--text);
+   outline-offset: 2px;
+}
+
+/* inside a staggered notice the entry animation must not keep holding `transform` once it has ended,
+   or the press scale above would never show */
+.notice > .noticeBtn {
+   animation-fill-mode: backwards;
 }
 
 /* Replay / Share row: two keys side by side on phones, each >= 44 px tall */
@@ -464,7 +498,7 @@
    box-sizing: border-box;
    padding: 10px;
    background: var(--card);
-   border-radius: var(--radius);
+   border-radius: 16px;
 }
 
 @media (min-width: 640px) {
@@ -478,7 +512,7 @@
    width: 100%;
    box-sizing: border-box;
    padding: 10px 12px;
-   border-radius: 8px;
+   border-radius: 12px;
    font-size: 0.875rem;
    font-weight: 600;
    text-align: center;
@@ -490,16 +524,22 @@
 }
 
 .actionNoteOk {
-   background: rgba(134, 239, 172, 0.2);
-   border: 2px solid rgba(134, 239, 172, 0.6);
-   color: var(--ok);
+   background: color-mix(in srgb, var(--ok) 18%, transparent);
+   border: 1px solid color-mix(in srgb, var(--ok) 60%, transparent);
+   color: var(--text);
 }
 
+/* "unlimited replay active": the accent tint (it was the old blue accent) */
 .actionNoteInfo {
-   background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1));
-   border: 2px solid rgba(59, 130, 246, 0.6);
+   background: rgba(var(--accent-rgb, 125, 211, 252), 0.14);
+   border: 1px solid rgba(var(--accent-rgb, 125, 211, 252), 0.55);
    color: var(--text);
    font-weight: 500;
+}
+
+.actionNoteInfo svg {
+   flex-shrink: 0;
+   color: var(--accent);
 }
 
 .actionBtn {
@@ -520,7 +560,7 @@
    user-select: none;
    -webkit-user-select: none;
    -webkit-tap-highlight-color: transparent;
-   transition: transform 0.08s ease, box-shadow 0.12s ease, background 0.12s ease, border-color 0.12s ease;
+   transition: transform 0.1s ease-out, box-shadow 0.12s ease, background-color 0.12s ease, border-color 0.12s ease;
 }
 
 @media (min-width: 640px) {
@@ -531,28 +571,27 @@
    }
 }
 
+/* one look for the three buttons: Replay and Next Round carry the accent tint, Share is the quiet one */
 .actionReplay {
-   background: linear-gradient(135deg, rgba(var(--accent-rgb, 125, 211, 252), 0.2), rgba(var(--accent-rgb, 125, 211, 252), 0.1));
-   border: 1px solid rgba(var(--accent-rgb, 125, 211, 252), 0.6);
+   background: rgba(var(--accent-rgb, 125, 211, 252), 0.14);
+   border: 1px solid rgba(var(--accent-rgb, 125, 211, 252), 0.55);
 }
 
 .actionShare {
-   background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1));
-   border: 1px solid rgba(59, 130, 246, 0.6);
+   background: var(--card);
+   border: 1px solid var(--stroke);
 }
 
 @media (hover: hover) {
    .actionReplay:not(:disabled):hover {
-      background: linear-gradient(135deg, rgba(var(--accent-rgb, 125, 211, 252), 0.3), rgba(var(--accent-rgb, 125, 211, 252), 0.2));
-      border-color: rgba(var(--accent-rgb, 125, 211, 252), 0.8);
-      transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(var(--accent-rgb, 125, 211, 252), 0.3);
+      background: rgba(var(--accent-rgb, 125, 211, 252), 0.24);
+      border-color: rgba(var(--accent-rgb, 125, 211, 252), 0.85);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
    }
    .actionShare:hover {
-      background: linear-gradient(135deg, rgba(59, 130, 246, 0.3), rgba(59, 130, 246, 0.2));
-      border-color: rgba(59, 130, 246, 0.8);
-      transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.24);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
    }
 }
 
@@ -561,8 +600,8 @@
 }
 
 .actionBtn:disabled {
-   background: rgba(100, 100, 100, 0.2);
-   border: 1px solid rgba(100, 100, 100, 0.4);
+   background: var(--card);
+   border: 1px solid var(--stroke);
    cursor: not-allowed;
    opacity: 0.5;
 }
@@ -574,5 +613,30 @@
    .noticeBtn,
    .progressFill {
       transition: none;
+   }
+}
+
+/* Next Round is the group's success action: the green tint in every Speed game, gold in the final games
+   (where the old inline green button was recoloured gold). */
+.noticeBtn {
+   background: color-mix(in srgb, var(--ok) 20%, transparent);
+   border: 1px solid color-mix(in srgb, var(--ok) 60%, transparent);
+}
+
+@media (hover: hover) {
+   .noticeBtn:hover {
+      background: color-mix(in srgb, var(--ok) 30%, transparent);
+      border-color: color-mix(in srgb, var(--ok) 60%, transparent);
+   }
+}
+
+:global(body.final-game) .noticeBtn {
+   background: rgba(234, 179, 8, 0.2);
+   border-color: rgba(234, 179, 8, 0.6);
+}
+
+@media (hover: hover) {
+   :global(body.final-game) .noticeBtn:hover {
+      background: rgba(234, 179, 8, 0.3);
    }
 }

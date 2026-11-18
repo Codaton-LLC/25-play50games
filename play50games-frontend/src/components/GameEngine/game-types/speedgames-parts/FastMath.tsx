@@ -795,47 +795,13 @@ export default function FastMath({
 
    const progress = ((currentLevel + 1) / maxLevels) * 100;
 
-   // Styling functions
-   const getNoticeStyle = () => ({
-      padding: isMobile ? "16px 18px" : "24px 32px",
-      background: "var(--card)",
-      borderRadius: "var(--radius)",
-      color: "var(--text)",
-      fontSize: isMobile ? "1rem" : "1.1rem",
-      fontWeight: 700,
-      textAlign: "center" as const,
-      boxShadow: "0 10px 24px rgba(0, 0, 0, 0.25)",
-      width: "100%",
-      maxWidth: "600px",
-      boxSizing: "border-box" as const,
-   });
-
-   const getNoticeBadgeStyle = (tone: "success" | "danger") => {
-      const bgFrom =
-         tone === "success"
-            ? "rgba(134, 239, 172, 0.25)"
-            : "rgba(252, 165, 165, 0.25)";
-      const bgTo =
-         tone === "success"
-            ? "rgba(134, 239, 172, 0.1)"
-            : "rgba(252, 165, 165, 0.1)";
-      const borderColor =
-         tone === "success"
-            ? "rgba(134, 239, 172, 0.6)"
-            : "rgba(252, 165, 165, 0.6)";
-      return {
-         display: "inline-flex",
-         alignItems: "center",
-         gap: "8px",
-         padding: "8px 14px",
-         borderRadius: "999px",
-         fontWeight: 800,
-         fontSize: isMobile ? "0.95rem" : "1.05rem",
-         background: `linear-gradient(135deg, ${bgFrom}, ${bgTo})`,
-         border: `2px solid ${borderColor}`,
-         color: "var(--text)",
-      };
-   };
+   // Styling: the notice panels, their badges, the counters and the progress bar are classes of
+   // FastMath.module.css (tokens, and the gold of the final games restated there).
+   const noticeClass = `${styles.notice} ${fx.staggerIn}`;
+   const noticeBadgeClass = (tone: "success" | "danger") =>
+      `${styles.noticeBadge} ${
+         tone === "success" ? styles.noticeBadgeOk : styles.noticeBadgeBad
+      }`;
 
    const hudItemStyle: React.CSSProperties = {
       display: "flex",
@@ -844,22 +810,6 @@ export default function FastMath({
       whiteSpace: "nowrap",
    };
    const hudIconSize = isMobile ? 14 : 16;
-   const chipStyle = (tone: "ok" | "bad"): React.CSSProperties => ({
-      padding: isMobile ? "4px 10px" : "6px 14px",
-      background:
-         tone === "ok"
-            ? "linear-gradient(135deg, rgba(134, 239, 172, 0.25), rgba(134, 239, 172, 0.12))"
-            : "linear-gradient(135deg, rgba(252, 165, 165, 0.25), rgba(252, 165, 165, 0.12))",
-      border:
-         tone === "ok"
-            ? "2px solid rgba(134, 239, 172, 0.6)"
-            : "2px solid rgba(252, 165, 165, 0.6)",
-      borderRadius: "999px",
-      color: "var(--text)",
-      fontSize: isMobile ? "0.875rem" : "0.95rem",
-      fontWeight: 600,
-      whiteSpace: "nowrap",
-   });
 
    const answersLocked = gameState !== "playing" || requirementsMet;
    const replayLocked = maxReplays > 0 && replaysUsed >= maxReplays;
@@ -874,17 +824,7 @@ export default function FastMath({
       <>
          <div ref={rootRef} className={styles.root} style={TOUCH_SURFACE}>
             {/* Header Section: level, score, time, the level counters and progress in one compact card */}
-            <div
-               style={{
-                  width: "100%",
-                  maxWidth: "800px",
-                  boxSizing: "border-box",
-                  background: "var(--card)",
-                  borderRadius: isMobile ? "14px" : "16px",
-                  padding: isMobile ? "10px 12px" : "16px 20px",
-                  boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
-               }}
-            >
+            <div className={styles.hudCard}>
                <div
                   style={{
                      display: "flex",
@@ -943,29 +883,18 @@ export default function FastMath({
                      marginBottom: isMobile ? "8px" : "12px",
                   }}
                >
-                  <span style={chipStyle("ok")}>
+                  <span className={`${styles.chip} ${styles.chipOk}`}>
                      Correct: {correctAnswers} / {getMinCorrectAnswers()}
                   </span>
-                  <span style={chipStyle("bad")}>Wrong: {wrongAnswers}</span>
+                  <span className={`${styles.chip} ${styles.chipBad}`}>
+                     Wrong: {wrongAnswers}
+                  </span>
                </div>
-               <div
-                  style={{
-                     width: "100%",
-                     height: isMobile ? "6px" : "8px",
-                     background: "rgba(255, 255, 255, 0.1)",
-                     borderRadius: "999px",
-                     overflow: "hidden",
-                  }}
-               >
+               <div className={styles.progressTrack}>
                   <div
+                     className={styles.progressFill}
                      style={{
-                        width: `${progress}%`,
-                        height: "100%",
-                        background:
-                           "linear-gradient(90deg, var(--accent) 0%, var(--ok) 100%)",
-                        borderRadius: "999px",
-                        transition: "width 0.3s ease",
-                        boxShadow: "0 0 10px rgba(125, 211, 252, 0.5)",
+                        transform: `scaleX(${Math.max(0, Math.min(1, progress / 100))})`,
                      }}
                   />
                </div>
@@ -1037,8 +966,8 @@ export default function FastMath({
 
             {/* Ready for Next Round Message */}
             {gameState === "ready" && currentLevel + 1 < maxLevels && (
-               <div style={getNoticeStyle()} className={fx.fadeUp}>
-                  <div style={getNoticeBadgeStyle("success")}>
+               <div className={noticeClass}>
+                  <div className={noticeBadgeClass("success")}>
                      <CheckCircleIcon style={{ width: 20, height: 20 }} />
                      Level {currentLevel + 1} Complete
                   </div>
@@ -1063,8 +992,8 @@ export default function FastMath({
 
             {/* Game Complete Message */}
             {gameState === "ready" && currentLevel + 1 >= maxLevels && (
-               <div style={getNoticeStyle()} className={fx.fadeUp}>
-                  <div style={getNoticeBadgeStyle("success")}>
+               <div className={noticeClass}>
+                  <div className={noticeBadgeClass("success")}>
                      <TrophyIcon style={{ width: 20, height: 20 }} />
                      Game Complete!
                   </div>
@@ -1081,7 +1010,7 @@ export default function FastMath({
                   <div
                      style={{
                         fontSize: isMobile ? "0.95rem" : "1rem",
-                        opacity: 0.8,
+                        color: "var(--muted)",
                         marginTop: "8px",
                      }}
                   >
@@ -1093,8 +1022,8 @@ export default function FastMath({
 
             {/* Level Failed Message */}
             {gameState === "failed" && (
-               <div style={getNoticeStyle()} className={fx.fadeUp}>
-                  <div style={getNoticeBadgeStyle("danger")}>
+               <div className={noticeClass}>
+                  <div className={noticeBadgeClass("danger")}>
                      <XCircleIcon style={{ width: 20, height: 20 }} />
                      Level {currentLevel + 1} Failed
                   </div>
@@ -1116,19 +1045,7 @@ export default function FastMath({
                <div className={styles.actionRow}>
                   {/* Share Success Message */}
                   {shareSuccess && !unlimitedActivated && (
-                     <div
-                        style={{
-                           width: "100%",
-                           padding: "10px 12px",
-                           background: "rgba(134, 239, 172, 0.2)",
-                           border: "2px solid rgba(134, 239, 172, 0.6)",
-                           borderRadius: "8px",
-                           fontSize: isMobile ? "0.875rem" : "1rem",
-                           fontWeight: 600,
-                           color: "var(--ok)",
-                           textAlign: "center",
-                        }}
-                     >
+                     <div className={`${styles.shareNote} ${fx.fadeUp}`}>
                         Link copied! Unlimited replay will unlock when
                         someone opens your link!
                      </div>
@@ -1136,31 +1053,11 @@ export default function FastMath({
 
                   {/* Unlimited Activated Message */}
                   {unlimitedActivated && (
-                     <div
-                        style={{
-                           display: "flex",
-                           alignItems: "center",
-                           gap: isMobile ? "6px" : "8px",
-                           padding: isMobile ? "10px 14px" : "8px 16px",
-                           background:
-                              "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
-                           border: "2px solid rgba(59, 130, 246, 0.6)",
-                           borderRadius: isMobile ? "10px" : "8px",
-                           color: "var(--text)",
-                           fontSize: isMobile ? "0.875rem" : "0.9rem",
-                           fontWeight: 500,
-                           width: "100%",
-                           justifyContent: "center",
-                           textAlign: "center",
-                           flexWrap: "wrap",
-                        }}
-                     >
+                     <div className={`${styles.unlimitedNote} ${fx.fadeUp}`}>
                         <CheckCircleIcon
                            style={{
                               width: isMobile ? 16 : 18,
                               height: isMobile ? 16 : 18,
-                              color: "rgba(59, 130, 246, 0.9)",
-                              flexShrink: 0,
                            }}
                         />
                         <span>

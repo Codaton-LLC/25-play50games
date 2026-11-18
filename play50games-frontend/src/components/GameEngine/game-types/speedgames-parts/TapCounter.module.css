@@ -1,4 +1,6 @@
-/* Tap Counter: layout and feedback styles (mobile/tablet pass). Rules and scoring live in the component. */
+/* Tap Counter: layout, shape and feedback styles. Rules and scoring live in the component.
+   Shape scale: panels 16 px, buttons 12 px, bars / chips / badges pill; the tap button is round.
+   One accent (the site's --accent: coral in a game, gold in a final game); green only means "done". */
 
 .root {
    display: flex;
@@ -17,6 +19,27 @@
    background: var(--card);
    border-radius: 16px;
    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+/* Level / score / time row: the numbers keep their width while they change. */
+.stats {
+   font-variant-numeric: tabular-nums;
+}
+
+/* Level progress: a full-width fill scaled on X (never an animated width). */
+.progressTrack {
+   width: 100%;
+   background: var(--stroke);
+   border-radius: 999px;
+   overflow: hidden;
+}
+
+.progressFill {
+   width: 100%;
+   height: 100%;
+   background: var(--accent);
+   transform-origin: left center;
+   transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .board {
@@ -38,25 +61,40 @@
    display: inline-flex;
    align-items: center;
    gap: 6px;
-   border-radius: 10px;
+   border-radius: 999px;
    font-weight: 700;
+   font-variant-numeric: tabular-nums;
    color: var(--text);
    white-space: nowrap;
+   background: var(--card);
+   border: 1px solid var(--stroke);
+}
+
+.chip svg {
+   color: var(--muted);
 }
 
 .chipTaps {
-   background: linear-gradient(135deg, rgba(134, 239, 172, 0.25), rgba(134, 239, 172, 0.12));
-   border: 2px solid rgba(134, 239, 172, 0.6);
+   background: color-mix(in srgb, var(--ok) 18%, transparent);
+   border-color: color-mix(in srgb, var(--ok) 55%, transparent);
+}
+
+.chipTaps svg {
+   color: var(--ok);
 }
 
 .chipRate {
-   background: linear-gradient(135deg, rgba(var(--accent-rgb, 125, 211, 252), 0.25), rgba(var(--accent-rgb, 125, 211, 252), 0.12));
-   border: 2px solid rgba(var(--accent-rgb, 125, 211, 252), 0.6);
+   background: rgba(var(--accent-rgb, 125, 211, 252), 0.16);
+   border-color: rgba(var(--accent-rgb, 125, 211, 252), 0.5);
 }
 
+.chipRate svg {
+   color: var(--accent);
+}
+
+/* "Need" is the neutral one: card surface and hairline from .chip. */
 .chipNeed {
-   background: linear-gradient(135deg, rgba(59, 130, 246, 0.25), rgba(59, 130, 246, 0.12));
-   border: 2px solid rgba(59, 130, 246, 0.6);
+   background: var(--card);
 }
 
 /* The play area wraps its content (ring + goal lines): its height follows the button, never a fixed 400/500. */
@@ -73,9 +111,9 @@
    flex-direction: column;
    align-items: center;
    justify-content: center;
-   border-radius: var(--radius);
+   border-radius: 16px;
    background:
-      radial-gradient(320px 220px at 30% 30%, rgba(59, 130, 246, 0.1), transparent 55%),
+      radial-gradient(320px 220px at 30% 30%, rgba(var(--accent-rgb, 125, 211, 252), 0.08), transparent 55%),
       linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
    box-shadow: 0 10px 18px rgba(0, 0, 0, 0.22);
    overflow: hidden;
@@ -94,12 +132,17 @@
    pointer-events: none;
 }
 
+.ringTrack {
+   stroke: var(--stroke);
+}
+
 .ringProgress {
    transition: stroke-dashoffset 0.3s ease, stroke 0.3s ease;
 }
 
 /* The tap button: no pan or pinch starts on it (two thumbs down at once must never zoom the page),
-   no selection, no callout, no grey flash. Every pointerdown counts, so the press itself is instant. */
+   no selection, no callout, no grey flash. Every pointerdown counts, so the press itself is instant.
+   The border keeps its 4 px in every state: a tap changes colours only, never the size. */
 .tapBtn {
    position: relative;
    z-index: 1;
@@ -108,8 +151,8 @@
    padding: 0;
    border-radius: 50%;
    border: 4px solid transparent;
-   background: rgba(59, 130, 246, 0.15);
-   box-shadow: 0 8px 24px rgba(59, 130, 246, 0.3);
+   background: rgba(var(--accent-rgb, 125, 211, 252), 0.14);
+   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
    display: flex;
    flex-direction: column;
    align-items: center;
@@ -123,11 +166,11 @@
    -webkit-user-select: none;
    -webkit-touch-callout: none;
    -webkit-tap-highlight-color: transparent;
-   transition: transform 0.08s ease, background 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease;
+   transition: transform 0.08s ease-out, background-color 0.12s ease, border-color 0.12s ease;
 }
 
 .tapBtn:active {
-   transform: scale(0.95);
+   transform: scale(0.96);
 }
 
 .tapBtn:disabled {
@@ -136,8 +179,7 @@
 
 .tapBtnHit {
    border-color: var(--ok);
-   background: rgba(134, 239, 172, 0.2);
-   box-shadow: 0 8px 24px rgba(134, 239, 172, 0.4);
+   background: color-mix(in srgb, var(--ok) 22%, transparent);
 }
 
 .count {
@@ -194,6 +236,7 @@
    width: 100%;
    max-width: 400px;
    text-align: center;
+   font-variant-numeric: tabular-nums;
 }
 
 .goalMain {
@@ -216,7 +259,7 @@
    display: flex;
    padding: 10px;
    overflow-y: auto;
-   border-radius: var(--radius);
+   border-radius: 16px;
    background: rgba(8, 14, 28, 0.55);
    backdrop-filter: blur(4px);
    -webkit-backdrop-filter: blur(4px);
@@ -228,11 +271,13 @@
    max-width: 440px;
    box-sizing: border-box;
    padding: 16px 14px;
-   background: var(--card);
-   border-radius: var(--radius);
+   background: rgba(20, 26, 44, 0.94);
+   border: 1px solid var(--stroke);
+   border-radius: 16px;
    color: var(--text);
    font-weight: 700;
    text-align: center;
+   font-variant-numeric: tabular-nums;
    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
 }
 
@@ -247,13 +292,21 @@
 }
 
 .badgeOk {
-   background: linear-gradient(135deg, rgba(134, 239, 172, 0.25), rgba(134, 239, 172, 0.1));
-   border: 2px solid rgba(134, 239, 172, 0.6);
+   background: color-mix(in srgb, var(--ok) 18%, transparent);
+   border: 1px solid color-mix(in srgb, var(--ok) 55%, transparent);
+}
+
+.badgeOk svg {
+   color: var(--ok);
 }
 
 .badgeBad {
-   background: linear-gradient(135deg, rgba(252, 165, 165, 0.25), rgba(252, 165, 165, 0.1));
-   border: 2px solid rgba(252, 165, 165, 0.6);
+   background: color-mix(in srgb, var(--warn) 18%, transparent);
+   border: 1px solid color-mix(in srgb, var(--warn) 55%, transparent);
+}
+
+.badgeBad svg {
+   color: var(--warn);
 }
 
 .actions {
@@ -265,21 +318,57 @@
    box-sizing: border-box;
    padding: 10px;
    background: var(--card);
-   border-radius: 12px;
+   border-radius: 16px;
 }
 
+/* Green note (link copied). */
+.noteOk {
+   box-sizing: border-box;
+   width: 100%;
+   padding: 10px 12px;
+   border-radius: 12px;
+   font-weight: 600;
+   text-align: center;
+   color: var(--ok);
+   background: color-mix(in srgb, var(--ok) 16%, transparent);
+   border: 1px solid color-mix(in srgb, var(--ok) 55%, transparent);
+}
+
+/* "Unlimited replay is active": accent tint (tokens: coral in a game, gold in a final). */
+.noteLive {
+   box-sizing: border-box;
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   flex-wrap: wrap;
+   width: 100%;
+   border-radius: 12px;
+   font-weight: 500;
+   text-align: center;
+   color: var(--text);
+   background: rgba(var(--accent-rgb, 125, 211, 252), 0.14);
+   border: 1px solid rgba(var(--accent-rgb, 125, 211, 252), 0.5);
+}
+
+.noteLive svg {
+   color: var(--accent);
+   flex-shrink: 0;
+}
+
+/* Buttons: one look (12 px, 1 px border, readable label); the press scale comes from fx.pressable. */
 .btn {
    min-height: 44px;
    min-width: 44px;
-   border-radius: 10px;
+   border-radius: 12px;
    display: inline-flex;
    align-items: center;
    justify-content: center;
    gap: 8px;
    font-weight: 600;
+   font-variant-numeric: tabular-nums;
    color: var(--text);
    cursor: pointer;
-   transition: transform 0.08s ease, box-shadow 0.12s ease, background 0.12s ease, border-color 0.12s ease;
+   transition: transform 0.1s ease-out, background-color 0.12s ease, border-color 0.12s ease;
 }
 
 .btn:disabled {
@@ -296,39 +385,79 @@
 .btnNext {
    min-height: 48px;
    padding: 12px 28px;
-   border-radius: 12px;
    font-size: 1rem;
    font-weight: 700;
-   background: linear-gradient(135deg, rgba(134, 239, 172, 0.25), rgba(134, 239, 172, 0.12));
-   border: 2px solid rgba(134, 239, 172, 0.6);
+   background: color-mix(in srgb, var(--ok) 20%, transparent);
+   border: 1px solid color-mix(in srgb, var(--ok) 60%, transparent);
 }
 
 .btnReplay {
-   background: linear-gradient(135deg, rgba(var(--accent-rgb, 125, 211, 252), 0.2), rgba(var(--accent-rgb, 125, 211, 252), 0.1));
-   border: 1px solid rgba(var(--accent-rgb, 125, 211, 252), 0.6);
+   background: rgba(var(--accent-rgb, 125, 211, 252), 0.16);
+   border: 1px solid rgba(var(--accent-rgb, 125, 211, 252), 0.55);
 }
 
 .btnReplay:disabled {
-   background: rgba(100, 100, 100, 0.2);
-   border-color: rgba(100, 100, 100, 0.4);
-   opacity: 0.5;
+   background: var(--card);
+   border-color: var(--stroke);
+   color: var(--muted);
 }
 
 .btnShare {
-   background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1));
-   border: 1px solid rgba(59, 130, 246, 0.6);
+   background: var(--card);
+   border: 1px solid var(--stroke);
+}
+
+.btnShare svg {
+   color: var(--muted);
 }
 
 @media (hover: hover) {
-   .btnNext:hover,
-   .btnReplay:not(:disabled):hover,
+   .btnNext:hover {
+      background: color-mix(in srgb, var(--ok) 30%, transparent);
+   }
+
+   .btnReplay:not(:disabled):hover {
+      background: rgba(var(--accent-rgb, 125, 211, 252), 0.26);
+   }
+
    .btnShare:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(var(--accent-rgb, 125, 211, 252), 0.3);
+      background: rgba(255, 255, 255, 0.1);
+   }
+}
+
+/* Final games: the green chrome is gold there (the old inline green strings were recoloured gold). */
+:global(body.final-game) .chipTaps,
+:global(body.final-game) .badgeOk,
+:global(body.final-game) .btnNext,
+:global(body.final-game) .noteOk {
+   background: rgba(234, 179, 8, 0.2);
+   border-color: rgba(234, 179, 8, 0.6);
+}
+
+:global(body.final-game) .chipTaps svg,
+:global(body.final-game) .badgeOk svg,
+:global(body.final-game) .noteOk,
+:global(body.final-game) .plusOne {
+   color: #eab308;
+}
+
+:global(body.final-game) .tapBtnHit {
+   border-color: #eab308;
+   background: rgba(234, 179, 8, 0.2);
+}
+
+:global(body.final-game) .ripple {
+   border-color: #eab308;
+}
+
+@media (hover: hover) {
+   :global(body.final-game) .btnNext:hover {
+      background: rgba(234, 179, 8, 0.3);
    }
 }
 
 @media (prefers-reduced-motion: reduce) {
+   .progressFill,
    .ripple,
    .ringProgress,
    .tapBtn,
