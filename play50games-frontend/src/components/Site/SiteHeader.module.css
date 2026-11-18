@@ -11,6 +11,12 @@
    color: var(--p50-text);
 }
 
+/* a game page: the bar scrolls away with the page (SiteHeader `immersive`); still positioned, so
+   it keeps its z-index above the 3D shell's fixed frame */
+.barStatic {
+   position: relative;
+}
+
 .inner {
    position: relative;
    display: flex;

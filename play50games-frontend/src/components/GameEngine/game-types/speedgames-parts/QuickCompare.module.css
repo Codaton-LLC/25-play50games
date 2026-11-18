@@ -120,7 +120,7 @@
    background: linear-gradient(90deg, var(--accent) 0%, var(--ok) 100%);
    border-radius: 999px;
    transition: width 0.3s ease;
-   box-shadow: 0 0 10px rgba(125, 211, 252, 0.5);
+   box-shadow: 0 0 10px rgba(var(--accent-rgb, 125, 211, 252), 0.5);
 }
 
 /* the column under the header: stats, level line, the pair, notices, actions */
@@ -299,7 +299,7 @@
    font-variant-numeric: tabular-nums;
    color: var(--text);
    background: var(--background);
-   border: 2px solid rgba(125, 211, 252, 0.45);
+   border: 2px solid rgba(var(--accent-rgb, 125, 211, 252), 0.45);
    border-radius: 16px;
    cursor: pointer;
    overflow: hidden;
@@ -362,15 +362,15 @@
 
 @media (hover: hover) {
    .choice:not(:disabled):hover {
-      border-color: rgba(125, 211, 252, 0.85);
-      box-shadow: 0 6px 16px rgba(125, 211, 252, 0.3);
+      border-color: rgba(var(--accent-rgb, 125, 211, 252), 0.85);
+      box-shadow: 0 6px 16px rgba(var(--accent-rgb, 125, 211, 252), 0.3);
       transform: translateY(-2px);
    }
 }
 
 .choice:not(:disabled):active {
    transform: scale(0.96);
-   border-color: rgba(125, 211, 252, 0.95);
+   border-color: rgba(var(--accent-rgb, 125, 211, 252), 0.95);
 }
 
 .choice:disabled {
@@ -451,8 +451,8 @@
    line-height: 1.1;
    font-weight: 800;
    color: var(--text);
-   background: linear-gradient(135deg, rgba(125, 211, 252, 0.2), rgba(125, 211, 252, 0.1));
-   border: 2px solid rgba(125, 211, 252, 0.6);
+   background: linear-gradient(135deg, rgba(var(--accent-rgb, 125, 211, 252), 0.2), rgba(var(--accent-rgb, 125, 211, 252), 0.1));
+   border: 2px solid rgba(var(--accent-rgb, 125, 211, 252), 0.6);
    border-radius: 14px;
    cursor: pointer;
    touch-action: manipulation;
@@ -493,10 +493,10 @@
 
 @media (hover: hover) {
    .opBtn:not(:disabled):hover {
-      background: linear-gradient(135deg, rgba(125, 211, 252, 0.3), rgba(125, 211, 252, 0.2));
-      border-color: rgba(125, 211, 252, 0.85);
+      background: linear-gradient(135deg, rgba(var(--accent-rgb, 125, 211, 252), 0.3), rgba(var(--accent-rgb, 125, 211, 252), 0.2));
+      border-color: rgba(var(--accent-rgb, 125, 211, 252), 0.85);
       transform: translateY(-2px);
-      box-shadow: 0 6px 16px rgba(125, 211, 252, 0.3);
+      box-shadow: 0 6px 16px rgba(var(--accent-rgb, 125, 211, 252), 0.3);
    }
 }
 
@@ -761,8 +761,8 @@
 }
 
 .actionReplay {
-   background: linear-gradient(135deg, rgba(125, 211, 252, 0.2), rgba(125, 211, 252, 0.1));
-   border: 1px solid rgba(125, 211, 252, 0.6);
+   background: linear-gradient(135deg, rgba(var(--accent-rgb, 125, 211, 252), 0.2), rgba(var(--accent-rgb, 125, 211, 252), 0.1));
+   border: 1px solid rgba(var(--accent-rgb, 125, 211, 252), 0.6);
 }
 
 .actionShare {
@@ -772,10 +772,10 @@
 
 @media (hover: hover) {
    .actionReplay:not(:disabled):hover {
-      background: linear-gradient(135deg, rgba(125, 211, 252, 0.3), rgba(125, 211, 252, 0.2));
-      border-color: rgba(125, 211, 252, 0.8);
+      background: linear-gradient(135deg, rgba(var(--accent-rgb, 125, 211, 252), 0.3), rgba(var(--accent-rgb, 125, 211, 252), 0.2));
+      border-color: rgba(var(--accent-rgb, 125, 211, 252), 0.8);
       transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(125, 211, 252, 0.3);
+      box-shadow: 0 4px 12px rgba(var(--accent-rgb, 125, 211, 252), 0.3);
    }
    .actionShare:hover {
       background: linear-gradient(135deg, rgba(59, 130, 246, 0.3), rgba(59, 130, 246, 0.2));
