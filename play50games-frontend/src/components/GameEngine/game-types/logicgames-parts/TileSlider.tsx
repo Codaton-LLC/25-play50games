@@ -65,6 +65,9 @@ function TileSlider({
       }, ms);
       timersRef.current.add(id);
    }, []);
+   // bumping this invalidates any queued hint steps (new hint, manual move, new puzzle)
+   const hintRunRef = useRef(0);
+   const hintActiveRef = useRef(false);
    useEffect(() => {
       const timers = timersRef.current;
       return () => {
@@ -441,6 +444,8 @@ function TileSlider({
       setShowHint(false);
       setHintTileIndex(null);
       setHintsUsed(0);
+      hintRunRef.current++;
+      hintActiveRef.current = false;
    }, [total]);
 
    // Check if puzzle is solved
@@ -498,7 +503,15 @@ function TileSlider({
    };
 
    const handleTileClick = useCallback(
-      (index: number) => {
+      (index: number, fromHint = false) => {
+         if (!fromHint && hintActiveRef.current) {
+            // a manual move stops a running hint sequence (its later moves no longer fit the board)
+            hintRunRef.current++;
+            hintActiveRef.current = false;
+            setShowHint(false);
+            setHintTileIndex(null);
+            setHintSequence([]);
+         }
          if (isAnimating || tiles.length !== total) return;
 
          // Check if can move inline
@@ -535,6 +548,11 @@ function TileSlider({
       },
       [tiles, emptyIndex, gridSize, total, isAnimating, later]
    );
+   // hint steps run later, so they must move against the latest board, not the one they were queued on
+   const handleTileClickRef = useRef(handleTileClick);
+   useEffect(() => {
+      handleTileClickRef.current = handleTileClick;
+   }, [handleTileClick]);
 
    // Keyboard controls: Tab to select, Arrow keys to move selected tile
    useEffect(() => {
@@ -1291,19 +1309,26 @@ function TileSlider({
       setHintSequence(sequence);
       setShowHint(true);
 
+      // any newer run id makes these queued steps no-ops
+      const run = ++hintRunRef.current;
+      hintActiveRef.current = true;
+
       // Execute moves sequentially with delays
       sequence.forEach((tileIndex, moveIndex) => {
          later(() => {
+            if (hintRunRef.current !== run) return;
             // Highlight current tile
             setHintTileIndex(tileIndex);
 
             // Move tile after brief delay
             later(() => {
-               handleTileClick(tileIndex);
+               if (hintRunRef.current !== run) return;
+               handleTileClickRef.current(tileIndex, true);
 
                // Remove current tile from sequence highlight
                if (moveIndex === sequence.length - 1) {
                   // Last move - clear all highlights
+                  hintActiveRef.current = false;
                   setShowHint(false);
                   setHintTileIndex(null);
                   setHintSequence([]);

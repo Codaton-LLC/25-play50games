@@ -48,6 +48,11 @@
    max-width: 360px;
 }
 
+/* no cell picked: the keypad keeps its space but is invisible and out of the tab order */
+.keypadIdle {
+   visibility: hidden;
+}
+
 /* NumberKeypad (shared component, global classes) restyled here only */
 .keypad :global(.number-keypad) {
    width: 100%;

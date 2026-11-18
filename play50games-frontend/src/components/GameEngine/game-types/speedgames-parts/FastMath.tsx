@@ -121,6 +121,15 @@ export default function FastMath({
    const [replaysUsed, setReplaysUsed] = useState(0);
    const [hasShared, setHasShared] = useState(false);
    const [shareSuccess, setShareSuccess] = useState(false);
+   // the 15 s "link copied" timeouts, cleared on unmount so none fires on an unmounted game
+   const shareMsgTimersRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
+   useEffect(() => {
+      const timers = shareMsgTimersRef.current;
+      return () => {
+         timers.forEach((id) => clearTimeout(id));
+         timers.clear();
+      };
+   }, []);
    const [unlimitedActivated, setUnlimitedActivated] = useState(false);
    const [currentShareId, setCurrentShareId] = useState<string | null>(null);
    const shareCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -420,7 +429,7 @@ export default function FastMath({
                url: shareableLink,
             });
             setShareSuccess(true);
-            setTimeout(() => setShareSuccess(false), 15000);
+            shareMsgTimersRef.current.add(setTimeout(() => setShareSuccess(false), 15000));
          } catch (error: any) {
             if (error.name !== "AbortError") {
                handleCopyLink(shareId);
@@ -438,7 +447,7 @@ export default function FastMath({
       try {
          await navigator.clipboard.writeText(shareableLink);
          setShareSuccess(true);
-         setTimeout(() => setShareSuccess(false), 15000);
+         shareMsgTimersRef.current.add(setTimeout(() => setShareSuccess(false), 15000));
       } catch (error) {
          const textArea = document.createElement("textarea");
          textArea.value = shareableLink;
@@ -449,7 +458,7 @@ export default function FastMath({
          try {
             document.execCommand("copy");
             setShareSuccess(true);
-            setTimeout(() => setShareSuccess(false), 15000);
+            shareMsgTimersRef.current.add(setTimeout(() => setShareSuccess(false), 15000));
          } catch (err) {
             // Failed to copy
          }

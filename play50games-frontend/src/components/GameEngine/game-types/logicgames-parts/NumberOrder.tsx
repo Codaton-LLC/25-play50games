@@ -40,8 +40,12 @@ function NumberOrder({
       };
    }, []);
 
+   // a round is scored at most once (cleared when the next round is dealt)
+   const roundScoredRef = useRef(false);
+
    const startNewRound = useCallback(
       (roundNumber: number) => {
+         roundScoredRef.current = false;
          // Hide numbers during transition - clear immediately
          setIsLoading(true);
          setShuffled([]); // Clear old numbers immediately
@@ -80,11 +84,12 @@ function NumberOrder({
 
    const handleNumberClick = useCallback(
       (num: number) => {
-         if (selected.includes(num)) return;
+         if (roundScoredRef.current || selected.includes(num)) return;
          const newSelected = [...selected, num];
          setSelected(newSelected);
 
          if (newSelected.length === currentNumbers) {
+            roundScoredRef.current = true;
             const isCorrect = newSelected.every((n, i) => n === i + 1);
             setFeedback(isCorrect ? "correct" : "wrong");
 
@@ -122,6 +127,8 @@ function NumberOrder({
 
    // Remove last selected number (undo)
    const handleUndo = useCallback(() => {
+      // like the disabled Undo button: no undo once the round is scored (Backspace could re-score it)
+      if (roundScoredRef.current) return;
       if (selected.length > 0) {
          setSelected((prev) => prev.slice(0, -1));
          setFeedback(null);
