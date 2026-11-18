@@ -464,8 +464,15 @@ function Sudoku4x4({
             )}
          </div>
 
-         {selected && (
-            <div className={css.keypad} ref={keypadRef}>
+         {/* the keypad's space is always reserved so the stage height never jumps. Until a cell is picked an
+             invisible, listener-free stand-in with the same markup holds it; the real keypad (and its
+             global key listener) mounts on selection as before, so its entry animation still plays. */}
+         <div
+            className={selected ? css.keypad : `${css.keypad} ${css.keypadIdle}`}
+            ref={keypadRef}
+            aria-hidden={selected ? undefined : true}
+         >
+            {selected ? (
                <NumberKeypad
                   onNumberSelect={handleNumberSelect}
                   onClear={handleClear}
@@ -473,8 +480,21 @@ function Sudoku4x4({
                   maxNumber={4}
                   showClear={true}
                />
-            </div>
-         )}
+            ) : (
+               <div className="number-keypad">
+                  <div className="keypad-numbers">
+                     {[1, 2, 3, 4].map((num) => (
+                        <button key={num} type="button" tabIndex={-1} className="keypad-number-btn">
+                           {num}
+                        </button>
+                     ))}
+                  </div>
+                  <button type="button" tabIndex={-1} className="keypad-clear-btn">
+                     Clear
+                  </button>
+               </div>
+            )}
+         </div>
       </div>
    );
 }
