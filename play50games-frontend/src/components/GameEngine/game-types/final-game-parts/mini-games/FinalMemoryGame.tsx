@@ -1,15 +1,13 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import fx from "../finalMobile.module.css";
 import {
-   CheckCircleIcon,
-   XCircleIcon,
-   ArrowPathIcon,
-   TrophyIcon,
-   ArrowPathRoundedSquareIcon,
-   ShareIcon,
-} from "@heroicons/react/24/outline";
+   MiniHead,
+   Feedback,
+   DoneSheet,
+   ReplayShareBar,
+   chrome as c,
+} from "../FinalChrome";
 import {
    registerShare,
    trackShareClick,
@@ -37,7 +35,6 @@ export default function FinalMemoryGame({
    const [userInput, setUserInput] = useState("");
    const [feedback, setFeedback] = useState<"correct" | "wrong" | null>(null);
    const [currentLetterIndex, setCurrentLetterIndex] = useState(0);
-   const [isMobile, setIsMobile] = useState(false);
    const inputRef = useRef<HTMLInputElement>(null);
 
    // Replay and Share functionality
@@ -50,15 +47,6 @@ export default function FinalMemoryGame({
 
    const maxReplays = hasShared ? 0 : 5; // 0 = unlimited
 
-   // Responsive design
-   useEffect(() => {
-      const checkResponsive = () => {
-         setIsMobile(window.innerWidth < 640);
-      };
-      checkResponsive();
-      window.addEventListener("resize", checkResponsive);
-      return () => window.removeEventListener("resize", checkResponsive);
-   }, []);
 
    // Letters pool
    const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -397,176 +385,40 @@ export default function FinalMemoryGame({
    const progress =
       maxRounds > 0 ? Math.round(((currentRound + 1) / maxRounds) * 100) : 0;
 
+   const canSubmit = !!userInput && userInput.length === sequence.length;
+
    return (
-      <div
-         style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: isMobile ? "16px" : "20px",
-            width: "100%",
-            maxWidth: "800px",
-            margin: "0 auto",
-            padding: isMobile ? "12px" : "16px",
-         }}
-      >
+      <div className={c.mini}>
          {/* Header */}
-         <div
-            style={{
-               width: "100%",
-               maxWidth: "800px",
-               background: "var(--card)",
-               borderRadius: isMobile ? "16px" : "20px",
-               padding: isMobile ? "16px" : "20px",
-               boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
-               display: "flex",
-               flexDirection: "column",
-               gap: isMobile ? "12px" : "16px",
-            }}
-         >
-            <div
-               style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  flexWrap: "wrap",
-                  gap: isMobile ? "8px" : "12px",
-               }}
-            >
-               <span
-                  style={{
-                     fontSize: isMobile ? "0.875rem" : "1rem",
-                     fontWeight: 600,
-                     color: "var(--text)",
-                     display: "flex",
-                     alignItems: "center",
-                     gap: "6px",
-                  }}
-               >
-                  <ArrowPathIcon
-                     style={{
-                        width: isMobile ? 14 : 16,
-                        height: isMobile ? 14 : 16,
-                        color: "var(--accent)",
-                     }}
-                  />
-                  Round {currentRound + 1} / {maxRounds}
-               </span>
-               <span
-                  style={{
-                     fontSize: isMobile ? "0.875rem" : "1rem",
-                     fontWeight: 600,
-                     color: "var(--text)",
-                     display: "flex",
-                     alignItems: "center",
-                     gap: "6px",
-                  }}
-               >
-                  <TrophyIcon
-                     style={{
-                        width: isMobile ? 14 : 16,
-                        height: isMobile ? 14 : 16,
-                        color: "var(--ok)",
-                     }}
-                  />
-                  Score: {currentScore} / 100
-               </span>
-            </div>
-            {/* Progress Bar */}
-            <div
-               style={{
-                  width: "100%",
-                  height: isMobile ? "6px" : "8px",
-                  background: "rgba(255, 255, 255, 0.1)",
-                  borderRadius: "999px",
-                  overflow: "hidden",
-               }}
-            >
-               <div
-                  style={{
-                     width: `${progress}%`,
-                     height: "100%",
-                     background:
-                        "linear-gradient(90deg, var(--accent) 0%, var(--ok) 100%)",
-                     borderRadius: "999px",
-                     transition: "width 0.3s ease",
-                     boxShadow: "0 0 10px rgba(250, 204, 21, 0.5)",
-                  }}
-               />
-            </div>
-         </div>
+         <MiniHead
+            current={currentRound + 1}
+            total={maxRounds}
+            score={currentScore}
+            progress={progress}
+         />
 
          {/* Game Area */}
          {gameState === "memorizing" && (
-            <div
-               style={{
-                  width: "100%",
-                  maxWidth: "800px",
-                  background: "var(--card)",
-                  borderRadius: "var(--radius)",
-                  padding: isMobile ? "40px 20px" : "60px 32px",
-                  boxShadow: "0 10px 24px rgba(0, 0, 0, 0.25)",
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  gap: isMobile ? "20px" : "24px",
-                  minHeight: "300px",
-                  justifyContent: "center",
-               }}
-            >
-               <div
-                  style={{
-                     fontSize: isMobile ? "1rem" : "1.1rem",
-                     fontWeight: 600,
-                     color: "var(--muted)",
-                     marginBottom: "20px",
-                  }}
-               >
-                  Memorize the sequence:
-               </div>
-               <div
-                  style={{
-                     fontSize: isMobile ? "4rem" : "6rem",
-                     fontWeight: 800,
-                     color: "var(--accent)",
-                     textAlign: "center",
-                     minHeight: isMobile ? "80px" : "120px",
-                     display: "flex",
-                     alignItems: "center",
-                     justifyContent: "center",
-                  }}
-               >
-                  {sequence[currentLetterIndex] || ""}
+            <div className={`${c.panel} ${c.area}`}>
+               <p className={c.hint}>Memorize the sequence:</p>
+               <div className={c.letterStage}>
+                  {/* keyed by position: every letter (a repeated one too) shows as a new flash */}
+                  <div key={currentLetterIndex} className={c.letter}>
+                     {sequence[currentLetterIndex] || ""}
+                  </div>
+                  {sequence.length > 0 && (
+                     <span className={c.letterCount}>
+                        {Math.min(currentLetterIndex + 1, sequence.length)} /{" "}
+                        {sequence.length}
+                     </span>
+                  )}
                </div>
             </div>
          )}
 
          {gameState === "input" && (
-            <div
-               style={{
-                  width: "100%",
-                  maxWidth: "800px",
-                  background: "var(--card)",
-                  borderRadius: "var(--radius)",
-                  padding: isMobile ? "20px" : "32px",
-                  boxShadow: "0 10px 24px rgba(0, 0, 0, 0.25)",
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  gap: isMobile ? "20px" : "24px",
-               }}
-            >
-               <div
-                  style={{
-                     fontSize: isMobile ? "1.1rem" : "1.3rem",
-                     fontWeight: 700,
-                     color: "var(--text)",
-                     textAlign: "center",
-                     marginBottom: "10px",
-                  }}
-               >
-                  Type the sequence you saw:
-               </div>
+            <div className={`${c.panel} ${c.area}`}>
+               <div className={c.rule}>Type the sequence you saw:</div>
                <input
                   ref={inputRef}
                   type="text"
@@ -585,291 +437,54 @@ export default function FinalMemoryGame({
                      }
                   }}
                   placeholder="Enter sequence..."
-                  style={{
-                     width: "100%",
-                     maxWidth: "400px",
-                     padding: isMobile ? "16px" : "20px",
-                     fontSize: isMobile ? "1.5rem" : "2rem",
-                     fontWeight: 700,
-                     textAlign: "center" as const,
-                     background: "var(--background)",
-
-                     color: "var(--text)",
-                     textTransform: "uppercase",
-                     letterSpacing: "0.2em",
-                     outline: "none",
-                     cursor: gameState === "input" ? "text" : "not-allowed",
-                  }}
+                  aria-label="Sequence"
+                  autoComplete="off"
+                  autoCapitalize="characters"
+                  spellCheck={false}
+                  className={c.input}
                />
                <button
+                  type="button"
                   onClick={handleSubmit}
-                  className={fx.btn}
-                  disabled={!userInput || userInput.length !== sequence.length}
-                  style={{
-                     padding: isMobile ? "12px 24px" : "14px 28px",
-                     background:
-                        !userInput || userInput.length !== sequence.length
-                           ? "rgba(100, 100, 100, 0.2)"
-                           : "linear-gradient(135deg, rgba(134, 239, 172, 0.25), rgba(134, 239, 172, 0.12))",
-                     border:
-                        !userInput || userInput.length !== sequence.length
-                           ? "1px solid rgba(100, 100, 100, 0.4)"
-                           : "2px solid rgba(134, 239, 172, 0.6)",
-
-                     color: "var(--text)",
-                     fontSize: isMobile ? "1rem" : "1.05rem",
-                     fontWeight: 700,
-                     cursor:
-                        !userInput || userInput.length !== sequence.length
-                           ? "not-allowed"
-                           : "pointer",
-                     transition: "all 0.3s ease",
-                     opacity:
-                        !userInput || userInput.length !== sequence.length
-                           ? 0.5
-                           : 1,
-                  }}
+                  className={c.primary}
+                  disabled={!canSubmit}
                >
                   Submit
                </button>
 
                {/* Feedback */}
                {feedback && (
-                  <div
-                     style={{
-                        padding: isMobile ? "16px 20px" : "20px 24px",
-
-                        fontSize: isMobile ? "1rem" : "1.1rem",
-                        fontWeight: 600,
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "10px",
-                        width: "100%",
-                        justifyContent: "center",
-                        background:
-                           feedback === "correct"
-                              ? "rgba(134, 239, 172, 0.2)"
-                              : "rgba(252, 165, 165, 0.2)",
-                        border: `1px solid ${
-                           feedback === "correct" ? "var(--ok)" : "var(--warn)"
-                        }`,
-                        color:
-                           feedback === "correct" ? "var(--ok)" : "var(--warn)",
-                     }}
-                  >
+                  <Feedback ok={feedback === "correct"}>
                      {feedback === "correct" ? (
-                        <>
-                           <CheckCircleIcon style={{ width: 24, height: 24 }} />
-                           <span>Correct! Great job!</span>
-                        </>
+                        "Correct! Great job!"
                      ) : (
-                        <>
-                           <XCircleIcon style={{ width: 24, height: 24 }} />
-                           <span>
-                              Try again! The sequence was: {sequence.join("")}
-                           </span>
-                        </>
+                        <>Try again! The sequence was: {sequence.join("")}</>
                      )}
-                  </div>
+                  </Feedback>
                )}
             </div>
          )}
 
          {/* Game Complete */}
          {gameState === "ready" && (
-            <div
-               style={{
-                  padding: isMobile ? "24px" : "32px",
-                  background: "var(--card)",
-                  borderRadius: "var(--radius)",
-                  color: "var(--text)",
-                  fontSize: isMobile ? "1rem" : "1.1rem",
-                  fontWeight: 700,
-                  textAlign: "center" as const,
-                  boxShadow: "0 10px 24px rgba(0, 0, 0, 0.25)",
-                  width: "100%",
-                  maxWidth: "800px",
-               }}
-            >
-               <div
-                  style={{
-                     display: "inline-flex",
-                     alignItems: "center",
-                     gap: "8px",
-                     padding: "8px 14px",
-                     borderRadius: "999px",
-                     fontWeight: 800,
-                     fontSize: isMobile ? "0.95rem" : "1.05rem",
-                     background:
-                        "linear-gradient(135deg, rgba(134, 239, 172, 0.25), rgba(134, 239, 172, 0.1))",
-                     border: "2px solid rgba(134, 239, 172, 0.6)",
-                     color: "var(--text)",
-                     marginBottom: "16px",
-                  }}
-               >
-                  <TrophyIcon style={{ width: 20, height: 20 }} />
-                  Game Complete!
-               </div>
-               <div
-                  style={{
-                     fontSize: isMobile ? "1.05rem" : "1.1rem",
-                     fontWeight: 600,
-                     marginTop: "16px",
-                  }}
-               >
-                  All {maxRounds} rounds completed!
-               </div>
-            </div>
+            <DoneSheet
+               badge="Game Complete!"
+               text={<>All {maxRounds} rounds completed!</>}
+            />
          )}
 
          {/* Replay and Share Buttons */}
          {(gameState === "input" ||
             gameState === "ready" ||
             feedback === "wrong") && (
-            <div
-               style={{
-                  display: "flex",
-                  gap: "12px",
-                  justifyContent: "center",
-                  flexWrap: "wrap",
-                  padding: isMobile ? "12px" : "16px",
-                  background: "var(--card)",
-
-                  width: "100%",
-                  maxWidth: "800px",
-               }}
-            >
-               {/* Share Success Message */}
-               {shareSuccess && !unlimitedActivated && (
-                  <div
-                     style={{
-                        width: "100%",
-                        padding: "12px",
-                        background: "rgba(134, 239, 172, 0.2)",
-                        border: "2px solid rgba(134, 239, 172, 0.6)",
-                        borderRadius: "8px",
-                        fontSize: isMobile ? "0.9rem" : "1rem",
-                        fontWeight: 600,
-                        color: "var(--ok)",
-                        textAlign: "center",
-                        marginBottom: "8px",
-                     }}
-                  >
-                     Link copied! Unlimited replay will unlock when someone
-                     opens your link!
-                  </div>
-               )}
-
-               {/* Unlimited Activated Message */}
-               {unlimitedActivated && (
-                  <div
-                     style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: isMobile ? "6px" : "8px",
-                        padding: isMobile ? "10px 14px" : "8px 16px",
-                        background:
-                           "linear-gradient(135deg, rgba(250, 204, 21, 0.2), rgba(250, 204, 21, 0.1))",
-                        border: "2px solid rgba(250, 204, 21, 0.6)",
-                        borderRadius: isMobile ? "10px" : "8px",
-                        color: "var(--text)",
-                        fontSize: isMobile ? "0.85rem" : "0.9rem",
-                        fontWeight: 500,
-                        width: "100%",
-                        justifyContent: "center",
-                        textAlign: "center",
-                        flexWrap: "wrap",
-                        marginBottom: "8px",
-                     }}
-                  >
-                     <CheckCircleIcon
-                        style={{
-                           width: isMobile ? 16 : 18,
-                           height: isMobile ? 16 : 18,
-                           color: "rgba(250, 204, 21, 0.9)",
-                           flexShrink: 0,
-                        }}
-                     />
-                     <span>
-                        🎉 Someone opened your link! Unlimited replay is now
-                        active for 15 minutes!
-                     </span>
-                  </div>
-               )}
-
-               {/* Replay Button */}
-               <button
-                  onClick={handleReplay}
-                  className={fx.btn}
-                  disabled={maxReplays > 0 && replaysUsed >= maxReplays}
-                  style={{
-                     display: "flex",
-                     alignItems: "center",
-                     gap: isMobile ? "6px" : "8px",
-                     padding: isMobile ? "10px 16px" : "10px 20px",
-                     width: isMobile ? "100%" : "auto",
-                     background:
-                        maxReplays > 0 && replaysUsed >= maxReplays
-                           ? "rgba(100, 100, 100, 0.2)"
-                           : "linear-gradient(135deg, rgba(250, 204, 21, 0.2), rgba(250, 204, 21, 0.1))",
-                     border:
-                        maxReplays > 0 && replaysUsed >= maxReplays
-                           ? "1px solid rgba(100, 100, 100, 0.4)"
-                           : "1px solid rgba(250, 204, 21, 0.6)",
-
-                     color: "var(--text)",
-                     fontSize: isMobile ? "0.85rem" : "0.95rem",
-                     fontWeight: 600,
-                     cursor:
-                        maxReplays > 0 && replaysUsed >= maxReplays
-                           ? "not-allowed"
-                           : "pointer",
-                     opacity:
-                        maxReplays > 0 && replaysUsed >= maxReplays ? 0.5 : 1,
-                     transition: "all 0.3s ease",
-                  }}
-               >
-                  <ArrowPathRoundedSquareIcon
-                     style={{
-                        width: isMobile ? 18 : 20,
-                        height: isMobile ? 18 : 20,
-                     }}
-                  />
-                  Replay
-                  {maxReplays > 0 && ` (${maxReplays - replaysUsed} left)`}
-               </button>
-
-               {/* Share Button */}
-               <button
-                  onClick={handleShare}
-                  className={fx.btn}
-                  style={{
-                     display: "flex",
-                     alignItems: "center",
-                     gap: isMobile ? "6px" : "8px",
-                     padding: isMobile ? "10px 16px" : "10px 20px",
-                     width: isMobile ? "100%" : "auto",
-                     background:
-                        "linear-gradient(135deg, rgba(250, 204, 21, 0.2), rgba(250, 204, 21, 0.1))",
-                     border: "1px solid rgba(250, 204, 21, 0.6)",
-
-                     color: "var(--text)",
-                     fontSize: isMobile ? "0.85rem" : "0.95rem",
-                     fontWeight: 600,
-                     cursor: "pointer",
-                     transition: "all 0.3s ease",
-                  }}
-               >
-                  <ShareIcon
-                     style={{
-                        width: isMobile ? 18 : 20,
-                        height: isMobile ? 18 : 20,
-                        color: "var(--accent)",
-                     }}
-                  />
-                  <span>Share for unlimited</span>
-               </button>
-            </div>
+            <ReplayShareBar
+               shareSuccess={shareSuccess}
+               unlimitedActivated={unlimitedActivated}
+               maxReplays={maxReplays}
+               replaysUsed={replaysUsed}
+               onReplay={handleReplay}
+               onShare={handleShare}
+            />
          )}
       </div>
    );

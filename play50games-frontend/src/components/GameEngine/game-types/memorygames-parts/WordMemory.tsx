@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import m from "./mobile.module.css";
+import ir from "./SequenceRecall.module.css";
 import {
    CheckCircleIcon,
    XCircleIcon,
@@ -699,165 +700,76 @@ function WordMemory({
 
    const completedRounds = currentRound;
    const sequenceLength = sequence.length;
+   const hintDisabled =
+      (maxHints > 0 && hintsUsed >= maxHints) ||
+      gameState !== "input" ||
+      hintRevealed.length >= sequence.length;
 
    return (
-      <div
-         className={m.tight}
-         style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: isMobile ? "16px" : "20px",
-            padding: isMobile ? "16px" : "24px",
-            maxWidth: "1200px",
-            margin: "0 auto",
-         }}
-      >
+      <div className={`${m.root} ${m.tight}`} style={{ maxWidth: "760px" }}>
          {/* Header */}
-         <div
-            style={{
-               display: "flex",
-               justifyContent: "space-between",
-               alignItems: "center",
-               flexWrap: "wrap",
-               gap: isMobile ? "12px" : "16px",
-               padding: isMobile ? "12px 16px" : "16px 20px",
-               background:
-                  "linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(147, 51, 234, 0.1))",
-               borderRadius: "16px",
-               border: "1px solid rgba(255, 255, 255, 0.1)",
-            }}
-         >
-            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-               <ArrowPathIcon
-                  style={{
-                     width: isMobile ? 20 : 24,
-                     height: isMobile ? 20 : 24,
-                     color: "var(--accent)",
-                  }}
-               />
-               <span style={{ fontSize: isMobile ? "0.9rem" : "1rem" }}>
-                  Round {currentRound + 1} / {maxRounds}
+         <div className={m.panel}>
+            <div className={m.stats}>
+               <span className={m.stat}>
+                  <ArrowPathIcon className={m.statIcon} />
+                  Round <b>{Math.min(currentRound + 1, maxRounds)} / {maxRounds}</b>
+               </span>
+               <span className={m.stat}>
+                  <TrophyIcon className={m.statIcon} />
+                  Score <b>{currentScore} / 100</b>
                </span>
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-               <TrophyIcon
+            {/* Progress Bar */}
+            <div className={m.progress}>
+               <div
+                  className={m.progressFill}
                   style={{
-                     width: isMobile ? 20 : 24,
-                     height: isMobile ? 20 : 24,
-                     color: "var(--ok)",
+                     transform: `scaleX(${Math.min((currentRound + 1) / maxRounds, 1)})`,
                   }}
                />
-               <span style={{ fontSize: isMobile ? "0.9rem" : "1rem" }}>
-                  Score: {currentScore} / 100
-               </span>
             </div>
-         </div>
-
-         {/* Progress Bar */}
-         <div
-            style={{
-               width: "100%",
-               height: isMobile ? "6px" : "8px",
-               background: "rgba(255, 255, 255, 0.1)",
-               borderRadius: "999px",
-               overflow: "hidden",
-            }}
-         >
-            <div
-               style={{
-                  width: `${((currentRound + 1) / maxRounds) * 100}%`,
-                  height: "100%",
-                  background:
-                     "linear-gradient(90deg, var(--accent), var(--ok))",
-                  transition: "width 0.3s ease",
-               }}
-            />
          </div>
 
          {/* Game State Display */}
-         <div
-            key={gameState}
-            className={gameState === "correct" ? m.feedbackOk : gameState === "wrong" ? m.feedbackBad : undefined}
-            style={{
-               padding: isMobile ? "14px 18px" : "16px 24px",
-
-               background: "rgba(15, 27, 51, 0.5)",
-               border: "1px solid rgba(255, 255, 255, 0.1)",
-               display: "flex",
-               justifyContent: "space-between",
-               alignItems: "center",
-               flexWrap: "wrap",
-               gap: "12px",
-            }}
-         >
+         <div key={gameState} className={`${m.panel} ${ir.statusRow}`}>
             <div>
-               <div
-                  style={{
-                     fontSize: isMobile ? "1rem" : "1.1rem",
-                     fontWeight: 600,
-                     marginBottom: "4px",
-                  }}
-               >
+               <div className={ir.statusLine}>
                   {gameState === "memorizing" && "Watch the words flash…"}
                   {gameState === "input" && "Your turn: Click words in order"}
                   {gameState === "correct" && "Correct! Great job!"}
                   {gameState === "wrong" && "Try again! You can do it!"}
                </div>
-               <div
-                  style={{
-                     fontSize: isMobile ? "0.85rem" : "0.9rem",
-                     color: "var(--muted)",
-                  }}
-               >
+               <div className={ir.statusSub}>
                   {gameState === "memorizing" &&
                      `Sequence length: ${sequenceLength}`}
                   {gameState === "input" &&
                      `Click ${sequenceLength} words in the order they appeared`}
                </div>
             </div>
-            <div
-               style={{
-                  padding: "6px 12px",
-                  borderRadius: "999px",
-                  background:
-                     gameState === "correct"
-                        ? "rgba(134, 239, 172, 0.2)"
-                        : gameState === "wrong"
-                        ? "rgba(252, 165, 165, 0.2)"
-                        : "rgba(59, 130, 246, 0.2)",
-                  border: `1px solid ${
-                     gameState === "correct"
-                        ? "var(--ok)"
-                        : gameState === "wrong"
-                        ? "var(--warn)"
-                        : "var(--accent)"
-                  }`,
-                  color:
-                     gameState === "correct"
-                        ? "var(--ok)"
-                        : gameState === "wrong"
-                        ? "var(--warn)"
-                        : "var(--accent)",
-                  fontSize: isMobile ? "0.8rem" : "0.85rem",
-                  fontWeight: 600,
-               }}
+            <span
+               className={`${ir.chip} ${
+                  gameState === "correct"
+                     ? ir.chipOk
+                     : gameState === "wrong"
+                     ? ir.chipBad
+                     : ""
+               }`}
             >
                {gameState === "memorizing" && "Memorizing"}
                {gameState === "input" && "Your Turn"}
                {gameState === "correct" && "Correct"}
                {gameState === "wrong" && "Wrong"}
-            </div>
+            </span>
          </div>
 
          {/* Word Grid */}
          <div
+            key={currentRound}
+            className={`${m.board} ${m.stagger} ${ir.wordBoard}`}
             style={{
-               display: "grid",
-               gridTemplateColumns: `repeat(${gridSize}, 1fr)`,
-               gap: isMobile ? "10px" : "12px",
-               maxWidth: isMobile ? "100%" : "700px",
+               gridTemplateColumns: `repeat(${gridSize}, minmax(0, 1fr))`,
+               maxWidth: `min(100%, ${gridSize * 180}px)`,
                margin: "0 auto",
-               width: "100%",
             }}
          >
             {currentWords.map((word, index) => {
@@ -884,9 +796,6 @@ function WordMemory({
                   hasBeenFlashed &&
                   orderInSequence !== -1;
                // Find which hint position revealed this word (to show order number)
-               // hintRevealed contains positions in sequence (0, 1, 2, ...)
-               // We need to find which position in hintRevealed corresponds to this word
-               // Then use that position to get the order in sequence
                const hintRevealedPosition = hintRevealed.findIndex(
                   (hintPos) => sequence[hintPos] === index
                );
@@ -895,246 +804,63 @@ function WordMemory({
                   hintRevealedPosition !== -1
                      ? hintRevealed[hintRevealedPosition]
                      : -1;
+               const stateClass = isFlashing
+                  ? ir.flashCue
+                  : hasBeenFlashed
+                  ? ir.cue
+                  : isSelected
+                  ? `${m.cardMatched} ${m.matched}`
+                  : isHintRevealed
+                  ? m.cardHint
+                  : isHighlighted
+                  ? m.cardSelected
+                  : "";
 
                return (
-                  <div
+                  <button
+                     type="button"
+                     tabIndex={-1}
                      key={index}
-                     role="button"
-                     className={m.card}
+                     className={`${m.card} ${ir.wordTile} ${stateClass}`}
                      onClick={() => handleWordClick(index)}
                      style={{
-                        padding: isMobile ? "16px 12px" : "20px 16px",
-
-                        border: `2px solid ${
-                           isFlashing
-                              ? "rgba(59, 130, 246, 0.8)"
-                              : hasBeenFlashed && !isFlashing
-                              ? "rgba(59, 130, 246, 0.6)"
-                              : isSelected
-                              ? "rgba(134, 239, 172, 0.6)"
-                              : isHintRevealed
-                              ? "rgba(147, 51, 234, 0.6)"
-                              : isHighlighted
-                              ? "rgba(59, 130, 246, 0.5)"
-                              : "rgba(255, 255, 255, 0.1)"
-                        }`,
-                        background: isFlashing
-                           ? "linear-gradient(135deg, rgba(59, 130, 246, 0.3), rgba(59, 130, 246, 0.2))"
-                           : hasBeenFlashed && !isFlashing
-                           ? "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))"
-                           : isSelected
-                           ? "linear-gradient(135deg, rgba(134, 239, 172, 0.2), rgba(134, 239, 172, 0.1))"
-                           : isHintRevealed
-                           ? "linear-gradient(135deg, rgba(147, 51, 234, 0.2), rgba(147, 51, 234, 0.1))"
-                           : isHighlighted
-                           ? "linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(59, 130, 246, 0.05))"
-                           : "rgba(15, 27, 51, 0.5)",
-                        boxShadow: isFlashing
-                           ? "0 0 20px rgba(59, 130, 246, 0.5), 0 4px 12px rgba(0, 0, 0, 0.3)"
-                           : hasBeenFlashed && !isFlashing
-                           ? "0 0 10px rgba(59, 130, 246, 0.3), 0 2px 8px rgba(0, 0, 0, 0.2)"
-                           : isSelected
-                           ? "0 4px 12px rgba(134, 239, 172, 0.3)"
-                           : "none",
-                        cursor: gameState === "input" ? "pointer" : "default",
-                        transition: "all 0.2s ease",
-                        position: "relative",
-                        transform: isFlashing
-                           ? "scale(1.05)"
-                           : hasBeenFlashed
-                           ? "scale(1.02)"
-                           : "scale(1)",
-                        textAlign: "center",
-                        fontSize: isMobile ? "0.9rem" : "1rem",
-                        fontWeight: 600,
-                        color: "var(--text)",
-                        userSelect: "none",
-                     }}
-                     onMouseEnter={(e) => {
-                        if (gameState === "input" && !isSelected) {
-                           e.currentTarget.style.background =
-                              "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))";
-                           e.currentTarget.style.borderColor =
-                              "rgba(59, 130, 246, 0.6)";
-                        }
-                     }}
-                     onMouseLeave={(e) => {
-                        if (gameState === "input" && !isSelected) {
-                           e.currentTarget.style.background =
-                              "rgba(15, 27, 51, 0.5)";
-                           e.currentTarget.style.borderColor =
-                              "rgba(255, 255, 255, 0.1)";
-                        }
+                        ["--i" as string]: index,
+                        cursor:
+                           gameState === "input" && !isSelected
+                              ? "pointer"
+                              : "default",
                      }}
                   >
-                     {word}
+                     <span className={m.face}>{word}</span>
                      {showMemorizeOrder && (
-                        <div
-                           style={{
-                              position: "absolute",
-                              top: "4px",
-                              left: "4px",
-                              width: isMobile ? "22px" : "24px",
-                              height: isMobile ? "22px" : "24px",
-                              borderRadius: "50%",
-                              background: "rgba(59, 130, 246, 0.9)",
-                              border: "1px solid rgba(59, 130, 246, 1)",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              fontSize: isMobile ? "0.7rem" : "0.75rem",
-                              fontWeight: 700,
-                              color: "#ffffff",
-                              boxShadow: "0 2px 8px rgba(59, 130, 246, 0.4)",
-                           }}
-                        >
+                        <span className={`${ir.order} ${ir.orderLeft} ${ir.orderCue}`}>
                            {orderInSequence + 1}
-                        </div>
+                        </span>
                      )}
                      {showOrder && (
-                        <div
-                           style={{
-                              position: "absolute",
-                              top: "4px",
-                              right: "4px",
-                              width: "24px",
-                              height: "24px",
-                              borderRadius: "50%",
-                              background: "var(--ok)",
-                              color: "#0b1220",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              fontSize: "0.75rem",
-                              fontWeight: 700,
-                           }}
-                        >
+                        <span className={ir.order}>
                            {userInput.indexOf(index) + 1}
-                        </div>
+                        </span>
                      )}
                      {isHintRevealed && !isSelected && hintOrder !== -1 && (
-                        <div
-                           style={{
-                              position: "absolute",
-                              top: "4px",
-                              left: "4px",
-                              width: isMobile ? "22px" : "24px",
-                              height: isMobile ? "22px" : "24px",
-                              borderRadius: "50%",
-                              background: "rgba(147, 51, 234, 0.9)",
-                              border: "1px solid rgba(147, 51, 234, 1)",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              fontSize: isMobile ? "0.7rem" : "0.75rem",
-                              fontWeight: 700,
-                              color: "#ffffff",
-                              boxShadow: "0 2px 8px rgba(147, 51, 234, 0.4)",
-                           }}
-                        >
+                        <span className={`${ir.order} ${ir.orderLeft}`}>
                            {hintOrder + 1}
-                        </div>
+                        </span>
                      )}
-                  </div>
+                  </button>
                );
             })}
          </div>
 
          {/* Hint and Share Buttons */}
-         <div
-            style={{
-               display: "flex",
-               gap: isMobile ? "10px" : "12px",
-               justifyContent: "center",
-               flexWrap: "wrap",
-               width: "100%",
-            }}
-         >
+         <div className={ir.actions}>
             {/* Hint Button */}
             <button
                onClick={handleHint}
-               className={m.btn}
-               disabled={
-                  (maxHints > 0 && hintsUsed >= maxHints) ||
-                  gameState !== "input" ||
-                  hintRevealed.length >= sequence.length
-               }
-               style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: isMobile ? "6px" : "8px",
-                  padding: isMobile ? "10px 16px" : "10px 20px",
-                  width: isMobile ? "100%" : "auto",
-                  background:
-                     maxHints > 0 && hintsUsed >= maxHints
-                        ? "rgba(100, 100, 100, 0.2)"
-                        : "linear-gradient(135deg, rgba(251, 191, 36, 0.2), rgba(251, 191, 36, 0.1))",
-                  border: `1px solid ${
-                     maxHints > 0 && hintsUsed >= maxHints
-                        ? "rgba(100, 100, 100, 0.3)"
-                        : "rgba(251, 191, 36, 0.6)"
-                  }`,
-
-                  color:
-                     maxHints > 0 && hintsUsed >= maxHints
-                        ? "rgba(255, 255, 255, 0.4)"
-                        : "var(--text)",
-                  fontSize: isMobile ? "0.85rem" : "0.95rem",
-                  fontWeight: 600,
-                  cursor:
-                     (maxHints > 0 && hintsUsed >= maxHints) ||
-                     gameState !== "input" ||
-                     hintRevealed.length >= sequence.length
-                        ? "not-allowed"
-                        : "pointer",
-                  opacity:
-                     (maxHints > 0 && hintsUsed >= maxHints) ||
-                     gameState !== "input" ||
-                     hintRevealed.length >= sequence.length
-                        ? 0.5
-                        : 1,
-                  transition: "all 0.3s ease",
-               }}
-               onMouseEnter={(e) => {
-                  if (
-                     !(maxHints > 0 && hintsUsed >= maxHints) &&
-                     gameState === "input" &&
-                     hintRevealed.length < sequence.length
-                  ) {
-                     e.currentTarget.style.background =
-                        "linear-gradient(135deg, rgba(251, 191, 36, 0.3), rgba(251, 191, 36, 0.2))";
-                     e.currentTarget.style.borderColor =
-                        "rgba(251, 191, 36, 0.8)";
-                     e.currentTarget.style.transform = "translateY(-2px)";
-                     e.currentTarget.style.boxShadow =
-                        "0 4px 12px rgba(251, 191, 36, 0.3)";
-                  }
-               }}
-               onMouseLeave={(e) => {
-                  if (
-                     !(maxHints > 0 && hintsUsed >= maxHints) &&
-                     gameState === "input" &&
-                     hintRevealed.length < sequence.length
-                  ) {
-                     e.currentTarget.style.background =
-                        "linear-gradient(135deg, rgba(251, 191, 36, 0.2), rgba(251, 191, 36, 0.1))";
-                     e.currentTarget.style.borderColor =
-                        "rgba(251, 191, 36, 0.6)";
-                     e.currentTarget.style.transform = "translateY(0)";
-                     e.currentTarget.style.boxShadow = "none";
-                  }
-               }}
+               className={`${m.btn} ${m.pill}`}
+               disabled={hintDisabled}
             >
-               <LightBulbIcon
-                  style={{
-                     width: isMobile ? 18 : 20,
-                     height: isMobile ? 18 : 20,
-                     color:
-                        maxHints > 0 && hintsUsed >= maxHints
-                           ? "var(--muted)"
-                           : "rgba(251, 191, 36, 0.9)",
-                  }}
-               />
+               <LightBulbIcon className={m.pillIcon} />
                <span>
                   Hint{" "}
                   {maxHints === 0 ? "(∞)" : `(${maxHints - hintsUsed} left)`}
@@ -1142,82 +868,16 @@ function WordMemory({
             </button>
 
             {/* Share Button */}
-            <button
-               onClick={handleShare}
-               className={m.btn}
-               style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: isMobile ? "6px" : "8px",
-                  padding: isMobile ? "10px 16px" : "10px 20px",
-                  width: isMobile ? "100%" : "auto",
-                  background:
-                     "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
-                  border: "1px solid rgba(59, 130, 246, 0.6)",
-
-                  color: "var(--text)",
-                  fontSize: isMobile ? "0.85rem" : "0.95rem",
-                  fontWeight: 600,
-                  cursor: "pointer",
-                  transition: "all 0.3s ease",
-               }}
-               onMouseEnter={(e) => {
-                  e.currentTarget.style.background =
-                     "linear-gradient(135deg, rgba(59, 130, 246, 0.3), rgba(59, 130, 246, 0.2))";
-                  e.currentTarget.style.borderColor = "rgba(59, 130, 246, 0.8)";
-                  e.currentTarget.style.transform = "translateY(-2px)";
-                  e.currentTarget.style.boxShadow =
-                     "0 4px 12px rgba(59, 130, 246, 0.3)";
-               }}
-               onMouseLeave={(e) => {
-                  e.currentTarget.style.background =
-                     "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))";
-                  e.currentTarget.style.borderColor = "rgba(59, 130, 246, 0.6)";
-                  e.currentTarget.style.transform = "translateY(0)";
-                  e.currentTarget.style.boxShadow = "none";
-               }}
-            >
-               <ShareIcon
-                  style={{
-                     width: isMobile ? 18 : 20,
-                     height: isMobile ? 18 : 20,
-                     color: "rgba(59, 130, 246, 0.9)",
-                  }}
-               />
+            <button onClick={handleShare} className={`${m.btn} ${m.pill}`}>
+               <ShareIcon className={m.pillIcon} />
                <span>{isMobile ? "Share" : "Share for Unlimited Hints"}</span>
             </button>
          </div>
 
          {/* Share Success Messages */}
          {shareSuccess && (
-            <div
-               style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: isMobile ? "6px" : "8px",
-                  padding: isMobile ? "10px 14px" : "8px 16px",
-                  background:
-                     "linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(34, 197, 94, 0.1))",
-                  border: "2px solid rgba(34, 197, 94, 0.6)",
-                  borderRadius: isMobile ? "10px" : "8px",
-                  color: "var(--text)",
-                  fontSize: isMobile ? "0.85rem" : "0.9rem",
-                  fontWeight: 500,
-                  width: "100%",
-                  justifyContent: "center",
-                  textAlign: "center",
-                  flexWrap: "wrap",
-                  animation: "slideIn 0.3s ease",
-               }}
-            >
-               <CheckCircleIcon
-                  style={{
-                     width: isMobile ? 16 : 18,
-                     height: isMobile ? 16 : 18,
-                     color: "rgba(34, 197, 94, 0.9)",
-                     flexShrink: 0,
-                  }}
-               />
+            <div className={`${m.note} ${m.noteOk}`} style={{ width: "100%" }}>
+               <CheckCircleIcon className={m.noteIcon} />
                <span>
                   {isMobile
                      ? "Link copied! Unlimited hints unlock when someone opens it!"
@@ -1227,38 +887,12 @@ function WordMemory({
          )}
 
          {unlimitedActivated && (
-            <div
-               style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: isMobile ? "6px" : "8px",
-                  padding: isMobile ? "10px 14px" : "8px 16px",
-                  background:
-                     "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
-                  border: "2px solid rgba(59, 130, 246, 0.6)",
-                  borderRadius: isMobile ? "10px" : "8px",
-                  color: "var(--text)",
-                  fontSize: isMobile ? "0.85rem" : "0.9rem",
-                  fontWeight: 500,
-                  width: "100%",
-                  justifyContent: "center",
-                  textAlign: "center",
-                  flexWrap: "wrap",
-                  animation: "slideIn 0.3s ease",
-               }}
-            >
-               <CheckCircleIcon
-                  style={{
-                     width: isMobile ? 16 : 18,
-                     height: isMobile ? 16 : 18,
-                     color: "rgba(59, 130, 246, 0.9)",
-                     flexShrink: 0,
-                  }}
-               />
+            <div className={m.note} style={{ width: "100%" }}>
+               <CheckCircleIcon className={m.noteIcon} />
                <span>
                   {isMobile
-                     ? "🎉 Unlimited hints active for 15 minutes!"
-                     : "🎉 Someone opened your link! Unlimited hints are now active for 15 minutes!"}
+                     ? "Unlimited hints active for 15 minutes!"
+                     : "Someone opened your link! Unlimited hints are now active for 15 minutes!"}
                </span>
             </div>
          )}
@@ -1266,48 +900,20 @@ function WordMemory({
          {/* Feedback Message */}
          {feedback !== null && (
             <div
-               className={feedback === "correct" ? m.feedbackOk : m.feedbackBad}
-               style={{
-                  padding: isMobile ? "12px 20px" : "16px 24px",
-
-                  fontSize: isMobile ? "1rem" : "1.1rem",
-                  fontWeight: 600,
-                  animation: "slideIn 0.3s ease-out",
-                  background:
-                     feedback === "correct"
-                        ? "rgba(134, 239, 172, 0.2)"
-                        : "rgba(252, 165, 165, 0.2)",
-                  border: `1px solid ${
-                     feedback === "correct" ? "var(--ok)" : "var(--warn)"
-                  }`,
-                  color: feedback === "correct" ? "var(--ok)" : "var(--warn)",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: isMobile ? "8px" : "10px",
-                  width: "100%",
-                  maxWidth: isMobile ? "100%" : "700px",
-                  justifyContent: "center",
-                  margin: "0 auto",
-               }}
+               role="status"
+               className={`${m.feedback} ${
+                  feedback === "correct" ? m.feedbackOk : m.feedbackBad
+               }`}
+               style={{ maxWidth: "none" }}
             >
                {feedback === "correct" ? (
                   <>
-                     <CheckCircleIcon
-                        style={{
-                           width: isMobile ? 20 : 24,
-                           height: isMobile ? 20 : 24,
-                        }}
-                     />
+                     <CheckCircleIcon className={m.feedbackIcon} />
                      <span>Correct! Great job!</span>
                   </>
                ) : (
                   <>
-                     <XCircleIcon
-                        style={{
-                           width: isMobile ? 20 : 24,
-                           height: isMobile ? 20 : 24,
-                        }}
-                     />
+                     <XCircleIcon className={m.feedbackIcon} />
                      <span>Try again! You can do it!</span>
                   </>
                )}

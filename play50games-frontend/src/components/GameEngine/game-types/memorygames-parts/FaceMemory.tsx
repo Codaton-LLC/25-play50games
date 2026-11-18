@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import m from "./mobile.module.css";
+import f from "./FaceMemory.module.css";
 import {
    CheckCircleIcon,
    XCircleIcon,
@@ -9,8 +10,7 @@ import {
    ShareIcon,
    ArrowPathIcon,
    TrophyIcon,
-   PuzzlePieceIcon,
-   SparklesIcon,
+   UserGroupIcon,
 } from "@heroicons/react/24/outline";
 import {
    registerShare,
@@ -54,6 +54,24 @@ function FaceMemory({
    const [unlimitedActivated, setUnlimitedActivated] = useState(false);
    const [currentShareId, setCurrentShareId] = useState<string | null>(null);
    const shareCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+   // Round-flow timers (memorize -> input, next round, retry, completion): the same delays as
+   // before, but cleared when the game unmounts so a timer never fires into a closed game.
+   const roundTimersRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
+   const later = useCallback((fn: () => void, ms: number) => {
+      const t = setTimeout(() => {
+         roundTimersRef.current.delete(t);
+         fn();
+      }, ms);
+      roundTimersRef.current.add(t);
+   }, []);
+   useEffect(() => {
+      const timers = roundTimersRef.current;
+      return () => {
+         timers.forEach(clearTimeout);
+         timers.clear();
+      };
+   }, []);
 
    // Max hints: 10 for Face Memory, unlimited if shared
    const maxHints = hasShared ? 0 : 10; // 0 = unlimited
@@ -314,10 +332,10 @@ function FaceMemory({
 
       // Show faces for memorization (duration increases with round)
       const showTime = 1800 + currentRound * 200;
-      setTimeout(() => {
+      later(() => {
          setGameState("input");
       }, showTime);
-   }, [currentRound, FACES]);
+   }, [currentRound, FACES, later]);
 
    // Start first round
    useEffect(() => {
@@ -339,11 +357,11 @@ function FaceMemory({
    // Check game completion
    useEffect(() => {
       if (currentRound >= maxRounds) {
-         setTimeout(() => {
+         later(() => {
             onComplete(currentScore);
          }, 1000);
       }
-   }, [currentRound, maxRounds, currentScore, onComplete]);
+   }, [currentRound, maxRounds, currentScore, onComplete, later]);
 
    // Handle name selection
    const handleNameSelect = useCallback(
@@ -369,14 +387,14 @@ function FaceMemory({
                // Correct!
                setGameState("correct");
                setFeedback("correct");
-               setTimeout(() => {
+               later(() => {
                   setCurrentRound((prev) => prev + 1);
                }, 1500);
             } else {
                // Wrong - show feedback and restart the same round
                setGameState("wrong");
                setFeedback("wrong");
-               setTimeout(() => {
+               later(() => {
                   // Reset for the same round
                   setSelectedFaces([]);
                   setSelectedFaceIndex(null);
@@ -385,14 +403,14 @@ function FaceMemory({
                   // Restart the same round by showing faces again
                   setGameState("memorizing");
                   const showTime = 1800 + currentRound * 200;
-                  setTimeout(() => {
+                  later(() => {
                      setGameState("input");
                   }, showTime);
                }, 2000);
             }
          }
       },
-      [gameState, selectedFaces, facePairs, currentRound]
+      [gameState, selectedFaces, facePairs, currentRound, later]
    );
 
    // Handle hint
@@ -562,740 +580,219 @@ function FaceMemory({
 
    const progress = ((currentRound + 1) / maxRounds) * 100;
 
+   const hintsOut = maxHints > 0 && hintsUsed >= maxHints;
+   const pickable =
+      selectedFaceIndex !== null
+         ? shuffledNames.filter(
+              (name) =>
+                 !selectedFaces.includes(name) ||
+                 selectedFaces[selectedFaceIndex] === name
+           )
+         : [];
+   const cols = Math.max(1, Math.min(facePairs.length, isMobile ? 2 : 3));
+
    return (
-      <div
-         className={m.tight}
-         style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: isMobile ? "16px" : "20px",
-            padding: isMobile ? "16px" : "24px",
-            maxWidth: "100%",
-            margin: "0 auto",
-         }}
-      >
-         {/* Header - Same as Rotate to Fit */}
-         <div
-            style={{
-               display: "flex",
-               flexDirection: "column",
-               gap: isMobile ? "12px" : "16px",
-               paddingBottom: isMobile ? "12px" : "16px",
-               borderBottom: "1px solid var(--stroke)",
-            }}
-         >
-            <div
-               style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: isMobile ? "8px" : "12px",
-                  paddingBottom: isMobile ? "12px" : "16px",
-                  marginBottom: isMobile ? "12px" : "16px",
-                  borderBottom: "1px solid var(--stroke)",
-               }}
-            >
-               <PuzzlePieceIcon
-                  style={{
-                     width: isMobile ? 24 : 28,
-                     height: isMobile ? 24 : 28,
-                     color: "var(--accent)",
-                  }}
-               />
-               <h2
-                  style={{
-                     fontSize: isMobile ? "1.25rem" : "1.5rem",
-                     fontWeight: 700,
-                     margin: 0,
-                     background:
-                        "linear-gradient(135deg, var(--accent) 0%, var(--ok) 100%)",
-                     WebkitBackgroundClip: "text",
-                     WebkitTextFillColor: "transparent",
-                     backgroundClip: "text",
-                     textShadow: "0 2px 8px rgba(125, 211, 252, 0.3)",
-                  }}
-               >
-                  Face Memory
-               </h2>
-               <SparklesIcon
-                  style={{
-                     width: isMobile ? 24 : 28,
-                     height: isMobile ? 24 : 28,
-                     color: "var(--ok)",
-                  }}
-               />
-            </div>
-            <div
-               style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  flexWrap: "wrap",
-                  gap: isMobile ? "8px" : "12px",
-               }}
-            >
-               <div
-                  style={{
-                     display: "flex",
-                     alignItems: "center",
-                     gap: isMobile ? "6px" : "8px",
-                     fontSize: isMobile ? "0.875rem" : "1rem",
-                     color: "var(--text)",
-                  }}
-               >
-                  <ArrowPathIcon
-                     style={{
-                        width: isMobile ? 16 : 18,
-                        height: isMobile ? 16 : 18,
-                        color: "var(--accent)",
-                     }}
-                  />
-                  <span>
-                     Round {currentRound + 1} / {maxRounds}
-                  </span>
-               </div>
-               <div
-                  style={{
-                     display: "flex",
-                     alignItems: "center",
-                     gap: isMobile ? "6px" : "8px",
-                     fontSize: isMobile ? "0.875rem" : "1rem",
-                     color: "var(--text)",
-                  }}
-               >
-                  <TrophyIcon
-                     style={{
-                        width: isMobile ? 16 : 18,
-                        height: isMobile ? 16 : 18,
-                        color: "var(--ok)",
-                     }}
-                  />
-                  <span>Score: {currentScore} / 100</span>
-               </div>
-               <div
-                  style={{
-                     display: "flex",
-                     alignItems: "center",
-                     gap: isMobile ? "6px" : "8px",
-                     fontSize: isMobile ? "0.875rem" : "1rem",
-                     color: "var(--text)",
-                  }}
-               >
-                  <SparklesIcon
-                     style={{
-                        width: isMobile ? 16 : 18,
-                        height: isMobile ? 16 : 18,
-                        color: "var(--accent)",
-                     }}
-                  />
-                  <span>Faces: {facePairs.length}</span>
-               </div>
+      <div className={`${m.root} ${m.tight}`}>
+         {/* Header */}
+         <div className={m.panel}>
+            <div className={m.stats}>
+               <span className={m.stat}>
+                  <ArrowPathIcon className={m.statIcon} />
+                  Round <b>{currentRound + 1} / {maxRounds}</b>
+               </span>
+               <span className={m.stat}>
+                  <TrophyIcon className={m.statIcon} />
+                  Score <b>{currentScore} / 100</b>
+               </span>
+               <span className={m.stat}>
+                  <UserGroupIcon className={m.statIcon} />
+                  Faces <b>{facePairs.length}</b>
+               </span>
+               <span className={m.stat}>
+                  <LightBulbIcon className={m.statIcon} />
+                  Hints{" "}
+                  <b>{maxHints === 0 ? "∞" : `${maxHints - hintsUsed}/${maxHints}`}</b>
+               </span>
             </div>
             {/* Progress Bar */}
-            <div
-               style={{
-                  width: "100%",
-                  height: isMobile ? "6px" : "8px",
-                  background: "var(--stroke)",
-                  borderRadius: "4px",
-                  overflow: "hidden",
-                  marginTop: isMobile ? "4px" : "8px",
-               }}
-            >
+            <div className={m.progress}>
                <div
-                  style={{
-                     width: `${progress}%`,
-                     height: "100%",
-                     background:
-                        "linear-gradient(90deg, var(--accent) 0%, var(--ok) 100%)",
-                     borderRadius: "4px",
-                     transition: "width 0.3s",
-                     boxShadow: "rgba(125, 211, 252, 0.5) 0px 0px 10px",
-                  }}
+                  className={m.progressFill}
+                  style={{ transform: `scaleX(${Math.min(1, progress / 100)})` }}
                />
             </div>
          </div>
 
          {/* Game Board */}
-         <div
-            style={{
-               width: "100%",
-               display: "flex",
-               flexDirection: "column",
-               gap: isMobile ? "20px" : "24px",
-            }}
-         >
-            {gameState === "memorizing" ? (
-               <div
-                  style={{
-                     textAlign: "center",
-                     padding: isMobile ? "16px" : "20px",
-                     background:
-                        "linear-gradient(135deg, rgba(110, 168, 255, 0.1), rgba(110, 168, 255, 0.05))",
-                     border: "2px solid rgba(110, 168, 255, 0.3)",
-                     borderRadius: "16px",
-                  }}
-               >
-                  <p
-                     style={{
-                        margin: 0,
-                        fontSize: isMobile ? "1rem" : "1.1rem",
-                        fontWeight: 600,
-                        color: "var(--text)",
-                     }}
-                  >
-                     Memorize the faces and their names...
-                  </p>
-               </div>
-            ) : (
-               <div
-                  style={{
-                     textAlign: "center",
-                     padding: isMobile ? "16px" : "20px",
-                     background:
-                        "linear-gradient(135deg, rgba(251, 191, 36, 0.1), rgba(251, 191, 36, 0.05))",
-                     border: "2px solid rgba(251, 191, 36, 0.3)",
-                     borderRadius: "16px",
-                  }}
-               >
-                  <p
-                     style={{
-                        margin: 0,
-                        fontSize: isMobile ? "1rem" : "1.1rem",
-                        fontWeight: 600,
-                        color: "var(--text)",
-                     }}
-                  >
-                     Match each face with its correct name
-                  </p>
-               </div>
-            )}
+         <div className={f.wrap}>
+            <p
+               key={gameState === "memorizing" ? "memo" : "recall"}
+               className={`${f.prompt} ${gameState === "memorizing" ? "" : f.promptRecall}`}
+            >
+               {gameState === "memorizing"
+                  ? "Memorize the faces and their names..."
+                  : "Match each face with its correct name"}
+            </p>
 
             {/* Faces Grid */}
             <div
+               key={currentRound}
+               className={`${f.grid} ${m.stagger}`}
                style={{
-                  display: "grid",
-                  gridTemplateColumns: `repeat(${Math.min(
-                     facePairs.length,
-                     isMobile ? 2 : 3
-                  )}, 1fr)`,
-                  gap: isMobile ? "16px" : "20px",
-                  width: "100%",
+                  gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
+                  maxWidth: `${cols * 220}px`,
+                  margin: "0 auto",
                }}
             >
-               {facePairs.map((pair, index) => (
-                  <div
-                     key={index}
-                     style={{
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "center",
-                        gap: "12px",
-                        padding: isMobile ? "16px" : "20px",
-                        borderRadius: "16px",
-                        border: "2px solid",
-                        borderColor:
-                           gameState === "memorizing"
-                              ? "rgba(110, 168, 255, 0.3)"
-                              : selectedFaceIndex === index
-                              ? "rgba(59, 130, 246, 0.8)"
-                              : hintRevealed.includes(index)
-                              ? "rgba(251, 191, 36, 0.6)"
-                              : "rgba(255, 255, 255, 0.1)",
-                        background:
-                           gameState === "memorizing"
-                              ? "linear-gradient(135deg, rgba(110, 168, 255, 0.1), rgba(110, 168, 255, 0.05))"
-                              : selectedFaceIndex === index
-                              ? "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))"
-                              : hintRevealed.includes(index)
-                              ? "linear-gradient(135deg, rgba(251, 191, 36, 0.15), rgba(251, 191, 36, 0.05))"
-                              : "linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02))",
-                        boxShadow:
-                           selectedFaceIndex === index
-                              ? "0 4px 12px rgba(59, 130, 246, 0.3)"
-                              : "0 2px 8px rgba(0, 0, 0, 0.1)",
-                        transition: "all 0.2s",
-                        cursor: gameState === "input" ? "pointer" : "default",
-                     }}
-                     className={m.card}
-                     onClick={() => {
-                        if (gameState === "input") {
-                           setSelectedFaceIndex(index);
-                        }
-                     }}
-                  >
-                     <div
-                        style={{
-                           position: "relative",
-                           width: isMobile ? "64px" : "80px",
-                           height: isMobile ? "64px" : "80px",
+               {facePairs.map((pair, index) => {
+                  const hinted = hintRevealed.includes(index);
+                  const stateClass =
+                     gameState === "memorizing"
+                        ? f.tileMemo
+                        : selectedFaceIndex === index
+                        ? f.tileSelected
+                        : hinted
+                        ? f.tileHint
+                        : "";
+                  return (
+                     <button
+                        key={index}
+                        type="button"
+                        className={`${f.tile} ${gameState === "input" ? f.tileActive : ""} ${stateClass}`}
+                        style={{ ["--i" as string]: index }}
+                        aria-pressed={selectedFaceIndex === index}
+                        aria-label={`Face ${index + 1}`}
+                        onClick={() => {
+                           if (gameState === "input") {
+                              setSelectedFaceIndex(index);
+                           }
                         }}
                      >
-                        <div
-                           style={{
-                              width: "100%",
-                              height: "100%",
-                              borderRadius: "50%",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              fontSize: isMobile ? "32px" : "40px",
-                              background:
-                                 "linear-gradient(135deg, rgba(15, 27, 51, 0.6), rgba(15, 27, 51, 0.4))",
-                              border: "2px solid rgba(255, 255, 255, 0.1)",
-                           }}
-                        >
+                        <span className={f.avatar}>
                            {pair.face}
-                        </div>
-                        {gameState === "input" && (
-                           <div
-                              style={{
-                                 position: "absolute",
-                                 top: "-8px",
-                                 right: "-8px",
-                                 width: isMobile ? "20px" : "24px",
-                                 height: isMobile ? "20px" : "24px",
-                                 borderRadius: "50%",
-                                 background:
-                                    "linear-gradient(135deg, rgba(59, 130, 246, 0.9), rgba(37, 99, 235, 0.9))",
-                                 border: "2px solid rgba(255, 255, 255, 0.3)",
-                                 display: "flex",
-                                 alignItems: "center",
-                                 justifyContent: "center",
-                                 fontSize: isMobile ? "0.7rem" : "0.75rem",
-                                 fontWeight: 700,
-                                 color: "white",
-                                 boxShadow: "0 2px 6px rgba(0, 0, 0, 0.3)",
-                              }}
+                           {gameState === "input" && (
+                              <span className={f.num}>{index + 1}</span>
+                           )}
+                        </span>
+                        {gameState === "memorizing" ? (
+                           <span className={f.name}>{pair.name}</span>
+                        ) : (
+                           <span
+                              className={`${f.name} ${
+                                 hinted && !selectedFaces[index]
+                                    ? f.nameHint
+                                    : selectedFaces[index]
+                                    ? ""
+                                    : f.nameEmpty
+                              }`}
                            >
-                              {index + 1}
-                           </div>
+                              {selectedFaces[index] || (hinted ? pair.name : "?")}
+                           </span>
                         )}
-                     </div>
-                     {gameState === "memorizing" ? (
-                        <div
-                           style={{
-                              fontSize: isMobile ? "0.9rem" : "1rem",
-                              fontWeight: 700,
-                              color: "var(--text)",
-                           }}
-                        >
-                           {pair.name}
-                        </div>
-                     ) : (
-                        <div
-                           style={{
-                              fontSize: isMobile ? "0.85rem" : "0.9rem",
-                              fontWeight: 600,
-                              color: hintRevealed.includes(index)
-                                 ? "rgba(251, 191, 36, 0.9)"
-                                 : selectedFaces[index]
-                                 ? "var(--text)"
-                                 : "var(--muted)",
-                           }}
-                        >
-                           {selectedFaces[index] ||
-                              (hintRevealed.includes(index) ? pair.name : "?")}
-                        </div>
-                     )}
-                  </div>
-               ))}
+                     </button>
+                  );
+               })}
             </div>
 
             {/* Name Selection (when in input mode) */}
             {gameState === "input" && (
-               <div
-                  style={{
-                     display: "flex",
-                     flexDirection: "column",
-                     gap: "12px",
-                     width: "100%",
-                  }}
-               >
-                  <p
-                     style={{
-                        margin: 0,
-                        fontSize: isMobile ? "0.9rem" : "1rem",
-                        fontWeight: 600,
-                        color: "var(--text)",
-                        textAlign: "center",
-                     }}
-                  >
+               <div style={{ display: "flex", flexDirection: "column", gap: "12px", width: "100%" }}>
+                  <p className={f.pickLabel}>
                      {selectedFaceIndex !== null
-                        ? `Select name for face ${
-                             (selectedFaceIndex ?? 0) + 1
-                          } (or press 1-${
-                             shuffledNames.filter(
-                                (name) =>
-                                   !selectedFaces.includes(name) ||
-                                   selectedFaces[selectedFaceIndex] === name
-                             ).length
-                          }):`
-                        : "Press 1-6 to select a face, or click a face"}
+                        ? `Select name for face ${selectedFaceIndex + 1} (or press 1-${pickable.length}):`
+                        : "Press 1-6 to select a face, or tap a face"}
                   </p>
-                  <div
-                     style={{
-                        display: "flex",
-                        flexWrap: "wrap",
-                        gap: "10px",
-                        justifyContent: "center",
-                     }}
-                  >
+                  <div key={selectedFaceIndex ?? -1} className={f.names}>
                      {selectedFaceIndex !== null &&
-                        shuffledNames
-                           .filter(
-                              (name) =>
-                                 !selectedFaces.includes(name) ||
-                                 selectedFaces[selectedFaceIndex] === name
-                           )
-                           .map((name, idx) => (
-                              <button
-                                 key={idx}
-                                 className={m.btn}
-                                 onClick={() => {
-                                    handleNameSelect(name, selectedFaceIndex);
-                                 }}
-                                 style={{
-                                    position: "relative",
-                                    padding: isMobile
-                                       ? "10px 16px"
-                                       : "12px 20px",
-                                    paddingLeft: isMobile ? "36px" : "40px",
-
-                                    border: "2px solid",
-                                    borderColor:
-                                       selectedFaces[selectedFaceIndex] === name
-                                          ? "rgba(59, 130, 246, 0.8)"
-                                          : "rgba(255, 255, 255, 0.2)",
-                                    background:
-                                       selectedFaces[selectedFaceIndex] === name
-                                          ? "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))"
-                                          : "linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02))",
-                                    color: "var(--text)",
-                                    cursor: "pointer",
-                                    fontSize: isMobile ? "0.9rem" : "1rem",
-                                    fontWeight: 600,
-                                    transition: "all 0.2s",
-                                 }}
-                                 onMouseEnter={(e) => {
-                                    if (
-                                       selectedFaces[selectedFaceIndex] !== name
-                                    ) {
-                                       e.currentTarget.style.borderColor =
-                                          "rgba(59, 130, 246, 0.6)";
-                                       e.currentTarget.style.background =
-                                          "linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(59, 130, 246, 0.05))";
-                                    }
-                                 }}
-                                 onMouseLeave={(e) => {
-                                    if (
-                                       selectedFaces[selectedFaceIndex] !== name
-                                    ) {
-                                       e.currentTarget.style.borderColor =
-                                          "rgba(255, 255, 255, 0.2)";
-                                       e.currentTarget.style.background =
-                                          "linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02))";
-                                    }
-                                 }}
-                              >
-                                 <div
-                                    style={{
-                                       position: "absolute",
-                                       left: isMobile ? "8px" : "10px",
-                                       top: "50%",
-                                       transform: "translateY(-50%)",
-                                       width: isMobile ? "18px" : "20px",
-                                       height: isMobile ? "18px" : "20px",
-                                       borderRadius: "50%",
-                                       background:
-                                          "linear-gradient(135deg, rgba(59, 130, 246, 0.9), rgba(37, 99, 235, 0.9))",
-                                       border:
-                                          "2px solid rgba(255, 255, 255, 0.3)",
-                                       display: "flex",
-                                       alignItems: "center",
-                                       justifyContent: "center",
-                                       fontSize: isMobile
-                                          ? "0.65rem"
-                                          : "0.7rem",
-                                       fontWeight: 700,
-                                       color: "white",
-                                       boxShadow:
-                                          "0 2px 4px rgba(0, 0, 0, 0.2)",
-                                    }}
-                                 >
-                                    {idx + 1}
-                                 </div>
-                                 {name}
-                              </button>
-                           ))}
+                        pickable.map((name, idx) => (
+                           <button
+                              key={name}
+                              type="button"
+                              className={`${m.btn} ${f.nameBtn} ${
+                                 selectedFaces[selectedFaceIndex] === name ? f.nameBtnOn : ""
+                              }`}
+                              style={{ ["--i" as string]: idx }}
+                              aria-pressed={selectedFaces[selectedFaceIndex] === name}
+                              onClick={() => {
+                                 handleNameSelect(name, selectedFaceIndex);
+                              }}
+                           >
+                              <span className={f.key}>{idx + 1}</span>
+                              {name}
+                           </button>
+                        ))}
                   </div>
                </div>
             )}
          </div>
 
-         {/* Feedback Messages - Same as Match the Shapes */}
+         {/* Feedback Messages */}
          {feedback !== null && (
             <div
-               className={feedback === "correct" ? m.feedbackOk : m.feedbackBad}
-               style={{
-                  padding: isMobile ? "12px 20px" : "16px 24px",
-                  borderRadius: isMobile ? "12px" : "12px",
-                  fontSize: isMobile ? "1rem" : "1.1rem",
-                  fontWeight: 600,
-                  animation: "slideIn 0.3s ease-out",
-                  background:
-                     feedback === "correct"
-                        ? "rgba(134, 239, 172, 0.2)"
-                        : "rgba(252, 165, 165, 0.2)",
-                  border: `1px solid ${
-                     feedback === "correct" ? "var(--ok)" : "var(--warn)"
-                  }`,
-                  color: feedback === "correct" ? "var(--ok)" : "var(--warn)",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: isMobile ? "8px" : "10px",
-                  width: "100%",
-                  maxWidth: isMobile ? "100%" : "600px",
-                  justifyContent: "center",
-                  margin: "0 auto",
-               }}
+               role="status"
+               className={`${m.feedback} ${
+                  feedback === "correct" ? m.feedbackOk : m.feedbackBad
+               }`}
             >
                {feedback === "correct" ? (
                   <>
-                     <CheckCircleIcon
-                        style={{
-                           width: isMobile ? 20 : 24,
-                           height: isMobile ? 20 : 24,
-                        }}
-                     />
+                     <CheckCircleIcon className={m.feedbackIcon} />
                      <span>Correct! Great job!</span>
                   </>
                ) : (
                   <>
-                     <XCircleIcon
-                        style={{
-                           width: isMobile ? 20 : 24,
-                           height: isMobile ? 20 : 24,
-                        }}
-                     />
+                     <XCircleIcon className={m.feedbackIcon} />
                      <span>Try again! You can do it!</span>
                   </>
                )}
             </div>
          )}
 
-         {/* Share Success Message */}
-         {shareSuccess && (
-            <div
-               style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: isMobile ? "8px" : "10px",
-                  padding: isMobile ? "12px 16px" : "14px 20px",
-                  background:
-                     "linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(34, 197, 94, 0.1))",
-                  border: "2px solid rgba(34, 197, 94, 0.6)",
-
-                  width: "100%",
-                  justifyContent: "center",
-                  animation: "slideIn 0.3s ease",
-               }}
-            >
-               <CheckCircleIcon
-                  style={{
-                     width: isMobile ? 18 : 20,
-                     height: isMobile ? 18 : 20,
-                     color: "rgba(34, 197, 94, 0.9)",
-                     flexShrink: 0,
-                  }}
-               />
-               <span
-                  style={{
-                     fontSize: isMobile ? "0.9rem" : "1rem",
-                     fontWeight: 500,
-                     color: "var(--text)",
-                  }}
-               >
-                  {isMobile
-                     ? "Link copied! Unlimited hints unlock when someone opens it!"
-                     : "Link copied! Unlimited hints will unlock when someone opens your link!"}
-               </span>
-            </div>
-         )}
-
-         {/* Unlimited Hints Activated */}
-         {unlimitedActivated && (
-            <div
-               style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: isMobile ? "8px" : "10px",
-                  padding: isMobile ? "12px 16px" : "14px 20px",
-                  background:
-                     "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
-                  border: "2px solid rgba(59, 130, 246, 0.6)",
-
-                  width: "100%",
-                  justifyContent: "center",
-                  animation: "slideIn 0.3s ease",
-               }}
-            >
-               <CheckCircleIcon
-                  style={{
-                     width: isMobile ? 18 : 20,
-                     height: isMobile ? 18 : 20,
-                     color: "rgba(59, 130, 246, 0.9)",
-                     flexShrink: 0,
-                  }}
-               />
-               <span
-                  style={{
-                     fontSize: isMobile ? "0.9rem" : "1rem",
-                     fontWeight: 500,
-                     color: "var(--text)",
-                  }}
-               >
-                  {isMobile
-                     ? "🎉 Unlimited hints active for 15 minutes!"
-                     : "🎉 Someone opened your link! Unlimited hints are now active for 15 minutes!"}
-               </span>
+         {(shareSuccess || unlimitedActivated) && (
+            <div className={f.notes}>
+               {shareSuccess && (
+                  <div className={`${m.note} ${m.noteOk}`}>
+                     <CheckCircleIcon className={m.noteIcon} />
+                     <span>
+                        {isMobile
+                           ? "Link copied! Unlimited hints unlock when someone opens it!"
+                           : "Link copied! Unlimited hints will unlock when someone opens your link!"}
+                     </span>
+                  </div>
+               )}
+               {unlimitedActivated && (
+                  <div className={m.note}>
+                     <CheckCircleIcon className={m.noteIcon} />
+                     <span>
+                        {isMobile
+                           ? "Unlimited hints active for 15 minutes!"
+                           : "Someone opened your link! Unlimited hints are now active for 15 minutes!"}
+                     </span>
+                  </div>
+               )}
             </div>
          )}
 
          {/* Hint and Share buttons - Always at the bottom */}
-         <div
-            style={{
-               display: "flex",
-               gap: isMobile ? "8px" : "12px",
-               flexWrap: "wrap",
-               justifyContent: "center",
-               marginTop: isMobile ? "16px" : "20px",
-            }}
-         >
-            {/* Hint Button */}
+         <div className={f.actions}>
             <button
+               type="button"
                onClick={handleHint}
-               className={m.btn}
-               disabled={
-                  (maxHints > 0 && hintsUsed >= maxHints) ||
-                  gameState !== "input"
-               }
-               style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: isMobile ? "6px" : "8px",
-                  padding: isMobile ? "10px 16px" : "10px 20px",
-                  width: isMobile ? "100%" : "auto",
-                  background:
-                     maxHints > 0 && hintsUsed >= maxHints
-                        ? "rgba(166, 179, 209, 0.1)"
-                        : "linear-gradient(135deg, rgba(251, 191, 36, 0.2), rgba(251, 191, 36, 0.1))",
-                  border: "1px solid",
-                  borderColor:
-                     maxHints > 0 && hintsUsed >= maxHints
-                        ? "var(--muted)"
-                        : "rgba(251, 191, 36, 0.6)",
-
-                  color:
-                     maxHints > 0 && hintsUsed >= maxHints
-                        ? "var(--muted)"
-                        : "var(--text)",
-                  fontSize: isMobile ? "0.85rem" : "0.95rem",
-                  fontWeight: 600,
-                  cursor:
-                     maxHints > 0 && hintsUsed >= maxHints
-                        ? "not-allowed"
-                        : "pointer",
-                  transition: "all 0.3s ease",
-                  opacity: maxHints > 0 && hintsUsed >= maxHints ? 0.5 : 1,
-               }}
-               onMouseEnter={(e) => {
-                  if (
-                     !(maxHints > 0 && hintsUsed >= maxHints) &&
-                     gameState === "input"
-                  ) {
-                     e.currentTarget.style.background =
-                        "linear-gradient(135deg, rgba(251, 191, 36, 0.3), rgba(251, 191, 36, 0.2))";
-                     e.currentTarget.style.borderColor =
-                        "rgba(251, 191, 36, 0.8)";
-                     e.currentTarget.style.transform = "translateY(-2px)";
-                     e.currentTarget.style.boxShadow =
-                        "0 4px 12px rgba(251, 191, 36, 0.3)";
-                  }
-               }}
-               onMouseLeave={(e) => {
-                  if (
-                     !(maxHints > 0 && hintsUsed >= maxHints) &&
-                     gameState === "input"
-                  ) {
-                     e.currentTarget.style.background =
-                        "linear-gradient(135deg, rgba(251, 191, 36, 0.2), rgba(251, 191, 36, 0.1))";
-                     e.currentTarget.style.borderColor =
-                        "rgba(251, 191, 36, 0.6)";
-                     e.currentTarget.style.transform = "translateY(0)";
-                     e.currentTarget.style.boxShadow = "none";
-                  }
-               }}
+               className={`${m.btn} ${m.pill}`}
+               disabled={hintsOut || gameState !== "input"}
             >
-               <LightBulbIcon
-                  style={{
-                     width: isMobile ? 18 : 20,
-                     height: isMobile ? 18 : 20,
-                     color:
-                        maxHints > 0 && hintsUsed >= maxHints
-                           ? "var(--muted)"
-                           : "rgba(251, 191, 36, 0.9)",
-                  }}
-               />
+               <LightBulbIcon className={m.pillIcon} />
                <span>
-                  Hint{" "}
-                  {maxHints === 0 ? "(∞)" : `(${maxHints - hintsUsed} left)`}
+                  Hint {maxHints === 0 ? "(∞)" : `(${maxHints - hintsUsed} left)`}
                </span>
             </button>
 
-            {/* Share Button */}
             <button
+               type="button"
                onClick={handleShare}
-               className={m.btn}
-               style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: isMobile ? "6px" : "8px",
-                  padding: isMobile ? "10px 16px" : "10px 20px",
-                  width: isMobile ? "100%" : "auto",
-                  background:
-                     "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
-                  border: "1px solid rgba(59, 130, 246, 0.6)",
-
-                  color: "var(--text)",
-                  fontSize: isMobile ? "0.85rem" : "0.95rem",
-                  fontWeight: 600,
-                  cursor: "pointer",
-                  transition: "all 0.3s ease",
-               }}
-               onMouseEnter={(e) => {
-                  e.currentTarget.style.background =
-                     "linear-gradient(135deg, rgba(59, 130, 246, 0.3), rgba(59, 130, 246, 0.2))";
-                  e.currentTarget.style.borderColor = "rgba(59, 130, 246, 0.8)";
-                  e.currentTarget.style.transform = "translateY(-2px)";
-                  e.currentTarget.style.boxShadow =
-                     "0 4px 12px rgba(59, 130, 246, 0.3)";
-               }}
-               onMouseLeave={(e) => {
-                  e.currentTarget.style.background =
-                     "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))";
-                  e.currentTarget.style.borderColor = "rgba(59, 130, 246, 0.6)";
-                  e.currentTarget.style.transform = "translateY(0)";
-                  e.currentTarget.style.boxShadow = "none";
-               }}
+               className={`${m.btn} ${m.pill}`}
             >
-               <ShareIcon
-                  style={{
-                     width: isMobile ? 18 : 20,
-                     height: isMobile ? 18 : 20,
-                     color: "rgba(59, 130, 246, 0.9)",
-                  }}
-               />
+               <ShareIcon className={m.pillIcon} />
                <span>Share for Unlimited Hints</span>
             </button>
          </div>

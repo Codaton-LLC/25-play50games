@@ -1,0 +1,108 @@
+/* Number Recall: the sequence as a row of equal digit slots (the same geometry while the number is
+   shown, hidden or partly revealed by hints), then the answer row. Tokens only. */
+
+.display {
+   display: flex;
+   flex-direction: column;
+   align-items: stretch;
+   gap: 18px;
+}
+
+.slots {
+   display: grid;
+   gap: 6px;
+   width: 100%;
+   margin: 0 auto;
+}
+
+.slot {
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   aspect-ratio: 3 / 4;
+   min-width: 0;
+   border-radius: 10px;
+   background: rgba(255, 255, 255, 0.04);
+   box-shadow: inset 0 0 0 1px var(--stroke);
+   color: var(--muted);
+   font-size: clamp(1.25rem, 6vw, 2.4rem);
+   font-weight: 800;
+   line-height: 1;
+   font-variant-numeric: tabular-nums;
+   animation: slotIn 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
+   animation-delay: calc(var(--i, 0) * 30ms);
+   transition:
+      background-color 0.2s ease,
+      box-shadow 0.2s ease,
+      color 0.2s ease;
+}
+
+.slotShown {
+   color: var(--text);
+   background: rgba(var(--accent-rgb, 231, 95, 64), 0.12);
+   box-shadow: inset 0 0 0 2px rgba(var(--accent-rgb, 231, 95, 64), 0.55);
+}
+
+.slotHint {
+   color: rgba(var(--accent-rgb, 231, 95, 64), 1);
+   box-shadow: inset 0 0 0 2px rgba(var(--accent-rgb, 231, 95, 64), 0.8);
+}
+
+.slotDot {
+   opacity: 0.5;
+}
+
+.entry {
+   display: flex;
+   gap: 10px;
+   width: 100%;
+}
+
+.answer {
+   flex: 1;
+   min-width: 0;
+   text-align: center;
+   letter-spacing: 0.2em;
+   font-weight: 600;
+}
+
+.answer::placeholder {
+   letter-spacing: normal;
+   font-weight: 500;
+   color: var(--muted);
+}
+
+.answer:disabled {
+   opacity: 0.5;
+   cursor: not-allowed;
+}
+
+@keyframes slotIn {
+   from {
+      opacity: 0;
+      transform: translateY(6px) scale(0.96);
+   }
+   to {
+      opacity: 1;
+      transform: none;
+   }
+}
+
+@media (max-width: 600px) {
+   .slots {
+      gap: 4px;
+   }
+   .slot {
+      border-radius: 8px;
+   }
+   .entry {
+      gap: 8px;
+   }
+}
+
+@media (prefers-reduced-motion: reduce) {
+   .slot {
+      animation: none;
+      transition: none;
+   }
+}

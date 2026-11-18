@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import m from "./mobile.module.css";
+import s from "./SymbolStack.module.css";
 import {
    CheckCircleIcon,
    XCircleIcon,
@@ -20,6 +21,7 @@ import {
    SparklesIcon,
    GiftIcon,
    MoonIcon,
+   Square3Stack3DIcon,
 } from "@heroicons/react/24/outline";
 import {
    registerShare,
@@ -109,6 +111,24 @@ function SymbolStack({
    const [hintRevealed, setHintRevealed] = useState<number[]>([]);
    const [currentShareId, setCurrentShareId] = useState<string | null>(null);
    const shareCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+   // Round-flow timers (next round, retry, completion): the same delays as before, but cleared
+   // when the game unmounts so a timer never fires into a closed game.
+   const roundTimersRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
+   const later = useCallback((fn: () => void, ms: number) => {
+      const t = setTimeout(() => {
+         roundTimersRef.current.delete(t);
+         fn();
+      }, ms);
+      roundTimersRef.current.add(t);
+   }, []);
+   useEffect(() => {
+      const timers = roundTimersRef.current;
+      return () => {
+         timers.forEach(clearTimeout);
+         timers.clear();
+      };
+   }, []);
 
    // Max hints: 10, unlimited if shared
    const maxHints = hasShared ? 0 : 10; // 0 = unlimited
@@ -331,11 +351,11 @@ function SymbolStack({
    // Check game completion
    useEffect(() => {
       if (currentRound >= maxRounds) {
-         setTimeout(() => {
+         later(() => {
             onComplete(currentScore);
          }, 1000);
       }
-   }, [currentRound, maxRounds, currentScore, onComplete]);
+   }, [currentRound, maxRounds, currentScore, onComplete, later]);
 
    // Shuffle palette symbols (for input)
    const shuffledPalette = useMemo(() => {
@@ -362,7 +382,7 @@ function SymbolStack({
                // Sequence complete
                setGameState("correct");
                setFeedback("correct");
-               setTimeout(() => {
+               later(() => {
                   setCurrentRound((prev) => prev + 1);
                }, 1200);
             }
@@ -372,7 +392,7 @@ function SymbolStack({
             setGameState("wrong");
             setFeedback("wrong");
             // Repeat the same round after showing feedback
-            setTimeout(() => {
+            later(() => {
                setUserInput([]);
                setClickedPaletteIndices([]);
                setWrongSymbolIndex(null);
@@ -383,7 +403,7 @@ function SymbolStack({
             }, 1500);
          }
       },
-      [gameState, userInput, sequence, clickedPaletteIndices, startNewRound]
+      [gameState, userInput, sequence, clickedPaletteIndices, startNewRound, later]
    );
 
    // Handle hint
@@ -548,131 +568,46 @@ function SymbolStack({
 
    const progress = ((currentRound + 1) / maxRounds) * 100;
 
+   const hintDisabled =
+      gameState !== "input" ||
+      (maxHints > 0 && hintsUsed >= maxHints) ||
+      userInput.length >= sequence.length;
+
    return (
-      <div
-         className={m.tight}
-         style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            minHeight: "100%",
-            width: "100%",
-            padding: isMobile ? "16px" : isTablet ? "20px" : "24px",
-            gap: isMobile ? "16px" : "20px",
-         }}
-      >
+      <div className={`${m.root} ${m.tight}`} style={{ maxWidth: "848px" }}>
          {/* Header Section */}
-         <div
-            style={{
-               width: "100%",
-               maxWidth: "800px",
-               background: "var(--card)",
-               borderRadius: isMobile ? "16px" : "20px",
-               padding: isMobile ? "16px" : "20px",
-               boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
-               display: "flex",
-               flexDirection: "column",
-               gap: isMobile ? "12px" : "16px",
-            }}
-         >
-            <div
-               style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  flexWrap: "wrap",
-                  gap: isMobile ? "8px" : "12px",
-               }}
-            >
-               <span
-                  style={{
-                     fontSize: isMobile ? "0.875rem" : "1rem",
-                     fontWeight: 600,
-                     color: "var(--text)",
-                     display: "flex",
-                     alignItems: "center",
-                     gap: "6px",
-                  }}
-               >
-                  <ArrowPathIcon
-                     style={{
-                        width: isMobile ? 14 : 16,
-                        height: isMobile ? 14 : 16,
-                     }}
-                  />
-                  Round {currentRound + 1} / {maxRounds}
+         <div className={m.panel}>
+            <div className={m.stats}>
+               <span className={m.stat}>
+                  <ArrowPathIcon className={m.statIcon} />
+                  Round <b>{currentRound + 1} / {maxRounds}</b>
                </span>
-               <span
-                  style={{
-                     fontSize: isMobile ? "0.875rem" : "1rem",
-                     fontWeight: 600,
-                     color: "var(--text)",
-                     display: "flex",
-                     alignItems: "center",
-                     gap: "6px",
-                  }}
-               >
-                  <TrophyIcon
-                     style={{
-                        width: isMobile ? 14 : 16,
-                        height: isMobile ? 14 : 16,
-                        color: "var(--ok)",
-                     }}
-                  />
-                  Score: {currentScore} / 100
+               <span className={m.stat}>
+                  <TrophyIcon className={m.statIcon} />
+                  Score <b>{currentScore} / 100</b>
+               </span>
+               <span className={m.stat}>
+                  <Square3Stack3DIcon className={m.statIcon} />
+                  Stack <b>{sequence.length}</b>
+               </span>
+               <span className={m.stat}>
+                  <LightBulbIcon className={m.statIcon} />
+                  Hints <b>{maxHints === 0 ? "∞" : `${maxHints - hintsUsed}/${maxHints}`}</b>
                </span>
             </div>
             {/* Progress Bar */}
-            <div
-               style={{
-                  width: "100%",
-                  height: isMobile ? "6px" : "8px",
-                  background: "rgba(255, 255, 255, 0.1)",
-                  borderRadius: "999px",
-                  overflow: "hidden",
-               }}
-            >
+            <div className={m.progress}>
                <div
-                  style={{
-                     width: `${progress}%`,
-                     height: "100%",
-                     background:
-                        "linear-gradient(90deg, var(--accent) 0%, var(--ok) 100%)",
-                     borderRadius: "999px",
-                     transition: "width 0.3s ease",
-                     boxShadow: "0 0 10px rgba(125, 211, 252, 0.5)",
-                  }}
+                  className={m.progressFill}
+                  style={{ transform: `scaleX(${Math.min(1, progress / 100)})` }}
                />
             </div>
          </div>
 
          {/* Game Board */}
-         <div
-            style={{
-               width: "100%",
-               maxWidth: "800px",
-               display: "flex",
-               flexDirection: "column",
-               alignItems: "center",
-               gap: isMobile ? "20px" : "32px",
-            }}
-         >
+         <div className={s.board}>
             {/* Stack Display */}
-            <div
-               style={{
-                  display: "flex",
-                  flexDirection: "column-reverse", // Bottom to top
-                  alignItems: "center",
-                  gap: isMobile ? "10px" : "12px",
-                  minHeight: isMobile ? "200px" : "280px",
-                  width: "100%",
-                  padding: isMobile ? "16px" : "24px",
-                  background: "var(--panel)",
-                  borderRadius: "var(--radius)",
-                  border: "1px solid var(--border)",
-               }}
-            >
+            <div className={s.stack}>
                {sequence.map((symbol, index) => {
                   const isFlashing = flashingSymbolIndex === index;
                   const isSelected = userInput.length > index;
@@ -682,106 +617,55 @@ function SymbolStack({
                      gameState === "input" && !isSelected && !isHinted;
                   const userSymbol = userInput[index];
 
+                  const stateClass = isWrong
+                     ? s.slotWrong
+                     : isSelected && userSymbol === sequence[index]
+                     ? s.slotOk
+                     : isFlashing
+                     ? s.slotFlash
+                     : isHinted
+                     ? s.slotHint
+                     : isEmpty
+                     ? s.slotEmpty
+                     : "";
+
+                  const IconComponent = getIconComponent(symbol);
+                  const UserIconComponent = userSymbol
+                     ? getIconComponent(userSymbol)
+                     : null;
+
+                  let content: React.ReactNode = null;
+                  if (gameState === "memorizing" && isFlashing) {
+                     // Show icon during memorizing phase
+                     content = (
+                        <IconComponent className={`${s.icon} ${s.iconPop}`} />
+                     );
+                  } else if (
+                     gameState === "input" &&
+                     isSelected &&
+                     UserIconComponent
+                  ) {
+                     // Show user's selected icon (always show, whether correct or wrong)
+                     content = (
+                        <UserIconComponent className={`${s.icon} ${s.iconPop}`} />
+                     );
+                  } else if (gameState === "input" && isHinted) {
+                     // Show correct icon when hinted
+                     content = (
+                        <IconComponent className={`${s.icon} ${s.iconPop}`} />
+                     );
+                  } else if (gameState === "input" && isEmpty) {
+                     // Show question mark for empty slot
+                     content = "?";
+                  }
+
                   return (
                      <div
-                        key={index}
-                        style={{
-                           width: isMobile ? "100px" : "120px",
-                           height: isMobile ? "38px" : "42px",
-                           borderRadius: "10px",
-                           display: "flex",
-                           alignItems: "center",
-                           justifyContent: "center",
-                           fontSize: isMobile ? "20px" : "24px",
-                           fontWeight: 900,
-                           background: isWrong
-                              ? "var(--warn)"
-                              : isSelected && userSymbol === sequence[index]
-                              ? "var(--ok)"
-                              : isFlashing
-                              ? "rgba(59, 130, 246, 0.9)"
-                              : isHinted
-                              ? "rgba(251, 191, 36, 0.2)"
-                              : isEmpty
-                              ? "var(--bg)"
-                              : "var(--panel)",
-                           border: isWrong
-                              ? "2px solid var(--warn)"
-                              : isHinted
-                              ? "2px solid rgba(251, 191, 36, 0.9)"
-                              : isFlashing
-                              ? "2px solid rgba(59, 130, 246, 0.9)"
-                              : isEmpty
-                              ? "2px dashed var(--border)"
-                              : "2px solid var(--border)",
-                           color:
-                              isWrong ||
-                              (isSelected && userSymbol === sequence[index])
-                                 ? "white"
-                                 : isEmpty
-                                 ? "var(--muted)"
-                                 : "var(--text)",
-                           transition: "all 0.2s ease",
-                           transform: isFlashing ? "scale(1.05)" : "scale(1)",
-                           boxShadow: isFlashing
-                              ? "0 4px 12px rgba(59, 130, 246, 0.4)"
-                              : isWrong
-                              ? "0 2px 8px rgba(251, 113, 133, 0.3)"
-                              : "none",
-                           opacity: isEmpty ? 0.6 : 1,
-                        }}
+                        key={`${currentRound}-${index}`}
+                        className={`${s.slot} ${stateClass}`}
+                        style={{ ["--i" as string]: index }}
                      >
-                        {/* Show icon based on game state */}
-                        {(() => {
-                           const IconComponent = getIconComponent(symbol);
-                           const UserIconComponent = userSymbol
-                              ? getIconComponent(userSymbol)
-                              : null;
-
-                           if (gameState === "memorizing" && isFlashing) {
-                              // Show icon during memorizing phase
-                              return IconComponent ? (
-                                 <IconComponent
-                                    style={{
-                                       width: isMobile ? 20 : 24,
-                                       height: isMobile ? 20 : 24,
-                                    }}
-                                 />
-                              ) : null;
-                           } else if (
-                              gameState === "input" &&
-                              isSelected &&
-                              UserIconComponent
-                           ) {
-                              // Show user's selected icon (always show, whether correct or wrong)
-                              return (
-                                 <UserIconComponent
-                                    style={{
-                                       width: isMobile ? 20 : 24,
-                                       height: isMobile ? 20 : 24,
-                                    }}
-                                 />
-                              );
-                           } else if (
-                              gameState === "input" &&
-                              isHinted &&
-                              IconComponent
-                           ) {
-                              // Show correct icon when hinted
-                              return (
-                                 <IconComponent
-                                    style={{
-                                       width: isMobile ? 20 : 24,
-                                       height: isMobile ? 20 : 24,
-                                    }}
-                                 />
-                              );
-                           } else if (gameState === "input" && isEmpty) {
-                              // Show question mark for empty slot
-                              return "?";
-                           }
-                           return null;
-                        })()}
+                        {content}
                      </div>
                   );
                })}
@@ -789,114 +673,37 @@ function SymbolStack({
 
             {/* Game State Message */}
             {gameState === "memorizing" && (
-               <div
-                  style={{
-                     fontSize: isMobile ? "0.95rem" : "1.1rem",
-                     color: "var(--muted)",
-                     textAlign: "center",
-                     fontWeight: 500,
-                  }}
-               >
+               <p className={`${s.status} ${s.statusMuted}`}>
                   Watch the symbols stack up...
-               </div>
+               </p>
             )}
 
             {gameState === "input" && (
-               <div
-                  style={{
-                     fontSize: isMobile ? "0.95rem" : "1.1rem",
-                     color: "var(--text)",
-                     textAlign: "center",
-                     fontWeight: 500,
-                  }}
-               >
-                  Rebuild the stack from bottom to top
-               </div>
+               <p className={s.status}>Rebuild the stack from bottom to top</p>
             )}
 
             {/* Symbol Palette (Input Mode) */}
             {gameState === "input" && (
-               <div
-                  style={{
-                     display: "flex",
-                     flexWrap: "wrap",
-                     gap: isMobile ? "12px" : "16px",
-                     justifyContent: "center",
-                     width: "100%",
-                  }}
-               >
+               <div className={s.palette}>
                   {shuffledPalette.map((symbol, index) => {
                      // Check if this palette item has been clicked
                      const isUsed = clickedPaletteIndices.includes(index);
                      const isSelectedNav = selectedSymbolIndex === index;
+                     const IconComponent = getIconComponent(symbol);
 
                      return (
                         <button
                            key={`${symbol}-${index}`}
-                           className={m.card}
+                           type="button"
+                           className={`${s.tile} ${isSelectedNav ? s.tileNav : ""}`}
+                           style={{ ["--i" as string]: index }}
                            onClick={() => handleSymbolClick(symbol, index)}
                            disabled={isUsed}
-                           style={{
-                              position: "relative",
-                              width: isMobile ? "50px" : "54px",
-                              height: isMobile ? "50px" : "54px",
-                              borderRadius: "14px",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              fontSize: isMobile ? "22px" : "26px",
-                              fontWeight: 900,
-                              background: isSelectedNav
-                                 ? "rgba(59, 130, 246, 0.3)"
-                                 : isUsed
-                                 ? "var(--bg)"
-                                 : "var(--panel)",
-                              border: isSelectedNav
-                                 ? "2px solid rgba(59, 130, 246, 0.9)"
-                                 : "2px solid var(--border)",
-                              color: isUsed ? "var(--muted)" : "var(--text)",
-                              cursor: isUsed ? "not-allowed" : "pointer",
-                              transition: "all 0.15s ease",
-                              opacity: isUsed ? 0.5 : 1,
-                           }}
+                           aria-label={`${symbol} symbol`}
                         >
-                           {(() => {
-                              const IconComponent = getIconComponent(symbol);
-                              return IconComponent ? (
-                                 <IconComponent
-                                    style={{
-                                       width: isMobile ? 22 : 26,
-                                       height: isMobile ? 22 : 26,
-                                    }}
-                                 />
-                              ) : null;
-                           })()}
+                           <IconComponent className={s.tileIcon} />
                            {/* Number badge for keyboard input */}
-                           {!isUsed && (
-                              <div
-                                 style={{
-                                    position: "absolute",
-                                    top: "4px",
-                                    left: "4px",
-                                    width: isMobile ? "18px" : "20px",
-                                    height: isMobile ? "18px" : "20px",
-                                    borderRadius: "50%",
-                                    background:
-                                       "linear-gradient(135deg, rgba(59, 130, 246, 0.9), rgba(37, 99, 235, 0.9))",
-                                    border:
-                                       "2px solid rgba(255, 255, 255, 0.3)",
-                                    display: "flex",
-                                    alignItems: "center",
-                                    justifyContent: "center",
-                                    fontSize: isMobile ? "0.65rem" : "0.7rem",
-                                    fontWeight: 700,
-                                    color: "white",
-                                    boxShadow: "0 2px 4px rgba(0, 0, 0, 0.2)",
-                                 }}
-                              >
-                                 {index + 1}
-                              </div>
-                           )}
+                           {!isUsed && <span className={s.key}>{index + 1}</span>}
                         </button>
                      );
                   })}
@@ -905,98 +712,36 @@ function SymbolStack({
 
             {/* Feedback Messages */}
             {feedback === "correct" && (
-               <div
-                  style={{
-                     display: "flex",
-                     alignItems: "center",
-                     gap: "8px",
-                     padding: isMobile ? "10px 16px" : "12px 20px",
-                     background: "var(--ok)",
-                     border: "1px solid var(--ok)",
-                     borderRadius: "var(--radius)",
-                     color: "white",
-                     fontSize: isMobile ? "0.9rem" : "1rem",
-                     fontWeight: 600,
-                  }}
-               >
-                  <CheckCircleIcon style={{ width: 20, height: 20 }} />
+               <div role="status" className={`${m.feedback} ${m.feedbackOk}`}>
+                  <CheckCircleIcon className={m.feedbackIcon} />
                   Correct!
                </div>
             )}
 
             {feedback === "wrong" && (
-               <div
-                  style={{
-                     display: "flex",
-                     alignItems: "center",
-                     gap: "8px",
-                     padding: isMobile ? "10px 16px" : "12px 20px",
-                     background: "var(--warn)",
-                     border: "1px solid var(--warn)",
-                     borderRadius: "var(--radius)",
-                     color: "white",
-                     fontSize: isMobile ? "0.9rem" : "1rem",
-                     fontWeight: 600,
-                  }}
-               >
-                  <XCircleIcon style={{ width: 20, height: 20 }} />
+               <div role="status" className={`${m.feedback} ${m.feedbackBad}`}>
+                  <XCircleIcon className={m.feedbackIcon} />
                   Wrong! Try again.
                </div>
             )}
 
             {/* Share Success Message */}
             {shareSuccess && !unlimitedActivated && (
-               <div
-                  style={{
-                     width: "100%",
-                     padding: "12px",
-                     background: "rgba(134, 239, 172, 0.2)",
-                     border: "2px solid rgba(134, 239, 172, 0.6)",
-                     borderRadius: "8px",
-                     fontSize: isMobile ? "0.9rem" : "1rem",
-                     fontWeight: 600,
-                     color: "var(--ok)",
-                     textAlign: "center",
-                     marginBottom: "8px",
-                  }}
-               >
-                  Link copied! Unlimited hints will unlock when someone opens
-                  your link!
+               <div className={`${m.note} ${m.noteOk}`}>
+                  <CheckCircleIcon className={m.noteIcon} />
+                  <span>
+                     Link copied! Unlimited hints will unlock when someone opens
+                     your link!
+                  </span>
                </div>
             )}
 
             {/* Unlimited Hints Activated Message */}
             {unlimitedActivated && (
-               <div
-                  style={{
-                     display: "flex",
-                     alignItems: "center",
-                     gap: isMobile ? "6px" : "8px",
-                     padding: isMobile ? "10px 14px" : "8px 16px",
-                     background:
-                        "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
-                     border: "2px solid rgba(59, 130, 246, 0.6)",
-                     borderRadius: isMobile ? "10px" : "8px",
-                     color: "var(--text)",
-                     fontSize: isMobile ? "0.85rem" : "0.9rem",
-                     fontWeight: 500,
-                     width: "100%",
-                     justifyContent: "center",
-                     textAlign: "center",
-                     flexWrap: "wrap",
-                     marginBottom: "8px",
-                  }}
-               >
-                  <CheckCircleIcon
-                     style={{
-                        width: isMobile ? 16 : 18,
-                        height: isMobile ? 16 : 18,
-                        color: "rgba(59, 130, 246, 0.9)",
-                        flexShrink: 0,
-                     }}
-                  />
+               <div className={m.note}>
+                  <CheckCircleIcon className={m.noteIcon} />
                   <span>
-                     🎉 Someone opened your link! Unlimited hints is now active
+                     Someone opened your link! Unlimited hints are now active
                      for 15 minutes!
                   </span>
                </div>
@@ -1004,94 +749,25 @@ function SymbolStack({
          </div>
 
          {/* Hint and Share Buttons */}
-         <div
-            style={{
-               display: "flex",
-               gap: isMobile ? "12px" : "16px",
-               width: "100%",
-               maxWidth: "800px",
-               justifyContent: "center",
-            }}
-         >
+         <div className={s.actions}>
             <button
+               type="button"
                onClick={handleHint}
-               className={m.btn}
-               disabled={
-                  gameState !== "input" ||
-                  (maxHints > 0 && hintsUsed >= maxHints) ||
-                  userInput.length >= sequence.length
-               }
-               style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "8px",
-                  padding: isMobile ? "10px 16px" : "12px 20px",
-                  background:
-                     gameState !== "input" ||
-                     (maxHints > 0 && hintsUsed >= maxHints) ||
-                     userInput.length >= sequence.length
-                        ? "var(--bg)"
-                        : "rgba(251, 191, 36, 0.2)",
-                  border:
-                     gameState !== "input" ||
-                     (maxHints > 0 && hintsUsed >= maxHints) ||
-                     userInput.length >= sequence.length
-                        ? "1px solid var(--border)"
-                        : "1px solid rgba(251, 191, 36, 0.9)",
-                  borderRadius: "var(--radius)",
-                  color:
-                     gameState !== "input" ||
-                     (maxHints > 0 && hintsUsed >= maxHints) ||
-                     userInput.length >= sequence.length
-                        ? "var(--muted)"
-                        : "rgba(251, 191, 36, 0.9)",
-                  fontSize: isMobile ? "0.85rem" : "0.95rem",
-                  fontWeight: 600,
-                  cursor:
-                     gameState !== "input" ||
-                     (maxHints > 0 && hintsUsed >= maxHints) ||
-                     userInput.length >= sequence.length
-                        ? "not-allowed"
-                        : "pointer",
-                  transition: "all 0.2s ease",
-               }}
+               className={`${m.btn} ${m.pill}`}
+               disabled={hintDisabled}
             >
-               <LightBulbIcon
-                  style={{
-                     width: isMobile ? 18 : 20,
-                     height: isMobile ? 18 : 20,
-                  }}
-               />
+               <LightBulbIcon className={m.pillIcon} />
                <span>
                   Hint ({maxHints === 0 ? "∞" : `${maxHints - hintsUsed}`})
                </span>
             </button>
 
             <button
+               type="button"
                onClick={handleShare}
-               className={m.btn}
-               style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "8px",
-                  padding: isMobile ? "10px 16px" : "12px 20px",
-                  background: "rgba(59, 130, 246, 0.2)",
-                  border: "1px solid rgba(59, 130, 246, 0.9)",
-                  borderRadius: "var(--radius)",
-                  color: "rgba(59, 130, 246, 0.9)",
-                  fontSize: isMobile ? "0.85rem" : "0.95rem",
-                  fontWeight: 600,
-                  cursor: "pointer",
-                  transition: "all 0.2s ease",
-               }}
+               className={`${m.btn} ${m.pill}`}
             >
-               <ShareIcon
-                  style={{
-                     width: isMobile ? 18 : 20,
-                     height: isMobile ? 18 : 20,
-                     color: "rgba(59, 130, 246, 0.9)",
-                  }}
-               />
+               <ShareIcon className={m.pillIcon} />
                <span>{isMobile ? "Share" : "Share for Unlimited Hints"}</span>
             </button>
          </div>

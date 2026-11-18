@@ -50,6 +50,9 @@ import {
    MagnifyingGlassIcon,
    AdjustmentsHorizontalIcon,
    Cog6ToothIcon,
+   ArrowPathIcon,
+   CheckBadgeIcon,
+   Squares2X2Icon,
 } from "@heroicons/react/24/outline";
 import {
    registerShare,
@@ -661,52 +664,31 @@ function CardFlipMemory({
       }
    };
 
+   const hintsOut = maxHints > 0 && hintsUsed >= maxHints;
+   const pairShown =
+      flippedCards.length === 2
+         ? flippedCards.map((id) => cards.find((c) => c.id === id))
+         : [];
+   const mismatchIds =
+      pairShown.length === 2 &&
+      pairShown[0] &&
+      pairShown[1] &&
+      !pairShown[0].matched &&
+      pairShown[0].value !== pairShown[1].value
+         ? flippedCards
+         : [];
+   const isHinted = (id: number) =>
+      !!(showHint && hintPair && (id === hintPair[0] || id === hintPair[1]));
+
    return (
       <div className={m.root}>
          {/* Header */}
-         <div
-            className={m.panel}
-            style={{
-               background: "var(--card)",
-               borderRadius: "16px",
-               boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
-            }}
-         >
+         <div className={m.panel}>
             {/* Share Section */}
-            <div
-               style={{
-                  display: "flex",
-                  justifyContent: "flex-end",
-                  gap: "12px",
-                  marginBottom: "16px",
-                  alignItems: "center",
-                  flexWrap: "wrap",
-               }}
-            >
+            <div className={m.shareRow}>
                {shareSuccess && (
-                  <div
-                     style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "8px",
-                        padding: "8px 16px",
-                        background:
-                           "linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(34, 197, 94, 0.1))",
-                        border: "2px solid rgba(34, 197, 94, 0.6)",
-                        borderRadius: "8px",
-                        color: "var(--text)",
-                        fontSize: "0.9rem",
-                        fontWeight: 500,
-                        animation: "slideIn 0.3s ease",
-                     }}
-                  >
-                     <CheckCircleIcon
-                        style={{
-                           width: 18,
-                           height: 18,
-                           color: "rgba(34, 197, 94, 0.9)",
-                        }}
-                     />
+                  <div className={`${m.note} ${m.noteOk}`}>
+                     <CheckCircleIcon className={m.noteIcon} />
                      <span>
                         Link copied! Unlimited hints will unlock when someone
                         opens your link!
@@ -714,177 +696,54 @@ function CardFlipMemory({
                   </div>
                )}
                {unlimitedActivated && (
-                  <div
-                     style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "8px",
-                        padding: "8px 16px",
-                        background:
-                           "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
-                        border: "2px solid rgba(59, 130, 246, 0.6)",
-                        borderRadius: "8px",
-                        color: "var(--text)",
-                        fontSize: "0.9rem",
-                        fontWeight: 500,
-                        animation: "slideIn 0.3s ease",
-                     }}
-                  >
-                     <CheckCircleIcon
-                        style={{
-                           width: 18,
-                           height: 18,
-                           color: "rgba(59, 130, 246, 0.9)",
-                        }}
-                     />
+                  <div className={m.note}>
+                     <CheckCircleIcon className={m.noteIcon} />
                      <span>
-                        🎉 Someone opened your link! Unlimited hints are now
+                        Someone opened your link! Unlimited hints are now
                         active for 15 minutes!
                      </span>
                   </div>
                )}
                <button
                   onClick={handleShare}
-                  className={`${m.btn} ${m.shareBtn}`}
-                  style={{
-                     display: "flex",
-                     alignItems: "center",
-                     gap: "8px",
-                     background:
-                        "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
-                     border: "2px solid rgba(59, 130, 246, 0.6)",
-
-                     color: "var(--text)",
-                     fontWeight: 600,
-                     cursor: "pointer",
-                  }}
-                  onMouseEnter={(e) => {
-                     e.currentTarget.style.background =
-                        "linear-gradient(135deg, rgba(59, 130, 246, 0.3), rgba(59, 130, 246, 0.2))";
-                     e.currentTarget.style.borderColor =
-                        "rgba(59, 130, 246, 0.8)";
-                     e.currentTarget.style.transform = "translateY(-2px)";
-                     e.currentTarget.style.boxShadow =
-                        "0 4px 12px rgba(59, 130, 246, 0.3)";
-                  }}
-                  onMouseLeave={(e) => {
-                     e.currentTarget.style.background =
-                        "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))";
-                     e.currentTarget.style.borderColor =
-                        "rgba(59, 130, 246, 0.6)";
-                     e.currentTarget.style.transform = "translateY(0)";
-                     e.currentTarget.style.boxShadow = "none";
-                  }}
+                  className={`${m.btn} ${m.pill} ${m.shareBtn}`}
                >
-                  <ShareIcon
-                     style={{
-                        width: 20,
-                        height: 20,
-                        color: "rgba(59, 130, 246, 0.9)",
-                     }}
-                  />
+                  <ShareIcon className={m.pillIcon} />
                   <span>Share for Unlimited Replay</span>
                </button>
             </div>
-            <div
-               className={m.stats}
-               style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  fontSize: "0.875rem",
-                  color: "var(--muted)",
-                  fontWeight: 500,
-                  marginBottom: "12px",
-                  flexWrap: "wrap",
-                  gap: "12px",
-               }}
-            >
-               <span
-                  style={{ display: "flex", alignItems: "center", gap: "6px" }}
-               >
-                  <svg
-                     style={{ width: 16, height: 16, color: "var(--accent)" }}
-                     fill="none"
-                     viewBox="0 0 24 24"
-                     stroke="currentColor"
-                  >
-                     <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                     />
-                  </svg>
-                  Round {currentRound} / {maxRounds}
+            <div className={m.stats}>
+               <span className={m.stat}>
+                  <ArrowPathIcon className={m.statIcon} />
+                  Round <b>{currentRound} / {maxRounds}</b>
                </span>
-               <span
-                  style={{ display: "flex", alignItems: "center", gap: "6px" }}
-               >
-                  <svg
-                     style={{ width: 16, height: 16, color: "var(--ok)" }}
-                     fill="none"
-                     viewBox="0 0 24 24"
-                     stroke="currentColor"
-                  >
-                     <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"
-                     />
-                  </svg>
-                  Score: {currentScore} / {maxRounds * 20}
+               <span className={m.stat}>
+                  <CheckBadgeIcon className={m.statIcon} />
+                  Score <b>{currentScore} / {maxRounds * 20}</b>
                </span>
-               <span
-                  style={{ display: "flex", alignItems: "center", gap: "6px" }}
-               >
-                  <svg
-                     style={{ width: 16, height: 16, color: "var(--accent)" }}
-                     fill="none"
-                     viewBox="0 0 24 24"
-                     stroke="currentColor"
-                  >
-                     <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M4 6h16M4 12h16M4 18h16"
-                     />
-                  </svg>
-                  Grid: {gridWidth}x{gridHeight} | Matches: {matches}/{pairs} |
-                  Moves: {moves}
+               <span className={m.stat}>
+                  <Squares2X2Icon className={m.statIcon} />
+                  Grid <b>{gridWidth}x{gridHeight}</b>
                </span>
-               <span
-                  style={{ display: "flex", alignItems: "center", gap: "6px" }}
-               >
-                  <LightBulbIcon
-                     style={{ width: 16, height: 16, color: "var(--accent)" }}
-                  />
-                  Hints:{" "}
-                  {maxHints === 0 ? "∞" : `${maxHints - hintsUsed}/${maxHints}`}
+               <span className={m.stat}>
+                  Matches <b>{matches}/{pairs}</b>
+               </span>
+               <span className={m.stat}>
+                  Moves <b>{moves}</b>
+               </span>
+               <span className={m.stat}>
+                  <LightBulbIcon className={m.statIcon} />
+                  Hints{" "}
+                  <b>
+                     {maxHints === 0 ? "∞" : `${maxHints - hintsUsed}/${maxHints}`}
+                  </b>
                </span>
             </div>
             {/* Progress Bar */}
-            <div
-               style={{
-                  width: "100%",
-                  height: "8px",
-                  background: "rgba(255, 255, 255, 0.1)",
-                  borderRadius: "4px",
-                  overflow: "hidden",
-               }}
-            >
+            <div className={m.progress}>
                <div
-                  style={{
-                     width: `${progress}%`,
-                     height: "100%",
-                     background:
-                        "linear-gradient(90deg, var(--accent) 0%, var(--ok) 100%)",
-                     borderRadius: "4px",
-                     transition: "width 0.3s ease",
-                     boxShadow: "0 0 10px rgba(125, 211, 252, 0.5)",
-                  }}
+                  className={m.progressFill}
+                  style={{ transform: `scaleX(${progress / 100})` }}
                />
             </div>
          </div>
@@ -896,67 +755,16 @@ function CardFlipMemory({
                display: "flex",
                flexDirection: "column",
                alignItems: "center",
-               gap: "24px",
+               gap: "20px",
             }}
          >
             {/* Hint Button */}
             <button
                onClick={handleHint}
-               disabled={maxHints > 0 && hintsUsed >= maxHints}
-               className={m.btn}
-               style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "8px",
-                  padding: "12px 24px",
-                  background:
-                     maxHints > 0 && hintsUsed >= maxHints
-                        ? "rgba(255, 255, 255, 0.05)"
-                        : "linear-gradient(135deg, rgba(251, 191, 36, 0.2), rgba(251, 191, 36, 0.1))",
-                  border: `2px solid ${
-                     maxHints > 0 && hintsUsed >= maxHints
-                        ? "rgba(255, 255, 255, 0.1)"
-                        : "rgba(251, 191, 36, 0.6)"
-                  }`,
-
-                  color: "var(--text)",
-                  fontSize: "0.95rem",
-                  fontWeight: 600,
-                  cursor:
-                     maxHints > 0 && hintsUsed >= maxHints
-                        ? "not-allowed"
-                        : "pointer",
-                  opacity: maxHints > 0 && hintsUsed >= maxHints ? 0.5 : 1,
-               }}
-               onMouseEnter={(e) => {
-                  if (!(maxHints > 0 && hintsUsed >= maxHints)) {
-                     e.currentTarget.style.background =
-                        "linear-gradient(135deg, rgba(251, 191, 36, 0.3), rgba(251, 191, 36, 0.2))";
-                     e.currentTarget.style.borderColor =
-                        "rgba(251, 191, 36, 0.8)";
-                     e.currentTarget.style.transform = "translateY(-2px)";
-                     e.currentTarget.style.boxShadow =
-                        "0 4px 12px rgba(251, 191, 36, 0.3)";
-                  }
-               }}
-               onMouseLeave={(e) => {
-                  if (!(maxHints > 0 && hintsUsed >= maxHints)) {
-                     e.currentTarget.style.background =
-                        "linear-gradient(135deg, rgba(251, 191, 36, 0.2), rgba(251, 191, 36, 0.1))";
-                     e.currentTarget.style.borderColor =
-                        "rgba(251, 191, 36, 0.6)";
-                     e.currentTarget.style.transform = "translateY(0)";
-                     e.currentTarget.style.boxShadow = "none";
-                  }
-               }}
+               disabled={hintsOut}
+               className={`${m.btn} ${m.pill}`}
             >
-               <LightBulbIcon
-                  style={{
-                     width: 20,
-                     height: 20,
-                     color: "rgba(251, 191, 36, 0.9)",
-                  }}
-               />
+               <LightBulbIcon className={m.pillIcon} />
                <span>
                   Hint{" "}
                   {maxHints === 0
@@ -966,27 +774,37 @@ function CardFlipMemory({
             </button>
 
             <div
-               className={m.board}
+               key={currentRound}
+               className={`${m.board} ${m.stagger}`}
                style={{
-                  display: "grid",
-                  gridTemplateColumns: `repeat(${gridWidth}, 1fr)`,
-                  gap: "5px",
-                  width: "100%",
-                  // the whole board fits the screen height (tablet landscape), never wider than the column
-                  maxWidth: `min(100%, calc((100dvh - 140px) * ${gridWidth / gridHeight}))`,
-                  background: "var(--card)",
-                  borderRadius: "20px",
-                  boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
+                  gridTemplateColumns: `repeat(${gridWidth}, minmax(0, 1fr))`,
+                  // the whole board fits the screen height (tablet landscape), never wider than the column,
+                  // and a small grid keeps card-sized cells (at most 132 px) instead of filling the screen
+                  maxWidth: `min(100%, calc((100dvh - 140px) * ${gridWidth / gridHeight}), ${gridWidth * 132}px)`,
                }}
             >
-               {cards.slice(0, totalCards).map((card) => {
+               {cards.slice(0, totalCards).map((card, index) => {
                   const maxSize = Math.max(gridWidth, gridHeight);
                   const isNumber = typeof card.value === "number";
+                  const faceUp = card.flipped || card.matched;
+                  // a pair that does not match: both cards tint and shake until the game turns
+                  // them back (look only; the game still shows no message for a miss)
+                  const wrongPick = mismatchIds.includes(card.id);
+                  const stateClass = card.matched
+                     ? `${m.cardMatched} ${m.matched}`
+                     : isHinted(card.id)
+                     ? m.cardHint
+                     : wrongPick
+                     ? `${m.cardWrong} ${m.mismatch}`
+                     : card.flipped
+                     ? `${m.cardShown} ${m.flipped}`
+                     : "";
                   return (
                      <button
                         key={card.id}
                         onClick={() => handleCardClick(card.id)}
-                        className={`${m.card} ${card.matched ? m.matched : card.flipped ? (feedback === "wrong" ? m.wrong : m.flipped) : ""}`}
+                        className={`${m.card} ${stateClass}`}
+                        aria-label={faceUp ? `Card ${String(card.value)}` : "Hidden card"}
                         disabled={
                            card.flipped ||
                            card.matched ||
@@ -994,97 +812,28 @@ function CardFlipMemory({
                            completionCalled
                         }
                         style={{
-                           width: "100%",
-                           aspectRatio: "1",
-
-                           border:
-                              showHint &&
-                              hintPair &&
-                              (card.id === hintPair[0] ||
-                                 card.id === hintPair[1])
-                                 ? "3px solid rgba(251, 191, 36, 0.8)"
-                                 : "2px solid var(--stroke)",
-                           background: card.matched
-                              ? "rgba(134, 239, 172, 0.3)"
-                              : showHint &&
-                                hintPair &&
-                                (card.id === hintPair[0] ||
-                                   card.id === hintPair[1])
-                              ? "rgba(251, 191, 36, 0.2)"
-                              : card.flipped
-                              ? "rgba(125, 211, 252, 0.2)"
-                              : "rgba(15, 27, 51, 0.6)",
-                           color: "var(--text)",
-                           fontSize: isNumber
-                              ? maxSize <= 4
+                           ["--i" as string]: index,
+                           fontSize:
+                              maxSize <= 4
                                  ? "2rem"
                                  : maxSize <= 6
                                  ? "1.5rem"
-                                 : "1.25rem"
-                              : undefined,
-                           fontWeight: 700,
-                           cursor:
-                              card.flipped ||
-                              card.matched ||
-                              flippedCards.length >= 2 ||
-                              completionCalled
-                                 ? "not-allowed"
-                                 : "pointer",
-                           transition: "background 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease, transform 0.12s ease",
-                           boxShadow:
-                              showHint &&
-                              hintPair &&
-                              (card.id === hintPair[0] ||
-                                 card.id === hintPair[1])
-                                 ? "0 0 20px rgba(251, 191, 36, 0.6)"
-                                 : card.matched
-                                 ? "0 0 20px rgba(134, 239, 172, 0.5)"
-                                 : card.flipped
-                                 ? "0 0 15px rgba(125, 211, 252, 0.3)"
-                                 : "0 4px 8px rgba(0, 0, 0, 0.2)",
-                           position: "relative",
-                           overflow: "hidden",
-                           display: "flex",
-                           alignItems: "center",
-                           justifyContent: "center",
+                                 : "1.25rem",
                         }}
                      >
-                        {card.flipped || card.matched ? (
-                           isNumber ? (
-                              <span>{card.value}</span>
-                           ) : (
-                              getIconComponent(
-                                 card.value as string,
-                                 maxSize <= 4 ? 50 : maxSize <= 6 ? 40 : 35
-                              )
-                           )
-                        ) : (
-                           <span
-                              style={{
-                                 opacity: 0.6,
-                                 fontSize:
-                                    maxSize <= 4
-                                       ? "2rem"
-                                       : maxSize <= 6
-                                       ? "1.5rem"
-                                       : "1.25rem",
-                              }}
-                           >
-                              ?
+                        {faceUp ? (
+                           <span className={m.face}>
+                              {isNumber
+                                 ? card.value
+                                 : getIconComponent(
+                                      card.value as string,
+                                      maxSize <= 4 ? 50 : maxSize <= 6 ? 40 : 35
+                                   )}
                            </span>
+                        ) : (
+                           <span className={`${m.face} ${m.faceBack}`}>?</span>
                         )}
-                        {card.matched && (
-                           <CheckCircleIcon
-                              style={{
-                                 position: "absolute",
-                                 top: "4px",
-                                 right: "4px",
-                                 width: "20px",
-                                 height: "20px",
-                                 color: "var(--ok)",
-                              }}
-                           />
-                        )}
+                        {card.matched && <CheckCircleIcon className={m.badge} />}
                      </button>
                   );
                })}
@@ -1093,37 +842,19 @@ function CardFlipMemory({
             {/* Feedback Message */}
             {feedback && (
                <div
-                  className={feedback === "correct" ? m.feedbackOk : m.feedbackBad}
-                  style={{
-                     padding: "16px 24px",
-
-                     fontSize: "1.1rem",
-                     fontWeight: 600,
-                     background:
-                        feedback === "correct"
-                           ? "rgba(134, 239, 172, 0.2)"
-                           : "rgba(252, 165, 165, 0.2)",
-                     border: `1px solid ${
-                        feedback === "correct" ? "var(--ok)" : "var(--warn)"
-                     }`,
-                     color:
-                        feedback === "correct" ? "var(--ok)" : "var(--warn)",
-                     display: "flex",
-                     alignItems: "center",
-                     gap: "10px",
-                     width: "100%",
-                     maxWidth: "600px",
-                     justifyContent: "center",
-                  }}
+                  role="status"
+                  className={`${m.feedback} ${
+                     feedback === "correct" ? m.feedbackOk : m.feedbackBad
+                  }`}
                >
                   {feedback === "correct" ? (
                      <>
-                        <CheckCircleIcon style={{ width: 24, height: 24 }} />
+                        <CheckCircleIcon className={m.feedbackIcon} />
                         <span>Correct! Great job!</span>
                      </>
                   ) : (
                      <>
-                        <XCircleIcon style={{ width: 24, height: 24 }} />
+                        <XCircleIcon className={m.feedbackIcon} />
                         <span>Try again! You can do it!</span>
                      </>
                   )}

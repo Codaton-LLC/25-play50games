@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import m from "./mobile.module.css";
+import c from "./ColorGridMemory.module.css";
 import {
    CheckCircleIcon,
    XCircleIcon,
@@ -9,6 +10,7 @@ import {
    ShareIcon,
    ArrowPathIcon,
    TrophyIcon,
+   Squares2X2Icon,
 } from "@heroicons/react/24/outline";
 import {
    registerShare,
@@ -55,6 +57,24 @@ function ColorGridMemory({
    const [hintRevealed, setHintRevealed] = useState<number[]>([]);
    const [currentShareId, setCurrentShareId] = useState<string | null>(null);
    const shareCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+   // Round-flow timers (next round, retry, completion): the same delays as before, but cleared
+   // when the game unmounts so a timer never fires into a closed game.
+   const roundTimersRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
+   const later = useCallback((fn: () => void, ms: number) => {
+      const t = setTimeout(() => {
+         roundTimersRef.current.delete(t);
+         fn();
+      }, ms);
+      roundTimersRef.current.add(t);
+   }, []);
+   useEffect(() => {
+      const timers = roundTimersRef.current;
+      return () => {
+         timers.forEach(clearTimeout);
+         timers.clear();
+      };
+   }, []);
 
    // Max hints: 10, unlimited if shared
    const maxHints = hasShared ? 0 : 10; // 0 = unlimited
@@ -360,11 +380,11 @@ function ColorGridMemory({
    // Check game completion
    useEffect(() => {
       if (currentRound >= maxRounds) {
-         setTimeout(() => {
+         later(() => {
             onComplete(currentScore);
          }, 1000);
       }
-   }, [currentRound, maxRounds, currentScore, onComplete]);
+   }, [currentRound, maxRounds, currentScore, onComplete, later]);
 
    // Handle cell click
    const handleCellClick = useCallback(
@@ -383,7 +403,7 @@ function ColorGridMemory({
             setGameState("wrong");
             setFeedback("wrong");
 
-            setTimeout(() => {
+            later(() => {
                // Reset and repeat the same round
                setUserInput([]);
                setWrongCellIndex(null);
@@ -400,12 +420,12 @@ function ColorGridMemory({
             setGameState("correct");
             setFeedback("correct");
 
-            setTimeout(() => {
+            later(() => {
                setCurrentRound((prev) => prev + 1);
             }, 1500);
          }
       },
-      [gameState, userInput, sequence, startNewRound]
+      [gameState, userInput, sequence, startNewRound, later]
    );
 
    // Handle hint
@@ -583,99 +603,42 @@ function ColorGridMemory({
 
    const progress = (currentRound / maxRounds) * 100;
 
+   const hintDisabled =
+      gameState !== "input" ||
+      (maxHints > 0 && hintsUsed >= maxHints) ||
+      hintRevealed.length >= sequence.length;
+
    return (
       <div
-         className={m.tight}
-         style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: isMobile ? "16px" : "20px",
-            width: "100%",
-            maxWidth: "800px",
-            margin: "0 auto",
-            padding: isMobile ? "16px" : "24px",
-         }}
+         className={`${m.root} ${m.tight}`}
+         style={{ maxWidth: "800px" }}
       >
          {/* Header */}
-         <div
-            style={{
-               display: "flex",
-               flexDirection: "column",
-               gap: isMobile ? "10px" : "12px",
-               padding: isMobile ? "14px 18px" : "16px 24px",
-               background:
-                  "linear-gradient(135deg, rgba(15, 27, 51, 0.8), rgba(15, 27, 51, 0.6))",
-               borderRadius: "16px",
-               border: "1px solid rgba(255, 255, 255, 0.1)",
-            }}
-         >
-            <div
-               style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  flexWrap: "wrap",
-                  gap: isMobile ? "8px" : "12px",
-               }}
-            >
-               <div
-                  style={{
-                     display: "flex",
-                     alignItems: "center",
-                     gap: isMobile ? "6px" : "8px",
-                     fontSize: isMobile ? "0.9rem" : "1rem",
-                     fontWeight: 600,
-                     color: "var(--text)",
-                  }}
-               >
-                  <ArrowPathIcon
-                     style={{
-                        width: isMobile ? 18 : 20,
-                        height: isMobile ? 18 : 20,
-                        color: "var(--accent)",
-                     }}
-                  />
-                  Round {currentRound + 1} / {maxRounds}
-               </div>
-               <div
-                  style={{
-                     display: "flex",
-                     alignItems: "center",
-                     gap: isMobile ? "6px" : "8px",
-                     fontSize: isMobile ? "0.9rem" : "1rem",
-                     fontWeight: 600,
-                     color: "var(--text)",
-                  }}
-               >
-                  <TrophyIcon
-                     style={{
-                        width: isMobile ? 18 : 20,
-                        height: isMobile ? 18 : 20,
-                        color: "var(--accent)",
-                     }}
-                  />
-                  Score: {currentScore} / 100
-               </div>
+         <div className={m.panel}>
+            <div className={m.stats}>
+               <span className={m.stat}>
+                  <ArrowPathIcon className={m.statIcon} />
+                  Round <b>{currentRound + 1} / {maxRounds}</b>
+               </span>
+               <span className={m.stat}>
+                  <TrophyIcon className={m.statIcon} />
+                  Score <b>{currentScore} / 100</b>
+               </span>
+               <span className={m.stat}>
+                  <Squares2X2Icon className={m.statIcon} />
+                  Grid <b>{gridSize}x{gridSize}</b>
+               </span>
+               <span className={m.stat}>
+                  <LightBulbIcon className={m.statIcon} />
+                  Hints{" "}
+                  <b>{hasShared ? "∞" : `${Math.max(0, maxHints - hintsUsed)}/${maxHints}`}</b>
+               </span>
             </div>
             {/* Progress Bar */}
-            <div
-               style={{
-                  width: "100%",
-                  height: isMobile ? "6px" : "8px",
-                  background: "rgba(255, 255, 255, 0.1)",
-                  borderRadius: "4px",
-                  overflow: "hidden",
-               }}
-            >
+            <div className={m.progress}>
                <div
-                  style={{
-                     width: `${progress}%`,
-                     height: "100%",
-                     background:
-                        "linear-gradient(90deg, rgba(110, 168, 255, 0.8), rgba(59, 130, 246, 0.8))",
-                     borderRadius: "4px",
-                     transition: "width 0.3s ease",
-                  }}
+                  className={m.progressFill}
+                  style={{ transform: `scaleX(${progress / 100})` }}
                />
             </div>
          </div>
@@ -683,42 +646,23 @@ function ColorGridMemory({
          {/* Game Board */}
          <div
             style={{
+               width: "100%",
                display: "flex",
                flexDirection: "column",
                alignItems: "center",
-               gap: isMobile ? "16px" : "20px",
+               gap: isMobile ? "14px" : "18px",
             }}
          >
             {/* Status Message */}
-            <div
-               style={{
-                  textAlign: "center",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "8px",
-               }}
-            >
-               <b
-                  style={{
-                     fontSize: isMobile ? "1rem" : "1.1rem",
-                     fontWeight: 700,
-                     color: "var(--text)",
-                     display: "flex",
-                     alignItems: "center",
-                     justifyContent: "center",
-                     gap: "8px",
-                  }}
-               >
+            <div className={c.status} role="status">
+               <p key={gameState} className={c.statusMain}>
                   {gameState === "memorizing" && "Watch the sequence…"}
                   {gameState === "input" && "Now click in the same order"}
                   {gameState === "correct" && (
                      <>
                         <CheckCircleIcon
-                           style={{
-                              width: isMobile ? 20 : 24,
-                              height: isMobile ? 20 : 24,
-                              color: "var(--ok)",
-                           }}
+                           className={c.statusIcon}
+                           style={{ color: "var(--ok)" }}
                         />
                         Correct!
                      </>
@@ -726,197 +670,87 @@ function ColorGridMemory({
                   {gameState === "wrong" && (
                      <>
                         <XCircleIcon
-                           style={{
-                              width: isMobile ? 20 : 24,
-                              height: isMobile ? 20 : 24,
-                              color: "var(--warn)",
-                           }}
+                           className={c.statusIcon}
+                           style={{ color: "var(--warn)" }}
                         />
                         Wrong! Try again
                      </>
                   )}
-               </b>
-               <div
-                  style={{
-                     fontSize: isMobile ? "0.75rem" : "0.875rem",
-                     color: "var(--muted)",
-                  }}
-               >
+               </p>
+               <p className={c.statusSub}>
                   {gameState === "memorizing" &&
                      "After it disappears, click in the same order"}
                   {gameState === "input" && "Click the cells in order"}
-               </div>
+               </p>
             </div>
 
             {/* Grid */}
             <div
-               className={m.fitBoard}
+               key={`${currentRound}-${gridSize}`}
+               className={`${m.board} ${m.stagger}`}
                style={{
-                  ["--ar" as string]: gridSize / Math.max(1, gridSize),
-                  display: "grid",
-                  gridTemplateColumns: `repeat(${gridSize}, 1fr)`,
-                  gap: isMobile
-                     ? "8px"
-                     : gridSize <= 3
-                     ? "14px"
-                     : gridSize <= 4
-                     ? "12px"
-                     : "10px",
-                  width: "100%",
-                  maxWidth: isMobile
-                     ? "100%"
-                     : gridSize <= 3
-                     ? "400px"
-                     : gridSize <= 4
-                     ? "500px"
-                     : "600px",
+                  gridTemplateColumns: `repeat(${gridSize}, minmax(0, 1fr))`,
+                  // fits the screen height, and a small grid never balloons on a wide screen
+                  maxWidth: `min(100%, calc(100dvh - 170px), ${gridSize * 128}px)`,
+                  margin: "0 auto",
                }}
             >
                {Array.from({ length: gridSize * gridSize }).map((_, idx) => {
-                  const isInSequence = sequence.includes(idx);
                   const sequenceIndex = sequence.indexOf(idx);
                   const isSelected = userInput.includes(idx);
                   const inputIndex = userInput.indexOf(idx);
                   const isHinted = hintRevealed.includes(sequenceIndex);
                   const isFlashing = flashingCellIndex === idx;
                   const isWrong = wrongCellIndex === idx;
+                  const isKeySelected = selectedCellIndex === idx && !isSelected;
 
                   // Get color for this cell in sequence
                   const colorIndex =
                      sequenceIndex >= 0 ? sequenceIndex % colors.length : -1;
                   const cellColor = colorIndex >= 0 ? colors[colorIndex] : null;
+                  const showColor =
+                     !!cellColor && !isWrong && (isFlashing || isSelected || isHinted);
+
+                  const stateClass = isFlashing
+                     ? c.flashCue
+                     : isWrong
+                     ? `${m.cardWrong} ${m.wrong}`
+                     : isSelected
+                     ? c.picked
+                     : isHinted
+                     ? m.cardHint
+                     : isKeySelected
+                     ? m.cardSelected
+                     : "";
 
                   return (
                      <button
                         key={idx}
                         onClick={() => handleCellClick(idx)}
-                        className={m.card}
+                        className={`${m.card} ${stateClass}`}
                         disabled={gameState !== "input" || isSelected}
-                        style={{
-                           width: "100%",
-                           aspectRatio: "1",
-                           minWidth: isMobile ? "44px" : "50px",
-                           minHeight: isMobile ? "44px" : "50px",
-                           borderRadius: isMobile ? "12px" : "14px",
-                           border: `2px solid ${
-                              isFlashing
-                                 ? "rgba(110, 168, 255, 1)"
-                                 : isWrong
-                                 ? "rgba(251, 113, 133, 0.8)"
-                                 : isSelected
-                                 ? "rgba(110, 168, 255, 0.6)"
-                                 : isHinted
-                                 ? "rgba(251, 191, 36, 0.6)"
-                                 : selectedCellIndex === idx && !isSelected
-                                 ? "rgba(251, 191, 36, 0.8)"
-                                 : "rgba(255, 255, 255, 0.1)"
-                           }`,
-                           background:
-                              isFlashing && cellColor
-                                 ? cellColor
-                                 : isWrong
-                                 ? "linear-gradient(135deg, rgba(251, 113, 133, 0.3), rgba(251, 113, 133, 0.2))"
-                                 : isSelected && cellColor
-                                 ? cellColor
-                                 : isHinted && cellColor
-                                 ? cellColor
-                                 : selectedCellIndex === idx && !isSelected
-                                 ? "linear-gradient(135deg, rgba(251, 191, 36, 0.15), rgba(251, 191, 36, 0.08))"
-                                 : "linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02))",
-                           boxShadow: isFlashing
-                              ? "0 0 30px rgba(110, 168, 255, 0.6), 0 0 50px rgba(110, 168, 255, 0.4)"
-                              : isSelected
-                              ? "0 4px 12px rgba(110, 168, 255, 0.3)"
-                              : selectedCellIndex === idx && !isSelected
-                              ? "0 4px 12px rgba(251, 191, 36, 0.3)"
-                              : "0 2px 8px rgba(0, 0, 0, 0.1)",
-                           outline:
-                              selectedCellIndex === idx && !isSelected
-                                 ? "2px solid rgba(251, 191, 36, 0.5)"
-                                 : "none",
-                           outlineOffset:
-                              selectedCellIndex === idx && !isSelected
-                                 ? "2px"
-                                 : "0",
-                           cursor:
-                              gameState === "input" && !isSelected
-                                 ? "pointer"
-                                 : "not-allowed",
-                           transition: "all 0.2s ease",
-                           transform: isFlashing ? "scale(1.1)" : "scale(1)",
-                           position: "relative",
-                           display: "flex",
-                           alignItems: "center",
-                           justifyContent: "center",
-                           fontSize: isMobile ? "0.75rem" : "0.875rem",
-                           fontWeight: 600,
-                           color: "white",
-                        }}
+                        aria-label={`Cell ${idx + 1}`}
+                        style={{ ["--i" as string]: idx }}
                      >
+                        {showColor && (
+                           <span
+                              key={isFlashing ? `flash-${idx}` : `on-${idx}`}
+                              className={`${c.fill} ${isFlashing ? c.fillFlash : c.fillIn}`}
+                              style={{ background: cellColor! }}
+                           />
+                        )}
                         {isSelected && (
-                           <div
-                              style={{
-                                 position: "absolute",
-                                 top: "4px",
-                                 right: "4px",
-                                 width: isMobile ? "18px" : "20px",
-                                 height: isMobile ? "18px" : "20px",
-                                 borderRadius: "50%",
-                                 background: "rgba(0, 0, 0, 0.5)",
-                                 display: "flex",
-                                 alignItems: "center",
-                                 justifyContent: "center",
-                                 fontSize: isMobile ? "0.65rem" : "0.7rem",
-                                 fontWeight: 700,
-                              }}
-                           >
+                           <span className={`${c.badge} ${c.order}`}>
                               {inputIndex + 1}
-                           </div>
+                           </span>
                         )}
                         {isHinted && !isSelected && (
-                           <div
-                              style={{
-                                 position: "absolute",
-                                 top: "4px",
-                                 right: "4px",
-                                 width: isMobile ? "18px" : "20px",
-                                 height: isMobile ? "18px" : "20px",
-                                 borderRadius: "50%",
-                                 background:
-                                    "linear-gradient(135deg, rgba(251, 191, 36, 0.9), rgba(251, 191, 36, 0.7))",
-                                 border: "2px solid rgba(255, 255, 255, 0.3)",
-                                 display: "flex",
-                                 alignItems: "center",
-                                 justifyContent: "center",
-                                 fontSize: isMobile ? "0.65rem" : "0.7rem",
-                                 fontWeight: 700,
-                                 color: "white",
-                              }}
-                           >
+                           <span className={`${c.badge} ${c.hint}`}>
                               {sequenceIndex + 1}
-                           </div>
+                           </span>
                         )}
                         {gameState === "input" && !isSelected && !isHinted && (
-                           <div
-                              style={{
-                                 position: "absolute",
-                                 top: "4px",
-                                 left: "4px",
-                                 width: isMobile ? "18px" : "20px",
-                                 height: isMobile ? "18px" : "20px",
-                                 borderRadius: "50%",
-                                 background:
-                                    "linear-gradient(135deg, rgba(59, 130, 246, 0.9), rgba(37, 99, 235, 0.9))",
-                                 border: "2px solid rgba(255, 255, 255, 0.3)",
-                                 display: "flex",
-                                 alignItems: "center",
-                                 justifyContent: "center",
-                                 fontSize: isMobile ? "0.65rem" : "0.7rem",
-                                 fontWeight: 700,
-                                 color: "white",
-                                 boxShadow: "0 2px 4px rgba(0, 0, 0, 0.2)",
-                              }}
-                           >
+                           <span className={`${c.badge} ${c.key}`}>
                               {idx < 9
                                  ? idx + 1
                                  : idx === 9
@@ -926,7 +760,7 @@ function ColorGridMemory({
                                  : idx === 11
                                  ? "="
                                  : ""}
-                           </div>
+                           </span>
                         )}
                      </button>
                   );
@@ -937,36 +771,19 @@ function ColorGridMemory({
          {/* Feedback Messages */}
          {feedback !== null && (
             <div
-               className={feedback === "correct" ? m.feedbackOk : m.feedbackBad}
-               style={{
-                  padding: isMobile ? "14px 20px" : "16px 24px",
-
-                  fontSize: isMobile ? "1rem" : "1.1rem",
-                  fontWeight: 600,
-                  animation: "slideIn 0.3s ease-out",
-                  background:
-                     feedback === "correct"
-                        ? "rgba(134, 239, 172, 0.2)"
-                        : "rgba(252, 165, 165, 0.2)",
-                  border: `1px solid ${
-                     feedback === "correct" ? "var(--ok)" : "var(--warn)"
-                  }`,
-                  color: feedback === "correct" ? "var(--ok)" : "var(--warn)",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "10px",
-                  width: "100%",
-                  justifyContent: "center",
-               }}
+               role="status"
+               className={`${m.feedback} ${
+                  feedback === "correct" ? m.feedbackOk : m.feedbackBad
+               }`}
             >
                {feedback === "correct" ? (
                   <>
-                     <CheckCircleIcon style={{ width: 24, height: 24 }} />
+                     <CheckCircleIcon className={m.feedbackIcon} />
                      <span>Correct! Great job!</span>
                   </>
                ) : (
                   <>
-                     <XCircleIcon style={{ width: 24, height: 24 }} />
+                     <XCircleIcon className={m.feedbackIcon} />
                      <span>Try again! You can do it!</span>
                   </>
                )}
@@ -975,33 +792,8 @@ function ColorGridMemory({
 
          {/* Share Success Messages */}
          {shareSuccess && (
-            <div
-               style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: isMobile ? "6px" : "8px",
-                  padding: isMobile ? "10px 14px" : "8px 16px",
-                  background:
-                     "linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(34, 197, 94, 0.1))",
-                  border: "2px solid rgba(34, 197, 94, 0.6)",
-                  borderRadius: isMobile ? "10px" : "8px",
-                  color: "var(--text)",
-                  fontSize: isMobile ? "0.85rem" : "0.9rem",
-                  fontWeight: 500,
-                  width: "100%",
-                  justifyContent: "center",
-                  textAlign: "center",
-                  flexWrap: "wrap",
-               }}
-            >
-               <CheckCircleIcon
-                  style={{
-                     width: isMobile ? 16 : 18,
-                     height: isMobile ? 16 : 18,
-                     color: "rgba(34, 197, 94, 0.9)",
-                     flexShrink: 0,
-                  }}
-               />
+            <div className={`${m.note} ${m.noteOk}`}>
+               <CheckCircleIcon className={m.noteIcon} />
                <span>
                   {isMobile
                      ? "Link copied! Unlimited hints unlock when someone opens it!"
@@ -1010,110 +802,25 @@ function ColorGridMemory({
             </div>
          )}
          {unlimitedActivated && (
-            <div
-               style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: isMobile ? "6px" : "8px",
-                  padding: isMobile ? "10px 14px" : "8px 16px",
-                  background:
-                     "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
-                  border: "2px solid rgba(59, 130, 246, 0.6)",
-                  borderRadius: isMobile ? "10px" : "8px",
-                  color: "var(--text)",
-                  fontSize: isMobile ? "0.85rem" : "0.9rem",
-                  fontWeight: 500,
-                  width: "100%",
-                  justifyContent: "center",
-                  textAlign: "center",
-                  flexWrap: "wrap",
-               }}
-            >
-               <CheckCircleIcon
-                  style={{
-                     width: isMobile ? 16 : 18,
-                     height: isMobile ? 16 : 18,
-                     color: "rgba(59, 130, 246, 0.9)",
-                     flexShrink: 0,
-                  }}
-               />
+            <div className={m.note}>
+               <CheckCircleIcon className={m.noteIcon} />
                <span>
                   {isMobile
-                     ? "🎉 Unlimited hints active for 15 minutes!"
-                     : "🎉 Someone opened your link! Unlimited hints is now active for 15 minutes!"}
+                     ? "Unlimited hints active for 15 minutes!"
+                     : "Someone opened your link! Unlimited hints are now active for 15 minutes!"}
                </span>
             </div>
          )}
 
          {/* Hint and Share Buttons */}
-         <div
-            style={{
-               display: "flex",
-               gap: isMobile ? "10px" : "12px",
-               width: "100%",
-               justifyContent: "center",
-               flexWrap: "wrap",
-            }}
-         >
-            {/* Hint Button */}
+         <div className={c.actions}>
             <button
+               type="button"
                onClick={handleHint}
-               className={m.btn}
-               disabled={
-                  gameState !== "input" ||
-                  (maxHints > 0 && hintsUsed >= maxHints) ||
-                  hintRevealed.length >= sequence.length
-               }
-               style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: isMobile ? "6px" : "8px",
-                  padding: isMobile ? "10px 16px" : "10px 20px",
-                  width: isMobile ? "100%" : "auto",
-                  background:
-                     gameState !== "input" ||
-                     (maxHints > 0 && hintsUsed >= maxHints) ||
-                     hintRevealed.length >= sequence.length
-                        ? "rgba(255, 255, 255, 0.05)"
-                        : "linear-gradient(135deg, rgba(251, 191, 36, 0.2), rgba(251, 191, 36, 0.1))",
-                  border: `1px solid ${
-                     gameState !== "input" ||
-                     (maxHints > 0 && hintsUsed >= maxHints) ||
-                     hintRevealed.length >= sequence.length
-                        ? "rgba(255, 255, 255, 0.1)"
-                        : "rgba(251, 191, 36, 0.6)"
-                  }`,
-
-                  color: "var(--text)",
-                  fontSize: isMobile ? "0.85rem" : "0.95rem",
-                  fontWeight: 600,
-                  cursor:
-                     gameState !== "input" ||
-                     (maxHints > 0 && hintsUsed >= maxHints) ||
-                     hintRevealed.length >= sequence.length
-                        ? "not-allowed"
-                        : "pointer",
-                  transition: "all 0.3s ease",
-                  opacity:
-                     gameState !== "input" ||
-                     (maxHints > 0 && hintsUsed >= maxHints) ||
-                     hintRevealed.length >= sequence.length
-                        ? 0.5
-                        : 1,
-               }}
+               className={`${m.btn} ${m.pill}`}
+               disabled={hintDisabled}
             >
-               <LightBulbIcon
-                  style={{
-                     width: isMobile ? 18 : 20,
-                     height: isMobile ? 18 : 20,
-                     color:
-                        gameState !== "input" ||
-                        (maxHints > 0 && hintsUsed >= maxHints) ||
-                        hintRevealed.length >= sequence.length
-                           ? "var(--muted)"
-                           : "rgba(251, 191, 36, 0.9)",
-                  }}
-               />
+               <LightBulbIcon className={m.pillIcon} />
                <span>
                   {hasShared
                      ? "Hint (∞)"
@@ -1121,49 +828,12 @@ function ColorGridMemory({
                </span>
             </button>
 
-            {/* Share Button */}
             <button
+               type="button"
                onClick={handleShare}
-               className={m.btn}
-               style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: isMobile ? "6px" : "8px",
-                  padding: isMobile ? "10px 16px" : "10px 20px",
-                  width: isMobile ? "100%" : "auto",
-                  background:
-                     "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
-                  border: "1px solid rgba(59, 130, 246, 0.6)",
-
-                  color: "var(--text)",
-                  fontSize: isMobile ? "0.85rem" : "0.95rem",
-                  fontWeight: 600,
-                  cursor: "pointer",
-                  transition: "all 0.3s ease",
-               }}
-               onMouseEnter={(e) => {
-                  e.currentTarget.style.background =
-                     "linear-gradient(135deg, rgba(59, 130, 246, 0.3), rgba(59, 130, 246, 0.2))";
-                  e.currentTarget.style.borderColor = "rgba(59, 130, 246, 0.8)";
-                  e.currentTarget.style.transform = "translateY(-2px)";
-                  e.currentTarget.style.boxShadow =
-                     "0 4px 12px rgba(59, 130, 246, 0.3)";
-               }}
-               onMouseLeave={(e) => {
-                  e.currentTarget.style.background =
-                     "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))";
-                  e.currentTarget.style.borderColor = "rgba(59, 130, 246, 0.6)";
-                  e.currentTarget.style.transform = "translateY(0)";
-                  e.currentTarget.style.boxShadow = "none";
-               }}
+               className={`${m.btn} ${m.pill}`}
             >
-               <ShareIcon
-                  style={{
-                     width: isMobile ? 18 : 20,
-                     height: isMobile ? 18 : 20,
-                     color: "rgba(59, 130, 246, 0.9)",
-                  }}
-               />
+               <ShareIcon className={m.pillIcon} />
                <span>{isMobile ? "Share" : "Share for Unlimited Hints"}</span>
             </button>
          </div>
