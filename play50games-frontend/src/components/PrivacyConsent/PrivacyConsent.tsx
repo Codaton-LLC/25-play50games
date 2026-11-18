@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { LockClosedIcon, XMarkIcon } from "@heroicons/react/24/outline";
+import { LockClosedIcon } from "@heroicons/react/24/outline";
 import Link from "next/link";
 import styles from "./PrivacyConsent.module.css";
 
@@ -96,136 +96,28 @@ export default function PrivacyConsent() {
 
   if (!show) return null;
 
+  // The look lives in PrivacyConsent.module.css (the design tokens of theme.css). The bar stays
+  // docked to the bottom edge at full width: the classic boards and the 3D shell measure it there.
   return (
-    <div
-      ref={bannerRef}
-      style={{
-        position: "fixed",
-        bottom: 0,
-        left: 0,
-        right: 0,
-        zIndex: 1000,
-        padding: "20px",
-        backgroundColor: "rgba(11, 16, 32, 0.95)",
-        borderTop: "1px solid var(--stroke)",
-        backdropFilter: "blur(10px)",
-        transform: isVisible ? "translateY(0)" : "translateY(100%)",
-        transition: "transform 0.3s ease-in-out",
-      }}
-    >
-      <div
-        style={{
-          maxWidth: "1200px",
-          margin: "0 auto",
-          display: "flex",
-          alignItems: "center",
-          gap: "20px",
-          flexWrap: "wrap",
-          justifyContent: "center",
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "12px",
-            flex: "1",
-            minWidth: "250px",
-          }}
-        >
-          <LockClosedIcon
-            style={{
-              width: 24,
-              height: 24,
-              color: "var(--accent)",
-              flexShrink: 0,
-            }}
-          />
-          <p
-            style={{
-              color: "var(--text)",
-              fontSize: "14px",
-              lineHeight: "1.5",
-              margin: 0,
-            }}
-          >
-            We use cookies and similar technologies to enhance your experience.
-            By continuing to use our website, you agree to our{" "}
-            <Link
-              href="/privacy-policy"
-              style={{
-                color: "var(--accent)",
-                textDecoration: "none",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.textDecoration = "underline";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.textDecoration = "none";
-              }}
-            >
+    <div ref={bannerRef} className={isVisible ? `${styles.banner} ${styles.visible}` : styles.banner}>
+      <div className={styles.inner}>
+        <div className={styles.copy}>
+          <LockClosedIcon className={styles.icon} aria-hidden="true" />
+          <p className={styles.text}>
+            We use cookies and similar technologies to enhance your experience. By continuing to use
+            our website, you agree to our{" "}
+            <Link href="/privacy-policy" className={styles.link}>
               Privacy Policy
             </Link>
             .
           </p>
         </div>
 
-        <div
-          style={{
-            display: "flex",
-            gap: "12px",
-            flexWrap: "wrap",
-            alignItems: "center",
-          }}
-        >
-          <button
-            onClick={handleNotAccept}
-            className={styles.button}
-            style={{
-              padding: "10px 20px",
-              backgroundColor: "rgba(255, 255, 255, 0.08)",
-              color: "var(--muted)",
-              border: "1px solid var(--stroke)",
-              borderRadius: "8px",
-              cursor: "pointer",
-              fontWeight: 600,
-              fontSize: "14px",
-              transition: "all 0.2s ease",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.12)";
-              e.currentTarget.style.color = "var(--text)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.08)";
-              e.currentTarget.style.color = "var(--muted)";
-            }}
-          >
+        <div className={styles.actions}>
+          <button type="button" onClick={handleNotAccept} className={`${styles.button} ${styles.decline}`}>
             Not Accept
           </button>
-          <button
-            onClick={handleAccept}
-            className={styles.button}
-            style={{
-              padding: "10px 20px",
-              backgroundColor: "rgba(134, 239, 172, 0.14)",
-              color: "#86efac",
-              border: "1px solid rgba(134, 239, 172, 0.35)",
-              borderRadius: "8px",
-              cursor: "pointer",
-              fontWeight: 600,
-              fontSize: "14px",
-              transition: "all 0.2s ease",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = "rgba(134, 239, 172, 0.24)";
-              e.currentTarget.style.borderColor = "rgba(134, 239, 172, 0.5)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = "rgba(134, 239, 172, 0.14)";
-              e.currentTarget.style.borderColor = "rgba(134, 239, 172, 0.35)";
-            }}
-          >
+          <button type="button" onClick={handleAccept} className={`${styles.button} ${styles.accept}`}>
             Accept
           </button>
         </div>

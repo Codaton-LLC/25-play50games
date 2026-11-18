@@ -14,7 +14,6 @@ import RegisterModal from "@/components/Auth/RegisterModal";
 import { ArrowLeftIcon, LockIcon } from "@/components/Site/icons";
 import ui from "@/components/Site/ui.module.css";
 import { useAuth } from "@/contexts/AuthContext";
-import boards from "./boards.module.css";
 import styles from "./page.module.css";
 
 const CATEGORY: Record<Game["game_type"], string> = {
@@ -149,10 +148,9 @@ export default function GameView() {
          </div>
       );
    } else {
-      // the stage: the game itself is always on the dark values (page.module.css says why);
-      // .boards puts the boards' global rules on the design's accent (boards.module.css)
+      // the stage: the game itself is always on the dark values (page.module.css says why)
       body = (
-         <div className={`p50-night ${styles.stage} ${boards.boards}`}>
+         <div className={`p50-night ${styles.stage}`}>
             <GameEngine
                game={game}
                onComplete={handleComplete}

@@ -59,6 +59,15 @@
    }
 }
 
+/* site-wide details in the palette: the selection and the scrollbars */
+::selection {
+   background: rgba(231, 95, 64, 0.32);
+}
+
+html {
+   scrollbar-color: var(--p50-track) transparent;
+}
+
 /* .p50-night pins the dark values on one island, whatever the theme: the sheets (login, register)
    of a page that keeps the old dark look, and the HUD on the 3D canvas, which is never themed. */
 :root[data-theme="dark"],

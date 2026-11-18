@@ -25,6 +25,16 @@
    overflow: hidden;
    background: var(--bg);
    color: var(--text);
+   /* the games' own HUD panels were laid out and playtested with the system face; the page's body
+      face is the design's now (globals.css), so the frame names it. The shell's sheets and chips
+      set the design fonts themselves. */
+   font-family:
+      system-ui,
+      -apple-system,
+      "Segoe UI",
+      "Roboto",
+      "Arial",
+      sans-serif;
 }
 
 .canvasWrap {

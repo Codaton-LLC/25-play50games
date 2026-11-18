@@ -9,9 +9,10 @@
    In the dark theme the stage is the page canvas and does not show; in the light theme it is a dark
    screen on the light page.
 
-   Colours: .stage maps the boards' legacy variables (--accent, --ok, --warn, --text, --muted) onto
-   the design's palette, so every board that reads them is on coral, the system green and the system
-   red. Tints a board wrote out as numbers (rgba(59, 130, 246, ..) and others) are its own and stay.
+   Colours: globals.css is on the design palette (its :root variables and the board rules), and
+   .stage sets the legacy variables again, because the .p50 wrapper around it maps them onto the
+   themed tokens: on the stage they are the dark values, with one accent (coral; gold for the final
+   games). Tints a board writes inline (rgba(59, 130, 246, ..) and others) are its own and stay.
 
    What this file restyles: the breadcrumb, the stage, the start screen (title, How to Play card, the
    Example Round panel, tips, the Time limit / Passing score figures, Start / Exit), the play view's
@@ -103,7 +104,7 @@
    --secondary: var(--p50-green);
    --ok: var(--p50-green);
    --warn: var(--p50-red-text);
-   /* the accent as numbers, for the tints the engine's own stylesheets write as rgba(.., a) */
+   /* the accent as numbers, for the tints the engine's stylesheets write as rgba(.., a) */
    --accent-rgb: 231, 95, 64;
 }
 
@@ -444,6 +445,14 @@
       "Roboto",
       "Arial",
       sans-serif;
+}
+
+/* accent-to-green gradients a board sets inline (progress fills, a few buttons): one accent. The
+   design has no two-colour gradients, and coral into green reads muddy. The rule after this one
+   wins for gradient text (same weight, later). */
+.stage :global([style*="var(--accent) 0%, var(--ok) 100%"]),
+.stage :global([style*="var(--accent), var(--ok)"]) {
+   background: var(--accent) !important;
 }
 
 /* board titles ("Number Grid 4x4") and any other gradient text inside a game: plain display type.
