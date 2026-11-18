@@ -16,7 +16,14 @@
 
 .stage :global(button) {
    touch-action: manipulation;
-   transition: filter 120ms ease, box-shadow 120ms ease;
+   /* this rule outranks the games' own transitions, so it carries all the ones they ease */
+   transition:
+      filter 120ms ease,
+      box-shadow 160ms cubic-bezier(0.16, 1, 0.3, 1),
+      background-color 160ms cubic-bezier(0.16, 1, 0.3, 1),
+      color 160ms cubic-bezier(0.16, 1, 0.3, 1),
+      opacity 160ms ease,
+      transform 100ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .stage :global(button):active:not(:disabled) {
