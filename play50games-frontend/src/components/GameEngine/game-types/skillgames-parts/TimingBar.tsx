@@ -20,6 +20,12 @@ import touch from "./skillTouch.module.css";
 import ui from "./skillUi.module.css";
 import { usePlayAreaInView } from "./usePlayAreaInView";
 
+// One 60 Hz frame. The bar moves by elapsed time scaled to this, so it runs
+// at the same speed on every refresh rate (and exactly as before at 60 Hz).
+const FRAME_MS = 1000 / 60;
+// Cap one step (tab switch, long stall) so the bar never jumps far.
+const MAX_STEP_MS = 100;
+
 interface TimingBarProps {
    config: Record<string, any>;
    onScoreUpdate: (score: number) => void;
@@ -246,7 +252,8 @@ export default function TimingBar({
 
          // Start bar animation (similar to HTML version)
          let pos = initialPos; // 0..1
-         const animate = () => {
+         let lastTs: number | null = null;
+         const animate = (ts: number) => {
             if (
                gameStateRef.current !== "playing" ||
                requirementsMetRef.current ||
@@ -257,7 +264,10 @@ export default function TimingBar({
 
             const speed = levelConfig.barSpeed;
             const direction = barDirectionRef.current;
-            pos += direction * speed * 0.006;
+            const dt =
+               lastTs === null ? FRAME_MS : Math.min(ts - lastTs, MAX_STEP_MS);
+            lastTs = ts;
+            pos += direction * speed * 0.006 * (dt / FRAME_MS);
 
             if (pos >= 1) {
                pos = 1;
@@ -353,7 +363,8 @@ export default function TimingBar({
 
             // Restart animation
             let pos = newPos;
-            const animate = () => {
+            let lastTs: number | null = null;
+            const animate = (ts: number) => {
                if (
                   gameStateRef.current !== "playing" ||
                   requirementsMetRef.current ||
@@ -364,7 +375,10 @@ export default function TimingBar({
 
                const speed = levelConfig.barSpeed;
                const direction = barDirectionRef.current;
-               pos += direction * speed * 0.006;
+               const dt =
+                  lastTs === null ? FRAME_MS : Math.min(ts - lastTs, MAX_STEP_MS);
+               lastTs = ts;
+               pos += direction * speed * 0.006 * (dt / FRAME_MS);
 
                if (pos >= 1) {
                   pos = 1;
