@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import m from "./mobile.module.css";
+import ir from "./SequenceRecall.module.css";
 import {
    CheckCircleIcon,
    XCircleIcon,
@@ -10,7 +11,6 @@ import {
    ArrowPathIcon,
    TrophyIcon,
    PhotoIcon,
-   SparklesIcon,
 } from "@heroicons/react/24/outline";
 import {
    registerShare,
@@ -448,7 +448,8 @@ function ImageRecall({
    // Start first round
    useEffect(() => {
       if (currentRound < maxRounds) {
-         startRound();
+         // hand the flash interval back so a round change or unmount clears it
+         return startRound();
       }
    }, [currentRound, maxRounds, startRound]);
 
@@ -633,227 +634,98 @@ function ImageRecall({
       handleCardClick,
    ]);
 
-   // Flash card animation
+   // Flash card animation: a module class (the old global .image-card.flash scaled the whole cell)
    const flashCard = (idx: number) => {
       const card = document.querySelector(
          `.image-card[data-idx="${idx}"]`
       ) as HTMLElement;
       if (card) {
-         card.classList.add("flash");
-         setTimeout(() => card.classList.remove("flash"), 320);
+         card.classList.add(ir.flashCue);
+         setTimeout(() => card.classList.remove(ir.flashCue), 320);
       }
    };
 
    // Show sequence with flashes
    useEffect(() => {
       if (gameState === "memorizing" && sequence.length > 0) {
-         sequence.forEach((idx, i) => {
-            setTimeout(() => flashCard(idx), 600 + i * 650);
-         });
+         const timers = sequence.map((idx, i) =>
+            setTimeout(() => flashCard(idx), 600 + i * 650)
+         );
+         return () => timers.forEach(clearTimeout);
       }
    }, [gameState, sequence]);
 
    const progress = ((currentRound + 1) / maxRounds) * 100;
+   const hintDisabled =
+      (maxHints > 0 && hintsUsed >= maxHints) ||
+      gameState !== "input" ||
+      hintRevealed.length >= sequence.length;
+   const cellFont = isMobile
+      ? gridSize <= 3
+         ? "36px"
+         : gridSize <= 5
+         ? "28px"
+         : "24px"
+      : gridSize <= 3
+      ? "42px"
+      : gridSize <= 5
+      ? "32px"
+      : "28px";
 
    return (
-      <div
-         className={m.tight}
-         style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: isMobile ? "20px" : "24px",
-            padding: isMobile ? "12px" : "24px",
-            maxWidth: isMobile ? "100%" : "700px",
-            margin: "0 auto",
-            width: "100%",
-         }}
-      >
+      <div className={`${m.root} ${m.tight}`} style={{ maxWidth: "700px" }}>
          {/* Header with Round and Score */}
-         <div
-            style={{
-               width: "100%",
-               background: "var(--card)",
-               borderRadius: isMobile ? "14px" : "16px",
-               padding: isMobile ? "16px" : "20px",
-               boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
-            }}
-         >
+         <div className={m.panel}>
             {/* Game Title - Image Recall */}
-            <div
-               style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: isMobile ? "8px" : "10px",
-                  marginBottom: isMobile ? "12px" : "16px",
-                  paddingBottom: isMobile ? "12px" : "16px",
-                  borderBottom: "1px solid var(--stroke)",
-               }}
-            >
-               <PhotoIcon
-                  style={{
-                     width: isMobile ? 24 : 28,
-                     height: isMobile ? 24 : 28,
-                     color: "var(--accent)",
-                  }}
-               />
-               <h2
-                  style={{
-                     margin: 0,
-                     fontSize: isMobile ? "1.25rem" : "1.5rem",
-                     fontWeight: 700,
-                     background:
-                        "linear-gradient(135deg, var(--accent) 0%, var(--ok) 100%)",
-                     WebkitBackgroundClip: "text",
-                     WebkitTextFillColor: "transparent",
-                     backgroundClip: "text",
-                     textShadow: "0 2px 8px rgba(125, 211, 252, 0.3)",
-                  }}
-               >
-                  Image Recall
-               </h2>
-               <SparklesIcon
-                  style={{
-                     width: isMobile ? 20 : 24,
-                     height: isMobile ? 20 : 24,
-                     color: "var(--ok)",
-                  }}
-               />
+            <div className={`${ir.title} ${m.landHide}`}>
+               <PhotoIcon className={ir.titleIcon} />
+               <h2 className={ir.titleText}>Image Recall</h2>
             </div>
-            <div
-               style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  fontSize: isMobile ? "0.75rem" : "0.875rem",
-                  color: "var(--muted)",
-                  fontWeight: 500,
-                  marginBottom: isMobile ? "10px" : "12px",
-                  flexWrap: isMobile ? "wrap" : "nowrap",
-                  gap: isMobile ? "8px" : "0",
-               }}
-            >
-               <span
-                  style={{ display: "flex", alignItems: "center", gap: "6px" }}
-               >
-                  <ArrowPathIcon
-                     style={{
-                        width: isMobile ? 14 : 16,
-                        height: isMobile ? 14 : 16,
-                        color: "var(--accent)",
-                     }}
-                  />
-                  Round {currentRound + 1} / {maxRounds}
+            <div className={m.stats}>
+               <span className={m.stat}>
+                  <ArrowPathIcon className={m.statIcon} />
+                  Round <b>{Math.min(currentRound + 1, maxRounds)} / {maxRounds}</b>
                </span>
-               <span
-                  style={{ display: "flex", alignItems: "center", gap: "6px" }}
-               >
-                  <TrophyIcon
-                     style={{
-                        width: isMobile ? 14 : 16,
-                        height: isMobile ? 14 : 16,
-                        color: "var(--ok)",
-                     }}
-                  />
-                  Score: {currentScore} / 100
+               <span className={m.stat}>
+                  <TrophyIcon className={m.statIcon} />
+                  Score <b>{currentScore} / 100</b>
                </span>
-               <span
-                  style={{ display: "flex", alignItems: "center", gap: "6px" }}
-               >
-                  <LightBulbIcon
-                     style={{
-                        width: isMobile ? 14 : 16,
-                        height: isMobile ? 14 : 16,
-                        color: "var(--accent)",
-                     }}
-                  />
-                  Hints:{" "}
-                  {maxHints === 0 ? "∞" : `${maxHints - hintsUsed}/${maxHints}`}
+               <span className={m.stat}>
+                  <LightBulbIcon className={m.statIcon} />
+                  Hints{" "}
+                  <b>
+                     {maxHints === 0 ? "∞" : `${maxHints - hintsUsed}/${maxHints}`}
+                  </b>
                </span>
             </div>
             {/* Progress Bar */}
-            <div
-               style={{
-                  width: "100%",
-                  height: isMobile ? "6px" : "8px",
-                  background: "rgba(255, 255, 255, 0.1)",
-                  borderRadius: isMobile ? "3px" : "4px",
-                  overflow: "hidden",
-               }}
-            >
+            <div className={m.progress}>
                <div
-                  style={{
-                     width: `${progress}%`,
-                     height: "100%",
-                     background:
-                        "linear-gradient(90deg, var(--accent) 0%, var(--ok) 100%)",
-                     borderRadius: isMobile ? "3px" : "4px",
-                     transition: "width 0.3s ease",
-                     boxShadow: "0 0 10px rgba(125, 211, 252, 0.5)",
-                  }}
+                  className={m.progressFill}
+                  style={{ transform: `scaleX(${Math.min(progress, 100) / 100})` }}
                />
             </div>
          </div>
 
          {/* Game State Display */}
-         <div
-            key={gameState}
-            className={gameState === "correct" ? m.feedbackOk : gameState === "wrong" ? m.feedbackBad : undefined}
-            style={{
-               width: "100%",
-               background: "var(--card)",
-               borderRadius: isMobile ? "14px" : "16px",
-               padding: isMobile ? "16px" : "20px",
-               textAlign: "center",
-            }}
-         >
-            <div style={{ marginBottom: isMobile ? "10px" : "16px" }}>
-               <b
-                  style={{
-                     fontSize: isMobile ? "0.95rem" : "1.125rem",
-                     color: "var(--text)",
-                     display: "flex",
-                     alignItems: "center",
-                     justifyContent: "center",
-                     gap: isMobile ? "6px" : "8px",
-                     flexWrap: "wrap",
-                  }}
-               >
-                  {gameState === "memorizing" && "Watch the sequence…"}
-                  {gameState === "input" && "Now click in the same order"}
-                  {gameState === "correct" && (
-                     <>
-                        <CheckCircleIcon
-                           style={{
-                              width: isMobile ? 20 : 24,
-                              height: isMobile ? 20 : 24,
-                              color: "var(--ok)",
-                           }}
-                        />
-                        Correct!
-                     </>
-                  )}
-                  {gameState === "wrong" && (
-                     <>
-                        <XCircleIcon
-                           style={{
-                              width: isMobile ? 20 : 24,
-                              height: isMobile ? 20 : 24,
-                              color: "var(--warn)",
-                           }}
-                        />
-                        Wrong! Try again
-                     </>
-                  )}
-               </b>
+         <div key={gameState} className={`${m.panel} ${ir.status}`}>
+            <div className={ir.statusLine}>
+               {gameState === "memorizing" && "Watch the sequence…"}
+               {gameState === "input" && "Now click in the same order"}
+               {gameState === "correct" && (
+                  <>
+                     <CheckCircleIcon className={ir.iconOk} />
+                     Correct!
+                  </>
+               )}
+               {gameState === "wrong" && (
+                  <>
+                     <XCircleIcon className={ir.iconBad} />
+                     Wrong! Try again
+                  </>
+               )}
             </div>
-            <div
-               style={{
-                  fontSize: isMobile ? "0.75rem" : "0.875rem",
-                  color: "var(--muted)",
-               }}
-            >
+            <div className={ir.statusSub}>
                {gameState === "memorizing" &&
                   "After it disappears, click in the same order"}
                {gameState === "input" && "Click the images in order"}
@@ -863,36 +735,19 @@ function ImageRecall({
          {/* Feedback Messages */}
          {feedback !== null && (
             <div
-               className={feedback === "correct" ? m.feedbackOk : m.feedbackBad}
-               style={{
-                  padding: isMobile ? "14px 20px" : "16px 24px",
-                  borderRadius: isMobile ? "12px" : "12px",
-                  fontSize: isMobile ? "1rem" : "1.1rem",
-                  fontWeight: 600,
-                  animation: "slideIn 0.3s ease-out",
-                  background:
-                     feedback === "correct"
-                        ? "rgba(134, 239, 172, 0.2)"
-                        : "rgba(252, 165, 165, 0.2)",
-                  border: `1px solid ${
-                     feedback === "correct" ? "var(--ok)" : "var(--warn)"
-                  }`,
-                  color: feedback === "correct" ? "var(--ok)" : "var(--warn)",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "10px",
-                  width: "100%",
-                  justifyContent: "center",
-               }}
+               role="status"
+               className={`${m.feedback} ${
+                  feedback === "correct" ? m.feedbackOk : m.feedbackBad
+               }`}
             >
                {feedback === "correct" ? (
                   <>
-                     <CheckCircleIcon style={{ width: 24, height: 24 }} />
+                     <CheckCircleIcon className={m.feedbackIcon} />
                      <span>Correct! Great job!</span>
                   </>
                ) : (
                   <>
-                     <XCircleIcon style={{ width: 24, height: 24 }} />
+                     <XCircleIcon className={m.feedbackIcon} />
                      <span>Try again! You can do it!</span>
                   </>
                )}
@@ -901,26 +756,12 @@ function ImageRecall({
 
          {/* Image Grid (dynamic size) */}
          <div
-            className={m.fitBoard}
+            key={currentRound}
+            className={`${m.board} ${m.stagger}`}
             style={{
-               ["--ar" as string]: gridSize / Math.max(1, gridSize),
-               display: "grid",
-               gridTemplateColumns: `repeat(${gridSize}, 1fr)`,
-               gap: isMobile
-                  ? "8px"
-                  : gridSize <= 3
-                  ? "14px"
-                  : gridSize <= 5
-                  ? "10px"
-                  : "8px",
-               width: "100%",
-               maxWidth: isMobile
-                  ? "100%"
-                  : gridSize <= 3
-                  ? "400px"
-                  : gridSize <= 5
-                  ? "500px"
-                  : "600px",
+               gridTemplateColumns: `repeat(${gridSize}, minmax(0, 1fr))`,
+               // square board: fits the screen height, and a cell never grows past 120 px
+               maxWidth: `min(100%, calc(100dvh - 170px), ${gridSize * 120}px)`,
             }}
          >
             {currentImages.map((emoji, idx) => {
@@ -938,110 +779,39 @@ function ImageRecall({
                const orderInInput = userInput.indexOf(idx);
                const isCorrect = isSelected && orderInInput === orderInSequence;
                const isWrong = isSelected && orderInInput !== orderInSequence;
+               const stateClass =
+                  gameState === "memorizing" && isInSequence
+                     ? ir.cue
+                     : isCorrect
+                     ? `${m.cardMatched} ${m.matched}`
+                     : isWrong
+                     ? `${m.cardWrong} ${m.wrong}`
+                     : isHinted
+                     ? m.cardHint
+                     : selectedCellIndex === idx
+                     ? m.cardSelected
+                     : gameState === "wrong" && isInSequence
+                     ? ir.cue
+                     : "";
 
                return (
                   <button
                      key={idx}
-                     className={`image-card ${m.card}`}
+                     className={`image-card ${m.card} ${stateClass}`}
                      data-idx={idx}
                      onClick={() => handleCardClick(idx)}
                      disabled={gameState !== "input" || isSelected}
+                     aria-label={isVisible ? `Image ${idx + 1}: ${emoji}` : `Hidden image ${idx + 1}`}
                      style={{
-                        width: "100%",
-                        aspectRatio: "1",
-                        borderRadius: isMobile ? "14px" : "18px",
-                        border: `${
-                           gameState === "memorizing" && isInSequence
-                              ? "3px solid rgba(110, 168, 255, 1)"
-                              : isCorrect
-                              ? "2px solid rgba(54, 211, 153, 0.6)"
-                              : isWrong
-                              ? "2px solid rgba(251, 113, 133, 0.6)"
-                              : isSelected
-                              ? "2px solid rgba(110, 168, 255, 0.6)"
-                              : selectedCellIndex === idx
-                              ? "2px solid rgba(251, 191, 36, 0.8)"
-                              : "2px solid rgba(255, 255, 255, 0.1)"
-                        }`,
-                        outline:
-                           selectedCellIndex === idx && !isSelected
-                              ? "2px solid rgba(251, 191, 36, 0.5)"
-                              : "none",
-                        outlineOffset:
-                           selectedCellIndex === idx && !isSelected
-                              ? "2px"
-                              : "0",
-                        background:
-                           gameState === "memorizing" && isInSequence
-                              ? "linear-gradient(135deg, rgba(110, 168, 255, 0.4), rgba(110, 168, 255, 0.25))"
-                              : isSelected
-                              ? "linear-gradient(135deg, rgba(110, 168, 255, 0.2), rgba(110, 168, 255, 0.1))"
-                              : selectedCellIndex === idx && !isSelected
-                              ? "linear-gradient(135deg, rgba(251, 191, 36, 0.15), rgba(251, 191, 36, 0.08))"
-                              : "linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02))",
-                        boxShadow:
-                           gameState === "memorizing" && isInSequence
-                              ? "0 0 30px rgba(110, 168, 255, 0.6), 0 0 50px rgba(110, 168, 255, 0.4), inset 0 0 15px rgba(110, 168, 255, 0.2)"
-                              : isCorrect || isWrong
-                              ? `0 10px 24px ${
-                                   isCorrect
-                                      ? "rgba(54, 211, 153, 0.18)"
-                                      : "rgba(251, 113, 133, 0.18)"
-                                }`
-                              : "0 10px 18px rgba(0, 0, 0, 0.22)",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        fontSize: isMobile
-                           ? gridSize <= 3
-                              ? "36px"
-                              : gridSize <= 5
-                              ? "28px"
-                              : "24px"
-                           : gridSize <= 3
-                           ? "42px"
-                           : gridSize <= 5
-                           ? "32px"
-                           : "28px",
-                        cursor:
-                           gameState === "input" && !isSelected
-                              ? "pointer"
-                              : "not-allowed",
-                        userSelect: "none",
-                        position: "relative",
-                        overflow: "hidden",
-                        transition: "all 0.15s",
-                        opacity: isVisible ? 1 : 0.3,
-                        transform:
-                           gameState === "memorizing" && isInSequence
-                              ? "scale(1.05)"
-                              : "scale(1)",
-                        zIndex:
-                           gameState === "memorizing" && isInSequence ? 5 : 1,
+                        ["--i" as string]: idx,
+                        fontSize: cellFont,
                      }}
                   >
-                     {isVisible ? emoji : "?"}
+                     <span className={isVisible ? m.face : `${m.face} ${m.faceBack}`}>
+                        {isVisible ? emoji : "?"}
+                     </span>
                      {isSelected && (
-                        <div
-                           style={{
-                              position: "absolute",
-                              right: isMobile ? "8px" : "10px",
-                              top: isMobile ? "8px" : "10px",
-                              width: isMobile ? "24px" : "28px",
-                              height: isMobile ? "24px" : "28px",
-                              borderRadius: "999px",
-                              background: "rgba(15, 27, 51, 0.8)",
-                              border: "1px solid rgba(255, 255, 255, 0.12)",
-                              display: "grid",
-                              placeItems: "center",
-                              fontWeight: 900,
-                              fontSize: isMobile ? "11px" : "12px",
-                              color: "rgba(232, 238, 252, 0.95)",
-                              zIndex: 2,
-                           }}
-                        >
-                           {orderInInput + 1}
-                        </div>
+                        <span className={ir.order}>{orderInInput + 1}</span>
                      )}
                   </button>
                );
@@ -1049,47 +819,11 @@ function ImageRecall({
          </div>
 
          {/* Action Buttons: Hint, Share */}
-         <div
-            style={{
-               width: "100%",
-               display: "flex",
-               gap: isMobile ? "10px" : "12px",
-               justifyContent: "center",
-               flexWrap: "wrap",
-               padding: isMobile ? "0 8px" : "0",
-               maxWidth: isMobile ? "100%" : "700px",
-               margin: "0 auto",
-            }}
-         >
+         <div className={ir.actions}>
             {/* Share Success Messages */}
             {shareSuccess && (
-               <div
-                  style={{
-                     display: "flex",
-                     alignItems: "center",
-                     gap: isMobile ? "6px" : "8px",
-                     padding: isMobile ? "10px 14px" : "8px 16px",
-                     background:
-                        "linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(34, 197, 94, 0.1))",
-                     border: "2px solid rgba(34, 197, 94, 0.6)",
-                     borderRadius: isMobile ? "10px" : "8px",
-                     color: "var(--text)",
-                     fontSize: isMobile ? "0.85rem" : "0.9rem",
-                     fontWeight: 500,
-                     width: "100%",
-                     justifyContent: "center",
-                     textAlign: "center",
-                     flexWrap: "wrap",
-                  }}
-               >
-                  <CheckCircleIcon
-                     style={{
-                        width: isMobile ? 16 : 18,
-                        height: isMobile ? 16 : 18,
-                        color: "rgba(34, 197, 94, 0.9)",
-                        flexShrink: 0,
-                     }}
-                  />
+               <div className={`${m.note} ${m.noteOk} ${ir.wide}`}>
+                  <CheckCircleIcon className={m.noteIcon} />
                   <span>
                      {isMobile
                         ? "Link copied! Unlimited hints unlock when someone opens it!"
@@ -1099,37 +833,12 @@ function ImageRecall({
             )}
 
             {unlimitedActivated && (
-               <div
-                  style={{
-                     display: "flex",
-                     alignItems: "center",
-                     gap: isMobile ? "6px" : "8px",
-                     padding: isMobile ? "10px 14px" : "8px 16px",
-                     background:
-                        "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
-                     border: "2px solid rgba(59, 130, 246, 0.6)",
-                     borderRadius: isMobile ? "10px" : "8px",
-                     color: "var(--text)",
-                     fontSize: isMobile ? "0.85rem" : "0.9rem",
-                     fontWeight: 500,
-                     width: "100%",
-                     justifyContent: "center",
-                     textAlign: "center",
-                     flexWrap: "wrap",
-                  }}
-               >
-                  <CheckCircleIcon
-                     style={{
-                        width: isMobile ? 16 : 18,
-                        height: isMobile ? 16 : 18,
-                        color: "rgba(59, 130, 246, 0.9)",
-                        flexShrink: 0,
-                     }}
-                  />
+               <div className={`${m.note} ${ir.wide}`}>
+                  <CheckCircleIcon className={m.noteIcon} />
                   <span>
                      {isMobile
-                        ? "🎉 Unlimited hints active for 15 minutes!"
-                        : "🎉 Someone opened your link! Unlimited hints are now active for 15 minutes!"}
+                        ? "Unlimited hints active for 15 minutes!"
+                        : "Someone opened your link! Unlimited hints are now active for 15 minutes!"}
                   </span>
                </div>
             )}
@@ -1137,84 +846,10 @@ function ImageRecall({
             {/* Hint Button */}
             <button
                onClick={handleHint}
-               className={m.btn}
-               disabled={
-                  (maxHints > 0 && hintsUsed >= maxHints) ||
-                  gameState !== "input" ||
-                  hintRevealed.length >= sequence.length
-               }
-               style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: isMobile ? "6px" : "8px",
-                  padding: isMobile ? "10px 16px" : "10px 20px",
-                  width: isMobile ? "100%" : "auto",
-                  background:
-                     maxHints > 0 && hintsUsed >= maxHints
-                        ? "rgba(100, 100, 100, 0.2)"
-                        : "linear-gradient(135deg, rgba(251, 191, 36, 0.2), rgba(251, 191, 36, 0.1))",
-                  border:
-                     maxHints > 0 && hintsUsed >= maxHints
-                        ? "1px solid rgba(100, 100, 100, 0.4)"
-                        : "1px solid rgba(251, 191, 36, 0.6)",
-
-                  color: "var(--text)",
-                  fontSize: isMobile ? "0.85rem" : "0.95rem",
-                  fontWeight: 600,
-                  cursor:
-                     (maxHints > 0 && hintsUsed >= maxHints) ||
-                     gameState !== "input" ||
-                     hintRevealed.length >= sequence.length
-                        ? "not-allowed"
-                        : "pointer",
-                  opacity:
-                     (maxHints > 0 && hintsUsed >= maxHints) ||
-                     gameState !== "input" ||
-                     hintRevealed.length >= sequence.length
-                        ? 0.5
-                        : 1,
-                  transition: "all 0.3s ease",
-               }}
-               onMouseEnter={(e) => {
-                  if (
-                     !(maxHints > 0 && hintsUsed >= maxHints) &&
-                     gameState === "input" &&
-                     hintRevealed.length < sequence.length
-                  ) {
-                     e.currentTarget.style.background =
-                        "linear-gradient(135deg, rgba(251, 191, 36, 0.3), rgba(251, 191, 36, 0.2))";
-                     e.currentTarget.style.borderColor =
-                        "rgba(251, 191, 36, 0.8)";
-                     e.currentTarget.style.transform = "translateY(-2px)";
-                     e.currentTarget.style.boxShadow =
-                        "0 4px 12px rgba(251, 191, 36, 0.3)";
-                  }
-               }}
-               onMouseLeave={(e) => {
-                  if (
-                     !(maxHints > 0 && hintsUsed >= maxHints) &&
-                     gameState === "input" &&
-                     hintRevealed.length < sequence.length
-                  ) {
-                     e.currentTarget.style.background =
-                        "linear-gradient(135deg, rgba(251, 191, 36, 0.2), rgba(251, 191, 36, 0.1))";
-                     e.currentTarget.style.borderColor =
-                        "rgba(251, 191, 36, 0.6)";
-                     e.currentTarget.style.transform = "translateY(0)";
-                     e.currentTarget.style.boxShadow = "none";
-                  }
-               }}
+               className={`${m.btn} ${m.pill}`}
+               disabled={hintDisabled}
             >
-               <LightBulbIcon
-                  style={{
-                     width: isMobile ? 18 : 20,
-                     height: isMobile ? 18 : 20,
-                     color:
-                        maxHints > 0 && hintsUsed >= maxHints
-                           ? "var(--muted)"
-                           : "rgba(251, 191, 36, 0.9)",
-                  }}
-               />
+               <LightBulbIcon className={m.pillIcon} />
                <span>
                   Hint{" "}
                   {maxHints === 0 ? "(∞)" : `(${maxHints - hintsUsed} left)`}
@@ -1222,48 +857,8 @@ function ImageRecall({
             </button>
 
             {/* Share Button */}
-            <button
-               onClick={handleShare}
-               className={m.btn}
-               style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: isMobile ? "6px" : "8px",
-                  padding: isMobile ? "10px 16px" : "10px 20px",
-                  width: isMobile ? "100%" : "auto",
-                  background:
-                     "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
-                  border: "1px solid rgba(59, 130, 246, 0.6)",
-
-                  color: "var(--text)",
-                  fontSize: isMobile ? "0.85rem" : "0.95rem",
-                  fontWeight: 600,
-                  cursor: "pointer",
-                  transition: "all 0.3s ease",
-               }}
-               onMouseEnter={(e) => {
-                  e.currentTarget.style.background =
-                     "linear-gradient(135deg, rgba(59, 130, 246, 0.3), rgba(59, 130, 246, 0.2))";
-                  e.currentTarget.style.borderColor = "rgba(59, 130, 246, 0.8)";
-                  e.currentTarget.style.transform = "translateY(-2px)";
-                  e.currentTarget.style.boxShadow =
-                     "0 4px 12px rgba(59, 130, 246, 0.3)";
-               }}
-               onMouseLeave={(e) => {
-                  e.currentTarget.style.background =
-                     "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))";
-                  e.currentTarget.style.borderColor = "rgba(59, 130, 246, 0.6)";
-                  e.currentTarget.style.transform = "translateY(0)";
-                  e.currentTarget.style.boxShadow = "none";
-               }}
-            >
-               <ShareIcon
-                  style={{
-                     width: isMobile ? 18 : 20,
-                     height: isMobile ? 18 : 20,
-                     color: "rgba(59, 130, 246, 0.9)",
-                  }}
-               />
+            <button onClick={handleShare} className={`${m.btn} ${m.pill}`}>
+               <ShareIcon className={m.pillIcon} />
                <span>{isMobile ? "Share" : "Share for Unlimited Hints"}</span>
             </button>
          </div>
