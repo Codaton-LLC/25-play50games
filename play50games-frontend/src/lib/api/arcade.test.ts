@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("@/arcade3d/flags", () => ({ ARCADE_ENABLED: true, ARCADE_LEADERBOARD: true, ARCADE_API_MOCK: false, ARCADE_LEVELS: false }));
 vi.mock("./apiBase", () => ({ getApiBase: () => "https://wp.test/wp-json/play50/v1" }));
 
-import { arcadeApi, ArcadeApiError, createMockArcadeClient, isRunToken } from "./arcade";
+import { arcadeApi, ArcadeApiError, createMockArcadeClient, isRunToken, mockBoardFromSearch } from "./arcade";
 
 const fetchMock = vi.fn();
 
@@ -182,5 +182,46 @@ describe("mock client levels", () => {
       const { run_token } = await mock.startRun("robot-collector", 3);
       await expect(mock.submit({ ...body, level: 5, run_token })).rejects.toMatchObject({ reason: "signature" });
       await expect(mock.submit({ ...body, level: 3, run_token })).resolves.toMatchObject({ success: true });
+   });
+});
+
+describe("mock client boards", () => {
+   it("reads the board from the page address and ignores anything else", () => {
+      expect(mockBoardFromSearch("?mockBoard=empty")).toBe("empty");
+      expect(mockBoardFromSearch("?level=2&mockBoard=outside")).toBe("outside");
+      expect(mockBoardFromSearch("?mockBoard=prod")).toBeNull();
+      expect(mockBoardFromSearch("")).toBeNull();
+   });
+
+   it("answers the seven sample rows by default, with no player row before a score", async () => {
+      const board = await createMockArcadeClient().leaderboard("robot-collector");
+      expect(board.entries).toHaveLength(7);
+      expect(board.entries.map((entry) => entry.rank)).toEqual([1, 2, 3, 4, 5, 6, 7]);
+      expect(board.me).toBeNull();
+   });
+
+   it("empty: no rows; error: the request fails like a dropped connection", async () => {
+      await expect(createMockArcadeClient({ board: "empty" }).leaderboard("robot-collector")).resolves.toEqual({
+         slug: "robot-collector",
+         entries: [],
+         me: null,
+      });
+      await expect(createMockArcadeClient({ board: "error" }).leaderboard("robot-collector")).rejects.toMatchObject({
+         code: "network",
+      });
+   });
+
+   it("outside: ten rows in rank order and the player below them; listed: the player inside the rows", async () => {
+      const outside = await createMockArcadeClient({ board: "outside" }).leaderboard("robot-collector");
+      expect(outside.entries).toHaveLength(10);
+      expect(outside.entries.some((entry) => entry.is_me)).toBe(false);
+      expect(outside.entries.map((entry) => entry.score)).toEqual([...outside.entries.map((entry) => entry.score)].sort((a, b) => b - a));
+      expect(outside.me).toEqual({ rank: 14, best_score: 184 });
+      expect(outside.me!.best_score).toBeLessThan(outside.entries[9].score);
+
+      const listed = await createMockArcadeClient({ board: "listed" }).leaderboard("robot-collector");
+      const mine = listed.entries.find((entry) => entry.is_me);
+      expect(mine?.rank).toBe(4);
+      expect(listed.me).toEqual({ rank: 4, best_score: mine!.score });
    });
 });

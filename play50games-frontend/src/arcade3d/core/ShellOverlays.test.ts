@@ -315,3 +315,144 @@ describe("wheel over the backdrop", () => {
       expect(panel.calls).toEqual([]);
    });
 });
+
+describe("lobby: top 10 and More like this", () => {
+   const entry = (rank: number, name: string, score: number, is_me = false) => ({
+      rank,
+      name,
+      score,
+      duration_ms: 30000,
+      achieved_at: "2026-10-01T00:00:00Z",
+      is_me,
+   });
+   const TEN = ["Ana K.", "Blerim D.", "Drita M.", "Ermal S.", "Fjolla R.", "Gent H.", "Hana L.", "Arta K.", "Dion B.", "Lea M."].map(
+      (name, i) => entry(i + 1, name, 1412 - i * 67)
+   );
+   const card = (board: Partial<LeaderboardState>, related?: ArcadeGameMeta[]) =>
+      renderToStaticMarkup(
+         createElement(StartCard, {
+            meta: META,
+            definition: DEFINITION,
+            coarse: true,
+            exitHref: "/3d",
+            leaderboard: { enabled: true, data: null, loading: false, error: null, retry: () => {}, ...board } as LeaderboardState,
+            onPlay: () => {},
+            related,
+         })
+      );
+   /** the top 10 section's markup */
+   const top10 = (html: string) => html.slice(html.indexOf('aria-label="Food Catcher top 10"')).split("</section>")[0];
+   const live = ARCADE_GAMES.filter((meta) => meta.status === "live" && meta.slug !== META.slug).slice(0, 4);
+
+   it("draws shields for ranks 1 to 3, padded numerals below, and the scores", () => {
+      const html = top10(card({ data: { slug: META.slug, entries: TEN, me: null } }));
+      expect(html.match(/aria-label="Rank \d+"/g)).toEqual(['aria-label="Rank 1"', 'aria-label="Rank 2"', 'aria-label="Rank 3"']);
+      expect(html).toContain(">#04<");
+      expect(html).toContain(">#10<");
+      expect(html).not.toContain(">#03<");
+      expect(html).toContain("Ana K.");
+      expect(html).toContain("1,412");
+      expect(html.match(/<li/g)).toHaveLength(10);
+      // the old table is gone from the lobby
+      expect(html).not.toContain("<table");
+   });
+
+   it("adds the player's own row under the ten when they are outside them", () => {
+      const html = top10(card({ data: { slug: META.slug, entries: TEN, me: { rank: 14, best_score: 184 } } }));
+      expect(html.match(/<li/g)).toHaveLength(11);
+      const own = html.slice(html.lastIndexOf("<li"));
+      expect(own).toContain(">#14<");
+      expect(own).toContain(">You<");
+      expect(own).toContain("184");
+      expect(html.indexOf("Lea M.")).toBeLessThan(html.lastIndexOf("<li"));
+   });
+
+   it("shows a time game's own row outside the ten as points, never with the duration's unit", () => {
+      const html = renderToStaticMarkup(
+         createElement(StartCard, {
+            meta: escapeRoomMeta,
+            definition: DEFINITION,
+            coarse: true,
+            exitHref: "/3d",
+            leaderboard: {
+               enabled: true,
+               data: { slug: escapeRoomMeta.slug, entries: TEN, me: { rank: 14, best_score: 184 } },
+               loading: false,
+               error: null,
+               retry: () => {},
+            } as LeaderboardState,
+            onPlay: () => {},
+         })
+      );
+      const own = html.slice(html.lastIndexOf("<li")).split("</li>")[0];
+      expect(own).toContain("184 pts");
+      // the listed rows show the finish time
+      expect(html).toContain("0:30.00");
+   });
+
+   it("marks the player's row inside the ten and adds no second row", () => {
+      const entries = TEN.map((row) => (row.rank === 4 ? { ...row, is_me: true } : row));
+      const html = top10(card({ data: { slug: META.slug, entries, me: { rank: 4, best_score: entries[3].score } } }));
+      expect(html.match(/<li/g)).toHaveLength(10);
+      expect(html.match(/>You</g)).toHaveLength(1);
+      expect(html).not.toContain("Ermal S.");
+   });
+
+   it("has a loading skeleton, an empty state with one sentence and an error with Try again", () => {
+      const loading = top10(card({ loading: true }));
+      expect(loading).toContain('aria-busy="true"');
+      expect(loading).not.toMatch(/Loading leaderboard/);
+      const empty = top10(card({ data: { slug: META.slug, entries: [], me: null } }));
+      expect(empty).toContain("No scores yet. Play one round to take first place.");
+      // the outline of the missing rows is decoration; Play stays the card's one primary button
+      expect(empty).toContain('aria-hidden="true"');
+      expect(empty).not.toContain("<button");
+      const failed = top10(card({ error: "The leaderboard could not be loaded." }));
+      expect(failed).toContain("The leaderboard could not be loaded.");
+      expect(failed).toContain(">Try again</button>");
+   });
+
+   it("puts More like this last, after the top 10, as links to live games only", () => {
+      expect(live).toHaveLength(4);
+      const html = card({ data: { slug: META.slug, entries: TEN, me: null } }, live);
+      const more = html.indexOf('aria-label="More like this"');
+      expect(more).toBeGreaterThan(html.indexOf('aria-label="Food Catcher top 10"'));
+      expect(at(html, styles.related)).toBeGreaterThan(-1);
+      const links = [...html.slice(more).matchAll(/href="\/3d\/([^"]+)"/g)].map((m) => m[1]);
+      expect(links).toEqual(live.map((meta) => meta.slug));
+      expect(html.endsWith("</ul></section></div></div>")).toBe(true);
+   });
+
+   it("never offers a game that is not live, and draws no row without games", () => {
+      const soon = { ...live[0], slug: "tower-climb", status: "soon" } as ArcadeGameMeta;
+      const dev = { ...live[1], slug: "penalty-hero", status: "dev" } as ArcadeGameMeta;
+      const html = card({}, [soon, dev, live[2]]);
+      const more = html.slice(html.indexOf('aria-label="More like this"'));
+      expect([...more.matchAll(/href="\/3d\/([^"]+)"/g)].map((m) => m[1])).toEqual([live[2].slug]);
+      expect(card({}, [soon, dev])).not.toContain("More like this");
+      expect(card({}, [])).not.toContain("More like this");
+      expect(card({})).not.toContain("More like this");
+   });
+
+   it("keeps More like this when the leaderboard is off, after the Play bar", () => {
+      const html = card({ enabled: false }, live);
+      expect(html).not.toContain("top 10");
+      expect(html.indexOf('aria-label="More like this"')).toBeGreaterThan(html.indexOf(">Play</button>"));
+   });
+
+   it("lays More like this under both columns of the wide lobby", () => {
+      const css = stylesheet("GameShell.module.css");
+      const wide = css.slice(css.indexOf("@media (min-width: 1040px) and (min-height: 620px)"));
+      const rule = wide.match(/\.overlay \.startPanel > \.related\s*\{([^}]*)\}/)?.[1].replace(/\s+/g, " ") ?? "";
+      expect(rule).toContain("clear: both;");
+      expect(rule).toContain("margin-left: 0;");
+      // the last block carries the card's bottom padding
+      expect(ruleIn(css, ".related")).toContain("var(--panel-pad-y)");
+   });
+
+   it("GameShell picks the row from the registry's live games", () => {
+      const shell = readFileSync(path.join(__dirname, "GameShell.tsx"), "utf8");
+      expect(shell).toMatch(/relatedGames\(meta, ARCADE_GAMES\)/);
+      expect(shell).toMatch(/<StartCard\s[^>]*\brelated=\{related\}/);
+   });
+});

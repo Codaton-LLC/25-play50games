@@ -279,11 +279,6 @@
    font-size: 0.875rem;
 }
 
-/* the top 10's Retry sits on coral: its label is the ink of every coral button */
-.overlay .leaderboard button {
-   color: var(--p50-on-coral);
-}
-
 .sectionTitle {
    margin: 0 0 10px;
    color: var(--p50-text-3);
@@ -333,6 +328,13 @@
 .startAction + .leaderboard {
    margin-top: 0;
    padding-bottom: var(--panel-pad-y);
+}
+
+/* "More like this" (ui/MoreLikeThis): the last block of the lobby, so it carries the card's bottom
+   padding. After the top 10 that block's bottom padding is the gap above the hairline. */
+.related {
+   padding: 16px 0 var(--panel-pad-y);
+   border-top: 1px solid var(--p50-line);
 }
 
 /* ---------- result ---------- */
@@ -679,6 +681,13 @@
    .overlay .startPanel > .leaderboard {
       margin-top: 4px;
       padding-bottom: var(--panel-pad-y);
+   }
+
+   /* under both columns: below the floated stage and the flow of the right column, full width */
+   .overlay .startPanel > .related {
+      clear: both;
+      margin-left: 0;
+      padding-top: 20px;
    }
 }
 
