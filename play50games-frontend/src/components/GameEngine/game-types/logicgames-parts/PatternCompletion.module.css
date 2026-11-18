@@ -1,48 +1,210 @@
-/* Pattern Completion on phones (desktop and tablets unchanged):
-   - the pattern wrapped onto a second line (4 + 2 on a 390 px phone), which reads as two patterns:
-     it now stays on one line, the shapes sharing the width;
-   - the four answers wrapped 3 + 1: now one row of four;
-   - less padding. */
+/* Pattern Completion (game 8), modern pass 2026-11-18.
+   The board no longer uses the global .pattern-* classes (fixed 100 / 60 px shapes in a wrapping flex
+   row, so 9 and 13 shapes broke into uneven lines; a hover that grew a shape 5 %; an infinite pulse
+   on the gap and its question mark; option buttons with hard pixel sizes). The pattern is now a grid
+   of equal 1fr square slots in a frame that hugs it: one row up to 6 shapes (the earlier phone fix),
+   on phones 9 shapes read 5 + 4 and 13 read 7 + 6, on wider screens up to 9 per row. The answers
+   are one row of up to four square buttons. The pattern staggers in per round; a right answer pops
+   into the gap with an ok tint, a wrong one shakes with a warn tint. */
+
+.root {
+   max-width: 600px;
+}
+
+.progress {
+   width: 100%;
+   max-width: 360px;
+   height: 6px;
+   border-radius: 999px;
+   background: rgba(255, 255, 255, 0.08);
+   overflow: hidden;
+}
+
+.progressFill {
+   width: 100%;
+   height: 100%;
+   border-radius: inherit;
+   background: var(--accent);
+   transform-origin: left center;
+   transition: transform 320ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.panel {
+   padding: 12px;
+}
+
+/* the pattern: equal square slots, one gap, the frame wraps the grid exactly */
+.pattern {
+   --cols: 6;
+   --cols-sm: 6;
+   display: grid;
+   grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
+   gap: 6px;
+   width: 100%;
+   max-width: 520px;
+   margin: 0 auto;
+}
+
+@media (max-width: 599px) {
+   .pattern {
+      grid-template-columns: repeat(var(--cols-sm), minmax(0, 1fr));
+   }
+}
+
+.slot {
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   aspect-ratio: 1;
+   min-width: 0;
+   border-radius: 10px;
+   background: rgba(255, 255, 255, 0.07);
+   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+   color: var(--text);
+   transition:
+      background-color 180ms cubic-bezier(0.16, 1, 0.3, 1),
+      box-shadow 180ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.icon {
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   width: 64%;
+   height: 64%;
+}
+
+.icon svg,
+.optIcon svg {
+   width: 100%;
+   height: 100%;
+}
+
+.missing {
+   background: rgba(var(--accent-rgb, 231, 95, 64), 0.14);
+   box-shadow: inset 0 0 0 2px rgba(var(--accent-rgb, 231, 95, 64), 0.7);
+   color: var(--accent);
+}
+
+.question {
+   font-size: clamp(1.1rem, 5vw, 2rem);
+   font-weight: 800;
+   line-height: 1;
+   color: var(--accent);
+}
+
+.missing.filled {
+   background: rgba(63, 181, 127, 0.16);
+   box-shadow: inset 0 0 0 2px var(--ok);
+   color: var(--ok);
+}
+
+.feedbackIcon {
+   width: 20px;
+   height: 20px;
+   margin-right: 8px;
+   flex: none;
+}
+
+/* answers: one row of up to four square buttons */
+.options {
+   --cols: 4;
+   display: grid;
+   grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
+   gap: 10px;
+   width: 100%;
+   max-width: 460px;
+}
+
+.option {
+   position: relative;
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   aspect-ratio: 1;
+   min-width: 0;
+   min-height: 56px;
+   padding: 0;
+   border: 0;
+   border-radius: 12px;
+   background: rgba(255, 255, 255, 0.07);
+   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+   color: var(--text);
+   font: inherit;
+   cursor: pointer;
+   transition:
+      background-color 160ms cubic-bezier(0.16, 1, 0.3, 1),
+      box-shadow 160ms cubic-bezier(0.16, 1, 0.3, 1),
+      opacity 160ms cubic-bezier(0.16, 1, 0.3, 1),
+      transform 100ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.optIcon {
+   display: flex;
+   width: 58%;
+   height: 58%;
+}
+
+@media (hover: hover) {
+   .option:hover:not(:disabled) {
+      background: rgba(var(--accent-rgb, 231, 95, 64), 0.1);
+      box-shadow: inset 0 0 0 1px rgba(var(--accent-rgb, 231, 95, 64), 0.55);
+   }
+}
+
+.option:active:not(:disabled) {
+   transform: scale(0.96);
+}
+
+.option:focus-visible {
+   outline: 2px solid var(--accent);
+   outline-offset: 2px;
+}
+
+.option:disabled {
+   opacity: 1;
+   cursor: default;
+}
+
+.root .optCorrect {
+   background: rgba(63, 181, 127, 0.16);
+   box-shadow: inset 0 0 0 2px var(--ok);
+   color: var(--ok);
+}
+
+.root .optWrong {
+   background: rgba(240, 112, 138, 0.16);
+   box-shadow: inset 0 0 0 2px var(--warn);
+   color: var(--warn);
+}
+
+.root .optIdle {
+   opacity: 0.5;
+}
+
+/* keyboard key (1-4) in the corner; hidden on touch screens */
+.optKey {
+   position: absolute;
+   top: 6px;
+   left: 8px;
+   font-size: 0.75rem;
+   font-weight: 700;
+   line-height: 1;
+   color: var(--muted);
+}
+
+@media (hover: none), (pointer: coarse) {
+   .optKey {
+      display: none;
+   }
+}
+
 @media (max-width: 599px) {
    .root {
-      padding: 10px 4px !important;
-      gap: 14px !important;
+      padding: 10px 4px;
+      gap: 14px;
    }
-   .root :global(.pattern-display) {
-      display: flex !important;
-      flex-wrap: nowrap !important;
-      gap: 6px !important;
-      padding: 12px 8px !important;
-      width: 100%;
-      justify-content: center;
-   }
-   .root :global(.pattern-shape) {
-      flex: 1 1 0;
-      min-width: 0 !important;
-      max-width: 64px;
-      width: auto !important;
-      height: auto !important;
-      aspect-ratio: 1;
-   }
-   .root :global(.pattern-shape) svg,
-   .root :global(.pattern-icon) {
-      width: 70% !important;
-      height: 70% !important;
-   }
-   .root :global(.pattern-options) {
-      display: grid !important;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 8px !important;
-      width: 100%;
-   }
-   .root :global(.pattern-options .option-btn) {
-      width: 100% !important;
-      height: auto !important;
-      aspect-ratio: 1;
-      min-height: 56px;
-   }
-   .root :global(.pattern-options .option-btn) svg {
-      width: 60% !important;
-      height: 60% !important;
+   .options {
+      gap: 8px;
    }
 }
