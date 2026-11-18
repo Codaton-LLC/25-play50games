@@ -323,20 +323,19 @@ body.final-game svg[style*="color: var(--accent)"] {
   color: var(--board-gold, #eab308) !important;
 }
 
-/* Final games - override green gradient backgrounds and borders to yellow */
-body.final-game div[style*="rgba(134, 239, 172"] {
+/* Final games - the green ("mint", 134 239 172) pieces of Reaction Test, the only board on a final page
+   (Final Test, id 58) that writes that green inline. Matched by their exact inline strings as the browser
+   serializes them, so no other element turns gold by accident: the lights, targets and shape options
+   (border), the timing fill (gradient) and the master pad (inset ring). Later rules still win where they did. */
+body.final-game div[style*="border: 3px solid rgba(134, 239, 172, 0.8)"],
+body.final-game div[style*="linear-gradient(90deg, var(--ok), rgba(134, 239, 172, 0.8))"],
+body.final-game div[style*="box-shadow: rgba(134, 239, 172, 0.4) 0px 0px 0px 4px inset"] {
   background: linear-gradient(135deg, rgba(234, 179, 8, 0.25), rgba(234, 179, 8, 0.12)) !important;
   border: 2px solid rgba(234, 179, 8, 0.6) !important;
 }
 
-/* Final games - override inline-flex badges with green colors to yellow */
-body.final-game div[style*="display: inline-flex"][style*="rgba(134, 239, 172"] {
-  background: linear-gradient(135deg, rgba(234, 179, 8, 0.25), rgba(234, 179, 8, 0.1)) !important;
-  border: 2px solid rgba(234, 179, 8, 0.6) !important;
-}
-
-/* Final games - override buttons with green colors to yellow */
-body.final-game button[style*="rgba(134, 239, 172"] {
+/* Final games - Reaction Test's next memory cell (the only button on a final page with that green) */
+body.final-game button[style*="background: rgba(134, 239, 172, 0.2)"] {
   background: linear-gradient(135deg, rgba(234, 179, 8, 0.25), rgba(234, 179, 8, 0.12)) !important;
   border: 2px solid rgba(234, 179, 8, 0.6) !important;
 }
