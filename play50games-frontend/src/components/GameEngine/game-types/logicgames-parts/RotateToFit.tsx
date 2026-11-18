@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import theme from "./theme.module.css";
 import css from "./RotateToFit.module.css";
 import {
    HandThumbUpIcon,
@@ -15,13 +16,9 @@ import {
    BuildingOffice2Icon,
    ArrowPathRoundedSquareIcon,
    ArrowPathIcon,
-   TrophyIcon,
-   SparklesIcon,
    CheckCircleIcon,
    ArrowLeftIcon,
    ArrowRightIcon,
-   XCircleIcon,
-   FireIcon,
 } from "@heroicons/react/24/outline";
 
 function RotateToFit({
@@ -47,8 +44,10 @@ function RotateToFit({
    const score = currentScore;
 
    // Object structure: { shape: string, rotation: number, targetRotation: number }
+   // spin: look only, the cumulative turn drawn on screen (rotation wraps 270 -> 0, which made the
+   // CSS transition spin the shape three quarters backwards); rules read rotation, never spin
    const [objects, setObjects] = useState<
-      Array<{ shape: string; rotation: number; targetRotation: number }>
+      Array<{ shape: string; rotation: number; targetRotation: number; spin?: number }>
    >([]);
    const [feedback, setFeedback] = useState<"correct" | "wrong" | null>(null);
    const completionCalledRef = useRef(false);
@@ -58,6 +57,14 @@ function RotateToFit({
    const onScoreUpdateRef = useRef(onScoreUpdate);
    const onCompleteRef = useRef(onComplete);
    const onRoundCompleteRef = useRef(onRoundComplete);
+   // the delayed onComplete after the last round; cleared if the game unmounts first
+   const completeTimerRef = useRef<number | null>(null);
+   useEffect(
+      () => () => {
+         if (completeTimerRef.current !== null) window.clearTimeout(completeTimerRef.current);
+      },
+      []
+   );
 
    // Update refs when callbacks change
    useEffect(() => {
@@ -116,10 +123,10 @@ function RotateToFit({
 
    // Get icon component by name (Heroicons)
    const getShapeIcon = (shapeName: string, size: number = 120) => {
+      // colour comes from the module (accent, ok once it fits; gold in final games through --accent)
       const iconStyle = {
          width: size,
          height: size,
-         color: "var(--accent)",
       };
 
       // Map shape names to Heroicon components
@@ -206,6 +213,7 @@ function RotateToFit({
          shape: string;
          rotation: number;
          targetRotation: number;
+         spin?: number;
       }> = [];
 
       // Create objects with random shapes and target rotations
@@ -216,6 +224,7 @@ function RotateToFit({
             shape: randomShape,
             rotation: 0,
             targetRotation: targetRotation,
+            spin: 0,
          });
       }
 
@@ -248,25 +257,31 @@ function RotateToFit({
 
             const currentRotation = currentObj.rotation;
             let newRotation = currentRotation;
+            let turn = 0; // look only: the drawn turn
 
             switch (rotationType) {
                case "right90":
                   newRotation = (currentRotation + 90) % 360;
+                  turn = 90;
                   break;
                case "left90":
                   newRotation = (currentRotation - 90 + 360) % 360;
+                  turn = -90;
                   break;
                case "right180":
                   newRotation = (currentRotation + 180) % 360;
+                  turn = 180;
                   break;
                case "left180":
                   newRotation = (currentRotation - 180 + 360) % 360;
+                  turn = -180;
                   break;
             }
 
             newObjects[objectIndex] = {
                ...currentObj,
                rotation: newRotation,
+               spin: (currentObj.spin ?? currentObj.rotation) + turn,
             };
 
             // Check if all objects are correct
@@ -315,7 +330,8 @@ function RotateToFit({
                   ((score + roundScore) / rounds) * 100
                );
                onScoreUpdateRef.current(finalScore);
-               setTimeout(() => {
+               completeTimerRef.current = window.setTimeout(() => {
+                  completeTimerRef.current = null;
                   onCompleteRef.current?.(finalScore);
                }, 1000);
             }
@@ -394,201 +410,162 @@ function RotateToFit({
    }, [selectedObjectIndex, objects.length, handleObjectRotate]);
 
    // Progress calculation
-   const progress = (round / rounds) * 100;
+   const progress = Math.min(1, round / rounds);
 
+   const rotateButtons: Array<{
+      type: "left90" | "right90" | "left180" | "right180";
+      label: string;
+      keys: string;
+      title: string;
+      Icon: React.ComponentType<any>;
+      mirror?: boolean;
+   }> = [
+      { type: "left90", label: "Left 90°", keys: "← / A", title: "Rotate left 90°", Icon: ArrowLeftIcon },
+      { type: "right90", label: "Right 90°", keys: "→ / D", title: "Rotate right 90°", Icon: ArrowRightIcon },
+      { type: "left180", label: "Left 180°", keys: "↑ / W", title: "Rotate left 180°", Icon: ArrowPathIcon, mirror: true },
+      { type: "right180", label: "Right 180°", keys: "↓ / S", title: "Rotate right 180°", Icon: ArrowPathIcon },
+   ];
+
+   // global class names (rotate-to-fit-game, game-header, header-title h2, stat-item, progress-bar-container,
+   // object-item / selected, selected-badge, target-outline, object-rotate-btn, btn-icon, keyboard-hint)
+   // stay on their elements: globals.css paints the final games gold through them
    return (
-      <div className={`rotate-to-fit-game ${css.root}`}>
+      <div className={`rotate-to-fit-game ${theme.game} ${css.root}`}>
          {/* Header */}
-         <div className="game-header">
-            <div className="header-title">
-               <PuzzlePieceIcon className="title-icon" />
-               <h2>Rotate to Fit</h2>
-               <FireIcon className="title-icon-secondary" />
+         <div className={`game-header ${css.header}`}>
+            <div className={`header-title ${css.headerTitle}`}>
+               <h2 className={`${theme.title} ${css.title}`}>Rotate to Fit</h2>
             </div>
-            <div className="header-stats">
-               <div className="stat-item">
-                  <ArrowPathIcon className="stat-icon" />
+            <p className={theme.subtitle}>Turn each shape until it matches its target.</p>
+            <div className={theme.chips}>
+               <div className={`stat-item ${theme.chip} ${css.stat}`}>
                   <span>
-                     Round {round} / {rounds}
+                     Round <strong>{round}</strong> / {rounds}
                   </span>
                </div>
-               <div className="stat-item">
-                  <TrophyIcon className="stat-icon" />
+               <div className={`stat-item ${theme.chip} ${css.stat}`}>
                   <span>
-                     Score: {score} / {rounds * 5}
+                     Score <strong>{score}</strong> / {rounds * 5}
                   </span>
                </div>
-               <div className="stat-item">
-                  <SparklesIcon className="stat-icon" />
-                  <span>Objects: {objects.length}</span>
+               <div className={`stat-item ${theme.chip} ${css.stat}`}>
+                  <span>
+                     Shapes <strong>{objects.length}</strong>
+                  </span>
                </div>
             </div>
-            <div className="progress-bar-container">
-               <div
-                  style={{
-                     width: `${progress}%`,
-                     height: "100%",
-                     background:
-                        "linear-gradient(90deg, var(--accent) 0%, var(--ok) 100%)",
-                     borderRadius: "4px",
-                     transition: "width 0.3s",
-                     boxShadow: "rgba(125, 211, 252, 0.5) 0px 0px 10px",
-                  }}
-               />
+            <div
+               className={`progress-bar-container ${css.progress}`}
+               role="progressbar"
+               aria-valuemin={0}
+               aria-valuemax={rounds}
+               aria-valuenow={round}
+               aria-label="Round progress"
+            >
+               <div className={css.progressFill} style={{ transform: `scaleX(${progress})` }} />
             </div>
          </div>
 
-         {/* Objects Container */}
-         <div className="objects-container">
+         {/* Objects: keyed by round, so each round's set staggers in once */}
+         <div className={css.objects}>
             {objects.map((obj, index) => {
                const isCorrect = obj.rotation === obj.targetRotation;
                const isSelected = selectedObjectIndex === index;
                return (
                   <div
-                     key={index}
-                     className={`object-item ${isSelected ? "selected" : ""} ${
-                        isCorrect ? "correct" : ""
-                     }`}
+                     key={`${round}-${index}`}
+                     className={[
+                        "object-item",
+                        isSelected ? "selected" : "",
+                        css.item,
+                        isSelected ? css.itemSelected : "",
+                        isCorrect ? css.itemCorrect : "",
+                     ]
+                        .filter(Boolean)
+                        .join(" ")}
+                     style={{ ["--i" as any]: index }}
                   >
-                     <div className="object-header">
-                        <span className="object-number">
-                           Object {index + 1}
+                     <div className={css.itemHead}>
+                        <span className={css.itemName}>
+                           Shape {index + 1}
                            {isSelected && (
-                              <span className="selected-badge">⌂</span>
+                              <span className={`selected-badge ${css.badge}`}>Keys</span>
                            )}
                         </span>
-                        {isCorrect && (
-                           <CheckCircleIcon className="object-check-icon" />
+                        {isCorrect ? (
+                           <span className={`${css.status} ${css.statusOk} ${theme.pop}`}>
+                              <CheckCircleIcon className={css.statusIcon} aria-hidden="true" />
+                              Fits
+                           </span>
+                        ) : (
+                           <span className={css.status}>Not yet</span>
                         )}
                      </div>
-                     <div className="object-display">
-                        <div className="object-target">
-                           <div className="object-label">Target</div>
-                           <div className="target-outline">
+                     <div className={css.pair}>
+                        <div className={css.slot}>
+                           <div className={css.label}>Target</div>
+                           <div className={`target-outline ${css.box} ${css.boxTarget}`}>
                               <div
-                                 className="target-shape"
-                                 style={{
-                                    transform: `rotate(${obj.targetRotation}deg)`,
-                                 }}
+                                 className={css.shape}
+                                 style={{ transform: `rotate(${obj.targetRotation}deg)` }}
                               >
                                  {getShapeIcon(obj.shape, 100)}
                               </div>
                            </div>
                         </div>
-                        <div className="object-rotation">
-                           <div className="object-label">Your Shape</div>
-                           <div className="rotation-area">
+                        <div className={css.slot}>
+                           <div className={css.label}>Your shape</div>
+                           <div
+                              className={`${css.box} ${isCorrect ? `${css.boxOk} ${theme.pop}` : ""}`}
+                           >
                               <div
-                                 className={`rotatable-shape ${
-                                    isCorrect ? "correct" : ""
-                                 }`}
-                                 style={{
-                                    ["--rotation" as any]: `${obj.rotation}deg`,
-                                 }}
+                                 className={`${css.shape} ${css.turning}`}
+                                 style={{ transform: `rotate(${obj.spin ?? obj.rotation}deg)` }}
                               >
                                  {getShapeIcon(obj.shape, 100)}
                               </div>
                            </div>
                         </div>
                      </div>
-                     <div className="object-controls">
-                        <button
-                           className="object-rotate-btn"
-                           onClick={() => handleObjectRotate(index, "left90")}
-                           disabled={isCorrect}
-                           title={`Rotate Left 90°${
-                              isSelected ? " (← or A)" : ""
-                           }`}
-                        >
-                           <ArrowLeftIcon className="btn-icon" />
-                           <span>Left 90°</span>
-                           {isSelected && (
-                              <span className="keyboard-hint">← / A</span>
-                           )}
-                        </button>
-                        <button
-                           className="object-rotate-btn"
-                           onClick={() => handleObjectRotate(index, "right90")}
-                           disabled={isCorrect}
-                           title={`Rotate Right 90°${
-                              isSelected ? " (→ or D)" : ""
-                           }`}
-                        >
-                           <ArrowRightIcon className="btn-icon" />
-                           <span>Right 90°</span>
-                           {isSelected && (
-                              <span className="keyboard-hint">→ / D</span>
-                           )}
-                        </button>
-                        <button
-                           className="object-rotate-btn"
-                           onClick={() => handleObjectRotate(index, "left180")}
-                           disabled={isCorrect}
-                           title={`Rotate Left 180°${
-                              isSelected ? " (↑ or W)" : ""
-                           }`}
-                        >
-                           <ArrowPathIcon className="btn-icon" />
-                           <span>Left 180°</span>
-                           {isSelected && (
-                              <span className="keyboard-hint">↑ / W</span>
-                           )}
-                        </button>
-                        <button
-                           className="object-rotate-btn"
-                           onClick={() => handleObjectRotate(index, "right180")}
-                           disabled={isCorrect}
-                           title={`Rotate Right 180°${
-                              isSelected ? " (↓ or S)" : ""
-                           }`}
-                        >
-                           <ArrowPathIcon className="btn-icon" />
-                           <span>Right 180°</span>
-                           {isSelected && (
-                              <span className="keyboard-hint">↓ / S</span>
-                           )}
-                        </button>
+                     <div className={css.controls}>
+                        {rotateButtons.map(({ type, label, keys, title, Icon, mirror }) => (
+                           <button
+                              key={type}
+                              type="button"
+                              className={`object-rotate-btn ${theme.btn} ${css.rotBtn}`}
+                              onClick={() => handleObjectRotate(index, type)}
+                              disabled={isCorrect}
+                              title={`${title}${isSelected ? ` (${keys})` : ""}`}
+                              aria-label={`Shape ${index + 1}: ${title}`}
+                           >
+                              <Icon
+                                 className={`btn-icon ${css.btnIcon} ${mirror ? css.mirrorIcon : ""}`}
+                                 aria-hidden="true"
+                              />
+                              <span>{label}</span>
+                              {isSelected && <span className={`keyboard-hint ${css.hint}`}>{keys}</span>}
+                           </button>
+                        ))}
                      </div>
                   </div>
                );
             })}
          </div>
 
-         {/* Feedback Message */}
-         {feedback !== null && (
-            <div
-               style={{
-                  padding: "16px 24px",
-
-                  fontSize: "1.1rem",
-                  fontWeight: 600,
-                  animation: "slideIn 0.3s ease-out",
-                  background:
+         {/* Feedback: a fixed slot so nothing jumps when it shows */}
+         <div className={theme.feedbackSlot} aria-live="polite">
+            {feedback !== null && (
+               <div
+                  className={`${theme.feedback} ${
                      feedback === "correct"
-                        ? "rgba(134, 239, 172, 0.2)"
-                        : "rgba(252, 165, 165, 0.2)",
-                  border: `1px solid ${
-                     feedback === "correct" ? "var(--ok)" : "var(--warn)"
-                  }`,
-                  color: feedback === "correct" ? "var(--ok)" : "var(--warn)",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "10px",
-               }}
-            >
-               {feedback === "correct" ? (
-                  <>
-                     <CheckCircleIcon style={{ width: 24, height: 24 }} />
-                     <span>Correct! Great job!</span>
-                  </>
-               ) : (
-                  <>
-                     <XCircleIcon style={{ width: 24, height: 24 }} />
-                     <span>Try again! You can do it!</span>
-                  </>
-               )}
-            </div>
-         )}
+                        ? `${theme.feedbackOk} ${theme.pop}`
+                        : `${theme.feedbackWarn} ${theme.shake}`
+                  }`}
+               >
+                  {feedback === "correct" ? "Every shape fits. +5 points" : "Not quite. Keep turning."}
+               </div>
+            )}
+         </div>
       </div>
    );
 }

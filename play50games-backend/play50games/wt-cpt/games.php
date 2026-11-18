@@ -53,15 +53,15 @@ function show_games_custom_fields() {
                     <option value="block-fill" data-category="logic">15. Block Fill</option>
                 </optgroup>
                 <optgroup label="Memory Games (16-25)" data-category="memory">
-                    <option value="card-flip" data-category="memory">16. Card Flip Memory</option>
-                    <option value="sound-memory" data-category="memory">17. Sound Memory</option>
-                    <option value="emoji-memory" data-category="memory">18. Emoji Memory</option>
+                    <option value="card-flip" data-category="memory">16. Card Flip Match</option>
+                    <option value="sound-memory" data-category="memory">17. Sound Sequence</option>
+                    <option value="emoji-memory" data-category="memory">18. Emoji Match</option>
                     <option value="number-recall" data-category="memory">19. Number Recall</option>
                     <option value="image-recall" data-category="memory">20. Image Recall</option>
-                    <option value="path-memory" data-category="memory">21. Path Memory</option>
-                    <option value="word-memory" data-category="memory">22. Word Memory</option>
-                    <option value="face-memory" data-category="memory">23. Face Memory</option>
-                    <option value="color-grid-memory" data-category="memory">24. Color Grid Memory</option>
+                    <option value="path-memory" data-category="memory">21. Path Recall</option>
+                    <option value="word-memory" data-category="memory">22. Word Recall</option>
+                    <option value="face-memory" data-category="memory">23. Face Recall</option>
+                    <option value="color-grid-memory" data-category="memory">24. Color Grid Recall</option>
                     <option value="symbol-stack" data-category="memory">25. Symbol Stack</option>
                 </optgroup>
                 <optgroup label="Speed Games (26-35)" data-category="speed">
@@ -69,7 +69,7 @@ function show_games_custom_fields() {
                     <option value="avoid-red" data-category="speed">27. Avoid the Red</option>
                     <option value="reaction-test" data-category="speed">28. Reaction Test</option>
                     <option value="fast-math" data-category="speed">29. Fast Math</option>
-                    <option value="whack-shape" data-category="speed">30. Shape Pop</option>
+                    <option value="whack-shape" data-category="speed">30. Shape Spotter</option>
                     <option value="typing-sprint" data-category="speed">31. Typing Sprint</option>
                     <option value="quick-compare" data-category="speed">32. Quick Compare</option>
                     <option value="falling-objects" data-category="speed">33. Falling Objects</option>
@@ -365,7 +365,7 @@ function show_games_custom_fields() {
                 timeLimit: 180,
                 passingScore: 85,
                 unlockRequirement: '',
-                description: 'Complete the 4x4 sudoku grid',
+                description: 'Fill the 4x4 number grid',
                 gameConfig: '{"gameType": "sudoku-4x4"}'
             },
             'rotate-to-fit': {
@@ -424,7 +424,7 @@ function show_games_custom_fields() {
                 gameConfig: '{"gameType": "block-fill", "levels": [3, 4, 5, 6, 7], "levelLayouts": [{"size": 3, "rows": ["AAB", "ACB", "CCB"]}, {"size": 4, "rows": ["AAAB", "CABB", "CCDB", "CDDD"]}, {"size": 5, "rows": ["AABBC", "ADBEC", "ADEEC", "FDDEC", "FFFEC"]}, {"size": 6, "rows": ["AAABBC", "DEABFC", "DEEBFC", "DGEHFC", "DGGHHC", "DGGHHC"]}, {"size": 7, "rows": ["AAABBCC", "ADDBBCC", "ADDEEFF", "GGDEHFF", "GGGHHII", "JJKHHII", "JJKKKII"]}]}'
             },
             'card-flip': {
-                title: 'Card Flip Memory',
+                title: 'Card Flip Match',
                 gameType: 'memory',
                 gameOrder: 16,
                 difficulty: 2,
@@ -435,7 +435,7 @@ function show_games_custom_fields() {
                 gameConfig: '{"gameType": "card-flip", "rounds": 5, "gridSizes": [[2, 2], [4, 4], [6, 6], [7, 6], [8, 8]]}'
             },
             'sound-memory': {
-                title: 'Sound Memory',
+                title: 'Sound Sequence',
                 gameType: 'memory',
                 gameOrder: 17,
                 difficulty: 2,
@@ -446,7 +446,7 @@ function show_games_custom_fields() {
                 gameConfig: '{"gameType": "sound-memory", "rounds": 10, "roundSequences": [[2], [2, 3], [2, 3, 1], [2, 3, 1, 1], [2, 3, 1, 1, 4], [3, 1, 4, 2, 2], [3, 1, 4, 2, 2, 1], [4, 2, 1, 3, 1, 2, 4], [1, 2, 4, 1, 3, 2, 3, 4], [2, 4, 1, 3, 2, 1, 4, 3, 1]]}'
             },
             'emoji-memory': {
-                title: 'Emoji Memory',
+                title: 'Emoji Match',
                 gameType: 'memory',
                 gameOrder: 18,
                 difficulty: 2,
@@ -479,7 +479,7 @@ function show_games_custom_fields() {
                 gameConfig: '{"gameType": "image-recall", "rounds": 15, "gridSizes": [3, 3, 3, 3, 5, 5, 5, 5, 6, 6, 6, 6, 6, 6, 6]}'
             },
             'path-memory': {
-                title: 'Path Memory',
+                title: 'Path Recall',
                 gameType: 'memory',
                 gameOrder: 21,
                 difficulty: 2,
@@ -490,7 +490,7 @@ function show_games_custom_fields() {
                 gameConfig: '{"gameType": "path-memory", "rounds": 15, "gridSize": 5}'
             },
             'word-memory': {
-                title: 'Word Memory',
+                title: 'Word Recall',
                 gameType: 'memory',
                 gameOrder: 22,
                 difficulty: 2,
@@ -501,7 +501,7 @@ function show_games_custom_fields() {
                 gameConfig: '{"gameType": "word-memory", "rounds": 15, "gridSizes": [3, 3, 3, 3, 5, 5, 5, 5, 6, 6, 6, 6, 6, 6, 6]}'
             },
             'face-memory': {
-                title: 'Face Memory',
+                title: 'Face Recall',
                 gameType: 'memory',
                 gameOrder: 23,
                 difficulty: 2,
@@ -512,7 +512,7 @@ function show_games_custom_fields() {
                 gameConfig: '{"gameType": "face-memory", "rounds": 15}'
             },
             'color-grid-memory': {
-                title: 'Color Grid Memory',
+                title: 'Color Grid Recall',
                 gameType: 'memory',
                 gameOrder: 24,
                 difficulty: 2,
@@ -578,7 +578,7 @@ function show_games_custom_fields() {
                 gameConfig: '{"gameType": "fast-math", "levels": 20, "levelDuration": 30, "levelRequirements": [{"minCorrectAnswers": 5}, {"minCorrectAnswers": 6}, {"minCorrectAnswers": 7}, {"minCorrectAnswers": 8}, {"minCorrectAnswers": 9}, {"minCorrectAnswers": 10}, {"minCorrectAnswers": 11}, {"minCorrectAnswers": 12}, {"minCorrectAnswers": 13}, {"minCorrectAnswers": 14}, {"minCorrectAnswers": 15}, {"minCorrectAnswers": 16}, {"minCorrectAnswers": 17}, {"minCorrectAnswers": 18}, {"minCorrectAnswers": 19}, {"minCorrectAnswers": 20}, {"minCorrectAnswers": 21}, {"minCorrectAnswers": 22}, {"minCorrectAnswers": 23}, {"minCorrectAnswers": 24}]}'
             },
             'whack-shape': {
-                title: 'Shape Pop',
+                title: 'Shape Spotter',
                 gameType: 'speed',
                 gameOrder: 30,
                 difficulty: 2,

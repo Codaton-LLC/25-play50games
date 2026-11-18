@@ -1,14 +1,9 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import {
-   SparklesIcon,
-   ArrowPathIcon,
-   TrophyIcon,
-   ClockIcon,
-   CheckCircleIcon,
-   XCircleIcon,
-} from "@heroicons/react/24/outline";
+import { useState, useEffect, useCallback, useRef } from "react";
+import type { CSSProperties } from "react";
+import theme from "./theme.module.css";
+import css from "./ColorSequence.module.css";
 
 function ColorSequence({
    config,
@@ -27,6 +22,16 @@ function ColorSequence({
    const [currentRound, setCurrentRound] = useState(0);
    const [currentScore, setCurrentScore] = useState(0);
    const [feedback, setFeedback] = useState<"correct" | "wrong" | null>(null);
+   // timers live in refs so leaving the game mid-round never fires a callback on an unmounted game
+   const showTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+   const nextTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+   useEffect(
+      () => () => {
+         if (showTimerRef.current) clearTimeout(showTimerRef.current);
+         if (nextTimerRef.current) clearTimeout(nextTimerRef.current);
+      },
+      []
+   );
 
    useEffect(() => {
       // Start first round
@@ -51,7 +56,8 @@ function ColorSequence({
       setFeedback(null);
 
       // Show sequence - each color flashes for 800ms
-      setTimeout(() => {
+      if (showTimerRef.current) clearTimeout(showTimerRef.current);
+      showTimerRef.current = setTimeout(() => {
          setShowingSequence(false);
       }, sequenceLength * 800 + 500); // 800ms per color + 500ms buffer
    };
@@ -78,7 +84,8 @@ function ColorSequence({
             setCurrentRound(nextRound);
             onScoreUpdate(newScore);
 
-            setTimeout(() => {
+            if (nextTimerRef.current) clearTimeout(nextTimerRef.current);
+            nextTimerRef.current = setTimeout(() => {
                if (nextRound >= maxRounds) {
                   // Game complete
                   onComplete(newScore);
@@ -110,7 +117,7 @@ function ColorSequence({
          let colorIndex = -1;
 
          if (key >= "1" && key <= "4") {
-            colorIndex = parseInt(key) - 1; // 1-4 → 0-3
+            colorIndex = parseInt(key) - 1; // keys 1-4 pick colours 0-3
          }
 
          if (colorIndex >= 0 && colorIndex < colors.length) {
@@ -123,6 +130,7 @@ function ColorSequence({
       return () => window.removeEventListener("keydown", handleKeyPress);
    }, [showingSequence, colors, handleColorClick]);
 
+   // the pad colours are game content (unchanged hues); the chrome around them uses the theme tokens
    const getColorStyle = (color: string) => {
       const colorMap: Record<
          string,
@@ -152,378 +160,143 @@ function ColorSequence({
       return colorMap[color] || colorMap.red;
    };
 
-   return (
-      <div
-         style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: "32px",
-            padding: "24px",
-            maxWidth: "600px",
-            margin: "0 auto",
-         }}
-      >
-         {/* Modern Header */}
-         <div
-            style={{
-               width: "100%",
-               background: "var(--card)",
-               borderRadius: "16px",
-               padding: "20px",
-               boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
-            }}
-         >
-            <h3
-               style={{
-                  fontSize: "1.75rem",
-                  fontWeight: 700,
-                  color: "var(--text)",
-                  margin: "0 0 16px 0",
-                  letterSpacing: "0.5px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: "10px",
-               }}
-            >
-               <SparklesIcon
-                  style={{ width: 28, height: 28, color: "var(--accent)" }}
-               />
-               Color Sequence
-            </h3>
+   const padVars = (color: string, i?: number) => {
+      const c = getColorStyle(color);
+      return {
+         "--pad-bg": c.bg,
+         "--pad-ring": "rgba(255, 255, 255, 0.28)",
+         "--pad-glow": c.shadow,
+         ...(i !== undefined ? { "--i": i } : {}),
+      } as CSSProperties;
+   };
 
-            <div
-               style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  fontSize: "0.875rem",
-                  color: "var(--muted)",
-                  fontWeight: 500,
-                  marginBottom: "12px",
-               }}
-            >
-               <span
-                  style={{ display: "flex", alignItems: "center", gap: "6px" }}
-               >
-                  <ArrowPathIcon
-                     style={{ width: 16, height: 16, color: "var(--accent)" }}
-                  />
-                  Round {currentRound} / {maxRounds}
+   const lastPick = playerSequence[playerSequence.length - 1];
+   const slotCount = Math.max(sequence.length, playerSequence.length);
+   const progress = maxRounds > 0 ? Math.min(1, currentRound / maxRounds) : 0;
+
+   return (
+      <div className={`${theme.game} ${css.root}`}>
+         <div className={theme.header}>
+            <h3 className={theme.title}>Color Sequence</h3>
+            <div className={theme.chips}>
+               <span className={theme.chip}>
+                  Round <strong>{currentRound}</strong> / {maxRounds}
                </span>
-               <span
-                  style={{ display: "flex", alignItems: "center", gap: "6px" }}
-               >
-                  <TrophyIcon
-                     style={{ width: 16, height: 16, color: "var(--accent)" }}
-                  />
-                  Score: {currentScore} / {maxRounds * 5}
+               <span className={theme.chip}>
+                  Score <strong>{currentScore}</strong> / {maxRounds * 5}
                </span>
             </div>
-
-            {/* Progress Bar */}
-            <div
-               style={{
-                  width: "100%",
-                  height: "8px",
-                  background: "rgba(255, 255, 255, 0.1)",
-                  borderRadius: "4px",
-                  overflow: "hidden",
-                  position: "relative",
-               }}
-            >
+            <div className={css.progress} aria-hidden="true">
                <div
-                  style={{
-                     width: `${(currentRound / maxRounds) * 100}%`,
-                     height: "100%",
-                     background:
-                        "linear-gradient(90deg, var(--accent) 0%, var(--ok) 100%)",
-                     borderRadius: "4px",
-                     transition: "width 0.3s ease",
-                     boxShadow: "0 0 10px rgba(125, 211, 252, 0.5)",
-                  }}
+                  className={css.progressFill}
+                  style={{ transform: `scaleX(${progress})` }}
                />
             </div>
          </div>
 
-         {/* Sequence Display or Color Options */}
          {showingSequence ? (
             <div
-               style={{
-                  background: "var(--card)",
-                  borderRadius: "20px",
-                  padding: "40px",
-                  boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
-                  minHeight: "200px",
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: "24px",
-               }}
+               key="watch"
+               className={`${theme.panel} ${css.stage} ${theme.fadeUp}`}
             >
+               <p className={css.hint}>Watch the sequence</p>
+               <p className={css.hintSub}>
+                  Round {currentRound + 1}: {sequence.length}{" "}
+                  {sequence.length === 1 ? "colour" : "colours"} to remember
+               </p>
                <div
-                  style={{
-                     display: "flex",
-                     alignItems: "center",
-                     gap: "12px",
-                     fontSize: "1.1rem",
-                     fontWeight: 600,
-                     color: "var(--muted)",
-                  }}
+                  className={css.playback}
+                  style={{ "--n": Math.max(1, sequence.length) } as CSSProperties}
+                  aria-label={`Sequence of ${sequence.length} colours`}
                >
-                  <ClockIcon style={{ width: 20, height: 20 }} />
-                  Watch the sequence carefully...
-               </div>
-               <div
-                  style={{
-                     fontSize: "0.875rem",
-                     color: "var(--accent)",
-                     fontWeight: 600,
-                     marginTop: "8px",
-                  }}
-               >
-                  Round {currentRound + 1} - {sequence.length}{" "}
-                  {sequence.length === 1 ? "color" : "colors"} to remember
-               </div>
-               <div
-                  style={{
-                     display: "flex",
-                     gap: "16px",
-                     flexWrap: "wrap",
-                     justifyContent: "center",
-                  }}
-               >
-                  {sequence.map((color, index) => {
-                     const colorStyle = getColorStyle(color);
-                     return (
-                        <div
-                           key={index}
-                           style={{
-                              width: "80px",
-                              height: "80px",
-                              borderRadius: "16px",
-                              background: colorStyle.bg,
-                              border: `3px solid ${colorStyle.border}`,
-                              boxShadow: `0 8px 20px ${colorStyle.shadow}`,
-                              animation: `pulse 0.6s ease-in-out ${
-                                 index * 0.6
-                              }s`,
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              fontSize: "0.75rem",
-                              fontWeight: 700,
-                              color: "white",
-                              textTransform: "uppercase",
-                              letterSpacing: "1px",
-                           }}
-                        >
-                           {index + 1}
-                        </div>
-                     );
-                  })}
+                  {sequence.map((color, index) => (
+                     <div
+                        key={index}
+                        className={css.tile}
+                        style={padVars(color, index)}
+                     >
+                        <span className={css.tileNum}>{index + 1}</span>
+                     </div>
+                  ))}
                </div>
             </div>
          ) : (
             <div
-               style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  gap: "24px",
-                  width: "100%",
-               }}
+               key="repeat"
+               className={`${theme.panel} ${css.stage} ${theme.fadeUp}`}
             >
-               <div
-                  style={{
-                     background: "var(--card)",
-                     borderRadius: "20px",
-                     padding: "24px",
-                     boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
-                     width: "100%",
-                  }}
-               >
-                  <div
-                     style={{
-                        fontSize: "1rem",
-                        fontWeight: 600,
-                        color: "var(--muted)",
-                        marginBottom: "20px",
-                        textAlign: "center",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: "8px",
-                     }}
-                  >
-                     <SparklesIcon style={{ width: 18, height: 18 }} />
-                     Repeat the sequence
-                  </div>
-                  <div
-                     style={{
-                        fontSize: "0.875rem",
-                        color: "var(--accent)",
-                        fontWeight: 500,
-                     }}
-                  >
-                     Click colors in the same order
-                  </div>
-                  <div
-                     style={{
-                        display: "grid",
-                        gridTemplateColumns: "repeat(2, 1fr)",
-                        gap: "20px",
-                        maxWidth: "400px",
-                        margin: "0 auto",
-                     }}
-                  >
-                     {colors.map((color: string, index: number) => {
-                        const colorStyle = getColorStyle(color);
-                        const isSelected =
-                           playerSequence.length > 0 &&
-                           playerSequence[playerSequence.length - 1] === color;
-                        return (
-                           <button
-                              key={color}
-                              onClick={() => handleColorClick(color)}
-                              disabled={showingSequence}
-                              style={{
-                                 width: "100%",
-                                 aspectRatio: "1",
-                                 borderRadius: "16px",
-                                 background: colorStyle.bg,
-                                 border: `3px solid ${colorStyle.border}`,
-                                 boxShadow: isSelected
-                                    ? `0 12px 30px ${colorStyle.shadow}`
-                                    : `0 4px 12px ${colorStyle.shadow}`,
-                                 cursor: showingSequence
-                                    ? "not-allowed"
-                                    : "pointer",
-                                 transition: "all 0.3s ease",
-                                 transform: isSelected
-                                    ? "scale(0.95)"
-                                    : "scale(1)",
-                                 display: "flex",
-                                 flexDirection: "column",
-                                 alignItems: "center",
-                                 justifyContent: "center",
-                                 gap: "8px",
-                                 position: "relative",
-                              }}
-                              onMouseEnter={(e) => {
-                                 if (!showingSequence) {
-                                    e.currentTarget.style.transform =
-                                       "scale(1.05)";
-                                    e.currentTarget.style.boxShadow = `0 12px 30px ${colorStyle.shadow}`;
-                                 }
-                              }}
-                              onMouseLeave={(e) => {
-                                 if (!showingSequence) {
-                                    e.currentTarget.style.transform =
-                                       "scale(1)";
-                                    e.currentTarget.style.boxShadow = `0 4px 12px ${colorStyle.shadow}`;
-                                 }
-                              }}
-                           >
-                              <span
-                                 style={{
-                                    fontSize: "0.75rem",
-                                    fontWeight: 500,
-                                    color: "white",
-                                    background: "rgba(0, 0, 0, 0.2)",
-                                    border:
-                                       "1px solid rgba(255, 255, 255, 0.3)",
-                                    borderRadius: "4px",
-                                    padding: "2px 8px",
-                                    fontFamily: "monospace",
-                                 }}
-                              >
-                                 {index + 1}
-                              </span>
-                              <span
-                                 style={{
-                                    fontSize: "0.875rem",
-                                    fontWeight: 700,
-                                    color: "white",
-                                    textTransform: "uppercase",
-                                    letterSpacing: "1px",
-                                 }}
-                              >
-                                 {color}
-                              </span>
-                           </button>
-                        );
-                     })}
-                  </div>
-                  {playerSequence.length > 0 && (
-                     <div
-                        style={{
-                           marginTop: "20px",
-                           display: "flex",
-                           gap: "8px",
-                           justifyContent: "center",
-                           flexWrap: "wrap",
-                        }}
+               <p className={css.hint}>Repeat the sequence</p>
+               <p className={css.hintSub}>
+                  Tap the colours in the same order. Keys 1 to 4 work too.
+               </p>
+               <div className={css.pads}>
+                  {colors.map((color: string, index: number) => (
+                     <button
+                        key={color}
+                        type="button"
+                        onClick={() => handleColorClick(color)}
+                        disabled={showingSequence}
+                        className={css.pad}
+                        style={padVars(color, index)}
+                        aria-label={`${color}, key ${index + 1}`}
                      >
-                        {playerSequence.map((color, index) => {
-                           const colorStyle = getColorStyle(color);
-                           return (
-                              <div
-                                 key={index}
-                                 style={{
-                                    width: "40px",
-                                    height: "40px",
-                                    borderRadius: "8px",
-                                    background: colorStyle.bg,
-                                    border: `2px solid ${colorStyle.border}`,
-                                    boxShadow: `0 4px 12px ${colorStyle.shadow}`,
-                                 }}
-                              />
-                           );
-                        })}
-                     </div>
-                  )}
+                        {lastPick === color && playerSequence.length > 0 && (
+                           <span
+                              key={playerSequence.length}
+                              className={css.flash}
+                              aria-hidden="true"
+                           />
+                        )}
+                        <span className={css.padLabel}>
+                           <span className={css.padKey}>{index + 1}</span>
+                           {color}
+                        </span>
+                     </button>
+                  ))}
+               </div>
+               <div
+                  key={`picks-${feedback ?? "none"}`}
+                  className={`${css.picks} ${
+                     feedback === "correct"
+                        ? theme.pop
+                        : feedback === "wrong"
+                        ? theme.shake
+                        : ""
+                  }`}
+                  aria-label={`${playerSequence.length} of ${sequence.length} picked`}
+               >
+                  {Array.from({ length: slotCount }).map((_, index) => {
+                     const picked = playerSequence[index];
+                     return picked ? (
+                        <span
+                           key={`p-${index}`}
+                           className={`${css.pick} ${theme.reveal}`}
+                           style={padVars(picked)}
+                        />
+                     ) : (
+                        <span key={`s-${index}`} className={css.slot} />
+                     );
+                  })}
                </div>
             </div>
          )}
 
-         {/* Feedback Message */}
-         {feedback !== null && (
-            <div
-               style={{
-                  padding: "16px 24px",
-
-                  fontSize: "1.1rem",
-                  fontWeight: 600,
-                  animation: "slideIn 0.3s ease-out",
-                  background:
+         <div className={theme.feedbackSlot} aria-live="polite">
+            {feedback !== null && (
+               <div
+                  key={`${feedback}-${currentRound}`}
+                  className={`${theme.feedback} ${
                      feedback === "correct"
-                        ? "rgba(134, 239, 172, 0.2)"
-                        : "rgba(252, 165, 165, 0.2)",
-                  border: `1px solid ${
-                     feedback === "correct" ? "var(--ok)" : "var(--warn)"
-                  }`,
-                  color: feedback === "correct" ? "var(--ok)" : "var(--warn)",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "10px",
-               }}
-            >
-               {feedback === "correct" ? (
-                  <>
-                     <CheckCircleIcon style={{ width: 24, height: 24 }} />
-                     <span>Correct! Great job! +5 points</span>
-                  </>
-               ) : (
-                  <>
-                     <XCircleIcon style={{ width: 24, height: 24 }} />
-                     <span>Try again! You can do it!</span>
-                  </>
-               )}
-            </div>
-         )}
+                        ? `${theme.feedbackOk} ${theme.pop}`
+                        : `${theme.feedbackWarn} ${theme.shake}`
+                  }`}
+               >
+                  {feedback === "correct"
+                     ? "Correct. +5 points"
+                     : "Not quite. Watch the next one."}
+               </div>
+            )}
+         </div>
       </div>
    );
 }

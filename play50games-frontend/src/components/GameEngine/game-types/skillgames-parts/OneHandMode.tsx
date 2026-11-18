@@ -17,6 +17,8 @@ import {
 } from "@/lib/api/share";
 
 import touch from "./skillTouch.module.css";
+import ui from "./skillUi.module.css";
+import s from "./OneHandMode.module.css";
 import { usePlayAreaInView } from "./usePlayAreaInView";
 
 // Narrow (phone) canvases draw a world at least WORLD_MIN_W wide, scaled down, so obstacles appear as
@@ -27,6 +29,17 @@ const WORLD_MIN_W = 640;
 function worldOf(canvas: HTMLCanvasElement) {
    const k = Math.min(1, canvas.clientWidth / WORLD_MIN_W) || 1;
    return { k, w: canvas.clientWidth / k, h: canvas.clientHeight / k };
+}
+
+/** Draws a rect with rounded corners where the browser supports it (visual only; hit boxes stay rects). */
+function fillRounded(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
+   if (typeof ctx.roundRect === "function") {
+      ctx.beginPath();
+      ctx.roundRect(x, y, w, h, r);
+      ctx.fill();
+   } else {
+      ctx.fillRect(x, y, w, h);
+   }
 }
 
 interface OneHandModeProps {
@@ -151,6 +164,18 @@ export default function OneHandMode({
    const [replaysUsed, setReplaysUsed] = useState(0);
    const [hasShared, setHasShared] = useState(false);
    const [shareSuccess, setShareSuccess] = useState(false);
+   // Hides the "shared" notice after 15 s; cleared on unmount
+   const shareSuccessTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+      null
+   );
+   useEffect(
+      () => () => {
+         if (shareSuccessTimeoutRef.current) {
+            clearTimeout(shareSuccessTimeoutRef.current);
+         }
+      },
+      []
+   );
    const [unlimitedActivated, setUnlimitedActivated] = useState(false);
    const [currentShareId, setCurrentShareId] = useState<string | null>(null);
    const shareCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -209,6 +234,9 @@ export default function OneHandMode({
          countdownTimerRef.current = null;
       }
    }, []);
+
+   // Stop the run loop and the countdown when the game unmounts (they kept running before)
+   useEffect(() => () => clearAll(), [clearAll]);
 
    // Collision detection
    const checkCollision = useCallback(
@@ -364,8 +392,8 @@ export default function OneHandMode({
       ctx.clearRect(0, 0, w, h);
 
       // Draw ground
-      ctx.fillStyle = "rgba(255, 255, 255, 0.05)";
-      ctx.fillRect(0, groundYRef.current, w, 4);
+      ctx.fillStyle = "rgba(255, 255, 255, 0.14)";
+      ctx.fillRect(0, groundYRef.current, w, 2);
 
       // Draw player
       ctx.fillStyle = "#6ea8ff";
@@ -382,21 +410,25 @@ export default function OneHandMode({
          ctx.fill();
          ctx.fillStyle = "#6ea8ff";
       }
-      ctx.fillRect(
+      fillRounded(
+         ctx,
          playerRef.current.x,
          playerRef.current.y,
          playerRef.current.w,
-         playerRef.current.h
+         playerRef.current.h,
+         6
       );
 
       // Draw obstacles
       for (const obstacle of obstaclesRef.current) {
          ctx.fillStyle = obstacle.type === "boost" ? "#60a5fa" : "#fb7185";
-         ctx.fillRect(
+         fillRounded(
+            ctx,
             obstacle.x,
             groundYRef.current - obstacle.h,
             obstacle.w,
-            obstacle.h
+            obstacle.h,
+            5
          );
          if (obstacle.type === "boost") {
             const cx = obstacle.x + obstacle.w / 2;
@@ -731,7 +763,13 @@ export default function OneHandMode({
                url: shareableLink,
             });
             setShareSuccess(true);
-            setTimeout(() => setShareSuccess(false), 15000);
+            if (shareSuccessTimeoutRef.current) {
+               clearTimeout(shareSuccessTimeoutRef.current);
+            }
+            shareSuccessTimeoutRef.current = setTimeout(
+               () => setShareSuccess(false),
+               15000
+            );
          } catch (error: any) {
             if (error.name !== "AbortError") {
                handleCopyLink(shareId);
@@ -749,7 +787,13 @@ export default function OneHandMode({
       try {
          await navigator.clipboard.writeText(shareableLink);
          setShareSuccess(true);
-         setTimeout(() => setShareSuccess(false), 15000);
+         if (shareSuccessTimeoutRef.current) {
+            clearTimeout(shareSuccessTimeoutRef.current);
+         }
+         shareSuccessTimeoutRef.current = setTimeout(
+            () => setShareSuccess(false),
+            15000
+         );
       } catch (error) {
          const textArea = document.createElement("textarea");
          textArea.value = shareableLink;
@@ -760,7 +804,13 @@ export default function OneHandMode({
          try {
             document.execCommand("copy");
             setShareSuccess(true);
-            setTimeout(() => setShareSuccess(false), 15000);
+            if (shareSuccessTimeoutRef.current) {
+               clearTimeout(shareSuccessTimeoutRef.current);
+            }
+            shareSuccessTimeoutRef.current = setTimeout(
+               () => setShareSuccess(false),
+               15000
+            );
          } catch (err) {
             // Failed to copy
          }
@@ -955,77 +1005,20 @@ export default function OneHandMode({
 
    const progressPercentage = ((currentLevel + 1) / maxLevels) * 100;
 
+   const replayLocked = maxReplays > 0 && replaysUsed >= maxReplays;
+   const shownTime = Math.max(0, Math.ceil(timeLeft));
+
    return (
-      <div
-         ref={rootRef}
-         style={{
-            width: "100%",
-            maxWidth: "800px",
-            margin: "0 auto",
-            display: "flex",
-            flexDirection: "column",
-            gap: isMobile ? "16px" : "20px",
-            padding: isMobile ? "12px" : "16px",
-         }}
-      >
+      <div ref={rootRef} className={ui.root}>
          {/* Header */}
-         <div
-            style={{
-               width: "100%",
-               maxWidth: "800px",
-               background: "var(--card)",
-               borderRadius: isMobile ? "16px" : "20px",
-               padding: isMobile ? "16px" : "20px",
-               boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
-               display: "flex",
-               flexDirection: "column",
-               gap: isMobile ? "12px" : "16px",
-            }}
-         >
-            <div
-               style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  flexWrap: "wrap",
-                  gap: isMobile ? "8px" : "12px",
-               }}
-            >
-               <span
-                  style={{
-                     fontSize: isMobile ? "0.875rem" : "1rem",
-                     fontWeight: 600,
-                     color: "var(--text)",
-                     display: "flex",
-                     alignItems: "center",
-                     gap: "6px",
-                  }}
-               >
-                  <ArrowPathIcon
-                     style={{
-                        width: isMobile ? 14 : 16,
-                        height: isMobile ? 14 : 16,
-                     }}
-                  />
+         <div className={ui.hud}>
+            <div className={ui.hudRow}>
+               <span className={ui.hudStat}>
+                  <ArrowPathIcon className={ui.hudIcon} />
                   Level {currentLevel + 1}/{maxLevels}
                </span>
-               <span
-                  style={{
-                     fontSize: isMobile ? "0.875rem" : "1rem",
-                     fontWeight: 600,
-                     color: "var(--text)",
-                     display: "flex",
-                     alignItems: "center",
-                     gap: "6px",
-                  }}
-               >
-                  <TrophyIcon
-                     style={{
-                        width: isMobile ? 14 : 16,
-                        height: isMobile ? 14 : 16,
-                        color: "var(--ok)",
-                     }}
-                  />
+               <span className={ui.hudStat}>
+                  <TrophyIcon className={ui.hudIconOk} />
                   Score:{" "}
                   {requirementsMet &&
                   lastCompletedLevelRef.current === currentLevel &&
@@ -1036,45 +1029,17 @@ export default function OneHandMode({
                   / 100
                </span>
                <span
-                  style={{
-                     fontSize: isMobile ? "0.875rem" : "1rem",
-                     fontWeight: 600,
-                     color: "var(--text)",
-                     display: "flex",
-                     alignItems: "center",
-                     gap: "6px",
-                  }}
+                  className={`${ui.hudStat} ${gameState === "playing" && shownTime <= 5 ? ui.hudLow : ""}`}
                >
-                  <ClockIcon
-                     style={{
-                        width: isMobile ? 14 : 16,
-                        height: isMobile ? 14 : 16,
-                        color: "var(--accent)",
-                     }}
-                  />
-                  {Math.max(0, Math.ceil(timeLeft))}s
+                  <ClockIcon className={ui.hudIconAccent} />
+                  {shownTime}s
                </span>
             </div>
             {/* Progress Bar */}
-            <div
-               style={{
-                  width: "100%",
-                  height: isMobile ? "6px" : "8px",
-                  background: "rgba(255, 255, 255, 0.1)",
-                  borderRadius: "999px",
-                  overflow: "hidden",
-               }}
-            >
+            <div className={ui.progressTrack}>
                <div
-                  style={{
-                     width: `${progressPercentage}%`,
-                     height: "100%",
-                     background:
-                        "linear-gradient(90deg, var(--accent) 0%, var(--ok) 100%)",
-                     borderRadius: "999px",
-                     transition: "width 0.3s ease",
-                     boxShadow: "0 0 10px rgba(125, 211, 252, 0.5)",
-                  }}
+                  className={ui.progressFill}
+                  style={{ transform: `scaleX(${progressPercentage / 100})` }}
                />
             </div>
          </div>
@@ -1083,78 +1048,23 @@ export default function OneHandMode({
          {gameState === "playing" || gameState === "failed" ? (
             <div
                ref={arenaRef}
-               style={{
-                  width: "100%",
-                  background: "var(--card)",
-                  borderRadius: isMobile ? "16px" : "20px",
-                  padding: isMobile ? "12px" : "16px",
-                  boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
-                  position: "relative",
-               }}
+               className={`${ui.arena} ${s.arena} ${gameState === "failed" ? ui.flashWarn : ""}`}
             >
                {currentLevel >= 8 && (
-                  <div
-                     style={{
-                        position: "absolute",
-                        top: "26px",
-                        left: "26px",
-                        display: "flex",
-                        gap: "8px",
-                        zIndex: 2,
-                        flexWrap: "wrap",
-                     }}
-                  >
-                     <span
-                        style={{
-                           padding: "6px 10px",
-                           borderRadius: "999px",
-                           background: "rgba(59, 130, 246, 0.2)",
-                           border: "1px solid rgba(59, 130, 246, 0.5)",
-                           color: "var(--text)",
-                           fontSize: "0.75rem",
-                           fontWeight: 700,
-                        }}
-                     >
-                        Double click activated
-                     </span>
+                  <div className={s.badges}>
+                     <span className={s.badge}>Double click activated</span>
                      {currentLevel >= 11 && (
-                        <span
-                           style={{
-                              padding: "6px 10px",
-                              borderRadius: "999px",
-                              background: "rgba(96, 165, 250, 0.2)",
-                              border: "1px solid rgba(96, 165, 250, 0.5)",
-                              color: "var(--text)",
-                              fontSize: "0.75rem",
-                              fontWeight: 700,
-                           }}
-                        >
-                           Boost obstacles activated
-                        </span>
+                        <span className={s.badge}>Boost obstacles activated</span>
                      )}
                   </div>
                )}
                <canvas
                   ref={canvasRef}
-                  className={touch.tapArea}
+                  className={`${touch.tapArea} ${s.canvas}`}
                   data-play-area=""
-                  style={{
-                     width: "100%",
-                     height: isMobile ? "300px" : "420px",
-                     background: "#0f1b33",
-                     borderRadius: "14px",
-                     display: "block",
-                     cursor: "pointer",
-                  }}
+                  style={{ height: isMobile ? "300px" : "420px" }}
                />
-               <div
-                  style={{
-                     marginTop: "12px",
-                     fontSize: isMobile ? "0.85rem" : "0.9rem",
-                     color: "var(--muted)",
-                     textAlign: "center",
-                  }}
-               >
+               <div className={s.controls}>
                   Click / Tap / Space = Jump
                   {currentLevel >= 9 && (
                      <div style={{ marginTop: "6px" }}>
@@ -1167,41 +1077,12 @@ export default function OneHandMode({
 
          {/* Level Complete Message */}
          {gameState === "ready" && currentLevel < maxLevels - 1 && (
-            <div
-               style={{
-                  padding: isMobile ? "20px 24px" : "24px 32px",
-                  background: "var(--card)",
-                  borderRadius: "var(--radius)",
-                  color: "var(--text)",
-                  fontSize: isMobile ? "1rem" : "1.1rem",
-                  fontWeight: 700,
-                  textAlign: "center",
-                  border: "1px solid var(--border)",
-               }}
-            >
-               <div style={{ marginBottom: "16px" }}>
-                  Level {currentLevel + 1} Complete!
-               </div>
+            <div className={ui.card}>
+               <div className={ui.cardTitle}>Level {currentLevel + 1} Complete!</div>
                <button
-                  className={touch.tapButton}
+                  className={ui.buttonPrimary}
                   onClick={handleNextRound}
                   disabled={nextRoundLocked}
-                  style={{
-                     padding: isMobile ? "12px 24px" : "14px 28px",
-                     background: nextRoundLocked
-                        ? "rgba(100, 100, 100, 0.2)"
-                        : "linear-gradient(135deg, rgba(134, 239, 172, 0.25), rgba(134, 239, 172, 0.12))",
-                     border: nextRoundLocked
-                        ? "1px solid rgba(100, 100, 100, 0.4)"
-                        : "2px solid rgba(134, 239, 172, 0.6)",
-
-                     color: "var(--text)",
-                     fontSize: isMobile ? "1rem" : "1.05rem",
-                     fontWeight: 700,
-                     cursor: nextRoundLocked ? "not-allowed" : "pointer",
-                     opacity: nextRoundLocked ? 0.5 : 1,
-                     transition: "all 0.3s ease",
-                  }}
                >
                   Next Round
                </button>
@@ -1213,137 +1094,39 @@ export default function OneHandMode({
             currentLevel === maxLevels - 1 &&
             requirementsMet &&
             lastCompletedLevelRef.current === currentLevel && (
-               <div
-                  style={{
-                     padding: isMobile ? "20px 24px" : "24px 32px",
-                     background: "var(--card)",
-                     borderRadius: "var(--radius)",
-                     color: "var(--text)",
-                     fontSize: isMobile ? "1rem" : "1.1rem",
-                     fontWeight: 700,
-                     textAlign: "center" as const,
-                     boxShadow: "0 10px 24px rgba(0, 0, 0, 0.25)",
-                     width: "100%",
-                     maxWidth: "800px",
-                  }}
-               >
-                  <div
-                     style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: "8px",
-                        padding: "8px 14px",
-                        borderRadius: "999px",
-                        fontWeight: 800,
-                        fontSize: isMobile ? "0.95rem" : "1.05rem",
-                        background:
-                           "linear-gradient(135deg, rgba(134, 239, 172, 0.25), rgba(134, 239, 172, 0.1))",
-                        border: "2px solid rgba(134, 239, 172, 0.6)",
-                        color: "var(--text)",
-                        marginBottom: "16px",
-                     }}
-                  >
-                     <TrophyIcon style={{ width: 20, height: 20 }} />
+               <div className={ui.card}>
+                  <div className={ui.cardTitleOk}>
+                     <TrophyIcon
+                        style={{ width: 20, height: 20, verticalAlign: "-4px", marginRight: 8 }}
+                     />
                      Game Complete!
                   </div>
-                  <div
-                     style={{
-                        fontSize: isMobile ? "1.05rem" : "1.1rem",
-                        fontWeight: 600,
-                        marginTop: "16px",
-                        marginBottom: "20px",
-                     }}
-                  >
+                  <div className={ui.cardBody}>
                      All {maxLevels} levels completed!
-                  </div>
-                  <div
-                     style={{
-                        fontSize: isMobile ? "1rem" : "1.05rem",
-                        fontWeight: 500,
-                        color: "var(--muted)",
-                     }}
-                  >
-                     Final Score: 100
+                     <br />
+                     Final Score: <strong>100</strong>
                   </div>
                </div>
             )}
 
          {/* Level Failed Message */}
          {gameState === "failed" && (
-            <div
-               style={{
-                  width: "100%",
-                  padding: isMobile ? "20px 24px" : "24px 32px",
-                  background: "var(--card)",
-                  borderRadius: "var(--radius)",
-                  color: "var(--text)",
-                  fontSize: isMobile ? "1rem" : "1.1rem",
-                  fontWeight: 700,
-                  textAlign: "center" as const,
-                  boxShadow: "0 10px 24px rgba(0, 0, 0, 0.25)",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "16px",
-               }}
-            >
-               <div
-                  style={{
-                     display: "inline-flex",
-                     alignItems: "center",
-                     gap: "8px",
-                     padding: "8px 14px",
-                     borderRadius: "999px",
-                     fontWeight: 800,
-                     fontSize: isMobile ? "0.95rem" : "1.05rem",
-                     background:
-                        "linear-gradient(135deg, rgba(239, 68, 68, 0.25), rgba(239, 68, 68, 0.1))",
-                     border: "2px solid rgba(239, 68, 68, 0.6)",
-                     color: "var(--text)",
-                     margin: "0 auto",
-                  }}
-               >
-                  <XCircleIcon style={{ width: 20, height: 20 }} />
+            <div className={ui.card}>
+               <div className={ui.cardTitleWarn}>
+                  <XCircleIcon
+                     style={{ width: 20, height: 20, verticalAlign: "-4px", marginRight: 8 }}
+                  />
                   Level {currentLevel + 1} Failed
                </div>
-               <div
-                  style={{
-                     fontSize: isMobile ? "0.95rem" : "1rem",
-                     color: "var(--muted)",
-                  }}
-               >
-                  You hit an obstacle! Try again to continue.
-               </div>
+               <div className={ui.cardBody}>You hit an obstacle! Try again to continue.</div>
             </div>
          )}
 
          {/* Replay and Share Buttons */}
-         <div
-            style={{
-               display: "flex",
-               flexDirection: "column",
-               gap: "12px",
-               padding: isMobile ? "12px" : "16px",
-               background: "var(--card)",
-
-               width: "100%",
-               maxWidth: "800px",
-            }}
-         >
+         <div className={ui.actions}>
             {/* Share Success Message */}
             {shareSuccess && !unlimitedActivated && (
-               <div
-                  style={{
-                     width: "100%",
-                     padding: "12px",
-                     background: "rgba(134, 239, 172, 0.2)",
-                     border: "2px solid rgba(134, 239, 172, 0.6)",
-                     borderRadius: "8px",
-                     fontSize: isMobile ? "0.9rem" : "1rem",
-                     fontWeight: 600,
-                     color: "var(--ok)",
-                     textAlign: "center",
-                  }}
-               >
+               <div className={ui.notice}>
                   Link copied! Unlimited replay will unlock when someone opens
                   your link!
                </div>
@@ -1351,128 +1134,29 @@ export default function OneHandMode({
 
             {/* Unlimited Activated Message */}
             {unlimitedActivated && (
-               <div
-                  style={{
-                     display: "flex",
-                     alignItems: "center",
-                     gap: isMobile ? "6px" : "8px",
-                     padding: isMobile ? "10px 14px" : "8px 16px",
-                     background:
-                        "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
-                     border: "2px solid rgba(59, 130, 246, 0.6)",
-                     borderRadius: isMobile ? "10px" : "8px",
-                     color: "var(--text)",
-                     fontSize: isMobile ? "0.85rem" : "0.9rem",
-                     fontWeight: 500,
-                     width: "100%",
-                     justifyContent: "center",
-                     textAlign: "center",
-                     flexWrap: "wrap",
-                  }}
-               >
-                  <CheckCircleIcon
-                     style={{
-                        width: isMobile ? 16 : 18,
-                        height: isMobile ? 16 : 18,
-                        color: "rgba(59, 130, 246, 0.9)",
-                        flexShrink: 0,
-                     }}
-                  />
+               <div className={ui.notice}>
+                  <CheckCircleIcon className={ui.noticeIcon} />
                   <span>
-                     🎉 Someone opened your link! Unlimited replay is now active
+                     Someone opened your link! Unlimited replay is now active
                      for 15 minutes!
                   </span>
                </div>
             )}
 
-            <div
-               style={{
-                  display: "flex",
-                  gap: "12px",
-                  flexWrap: "wrap",
-                  justifyContent: "center",
-                  width: "100%",
-               }}
-            >
-               <button
-                  className={touch.tapButton}
-                  onClick={handleReplay}
-                  disabled={maxReplays > 0 && replaysUsed >= maxReplays}
-                  style={{
-                     display: "flex",
-                     alignItems: "center",
-                     gap: isMobile ? "6px" : "8px",
-                     padding: isMobile ? "10px 16px" : "10px 20px",
-                     width: isMobile ? "100%" : "auto",
-                     background:
-                        maxReplays > 0 && replaysUsed >= maxReplays
-                           ? "rgba(100, 100, 100, 0.2)"
-                           : "linear-gradient(135deg, rgba(125, 211, 252, 0.2), rgba(125, 211, 252, 0.1))",
-                     border:
-                        maxReplays > 0 && replaysUsed >= maxReplays
-                           ? "1px solid rgba(100, 100, 100, 0.4)"
-                           : "1px solid rgba(125, 211, 252, 0.6)",
+            <button className={ui.button} onClick={handleReplay} disabled={replayLocked}>
+               <ArrowPathRoundedSquareIcon className={ui.buttonIcon} />
+               <span>
+                  {"Replay "}
+                  {maxReplays === 0
+                     ? "(∞)"
+                     : `(${maxReplays - replaysUsed}/${maxReplays})`}
+               </span>
+            </button>
 
-                     color: "var(--text)",
-                     fontSize: isMobile ? "0.85rem" : "0.95rem",
-                     fontWeight: 600,
-                     cursor:
-                        maxReplays > 0 && replaysUsed >= maxReplays
-                           ? "not-allowed"
-                           : "pointer",
-                     opacity:
-                        maxReplays > 0 && replaysUsed >= maxReplays ? 0.5 : 1,
-                     transition: "all 0.3s ease",
-                  }}
-               >
-                  <ArrowPathRoundedSquareIcon
-                     style={{
-                        width: isMobile ? 18 : 20,
-                        height: isMobile ? 18 : 20,
-                        color:
-                           maxReplays > 0 && replaysUsed >= maxReplays
-                              ? "var(--muted)"
-                              : "var(--accent)",
-                     }}
-                  />
-                  <span>
-                     {"Replay "}
-                     {maxReplays === 0
-                        ? "(∞)"
-                        : `(${maxReplays - replaysUsed}/${maxReplays})`}
-                  </span>
-               </button>
-
-               <button
-                  className={touch.tapButton}
-                  onClick={handleShare}
-                  style={{
-                     display: "flex",
-                     alignItems: "center",
-                     gap: isMobile ? "6px" : "8px",
-                     padding: isMobile ? "10px 16px" : "10px 20px",
-                     width: isMobile ? "100%" : "auto",
-                     background:
-                        "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
-                     border: "1px solid rgba(59, 130, 246, 0.6)",
-
-                     color: "var(--text)",
-                     fontSize: isMobile ? "0.85rem" : "0.95rem",
-                     fontWeight: 600,
-                     cursor: "pointer",
-                     transition: "all 0.3s ease",
-                  }}
-               >
-                  <ShareIcon
-                     style={{
-                        width: isMobile ? 18 : 20,
-                        height: isMobile ? 18 : 20,
-                        color: "var(--accent)",
-                     }}
-                  />
-                  <span>Share for unlimited</span>
-               </button>
-            </div>
+            <button className={ui.button} onClick={handleShare}>
+               <ShareIcon className={ui.buttonIcon} />
+               <span>Share for unlimited</span>
+            </button>
          </div>
          {pad > 0 && <div aria-hidden="true" style={{ height: pad, flexShrink: 0 }} />}
       </div>

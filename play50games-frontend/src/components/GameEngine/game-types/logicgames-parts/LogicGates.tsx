@@ -1,14 +1,9 @@
 "use client";
 
-import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback, type CSSProperties } from "react";
+import theme from "./theme.module.css";
 import css from "./LogicGates.module.css";
-import {
-   CheckCircleIcon,
-   XCircleIcon,
-   ArrowPathIcon,
-   TrophyIcon,
-   LightBulbIcon,
-} from "@heroicons/react/24/outline";
+import { CheckCircleIcon, XCircleIcon, LightBulbIcon } from "@heroicons/react/24/outline";
 
 function LogicGates({
    config,
@@ -46,6 +41,15 @@ function LogicGates({
    const onScoreUpdateRef = useRef(onScoreUpdate);
    const onCompleteRef = useRef(onComplete);
    const onRoundCompleteRef = useRef(onRoundComplete);
+   // round-end timers: cleared if the game unmounts mid-delay (they used to fire after leaving)
+   const timersRef = useRef<number[]>([]);
+   useEffect(
+      () => () => {
+         timersRef.current.forEach((id) => window.clearTimeout(id));
+         timersRef.current = [];
+      },
+      []
+   );
 
    // Update refs when callbacks change
    useEffect(() => {
@@ -108,7 +112,7 @@ function LogicGates({
          }
 
          // Move to next round or complete game
-         setTimeout(() => {
+         timersRef.current.push(window.setTimeout(() => {
             if (round >= rounds) {
                // Game complete
                if (!completionCalledRef.current) {
@@ -121,14 +125,14 @@ function LogicGates({
                      isCorrect ? score + 5 : score
                   );
                   // Don't call onScoreUpdate again - parent already has the updated score
-                  setTimeout(() => {
+                  timersRef.current.push(window.setTimeout(() => {
                      onCompleteRef.current?.(finalScore);
-                  }, 1000);
+                  }, 1000));
                }
             } else {
                onRoundCompleteRef.current?.();
             }
-         }, 1500);
+         }, 1500));
       },
       [round, rounds, score, isRoundComplete, getOutput]
    );
@@ -154,317 +158,111 @@ function LogicGates({
    // Calculate correct output and progress
    const correctOutput = getOutput();
    const progress = (round / rounds) * 100;
+   const answered = selected !== null;
+
+   const bit = (label: string, value: number | null) => (
+      <div className={css.part}>
+         <div className={css.partLabel}>{label}</div>
+         <div
+            className={`${css.bit} ${value === 1 ? css.bitOn : ""}`}
+            aria-label={`${label}: ${value}`}
+         >
+            {value}
+         </div>
+      </div>
+   );
+
+   const answerBtn = (value: 0 | 1) => {
+      const isSel = selected === value;
+      const cls = [
+         theme.option,
+         css.answer,
+         isSel && feedback === "correct" ? `${css.ansCorrect} ${theme.pop}` : "",
+         isSel && feedback === "wrong" ? `${css.ansWrong} ${theme.shake}` : "",
+         isRoundComplete && !isSel ? css.ansDim : "",
+      ]
+         .filter(Boolean)
+         .join(" ");
+      return (
+         <button
+            type="button"
+            onClick={() => handleSelect(value)}
+            disabled={isRoundComplete}
+            className={cls}
+            aria-label={`Output ${value}`}
+         >
+            {isSel && feedback === "correct" && (
+               <CheckCircleIcon className={css.mark} aria-hidden="true" />
+            )}
+            {isSel && feedback === "wrong" && (
+               <XCircleIcon className={css.mark} aria-hidden="true" />
+            )}
+            {value}
+         </button>
+      );
+   };
 
    return (
-      <div
-         className={css.root}
-         style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: "32px",
-            padding: "24px",
-            maxWidth: "600px",
-            margin: "0 auto",
-         }}
-      >
-         {/* Header with Round and Score - Same as Match the Shapes */}
-         <div
-            style={{
-               width: "100%",
-               background: "var(--card)",
-               borderRadius: "16px",
-               padding: "20px",
-               boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
-            }}
-         >
-            <div
-               style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  fontSize: "0.875rem",
-                  color: "var(--muted)",
-                  fontWeight: 500,
-                  marginBottom: "12px",
-               }}
-            >
-               <span
-                  style={{ display: "flex", alignItems: "center", gap: "6px" }}
-               >
-                  <ArrowPathIcon
-                     style={{ width: 16, height: 16, color: "var(--accent)" }}
-                  />
-                  Round {round} / {rounds}
+      <div className={`${theme.game} ${css.root}`}>
+         <div className={theme.header}>
+            <h3 className={theme.title}>What does the gate output?</h3>
+            <div className={theme.chips}>
+               <span className={theme.chip}>
+                  Round <strong>{round} / {rounds}</strong>
                </span>
-               <span
-                  style={{ display: "flex", alignItems: "center", gap: "6px" }}
-               >
-                  <TrophyIcon
-                     style={{ width: 16, height: 16, color: "var(--ok)" }}
-                  />
-                  Score: {score} / {rounds * 5}
+               <span className={theme.chip}>
+                  Score <strong>{score} / {rounds * 5}</strong>
                </span>
             </div>
-            {/* Progress Bar */}
             <div
-               style={{
-                  width: "100%",
-                  height: "8px",
-                  background: "rgba(255, 255, 255, 0.1)",
-                  borderRadius: "4px",
-                  overflow: "hidden",
-                  position: "relative",
-               }}
+               className={css.progress}
+               role="progressbar"
+               aria-label="Round progress"
+               aria-valuemin={0}
+               aria-valuemax={rounds}
+               aria-valuenow={round}
             >
                <div
-                  style={{
-                     width: `${progress}%`,
-                     height: "100%",
-                     background:
-                        "linear-gradient(90deg, var(--accent) 0%, var(--ok) 100%)",
-                     borderRadius: "4px",
-                     transition: "width 0.3s",
-                     boxShadow: "rgba(125, 211, 252, 0.5) 0px 0px 10px",
-                  }}
+                  className={css.progressFill}
+                  style={{ transform: `scaleX(${Math.min(1, progress / 100)})` }}
                />
             </div>
          </div>
 
-         {/* Game Content */}
-         <div className="logic-gates-content">
-            {/* Circuit Display */}
-            <div
-               className={css.circuit}
-               style={{
-                  background: "var(--card)",
-                  borderRadius: "20px",
-                  padding: "40px",
-                  boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
-                  marginBottom: "32px",
-               }}
-            >
-               <div
-                  className={css.row}
-                  style={{
-                     display: "flex",
-                     alignItems: "center",
-                     justifyContent: "center",
-                     gap: "40px",
-                     flexWrap: "wrap",
-                  }}
-               >
-                  {/* Input 1 */}
-                  <div
-                     style={{
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "center",
-                        gap: "12px",
-                     }}
-                  >
-                     <div
-                        style={{
-                           fontSize: "14px",
-                           fontWeight: 600,
-                           color: "var(--muted)",
-                        }}
-                     >
-                        Input A
-                     </div>
-                     <div
-                        style={{
-                           width: "80px",
-                           height: "80px",
+         {/* Game Content (global class name kept) */}
+         <div className={`logic-gates-content ${css.content}`}>
+            {/* Circuit Display: one line, every part scales with the panel */}
+            <div className={`${theme.panel} ${css.circuit}`}>
+               <div key={`row-${round}`} className={`${css.row} ${theme.stagger}`}>
+                  <div style={{ "--i": 0 } as CSSProperties}>{bit("Input A", input1)}</div>
 
-                           background:
-                              input1 === 1
-                                 ? "linear-gradient(135deg, rgba(134,239,172,0.3) 0%, rgba(134,239,172,0.1) 100%)"
-                                 : "rgba(255, 255, 255, 0.05)",
-                           border: `2px solid ${
-                              input1 === 1 ? "var(--ok)" : "var(--stroke)"
-                           }`,
-                           display: "flex",
-                           alignItems: "center",
-                           justifyContent: "center",
-                           fontSize: "32px",
-                           fontWeight: 700,
-                           color: input1 === 1 ? "var(--ok)" : "var(--muted)",
-                        }}
-                     >
-                        {input1}
-                     </div>
+                  <div style={{ "--i": 1 } as CSSProperties} className={css.part}>
+                     <div className={css.partLabel}>Gate</div>
+                     <div className={css.gate}>{gate}</div>
                   </div>
 
-                  {/* Gate */}
-                  <div
-                     style={{
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "center",
-                        gap: "12px",
-                     }}
-                  >
-                     <div
-                        style={{
-                           fontSize: "14px",
-                           fontWeight: 600,
-                           color: "var(--muted)",
-                        }}
-                     >
-                        Gate
-                     </div>
-                     <div
-                        style={{
-                           padding: "16px 32px",
-
-                           background:
-                              "linear-gradient(135deg, rgba(125, 211, 252, 0.2) 0%, rgba(125, 211, 252, 0.1) 100%)",
-                           border: "2px solid var(--accent)",
-                           fontSize: "24px",
-                           fontWeight: 700,
-                           color: "var(--accent)",
-                        }}
-                     >
-                        {gate}
-                     </div>
-                  </div>
-
-                  {/* Input 2 (only for AND/OR) */}
                   {gate !== "NOT" && (
-                     <div
-                        style={{
-                           display: "flex",
-                           flexDirection: "column",
-                           alignItems: "center",
-                           gap: "12px",
-                        }}
-                     >
-                        <div
-                           style={{
-                              fontSize: "14px",
-                              fontWeight: 600,
-                              color: "var(--muted)",
-                           }}
-                        >
-                           Input B
-                        </div>
-                        <div
-                           style={{
-                              width: "80px",
-                              height: "80px",
-
-                              background:
-                                 input2 === 1
-                                    ? "linear-gradient(135deg, rgba(134,239,172,0.3) 0%, rgba(134,239,172,0.1) 100%)"
-                                    : "rgba(255, 255, 255, 0.05)",
-                              border: `2px solid ${
-                                 input2 === 1 ? "var(--ok)" : "var(--stroke)"
-                              }`,
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              fontSize: "32px",
-                              fontWeight: 700,
-                              color:
-                                 input2 === 1 ? "var(--ok)" : "var(--muted)",
-                           }}
-                        >
-                           {input2}
-                        </div>
-                     </div>
+                     <div style={{ "--i": 2 } as CSSProperties}>{bit("Input B", input2)}</div>
                   )}
 
-                  {/* Arrow */}
-                  <div
-                     className={css.arrow}
-                     style={{
-                        fontSize: "32px",
-                        color: "var(--accent)",
-                        fontWeight: 700,
-                     }}
-                  >
+                  <div style={{ "--i": 3 } as CSSProperties} className={css.arrow} aria-hidden="true">
                      →
                   </div>
 
-                  {/* Output Lamp */}
-                  <div
-                     style={{
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "center",
-                        gap: "12px",
-                     }}
-                  >
+                  <div style={{ "--i": 4 } as CSSProperties} className={css.part}>
+                     <div className={css.partLabel}>Output</div>
                      <div
-                        style={{
-                           fontSize: "14px",
-                           fontWeight: 600,
-                           color: "var(--muted)",
-                        }}
+                        className={`${css.lamp} ${answered && correctOutput === 1 ? css.lampOn : ""}`}
+                        aria-label={answered ? `Output ${correctOutput}` : "Output unknown"}
                      >
-                        Output
-                     </div>
-                     <div
-                        style={{
-                           width: "100px",
-                           height: "100px",
-                           borderRadius: "50%",
-                           background:
-                              selected !== null && selected === correctOutput
-                                 ? selected === 1
-                                    ? "radial-gradient(circle, rgba(251, 191, 36, 0.8) 0%, rgba(251, 191, 36, 0.4) 50%, rgba(251, 191, 36, 0.2) 100%)"
-                                    : "rgba(255, 255, 255, 0.05)"
-                                 : "rgba(255, 255, 255, 0.05)",
-                           border: `3px solid ${
-                              selected !== null && selected === correctOutput
-                                 ? selected === 1
-                                    ? "#fbbf24"
-                                    : "var(--stroke)"
-                                 : "var(--stroke)"
-                           }`,
-                           display: "flex",
-                           alignItems: "center",
-                           justifyContent: "center",
-                           boxShadow:
-                              selected !== null &&
-                              selected === correctOutput &&
-                              selected === 1
-                                 ? "0 0 30px rgba(251, 191, 36, 0.6), inset 0 0 20px rgba(251, 191, 36, 0.3)"
-                                 : "none",
-                           transition: "all 0.3s ease",
-                           position: "relative",
-                        }}
-                     >
-                        {selected !== null && selected === correctOutput ? (
-                           selected === 1 ? (
-                              <LightBulbIcon
-                                 style={{
-                                    width: 50,
-                                    height: 50,
-                                    color: "#fbbf24",
-                                 }}
-                              />
-                           ) : (
-                              <LightBulbIcon
-                                 style={{
-                                    width: 50,
-                                    height: 50,
-                                    color: "var(--muted)",
-                                    opacity: 0.3,
-                                 }}
-                              />
-                           )
+                        {answered ? (
+                           <LightBulbIcon
+                              key="bulb"
+                              className={`${css.bulb} ${theme.reveal}`}
+                              aria-hidden="true"
+                           />
                         ) : (
-                           <span
-                              style={{
-                                 fontSize: "24px",
-                                 fontWeight: 700,
-                                 color: "var(--muted)",
-                              }}
-                           >
-                              ?
-                           </span>
+                           <span className={css.lampQ}>?</span>
                         )}
                      </div>
                   </div>
@@ -472,235 +270,25 @@ function LogicGates({
             </div>
 
             {/* Output Options */}
-            <div
-               className={css.options}
-               style={{
-                  display: "flex",
-                  gap: "24px",
-                  justifyContent: "center",
-                  flexWrap: "wrap",
-               }}
-            >
-               <button
-                  onClick={() => handleSelect(0)}
-                  disabled={isRoundComplete}
-                  style={{
-                     background:
-                        selected === 0
-                           ? feedback === "correct"
-                              ? "linear-gradient(135deg, rgba(134,239,172,0.3) 0%, rgba(134,239,172,0.1) 100%)"
-                              : "linear-gradient(135deg, rgba(252,165,165,0.3) 0%, rgba(252,165,165,0.1) 100%)"
-                           : "var(--card)",
-                     border: `2px solid ${
-                        selected === 0
-                           ? feedback === "correct"
-                              ? "var(--ok)"
-                              : "var(--warn)"
-                           : "var(--stroke)"
-                     }`,
-                     borderRadius: "16px",
-                     padding: "32px 48px",
-                     fontSize: "48px",
-                     fontWeight: 700,
-                     color:
-                        selected === 0
-                           ? feedback === "correct"
-                              ? "var(--ok)"
-                              : "var(--warn)"
-                           : "var(--text)",
-                     cursor: isRoundComplete ? "not-allowed" : "pointer",
-                     transition: "all 0.3s ease",
-                     transform: selected === 0 ? "scale(0.95)" : "scale(1)",
-                     boxShadow:
-                        selected === 0
-                           ? "0 8px 20px rgba(125, 211, 252, 0.4)"
-                           : "0 4px 12px rgba(0, 0, 0, 0.2)",
-                     opacity: isRoundComplete && selected !== 0 ? 0.5 : 1,
-                     position: "relative",
-                  }}
-               >
-                  {selected === 0 && feedback === "correct" && (
-                     <div
-                        style={{
-                           position: "absolute",
-                           top: "-8px",
-                           right: "-8px",
-                           background: "var(--ok)",
-                           borderRadius: "50%",
-                           padding: "4px",
-                           display: "flex",
-                           alignItems: "center",
-                           justifyContent: "center",
-                           zIndex: 10,
-                           boxShadow: "0 4px 12px rgba(134, 239, 172, 0.5)",
-                        }}
-                     >
-                        <CheckCircleIcon
-                           style={{
-                              width: 20,
-                              height: 20,
-                              color: "var(--bg)",
-                           }}
-                        />
-                     </div>
-                  )}
-                  {selected === 0 && feedback === "wrong" && (
-                     <div
-                        style={{
-                           position: "absolute",
-                           top: "-8px",
-                           right: "-8px",
-                           background: "var(--warn)",
-                           borderRadius: "50%",
-                           padding: "4px",
-                           display: "flex",
-                           alignItems: "center",
-                           justifyContent: "center",
-                           zIndex: 10,
-                           boxShadow: "0 4px 12px rgba(252, 165, 165, 0.5)",
-                        }}
-                     >
-                        <XCircleIcon
-                           style={{
-                              width: 20,
-                              height: 20,
-                              color: "var(--bg)",
-                           }}
-                        />
-                     </div>
-                  )}
-                  0
-               </button>
-
-               <button
-                  onClick={() => handleSelect(1)}
-                  disabled={isRoundComplete}
-                  style={{
-                     background:
-                        selected === 1
-                           ? feedback === "correct"
-                              ? "linear-gradient(135deg, rgba(134,239,172,0.3) 0%, rgba(134,239,172,0.1) 100%)"
-                              : "linear-gradient(135deg, rgba(252,165,165,0.3) 0%, rgba(252,165,165,0.1) 100%)"
-                           : "var(--card)",
-                     border: `2px solid ${
-                        selected === 1
-                           ? feedback === "correct"
-                              ? "var(--ok)"
-                              : "var(--warn)"
-                           : "var(--stroke)"
-                     }`,
-                     borderRadius: "16px",
-                     padding: "32px 48px",
-                     fontSize: "48px",
-                     fontWeight: 700,
-                     color:
-                        selected === 1
-                           ? feedback === "correct"
-                              ? "var(--ok)"
-                              : "var(--warn)"
-                           : "var(--text)",
-                     cursor: isRoundComplete ? "not-allowed" : "pointer",
-                     transition: "all 0.3s ease",
-                     transform: selected === 1 ? "scale(0.95)" : "scale(1)",
-                     boxShadow:
-                        selected === 1
-                           ? "0 8px 20px rgba(125, 211, 252, 0.4)"
-                           : "0 4px 12px rgba(0, 0, 0, 0.2)",
-                     opacity: isRoundComplete && selected !== 1 ? 0.5 : 1,
-                     position: "relative",
-                  }}
-               >
-                  {selected === 1 && feedback === "correct" && (
-                     <div
-                        style={{
-                           position: "absolute",
-                           top: "-8px",
-                           right: "-8px",
-                           background: "var(--ok)",
-                           borderRadius: "50%",
-                           padding: "4px",
-                           display: "flex",
-                           alignItems: "center",
-                           justifyContent: "center",
-                           zIndex: 10,
-                           boxShadow: "0 4px 12px rgba(134, 239, 172, 0.5)",
-                        }}
-                     >
-                        <CheckCircleIcon
-                           style={{
-                              width: 20,
-                              height: 20,
-                              color: "var(--bg)",
-                           }}
-                        />
-                     </div>
-                  )}
-                  {selected === 1 && feedback === "wrong" && (
-                     <div
-                        style={{
-                           position: "absolute",
-                           top: "-8px",
-                           right: "-8px",
-                           background: "var(--warn)",
-                           borderRadius: "50%",
-                           padding: "4px",
-                           display: "flex",
-                           alignItems: "center",
-                           justifyContent: "center",
-                           zIndex: 10,
-                           boxShadow: "0 4px 12px rgba(252, 165, 165, 0.5)",
-                        }}
-                     >
-                        <XCircleIcon
-                           style={{
-                              width: 20,
-                              height: 20,
-                              color: "var(--bg)",
-                           }}
-                        />
-                     </div>
-                  )}
-                  1
-               </button>
+            <div className={css.options} role="group" aria-label="Choose the output">
+               {answerBtn(0)}
+               {answerBtn(1)}
             </div>
 
-            {/* Feedback Notification */}
-            {feedback !== null && (
-               <div
-                  style={{
-                     padding: "16px 24px",
-
-                     fontSize: "1.1rem",
-                     fontWeight: 600,
-                     animation: "slideIn 0.3s ease-out",
-                     background:
-                        feedback === "correct"
-                           ? "rgba(134, 239, 172, 0.2)"
-                           : "rgba(252, 165, 165, 0.2)",
-                     border: `1px solid ${
-                        feedback === "correct" ? "var(--ok)" : "var(--warn)"
-                     }`,
-                     color:
-                        feedback === "correct" ? "var(--ok)" : "var(--warn)",
-                     display: "flex",
-                     alignItems: "center",
-                     gap: "10px",
-                     marginTop: "24px",
-                  }}
-               >
-                  {feedback === "correct" ? (
-                     <>
-                        <CheckCircleIcon style={{ width: 24, height: 24 }} />
-                        <span>Correct! Great job!</span>
-                     </>
-                  ) : (
-                     <>
-                        <XCircleIcon style={{ width: 24, height: 24 }} />
-                        <span>Try again! You can do it!</span>
-                     </>
-                  )}
-               </div>
-            )}
+            {/* Feedback (fixed-height slot: nothing below jumps) */}
+            <div className={theme.feedbackSlot} aria-live="polite">
+               {feedback !== null && (
+                  <div
+                     className={`${theme.feedback} ${
+                        feedback === "correct" ? theme.feedbackOk : theme.feedbackWarn
+                     }`}
+                  >
+                     {feedback === "correct"
+                        ? "Correct, the lamp agrees."
+                        : `Not quite. The output is ${correctOutput}.`}
+                  </div>
+               )}
+            </div>
          </div>
       </div>
    );

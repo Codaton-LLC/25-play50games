@@ -1,14 +1,8 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import {
-   SparklesIcon,
-   ArrowPathIcon,
-   TrophyIcon,
-   XMarkIcon,
-   CheckCircleIcon,
-   XCircleIcon,
-} from "@heroicons/react/24/outline";
+import { useState, useEffect, useCallback, useRef } from "react";
+import theme from "./theme.module.css";
+import css from "./NumberOrder.module.css";
 
 function NumberOrder({
    config,
@@ -27,9 +21,31 @@ function NumberOrder({
    const [feedback, setFeedback] = useState<"correct" | "wrong" | null>(null);
    const [currentNumbers, setCurrentNumbers] = useState(3); // Start with 3 numbers
    const [isLoading, setIsLoading] = useState(true); // Prevent showing old numbers during transition
+   // look only: a new id per dealt round keys the board so its tiles stagger in once per round
+   const [roundId, setRoundId] = useState(0);
+   // every pending timeout, cleared on unmount so no state update or callback fires after leaving
+   const timersRef = useRef<Set<number>>(new Set());
+   const later = useCallback((fn: () => void, ms: number) => {
+      const id = window.setTimeout(() => {
+         timersRef.current.delete(id);
+         fn();
+      }, ms);
+      timersRef.current.add(id);
+   }, []);
+   useEffect(() => {
+      const timers = timersRef.current;
+      return () => {
+         timers.forEach((id) => window.clearTimeout(id));
+         timers.clear();
+      };
+   }, []);
+
+   // a round is scored at most once (cleared when the next round is dealt)
+   const roundScoredRef = useRef(false);
 
    const startNewRound = useCallback(
       (roundNumber: number) => {
+         roundScoredRef.current = false;
          // Hide numbers during transition - clear immediately
          setIsLoading(true);
          setShuffled([]); // Clear old numbers immediately
@@ -50,13 +66,14 @@ function NumberOrder({
          const newShuffled = [...nums].sort(() => Math.random() - 0.5);
 
          // Set everything in one batch to prevent double update
-         setTimeout(() => {
+         later(() => {
             setCurrentNumbers(numCount);
             setShuffled(newShuffled);
             setIsLoading(false);
+            setRoundId((id) => id + 1);
          }, 100);
       },
-      [] // Empty dependencies - function never changes
+      [later] // stable: later never changes
    );
 
    useEffect(() => {
@@ -67,11 +84,12 @@ function NumberOrder({
 
    const handleNumberClick = useCallback(
       (num: number) => {
-         if (selected.includes(num)) return;
+         if (roundScoredRef.current || selected.includes(num)) return;
          const newSelected = [...selected, num];
          setSelected(newSelected);
 
          if (newSelected.length === currentNumbers) {
+            roundScoredRef.current = true;
             const isCorrect = newSelected.every((n, i) => n === i + 1);
             setFeedback(isCorrect ? "correct" : "wrong");
 
@@ -83,7 +101,7 @@ function NumberOrder({
             setCurrentRound(nextRound);
             onScoreUpdate(newScore);
 
-            setTimeout(() => {
+            later(() => {
                if (nextRound >= maxRounds) {
                   // Game complete
                   onComplete(newScore);
@@ -103,11 +121,14 @@ function NumberOrder({
          onScoreUpdate,
          onComplete,
          startNewRound,
+         later,
       ]
    );
 
    // Remove last selected number (undo)
    const handleUndo = useCallback(() => {
+      // like the disabled Undo button: no undo once the round is scored (Backspace could re-score it)
+      if (roundScoredRef.current) return;
       if (selected.length > 0) {
          setSelected((prev) => prev.slice(0, -1));
          setFeedback(null);
@@ -158,378 +179,142 @@ function NumberOrder({
       return () => window.removeEventListener("keydown", handleKeyPress);
    }, [selected, currentNumbers, shuffled, handleNumberClick, handleUndo]);
 
+   const roundOver = feedback !== null;
+   const shownRound = Math.min(currentRound + 1, maxRounds);
+   const progress = Math.min(1, (currentRound + 1) / maxRounds);
+   // 3 and 5 numbers sit in one row, 10 in two rows of five
+   const cols = currentNumbers >= 10 ? 5 : currentNumbers;
+
    return (
-      <div
-         style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: "32px",
-            padding: "24px",
-            maxWidth: "600px",
-            margin: "0 auto",
-         }}
-      >
-         {/* Modern Header */}
-         <div
-            style={{
-               width: "100%",
-               background: "var(--card)",
-               borderRadius: "16px",
-               padding: "20px",
-               boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
-            }}
-         >
-            <h3
-               style={{
-                  fontSize: "1.75rem",
-                  fontWeight: 700,
-                  color: "var(--text)",
-                  margin: "0 0 16px 0",
-                  letterSpacing: "0.5px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: "10px",
-               }}
-            >
-               <SparklesIcon
-                  style={{ width: 28, height: 28, color: "var(--accent)" }}
-               />
-               Number Order
-            </h3>
-
-            <div
-               style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  fontSize: "0.875rem",
-                  color: "var(--muted)",
-                  fontWeight: 500,
-                  marginBottom: "12px",
-               }}
-            >
-               <span
-                  style={{ display: "flex", alignItems: "center", gap: "6px" }}
-               >
-                  <ArrowPathIcon
-                     style={{ width: 16, height: 16, color: "var(--accent)" }}
-                  />
-                  Round {currentRound + 1} / {maxRounds}
+      <div className={`${theme.game} ${css.root}`}>
+         <div className={`${theme.header} ${css.header}`}>
+            <h3 className={theme.title}>Number Order</h3>
+            <p className={theme.subtitle}>
+               Tap the {currentNumbers} numbers from smallest to largest.
+            </p>
+            <div className={theme.chips}>
+               <span className={theme.chip}>
+                  Round <strong>{shownRound}</strong> / {maxRounds}
                </span>
-               <span
-                  style={{ display: "flex", alignItems: "center", gap: "6px" }}
-               >
-                  <TrophyIcon
-                     style={{ width: 16, height: 16, color: "var(--accent)" }}
-                  />
-                  Score: {currentScore} / {maxRounds * 5}
+               <span className={theme.chip}>
+                  Score <strong>{currentScore}</strong> / {maxRounds * 5}
                </span>
             </div>
-
-            {/* Progress Bar */}
             <div
-               style={{
-                  width: "100%",
-                  height: "8px",
-                  background: "rgba(255, 255, 255, 0.1)",
-                  borderRadius: "4px",
-                  overflow: "hidden",
-                  position: "relative",
-               }}
+               className={css.progress}
+               role="progressbar"
+               aria-valuemin={0}
+               aria-valuemax={maxRounds}
+               aria-valuenow={shownRound}
+               aria-label="Round progress"
             >
-               <div
-                  style={{
-                     width: `${((currentRound + 1) / maxRounds) * 100}%`,
-                     height: "100%",
-                     background:
-                        "linear-gradient(90deg, var(--accent) 0%, var(--ok) 100%)",
-                     borderRadius: "4px",
-                     transition: "width 0.3s ease",
-                     boxShadow: "0 0 10px rgba(125, 211, 252, 0.5)",
-                  }}
-               />
+               <div className={css.progressFill} style={{ transform: `scaleX(${progress})` }} />
             </div>
          </div>
 
-         {/* Instructions */}
          <div
-            style={{
-               background: "var(--card)",
-               borderRadius: "16px",
-               padding: "20px",
-               boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
-               width: "100%",
-               textAlign: "center",
-            }}
+            key={isLoading ? "dealing" : `round-${roundId}`}
+            className={`${theme.board} ${css.board} ${isLoading ? "" : css.dealt}`}
+            style={{ ["--cols" as any]: cols }}
+            role="group"
+            aria-label="Numbers"
+            aria-busy={isLoading || shuffled.length === 0}
          >
-            <div
-               style={{
-                  fontSize: "1rem",
-                  fontWeight: 600,
-                  color: "var(--muted)",
-                  marginBottom: "8px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: "8px",
-               }}
-            >
-               <SparklesIcon style={{ width: 18, height: 18 }} />
-               Click numbers from smallest to largest
-            </div>
-            <div
-               style={{
-                  fontSize: "0.875rem",
-                  color: "var(--accent)",
-                  fontWeight: 500,
-               }}
-            >
-               Select {currentNumbers} numbers in order (1, 2, 3...)
-            </div>
+            {isLoading || shuffled.length === 0
+               ? Array.from({ length: currentNumbers }, (_, i) => (
+                    <div key={i} className={`${theme.cell} ${css.placeholder}`} aria-hidden="true" />
+                 ))
+               : shuffled.map((num, index) => {
+                    const selectionIndex = selected.indexOf(num);
+                    const isSelected = selectionIndex >= 0;
+                    const isCorrectOrder = isSelected && selected[selectionIndex] === selectionIndex + 1;
+
+                    const cls = [
+                       theme.cell,
+                       css.tile,
+                       isSelected ? (isCorrectOrder ? theme.correct : theme.wrong) : "",
+                       isSelected ? css.picked : "",
+                    ]
+                       .filter(Boolean)
+                       .join(" ");
+
+                    return (
+                       <button
+                          key={num}
+                          type="button"
+                          onClick={() => handleNumberClick(num)}
+                          disabled={isSelected}
+                          className={cls}
+                          style={{ ["--i" as any]: index }}
+                          aria-label={`${num}${
+                             isSelected ? `, picked ${selectionIndex + 1}${isCorrectOrder ? "" : ", out of order"}` : ""
+                          }`}
+                       >
+                          {/* keyed by state: a right pick pops, a wrong one shakes, once */}
+                          <span
+                             key={isSelected ? "picked" : "open"}
+                             className={`${css.tileText} ${
+                                isSelected ? (isCorrectOrder ? theme.pop : theme.shake) : ""
+                             }`}
+                          >
+                             {num}
+                          </span>
+                          {isSelected && (
+                             <span className={css.order} aria-hidden="true">
+                                {selectionIndex + 1}
+                             </span>
+                          )}
+                       </button>
+                    );
+                 })}
          </div>
 
-         {/* Number Grid */}
-         {isLoading || shuffled.length === 0 ? (
-            <div
-               style={{
-                  display: "flex",
-                  flexWrap: "wrap",
-                  gap: "16px",
-                  width: "100%",
-                  maxWidth: "500px",
-                  justifyContent: "center",
-                  alignItems: "center",
-                  minHeight: "100px",
-               }}
-            >
-               <div
-                  style={{
-                     fontSize: "0.875rem",
-                     color: "var(--muted)",
-                     fontWeight: 500,
-                  }}
+         <div className={`${theme.panel} ${css.tray}`}>
+            <div className={css.trayHead}>
+               <span className={css.trayLabel}>Your order</span>
+               <button
+                  type="button"
+                  className={`${theme.btn} ${css.undo}`}
+                  onClick={handleUndo}
+                  disabled={selected.length === 0 || roundOver}
                >
-                  Loading next round...
-               </div>
+                  Undo
+               </button>
             </div>
-         ) : (
-            <div
-               style={{
-                  display: "flex",
-                  flexWrap: "wrap",
-                  gap: "16px",
-                  width: "100%",
-                  maxWidth: "500px",
-                  justifyContent: "center",
-                  alignItems: "center",
-               }}
-            >
-               {shuffled.map((num) => {
-                  const isSelected = selected.includes(num);
-                  const selectionIndex = selected.indexOf(num);
-                  const isCorrectOrder =
-                     selectionIndex >= 0 &&
-                     selected[selectionIndex] === selectionIndex + 1;
-
+            <div className={css.slots}>
+               {Array.from({ length: currentNumbers }, (_, i) => {
+                  const num = selected[i];
+                  const filled = num !== undefined;
+                  const ok = filled && num === i + 1;
                   return (
-                     <button
-                        key={num}
-                        onClick={() => handleNumberClick(num)}
-                        disabled={isSelected}
-                        style={{
-                           width: "60px",
-                           height: "60px",
-
-                           background: isSelected
-                              ? isCorrectOrder
-                                 ? "linear-gradient(135deg, rgba(134,239,172,0.4) 0%, rgba(134,239,172,0.2) 100%)"
-                                 : "linear-gradient(135deg, rgba(252,165,165,0.4) 0%, rgba(252,165,165,0.2) 100%)"
-                              : "linear-gradient(135deg, rgba(125, 211, 252, 0.4) 0%, rgba(125, 211, 252, 0.2) 100%)",
-                           border: isSelected
-                              ? isCorrectOrder
-                                 ? "2px solid var(--ok)"
-                                 : "2px solid var(--warn)"
-                              : "2px solid var(--accent)",
-                           boxShadow: isSelected
-                              ? isCorrectOrder
-                                 ? "rgba(134, 239, 172, 0.3) 0px 6px 20px"
-                                 : "rgba(252, 165, 165, 0.3) 0px 6px 20px"
-                              : "rgba(125, 211, 252, 0.3) 0px 6px 20px",
-                           cursor: isSelected ? "not-allowed" : "pointer",
-                           transition: "0.3s",
-                           transform: isSelected ? "scale(0.95)" : "scale(1)",
-                           display: "flex",
-                           alignItems: "center",
-                           justifyContent: "center",
-                           position: "relative",
-                           fontSize: "1.8rem",
-                           fontWeight: 700,
-                           color: isSelected
-                              ? isCorrectOrder
-                                 ? "var(--ok)"
-                                 : "var(--warn)"
-                              : "var(--accent)",
-                        }}
-                        onMouseEnter={(e) => {
-                           if (!isSelected) {
-                              e.currentTarget.style.transform = "scale(1.05)";
-                              e.currentTarget.style.boxShadow =
-                                 "rgba(125, 211, 252, 0.5) 0px 8px 24px";
-                           }
-                        }}
-                        onMouseLeave={(e) => {
-                           if (!isSelected) {
-                              e.currentTarget.style.transform = "scale(1)";
-                              e.currentTarget.style.boxShadow =
-                                 "rgba(125, 211, 252, 0.3) 0px 6px 20px";
-                           }
-                        }}
+                     <span
+                        key={i}
+                        className={`${css.slot} ${filled ? (ok ? css.slotOk : css.slotWarn) : ""}`}
                      >
-                        {num}
-                     </button>
+                        {filled ? (
+                           <span key={num} className={theme.reveal}>
+                              {num}
+                           </span>
+                        ) : null}
+                     </span>
                   );
                })}
             </div>
-         )}
+         </div>
 
-         {/* Selected Numbers Preview */}
-         {selected.length > 0 && (
-            <div
-               style={{
-                  background: "var(--card)",
-                  borderRadius: "16px",
-                  padding: "16px",
-                  boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
-                  width: "100%",
-               }}
-            >
+         <div className={theme.feedbackSlot} aria-live="polite">
+            {feedback !== null && (
                <div
-                  style={{
-                     display: "flex",
-                     justifyContent: "space-between",
-                     alignItems: "center",
-                     marginBottom: "12px",
-                  }}
-               >
-                  <div
-                     style={{
-                        fontSize: "0.875rem",
-                        fontWeight: 600,
-                        color: "var(--muted)",
-                     }}
-                  >
-                     Your selection:
-                  </div>
-                  <button
-                     onClick={handleUndo}
-                     style={{
-                        background: "var(--warn)",
-                        border: "1px solid var(--warn)",
-                        borderRadius: "8px",
-                        padding: "6px 12px",
-                        fontSize: "0.75rem",
-                        fontWeight: 600,
-                        color: "white",
-                        cursor: "pointer",
-                        transition: "all 0.2s ease",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "4px",
-                     }}
-                     onMouseEnter={(e) => {
-                        e.currentTarget.style.background = "var(--warn)";
-                        e.currentTarget.style.opacity = "0.9";
-                        e.currentTarget.style.transform = "scale(1.05)";
-                     }}
-                     onMouseLeave={(e) => {
-                        e.currentTarget.style.background = "var(--warn)";
-                        e.currentTarget.style.opacity = "1";
-                        e.currentTarget.style.transform = "scale(1)";
-                     }}
-                  >
-                     <XMarkIcon style={{ width: 14, height: 14 }} />
-                     Undo
-                  </button>
-               </div>
-               <div
-                  style={{
-                     display: "flex",
-                     gap: "8px",
-                     justifyContent: "center",
-                     flexWrap: "wrap",
-                  }}
-               >
-                  {selected.map((num, index) => {
-                     const isCorrect = num === index + 1;
-                     return (
-                        <div
-                           key={index}
-                           style={{
-                              width: "50px",
-                              height: "50px",
-
-                              background: isCorrect
-                                 ? "linear-gradient(135deg, var(--ok) 0%, #10b981 100%)"
-                                 : "linear-gradient(135deg, var(--warn) 0%, #ef4444 100%)",
-                              border: `2px solid ${
-                                 isCorrect ? "var(--ok)" : "var(--warn)"
-                              }`,
-                              boxShadow: isCorrect
-                                 ? "0 4px 12px rgba(134, 239, 172, 0.4)"
-                                 : "0 4px 12px rgba(252, 165, 165, 0.4)",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              fontSize: "1.25rem",
-                              fontWeight: 700,
-                              color: "white",
-                           }}
-                        >
-                           {num}
-                        </div>
-                     );
-                  })}
-               </div>
-            </div>
-         )}
-
-         {/* Feedback Message */}
-         {feedback !== null && (
-            <div
-               style={{
-                  padding: "16px 24px",
-
-                  fontSize: "1.1rem",
-                  fontWeight: 600,
-                  animation: "slideIn 0.3s ease-out",
-                  background:
+                  className={`${theme.feedback} ${
                      feedback === "correct"
-                        ? "rgba(134, 239, 172, 0.2)"
-                        : "rgba(252, 165, 165, 0.2)",
-                  border: `1px solid ${
-                     feedback === "correct" ? "var(--ok)" : "var(--warn)"
-                  }`,
-                  color: feedback === "correct" ? "var(--ok)" : "var(--warn)",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "10px",
-               }}
-            >
-               {feedback === "correct" ? (
-                  <>
-                     <CheckCircleIcon style={{ width: 24, height: 24 }} />
-                     <span>Correct! Great job! +5 points</span>
-                  </>
-               ) : (
-                  <>
-                     <XCircleIcon style={{ width: 24, height: 24 }} />
-                     <span>Wrong order! Try again next round!</span>
-                  </>
-               )}
-            </div>
-         )}
+                        ? `${theme.feedbackOk} ${theme.pop}`
+                        : `${theme.feedbackWarn} ${theme.shake}`
+                  }`}
+               >
+                  {feedback === "correct" ? "Correct order. +5 points" : "Out of order. On to the next round."}
+               </div>
+            )}
+         </div>
       </div>
    );
 }

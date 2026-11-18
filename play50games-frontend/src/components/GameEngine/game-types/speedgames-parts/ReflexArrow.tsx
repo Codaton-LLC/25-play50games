@@ -94,6 +94,15 @@ export default function ReflexArrow({
    const [replaysUsed, setReplaysUsed] = useState(0);
    const [hasShared, setHasShared] = useState(false);
    const [shareSuccess, setShareSuccess] = useState(false);
+   // the 15 s "link copied" timeouts, cleared on unmount so none fires on an unmounted game
+   const shareMsgTimersRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
+   useEffect(() => {
+      const timers = shareMsgTimersRef.current;
+      return () => {
+         timers.forEach((id) => clearTimeout(id));
+         timers.clear();
+      };
+   }, []);
    const [unlimitedActivated, setUnlimitedActivated] = useState(false);
    const [currentShareId, setCurrentShareId] = useState<string | null>(null);
    const shareCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -124,6 +133,8 @@ export default function ReflexArrow({
    const [floater, setFloater] = useState<Floater | null>(null);
    const floaterIdRef = useRef(0);
    const lastPointerRef = useRef(0);
+   // Leak guard only: the delayed first arrow must not start its interval after the game unmounted.
+   const mountedRef = useRef(true);
 
    const showFloater = useCallback((text: string, tone: "ok" | "bad") => {
       const id = ++floaterIdRef.current;
@@ -253,7 +264,7 @@ export default function ReflexArrow({
 
          // Generate first arrow after a short delay
          setTimeout(() => {
-            if (gameStateRef.current === "playing") {
+            if (mountedRef.current && gameStateRef.current === "playing") {
                generateArrow();
                const levelConfig = getLevelConfig(level);
                startArrowTimer(levelConfig.arrowInterval);
@@ -603,7 +614,7 @@ export default function ReflexArrow({
                url: shareableLink,
             });
             setShareSuccess(true);
-            setTimeout(() => setShareSuccess(false), 15000);
+            shareMsgTimersRef.current.add(setTimeout(() => setShareSuccess(false), 15000));
          } catch (error: any) {
             if (error.name !== "AbortError") {
                handleCopyLink(shareId);
@@ -621,7 +632,7 @@ export default function ReflexArrow({
       try {
          await navigator.clipboard.writeText(shareableLink);
          setShareSuccess(true);
-         setTimeout(() => setShareSuccess(false), 15000);
+         shareMsgTimersRef.current.add(setTimeout(() => setShareSuccess(false), 15000));
       } catch (error) {
          const textArea = document.createElement("textarea");
          textArea.value = shareableLink;
@@ -632,7 +643,7 @@ export default function ReflexArrow({
          try {
             document.execCommand("copy");
             setShareSuccess(true);
-            setTimeout(() => setShareSuccess(false), 15000);
+            shareMsgTimersRef.current.add(setTimeout(() => setShareSuccess(false), 15000));
          } catch (err) {
             // Failed to copy
          }
@@ -811,7 +822,9 @@ export default function ReflexArrow({
 
    // Cleanup on unmount
    useEffect(() => {
+      mountedRef.current = true;
       return () => {
+         mountedRef.current = false;
          if (countdownTimerRef.current) {
             clearInterval(countdownTimerRef.current);
          }
@@ -971,7 +984,7 @@ export default function ReflexArrow({
          {unlimitedActivated && (
             <div className={`${styles.msg} ${styles.msgInfo}`} style={{ fontSize: isMobile ? "0.85rem" : "0.9rem" }}>
                <CheckCircleIcon
-                  style={{ width: 18, height: 18, color: "rgba(59, 130, 246, 0.9)", flexShrink: 0 }}
+                  style={{ width: 18, height: 18, color: "var(--accent)", flexShrink: 0 }}
                />
                <span>🎉 Someone opened your link! Unlimited replay is now active for 15 minutes!</span>
             </div>
@@ -979,20 +992,13 @@ export default function ReflexArrow({
 
          <button
             type="button"
-            className={`${styles.btn} ${styles.btnGrow} ${fx.pressable}`}
+            className={`${styles.btn} ${styles.btnGrow} ${styles.btnTint} ${fx.pressable}`}
             {...replayPress}
             disabled={noReplays}
             style={{
                ...TOUCH_SURFACE,
                padding: isMobile ? "10px 10px" : "10px 20px",
-               background: noReplays
-                  ? "rgba(100, 100, 100, 0.2)"
-                  : "linear-gradient(135deg, rgba(125, 211, 252, 0.2), rgba(125, 211, 252, 0.1))",
-               border: noReplays
-                  ? "1px solid rgba(100, 100, 100, 0.4)"
-                  : "1px solid rgba(125, 211, 252, 0.6)",
                fontSize: isMobile ? "0.9rem" : "0.95rem",
-               opacity: noReplays ? 0.5 : 1,
             }}
          >
             <ArrowPathRoundedSquareIcon
@@ -1013,14 +1019,11 @@ export default function ReflexArrow({
 
          <button
             type="button"
-            className={`${styles.btn} ${styles.btnGrow} ${fx.pressable}`}
+            className={`${styles.btn} ${styles.btnGrow} ${styles.btnTint} ${fx.pressable}`}
             onClick={handleShare}
             style={{
                ...TOUCH_SURFACE,
                padding: isMobile ? "10px 10px" : "10px 20px",
-               background:
-                  "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
-               border: "1px solid rgba(59, 130, 246, 0.6)",
                fontSize: isMobile ? "0.9rem" : "0.95rem",
             }}
          >
@@ -1076,7 +1079,7 @@ export default function ReflexArrow({
                   {compact && gameState === "playing" && statChips}
                </div>
                <div className={styles.progress} style={{ height: isMobile ? "6px" : "8px" }}>
-                  <div className={styles.progressFill} style={{ width: `${progress}%` }} />
+                  <div className={styles.progressFill} style={{ transform: `scaleX(${progress / 100})` }} />
                </div>
             </div>
 
@@ -1141,8 +1144,6 @@ export default function ReflexArrow({
                         role="group"
                         aria-label="Direction buttons"
                         style={{
-                           gridTemplateColumns: `repeat(3, ${layout.cell}px)`,
-                           gridTemplateRows: `repeat(3, ${layout.cell}px)`,
                            gap: `${layout.gap}px`,
                            width: `${layout.padSize}px`,
                            height: `${layout.padSize}px`,
@@ -1170,7 +1171,7 @@ export default function ReflexArrow({
 
             {/* Ready for Next Round Message */}
             {gameState === "ready" && currentLevel < maxLevels - 1 && (
-               <div className={`${styles.card} ${styles.notice} ${fx.fadeUp}`} style={noticeStyle}>
+               <div className={`${styles.card} ${styles.notice} ${fx.staggerIn}`} style={noticeStyle}>
                   <div className={`${styles.badge} ${styles.badgeOk}`} style={badgeStyle}>
                      <CheckCircleIcon style={{ width: 20, height: 20 }} />
                      Level {currentLevel + 1} Complete
@@ -1208,7 +1209,7 @@ export default function ReflexArrow({
 
             {/* Level Failed Message */}
             {gameState === "failed" && (
-               <div className={`${styles.card} ${styles.notice} ${fx.fadeUp}`} style={noticeStyle}>
+               <div className={`${styles.card} ${styles.notice} ${fx.staggerIn}`} style={noticeStyle}>
                   <div className={`${styles.badge} ${styles.badgeBad}`} style={badgeStyle}>
                      <XCircleIcon style={{ width: 20, height: 20 }} />
                      Level {currentLevel + 1} Failed
@@ -1230,7 +1231,7 @@ export default function ReflexArrow({
 
             {/* Game Complete Message */}
             {gameState === "ready" && currentLevel + 1 >= maxLevels && (
-               <div className={`${styles.card} ${styles.notice} ${fx.fadeUp}`} style={noticeStyle}>
+               <div className={`${styles.card} ${styles.notice} ${fx.staggerIn}`} style={noticeStyle}>
                   <div className={`${styles.badge} ${styles.badgeOk}`} style={badgeStyle}>
                      <TrophyIcon style={{ width: 20, height: 20 }} />
                      Game Complete!

@@ -1,4 +1,6 @@
-/* Click the Green: layout and feedback styles (mobile/tablet pass). Rules and scoring live in the component. */
+/* Click the Green: layout and feedback styles. Rules and scoring live in the component.
+   Shape scale: panels 16 px, buttons 12 px, chips / badges / bars pill. Colours are site tokens;
+   the green and red of the targets are game content and stay in the component. */
 
 .root {
    display: flex;
@@ -8,6 +10,34 @@
    min-height: 100%;
    width: 100%;
    box-sizing: border-box;
+   font-variant-numeric: tabular-nums;
+}
+
+/* Level progress: a full-width fill scaled on X, so nothing is laid out again. */
+.progressFill {
+   width: 100%;
+   height: 100%;
+   transform-origin: left center;
+   transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Correct / Mistakes counters. */
+.chip {
+   border-radius: 999px;
+   border: 1px solid var(--stroke);
+   color: var(--text);
+   font-weight: 600;
+   white-space: nowrap;
+}
+
+.chipOk {
+   background: color-mix(in srgb, var(--ok) 18%, transparent);
+   border-color: color-mix(in srgb, var(--ok) 55%, transparent);
+}
+
+.chipBad {
+   background: color-mix(in srgb, var(--warn) 18%, transparent);
+   border-color: color-mix(in srgb, var(--warn) 55%, transparent);
 }
 
 .arenaWrap {
@@ -18,17 +48,16 @@
 .arena {
    position: relative;
    width: 100%;
-   border-radius: var(--radius);
-   border: 1px solid var(--border);
+   border-radius: 16px;
+   border: 1px solid var(--stroke);
    background:
-      radial-gradient(320px 220px at 30% 30%, rgba(59, 130, 246, 0.1), transparent 55%),
+      radial-gradient(320px 220px at 30% 30%, rgba(var(--accent-rgb, 125, 211, 252), 0.07), transparent 55%),
       linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
    box-shadow: 0 10px 18px rgba(0, 0, 0, 0.22);
    overflow: hidden;
 }
 
-/* The pulse keyframes stay global in the component (inline animation), so the shared
-   flashOk / flashBad classes can take over the animation slot once an item is hit. */
+/* A target. Its place (left / top) is game state written every frame: never transition it. */
 .item {
    position: absolute;
    display: flex;
@@ -40,14 +69,35 @@
    line-height: 1;
 }
 
+/* A new target pops in once (no endless pulse). */
+.itemLive {
+   animation: clickGreenItemIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* A tapped target shrinks and fades; the shared flashOk / flashBad ring runs on top. */
+.itemHit {
+   transition: transform 0.2s ease, opacity 0.2s ease, background-color 0.2s ease;
+}
+
+@keyframes clickGreenItemIn {
+   from {
+      opacity: 0;
+      transform: translate(-50%, -50%) scale(0.8);
+   }
+   to {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+   }
+}
+
 .hint {
    position: absolute;
    top: 12px;
    left: 50%;
    transform: translateX(-50%);
    padding: 7px 14px;
-   background: rgba(15, 27, 51, 0.72);
-   border: 1px solid rgba(255, 255, 255, 0.12);
+   background: color-mix(in srgb, var(--bg, #0b0f1a) 78%, transparent);
+   border: 1px solid var(--stroke);
    border-radius: 999px;
    font-size: 13px;
    font-weight: 700;
@@ -80,8 +130,8 @@
    display: flex;
    padding: 10px;
    overflow-y: auto;
-   border-radius: var(--radius);
-   background: rgba(8, 14, 28, 0.55);
+   border-radius: 16px;
+   background: color-mix(in srgb, var(--bg, #0b0f1a) 62%, transparent);
    backdrop-filter: blur(4px);
    -webkit-backdrop-filter: blur(4px);
 }
@@ -93,11 +143,42 @@
    box-sizing: border-box;
    padding: 16px 14px;
    background: var(--card);
-   border-radius: var(--radius);
+   border: 1px solid var(--stroke);
+   border-radius: 16px;
    color: var(--text);
    font-weight: 700;
    text-align: center;
    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
+}
+
+/* Notice headline badge ("Level 3 Complete", "Level 3 Failed"). */
+.badge {
+   display: inline-flex;
+   align-items: center;
+   gap: 8px;
+   padding: 8px 14px;
+   border-radius: 999px;
+   border: 1px solid var(--stroke);
+   font-weight: 800;
+   color: var(--text);
+}
+
+.badgeOk {
+   background: color-mix(in srgb, var(--ok) 18%, transparent);
+   border-color: color-mix(in srgb, var(--ok) 55%, transparent);
+}
+
+.badgeOk svg {
+   color: var(--ok);
+}
+
+.badgeBad {
+   background: color-mix(in srgb, var(--warn) 18%, transparent);
+   border-color: color-mix(in srgb, var(--warn) 55%, transparent);
+}
+
+.badgeBad svg {
+   color: var(--warn);
 }
 
 .actions {
@@ -109,13 +190,45 @@
    box-sizing: border-box;
    padding: 10px;
    background: var(--card);
-   border-radius: 12px;
+   border: 1px solid var(--stroke);
+   border-radius: 16px;
 }
 
+/* Share messages inside the actions row. */
+.note {
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   flex-wrap: wrap;
+   gap: 8px;
+   width: 100%;
+   box-sizing: border-box;
+   padding: 10px 12px;
+   border-radius: 12px;
+   border: 1px solid var(--stroke);
+   color: var(--text);
+   font-weight: 600;
+   text-align: center;
+}
+
+.noteOk {
+   background: color-mix(in srgb, var(--ok) 18%, transparent);
+   border-color: color-mix(in srgb, var(--ok) 55%, transparent);
+}
+
+.noteAccent {
+   background: rgba(var(--accent-rgb, 125, 211, 252), 0.14);
+   border-color: rgba(var(--accent-rgb, 125, 211, 252), 0.5);
+}
+
+/* One button look for Replay / Share / Next Round: 12 px, tinted fill, 1 px border. Hover and
+   press never change the box (background and transform only; the press is fx.pressable). */
 .btn {
    min-height: 44px;
    min-width: 44px;
-   border-radius: 10px;
+   border-radius: 12px;
+   border: 1px solid var(--stroke);
+   background: var(--card);
    display: inline-flex;
    align-items: center;
    justify-content: center;
@@ -125,8 +238,42 @@
    cursor: pointer;
 }
 
+.btnAccent {
+   background: rgba(var(--accent-rgb, 125, 211, 252), 0.16);
+   border-color: rgba(var(--accent-rgb, 125, 211, 252), 0.55);
+}
+
+.btnOk {
+   background: color-mix(in srgb, var(--ok) 20%, transparent);
+   border-color: color-mix(in srgb, var(--ok) 60%, transparent);
+}
+
+@media (hover: hover) {
+   .btnAccent:hover:not(:disabled) {
+      background: rgba(var(--accent-rgb, 125, 211, 252), 0.26);
+   }
+
+   .btnOk:hover:not(:disabled) {
+      background: color-mix(in srgb, var(--ok) 30%, transparent);
+   }
+}
+
+.btn:focus-visible {
+   outline: 2px solid var(--text);
+   outline-offset: 2px;
+}
+
 .btn:disabled {
    cursor: not-allowed;
+   background: var(--card);
+   border-color: var(--stroke);
+   opacity: 0.55;
+}
+
+/* fx.staggerIn keeps its last keyframe (fill: both), and a filled transform would beat the
+   :active press scale of a button that is a direct child: let the button go once it is in. */
+.notice > .btn {
+   animation-fill-mode: backwards;
 }
 
 .btnGrow {
@@ -134,4 +281,32 @@
    max-width: 300px;
    min-width: 0;
    white-space: nowrap;
+}
+
+/* Final games: the stage turns the accent gold by itself; green is not remapped by a variable,
+   so the gold that globals.css used to force on the old inline green strings is written here. */
+:global(body.final-game) .chipOk,
+:global(body.final-game) .badgeOk,
+:global(body.final-game) .noteOk,
+:global(body.final-game) .btnOk {
+   background: linear-gradient(135deg, rgba(234, 179, 8, 0.25), rgba(234, 179, 8, 0.12));
+   border-color: rgba(234, 179, 8, 0.6);
+}
+
+:global(body.final-game) .btnOk:hover:not(:disabled) {
+   background: linear-gradient(135deg, rgba(234, 179, 8, 0.32), rgba(234, 179, 8, 0.18));
+}
+
+:global(body.final-game) .badgeOk svg,
+:global(body.final-game) .noteOk {
+   color: #eab308;
+}
+
+@media (prefers-reduced-motion: reduce) {
+   .progressFill,
+   .itemLive,
+   .itemHit {
+      animation: none;
+      transition: none;
+   }
 }

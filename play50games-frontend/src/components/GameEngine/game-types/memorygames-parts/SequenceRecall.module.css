@@ -1,0 +1,243 @@
+/* Image Recall, Path Memory and Word Memory (watch, then recall): the parts the shared memory layer (mobile.module.css) does not cover. The blue of the
+   "watch" phase is the game's flash cue (content): it stays blue, but it lights the cell from inside
+   and lifts only the emoji, so the cell keeps its size and never covers its neighbours. */
+
+.title {
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   gap: 10px;
+   margin: 0 0 14px;
+   padding-bottom: 14px;
+   border-bottom: 1px solid var(--stroke);
+}
+
+.titleText {
+   margin: 0;
+   font-size: 1.35rem;
+   font-weight: 700;
+   color: var(--text);
+}
+
+.titleIcon {
+   width: 26px;
+   height: 26px;
+   flex: none;
+   color: rgba(var(--accent-rgb, 231, 95, 64), 1);
+}
+
+.status {
+   text-align: center;
+}
+
+.statusLine {
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   gap: 8px;
+   flex-wrap: wrap;
+   margin-bottom: 8px;
+   font-size: 1.05rem;
+   font-weight: 700;
+   color: var(--text);
+}
+
+.statusSub {
+   font-size: 0.875rem;
+   color: var(--muted);
+}
+
+/* a status line with its state chip on the right */
+.statusRow {
+   display: flex;
+   align-items: center;
+   justify-content: space-between;
+   gap: 12px;
+   text-align: left;
+}
+
+.statusRow .statusLine {
+   justify-content: flex-start;
+   margin-bottom: 0;
+}
+
+.statusRow .statusSub {
+   margin-top: 4px;
+}
+
+.chip {
+   flex: none;
+   padding: 6px 12px;
+   border-radius: 999px;
+   font-size: 0.8rem;
+   font-weight: 700;
+   white-space: nowrap;
+   color: var(--text);
+   background: rgba(255, 255, 255, 0.05);
+   box-shadow: inset 0 0 0 1px var(--stroke);
+}
+
+.chipOk {
+   color: var(--mg-ok, var(--ok));
+   background: color-mix(in srgb, var(--mg-ok, var(--ok)) 14%, transparent);
+}
+
+.chipBad {
+   color: var(--warn);
+   background: color-mix(in srgb, var(--warn) 14%, transparent);
+}
+
+/* a number shown in the middle of a cell (the step of a picked path cell) */
+.step {
+   font-size: 1rem;
+   font-weight: 700;
+   font-variant-numeric: tabular-nums;
+}
+
+.iconOk {
+   width: 22px;
+   height: 22px;
+   color: var(--mg-ok, var(--ok));
+}
+
+.iconBad {
+   width: 22px;
+   height: 22px;
+   color: var(--warn);
+}
+
+/* doubled class names: these must beat the shared .card look whatever order the sheets load in */
+
+/* a cell of the sequence while the player watches */
+.cue.cue {
+   background: rgba(110, 168, 255, 0.26);
+   box-shadow: inset 0 0 0 2px rgba(110, 168, 255, 0.9);
+}
+
+/* the cell being flashed right now, in sequence order */
+.flashCue.flashCue {
+   background: rgba(110, 168, 255, 0.42);
+   box-shadow:
+      inset 0 0 0 3px rgba(110, 168, 255, 1),
+      inset 0 0 22px rgba(110, 168, 255, 0.45);
+}
+
+.flashCue > span:first-child {
+   animation: cuePop 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* the order number of a picked cell */
+.order {
+   position: absolute;
+   top: 6px;
+   right: 6px;
+   min-width: 22px;
+   height: 22px;
+   padding: 0 5px;
+   box-sizing: border-box;
+   display: grid;
+   place-items: center;
+   border-radius: 8px;
+   background: rgba(11, 15, 26, 0.85);
+   box-shadow: inset 0 0 0 1px var(--stroke);
+   color: var(--text);
+   font-size: 12px;
+   font-weight: 700;
+   font-variant-numeric: tabular-nums;
+   pointer-events: none;
+}
+
+.orderLeft {
+   right: auto;
+   left: 6px;
+}
+
+/* the step badge of a word while the player watches: the cue's blue */
+.orderCue {
+   background: rgba(110, 168, 255, 0.95);
+   box-shadow: none;
+   color: #0b0f1a;
+}
+
+/* a word tile: words differ in length, so tiles are equal by row (grid-auto-rows: 1fr) rather than
+   square; the doubled class beats the shared square .card */
+.wordTile.wordTile {
+   aspect-ratio: auto;
+   min-height: 64px;
+   padding: 14px 12px;
+   font-size: 1rem;
+   font-weight: 600;
+   line-height: 1.25;
+   text-align: center;
+   overflow-wrap: anywhere;
+}
+
+.wordBoard {
+   grid-auto-rows: 1fr;
+}
+
+.actions {
+   display: flex;
+   flex-wrap: wrap;
+   justify-content: center;
+   gap: 10px;
+   width: 100%;
+}
+
+.actions > .wide {
+   width: 100%;
+   justify-content: center;
+}
+
+@keyframes cuePop {
+   0% {
+      transform: scale(1);
+   }
+   50% {
+      transform: scale(1.14);
+   }
+   100% {
+      transform: scale(1);
+   }
+}
+
+@media (max-width: 600px) {
+   .titleText {
+      font-size: 1.15rem;
+   }
+   .titleIcon {
+      width: 22px;
+      height: 22px;
+   }
+   .statusLine {
+      font-size: 0.95rem;
+   }
+   .statusSub {
+      font-size: 0.8rem;
+   }
+   .actions > button {
+      width: 100%;
+   }
+   .wordTile.wordTile {
+      min-height: 56px;
+      padding: 12px 8px;
+      font-size: 0.9rem;
+   }
+   .order {
+      top: 4px;
+      right: 4px;
+      min-width: 20px;
+      height: 20px;
+      font-size: 11px;
+   }
+   .orderLeft {
+      right: auto;
+      left: 4px;
+   }
+}
+
+@media (prefers-reduced-motion: reduce) {
+   .flashCue > span:first-child {
+      animation: none;
+   }
+}

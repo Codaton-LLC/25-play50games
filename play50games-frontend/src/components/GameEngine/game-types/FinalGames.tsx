@@ -6,14 +6,18 @@ import MemoryGames from "./MemoryGames";
 import SpeedGames from "./SpeedGames";
 import SkillGames from "./SkillGames";
 import FinalGameComplete from "./final-game-parts/FinalGameComplete";
-import fm from "./final-game-parts/finalMobile.module.css";
+import { useCompleteOnce } from "./final-game-parts/useCompleteOnce";
+import {
+   FinalHead,
+   ChallengeStep,
+   DoneSheet,
+   chrome as c,
+   type StepState,
+} from "./final-game-parts/FinalChrome";
 import {
    CheckCircleIcon,
    TrophyIcon,
    ClockIcon,
-   ArrowPathRoundedSquareIcon,
-   ShareIcon,
-   LockClosedIcon,
 } from "@heroicons/react/24/outline";
 
 // Lookup table for full game configs - maps gameType to full config
@@ -199,26 +203,15 @@ function MixedQuiz({
    onComplete,
    isPlaying,
 }: FinalGamesProps) {
+   const { completeLater } = useCompleteOnce();
    const rounds = config.rounds || 5;
    const [round, setRound] = useState(0);
    const [score, setScore] = useState(0);
    const [currentMiniGame, setCurrentMiniGame] = useState<string>("");
-   const [isMobile, setIsMobile] = useState(false);
-   const [isTablet, setIsTablet] = useState(false);
    const [gameState, setGameState] = useState<"playing" | "ready" | "complete">(
       "playing"
    );
 
-   // Responsive design
-   useEffect(() => {
-      const checkResponsive = () => {
-         setIsMobile(window.innerWidth < 640);
-         setIsTablet(window.innerWidth >= 640 && window.innerWidth < 1024);
-      };
-      checkResponsive();
-      window.addEventListener("resize", checkResponsive);
-      return () => window.removeEventListener("resize", checkResponsive);
-   }, []);
 
    // Handle game completion
    useEffect(() => {
@@ -227,10 +220,18 @@ function MixedQuiz({
          // Each round contributes 100/rounds, so total should be 100
          const finalScore = Math.round(score);
          onScoreUpdate(finalScore);
-         setTimeout(() => onComplete(finalScore), 1000);
+         completeLater(() => onComplete(finalScore), 1000);
          return;
       }
-   }, [round, rounds, score, gameState, onScoreUpdate, onComplete]);
+   }, [
+      round,
+      rounds,
+      score,
+      gameState,
+      onScoreUpdate,
+      onComplete,
+      completeLater,
+   ]);
 
    // Select random game only when round changes or game starts
    useEffect(() => {
@@ -387,289 +388,53 @@ function MixedQuiz({
    const progress = rounds > 0 ? Math.round((round / rounds) * 100) : 0;
 
    return (
-      <div
-         className="final-game"
-         style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: isMobile ? "16px" : "20px",
-            width: "100%",
-            maxWidth: "1200px",
-            margin: "0 auto",
-            padding: isMobile ? "16px" : "24px",
-         }}
-      >
-         {/* Header */}
-         <div
-            style={{
-               width: "100%",
-               display: "flex",
-               flexDirection: "column",
-               alignItems: "center",
-               gap: isMobile ? "12px" : "16px",
-            }}
-         >
-            <div
-               style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: isMobile ? "8px" : "12px",
-                  width: "100%",
-               }}
-            >
-               <TrophyIcon
-                  style={{
-                     width: isMobile ? 24 : 28,
-                     height: isMobile ? 24 : 28,
-                     color: "#eab308",
-                  }}
-               />
-               <h2
-                  style={{
-                     fontSize: isMobile
-                        ? "1.5rem"
-                        : isTablet
-                        ? "1.75rem"
-                        : "2rem",
-                     fontWeight: 700,
-                     margin: 0,
-                     background:
-                        "linear-gradient(135deg, #eab308, rgba(234, 179, 8, 0.8))",
-                     WebkitBackgroundClip: "text",
-                     WebkitTextFillColor: "transparent",
-                     backgroundClip: "text",
-                  }}
-               >
-                  Mixed Quiz
-               </h2>
-            </div>
-
-            {/* Round and Score Info */}
-            <div
-               style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: isMobile ? "12px" : "20px",
-                  flexWrap: "wrap",
-                  width: "100%",
-               }}
-            >
-               <div
-                  style={{
-                     display: "flex",
-                     alignItems: "center",
-                     gap: "8px",
-                     padding: isMobile ? "8px 14px" : "10px 18px",
-                     background:
-                        "linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(59, 130, 246, 0.08))",
-                     border: "1px solid rgba(59, 130, 246, 0.3)",
-                  }}
-               >
-                  <ClockIcon
-                     style={{
-                        width: isMobile ? 16 : 18,
-                        height: isMobile ? 16 : 18,
-                        color: "var(--accent)",
-                     }}
-                  />
-                  <span
-                     style={{
-                        fontSize: isMobile ? "0.9rem" : "1rem",
-                        fontWeight: 600,
-                        color: "var(--text)",
-                     }}
-                  >
-                     Round {round + 1} / {rounds}
-                  </span>
-               </div>
-               <div
-                  style={{
-                     display: "flex",
-                     alignItems: "center",
-                     gap: "8px",
-                     padding: isMobile ? "8px 14px" : "10px 18px",
-                     background:
-                        "linear-gradient(135deg, rgba(234, 179, 8, 0.15), rgba(234, 179, 8, 0.08))",
-                     border: "1px solid rgba(234, 179, 8, 0.3)",
-                  }}
-               >
-                  <TrophyIcon
-                     style={{
-                        width: isMobile ? 16 : 18,
-                        height: isMobile ? 16 : 18,
-                        color: "#eab308",
-                     }}
-                  />
-                  <span
-                     style={{
-                        fontSize: isMobile ? "0.9rem" : "1rem",
-                        fontWeight: 600,
-                        color: "var(--text)",
-                     }}
-                  >
-                     Score: {currentScore}
-                  </span>
-               </div>
-            </div>
-
-            {/* Progress Bar */}
-            <div
-               style={{
-                  width: "100%",
-                  maxWidth: "600px",
-                  height: isMobile ? "8px" : "10px",
-                  background: "rgba(255, 255, 255, 0.1)",
-                  borderRadius: "999px",
-                  overflow: "hidden",
-                  border: "1px solid var(--border)",
-               }}
-            >
-               <div
-                  style={{
-                     width: `${progress}%`,
-                     height: "100%",
-                     background:
-                        "linear-gradient(90deg, #eab308, rgba(234, 179, 8, 0.8))",
-                     borderRadius: "999px",
-                     transition: "width 0.3s ease",
-                     boxShadow: "0 0 10px rgba(234, 179, 8, 0.5)",
-                  }}
-               />
-            </div>
-         </div>
+      <div className={`final-game ${c.wrap}`}>
+         <FinalHead
+            title="Mixed Quiz"
+            chips={[
+               {
+                  icon: ClockIcon,
+                  label: (
+                     <>
+                        Round {round + 1} / {rounds}
+                     </>
+                  ),
+               },
+               { icon: TrophyIcon, label: <>Score: {currentScore}</> },
+            ]}
+            progress={progress}
+         />
 
          {/* Current Challenge Type */}
          {currentMiniGame && gameState === "playing" && (
-            <div
-               style={{
-                  padding: isMobile ? "10px 16px" : "12px 20px",
-                  background:
-                     "linear-gradient(135deg, rgba(125, 211, 252, 0.15), rgba(125, 211, 252, 0.08))",
-                  border: "1px solid rgba(125, 211, 252, 0.3)",
-
-                  fontSize: isMobile ? "0.95rem" : "1.05rem",
-                  fontWeight: 600,
-                  color: "var(--text)",
-               }}
-            >
+            <div key={`${round}-${currentMiniGame}`} className={c.current}>
                Current: {getGameTypeName(currentMiniGame)}
             </div>
          )}
 
          {/* Ready for Next Round */}
          {gameState === "ready" && round + 1 < rounds && (
-            <div
-               style={{
-                  padding: isMobile ? "20px 24px" : "24px 32px",
-                  background: "var(--card)",
-                  borderRadius: "var(--radius)",
-                  color: "var(--text)",
-                  fontSize: isMobile ? "1rem" : "1.1rem",
-                  fontWeight: 700,
-                  textAlign: "center" as const,
-                  boxShadow: "0 10px 24px rgba(0, 0, 0, 0.25)",
-                  width: "100%",
-                  maxWidth: "800px",
-               }}
+            <DoneSheet
+               icon="check"
+               badge={<>Round {round + 1} Complete</>}
+               text="Are you ready for next round?"
             >
-               <div
-                  style={{
-                     display: "inline-flex",
-                     alignItems: "center",
-                     gap: "8px",
-                     padding: "8px 14px",
-                     borderRadius: "999px",
-                     fontWeight: 800,
-                     fontSize: isMobile ? "0.95rem" : "1.05rem",
-                     background:
-                        "linear-gradient(135deg, rgba(234, 179, 8, 0.25), rgba(234, 179, 8, 0.1))",
-                     border: "2px solid rgba(234, 179, 8, 0.6)",
-                     color: "var(--text)",
-                     marginBottom: "16px",
-                  }}
-               >
-                  <CheckCircleIcon style={{ width: 20, height: 20 }} />
-                  Round {round + 1} Complete
-               </div>
-               <div
-                  style={{
-                     fontSize: isMobile ? "1.05rem" : "1.1rem",
-                     fontWeight: 600,
-                     marginBottom: "20px",
-                     marginTop: "16px",
-                  }}
-               >
-                  Are you ready for next round?
-               </div>
                <button
+                  type="button"
                   onClick={handleNextRound}
-                  style={{
-                     padding: isMobile ? "12px 24px" : "14px 28px",
-                     background:
-                        "linear-gradient(135deg, rgba(234, 179, 8, 0.25), rgba(234, 179, 8, 0.12))",
-                     border: "2px solid rgba(234, 179, 8, 0.6)",
-
-                     color: "var(--text)",
-                     fontSize: isMobile ? "1rem" : "1.05rem",
-                     fontWeight: 700,
-                     cursor: "pointer",
-                     transition: "all 0.3s ease",
-                  }}
+                  className={c.primary}
                >
                   Next Round
                </button>
-            </div>
+            </DoneSheet>
          )}
 
          {/* Game Complete */}
          {gameState === "complete" && (
-            <div
-               style={{
-                  padding: isMobile ? "20px 24px" : "24px 32px",
-                  background: "var(--card)",
-                  borderRadius: "var(--radius)",
-                  color: "var(--text)",
-                  fontSize: isMobile ? "1rem" : "1.1rem",
-                  fontWeight: 700,
-                  textAlign: "center" as const,
-                  boxShadow: "0 10px 24px rgba(0, 0, 0, 0.25)",
-                  width: "100%",
-                  maxWidth: "800px",
-               }}
-            >
-               <div
-                  style={{
-                     display: "inline-flex",
-                     alignItems: "center",
-                     gap: "8px",
-                     padding: "8px 14px",
-                     borderRadius: "999px",
-                     fontWeight: 800,
-                     fontSize: isMobile ? "0.95rem" : "1.05rem",
-                     background:
-                        "linear-gradient(135deg, rgba(234, 179, 8, 0.25), rgba(234, 179, 8, 0.1))",
-                     border: "2px solid rgba(234, 179, 8, 0.6)",
-                     color: "var(--text)",
-                     marginBottom: "16px",
-                  }}
-               >
-                  <TrophyIcon style={{ width: 20, height: 20 }} />
-                  Game Complete!
-               </div>
-               <div
-                  style={{
-                     fontSize: isMobile ? "1.05rem" : "1.1rem",
-                     fontWeight: 600,
-                     marginBottom: "20px",
-                     marginTop: "16px",
-                  }}
-               >
-                  Final Score: {Math.round(score)}
-               </div>
-            </div>
+            <DoneSheet
+               badge="Game Complete!"
+               text={<>Final Score: {Math.round(score)}</>}
+            />
          )}
 
          {/* Mini Game */}
@@ -685,23 +450,12 @@ function SurvivalMode({
    onComplete,
    isPlaying,
 }: FinalGamesProps) {
+   const { completeLater } = useCompleteOnce();
    const games = config.games || 5;
    const [currentGameIndex, setCurrentGameIndex] = useState(0);
    const [completedGames, setCompletedGames] = useState(0);
    const [score, setScore] = useState(0);
-   const [isMobile, setIsMobile] = useState(false);
-   const [isTablet, setIsTablet] = useState(false);
 
-   // Responsive design
-   useEffect(() => {
-      const checkResponsive = () => {
-         setIsMobile(window.innerWidth < 640);
-         setIsTablet(window.innerWidth >= 640 && window.innerWidth < 1024);
-      };
-      checkResponsive();
-      window.addEventListener("resize", checkResponsive);
-      return () => window.removeEventListener("resize", checkResponsive);
-   }, []);
 
    // Get game sequence from config, or use default
    const gameSequence = config.gameSequence || [
@@ -734,7 +488,7 @@ function SurvivalMode({
          // All games completed
          const finalScore = Math.min(100, Math.round(newScore));
          onScoreUpdate(finalScore);
-         setTimeout(() => onComplete(finalScore), 1000);
+         completeLater(() => onComplete(finalScore), 1000);
       }
    };
 
@@ -796,159 +550,22 @@ function SurvivalMode({
    const progress = games > 0 ? Math.round((completedGames / games) * 100) : 0;
 
    return (
-      <div
-         className="final-game"
-         style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: isMobile ? "16px" : "20px",
-            width: "100%",
-            maxWidth: "1200px",
-            margin: "0 auto",
-            padding: isMobile ? "16px" : "24px",
-         }}
-      >
-         {/* Header */}
-         <div
-            style={{
-               width: "100%",
-               display: "flex",
-               flexDirection: "column",
-               alignItems: "center",
-               gap: isMobile ? "12px" : "16px",
-            }}
-         >
-            <div
-               style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: isMobile ? "8px" : "12px",
-                  width: "100%",
-               }}
-            >
-               <TrophyIcon
-                  style={{
-                     width: isMobile ? 24 : 28,
-                     height: isMobile ? 24 : 28,
-                     color: "#eab308",
-                  }}
-               />
-               <h2
-                  style={{
-                     fontSize: isMobile
-                        ? "1.5rem"
-                        : isTablet
-                        ? "1.75rem"
-                        : "2rem",
-                     fontWeight: 700,
-                     margin: 0,
-                     background:
-                        "linear-gradient(135deg, #eab308, rgba(234, 179, 8, 0.8))",
-                     WebkitBackgroundClip: "text",
-                     WebkitTextFillColor: "transparent",
-                     backgroundClip: "text",
-                  }}
-               >
-                  Survival Mode
-               </h2>
-            </div>
-
-            {/* Game and Score Info */}
-            <div
-               style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: isMobile ? "12px" : "20px",
-                  flexWrap: "wrap",
-                  width: "100%",
-               }}
-            >
-               <div
-                  style={{
-                     display: "flex",
-                     alignItems: "center",
-                     gap: "8px",
-                     padding: isMobile ? "8px 14px" : "10px 18px",
-                     background:
-                        "linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(59, 130, 246, 0.08))",
-                     border: "1px solid rgba(59, 130, 246, 0.3)",
-                  }}
-               >
-                  <ClockIcon
-                     style={{
-                        width: isMobile ? 16 : 18,
-                        height: isMobile ? 16 : 18,
-                        color: "var(--accent)",
-                     }}
-                  />
-                  <span
-                     style={{
-                        fontSize: isMobile ? "0.9rem" : "1rem",
-                        fontWeight: 600,
-                        color: "var(--text)",
-                     }}
-                  >
-                     Game {currentGameIndex + 1} / {games}
-                  </span>
-               </div>
-               <div
-                  style={{
-                     display: "flex",
-                     alignItems: "center",
-                     gap: "8px",
-                     padding: isMobile ? "8px 14px" : "10px 18px",
-                     background:
-                        "linear-gradient(135deg, rgba(234, 179, 8, 0.15), rgba(234, 179, 8, 0.08))",
-                     border: "1px solid rgba(234, 179, 8, 0.3)",
-                  }}
-               >
-                  <TrophyIcon
-                     style={{
-                        width: isMobile ? 16 : 18,
-                        height: isMobile ? 16 : 18,
-                        color: "#eab308",
-                     }}
-                  />
-                  <span
-                     style={{
-                        fontSize: isMobile ? "0.9rem" : "1rem",
-                        fontWeight: 600,
-                        color: "var(--text)",
-                     }}
-                  >
-                     Score: {currentScore}
-                  </span>
-               </div>
-            </div>
-
-            {/* Progress Bar */}
-            <div
-               style={{
-                  width: "100%",
-                  maxWidth: "600px",
-                  height: isMobile ? "8px" : "10px",
-                  background: "rgba(255, 255, 255, 0.1)",
-                  borderRadius: "999px",
-                  overflow: "hidden",
-                  border: "1px solid var(--border)",
-               }}
-            >
-               <div
-                  style={{
-                     width: `${progress}%`,
-                     height: "100%",
-                     background:
-                        "linear-gradient(90deg, #eab308, rgba(234, 179, 8, 0.8))",
-                     borderRadius: "999px",
-                     transition: "width 0.3s ease",
-                     boxShadow: "0 0 10px rgba(234, 179, 8, 0.5)",
-                  }}
-               />
-            </div>
-         </div>
+      <div className={`final-game ${c.wrap}`}>
+         <FinalHead
+            title="Survival Mode"
+            chips={[
+               {
+                  icon: ClockIcon,
+                  label: (
+                     <>
+                        Game {currentGameIndex + 1} / {games}
+                     </>
+                  ),
+               },
+               { icon: TrophyIcon, label: <>Score: {currentScore}</> },
+            ]}
+            progress={progress}
+         />
 
          {/* Game */}
          {renderGame()}
@@ -1034,6 +651,7 @@ function BossPuzzle({
    onComplete,
    isPlaying,
 }: FinalGamesProps) {
+   const { completeLater } = useCompleteOnce();
    // Get full game config helper (same as in MixedQuiz)
    const getFullGameConfig = (
       gameType: string,
@@ -1161,9 +779,9 @@ function BossPuzzle({
       );
       if (allComplete) {
          onScoreUpdate(100);
-         setTimeout(() => onComplete(100), 1000);
+         completeLater(() => onComplete(100), 1000);
       }
-   }, [puzzleState, onScoreUpdate, onComplete]);
+   }, [puzzleState, onScoreUpdate, onComplete, completeLater]);
 
    const handlePuzzleComplete = (type: string) => {
       setPuzzleState((prev) => ({ ...prev, [type]: true }));
@@ -1276,13 +894,25 @@ function BossPuzzle({
    };
 
    return (
-      <div className="boss-puzzle-game final-game">
-         <h3>Boss Puzzle</h3>
-         <p>
-            Complete all {totalChallenges} challenges ({completedCount}/
-            {totalChallenges} completed)
-         </p>
-         <div className="puzzle-grid">
+      <div className={`boss-puzzle-game final-game ${c.wrap}`}>
+         <FinalHead
+            title="Boss Puzzle"
+            subtitle={`Complete all ${totalChallenges} challenges`}
+            chips={[
+               {
+                  icon: CheckCircleIcon,
+                  label: (
+                     <>
+                        {completedCount}/{totalChallenges} completed
+                     </>
+                  ),
+               },
+            ]}
+            progress={
+               totalChallenges > 0 ? (completedCount / totalChallenges) * 100 : 0
+            }
+         />
+         <div className={c.ladder}>
             {challengeOrder.map((challengeType, index) => {
                const challengeConfig = challengeConfigs[challengeType];
                const isUnlocked = isChallengeUnlocked(challengeType);
@@ -1296,149 +926,38 @@ function BossPuzzle({
                        challengeConfigs[previousChallenge] || {}
                     )
                   : "";
+               const state: StepState = !isUnlocked
+                  ? "locked"
+                  : isCompleted
+                  ? "done"
+                  : isActive
+                  ? "active"
+                  : "waiting";
 
                return (
-                  <div
+                  <ChallengeStep
                      key={challengeType}
-                     className={`puzzle-challenge ${fm.challenge}`}
-                     style={{
-                        outline: "none",
-                        outlineOffset: "2px",
-                        opacity: isUnlocked ? 1 : 0.5,
-                        filter: isUnlocked ? "none" : "grayscale(0.8)",
-                        pointerEvents: isActive ? "auto" : "none",
-                        position: "relative",
-                        paddingTop: index === 0 ? "0" : "100px",
-                        paddingBottom: "100px",
-                        marginTop: "100px",
-                        marginBottom: "100px",
-                        width: "100%",
-                        height: !isUnlocked || isCompleted ? "500px" : "auto",
-                     }}
+                     index={index}
+                     total={totalChallenges}
+                     name={getChallengeName(challengeType, challengeConfig || {})}
+                     state={state}
+                     lockedNote={
+                        previousChallengeName
+                           ? `Complete ${previousChallengeName} first`
+                           : "Locked"
+                     }
+                     interactive={isActive}
                   >
-                     {!isUnlocked && (
-                        <div
-                           className={fm.overlay}
-                           style={{
-                              position: "absolute",
-                              top: "50%",
-                              left: "50%",
-                              transform: "translate(-50%, -50%)",
-                              zIndex: 10,
-                              background: "#0b1020",
-                              color: "white",
-                              padding: "12px 20px",
-
-                              fontSize: "30px",
-                              fontWeight: 700,
-                              textAlign: "center",
-                              height: "100%",
-                              width: "100%",
-                              maxWidth: "100%",
-                              display: "flex",
-                              flexDirection: "column",
-                              alignItems: "center",
-                              justifyContent: "center",
-                           }}
-                        >
-                           <LockClosedIcon
-                              style={{
-                                 position: "absolute",
-                                 top: "12px",
-                                 right: "12px",
-                                 width: "24px",
-                                 height: "24px",
-                                 color: "white",
-                              }}
-                           />
-                           {getChallengeName(
-                              challengeType,
-                              challengeConfig || {}
-                           )}
-                           <br />
-                           <span style={{ fontSize: "0.75rem", opacity: 0.8 }}>
-                              {previousChallengeName
-                                 ? `Complete ${previousChallengeName} first`
-                                 : "Locked"}
-                           </span>
-                        </div>
-                     )}
-                     <h4 style={{ textAlign: "center", margin: "0 0 20px 0" }}>
-                        {getChallengeName(challengeType, challengeConfig || {})}{" "}
-                        ({index + 1}/{totalChallenges})
-                     </h4>
-                     {!isCompleted ? (
-                        <div
-                           style={{
-                              pointerEvents: isActive ? "auto" : "none",
-                           }}
-                        >
-                           {challengeConfig && challengeConfig.gameType ? (
-                              isActive ? (
-                                 getCategoryComponent(
-                                    challengeType,
-                                    challengeConfig
-                                 )
-                              ) : (
-                                 <div
-                                    style={{
-                                       padding: "20px",
-                                       textAlign: "center",
-                                       color: "var(--muted)",
-                                    }}
-                                 >
-                                    Click to start
-                                 </div>
-                              )
-                           ) : (
-                              <div
-                                 style={{
-                                    padding: "20px",
-                                    textAlign: "center",
-                                    color: "var(--muted)",
-                                 }}
-                              >
-                                 No game configured
-                              </div>
-                           )}
-                        </div>
+                     {challengeConfig && challengeConfig.gameType ? (
+                        isActive ? (
+                           getCategoryComponent(challengeType, challengeConfig)
+                        ) : (
+                           <div className={c.stepWaiting}>Click to start</div>
+                        )
                      ) : (
-                        <div
-                           className={fm.overlay}
-                           style={{
-                              position: "absolute",
-                              top: "50%",
-                              left: "50%",
-                              transform: "translate(-50%, -50%)",
-                              zIndex: 10,
-                              background: "rgb(34, 95, 67)",
-                              color: "white",
-                              padding: "12px 20px",
-
-                              fontSize: "30px",
-                              fontWeight: 700,
-                              textAlign: "center",
-                              height: "500px",
-                              width: "100%",
-                              maxWidth: "100%",
-                              marginTop: "100px",
-                              display: "flex",
-                              flexDirection: "column",
-                              alignItems: "center",
-                              justifyContent: "center",
-                           }}
-                        >
-                           {getChallengeName(
-                              challengeType,
-                              challengeConfig || {}
-                           )}
-                           <br />
-                           <span style={{ fontSize: "0.75rem", opacity: 0.8 }}>
-                              Completed
-                           </span>
-                        </div>
+                        <div className={c.stepWaiting}>No game configured</div>
                      )}
-                  </div>
+                  </ChallengeStep>
                );
             })}
          </div>
@@ -1453,6 +972,7 @@ function TimeChallenge({
    onComplete,
    isPlaying,
 }: FinalGamesProps) {
+   const { completeLater } = useCompleteOnce();
    // Get full game config helper (same as in BossPuzzle)
    const getFullGameConfig = (
       gameType: string,
@@ -1580,9 +1100,9 @@ function TimeChallenge({
       );
       if (allComplete) {
          onScoreUpdate(100);
-         setTimeout(() => onComplete(100), 1000);
+         completeLater(() => onComplete(100), 1000);
       }
-   }, [puzzleState, onScoreUpdate, onComplete]);
+   }, [puzzleState, onScoreUpdate, onComplete, completeLater]);
 
    const handlePuzzleComplete = (type: string) => {
       setPuzzleState((prev) => ({ ...prev, [type]: true }));
@@ -1695,13 +1215,25 @@ function TimeChallenge({
    };
 
    return (
-      <div className="time-challenge-game final-game">
-         <h3>Time Challenge</h3>
-         <p>
-            Complete all {totalChallenges} challenges ({completedCount}/
-            {totalChallenges} completed)
-         </p>
-         <div className="puzzle-grid">
+      <div className={`time-challenge-game final-game ${c.wrap}`}>
+         <FinalHead
+            title="Time Challenge"
+            subtitle={`Complete all ${totalChallenges} challenges`}
+            chips={[
+               {
+                  icon: CheckCircleIcon,
+                  label: (
+                     <>
+                        {completedCount}/{totalChallenges} completed
+                     </>
+                  ),
+               },
+            ]}
+            progress={
+               totalChallenges > 0 ? (completedCount / totalChallenges) * 100 : 0
+            }
+         />
+         <div className={c.ladder}>
             {challengeOrder.map((challengeType, index) => {
                const challengeConfig = challengeConfigs[challengeType];
                const isUnlocked = isChallengeUnlocked(challengeType);
@@ -1715,149 +1247,38 @@ function TimeChallenge({
                        challengeConfigs[previousChallenge] || {}
                     )
                   : "";
+               const state: StepState = !isUnlocked
+                  ? "locked"
+                  : isCompleted
+                  ? "done"
+                  : isActive
+                  ? "active"
+                  : "waiting";
 
                return (
-                  <div
+                  <ChallengeStep
                      key={challengeType}
-                     className={`puzzle-challenge ${fm.challenge}`}
-                     style={{
-                        outline: "none",
-                        outlineOffset: "2px",
-                        opacity: isUnlocked ? 1 : 0.5,
-                        filter: isUnlocked ? "none" : "grayscale(0.8)",
-                        pointerEvents: isActive ? "auto" : "none",
-                        position: "relative",
-                        paddingTop: index === 0 ? "0" : "100px",
-                        paddingBottom: "100px",
-                        marginTop: "100px",
-                        marginBottom: "100px",
-                        width: "100%",
-                        height: !isUnlocked || isCompleted ? "500px" : "auto",
-                     }}
+                     index={index}
+                     total={totalChallenges}
+                     name={getChallengeName(challengeType, challengeConfig || {})}
+                     state={state}
+                     lockedNote={
+                        previousChallengeName
+                           ? `Complete ${previousChallengeName} first`
+                           : "Locked"
+                     }
+                     interactive={isActive}
                   >
-                     {!isUnlocked && (
-                        <div
-                           className={fm.overlay}
-                           style={{
-                              position: "absolute",
-                              top: "50%",
-                              left: "50%",
-                              transform: "translate(-50%, -50%)",
-                              zIndex: 10,
-                              background: "#0b1020",
-                              color: "white",
-                              padding: "12px 20px",
-
-                              fontSize: "30px",
-                              fontWeight: 700,
-                              textAlign: "center",
-                              height: "100%",
-                              width: "100%",
-                              maxWidth: "100%",
-                              display: "flex",
-                              flexDirection: "column",
-                              alignItems: "center",
-                              justifyContent: "center",
-                           }}
-                        >
-                           <LockClosedIcon
-                              style={{
-                                 position: "absolute",
-                                 top: "12px",
-                                 right: "12px",
-                                 width: "24px",
-                                 height: "24px",
-                                 color: "white",
-                              }}
-                           />
-                           {getChallengeName(
-                              challengeType,
-                              challengeConfig || {}
-                           )}
-                           <br />
-                           <span style={{ fontSize: "0.75rem", opacity: 0.8 }}>
-                              {previousChallengeName
-                                 ? `Complete ${previousChallengeName} first`
-                                 : "Locked"}
-                           </span>
-                        </div>
-                     )}
-                     <h4 style={{ textAlign: "center", margin: "0 0 20px 0" }}>
-                        {getChallengeName(challengeType, challengeConfig || {})}{" "}
-                        ({index + 1}/{totalChallenges})
-                     </h4>
-                     {!isCompleted ? (
-                        <div
-                           style={{
-                              pointerEvents: isActive ? "auto" : "none",
-                           }}
-                        >
-                           {challengeConfig && challengeConfig.gameType ? (
-                              isActive ? (
-                                 getCategoryComponent(
-                                    challengeType,
-                                    challengeConfig
-                                 )
-                              ) : (
-                                 <div
-                                    style={{
-                                       padding: "20px",
-                                       textAlign: "center",
-                                       color: "var(--muted)",
-                                    }}
-                                 >
-                                    Click to start
-                                 </div>
-                              )
-                           ) : (
-                              <div
-                                 style={{
-                                    padding: "20px",
-                                    textAlign: "center",
-                                    color: "var(--muted)",
-                                 }}
-                              >
-                                 No game configured
-                              </div>
-                           )}
-                        </div>
+                     {challengeConfig && challengeConfig.gameType ? (
+                        isActive ? (
+                           getCategoryComponent(challengeType, challengeConfig)
+                        ) : (
+                           <div className={c.stepWaiting}>Click to start</div>
+                        )
                      ) : (
-                        <div
-                           className={fm.overlay}
-                           style={{
-                              position: "absolute",
-                              top: "50%",
-                              left: "50%",
-                              transform: "translate(-50%, -50%)",
-                              zIndex: 10,
-                              background: "rgb(34, 95, 67)",
-                              color: "white",
-                              padding: "12px 20px",
-
-                              fontSize: "30px",
-                              fontWeight: 700,
-                              textAlign: "center",
-                              height: "500px",
-                              width: "100%",
-                              maxWidth: "100%",
-                              marginTop: "100px",
-                              display: "flex",
-                              flexDirection: "column",
-                              alignItems: "center",
-                              justifyContent: "center",
-                           }}
-                        >
-                           {getChallengeName(
-                              challengeType,
-                              challengeConfig || {}
-                           )}
-                           <br />
-                           <span style={{ fontSize: "0.75rem", opacity: 0.8 }}>
-                              Completed
-                           </span>
-                        </div>
+                        <div className={c.stepWaiting}>No game configured</div>
                      )}
-                  </div>
+                  </ChallengeStep>
                );
             })}
          </div>
@@ -1872,6 +1293,7 @@ function FinalTest({
    onComplete,
    isPlaying,
 }: FinalGamesProps) {
+   const { completeLater } = useCompleteOnce();
    const rounds = config.rounds || 10;
    const [round, setRound] = useState(0);
    const [score, setScore] = useState(0);
@@ -1884,7 +1306,7 @@ function FinalTest({
       if (round >= rounds) {
          const finalScore = Math.round((score / rounds) * 100);
          onScoreUpdate(finalScore);
-         setTimeout(() => onComplete(finalScore), 1000);
+         completeLater(() => onComplete(finalScore), 1000);
          return;
       }
 
@@ -1905,7 +1327,7 @@ function FinalTest({
       ];
 
       setCurrentChallenge(challenges[round % challenges.length]);
-   }, [round, rounds, score, onScoreUpdate, onComplete]);
+   }, [round, rounds, score, onScoreUpdate, onComplete, completeLater]);
 
    const handleChallengeComplete = (challengeScore: number) => {
       setScore(score + challengeScore);

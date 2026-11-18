@@ -117,6 +117,15 @@ export default function ReactionTest({
    const [replaysUsed, setReplaysUsed] = useState(0);
    const [hasShared, setHasShared] = useState(false);
    const [shareSuccess, setShareSuccess] = useState(false);
+   // the 15 s "link copied" timeouts, cleared on unmount so none fires on an unmounted game
+   const shareMsgTimersRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
+   useEffect(() => {
+      const timers = shareMsgTimersRef.current;
+      return () => {
+         timers.forEach((id) => clearTimeout(id));
+         timers.clear();
+      };
+   }, []);
    const [unlimitedActivated, setUnlimitedActivated] = useState(false);
    const [currentShareId, setCurrentShareId] = useState<string | null>(null);
    const shareCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -140,6 +149,29 @@ export default function ReactionTest({
 
    // Start level ref
    const startLevelRef = useRef<((levelIndex?: number) => void) | null>(null);
+   // the variants' own intervals/timeouts for the current run: cleared when a level (re)starts and on unmount,
+   // so a Replay never leaves the previous attempt's timers driving the new one
+   const runIntervalsRef = useRef<Set<ReturnType<typeof setInterval>>>(new Set());
+   const runTimeoutsRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
+   const runInterval = useCallback((fn: () => void, ms: number) => {
+      const id = setInterval(fn, ms);
+      runIntervalsRef.current.add(id);
+      return id;
+   }, []);
+   const runTimeout = useCallback((fn: () => void, ms: number) => {
+      const id = setTimeout(() => {
+         runTimeoutsRef.current.delete(id);
+         fn();
+      }, ms);
+      runTimeoutsRef.current.add(id);
+      return id;
+   }, []);
+   const clearRunTimers = useCallback(() => {
+      runIntervalsRef.current.forEach((id) => clearInterval(id));
+      runIntervalsRef.current.clear();
+      runTimeoutsRef.current.forEach((id) => clearTimeout(id));
+      runTimeoutsRef.current.clear();
+   }, []);
 
    // Get variant type for current level (0-9 maps to variants 1-10)
    const getVariant = useCallback(() => {
@@ -262,7 +294,7 @@ export default function ReactionTest({
 
          case 1: // Moving Target Reaction
             setTargetPosition({ x: 20, y: 50 });
-            const moveInterval = setInterval(() => {
+            const moveInterval = runInterval(() => {
                if (gameStateRef.current !== "playing") {
                   clearInterval(moveInterval);
                   return;
@@ -272,7 +304,7 @@ export default function ReactionTest({
                   if (newX > 80) {
                      clearInterval(moveInterval);
                      const waitTime = Math.random() * 2000 + 1000;
-                     setTimeout(() => {
+                     runTimeout(() => {
                         setTargetPosition({ x: 20, y: 50 });
                         setGreenShown(true);
                         greenStartTimeRef.current = Date.now();
@@ -291,7 +323,7 @@ export default function ReactionTest({
          case 2: // Countdown Reaction
             setCountdown(3);
             let count = 3;
-            const countInterval = setInterval(() => {
+            const countInterval = runInterval(() => {
                if (gameStateRef.current !== "playing") {
                   clearInterval(countInterval);
                   return;
@@ -303,7 +335,7 @@ export default function ReactionTest({
                   setCountdown("GO");
                   setGreenShown(true);
                   greenStartTimeRef.current = Date.now();
-                  setTimeout(() => {
+                  runTimeout(() => {
                      setCountdown(null);
                   }, 2000);
                   clearInterval(countInterval);
@@ -374,14 +406,14 @@ export default function ReactionTest({
                   greenStartTimeRef.current = Date.now();
                   setGreenShown(true);
                }
-               setTimeout(() => {
+               runTimeout(() => {
                   setMovingObjects((prev) => prev.filter((o) => o.id !== id));
                }, 2000);
             };
             const speedWait = Math.random() * 2000 + 1000;
             waitTimerRef.current = setTimeout(() => {
                spawnSpeedObjects();
-               const speedInterval = setInterval(() => {
+               const speedInterval = runInterval(() => {
                   if (gameStateRef.current !== "playing") {
                      clearInterval(speedInterval);
                      return;
@@ -401,7 +433,7 @@ export default function ReactionTest({
             setPatternIndex(0); // Start at 0 to show first circle (red)
             let patternIdx = 0;
             // Show first circle immediately
-            const patternInterval = setInterval(() => {
+            const patternInterval = runInterval(() => {
                if (gameStateRef.current !== "playing") {
                   clearInterval(patternInterval);
                   return;
@@ -450,7 +482,7 @@ export default function ReactionTest({
 
          case 7: // Timing Reaction
             setProgressBar(0);
-            const progressInterval = setInterval(() => {
+            const progressInterval = runInterval(() => {
                if (gameStateRef.current !== "playing") {
                   clearInterval(progressInterval);
                   return;
@@ -516,7 +548,7 @@ export default function ReactionTest({
             }, masterWait);
             break;
       }
-   }, []);
+   }, [runInterval, runTimeout]);
 
    // Start level
    const startLevel = useCallback(
@@ -541,6 +573,7 @@ export default function ReactionTest({
             clearTimeout(gameTimerRef.current);
             gameTimerRef.current = null;
          }
+         clearRunTimers();
 
          // Reset state
          setGameState("playing");
@@ -556,7 +589,7 @@ export default function ReactionTest({
          // Initialize the specific mini-game
          initializeMiniGame(targetLevel);
       },
-      [initializeMiniGame]
+      [initializeMiniGame, clearRunTimers]
    );
 
    // Store startLevel in ref
@@ -965,7 +998,7 @@ export default function ReactionTest({
                url: shareableLink,
             });
             setShareSuccess(true);
-            setTimeout(() => setShareSuccess(false), 15000);
+            shareMsgTimersRef.current.add(setTimeout(() => setShareSuccess(false), 15000));
          } catch (error: any) {
             if (error.name !== "AbortError") {
                handleCopyLink(shareId);
@@ -983,7 +1016,7 @@ export default function ReactionTest({
       try {
          await navigator.clipboard.writeText(shareableLink);
          setShareSuccess(true);
-         setTimeout(() => setShareSuccess(false), 15000);
+         shareMsgTimersRef.current.add(setTimeout(() => setShareSuccess(false), 15000));
       } catch (error) {
          const textArea = document.createElement("textarea");
          textArea.value = shareableLink;
@@ -994,7 +1027,7 @@ export default function ReactionTest({
          try {
             document.execCommand("copy");
             setShareSuccess(true);
-            setTimeout(() => setShareSuccess(false), 15000);
+            shareMsgTimersRef.current.add(setTimeout(() => setShareSuccess(false), 15000));
          } catch (err) {
             // Failed to copy
          }
@@ -1153,6 +1186,12 @@ export default function ReactionTest({
          if (waitTimerRef.current) clearTimeout(waitTimerRef.current);
          if (greenTimerRef.current) clearTimeout(greenTimerRef.current);
          if (feedbackTimerRef.current) clearTimeout(feedbackTimerRef.current);
+         // leak fix: the level-end timer and the frame loop must not outlive the component
+         if (gameTimerRef.current) clearTimeout(gameTimerRef.current);
+         clearRunTimers();
+         if (animationFrameRef.current) {
+            cancelAnimationFrame(animationFrameRef.current);
+         }
          if (shareCheckIntervalRef.current) {
             clearInterval(shareCheckIntervalRef.current);
          }
@@ -1188,94 +1227,12 @@ export default function ReactionTest({
 
    const progress = ((currentLevel + 1) / maxLevels) * 100;
 
-   // Styling functions (same as other games)
-   // Theme colors: --ok: #86efac, --warn: #fca5a5
-   const getActionButtonStyle = (tone: "success" | "danger") => {
-      // Using theme colors with rgba for opacity
-      // --ok: #86efac (rgb: 134, 239, 172)
-      // --warn: #fca5a5 (rgb: 252, 165, 165)
-      const bgFrom =
-         tone === "success"
-            ? "rgba(134, 239, 172, 0.25)"
-            : "rgba(252, 165, 165, 0.25)";
-      const bgTo =
-         tone === "success"
-            ? "rgba(134, 239, 172, 0.12)"
-            : "rgba(252, 165, 165, 0.12)";
-      const borderColor =
-         tone === "success"
-            ? "rgba(134, 239, 172, 0.6)"
-            : "rgba(252, 165, 165, 0.6)";
-
-      return {
-         padding: isMobile ? "12px 24px" : "14px 28px",
-         background: `linear-gradient(135deg, ${bgFrom}, ${bgTo})`,
-         border: `2px solid ${borderColor}`,
-
-         color: "var(--text)",
-         fontSize: isMobile ? "1rem" : "1.05rem",
-         fontWeight: 700,
-         cursor: "pointer",
-         transition: "all 0.3s ease",
-         display: "inline-flex",
-         alignItems: "center",
-         gap: "8px",
-      } as React.CSSProperties;
-   };
-
-   const applyActionHover = (
-      e: React.MouseEvent<HTMLButtonElement>,
-      tone: "success" | "danger",
-      isEnter: boolean
-   ) => {
-      const target = e.currentTarget;
-      // --ok: #86efac (rgb: 134, 239, 172)
-      // --warn: #fca5a5 (rgb: 252, 165, 165)
-      const borderColor =
-         tone === "success"
-            ? "rgba(134, 239, 172, 0.8)"
-            : "rgba(252, 165, 165, 0.8)";
-      const bgFrom =
-         tone === "success"
-            ? "rgba(134, 239, 172, 0.35)"
-            : "rgba(252, 165, 165, 0.35)";
-      const bgTo =
-         tone === "success"
-            ? "rgba(134, 239, 172, 0.2)"
-            : "rgba(252, 165, 165, 0.2)";
-      const defaultBgFrom =
-         tone === "success"
-            ? "rgba(134, 239, 172, 0.25)"
-            : "rgba(252, 165, 165, 0.25)";
-      const defaultBgTo =
-         tone === "success"
-            ? "rgba(134, 239, 172, 0.12)"
-            : "rgba(252, 165, 165, 0.12)";
-      const shadowColor =
-         tone === "success"
-            ? "rgba(134, 239, 172, 0.35)"
-            : "rgba(252, 165, 165, 0.35)";
-
-      if (isEnter) {
-         target.style.background = `linear-gradient(135deg, ${bgFrom}, ${bgTo})`;
-         target.style.borderColor = borderColor;
-         target.style.transform = "translateY(-2px)";
-         target.style.boxShadow = `0 6px 14px ${shadowColor}`;
-      } else {
-         target.style.background = `linear-gradient(135deg, ${defaultBgFrom}, ${defaultBgTo})`;
-         target.style.borderColor =
-            tone === "success"
-               ? "rgba(134, 239, 172, 0.6)"
-               : "rgba(252, 165, 165, 0.6)";
-         target.style.transform = "translateY(0)";
-         target.style.boxShadow = "none";
-      }
-   };
-
+   // Result card over the pad (badges and buttons are classes of the CSS module)
    const getNoticeStyle = () => ({
       padding: isMobile ? "20px 24px" : "24px 32px",
       background: "var(--card)",
-      borderRadius: "var(--radius)",
+      border: "1px solid var(--stroke)",
+      borderRadius: "16px",
       color: "var(--text)",
       fontSize: isMobile ? "1rem" : "1.1rem",
       fontWeight: 700,
@@ -1283,35 +1240,6 @@ export default function ReactionTest({
       boxShadow: "0 10px 24px rgba(0, 0, 0, 0.25)",
       width: "100%",
    });
-
-   const getNoticeBadgeStyle = (tone: "success" | "danger") => {
-      // --ok: #86efac (rgb: 134, 239, 172)
-      // --warn: #fca5a5 (rgb: 252, 165, 165)
-      const bgFrom =
-         tone === "success"
-            ? "rgba(134, 239, 172, 0.25)"
-            : "rgba(252, 165, 165, 0.25)";
-      const bgTo =
-         tone === "success"
-            ? "rgba(134, 239, 172, 0.1)"
-            : "rgba(252, 165, 165, 0.1)";
-      const borderColor =
-         tone === "success"
-            ? "rgba(134, 239, 172, 0.6)"
-            : "rgba(252, 165, 165, 0.6)";
-      return {
-         display: "inline-flex",
-         alignItems: "center",
-         gap: "8px",
-         padding: "8px 14px",
-         borderRadius: "999px",
-         fontWeight: 800,
-         fontSize: isMobile ? "0.95rem" : "1.05rem",
-         background: `linear-gradient(135deg, ${bgFrom}, ${bgTo})`,
-         border: `2px solid ${borderColor}`,
-         color: "var(--text)",
-      };
-   };
 
    // Pad height from the live viewport: once the run starts, useRevealOnPlay puts the engine's score
    // bar at the top (phones / tablets), so the pad gets what is left between its own top and the bottom
@@ -1364,7 +1292,7 @@ export default function ReactionTest({
          {/* Replay Button */}
          <button
             type="button"
-            className={rt.btn}
+            className={`${rt.btn} ${rt.btnReplay}`}
             onClick={handleReplay}
             disabled={replayDisabled}
             tabIndex={actionsLive ? 0 : -1}
@@ -1375,17 +1303,8 @@ export default function ReactionTest({
                justifyContent: "center",
                gap: isMobile ? "6px" : "8px",
                padding: isMobile ? "8px 12px" : "8px 16px",
-               background: replayDisabled
-                  ? "rgba(100, 100, 100, 0.2)"
-                  : "linear-gradient(135deg, rgba(125, 211, 252, 0.2), rgba(125, 211, 252, 0.1))",
-               border: replayDisabled
-                  ? "1px solid rgba(100, 100, 100, 0.4)"
-                  : "1px solid rgba(125, 211, 252, 0.6)",
-               color: "var(--text)",
                fontSize: isMobile ? "0.9rem" : "0.95rem",
-               fontWeight: 600,
-               cursor: replayDisabled ? "not-allowed" : "pointer",
-               opacity: replayDisabled ? 0.5 : 1,
+               fontVariantNumeric: "tabular-nums",
             }}
          >
             <ArrowPathRoundedSquareIcon
@@ -1406,7 +1325,7 @@ export default function ReactionTest({
          {/* Share Button (stays on click: the share sheet / clipboard need the click's user activation) */}
          <button
             type="button"
-            className={rt.btn}
+            className={`${rt.btn} ${rt.btnShare}`}
             onClick={handleShare}
             tabIndex={actionsLive ? 0 : -1}
             style={{
@@ -1416,20 +1335,13 @@ export default function ReactionTest({
                justifyContent: "center",
                gap: isMobile ? "6px" : "8px",
                padding: isMobile ? "8px 12px" : "8px 16px",
-               background:
-                  "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
-               border: "1px solid rgba(59, 130, 246, 0.6)",
-               color: "var(--text)",
                fontSize: isMobile ? "0.9rem" : "0.95rem",
-               fontWeight: 600,
-               cursor: "pointer",
             }}
          >
             <ShareIcon
                style={{
                   width: isMobile ? 18 : 20,
                   height: isMobile ? 18 : 20,
-                  color: "rgba(59, 130, 246, 0.9)",
                }}
             />
             <span>{vp.width < 1024 ? "Share" : "Share for Unlimited Replay"}</span>
@@ -1442,18 +1354,8 @@ export default function ReactionTest({
          {/* Share Success Message */}
          {shareSuccess && !unlimitedActivated && (
             <div
-               className={fx.fadeUp}
-               style={{
-                  width: "100%",
-                  padding: "10px 12px",
-                  background: "rgba(134, 239, 172, 0.2)",
-                  border: "2px solid rgba(134, 239, 172, 0.6)",
-                  borderRadius: "8px",
-                  fontSize: isMobile ? "0.9rem" : "1rem",
-                  fontWeight: 600,
-                  color: "var(--ok)",
-                  textAlign: "center",
-               }}
+               className={`${fx.fadeUp} ${rt.noteOk}`}
+               style={{ fontSize: isMobile ? "0.9rem" : "1rem" }}
             >
                Link copied! Unlimited replay will unlock when someone opens your
                link!
@@ -1463,31 +1365,17 @@ export default function ReactionTest({
          {/* Unlimited Activated Message */}
          {unlimitedActivated && (
             <div
-               className={fx.fadeUp}
+               className={`${fx.fadeUp} ${rt.noteLive}`}
                style={{
-                  display: "flex",
-                  alignItems: "center",
                   gap: isMobile ? "6px" : "8px",
                   padding: isMobile ? "10px 14px" : "8px 16px",
-                  background:
-                     "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
-                  border: "2px solid rgba(59, 130, 246, 0.6)",
-                  borderRadius: isMobile ? "10px" : "8px",
-                  color: "var(--text)",
                   fontSize: isMobile ? "0.85rem" : "0.9rem",
-                  fontWeight: 500,
-                  width: "100%",
-                  justifyContent: "center",
-                  textAlign: "center",
-                  flexWrap: "wrap",
                }}
             >
                <CheckCircleIcon
                   style={{
                      width: isMobile ? 16 : 18,
                      height: isMobile ? 16 : 18,
-                     color: "rgba(59, 130, 246, 0.9)",
-                     flexShrink: 0,
                   }}
                />
                <span>
@@ -1501,31 +1389,6 @@ export default function ReactionTest({
 
    return (
       <React.Fragment>
-         <style>{`
-             @keyframes pulse {
-                0%, 100% {
-                   opacity: 1;
-                   transform: scale(1);
-                }
-                50% {
-                   opacity: 0.7;
-                   transform: scale(1.05);
-                }
-             }
-             @keyframes glow {
-                0%, 100% {
-                   box-shadow: 0 0 20px rgba(134, 239, 172, 0.5);
-                }
-                50% {
-                   box-shadow: 0 0 40px rgba(134, 239, 172, 0.8);
-                }
-             }
-             @keyframes shake {
-                0%, 100% { transform: translateX(0); }
-                25% { transform: translateX(-5px); }
-                75% { transform: translateX(5px); }
-             }
-          `}</style>
          <div
             ref={rootRef}
             className={rt.root}
@@ -1566,6 +1429,7 @@ export default function ReactionTest({
                         alignItems: "center",
                         gap: isMobile ? "10px" : "16px",
                         flexWrap: "wrap",
+                        fontVariantNumeric: "tabular-nums",
                      }}
                   >
                      <span
@@ -1588,18 +1452,8 @@ export default function ReactionTest({
                      </span>
                      {getMaxTimeDisplay() && (
                         <span
-                           style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: "4px",
-                              fontSize: isMobile ? "0.85rem" : "0.9rem",
-                              fontWeight: 700,
-                              color: "var(--accent)",
-                              padding: "4px 10px",
-                              background: "rgba(125, 211, 252, 0.15)",
-                              border: "1px solid rgba(125, 211, 252, 0.3)",
-                              borderRadius: "6px",
-                           }}
+                           className={rt.maxChip}
+                           style={{ fontSize: isMobile ? "0.85rem" : "0.9rem" }}
                         >
                            <ClockIcon
                               style={{
@@ -1640,22 +1494,11 @@ export default function ReactionTest({
                {(shareSuccess && !unlimitedActivated) || unlimitedActivated
                   ? shareMessages
                   : null}
-               <div
-                  style={{
-                     width: "100%",
-                     height: "8px",
-                     background: "var(--stroke)",
-                     borderRadius: "4px",
-                     overflow: "hidden",
-                  }}
-               >
+               <div className={rt.progressTrack}>
                   <div
+                     className={rt.progressFill}
                      style={{
-                        width: `${progress}%`,
-                        height: "100%",
-                        background:
-                           "linear-gradient(90deg, var(--accent), var(--ok))",
-                        transition: "width 0.3s ease",
+                        transform: `scaleX(${Math.max(0, Math.min(100, progress)) / 100})`,
                      }}
                   />
                </div>
@@ -1714,6 +1557,7 @@ export default function ReactionTest({
                         return (
                            <div
                               key={index}
+                              className={`${rt.light} ${isGreen ? rt.livePulse : ""}`}
                               style={{
                                  width: isMobile ? "60px" : "80px",
                                  height: isMobile ? "60px" : "80px",
@@ -1723,13 +1567,9 @@ export default function ReactionTest({
                                     : "rgba(255, 255, 255, 0.1)",
                                  border: isGreen
                                     ? "3px solid rgba(134, 239, 172, 0.8)"
-                                    : "2px solid var(--stroke)",
-                                 transition: "all 0.3s ease",
+                                    : "3px solid var(--stroke)",
                                  boxShadow: isGreen
-                                    ? "0 0 20px rgba(134, 239, 172, 0.6)"
-                                    : "none",
-                                 animation: isGreen
-                                    ? "pulse 1s infinite"
+                                    ? "0 4px 12px rgba(0, 0, 0, 0.3)"
                                     : "none",
                               }}
                            />
@@ -1750,6 +1590,7 @@ export default function ReactionTest({
                      onPointerDown={(e) => pressPlay(e)}
                   >
                      <div
+                        className={`${rt.mover} ${greenShown ? rt.livePulse : ""}`}
                         style={{
                            position: "absolute",
                            left: `${targetPosition.x}%`,
@@ -1763,12 +1604,10 @@ export default function ReactionTest({
                               : "var(--stroke)",
                            border: greenShown
                               ? "3px solid rgba(134, 239, 172, 0.8)"
-                              : "2px solid var(--stroke)",
-                           transition: "all 0.1s linear",
+                              : "3px solid var(--stroke)",
                            boxShadow: greenShown
-                              ? "0 0 20px rgba(134, 239, 172, 0.6)"
+                              ? "0 4px 12px rgba(0, 0, 0, 0.3)"
                               : "none",
-                           animation: greenShown ? "pulse 1s infinite" : "none",
                         }}
                      />
                   </div>
@@ -1788,6 +1627,7 @@ export default function ReactionTest({
                      onPointerDown={(e) => pressPlay(e)}
                   >
                      <div
+                        className={rt.countdown}
                         style={{
                            fontSize: isMobile ? "4rem" : "6rem",
                            fontWeight: 900,
@@ -1797,11 +1637,6 @@ export default function ReactionTest({
                                  : countdown !== null
                                  ? "var(--accent)"
                                  : "var(--text)",
-                           textShadow:
-                              countdown === "GO"
-                                 ? "0 0 30px rgba(134, 239, 172, 0.8)"
-                                 : "none",
-                           transition: "all 0.3s ease",
                            transform:
                               countdown === "GO" ? "scale(1.2)" : "scale(1)",
                         }}
@@ -1863,7 +1698,7 @@ export default function ReactionTest({
                                     : "none",
                               background: "var(--accent)",
                               border: "3px solid var(--accent)",
-                              boxShadow: "0 4px 12px rgba(59, 130, 246, 0.3)",
+                              boxShadow: "0 4px 12px rgba(0, 0, 0, 0.3)",
                            }}
                         />
                      </div>
@@ -1873,7 +1708,7 @@ export default function ReactionTest({
                         <div
                            style={{
                               display: "grid",
-                              gridTemplateColumns: "repeat(3, 1fr)",
+                              gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
                               gap: isMobile ? "10px" : "14px",
                               justifyItems: "center",
                               width: "100%",
@@ -1887,6 +1722,7 @@ export default function ReactionTest({
                                  <div
                                     key={option.id}
                                     onPointerDown={(e) => pressPlay(e, option.id)}
+                                    className={`${rt.shapeOpt} ${isCorrect ? rt.livePulse : ""}`}
                                     style={{
                                        width: isMobile ? "56px" : "90px",
                                        height: isMobile ? "56px" : "90px",
@@ -1909,21 +1745,7 @@ export default function ReactionTest({
                                              : "rgba(252, 165, 165, 0.8)"
                                        }`,
                                        cursor: "pointer",
-                                       boxShadow: isCorrect
-                                          ? "0 0 20px rgba(134, 239, 172, 0.6)"
-                                          : "0 0 15px rgba(252, 165, 165, 0.4)",
-                                       animation: isCorrect
-                                          ? "pulse 1s infinite"
-                                          : "none",
-                                       transition: "all 0.3s ease",
-                                    }}
-                                    onMouseEnter={(e) => {
-                                       e.currentTarget.style.transform =
-                                          "scale(1.1)";
-                                    }}
-                                    onMouseLeave={(e) => {
-                                       e.currentTarget.style.transform =
-                                          "scale(1)";
+                                       boxShadow: "0 4px 12px rgba(0, 0, 0, 0.3)",
                                     }}
                                  />
                               );
@@ -1946,6 +1768,7 @@ export default function ReactionTest({
                         <div
                            key={obj.id}
                            onPointerDown={(e) => pressPlay(e, obj.id)}
+                           className={rt.livePulse}
                            style={{
                               position: "absolute",
                               left: `${obj.x}%`,
@@ -1964,11 +1787,7 @@ export default function ReactionTest({
                                     : "rgba(252, 165, 165, 0.8)"
                               }`,
                               cursor: "pointer",
-                              boxShadow:
-                                 obj.color === "green"
-                                    ? "0 0 15px rgba(134, 239, 172, 0.6)"
-                                    : "0 0 15px rgba(252, 165, 165, 0.6)",
-                              animation: "pulse 1s infinite",
+                              boxShadow: "0 4px 10px rgba(0, 0, 0, 0.3)",
                            }}
                         />
                      ))}
@@ -1992,6 +1811,9 @@ export default function ReactionTest({
                      {patternSequence.map((color, idx) => (
                         <div
                            key={idx}
+                           className={`${rt.light} ${
+                              idx === patternIndex && color === "green" ? rt.livePulse : ""
+                           }`}
                            style={{
                               width: isMobile ? "60px" : "80px",
                               height: isMobile ? "60px" : "80px",
@@ -2002,7 +1824,7 @@ export default function ReactionTest({
                                        ? "var(--ok)"
                                        : color === "red"
                                        ? "var(--warn)"
-                                       : "var(--accent)"
+                                       : "#60a5fa"
                                     : "rgba(255, 255, 255, 0.1)",
                               border:
                                  idx <= patternIndex
@@ -2011,18 +1833,9 @@ export default function ReactionTest({
                                             ? "rgba(134, 239, 172, 0.8)"
                                             : color === "red"
                                             ? "rgba(252, 165, 165, 0.8)"
-                                            : "rgba(125, 211, 252, 0.8)"
+                                            : "#93c5fd"
                                       }`
-                                    : "2px solid var(--stroke)",
-                              transition: "all 0.3s ease",
-                              boxShadow:
-                                 idx === patternIndex && color === "green"
-                                    ? "0 0 20px rgba(134, 239, 172, 0.6)"
-                                    : "none",
-                              animation:
-                                 idx === patternIndex && color === "green"
-                                    ? "pulse 1s infinite"
-                                    : "none",
+                                    : "3px solid var(--stroke)",
                            }}
                         />
                      ))}
@@ -2042,6 +1855,7 @@ export default function ReactionTest({
                         <div
                            key={target.id}
                            onPointerDown={(e) => pressPlay(e, target.id)}
+                           className={rt.livePulse}
                            style={{
                               position: "absolute",
                               left: `${target.x}%`,
@@ -2060,11 +1874,7 @@ export default function ReactionTest({
                                     : "rgba(252, 165, 165, 0.8)"
                               }`,
                               cursor: "pointer",
-                              boxShadow:
-                                 target.color === "green"
-                                    ? "0 0 15px rgba(134, 239, 172, 0.6)"
-                                    : "0 0 15px rgba(252, 165, 165, 0.6)",
-                              animation: "pulse 1s infinite",
+                              boxShadow: "0 4px 10px rgba(0, 0, 0, 0.3)",
                            }}
                         />
                      ))}
@@ -2098,30 +1908,24 @@ export default function ReactionTest({
                         }}
                      >
                         <div
+                           className={rt.timingFill}
                            style={{
-                              width: `${progressBar}%`,
-                              height: "100%",
+                              transform: `scaleX(${Math.max(0, Math.min(100, progressBar)) / 100})`,
+                              // the green zone keeps its inline green (game content; gold in the final games)
                               background:
                                  progressBar >= 90
                                     ? "linear-gradient(90deg, var(--ok), rgba(134, 239, 172, 0.8))"
-                                    : "linear-gradient(90deg, var(--accent), rgba(125, 211, 252, 0.8))",
-                              borderRadius: "999px",
-                              transition:
-                                 "width 0.05s linear, background 0.3s ease",
-                              boxShadow:
-                                 progressBar >= 90
-                                    ? "0 0 15px rgba(134, 239, 172, 0.6)"
-                                    : "none",
+                                    : "var(--accent)",
                            }}
                         />
                      </div>
                      {greenShown && (
                         <div
+                           className={fx.hitPop}
                            style={{
                               fontSize: isMobile ? "2rem" : "3rem",
                               fontWeight: 700,
                               color: "var(--ok)",
-                              textShadow: "0 0 20px rgba(134, 239, 172, 0.8)",
                            }}
                         >
                            CLICK NOW!
@@ -2150,6 +1954,7 @@ export default function ReactionTest({
                               fontWeight: 700,
                               color: "var(--accent)",
                               textAlign: "center",
+                              fontVariantNumeric: "tabular-nums",
                            }}
                         >
                            {memorySequence.join(" → ")}
@@ -2184,6 +1989,7 @@ export default function ReactionTest({
                                  color: "var(--ok)",
                                  fontWeight: 600,
                                  marginBottom: "10px",
+                                 fontVariantNumeric: "tabular-nums",
                               }}
                            >
                               Click numbers in order:{" "}
@@ -2216,6 +2022,7 @@ export default function ReactionTest({
                                        }}
                                        onClick={(e) => clickFromKeyboard(e, num)}
                                        disabled={isClicked}
+                                       className={rt.memCell}
                                        style={{
                                           width: isMobile ? "50px" : "60px",
                                           height: isMobile ? "50px" : "60px",
@@ -2223,25 +2030,23 @@ export default function ReactionTest({
                                              ? "1.2rem"
                                              : "1.5rem",
                                           fontWeight: 700,
-
-                                          border: isNext
-                                             ? "3px solid var(--ok)"
-                                             : isClicked
-                                             ? "2px solid var(--ok)"
-                                             : "2px solid var(--stroke)",
+                                          // one border width in every state, so a state never resizes the cell
+                                          border:
+                                             isNext || isClicked
+                                                ? "2px solid var(--ok)"
+                                                : "2px solid var(--stroke)",
                                           background: isClicked
                                              ? "var(--ok)"
                                              : isNext
                                              ? "rgba(134, 239, 172, 0.2)"
                                              : "var(--card)",
                                           color: isClicked
-                                             ? "white"
+                                             ? "#0b1020"
                                              : "var(--text)",
                                           cursor: isClicked
                                              ? "not-allowed"
                                              : "pointer",
                                           opacity: isClicked ? 0.6 : 1,
-                                          transition: "all 0.2s ease",
                                        }}
                                     >
                                        {num}
@@ -2257,6 +2062,7 @@ export default function ReactionTest({
                {/* Variant 9: Master Reaction */}
                {variant === 9 && (
                   <div
+                     className={rt.master}
                      style={{
                         width: "100%",
                         height: "100%",
@@ -2265,27 +2071,21 @@ export default function ReactionTest({
                         justifyContent: "center",
                         cursor: "pointer",
                         background: greenShown ? "var(--ok)" : "var(--stroke)",
-                        transition: "background 0.3s ease",
-                        animation: greenShown
-                           ? "glow 1.5s ease-in-out infinite"
-                           : "none",
+                        // inset rings only, no outer glow. The two green strings are kept on purpose: the final
+                        // games match them to turn the live pad gold.
                         boxShadow: greenShown
-                           ? "0 0 30px rgba(134, 239, 172, 0.4), inset 0 0 50px rgba(134, 239, 172, 0.2)"
+                           ? "inset 0 0 0 4px rgba(134, 239, 172, 0.4), inset 0 0 0 1px rgba(134, 239, 172, 0.2)"
                            : "none",
                      }}
                      onPointerDown={(e) => pressPlay(e)}
                   >
                      <div
+                        className={`${rt.masterLabel} ${greenShown ? rt.masterLabelLive : ""}`}
                         style={{
                            fontSize: isMobile ? "1.5rem" : "2.5rem",
                            fontWeight: 700,
-                           color: greenShown ? "white" : "var(--text)",
                            textAlign: "center",
-                           transition: "all 0.3s ease",
                            transform: greenShown ? "scale(1.1)" : "scale(1)",
-                           textShadow: greenShown
-                              ? "0 0 20px rgba(255, 255, 255, 0.5)"
-                              : "none",
                         }}
                      >
                         {greenShown ? "CLICK NOW!" : "WAIT..."}
@@ -2297,22 +2097,11 @@ export default function ReactionTest({
                {penalties > 0 && (
                   <div
                      key={`pen-${penalties}`}
-                     className={fx.hitPop}
+                     className={`${fx.hitPop} ${rt.penaltyChip}`}
                      style={{
-                        position: "absolute",
                         top: isMobile ? "10px" : "16px",
                         right: isMobile ? "10px" : "16px",
-                        padding: "6px 12px",
-                        background: "rgba(252, 165, 165, 0.2)",
-                        border: "2px solid rgba(252, 165, 165, 0.6)",
-                        borderRadius: "999px",
                         fontSize: isMobile ? "0.85rem" : "0.9rem",
-                        fontWeight: 700,
-                        color: "var(--warn)",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "4px",
-                        pointerEvents: "none",
                      }}
                   >
                      ⚠️ {penalties}
@@ -2370,7 +2159,7 @@ export default function ReactionTest({
                      }}
                   >
                      <div
-                        className={fx.fadeUp}
+                        className={fx.staggerIn}
                         style={{
                            ...getNoticeStyle(),
                            maxWidth: "440px",
@@ -2386,14 +2175,17 @@ export default function ReactionTest({
                      >
                         {gameState === "ready" && currentLevel + 1 < maxLevels && (
                            <>
-                              <div style={getNoticeBadgeStyle("success")}>
+                              <div
+                                 className={`${rt.badge} ${rt.badgeOk}`}
+                                 style={{ fontSize: isMobile ? "0.95rem" : "1.05rem" }}
+                              >
                                  <CheckCircleIcon style={{ width: 20, height: 20 }} />
                                  Level {currentLevel + 1} Complete
                               </div>
                               {reactionTime > 0 && (
                                  <div
                                     key={`t-${reactionTime}`}
-                                    className={fx.hitPop}
+                                    className={rt.nums}
                                     style={{
                                        fontSize: isMobile ? "1.9rem" : "2.3rem",
                                        fontWeight: 900,
@@ -2412,34 +2204,38 @@ export default function ReactionTest({
                               >
                                  Are you ready for next round?
                               </div>
-                              <button
-                                 type="button"
-                                 className={rt.btn}
-                                 onClick={handleNextRoundPress}
-                                 style={{
-                                    ...getActionButtonStyle("success"),
-                                    ...TOUCH_SURFACE,
-                                    minHeight: `${MIN_TARGET + 4}px`,
-                                    justifyContent: "center",
-                                 }}
-                                 onMouseEnter={(e) => applyActionHover(e, "success", true)}
-                                 onMouseLeave={(e) => applyActionHover(e, "success", false)}
-                              >
-                                 Next Round
-                              </button>
+                              {/* own wrapper: the stagger animation holds the direct child's transform, the button keeps its press scale */}
+                              <div>
+                                 <button
+                                    type="button"
+                                    className={`${rt.btn} ${rt.btnNext}`}
+                                    onClick={handleNextRoundPress}
+                                    style={{
+                                       ...TOUCH_SURFACE,
+                                       minHeight: `${MIN_TARGET + 4}px`,
+                                       padding: isMobile ? "12px 24px" : "14px 28px",
+                                       fontSize: isMobile ? "1rem" : "1.05rem",
+                                    }}
+                                 >
+                                    Next Round
+                                 </button>
+                              </div>
                            </>
                         )}
 
                         {gameState === "ready" && currentLevel + 1 >= maxLevels && (
                            <>
-                              <div style={getNoticeBadgeStyle("success")}>
+                              <div
+                                 className={`${rt.badge} ${rt.badgeOk}`}
+                                 style={{ fontSize: isMobile ? "0.95rem" : "1.05rem" }}
+                              >
                                  <TrophyIcon style={{ width: 20, height: 20 }} />
                                  Game Complete!
                               </div>
                               {reactionTime > 0 && (
                                  <div
                                     key={`t-${reactionTime}`}
-                                    className={fx.hitPop}
+                                    className={rt.nums}
                                     style={{
                                        fontSize: isMobile ? "1.9rem" : "2.3rem",
                                        fontWeight: 900,
@@ -2471,14 +2267,17 @@ export default function ReactionTest({
 
                         {gameState === "failed" && (
                            <>
-                              <div style={getNoticeBadgeStyle("danger")}>
+                              <div
+                                 className={`${rt.badge} ${rt.badgeBad}`}
+                                 style={{ fontSize: isMobile ? "0.95rem" : "1.05rem" }}
+                              >
                                  <XCircleIcon style={{ width: 20, height: 20 }} />
                                  Level {currentLevel + 1} Failed
                               </div>
                               {reactionTime > 0 && (
                                  <div
                                     key={`t-${reactionTime}`}
-                                    className={fx.missShake}
+                                    className={rt.nums}
                                     style={{
                                        fontSize: isMobile ? "1.7rem" : "2.1rem",
                                        fontWeight: 900,
@@ -2528,7 +2327,8 @@ export default function ReactionTest({
                         style={{
                            padding: "8px 16px",
                            background: "var(--card)",
-                           borderRadius: "8px",
+                           borderRadius: "999px",
+                           fontVariantNumeric: "tabular-nums",
                            fontSize: isMobile ? "0.9rem" : "1rem",
                            fontWeight: 600,
                            color: "var(--warn)",
@@ -2542,7 +2342,8 @@ export default function ReactionTest({
                         style={{
                            padding: "8px 16px",
                            background: "var(--card)",
-                           borderRadius: "8px",
+                           borderRadius: "999px",
+                           fontVariantNumeric: "tabular-nums",
                            fontSize: isMobile ? "0.9rem" : "1rem",
                            fontWeight: 600,
                            color: "var(--text)",
@@ -2557,16 +2358,8 @@ export default function ReactionTest({
             {/* Feedback */}
             {showFeedback && (
                <div
-                  style={{
-                     padding: "16px 24px",
-
-                     fontSize: "1.1rem",
-                     fontWeight: 600,
-                     background: "rgba(134, 239, 172, 0.2)",
-                     border: "1px solid var(--ok)",
-                     color: "var(--ok)",
-                     textAlign: "center",
-                  }}
+                  className={`${rt.noteOk} ${fx.fadeUp}`}
+                  style={{ padding: "16px 24px", fontSize: "1.1rem" }}
                >
                   Reaction: {reactionTime}ms
                </div>

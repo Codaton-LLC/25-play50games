@@ -1,65 +1,366 @@
-/* Rotate to Fit on phones and tablets (desktop unchanged):
-   - each object stacked its Target above Your Shape in big boxes, so two objects ran three screens on
-     a phone: the two now sit side by side, smaller, with the four rotate buttons in one row below;
-   - the keyboard hints on the rotate buttons (11 px, keys a phone does not have) are hidden on touch;
-   - tighter padding. */
+/* Rotate to Fit (Logic), modern pass 2026-11-18.
+   Before: globals.css drew it (fixed 200 px target / shape boxes with a 3 px dashed border, 120 px
+   shapes, an infinite selectedPulse on the selected object, hover translateY(-2px) on the buttons,
+   hover scale(1.05) on the shape, "transition: all", gradient title text, an accent-to-green progress
+   bar animating width, a sky-blue glow). The wrapped rotation (270 -> 0) also made the CSS transition
+   spin the shape three quarters backwards. Now: the theme look, square boxes in two equal 1fr
+   columns that scale to the card, a transform-only progress bar, the shape turning by the drawn
+   amount (spin) in 280 ms, a pop + ok tint when a shape fits, no loops.
+
+   Specificity: the element still carries the global class names (globals.css paints the final games
+   gold through them), so the unscoped global rules still match. Every rule here starts with
+   .root.root (two classes) to win over them without !important; the final-game rules that are
+   !important are only overridden where they would fight the design (the infinite pulse, the
+   gradient title, the selected tint on a solved shape). */
+
+.root.root {
+   max-width: 640px;
+   padding: 16px 12px;
+   gap: 16px;
+}
+
+/* ---------- header: a light panel (the final games tint it gold through .game-header) ---------- */
+.root.root .header {
+   display: flex;
+   flex-direction: column;
+   align-items: center;
+   gap: 10px;
+   width: 100%;
+   max-width: none;
+   margin: 0;
+   padding: 14px 16px;
+   border: 1px solid rgba(255, 255, 255, 0.1);
+   border-radius: 16px;
+   background: rgba(255, 255, 255, 0.04);
+   box-shadow: none;
+   backdrop-filter: none;
+   text-align: center;
+}
+
+.root.root .headerTitle {
+   display: block;
+   margin: 0;
+}
+
+/* plain display type: no gradient text, also not the final games' gold gradient */
+.root.root .headerTitle .title {
+   margin: 0;
+   font-size: clamp(1.25rem, 4.5vw, 1.6rem);
+   background: none !important;
+   -webkit-background-clip: border-box !important;
+   background-clip: border-box !important;
+   -webkit-text-fill-color: currentColor !important;
+   color: var(--text) !important;
+}
+
+.root.root .stat {
+   display: inline-flex;
+   gap: 6px;
+   font-size: 0.85rem;
+   font-weight: 600;
+   color: var(--muted);
+}
+
+.root.root .progress {
+   width: 100%;
+   max-width: 320px;
+   height: 6px;
+   border-radius: 999px;
+   background: rgba(255, 255, 255, 0.08);
+   box-shadow: none;
+   overflow: hidden;
+}
+
+.progressFill {
+   width: 100%;
+   height: 100%;
+   border-radius: inherit;
+   background: var(--accent);
+   transform-origin: left center;
+   transition: transform 320ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ---------- objects ---------- */
+.objects {
+   display: flex;
+   flex-direction: column;
+   gap: 12px;
+   width: 100%;
+}
+
+/* one card per shape; states change colour only (same 1 px border), never size */
+.root.root .item {
+   display: flex;
+   flex-direction: column;
+   gap: 12px;
+   width: 100%;
+   padding: 14px;
+   border: 1px solid rgba(255, 255, 255, 0.1);
+   border-radius: 16px;
+   background: rgba(255, 255, 255, 0.04);
+   box-shadow: none;
+   backdrop-filter: none;
+   animation: rtfIn 320ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+   animation-delay: calc(var(--i, 0) * 50ms);
+   transition:
+      border-color 200ms ease,
+      background-color 200ms ease;
+}
+
+/* the keyboard's current shape (Tab / 1-5): accent edge, no pulse. The final games' rule animates
+   .object-item.selected forever with !important (0,4,1); three classes on .root win here. */
+.root.root.root .item.itemSelected {
+   border-color: rgba(var(--accent-rgb, 231, 95, 64), 0.55);
+   background: rgba(var(--accent-rgb, 231, 95, 64), 0.06);
+   box-shadow: none;
+   /* same entry as the other cards; replaces the global infinite pulse */
+   animation: rtfIn 320ms cubic-bezier(0.16, 1, 0.3, 1) backwards !important;
+   animation-delay: calc(var(--i, 0) * 50ms) !important;
+}
+
+.root.root.root .item.itemCorrect {
+   border-color: rgba(63, 181, 127, 0.55) !important;
+   background: rgba(63, 181, 127, 0.07) !important;
+   box-shadow: none;
+}
+
+.itemHead {
+   display: flex;
+   align-items: center;
+   justify-content: space-between;
+   gap: 8px;
+   min-height: 28px;
+}
+
+.itemName {
+   display: inline-flex;
+   align-items: center;
+   gap: 8px;
+   font-size: 0.95rem;
+   font-weight: 700;
+   color: var(--text);
+}
+
+.root.root .badge {
+   margin: 0;
+   padding: 2px 8px;
+   border-radius: 999px;
+   background: rgba(var(--accent-rgb, 231, 95, 64), 0.16);
+   color: var(--text);
+   font-size: 0.7rem;
+   font-weight: 700;
+   letter-spacing: 0.02em;
+}
+
+.status {
+   display: inline-flex;
+   align-items: center;
+   gap: 4px;
+   font-size: 0.8rem;
+   font-weight: 600;
+   color: var(--muted);
+}
+
+.statusOk {
+   color: var(--ok);
+}
+
+.statusIcon {
+   width: 18px;
+   height: 18px;
+}
+
+/* target | your shape: two equal columns, square boxes that scale with the card */
+.pair {
+   display: grid;
+   grid-template-columns: repeat(2, minmax(0, 1fr));
+   gap: 12px;
+   width: 100%;
+   max-width: 360px;
+   margin: 0 auto;
+}
+
+.slot {
+   display: flex;
+   flex-direction: column;
+   align-items: center;
+   gap: 6px;
+   min-width: 0;
+}
+
+.label {
+   font-size: 0.78rem;
+   font-weight: 600;
+   color: var(--muted);
+}
+
+.root.root .box {
+   position: relative;
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   width: 100%;
+   height: auto;
+   aspect-ratio: 1;
+   margin: 0;
+   border: 1px solid rgba(255, 255, 255, 0.12);
+   border-radius: 10px;
+   background: rgba(255, 255, 255, 0.05);
+   backdrop-filter: none;
+   color: var(--accent);
+   transition:
+      border-color 200ms ease,
+      background-color 200ms ease,
+      color 200ms ease;
+}
+
+.root.root .boxTarget {
+   border-style: dashed;
+   border-color: rgba(var(--accent-rgb, 231, 95, 64), 0.55);
+   background: rgba(var(--accent-rgb, 231, 95, 64), 0.06);
+}
+
+.root.root .boxOk {
+   border-color: rgba(63, 181, 127, 0.6);
+   background: rgba(63, 181, 127, 0.12);
+   color: var(--ok);
+}
+
+.shape {
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   width: 62%;
+   height: 62%;
+}
+
+/* the icons carry their size inline (getShapeIcon); the box sets it */
+.shape svg {
+   width: 100% !important;
+   height: 100% !important;
+   color: inherit;
+}
+
+.turning {
+   transition: transform 280ms cubic-bezier(0.16, 1, 0.3, 1);
+   will-change: transform;
+}
+
+/* ---------- rotate buttons: one row of four ---------- */
+.controls {
+   display: grid;
+   grid-template-columns: repeat(4, minmax(0, 1fr));
+   gap: 8px;
+   width: 100%;
+}
+
+.root.root .rotBtn {
+   flex-direction: column;
+   gap: 4px;
+   min-width: 0;
+   min-height: 56px;
+   padding: 8px 4px;
+   border: 0;
+   border-radius: 12px;
+   background: rgba(255, 255, 255, 0.07);
+   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+   color: var(--text);
+   font-size: 0.82rem;
+   line-height: 1.15;
+   white-space: normal;
+   text-align: center;
+   transition:
+      background-color 160ms ease,
+      box-shadow 160ms ease,
+      transform 100ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (hover: hover) {
+   .root.root .rotBtn:hover:not(:disabled) {
+      background: rgba(var(--accent-rgb, 231, 95, 64), 0.1);
+      box-shadow: inset 0 0 0 1px rgba(var(--accent-rgb, 231, 95, 64), 0.55);
+      transform: none;
+   }
+}
+
+.root.root .rotBtn:active:not(:disabled) {
+   transform: scale(0.96);
+}
+
+.root.root .rotBtn:disabled {
+   opacity: 0.45;
+}
+
+.root.root .btnIcon {
+   width: 20px;
+   height: 20px;
+   color: var(--accent);
+}
+
+.root.root .rotBtn:disabled .btnIcon {
+   color: var(--ok);
+}
+
+.mirrorIcon {
+   transform: scaleX(-1);
+}
+
+.root.root .hint {
+   margin: 0;
+   padding: 1px 6px;
+   border-radius: 6px;
+   background: rgba(var(--accent-rgb, 231, 95, 64), 0.16);
+   color: var(--text);
+   font-size: 0.7rem;
+   font-weight: 600;
+}
+
+@keyframes rtfIn {
+   from {
+      opacity: 0;
+      transform: translateY(8px);
+   }
+   to {
+      opacity: 1;
+      transform: translateY(0);
+   }
+}
+
+/* touch screens have no keys: no key hints, no keyboard badge */
 @media (hover: none), (pointer: coarse) {
-   .root :global(.keyboard-hint) {
+   .root :global(.keyboard-hint),
+   .root :global(.selected-badge) {
       display: none !important;
    }
 }
 
 @media (max-width: 599px) {
-   .root {
-      padding: 10px 4px !important;
-      gap: 12px !important;
+   .root.root {
+      padding: 10px 4px;
+      gap: 12px;
    }
-   .root :global(.objects-container) {
-      gap: 12px !important;
+   .root.root .item {
+      padding: 12px;
    }
-   .root :global(.object-item) {
-      padding: 12px !important;
+   .pair {
+      gap: 10px;
    }
-   .root :global(.object-display) {
-      display: grid !important;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px !important;
-      align-items: start;
+   .controls {
+      gap: 6px;
    }
-   .root :global(.target-outline),
-   .root :global(.rotation-area) {
-      width: 100% !important;
-      max-width: 150px;
-      height: auto !important;
-      aspect-ratio: 1;
-      margin: 0 auto;
-   }
-   .root :global(.target-shape),
-   .root :global(.rotatable-shape) {
-      width: 66% !important;
-      height: 66% !important;
-   }
-   .root :global(.object-label) {
-      font-size: 0.75rem !important;
-      margin-bottom: 6px !important;
-   }
-   .root :global(.object-controls) {
-      display: grid !important;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 6px !important;
-   }
-   .root :global(.object-rotate-btn) {
-      min-width: 0 !important;
+   .root.root .rotBtn {
       min-height: 52px;
-      padding: 8px 2px !important;
-      font-size: 0.78rem !important;
+      padding: 8px 2px;
+      font-size: 0.78rem;
    }
 }
 
-@media (min-width: 900px) and (max-height: 900px) {
-   .root :global(.object-display) {
-      display: grid !important;
-      grid-template-columns: 1fr 1fr;
-      gap: 16px !important;
+@media (prefers-reduced-motion: reduce) {
+   .progressFill,
+   .turning {
+      transition: none;
+   }
+   .root.root.root .item.itemSelected {
+      animation: none !important;
    }
 }

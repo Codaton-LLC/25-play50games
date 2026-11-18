@@ -1,21 +1,16 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import type { CSSProperties } from "react";
+import theme from "./theme.module.css";
 import css from "./CircuitPath.module.css";
-import mobile from "./mobile.module.css";
 import {
-   ArrowPathIcon,
-   TrophyIcon,
-   CheckCircleIcon,
-   XCircleIcon,
-   BoltIcon,
-   CircleStackIcon,
    XMarkIcon,
    ArrowLeftIcon,
    ArrowUpIcon,
    ArrowDownIcon,
+   ArrowRightIcon,
 } from "@heroicons/react/24/outline";
-import { ArrowRightIcon } from "@heroicons/react/24/solid";
 
 function CircuitPath({
    config,
@@ -63,6 +58,23 @@ function CircuitPath({
    const onScoreUpdateRef = useRef(onScoreUpdate);
    const onCompleteRef = useRef(onComplete);
    const onRoundCompleteRef = useRef(onRoundComplete);
+
+   // every delayed step goes through later(): the timers are cleared if the game unmounts
+   const timersRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
+   const later = useCallback((fn: () => void, ms: number) => {
+      const id = setTimeout(() => {
+         timersRef.current.delete(id);
+         fn();
+      }, ms);
+      timersRef.current.add(id);
+   }, []);
+   useEffect(() => {
+      const timers = timersRef.current;
+      return () => {
+         timers.forEach((id) => clearTimeout(id));
+         timers.clear();
+      };
+   }, []);
 
    // Update refs when callbacks change
    useEffect(() => {
@@ -330,20 +342,20 @@ function CircuitPath({
 
          // Move to next round or complete
          if (round < rounds) {
-            setTimeout(() => {
+            later(() => {
                if (onRoundCompleteRef.current) {
                   onRoundCompleteRef.current();
                }
             }, 1500);
          } else {
             // All rounds completed
-            setTimeout(() => {
+            later(() => {
                onCompleteRef.current(newScore);
             }, 1500);
          }
       } else if (path.length > 0 && !isContinuous) {
          setFeedback("wrong");
-         setTimeout(() => {
+         later(() => {
             setFeedback(null);
             setPath([]);
          }, 1000);
@@ -362,7 +374,7 @@ function CircuitPath({
          // Check if node is an obstacle
          if (obstacles.has(`${row},${col}`)) {
             setFeedback("wrong");
-            setTimeout(() => {
+            later(() => {
                setFeedback(null);
             }, 1000);
             return;
@@ -377,7 +389,7 @@ function CircuitPath({
                setFeedback(null);
             } else {
                setFeedback("wrong");
-               setTimeout(() => {
+               later(() => {
                   setFeedback(null);
                }, 1000);
             }
@@ -405,13 +417,13 @@ function CircuitPath({
                setFeedback(null);
             } else {
                setFeedback("wrong");
-               setTimeout(() => {
+               later(() => {
                   setFeedback(null);
                }, 1000);
             }
          }
 
-         setTimeout(() => {
+         later(() => {
             setIsAnimating(false);
          }, 200);
       },
@@ -526,48 +538,53 @@ function CircuitPath({
       handleNodeClick,
    ]);
 
+   const compact = gridSize >= 10;
+   const isWin = feedback === "correct";
+
    return (
-      <div className={`circuit-path-game ${css.root}`}>
-         {/* Header */}
-         <div className="game-header">
-            <div className="header-stats">
-               <div className="stat-item">
-                  <ArrowPathIcon className="stat-icon" />
-                  <span>
-                     Round {round} / {rounds}
-                  </span>
-               </div>
-               <div className="stat-item">
-                  <TrophyIcon className="stat-icon" />
-                  <span>
-                     Score: {score} / {rounds * 5}
-                  </span>
-               </div>
-               <div className="stat-item">
-                  <BoltIcon className="stat-icon" />
-                  <span>Path: {path.length}</span>
-               </div>
+      <div className={`${theme.game} ${css.root}`}>
+         <div className={theme.header}>
+            <p className={theme.subtitle}>
+               Tap Start, then step up, down, left or right to reach End. Tap a
+               node on your path to back up.
+            </p>
+            <div className={theme.chips}>
+               <span className={theme.chip}>
+                  Round <strong>{round}</strong> / {rounds}
+               </span>
+               <span className={theme.chip}>
+                  Score <strong>{score}</strong> / {rounds * 5}
+               </span>
+               <span className={theme.chip}>
+                  Path <strong>{path.length}</strong>
+               </span>
             </div>
-            <div className="progress-bar-container">
+            <div className={css.progress} aria-hidden="true">
                <div
-                  style={{
-                     width: `${progress}%`,
-                     height: "100%",
-                     background:
-                        "linear-gradient(90deg, var(--accent) 0%, var(--ok) 100%)",
-                     borderRadius: "4px",
-                     transition: "width 0.3s",
-                     boxShadow: "rgba(125, 211, 252, 0.5) 0px 0px 10px",
-                  }}
-               ></div>
+                  className={css.progressFill}
+                  style={{ transform: `scaleX(${progress / 100})` }}
+               />
             </div>
          </div>
 
-         {/* Game Grid */}
-         <div className="circuit-path-container">
+         {/* keyed by round: a new board fades in; a wrong move shakes it, a finished circuit pops */}
+         <div
+            key={`board-${round}-${gridSize}`}
+            className={`${css.boardWrap} ${theme.fadeUp}`}
+         >
             <div
-               className="circuit-grid"
-               style={{ gridTemplateColumns: `repeat(${gridSize}, 1fr)` }}
+               className={`${theme.board} ${css.board} ${
+                  compact ? css.compact : ""
+               } ${
+                  feedback === "wrong"
+                     ? theme.shake
+                     : isWin
+                     ? theme.pop
+                     : ""
+               }`}
+               style={{ "--cols": gridSize } as CSSProperties}
+               role="group"
+               aria-label={`Circuit board, ${gridSize} by ${gridSize}`}
             >
                {Array(gridSize)
                   .fill(null)
@@ -603,9 +620,47 @@ function CircuitPath({
                               else if (colDiff > 0) arrowDirection = "right";
                            }
 
+                           const cls = [
+                              theme.cell,
+                              css.node,
+                              isStart ? css.start : "",
+                              isEnd ? css.end : "",
+                              isObstacle ? css.obstacle : "",
+                              inPath && !isStart && !isEnd
+                                 ? isWin
+                                    ? css.pathDone
+                                    : css.inPath
+                                 : "",
+                              isSelected && !isObstacle ? `${theme.selected} ${css.sel}` : "",
+                           ]
+                              .filter(Boolean)
+                              .join(" ");
+
+                           const label = isStart
+                              ? "Start"
+                              : isEnd
+                              ? "End"
+                              : isObstacle
+                              ? "Blocked"
+                              : inPath
+                              ? `Path step ${pathIndex + 1}`
+                              : "Node";
+
+                           const ArrowIcon =
+                              arrowDirection === "up"
+                                 ? ArrowUpIcon
+                                 : arrowDirection === "down"
+                                 ? ArrowDownIcon
+                                 : arrowDirection === "left"
+                                 ? ArrowLeftIcon
+                                 : arrowDirection === "right"
+                                 ? ArrowRightIcon
+                                 : null;
+
                            return (
                               <button
                                  key={`${ri}-${ci}`}
+                                 type="button"
                                  onClick={() => {
                                     if (!isObstacle) {
                                        handleNodeClick(ri, ci);
@@ -613,73 +668,48 @@ function CircuitPath({
                                        setSelectedCol(ci);
                                     }
                                  }}
-                                 className={`circuit-node ${
-                                    isStart ? "start" : ""
-                                 } ${isEnd ? "end" : ""} ${
-                                    isObstacle ? "obstacle" : ""
-                                 } ${inPath ? "in-path" : ""} ${
-                                    isSelected ? "selected" : ""
-                                 } ${
-                                    arrowDirection
-                                       ? `path-${arrowDirection}`
-                                       : ""
-                                 }`}
+                                 className={cls}
                                  disabled={isAnimating || isObstacle}
-                                 title={
-                                    isStart
-                                       ? "Start Node"
-                                       : isEnd
-                                       ? "End Node"
-                                       : isObstacle
-                                       ? "Obstacle (Cannot be used)"
-                                       : `Node (${ri + 1}, ${ci + 1})`
-                                 }
-                                 style={{
-                                    position: "relative",
-                                 }}
+                                 aria-label={`${label}, row ${ri + 1}, column ${
+                                    ci + 1
+                                 }`}
+                                 title={label}
                               >
                                  {isStart && (
-                                    <span className="node-label">Start</span>
+                                    <span className={css.nodeLabel}>
+                                       {compact ? "S" : "Start"}
+                                    </span>
                                  )}
                                  {isEnd && !isStart && (
-                                    <>
-                                       <TrophyIcon className="circuit-icon end-icon" />
-                                       <span className="node-label">End</span>
-                                    </>
+                                    <span className={css.nodeLabel}>
+                                       {compact ? "E" : "End"}
+                                    </span>
                                  )}
-                                 {!isStart &&
-                                    !isEnd &&
-                                    inPath &&
-                                    arrowDirection && (
-                                       <>
-                                          {arrowDirection === "up" && (
-                                             <ArrowUpIcon className="circuit-icon path-arrow" />
-                                          )}
-                                          {arrowDirection === "down" && (
-                                             <ArrowDownIcon className="circuit-icon path-arrow" />
-                                          )}
-                                          {arrowDirection === "left" && (
-                                             <ArrowLeftIcon className="circuit-icon path-arrow" />
-                                          )}
-                                          {arrowDirection === "right" && (
-                                             <ArrowRightIcon className="circuit-icon path-arrow" />
-                                          )}
-                                          <span className="path-number">
-                                             {pathIndex + 1}
-                                          </span>
-                                       </>
-                                    )}
-                                 {!isStart &&
-                                    !isEnd &&
-                                    !inPath &&
-                                    !isObstacle && (
-                                       <CircleStackIcon className="circuit-icon node-icon" />
-                                    )}
+                                 {!isStart && !isEnd && inPath && (
+                                    // keyed by step: a new step lights up once
+                                    <span
+                                       key={`step-${pathIndex}`}
+                                       className={`${css.step} ${theme.reveal}`}
+                                    >
+                                       {ArrowIcon && !compact && (
+                                          <ArrowIcon
+                                             className={css.arrow}
+                                             aria-hidden="true"
+                                          />
+                                       )}
+                                       <span className={css.stepNum}>
+                                          {pathIndex + 1}
+                                       </span>
+                                    </span>
+                                 )}
+                                 {!isStart && !isEnd && !inPath && !isObstacle && (
+                                    <span className={css.dot} aria-hidden="true" />
+                                 )}
                                  {isObstacle && (
-                                    <XMarkIcon className="circuit-icon obstacle-icon" />
-                                 )}
-                                 {isSelected && !isObstacle && (
-                                    <span className="selected-badge">⌂</span>
+                                    <XMarkIcon
+                                       className={css.blockIcon}
+                                       aria-hidden="true"
+                                    />
                                  )}
                               </button>
                            );
@@ -688,22 +718,22 @@ function CircuitPath({
             </div>
          </div>
 
-         {/* Path Lines - rendered inline with nodes */}
-
-         {/* Feedback */}
-         {feedback === "correct" && (
-            <div className={`game-feedback correct ${mobile.pop}`}>
-               <CheckCircleIcon className="feedback-icon" />
-               <span>Circuit complete! Great job!</span>
-            </div>
-         )}
-
-         {feedback === "wrong" && (
-            <div className={`game-feedback wrong ${mobile.shake}`}>
-               <XCircleIcon className="feedback-icon" />
-               <span>Invalid path! Try again.</span>
-            </div>
-         )}
+         <div className={theme.feedbackSlot} aria-live="polite">
+            {feedback === "correct" && (
+               <div
+                  className={`${theme.feedback} ${theme.feedbackOk} ${theme.pop}`}
+               >
+                  Circuit complete. +5 points
+               </div>
+            )}
+            {feedback === "wrong" && (
+               <div
+                  className={`${theme.feedback} ${theme.feedbackWarn} ${theme.shake}`}
+               >
+                  That move does not connect. Try again.
+               </div>
+            )}
+         </div>
       </div>
    );
 }

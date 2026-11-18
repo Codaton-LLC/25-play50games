@@ -87,6 +87,15 @@ export default function TapCounter({
    const [replaysUsed, setReplaysUsed] = useState(0);
    const [hasShared, setHasShared] = useState(false);
    const [shareSuccess, setShareSuccess] = useState(false);
+   // the 15 s "link copied" timeouts, cleared on unmount so none fires on an unmounted game
+   const shareMsgTimersRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
+   useEffect(() => {
+      const timers = shareMsgTimersRef.current;
+      return () => {
+         timers.forEach((id) => clearTimeout(id));
+         timers.clear();
+      };
+   }, []);
    const [unlimitedActivated, setUnlimitedActivated] = useState(false);
    const [currentShareId, setCurrentShareId] = useState<string | null>(null);
    const shareCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -325,7 +334,7 @@ export default function TapCounter({
                url: shareableLink,
             });
             setShareSuccess(true);
-            setTimeout(() => setShareSuccess(false), 15000);
+            shareMsgTimersRef.current.add(setTimeout(() => setShareSuccess(false), 15000));
          } catch (error: any) {
             if (error.name !== "AbortError") {
                handleCopyLink(shareId);
@@ -343,7 +352,7 @@ export default function TapCounter({
       try {
          await navigator.clipboard.writeText(shareableLink);
          setShareSuccess(true);
-         setTimeout(() => setShareSuccess(false), 15000);
+         shareMsgTimersRef.current.add(setTimeout(() => setShareSuccess(false), 15000));
       } catch (error) {
          const textArea = document.createElement("textarea");
          textArea.value = shareableLink;
@@ -354,7 +363,7 @@ export default function TapCounter({
          try {
             document.execCommand("copy");
             setShareSuccess(true);
-            setTimeout(() => setShareSuccess(false), 15000);
+            shareMsgTimersRef.current.add(setTimeout(() => setShareSuccess(false), 15000));
          } catch (err) {
             // Failed to copy
          }
@@ -686,17 +695,8 @@ export default function TapCounter({
          {/* Share Success Message */}
          {shareSuccess && !unlimitedActivated && (
             <div
-               style={{
-                  width: "100%",
-                  padding: "10px 12px",
-                  background: "rgba(134, 239, 172, 0.2)",
-                  border: "2px solid rgba(134, 239, 172, 0.6)",
-                  borderRadius: "8px",
-                  fontSize: isMobile ? "0.9rem" : "1rem",
-                  fontWeight: 600,
-                  color: "var(--ok)",
-                  textAlign: "center",
-               }}
+               className={`${styles.noteOk} ${fx.fadeUp}`}
+               style={{ fontSize: isMobile ? "0.9rem" : "1rem" }}
             >
                Link copied! Unlimited replay will unlock when someone opens
                your link!
@@ -706,30 +706,17 @@ export default function TapCounter({
          {/* Unlimited Activated Message */}
          {unlimitedActivated && (
             <div
+               className={`${styles.noteLive} ${fx.fadeUp}`}
                style={{
-                  display: "flex",
-                  alignItems: "center",
                   gap: isMobile ? "6px" : "8px",
                   padding: isMobile ? "10px 12px" : "8px 16px",
-                  background:
-                     "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
-                  border: "2px solid rgba(59, 130, 246, 0.6)",
-                  borderRadius: isMobile ? "10px" : "8px",
-                  color: "var(--text)",
                   fontSize: isMobile ? "0.85rem" : "0.9rem",
-                  fontWeight: 500,
-                  width: "100%",
-                  justifyContent: "center",
-                  textAlign: "center",
-                  flexWrap: "wrap",
                }}
             >
                <CheckCircleIcon
                   style={{
                      width: isMobile ? 16 : 18,
                      height: isMobile ? 16 : 18,
-                     color: "rgba(59, 130, 246, 0.9)",
-                     flexShrink: 0,
                   }}
                />
                <span>
@@ -806,12 +793,10 @@ export default function TapCounter({
          {/* Header card: level / score / time + level progress */}
          <div
             className={styles.card}
-            style={{
-               borderRadius: isMobile ? "14px" : "16px",
-               padding: isMobile ? "12px 14px" : "16px 20px",
-            }}
+            style={{ padding: isMobile ? "12px 14px" : "16px 20px" }}
          >
             <div
+               className={styles.stats}
                style={{
                   display: "flex",
                   justifyContent: "space-between",
@@ -867,23 +852,13 @@ export default function TapCounter({
                </span>
             </div>
             <div
-               style={{
-                  width: "100%",
-                  height: isMobile ? "6px" : "8px",
-                  background: "rgba(255, 255, 255, 0.1)",
-                  borderRadius: "999px",
-                  overflow: "hidden",
-               }}
+               className={styles.progressTrack}
+               style={{ height: isMobile ? "6px" : "8px" }}
             >
                <div
+                  className={styles.progressFill}
                   style={{
-                     width: `${progress}%`,
-                     height: "100%",
-                     background:
-                        "linear-gradient(90deg, var(--accent) 0%, var(--ok) 100%)",
-                     borderRadius: "999px",
-                     transition: "width 0.3s ease",
-                     boxShadow: "0 0 10px rgba(125, 211, 252, 0.5)",
+                     transform: `scaleX(${Math.max(0, Math.min(100, progress)) / 100})`,
                   }}
                />
             </div>
@@ -941,7 +916,7 @@ export default function TapCounter({
                            cy={size / 2}
                            r={radius}
                            fill="none"
-                           stroke="rgba(59, 130, 246, 0.2)"
+                           className={styles.ringTrack}
                            strokeWidth={stroke}
                         />
                         {/* Progress circle */}
@@ -1023,7 +998,7 @@ export default function TapCounter({
                {gameState !== "playing" && (
                   <div className={`${styles.overlay} ${fx.fadeUp}`}>
                      <div
-                        className={styles.notice}
+                        className={`${styles.notice} ${fx.staggerIn}`}
                         style={{ fontSize: isMobile ? "1rem" : "1.1rem" }}
                      >
                         {/* Ready for Next Round Message */}
@@ -1046,14 +1021,17 @@ export default function TapCounter({
                               >
                                  Are you ready for next round?
                               </div>
-                              <button
-                                 type="button"
-                                 className={`${styles.btn} ${styles.btnNext} ${fx.pressable}`}
-                                 {...nextPress}
-                                 style={{ ...TOUCH_SURFACE }}
-                              >
-                                 Next Round
-                              </button>
+                              {/* own wrapper: the stagger animation holds the direct child's transform, the button keeps its press scale */}
+                              <div>
+                                 <button
+                                    type="button"
+                                    className={`${styles.btn} ${styles.btnNext} ${fx.pressable}`}
+                                    {...nextPress}
+                                    style={{ ...TOUCH_SURFACE }}
+                                 >
+                                    Next Round
+                                 </button>
+                              </div>
                            </>
                         )}
 

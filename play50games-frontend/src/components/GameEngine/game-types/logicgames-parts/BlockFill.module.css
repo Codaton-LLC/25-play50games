@@ -1,38 +1,305 @@
-/* Block Fill on phones (desktop and tablets unchanged):
-   - the pieces panel had a 280 px minimum and two wide piece cards per row, so on a 360 px phone the
-     second card ran off the screen (the page scrolled sideways): the panel now spans the width with
-     three cards per row, the preview above the name;
-   - Rotate / Undo were 36 px tall: now at least 44 px;
-   - less padding round the game. */
+/* Block Fill, modern pass 2026-11-18.
+   Was: all inline styles: a board of fixed 48 / 44 / 40 px tracks with no frame radius rule, filled
+   cells with a 2 px border while empty ones had 1 px (filled cells were smaller inside), a hover that
+   scaled a filled cell to 108 % over its neighbours, a ghost preview drawn in absolute pixels from the
+   fixed cell size (it drifted when the board scaled and spilled outside the board), a floating
+   "Selected" badge and a status dot with infinite pulses, sky-blue chrome, piece cards scaled to 102 %
+   when selected, an accent-to-green progress bar animating its width.
+   Now: the shared theme board (equal minmax(0, 1fr) tracks, square cells, one gap, the frame hugging the
+   grid) that scales to the container; empty, filled and ghost cells are the same theme cell and differ
+   only in background + inset ring, so placed pieces sit exactly on the board tracks. A placed piece pops
+   in; a filled board pops. Piece colours are game content and stay; the chrome uses the accent token.
+   Phone fit kept from the earlier pass: three piece cards per row on phones, preview above the name,
+   Rotate / Undo >= 44 px (theme .btn), no sideways scroll. */
+
+.root {
+   max-width: 960px;
+}
+
+.progress {
+   width: 100%;
+   max-width: 360px;
+   height: 6px;
+   border-radius: 999px;
+   background: rgba(255, 255, 255, 0.1);
+   overflow: hidden;
+}
+
+.progressFill {
+   width: 100%;
+   height: 100%;
+   border-radius: inherit;
+   background: var(--accent);
+   transform-origin: left center;
+   transition: transform 300ms var(--lg-ease);
+}
+
+/* board column + pieces panel: stacked on phones and tablets, side by side on wide screens */
+.area {
+   display: grid;
+   grid-template-columns: minmax(0, 1fr);
+   gap: 20px;
+   width: 100%;
+   align-items: start;
+}
+
+@media (min-width: 860px) {
+   .area {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 320px);
+   }
+}
+
+.boardCol {
+   display: flex;
+   flex-direction: column;
+   align-items: center;
+   gap: 14px;
+   min-width: 0;
+}
+
+.status {
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   min-height: 44px;
+   max-width: 46ch;
+   padding: 6px 14px;
+   border-radius: var(--lg-r-btn);
+   background: var(--lg-surface-2);
+   box-shadow: inset 0 0 0 1px var(--lg-line);
+   font-size: 0.9rem;
+   line-height: 1.35;
+   text-align: center;
+   color: var(--text);
+}
+
+.status strong {
+   color: var(--accent);
+   font-weight: 800;
+}
+
+.statusMuted {
+   color: var(--muted);
+}
+
+/* ---------- board ---------- */
+.board {
+   max-width: min(100%, calc(var(--cols) * 60px));
+}
+
+.root .cell {
+   cursor: pointer;
+   overflow: hidden;
+}
+
+.root .idle {
+   cursor: default;
+}
+
+/* the piece colour fills the cell from inside, so filled and empty cells keep the same size */
+.fill {
+   position: absolute;
+   inset: 0;
+   border-radius: inherit;
+   background: var(--pc-bg);
+   box-shadow: inset 0 0 0 2px var(--pc-line);
+   pointer-events: none;
+}
+
+.root .filled {
+   background: transparent;
+   box-shadow: none;
+}
+
+@media (hover: hover) {
+   .root .filled:hover {
+      background: transparent;
+      box-shadow: none;
+      filter: brightness(1.2);
+   }
+}
+
+/* ghost preview: a layer on top of the cell (over a placed piece too), so hover styles never hide it */
+.ghost {
+   position: absolute;
+   inset: 0;
+   border-radius: inherit;
+   pointer-events: none;
+}
+
+.ghostOk {
+   background: rgba(var(--accent-rgb, 231, 95, 64), 0.22);
+   box-shadow: inset 0 0 0 2px var(--accent);
+}
+
+.ghostBad {
+   background: rgba(240, 112, 138, 0.24);
+   box-shadow: inset 0 0 0 2px var(--warn);
+}
+
+.root .win {
+   animation: lgBfWin 320ms var(--lg-ease);
+}
+
+@keyframes lgBfWin {
+   0% {
+      transform: scale(1);
+   }
+   45% {
+      transform: scale(1.03);
+      box-shadow: 0 0 0 3px rgba(63, 181, 127, 0.55);
+   }
+   100% {
+      transform: scale(1);
+   }
+}
+
+.btnIcon {
+   width: 18px;
+   height: 18px;
+}
+
+/* ---------- pieces panel ---------- */
+.panel {
+   min-width: 0;
+}
+
+.panelTitle {
+   margin-bottom: 12px;
+   font-size: 0.9rem;
+   font-weight: 700;
+   color: var(--text);
+}
+
+.pieces {
+   display: grid;
+   grid-template-columns: repeat(auto-fill, minmax(min(100%, 128px), 1fr));
+   gap: 10px;
+}
+
+.pieceSlot {
+   min-width: 0;
+}
+
+.piece {
+   display: flex;
+   align-items: center;
+   gap: 10px;
+   width: 100%;
+   min-height: 56px;
+   margin: 0;
+   padding: 10px;
+   border: 0;
+   border-radius: var(--lg-r-btn);
+   background: var(--lg-surface-2);
+   box-shadow: inset 0 0 0 1px var(--lg-line);
+   color: var(--text);
+   font: inherit;
+   text-align: left;
+   cursor: pointer;
+   transition:
+      background-color 160ms var(--lg-ease),
+      box-shadow 160ms var(--lg-ease),
+      transform 100ms var(--lg-ease);
+}
+
+@media (hover: hover) {
+   .piece:hover:not(.pieceSel) {
+      background: rgba(var(--accent-rgb, 231, 95, 64), 0.1);
+      box-shadow: inset 0 0 0 1px var(--lg-accent-line);
+   }
+}
+
+.piece:active {
+   transform: scale(0.96);
+}
+
+.piece:focus-visible {
+   outline: 2px solid var(--accent);
+   outline-offset: 2px;
+}
+
+.pieceSel {
+   background: var(--lg-accent-soft);
+   box-shadow: inset 0 0 0 2px var(--accent);
+}
+
+/* piece preview: its own small square grid (equal tracks), the shape in light cells */
+.preview {
+   --pw: 4;
+   --ph: 4;
+   display: grid;
+   grid-template-columns: repeat(var(--pw), minmax(0, 1fr));
+   gap: 3px;
+   flex: none;
+   width: 56px;
+   padding: 5px;
+   border-radius: 8px;
+   background: rgba(8, 10, 18, 0.35);
+   box-shadow: inset 0 0 0 1px var(--lg-line);
+}
+
+.previewOn,
+.previewOff {
+   aspect-ratio: 1;
+   border-radius: 3px;
+}
+
+.previewOn {
+   background: rgba(232, 238, 252, 0.8);
+}
+
+.pieceSel .previewOn {
+   background: var(--accent);
+}
+
+.previewOff {
+   background: transparent;
+}
+
+.pieceText {
+   display: flex;
+   flex-direction: column;
+   gap: 2px;
+   min-width: 0;
+}
+
+.pieceId {
+   font-size: 0.85rem;
+   font-weight: 800;
+   color: var(--text);
+}
+
+.pieceName {
+   font-size: 0.78rem;
+   color: var(--muted);
+   overflow: hidden;
+   text-overflow: ellipsis;
+   white-space: nowrap;
+}
+
 @media (max-width: 599px) {
    .root {
-      padding: 10px 4px !important;
-      gap: 14px !important;
+      padding: 10px 4px;
+      gap: 14px;
    }
    .panel {
-      min-width: 0 !important;
-      width: 100%;
-      padding: 12px !important;
+      padding: 12px;
    }
    .pieces {
-      grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-      gap: 8px !important;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
    }
    .piece {
-      display: flex !important;
-      flex-direction: column !important;
-      align-items: center !important;
-      gap: 6px !important;
-      min-width: 0;
-      padding: 8px 4px !important;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 4px;
       text-align: center;
    }
-   .piece > * {
-      min-width: 0;
+   .pieceText {
+      align-items: center;
       max-width: 100%;
-   }
-   .controls button {
-      min-height: 44px;
    }
 }
 

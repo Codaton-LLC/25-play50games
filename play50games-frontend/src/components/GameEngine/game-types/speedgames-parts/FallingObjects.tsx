@@ -122,6 +122,15 @@ export default function FallingObjects({
    const [replaysUsed, setReplaysUsed] = useState(0);
    const [hasShared, setHasShared] = useState(false);
    const [shareSuccess, setShareSuccess] = useState(false);
+   // the 15 s "link copied" timeouts, cleared on unmount so none fires on an unmounted game
+   const shareMsgTimersRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
+   useEffect(() => {
+      const timers = shareMsgTimersRef.current;
+      return () => {
+         timers.forEach((id) => clearTimeout(id));
+         timers.clear();
+      };
+   }, []);
    const [unlimitedActivated, setUnlimitedActivated] = useState(false);
    const [currentShareId, setCurrentShareId] = useState<string | null>(null);
    const shareCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -591,7 +600,7 @@ export default function FallingObjects({
                url: shareableLink,
             });
             setShareSuccess(true);
-            setTimeout(() => setShareSuccess(false), 15000);
+            shareMsgTimersRef.current.add(setTimeout(() => setShareSuccess(false), 15000));
          } catch (error) {
             // User cancelled or error
          }
@@ -599,7 +608,7 @@ export default function FallingObjects({
          try {
             await navigator.clipboard.writeText(shareableLink);
             setShareSuccess(true);
-            setTimeout(() => setShareSuccess(false), 15000);
+            shareMsgTimersRef.current.add(setTimeout(() => setShareSuccess(false), 15000));
          } catch (error) {
             // Clipboard error
          }
@@ -1024,42 +1033,6 @@ export default function FallingObjects({
       }
    };
 
-   const toneRgb = (tone: "ok" | "bad" | "warn" | "info") =>
-      tone === "ok"
-         ? "134, 239, 172"
-         : tone === "bad"
-         ? "252, 165, 165"
-         : tone === "warn"
-         ? "251, 191, 36"
-         : "59, 130, 246";
-
-   const chipStyle = (tone: "ok" | "bad" | "warn"): React.CSSProperties => {
-      const rgb = toneRgb(tone);
-      return {
-         background: `linear-gradient(135deg, rgba(${rgb}, 0.25), rgba(${rgb}, 0.12))`,
-         border: `2px solid rgba(${rgb}, 0.6)`,
-      };
-   };
-
-   const badgeStyle = (tone: "ok" | "bad"): React.CSSProperties => {
-      const rgb = toneRgb(tone);
-      return {
-         background: `linear-gradient(135deg, rgba(${rgb}, 0.25), rgba(${rgb}, 0.1))`,
-         border: `2px solid rgba(${rgb}, 0.6)`,
-      };
-   };
-
-   const actionStyle = (tone: "ok" | "info" | "accent", disabled = false): React.CSSProperties => {
-      const rgb = tone === "accent" ? "125, 211, 252" : toneRgb(tone);
-      return {
-         background: disabled
-            ? "rgba(100, 100, 100, 0.2)"
-            : `linear-gradient(135deg, rgba(${rgb}, 0.2), rgba(${rgb}, 0.1))`,
-         border: disabled ? "1px solid rgba(100, 100, 100, 0.4)" : `1px solid rgba(${rgb}, 0.6)`,
-         opacity: disabled ? 0.5 : 1,
-      };
-   };
-
    const showField = gameState === "playing" || gameState === "ready" || gameState === "failed";
    const iconPx = isMobile ? 14 : 16;
 
@@ -1087,7 +1060,7 @@ export default function FallingObjects({
                   </span>
                </div>
                <div className={styles.bar}>
-                  <div className={styles.barFill} style={{ width: `${progress}%` }} />
+                  <div className={styles.barFill} style={{ transform: `scaleX(${progress / 100})` }} />
                </div>
                {/* Level Description */}
                <div className={styles.levelName}>{getLevelDescription(currentLevel)}</div>
@@ -1097,17 +1070,17 @@ export default function FallingObjects({
             <div className={styles.board}>
                {/* Stats */}
                <div className={styles.chips}>
-                  <div className={styles.chip} style={chipStyle("ok")}>
+                  <div className={`${styles.chip} ${styles.chipOk}`}>
                      <span className={styles.chipLabel}>Caught Good</span>
                      <span className={styles.chipValue}>
                         {caughtGood} / {getMinCaughtGood()}
                      </span>
                   </div>
-                  <div className={styles.chip} style={chipStyle("bad")}>
+                  <div className={`${styles.chip} ${styles.chipBad}`}>
                      <span className={styles.chipLabel}>Caught Bad</span>
                      <span className={styles.chipValue}>{caughtBad}</span>
                   </div>
-                  <div className={styles.chip} style={chipStyle("warn")}>
+                  <div className={styles.chip}>
                      <span className={styles.chipLabel}>Missed Good</span>
                      <span className={styles.chipValue}>{missedGood}</span>
                   </div>
@@ -1223,8 +1196,8 @@ export default function FallingObjects({
                         {/* Ready for Next Round Message */}
                         {gameState === "ready" && currentLevel + 1 < maxLevels && (
                            <div className={`${styles.overlay} ${fx.fadeUp}`}>
-                              <div className={styles.card}>
-                                 <div className={styles.badge} style={badgeStyle("ok")}>
+                              <div className={`${styles.card} ${fx.staggerIn}`}>
+                                 <div className={`${styles.badge} ${styles.badgeOk}`}>
                                     <CheckCircleIcon style={{ width: 20, height: 20 }} />
                                     Level {currentLevel + 1} Complete
                                  </div>
@@ -1232,8 +1205,7 @@ export default function FallingObjects({
                                  <button
                                     type="button"
                                     {...nextRoundPress}
-                                    className={`${styles.btn} ${styles.btnGrow} ${fx.pressable}`}
-                                    style={actionStyle("ok")}
+                                    className={`${styles.btn} ${styles.btnOk} ${styles.btnGrow} ${fx.pressable}`}
                                  >
                                     Next Round
                                  </button>
@@ -1244,8 +1216,8 @@ export default function FallingObjects({
                         {/* Game Complete Message */}
                         {gameState === "ready" && currentLevel + 1 >= maxLevels && (
                            <div className={`${styles.overlay} ${fx.fadeUp}`}>
-                              <div className={styles.card}>
-                                 <div className={styles.badge} style={badgeStyle("ok")}>
+                              <div className={`${styles.card} ${fx.staggerIn}`}>
+                                 <div className={`${styles.badge} ${styles.badgeOk}`}>
                                     <TrophyIcon style={{ width: 20, height: 20 }} />
                                     Game Complete!
                                  </div>
@@ -1257,8 +1229,8 @@ export default function FallingObjects({
                         {/* Level Failed Message */}
                         {gameState === "failed" && (
                            <div className={`${styles.overlay} ${fx.fadeUp}`}>
-                              <div className={styles.card}>
-                                 <div className={styles.badge} style={badgeStyle("bad")}>
+                              <div className={`${styles.card} ${fx.staggerIn}`}>
+                                 <div className={`${styles.badge} ${styles.badgeBad}`}>
                                     <XCircleIcon style={{ width: 20, height: 20 }} />
                                     Level {currentLevel + 1} Failed
                                  </div>
@@ -1278,12 +1250,7 @@ export default function FallingObjects({
                      {/* Share Success Message */}
                      {shareSuccess && !unlimitedActivated && (
                         <div
-                           className={`${styles.note} ${fx.fadeUp}`}
-                           style={{
-                              background: "rgba(134, 239, 172, 0.2)",
-                              border: "2px solid rgba(134, 239, 172, 0.6)",
-                              color: "var(--ok)",
-                           }}
+                           className={`${styles.note} ${styles.noteOk} ${fx.fadeUp}`}
                         >
                            Link copied! Unlimited replay will unlock when someone opens your link!
                         </div>
@@ -1292,16 +1259,10 @@ export default function FallingObjects({
                      {/* Unlimited Activated Message */}
                      {unlimitedActivated && (
                         <div
-                           className={`${styles.note} ${fx.fadeUp}`}
-                           style={{
-                              background:
-                                 "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
-                              border: "2px solid rgba(59, 130, 246, 0.6)",
-                              color: "var(--text)",
-                           }}
+                           className={`${styles.note} ${styles.noteAccent} ${fx.fadeUp}`}
                         >
                            <CheckCircleIcon
-                              style={{ width: 18, height: 18, color: "rgba(59, 130, 246, 0.9)", flexShrink: 0 }}
+                              style={{ width: 18, height: 18, color: "var(--accent)", flexShrink: 0 }}
                            />
                            <span>
                               🎉 Someone opened your link! Unlimited replay is now active for 15 minutes!
@@ -1313,8 +1274,7 @@ export default function FallingObjects({
                         type="button"
                         {...replayPress}
                         disabled={replayDisabled}
-                        className={`${styles.btn} ${styles.btnGrow} ${fx.pressable}`}
-                        style={actionStyle("accent", replayDisabled)}
+                        className={`${styles.btn} ${styles.btnAccent} ${styles.btnGrow} ${fx.pressable}`}
                      >
                         <ArrowPathRoundedSquareIcon
                            style={{
@@ -1334,8 +1294,7 @@ export default function FallingObjects({
                      <button
                         type="button"
                         onClick={handleShare}
-                        className={`${styles.btn} ${styles.btnGrow} ${fx.pressable}`}
-                        style={actionStyle("info")}
+                        className={`${styles.btn} ${styles.btnAccent} ${styles.btnGrow} ${fx.pressable}`}
                      >
                         <ShareIcon style={{ width: 20, height: 20 }} />
                         <span>{isMobile ? "Share" : "Share for unlimited"}</span>

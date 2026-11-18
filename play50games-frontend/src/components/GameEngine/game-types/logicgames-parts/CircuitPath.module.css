@@ -1,47 +1,162 @@
-/* Circuit Path on phones and tablets (desktop unchanged):
-   - the board was a small fixed-size grid in the middle of the phone (54 px nodes) with wide empty
-     margins: it now spans the width, so the nodes are bigger touch targets (>= 44 px even 6 wide on a
-     360 px phone);
-   - the Start / End labels were 11 px: now 13 px;
-   - less padding round the board. */
+/* Circuit Path (also "light-switch"), modern pass 2026-11-18.
+   Was: the global .circuit-* classes: 80 / 60 / 50 px minimum nodes (a 10x10 board scrolled sideways on
+   phones), a 3 px border, hover scale 1.05, infinite start / end / selected / arrow pulses, a "⌂" badge
+   on the selected node, the whole board dimmed to 50 % for 200 ms after every tap (disabled while
+   animating), an accent-to-green progress bar animating its width.
+   Now: the shared theme board (equal minmax(0, 1fr) tracks, square cells, one gap, the frame hugging the
+   grid), states painted with background + inset ring only, a step lights up once when it joins the path,
+   a wrong move shakes the board, a finished circuit pops it and turns the path green. Start = ok green,
+   End = rose: those two colours are the game's own markers.
+   Phone fit kept from the earlier pass: the board spans the width; 3x3 and 5x5 nodes stay >= 44 px at
+   360 px wide. A 10x10 board at 360 px gives ~28 px nodes (the board must fit without sideways scroll). */
+
+.root {
+   max-width: 600px;
+}
+
+.progress {
+   width: 100%;
+   max-width: 360px;
+   height: 6px;
+   border-radius: 999px;
+   background: rgba(255, 255, 255, 0.1);
+   overflow: hidden;
+}
+
+.progressFill {
+   width: 100%;
+   height: 100%;
+   border-radius: inherit;
+   background: var(--accent);
+   transform-origin: left center;
+   transition: transform 300ms var(--lg-ease);
+}
+
+.boardWrap {
+   display: flex;
+   justify-content: center;
+   width: 100%;
+}
+
+.board {
+   --lg-gap: 8px;
+   max-width: min(100%, calc(var(--cols) * 84px));
+}
+
+.compact {
+   --lg-gap: 4px;
+   --lg-r-cell: 6px;
+   max-width: min(100%, 520px);
+}
+
+.root .node {
+   flex-direction: column;
+   gap: 2px;
+   overflow: hidden;
+   font-size: clamp(0.7rem, 3vw, 0.85rem);
+}
+
+/* nodes are disabled for 200 ms after each tap (game timing): keep them at full contrast */
+.root .node:disabled {
+   opacity: 1;
+}
+
+.dot {
+   width: 22%;
+   aspect-ratio: 1;
+   border-radius: 50%;
+   background: rgba(255, 255, 255, 0.22);
+}
+
+.root .start {
+   background: rgba(63, 181, 127, 0.2);
+   box-shadow: inset 0 0 0 2px rgba(63, 181, 127, 0.75);
+   color: var(--ok);
+}
+
+.root .end {
+   background: rgba(240, 112, 138, 0.16);
+   box-shadow: inset 0 0 0 2px rgba(240, 112, 138, 0.7);
+   color: var(--warn);
+}
+
+.nodeLabel {
+   font-weight: 800;
+   letter-spacing: 0.02em;
+}
+
+.root .inPath {
+   background: var(--lg-accent-soft);
+   box-shadow: inset 0 0 0 1px var(--lg-accent-line);
+   color: var(--accent);
+}
+
+.root .pathDone {
+   background: var(--lg-ok-soft);
+   box-shadow: inset 0 0 0 2px var(--ok);
+   color: var(--ok);
+}
+
+/* keyboard / last-tapped node: an accent ring on top of any state (theme .selected alone loses to the
+   state classes above) */
+.root .node.sel {
+   box-shadow: inset 0 0 0 2px var(--accent);
+}
+
+.step {
+   position: relative;
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   width: 100%;
+   height: 100%;
+}
+
+.arrow {
+   width: 46%;
+   height: 46%;
+}
+
+.stepNum {
+   position: absolute;
+   top: 6%;
+   left: 8%;
+   font-size: 0.7rem;
+   font-weight: 800;
+   line-height: 1;
+}
+
+.compact .stepNum {
+   position: static;
+   font-size: clamp(0.55rem, 2.4vw, 0.75rem);
+}
+
+.root .obstacle {
+   background: repeating-linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.03) 0 6px,
+      rgba(255, 255, 255, 0.07) 6px 12px
+   );
+   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+   color: rgba(240, 112, 138, 0.75);
+   cursor: not-allowed;
+}
+
+.blockIcon {
+   width: 50%;
+   height: 50%;
+}
+
 @media (max-width: 599px) {
    .root {
-      padding: 10px 4px !important;
-      gap: 14px !important;
+      padding: 10px 4px;
+      gap: 14px;
    }
-   .root :global(.circuit-path-container) {
-      width: 100%;
-      padding: 8px !important;
+   .board {
+      --lg-gap: 6px;
    }
-   .root :global(.circuit-grid) {
-      width: 100%;
-      gap: 8px !important;
-      padding: 4px !important;
-   }
-   .root :global(.circuit-node) {
-      min-width: 0 !important;
-      min-height: 44px !important;
-      width: 100%;
-      height: auto;
-   }
-   .root :global(.circuit-icon) {
-      width: 28px !important;
-      height: 28px !important;
-   }
-}
-
-.root :global(.node-label) {
-   font-size: 0.8rem !important;
-}
-
-@media (min-width: 600px) and (max-width: 899px) {
-   .root :global(.circuit-path-container) {
-      width: min(100%, 560px);
-   }
-   .root :global(.circuit-grid) {
-      width: 100%;
-   }
-   .root :global(.circuit-node) {
-      width: 100%;
+   .compact {
+      --lg-gap: 3px;
+      padding: 4px;
    }
 }

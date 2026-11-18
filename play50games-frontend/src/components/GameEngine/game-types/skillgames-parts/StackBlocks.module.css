@@ -1,0 +1,41 @@
+/* Stack Blocks (classic modern pass): the board's frame and the feedback of a placed block. */
+
+/* The frame is an inset ring, not a border: the canvas is sized from the arena box minus its
+   padding only, so a border would make the play width differ from the drawn area. */
+.frame {
+   border: none !important;
+   box-shadow: inset 0 0 0 1px var(--stroke);
+}
+
+/* a placed block: a short ok ring around the board (re-keyed per block, so it replays) */
+.placeFlash {
+   position: absolute;
+   inset: 0;
+   border-radius: inherit;
+   pointer-events: none;
+   box-shadow: inset 0 0 0 2px rgba(63, 181, 127, 0.75);
+   opacity: 0;
+   animation: stackPlace 0.36s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+:global(body.final-game) .placeFlash {
+   box-shadow: inset 0 0 0 2px rgba(var(--accent-rgb, 227, 167, 47), 0.8);
+}
+
+@keyframes stackPlace {
+   0% {
+      opacity: 0;
+   }
+   30% {
+      opacity: 1;
+   }
+   100% {
+      opacity: 0;
+   }
+}
+
+@media (prefers-reduced-motion: reduce) {
+   .placeFlash {
+      animation: none;
+   }
+}

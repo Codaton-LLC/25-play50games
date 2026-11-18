@@ -136,6 +136,15 @@ export default function ClickGreen({
    const [replaysUsed, setReplaysUsed] = useState(0);
    const [hasShared, setHasShared] = useState(false);
    const [shareSuccess, setShareSuccess] = useState(false);
+   // the 15 s "link copied" timeouts, cleared on unmount so none fires on an unmounted game
+   const shareMsgTimersRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
+   useEffect(() => {
+      const timers = shareMsgTimersRef.current;
+      return () => {
+         timers.forEach((id) => clearTimeout(id));
+         timers.clear();
+      };
+   }, []);
    const [unlimitedActivated, setUnlimitedActivated] = useState(false);
    const [currentShareId, setCurrentShareId] = useState<string | null>(null);
    const shareCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -504,7 +513,7 @@ export default function ClickGreen({
                url: shareableLink,
             });
             setShareSuccess(true);
-            setTimeout(() => setShareSuccess(false), 15000);
+            shareMsgTimersRef.current.add(setTimeout(() => setShareSuccess(false), 15000));
          } catch (error: any) {
             if (error.name !== "AbortError") {
                handleCopyLink(shareId);
@@ -522,7 +531,7 @@ export default function ClickGreen({
       try {
          await navigator.clipboard.writeText(shareableLink);
          setShareSuccess(true);
-         setTimeout(() => setShareSuccess(false), 15000);
+         shareMsgTimersRef.current.add(setTimeout(() => setShareSuccess(false), 15000));
       } catch (error) {
          const textArea = document.createElement("textarea");
          textArea.value = shareableLink;
@@ -533,7 +542,7 @@ export default function ClickGreen({
          try {
             document.execCommand("copy");
             setShareSuccess(true);
-            setTimeout(() => setShareSuccess(false), 15000);
+            shareMsgTimersRef.current.add(setTimeout(() => setShareSuccess(false), 15000));
          } catch (err) {
             // Failed to copy
          }
@@ -933,111 +942,11 @@ export default function ClickGreen({
    );
 
    const progress = ((currentLevel + 1) / maxLevels) * 100;
-   // Styling functions - using theme colors
-   // Theme colors: --ok: #86efac (rgb: 134, 239, 172), --warn: #fca5a5 (rgb: 252, 165, 165)
-   const getActionButtonStyle = (tone: "success" | "danger") => {
-      const bgFrom =
-         tone === "success"
-            ? "rgba(134, 239, 172, 0.25)"
-            : "rgba(252, 165, 165, 0.25)";
-      const bgTo =
-         tone === "success"
-            ? "rgba(134, 239, 172, 0.12)"
-            : "rgba(252, 165, 165, 0.12)";
-      const borderColor =
-         tone === "success"
-            ? "rgba(134, 239, 172, 0.6)"
-            : "rgba(252, 165, 165, 0.6)";
-
-      return {
-         padding: isMobile ? "12px 24px" : "14px 28px",
-         minHeight: "48px",
-         background: `linear-gradient(135deg, ${bgFrom}, ${bgTo})`,
-         border: `2px solid ${borderColor}`,
-
-         color: "var(--text)",
-         fontSize: isMobile ? "1rem" : "1.05rem",
-         fontWeight: 700,
-         cursor: "pointer",
-         transition: "all 0.3s ease",
-         display: "inline-flex",
-         alignItems: "center",
-         gap: "8px",
-      } as React.CSSProperties;
-   };
-
-   const applyActionHover = (
-      e: React.MouseEvent<HTMLButtonElement>,
-      tone: "success" | "danger",
-      isEnter: boolean
-   ) => {
-      const target = e.currentTarget;
-      const borderColor =
-         tone === "success"
-            ? "rgba(134, 239, 172, 0.8)"
-            : "rgba(252, 165, 165, 0.8)";
-      const bgFrom =
-         tone === "success"
-            ? "rgba(134, 239, 172, 0.35)"
-            : "rgba(252, 165, 165, 0.35)";
-      const bgTo =
-         tone === "success"
-            ? "rgba(134, 239, 172, 0.2)"
-            : "rgba(252, 165, 165, 0.2)";
-      const defaultBgFrom =
-         tone === "success"
-            ? "rgba(134, 239, 172, 0.25)"
-            : "rgba(252, 165, 165, 0.25)";
-      const defaultBgTo =
-         tone === "success"
-            ? "rgba(134, 239, 172, 0.12)"
-            : "rgba(252, 165, 165, 0.12)";
-      const shadowColor =
-         tone === "success"
-            ? "rgba(134, 239, 172, 0.35)"
-            : "rgba(252, 165, 165, 0.35)";
-
-      if (isEnter) {
-         target.style.background = `linear-gradient(135deg, ${bgFrom}, ${bgTo})`;
-         target.style.borderColor = borderColor;
-         target.style.transform = "translateY(-2px)";
-         target.style.boxShadow = `0 6px 14px ${shadowColor}`;
-      } else {
-         target.style.background = `linear-gradient(135deg, ${defaultBgFrom}, ${defaultBgTo})`;
-         target.style.borderColor =
-            tone === "success"
-               ? "rgba(134, 239, 172, 0.6)"
-               : "rgba(252, 165, 165, 0.6)";
-         target.style.transform = "translateY(0)";
-         target.style.boxShadow = "none";
-      }
-   };
-
-   const getNoticeBadgeStyle = (tone: "success" | "danger") => {
-      const bgFrom =
-         tone === "success"
-            ? "rgba(134, 239, 172, 0.25)"
-            : "rgba(252, 165, 165, 0.25)";
-      const bgTo =
-         tone === "success"
-            ? "rgba(134, 239, 172, 0.1)"
-            : "rgba(252, 165, 165, 0.1)";
-      const borderColor =
-         tone === "success"
-            ? "rgba(134, 239, 172, 0.6)"
-            : "rgba(252, 165, 165, 0.6)";
-      return {
-         display: "inline-flex",
-         alignItems: "center",
-         gap: "8px",
-         padding: "8px 14px",
-         borderRadius: "999px",
-         fontWeight: 800,
-         fontSize: isMobile ? "0.95rem" : "1.05rem",
-         background: `linear-gradient(135deg, ${bgFrom}, ${bgTo})`,
-         border: `2px solid ${borderColor}`,
-         color: "var(--text)",
-      };
+   // Tones (ok / warn tints, the final-game gold) live in the CSS module.
+   const noticeBadgeClass = (tone: "success" | "danger") =>
+      `${styles.badge} ${tone === "success" ? styles.badgeOk : styles.badgeBad}`;
+   const noticeBadgeStyle: React.CSSProperties = {
+      fontSize: isMobile ? "0.95rem" : "1.05rem",
    };
 
    const noReplays = maxReplays > 0 && replaysUsed >= maxReplays;
@@ -1050,17 +959,8 @@ export default function ClickGreen({
          {/* Share Success Message */}
          {shareSuccess && !unlimitedActivated && (
             <div
-               style={{
-                  width: "100%",
-                  padding: "10px 12px",
-                  background: "rgba(134, 239, 172, 0.2)",
-                  border: "2px solid rgba(134, 239, 172, 0.6)",
-                  borderRadius: "8px",
-                  fontSize: isMobile ? "0.9rem" : "1rem",
-                  fontWeight: 600,
-                  color: "var(--ok)",
-                  textAlign: "center",
-               }}
+               className={`${styles.note} ${styles.noteOk}`}
+               style={{ fontSize: isMobile ? "0.9rem" : "1rem" }}
             >
                Link copied! Unlimited replay will unlock when someone opens
                your link!
@@ -1070,29 +970,14 @@ export default function ClickGreen({
          {/* Unlimited Activated Message */}
          {unlimitedActivated && (
             <div
-               style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: isMobile ? "6px" : "8px",
-                  padding: isMobile ? "10px 12px" : "8px 16px",
-                  background:
-                     "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
-                  border: "2px solid rgba(59, 130, 246, 0.6)",
-                  borderRadius: isMobile ? "10px" : "8px",
-                  color: "var(--text)",
-                  fontSize: isMobile ? "0.85rem" : "0.9rem",
-                  fontWeight: 500,
-                  width: "100%",
-                  justifyContent: "center",
-                  textAlign: "center",
-                  flexWrap: "wrap",
-               }}
+               className={`${styles.note} ${styles.noteAccent}`}
+               style={{ fontSize: isMobile ? "0.85rem" : "0.9rem" }}
             >
                <CheckCircleIcon
                   style={{
                      width: isMobile ? 16 : 18,
                      height: isMobile ? 16 : 18,
-                     color: "rgba(59, 130, 246, 0.9)",
+                     color: "var(--accent)",
                      flexShrink: 0,
                   }}
                />
@@ -1105,42 +990,13 @@ export default function ClickGreen({
 
          <button
             type="button"
-            className={`${styles.btn} ${styles.btnGrow} ${fx.pressable}`}
+            className={`${styles.btn} ${styles.btnAccent} ${styles.btnGrow} ${fx.pressable}`}
             onClick={handleReplay}
             disabled={noReplays}
             style={{
                ...TOUCH_SURFACE,
                padding: isMobile ? "10px 10px" : "10px 20px",
-               background: noReplays
-                  ? "rgba(100, 100, 100, 0.2)"
-                  : "linear-gradient(135deg, rgba(125, 211, 252, 0.2), rgba(125, 211, 252, 0.1))",
-               border: noReplays
-                  ? "1px solid rgba(100, 100, 100, 0.4)"
-                  : "1px solid rgba(125, 211, 252, 0.6)",
                fontSize: isMobile ? "0.9rem" : "0.95rem",
-               opacity: noReplays ? 0.5 : 1,
-               transition: "all 0.3s ease",
-            }}
-            onMouseEnter={(e) => {
-               if (!noReplays) {
-                  e.currentTarget.style.background =
-                     "linear-gradient(135deg, rgba(125, 211, 252, 0.3), rgba(125, 211, 252, 0.2))";
-                  e.currentTarget.style.borderColor =
-                     "rgba(125, 211, 252, 0.8)";
-                  e.currentTarget.style.transform = "translateY(-2px)";
-                  e.currentTarget.style.boxShadow =
-                     "0 4px 12px rgba(125, 211, 252, 0.3)";
-               }
-            }}
-            onMouseLeave={(e) => {
-               if (!noReplays) {
-                  e.currentTarget.style.background =
-                     "linear-gradient(135deg, rgba(125, 211, 252, 0.2), rgba(125, 211, 252, 0.1))";
-                  e.currentTarget.style.borderColor =
-                     "rgba(125, 211, 252, 0.6)";
-                  e.currentTarget.style.transform = "";
-                  e.currentTarget.style.boxShadow = "none";
-               }
             }}
          >
             <ArrowPathRoundedSquareIcon
@@ -1161,31 +1017,12 @@ export default function ClickGreen({
 
          <button
             type="button"
-            className={`${styles.btn} ${styles.btnGrow} ${fx.pressable}`}
+            className={`${styles.btn} ${styles.btnAccent} ${styles.btnGrow} ${fx.pressable}`}
             onClick={handleShare}
             style={{
                ...TOUCH_SURFACE,
                padding: isMobile ? "10px 10px" : "10px 20px",
-               background:
-                  "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
-               border: "1px solid rgba(59, 130, 246, 0.6)",
                fontSize: isMobile ? "0.9rem" : "0.95rem",
-               transition: "all 0.3s ease",
-            }}
-            onMouseEnter={(e) => {
-               e.currentTarget.style.background =
-                  "linear-gradient(135deg, rgba(59, 130, 246, 0.3), rgba(59, 130, 246, 0.2))";
-               e.currentTarget.style.borderColor = "rgba(59, 130, 246, 0.8)";
-               e.currentTarget.style.transform = "translateY(-2px)";
-               e.currentTarget.style.boxShadow =
-                  "0 4px 12px rgba(59, 130, 246, 0.3)";
-            }}
-            onMouseLeave={(e) => {
-               e.currentTarget.style.background =
-                  "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))";
-               e.currentTarget.style.borderColor = "rgba(59, 130, 246, 0.6)";
-               e.currentTarget.style.transform = "";
-               e.currentTarget.style.boxShadow = "none";
             }}
          >
             <ShareIcon
@@ -1200,22 +1037,10 @@ export default function ClickGreen({
       </div>
    );
 
-   const chipStyle = (tone: "success" | "danger"): React.CSSProperties => ({
+   const chipStyle: React.CSSProperties = {
       padding: isMobile ? "7px 12px" : "9px 16px",
-      borderRadius: "10px",
-      background:
-         tone === "success"
-            ? "linear-gradient(135deg, rgba(134, 239, 172, 0.25), rgba(134, 239, 172, 0.12))"
-            : "linear-gradient(135deg, rgba(252, 165, 165, 0.25), rgba(252, 165, 165, 0.12))",
-      border:
-         tone === "success"
-            ? "2px solid rgba(134, 239, 172, 0.6)"
-            : "2px solid rgba(252, 165, 165, 0.6)",
-      color: "var(--text)",
       fontSize: isMobile ? "0.9rem" : "0.95rem",
-      fontWeight: 600,
-      whiteSpace: "nowrap",
-   });
+   };
 
    const headerIcon = {
       width: isMobile ? 14 : 16,
@@ -1225,21 +1050,6 @@ export default function ClickGreen({
 
    return (
       <>
-         <style>{`
-            @keyframes itemPulse {
-               0%, 100% {
-                  transform: translate(-50%, -50%) scale(1);
-                  opacity: 1;
-               }
-               50% {
-                  transform: translate(-50%, -50%) scale(1.08);
-                  opacity: 0.85;
-               }
-            }
-            @media (prefers-reduced-motion: reduce) {
-               .click-green-item { animation: none !important; }
-            }
-         `}</style>
          <div
             ref={rootRef}
             className={styles.root}
@@ -1261,7 +1071,8 @@ export default function ClickGreen({
                   maxWidth: "800px",
                   boxSizing: "border-box",
                   background: "var(--card)",
-                  borderRadius: isMobile ? "14px" : "16px",
+                  border: "1px solid var(--stroke)",
+                  borderRadius: "16px",
                   padding: isMobile ? "12px 14px" : "16px 20px",
                   boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
                }}
@@ -1325,20 +1136,19 @@ export default function ClickGreen({
                   style={{
                      width: "100%",
                      height: isMobile ? "6px" : "8px",
-                     background: "rgba(255, 255, 255, 0.1)",
+                     background: "var(--stroke)",
                      borderRadius: "999px",
                      overflow: "hidden",
                   }}
                >
+                  {/* Full-width fill scaled on X (no layout work). The background string is the one
+                      the final games recolour; the stage flattens it to the solid accent. */}
                   <div
+                     className={styles.progressFill}
                      style={{
-                        width: `${progress}%`,
-                        height: "100%",
                         background:
                            "linear-gradient(90deg, var(--accent) 0%, var(--ok) 100%)",
-                        borderRadius: "999px",
-                        transition: "width 0.3s ease",
-                        boxShadow: "0 0 10px rgba(125, 211, 252, 0.5)",
+                        transform: `scaleX(${progress / 100})`,
                      }}
                   />
                </div>
@@ -1356,15 +1166,19 @@ export default function ClickGreen({
                >
                   <div
                      key={`correct-${correctClicks}`}
-                     className={correctClicks > 0 ? fx.hitPop : undefined}
-                     style={chipStyle("success")}
+                     className={`${styles.chip} ${styles.chipOk} ${
+                        correctClicks > 0 ? fx.hitPop : ""
+                     }`}
+                     style={chipStyle}
                   >
                      Correct: {correctClicks} / {getMinCorrectClicks()}
                   </div>
                   <div
                      key={`wrong-${wrongClicks}`}
-                     className={wrongClicks > 0 ? fx.missShake : undefined}
-                     style={chipStyle("danger")}
+                     className={`${styles.chip} ${styles.chipBad} ${
+                        wrongClicks > 0 ? fx.missShake : ""
+                     }`}
+                     style={chipStyle}
                   >
                      Mistakes: {wrongClicks}
                   </div>
@@ -1415,7 +1229,6 @@ export default function ClickGreen({
                         const bgColor = item.clicked
                            ? `rgba(${colorValue}, 0.4)`
                            : `rgba(${colorValue}, 0.2)`;
-                        const glowColor = `rgba(${colorValue}, 0.5)`;
                         const inactive = item.clicked || !canPlay;
 
                         // Shape-specific styling
@@ -1439,10 +1252,12 @@ export default function ClickGreen({
                               }
                               className={`click-green-item ${styles.item} ${
                                  item.clicked
-                                    ? item.color === "green"
-                                       ? fx.flashOk
-                                       : fx.flashBad
-                                    : ""
+                                    ? `${styles.itemHit} ${
+                                         item.color === "green"
+                                            ? fx.flashOk
+                                            : fx.flashBad
+                                      }`
+                                    : styles.itemLive
                               }`}
                               onPointerDown={(e) => pressItem(e, item.id)}
                               onClick={(e) => clickItem(e, item.id)}
@@ -1452,9 +1267,11 @@ export default function ClickGreen({
                                  pointerEvents: inactive ? "none" : "auto",
                                  left: `${item.x}px`,
                                  top: `${item.y}px`,
+                                 // No rotate(): the old endless pulse keyframes replaced the
+                                 // whole transform, so a live target was never drawn rotated.
                                  transform: item.clicked
-                                    ? `translate(-50%, -50%) scale(0.9) rotate(${item.rotation}deg)`
-                                    : `translate(-50%, -50%) scale(1) rotate(${item.rotation}deg)`,
+                                    ? "translate(-50%, -50%) scale(0.9)"
+                                    : "translate(-50%, -50%)",
                                  width: `${size}px`,
                                  height: `${size}px`,
                                  borderRadius,
@@ -1463,18 +1280,10 @@ export default function ClickGreen({
                                  background: bgColor,
                                  fontSize: `${size * 0.45}px`,
                                  cursor: item.clicked ? "not-allowed" : "pointer",
-                                 transition: item.clicked
-                                    ? "all 0.2s ease"
-                                    : "none",
                                  opacity: item.clicked ? 0.5 : 1,
                                  boxShadow: item.clicked
                                     ? "none"
-                                    : `0 0 ${
-                                         size * 0.3
-                                      }px ${glowColor}, 0 4px 8px rgba(0, 0, 0, 0.2)`,
-                                 animation: item.clicked
-                                    ? undefined
-                                    : "itemPulse 2s ease-in-out infinite",
+                                    : "0 4px 8px rgba(0, 0, 0, 0.2)",
                               }}
                            >
                               {item.clicked ? (
@@ -1525,13 +1334,13 @@ export default function ClickGreen({
                   {gameState !== "playing" && (
                      <div className={`${styles.overlay} ${fx.fadeUp}`}>
                         <div
-                           className={styles.notice}
+                           className={`${styles.notice} ${fx.staggerIn}`}
                            style={{ fontSize: isMobile ? "1rem" : "1.1rem" }}
                         >
                            {/* Paused Message (Requirements Met, Waiting for Timer) */}
                            {gameState === "paused" && (
                               <>
-                                 <div style={getNoticeBadgeStyle("success")}>
+                                 <div className={noticeBadgeClass("success")} style={noticeBadgeStyle}>
                                     <CheckCircleIcon
                                        style={{ width: 20, height: 20 }}
                                     />
@@ -1540,7 +1349,7 @@ export default function ClickGreen({
                                  <div
                                     style={{
                                        fontSize: "0.9rem",
-                                       opacity: 0.8,
+                                       color: "var(--muted)",
                                        marginTop: "12px",
                                     }}
                                  >
@@ -1553,7 +1362,7 @@ export default function ClickGreen({
                            {gameState === "ready" &&
                               currentLevel + 1 < maxLevels && (
                                  <>
-                                    <div style={getNoticeBadgeStyle("success")}>
+                                    <div className={noticeBadgeClass("success")} style={noticeBadgeStyle}>
                                        <CheckCircleIcon
                                           style={{ width: 20, height: 20 }}
                                        />
@@ -1575,19 +1384,15 @@ export default function ClickGreen({
                                     </div>
                                     <button
                                        type="button"
-                                       className={`${styles.btn} ${fx.pressable}`}
+                                       className={`${styles.btn} ${styles.btnOk} ${fx.pressable}`}
                                        onClick={handleNextRound}
                                        style={{
-                                          ...getActionButtonStyle("success"),
                                           ...TOUCH_SURFACE,
-                                          borderRadius: "12px",
+                                          padding: isMobile ? "12px 24px" : "14px 28px",
+                                          minHeight: "48px",
+                                          fontSize: isMobile ? "1rem" : "1.05rem",
+                                          fontWeight: 700,
                                        }}
-                                       onMouseEnter={(e) =>
-                                          applyActionHover(e, "success", true)
-                                       }
-                                       onMouseLeave={(e) =>
-                                          applyActionHover(e, "success", false)
-                                       }
                                     >
                                        Next Round
                                     </button>
@@ -1598,7 +1403,7 @@ export default function ClickGreen({
                            {gameState === "ready" &&
                               currentLevel + 1 >= maxLevels && (
                                  <>
-                                    <div style={getNoticeBadgeStyle("success")}>
+                                    <div className={noticeBadgeClass("success")} style={noticeBadgeStyle}>
                                        <TrophyIcon
                                           style={{ width: 20, height: 20 }}
                                        />
@@ -1621,7 +1426,7 @@ export default function ClickGreen({
                                     <div
                                        style={{
                                           fontSize: isMobile ? "0.95rem" : "1rem",
-                                          opacity: 0.8,
+                                          color: "var(--muted)",
                                           marginTop: "8px",
                                        }}
                                     >
@@ -1636,7 +1441,7 @@ export default function ClickGreen({
                            {/* Level Failed Message */}
                            {gameState === "failed" && (
                               <>
-                                 <div style={getNoticeBadgeStyle("danger")}>
+                                 <div className={noticeBadgeClass("danger")} style={noticeBadgeStyle}>
                                     <XCircleIcon
                                        style={{ width: 20, height: 20 }}
                                     />

@@ -1,0 +1,270 @@
+/* Drag and Drop Sort: the item pool, the bins and the touch-drag ghost (classic modern pass).
+   No state here changes a box's size: drag-over and hover are inset rings, backgrounds and a
+   transform on the tile itself; a touch-dragged tile stays in the pool as a faded placeholder. */
+
+.board {
+   width: 100%;
+   display: flex;
+   flex-direction: column;
+   gap: 20px;
+}
+
+.pool {
+   padding: 20px;
+   background: var(--card);
+   border: 1px solid var(--stroke);
+   border-radius: 16px;
+}
+
+.poolHead {
+   display: flex;
+   align-items: center;
+   gap: 8px;
+   margin-bottom: 14px;
+}
+
+.poolIcon {
+   width: 20px;
+   height: 20px;
+   color: var(--accent);
+}
+
+.poolTitle {
+   margin: 0;
+   font-size: 1.05rem;
+   font-weight: 600;
+   color: var(--text);
+}
+
+.items {
+   display: flex;
+   flex-wrap: wrap;
+   justify-content: center;
+   gap: 12px;
+}
+
+.item {
+   position: relative;
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   min-width: 70px;
+   min-height: 52px;
+   padding: 12px 18px;
+   border-radius: 12px;
+   border: 1px solid var(--stroke);
+   background: rgba(255, 255, 255, 0.06);
+   color: var(--text);
+   font-size: 1.1rem;
+   font-weight: 600;
+   line-height: 1;
+   cursor: grab;
+   user-select: none;
+   -webkit-user-select: none;
+   -webkit-touch-callout: none;
+   touch-action: none;
+   transition:
+      transform 0.16s cubic-bezier(0.16, 1, 0.3, 1),
+      border-color 0.16s ease,
+      background-color 0.16s ease,
+      opacity 0.16s ease;
+}
+
+@media (hover: hover) {
+   .item:hover {
+      transform: translateY(-2px);
+      border-color: rgba(var(--accent-rgb, 231, 95, 64), 0.6);
+      background: rgba(var(--accent-rgb, 231, 95, 64), 0.12);
+   }
+}
+
+.item:active {
+   cursor: grabbing;
+   transform: scale(0.96);
+}
+
+/* the tile under a finger drag: it keeps its place in the pool, faded */
+.itemPlaceholder {
+   opacity: 0.3;
+   border-style: dashed;
+}
+
+/* the copy that follows the finger (position: fixed, moved by transform only) */
+.ghost {
+   position: fixed;
+   left: 0;
+   top: 0;
+   z-index: 20;
+   pointer-events: none;
+   box-shadow: 0 14px 28px rgba(0, 0, 0, 0.45);
+   border-color: rgba(var(--accent-rgb, 231, 95, 64), 0.7);
+   background: rgba(30, 34, 46, 0.96);
+}
+
+.bins {
+   display: grid;
+   gap: 16px;
+}
+
+.bin {
+   min-width: 0;
+   min-height: 150px;
+   display: flex;
+   flex-direction: column;
+   gap: 12px;
+   padding: 18px;
+   border-radius: 16px;
+   /* the frame is an inset ring so drag-over never changes the box */
+   border: 0;
+   box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.22);
+   cursor: pointer;
+   transition:
+      box-shadow 0.16s ease,
+      background-color 0.16s ease;
+}
+
+.binOver {
+   box-shadow: inset 0 0 0 2px var(--accent);
+}
+
+.binWrong {
+   box-shadow: inset 0 0 0 2px var(--warn);
+}
+
+.binTitle {
+   margin: 0;
+   font-size: 1.05rem;
+   font-weight: 700;
+   color: var(--text);
+}
+
+.binItems {
+   flex: 1;
+   display: flex;
+   flex-wrap: wrap;
+   align-content: flex-start;
+   align-items: flex-start;
+   gap: 8px;
+}
+
+.placed {
+   display: inline-flex;
+   align-items: center;
+   justify-content: center;
+   gap: 4px;
+   min-width: 60px;
+   padding: 10px 14px;
+   border-radius: 10px;
+   font-size: 1rem;
+   font-weight: 600;
+   color: var(--text);
+   animation: placedIn 0.26s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.placedOk {
+   composes: placed;
+   background: rgba(63, 181, 127, 0.22);
+   box-shadow: inset 0 0 0 1px rgba(63, 181, 127, 0.6);
+}
+
+.placedWarn {
+   composes: placed;
+   background: rgba(240, 112, 138, 0.22);
+   box-shadow: inset 0 0 0 1px rgba(240, 112, 138, 0.6);
+}
+
+.placedIconOk {
+   width: 14px;
+   height: 14px;
+   color: var(--ok);
+}
+
+.placedIconWarn {
+   width: 14px;
+   height: 14px;
+   color: var(--warn);
+}
+
+/* final games: the placed tiles and their ticks were turned gold by globals.css */
+:global(body.final-game) .placedOk {
+   background: rgba(var(--accent-rgb, 227, 167, 47), 0.22);
+   box-shadow: inset 0 0 0 1px rgba(var(--accent-rgb, 227, 167, 47), 0.6);
+}
+
+:global(body.final-game) .placedIconOk {
+   color: var(--accent);
+}
+
+.reasons {
+   display: inline-flex;
+   align-items: center;
+   gap: 4px;
+}
+
+@keyframes placedIn {
+   from {
+      opacity: 0;
+      transform: scale(0.85);
+   }
+   to {
+      opacity: 1;
+      transform: none;
+   }
+}
+
+@media (max-width: 639px) {
+   .board {
+      gap: 16px;
+   }
+
+   .pool {
+      padding: 16px;
+      border-radius: 14px;
+   }
+
+   .poolTitle {
+      font-size: 1rem;
+   }
+
+   .items {
+      gap: 8px;
+   }
+
+   .item {
+      min-width: 60px;
+      min-height: 48px;
+      padding: 12px 16px;
+      font-size: 1rem;
+   }
+
+   .bins {
+      gap: 12px;
+   }
+
+   .bin {
+      min-height: 96px;
+      padding: 12px;
+      border-radius: 14px;
+   }
+
+   .binTitle {
+      font-size: 0.95rem;
+   }
+
+   .placed {
+      min-width: 50px;
+      padding: 8px 12px;
+      font-size: 0.9rem;
+   }
+}
+
+@media (prefers-reduced-motion: reduce) {
+   .item,
+   .bin {
+      transition: none;
+   }
+
+   .placed {
+      animation: none;
+   }
+}

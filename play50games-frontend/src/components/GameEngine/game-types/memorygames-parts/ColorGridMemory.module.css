@@ -1,0 +1,156 @@
+/* Color Grid Memory: the status line, the flash cue and the cell badges. The shared chrome and the
+   cell box come from mobile.module.css. The cue's colours are game content (the palette and the
+   bright blue ring of a flashing cell) and stay as they were; what changed is that the colour now
+   lives on an inner layer that blooms in, so a flashing cell never grows over its neighbours. */
+
+.status {
+   display: flex;
+   flex-direction: column;
+   gap: 6px;
+   text-align: center;
+}
+
+.statusMain {
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   gap: 8px;
+   margin: 0;
+   font-size: 1.1rem;
+   font-weight: 700;
+   color: var(--text);
+   animation: statusIn 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.statusSub {
+   margin: 0;
+   font-size: 0.875rem;
+   color: var(--muted);
+}
+
+.statusIcon {
+   width: 24px;
+   height: 24px;
+   flex: none;
+}
+
+/* the cell being flashed in the "watch" phase: the cue's own ring and glow (content colours) */
+.flashCue.flashCue,
+.flashCue.flashCue:hover:not(:disabled) {
+   box-shadow:
+      inset 0 0 0 2px rgba(110, 168, 255, 1),
+      0 0 30px rgba(110, 168, 255, 0.6),
+      0 0 50px rgba(110, 168, 255, 0.4);
+   z-index: 1;
+}
+
+/* a cell picked in order or shown by a hint: a thin ring around its colour */
+.picked.picked {
+   box-shadow: inset 0 0 0 2px rgba(110, 168, 255, 0.6);
+}
+
+/* the colour of a cell, an inner layer so the box keeps its size */
+.fill {
+   position: absolute;
+   inset: 3px;
+   border-radius: 7px;
+   pointer-events: none;
+}
+
+.fillFlash {
+   animation: bloom 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.fillIn {
+   animation: bloom 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.badge {
+   position: absolute;
+   top: 4px;
+   width: 20px;
+   height: 20px;
+   border-radius: 999px;
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   font-size: 0.7rem;
+   font-weight: 700;
+   font-variant-numeric: tabular-nums;
+   color: #fff;
+   pointer-events: none;
+}
+
+.order {
+   right: 4px;
+   background: rgba(11, 15, 26, 0.6);
+}
+
+.hint {
+   right: 4px;
+   background: rgba(var(--accent-rgb, 231, 95, 64), 1);
+}
+
+.key {
+   left: 4px;
+   background: rgba(var(--accent-rgb, 231, 95, 64), 0.85);
+}
+
+.actions {
+   display: flex;
+   flex-wrap: wrap;
+   gap: 10px;
+   justify-content: center;
+   width: 100%;
+}
+
+@keyframes bloom {
+   from {
+      opacity: 0.4;
+      transform: scale(0.8);
+   }
+   to {
+      opacity: 1;
+      transform: scale(1);
+   }
+}
+
+@keyframes statusIn {
+   from {
+      opacity: 0;
+      transform: translateY(4px);
+   }
+   to {
+      opacity: 1;
+      transform: translateY(0);
+   }
+}
+
+@media (max-width: 767px) {
+   .statusMain {
+      font-size: 1rem;
+   }
+   .statusSub {
+      font-size: 0.75rem;
+   }
+   .statusIcon {
+      width: 20px;
+      height: 20px;
+   }
+   .badge {
+      width: 18px;
+      height: 18px;
+      font-size: 0.65rem;
+   }
+   .actions > button {
+      width: 100%;
+   }
+}
+
+@media (prefers-reduced-motion: reduce) {
+   .fillFlash,
+   .fillIn,
+   .statusMain {
+      animation: none;
+   }
+}

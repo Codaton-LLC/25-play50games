@@ -1,38 +1,220 @@
-/* Tile Slider on phones and tablets (desktop unchanged):
-   - the four-step "How to Play" card and the share / hint row sat above the board, so on a phone the
-     puzzle started a full screen down: the board now comes first, then the result, then the hints and
-     the instructions;
-   - swiping on the board slides a tile into the gap (TileSlider.tsx), and the board never scrolls the
-     page while you swipe on it. */
-.grid {
+/* Tile Slider (game 10), modern pass 2026-11-18.
+   The board no longer uses the global .slider-* classes (a 400 px grid of wrapper divs with tiles
+   inside, an infinite pulse on every movable tile, an infinite outline-width pulse on the selected and
+   the hinted tile (outline-width animating = repaint every frame), a bouncing emoji badge, a sparkle
+   icon in the gap, and a tile that jumped to its new cell with no motion). It is the shared theme
+   board: --cols equal 1fr tracks, square tiles, one gap, the frame hugging the grid. States paint
+   with background + inset shadow only (movable = accent line, in place = ok number + check,
+   hint = accent fill, current hint = one pop). A moved tile slides from its old cell into the gap
+   with transform only (180 ms). Solving pops the board once and tints every tile ok.
+   Kept from the earlier mobile pass: the board comes first, then the result, the hint / share row
+   and the instructions; swiping on the board slides a tile and never scrolls the page. */
+
+.root {
+   max-width: 520px;
+}
+
+.head {
+   gap: 8px;
+}
+
+.frame {
+   display: flex;
+   justify-content: center;
+   padding: 12px;
+}
+
+.board {
+   max-width: 380px;
+   margin: 0 auto;
    touch-action: none;
 }
 
-@media (max-width: 899px), (max-height: 900px) {
-   .root {
-      display: flex !important;
-      flex-direction: column !important;
-      gap: 14px !important;
+/* the gap: a recessed empty square, the same size as a tile */
+.gap {
+   aspect-ratio: 1;
+   min-width: 0;
+   border-radius: 10px;
+   background: rgba(0, 0, 0, 0.28);
+   box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.35);
+}
+
+.tile {
+   font-size: clamp(1.4rem, 7vw, 2rem);
+   font-weight: 700;
+}
+
+/* a locked tile keeps full contrast (globals dims disabled buttons) */
+.root .tile:disabled {
+   opacity: 1;
+   cursor: default;
+}
+
+.num {
+   line-height: 1;
+}
+
+.root .movable {
+   box-shadow: inset 0 0 0 2px rgba(var(--accent-rgb, 231, 95, 64), 0.6);
+}
+
+.root .inPlace .num {
+   color: var(--ok);
+}
+
+.check {
+   position: absolute;
+   top: 6px;
+   right: 6px;
+   width: 16px;
+   height: 16px;
+   color: var(--ok);
+}
+
+.root .hinted {
+   background: rgba(var(--accent-rgb, 231, 95, 64), 0.16);
+   box-shadow: inset 0 0 0 2px rgba(var(--accent-rgb, 231, 95, 64), 0.7);
+}
+
+.root .hintNow {
+   background: rgba(var(--accent-rgb, 231, 95, 64), 0.3);
+   box-shadow: inset 0 0 0 2px var(--accent);
+}
+
+/* keyboard selection (Tab): above the movable line */
+.root .sel {
+   background: rgba(var(--accent-rgb, 231, 95, 64), 0.16);
+   box-shadow: inset 0 0 0 3px var(--accent);
+}
+
+.root .tileSolved {
+   background: rgba(63, 181, 127, 0.16);
+   box-shadow: inset 0 0 0 2px rgba(63, 181, 127, 0.7);
+}
+
+.root .tileSolved .num {
+   color: var(--ok);
+}
+
+.root .solved {
+   border-color: rgba(63, 181, 127, 0.55);
+}
+
+/* the moved tile slides in from the cell it left: --dx / --dy in cells, transform only */
+@keyframes slideIn {
+   from {
+      transform: translate(
+         calc(var(--dx, 0) * (100% + var(--lg-gap, 6px))),
+         calc(var(--dy, 0) * (100% + var(--lg-gap, 6px)))
+      );
    }
-   .root > :global(.game-header) {
-      order: 0;
+   to {
+      transform: translate(0, 0);
    }
-   .root > :global(.tile-slider-container) {
-      order: 1;
-   }
-   .root > :global(.game-feedback) {
-      order: 2;
-   }
-   .root > :global(.hint-share-section) {
-      order: 3;
-   }
-   .root > :global(.game-instructions) {
-      order: 4;
-   }
+}
+
+.slide {
+   z-index: 1;
+   animation: slideIn 180ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.btnIcon {
+   width: 20px;
+   height: 20px;
+   flex: none;
+}
+
+.feedbackIconGap {
+   margin-right: 8px;
+}
+
+/* ---------- hints and share ---------- */
+.tools {
+   display: flex;
+   flex-direction: column;
+   align-items: center;
+   gap: 10px;
+   width: 100%;
+}
+
+.toolRow {
+   display: flex;
+   flex-wrap: wrap;
+   align-items: center;
+   justify-content: center;
+   gap: 10px;
+}
+
+.note {
+   display: flex;
+   align-items: center;
+   gap: 8px;
+   max-width: 420px;
+   padding: 10px 14px;
+   border-radius: 12px;
+   font-size: 0.9rem;
+   font-weight: 500;
+   line-height: 1.4;
+   color: var(--text);
+}
+
+.noteOk {
+   background: rgba(63, 181, 127, 0.14);
+   box-shadow: inset 0 0 0 1px rgba(63, 181, 127, 0.45);
+}
+
+.noteOk svg {
+   color: var(--ok);
+}
+
+.noteAccent {
+   background: rgba(var(--accent-rgb, 231, 95, 64), 0.14);
+   box-shadow: inset 0 0 0 1px rgba(var(--accent-rgb, 231, 95, 64), 0.5);
+}
+
+.noteAccent svg {
+   color: var(--accent);
+}
+
+/* ---------- instructions ---------- */
+.howto {
+   padding: 14px 16px;
+}
+
+.howtoTitle {
+   margin: 0 0 8px;
+   font-size: 0.95rem;
+   font-weight: 700;
+   color: var(--text);
+}
+
+.steps {
+   margin: 0;
+   padding-left: 1.2em;
+   display: grid;
+   gap: 4px;
+   font-size: 0.9rem;
+   line-height: 1.5;
+   color: var(--muted);
+}
+
+.steps strong {
+   color: var(--text);
+   font-weight: 600;
 }
 
 @media (max-width: 599px) {
    .root {
-      padding: 10px 4px !important;
+      padding: 10px 4px;
+      gap: 14px;
+   }
+   .frame {
+      padding: 8px;
+   }
+   .check {
+      top: 4px;
+      right: 4px;
+      width: 14px;
+      height: 14px;
    }
 }

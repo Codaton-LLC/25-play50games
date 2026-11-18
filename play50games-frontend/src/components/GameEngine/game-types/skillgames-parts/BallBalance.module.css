@@ -1,0 +1,167 @@
+/* Ball Balance board (classic modern pass). Positions and sizes stay inline: they come from the
+   physics state. Colours: --ok for the center zone, --warn for danger zones, the accent for wind. */
+
+.arena {
+   display: flex;
+   align-items: center;
+   justify-content: center;
+}
+
+/* every board piece is centred on the arena middle, the game offsets it with transform */
+.piece {
+   position: absolute;
+   top: 50%;
+   left: 50%;
+   pointer-events: none;
+}
+
+.dangerZone {
+   composes: piece;
+   height: 70px;
+   border-radius: 10px;
+   border: 2px solid rgba(240, 112, 138, 0.75);
+   background: rgba(240, 112, 138, 0.12);
+   transition: background-color 0.2s ease;
+}
+
+.dangerZoneHot {
+   composes: dangerZone;
+   background: rgba(240, 112, 138, 0.36);
+}
+
+.windZone {
+   composes: piece;
+   height: 70px;
+   border-radius: 10px;
+   border: 1px dashed rgba(var(--accent-rgb, 231, 95, 64), 0.5);
+   background: rgba(var(--accent-rgb, 231, 95, 64), 0.06);
+   opacity: 0.7;
+   transition: opacity 0.2s ease, background-color 0.2s ease;
+}
+
+.windZoneActive {
+   composes: windZone;
+   border: 2px solid rgba(var(--accent-rgb, 231, 95, 64), 0.85);
+   background: rgba(var(--accent-rgb, 231, 95, 64), 0.16);
+   opacity: 1;
+}
+
+.windArrow {
+   position: absolute;
+   top: 8px;
+   left: 50%;
+   font-size: 20px;
+   line-height: 1;
+   color: rgba(var(--accent-rgb, 231, 95, 64), 0.85);
+}
+
+.centerZone {
+   composes: piece;
+   height: 70px;
+   border-radius: 16px;
+   border: 1px dashed rgba(63, 181, 127, 0.6);
+   background: rgba(63, 181, 127, 0.08);
+   transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.centerZoneIn {
+   composes: centerZone;
+   border: 1px solid rgba(63, 181, 127, 0.95);
+   background: rgba(63, 181, 127, 0.2);
+}
+
+.platform {
+   composes: piece;
+   height: 22px;
+   border-radius: 999px;
+   border: 1px solid var(--stroke);
+   background: rgba(255, 255, 255, 0.1);
+   box-shadow: 0 10px 22px rgba(0, 0, 0, 0.3);
+   transform-origin: center center;
+   transition: transform 0.05s linear;
+}
+
+.ball {
+   composes: piece;
+   width: 28px;
+   height: 28px;
+   border-radius: 50%;
+   background: radial-gradient(circle at 30% 30%, #f1f3f8, #a3acbf 70%);
+   border: 1px solid rgba(255, 255, 255, 0.22);
+   box-shadow: 0 12px 20px rgba(0, 0, 0, 0.35);
+}
+
+/* top pills inside the arena */
+.pill {
+   position: absolute;
+   top: 16px;
+   padding: 6px 14px;
+   border-radius: 999px;
+   border: 1px solid var(--stroke);
+   background: rgba(11, 15, 26, 0.78);
+   color: var(--text);
+   font-size: 0.85rem;
+   font-weight: 700;
+   white-space: nowrap;
+   pointer-events: none;
+}
+
+.message {
+   composes: pill;
+   left: 50%;
+   transform: translateX(-50%);
+}
+
+.windPill {
+   composes: pill;
+   right: 16px;
+   border-color: rgba(var(--accent-rgb, 231, 95, 64), 0.5);
+   font-size: 0.8rem;
+}
+
+/* the "requirements met, waiting for the timer" card sits over the arena */
+.overlay {
+   position: absolute;
+   inset: 0;
+   z-index: 10;
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   padding: 16px;
+   background: rgba(11, 15, 26, 0.45);
+   pointer-events: none;
+}
+
+.titleRow {
+   display: inline-flex;
+   align-items: center;
+   gap: 8px;
+}
+
+.titleIcon {
+   width: 20px;
+   height: 20px;
+   flex-shrink: 0;
+}
+
+@media (max-width: 767px) {
+   .pill {
+      top: 12px;
+      font-size: 0.75rem;
+   }
+
+   .windPill {
+      right: 12px;
+   }
+}
+
+/* final games: the center zone was never recoloured there, the wind already follows the gold accent */
+
+@media (prefers-reduced-motion: reduce) {
+   .dangerZone,
+   .windZone,
+   .centerZone,
+   .platform {
+      transition: none;
+   }
+}

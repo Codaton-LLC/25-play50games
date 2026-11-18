@@ -1,0 +1,247 @@
+/* Color Sequence, modern pass 2026-11-18.
+   Was: all inline styles, a sky-blue glow on an accent-to-green progress bar that animated its width,
+   pads with a 3 px border that grew to 105 % on hover and stayed shrunk to 95 % after a press (the
+   neighbour gap changed), a global "pulse" keyframe for playback, no reduced motion.
+   Now: theme layout, a transform-only progress bar, pads that never change size (press = brief 0.96,
+   a flash layer shows each tap), playback tiles that light up one by one at the same 600 ms pace.
+   The four pad colours are game content and stay. */
+
+.root {
+   max-width: 480px;
+}
+
+.progress {
+   width: 100%;
+   max-width: 360px;
+   height: 6px;
+   border-radius: 999px;
+   background: rgba(255, 255, 255, 0.1);
+   overflow: hidden;
+}
+
+.progressFill {
+   width: 100%;
+   height: 100%;
+   border-radius: inherit;
+   background: var(--accent);
+   transform-origin: left center;
+   transition: transform 300ms var(--lg-ease);
+}
+
+.stage {
+   display: flex;
+   flex-direction: column;
+   align-items: center;
+   gap: 16px;
+}
+
+.hint {
+   margin: 0;
+   font-size: 1rem;
+   font-weight: 600;
+   color: var(--text);
+   text-align: center;
+}
+
+.hintSub {
+   margin: 0;
+   font-size: 0.9rem;
+   color: var(--muted);
+   text-align: center;
+}
+
+/* ---------- playback row ---------- */
+.playback {
+   --n: 2;
+   display: grid;
+   grid-template-columns: repeat(var(--n), minmax(0, 1fr));
+   gap: 10px;
+   width: 100%;
+   max-width: calc(var(--n) * 88px);
+}
+
+.tile {
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   aspect-ratio: 1;
+   width: 100%;
+   border-radius: var(--lg-r-cell);
+   background: var(--pad-bg);
+   box-shadow: inset 0 0 0 2px var(--pad-ring);
+   /* lights up in turn: dim before its slot, a bright flash, then stays lit (same 600 ms per colour) */
+   animation: csLight 600ms var(--lg-ease) both;
+   animation-delay: calc(var(--i, 0) * 600ms);
+}
+
+.tileNum {
+   display: inline-flex;
+   align-items: center;
+   justify-content: center;
+   min-width: 28px;
+   min-height: 28px;
+   padding: 0 6px;
+   border-radius: 999px;
+   background: rgba(8, 10, 18, 0.55);
+   color: #fff;
+   font-size: 0.85rem;
+   font-weight: 700;
+}
+
+@keyframes csLight {
+   0% {
+      opacity: 0.3;
+      filter: saturate(0.4) brightness(0.7);
+      transform: scale(0.94);
+   }
+   45% {
+      opacity: 1;
+      filter: saturate(1.1) brightness(1.25);
+      transform: scale(1.06);
+   }
+   100% {
+      opacity: 1;
+      filter: none;
+      transform: scale(1);
+   }
+}
+
+/* ---------- colour pads ---------- */
+.pads {
+   display: grid;
+   grid-template-columns: repeat(2, minmax(0, 1fr));
+   gap: 12px;
+   width: 100%;
+   max-width: 360px;
+}
+
+.pad {
+   position: relative;
+   display: flex;
+   flex-direction: column;
+   align-items: center;
+   justify-content: center;
+   gap: 8px;
+   aspect-ratio: 1;
+   width: 100%;
+   min-height: 44px;
+   margin: 0;
+   padding: 0;
+   border: 0;
+   border-radius: var(--lg-r-btn);
+   overflow: hidden;
+   background: var(--pad-bg);
+   box-shadow: inset 0 0 0 2px var(--pad-ring), 0 6px 16px var(--pad-glow);
+   font: inherit;
+   cursor: pointer;
+   transition: transform 100ms var(--lg-ease), filter 160ms var(--lg-ease);
+   /* stagger in when the repeat phase starts; "backwards" so the press scale still applies afterwards */
+   animation: csPadIn 300ms var(--lg-ease) backwards;
+   animation-delay: calc(var(--i, 0) * 50ms);
+}
+
+@keyframes csPadIn {
+   from {
+      opacity: 0;
+      transform: translateY(8px) scale(0.96);
+   }
+}
+
+@media (hover: hover) {
+   .pad:hover:not(:disabled) {
+      filter: brightness(1.1);
+   }
+}
+
+.pad:active:not(:disabled) {
+   transform: scale(0.96);
+}
+
+.pad:focus-visible {
+   outline: 2px solid var(--text);
+   outline-offset: 3px;
+}
+
+.pad:disabled {
+   opacity: 1;
+   cursor: default;
+}
+
+/* a white flash on the pad just tapped (remounted per tap) */
+.flash {
+   position: absolute;
+   inset: 0;
+   background: #fff;
+   pointer-events: none;
+   animation: csFlash 260ms var(--lg-ease) both;
+}
+
+@keyframes csFlash {
+   from {
+      opacity: 0.45;
+   }
+   to {
+      opacity: 0;
+   }
+}
+
+.padLabel {
+   position: relative;
+   display: inline-flex;
+   align-items: center;
+   gap: 8px;
+   padding: 4px 10px;
+   border-radius: 999px;
+   background: rgba(8, 10, 18, 0.55);
+   color: #fff;
+   font-size: 0.85rem;
+   font-weight: 700;
+   letter-spacing: 0.04em;
+   text-transform: uppercase;
+}
+
+.padKey {
+   display: inline-flex;
+   align-items: center;
+   justify-content: center;
+   min-width: 20px;
+   height: 20px;
+   border-radius: 6px;
+   background: rgba(255, 255, 255, 0.18);
+   font-size: 0.75rem;
+}
+
+/* ---------- the player's picks so far (fixed height: nothing below jumps) ---------- */
+.picks {
+   display: flex;
+   flex-wrap: wrap;
+   justify-content: center;
+   gap: 8px;
+   min-height: 32px;
+}
+
+.pick {
+   width: 32px;
+   height: 32px;
+   border-radius: 8px;
+   background: var(--pad-bg);
+   box-shadow: inset 0 0 0 2px var(--pad-ring);
+}
+
+.slot {
+   width: 32px;
+   height: 32px;
+   border-radius: 8px;
+   background: rgba(255, 255, 255, 0.04);
+   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.16);
+}
+
+@media (max-width: 599px) {
+   .root {
+      padding: 10px 4px;
+      gap: 14px;
+   }
+   .stage {
+      padding: 14px 12px;
+   }
+}

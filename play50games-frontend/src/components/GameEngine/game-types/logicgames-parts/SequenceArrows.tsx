@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, type CSSProperties } from "react";
+import theme from "./theme.module.css";
 import css from "./SequenceArrows.module.css";
-import mobile from "./mobile.module.css";
 import {
    ArrowLeftIcon,
    ArrowRightIcon,
@@ -10,8 +10,6 @@ import {
    ArrowDownIcon,
    CheckCircleIcon,
    XCircleIcon,
-   ArrowPathIcon,
-   TrophyIcon,
    LightBulbIcon,
 } from "@heroicons/react/24/outline";
 
@@ -59,6 +57,18 @@ function SequenceArrows({
    const onCompleteRef = useRef(onComplete);
    const onRoundCompleteRef = useRef(onRoundComplete);
    const handleSelectRef = useRef<(index: number) => void>();
+   // round-end timers: cleared if the game unmounts mid-delay (they used to fire after leaving)
+   const timersRef = useRef<number[]>([]);
+   const later = useCallback((fn: () => void, ms: number) => {
+      timersRef.current.push(window.setTimeout(fn, ms));
+   }, []);
+   useEffect(
+      () => () => {
+         timersRef.current.forEach((id) => window.clearTimeout(id));
+         timersRef.current = [];
+      },
+      []
+   );
 
    // Update refs when callbacks change
    useEffect(() => {
@@ -68,26 +78,10 @@ function SequenceArrows({
    }, [onScoreUpdate, onComplete, onRoundComplete]);
 
    const arrowMap: Record<string, JSX.Element> = {
-      up: (
-         <ArrowUpIcon
-            style={{ width: 40, height: 40, color: "var(--accent)" }}
-         />
-      ),
-      down: (
-         <ArrowDownIcon
-            style={{ width: 40, height: 40, color: "var(--accent)" }}
-         />
-      ),
-      left: (
-         <ArrowLeftIcon
-            style={{ width: 40, height: 40, color: "var(--accent)" }}
-         />
-      ),
-      right: (
-         <ArrowRightIcon
-            style={{ width: 40, height: 40, color: "var(--accent)" }}
-         />
-      ),
+      up: <ArrowUpIcon className={css.arrow} aria-hidden="true" />,
+      down: <ArrowDownIcon className={css.arrow} aria-hidden="true" />,
+      left: <ArrowLeftIcon className={css.arrow} aria-hidden="true" />,
+      right: <ArrowRightIcon className={css.arrow} aria-hidden="true" />,
    };
 
    // Detect pattern type from sequence
@@ -370,12 +364,12 @@ function SequenceArrows({
             const roundScore = 5;
             onScoreUpdateRef.current(roundScore);
 
-            setTimeout(() => {
+            later(() => {
                if (round >= rounds) {
                   if (!completionCalledRef.current) {
                      completionCalledRef.current = true;
                      const finalScore = Math.min(100, score + roundScore);
-                     setTimeout(() => {
+                     later(() => {
                         onCompleteRef.current?.(finalScore);
                      }, 1000);
                   }
@@ -387,12 +381,12 @@ function SequenceArrows({
                setFeedback(null);
             }, 1500);
          } else {
-            setTimeout(() => {
+            later(() => {
                if (round >= rounds) {
                   if (!completionCalledRef.current) {
                      completionCalledRef.current = true;
                      const finalScore = Math.min(100, score);
-                     setTimeout(() => {
+                     later(() => {
                         onCompleteRef.current?.(finalScore);
                      }, 1000);
                   }
@@ -405,7 +399,7 @@ function SequenceArrows({
             }, 1000);
          }
       },
-      [round, rounds, score, isRoundComplete, correctIndex]
+      [round, rounds, score, isRoundComplete, correctIndex, later]
    );
 
    // Update handleSelect ref
@@ -459,387 +453,150 @@ function SequenceArrows({
 
    // Progress calculation
    const progress = (round / rounds) * 100;
+   const correctArrow = options[correctIndex];
 
    return (
-      <div
-         className={css.root}
-         style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: "32px",
-            padding: "24px",
-            maxWidth: "600px",
-            margin: "0 auto",
-         }}
-      >
-         {/* Header with Round and Score - Same as Match the Shapes */}
-         <div
-            style={{
-               width: "100%",
-               background: "var(--card)",
-               borderRadius: "16px",
-               padding: "20px",
-               boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
-            }}
-         >
-            <div
-               style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  fontSize: "0.875rem",
-                  color: "var(--muted)",
-                  fontWeight: 500,
-                  marginBottom: "12px",
-               }}
-            >
-               <span
-                  style={{ display: "flex", alignItems: "center", gap: "6px" }}
-               >
-                  <ArrowPathIcon
-                     style={{ width: 16, height: 16, color: "var(--accent)" }}
-                  />
-                  Round {round} / {rounds}
+      <div className={`${theme.game} ${css.root}`}>
+         <div className={theme.header}>
+            <h3 className={theme.title}>Find the Next Arrow</h3>
+            <div className={theme.chips}>
+               <span className={theme.chip}>
+                  Round <strong>{round} / {rounds}</strong>
                </span>
-               <span
-                  style={{ display: "flex", alignItems: "center", gap: "6px" }}
-               >
-                  <TrophyIcon
-                     style={{ width: 16, height: 16, color: "var(--ok)" }}
-                  />
-                  Score: {score} / {rounds * 5}
+               <span className={theme.chip}>
+                  Score <strong>{score} / {rounds * 5}</strong>
                </span>
             </div>
-            {/* Progress Bar */}
             <div
-               style={{
-                  width: "100%",
-                  height: "8px",
-                  background: "rgba(255, 255, 255, 0.1)",
-                  borderRadius: "4px",
-                  overflow: "hidden",
-                  position: "relative",
-               }}
+               className={css.progress}
+               role="progressbar"
+               aria-label="Round progress"
+               aria-valuemin={0}
+               aria-valuemax={rounds}
+               aria-valuenow={round}
             >
                <div
-                  style={{
-                     width: `${progress}%`,
-                     height: "100%",
-                     background:
-                        "linear-gradient(90deg, var(--accent) 0%, var(--ok) 100%)",
-                     borderRadius: "4px",
-                     transition: "width 0.3s ease",
-                     boxShadow: "0 0 10px rgba(125, 211, 252, 0.5)",
-                  }}
+                  className={css.progressFill}
+                  style={{ transform: `scaleX(${Math.min(1, progress / 100)})` }}
                />
             </div>
          </div>
 
-         {/* Main Content */}
-         <div
-            className={css.main}
-            style={{
-               width: "100%",
-               display: "flex",
-               flexDirection: "column",
-               gap: "32px",
-            }}
-         >
-            {/* Sequence Display */}
-            <div
-               className={css.sequence}
-               style={{
-                  background: "var(--card)",
-                  borderRadius: "20px",
-                  padding: "40px",
-                  boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  gap: "24px",
-                  position: "relative",
-               }}
-            >
-               <div
-                  style={{
-                     fontSize: "1.1rem",
-                     fontWeight: 700,
-                     color: "var(--accent)",
-                     marginBottom: "8px",
-                  }}
-               >
-                  Find the Next Arrow
-               </div>
-               {/* Hint Button */}
+         {/* Sequence */}
+         <div className={`${theme.panel} ${css.panel}`}>
+            <div className={css.panelTop}>
+               <span className={css.panelLabel}>What comes next?</span>
                <button
-                  className={css.hint}
+                  type="button"
+                  className={`${theme.btn} ${css.hint} ${showHint ? css.hintOn : ""}`}
                   onClick={() => setShowHint(!showHint)}
                   disabled={isRoundComplete}
-                  style={{
-                     position: "absolute",
-                     top: "16px",
-                     right: "16px",
-                     background: showHint
-                        ? "rgba(125, 211, 252, 0.2)"
-                        : "rgba(125, 211, 252, 0.1)",
-                     border: "2px solid var(--accent)",
-
-                     padding: "8px 16px",
-                     fontSize: "0.875rem",
-                     fontWeight: 600,
-                     color: "var(--accent)",
-                     cursor: isRoundComplete ? "not-allowed" : "pointer",
-                     display: "flex",
-                     alignItems: "center",
-                     gap: "6px",
-                     transition: "all 0.3s ease",
-                     opacity: isRoundComplete ? 0.5 : 1,
-                  }}
-                  onMouseEnter={(e) => {
-                     if (!isRoundComplete) {
-                        e.currentTarget.style.background =
-                           "rgba(125, 211, 252, 0.3)";
-                     }
-                  }}
-                  onMouseLeave={(e) => {
-                     if (!isRoundComplete) {
-                        e.currentTarget.style.background = showHint
-                           ? "rgba(125, 211, 252, 0.2)"
-                           : "rgba(125, 211, 252, 0.1)";
-                     }
-                  }}
+                  aria-pressed={showHint}
                >
-                  <LightBulbIcon style={{ width: 16, height: 16 }} />
-                  {showHint ? "Hide Hint" : "Show Hint"}
+                  <LightBulbIcon className={css.hintIcon} aria-hidden="true" />
+                  {showHint ? "Hide hint" : "Show hint"}
                </button>
-               {/* Hint Display */}
-               {showHint && (
-                  <div
-                     style={{
-                        width: "100%",
-                        background: "rgba(125, 211, 252, 0.1)",
-                        border: "1px solid var(--accent)",
-
-                        padding: "12px",
-                        fontSize: "0.875rem",
-                        color: "var(--text)",
-                        marginTop: "-16px",
-                        marginBottom: "8px",
-                        textAlign: "center",
-                        fontWeight: 600,
-                     }}
-                  >
-                     <span style={{ color: "var(--accent)" }}>Pattern: </span>
-                     {patternType}
-                  </div>
-               )}
-               <div
-                  style={{
-                     display: "flex",
-                     gap: "16px",
-                     justifyContent: "center",
-                     alignItems: "center",
-                     flexWrap: "wrap",
-                  }}
-               >
-                  {sequence.map((arrow, i) => (
+            </div>
+            {showHint && (
+               <div className={`${css.hintText} ${theme.fadeUp}`}>
+                  <span className={css.hintLabel}>Pattern: </span>
+                  {patternType}
+               </div>
+            )}
+            <div
+               key={`seq-${round}`}
+               className={`${css.sequence} ${theme.stagger}`}
+               style={{ "--n": sequence.length } as CSSProperties}
+               role="list"
+               aria-label="Arrow sequence"
+            >
+               {sequence.map((arrow, i) => {
+                  const isGap = arrow === "?";
+                  const revealed = isGap && feedback !== null && !!correctArrow;
+                  return (
                      <div
                         key={i}
-                        style={{
-                           display: "flex",
-                           alignItems: "center",
-                           justifyContent: "center",
-                           width: "64px",
-                           height: "64px",
-                           background:
-                              arrow === "?"
-                                 ? "rgba(125, 211, 252, 0.2)"
-                                 : "rgba(255, 255, 255, 0.05)",
-
-                           fontSize: arrow === "?" ? "1.5rem" : "inherit",
-                           fontWeight: arrow === "?" ? 700 : 400,
-                           color:
-                              arrow === "?" ? "var(--accent)" : "var(--text)",
-                        }}
+                        role="listitem"
+                        className={`${css.tile} ${isGap ? css.tileGap : ""} ${
+                           revealed ? css.tileSolved : ""
+                        }`}
+                        style={{ "--i": i } as CSSProperties}
+                        aria-label={isGap ? (revealed ? `next: ${correctArrow}` : "missing arrow") : arrow}
                      >
-                        {arrow === "?" ? "?" : arrowMap[arrow]}
+                        {isGap ? (
+                           revealed ? (
+                              <span key="solved" className={`${css.tileInner} ${theme.reveal}`}>
+                                 {arrowMap[correctArrow]}
+                              </span>
+                           ) : (
+                              <span className={css.question}>?</span>
+                           )
+                        ) : (
+                           arrowMap[arrow]
+                        )}
                      </div>
-                  ))}
-               </div>
-            </div>
-
-            {/* Options */}
-            <div
-               className={css.options}
-               style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(4, 1fr)",
-                  gap: "16px",
-               }}
-            >
-               {options.map((arrow, i) => {
-                  const isSelectedOption = selected === i;
-                  const showFeedback = isSelectedOption && feedback !== null;
-
-                  return (
-                     <button
-                        key={i}
-                        className={`${css.option} ${showFeedback ? (feedback === "correct" ? mobile.pop : mobile.shake) : ""}`}
-                        onClick={() => handleSelect(i)}
-                        disabled={isRoundComplete}
-                        style={{
-                           background:
-                              showFeedback && feedback === "correct"
-                                 ? "linear-gradient(135deg, rgba(134,239,172,0.3) 0%, rgba(134,239,172,0.1) 100%)"
-                                 : showFeedback && feedback === "wrong"
-                                 ? "linear-gradient(135deg, rgba(252,165,165,0.3) 0%, rgba(252,165,165,0.1) 100%)"
-                                 : "var(--card)",
-                           border:
-                              showFeedback && feedback === "correct"
-                                 ? "2px solid var(--ok)"
-                                 : showFeedback && feedback === "wrong"
-                                 ? "2px solid var(--warn)"
-                                 : "2px solid var(--stroke)",
-                           borderRadius: "16px",
-                           cursor: isRoundComplete ? "not-allowed" : "pointer",
-                           transition: "all 0.3s ease",
-                           transform: isSelectedOption
-                              ? "scale(0.95)"
-                              : "scale(1)",
-                           boxShadow: isSelectedOption
-                              ? "0 8px 20px rgba(125, 211, 252, 0.4)"
-                              : "0 4px 12px rgba(0, 0, 0, 0.2)",
-                           opacity:
-                              isRoundComplete && !isSelectedOption ? 0.5 : 1,
-                           padding: "20px",
-                           position: "relative",
-                           display: "flex",
-                           flexDirection: "column",
-                           alignItems: "center",
-                           gap: "8px",
-                        }}
-                        onMouseEnter={(e) => {
-                           if (!isRoundComplete) {
-                              e.currentTarget.style.transform = "scale(1.05)";
-                              e.currentTarget.style.boxShadow =
-                                 "0 8px 20px rgba(125, 211, 252, 0.4)";
-                           }
-                        }}
-                        onMouseLeave={(e) => {
-                           if (!isRoundComplete) {
-                              e.currentTarget.style.transform = isSelectedOption
-                                 ? "scale(0.95)"
-                                 : "scale(1)";
-                              e.currentTarget.style.boxShadow = isSelectedOption
-                                 ? "0 8px 20px rgba(125, 211, 252, 0.4)"
-                                 : "0 4px 12px rgba(0, 0, 0, 0.2)";
-                           }
-                        }}
-                     >
-                        <div
-                           style={{
-                              position: "absolute",
-                              top: "8px",
-                              right: "8px",
-                              background: "rgba(125, 211, 252, 0.2)",
-                              borderRadius: "50%",
-                              width: "24px",
-                              height: "24px",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              fontSize: "0.75rem",
-                              fontWeight: 700,
-                              color: "var(--accent)",
-                           }}
-                        >
-                           {i + 1}
-                        </div>
-                        <div
-                           style={{
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                           }}
-                        >
-                           {arrowMap[arrow]}
-                        </div>
-                        {showFeedback && feedback === "correct" && (
-                           <CheckCircleIcon
-                              style={{
-                                 width: 24,
-                                 height: 24,
-                                 color: "var(--ok)",
-                                 position: "absolute",
-                                 top: "8px",
-                                 left: "8px",
-                              }}
-                           />
-                        )}
-                        {showFeedback && feedback === "wrong" && (
-                           <XCircleIcon
-                              style={{
-                                 width: 24,
-                                 height: 24,
-                                 color: "var(--warn)",
-                                 position: "absolute",
-                                 top: "8px",
-                                 left: "8px",
-                              }}
-                           />
-                        )}
-                     </button>
                   );
                })}
             </div>
          </div>
 
-         {/* Feedback Message */}
-         {feedback !== null && (
-            <div
-               style={{
-                  padding: "16px 24px",
+         {/* Options */}
+         <div
+            key={`opts-${round}`}
+            className={`${theme.options} ${css.options} ${css.enter}`}
+            role="group"
+            aria-label="Answer choices"
+         >
+            {options.map((arrow, i) => {
+               const isSelectedOption = selected === i;
+               const showFeedback = isSelectedOption && feedback !== null;
+               const cls = [
+                  theme.option,
+                  css.option,
+                  showFeedback && feedback === "correct" ? `${css.optCorrect} ${css.fx} ${theme.pop}` : "",
+                  showFeedback && feedback === "wrong" ? `${css.optWrong} ${css.fx} ${theme.shake}` : "",
+                  isRoundComplete && !isSelectedOption ? css.optDim : "",
+               ]
+                  .filter(Boolean)
+                  .join(" ");
 
-                  fontSize: "1.1rem",
-                  fontWeight: 600,
-                  animation: "slideIn 0.3s ease-out",
-                  background:
-                     feedback === "correct"
-                        ? "rgba(134, 239, 172, 0.2)"
-                        : "rgba(252, 165, 165, 0.2)",
-                  border: `1px solid ${
-                     feedback === "correct" ? "var(--ok)" : "var(--warn)"
-                  }`,
-                  color: feedback === "correct" ? "var(--ok)" : "var(--warn)",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "10px",
-                  position: "fixed",
-                  bottom: "24px",
-                  left: "50%",
-                  transform: "translateX(-50%)",
-                  zIndex: 1000,
-                  backdropFilter: "blur(10px)",
-                  boxShadow:
-                     feedback === "correct"
-                        ? "0 6px 24px rgba(134, 239, 172, 0.4)"
-                        : "0 6px 24px rgba(252, 165, 165, 0.4)",
-               }}
-            >
-               {feedback === "correct" ? (
-                  <>
-                     <CheckCircleIcon style={{ width: 24, height: 24 }} />
-                     <span>Correct! Great job!</span>
-                  </>
-               ) : (
-                  <>
-                     <XCircleIcon style={{ width: 24, height: 24 }} />
-                     <span>Try again!</span>
-                  </>
-               )}
-            </div>
-         )}
+               return (
+                  <button
+                     key={i}
+                     type="button"
+                     className={cls}
+                     style={{ "--i": i } as CSSProperties}
+                     onClick={() => handleSelect(i)}
+                     disabled={isRoundComplete}
+                     aria-label={`Option ${i + 1}: ${arrow}`}
+                  >
+                     <span className={css.keyBadge} aria-hidden="true">
+                        {i + 1}
+                     </span>
+                     {arrowMap[arrow]}
+                     {showFeedback && feedback === "correct" && (
+                        <CheckCircleIcon className={css.mark} aria-hidden="true" />
+                     )}
+                     {showFeedback && feedback === "wrong" && (
+                        <XCircleIcon className={css.mark} aria-hidden="true" />
+                     )}
+                  </button>
+               );
+            })}
+         </div>
+
+         {/* Feedback (in flow, fixed height: nothing jumps and nothing hides under a bottom bar) */}
+         <div className={theme.feedbackSlot} aria-live="polite">
+            {feedback !== null && (
+               <div
+                  className={`${theme.feedback} ${
+                     feedback === "correct" ? theme.feedbackOk : theme.feedbackWarn
+                  }`}
+               >
+                  {feedback === "correct" ? "Correct, well read." : "Not quite. The answer is shown above."}
+               </div>
+            )}
+         </div>
       </div>
    );
 }

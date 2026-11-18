@@ -1,0 +1,281 @@
+/* Face Memory: the face tiles (a face, its number and its name) and the name picker. The shared
+   chrome (panel, stats, progress, pills, feedback) comes from mobile.module.css. Tiles keep their size
+   in every state: selection and hints are an inset ring and a fill, never a border or scale change. */
+
+.wrap {
+   width: 100%;
+   display: flex;
+   flex-direction: column;
+   gap: 20px;
+}
+
+/* the one-line instruction above the faces */
+.prompt {
+   margin: 0;
+   padding: 14px 18px;
+   border-radius: 14px;
+   text-align: center;
+   font-size: 1.05rem;
+   font-weight: 600;
+   color: var(--text);
+   background: rgba(255, 255, 255, 0.04);
+   border: 1px solid var(--stroke);
+   animation: promptIn 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.promptRecall {
+   background: rgba(var(--accent-rgb, 231, 95, 64), 0.08);
+   border-color: rgba(var(--accent-rgb, 231, 95, 64), 0.35);
+}
+
+.grid {
+   display: grid;
+   gap: 12px;
+   width: 100%;
+}
+
+.tile {
+   position: relative;
+   box-sizing: border-box;
+   min-width: 0;
+   display: flex;
+   flex-direction: column;
+   align-items: center;
+   gap: 12px;
+   padding: 18px 12px;
+   border: 0;
+   border-radius: 14px;
+   background: rgba(255, 255, 255, 0.04);
+   box-shadow: inset 0 0 0 1px var(--stroke);
+   color: var(--text);
+   font: inherit;
+   cursor: default;
+   touch-action: manipulation;
+   -webkit-tap-highlight-color: transparent;
+   user-select: none;
+   -webkit-user-select: none;
+   transition:
+      background-color 0.2s ease,
+      box-shadow 0.2s ease,
+      transform 0.1s ease;
+}
+
+.tileActive {
+   cursor: pointer;
+}
+
+.tileActive:hover {
+   box-shadow: inset 0 0 0 1px rgba(var(--accent-rgb, 231, 95, 64), 0.6);
+}
+
+.tileActive:active {
+   transform: scale(0.96);
+}
+
+.tile:focus-visible {
+   outline: 2px solid rgba(var(--accent-rgb, 231, 95, 64), 1);
+   outline-offset: 2px;
+}
+
+.tileMemo {
+   background: rgba(var(--accent-rgb, 231, 95, 64), 0.07);
+   box-shadow: inset 0 0 0 1px rgba(var(--accent-rgb, 231, 95, 64), 0.3);
+}
+
+.tileHint {
+   background: rgba(var(--accent-rgb, 231, 95, 64), 0.1);
+   box-shadow: inset 0 0 0 2px rgba(var(--accent-rgb, 231, 95, 64), 0.55);
+}
+
+.tileSelected,
+.tileSelected:hover {
+   background: rgba(var(--accent-rgb, 231, 95, 64), 0.14);
+   box-shadow: inset 0 0 0 3px rgba(var(--accent-rgb, 231, 95, 64), 1);
+}
+
+/* the face itself (emoji are content) */
+.avatar {
+   position: relative;
+   width: 80px;
+   height: 80px;
+   flex: none;
+   border-radius: 50%;
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   font-size: 40px;
+   line-height: 1;
+   background: rgba(255, 255, 255, 0.05);
+   box-shadow: inset 0 0 0 1px var(--stroke);
+}
+
+/* the face's number (keys 1-6) */
+.num {
+   position: absolute;
+   top: -6px;
+   right: -6px;
+   min-width: 24px;
+   height: 24px;
+   padding: 0 6px;
+   box-sizing: border-box;
+   border-radius: 999px;
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   font-size: 0.75rem;
+   font-weight: 700;
+   font-variant-numeric: tabular-nums;
+   color: #fff;
+   background: rgba(var(--accent-rgb, 231, 95, 64), 1);
+}
+
+.name {
+   min-height: 1.4em;
+   font-size: 1rem;
+   font-weight: 700;
+   color: var(--text);
+   text-align: center;
+   overflow-wrap: anywhere;
+}
+
+.nameEmpty {
+   color: var(--muted);
+   font-weight: 600;
+}
+
+.nameHint {
+   color: rgba(var(--accent-rgb, 231, 95, 64), 1);
+}
+
+/* name picker */
+.pickLabel {
+   margin: 0;
+   font-size: 1rem;
+   font-weight: 600;
+   color: var(--text);
+   text-align: center;
+}
+
+.names {
+   display: flex;
+   flex-wrap: wrap;
+   gap: 10px;
+   justify-content: center;
+}
+
+.nameBtn {
+   display: inline-flex;
+   align-items: center;
+   gap: 10px;
+   padding: 10px 18px 10px 10px;
+   border-radius: 999px;
+   border: 1px solid var(--stroke);
+   background: rgba(255, 255, 255, 0.04);
+   color: var(--text);
+   font: inherit;
+   font-size: 1rem;
+   font-weight: 600;
+   cursor: pointer;
+   animation: promptIn 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
+   animation-delay: calc(var(--i, 0) * 30ms);
+}
+
+.nameBtn:hover {
+   background: rgba(255, 255, 255, 0.08);
+   border-color: rgba(var(--accent-rgb, 231, 95, 64), 0.55);
+}
+
+.nameBtnOn,
+.nameBtnOn:hover {
+   background: rgba(var(--accent-rgb, 231, 95, 64), 0.16);
+   border-color: rgba(var(--accent-rgb, 231, 95, 64), 1);
+}
+
+.key {
+   width: 24px;
+   height: 24px;
+   flex: none;
+   border-radius: 999px;
+   display: inline-flex;
+   align-items: center;
+   justify-content: center;
+   font-size: 0.75rem;
+   font-weight: 700;
+   font-variant-numeric: tabular-nums;
+   color: #fff;
+   background: rgba(var(--accent-rgb, 231, 95, 64), 1);
+}
+
+.actions {
+   display: flex;
+   flex-wrap: wrap;
+   gap: 10px;
+   justify-content: center;
+   width: 100%;
+}
+
+.notes {
+   display: flex;
+   flex-direction: column;
+   align-items: center;
+   gap: 8px;
+   width: 100%;
+}
+
+@keyframes promptIn {
+   from {
+      opacity: 0;
+      transform: translateY(6px);
+   }
+   to {
+      opacity: 1;
+      transform: translateY(0);
+   }
+}
+
+@media (max-width: 767px) {
+   .wrap {
+      gap: 14px;
+   }
+   .prompt {
+      padding: 12px 14px;
+      font-size: 0.95rem;
+   }
+   .tile {
+      padding: 14px 10px;
+      gap: 10px;
+   }
+   .avatar {
+      width: 64px;
+      height: 64px;
+      font-size: 32px;
+   }
+   .num {
+      min-width: 20px;
+      height: 20px;
+      font-size: 0.7rem;
+   }
+   .name {
+      font-size: 0.9rem;
+   }
+   .pickLabel {
+      font-size: 0.9rem;
+   }
+   .nameBtn {
+      font-size: 0.9rem;
+      padding: 8px 14px 8px 8px;
+   }
+   .actions > button {
+      width: 100%;
+   }
+}
+
+@media (prefers-reduced-motion: reduce) {
+   .prompt,
+   .nameBtn {
+      animation: none;
+   }
+   .tile {
+      transition: none;
+   }
+}

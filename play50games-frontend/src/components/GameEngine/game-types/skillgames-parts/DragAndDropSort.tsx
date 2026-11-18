@@ -24,6 +24,8 @@ import {
 } from "@/lib/api/share";
 
 import touch from "./skillTouch.module.css";
+import ui from "./skillUi.module.css";
+import s from "./DragAndDropSort.module.css";
 import { usePlayAreaInView } from "./usePlayAreaInView";
 
 interface DragAndDropSortProps {
@@ -630,6 +632,18 @@ export default function DragAndDropSort({
    const [replaysUsed, setReplaysUsed] = useState(0);
    const [hasShared, setHasShared] = useState(false);
    const [shareSuccess, setShareSuccess] = useState(false);
+   // Hides the "shared" notice after 15 s; cleared on unmount
+   const shareSuccessTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+      null
+   );
+   useEffect(
+      () => () => {
+         if (shareSuccessTimeoutRef.current) {
+            clearTimeout(shareSuccessTimeoutRef.current);
+         }
+      },
+      []
+   );
    const [unlimitedActivated, setUnlimitedActivated] = useState(false);
    const [currentShareId, setCurrentShareId] = useState<string | null>(null);
    const shareCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -649,6 +663,7 @@ export default function DragAndDropSort({
 
    const sortRef = useRef<HTMLDivElement>(null);
    const [wrongDrop, setWrongDrop] = useState<string | null>(null); // feedback only: the zone that shakes
+   const [dragOverCat, setDragOverCat] = useState<string | null>(null); // mouse drag-over highlight only
    // the drop zone under the finger while a touch drag is on (highlight only; the drop test is unchanged)
    const hoverCategory = (() => {
       if (!touchDragItemId || !touchDragPos) return null;
@@ -709,6 +724,9 @@ export default function DragAndDropSort({
          countdownTimerRef.current = null;
       }
    }, []);
+
+   // Stop the countdown when the game unmounts (it kept running before)
+   useEffect(() => () => clearAll(), [clearAll]);
 
    useEffect(() => {
       if (gameState !== "playing") return;
@@ -1158,7 +1176,13 @@ export default function DragAndDropSort({
                url: shareableLink,
             });
             setShareSuccess(true);
-            setTimeout(() => setShareSuccess(false), 15000);
+            if (shareSuccessTimeoutRef.current) {
+               clearTimeout(shareSuccessTimeoutRef.current);
+            }
+            shareSuccessTimeoutRef.current = setTimeout(
+               () => setShareSuccess(false),
+               15000
+            );
          } catch (error: any) {
             if (error.name !== "AbortError") {
                handleCopyLink(shareId);
@@ -1176,7 +1200,13 @@ export default function DragAndDropSort({
       try {
          await navigator.clipboard.writeText(shareableLink);
          setShareSuccess(true);
-         setTimeout(() => setShareSuccess(false), 15000);
+         if (shareSuccessTimeoutRef.current) {
+            clearTimeout(shareSuccessTimeoutRef.current);
+         }
+         shareSuccessTimeoutRef.current = setTimeout(
+            () => setShareSuccess(false),
+            15000
+         );
       } catch (error) {
          const textArea = document.createElement("textarea");
          textArea.value = shareableLink;
@@ -1187,7 +1217,13 @@ export default function DragAndDropSort({
          try {
             document.execCommand("copy");
             setShareSuccess(true);
-            setTimeout(() => setShareSuccess(false), 15000);
+            if (shareSuccessTimeoutRef.current) {
+               clearTimeout(shareSuccessTimeoutRef.current);
+            }
+            shareSuccessTimeoutRef.current = setTimeout(
+               () => setShareSuccess(false),
+               15000
+            );
          } catch (err) {
             // Failed to copy
          }
@@ -1399,79 +1435,31 @@ export default function DragAndDropSort({
          ? levelConfig.minCorrect
          : Number(levelConfig.minCorrect) || 0;
 
+   const replayLocked = maxReplays > 0 && replaysUsed >= maxReplays;
+   const binColumns = isMobile
+      ? categories.length === 1
+         ? "minmax(0, 1fr)"
+         : "repeat(2, minmax(0, 1fr))"
+      : categories.length <= 3
+        ? `repeat(${Math.max(1, categories.length)}, minmax(0, 1fr))`
+        : "repeat(2, minmax(0, 1fr))";
+   const ghostItem =
+      touchDragItemId && touchDragPos && touchDragOffset
+         ? itemList.find((i) => i.id === touchDragItemId) ?? null
+         : null;
+
    return (
       <>
-         <div
-         ref={rootRef}
-            style={{
-               display: "flex",
-               flexDirection: "column",
-               alignItems: "center",
-               gap: isMobile ? "16px" : "20px",
-               width: "100%",
-               maxWidth: "800px",
-               margin: "0 auto",
-               padding: isMobile ? "12px" : "16px",
-            }}
-         >
+         <div ref={rootRef} className={ui.root}>
             {/* Header Section */}
-            <div
-               style={{
-                  width: "100%",
-                  maxWidth: "800px",
-                  background: "var(--card)",
-                  borderRadius: isMobile ? "16px" : "20px",
-                  padding: isMobile ? "16px" : "20px",
-                  boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: isMobile ? "12px" : "16px",
-               }}
-            >
-               <div
-                  style={{
-                     display: "flex",
-                     alignItems: "center",
-                     justifyContent: "space-between",
-                     flexWrap: "wrap",
-                     gap: isMobile ? "8px" : "12px",
-                  }}
-               >
-                  <span
-                     style={{
-                        fontSize: isMobile ? "0.875rem" : "1rem",
-                        fontWeight: 600,
-                        color: "var(--text)",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "6px",
-                     }}
-                  >
-                     <ArrowPathIcon
-                        style={{
-                           width: isMobile ? 14 : 16,
-                           height: isMobile ? 14 : 16,
-                        }}
-                     />
+            <div className={ui.hud}>
+               <div className={ui.hudRow}>
+                  <span className={ui.hudStat}>
+                     <ArrowPathIcon className={ui.hudIcon} />
                      Level {currentLevel + 1}/{maxLevels}
                   </span>
-                  <span
-                     style={{
-                        fontSize: isMobile ? "0.875rem" : "1rem",
-                        fontWeight: 600,
-                        color: "var(--text)",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "6px",
-                     }}
-                  >
-                     <TrophyIcon
-                        style={{
-                           width: isMobile ? 14 : 16,
-                           height: isMobile ? 14 : 16,
-                           color: "var(--ok)",
-                        }}
-                     />
+                  <span className={ui.hudStat}>
+                     <TrophyIcon className={ui.hudIconOk} />
                      Score:{" "}
                      {requirementsMet &&
                      lastCompletedLevelRef.current === currentLevel &&
@@ -1481,122 +1469,42 @@ export default function DragAndDropSort({
                      / 100
                   </span>
                   <span
-                     style={{
-                        fontSize: isMobile ? "0.875rem" : "1rem",
-                        fontWeight: 600,
-                        color: "var(--text)",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "6px",
-                     }}
+                     className={`${ui.hudStat} ${gameState === "playing" && timeLeft <= 5 ? ui.hudLow : ""}`}
                   >
-                     <ClockIcon
-                        style={{
-                           width: isMobile ? 14 : 16,
-                           height: isMobile ? 14 : 16,
-                           color: "var(--accent)",
-                        }}
-                     />
+                     <ClockIcon className={ui.hudIconAccent} />
                      {timeLeft}s
                   </span>
                </div>
                {/* Progress Bar */}
-               <div
-                  style={{
-                     width: "100%",
-                     height: isMobile ? "6px" : "8px",
-                     background: "rgba(255, 255, 255, 0.1)",
-                     borderRadius: "999px",
-                     overflow: "hidden",
-                  }}
-               >
+               <div className={ui.progressTrack}>
                   <div
-                     style={{
-                        width: `${progressPercentage}%`,
-                        height: "100%",
-                        background:
-                           "linear-gradient(90deg, var(--accent) 0%, var(--ok) 100%)",
-                        borderRadius: "999px",
-                        transition: "width 0.3s ease",
-                        boxShadow: "0 0 10px rgba(125, 211, 252, 0.5)",
-                     }}
+                     className={ui.progressFill}
+                     style={{ transform: `scaleX(${progressPercentage / 100})` }}
                   />
                </div>
             </div>
 
             {/* Stats Display */}
             {gameState === "playing" && (
-               <div
-                  style={{
-                     display: "flex",
-                     gap: isMobile ? "8px" : "12px",
-                     flexWrap: "wrap",
-                     justifyContent: "center",
-                     width: "100%",
-                     maxWidth: "800px",
-                  }}
-               >
-                  <div
-                     style={{
-                        background:
-                           "linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(34, 197, 94, 0.1))",
-                        border: "1px solid rgba(34, 197, 94, 0.4)",
-
-                        padding: "10px 16px",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "8px",
-                     }}
-                  >
-                     <CheckCircleIcon
-                        style={{
-                           width: isMobile ? 18 : 20,
-                           height: isMobile ? 18 : 20,
-                           color: "var(--ok)",
-                        }}
-                     />
-                     <span
-                        style={{
-                           fontSize: "1rem",
-                           fontWeight: 600,
-                           color: "var(--text)",
-                        }}
-                     >
+               <div className={ui.statRow}>
+                  <div className={ui.statOk}>
+                     <CheckCircleIcon className={ui.statIconOk} />
+                     <span>
                         Correct:{" "}
-                        <span key={correctlySorted} className={touch.pop} style={{ display: "inline-block" }}>
+                        <span key={correctlySorted} className={ui.bump}>
                            {correctlySorted}
                         </span>
                         /{minCorrect}
                      </span>
                   </div>
                   {incorrectlySorted > 0 && (
-                     <div
-                        style={{
-                           background:
-                              "linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(239, 68, 68, 0.1))",
-                           border: "1px solid rgba(239, 68, 68, 0.4)",
-
-                           padding: "10px 16px",
-                           display: "flex",
-                           alignItems: "center",
-                           gap: "8px",
-                        }}
-                     >
-                        <XCircleIcon
-                           style={{
-                              width: isMobile ? 18 : 20,
-                              height: isMobile ? 18 : 20,
-                              color: "var(--warn)",
-                           }}
-                        />
-                        <span
-                           style={{
-                              fontSize: "1rem",
-                              fontWeight: 600,
-                              color: "var(--text)",
-                           }}
-                        >
-                           Incorrect: {incorrectlySorted}
+                     <div className={ui.statWarn}>
+                        <XCircleIcon className={ui.statIconWarn} />
+                        <span>
+                           Incorrect:{" "}
+                           <span key={incorrectlySorted} className={ui.bump}>
+                              {incorrectlySorted}
+                           </span>
                         </span>
                      </div>
                   )}
@@ -1605,360 +1513,136 @@ export default function DragAndDropSort({
 
             {/* Game Arena */}
             {gameState === "playing" ? (
-               <div
-                  ref={sortRef}
-                  data-play-area=""
-                  style={{
-                     width: "100%",
-                     maxWidth: "800px",
-                     display: "flex",
-                     flexDirection: "column",
-                     gap: isMobile ? "16px" : "20px",
-                  }}
-               >
+               <div ref={sortRef} data-play-area="" className={s.board}>
                   {/* Items to Sort */}
                   {itemList.length > 0 && (
-                     <div
-                        style={{
-                           background: "var(--card)",
-                           borderRadius: "var(--radius)",
-                           padding: isMobile ? "16px" : "20px",
-                           boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
-                        }}
-                     >
-                        <div
-                           style={{
-                              display: "flex",
-                              flexDirection: "column",
-                              gap: "8px",
-                              marginBottom: "12px",
-                           }}
-                        >
-                           <div
-                              style={{
-                                 display: "flex",
-                                 alignItems: "center",
-                                 gap: "8px",
-                              }}
-                           >
-                              <HandRaisedIcon
-                                 style={{
-                                    width: isMobile ? 18 : 20,
-                                    height: isMobile ? 18 : 20,
-                                    color: "var(--accent)",
-                                 }}
-                              />
-                              <h3
-                                 style={{
-                                    fontSize: isMobile ? "1rem" : "1.1rem",
-                                    fontWeight: 600,
-                                    color: "var(--text)",
-                                    margin: 0,
-                                 }}
-                              >
-                                 Drag & drop
-                              </h3>
-                           </div>
+                     <div className={s.pool}>
+                        <div className={s.poolHead}>
+                           <HandRaisedIcon className={s.poolIcon} />
+                           <h3 className={s.poolTitle}>Drag & drop</h3>
                         </div>
-                        <div
-                           style={{
-                              display: "flex",
-                              flexWrap: "wrap",
-                              gap: isMobile ? "8px" : "12px",
-                              justifyContent: "center",
-                           }}
-                        >
+                        <div className={s.items}>
                            {itemList.map((item) => (
                               <div
                                  key={item.id}
                                  data-item-id={item.id}
                                  draggable
                                  onDragStart={() => handleDragStart(item.id)}
+                                 onDragEnd={() => setDragOverCat(null)}
                                  onTouchStart={(e) =>
                                     handleTouchStart(item.id, e)
                                  }
                                  onTouchMove={handleTouchMove}
                                  onTouchEnd={handleTouchEnd}
                                  onTouchCancel={handleTouchEnd}
-                                 style={{
-                                    display: "flex",
-                                    flexDirection: "column",
-                                    alignItems: "center",
-                                    justifyContent: "center",
-                                    gap: "4px",
-                                    padding: isMobile
-                                       ? "12px 16px"
-                                       : "14px 20px",
-                                    background:
-                                       "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
-                                    border: "2px solid rgba(59, 130, 246, 0.4)",
-
-                                    cursor: "grab",
-                                    userSelect: "none",
-                                    fontSize: isMobile ? "1rem" : "1.1rem",
-                                    fontWeight: 600,
-                                    color: "var(--text)",
-                                    transition:
-                                       touchDragItemId === item.id
-                                          ? "none"
-                                          : "all 0.2s ease",
-                                    boxShadow:
-                                       touchDragItemId === item.id
-                                          ? "0 14px 28px rgba(0, 0, 0, 0.45)"
-                                          : undefined,
-                                    minWidth: isMobile ? "60px" : "70px",
-                                    minHeight: "48px",
-                                    touchAction: "none",
-                                    WebkitTouchCallout: "none",
-                                    zIndex: touchDragItemId === item.id ? 5 : 1,
-                                    transform:
-                                       touchDragItemId === item.id &&
-                                       touchDragPos &&
-                                       touchDragOffset
-                                          ? "translate3d(0, 0, 0) scale(1.08)"
-                                          : undefined,
-                                    left:
-                                       touchDragItemId === item.id &&
-                                       touchDragPos &&
-                                       touchDragOffset
-                                          ? touchDragPos.x - touchDragOffset.x
-                                          : undefined,
-                                    top:
-                                       touchDragItemId === item.id &&
-                                       touchDragPos &&
-                                       touchDragOffset
-                                          ? touchDragPos.y - touchDragOffset.y
-                                          : undefined,
-                                    position:
-                                       touchDragItemId === item.id
-                                          ? "fixed"
-                                          : "relative",
-                                 }}
-                                 onMouseEnter={(e) => {
-                                    e.currentTarget.style.transform =
-                                       "scale(1.05)";
-                                    e.currentTarget.style.cursor = "grabbing";
-                                 }}
-                                 onMouseLeave={(e) => {
-                                    e.currentTarget.style.transform =
-                                       "scale(1)";
-                                    e.currentTarget.style.cursor = "grab";
-                                 }}
+                                 className={`${s.item} ${touchDragItemId === item.id ? s.itemPlaceholder : ""}`}
                               >
-                                 <div
-                                    style={{
-                                       display: "flex",
-                                       alignItems: "center",
-                                       justifyContent: "center",
-                                       gap: "6px",
-                                    }}
-                                 >
-                                    {item.emoji}
-                                 </div>
+                                 {item.emoji}
                               </div>
                            ))}
                         </div>
                      </div>
                   )}
 
-                  <div
-                     style={{
-                        display: "grid",
-                        gridTemplateColumns: isMobile
-                           ? categories.length === 1
-                              ? "1fr"
-                              : "repeat(2, minmax(0, 1fr))"
-                           : categories.length <= 3
-                           ? `repeat(${categories.length}, 1fr)`
-                           : "repeat(2, 1fr)",
-                        gap: isMobile ? "12px" : "16px",
-                     }}
-                  >
-                     {categories.map((category) => (
-                        <div
-                           key={category.id}
-                           ref={(node) => {
-                              categoryRefs.current[category.id] = node;
-                           }}
-                           onDragOver={handleDragOver}
-                           onDrop={() => handleDrop(category.id)}
-                           className={wrongDrop === category.id ? touch.shake : undefined}
-                           style={{
-                              background:
-                                 hoverCategory === category.id
+                  <div className={s.bins} style={{ gridTemplateColumns: binColumns }}>
+                     {categories.map((category) => {
+                        const over =
+                           hoverCategory === category.id ||
+                           dragOverCat === category.id;
+                        return (
+                           <div
+                              key={category.id}
+                              ref={(node) => {
+                                 categoryRefs.current[category.id] = node;
+                              }}
+                              onDragOver={handleDragOver}
+                              onDragEnter={() => setDragOverCat(category.id)}
+                              onDragLeave={(e) => {
+                                 const next = e.relatedTarget as Node | null;
+                                 if (!next || !e.currentTarget.contains(next)) {
+                                    setDragOverCat((cur) =>
+                                       cur === category.id ? null : cur
+                                    );
+                                 }
+                              }}
+                              onDrop={() => {
+                                 setDragOverCat(null);
+                                 handleDrop(category.id);
+                              }}
+                              className={`${s.bin} ${
+                                 wrongDrop === category.id
+                                    ? `${s.binWrong} ${touch.shake}`
+                                    : over
+                                      ? s.binOver
+                                      : ""
+                              }`}
+                              // the bin's own colour is content (and globals.css matches it in the final games)
+                              style={{
+                                 background: over
                                     ? category.color.replace("0.2", "0.35")
                                     : category.color,
-                              border:
-                                 hoverCategory === category.id
-                                    ? "2px solid rgba(96, 165, 250, 0.95)"
-                                    : wrongDrop === category.id
-                                      ? "2px solid rgba(239, 68, 68, 0.9)"
-                                      : "2px dashed rgba(255, 255, 255, 0.3)",
-                              boxShadow:
-                                 hoverCategory === category.id
-                                    ? "0 0 18px rgba(96, 165, 250, 0.35)"
-                                    : undefined,
-                              borderRadius: "var(--radius)",
-                              padding: isMobile ? "12px" : "20px",
-                              minHeight: isMobile ? "96px" : "150px",
-                              minWidth: 0,
-                              display: "flex",
-                              flexDirection: "column",
-                              gap: "12px",
-                              transition: "all 0.2s ease",
-                              cursor: "pointer",
-                           }}
-                           onDragEnter={(e) => {
-                              e.currentTarget.style.border =
-                                 "2px dashed rgba(59, 130, 246, 0.8)";
-                              e.currentTarget.style.background =
-                                 category.color.replace("0.2", "0.3");
-                           }}
-                           onDragLeave={(e) => {
-                              e.currentTarget.style.border =
-                                 "2px dashed rgba(255, 255, 255, 0.3)";
-                              e.currentTarget.style.background = category.color;
-                           }}
-                        >
-                           <div
-                              style={{
-                                 display: "flex",
-                                 alignItems: "center",
-                                 gap: "8px",
-                                 marginBottom: "8px",
                               }}
                            >
-                              <h4
-                                 style={{
-                                    fontSize: isMobile ? "0.95rem" : "1.05rem",
-                                    fontWeight: 700,
-                                    color: "var(--text)",
-                                    margin: 0,
-                                 }}
-                              >
-                                 {category.name}
-                              </h4>
+                              <h4 className={s.binTitle}>{category.name}</h4>
+                              <div className={s.binItems}>
+                                 {category.items.map((item, index) => {
+                                    const isCorrect = isItemCorrect(
+                                       item,
+                                       category.id
+                                    );
+                                    return (
+                                       <div
+                                          key={`${item.id}-${index}`}
+                                          className={
+                                             isCorrect ? s.placedOk : s.placedWarn
+                                          }
+                                       >
+                                          {item.emoji}
+                                          {isCorrect ? (
+                                             <CheckCircleIcon className={s.placedIconOk} />
+                                          ) : (
+                                             <XCircleIcon className={s.placedIconWarn} />
+                                          )}
+                                       </div>
+                                    );
+                                 })}
+                              </div>
                            </div>
-                           <div
-                              style={{
-                                 display: "flex",
-                                 flexWrap: "wrap",
-                                 gap: "8px",
-                                 flex: 1,
-                                 alignItems: "flex-start",
-                                 alignContent: "flex-start",
-                              }}
-                           >
-                              {category.items.map((item, index) => {
-                                 const isCorrect = isItemCorrect(
-                                    item,
-                                    category.id
-                                 );
-                                 return (
-                                    <div
-                                       key={`${item.id}-${index}`}
-                                       style={{
-                                          display: "flex",
-                                          alignItems: "center",
-                                          justifyContent: "center",
-                                          gap: "4px",
-                                          padding: isMobile
-                                             ? "8px 12px"
-                                             : "10px 14px",
-                                          background: isCorrect
-                                             ? "rgba(34, 197, 94, 0.3)"
-                                             : "rgba(239, 68, 68, 0.3)",
-                                          border: `2px solid ${
-                                             isCorrect
-                                                ? "rgba(34, 197, 94, 0.6)"
-                                                : "rgba(239, 68, 68, 0.6)"
-                                          }`,
-                                          borderRadius: "8px",
-                                          fontSize: isMobile
-                                             ? "0.9rem"
-                                             : "1rem",
-                                          fontWeight: 600,
-                                          color: "var(--text)",
-                                          minWidth: isMobile ? "50px" : "60px",
-                                       }}
-                                    >
-                                       {item.emoji}
-                                       {isCorrect ? (
-                                          <CheckCircleIcon
-                                             style={{
-                                                width: 14,
-                                                height: 14,
-                                                color: "var(--ok)",
-                                             }}
-                                          />
-                                       ) : (
-                                          <XCircleIcon
-                                             style={{
-                                                width: 14,
-                                                height: 14,
-                                                color: "var(--warn)",
-                                             }}
-                                          />
-                                       )}
-                                    </div>
-                                 );
-                              })}
-                           </div>
-                        </div>
-                     ))}
+                        );
+                     })}
                   </div>
+
+                  {/* the tile that follows a finger drag (moved by transform only) */}
+                  {ghostItem && touchDragPos && touchDragOffset && (
+                     <div
+                        aria-hidden="true"
+                        className={`${s.item} ${s.ghost}`}
+                        style={{
+                           transform: `translate3d(${touchDragPos.x - touchDragOffset.x}px, ${
+                              touchDragPos.y - touchDragOffset.y
+                           }px, 0) scale(1.06)`,
+                           transition: "none",
+                        }}
+                     >
+                        {ghostItem.emoji}
+                     </div>
+                  )}
                </div>
             ) : null}
 
             {/* Ready for Next Round Message */}
             {gameState === "ready" && currentLevel + 1 < maxLevels && (
-               <div
-                  style={{
-                     padding: isMobile ? "20px 24px" : "24px 32px",
-                     background: "var(--card)",
-                     borderRadius: "var(--radius)",
-                     color: "var(--text)",
-                     fontSize: isMobile ? "1rem" : "1.1rem",
-                     fontWeight: 700,
-                     textAlign: "center",
-                     border: "1px solid var(--border)",
-                  }}
-               >
-                  <div style={{ marginBottom: "16px" }}>
-                     Level {currentLevel + 1} Complete!
-                  </div>
-                  <div
-                     style={{
-                        fontSize: isMobile ? "0.9rem" : "1rem",
-                        fontWeight: 400,
-                        marginBottom: "20px",
-                        color: "var(--text-secondary)",
-                     }}
-                  >
-                     Correctly sorted: {correctlySorted}/{minCorrect}
+               <div className={ui.card}>
+                  <div className={ui.cardTitle}>Level {currentLevel + 1} Complete!</div>
+                  <div className={ui.cardBody}>
+                     Correctly sorted: <strong>{correctlySorted}/{minCorrect}</strong>
                      <br />
                      All items sorted!
                   </div>
                   <button
-                  className={touch.tapButton}
+                     className={ui.buttonPrimary}
                      onClick={handleNextRound}
                      disabled={nextRoundLocked}
-                     style={{
-                        padding: isMobile ? "12px 24px" : "14px 28px",
-                        background: nextRoundLocked
-                           ? "rgba(100, 100, 100, 0.2)"
-                           : "linear-gradient(135deg, rgba(134, 239, 172, 0.25), rgba(134, 239, 172, 0.12))",
-                        border: nextRoundLocked
-                           ? "1px solid rgba(100, 100, 100, 0.4)"
-                           : "2px solid rgba(134, 239, 172, 0.6)",
-
-                        color: "var(--text)",
-                        fontSize: isMobile ? "1rem" : "1.05rem",
-                        fontWeight: 700,
-                        cursor: nextRoundLocked ? "not-allowed" : "pointer",
-                        opacity: nextRoundLocked ? 0.5 : 1,
-                        transition: "all 0.3s ease",
-                     }}
                   >
                      Next Round
                   </button>
@@ -1984,77 +1668,25 @@ export default function DragAndDropSort({
                   }
 
                   return (
-                     <div
-                        style={{
-                           padding: isMobile ? "20px 24px" : "24px 32px",
-                           background: "var(--card)",
-                           borderRadius: "var(--radius)",
-                           color: "var(--text)",
-                           fontSize: isMobile ? "1rem" : "1.1rem",
-                           fontWeight: 700,
-                           textAlign: "center",
-                           border: "1px solid var(--border)",
-                        }}
-                     >
-                        <div
-                           style={{
-                              marginBottom: "16px",
-                              color: "var(--warn)",
-                           }}
-                        >
-                           Level {currentLevel + 1} Failed
-                        </div>
-                        <div
-                           style={{
-                              fontSize: isMobile ? "0.9rem" : "1rem",
-                              fontWeight: 600,
-                              marginBottom: "12px",
-                              color: "var(--warn)",
-                           }}
-                        >
-                           {failureReason}
-                        </div>
-                        <div
-                           style={{
-                              fontSize: isMobile ? "0.9rem" : "1rem",
-                              fontWeight: 400,
-                              marginBottom: "8px",
-                              color: "var(--text-secondary)",
-                           }}
-                        >
-                           <div
-                              style={{
-                                 marginBottom: "4px",
-                                 display: "flex",
-                                 alignItems: "center",
-                                 gap: "4px",
-                                 justifyContent: "center",
-                              }}
-                           >
+                     <div className={ui.card}>
+                        <div className={ui.cardTitleWarn}>Level {currentLevel + 1} Failed</div>
+                        {failureReason && (
+                           <div className={ui.cardBody} style={{ color: "var(--warn)", fontWeight: 600 }}>
+                              {failureReason}
+                           </div>
+                        )}
+                        <div className={ui.cardBody}>
+                           <span className={s.reasons}>
                               <span>
                                  Correct: Need {minCorrect} | You got{" "}
                                  {correctlySorted}
                               </span>
                               {correctMet ? (
-                                 <CheckCircleIcon
-                                    style={{
-                                       width: isMobile ? 16 : 18,
-                                       height: isMobile ? 16 : 18,
-                                       color: "var(--ok)",
-                                       flexShrink: 0,
-                                    }}
-                                 />
+                                 <CheckCircleIcon className={ui.statIconOk} />
                               ) : (
-                                 <XCircleIcon
-                                    style={{
-                                       width: isMobile ? 16 : 18,
-                                       height: isMobile ? 16 : 18,
-                                       color: "var(--warn)",
-                                       flexShrink: 0,
-                                    }}
-                                 />
+                                 <XCircleIcon className={ui.statIconWarn} />
                               )}
-                           </div>
+                           </span>
                            {itemList.length > 0 && (
                               <div style={{ marginTop: "8px" }}>
                                  Items remaining: {itemList.length}
@@ -2073,66 +1705,21 @@ export default function DragAndDropSort({
                currentLevel === maxLevels - 1 &&
                requirementsMet &&
                lastCompletedLevelRef.current === currentLevel && (
-                  <div
-                     style={{
-                        padding: isMobile ? "20px 24px" : "24px 32px",
-                        background: "var(--card)",
-                        borderRadius: "var(--radius)",
-                        color: "var(--text)",
-                        fontSize: isMobile ? "1rem" : "1.1rem",
-                        fontWeight: 700,
-                        textAlign: "center",
-                        border: "1px solid var(--border)",
-                     }}
-                  >
-                     <div style={{ marginBottom: "16px", color: "var(--ok)" }}>
-                        Game Complete!
-                     </div>
-                     <div
-                        style={{
-                           fontSize: isMobile ? "0.9rem" : "1rem",
-                           fontWeight: 400,
-                           marginBottom: "20px",
-                           color: "var(--text-secondary)",
-                        }}
-                     >
+                  <div className={ui.card}>
+                     <div className={ui.cardTitleOk}>Game Complete!</div>
+                     <div className={ui.cardBody}>
                         All {maxLevels} levels completed!
                         <br />
-                        Final Score: {currentScore}
+                        Final Score: <strong>{currentScore}</strong>
                      </div>
                   </div>
                )}
 
             {/* Action Buttons: Replay, Share */}
-            <div
-               style={{
-                  display: "flex",
-                  gap: "12px",
-                  justifyContent: "center",
-                  flexWrap: "wrap",
-                  padding: isMobile ? "12px" : "16px",
-                  background: "var(--card)",
-
-                  width: "100%",
-                  maxWidth: "800px",
-               }}
-            >
+            <div className={ui.actions}>
                {/* Share Success Message */}
                {shareSuccess && !unlimitedActivated && (
-                  <div
-                     style={{
-                        width: "100%",
-                        padding: "12px",
-                        background: "rgba(134, 239, 172, 0.2)",
-                        border: "2px solid rgba(134, 239, 172, 0.6)",
-                        borderRadius: "8px",
-                        fontSize: isMobile ? "0.9rem" : "1rem",
-                        fontWeight: 600,
-                        color: "var(--ok)",
-                        textAlign: "center",
-                        marginBottom: "8px",
-                     }}
-                  >
+                  <div className={ui.notice}>
                      Link copied! Unlimited replay will unlock when someone
                      opens your link!
                   </div>
@@ -2140,82 +1727,17 @@ export default function DragAndDropSort({
 
                {/* Unlimited Activated Message */}
                {unlimitedActivated && (
-                  <div
-                     style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: isMobile ? "6px" : "8px",
-                        padding: isMobile ? "10px 14px" : "8px 16px",
-                        background:
-                           "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
-                        border: "2px solid rgba(59, 130, 246, 0.6)",
-                        borderRadius: isMobile ? "10px" : "8px",
-                        color: "var(--text)",
-                        fontSize: isMobile ? "0.85rem" : "0.9rem",
-                        fontWeight: 500,
-                        width: "100%",
-                        justifyContent: "center",
-                        textAlign: "center",
-                        flexWrap: "wrap",
-                        marginBottom: "8px",
-                     }}
-                  >
-                     <CheckCircleIcon
-                        style={{
-                           width: isMobile ? 16 : 18,
-                           height: isMobile ? 16 : 18,
-                           color: "rgba(59, 130, 246, 0.9)",
-                           flexShrink: 0,
-                        }}
-                     />
+                  <div className={ui.notice}>
+                     <CheckCircleIcon className={ui.noticeIcon} />
                      <span>
-                        🎉 Someone opened your link! Unlimited replay is now
+                        Someone opened your link! Unlimited replay is now
                         active for 15 minutes!
                      </span>
                   </div>
                )}
 
-               <button
-                  className={touch.tapButton}
-                  onClick={handleReplay}
-                  disabled={maxReplays > 0 && replaysUsed >= maxReplays}
-                  style={{
-                     display: "flex",
-                     alignItems: "center",
-                     gap: isMobile ? "6px" : "8px",
-                     padding: isMobile ? "10px 16px" : "10px 20px",
-                     width: isMobile ? "100%" : "auto",
-                     background:
-                        maxReplays > 0 && replaysUsed >= maxReplays
-                           ? "rgba(100, 100, 100, 0.2)"
-                           : "linear-gradient(135deg, rgba(125, 211, 252, 0.2), rgba(125, 211, 252, 0.1))",
-                     border:
-                        maxReplays > 0 && replaysUsed >= maxReplays
-                           ? "1px solid rgba(100, 100, 100, 0.4)"
-                           : "1px solid rgba(125, 211, 252, 0.6)",
-
-                     color: "var(--text)",
-                     fontSize: isMobile ? "0.85rem" : "0.95rem",
-                     fontWeight: 600,
-                     cursor:
-                        maxReplays > 0 && replaysUsed >= maxReplays
-                           ? "not-allowed"
-                           : "pointer",
-                     opacity:
-                        maxReplays > 0 && replaysUsed >= maxReplays ? 0.5 : 1,
-                     transition: "all 0.3s ease",
-                  }}
-               >
-                  <ArrowPathRoundedSquareIcon
-                     style={{
-                        width: isMobile ? 18 : 20,
-                        height: isMobile ? 18 : 20,
-                        color:
-                           maxReplays > 0 && replaysUsed >= maxReplays
-                              ? "var(--muted)"
-                              : "var(--accent)",
-                     }}
-                  />
+               <button className={ui.button} onClick={handleReplay} disabled={replayLocked}>
+                  <ArrowPathRoundedSquareIcon className={ui.buttonIcon} />
                   <span>
                      {"Replay "}
                      {maxReplays === 0
@@ -2224,33 +1746,8 @@ export default function DragAndDropSort({
                   </span>
                </button>
 
-               <button
-                  className={touch.tapButton}
-                  onClick={handleShare}
-                  style={{
-                     display: "flex",
-                     alignItems: "center",
-                     gap: isMobile ? "6px" : "8px",
-                     padding: isMobile ? "10px 16px" : "10px 20px",
-                     width: isMobile ? "100%" : "auto",
-                     background:
-                        "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
-                     border: "2px solid rgba(59, 130, 246, 0.6)",
-
-                     color: "var(--text)",
-                     fontSize: isMobile ? "0.85rem" : "0.95rem",
-                     fontWeight: 600,
-                     cursor: "pointer",
-                     transition: "all 0.3s ease",
-                  }}
-               >
-                  <ShareIcon
-                     style={{
-                        width: isMobile ? 18 : 20,
-                        height: isMobile ? 18 : 20,
-                        color: "var(--accent)",
-                     }}
-                  />
+               <button className={ui.button} onClick={handleShare}>
+                  <ShareIcon className={ui.buttonIcon} />
                   <span>Share for unlimited</span>
                </button>
             </div>

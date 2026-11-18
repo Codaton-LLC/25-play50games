@@ -1,4 +1,7 @@
-/* Shape Pop (WhackShape): layout and feedback styles for the mobile/tablet pass. Rules live in the component. */
+/* Shape Pop (WhackShape): layout and feedback styles (mobile/tablet pass + modern pass). Rules live in the
+   component. Shape scale: panels 16 px, buttons 12 px, messages 10 px, bars / chips / badges pill. One
+   accent (the site --accent, gold in the final games through the variable); ok / warn tints are
+   colour-mixed from --ok / --warn. The blue of the shapes is game content and stays in the component. */
 
 .root {
    display: flex;
@@ -10,13 +13,45 @@
    padding-bottom: calc(env(safe-area-inset-bottom) + 12px);
 }
 
+/* numbers that change (level, score, time, counters) keep their width */
+.header,
+.notice {
+   font-variant-numeric: tabular-nums;
+}
+
+.header {
+   box-shadow: inset 0 0 0 1px var(--stroke);
+}
+
+.notice {
+   color: var(--text);
+   box-shadow: inset 0 0 0 1px var(--stroke);
+}
+
+.progress {
+   width: 100%;
+   height: 8px;
+   background: var(--stroke);
+   border-radius: 999px;
+   overflow: hidden;
+}
+
+/* a full-width solid accent fill, scaled from the left (the component sets transform: scaleX(p)) */
+.progressFill {
+   width: 100%;
+   height: 100%;
+   background: var(--accent);
+   transform-origin: left center;
+   transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
 .arena {
    position: relative;
    width: 100%;
    background: var(--card);
    border-radius: 16px;
    overflow: hidden;
-   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+   box-shadow: inset 0 0 0 1px var(--stroke);
 }
 
 /* One beat of colour on the arena edge for a hit / a miss (inset so overflow: hidden cannot clip it). */
@@ -47,6 +82,14 @@
    justify-content: center;
 }
 
+.shape:focus-visible {
+   outline: 2px solid var(--text);
+   outline-offset: 3px;
+}
+
+/* The whacked shape lives 200 ms more (component timer): a pop for a hit, a shake for a miss. Both use the
+   individual scale / translate properties, so the inline transform (centre + rotation) is left alone and
+   nothing in the layout moves. */
 .shapeHit {
    animation: wsPop 0.2s ease-out both;
 }
@@ -61,8 +104,8 @@
    align-items: center;
    gap: 10px;
    padding: 8px 16px;
-   background: linear-gradient(135deg, rgba(59, 130, 246, 0.22), rgba(59, 130, 246, 0.1));
-   border: 2px solid rgba(59, 130, 246, 0.6);
+   background: rgba(var(--accent-rgb, 125, 211, 252), 0.12);
+   border: 1px solid rgba(var(--accent-rgb, 125, 211, 252), 0.5);
    border-radius: 999px;
    font-weight: 700;
    color: var(--text);
@@ -86,12 +129,16 @@
    color: var(--warn);
 }
 
-/* The Correct / Mistake chip, pinned inside the arena so it never shifts the layout below. */
+/* The Correct / Mistake chip, pinned inside the arena so it never shifts the layout below. Centred with
+   auto margins (not a transform), so the fade-up animation cannot push it off centre; an opaque tinted
+   fill, so its text stays readable when a shape passes underneath. */
 .chip {
    position: absolute;
-   left: 50%;
+   left: 0;
+   right: 0;
    bottom: 12px;
-   transform: translateX(-50%);
+   width: fit-content;
+   margin: 0 auto;
    display: flex;
    align-items: center;
    gap: 8px;
@@ -102,18 +149,22 @@
    white-space: nowrap;
    pointer-events: none;
    z-index: 10;
+   color: var(--text);
+   font-variant-numeric: tabular-nums;
 }
 
 .chipOk {
-   background: rgba(134, 239, 172, 0.18);
-   border: 2px solid rgba(134, 239, 172, 0.6);
-   color: var(--ok);
+   background: color-mix(in srgb, var(--ok) 22%, var(--bg, #0b0f1a));
+   border: 1px solid color-mix(in srgb, var(--ok) 60%, transparent);
 }
 
 .chipBad {
-   background: rgba(252, 165, 165, 0.18);
-   border: 2px solid rgba(252, 165, 165, 0.6);
-   color: var(--warn);
+   background: color-mix(in srgb, var(--warn) 22%, var(--bg, #0b0f1a));
+   border: 1px solid color-mix(in srgb, var(--warn) 60%, transparent);
+}
+
+.actions {
+   box-shadow: inset 0 0 0 1px var(--stroke);
 }
 
 .btn {
@@ -121,53 +172,108 @@
    border-radius: 12px;
    justify-content: center;
    box-sizing: border-box;
+   color: var(--text);
+   font-weight: 600;
+   cursor: pointer;
+   font-variant-numeric: tabular-nums;
+}
+
+.btn:disabled {
+   cursor: not-allowed;
+}
+
+.btn:focus-visible {
+   outline: 2px solid var(--text);
+   outline-offset: 2px;
+}
+
+/* Replay and Share: one look (accent tint, 1 px accent border). The accent is gold in the final games. */
+.btnTint {
+   background: rgba(var(--accent-rgb, 125, 211, 252), 0.14);
+   border: 1px solid rgba(var(--accent-rgb, 125, 211, 252), 0.55);
+}
+
+.btnTint:disabled {
+   background: rgba(255, 255, 255, 0.04);
+   border-color: var(--stroke);
+   color: var(--muted);
+   opacity: 0.6;
+}
+
+@media (hover: hover) {
+   .btnTint:not(:disabled):hover {
+      background: rgba(var(--accent-rgb, 125, 211, 252), 0.22);
+   }
+
+   /* Next Round keeps its inline green fill (the final games recolour it by that string) */
+   .btnOk:hover {
+      filter: brightness(1.15);
+   }
+}
+
+/* The "unlimited replay is active" message. */
+.msgInfo {
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   flex-wrap: wrap;
+   width: 100%;
+   box-sizing: border-box;
+   background: rgba(var(--accent-rgb, 125, 211, 252), 0.14);
+   border: 1px solid rgba(var(--accent-rgb, 125, 211, 252), 0.55);
+   border-radius: 10px;
+   color: var(--text);
+   font-weight: 500;
+   text-align: center;
 }
 
 @keyframes wsPop {
    0% {
       opacity: 1;
+      scale: 1;
    }
    50% {
       opacity: 1;
-      filter: brightness(1.3);
+      scale: 1.12;
    }
    100% {
       opacity: 0;
+      scale: 1;
    }
 }
 
 @keyframes wsShake {
    0% {
       opacity: 1;
-      margin-left: 0;
+      translate: 0 0;
    }
    30% {
-      margin-left: -5px;
+      translate: -6px 0;
    }
    60% {
-      margin-left: 5px;
+      translate: 6px 0;
    }
    100% {
       opacity: 0;
-      margin-left: 0;
+      translate: 0 0;
    }
 }
 
 @keyframes wsFlashOk {
    0% {
-      box-shadow: inset 0 0 0 4px rgba(134, 239, 172, 0.85);
+      box-shadow: inset 0 0 0 4px color-mix(in srgb, var(--ok) 85%, transparent);
    }
    100% {
-      box-shadow: inset 0 0 0 0 rgba(134, 239, 172, 0);
+      box-shadow: inset 0 0 0 0 color-mix(in srgb, var(--ok) 0%, transparent);
    }
 }
 
 @keyframes wsFlashBad {
    0% {
-      box-shadow: inset 0 0 0 4px rgba(248, 113, 113, 0.85);
+      box-shadow: inset 0 0 0 4px color-mix(in srgb, var(--warn) 85%, transparent);
    }
    100% {
-      box-shadow: inset 0 0 0 0 rgba(248, 113, 113, 0);
+      box-shadow: inset 0 0 0 0 color-mix(in srgb, var(--warn) 0%, transparent);
    }
 }
 
@@ -177,5 +283,9 @@
    .shapeHit,
    .shapeMiss {
       animation: none;
+   }
+
+   .progressFill {
+      transition: none;
    }
 }

@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import theme from "./theme.module.css";
 import css from "./MirrorMatch.module.css";
-import mobile from "./mobile.module.css";
 import {
    ArrowLeftIcon,
    ArrowRightIcon,
@@ -22,10 +22,6 @@ import {
    FingerPrintIcon,
    CheckCircleIcon,
    XCircleIcon,
-   ArrowPathIcon,
-   TrophyIcon,
-   SparklesIcon,
-   ScaleIcon,
 } from "@heroicons/react/24/outline";
 
 function MirrorMatch({
@@ -103,6 +99,22 @@ function MirrorMatch({
    const onCompleteRef = useRef(onComplete);
    const onRoundCompleteRef = useRef(onRoundComplete);
    const handleSelectRef = useRef<(index: number) => void>();
+   // every pending timeout (next round, delayed onComplete), cleared on unmount
+   const timersRef = useRef<Set<number>>(new Set());
+   const later = useCallback((fn: () => void, ms: number) => {
+      const id = window.setTimeout(() => {
+         timersRef.current.delete(id);
+         fn();
+      }, ms);
+      timersRef.current.add(id);
+   }, []);
+   useEffect(() => {
+      const timers = timersRef.current;
+      return () => {
+         timers.forEach((id) => window.clearTimeout(id));
+         timers.clear();
+      };
+   }, []);
 
    // Update refs when callbacks change
    useEffect(() => {
@@ -944,14 +956,14 @@ function MirrorMatch({
             setIsRoundComplete(true);
 
             // Wrong answer - move to next round after 1 second
-            setTimeout(() => {
+            later(() => {
                if (round >= rounds) {
                   // Game complete
                   if (!completionCalledRef.current) {
                      completionCalledRef.current = true;
                      const finalScore = Math.round((score / rounds) * 100);
                      onScoreUpdateRef.current(finalScore);
-                     setTimeout(() => {
+                     later(() => {
                         onCompleteRef.current?.(finalScore);
                      }, 1000);
                   }
@@ -982,14 +994,14 @@ function MirrorMatch({
             onScoreUpdateRef.current(roundScore);
 
             // Move to next round after 1.5 seconds
-            setTimeout(() => {
+            later(() => {
                if (round >= rounds) {
                   // Game complete
                   if (!completionCalledRef.current) {
                      completionCalledRef.current = true;
                      const finalScore = Math.round((newScore / rounds) * 100);
                      onScoreUpdateRef.current(finalScore);
-                     setTimeout(() => {
+                     later(() => {
                         onCompleteRef.current?.(finalScore);
                      }, 1000);
                   }
@@ -1002,14 +1014,14 @@ function MirrorMatch({
             }, 1500);
          } else {
             // Wrong answer - move to next round after 1 second
-            setTimeout(() => {
+            later(() => {
                if (round >= rounds) {
                   // Game complete
                   if (!completionCalledRef.current) {
                      completionCalledRef.current = true;
                      const finalScore = Math.round((score / rounds) * 100);
                      onScoreUpdateRef.current(finalScore);
-                     setTimeout(() => {
+                     later(() => {
                         onCompleteRef.current?.(finalScore);
                      }, 1000);
                   }
@@ -1022,7 +1034,7 @@ function MirrorMatch({
             }, 1000);
          }
       },
-      [round, rounds, score, options, isRoundComplete]
+      [round, rounds, score, options, isRoundComplete, later]
    );
 
    // Update handleSelect ref
@@ -1057,364 +1069,137 @@ function MirrorMatch({
       return () => window.removeEventListener("keydown", handleKeyPress);
    }, [options.length, isRoundComplete]);
 
+   const mirrorLabel = mirrorType.charAt(0).toUpperCase() + mirrorType.slice(1);
+
+   // global class names kept for the stage rules (mirror-match-game, game-header, header-title h2);
+   // everything else is the theme + this game's module
    return (
-      <div className={`mirror-match-game ${css.root}`}>
+      <div className={`mirror-match-game ${theme.game} ${css.root}`}>
          {/* Header */}
-         <div className="game-header">
-            <div className="header-title">
-               <ScaleIcon className="title-icon" />
-               <h2>Mirror Match</h2>
-               <EyeIcon className="title-icon-secondary" />
+         <div className={`game-header ${css.header}`}>
+            <div className={`header-title ${css.headerTitle}`}>
+               <h2 className={`${theme.title} ${css.title}`}>Mirror Match</h2>
             </div>
-            <div className="header-stats">
-               <div className="stat-item">
-                  <ArrowPathIcon className="stat-icon" />
-                  <span>
-                     Round {round} / {rounds}
-                  </span>
-               </div>
-               <div className="stat-item">
-                  <TrophyIcon className="stat-icon" />
-                  <span>
-                     Score: {score} / {rounds * 5}
-                  </span>
-               </div>
+            <p className={theme.subtitle}>Pick the shape flipped the way the card asks.</p>
+            <div className={theme.chips}>
+               <span className={theme.chip}>
+                  Round <strong>{round}</strong> / {rounds}
+               </span>
+               <span className={theme.chip}>
+                  Score <strong>{score}</strong> / {rounds * 5}
+               </span>
             </div>
-            <div className="progress-bar-container">
-               <div
-                  style={{
-                     width: `${progress}%`,
-                     height: "100%",
-                     background:
-                        "linear-gradient(90deg, var(--accent) 0%, var(--ok) 100%)",
-                     borderRadius: "4px",
-                     transition: "width 0.3s",
-                     boxShadow: "rgba(125, 211, 252, 0.5) 0px 0px 10px",
-                  }}
-               />
+            <div
+               className={css.progress}
+               role="progressbar"
+               aria-valuemin={0}
+               aria-valuemax={rounds}
+               aria-valuenow={round}
+               aria-label="Round progress"
+            >
+               <div className={css.progressFill} style={{ transform: `scaleX(${Math.min(1, progress / 100)})` }} />
             </div>
          </div>
 
-         {/* Main Content */}
-         <div className="mirror-match-content">
-            {/* Main Shape */}
-            <div
-               className={css.target}
-               style={{
-                  background: "var(--card)",
-                  borderRadius: "20px",
-                  padding: "40px",
-                  boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
-                  minHeight: "200px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  position: "relative",
-                  width: "100%",
-                  maxWidth: "600px",
-               }}
-            >
-               <div
-                  style={{
-                     position: "absolute",
-                     top: "12px",
-                     right: "12px",
-                     background: "rgba(125, 211, 252, 0.2)",
-                     borderRadius: "50%",
-                     padding: "8px",
-                     display: "flex",
-                     alignItems: "center",
-                     justifyContent: "center",
-                  }}
-               >
-                  <SparklesIcon
-                     style={{ width: 20, height: 20, color: "var(--accent)" }}
-                  />
+         {/* Main Content: keyed by round, so each new round fades in once */}
+         <div key={round} className={css.content}>
+            <div className={`${theme.panel} ${css.target}`}>
+               <div className={css.targetBox}>
+                  <span className={`${css.shape} ${theme.reveal}`}>{getSVGShape(mainShape, 120)}</span>
                </div>
-               <div
-                  style={{
-                     display: "flex",
-                     flexDirection: "column",
-                     alignItems: "center",
-                     gap: "16px",
-                  }}
-               >
-                  <div
-                     style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        animation: "pulse 2s ease-in-out infinite",
-                     }}
-                  >
-                     <span className={css.shape}>{getSVGShape(mainShape, 120)}</span>
-                  </div>
-                  <div
-                     style={{
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "center",
-                        gap: "8px",
-                     }}
-                  >
-                     <span
-                        style={{
-                           fontSize: "1.1rem",
-                           fontWeight: 700,
-                           color: "var(--accent)",
-                        }}
-                     >
-                        Find the Mirror
-                     </span>
-                     <span
-                        style={{
-                           fontSize: "0.9rem",
-                           color: "var(--muted)",
-                           display: "flex",
-                           alignItems: "center",
-                           gap: "8px",
-                        }}
-                     >
-                        Mirror Type:{" "}
-                        <span
-                           style={{
-                              padding: "4px 12px",
-                              background: "rgba(125, 211, 252, 0.15)",
-                              border: "1px solid var(--accent)",
-                              borderRadius: "8px",
-                              color: "var(--accent)",
-                              fontWeight: 600,
-                              fontSize: "0.85rem",
-                           }}
-                        >
-                           {mirrorType.charAt(0).toUpperCase() +
-                              mirrorType.slice(1)}
-                        </span>
-                     </span>
-                  </div>
+               <div className={css.ask}>
+                  <span className={css.askTitle}>Find the mirror</span>
+                  <span className={css.askType}>
+                     Mirror type <span className={css.typeBadge}>{mirrorLabel}</span>
+                  </span>
                </div>
             </div>
 
-            {/* Options */}
             <div
                className={css.options}
-               style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))",
-                  gap: "20px",
-                  width: "100%",
-                  maxWidth: "800px",
-               }}
+               style={{ ["--cols" as any]: Math.max(1, Math.min(options.length, 4)) }}
+               role="group"
+               aria-label="Answers"
             >
                {options.map((option, index) => {
                   const isSelectedOption = selected === index;
-                  const isCorrectSelection =
-                     isSelectedOption && feedback === "correct";
-                  const isIncorrectSelection =
-                     isSelectedOption && feedback === "wrong";
+                  const isCorrectSelection = isSelectedOption && feedback === "correct";
+                  const isIncorrectSelection = isSelectedOption && feedback === "wrong";
+                  // after a miss, the right answer is outlined so the round teaches something
+                  const isAnswer = option.optionKey === mirrorType;
+                  const showAnswer = isRoundComplete && feedback === "wrong" && isAnswer && !isSelectedOption;
+                  const isDimmed = isRoundComplete && !isSelectedOption && !showAnswer;
+
+                  const cls = [
+                     theme.option,
+                     css.option,
+                     isSelectedOption && feedback !== null ? css.picked : "",
+                     isCorrectSelection ? `${theme.correct} ${theme.pop}` : "",
+                     isIncorrectSelection ? `${theme.wrong} ${theme.shake}` : "",
+                     showAnswer ? css.answer : "",
+                     isDimmed ? css.dimmed : "",
+                  ]
+                     .filter(Boolean)
+                     .join(" ");
 
                   return (
                      <button
                         key={index}
-                        className={`${css.option} ${isCorrectSelection ? mobile.pop : isIncorrectSelection ? mobile.shake : ""}`}
+                        type="button"
+                        className={cls}
                         onClick={() => handleSelect(index)}
                         disabled={isRoundComplete}
-                        style={{
-                           background: isCorrectSelection
-                              ? "linear-gradient(135deg, rgba(134,239,172,0.3) 0%, rgba(134,239,172,0.1) 100%)"
-                              : isIncorrectSelection
-                              ? "linear-gradient(135deg, rgba(252,165,165,0.3) 0%, rgba(252,165,165,0.1) 100%)"
-                              : "var(--card)",
-                           border: isCorrectSelection
-                              ? "2px solid var(--ok)"
-                              : isIncorrectSelection
-                              ? "2px solid var(--warn)"
-                              : "2px solid var(--stroke)",
-                           borderRadius: "16px",
-                           cursor: isRoundComplete ? "not-allowed" : "pointer",
-                           transition: "all 0.3s ease",
-                           transform: isSelectedOption
-                              ? "scale(0.95)"
-                              : "scale(1)",
-                           boxShadow: isSelectedOption
-                              ? "0 8px 20px rgba(125, 211, 252, 0.4)"
-                              : "0 4px 12px rgba(0, 0, 0, 0.2)",
-                           opacity:
-                              isRoundComplete && !isSelectedOption ? 0.5 : 1,
-                           padding: "20px",
-                           position: "relative",
-                        }}
-                        onMouseEnter={(e) => {
-                           if (!isRoundComplete) {
-                              e.currentTarget.style.transform = "scale(1.05)";
-                              e.currentTarget.style.boxShadow =
-                                 "0 8px 20px rgba(125, 211, 252, 0.4)";
-                           }
-                        }}
-                        onMouseLeave={(e) => {
-                           if (!isRoundComplete) {
-                              e.currentTarget.style.transform = isSelectedOption
-                                 ? "scale(0.95)"
-                                 : "scale(1)";
-                              e.currentTarget.style.boxShadow = isSelectedOption
-                                 ? "0 8px 20px rgba(125, 211, 252, 0.4)"
-                                 : "0 4px 12px rgba(0, 0, 0, 0.2)";
-                           }
-                        }}
+                        style={{ ["--i" as any]: index }}
+                        aria-label={`Answer ${index + 1}${
+                           isCorrectSelection ? ", correct" : isIncorrectSelection ? ", wrong" : showAnswer ? ", the right answer" : ""
+                        }`}
                      >
-                        <div
+                        <span className={css.key} aria-hidden="true">
+                           {index + 1}
+                        </span>
+                        {(isCorrectSelection || isIncorrectSelection) && (
+                           <span
+                              className={`${css.mark} ${isCorrectSelection ? css.markOk : css.markWarn}`}
+                              aria-hidden="true"
+                           >
+                              {isCorrectSelection ? (
+                                 <CheckCircleIcon className={css.markIcon} />
+                              ) : (
+                                 <XCircleIcon className={css.markIcon} />
+                              )}
+                           </span>
+                        )}
+                        <span
+                           className={css.optShape}
                            style={{
-                              display: "flex",
-                              flexDirection: "column",
-                              alignItems: "center",
-                              gap: "12px",
-                              position: "relative",
+                              transform: option.isMirror
+                                 ? applyMirror(option.shape, option.mirrorType).transform
+                                 : "none",
                            }}
                         >
-                           {isCorrectSelection && (
-                              <div
-                                 style={{
-                                    position: "absolute",
-                                    top: "-8px",
-                                    right: "-8px",
-                                    background: "var(--ok)",
-                                    borderRadius: "50%",
-                                    padding: "4px",
-                                    display: "flex",
-                                    alignItems: "center",
-                                    justifyContent: "center",
-                                    zIndex: 10,
-                                    boxShadow:
-                                       "0 4px 12px rgba(134, 239, 172, 0.5)",
-                                 }}
-                              >
-                                 <CheckCircleIcon
-                                    style={{
-                                       width: 20,
-                                       height: 20,
-                                       color: "var(--bg)",
-                                    }}
-                                 />
-                              </div>
-                           )}
-                           {isIncorrectSelection && (
-                              <div
-                                 style={{
-                                    position: "absolute",
-                                    top: "-8px",
-                                    right: "-8px",
-                                    background: "var(--warn)",
-                                    borderRadius: "50%",
-                                    padding: "4px",
-                                    display: "flex",
-                                    alignItems: "center",
-                                    justifyContent: "center",
-                                    zIndex: 10,
-                                    boxShadow:
-                                       "0 4px 12px rgba(252, 165, 165, 0.5)",
-                                 }}
-                              >
-                                 <XCircleIcon
-                                    style={{
-                                       width: 20,
-                                       height: 20,
-                                       color: "var(--bg)",
-                                    }}
-                                 />
-                              </div>
-                           )}
-                           <div
-                              style={{
-                                 display: "flex",
-                                 alignItems: "center",
-                                 justifyContent: "center",
-                                 position: "relative",
-                              }}
-                           >
-                              <div
-                                 style={{
-                                    transform: option.isMirror
-                                       ? applyMirror(
-                                            option.shape,
-                                            option.mirrorType
-                                         ).transform
-                                       : "none",
-                                    transformOrigin: "center",
-                                    transition: "transform 0.3s ease",
-                                    display: "flex",
-                                    alignItems: "center",
-                                    justifyContent: "center",
-                                 }}
-                              >
-                                 {getSVGShape(option.shape, 80)}
-                              </div>
-                           </div>
-                           <div
-                              style={{
-                                 display: "flex",
-                                 flexDirection: "column",
-                                 alignItems: "center",
-                                 gap: "4px",
-                              }}
-                           >
-                              <span
-                                 style={{
-                                    fontSize: "0.75rem",
-                                    fontWeight: 500,
-                                    color: "var(--accent)",
-                                    background: "rgba(125, 211, 252, 0.1)",
-                                    borderRadius: "4px",
-                                    padding: "2px 6px",
-                                    fontFamily: "monospace",
-                                 }}
-                              >
-                                 {index + 1}
-                              </span>
-                           </div>
-                        </div>
+                           {getSVGShape(option.shape, 80)}
+                        </span>
                      </button>
                   );
                })}
             </div>
          </div>
 
-         {/* Feedback Message */}
-         {feedback !== null && (
-            <div
-               className={css.feedback}
-               role="status"
-               style={{
-                  padding: "16px 24px",
-
-                  fontSize: "1.1rem",
-                  fontWeight: 600,
-                  animation: "slideIn 0.3s ease-out",
-                  background:
+         {/* Feedback: a fixed slot so nothing jumps */}
+         <div className={theme.feedbackSlot} aria-live="polite">
+            {feedback !== null && (
+               <div
+                  role="status"
+                  className={`${theme.feedback} ${
                      feedback === "correct"
-                        ? "rgba(134, 239, 172, 0.2)"
-                        : "rgba(252, 165, 165, 0.2)",
-                  border: `1px solid ${
-                     feedback === "correct" ? "var(--ok)" : "var(--warn)"
-                  }`,
-                  color: feedback === "correct" ? "var(--ok)" : "var(--warn)",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "10px",
-               }}
-            >
-               {feedback === "correct" ? (
-                  <>
-                     <CheckCircleIcon style={{ width: 24, height: 24 }} />
-                     <span>Correct! Great job!</span>
-                  </>
-               ) : (
-                  <>
-                     <XCircleIcon style={{ width: 24, height: 24 }} />
-                     <span>Try again! You can do it!</span>
-                  </>
-               )}
-            </div>
-         )}
+                        ? `${theme.feedbackOk} ${theme.pop}`
+                        : `${theme.feedbackWarn} ${theme.shake}`
+                  }`}
+               >
+                  {feedback === "correct" ? "Correct mirror. +5 points" : "Not that one. On to the next round."}
+               </div>
+            )}
+         </div>
       </div>
    );
 }

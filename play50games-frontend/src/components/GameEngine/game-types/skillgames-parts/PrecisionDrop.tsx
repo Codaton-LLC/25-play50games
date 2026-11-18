@@ -17,6 +17,8 @@ import {
 } from "@/lib/api/share";
 
 import touch from "./skillTouch.module.css";
+import ui from "./skillUi.module.css";
+import s from "./PrecisionDrop.module.css";
 import { usePlayAreaInView } from "./usePlayAreaInView";
 
 interface PrecisionDropProps {
@@ -224,6 +226,18 @@ export default function PrecisionDrop({
    const [replaysUsed, setReplaysUsed] = useState(0);
    const [hasShared, setHasShared] = useState(false);
    const [shareSuccess, setShareSuccess] = useState(false);
+   // Hides the "shared" notice after 15 s; cleared on unmount
+   const shareSuccessTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+      null
+   );
+   useEffect(
+      () => () => {
+         if (shareSuccessTimeoutRef.current) {
+            clearTimeout(shareSuccessTimeoutRef.current);
+         }
+      },
+      []
+   );
    const [unlimitedActivated, setUnlimitedActivated] = useState(false);
    const [currentShareId, setCurrentShareId] = useState<string | null>(null);
    const shareCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -297,6 +311,14 @@ export default function PrecisionDrop({
       return canvas.height / dpr - FLOOR_PAD;
    }, []);
 
+   // The object's colour: the stage accent (coral, gold in the final games), read once
+   const objRgbRef = useRef("110, 168, 255");
+   useEffect(() => {
+      const v = getComputedStyle(document.documentElement).getPropertyValue("--accent-rgb").trim();
+      const own = rootRef.current ? getComputedStyle(rootRef.current).getPropertyValue("--accent-rgb").trim() : "";
+      if (own || v) objRgbRef.current = own || v;
+   }, []);
+
    // Draw function (defined before resizeCanvas so it can be used there)
    const draw = useCallback(
       (shakeOffset: number) => {
@@ -329,7 +351,7 @@ export default function PrecisionDrop({
 
          // Floor
          const floorY = getFloorY();
-         ctx.fillStyle = "rgba(255,255,255,.06)";
+         ctx.fillStyle = "rgba(255,255,255,.12)";
          ctx.fillRect(0, floorY, w, 4);
 
          // Target (with shake offset)
@@ -338,19 +360,22 @@ export default function PrecisionDrop({
             const minX = TARGET_MARGIN;
             const maxX = w - TARGET_MARGIN - currentTarget.w;
             const tX = clamp(currentTarget.x + shakeOffset, minX, maxX);
+            // drawn on the live floor (its spawn y is floorY + 6): a canvas that grows after the
+            // level starts no longer leaves the target floating; landing is judged on x only
+            const tY = floorY + 6;
 
             if (targetFlashRef.current) {
                ctx.fillStyle = "rgba(34,197,94,.45)";
                ctx.fillRect(
                   tX,
-                  currentTarget.y,
+                  tY,
                   currentTarget.w,
                   currentTarget.h
                );
                ctx.strokeStyle = "rgba(34,197,94,.95)";
                ctx.strokeRect(
                   tX,
-                  currentTarget.y,
+                  tY,
                   currentTarget.w,
                   currentTarget.h
                );
@@ -358,14 +383,14 @@ export default function PrecisionDrop({
                ctx.fillStyle = "rgba(54,211,153,.22)";
                ctx.fillRect(
                   tX,
-                  currentTarget.y,
+                  tY,
                   currentTarget.w,
                   currentTarget.h
                );
                ctx.strokeStyle = "rgba(54,211,153,.65)";
                ctx.strokeRect(
                   tX,
-                  currentTarget.y,
+                  tY,
                   currentTarget.w,
                   currentTarget.h
                );
@@ -375,7 +400,7 @@ export default function PrecisionDrop({
          // Aiming guide line
          const currentObj = objRef.current;
          if (currentObj && currentObj.state === "aim") {
-            ctx.strokeStyle = "rgba(110,168,255,.25)";
+            ctx.strokeStyle = `rgba(${objRgbRef.current}, .3)`;
             ctx.lineWidth = 2;
             ctx.beginPath();
             ctx.moveTo(currentObj.x, currentObj.y + OBJ_R + 4);
@@ -385,22 +410,22 @@ export default function PrecisionDrop({
 
          // Object
          if (currentObj) {
-            ctx.fillStyle = "rgba(110,168,255,.25)";
+            ctx.fillStyle = `rgba(${objRgbRef.current}, .22)`;
             ctx.beginPath();
             ctx.arc(currentObj.x, currentObj.y, OBJ_R + 4, 0, Math.PI * 2);
             ctx.fill();
 
-            ctx.fillStyle = "rgba(110,168,255,.85)";
+            ctx.fillStyle = `rgba(${objRgbRef.current}, .95)`;
             ctx.beginPath();
             ctx.arc(currentObj.x, currentObj.y, OBJ_R, 0, Math.PI * 2);
             ctx.fill();
 
-            ctx.strokeStyle = "rgba(255,255,255,.14)";
+            ctx.strokeStyle = "rgba(255,255,255,.22)";
             ctx.stroke();
          }
 
          // Helper text
-         ctx.fillStyle = "rgba(166,179,209,.55)";
+         ctx.fillStyle = "rgba(163,172,191,.8)";
          ctx.font = "12px system-ui";
          ctx.fillText(
             window.matchMedia?.("(pointer: coarse)").matches
@@ -568,6 +593,21 @@ export default function PrecisionDrop({
          countdownTimerRef.current = null;
       }
    }, []);
+
+   // Stop the drop loop and the timers when the game unmounts (they kept running before)
+   useEffect(() => () => clearAll(), [clearAll]);
+
+   // A delayed start must not run once the game has exited (unmounted or
+   // stopped), or it would restart the countdown and animation after cleanup.
+   const mountedRef = useRef(true);
+   const isPlayingRef = useRef(isPlaying);
+   isPlayingRef.current = isPlaying;
+   useEffect(() => {
+      mountedRef.current = true;
+      return () => {
+         mountedRef.current = false;
+      };
+   }, [clearAll]);
 
    useEffect(() => {
       if (!isPlaying) {
@@ -939,6 +979,7 @@ export default function PrecisionDrop({
       setTimeLeft(levelDur);
       clearAll();
       setTimeout(() => {
+         if (!mountedRef.current || !isPlayingRef.current) return;
          if (startLevelRef.current) {
             startLevelRef.current(currentLevel);
          }
@@ -998,7 +1039,13 @@ export default function PrecisionDrop({
                url: shareableLink,
             });
             setShareSuccess(true);
-            setTimeout(() => setShareSuccess(false), 15000);
+            if (shareSuccessTimeoutRef.current) {
+               clearTimeout(shareSuccessTimeoutRef.current);
+            }
+            shareSuccessTimeoutRef.current = setTimeout(
+               () => setShareSuccess(false),
+               15000
+            );
          } catch (error: any) {
             if (error.name !== "AbortError") {
                handleCopyLink(shareId);
@@ -1016,7 +1063,13 @@ export default function PrecisionDrop({
       try {
          await navigator.clipboard.writeText(shareableLink);
          setShareSuccess(true);
-         setTimeout(() => setShareSuccess(false), 15000);
+         if (shareSuccessTimeoutRef.current) {
+            clearTimeout(shareSuccessTimeoutRef.current);
+         }
+         shareSuccessTimeoutRef.current = setTimeout(
+            () => setShareSuccess(false),
+            15000
+         );
       } catch (error) {
          const textArea = document.createElement("textarea");
          textArea.value = shareableLink;
@@ -1027,7 +1080,13 @@ export default function PrecisionDrop({
          try {
             document.execCommand("copy");
             setShareSuccess(true);
-            setTimeout(() => setShareSuccess(false), 15000);
+            if (shareSuccessTimeoutRef.current) {
+               clearTimeout(shareSuccessTimeoutRef.current);
+            }
+            shareSuccessTimeoutRef.current = setTimeout(
+               () => setShareSuccess(false),
+               15000
+            );
          } catch (err) {
             // Failed to copy
          }
@@ -1222,12 +1281,14 @@ export default function PrecisionDrop({
 
       if (currentLevel === 0) {
          setTimeout(() => {
+            if (!mountedRef.current || !isPlayingRef.current) return;
             if (startLevelRef.current) {
                startLevelRef.current(0);
             }
          }, 0);
       } else {
          setTimeout(() => {
+            if (!mountedRef.current || !isPlayingRef.current) return;
             if (startLevelRef.current) {
                startLevelRef.current(currentLevel);
             }
@@ -1241,79 +1302,25 @@ export default function PrecisionDrop({
    const levelConfig = getLevelConfig(currentLevel);
    const minHits = levelConfig.minHits;
 
+   const replayLocked = maxReplays > 0 && replaysUsed >= maxReplays;
+
    return (
       <>
          <div
-         ref={rootRef}
-            style={{
-               display: "flex",
-               flexDirection: "column",
-               alignItems: "center",
-               gap: isMobile ? "10px" : "20px", // phones: the 400 px board + panel fit above a cookie banner
-               width: "100%",
-               maxWidth: "800px",
-               margin: "0 auto",
-               padding: isMobile ? "12px" : "16px",
-            }}
+            ref={rootRef}
+            className={ui.root}
+            // phones: the 400 px board + panel fit above a cookie banner
+            style={isMobile ? { gap: "10px" } : undefined}
          >
             {/* Header Section */}
-            <div
-               style={{
-                  width: "100%",
-                  maxWidth: "800px",
-                  background: "var(--card)",
-                  borderRadius: isMobile ? "16px" : "20px",
-                  padding: isMobile ? "16px" : "20px",
-                  boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: isMobile ? "12px" : "16px",
-               }}
-            >
-               <div
-                  style={{
-                     display: "flex",
-                     alignItems: "center",
-                     justifyContent: "space-between",
-                     flexWrap: "wrap",
-                     gap: isMobile ? "8px" : "12px",
-                  }}
-               >
-                  <span
-                     style={{
-                        fontSize: isMobile ? "0.875rem" : "1rem",
-                        fontWeight: 600,
-                        color: "var(--text)",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "6px",
-                     }}
-                  >
-                     <ArrowPathIcon
-                        style={{
-                           width: isMobile ? 14 : 16,
-                           height: isMobile ? 14 : 16,
-                        }}
-                     />
+            <div className={ui.hud}>
+               <div className={ui.hudRow}>
+                  <span className={ui.hudStat}>
+                     <ArrowPathIcon className={ui.hudIcon} />
                      Level {currentLevel + 1}/{maxLevels}
                   </span>
-                  <span
-                     style={{
-                        fontSize: isMobile ? "0.875rem" : "1rem",
-                        fontWeight: 600,
-                        color: "var(--text)",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "6px",
-                     }}
-                  >
-                     <TrophyIcon
-                        style={{
-                           width: isMobile ? 14 : 16,
-                           height: isMobile ? 14 : 16,
-                           color: "var(--ok)",
-                        }}
-                     />
+                  <span className={ui.hudStat}>
+                     <TrophyIcon className={ui.hudIconOk} />
                      Score:{" "}
                      {requirementsMet &&
                      lastCompletedLevelRef.current === currentLevel &&
@@ -1323,107 +1330,40 @@ export default function PrecisionDrop({
                      / 100
                   </span>
                   <span
-                     style={{
-                        fontSize: isMobile ? "0.875rem" : "1rem",
-                        fontWeight: 600,
-                        color: "var(--text)",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "6px",
-                     }}
+                     className={`${ui.hudStat} ${gameState === "playing" && timeLeft <= 5 ? ui.hudLow : ""}`}
                   >
-                     <ClockIcon
-                        style={{
-                           width: isMobile ? 14 : 16,
-                           height: isMobile ? 14 : 16,
-                           color: "var(--accent)",
-                        }}
-                     />
+                     <ClockIcon className={ui.hudIconAccent} />
                      {timeLeft}s
                   </span>
                </div>
                {/* Progress Bar */}
-               <div
-                  style={{
-                     width: "100%",
-                     height: isMobile ? "6px" : "8px",
-                     background: "rgba(255, 255, 255, 0.1)",
-                     borderRadius: "999px",
-                     overflow: "hidden",
-                  }}
-               >
+               <div className={ui.progressTrack}>
                   <div
-                     style={{
-                        width: `${progressPercentage}%`,
-                        height: "100%",
-                        background:
-                           "linear-gradient(90deg, var(--accent) 0%, var(--ok) 100%)",
-                        borderRadius: "999px",
-                        transition: "width 0.3s ease",
-                        boxShadow: "0 0 10px rgba(125, 211, 252, 0.5)",
-                     }}
+                     className={ui.progressFill}
+                     style={{ transform: `scaleX(${progressPercentage / 100})` }}
                   />
                </div>
             </div>
 
             {/* Stats Display */}
             {gameState === "playing" && (
-               <div
-                  style={{
-                     display: "flex",
-                     gap: isMobile ? "8px" : "12px",
-                     flexWrap: "wrap",
-                     justifyContent: "center",
-                     width: "100%",
-                     maxWidth: "800px",
-                  }}
-               >
-                  <div
-                     style={{
-                        background:
-                           "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
-                        border: "1px solid rgba(59, 130, 246, 0.4)",
-
-                        padding: "10px 16px",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "8px",
-                     }}
-                  >
-                     <span
-                        style={{
-                           fontSize: "1rem",
-                           fontWeight: 600,
-                           color: "var(--text)",
-                        }}
-                     >
+               <div className={ui.statRow}>
+                  <div className={ui.statOk}>
+                     <CheckCircleIcon className={ui.statIconOk} />
+                     <span>
                         Hits:{" "}
-                        <span key={hits} className={touch.pop} style={{ display: "inline-block" }}>
+                        <span key={hits} className={ui.bump}>
                            {hits}
                         </span>
                         /{minHits}
                      </span>
                   </div>
-                  <div
-                     style={{
-                        background:
-                           "linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(34, 197, 94, 0.1))",
-                        border: "1px solid rgba(34, 197, 94, 0.4)",
-
-                        padding: "10px 16px",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "8px",
-                     }}
-                  >
-                     <span
-                        style={{
-                           fontSize: "1rem",
-                           fontWeight: 600,
-                           color: "var(--text)",
-                        }}
-                     >
-                        Drops left: {dropsLeft}
+                  <div className={ui.stat}>
+                     <span>
+                        Drops left:{" "}
+                        <span key={dropsLeft} className={ui.bump}>
+                           {dropsLeft}
+                        </span>
                      </span>
                   </div>
                </div>
@@ -1433,7 +1373,7 @@ export default function PrecisionDrop({
             {gameState === "playing" ? (
                <div
                   ref={arenaRef}
-                  className={touch.playArea}
+                  className={`${ui.arena} ${touch.playArea} ${s.arena}`}
                   data-play-area=""
                   // Mouse: hover to aim, click to drop. Touch / pen: the object follows the finger
                   // and drops when it lifts (a moved touch never becomes a click).
@@ -1506,87 +1446,34 @@ export default function PrecisionDrop({
                      }
                   }}
                   style={{
-                     position: "relative",
-                     width: "100%",
-                     maxWidth: "800px",
                      height: isMobile ? "400px" : "500px",
-                     borderRadius: "var(--radius)",
-                     border: "1px solid var(--border)",
-                     background:
-                        "radial-gradient(320px 220px at 30% 30%, rgba(59, 130, 246, 0.1), transparent 55%), linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02))",
-                     boxShadow: "0 10px 18px rgba(0, 0, 0, 0.22)",
-                     overflow: "hidden",
                      userSelect: "none",
                      touchAction: "none",
-                     padding: "10px",
-                     cursor: "pointer",
-                     outline: "none",
-                     boxSizing: "border-box",
                   }}
                >
-                  <canvas
-                     ref={canvasRef}
-                     style={{
-                        width: "100%",
-                        height: "100%",
-                        display: "block",
-                        maxWidth: "100%",
-                        maxHeight: "100%",
-                     }}
-                  />
+                  <canvas ref={canvasRef} className={s.canvas} />
+                  {/* one-shot rings: re-keyed per hit / miss, visual only */}
+                  {hits > 0 && <span key={`h${hits}`} className={s.ringOk} aria-hidden="true" />}
+                  {misses > 0 && <span key={`m${misses}`} className={s.ringWarn} aria-hidden="true" />}
                </div>
             ) : null}
 
             {/* Ready for Next Round Message */}
             {gameState === "ready" && currentLevel + 1 < maxLevels && (
-               <div
-                  style={{
-                     padding: isMobile ? "20px 24px" : "24px 32px",
-                     background: "var(--card)",
-                     borderRadius: "var(--radius)",
-                     color: "var(--text)",
-                     fontSize: isMobile ? "1rem" : "1.1rem",
-                     fontWeight: 700,
-                     textAlign: "center",
-                     border: "1px solid var(--border)",
-                  }}
-               >
-                  <div style={{ marginBottom: "16px" }}>
-                     Level {currentLevel + 1} Complete!
-                  </div>
-                  <div
-                     style={{
-                        fontSize: isMobile ? "0.9rem" : "1rem",
-                        fontWeight: 400,
-                        marginBottom: "20px",
-                        color: "var(--text-secondary)",
-                     }}
-                  >
-                     Hits: {hits}/{minHits}
+               <div className={ui.card}>
+                  <div className={ui.cardTitle}>Level {currentLevel + 1} Complete!</div>
+                  <div className={ui.cardBody}>
+                     Hits: <strong>{hits}/{minHits}</strong>
                      <br />
-                     Drops completed: {levelConfig.drops - dropsLeft}/
-                     {levelConfig.drops}
+                     Drops completed:{" "}
+                     <strong>
+                        {levelConfig.drops - dropsLeft}/{levelConfig.drops}
+                     </strong>
                   </div>
                   <button
-                  className={touch.tapButton}
+                     className={ui.buttonPrimary}
                      onClick={handleNextRound}
                      disabled={nextRoundLocked}
-                     style={{
-                        padding: isMobile ? "12px 24px" : "14px 28px",
-                        background: nextRoundLocked
-                           ? "rgba(100, 100, 100, 0.2)"
-                           : "linear-gradient(135deg, rgba(134, 239, 172, 0.25), rgba(134, 239, 172, 0.12))",
-                        border: nextRoundLocked
-                           ? "1px solid rgba(100, 100, 100, 0.4)"
-                           : "2px solid rgba(134, 239, 172, 0.6)",
-
-                        color: "var(--text)",
-                        fontSize: isMobile ? "1rem" : "1.05rem",
-                        fontWeight: 700,
-                        cursor: nextRoundLocked ? "not-allowed" : "pointer",
-                        opacity: nextRoundLocked ? 0.5 : 1,
-                        transition: "all 0.3s ease",
-                     }}
                   >
                      Next Round
                   </button>
@@ -1606,76 +1493,24 @@ export default function PrecisionDrop({
                   }
 
                   return (
-                     <div
-                        style={{
-                           padding: isMobile ? "20px 24px" : "24px 32px",
-                           background: "var(--card)",
-                           borderRadius: "var(--radius)",
-                           color: "var(--text)",
-                           fontSize: isMobile ? "1rem" : "1.1rem",
-                           fontWeight: 700,
-                           textAlign: "center",
-                           border: "1px solid var(--border)",
-                        }}
-                     >
-                        <div
-                           style={{
-                              marginBottom: "16px",
-                              color: "var(--warn)",
-                           }}
-                        >
-                           Level {currentLevel + 1} Failed
-                        </div>
-                        <div
-                           style={{
-                              fontSize: isMobile ? "0.9rem" : "1rem",
-                              fontWeight: 600,
-                              marginBottom: "12px",
-                              color: "var(--warn)",
-                           }}
-                        >
-                           {failureReason}
-                        </div>
-                        <div
-                           style={{
-                              fontSize: isMobile ? "0.9rem" : "1rem",
-                              fontWeight: 400,
-                              marginBottom: "8px",
-                              color: "var(--text-secondary)",
-                           }}
-                        >
-                           <div
-                              style={{
-                                 marginBottom: "4px",
-                                 display: "flex",
-                                 alignItems: "center",
-                                 gap: "4px",
-                                 justifyContent: "center",
-                              }}
-                           >
+                     <div className={ui.card}>
+                        <div className={ui.cardTitleWarn}>Level {currentLevel + 1} Failed</div>
+                        {failureReason && (
+                           <div className={ui.cardBody} style={{ color: "var(--warn)", fontWeight: 600 }}>
+                              {failureReason}
+                           </div>
+                        )}
+                        <div className={ui.cardBody}>
+                           <span className={s.reasons}>
                               <span>
                                  Hits: Need {minHits} | You got {hits}
                               </span>
                               {hitsMet ? (
-                                 <CheckCircleIcon
-                                    style={{
-                                       width: isMobile ? 16 : 18,
-                                       height: isMobile ? 16 : 18,
-                                       color: "var(--ok)",
-                                       flexShrink: 0,
-                                    }}
-                                 />
+                                 <CheckCircleIcon className={ui.statIconOk} />
                               ) : (
-                                 <XCircleIcon
-                                    style={{
-                                       width: isMobile ? 16 : 18,
-                                       height: isMobile ? 16 : 18,
-                                       color: "var(--warn)",
-                                       flexShrink: 0,
-                                    }}
-                                 />
+                                 <XCircleIcon className={ui.statIconWarn} />
                               )}
-                           </div>
+                           </span>
                         </div>
                      </div>
                   );
@@ -1686,66 +1521,21 @@ export default function PrecisionDrop({
                currentLevel === maxLevels - 1 &&
                requirementsMet &&
                lastCompletedLevelRef.current === currentLevel && (
-                  <div
-                     style={{
-                        padding: isMobile ? "20px 24px" : "24px 32px",
-                        background: "var(--card)",
-                        borderRadius: "var(--radius)",
-                        color: "var(--text)",
-                        fontSize: isMobile ? "1rem" : "1.1rem",
-                        fontWeight: 700,
-                        textAlign: "center",
-                        border: "1px solid var(--border)",
-                     }}
-                  >
-                     <div style={{ marginBottom: "16px", color: "var(--ok)" }}>
-                        Game Complete!
-                     </div>
-                     <div
-                        style={{
-                           fontSize: isMobile ? "0.9rem" : "1rem",
-                           fontWeight: 400,
-                           marginBottom: "20px",
-                           color: "var(--text-secondary)",
-                        }}
-                     >
+                  <div className={ui.card}>
+                     <div className={ui.cardTitleOk}>Game Complete!</div>
+                     <div className={ui.cardBody}>
                         All {maxLevels} levels completed!
                         <br />
-                        Final Score: {currentScore}
+                        Final Score: <strong>{currentScore}</strong>
                      </div>
                   </div>
                )}
 
             {/* Action Buttons: Replay, Share */}
-            <div
-               style={{
-                  display: "flex",
-                  gap: "12px",
-                  justifyContent: "center",
-                  flexWrap: "wrap",
-                  padding: isMobile ? "12px" : "16px",
-                  background: "var(--card)",
-
-                  width: "100%",
-                  maxWidth: "800px",
-               }}
-            >
+            <div className={ui.actions}>
                {/* Share Success Message */}
                {shareSuccess && !unlimitedActivated && (
-                  <div
-                     style={{
-                        width: "100%",
-                        padding: "12px",
-                        background: "rgba(134, 239, 172, 0.2)",
-                        border: "2px solid rgba(134, 239, 172, 0.6)",
-                        borderRadius: "8px",
-                        fontSize: isMobile ? "0.9rem" : "1rem",
-                        fontWeight: 600,
-                        color: "var(--ok)",
-                        textAlign: "center",
-                        marginBottom: "8px",
-                     }}
-                  >
+                  <div className={ui.notice}>
                      Link copied! Unlimited replay will unlock when someone
                      opens your link!
                   </div>
@@ -1753,82 +1543,17 @@ export default function PrecisionDrop({
 
                {/* Unlimited Activated Message */}
                {unlimitedActivated && (
-                  <div
-                     style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: isMobile ? "6px" : "8px",
-                        padding: isMobile ? "10px 14px" : "8px 16px",
-                        background:
-                           "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
-                        border: "2px solid rgba(59, 130, 246, 0.6)",
-                        borderRadius: isMobile ? "10px" : "8px",
-                        color: "var(--text)",
-                        fontSize: isMobile ? "0.85rem" : "0.9rem",
-                        fontWeight: 500,
-                        width: "100%",
-                        justifyContent: "center",
-                        textAlign: "center",
-                        flexWrap: "wrap",
-                        marginBottom: "8px",
-                     }}
-                  >
-                     <CheckCircleIcon
-                        style={{
-                           width: isMobile ? 16 : 18,
-                           height: isMobile ? 16 : 18,
-                           color: "rgba(59, 130, 246, 0.9)",
-                           flexShrink: 0,
-                        }}
-                     />
+                  <div className={ui.notice}>
+                     <CheckCircleIcon className={ui.noticeIcon} />
                      <span>
-                        🎉 Someone opened your link! Unlimited replay is now
+                        Someone opened your link! Unlimited replay is now
                         active for 15 minutes!
                      </span>
                   </div>
                )}
 
-               <button
-                  className={touch.tapButton}
-                  onClick={handleReplay}
-                  disabled={maxReplays > 0 && replaysUsed >= maxReplays}
-                  style={{
-                     display: "flex",
-                     alignItems: "center",
-                     gap: isMobile ? "6px" : "8px",
-                     padding: isMobile ? "10px 16px" : "10px 20px",
-                     width: isMobile ? "100%" : "auto",
-                     background:
-                        maxReplays > 0 && replaysUsed >= maxReplays
-                           ? "rgba(100, 100, 100, 0.2)"
-                           : "linear-gradient(135deg, rgba(125, 211, 252, 0.2), rgba(125, 211, 252, 0.1))",
-                     border:
-                        maxReplays > 0 && replaysUsed >= maxReplays
-                           ? "1px solid rgba(100, 100, 100, 0.4)"
-                           : "1px solid rgba(125, 211, 252, 0.6)",
-
-                     color: "var(--text)",
-                     fontSize: isMobile ? "0.85rem" : "0.95rem",
-                     fontWeight: 600,
-                     cursor:
-                        maxReplays > 0 && replaysUsed >= maxReplays
-                           ? "not-allowed"
-                           : "pointer",
-                     opacity:
-                        maxReplays > 0 && replaysUsed >= maxReplays ? 0.5 : 1,
-                     transition: "all 0.3s ease",
-                  }}
-               >
-                  <ArrowPathRoundedSquareIcon
-                     style={{
-                        width: isMobile ? 18 : 20,
-                        height: isMobile ? 18 : 20,
-                        color:
-                           maxReplays > 0 && replaysUsed >= maxReplays
-                              ? "var(--muted)"
-                              : "var(--accent)",
-                     }}
-                  />
+               <button className={ui.button} onClick={handleReplay} disabled={replayLocked}>
+                  <ArrowPathRoundedSquareIcon className={ui.buttonIcon} />
                   <span>
                      {"Replay "}
                      {maxReplays === 0
@@ -1837,33 +1562,8 @@ export default function PrecisionDrop({
                   </span>
                </button>
 
-               <button
-                  className={touch.tapButton}
-                  onClick={handleShare}
-                  style={{
-                     display: "flex",
-                     alignItems: "center",
-                     gap: isMobile ? "6px" : "8px",
-                     padding: isMobile ? "10px 16px" : "10px 20px",
-                     width: isMobile ? "100%" : "auto",
-                     background:
-                        "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
-                     border: "2px solid rgba(59, 130, 246, 0.6)",
-
-                     color: "var(--text)",
-                     fontSize: isMobile ? "0.85rem" : "0.95rem",
-                     fontWeight: 600,
-                     cursor: "pointer",
-                     transition: "all 0.3s ease",
-                  }}
-               >
-                  <ShareIcon
-                     style={{
-                        width: isMobile ? 18 : 20,
-                        height: isMobile ? 18 : 20,
-                        color: "var(--accent)",
-                     }}
-                  />
+               <button className={ui.button} onClick={handleShare}>
+                  <ShareIcon className={ui.buttonIcon} />
                   <span>Share for unlimited</span>
                </button>
             </div>

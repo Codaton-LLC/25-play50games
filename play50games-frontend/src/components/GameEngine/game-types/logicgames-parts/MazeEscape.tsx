@@ -1,13 +1,16 @@
 "use client";
 
-import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback, type CSSProperties } from "react";
+import theme from "./theme.module.css";
 import css from "./MazeEscape.module.css";
-import mobile from "./mobile.module.css";
 import {
-   ArrowPathIcon,
    TrophyIcon,
    BoltIcon,
    CheckCircleIcon,
+   ChevronUpIcon,
+   ChevronDownIcon,
+   ChevronLeftIcon,
+   ChevronRightIcon,
 } from "@heroicons/react/24/outline";
 
 function MazeEscape({
@@ -83,6 +86,17 @@ function MazeEscape({
    const onCompleteRef = useRef(onComplete);
    const onRoundCompleteRef = useRef(onRoundComplete);
    const roundTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+   // the round-end timer is also cleared if the game unmounts mid-delay (it used to fire after leaving)
+   useEffect(
+      () => () => {
+         if (roundTimeoutRef.current) {
+            clearTimeout(roundTimeoutRef.current);
+            roundTimeoutRef.current = null;
+         }
+      },
+      []
+   );
 
    // Keep refs updated
    useEffect(() => {
@@ -398,46 +412,39 @@ function MazeEscape({
    const displayScore = currentScore;
 
    return (
-      <div className={`maze-escape-game ${css.root}`}>
+      <div className={`maze-escape-game ${theme.game} ${css.root}`}>
          {/* Header */}
-         <div className="game-header">
-            <div className="header-stats">
-               <div className="stat-item">
-                  <ArrowPathIcon className="stat-icon" />
-                  <span>
-                     Round {currentRound} / {maxRounds}
-                  </span>
-               </div>
-               <div className="stat-item">
-                  <TrophyIcon className="stat-icon" />
-                  <span>
-                     Score: {displayScore} / {maxScore}
-                  </span>
-               </div>
-               <div className="stat-item">
-                  <BoltIcon className="stat-icon" />
-                  <span>Path: {trail.size}</span>
-               </div>
+         <div className={`${theme.header} ${css.head}`}>
+            <div className={theme.chips}>
+               <span className={theme.chip}>
+                  Round <strong>{currentRound} / {maxRounds}</strong>
+               </span>
+               <span className={theme.chip}>
+                  Score <strong>{displayScore} / {maxScore}</strong>
+               </span>
+               <span className={theme.chip}>
+                  Path <strong>{trail.size}</strong>
+               </span>
             </div>
-            <div className="progress-bar-container">
-               <div
-                  style={{
-                     width: `${progress}%`,
-                     height: "100%",
-                     background:
-                        "linear-gradient(90deg, var(--accent) 0%, var(--ok) 100%)",
-                     borderRadius: "4px",
-                     transition: "width 0.3s",
-                     boxShadow: "rgba(125, 211, 252, 0.5) 0px 0px 10px",
-                  }}
-               />
+            <div
+               className={css.progress}
+               role="progressbar"
+               aria-label="Round progress"
+               aria-valuemin={0}
+               aria-valuemax={maxRounds}
+               aria-valuenow={currentRound}
+            >
+               <div className={css.progressFill} style={{ transform: `scaleX(${progress / 100})` }} />
             </div>
          </div>
 
-         {/* Maze Grid */}
-         <div className={`maze-container ${css.container}`}>
+         {/* Maze Grid: N equal 1fr tracks, square cells, gap 0 (walls are whole cells, so they line up) */}
+         <div className={css.container}>
             <div
-               className={`maze-grid ${css.grid}`}
+               key={`maze-${currentRound}-${gridSize}`}
+               className={`${css.grid} ${theme.reveal}`}
+               role="grid"
+               aria-label={`Maze, ${gridSize} by ${gridSize}`}
                onTouchStart={(e) => {
                   const t = e.touches[0];
                   swipeStart.current = t ? { x: t.clientX, y: t.clientY } : null;
@@ -453,10 +460,7 @@ function MazeEscape({
                   if (Math.abs(dx) > Math.abs(dy)) step(dx > 0 ? 1 : -1, 0);
                   else step(0, dy > 0 ? 1 : -1);
                }}
-               style={{
-                  gridTemplateColumns: `repeat(${gridSize}, 1fr)`,
-                  gridTemplateRows: `repeat(${gridSize}, 1fr)`,
-               }}
+               style={{ "--n": gridSize } as CSSProperties}
             >
                {Array.from({ length: gridSize * gridSize }).map((_, i) => {
                   const x = i % gridSize;
@@ -468,8 +472,6 @@ function MazeEscape({
                   const isStart = x === 0 && y === 0 && !isPlayer && !isExit;
                   const isTrail =
                      trail.has(`${x},${y}`) && !isPlayer && !isExit && !isStart;
-                  const isPath =
-                     !isWall && !isPlayer && !isExit && !isTrail && !isStart;
 
                   // Check if cell is adjacent to player (for mouse click)
                   const dx = Math.abs(x - playerPos.x);
@@ -480,32 +482,34 @@ function MazeEscape({
                      ((dx === 1 && dy === 0) || (dx === 0 && dy === 1));
                   const isClickable = isAdjacent && !isCompleted;
 
+                  const cls = [
+                     css.cell,
+                     isWall ? css.wall : css.path,
+                     isTrail ? css.trail : "",
+                     isStart ? css.start : "",
+                     isExit ? css.exit : "",
+                     isPlayer ? css.playerCell : "",
+                     isPlayer && isCompleted ? css.won : "",
+                     isClickable ? css.clickable : "",
+                  ]
+                     .filter(Boolean)
+                     .join(" ");
+
                   return (
                      <div
                         key={i}
-                        className={`maze-cell ${isWall ? "wall" : ""} ${
-                           isPlayer ? "player" : ""
-                        } ${isExit ? "exit" : ""} ${isStart ? "start" : ""} ${
-                           isTrail ? "trail" : ""
-                        } ${isPath ? "path" : ""} ${
-                           isClickable ? "clickable" : ""
-                        }`}
+                        className={cls}
                         onClick={() => handleCellClick(x, y)}
                         onMouseEnter={() => handleCellHover(x, y)}
-                        style={{ cursor: isClickable ? "pointer" : "default" }}
                      >
                         {isPlayer && (
-                           <div className="player-marker">
-                              <BoltIcon className="player-icon" />
-                           </div>
+                           // keyed by position: the marker steps in where it lands (no top/left animation)
+                           <span key={`p-${x}-${y}`} className={css.player}>
+                              <BoltIcon className={css.playerIcon} aria-hidden="true" />
+                           </span>
                         )}
-                        {isExit && (
-                           <div className="exit-marker">
-                              <TrophyIcon className="exit-icon" />
-                           </div>
-                        )}
-                        {isStart && <div className="start-marker" />}
-                        {isTrail && <div className="trail-dot" />}
+                        {isExit && <TrophyIcon className={css.exitIcon} aria-hidden="true" />}
+                        {isTrail && <span className={css.trailDot} />}
                      </div>
                   );
                })}
@@ -515,28 +519,30 @@ function MazeEscape({
          {/* Touch D-pad (touch screens only, see MazeEscape.module.css) */}
          <div className={css.pad} role="group" aria-label="Move">
             <button type="button" className={css.up} aria-label="Up" onClick={() => step(0, -1)} disabled={isCompleted}>
-               ▲
+               <ChevronUpIcon className={css.padIcon} aria-hidden="true" />
             </button>
             <button type="button" className={css.left} aria-label="Left" onClick={() => step(-1, 0)} disabled={isCompleted}>
-               ◀
+               <ChevronLeftIcon className={css.padIcon} aria-hidden="true" />
             </button>
             <button type="button" className={css.down} aria-label="Down" onClick={() => step(0, 1)} disabled={isCompleted}>
-               ▼
+               <ChevronDownIcon className={css.padIcon} aria-hidden="true" />
             </button>
             <button type="button" className={css.right} aria-label="Right" onClick={() => step(1, 0)} disabled={isCompleted}>
-               ▶
+               <ChevronRightIcon className={css.padIcon} aria-hidden="true" />
             </button>
          </div>
 
-         {/* Success Message - positioned below the maze like Circuit Path */}
-         {showSuccess && (
-            <div className={`game-feedback correct ${mobile.pop}`}>
-               <CheckCircleIcon className="feedback-icon" />
-               <span>
-                  Round {currentRound} Complete! Score: {roundScore} points
-               </span>
-            </div>
-         )}
+         {/* Success message: a fixed-height slot under the maze, so nothing jumps */}
+         <div className={`${theme.feedbackSlot} ${css.feedback}`} aria-live="polite">
+            {showSuccess && (
+               <div className={`${theme.feedback} ${theme.feedbackOk} ${theme.pop}`}>
+                  <CheckCircleIcon className={css.fbIcon} aria-hidden="true" />
+                  <span>
+                     Round {currentRound} complete: {roundScore} points
+                  </span>
+               </div>
+            )}
+         </div>
       </div>
    );
 }

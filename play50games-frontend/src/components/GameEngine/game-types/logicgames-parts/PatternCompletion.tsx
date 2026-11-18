@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import theme from "./theme.module.css";
 import css from "./PatternCompletion.module.css";
-import mobile from "./mobile.module.css";
 import {
    HomeIcon,
    StarIcon,
@@ -12,8 +12,6 @@ import {
    PlusIcon,
    SparklesIcon,
    XCircleIcon,
-   ArrowPathIcon,
-   TrophyIcon,
    CheckCircleIcon,
 } from "@heroicons/react/24/outline";
 
@@ -51,6 +49,18 @@ function PatternCompletion({
    const onScoreUpdateRef = useRef(onScoreUpdate);
    const onCompleteRef = useRef(onComplete);
    const onRoundCompleteRef = useRef(onRoundComplete);
+   // round / retry / completion timers, cleared on unmount
+   const timersRef = useRef<number[]>([]);
+   const later = (fn: () => void, ms: number) => {
+      timersRef.current.push(window.setTimeout(fn, ms));
+   };
+   useEffect(
+      () => () => {
+         timersRef.current.forEach((id) => window.clearTimeout(id));
+         timersRef.current = [];
+      },
+      []
+   );
 
    // Update refs when callbacks change
    useEffect(() => {
@@ -60,11 +70,10 @@ function PatternCompletion({
    }, [onScoreUpdate, onComplete, onRoundComplete]);
 
    // Heroicons mapping
-   const getShapeIcon = (shapeName: string, size: number = 80) => {
+   // icons fill their slot; the slot size comes from CSS (no fixed pixel sizes)
+   const getShapeIcon = (shapeName: string) => {
       const iconProps = {
-         width: size,
-         height: size,
-         className: "pattern-icon",
+         "aria-hidden": true as const,
       };
       switch (shapeName) {
          case "Home":
@@ -222,13 +231,13 @@ function PatternCompletion({
 
          // Move to next round or complete
          if (round < rounds) {
-            setTimeout(() => {
+            later(() => {
                setRound(round + 1);
                startNewRound();
             }, 1500);
          } else {
             // All rounds completed
-            setTimeout(() => {
+            later(() => {
                if (onCompleteRef.current && !completionCalledRef.current) {
                   completionCalledRef.current = true;
                   onCompleteRef.current(newScore);
@@ -237,7 +246,7 @@ function PatternCompletion({
          }
       } else {
          // Wrong answer - allow retry after feedback
-         setTimeout(() => {
+         later(() => {
             setSelected(null);
             setCorrect(null);
             setFeedback(null);
@@ -266,103 +275,137 @@ function PatternCompletion({
       return () => window.removeEventListener("keydown", handleKeyPress);
    }, [handleKeyPress]);
 
+   // a new pattern staggers in once per round (the board is keyed by round)
+   // columns: one row up to 9 shapes on wide screens (13 reads 7 + 6); phones one row up to 6
+   const len = Math.max(1, pattern.length);
+   const cols = len <= 9 ? len : 7;
+   const colsSm = len <= 6 ? len : len <= 9 ? 5 : 7;
+   const optionCols = Math.max(1, Math.min(options.length, 4));
+   const solved = correct === true;
+
    return (
-      <div className={`pattern-completion-game ${css.root}`}>
-         {/* Header */}
-         <div className="game-header">
-            <div className="header-stats">
-               <div className="stat-item">
-                  <ArrowPathIcon className="stat-icon" />
-                  <span>
-                     Round {round} / {rounds}
-                  </span>
-               </div>
-               <div className="stat-item">
-                  <TrophyIcon className="stat-icon" />
-                  <span>
-                     Score: {score} / {rounds * 5}
-                  </span>
-               </div>
+      <div className={`${theme.game} ${css.root}`}>
+         <div className={theme.header}>
+            <div className={theme.chips}>
+               <span className={theme.chip}>
+                  Round <strong>{round} / {rounds}</strong>
+               </span>
+               <span className={theme.chip}>
+                  Score <strong>{score} / {rounds * 5}</strong>
+               </span>
             </div>
-            <div className="progress-bar-container">
+            <div
+               className={css.progress}
+               role="progressbar"
+               aria-valuemin={0}
+               aria-valuemax={100}
+               aria-valuenow={Math.round(progress)}
+               aria-label="Rounds played"
+            >
                <div
-                  style={{
-                     width: `${progress}%`,
-                     height: "100%",
-                     background:
-                        "linear-gradient(90deg, var(--accent) 0%, var(--ok) 100%)",
-                     borderRadius: "4px",
-                     transition: "width 0.3s",
-                     boxShadow: "rgba(125, 211, 252, 0.5) 0px 0px 10px",
-                  }}
+                  className={css.progressFill}
+                  style={{ transform: `scaleX(${progress / 100})` }}
                />
+            </div>
+            <p className={theme.subtitle}>Pick the shape that fills the gap.</p>
+         </div>
+
+         <div className={`${theme.panel} ${css.panel}`}>
+            <div
+               key={round}
+               className={`${css.pattern} ${theme.stagger}`}
+               style={
+                  {
+                     "--cols": cols,
+                     "--cols-sm": colsSm,
+                  } as React.CSSProperties
+               }
+               role="list"
+               aria-label="Pattern"
+            >
+               {pattern.map((shape, i) => {
+                  const missing = shape === "?";
+                  return (
+                     <div
+                        key={i}
+                        role="listitem"
+                        style={{ "--i": i } as React.CSSProperties}
+                        className={`${css.slot} ${
+                           missing ? css.missing : ""
+                        } ${missing && solved ? css.filled : ""}`}
+                        aria-label={missing ? "Missing shape" : shape}
+                     >
+                        {missing ? (
+                           solved && selected !== null ? (
+                              <span className={`${css.icon} ${theme.pop}`}>
+                                 {getShapeIcon(options[selected])}
+                              </span>
+                           ) : (
+                              <span className={css.question}>?</span>
+                           )
+                        ) : (
+                           <span className={css.icon}>{getShapeIcon(shape)}</span>
+                        )}
+                     </div>
+                  );
+               })}
             </div>
          </div>
 
-         {/* Pattern Display */}
+         <div className={theme.feedbackSlot} aria-live="polite">
+            {feedback && (
+               <div
+                  className={`${theme.feedback} ${
+                     feedback === "correct"
+                        ? `${theme.feedbackOk} ${theme.pop}`
+                        : `${theme.feedbackWarn} ${theme.shake}`
+                  }`}
+               >
+                  {feedback === "correct" ? (
+                     <>
+                        <CheckCircleIcon className={css.feedbackIcon} aria-hidden />
+                        <span>Correct, that completes the pattern.</span>
+                     </>
+                  ) : (
+                     <>
+                        <XCircleIcon className={css.feedbackIcon} aria-hidden />
+                        <span>Not that one. Try again.</span>
+                     </>
+                  )}
+               </div>
+            )}
+         </div>
+
          <div
-            className={`pattern-display ${pattern.length > 6 ? "compact" : ""}`}
+            className={css.options}
+            style={{ "--cols": optionCols } as React.CSSProperties}
          >
-            {pattern.map((shape, i) => {
-               // Reduce icon size if pattern has more than 6 elements
-               const iconSize = pattern.length > 6 ? 60 : 100;
+            {options.map((shape, i) => {
+               const isPicked = selected === i;
+               const state = isPicked
+                  ? correct
+                     ? `${css.optCorrect} ${theme.pop}`
+                     : `${css.optWrong} ${theme.shake}`
+                  : selected !== null
+                  ? css.optIdle
+                  : "";
                return (
-                  <div
+                  <button
                      key={i}
-                     className={`pattern-shape ${
-                        shape === "?" ? "missing" : ""
-                     } ${pattern.length > 6 ? "small" : ""}`}
+                     type="button"
+                     onClick={() => handleSelect(i)}
+                     className={`${css.option} ${state}`}
+                     disabled={selected !== null}
+                     aria-label={`Option ${i + 1}: ${shape}`}
                   >
-                     {shape !== "?" ? (
-                        getShapeIcon(shape, iconSize)
-                     ) : (
-                        <div className="missing-shape">
-                           <SparklesIcon
-                              width={iconSize}
-                              height={iconSize}
-                              className="pattern-icon"
-                           />
-                           <span className="question-mark">?</span>
-                        </div>
-                     )}
-                  </div>
+                     <span className={css.optIcon}>{getShapeIcon(shape)}</span>
+                     <span className={css.optKey} aria-hidden>
+                        {i + 1}
+                     </span>
+                  </button>
                );
             })}
          </div>
-
-         {/* Options */}
-         <div className="pattern-options">
-            {options.map((shape, i) => (
-               <button
-                  key={i}
-                  onClick={() => handleSelect(i)}
-                  className={`option-btn ${
-                     selected === i ? (correct ? "correct" : "incorrect") : ""
-                  }`}
-                  disabled={selected !== null}
-               >
-                  {getShapeIcon(shape, 80)}
-                  <span className="option-number">{i + 1}</span>
-               </button>
-            ))}
-         </div>
-
-         {/* Feedback */}
-         {feedback && (
-            <div className={`game-feedback ${feedback} ${feedback === "correct" ? mobile.pop : mobile.shake}`}>
-               {feedback === "correct" ? (
-                  <>
-                     <CheckCircleIcon className="feedback-icon" />
-                     <span>Correct! Great job!</span>
-                  </>
-               ) : (
-                  <>
-                     <XCircleIcon className="feedback-icon" />
-                     <span>Wrong! Try again.</span>
-                  </>
-               )}
-            </div>
-         )}
       </div>
    );
 }

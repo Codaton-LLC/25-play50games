@@ -116,6 +116,15 @@ export default function WhackShape({
    const [replaysUsed, setReplaysUsed] = useState(0);
    const [hasShared, setHasShared] = useState(false);
    const [shareSuccess, setShareSuccess] = useState(false);
+   // the 15 s "link copied" timeouts, cleared on unmount so none fires on an unmounted game
+   const shareMsgTimersRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
+   useEffect(() => {
+      const timers = shareMsgTimersRef.current;
+      return () => {
+         timers.forEach((id) => clearTimeout(id));
+         timers.clear();
+      };
+   }, []);
    const [unlimitedActivated, setUnlimitedActivated] = useState(false);
    const [currentShareId, setCurrentShareId] = useState<string | null>(null);
    const shareCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -703,12 +712,12 @@ export default function WhackShape({
       if (navigator.share) {
          try {
             await navigator.share({
-               title: "Shape Pop Game",
-               text: "Check out this awesome Shape Pop game!",
+               title: "Shape Spotter Game",
+               text: "Check out this awesome Shape Spotter game!",
                url: shareableLink,
             });
             setShareSuccess(true);
-            setTimeout(() => setShareSuccess(false), 15000);
+            shareMsgTimersRef.current.add(setTimeout(() => setShareSuccess(false), 15000));
          } catch (error: any) {
             if (error.name !== "AbortError") {
                handleCopyLink(shareId);
@@ -726,7 +735,7 @@ export default function WhackShape({
       try {
          await navigator.clipboard.writeText(shareableLink);
          setShareSuccess(true);
-         setTimeout(() => setShareSuccess(false), 15000);
+         shareMsgTimersRef.current.add(setTimeout(() => setShareSuccess(false), 15000));
       } catch (error) {
          const textArea = document.createElement("textarea");
          textArea.value = shareableLink;
@@ -737,7 +746,7 @@ export default function WhackShape({
          try {
             document.execCommand("copy");
             setShareSuccess(true);
-            setTimeout(() => setShareSuccess(false), 15000);
+            shareMsgTimersRef.current.add(setTimeout(() => setShareSuccess(false), 15000));
          } catch (err) {
             // Failed to copy
          }
@@ -894,19 +903,20 @@ export default function WhackShape({
       textAlign: "center",
    });
 
+   // The success strings stay exactly as they were: the final games recolour them gold by matching them.
    const getNoticeBadgeStyle = (tone: "success" | "danger") => {
       const bgFrom =
          tone === "success"
             ? "rgba(134, 239, 172, 0.25)"
-            : "rgba(252, 165, 165, 0.25)";
+            : "color-mix(in srgb, var(--warn) 22%, transparent)";
       const bgTo =
          tone === "success"
             ? "rgba(134, 239, 172, 0.12)"
-            : "rgba(252, 165, 165, 0.12)";
+            : "color-mix(in srgb, var(--warn) 12%, transparent)";
       const borderColor =
          tone === "success"
             ? "rgba(134, 239, 172, 0.6)"
-            : "rgba(252, 165, 165, 0.6)";
+            : "color-mix(in srgb, var(--warn) 60%, transparent)";
       const textColor = tone === "success" ? "var(--ok)" : "var(--warn)";
 
       return {
@@ -916,6 +926,7 @@ export default function WhackShape({
          padding: isMobile ? "10px 16px" : "12px 20px",
          background: `linear-gradient(135deg, ${bgFrom}, ${bgTo})`,
          border: `2px solid ${borderColor}`,
+         borderRadius: "999px",
 
          color: textColor,
          fontSize: isMobile ? "0.95rem" : "1rem",
@@ -923,81 +934,32 @@ export default function WhackShape({
       };
    };
 
+   // Press and hover feedback come from the module (fx.pressable, .btnOk): no inline transition here.
    const getActionButtonStyle = (tone: "success" | "danger") => {
       const bgFrom =
          tone === "success"
             ? "rgba(134, 239, 172, 0.25)"
-            : "rgba(252, 165, 165, 0.25)";
+            : "color-mix(in srgb, var(--warn) 22%, transparent)";
       const bgTo =
          tone === "success"
             ? "rgba(134, 239, 172, 0.12)"
-            : "rgba(252, 165, 165, 0.12)";
+            : "color-mix(in srgb, var(--warn) 12%, transparent)";
       const borderColor =
          tone === "success"
             ? "rgba(134, 239, 172, 0.6)"
-            : "rgba(252, 165, 165, 0.6)";
+            : "color-mix(in srgb, var(--warn) 60%, transparent)";
 
       return {
          padding: isMobile ? "12px 24px" : "14px 28px",
          background: `linear-gradient(135deg, ${bgFrom}, ${bgTo})`,
          border: `2px solid ${borderColor}`,
 
-         color: "var(--text)",
          fontSize: isMobile ? "1rem" : "1.05rem",
          fontWeight: 700,
-         cursor: "pointer",
-         transition: "all 0.3s ease",
          display: "inline-flex",
          alignItems: "center",
          gap: "8px",
       } as React.CSSProperties;
-   };
-
-   const applyActionHover = (
-      e: React.MouseEvent<HTMLButtonElement>,
-      tone: "success" | "danger",
-      isEnter: boolean
-   ) => {
-      const target = e.currentTarget;
-      const borderColor =
-         tone === "success"
-            ? "rgba(134, 239, 172, 0.8)"
-            : "rgba(252, 165, 165, 0.8)";
-      const bgFrom =
-         tone === "success"
-            ? "rgba(134, 239, 172, 0.35)"
-            : "rgba(252, 165, 165, 0.35)";
-      const bgTo =
-         tone === "success"
-            ? "rgba(134, 239, 172, 0.2)"
-            : "rgba(252, 165, 165, 0.2)";
-      const defaultBgFrom =
-         tone === "success"
-            ? "rgba(134, 239, 172, 0.25)"
-            : "rgba(252, 165, 165, 0.25)";
-      const defaultBgTo =
-         tone === "success"
-            ? "rgba(134, 239, 172, 0.12)"
-            : "rgba(252, 165, 165, 0.12)";
-      const shadowColor =
-         tone === "success"
-            ? "rgba(134, 239, 172, 0.4)"
-            : "rgba(252, 165, 165, 0.4)";
-
-      if (isEnter) {
-         target.style.background = `linear-gradient(135deg, ${bgFrom}, ${bgTo})`;
-         target.style.borderColor = borderColor;
-         target.style.transform = "translateY(-2px)";
-         target.style.boxShadow = `0 4px 12px ${shadowColor}`;
-      } else {
-         target.style.background = `linear-gradient(135deg, ${defaultBgFrom}, ${defaultBgTo})`;
-         target.style.borderColor =
-            tone === "success"
-               ? "rgba(134, 239, 172, 0.6)"
-               : "rgba(252, 165, 165, 0.6)";
-         target.style.transform = "translateY(0)";
-         target.style.boxShadow = "none";
-      }
    };
 
    return (
@@ -1028,6 +990,7 @@ export default function WhackShape({
          >
             {/* Header */}
             <div
+               className={styles.header}
                style={{
                   display: "flex",
                   flexDirection: "column",
@@ -1121,23 +1084,10 @@ export default function WhackShape({
                   </div>
                   <div>Wrong: {wrongClicks}</div>
                </div>
-               <div
-                  style={{
-                     width: "100%",
-                     height: "8px",
-                     background: "var(--stroke)",
-                     borderRadius: "4px",
-                     overflow: "hidden",
-                  }}
-               >
+               <div className={styles.progress}>
                   <div
-                     style={{
-                        width: `${progress}%`,
-                        height: "100%",
-                        background:
-                           "linear-gradient(90deg, var(--accent), #3b82f6)",
-                        transition: "width 0.3s ease",
-                     }}
+                     className={styles.progressFill}
+                     style={{ transform: `scaleX(${Math.min(1, progress / 100)})` }}
                   />
                </div>
             </div>
@@ -1344,7 +1294,7 @@ export default function WhackShape({
 
             {/* Paused Message (Requirements Met, Waiting for Timer) */}
             {gameState === "paused" && (
-               <div style={getNoticeStyle()} className={fx.fadeUp}>
+               <div style={getNoticeStyle()} className={`${styles.notice} ${fx.staggerIn}`}>
                   <div style={getNoticeBadgeStyle("success")}>
                      <CheckCircleIcon style={{ width: 20, height: 20 }} />
                      Requirements Met
@@ -1363,7 +1313,7 @@ export default function WhackShape({
 
             {/* Ready for Next Round Message */}
             {gameState === "ready" && currentLevel + 1 < maxLevels && (
-               <div style={getNoticeStyle()} className={fx.fadeUp}>
+               <div style={getNoticeStyle()} className={`${styles.notice} ${fx.staggerIn}`}>
                   <div style={getNoticeBadgeStyle("success")}>
                      <CheckCircleIcon style={{ width: 20, height: 20 }} />
                      Level {currentLevel + 1} Complete
@@ -1381,10 +1331,8 @@ export default function WhackShape({
                   <button
                      type="button"
                      onClick={handleNextRound}
-                     className={`${styles.btn} ${fx.pressable}`}
+                     className={`${styles.btn} ${styles.btnOk} ${fx.pressable}`}
                      style={{ ...getActionButtonStyle("success"), ...TOUCH_SURFACE }}
-                     onMouseEnter={(e) => applyActionHover(e, "success", true)}
-                     onMouseLeave={(e) => applyActionHover(e, "success", false)}
                   >
                      Next Round
                   </button>
@@ -1393,7 +1341,7 @@ export default function WhackShape({
 
             {/* Game Complete Message */}
             {gameState === "ready" && currentLevel + 1 >= maxLevels && (
-               <div style={getNoticeStyle()} className={fx.fadeUp}>
+               <div style={getNoticeStyle()} className={`${styles.notice} ${fx.staggerIn}`}>
                   <div style={getNoticeBadgeStyle("success")}>
                      <TrophyIcon style={{ width: 20, height: 20 }} />
                      Game Complete!
@@ -1423,7 +1371,7 @@ export default function WhackShape({
 
             {/* Level Failed Message */}
             {gameState === "failed" && (
-               <div style={getNoticeStyle()} className={fx.fadeUp}>
+               <div style={getNoticeStyle()} className={`${styles.notice} ${fx.staggerIn}`}>
                   <div style={getNoticeBadgeStyle("danger")}>
                      <XCircleIcon style={{ width: 20, height: 20 }} />
                      Level {currentLevel + 1} Failed
@@ -1454,6 +1402,7 @@ export default function WhackShape({
             {/* Action Buttons: Replay, Share */}
             {(gameState === "playing" || gameState === "failed") && (
                <div
+                  className={styles.actions}
                   style={{
                      display: "flex",
                      gap: isMobile ? "10px" : "12px",
@@ -1472,7 +1421,8 @@ export default function WhackShape({
                            padding: "12px",
                            background: "rgba(134, 239, 172, 0.2)",
                            border: "2px solid rgba(134, 239, 172, 0.6)",
-                           borderRadius: "8px",
+                           borderRadius: "10px",
+                           boxSizing: "border-box",
                            fontSize: isMobile ? "0.9rem" : "1rem",
                            fontWeight: 600,
                            color: "var(--ok)",
@@ -1488,22 +1438,11 @@ export default function WhackShape({
                   {/* Unlimited Activated Message */}
                   {unlimitedActivated && (
                      <div
+                        className={styles.msgInfo}
                         style={{
-                           display: "flex",
-                           alignItems: "center",
                            gap: isMobile ? "6px" : "8px",
                            padding: isMobile ? "10px 14px" : "8px 16px",
-                           background:
-                              "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
-                           border: "2px solid rgba(59, 130, 246, 0.6)",
-                           borderRadius: isMobile ? "10px" : "8px",
-                           color: "var(--text)",
                            fontSize: isMobile ? "0.85rem" : "0.9rem",
-                           fontWeight: 500,
-                           width: "100%",
-                           justifyContent: "center",
-                           textAlign: "center",
-                           flexWrap: "wrap",
                            marginBottom: "8px",
                         }}
                      >
@@ -1511,7 +1450,7 @@ export default function WhackShape({
                            style={{
                               width: isMobile ? 16 : 18,
                               height: isMobile ? 16 : 18,
-                              color: "rgba(59, 130, 246, 0.9)",
+                              color: "var(--accent)",
                               flexShrink: 0,
                            }}
                         />
@@ -1527,7 +1466,7 @@ export default function WhackShape({
                      type="button"
                      onClick={handleReplay}
                      disabled={maxReplays > 0 && replaysUsed >= maxReplays}
-                     className={`${styles.btn} ${fx.pressable}`}
+                     className={`${styles.btn} ${styles.btnTint} ${fx.pressable}`}
                      style={{
                         ...TOUCH_SURFACE,
                         display: "flex",
@@ -1536,52 +1475,7 @@ export default function WhackShape({
                         padding: isMobile ? "10px 14px" : "10px 20px",
                         flex: isMobile ? "1 1 0" : "0 0 auto",
                         minWidth: isMobile ? "120px" : undefined,
-                        background:
-                           maxReplays > 0 && replaysUsed >= maxReplays
-                              ? "rgba(100, 100, 100, 0.2)"
-                              : "linear-gradient(135deg, rgba(125, 211, 252, 0.2), rgba(125, 211, 252, 0.1))",
-                        border:
-                           maxReplays > 0 && replaysUsed >= maxReplays
-                              ? "1px solid rgba(100, 100, 100, 0.4)"
-                              : "1px solid rgba(125, 211, 252, 0.6)",
-
-                        color: "var(--text)",
                         fontSize: isMobile ? "0.9rem" : "0.95rem",
-                        fontWeight: 600,
-                        cursor:
-                           maxReplays > 0 && replaysUsed >= maxReplays
-                              ? "not-allowed"
-                              : "pointer",
-                        opacity:
-                           maxReplays > 0 && replaysUsed >= maxReplays
-                              ? 0.5
-                              : 1,
-                        transition: "all 0.3s ease",
-                     }}
-                     onMouseEnter={(e) => {
-                        if (!(maxReplays > 0 && replaysUsed >= maxReplays)) {
-                           e.currentTarget.style.background =
-                              "linear-gradient(135deg, rgba(125, 211, 252, 0.3), rgba(125, 211, 252, 0.2))";
-                           e.currentTarget.style.borderColor =
-                              "rgba(125, 211, 252, 0.8)";
-                           e.currentTarget.style.transform = "translateY(-2px)";
-                           e.currentTarget.style.boxShadow =
-                              "0 4px 12px rgba(125, 211, 252, 0.3)";
-                        }
-                     }}
-                     onMouseLeave={(e) => {
-                        if (!(maxReplays > 0 && replaysUsed >= maxReplays)) {
-                           e.currentTarget.style.background =
-                              maxReplays > 0 && replaysUsed >= maxReplays
-                                 ? "rgba(100, 100, 100, 0.2)"
-                                 : "linear-gradient(135deg, rgba(125, 211, 252, 0.2), rgba(125, 211, 252, 0.1))";
-                           e.currentTarget.style.borderColor =
-                              maxReplays > 0 && replaysUsed >= maxReplays
-                                 ? "rgba(100, 100, 100, 0.4)"
-                                 : "rgba(125, 211, 252, 0.6)";
-                           e.currentTarget.style.transform = "translateY(0)";
-                           e.currentTarget.style.boxShadow = "none";
-                        }
                      }}
                   >
                      <ArrowPathRoundedSquareIcon
@@ -1605,7 +1499,7 @@ export default function WhackShape({
                   <button
                      type="button"
                      onClick={handleShare}
-                     className={`${styles.btn} ${fx.pressable}`}
+                     className={`${styles.btn} ${styles.btnTint} ${fx.pressable}`}
                      style={{
                         ...TOUCH_SURFACE,
                         display: "flex",
@@ -1614,32 +1508,7 @@ export default function WhackShape({
                         padding: isMobile ? "10px 14px" : "10px 20px",
                         flex: isMobile ? "1 1 0" : "0 0 auto",
                         minWidth: isMobile ? "120px" : undefined,
-                        background:
-                           "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
-                        border: "1px solid rgba(59, 130, 246, 0.6)",
-
-                        color: "var(--text)",
                         fontSize: isMobile ? "0.9rem" : "0.95rem",
-                        fontWeight: 600,
-                        cursor: "pointer",
-                        transition: "all 0.3s ease",
-                     }}
-                     onMouseEnter={(e) => {
-                        e.currentTarget.style.background =
-                           "linear-gradient(135deg, rgba(59, 130, 246, 0.3), rgba(59, 130, 246, 0.2))";
-                        e.currentTarget.style.borderColor =
-                           "rgba(59, 130, 246, 0.8)";
-                        e.currentTarget.style.transform = "translateY(-2px)";
-                        e.currentTarget.style.boxShadow =
-                           "0 4px 12px rgba(59, 130, 246, 0.3)";
-                     }}
-                     onMouseLeave={(e) => {
-                        e.currentTarget.style.background =
-                           "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))";
-                        e.currentTarget.style.borderColor =
-                           "rgba(59, 130, 246, 0.6)";
-                        e.currentTarget.style.transform = "translateY(0)";
-                        e.currentTarget.style.boxShadow = "none";
                      }}
                   >
                      <ShareIcon

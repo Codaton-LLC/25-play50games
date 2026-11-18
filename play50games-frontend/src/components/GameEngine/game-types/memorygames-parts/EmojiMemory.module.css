@@ -1,0 +1,11 @@
+/* Emoji Memory: an empty cell while the emoji are shown recedes, so the emoji cells read first. */
+
+.empty {
+   opacity: 0.35;
+}
+
+@media (prefers-reduced-motion: reduce) {
+   .empty {
+      transition: none;
+   }
+}
