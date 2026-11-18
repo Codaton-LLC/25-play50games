@@ -1,0 +1,952 @@
+/* The shared look of the five Final games (FinalGames.tsx, FinalGameComplete.tsx and the four
+   final mini-games): title, stat chips, progress, the challenge ladder, feedback, the complete card
+   and the replay / share bar. Colours come from the stage tokens: on a final page --accent and
+   --accent-rgb are Trophy Gold, so everything here is gold there. The tints the boards still write
+   inline (and that globals.css recolours by matching their strings) are left in the TSX.
+   One radius scale: cells 10 px, chips 8 px, panels 20 px, buttons full pill.
+   No rule, score, timing or unlock depends on this file. */
+
+.wrap {
+   --fc-ease: cubic-bezier(0.16, 1, 0.3, 1);
+   --fc-accent: rgba(var(--accent-rgb, 234, 179, 8), 1);
+   display: flex;
+   flex-direction: column;
+   align-items: center;
+   gap: 20px;
+   width: 100%;
+   max-width: 1200px;
+   margin: 0 auto;
+   padding: 24px;
+   box-sizing: border-box;
+   font-variant-numeric: tabular-nums;
+}
+
+/* the head of a final game: title, chips, progress */
+.head {
+   display: flex;
+   flex-direction: column;
+   align-items: center;
+   gap: 14px;
+   width: 100%;
+   animation: riseIn 0.32s var(--fc-ease) both;
+}
+
+.title {
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   gap: 10px;
+   margin: 0;
+   font-size: clamp(1.4rem, 1.1rem + 1.2vw, 2rem);
+   font-weight: 700;
+   line-height: 1.15;
+   letter-spacing: -0.01em;
+   color: var(--fc-accent);
+   text-align: center;
+}
+
+.titleIcon {
+   width: 1.1em;
+   height: 1.1em;
+   flex: none;
+   color: var(--fc-accent);
+}
+
+.subtitle {
+   margin: -6px 0 0;
+   font-size: 0.95rem;
+   font-weight: 500;
+   color: var(--muted);
+   text-align: center;
+}
+
+.chips {
+   display: flex;
+   flex-wrap: wrap;
+   align-items: center;
+   justify-content: center;
+   gap: 8px;
+   width: 100%;
+}
+
+.chip {
+   display: inline-flex;
+   align-items: center;
+   gap: 8px;
+   padding: 8px 14px;
+   border-radius: 8px;
+   background: rgba(255, 255, 255, 0.04);
+   border: 1px solid var(--stroke);
+   font-size: 0.95rem;
+   font-weight: 600;
+   color: var(--text);
+   white-space: nowrap;
+}
+
+.chipIcon {
+   width: 18px;
+   height: 18px;
+   flex: none;
+   color: var(--fc-accent);
+}
+
+/* progress: the fill grows by transform, never by width */
+.progress {
+   width: 100%;
+   max-width: 600px;
+   height: 8px;
+   border-radius: 999px;
+   background: rgba(255, 255, 255, 0.08);
+   overflow: hidden;
+}
+
+.progressFill {
+   width: 100%;
+   height: 100%;
+   border-radius: inherit;
+   background: var(--fc-accent);
+   transform-origin: left center;
+   transition: transform 0.32s var(--fc-ease);
+}
+
+/* a raised panel (mini-game header, game area, sheets) */
+.panel {
+   width: 100%;
+   max-width: 800px;
+   box-sizing: border-box;
+   padding: 20px;
+   background: var(--card);
+   border: 1px solid var(--stroke);
+   border-radius: 20px;
+}
+
+.miniHead {
+   display: flex;
+   flex-direction: column;
+   gap: 14px;
+}
+
+.miniStats {
+   display: flex;
+   flex-wrap: wrap;
+   align-items: center;
+   justify-content: space-between;
+   gap: 8px;
+   font-size: 0.95rem;
+   font-weight: 600;
+   color: var(--text);
+}
+
+.miniStat {
+   display: inline-flex;
+   align-items: center;
+   gap: 6px;
+}
+
+.miniHead .progress {
+   max-width: none;
+   height: 6px;
+}
+
+/* the challenge ladder (Boss Puzzle, Time Challenge, Final Game) */
+.ladder {
+   display: flex;
+   flex-direction: column;
+   gap: 16px;
+   width: 100%;
+   max-width: 1000px;
+   margin: 4px auto 0;
+}
+
+.step {
+   position: relative;
+   width: 100%;
+   box-sizing: border-box;
+   border-radius: 20px;
+   border: 1px solid var(--stroke);
+   background: rgba(255, 255, 255, 0.03);
+}
+
+.stepHead {
+   display: flex;
+   align-items: center;
+   gap: 12px;
+   padding: 14px 16px;
+}
+
+.stepNum {
+   display: inline-flex;
+   align-items: center;
+   justify-content: center;
+   width: 32px;
+   height: 32px;
+   flex: none;
+   border-radius: 8px;
+   font-size: 0.95rem;
+   font-weight: 700;
+   color: var(--muted);
+   background: rgba(255, 255, 255, 0.05);
+   border: 1px solid var(--stroke);
+}
+
+.stepName {
+   flex: 1;
+   min-width: 0;
+   margin: 0;
+   font-size: 1.05rem;
+   font-weight: 700;
+   color: var(--text);
+}
+
+.stepCount {
+   font-weight: 500;
+   color: var(--muted);
+}
+
+.stepState {
+   display: inline-flex;
+   align-items: center;
+   gap: 6px;
+   flex: none;
+   padding: 4px 10px;
+   border-radius: 999px;
+   font-size: 0.8rem;
+   font-weight: 600;
+   color: var(--muted);
+   border: 1px solid var(--stroke);
+}
+
+.stepStateIcon {
+   width: 16px;
+   height: 16px;
+   flex: none;
+}
+
+.stepNote {
+   margin: 0;
+   padding: 0 16px 16px 60px;
+   font-size: 0.9rem;
+   font-weight: 500;
+   color: var(--muted);
+}
+
+.stepBody {
+   padding: 0 4px 8px;
+}
+
+.stepWaiting {
+   padding: 20px;
+   text-align: center;
+   color: var(--muted);
+}
+
+/* states: colour + ring only, the card never jumps in size because of its state */
+.locked {
+   opacity: 0.55;
+}
+
+.active {
+   border-color: rgba(var(--accent-rgb, 234, 179, 8), 0.45);
+   background: rgba(var(--accent-rgb, 234, 179, 8), 0.04);
+   animation: riseIn 0.36s var(--fc-ease) both;
+}
+
+.active .stepNum {
+   color: #14110a;
+   background: var(--fc-accent);
+   border-color: transparent;
+}
+
+.active .stepState {
+   color: var(--fc-accent);
+   border-color: rgba(var(--accent-rgb, 234, 179, 8), 0.5);
+}
+
+.done {
+   border-color: rgba(var(--accent-rgb, 234, 179, 8), 0.35);
+   background: rgba(var(--accent-rgb, 234, 179, 8), 0.1);
+   animation: donePop 0.42s var(--fc-ease) both;
+}
+
+.done .stepNum,
+.done .stepState {
+   color: var(--fc-accent);
+   border-color: rgba(var(--accent-rgb, 234, 179, 8), 0.5);
+}
+
+/* feedback banner */
+.feedback {
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   gap: 10px;
+   width: 100%;
+   box-sizing: border-box;
+   padding: 14px 20px;
+   border-radius: 14px;
+   font-size: 1.05rem;
+   font-weight: 600;
+   text-align: center;
+}
+
+.feedbackOk {
+   color: var(--fc-accent);
+   background: rgba(var(--accent-rgb, 234, 179, 8), 0.14);
+   border: 1px solid rgba(var(--accent-rgb, 234, 179, 8), 0.55);
+   animation: popIn 0.3s var(--fc-ease);
+}
+
+.feedbackBad {
+   color: var(--warn);
+   background: color-mix(in srgb, var(--warn) 14%, transparent);
+   border: 1px solid color-mix(in srgb, var(--warn) 55%, transparent);
+   animation: shake 0.36s ease-in-out;
+}
+
+.feedbackIcon {
+   width: 22px;
+   height: 22px;
+   flex: none;
+}
+
+/* a round / mini-game / quiz complete sheet */
+.sheet {
+   display: flex;
+   flex-direction: column;
+   align-items: center;
+   gap: 14px;
+   text-align: center;
+   color: var(--text);
+}
+
+.sheet > * {
+   animation: riseIn 0.32s var(--fc-ease) both;
+}
+
+.sheet > :nth-child(2) {
+   animation-delay: 60ms;
+}
+
+.sheet > :nth-child(3) {
+   animation-delay: 120ms;
+}
+
+.badge {
+   display: inline-flex;
+   align-items: center;
+   gap: 8px;
+   padding: 8px 16px;
+   border-radius: 999px;
+   font-size: 1rem;
+   font-weight: 800;
+   color: var(--fc-accent);
+   background: rgba(var(--accent-rgb, 234, 179, 8), 0.14);
+   border: 1px solid rgba(var(--accent-rgb, 234, 179, 8), 0.55);
+}
+
+.badgeIcon {
+   width: 20px;
+   height: 20px;
+   flex: none;
+}
+
+.sheetText {
+   margin: 0;
+   font-size: 1.05rem;
+   font-weight: 600;
+}
+
+/* "Current: Logic Challenge" */
+.current {
+   display: inline-flex;
+   align-items: center;
+   gap: 8px;
+   padding: 8px 16px;
+   border-radius: 999px;
+   font-size: 0.95rem;
+   font-weight: 600;
+   color: var(--text);
+   background: rgba(var(--accent-rgb, 234, 179, 8), 0.1);
+   border: 1px solid rgba(var(--accent-rgb, 234, 179, 8), 0.4);
+   animation: riseIn 0.28s var(--fc-ease) both;
+}
+
+/* replay / share bar */
+.actions {
+   display: flex;
+   flex-wrap: wrap;
+   justify-content: center;
+   gap: 10px;
+   width: 100%;
+   max-width: 800px;
+   box-sizing: border-box;
+   padding: 14px;
+   border-radius: 20px;
+   background: var(--card);
+   border: 1px solid var(--stroke);
+}
+
+.note {
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   flex-wrap: wrap;
+   gap: 8px;
+   width: 100%;
+   box-sizing: border-box;
+   padding: 10px 14px;
+   border-radius: 14px;
+   font-size: 0.9rem;
+   font-weight: 600;
+   line-height: 1.35;
+   text-align: center;
+   color: var(--text);
+   background: rgba(var(--accent-rgb, 234, 179, 8), 0.12);
+   border: 1px solid rgba(var(--accent-rgb, 234, 179, 8), 0.45);
+   animation: riseIn 0.28s var(--fc-ease) both;
+}
+
+.noteIcon {
+   width: 18px;
+   height: 18px;
+   flex: none;
+   color: var(--fc-accent);
+}
+
+/* buttons: pills, finger-sized, pressed feel */
+.pill,
+.primary {
+   display: inline-flex;
+   align-items: center;
+   justify-content: center;
+   gap: 8px;
+   min-height: 44px;
+   padding: 10px 20px;
+   border-radius: 999px;
+   font: inherit;
+   font-size: 0.95rem;
+   font-weight: 600;
+   cursor: pointer;
+   touch-action: manipulation;
+   -webkit-tap-highlight-color: transparent;
+   transition:
+      transform 0.1s ease,
+      background-color 0.2s ease,
+      border-color 0.2s ease,
+      box-shadow 0.2s ease;
+}
+
+.pill {
+   color: var(--text);
+   background: rgba(255, 255, 255, 0.04);
+   border: 1px solid var(--stroke);
+}
+
+.pill:hover:not(:disabled) {
+   background: rgba(var(--accent-rgb, 234, 179, 8), 0.1);
+   border-color: rgba(var(--accent-rgb, 234, 179, 8), 0.6);
+}
+
+.primary {
+   color: #14110a;
+   background: var(--fc-accent);
+   border: 1px solid transparent;
+   font-weight: 700;
+   padding: 12px 28px;
+}
+
+.primary:hover:not(:disabled) {
+   box-shadow: 0 6px 18px rgba(var(--accent-rgb, 234, 179, 8), 0.35);
+}
+
+.pill:active:not(:disabled),
+.primary:active:not(:disabled) {
+   transform: scale(0.96);
+}
+
+.pill:disabled,
+.primary:disabled {
+   opacity: 0.45;
+   cursor: not-allowed;
+}
+
+.pill:focus-visible,
+.primary:focus-visible {
+   outline: 2px solid var(--fc-accent);
+   outline-offset: 2px;
+}
+
+.pillIcon {
+   width: 20px;
+   height: 20px;
+   flex: none;
+   color: var(--fc-accent);
+}
+
+/* a tappable tile of a mini-game (numbers, colours): size never changes with its state */
+.tile {
+   position: relative;
+   box-sizing: border-box;
+   min-height: 44px;
+   display: flex;
+   flex-direction: column;
+   align-items: center;
+   justify-content: center;
+   border-radius: 14px;
+   border: 0;
+   color: var(--text);
+   font: inherit;
+   cursor: pointer;
+   touch-action: manipulation;
+   -webkit-tap-highlight-color: transparent;
+   user-select: none;
+   -webkit-user-select: none;
+   transition:
+      transform 0.1s ease,
+      background-color 0.2s ease,
+      box-shadow 0.2s ease,
+      opacity 0.2s ease;
+}
+
+.tile:active:not(:disabled) {
+   transform: scale(0.96);
+}
+
+.tile:focus-visible {
+   outline: 2px solid var(--fc-accent);
+   outline-offset: 2px;
+}
+
+/* the order number a picked tile wears */
+.order {
+   position: absolute;
+   top: 8px;
+   right: 8px;
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   width: 28px;
+   height: 28px;
+   border-radius: 999px;
+   font-size: 0.95rem;
+   font-weight: 700;
+   color: #14110a;
+   background: var(--fc-accent);
+   animation: popIn 0.22s var(--fc-ease);
+}
+
+@keyframes riseIn {
+   from {
+      opacity: 0;
+      transform: translateY(8px);
+   }
+   to {
+      opacity: 1;
+      transform: translateY(0);
+   }
+}
+
+@keyframes popIn {
+   from {
+      opacity: 0;
+      transform: scale(0.92);
+   }
+   to {
+      opacity: 1;
+      transform: scale(1);
+   }
+}
+
+@keyframes donePop {
+   0% {
+      transform: scale(0.98);
+   }
+   45% {
+      transform: scale(1.015);
+   }
+   100% {
+      transform: scale(1);
+   }
+}
+
+@keyframes shake {
+   0%,
+   100% {
+      transform: translateX(0);
+   }
+   20% {
+      transform: translateX(-6px);
+   }
+   40% {
+      transform: translateX(6px);
+   }
+   60% {
+      transform: translateX(-4px);
+   }
+   80% {
+      transform: translateX(4px);
+   }
+}
+
+@media (max-width: 900px) {
+   .wrap {
+      gap: 16px;
+      padding: 16px;
+   }
+}
+
+@media (max-width: 640px) {
+   .wrap {
+      gap: 12px;
+      padding: 12px 0;
+   }
+   .chip {
+      padding: 6px 12px;
+      font-size: 0.9rem;
+   }
+   .panel {
+      padding: 14px;
+      border-radius: 16px;
+   }
+   .step {
+      border-radius: 16px;
+   }
+   .stepHead {
+      padding: 12px;
+      gap: 10px;
+   }
+   .stepNote {
+      padding: 0 12px 14px 54px;
+   }
+   .stepBody {
+      padding: 0 6px 6px;
+   }
+   .actions {
+      padding: 12px;
+      border-radius: 16px;
+   }
+   .actions .pill {
+      width: 100%;
+   }
+}
+
+@media (prefers-reduced-motion: reduce) {
+   .head,
+   .active,
+   .done,
+   .feedbackOk,
+   .feedbackBad,
+   .sheet > *,
+   .current,
+   .note,
+   .order {
+      animation: none;
+   }
+   .progressFill,
+   .pill,
+   .primary,
+   .tile {
+      transition: none;
+   }
+}
+
+/* ---------- the four final mini-games ---------- */
+
+.mini {
+   display: flex;
+   flex-direction: column;
+   align-items: center;
+   gap: 16px;
+   width: 100%;
+   max-width: 800px;
+   margin: 0 auto;
+   box-sizing: border-box;
+   font-variant-numeric: tabular-nums;
+}
+
+/* the playing area of a mini-game */
+.area {
+   display: flex;
+   flex-direction: column;
+   align-items: center;
+   justify-content: center;
+   gap: 20px;
+   padding: 28px 20px;
+   animation: riseIn 0.3s var(--fc-ease, cubic-bezier(0.16, 1, 0.3, 1)) both;
+}
+
+/* the instruction line above a board */
+.rule {
+   width: 100%;
+   box-sizing: border-box;
+   padding: 12px 18px;
+   border-radius: 14px;
+   font-size: 1.15rem;
+   font-weight: 700;
+   line-height: 1.35;
+   text-align: center;
+   color: var(--text);
+   background: rgba(var(--accent-rgb, 234, 179, 8), 0.1);
+   border: 1px solid rgba(var(--accent-rgb, 234, 179, 8), 0.45);
+}
+
+.ruleKey {
+   color: rgba(var(--accent-rgb, 234, 179, 8), 1);
+   font-weight: 800;
+}
+
+.ruleSub {
+   display: block;
+   margin-top: 6px;
+   font-size: 0.95rem;
+   font-weight: 600;
+   opacity: 0.9;
+}
+
+.hint {
+   margin: 0;
+   font-size: 1rem;
+   font-weight: 600;
+   color: var(--muted);
+   text-align: center;
+}
+
+/* two equal columns of tiles */
+.tiles2 {
+   display: grid;
+   grid-template-columns: repeat(2, minmax(0, 1fr));
+   gap: 14px;
+   width: 100%;
+   max-width: 400px;
+}
+
+.tiles2 > * {
+   animation: riseIn 0.3s var(--fc-ease, cubic-bezier(0.16, 1, 0.3, 1)) both;
+}
+
+.tiles2 > :nth-child(2) {
+   animation-delay: 40ms;
+}
+
+.tiles2 > :nth-child(3) {
+   animation-delay: 80ms;
+}
+
+.tiles2 > :nth-child(4) {
+   animation-delay: 120ms;
+}
+
+.numTile,
+.colorTile {
+   width: 100%;
+   min-height: 112px;
+   padding: 16px 8px;
+   gap: 6px;
+   background: rgba(255, 255, 255, 0.04);
+   box-shadow: inset 0 0 0 1px var(--stroke);
+}
+
+.numTile:hover:not(:disabled),
+.colorTile:hover:not(:disabled) {
+   background: rgba(255, 255, 255, 0.07);
+   box-shadow: inset 0 0 0 1px rgba(var(--accent-rgb, 234, 179, 8), 0.6);
+}
+
+.numTile {
+   font-size: clamp(1.9rem, 1.5rem + 1.5vw, 2.5rem);
+   font-weight: 800;
+   line-height: 1;
+}
+
+.colorTile {
+   font-size: clamp(2.6rem, 2rem + 2vw, 3.5rem);
+   line-height: 1;
+}
+
+.tilePicked {
+   cursor: default;
+   opacity: 0.75;
+   background: rgba(var(--accent-rgb, 234, 179, 8), 0.16);
+   box-shadow: inset 0 0 0 2px rgba(var(--accent-rgb, 234, 179, 8), 1);
+}
+
+.tileEmoji {
+   font-size: 1.5rem;
+   line-height: 1;
+}
+
+/* the letter flashed one after another (memory) */
+.letterStage {
+   display: flex;
+   flex-direction: column;
+   align-items: center;
+   justify-content: center;
+   gap: 10px;
+   min-height: 260px;
+}
+
+.letter {
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   min-height: 1.1em;
+   font-size: clamp(4rem, 3rem + 4vw, 6rem);
+   font-weight: 800;
+   line-height: 1;
+   color: rgba(var(--accent-rgb, 234, 179, 8), 1);
+   animation: letterIn 0.26s var(--fc-ease, cubic-bezier(0.16, 1, 0.3, 1));
+}
+
+.letterCount {
+   font-size: 0.9rem;
+   font-weight: 600;
+   color: var(--muted);
+}
+
+.input {
+   width: 100%;
+   max-width: 400px;
+   box-sizing: border-box;
+   min-height: 56px;
+   padding: 14px 16px;
+   border-radius: 14px;
+   border: 1px solid var(--stroke);
+   background: rgba(255, 255, 255, 0.05);
+   color: var(--text);
+   font: inherit;
+   font-size: clamp(1.4rem, 1.1rem + 1.2vw, 2rem);
+   font-weight: 700;
+   text-align: center;
+   text-transform: uppercase;
+   letter-spacing: 0.2em;
+   transition:
+      border-color 0.2s ease,
+      box-shadow 0.2s ease;
+}
+
+.input:focus {
+   outline: none;
+   border-color: rgba(var(--accent-rgb, 234, 179, 8), 1);
+   box-shadow: 0 0 0 3px rgba(var(--accent-rgb, 234, 179, 8), 0.25);
+}
+
+/* the colour shown in the speed game */
+.bigEmoji {
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   padding: 16px 24px;
+   border-radius: 20px;
+   font-size: clamp(5.5rem, 4rem + 6vw, 10rem);
+   line-height: 1;
+   background: rgba(255, 255, 255, 0.04);
+   box-shadow: inset 0 0 0 1px var(--stroke);
+   animation: popIn 0.24s var(--fc-ease, cubic-bezier(0.16, 1, 0.3, 1));
+}
+
+/* the timing circle (skill): a square stage, the circle scales by transform */
+.skillStage {
+   position: relative;
+   width: min(100%, 400px);
+   aspect-ratio: 1;
+   display: flex;
+   align-items: center;
+   justify-content: center;
+}
+
+.zoneRing {
+   position: absolute;
+   box-sizing: border-box;
+   border-radius: 50%;
+   border: 2px dashed rgba(var(--accent-rgb, 234, 179, 8), 0.55);
+   pointer-events: none;
+   z-index: 1;
+}
+
+.circle {
+   position: absolute;
+   inset: 0;
+   margin: auto;
+   width: 100%;
+   height: 100%;
+   padding: 0;
+   border-radius: 50%;
+   cursor: pointer;
+   z-index: 2;
+   transform-origin: center;
+   touch-action: manipulation;
+   -webkit-tap-highlight-color: transparent;
+   will-change: transform;
+   transition:
+      transform 0.05s linear,
+      background-color 0.15s ease,
+      border-color 0.15s ease,
+      box-shadow 0.15s ease;
+}
+
+/* out of the zone: gold; inside it: the system green, the "tap now" cue */
+.circleOut {
+   background: rgba(var(--accent-rgb, 234, 179, 8), 0.32);
+   border: 4px solid rgba(var(--accent-rgb, 234, 179, 8), 1);
+   box-shadow: 0 0 20px rgba(var(--accent-rgb, 234, 179, 8), 0.35);
+}
+
+.circleIn {
+   background: color-mix(in srgb, var(--ok) 55%, transparent);
+   border: 4px solid var(--ok);
+   box-shadow: 0 0 22px color-mix(in srgb, var(--ok) 60%, transparent);
+}
+
+.circleLabel {
+   position: relative;
+   z-index: 3;
+   pointer-events: none;
+   font-size: clamp(1.5rem, 1.2rem + 1vw, 2rem);
+   font-weight: 800;
+   color: var(--text);
+   text-shadow: 0 1px 6px rgba(0, 0, 0, 0.45);
+}
+
+@keyframes letterIn {
+   from {
+      opacity: 0;
+      transform: scale(0.7);
+   }
+   to {
+      opacity: 1;
+      transform: scale(1);
+   }
+}
+
+@media (max-width: 640px) {
+   .area {
+      padding: 20px 14px;
+      gap: 16px;
+   }
+   .rule {
+      font-size: 1.05rem;
+   }
+   .tiles2 {
+      gap: 10px;
+   }
+   .numTile,
+   .colorTile {
+      min-height: 96px;
+   }
+   .letterStage {
+      min-height: 200px;
+   }
+}
+
+@media (prefers-reduced-motion: reduce) {
+   .area,
+   .tiles2 > *,
+   .letter,
+   .bigEmoji {
+      animation: none;
+   }
+   .input,
+   .circle {
+      transition: none;
+   }
+}
