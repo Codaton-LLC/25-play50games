@@ -182,3 +182,26 @@
       width: 64px;
    }
 }
+
+/* the teaching line at the bottom: on a dark pill (the bare yellow text was lost on bright ground),
+   and on phones above the joystick and the buttons instead of across them */
+.tip {
+   position: absolute;
+   left: 50%;
+   bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+   transform: translateX(-50%);
+   box-sizing: border-box;
+   width: max-content;
+   max-width: calc(100vw - 32px);
+   padding: 4px 12px;
+   border-radius: 10px;
+   background: rgba(8, 15, 40, 0.62);
+   text-align: center;
+   pointer-events: none;
+}
+
+@media (max-width: 720px) and (min-height: 461px) {
+   .tip {
+      bottom: calc(176px + env(safe-area-inset-bottom, 0px));
+   }
+}
