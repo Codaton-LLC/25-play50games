@@ -213,3 +213,22 @@
       white-space: nowrap;
    }
 }
+
+/* phones, a points game: the shell's Level and Score chips fill the top row up to its Mute / Pause
+   buttons, so the banner drops into the right-hand column under that row (the class is tripled so it
+   wins over the shared stack's first-child rule, menu2/hud) */
+@media (max-width: 720px) and (min-height: 461px) {
+   .banner.banner.banner {
+      grid-column: 2;
+      justify-self: end;
+      box-sizing: border-box;
+      max-width: 100%;
+      margin-top: 50px;
+   }
+   .title,
+   .level {
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+   }
+}
