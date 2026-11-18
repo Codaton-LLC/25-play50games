@@ -196,8 +196,11 @@
    transform: scale(0.96);
 }
 
+/* globals.css dims every disabled button to .55: a locked cell is a state, not an unavailable
+   control, so it keeps full contrast and shows its state through its own colours */
 .cell:disabled {
    cursor: default;
+   opacity: 1;
 }
 
 .selected {
@@ -259,6 +262,7 @@
 
 .option:disabled {
    cursor: default;
+   opacity: 1;
 }
 
 /* ---------- buttons ---------- */
