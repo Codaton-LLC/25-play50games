@@ -15,13 +15,13 @@ describe("fieldHeightFor", () => {
    });
 
    it("sizes a phone field from the viewport, capped at the old 400 px", () => {
-      expect(fieldHeightFor(390, 844)).toBe(324);
+      expect(fieldHeightFor(390, 844)).toBe(272); // the Replay / Share row ends at the cookie banner's top
       expect(fieldHeightFor(390, 1000)).toBe(FALLING_PHONE_MAX_HEIGHT);
       expect(fieldHeightFor(360, 740)).toBe(FALLING_MIN_HEIGHT);
    });
 
    it("fits a landscape tablet and a short landscape phone", () => {
-      expect(fieldHeightFor(1180, 820)).toBe(380);
+      expect(fieldHeightFor(1180, 820)).toBe(368);
       expect(fieldHeightFor(390, 540)).toBe(FALLING_MIN_HEIGHT);
       expect(fieldHeightFor(844, 390)).toBe(FALLING_MIN_HEIGHT);
    });

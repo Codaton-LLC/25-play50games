@@ -385,7 +385,10 @@
 }
 
 .btnGrow {
-   flex: 1 1 140px;
+   /* 120 px basis: Replay + Share stay on one row inside a 360 px phone's card (261 px) */
+   flex: 1 1 120px;
+   min-width: 0;
+   white-space: nowrap;
 }
 
 .note {

@@ -6,10 +6,14 @@
 export const FALLING_PHONE_MAX_HEIGHT = 400;
 export const FALLING_DESKTOP_MAX_HEIGHT = 500;
 export const FALLING_MIN_HEIGHT = 220;
-/** Engine header + our HUD card + stats + Replay/Share row + gaps, plus the cookie banner's room (~176 px). */
-export const FALLING_RESERVED_COMPACT = 520;
-/** Wider screens: the banner is shorter and the chips sit on one row. */
-export const FALLING_RESERVED_WIDE = 440;
+/**
+ * Phones: the engine's bar (146 px, its stats wrap) + our HUD card + stats + gaps above the field, the
+ * Replay/Share row under it and the cookie banner's room (162 px at 390 px). Measured in the real page at
+ * 390x844 with the engine's bar scrolled to the top: 344 above the field + 228 below it.
+ */
+export const FALLING_RESERVED_COMPACT = 572;
+/** Wider screens: the banner is shorter (79 px) and the chips sit on one row; measured at 1180x820. */
+export const FALLING_RESERVED_WIDE = 452;
 
 /** The field's height for a viewport: never above the old fixed size, never below 220 px, else what fits. */
 export function fieldHeightFor(vw: number, vh: number): number {
