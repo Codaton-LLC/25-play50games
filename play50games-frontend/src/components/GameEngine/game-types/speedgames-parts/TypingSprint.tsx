@@ -1147,7 +1147,9 @@ export default function TypingSprint({
                <div className={styles.progressTrack}>
                   <div
                      className={styles.progressFill}
-                     style={{ width: `${progress}%` }}
+                     style={{
+                        transform: `scaleX(${Math.max(0, Math.min(1, progress / 100))})`,
+                     }}
                   />
                </div>
             </div>
@@ -1214,7 +1216,7 @@ export default function TypingSprint({
 
             {/* Ready for Next Round Message */}
             {gameState === "ready" && currentLevel + 1 < maxLevels && (
-               <div className={`${styles.notice} ${fx.fadeUp}`}>
+               <div className={`${styles.notice} ${fx.staggerIn}`}>
                   <div className={`${styles.noticeBadge} ${styles.noticeBadgeOk}`}>
                      <CheckCircleIcon style={{ width: 20, height: 20 }} />
                      Level {currentLevel + 1} Complete
@@ -1233,7 +1235,7 @@ export default function TypingSprint({
 
             {/* Game Complete Message */}
             {gameState === "ready" && currentLevel + 1 >= maxLevels && (
-               <div className={`${styles.notice} ${fx.fadeUp}`}>
+               <div className={`${styles.notice} ${fx.staggerIn}`}>
                   <div className={`${styles.noticeBadge} ${styles.noticeBadgeOk}`}>
                      <TrophyIcon style={{ width: 20, height: 20 }} />
                      Game Complete!
@@ -1246,7 +1248,7 @@ export default function TypingSprint({
 
             {/* Level Failed Message */}
             {gameState === "failed" && (
-               <div className={`${styles.notice} ${fx.fadeUp}`}>
+               <div className={`${styles.notice} ${fx.staggerIn}`}>
                   <div className={`${styles.noticeBadge} ${styles.noticeBadgeBad}`}>
                      <XCircleIcon style={{ width: 20, height: 20 }} />
                      Level {currentLevel + 1} Failed
@@ -1275,8 +1277,6 @@ export default function TypingSprint({
                            style={{
                               width: isMobile ? 16 : 18,
                               height: isMobile ? 16 : 18,
-                              color: "rgba(59, 130, 246, 0.9)",
-                              flexShrink: 0,
                            }}
                         />
                         <span>
