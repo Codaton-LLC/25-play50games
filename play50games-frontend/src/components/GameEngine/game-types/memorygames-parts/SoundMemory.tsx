@@ -602,8 +602,8 @@ function SoundMemory({
       if (navigator.share) {
          try {
             await navigator.share({
-               title: "Sound Memory Game",
-               text: "Check out this awesome Sound Memory game!",
+               title: "Sound Sequence Game",
+               text: "Check out this awesome Sound Sequence game!",
                url: shareableLink,
             });
             setShareSuccess(true);

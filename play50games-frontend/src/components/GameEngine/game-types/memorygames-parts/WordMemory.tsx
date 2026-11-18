@@ -183,7 +183,7 @@ function WordMemory({
          try {
             const shareLink = getShareableLink();
             await navigator.share({
-               title: "Word Memory - Play50Games",
+               title: "Word Recall - Play50Games",
                text: "Check out this memory game!",
                url: shareLink,
             });

@@ -703,8 +703,8 @@ export default function WhackShape({
       if (navigator.share) {
          try {
             await navigator.share({
-               title: "Shape Pop Game",
-               text: "Check out this awesome Shape Pop game!",
+               title: "Shape Spotter Game",
+               text: "Check out this awesome Shape Spotter game!",
                url: shareableLink,
             });
             setShareSuccess(true);

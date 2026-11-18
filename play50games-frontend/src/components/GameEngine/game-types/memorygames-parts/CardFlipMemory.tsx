@@ -577,8 +577,8 @@ function CardFlipMemory({
       if (navigator.share) {
          try {
             await navigator.share({
-               title: "Card Flip Memory Game",
-               text: "Check out this awesome Card Flip Memory game!",
+               title: "Card Flip Match Game",
+               text: "Check out this awesome Card Flip Match game!",
                url: shareableLink,
             });
             // Success - show message (hints will activate when someone clicks the link)

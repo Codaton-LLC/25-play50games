@@ -433,8 +433,8 @@ function EmojiMemory({
       if (navigator.share) {
          try {
             await navigator.share({
-               title: "Emoji Memory Game",
-               text: "Check out this awesome Emoji Memory game!",
+               title: "Emoji Match Game",
+               text: "Check out this awesome Emoji Match game!",
                url: shareableLink,
             });
             // Success - show message (hints will activate when someone clicks the link)

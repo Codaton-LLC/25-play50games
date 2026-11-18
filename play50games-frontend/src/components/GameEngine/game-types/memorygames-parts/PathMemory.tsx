@@ -367,8 +367,8 @@ function PathMemory({
       if (navigator.share) {
          try {
             await navigator.share({
-               title: "Path Memory Game",
-               text: "Check out this awesome Path Memory game!",
+               title: "Path Recall Game",
+               text: "Check out this awesome Path Recall game!",
                url: shareableLink,
             });
             setShareSuccess(true);
@@ -632,7 +632,7 @@ function PathMemory({
          <div className={m.panel}>
             <div className={`${ir.title} ${m.landHide}`}>
                <PuzzlePieceIcon className={ir.titleIcon} />
-               <h2 className={ir.titleText}>Path Memory</h2>
+               <h2 className={ir.titleText}>Path Recall</h2>
             </div>
             <div className={m.stats}>
                <span className={m.stat}>

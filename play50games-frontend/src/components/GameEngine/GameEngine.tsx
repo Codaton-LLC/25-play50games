@@ -13005,7 +13005,7 @@ export default function GameEngine({
                                  backgroundClip: "text",
                               }}
                            >
-                              Card Flip Memory - Example
+                              Card Flip Match - Example
                            </h3>
                         </div>
 

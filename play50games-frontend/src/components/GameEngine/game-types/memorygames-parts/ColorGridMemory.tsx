@@ -456,7 +456,7 @@ function ColorGridMemory({
 
          if (navigator.share) {
             await navigator.share({
-               title: "Color Grid Memory",
+               title: "Color Grid Recall",
                text: "Check out this memory game!",
                url: shareLink,
             });

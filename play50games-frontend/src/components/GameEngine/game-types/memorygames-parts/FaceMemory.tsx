@@ -131,7 +131,7 @@ function FaceMemory({
          try {
             const shareLink = getShareableLink();
             await navigator.share({
-               title: "Face Memory - Play50Games",
+               title: "Face Recall - Play50Games",
                text: "Check out this memory game!",
                url: shareLink,
             });
