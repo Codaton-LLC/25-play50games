@@ -12,7 +12,7 @@ describe("the five hero models", () => {
       expect(new Set(M2_HERO_IDS.map(heroUrl)).size).toBe(5);
       for (const id of M2_HERO_IDS) {
          expect(hasModel(heroUrl(id)), id).toBe(true);
-         expect(heroUrl(id)).toMatch(/m2Hero(Riko|Nyla|Kiro|Zuno|Vexa)\.glb$/);
+         expect(heroUrl(id)).toMatch(/m2Hero(Riko|Nami|Kiro|Zuno|Vexa)\.glb$/);
          expect(heroModelAsset(id).scale).toBe(HERO_SCALE[id]);
          expect(heroModelAsset(id).humanoid?.landmarks).toBe(HERO_LANDMARKS[id]);
       }

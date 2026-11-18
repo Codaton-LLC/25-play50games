@@ -33,7 +33,8 @@ export const toSlug = (title: string): string =>
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/^-|-$/g, "");
 
-const g = (index: number, title: string): WorldGame => ({ index, title, slug: toSlug(title) });
+/** slug: the game folder; derived from the title unless a renamed game keeps its original slug. */
+const g = (index: number, title: string, slug: string = toSlug(title)): WorldGame => ({ index, title, slug });
 
 export const WORLDS: readonly World[] = [
    {
@@ -85,8 +86,8 @@ export const WORLDS: readonly World[] = [
       games: [
          g(6, "Temple Lantern Jump"),
          g(8, "Jungle Vine Jump"),
-         g(16, "Ruin Coin Rush"),
-         g(31, "Cliff Glyph Run"),
+         g(16, "Ruin Coin Rush", "temple-coin-rush"),
+         g(31, "Cliff Glyph Run", "wall-run-temple"),
          g(34, "Spin Pole Climb"),
          g(36, "Temple Gong Timing"),
          g(40, "Disc Target Throw"),
@@ -104,7 +105,7 @@ export const WORLDS: readonly World[] = [
       games: [
          g(9, "Ice Peak Jumper"),
          g(18, "Toy Room Run"),
-         g(19, "Sweet Lane Runner"),
+         g(19, "Sweet Lane Runner", "candy-world-runner"),
          g(20, "Snow Slide Dash"),
          g(23, "Gem Collector 3D"),
          g(32, "Plate Bounce Arena"),
@@ -124,7 +125,7 @@ export const WORLDS: readonly World[] = [
          g(7, "Neon Cube Jump"),
          g(10, "Space Pod Jump"),
          g(17, "Alien Lane Escape"),
-         g(24, "Rift Hop"),
+         g(24, "Rift Hop", "portal-hop"),
          g(28, "Crystal Tower"),
          g(33, "Mirror Dash"),
          g(38, "Laser Maze Run"),

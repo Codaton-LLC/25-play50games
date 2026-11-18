@@ -13,13 +13,13 @@ export const M2_HERO_IDS: readonly M2HeroId[] = ["riko", "nami", "kiro", "zuno",
 /** Every hero is drawn this tall (metres): the code stand-in's height. */
 export const HERO_HEIGHT_M = 1.45;
 
-/** Measured on the real GLBs (2026-10-26): the height (y), the arm reach (|x|) and the tail depth (|z|), GLB units. */
-export const HERO_GLB: Record<M2HeroId, { name: string; height: number; reach: number; depth: number }> = {
-   riko: { name: "Riko", height: 1.9035283327102661, reach: 0.7524892687797546, depth: 0.8000152111 },
-   nami: { name: "Nyla", height: 1.9057738781, reach: 0.7717772722, depth: 0.7975129485 },
-   kiro: { name: "Kiro", height: 1.8979462385, reach: 0.7966410518, depth: 0.8858175874 },
-   zuno: { name: "Zuno", height: 1.9003524780, reach: 0.7822100520, depth: 0.7974335551 },
-   vexa: { name: "Vexa", height: 1.8991692066, reach: 0.7852765322, depth: 0.7899929285 },
+/** name = the display name; glb = the GLB file stem and asset id (m2Hero<glb>), never renamed. Measured on the real GLBs (2026-10-26): the height (y), the arm reach (|x|) and the tail depth (|z|), GLB units. */
+export const HERO_GLB: Record<M2HeroId, { name: string; glb: string; height: number; reach: number; depth: number }> = {
+   riko: { name: "Riko", glb: "Riko", height: 1.9035283327102661, reach: 0.7524892687797546, depth: 0.8000152111 },
+   nami: { name: "Nyla", glb: "Nami", height: 1.9057738781, reach: 0.7717772722, depth: 0.7975129485 },
+   kiro: { name: "Kiro", glb: "Kiro", height: 1.8979462385, reach: 0.7966410518, depth: 0.8858175874 },
+   zuno: { name: "Zuno", glb: "Zuno", height: 1.9003524780, reach: 0.7822100520, depth: 0.7974335551 },
+   vexa: { name: "Vexa", glb: "Vexa", height: 1.8991692066, reach: 0.7852765322, depth: 0.7899929285 },
 };
 
 /** Scale that draws each hero HERO_HEIGHT_M tall. */
@@ -112,12 +112,12 @@ export const HERO_SOLE_Z: Record<M2HeroId, number> = {
 
 const ACCENT: Record<M2HeroId, string> = { riko: "#ef4444", nami: "#2563eb", kiro: "#22c55e", zuno: "#facc15", vexa: "#8b5cf6" };
 
-export const heroUrl = (id: M2HeroId) => `/models/3d/menu2/m2Hero${HERO_GLB[id].name}.glb`;
+export const heroUrl = (id: M2HeroId) => `/models/3d/menu2/m2Hero${HERO_GLB[id].glb}.glb`;
 
 /** The hero's own ModelAsset: its GLB, scale and auto-rig joints; the accent colour is only the capsule fallback. */
 export function heroModelAsset(id: M2HeroId): ModelAsset {
    return {
-      id: `m2Hero${HERO_GLB[id].name}`,
+      id: `m2Hero${HERO_GLB[id].glb}`,
       url: heroUrl(id),
       fallback: "capsule",
       fallbackColor: ACCENT[id],
