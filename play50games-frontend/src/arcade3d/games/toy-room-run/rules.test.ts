@@ -341,37 +341,39 @@ describe("bots (README 'What the bots reached')", () => {
       }
    });
 
-   it("the honest bot through the real store with ragged frames: a ranked win inside the limits, the score from the time", () => {
-      const store = createArcadeStore();
-      store.getState().configure({ resultDelayMs: 1500 });
-      store.getState().markReady();
-      store.getState().start();
-      const run = createRun(5, 1);
-      const bot = createBot(run);
-      const inp = createStepInput();
-      const rng = createRng(11);
-      for (let f = 0; f < 60_000 && store.getState().phase !== "over"; f++) {
-         advanceRunClock(store, rng() < 0.05 ? 0.05 + rng() * 0.2 : 1 / 60);
-         const dt = playedFrameDt(store.getState());
-         if (dt <= 0) continue;
-         bot.frameMs = dt * 1000;
-         botInput(bot, run, inp);
-         const ev = step(run, dt * 1000, inp);
-         if (ev.finished) {
-            store.getState().setStat(STAT.orbs, run.orbs);
-            store.getState().setStat(STAT.finishMs, run.finishMs);
-            store.getState().setStat(STAT.comboMs, run.combo.bonusTotal);
-            store.getState().end("win");
+   for (const level of [1, 5] as const) {
+      it(`level ${level}: the honest bot through the real store with ragged frames: a ranked win inside the limits, the score from the time`, () => {
+         const store = createArcadeStore();
+         store.getState().configure({ resultDelayMs: 1500 });
+         store.getState().markReady();
+         store.getState().start();
+         const run = createRun(5, level);
+         const bot = createBot(run);
+         const inp = createStepInput();
+         const rng = createRng(11);
+         for (let f = 0; f < 60_000 && store.getState().phase !== "over"; f++) {
+            advanceRunClock(store, rng() < 0.05 ? 0.05 + rng() * 0.2 : 1 / 60);
+            const dt = playedFrameDt(store.getState());
+            if (dt <= 0) continue;
+            bot.frameMs = dt * 1000;
+            botInput(bot, run, inp);
+            const ev = step(run, dt * 1000, inp);
+            if (ev.finished) {
+               store.getState().setStat(STAT.orbs, run.orbs);
+               store.getState().setStat(STAT.finishMs, run.finishMs);
+               store.getState().setStat(STAT.comboMs, run.combo.bonusTotal);
+               store.getState().end("win");
+            }
          }
-      }
-      const s = store.getState();
-      expect(s.endReason).toBe("win");
-      const fin = finalScore(s);
-      const rules = toyRoomRunMeta.scoring;
-      const sent = normalizeRun({ slug: "toy-room-run", score: fin.score, durationMs: fin.durationMs, finishedAt: "2026-10-29T00:00:00Z" }, rules);
-      expect(isRankedRun(rules, s.endReason)).toBe(true);
-      expect(sent.durationMs).toBeGreaterThanOrEqual(rules.minDurationMs);
-      expect(sent.score).toBe(computeTimeScore(rules, sent.durationMs));
-      expect(sent.score).toBeLessThanOrEqual(rules.maxScore);
-   });
+         const s = store.getState();
+         expect(s.endReason).toBe("win");
+         const fin = finalScore(s);
+         const rules = toyRoomRunMeta.levels![level - 1].scoring;
+         const sent = normalizeRun({ slug: "toy-room-run", score: fin.score, durationMs: fin.durationMs, finishedAt: "2026-10-29T00:00:00Z" }, rules);
+         expect(isRankedRun(rules, s.endReason)).toBe(true);
+         expect(sent.durationMs).toBeGreaterThanOrEqual(rules.minDurationMs);
+         expect(sent.score).toBe(computeTimeScore(rules, sent.durationMs));
+         expect(sent.score).toBeLessThanOrEqual(rules.maxScore);
+      }, 120_000);
+   }
 });
