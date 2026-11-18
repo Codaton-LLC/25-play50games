@@ -14,6 +14,12 @@ import {
    getShareStatus,
 } from "@/lib/api/share";
 
+// One 60 Hz frame. The circle shrinks by elapsed time scaled to this, so the
+// deadline is the same on every refresh rate (and exactly as before at 60 Hz).
+const FRAME_MS = 1000 / 60;
+// Cap one step (tab switch, long stall) so the circle never jumps far.
+const MAX_STEP_MS = 100;
+
 interface FinalSkillGameProps {
    config: Record<string, any>;
    onComplete: (score: number) => void;
@@ -79,7 +85,11 @@ export default function FinalSkillGame({
    useEffect(() => {
       if (gameState !== "playing" || !isShrinking) return;
 
-      const animate = () => {
+      let lastTs: number | null = null;
+      const animate = (ts: number) => {
+         const dt =
+            lastTs === null ? FRAME_MS : Math.min(ts - lastTs, MAX_STEP_MS);
+         lastTs = ts;
          setCircleSize((prev) => {
             if (prev <= 0) {
                setIsShrinking(false);
@@ -87,7 +97,8 @@ export default function FinalSkillGame({
                handleCircleClick(true);
                return 0;
             }
-            return prev - 0.5; // Shrink by 0.5% per frame
+            // Shrink by 0.5% per 60 Hz frame
+            return Math.max(0, prev - 0.5 * (dt / FRAME_MS));
          });
          animationRef.current = requestAnimationFrame(animate);
       };
