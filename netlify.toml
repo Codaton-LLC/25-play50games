@@ -1,0 +1,14 @@
+# Netlify build settings. The Next.js app lives in play50games-frontend, not at the repo root:
+# without this file Netlify publishes the repo root as plain files and "/" answers "Page not found".
+# Netlify detects Next.js and adds its Next.js runtime by itself.
+#
+# Environment variables are NOT set here: add them in the Netlify UI
+# (Project configuration > Environment variables), the same ones Vercel has.
+
+[build]
+  base = "play50games-frontend"
+  command = "npm run build"
+  publish = ".next"
+
+[build.environment]
+  NODE_VERSION = "20"
