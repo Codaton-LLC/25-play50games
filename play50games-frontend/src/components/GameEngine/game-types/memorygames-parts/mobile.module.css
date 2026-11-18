@@ -1,29 +1,140 @@
-/* Phone and tablet layer for the classic Memory games (shared by memorygames-parts/*).
-   Inline styles in the games keep their look; the properties that must change with the screen
-   (paddings, gaps, tap sizes) live here, plus tap feedback and the flip / match / wrong animations.
-   No game rule, score or timing depends on anything in this file. */
+/* The shared look of the classic Memory games (memorygames-parts/*): layout for phone, tablet and
+   desktop, the chrome (header panel, share bar, stat chips, progress, hint button, feedback) and the
+   board geometry, plus every feedback animation. No game rule, score or timing depends on this file.
+
+   Language: the site's dark stage tokens (--accent coral, --ok, --warn, --text, --muted, --card,
+   --stroke). One radius scale for the group: cells 10 px, small chips 8 px, panels and boards 20 px,
+   buttons full pill. Selection and feedback never change a box's size: they use background, an inset
+   ring (box-shadow) and transforms on an inner layer only. Content colours (colour tiles, sound pads,
+   the flash cue) are set by the games themselves and are left alone here. */
 
 .root {
+   --mg-gap: 8px;
+   --mg-ease: cubic-bezier(0.16, 1, 0.3, 1);
+   --mg-accent: rgba(var(--accent-rgb, 231, 95, 64), 1);
+   --mg-ok: var(--ok);
    display: flex;
    flex-direction: column;
    align-items: center;
-   gap: 32px;
+   gap: 24px;
    padding: 24px;
    max-width: 1200px;
    margin: 0 auto;
    width: 100%;
    box-sizing: border-box;
+   font-variant-numeric: tabular-nums;
 }
 
+/* inside the five final games (they render these boards as rounds) success reads in the final
+   games' gold, like the globals.css final-game rules do for the old inline tints */
+:global(body.final-game) .root {
+   --mg-ok: var(--accent);
+}
+
+/* the header panel above the board */
 .panel {
    width: 100%;
    box-sizing: border-box;
    padding: 20px;
+   background: var(--card);
+   border: 1px solid var(--stroke);
+   border-radius: 20px;
+   animation: riseIn 0.32s var(--mg-ease) both;
 }
 
-.board {
-   box-sizing: border-box;
-   padding: 20px;
+/* share button and its notes, right aligned above the stats */
+.shareRow {
+   display: flex;
+   justify-content: flex-end;
+   align-items: center;
+   flex-wrap: wrap;
+   gap: 10px;
+   margin-bottom: 14px;
+}
+
+/* a transient status note (link copied, unlimited hints on) */
+.note {
+   display: flex;
+   align-items: center;
+   gap: 8px;
+   padding: 8px 14px;
+   border-radius: 14px;
+   font-size: 0.875rem;
+   font-weight: 500;
+   line-height: 1.35;
+   color: var(--text);
+   background: rgba(var(--accent-rgb, 231, 95, 64), 0.1);
+   border: 1px solid rgba(var(--accent-rgb, 231, 95, 64), 0.35);
+   animation: riseIn 0.28s var(--mg-ease) both;
+}
+
+.noteOk {
+   background: color-mix(in srgb, var(--mg-ok) 12%, transparent);
+   border-color: color-mix(in srgb, var(--mg-ok) 45%, transparent);
+}
+
+.noteIcon {
+   width: 18px;
+   height: 18px;
+   flex: none;
+   color: var(--mg-accent);
+}
+
+.noteOk .noteIcon {
+   color: var(--mg-ok);
+}
+
+/* stats line: one chip per value */
+.stats {
+   display: flex;
+   flex-wrap: wrap;
+   align-items: center;
+   gap: 8px;
+   margin-bottom: 14px;
+   font-size: 0.875rem;
+   font-weight: 500;
+   color: var(--muted);
+}
+
+.stat {
+   display: inline-flex;
+   align-items: center;
+   gap: 6px;
+   padding: 6px 10px;
+   border-radius: 8px;
+   background: rgba(255, 255, 255, 0.04);
+   border: 1px solid var(--stroke);
+   white-space: nowrap;
+}
+
+.stat b {
+   color: var(--text);
+   font-weight: 600;
+}
+
+.statIcon {
+   width: 16px;
+   height: 16px;
+   flex: none;
+   color: var(--mg-accent);
+}
+
+/* progress: a track and a fill that grows by transform, never by width */
+.progress {
+   width: 100%;
+   height: 6px;
+   border-radius: 999px;
+   background: rgba(255, 255, 255, 0.08);
+   overflow: hidden;
+}
+
+.progressFill {
+   width: 100%;
+   height: 100%;
+   border-radius: inherit;
+   background: var(--mg-accent);
+   transform-origin: left center;
+   transition: transform 0.32s var(--mg-ease);
 }
 
 /* every tappable control: a finger-sized target, no 300 ms delay, no grey flash, a press feel */
@@ -32,53 +143,282 @@
    touch-action: manipulation;
    -webkit-tap-highlight-color: transparent;
    transition:
-      transform 0.12s ease,
-      box-shadow 0.2s ease,
-      background 0.2s ease;
+      transform 0.1s ease,
+      background-color 0.2s ease,
+      border-color 0.2s ease,
+      box-shadow 0.2s ease;
 }
 
 .btn:active:not(:disabled) {
    transform: scale(0.96);
 }
 
-.shareBtn {
-   padding: 10px 20px;
-   font-size: 0.95rem;
+.btn:focus-visible {
+   outline: 2px solid var(--mg-accent);
+   outline-offset: 2px;
 }
 
-/* a card / cell of a board */
+/* a quiet pill: hairline border, light fill on hover (share, hint, secondary actions) */
+.pill {
+   display: inline-flex;
+   align-items: center;
+   justify-content: center;
+   gap: 8px;
+   padding: 10px 20px;
+   border-radius: 999px;
+   border: 1px solid var(--stroke);
+   background: rgba(255, 255, 255, 0.04);
+   color: var(--text);
+   font: inherit;
+   font-size: 0.95rem;
+   font-weight: 600;
+   cursor: pointer;
+}
+
+.pill:hover:not(:disabled) {
+   background: rgba(255, 255, 255, 0.08);
+   border-color: rgba(var(--accent-rgb, 231, 95, 64), 0.55);
+}
+
+.pill:disabled {
+   opacity: 0.45;
+   cursor: not-allowed;
+}
+
+/* the one filled action of a screen (submit, start, next) */
+.primary {
+   display: inline-flex;
+   align-items: center;
+   justify-content: center;
+   gap: 8px;
+   padding: 12px 24px;
+   border-radius: 999px;
+   border: 1px solid transparent;
+   background: var(--mg-accent);
+   color: #fff;
+   font: inherit;
+   font-size: 1rem;
+   font-weight: 700;
+   cursor: pointer;
+}
+
+.primary:hover:not(:disabled) {
+   box-shadow: 0 6px 18px rgba(var(--accent-rgb, 231, 95, 64), 0.32);
+}
+
+.primary:disabled {
+   opacity: 0.45;
+   cursor: not-allowed;
+}
+
+.pillIcon {
+   width: 20px;
+   height: 20px;
+   flex: none;
+   color: var(--mg-accent);
+}
+
+.shareBtn {
+   padding: 10px 18px;
+   font-size: 0.9rem;
+}
+
+/* text inputs (number / word answers) */
+.input {
+   box-sizing: border-box;
+   min-height: 48px;
+   padding: 12px 16px;
+   border-radius: 14px;
+   border: 1px solid var(--stroke);
+   background: rgba(255, 255, 255, 0.05);
+   color: var(--text);
+   font: inherit;
+   font-size: 1.1rem;
+   font-variant-numeric: tabular-nums;
+   transition:
+      border-color 0.2s ease,
+      box-shadow 0.2s ease;
+}
+
+.input:focus {
+   outline: none;
+   border-color: var(--mg-accent);
+   box-shadow: 0 0 0 3px rgba(var(--accent-rgb, 231, 95, 64), 0.22);
+}
+
+/* the board frame: wraps the grid exactly (padding = one gap), equal 1fr tracks set inline */
+.board {
+   display: grid;
+   gap: var(--mg-gap);
+   padding: var(--mg-gap);
+   width: 100%;
+   box-sizing: border-box;
+   background: rgba(255, 255, 255, 0.03);
+   border: 1px solid var(--stroke);
+   border-radius: 20px;
+}
+
+/* a cell of a board: square, equal, never resized by its state */
 .card {
+   position: relative;
+   box-sizing: border-box;
+   width: 100%;
+   min-width: 0;
+   aspect-ratio: 1;
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   padding: 0;
+   overflow: hidden;
+   border-radius: 10px;
+   border: 0;
+   box-shadow: inset 0 0 0 1px var(--stroke);
+   background: rgba(255, 255, 255, 0.05);
+   color: var(--text);
+   font: inherit;
+   font-weight: 700;
+   cursor: pointer;
    touch-action: manipulation;
    -webkit-tap-highlight-color: transparent;
    user-select: none;
    -webkit-user-select: none;
+   transition:
+      background-color 0.2s ease,
+      box-shadow 0.2s ease,
+      transform 0.1s ease;
+}
+
+.card:hover:not(:disabled) {
+   box-shadow: inset 0 0 0 1px rgba(var(--accent-rgb, 231, 95, 64), 0.6);
 }
 
 .card:active:not(:disabled) {
-   transform: scale(0.93) !important;
+   transform: scale(0.96);
+}
+
+.card:disabled {
+   cursor: default;
+}
+
+.card:focus-visible {
+   outline: 2px solid var(--mg-accent);
+   outline-offset: 2px;
+}
+
+/* states: background + inset ring only */
+.cardShown {
+   background: rgba(var(--accent-rgb, 231, 95, 64), 0.14);
+   box-shadow: inset 0 0 0 2px rgba(var(--accent-rgb, 231, 95, 64), 0.7);
+}
+
+.cardSelected {
+   box-shadow: inset 0 0 0 3px var(--mg-accent);
+}
+
+.cardMatched {
+   background: color-mix(in srgb, var(--mg-ok) 18%, transparent);
+   box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--mg-ok) 75%, transparent);
+}
+
+.cardWrong {
+   background: color-mix(in srgb, var(--warn) 16%, transparent);
+   box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--warn) 80%, transparent);
+}
+
+.cardHint {
+   box-shadow:
+      inset 0 0 0 3px var(--mg-accent),
+      inset 0 0 18px rgba(var(--accent-rgb, 231, 95, 64), 0.35);
+}
+
+/* the content layer of a cell: the only thing that scales */
+.face {
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   width: 100%;
+   height: 100%;
+   line-height: 1;
+   transition: transform 0.18s var(--mg-ease);
+}
+
+.faceBack {
+   opacity: 0.45;
+   color: var(--muted);
+}
+
+/* a small corner badge (matched tick) */
+.badge {
+   position: absolute;
+   top: 4px;
+   right: 4px;
+   width: 18px;
+   height: 18px;
+   color: var(--mg-ok);
+   pointer-events: none;
 }
 
 /* turning a card face up: it swings in from its edge */
 .flipped {
-   animation: flipIn 0.32s ease-out;
+   animation: flipIn 0.28s var(--mg-ease);
 }
 
-/* a found pair: a short pop */
-.matched {
-   animation: matchPop 0.45s ease-out;
+/* a found pair: a short pop of the content */
+.matched > .face,
+.matched:not(:has(> .face)) {
+   animation: matchPop 0.36s var(--mg-ease);
 }
 
 /* a wrong pick: a quick shake */
 .wrong {
-   animation: shake 0.4s ease-in-out;
+   animation: shake 0.36s ease-in-out;
+}
+
+/* a cell being flashed in a "watch" phase: the inner layer lifts, the box keeps its size */
+.flash > .face {
+   transform: scale(1.08);
+}
+
+/* feedback banner under the board */
+.feedback {
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   gap: 10px;
+   width: 100%;
+   max-width: 600px;
+   box-sizing: border-box;
+   padding: 14px 20px;
+   border-radius: 14px;
+   font-size: 1.05rem;
+   font-weight: 600;
 }
 
 .feedbackOk {
-   animation: popIn 0.35s cubic-bezier(0.2, 0.9, 0.3, 1.4);
+   color: var(--mg-ok);
+   background: color-mix(in srgb, var(--mg-ok) 14%, transparent);
+   border: 1px solid color-mix(in srgb, var(--mg-ok) 55%, transparent);
+   animation: popIn 0.3s var(--mg-ease);
 }
 
 .feedbackBad {
-   animation: shake 0.45s ease-in-out;
+   color: var(--warn);
+   background: color-mix(in srgb, var(--warn) 14%, transparent);
+   border: 1px solid color-mix(in srgb, var(--warn) 55%, transparent);
+   animation: shake 0.36s ease-in-out;
+}
+
+.feedbackIcon {
+   width: 22px;
+   height: 22px;
+   flex: none;
+}
+
+/* a list or grid that appears at the start of a round: children rise in one after another;
+   each child sets --i (its index) inline */
+.stagger > * {
+   animation: riseIn 0.32s var(--mg-ease) both;
+   animation-delay: calc(min(var(--i, 0), 24) * 18ms);
 }
 
 @keyframes flipIn {
@@ -94,7 +434,7 @@
    0% {
       transform: scale(1);
    }
-   40% {
+   45% {
       transform: scale(1.12);
    }
    100% {
@@ -124,7 +464,7 @@
 @keyframes popIn {
    from {
       opacity: 0;
-      transform: scale(0.85);
+      transform: scale(0.92);
    }
    to {
       opacity: 1;
@@ -132,10 +472,21 @@
    }
 }
 
+@keyframes riseIn {
+   from {
+      opacity: 0;
+      transform: translateY(8px);
+   }
+   to {
+      opacity: 1;
+      transform: translateY(0);
+   }
+}
+
 /* tablets: a little less air */
 @media (max-width: 900px) {
    .root {
-      gap: 20px;
+      gap: 18px;
       padding: 16px;
    }
 }
@@ -143,24 +494,32 @@
 /* phones: the board gets the width, the chrome gets compact */
 @media (max-width: 600px) {
    .root {
+      --mg-gap: 6px;
       gap: 12px;
       padding: 8px 0;
    }
    .panel {
       padding: 12px;
+      border-radius: 16px;
    }
    .board {
-      padding: 8px;
+      border-radius: 16px;
+   }
+   .shareRow {
+      margin-bottom: 10px;
    }
    .shareBtn {
       padding: 8px 12px;
       font-size: 0.85rem;
       width: 100%;
-      justify-content: center;
    }
    .stats {
-      font-size: 0.8rem !important;
-      gap: 6px 12px !important;
+      font-size: 0.8rem;
+      gap: 6px;
+      margin-bottom: 10px;
+   }
+   .stat {
+      padding: 5px 8px;
    }
 }
 
@@ -186,15 +545,25 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+   .panel,
+   .note,
    .flipped,
-   .matched,
+   .matched > .face,
+   .matched:not(:has(> .face)),
    .wrong,
    .feedbackOk,
-   .feedbackBad {
+   .feedbackBad,
+   .stagger > * {
       animation: none;
    }
    .btn,
-   .card {
+   .card,
+   .face,
+   .progressFill,
+   .input {
       transition: none;
+   }
+   .flash > .face {
+      transform: none;
    }
 }
