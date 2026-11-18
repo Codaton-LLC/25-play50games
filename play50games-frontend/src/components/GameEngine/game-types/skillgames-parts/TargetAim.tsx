@@ -318,8 +318,12 @@ export default function TargetAim({
             // Remove target after lifetime
             setTimeout(() => {
                setTargets((prev) => {
+                  // Inspect the current target: a click replaces the object,
+                  // so newTarget.clicked would always be false here.
+                  const current = prev.find((t) => t.id === newTarget.id);
+                  if (!current) return prev;
                   const updated = prev.filter((t) => t.id !== newTarget.id);
-                  if (!newTarget.clicked) {
+                  if (!current.clicked) {
                      setTargetsMissed((prevMissed) => prevMissed + 1);
                   }
                   return updated;
