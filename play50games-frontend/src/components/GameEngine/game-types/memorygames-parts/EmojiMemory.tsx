@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import m from "./mobile.module.css";
 import {
    CheckCircleIcon,
    XCircleIcon,
@@ -525,6 +526,7 @@ function EmojiMemory({
 
    return (
       <div
+         className={m.tight}
          style={{
             display: "flex",
             flexDirection: "column",
@@ -610,6 +612,8 @@ function EmojiMemory({
 
          {/* Game State Display */}
          <div
+            key={gameState}
+            className={gameState === "correct" ? m.feedbackOk : gameState === "wrong" ? m.feedbackBad : undefined}
             style={{
                width: "100%",
                background: "var(--card)",
@@ -700,7 +704,9 @@ function EmojiMemory({
             }}
          >
             <div
+               className={m.fitBoard}
                style={{
+                  ["--ar" as string]: gridWidth / Math.max(1, gridHeight),
                   display: "grid",
                   gridTemplateColumns: `repeat(${gridWidth}, 1fr)`,
                   gap: isMobile ? "8px" : "10px",
@@ -720,6 +726,7 @@ function EmojiMemory({
                      <button
                         key={i}
                         onClick={() => handleCellClick(i)}
+                        className={m.card}
                         disabled={
                            showing || isSelected || gameState !== "input"
                         }
@@ -889,6 +896,7 @@ function EmojiMemory({
             {/* Hint Button */}
             <button
                onClick={handleHint}
+               className={m.btn}
                disabled={
                   (maxHints > 0 && hintsUsed >= maxHints) ||
                   showing ||
@@ -975,6 +983,7 @@ function EmojiMemory({
             {/* Share Button */}
             <button
                onClick={handleShare}
+               className={m.btn}
                style={{
                   display: "flex",
                   alignItems: "center",
@@ -1021,6 +1030,7 @@ function EmojiMemory({
          {/* Feedback Message (from Match the Shapes) */}
          {feedback !== null && (
             <div
+               className={feedback === "correct" ? m.feedbackOk : m.feedbackBad}
                style={{
                   padding: isMobile ? "12px 20px" : "16px 24px",
                   borderRadius: isMobile ? "12px" : "12px",

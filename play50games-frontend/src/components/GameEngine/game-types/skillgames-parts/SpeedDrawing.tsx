@@ -17,6 +17,9 @@ import {
    getShareStatus,
 } from "@/lib/api/share";
 
+import touch from "./skillTouch.module.css";
+import { usePlayAreaInView } from "./usePlayAreaInView";
+
 interface SpeedDrawingProps {
    config: Record<string, any>;
    onScoreUpdate: (score: number) => void;
@@ -183,6 +186,10 @@ export default function SpeedDrawing({
       window.addEventListener("resize", checkResponsive);
       return () => window.removeEventListener("resize", checkResponsive);
    }, []);
+
+   // Mobile/tablet: bring the panel and the play area on screen when a round starts
+   const rootRef = useRef<HTMLDivElement>(null);
+   const pad = usePlayAreaInView(rootRef, arenaRef, true, `${gameState}-${currentLevel}`);
 
    // Clear all timers
    const clearAll = useCallback(() => {
@@ -1855,6 +1862,7 @@ export default function SpeedDrawing({
    return (
       <>
          <div
+         ref={rootRef}
             style={{
                display: "flex",
                flexDirection: "column",
@@ -1988,7 +1996,7 @@ export default function SpeedDrawing({
                            "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
                         border: "1px solid rgba(59, 130, 246, 0.4)",
 
-                        padding: "10px 16px",
+                        padding: isMobile ? "6px 10px" : "10px 16px", // phones: two compact rows, not three
                         display: "flex",
                         alignItems: "center",
                         gap: "8px",
@@ -2003,7 +2011,7 @@ export default function SpeedDrawing({
                      />
                      <span
                         style={{
-                           fontSize: "1rem",
+                           fontSize: isMobile ? "0.85rem" : "1rem",
                            fontWeight: 600,
                            color: "var(--text)",
                         }}
@@ -2011,10 +2019,14 @@ export default function SpeedDrawing({
                         Draw: {targetShape}
                      </span>
                   </div>
-                  {playerPath.length >= 3 && (
+                  {/* Always laid out (dimmed until a stroke starts): showing them mid-stroke pushed the
+                      canvas down under the finger on phones, where these chips wrap onto new rows */}
+                  {(
                      <>
                         <div
                            style={{
+                              opacity: playerPath.length >= 3 ? 1 : 0.5,
+                              transition: "opacity 0.2s ease",
                               background:
                                  currentAccuracy >= minAccuracy
                                     ? "linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(34, 197, 94, 0.1))"
@@ -2025,7 +2037,7 @@ export default function SpeedDrawing({
                                     : "rgba(239, 68, 68, 0.4)"
                               }`,
 
-                              padding: "10px 16px",
+                              padding: isMobile ? "6px 10px" : "10px 16px", // phones: two compact rows, not three
                               display: "flex",
                               alignItems: "center",
                               gap: "8px",
@@ -2050,17 +2062,24 @@ export default function SpeedDrawing({
                            )}
                            <span
                               style={{
-                                 fontSize: "1rem",
+                                 fontSize: isMobile ? "0.85rem" : "1rem",
                                  fontWeight: 600,
                                  color: "var(--text)",
                               }}
                            >
-                              Accuracy: {Math.round(currentAccuracy)}% /{" "}
-                              {minAccuracy}%
+                              {/* fixed-width value: the chip keeps its width as the number grows, so the
+                                  chips never re-wrap (and move the canvas) in the middle of a stroke */}
+                              Accuracy:{" "}
+                              <span style={{ display: "inline-block", minWidth: "4ch", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
+                                 {Math.round(currentAccuracy)}%
+                              </span>{" "}
+                              / {minAccuracy}%
                            </span>
                         </div>
                         <div
                            style={{
+                              opacity: playerPath.length >= 3 ? 1 : 0.5,
+                              transition: "opacity 0.2s ease",
                               background:
                                  drawingCompletionProgress >= 70
                                     ? "linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(34, 197, 94, 0.1))"
@@ -2071,7 +2090,7 @@ export default function SpeedDrawing({
                                     : "rgba(239, 68, 68, 0.4)"
                               }`,
 
-                              padding: "10px 16px",
+                              padding: isMobile ? "6px 10px" : "10px 16px", // phones: two compact rows, not three
                               display: "flex",
                               alignItems: "center",
                               gap: "8px",
@@ -2096,17 +2115,20 @@ export default function SpeedDrawing({
                            )}
                            <span
                               style={{
-                                 fontSize: "1rem",
+                                 fontSize: isMobile ? "0.85rem" : "1rem",
                                  fontWeight: 600,
                                  color: "var(--text)",
                               }}
                            >
                               Completion:{" "}
-                              {Math.round(
-                                 drawingCompletionProgressRef.current ||
-                                    drawingCompletionProgress
-                              )}
-                              % / 70%
+                              <span style={{ display: "inline-block", minWidth: "4ch", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
+                                 {Math.round(
+                                    drawingCompletionProgressRef.current ||
+                                       drawingCompletionProgress
+                                 )}
+                                 %
+                              </span>{" "}
+                              / 70%
                            </span>
                         </div>
                      </>
@@ -2131,6 +2153,8 @@ export default function SpeedDrawing({
                >
                   <canvas
                      ref={canvasRef}
+                     className={touch.playArea}
+                     data-play-area=""
                      onMouseDown={handleDrawingStart}
                      onMouseMove={handleDrawingMove}
                      onMouseUp={handleDrawingEnd}
@@ -2138,6 +2162,7 @@ export default function SpeedDrawing({
                      onTouchStart={handleDrawingStart}
                      onTouchMove={handleDrawingMove}
                      onTouchEnd={handleDrawingEnd}
+                     onTouchCancel={handleDrawingEnd}
                      style={{
                         width: "100%",
                         height: isMobile ? "300px" : "400px",
@@ -2181,6 +2206,7 @@ export default function SpeedDrawing({
                      Great drawing!
                   </div>
                   <button
+                  className={touch.tapButton}
                      onClick={handleNextRound}
                      disabled={nextRoundLocked}
                      style={{
@@ -2404,6 +2430,7 @@ export default function SpeedDrawing({
                )}
 
                <button
+                  className={touch.tapButton}
                   onClick={handleReplay}
                   disabled={maxReplays > 0 && replaysUsed >= maxReplays}
                   style={{
@@ -2444,7 +2471,7 @@ export default function SpeedDrawing({
                      }}
                   />
                   <span>
-                     {isMobile ? "" : "Replay "}
+                     {"Replay "}
                      {maxReplays === 0
                         ? "(∞)"
                         : `(${maxReplays - replaysUsed}/${maxReplays})`}
@@ -2452,6 +2479,7 @@ export default function SpeedDrawing({
                </button>
 
                <button
+                  className={touch.tapButton}
                   onClick={handleShare}
                   style={{
                      display: "flex",
@@ -2480,6 +2508,7 @@ export default function SpeedDrawing({
                   <span>Share for unlimited</span>
                </button>
             </div>
+            {pad > 0 && <div aria-hidden="true" style={{ height: pad, flexShrink: 0 }} />}
          </div>
       </>
    );

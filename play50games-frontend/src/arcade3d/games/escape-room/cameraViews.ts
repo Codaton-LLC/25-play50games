@@ -1,5 +1,16 @@
-/** Keep the portrait runner readable while retaining the landscape overview. */
+import { portraitFollowOffset } from "@/arcade3d/core/camera/portraitFollow";
+
+/** Portrait follow distance (m) and pitch (degrees down) — see phoneOffset. */
+export const PHONE_DISTANCE = 9.5;
+export const PHONE_PITCH_DEG = 35;
+/** Portrait look-ahead: the camera aims this far past the hero (m) and this far above it (m). */
+export const PHONE_LEAD = 2.5;
+export const PHONE_LIFT = 0;
+
+/**
+ * Portrait follows the runner from behind, about 35 degrees down, so the room, door and items
+ * ahead stay readable; landscape keeps the fitted overview.
+ */
 export function phoneOffset(offset: [number, number, number], aspect: number): [number, number, number] {
-   const scale = aspect < 1 ? 6.8 / Math.hypot(...offset) : 1;
-   return [offset[0] * scale, offset[1] * scale, offset[2] * scale];
+   return portraitFollowOffset(offset, aspect, PHONE_DISTANCE, PHONE_PITCH_DEG, PHONE_LEAD, PHONE_LIFT);
 }

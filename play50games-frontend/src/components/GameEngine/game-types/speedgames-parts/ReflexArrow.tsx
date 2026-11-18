@@ -25,6 +25,24 @@ import {
    trackShareClick,
    getShareStatus,
 } from "@/lib/api/share";
+import { TOUCH_SURFACE, useViewport, useRevealOnPlay, useInstantPress, eatDefault } from "./touch";
+import { reflexLayout } from "./ReflexArrow.layout";
+import fx from "./speedFx.module.css";
+import styles from "./ReflexArrow.module.css";
+
+// Per-direction colours (the classic ones), as CSS vars for the pad buttons.
+const DIR_COLORS: Record<ArrowDirection, { color: string; bg: string; bgHot: string }> = {
+   up: { color: "#10b981", bg: "rgba(16, 185, 129, 0.15)", bgHot: "rgba(16, 185, 129, 0.3)" },
+   down: { color: "#f59e0b", bg: "rgba(245, 158, 11, 0.15)", bgHot: "rgba(245, 158, 11, 0.3)" },
+   left: { color: "#8b5cf6", bg: "rgba(139, 92, 246, 0.15)", bgHot: "rgba(139, 92, 246, 0.3)" },
+   right: { color: "#3b82f6", bg: "rgba(59, 130, 246, 0.15)", bgHot: "rgba(59, 130, 246, 0.3)" },
+};
+
+interface Floater {
+   id: number;
+   text: string;
+   tone: "ok" | "bad";
+}
 
 interface ReflexArrowProps {
    config: Record<string, any>;
@@ -71,8 +89,6 @@ export default function ReflexArrow({
    const [correctAnswers, setCorrectAnswers] = useState(0);
    const [wrongAnswers, setWrongAnswers] = useState(0);
    const [feedback, setFeedback] = useState<"correct" | "wrong" | null>(null);
-   const [isMobile, setIsMobile] = useState(false);
-   const [isTablet, setIsTablet] = useState(false);
 
    // Replay and Share functionality
    const [replaysUsed, setReplaysUsed] = useState(0);
@@ -96,15 +112,25 @@ export default function ReflexArrow({
    const completionCalledRef = useRef(false);
    const lastArrowTimeRef = useRef<number>(0);
 
-   // Responsive design
-   useEffect(() => {
-      const checkResponsive = () => {
-         setIsMobile(window.innerWidth < 640);
-         setIsTablet(window.innerWidth >= 640 && window.innerWidth < 1024);
-      };
-      checkResponsive();
-      window.addEventListener("resize", checkResponsive);
-      return () => window.removeEventListener("resize", checkResponsive);
+   // Layout and feedback plumbing (mobile/tablet pass): live viewport, reveal on play, the pressed
+   // direction, the last reaction time and a floating "+1 · N ms". None of it touches the rules.
+   const vp = useViewport();
+   const isMobile = vp.isMobile;
+   const isTablet = vp.isTablet;
+   const rootRef = useRef<HTMLDivElement>(null);
+   useRevealOnPlay(rootRef, isPlaying);
+   const [pressedDir, setPressedDir] = useState<ArrowDirection | null>(null);
+   const [lastReactionMs, setLastReactionMs] = useState<number | null>(null);
+   const [floater, setFloater] = useState<Floater | null>(null);
+   const floaterIdRef = useRef(0);
+   const lastPointerRef = useRef(0);
+
+   const showFloater = useCallback((text: string, tone: "ok" | "bad") => {
+      const id = ++floaterIdRef.current;
+      setFloater({ id, text, tone });
+      setTimeout(() => {
+         setFloater((prev) => (prev && prev.id === id ? null : prev));
+      }, 700);
    }, []);
 
    useEffect(() => {
@@ -388,12 +414,19 @@ export default function ReflexArrow({
       (selectedArrow: ArrowDirection) => {
          if (gameState !== "playing" || requirementsMet || !targetArrow) return;
 
+         // display only: how long since this arrow appeared (keyboard and touch both land here)
+         const reactionMs = Math.max(0, Date.now() - lastArrowTimeRef.current);
+         setPressedDir(selectedArrow);
+
          if (selectedArrow === targetArrow) {
             // Correct
             setCorrectAnswers((prev) => prev + 1);
             setFeedback("correct");
+            setLastReactionMs(reactionMs);
+            showFloater(`+1 · ${reactionMs} ms`, "ok");
             setTimeout(() => {
                setFeedback(null);
+               setPressedDir(null);
                if (
                   gameStateRef.current === "playing" &&
                   !requirementsMetRef.current
@@ -405,12 +438,40 @@ export default function ReflexArrow({
             // Wrong
             setWrongAnswers((prev) => prev + 1);
             setFeedback("wrong");
+            showFloater("✕ wrong", "bad");
             setTimeout(() => {
                setFeedback(null);
+               setPressedDir(null);
             }, 300);
          }
       },
-      [gameState, requirementsMet, targetArrow, generateArrow]
+      [gameState, requirementsMet, targetArrow, generateArrow, showFloater]
+   );
+
+   // Pad press: fires on pointerdown (touch, pen, mouse) exactly where the old handler did, so touch and
+   // keyboard measure the same window; the click that follows is swallowed, while a keyboard activation
+   // of the focused button (a click with no pointer first) still counts.
+   const pressDir = useCallback(
+      (e: React.PointerEvent<HTMLButtonElement>, dir: ArrowDirection) => {
+         if (e.pointerType === "mouse" && e.button !== 0) return;
+         eatDefault(e);
+         e.stopPropagation();
+         lastPointerRef.current = performance.now();
+         handleArrowSelect(dir);
+      },
+      [handleArrowSelect]
+   );
+
+   const clickDir = useCallback(
+      (e: React.MouseEvent<HTMLButtonElement>, dir: ArrowDirection) => {
+         e.stopPropagation();
+         if (performance.now() - lastPointerRef.current < 600) {
+            e.preventDefault();
+            return;
+         }
+         handleArrowSelect(dir);
+      },
+      [handleArrowSelect]
    );
 
    // Keyboard controls
@@ -808,555 +869,309 @@ export default function ReflexArrow({
       }
    };
 
+   // Sizes from the live viewport (pure helper, tested): the pad has priority, the prompt takes the rest;
+   // on a short screen the prompt moves beside the pad. Short viewports also get a one-line header.
+   const layout = reflexLayout(vp);
+   const compact = vp.isShort;
+   const noReplays = maxReplays > 0 && replaysUsed >= maxReplays;
+   const padDisabled = !targetArrow || requirementsMet;
+   // Replay and Next Round fire on pointerdown (instant on touch); Share keeps its click for the user activation.
+   const replayPress = useInstantPress<HTMLButtonElement>(handleReplay, !noReplays);
+   const nextRoundPress = useInstantPress<HTMLButtonElement>(handleNextRound);
+   const rootPad = isMobile ? 12 : isTablet ? 20 : 24;
+   const cardPad = isMobile ? 12 : isTablet ? 16 : 24;
+   const chipStyle: React.CSSProperties = {
+      padding: compact ? "6px 10px" : isMobile ? "7px 11px" : "9px 14px",
+      fontSize: compact ? "13px" : isMobile ? "13px" : "0.95rem",
+   };
+
+   const renderDir = (dir: ArrowDirection, column: number, row: number) => {
+      const c = DIR_COLORS[dir];
+      const isHit = feedback === "correct" && pressedDir === dir;
+      const isMiss = feedback === "wrong" && pressedDir === dir;
+      const cls = [
+         styles.dir,
+         isHit ? `${styles.dirOk} ${fx.flashOk}` : "",
+         isMiss ? `${styles.dirBad} ${fx.missShake}` : "",
+      ]
+         .filter(Boolean)
+         .join(" ");
+      return (
+         <button
+            type="button"
+            aria-label={`${dir} arrow`}
+            className={cls}
+            onPointerDown={(e) => pressDir(e, dir)}
+            onClick={(e) => clickDir(e, dir)}
+            disabled={padDisabled}
+            style={
+               {
+                  ...TOUCH_SURFACE,
+                  gridColumn: column,
+                  gridRow: row,
+                  width: `${layout.cell}px`,
+                  height: `${layout.cell}px`,
+                  "--dir-color": c.color,
+                  "--dir-bg": c.bg,
+                  "--dir-bg-hot": c.bgHot,
+               } as React.CSSProperties
+            }
+         >
+            {renderArrowIcon(dir, layout.cellIcon)}
+         </button>
+      );
+   };
+
+   const statChips = (
+      <>
+         <div
+            key={`ok-${correctAnswers}`}
+            className={`${styles.chip} ${styles.chipOk} ${correctAnswers > 0 ? fx.hitPop : ""}`}
+            style={chipStyle}
+         >
+            <CheckCircleIcon style={{ width: 16, height: 16, color: "var(--ok)", flexShrink: 0 }} />
+            <span>
+               {compact ? "" : "Correct: "}
+               {correctAnswers}/{minCorrect}
+            </span>
+         </div>
+         <div
+            key={`bad-${wrongAnswers}`}
+            className={`${styles.chip} ${styles.chipBad} ${wrongAnswers > 0 ? fx.missShake : ""}`}
+            style={chipStyle}
+         >
+            <XCircleIcon style={{ width: 16, height: 16, color: "var(--warn)", flexShrink: 0 }} />
+            <span>
+               {compact ? "" : "Wrong: "}
+               {wrongAnswers}
+            </span>
+         </div>
+         {lastReactionMs !== null && (
+            <div
+               key={`ms-${correctAnswers}`}
+               className={`${styles.chip} ${styles.chipMs} ${fx.hitPop}`}
+               style={chipStyle}
+               aria-label="Last reaction time"
+            >
+               ⚡ {lastReactionMs} ms
+            </div>
+         )}
+      </>
+   );
+
+   // Replay + Share row: under the board while playing, under the failed notice otherwise (same handlers).
+   const renderActions = () => (
+      <div className={`${styles.actions} ${fx.fadeUp}`} style={{ padding: isMobile ? "10px" : "12px" }}>
+         {shareSuccess && !unlimitedActivated && (
+            <div className={`${styles.msg} ${styles.msgOk}`} style={{ fontSize: isMobile ? "0.9rem" : "1rem" }}>
+               Link copied! Unlimited replay will unlock when someone opens your link!
+            </div>
+         )}
+
+         {unlimitedActivated && (
+            <div className={`${styles.msg} ${styles.msgInfo}`} style={{ fontSize: isMobile ? "0.85rem" : "0.9rem" }}>
+               <CheckCircleIcon
+                  style={{ width: 18, height: 18, color: "rgba(59, 130, 246, 0.9)", flexShrink: 0 }}
+               />
+               <span>🎉 Someone opened your link! Unlimited replay is now active for 15 minutes!</span>
+            </div>
+         )}
+
+         <button
+            type="button"
+            className={`${styles.btn} ${styles.btnGrow} ${fx.pressable}`}
+            {...replayPress}
+            disabled={noReplays}
+            style={{
+               ...TOUCH_SURFACE,
+               padding: isMobile ? "10px 10px" : "10px 20px",
+               background: noReplays
+                  ? "rgba(100, 100, 100, 0.2)"
+                  : "linear-gradient(135deg, rgba(125, 211, 252, 0.2), rgba(125, 211, 252, 0.1))",
+               border: noReplays
+                  ? "1px solid rgba(100, 100, 100, 0.4)"
+                  : "1px solid rgba(125, 211, 252, 0.6)",
+               fontSize: isMobile ? "0.9rem" : "0.95rem",
+               opacity: noReplays ? 0.5 : 1,
+            }}
+         >
+            <ArrowPathRoundedSquareIcon
+               style={{
+                  width: isMobile ? 18 : 20,
+                  height: isMobile ? 18 : 20,
+                  color: noReplays ? "var(--muted)" : "var(--accent)",
+                  flexShrink: 0,
+               }}
+            />
+            <span>
+               Replay{" "}
+               {maxReplays === 0
+                  ? "(∞)"
+                  : `(${maxReplays - replaysUsed}/${maxReplays})`}
+            </span>
+         </button>
+
+         <button
+            type="button"
+            className={`${styles.btn} ${styles.btnGrow} ${fx.pressable}`}
+            onClick={handleShare}
+            style={{
+               ...TOUCH_SURFACE,
+               padding: isMobile ? "10px 10px" : "10px 20px",
+               background:
+                  "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
+               border: "1px solid rgba(59, 130, 246, 0.6)",
+               fontSize: isMobile ? "0.9rem" : "0.95rem",
+            }}
+         >
+            <ShareIcon style={{ width: isMobile ? 18 : 20, height: isMobile ? 18 : 20, flexShrink: 0 }} />
+            <span>{isMobile ? "Share" : "Share for unlimited"}</span>
+         </button>
+      </div>
+   );
+
+   const noticeStyle: React.CSSProperties = {
+      padding: isMobile ? "18px 16px" : "24px 32px",
+      fontSize: isMobile ? "1rem" : "1.1rem",
+   };
+   const badgeStyle: React.CSSProperties = { fontSize: isMobile ? "0.95rem" : "1.05rem" };
+
    return (
       <>
          <div
+            ref={rootRef}
+            className={styles.root}
             style={{
-               display: "flex",
-               flexDirection: "column",
-               alignItems: "center",
-               justifyContent: "center",
-               minHeight: "100%",
-               width: "100%",
-               padding: isMobile ? "16px" : isTablet ? "20px" : "24px",
-               gap: isMobile ? "16px" : "20px",
+               ...TOUCH_SURFACE,
+               // The game is the last thing on the page: the bottom room lets the pad and the Replay / Share
+               // row scroll above the fixed cookie banner (~190 px on phones, ~110 px elsewhere).
+               padding: `${rootPad}px ${rootPad}px calc(env(safe-area-inset-bottom) + ${isMobile ? 190 : 110}px)`,
+               gap: compact ? "8px" : isMobile ? "10px" : "20px",
             }}
          >
-            {/* Header */}
+            {/* Header card: level / score / time (+ the chips on a short screen), progress */}
             <div
+               className={styles.card}
                style={{
-                  width: "100%",
-                  maxWidth: "800px",
-                  background: "var(--card)",
-                  borderRadius: isMobile ? "16px" : "20px",
-                  padding: isMobile ? "16px" : "20px",
-                  boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
+                  padding: compact ? "8px 12px" : isMobile ? "12px 14px" : "16px 20px",
                   display: "flex",
                   flexDirection: "column",
-                  gap: isMobile ? "12px" : "16px",
+                  gap: compact ? "6px" : isMobile ? "10px" : "14px",
                }}
             >
-               <div
-                  style={{
-                     display: "flex",
-                     alignItems: "center",
-                     justifyContent: "space-between",
-                     flexWrap: "wrap",
-                     gap: isMobile ? "8px" : "12px",
-                  }}
-               >
-                  <span
-                     style={{
-                        fontSize: isMobile ? "0.875rem" : "1rem",
-                        fontWeight: 600,
-                        color: "var(--text)",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "6px",
-                     }}
-                  >
+               <div className={styles.headerRow} style={{ fontSize: isMobile ? "13px" : "1rem" }}>
+                  <span className={styles.headerItem}>
+                     <ArrowPathIcon style={{ width: isMobile ? 14 : 16, height: isMobile ? 14 : 16, color: "var(--accent)" }} />
                      Level {currentLevel + 1}/{maxLevels}
                   </span>
-                  <span
-                     style={{
-                        fontSize: isMobile ? "0.875rem" : "1rem",
-                        fontWeight: 600,
-                        color: "var(--text)",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "6px",
-                     }}
-                  >
-                     <TrophyIcon
-                        style={{
-                           width: isMobile ? 14 : 16,
-                           height: isMobile ? 14 : 16,
-                           color: "var(--ok)",
-                        }}
-                     />
+                  <span className={styles.headerItem}>
+                     <TrophyIcon style={{ width: isMobile ? 14 : 16, height: isMobile ? 14 : 16, color: "var(--ok)" }} />
                      Score:{" "}
-                     {currentLevel + 1 >= maxLevels && gameState === "ready"
-                        ? 100
-                        : currentScore}{" "}
-                     / 100
+                     {currentLevel + 1 >= maxLevels && gameState === "ready" ? 100 : currentScore} / 100
                   </span>
-                  <span
-                     style={{
-                        fontSize: isMobile ? "0.875rem" : "1rem",
-                        fontWeight: 600,
-                        color: "var(--text)",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "6px",
-                     }}
-                  >
-                     <ClockIcon
-                        style={{
-                           width: isMobile ? 14 : 16,
-                           height: isMobile ? 14 : 16,
-                           color: "var(--accent)",
-                        }}
-                     />
+                  <span className={styles.headerItem}>
+                     <ClockIcon style={{ width: isMobile ? 14 : 16, height: isMobile ? 14 : 16, color: "var(--accent)" }} />
                      {timeLeft}s
                   </span>
+                  {compact && gameState === "playing" && statChips}
                </div>
-               {/* Progress Bar */}
-               <div
-                  style={{
-                     width: "100%",
-                     height: isMobile ? "6px" : "8px",
-                     background: "rgba(255, 255, 255, 0.1)",
-                     borderRadius: "999px",
-                     overflow: "hidden",
-                  }}
-               >
-                  <div
-                     style={{
-                        width: `${progress}%`,
-                        height: "100%",
-                        background:
-                           "linear-gradient(90deg, var(--accent) 0%, var(--ok) 100%)",
-                        borderRadius: "999px",
-                        transition: "width 0.3s ease",
-                        boxShadow: "0 0 10px rgba(125, 211, 252, 0.5)",
-                     }}
-                  />
+               <div className={styles.progress} style={{ height: isMobile ? "6px" : "8px" }}>
+                  <div className={styles.progressFill} style={{ width: `${progress}%` }} />
                </div>
             </div>
 
             {/* Game Board */}
             {gameState === "playing" && (
                <div
+                  className={`${styles.card} ${styles.board}`}
                   style={{
-                     width: "100%",
-                     maxWidth: "800px",
-                     background: "var(--card)",
-                     borderRadius: isMobile ? "16px" : "20px",
-                     padding: isMobile ? "20px" : "32px",
-                     boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
-                     display: "flex",
-                     flexDirection: "column",
-                     alignItems: "center",
-                     gap: isMobile ? "20px" : "32px",
+                     padding: `${cardPad}px`,
+                     gap: compact ? "0px" : isMobile ? "10px" : "16px",
                   }}
                >
                   {/* Stats */}
-                  <div
-                     style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: isMobile ? "12px" : "16px",
-                        flexWrap: "wrap",
-                        width: "100%",
-                     }}
-                  >
-                     <div
-                        style={{
-                           background:
-                              "linear-gradient(135deg, rgba(134, 239, 172, 0.2), rgba(34, 197, 94, 0.1))",
-                           border: "1px solid rgba(134, 239, 172, 0.4)",
-
-                           padding: isMobile ? "8px 12px" : "10px 16px",
-                           display: "flex",
-                           alignItems: "center",
-                           gap: "8px",
-                        }}
-                     >
-                        <CheckCircleIcon
-                           style={{
-                              width: isMobile ? 16 : 18,
-                              height: isMobile ? 16 : 18,
-                              color: "var(--ok)",
-                           }}
-                        />
-                        <span
-                           style={{
-                              fontSize: isMobile ? "0.875rem" : "1rem",
-                              fontWeight: 600,
-                              color: "var(--text)",
-                           }}
-                        >
-                           Correct: {correctAnswers}/{minCorrect}
-                        </span>
-                     </div>
-                     <div
-                        style={{
-                           background:
-                              "linear-gradient(135deg, rgba(252, 165, 165, 0.2), rgba(239, 68, 68, 0.1))",
-                           border: "1px solid rgba(252, 165, 165, 0.4)",
-
-                           padding: isMobile ? "8px 12px" : "10px 16px",
-                           display: "flex",
-                           alignItems: "center",
-                           gap: "8px",
-                        }}
-                     >
-                        <XCircleIcon
-                           style={{
-                              width: isMobile ? 16 : 18,
-                              height: isMobile ? 16 : 18,
-                              color: "var(--warn)",
-                           }}
-                        />
-                        <span
-                           style={{
-                              fontSize: isMobile ? "0.875rem" : "1rem",
-                              fontWeight: 600,
-                              color: "var(--text)",
-                           }}
-                        >
-                           Wrong: {wrongAnswers}
-                        </span>
-                     </div>
-                  </div>
-
-                  {/* Target Arrow Display */}
-                  {targetArrow && (
-                     <div
-                        style={{
-                           width: isMobile ? "120px" : "160px",
-                           height: isMobile ? "120px" : "160px",
-                           borderRadius: "50%",
-                           border:
-                              feedback === "correct"
-                                 ? "4px solid var(--ok)"
-                                 : feedback === "wrong"
-                                 ? "4px solid var(--warn)"
-                                 : "4px solid var(--accent)",
-                           background:
-                              feedback === "correct"
-                                 ? "rgba(134, 239, 172, 0.2)"
-                                 : feedback === "wrong"
-                                 ? "rgba(252, 165, 165, 0.2)"
-                                 : "rgba(59, 130, 246, 0.15)",
-                           display: "flex",
-                           alignItems: "center",
-                           justifyContent: "center",
-                           transition: "all 0.3s ease",
-                           boxShadow:
-                              feedback === "correct"
-                                 ? "0 8px 24px rgba(134, 239, 172, 0.4)"
-                                 : feedback === "wrong"
-                                 ? "0 8px 24px rgba(252, 165, 165, 0.4)"
-                                 : "0 8px 24px rgba(59, 130, 246, 0.3)",
-                        }}
-                     >
-                        <div
-                           style={{
-                              fontSize: isMobile ? "4rem" : "5rem",
-                              color: "var(--text)",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                           }}
-                        >
-                           {renderArrowIcon(targetArrow, isMobile ? 64 : 80)}
-                        </div>
+                  {!compact && (
+                     <div className={styles.stats} style={{ gap: isMobile ? "8px" : "12px" }}>
+                        {statChips}
                      </div>
                   )}
 
-                  {/* Arrow Buttons */}
+                  {/* Prompt + pad */}
                   <div
-                     style={{
-                        display: "grid",
-                        gridTemplateColumns: "repeat(3, 1fr)",
-                        gridTemplateRows: "repeat(3, 1fr)",
-                        gap: isMobile ? "12px" : isTablet ? "14px" : "16px",
-                        width: "100%",
-                        maxWidth: isMobile
-                           ? "280px"
-                           : isTablet
-                           ? "320px"
-                           : "360px",
-                        aspectRatio: "1",
-                     }}
+                     className={`${styles.stage} ${
+                        layout.arrangement === "row" ? styles.stageRow : styles.stageStack
+                     }`}
+                     style={{ gap: `${layout.stageGap}px`, width: "100%" }}
                   >
-                     {/* Empty top-left */}
-                     <div></div>
-                     {/* Up Arrow */}
-                     <button
-                        onPointerDown={(e) => {
-                           e.preventDefault();
-                           e.stopPropagation();
-                           handleArrowSelect("up");
-                        }}
-                        disabled={!targetArrow || requirementsMet}
-                        style={{
-                           gridColumn: "2",
-                           gridRow: "1",
-                           background:
-                              feedback === "correct" && targetArrow === "up"
-                                 ? "rgba(16, 185, 129, 0.3)"
-                                 : feedback === "wrong" && targetArrow !== "up"
-                                 ? "rgba(252, 165, 165, 0.3)"
-                                 : "rgba(16, 185, 129, 0.15)",
-                           border:
-                              feedback === "correct" && targetArrow === "up"
-                                 ? "2px solid #10b981"
-                                 : feedback === "wrong" && targetArrow !== "up"
-                                 ? "2px solid var(--warn)"
-                                 : "2px solid #10b981",
-
-                           display: "flex",
-                           alignItems: "center",
-                           justifyContent: "center",
-                           cursor:
-                              !targetArrow || requirementsMet
-                                 ? "not-allowed"
-                                 : "pointer",
-                           transition: "all 0.2s ease",
-                           transform:
-                              feedback === "correct" && targetArrow === "up"
-                                 ? "scale(0.95)"
-                                 : "scale(1)",
-                           userSelect: "none",
-                           touchAction: "manipulation",
-                           WebkitTapHighlightColor: "transparent",
-                           padding: isMobile
-                              ? "8px"
-                              : isTablet
-                              ? "10px"
-                              : "12px",
-                        }}
-                     >
-                        {renderArrowIcon(
-                           "up",
-                           isMobile ? 32 : isTablet ? 36 : 44
+                     <div className={styles.promptWrap}>
+                        <div
+                           className={`${styles.prompt} ${
+                              !targetArrow
+                                 ? styles.promptIdle
+                                 : feedback === "correct"
+                                 ? `${styles.promptOk} ${fx.hitPop}`
+                                 : feedback === "wrong"
+                                 ? `${styles.promptBad} ${fx.missShake}`
+                                 : ""
+                           }`}
+                           style={{ width: `${layout.promptSize}px`, height: `${layout.promptSize}px` }}
+                           aria-live="polite"
+                           aria-label={targetArrow ? `Target: ${targetArrow}` : "Get ready"}
+                        >
+                           {targetArrow ? (
+                              renderArrowIcon(targetArrow, layout.promptIcon)
+                           ) : (
+                              <span className={styles.promptHint}>Get ready…</span>
+                           )}
+                        </div>
+                        {floater && (
+                           <span
+                              key={floater.id}
+                              className={`${fx.floatScore} ${styles.floater} ${
+                                 floater.tone === "ok" ? styles.floaterOk : styles.floaterBad
+                              }`}
+                           >
+                              {floater.text}
+                           </span>
                         )}
-                     </button>
-                     {/* Empty top-right */}
-                     <div></div>
-                     {/* Left Arrow */}
-                     <button
-                        onPointerDown={(e) => {
-                           e.preventDefault();
-                           e.stopPropagation();
-                           handleArrowSelect("left");
-                        }}
-                        disabled={!targetArrow || requirementsMet}
-                        style={{
-                           gridColumn: "1",
-                           gridRow: "2",
-                           background:
-                              feedback === "correct" && targetArrow === "left"
-                                 ? "rgba(139, 92, 246, 0.3)"
-                                 : feedback === "wrong" &&
-                                   targetArrow !== "left"
-                                 ? "rgba(252, 165, 165, 0.3)"
-                                 : "rgba(139, 92, 246, 0.15)",
-                           border:
-                              feedback === "correct" && targetArrow === "left"
-                                 ? "2px solid #8b5cf6"
-                                 : feedback === "wrong" &&
-                                   targetArrow !== "left"
-                                 ? "2px solid var(--warn)"
-                                 : "2px solid #8b5cf6",
-
-                           display: "flex",
-                           alignItems: "center",
-                           justifyContent: "center",
-                           cursor:
-                              !targetArrow || requirementsMet
-                                 ? "not-allowed"
-                                 : "pointer",
-                           transition: "all 0.2s ease",
-                           transform:
-                              feedback === "correct" && targetArrow === "left"
-                                 ? "scale(0.95)"
-                                 : "scale(1)",
-                           userSelect: "none",
-                           touchAction: "manipulation",
-                           WebkitTapHighlightColor: "transparent",
-                           padding: isMobile
-                              ? "8px"
-                              : isTablet
-                              ? "10px"
-                              : "12px",
-                        }}
-                     >
-                        {renderArrowIcon(
-                           "left",
-                           isMobile ? 32 : isTablet ? 36 : 44
-                        )}
-                     </button>
-                     {/* Center (empty or can show target) */}
-                     <div
-                        style={{
-                           gridColumn: "2",
-                           gridRow: "2",
-                           display: "flex",
-                           alignItems: "center",
-                           justifyContent: "center",
-                           fontSize: isMobile ? "0.75rem" : "0.875rem",
-                           fontWeight: 600,
-                           color: "var(--muted)",
-                           textAlign: "center",
-                        }}
-                     >
-                        Tap arrow
                      </div>
-                     {/* Right Arrow */}
-                     <button
-                        onPointerDown={(e) => {
-                           e.preventDefault();
-                           e.stopPropagation();
-                           handleArrowSelect("right");
-                        }}
-                        disabled={!targetArrow || requirementsMet}
-                        style={{
-                           gridColumn: "3",
-                           gridRow: "2",
-                           background:
-                              feedback === "correct" && targetArrow === "right"
-                                 ? "rgba(59, 130, 246, 0.3)"
-                                 : feedback === "wrong" &&
-                                   targetArrow !== "right"
-                                 ? "rgba(252, 165, 165, 0.3)"
-                                 : "rgba(59, 130, 246, 0.15)",
-                           border:
-                              feedback === "correct" && targetArrow === "right"
-                                 ? "2px solid #3b82f6"
-                                 : feedback === "wrong" &&
-                                   targetArrow !== "right"
-                                 ? "2px solid var(--warn)"
-                                 : "2px solid #3b82f6",
 
-                           display: "flex",
-                           alignItems: "center",
-                           justifyContent: "center",
-                           cursor:
-                              !targetArrow || requirementsMet
-                                 ? "not-allowed"
-                                 : "pointer",
-                           transition: "all 0.2s ease",
-                           transform:
-                              feedback === "correct" && targetArrow === "right"
-                                 ? "scale(0.95)"
-                                 : "scale(1)",
-                           userSelect: "none",
-                           touchAction: "manipulation",
-                           WebkitTapHighlightColor: "transparent",
-                           padding: isMobile
-                              ? "8px"
-                              : isTablet
-                              ? "10px"
-                              : "12px",
+                     <div
+                        className={styles.pad}
+                        role="group"
+                        aria-label="Direction buttons"
+                        style={{
+                           gridTemplateColumns: `repeat(3, ${layout.cell}px)`,
+                           gridTemplateRows: `repeat(3, ${layout.cell}px)`,
+                           gap: `${layout.gap}px`,
+                           width: `${layout.padSize}px`,
+                           height: `${layout.padSize}px`,
                         }}
                      >
-                        {renderArrowIcon(
-                           "right",
-                           isMobile ? 32 : isTablet ? 36 : 44
-                        )}
-                     </button>
-                     {/* Empty bottom-left */}
-                     <div></div>
-                     {/* Down Arrow */}
-                     <button
-                        onPointerDown={(e) => {
-                           e.preventDefault();
-                           e.stopPropagation();
-                           handleArrowSelect("down");
-                        }}
-                        disabled={!targetArrow || requirementsMet}
-                        style={{
-                           gridColumn: "2",
-                           gridRow: "3",
-                           background:
-                              feedback === "correct" && targetArrow === "down"
-                                 ? "rgba(245, 158, 11, 0.3)"
-                                 : feedback === "wrong" &&
-                                   targetArrow !== "down"
-                                 ? "rgba(252, 165, 165, 0.3)"
-                                 : "rgba(245, 158, 11, 0.15)",
-                           border:
-                              feedback === "correct" && targetArrow === "down"
-                                 ? "2px solid #f59e0b"
-                                 : feedback === "wrong" &&
-                                   targetArrow !== "down"
-                                 ? "2px solid var(--warn)"
-                                 : "2px solid #f59e0b",
-
-                           display: "flex",
-                           alignItems: "center",
-                           justifyContent: "center",
-                           cursor:
-                              !targetArrow || requirementsMet
-                                 ? "not-allowed"
-                                 : "pointer",
-                           transition: "all 0.2s ease",
-                           transform:
-                              feedback === "correct" && targetArrow === "down"
-                                 ? "scale(0.95)"
-                                 : "scale(1)",
-                           userSelect: "none",
-                           touchAction: "manipulation",
-                           WebkitTapHighlightColor: "transparent",
-                           padding: isMobile
-                              ? "8px"
-                              : isTablet
-                              ? "10px"
-                              : "12px",
-                        }}
-                     >
-                        {renderArrowIcon(
-                           "down",
-                           isMobile ? 32 : isTablet ? 36 : 44
-                        )}
-                     </button>
-                     {/* Empty bottom-right */}
-                     <div></div>
+                        {renderDir("up", 2, 1)}
+                        {renderDir("left", 1, 2)}
+                        <div className={styles.centre} style={{ gridColumn: 2, gridRow: 2 }}>
+                           {isMobile || isTablet ? "Tap arrow" : "Tap or use arrow keys / WASD"}
+                        </div>
+                        {renderDir("right", 3, 2)}
+                        {renderDir("down", 2, 3)}
+                     </div>
                   </div>
 
-                  {/* Level Description */}
-                  <div
-                     style={{
-                        fontSize: isMobile ? "0.75rem" : "0.875rem",
-                        fontWeight: 500,
-                        color: "var(--muted)",
-                        textAlign: "center",
-                     }}
-                  >
-                     Level {currentLevel + 1}: Match {minCorrect} arrows
-                     correctly
-                     {!isMobile &&
-                        !isTablet &&
-                        " (Use Arrow Keys, WASD, or click buttons)"}
-                  </div>
+                  {/* Level Description (phones have the goal in the Correct chip) */}
+                  {!isMobile && !compact && (
+                     <div className={styles.desc}>
+                        Level {currentLevel + 1}: Match {minCorrect} arrows correctly
+                        {!isTablet && " (Use Arrow Keys, WASD, or click buttons)"}
+                     </div>
+                  )}
                </div>
             )}
 
             {/* Ready for Next Round Message */}
             {gameState === "ready" && currentLevel < maxLevels - 1 && (
-               <div
-                  style={{
-                     padding: isMobile ? "20px 24px" : "24px 32px",
-                     background: "var(--card)",
-                     borderRadius: "var(--radius)",
-                     color: "var(--text)",
-                     fontSize: isMobile ? "1rem" : "1.1rem",
-                     fontWeight: 700,
-                     textAlign: "center" as const,
-                     boxShadow: "0 10px 24px rgba(0, 0, 0, 0.25)",
-                     width: "100%",
-                  }}
-               >
-                  <div
-                     style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: "8px",
-                        padding: "8px 14px",
-                        borderRadius: "999px",
-                        fontWeight: 800,
-                        fontSize: isMobile ? "0.95rem" : "1.05rem",
-                        background:
-                           "linear-gradient(135deg, rgba(134, 239, 172, 0.25), rgba(134, 239, 172, 0.1))",
-                        border: "2px solid rgba(134, 239, 172, 0.6)",
-                        color: "var(--text)",
-                        marginBottom: "16px",
-                     }}
-                  >
+               <div className={`${styles.card} ${styles.notice} ${fx.fadeUp}`} style={noticeStyle}>
+                  <div className={`${styles.badge} ${styles.badgeOk}`} style={badgeStyle}>
                      <CheckCircleIcon style={{ width: 20, height: 20 }} />
                      Level {currentLevel + 1} Complete
                   </div>
@@ -1364,25 +1179,26 @@ export default function ReflexArrow({
                      style={{
                         fontSize: isMobile ? "1.05rem" : "1.1rem",
                         fontWeight: 600,
-                        marginBottom: "20px",
+                        marginBottom: isMobile ? "16px" : "20px",
                         marginTop: "16px",
                      }}
                   >
                      Are you ready for next round?
                   </div>
                   <button
-                     onClick={handleNextRound}
+                     type="button"
+                     className={`${styles.btn} ${fx.pressable}`}
+                     {...nextRoundPress}
                      style={{
+                        ...TOUCH_SURFACE,
+                        minHeight: "48px",
                         padding: isMobile ? "12px 24px" : "14px 28px",
                         background:
                            "linear-gradient(135deg, rgba(134, 239, 172, 0.25), rgba(134, 239, 172, 0.12))",
                         border: "2px solid rgba(134, 239, 172, 0.6)",
-
-                        color: "var(--text)",
+                        borderRadius: "12px",
                         fontSize: isMobile ? "1rem" : "1.05rem",
                         fontWeight: 700,
-                        cursor: "pointer",
-                        transition: "all 0.3s ease",
                      }}
                   >
                      Next Round
@@ -1392,35 +1208,8 @@ export default function ReflexArrow({
 
             {/* Level Failed Message */}
             {gameState === "failed" && (
-               <div
-                  style={{
-                     padding: isMobile ? "20px 24px" : "24px 32px",
-                     background: "var(--card)",
-                     borderRadius: "var(--radius)",
-                     color: "var(--text)",
-                     fontSize: isMobile ? "1rem" : "1.1rem",
-                     fontWeight: 700,
-                     textAlign: "center" as const,
-                     boxShadow: "0 10px 24px rgba(0, 0, 0, 0.25)",
-                     width: "100%",
-                  }}
-               >
-                  <div
-                     style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: "8px",
-                        padding: "8px 14px",
-                        borderRadius: "999px",
-                        fontWeight: 800,
-                        fontSize: isMobile ? "0.95rem" : "1.05rem",
-                        background:
-                           "linear-gradient(135deg, rgba(252, 165, 165, 0.25), rgba(252, 165, 165, 0.1))",
-                        border: "2px solid rgba(252, 165, 165, 0.6)",
-                        color: "var(--text)",
-                        marginBottom: "16px",
-                     }}
-                  >
+               <div className={`${styles.card} ${styles.notice} ${fx.fadeUp}`} style={noticeStyle}>
+                  <div className={`${styles.badge} ${styles.badgeBad}`} style={badgeStyle}>
                      <XCircleIcon style={{ width: 20, height: 20 }} />
                      Level {currentLevel + 1} Failed
                   </div>
@@ -1430,7 +1219,6 @@ export default function ReflexArrow({
                         fontSize: isMobile ? "0.95rem" : "1.05rem",
                         fontWeight: 600,
                         color: "var(--text)",
-                        marginBottom: "18px",
                      }}
                   >
                      {wrongAnswers > 5
@@ -1442,35 +1230,8 @@ export default function ReflexArrow({
 
             {/* Game Complete Message */}
             {gameState === "ready" && currentLevel + 1 >= maxLevels && (
-               <div
-                  style={{
-                     padding: isMobile ? "20px 24px" : "24px 32px",
-                     background: "var(--card)",
-                     borderRadius: "var(--radius)",
-                     color: "var(--text)",
-                     fontSize: isMobile ? "1rem" : "1.1rem",
-                     fontWeight: 700,
-                     textAlign: "center" as const,
-                     boxShadow: "0 10px 24px rgba(0, 0, 0, 0.25)",
-                     width: "100%",
-                  }}
-               >
-                  <div
-                     style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: "8px",
-                        padding: "8px 14px",
-                        borderRadius: "999px",
-                        fontWeight: 800,
-                        fontSize: isMobile ? "0.95rem" : "1.05rem",
-                        background:
-                           "linear-gradient(135deg, rgba(134, 239, 172, 0.25), rgba(134, 239, 172, 0.1))",
-                        border: "2px solid rgba(134, 239, 172, 0.6)",
-                        color: "var(--text)",
-                        marginBottom: "16px",
-                     }}
-                  >
+               <div className={`${styles.card} ${styles.notice} ${fx.fadeUp}`} style={noticeStyle}>
+                  <div className={`${styles.badge} ${styles.badgeOk}`} style={badgeStyle}>
                      <TrophyIcon style={{ width: 20, height: 20 }} />
                      Game Complete!
                   </div>
@@ -1479,7 +1240,6 @@ export default function ReflexArrow({
                         fontSize: isMobile ? "1.05rem" : "1.1rem",
                         fontWeight: 600,
                         marginTop: "16px",
-                        marginBottom: "20px",
                      }}
                   >
                      All {maxLevels} levels completed!
@@ -1488,156 +1248,7 @@ export default function ReflexArrow({
             )}
 
             {/* Action Buttons: Replay, Share */}
-            {(gameState === "playing" || gameState === "failed") && (
-               <div
-                  style={{
-                     display: "flex",
-                     gap: "12px",
-                     justifyContent: "center",
-                     flexWrap: "wrap",
-                     padding: isMobile ? "12px" : "16px",
-                     background: "var(--card)",
-
-                     width: "100%",
-                  }}
-               >
-                  {/* Share Success Message */}
-                  {shareSuccess && !unlimitedActivated && (
-                     <div
-                        style={{
-                           width: "100%",
-                           padding: "12px",
-                           background: "rgba(134, 239, 172, 0.2)",
-                           border: "2px solid rgba(134, 239, 172, 0.6)",
-                           borderRadius: "8px",
-                           fontSize: isMobile ? "0.9rem" : "1rem",
-                           fontWeight: 600,
-                           color: "var(--ok)",
-                           textAlign: "center",
-                           marginBottom: "8px",
-                        }}
-                     >
-                        Link copied! Unlimited replay will unlock when someone
-                        opens your link!
-                     </div>
-                  )}
-
-                  {/* Unlimited Activated Message */}
-                  {unlimitedActivated && (
-                     <div
-                        style={{
-                           display: "flex",
-                           alignItems: "center",
-                           gap: isMobile ? "6px" : "8px",
-                           padding: isMobile ? "10px 14px" : "8px 16px",
-                           background:
-                              "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
-                           border: "2px solid rgba(59, 130, 246, 0.6)",
-                           borderRadius: isMobile ? "10px" : "8px",
-                           color: "var(--text)",
-                           fontSize: isMobile ? "0.85rem" : "0.9rem",
-                           fontWeight: 500,
-                           width: "100%",
-                           justifyContent: "center",
-                           textAlign: "center",
-                           flexWrap: "wrap",
-                           marginBottom: "8px",
-                        }}
-                     >
-                        <CheckCircleIcon
-                           style={{
-                              width: isMobile ? 16 : 18,
-                              height: isMobile ? 16 : 18,
-                              color: "rgba(59, 130, 246, 0.9)",
-                              flexShrink: 0,
-                           }}
-                        />
-                        <span>
-                           🎉 Someone opened your link! Unlimited replay is now
-                           active for 15 minutes!
-                        </span>
-                     </div>
-                  )}
-
-                  <button
-                     onClick={handleReplay}
-                     disabled={maxReplays > 0 && replaysUsed >= maxReplays}
-                     style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: isMobile ? "6px" : "8px",
-                        padding: isMobile ? "10px 16px" : "10px 20px",
-                        width: isMobile ? "100%" : "auto",
-                        background:
-                           maxReplays > 0 && replaysUsed >= maxReplays
-                              ? "rgba(100, 100, 100, 0.2)"
-                              : "linear-gradient(135deg, rgba(125, 211, 252, 0.2), rgba(125, 211, 252, 0.1))",
-                        border:
-                           maxReplays > 0 && replaysUsed >= maxReplays
-                              ? "1px solid rgba(100, 100, 100, 0.4)"
-                              : "1px solid rgba(125, 211, 252, 0.6)",
-
-                        color: "var(--text)",
-                        fontSize: isMobile ? "0.85rem" : "0.95rem",
-                        fontWeight: 600,
-                        cursor:
-                           maxReplays > 0 && replaysUsed >= maxReplays
-                              ? "not-allowed"
-                              : "pointer",
-                        opacity:
-                           maxReplays > 0 && replaysUsed >= maxReplays
-                              ? 0.5
-                              : 1,
-                        transition: "all 0.3s ease",
-                     }}
-                  >
-                     <ArrowPathRoundedSquareIcon
-                        style={{
-                           width: isMobile ? 18 : 20,
-                           height: isMobile ? 18 : 20,
-                           color:
-                              maxReplays > 0 && replaysUsed >= maxReplays
-                                 ? "var(--muted)"
-                                 : "var(--accent)",
-                        }}
-                     />
-                     <span>
-                        {isMobile ? "" : "Replay "}
-                        {maxReplays === 0
-                           ? "(∞)"
-                           : `(${maxReplays - replaysUsed}/${maxReplays})`}
-                     </span>
-                  </button>
-
-                  <button
-                     onClick={handleShare}
-                     style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: isMobile ? "6px" : "8px",
-                        padding: isMobile ? "10px 16px" : "10px 20px",
-                        width: isMobile ? "100%" : "auto",
-                        background:
-                           "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
-                        border: "1px solid rgba(59, 130, 246, 0.6)",
-
-                        color: "var(--text)",
-                        fontSize: isMobile ? "0.85rem" : "0.95rem",
-                        fontWeight: 600,
-                        cursor: "pointer",
-                        transition: "all 0.3s ease",
-                     }}
-                  >
-                     <ShareIcon
-                        style={{
-                           width: isMobile ? 18 : 20,
-                           height: isMobile ? 18 : 20,
-                        }}
-                     />
-                     <span>{isMobile ? "Share" : "Share for unlimited"}</span>
-                  </button>
-               </div>
-            )}
+            {(gameState === "playing" || gameState === "failed") && renderActions()}
          </div>
       </>
    );

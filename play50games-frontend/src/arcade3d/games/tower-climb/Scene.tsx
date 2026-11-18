@@ -5,7 +5,7 @@ import { useFrame, useThree } from "@react-three/fiber";
 import { PerspectiveCamera, Vector3, type Group, type Matrix4, type Mesh } from "three";
 import { useCameraViews } from "@/arcade3d/core/camera/CameraViews";
 import { useCameraZoom } from "@/arcade3d/core/useCameraZoom";
-import { CAMERA_VIEWS, phoneOffset } from "./cameraViews";
+import { CAMERA_VIEWS, PHONE_LIFT, phoneOffset } from "./cameraViews";
 import CameraRig from "@/arcade3d/core/CameraRig";
 import { DynamicInstancedModel } from "@/arcade3d/core/assets";
 import { playSfx } from "@/arcade3d/core/audio";
@@ -108,7 +108,8 @@ const TowerCamera = memo(function TowerCamera({ run }: { run: TowerRun }) {
    const [target] = useState(() => ({ x: 0, y: 0, z: 0 }));
    useFrame(() => {
       target.x = run.player.x;
-      target.y = run.player.y + RUNNER.height / 2;
+      // portrait only (landscape follows run.cameraTarget): aim above the climber at the next platforms
+      target.y = run.player.y + RUNNER.height / 2 + PHONE_LIFT;
    }, FRAME_PRIORITY.camera - 0.01);
    useCameraViews({
       slug: "tower-climb", subject: "character", steering: "camera", defaultYaw: view.yaw,

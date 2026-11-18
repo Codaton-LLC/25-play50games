@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import css from "./MazeEscape.module.css";
+import mobile from "./mobile.module.css";
 import {
    ArrowPathIcon,
    TrophyIcon,
@@ -340,6 +342,11 @@ function MazeEscape({
       [playerPos, gridSize, maze, isCompleted]
    );
 
+   // Touch: one step per swipe on the maze, or the D-pad; both go through the cell click (walls,
+   // moves and the trail exactly as a tap on the neighbouring cell)
+   const swipeStart = useRef<{ x: number; y: number } | null>(null);
+   const step = (dx: number, dy: number) => handleCellClick(playerPos.x + dx, playerPos.y + dy);
+
    // Handle mouse hover on maze cell - auto-move to valid adjacent cells
    const handleCellHover = useCallback(
       (x: number, y: number) => {
@@ -391,7 +398,7 @@ function MazeEscape({
    const displayScore = currentScore;
 
    return (
-      <div className="maze-escape-game">
+      <div className={`maze-escape-game ${css.root}`}>
          {/* Header */}
          <div className="game-header">
             <div className="header-stats">
@@ -428,9 +435,24 @@ function MazeEscape({
          </div>
 
          {/* Maze Grid */}
-         <div className="maze-container">
+         <div className={`maze-container ${css.container}`}>
             <div
-               className="maze-grid"
+               className={`maze-grid ${css.grid}`}
+               onTouchStart={(e) => {
+                  const t = e.touches[0];
+                  swipeStart.current = t ? { x: t.clientX, y: t.clientY } : null;
+               }}
+               onTouchEnd={(e) => {
+                  const st = swipeStart.current;
+                  swipeStart.current = null;
+                  const t = e.changedTouches[0];
+                  if (!st || !t) return;
+                  const dx = t.clientX - st.x;
+                  const dy = t.clientY - st.y;
+                  if (Math.max(Math.abs(dx), Math.abs(dy)) < 24) return; // a tap: the cell's own click
+                  if (Math.abs(dx) > Math.abs(dy)) step(dx > 0 ? 1 : -1, 0);
+                  else step(0, dy > 0 ? 1 : -1);
+               }}
                style={{
                   gridTemplateColumns: `repeat(${gridSize}, 1fr)`,
                   gridTemplateRows: `repeat(${gridSize}, 1fr)`,
@@ -490,9 +512,25 @@ function MazeEscape({
             </div>
          </div>
 
+         {/* Touch D-pad (touch screens only, see MazeEscape.module.css) */}
+         <div className={css.pad} role="group" aria-label="Move">
+            <button type="button" className={css.up} aria-label="Up" onClick={() => step(0, -1)} disabled={isCompleted}>
+               ▲
+            </button>
+            <button type="button" className={css.left} aria-label="Left" onClick={() => step(-1, 0)} disabled={isCompleted}>
+               ◀
+            </button>
+            <button type="button" className={css.down} aria-label="Down" onClick={() => step(0, 1)} disabled={isCompleted}>
+               ▼
+            </button>
+            <button type="button" className={css.right} aria-label="Right" onClick={() => step(1, 0)} disabled={isCompleted}>
+               ▶
+            </button>
+         </div>
+
          {/* Success Message - positioned below the maze like Circuit Path */}
          {showSuccess && (
-            <div className="game-feedback correct">
+            <div className={`game-feedback correct ${mobile.pop}`}>
                <CheckCircleIcon className="feedback-icon" />
                <span>
                   Round {currentRound} Complete! Score: {roundScore} points

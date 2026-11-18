@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import m from "./mobile.module.css";
 import {
    CheckCircleIcon,
    XCircleIcon,
@@ -563,6 +564,7 @@ function FaceMemory({
 
    return (
       <div
+         className={m.tight}
          style={{
             display: "flex",
             flexDirection: "column",
@@ -815,6 +817,7 @@ function FaceMemory({
                         transition: "all 0.2s",
                         cursor: gameState === "input" ? "pointer" : "default",
                      }}
+                     className={m.card}
                      onClick={() => {
                         if (gameState === "input") {
                            setSelectedFaceIndex(index);
@@ -948,6 +951,7 @@ function FaceMemory({
                            .map((name, idx) => (
                               <button
                                  key={idx}
+                                 className={m.btn}
                                  onClick={() => {
                                     handleNameSelect(name, selectedFaceIndex);
                                  }}
@@ -1032,6 +1036,7 @@ function FaceMemory({
          {/* Feedback Messages - Same as Match the Shapes */}
          {feedback !== null && (
             <div
+               className={feedback === "correct" ? m.feedbackOk : m.feedbackBad}
                style={{
                   padding: isMobile ? "12px 20px" : "16px 24px",
                   borderRadius: isMobile ? "12px" : "12px",
@@ -1170,6 +1175,7 @@ function FaceMemory({
             {/* Hint Button */}
             <button
                onClick={handleHint}
+               className={m.btn}
                disabled={
                   (maxHints > 0 && hintsUsed >= maxHints) ||
                   gameState !== "input"
@@ -1250,6 +1256,7 @@ function FaceMemory({
             {/* Share Button */}
             <button
                onClick={handleShare}
+               className={m.btn}
                style={{
                   display: "flex",
                   alignItems: "center",

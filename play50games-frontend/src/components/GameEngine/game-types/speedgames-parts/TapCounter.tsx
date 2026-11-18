@@ -23,6 +23,10 @@ import {
    trackShareClick,
    getShareStatus,
 } from "@/lib/api/share";
+import { TOUCH_SURFACE, useViewport, useRevealOnPlay, useInstantPress } from "./touch";
+import { tapButtonSize, ringStroke } from "./TapCounter.layout";
+import fx from "./speedFx.module.css";
+import styles from "./TapCounter.module.css";
 
 interface TapCounterProps {
    config: Record<string, any>;
@@ -100,6 +104,11 @@ export default function TapCounter({
    const completionCalledRef = useRef(false);
    const lastTapTimeRef = useRef<number>(0);
    const tapRateRef = useRef<number>(0);
+
+   // Layout plumbing (mobile/tablet pass): live viewport for the button size, reveal on play.
+   const vp = useViewport();
+   const rootRef = useRef<HTMLDivElement>(null);
+   useRevealOnPlay(rootRef, isPlaying);
 
    // Responsive design
    useEffect(() => {
@@ -643,701 +652,466 @@ export default function TapCounter({
       }
    }, [currentLevel, maxLevels, startLevel, onScoreUpdate, onComplete]);
 
-   return (
-      <>
-         <div
+   // Press plumbing (mobile/tablet pass): Next Round and Replay fire on pointerdown. Share keeps the click,
+   // because navigator.share / the clipboard need the user activation a touch pointerdown does not grant.
+   const noReplays = maxReplays > 0 && replaysUsed >= maxReplays;
+   const nextPress = useInstantPress<HTMLButtonElement>(handleNextRound);
+   const replayPress = useInstantPress<HTMLButtonElement>(handleReplay, !noReplays);
+
+   // Layout from the live viewport: the ring's diameter and stroke (rules untouched).
+   const size = tapButtonSize(vp);
+   const stroke = ringStroke(size);
+   const radius = size / 2 - stroke / 2;
+   const circumference = 2 * Math.PI * radius;
+   // Compact spacing on phones and on any viewport under 900 px tall (landscape tablets, short windows);
+   // the classic 500 px play-area floor stays only on tall desktop windows.
+   const compact = isMobile || vp.height < 900;
+   const canTap = gameState === "playing" && !requirementsMet;
+   const nearGoal = canTap && tapProgress >= 75 && tapProgress < 100;
+
+   const chipStyle: React.CSSProperties = {
+      padding: isMobile ? "7px 12px" : "9px 16px",
+      fontSize: isMobile ? "13px" : "0.95rem",
+   };
+   const headerIcon = {
+      width: isMobile ? 14 : 16,
+      height: isMobile ? 14 : 16,
+      flexShrink: 0,
+   };
+
+   // Replay + Share row: under the play area while playing, inside the level-failed notice otherwise
+   // (one implementation, the same handlers).
+   const renderActions = () => (
+      <div className={styles.actions}>
+         {/* Share Success Message */}
+         {shareSuccess && !unlimitedActivated && (
+            <div
+               style={{
+                  width: "100%",
+                  padding: "10px 12px",
+                  background: "rgba(134, 239, 172, 0.2)",
+                  border: "2px solid rgba(134, 239, 172, 0.6)",
+                  borderRadius: "8px",
+                  fontSize: isMobile ? "0.9rem" : "1rem",
+                  fontWeight: 600,
+                  color: "var(--ok)",
+                  textAlign: "center",
+               }}
+            >
+               Link copied! Unlimited replay will unlock when someone opens
+               your link!
+            </div>
+         )}
+
+         {/* Unlimited Activated Message */}
+         {unlimitedActivated && (
+            <div
+               style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: isMobile ? "6px" : "8px",
+                  padding: isMobile ? "10px 12px" : "8px 16px",
+                  background:
+                     "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
+                  border: "2px solid rgba(59, 130, 246, 0.6)",
+                  borderRadius: isMobile ? "10px" : "8px",
+                  color: "var(--text)",
+                  fontSize: isMobile ? "0.85rem" : "0.9rem",
+                  fontWeight: 500,
+                  width: "100%",
+                  justifyContent: "center",
+                  textAlign: "center",
+                  flexWrap: "wrap",
+               }}
+            >
+               <CheckCircleIcon
+                  style={{
+                     width: isMobile ? 16 : 18,
+                     height: isMobile ? 16 : 18,
+                     color: "rgba(59, 130, 246, 0.9)",
+                     flexShrink: 0,
+                  }}
+               />
+               <span>
+                  🎉 Someone opened your link! Unlimited replay is now active
+                  for 15 minutes!
+               </span>
+            </div>
+         )}
+
+         <button
+            type="button"
+            className={`${styles.btn} ${styles.btnGrow} ${styles.btnReplay} ${fx.pressable}`}
+            {...replayPress}
+            disabled={noReplays}
             style={{
-               display: "flex",
-               flexDirection: "column",
-               alignItems: "center",
-               justifyContent: "center",
-               minHeight: "100%",
-               width: "100%",
-               padding: isMobile ? "12px" : "20px",
-               gap: isMobile ? "16px" : "24px",
+               ...TOUCH_SURFACE,
+               padding: isMobile ? "10px 10px" : "10px 20px",
+               fontSize: isMobile ? "0.9rem" : "0.95rem",
             }}
          >
-            {/* Header Section */}
+            <ArrowPathRoundedSquareIcon
+               style={{
+                  width: isMobile ? 18 : 20,
+                  height: isMobile ? 18 : 20,
+                  color: noReplays ? "var(--muted)" : "var(--accent)",
+                  flexShrink: 0,
+               }}
+            />
+            <span>
+               Replay{" "}
+               {maxReplays === 0
+                  ? "(∞)"
+                  : `(${maxReplays - replaysUsed}/${maxReplays})`}
+            </span>
+         </button>
+
+         <button
+            type="button"
+            className={`${styles.btn} ${styles.btnGrow} ${styles.btnShare} ${fx.pressable}`}
+            onClick={handleShare}
+            style={{
+               ...TOUCH_SURFACE,
+               padding: isMobile ? "10px 10px" : "10px 20px",
+               fontSize: isMobile ? "0.9rem" : "0.95rem",
+            }}
+         >
+            <ShareIcon
+               style={{
+                  width: isMobile ? 18 : 20,
+                  height: isMobile ? 18 : 20,
+                  flexShrink: 0,
+               }}
+            />
+            <span>{isMobile ? "Share" : "Share for unlimited"}</span>
+         </button>
+      </div>
+   );
+
+   return (
+      <div
+         ref={rootRef}
+         className={styles.root}
+         style={{
+            ...TOUCH_SURFACE,
+            padding: isMobile ? "10px 12px" : "20px",
+            // The game is the last thing on the page: this room lets it scroll above the
+            // fixed cookie banner (~190 px on a 360 px phone, ~90 px on tablets).
+            paddingBottom: `calc(env(safe-area-inset-bottom) + ${
+               isMobile ? 190 : 110
+            }px)`,
+            gap: isMobile ? "12px" : isTablet ? "16px" : "24px",
+         }}
+      >
+         {/* Header card: level / score / time + level progress */}
+         <div
+            className={styles.card}
+            style={{
+               borderRadius: isMobile ? "14px" : "16px",
+               padding: isMobile ? "12px 14px" : "16px 20px",
+            }}
+         >
             <div
                style={{
-                  width: "100%",
-                  maxWidth: "800px",
-                  background: "var(--card)",
-                  borderRadius: isMobile ? "14px" : "16px",
-                  padding: isMobile ? "16px" : "20px",
-                  boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  fontSize: isMobile ? "13px" : "0.875rem",
+                  color: "var(--muted)",
+                  fontWeight: 500,
+                  marginBottom: isMobile ? "8px" : "12px",
+                  flexWrap: "wrap",
+                  gap: isMobile ? "6px 8px" : "6px 10px",
                }}
             >
-               <div
+               <span
                   style={{
                      display: "flex",
-                     justifyContent: "space-between",
                      alignItems: "center",
-                     fontSize: isMobile ? "0.75rem" : "0.875rem",
-                     color: "var(--muted)",
-                     fontWeight: 500,
-                     marginBottom: isMobile ? "10px" : "12px",
-                     flexWrap: isMobile ? "wrap" : "nowrap",
-                     gap: isMobile ? "8px" : "0",
+                     gap: "6px",
                   }}
                >
-                  <span
-                     style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "6px",
-                     }}
-                  >
-                     <ArrowPathIcon
-                        style={{
-                           width: isMobile ? 14 : 16,
-                           height: isMobile ? 14 : 16,
-                           color: "var(--accent)",
-                        }}
-                     />
-                     Level {currentLevel + 1} / {maxLevels}
-                  </span>
-                  <span
-                     style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "6px",
-                     }}
-                  >
-                     <TrophyIcon
-                        style={{
-                           width: isMobile ? 14 : 16,
-                           height: isMobile ? 14 : 16,
-                           color: "var(--ok)",
-                        }}
-                     />
-                     Score:{" "}
-                     {currentLevel + 1 >= maxLevels && gameState === "ready"
-                        ? 100
-                        : currentScore}{" "}
-                     / 100
-                  </span>
-                  <span
-                     style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "6px",
-                     }}
-                  >
-                     <ClockIcon
-                        style={{
-                           width: isMobile ? 14 : 16,
-                           height: isMobile ? 14 : 16,
-                           color: "var(--accent)",
-                        }}
-                     />
-                     Time: {timeLeft}s
-                  </span>
-               </div>
-               <div
-                  style={{
-                     width: "100%",
-                     height: isMobile ? "6px" : "8px",
-                     background: "rgba(255, 255, 255, 0.1)",
-                     borderRadius: "999px",
-                     overflow: "hidden",
-                  }}
-               >
-                  <div
-                     style={{
-                        width: `${progress}%`,
-                        height: "100%",
-                        background:
-                           "linear-gradient(90deg, var(--accent) 0%, var(--ok) 100%)",
-                        borderRadius: "999px",
-                        transition: "width 0.3s ease",
-                        boxShadow: "0 0 10px rgba(125, 211, 252, 0.5)",
-                     }}
+                  <ArrowPathIcon
+                     style={{ ...headerIcon, color: "var(--accent)" }}
                   />
-               </div>
+                  {isMobile
+                     ? `Level ${currentLevel + 1}/${maxLevels}`
+                     : `Level ${currentLevel + 1} / ${maxLevels}`}
+               </span>
+               <span
+                  style={{
+                     display: "flex",
+                     alignItems: "center",
+                     gap: "6px",
+                  }}
+               >
+                  <TrophyIcon style={{ ...headerIcon, color: "var(--ok)" }} />
+                  {isMobile ? "Score " : "Score: "}
+                  {currentLevel + 1 >= maxLevels && gameState === "ready"
+                     ? 100
+                     : currentScore}
+                  {isMobile ? "/100" : " / 100"}
+               </span>
+               <span
+                  style={{
+                     display: "flex",
+                     alignItems: "center",
+                     gap: "6px",
+                  }}
+               >
+                  <ClockIcon
+                     style={{ ...headerIcon, color: "var(--accent)" }}
+                  />
+                  {isMobile ? "Time " : "Time: "}
+                  {timeLeft}s
+               </span>
             </div>
-
-            {/* Game Board */}
             <div
                style={{
                   width: "100%",
-                  maxWidth: "800px",
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  gap: isMobile ? "16px" : "24px",
+                  height: isMobile ? "6px" : "8px",
+                  background: "rgba(255, 255, 255, 0.1)",
+                  borderRadius: "999px",
+                  overflow: "hidden",
                }}
             >
-               {/* Stats */}
-               {gameState === "playing" && (
+               <div
+                  style={{
+                     width: `${progress}%`,
+                     height: "100%",
+                     background:
+                        "linear-gradient(90deg, var(--accent) 0%, var(--ok) 100%)",
+                     borderRadius: "999px",
+                     transition: "width 0.3s ease",
+                     boxShadow: "0 0 10px rgba(125, 211, 252, 0.5)",
+                  }}
+               />
+            </div>
+         </div>
+
+         {/* Game Board */}
+         <div
+            className={styles.board}
+            style={{ gap: isMobile ? "12px" : isTablet ? "16px" : "24px" }}
+         >
+            {/* Stats */}
+            <div
+               className={styles.chips}
+               style={{ gap: isMobile ? "8px" : "12px" }}
+            >
+               <div className={`${styles.chip} ${styles.chipTaps}`} style={chipStyle}>
+                  <HandRaisedIcon style={{ width: 18, height: 18, flexShrink: 0 }} />
+                  Taps: {taps}
+               </div>
+               <div className={`${styles.chip} ${styles.chipRate}`} style={chipStyle}>
+                  <BoltIcon style={{ width: 18, height: 18, flexShrink: 0 }} />
+                  Rate: {tapRateRef.current.toFixed(1)}/s
+               </div>
+               <div className={`${styles.chip} ${styles.chipNeed}`} style={chipStyle}>
+                  <TrophyIcon style={{ width: 18, height: 18, flexShrink: 0 }} />
+                  Need: {minTaps}
+               </div>
+            </div>
+
+            {/* Play area: sized by the ring, the level notices sit over it (above the cookie banner) */}
+            <div className={styles.areaWrap}>
+               <div
+                  className={styles.area}
+                  style={{
+                     padding: compact ? "16px" : "32px",
+                     gap: compact ? "12px" : "24px",
+                     minHeight:
+                        isMobile || isTablet || vp.height < 1000 ? undefined : "500px",
+                  }}
+               >
+                  {/* Tap Target with Circular Progress */}
                   <div
-                     style={{
-                        display: "flex",
-                        gap: isMobile ? "12px" : "16px",
-                        width: "100%",
-                        justifyContent: "center",
-                        flexWrap: "wrap",
-                     }}
+                     className={`${styles.ringWrap} ${nearGoal ? fx.pulse : ""}`}
+                     style={{ width: `${size}px`, height: `${size}px` }}
                   >
-                     <div
-                        style={{
-                           padding: isMobile ? "8px 12px" : "10px 16px",
-                           background:
-                              "linear-gradient(135deg, rgba(134, 239, 172, 0.25), rgba(134, 239, 172, 0.12))",
-                           border: "2px solid rgba(134, 239, 172, 0.6)",
-
-                           fontSize: isMobile ? "0.85rem" : "0.95rem",
-                           fontWeight: 700,
-                           color: "var(--text)",
-                           display: "flex",
-                           alignItems: "center",
-                           gap: "6px",
-                        }}
+                     <svg
+                        className={styles.ring}
+                        width={size}
+                        height={size}
+                        aria-hidden="true"
                      >
-                        <HandRaisedIcon style={{ width: 18, height: 18 }} />
-                        Taps: {taps}
-                     </div>
-                     <div
-                        style={{
-                           padding: isMobile ? "8px 12px" : "10px 16px",
-                           background:
-                              "linear-gradient(135deg, rgba(125, 211, 252, 0.25), rgba(125, 211, 252, 0.12))",
-                           border: "2px solid rgba(125, 211, 252, 0.6)",
-
-                           fontSize: isMobile ? "0.85rem" : "0.95rem",
-                           fontWeight: 700,
-                           color: "var(--text)",
-                           display: "flex",
-                           alignItems: "center",
-                           gap: "6px",
-                        }}
-                     >
-                        <BoltIcon style={{ width: 18, height: 18 }} />
-                        Rate: {tapRateRef.current.toFixed(1)}/s
-                     </div>
-                     <div
-                        style={{
-                           padding: isMobile ? "8px 12px" : "10px 16px",
-                           background:
-                              "linear-gradient(135deg, rgba(59, 130, 246, 0.25), rgba(59, 130, 246, 0.12))",
-                           border: "2px solid rgba(59, 130, 246, 0.6)",
-
-                           fontSize: isMobile ? "0.85rem" : "0.95rem",
-                           fontWeight: 700,
-                           color: "var(--text)",
-                           display: "flex",
-                           alignItems: "center",
-                           gap: "6px",
-                        }}
-                     >
-                        <TrophyIcon style={{ width: 18, height: 18 }} />
-                        Need: {minTaps}
-                     </div>
-                  </div>
-               )}
-
-               {/* Game Area */}
-               {gameState === "playing" && (
-                  <div
-                     style={{
-                        width: "100%",
-                        minHeight: isMobile ? "400px" : "500px",
-                        background:
-                           "radial-gradient(320px 220px at 30% 30%, rgba(59, 130, 246, 0.1), transparent 55%), linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02))",
-                        borderRadius: "var(--radius)",
-                        padding: isMobile ? "24px" : "32px",
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: "24px",
-                        boxShadow: "0 10px 18px rgba(0, 0, 0, 0.22)",
-                        position: "relative",
-                        overflow: "hidden",
-                     }}
-                  >
-                     {/* Tap Target with Circular Progress */}
-                     <div
-                        style={{
-                           position: "relative",
-                           width: isMobile ? "200px" : "280px",
-                           height: isMobile ? "200px" : "280px",
-                        }}
-                     >
-                        {/* Circular Progress SVG */}
-                        <svg
-                           width={isMobile ? "200" : "280"}
-                           height={isMobile ? "200" : "280"}
-                           style={{
-                              position: "absolute",
-                              top: 0,
-                              left: 0,
-                              transform: "rotate(-90deg)",
-                           }}
-                        >
-                           {/* Background circle */}
-                           <circle
-                              cx={isMobile ? "100" : "140"}
-                              cy={isMobile ? "100" : "140"}
-                              r={isMobile ? "96" : "134"}
-                              fill="none"
-                              stroke="rgba(59, 130, 246, 0.2)"
-                              strokeWidth={isMobile ? "8" : "12"}
-                           />
-                           {/* Progress circle */}
-                           <circle
-                              cx={isMobile ? "100" : "140"}
-                              cy={isMobile ? "100" : "140"}
-                              r={isMobile ? "96" : "134"}
-                              fill="none"
-                              stroke={
-                                 tapProgress >= 100
-                                    ? "var(--ok)"
-                                    : "var(--accent)"
-                              }
-                              strokeWidth={isMobile ? "8" : "12"}
-                              strokeLinecap="round"
-                              strokeDasharray={
-                                 isMobile
-                                    ? `${2 * Math.PI * 96}`
-                                    : `${2 * Math.PI * 134}`
-                              }
-                              strokeDashoffset={
-                                 isMobile
-                                    ? `${
-                                         2 *
-                                         Math.PI *
-                                         96 *
-                                         (1 - tapProgress / 100)
-                                      }`
-                                    : `${
-                                         2 *
-                                         Math.PI *
-                                         134 *
-                                         (1 - tapProgress / 100)
-                                      }`
-                              }
-                              style={{
-                                 transition:
-                                    "stroke-dashoffset 0.3s ease, stroke 0.3s ease",
-                              }}
-                           />
-                        </svg>
-                        {/* Tap Button */}
-                        <button
-                           onPointerDown={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              handleTap();
-                           }}
-                           disabled={requirementsMet}
-                           style={{
-                              width: "100%",
-                              height: "100%",
-                              borderRadius: "50%",
-                              border: tapFeedback
-                                 ? "4px solid var(--ok)"
-                                 : "4px solid transparent",
-                              background: tapFeedback
-                                 ? "rgba(134, 239, 172, 0.2)"
-                                 : "rgba(59, 130, 246, 0.15)",
-                              display: "flex",
-                              flexDirection: "column",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              gap: "16px",
-                              cursor: requirementsMet
-                                 ? "not-allowed"
-                                 : "pointer",
-                              transition: "all 0.1s ease",
-                              transform: tapFeedback
-                                 ? "scale(0.95)"
-                                 : "scale(1)",
-                              boxShadow: tapFeedback
-                                 ? "0 8px 24px rgba(134, 239, 172, 0.4)"
-                                 : "0 8px 24px rgba(59, 130, 246, 0.3)",
-                              userSelect: "none",
-                              touchAction: "manipulation",
-                              WebkitTapHighlightColor: "transparent",
-                              position: "relative",
-                              zIndex: 1,
-                           }}
-                        >
-                           <div
-                              style={{
-                                 fontSize: isMobile ? "4rem" : "5rem",
-                                 fontWeight: 800,
-                                 color: "var(--text)",
-                                 lineHeight: 1,
-                              }}
-                           >
-                              {taps}
-                           </div>
-                           <div
-                              style={{
-                                 fontSize: isMobile ? "0.875rem" : "1rem",
-                                 fontWeight: 600,
-                                 color: "var(--muted)",
-                                 textAlign: "center",
-                              }}
-                           >
-                              Taps
-                           </div>
-                        </button>
-                     </div>
-
-                     {/* Requirements */}
-                     <div
-                        style={{
-                           display: "flex",
-                           flexDirection: "column",
-                           alignItems: "center",
-                           gap: "12px",
-                           width: "100%",
-                           maxWidth: "400px",
-                        }}
-                     >
-                        <div
-                           style={{
-                              fontSize: isMobile ? "0.875rem" : "1rem",
-                              fontWeight: 600,
-                              color: "var(--text)",
-                              textAlign: "center",
-                           }}
-                        >
-                           Target: {minTaps} taps in{" "}
-                           {getLevelDuration(currentLevel)}s
-                        </div>
-                        <div
-                           style={{
-                              fontSize: isMobile ? "0.75rem" : "0.875rem",
-                              fontWeight: 500,
-                              color: "var(--muted)",
-                              textAlign: "center",
-                           }}
-                        >
-                           {tapsRemaining > 0
-                              ? `${tapsRemaining} more taps needed`
-                              : "Level Complete!"}
-                        </div>
-                     </div>
-                  </div>
-               )}
-
-               {/* Ready for Next Round Message */}
-               {gameState === "ready" && currentLevel + 1 < maxLevels && (
-                  <div
-                     style={{
-                        padding: isMobile ? "20px 24px" : "24px 32px",
-                        background: "var(--card)",
-                        borderRadius: "var(--radius)",
-                        color: "var(--text)",
-                        fontSize: isMobile ? "1rem" : "1.1rem",
-                        fontWeight: 700,
-                        textAlign: "center" as const,
-                        boxShadow: "0 10px 24px rgba(0, 0, 0, 0.25)",
-                        width: "100%",
-                     }}
-                  >
-                     <div
-                        style={{
-                           display: "inline-flex",
-                           alignItems: "center",
-                           gap: "8px",
-                           padding: "8px 14px",
-                           borderRadius: "999px",
-                           fontWeight: 800,
-                           fontSize: isMobile ? "0.95rem" : "1.05rem",
-                           background:
-                              "linear-gradient(135deg, rgba(134, 239, 172, 0.25), rgba(134, 239, 172, 0.1))",
-                           border: "2px solid rgba(134, 239, 172, 0.6)",
-                           color: "var(--text)",
-                           marginBottom: "16px",
-                        }}
-                     >
-                        <CheckCircleIcon style={{ width: 20, height: 20 }} />
-                        Level {currentLevel + 1} Complete
-                     </div>
-                     <div
-                        style={{
-                           fontSize: isMobile ? "1.05rem" : "1.1rem",
-                           fontWeight: 600,
-                           marginBottom: "20px",
-                           marginTop: "16px",
-                        }}
-                     >
-                        Are you ready for next round?
-                     </div>
+                        {/* Background circle */}
+                        <circle
+                           cx={size / 2}
+                           cy={size / 2}
+                           r={radius}
+                           fill="none"
+                           stroke="rgba(59, 130, 246, 0.2)"
+                           strokeWidth={stroke}
+                        />
+                        {/* Progress circle */}
+                        <circle
+                           className={styles.ringProgress}
+                           cx={size / 2}
+                           cy={size / 2}
+                           r={radius}
+                           fill="none"
+                           stroke={
+                              tapProgress >= 100 ? "var(--ok)" : "var(--accent)"
+                           }
+                           strokeWidth={stroke}
+                           strokeLinecap="round"
+                           strokeDasharray={`${circumference}`}
+                           strokeDashoffset={`${
+                              circumference * (1 - tapProgress / 100)
+                           }`}
+                        />
+                     </svg>
+                     {/* Tap Button: every pointerdown (each thumb) counts once; nothing dedupes */}
                      <button
-                        onClick={handleNextRound}
-                        style={{
-                           padding: isMobile ? "12px 24px" : "14px 28px",
-                           background:
-                              "linear-gradient(135deg, rgba(134, 239, 172, 0.25), rgba(134, 239, 172, 0.12))",
-                           border: "2px solid rgba(134, 239, 172, 0.6)",
-
-                           color: "var(--text)",
-                           fontSize: isMobile ? "1rem" : "1.05rem",
-                           fontWeight: 700,
-                           cursor: "pointer",
-                           transition: "all 0.3s ease",
+                        type="button"
+                        className={`${styles.tapBtn} ${
+                           tapFeedback ? styles.tapBtnHit : ""
+                        }`}
+                        onPointerDown={(e) => {
+                           e.preventDefault();
+                           e.stopPropagation();
+                           handleTap();
                         }}
+                        onContextMenu={(e) => e.preventDefault()}
+                        disabled={!canTap}
                      >
-                        Next Round
-                     </button>
-                  </div>
-               )}
-
-               {/* Game Complete Message */}
-               {gameState === "ready" && currentLevel + 1 >= maxLevels && (
-                  <div
-                     style={{
-                        padding: isMobile ? "20px 24px" : "24px 32px",
-                        background: "var(--card)",
-                        borderRadius: "var(--radius)",
-                        color: "var(--text)",
-                        fontSize: isMobile ? "1rem" : "1.1rem",
-                        fontWeight: 700,
-                        textAlign: "center" as const,
-                        boxShadow: "0 10px 24px rgba(0, 0, 0, 0.25)",
-                        width: "100%",
-                     }}
-                  >
-                     <div
-                        style={{
-                           display: "inline-flex",
-                           alignItems: "center",
-                           gap: "8px",
-                           padding: "8px 14px",
-                           borderRadius: "999px",
-                           fontWeight: 800,
-                           fontSize: isMobile ? "0.95rem" : "1.05rem",
-                           background:
-                              "linear-gradient(135deg, rgba(134, 239, 172, 0.25), rgba(134, 239, 172, 0.1))",
-                           border: "2px solid rgba(134, 239, 172, 0.6)",
-                           color: "var(--text)",
-                           marginBottom: "16px",
-                        }}
-                     >
-                        <TrophyIcon style={{ width: 20, height: 20 }} />
-                        Game Complete!
-                     </div>
-                     <div
-                        style={{
-                           fontSize: isMobile ? "1.05rem" : "1.1rem",
-                           fontWeight: 600,
-                           marginTop: "16px",
-                           marginBottom: "20px",
-                        }}
-                     >
-                        All {maxLevels} levels completed!
-                     </div>
-                  </div>
-               )}
-
-               {/* Level Failed Message */}
-               {gameState === "failed" && (
-                  <div
-                     style={{
-                        padding: isMobile ? "20px 24px" : "24px 32px",
-                        background: "var(--card)",
-                        borderRadius: "var(--radius)",
-                        color: "var(--text)",
-                        fontSize: isMobile ? "1rem" : "1.1rem",
-                        fontWeight: 700,
-                        textAlign: "center" as const,
-                        boxShadow: "0 10px 24px rgba(0, 0, 0, 0.25)",
-                        width: "100%",
-                     }}
-                  >
-                     <div
-                        style={{
-                           display: "inline-flex",
-                           alignItems: "center",
-                           gap: "8px",
-                           padding: "8px 14px",
-                           borderRadius: "999px",
-                           fontWeight: 800,
-                           fontSize: isMobile ? "0.95rem" : "1.05rem",
-                           background:
-                              "linear-gradient(135deg, rgba(252, 165, 165, 0.25), rgba(252, 165, 165, 0.1))",
-                           border: "2px solid rgba(252, 165, 165, 0.6)",
-                           color: "var(--text)",
-                           marginBottom: "16px",
-                        }}
-                     >
-                        <XCircleIcon style={{ width: 20, height: 20 }} />
-                        Level {currentLevel + 1} Failed
-                     </div>
-                     <div
-                        style={{
-                           marginTop: "12px",
-                           fontSize: isMobile ? "0.95rem" : "1.05rem",
-                           fontWeight: 600,
-                           color: "var(--text)",
-                           marginBottom: "18px",
-                        }}
-                     >
-                        Need: {minTaps} taps
-                     </div>
-                  </div>
-               )}
-
-               {/* Action Buttons: Replay, Share */}
-               {(gameState === "playing" || gameState === "failed") && (
-                  <div
-                     style={{
-                        display: "flex",
-                        gap: "12px",
-                        justifyContent: "center",
-                        flexWrap: "wrap",
-                        padding: isMobile ? "12px" : "16px",
-                        background: "var(--card)",
-
-                        width: "100%",
-                     }}
-                  >
-                     {/* Share Success Message */}
-                     {shareSuccess && !unlimitedActivated && (
                         <div
-                           style={{
-                              width: "100%",
-                              padding: "12px",
-                              background: "rgba(134, 239, 172, 0.2)",
-                              border: "2px solid rgba(134, 239, 172, 0.6)",
-                              borderRadius: "8px",
-                              fontSize: isMobile ? "0.9rem" : "1rem",
-                              fontWeight: 600,
-                              color: "var(--ok)",
-                              textAlign: "center",
-                              marginBottom: "8px",
-                           }}
+                           key={`count-${taps}`}
+                           className={`${styles.count} ${
+                              taps > 0 ? fx.hitPop : ""
+                           }`}
+                           style={{ fontSize: `${Math.round(size * 0.32)}px` }}
                         >
-                           Link copied! Unlimited replay will unlock when
-                           someone opens your link!
+                           {taps}
                         </div>
-                     )}
-
-                     {/* Unlimited Activated Message */}
-                     {unlimitedActivated && (
-                        <div
-                           style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: isMobile ? "6px" : "8px",
-                              padding: isMobile ? "10px 14px" : "8px 16px",
-                              background:
-                                 "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
-                              border: "2px solid rgba(59, 130, 246, 0.6)",
-                              borderRadius: isMobile ? "10px" : "8px",
-                              color: "var(--text)",
-                              fontSize: isMobile ? "0.85rem" : "0.9rem",
-                              fontWeight: 500,
-                              width: "100%",
-                              justifyContent: "center",
-                              textAlign: "center",
-                              flexWrap: "wrap",
-                              marginBottom: "8px",
-                           }}
-                        >
-                           <CheckCircleIcon
-                              style={{
-                                 width: isMobile ? 16 : 18,
-                                 height: isMobile ? 16 : 18,
-                                 color: "rgba(59, 130, 246, 0.9)",
-                                 flexShrink: 0,
-                              }}
+                        <div className={styles.countLabel}>Taps</div>
+                     </button>
+                     {/* Per-tap ripple + floating "+1", keyed on the count so they replay every tap */}
+                     {taps > 0 && canTap && (
+                        <>
+                           <span
+                              key={`ripple-${taps}`}
+                              className={styles.ripple}
+                              aria-hidden="true"
                            />
-                           <span>
-                              🎉 Someone opened your link! Unlimited replay is
-                              now active for 15 minutes!
+                           <span
+                              key={`plus-${taps}`}
+                              className={`${fx.floatScore} ${styles.plusOne}`}
+                              aria-hidden="true"
+                           >
+                              +1
                            </span>
-                        </div>
+                        </>
                      )}
+                  </div>
 
-                     <button
-                        onClick={handleReplay}
-                        disabled={maxReplays > 0 && replaysUsed >= maxReplays}
-                        style={{
-                           display: "flex",
-                           alignItems: "center",
-                           gap: isMobile ? "6px" : "8px",
-                           padding: isMobile ? "10px 16px" : "10px 20px",
-                           width: isMobile ? "100%" : "auto",
-                           background:
-                              maxReplays > 0 && replaysUsed >= maxReplays
-                                 ? "rgba(100, 100, 100, 0.2)"
-                                 : "linear-gradient(135deg, rgba(125, 211, 252, 0.2), rgba(125, 211, 252, 0.1))",
-                           border:
-                              maxReplays > 0 && replaysUsed >= maxReplays
-                                 ? "1px solid rgba(100, 100, 100, 0.4)"
-                                 : "1px solid rgba(125, 211, 252, 0.6)",
+                  {/* Requirements */}
+                  <div className={styles.goal}>
+                     <div className={styles.goalMain}>
+                        Target: {minTaps} taps in {getLevelDuration(currentLevel)}s
+                     </div>
+                     <div className={styles.goalSub}>
+                        {tapsRemaining > 0
+                           ? `${tapsRemaining} more taps needed`
+                           : "Level Complete!"}
+                     </div>
+                  </div>
+               </div>
 
-                           color: "var(--text)",
-                           fontSize: isMobile ? "0.85rem" : "0.95rem",
-                           fontWeight: 600,
-                           cursor:
-                              maxReplays > 0 && replaysUsed >= maxReplays
-                                 ? "not-allowed"
-                                 : "pointer",
-                           opacity:
-                              maxReplays > 0 && replaysUsed >= maxReplays
-                                 ? 0.5
-                                 : 1,
-                           transition: "all 0.3s ease",
-                        }}
+               {/* Level notices (ready / complete / failed) over the play area */}
+               {gameState !== "playing" && (
+                  <div className={`${styles.overlay} ${fx.fadeUp}`}>
+                     <div
+                        className={styles.notice}
+                        style={{ fontSize: isMobile ? "1rem" : "1.1rem" }}
                      >
-                        <ArrowPathRoundedSquareIcon
-                           style={{
-                              width: isMobile ? 18 : 20,
-                              height: isMobile ? 18 : 20,
-                              color:
-                                 maxReplays > 0 && replaysUsed >= maxReplays
-                                    ? "var(--muted)"
-                                    : "var(--accent)",
-                           }}
-                        />
-                        <span>
-                           {isMobile ? "" : "Replay "}
-                           {maxReplays === 0
-                              ? "(∞)"
-                              : `(${maxReplays - replaysUsed}/${maxReplays})`}
-                        </span>
-                     </button>
+                        {/* Ready for Next Round Message */}
+                        {gameState === "ready" && currentLevel + 1 < maxLevels && (
+                           <>
+                              <div
+                                 className={`${styles.badge} ${styles.badgeOk}`}
+                                 style={{ fontSize: isMobile ? "0.95rem" : "1.05rem" }}
+                              >
+                                 <CheckCircleIcon style={{ width: 20, height: 20 }} />
+                                 Level {currentLevel + 1} Complete
+                              </div>
+                              <div
+                                 style={{
+                                    fontSize: isMobile ? "1.05rem" : "1.1rem",
+                                    fontWeight: 600,
+                                    marginTop: isMobile ? "12px" : "16px",
+                                    marginBottom: isMobile ? "14px" : "20px",
+                                 }}
+                              >
+                                 Are you ready for next round?
+                              </div>
+                              <button
+                                 type="button"
+                                 className={`${styles.btn} ${styles.btnNext} ${fx.pressable}`}
+                                 {...nextPress}
+                                 style={{ ...TOUCH_SURFACE }}
+                              >
+                                 Next Round
+                              </button>
+                           </>
+                        )}
 
-                     <button
-                        onClick={handleShare}
-                        style={{
-                           display: "flex",
-                           alignItems: "center",
-                           gap: isMobile ? "6px" : "8px",
-                           padding: isMobile ? "10px 16px" : "10px 20px",
-                           width: isMobile ? "100%" : "auto",
-                           background:
-                              "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
-                           border: "1px solid rgba(59, 130, 246, 0.6)",
+                        {/* Game Complete Message */}
+                        {gameState === "ready" && currentLevel + 1 >= maxLevels && (
+                           <>
+                              <div
+                                 className={`${styles.badge} ${styles.badgeOk}`}
+                                 style={{ fontSize: isMobile ? "0.95rem" : "1.05rem" }}
+                              >
+                                 <TrophyIcon style={{ width: 20, height: 20 }} />
+                                 Game Complete!
+                              </div>
+                              <div
+                                 style={{
+                                    fontSize: isMobile ? "1.05rem" : "1.1rem",
+                                    fontWeight: 600,
+                                    marginTop: isMobile ? "12px" : "16px",
+                                    marginBottom: isMobile ? "8px" : "12px",
+                                 }}
+                              >
+                                 All {maxLevels} levels completed!
+                              </div>
+                           </>
+                        )}
 
-                           color: "var(--text)",
-                           fontSize: isMobile ? "0.85rem" : "0.95rem",
-                           fontWeight: 600,
-                           cursor: "pointer",
-                           transition: "all 0.3s ease",
-                        }}
-                     >
-                        <ShareIcon
-                           style={{
-                              width: isMobile ? 18 : 20,
-                              height: isMobile ? 18 : 20,
-                           }}
-                        />
-                        <span>
-                           {isMobile ? "Share" : "Share for unlimited"}
-                        </span>
-                     </button>
+                        {/* Level Failed Message */}
+                        {gameState === "failed" && (
+                           <>
+                              <div
+                                 className={`${styles.badge} ${styles.badgeBad}`}
+                                 style={{ fontSize: isMobile ? "0.95rem" : "1.05rem" }}
+                              >
+                                 <XCircleIcon style={{ width: 20, height: 20 }} />
+                                 Level {currentLevel + 1} Failed
+                              </div>
+                              <div
+                                 style={{
+                                    marginTop: isMobile ? "10px" : "12px",
+                                    fontSize: isMobile ? "0.95rem" : "1.05rem",
+                                    fontWeight: 600,
+                                    color: "var(--text)",
+                                    marginBottom: isMobile ? "12px" : "16px",
+                                 }}
+                              >
+                                 Need: {minTaps} taps
+                              </div>
+                              {renderActions()}
+                           </>
+                        )}
+                     </div>
                   </div>
                )}
             </div>
+
+            {/* Action Buttons: Replay, Share (while playing; the failed notice carries them) */}
+            {gameState === "playing" && renderActions()}
          </div>
-      </>
+      </div>
    );
 }

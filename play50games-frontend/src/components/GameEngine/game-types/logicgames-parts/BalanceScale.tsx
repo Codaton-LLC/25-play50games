@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import css from "./BalanceScale.module.css";
+import mobile from "./mobile.module.css";
 import {
    ScaleIcon,
    ArrowPathIcon,
@@ -118,7 +120,7 @@ function BalanceScale({
 
    return (
       <div
-         className="balance-scale-game"
+         className={`balance-scale-game ${css.root}`}
          style={{
             display: "flex",
             flexDirection: "column",
@@ -248,6 +250,7 @@ function BalanceScale({
          </div>
 
          <div
+            className={css.stage}
             style={{
                position: "relative",
                width: "100%",
@@ -401,6 +404,7 @@ function BalanceScale({
          </div>
 
          <div
+            className={css.choices}
             style={{
                display: "flex",
                gap: "1rem",
@@ -412,6 +416,7 @@ function BalanceScale({
             }}
          >
             <button
+               className={`${css.choice} ${selected === "left" ? (correct ? mobile.pop : mobile.shake) : ""}`}
                onClick={() => handleSelect("left")}
                disabled={selected !== null}
                style={{
@@ -469,6 +474,7 @@ function BalanceScale({
                Left is Heavier
             </button>
             <button
+               className={`${css.choice} ${selected === "equal" ? (correct ? mobile.pop : mobile.shake) : ""}`}
                onClick={() => handleSelect("equal")}
                disabled={selected !== null}
                style={{
@@ -524,6 +530,7 @@ function BalanceScale({
                Equal
             </button>
             <button
+               className={`${css.choice} ${selected === "right" ? (correct ? mobile.pop : mobile.shake) : ""}`}
                onClick={() => handleSelect("right")}
                disabled={selected !== null}
                style={{

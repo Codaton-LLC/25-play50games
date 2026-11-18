@@ -1,0 +1,407 @@
+/* Falling Objects: layout and touch plumbing only (the rules live in FallingObjects.tsx). */
+
+.root {
+   display: flex;
+   flex-direction: column;
+   align-items: center;
+   justify-content: flex-start;
+   width: 100%;
+   min-height: 100%;
+   box-sizing: border-box;
+   padding: 12px 12px calc(env(safe-area-inset-bottom) + 12px);
+   gap: 12px;
+   user-select: none;
+   -webkit-user-select: none;
+   -webkit-touch-callout: none;
+   -webkit-tap-highlight-color: transparent;
+}
+
+@media (min-width: 640px) {
+   .root {
+      padding: 20px 20px calc(env(safe-area-inset-bottom) + 20px);
+      gap: 18px;
+   }
+}
+
+/* Phones and short screens: room under the last control for the fixed cookie banner (~170 px),
+   so the Replay / Share bar can be scrolled above it. */
+.rootCompact {
+   padding-bottom: calc(env(safe-area-inset-bottom) + 176px);
+}
+
+.hud {
+   width: 100%;
+   max-width: 800px;
+   box-sizing: border-box;
+   background: var(--card);
+   border-radius: 14px;
+   padding: 12px 14px;
+   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+   display: flex;
+   flex-direction: column;
+   gap: 10px;
+}
+
+.hudRow {
+   display: flex;
+   justify-content: space-between;
+   align-items: center;
+   gap: 8px 12px;
+   flex-wrap: wrap;
+   font-size: 0.8125rem;
+   color: var(--muted);
+   font-weight: 600;
+}
+
+@media (min-width: 640px) {
+   .hudRow {
+      font-size: 0.9rem;
+   }
+}
+
+.hudItem {
+   display: inline-flex;
+   align-items: center;
+   gap: 6px;
+   white-space: nowrap;
+}
+
+.bar {
+   width: 100%;
+   height: 6px;
+   background: rgba(255, 255, 255, 0.1);
+   border-radius: 999px;
+   overflow: hidden;
+}
+
+@media (min-width: 640px) {
+   .bar {
+      height: 8px;
+   }
+}
+
+.barFill {
+   height: 100%;
+   background: linear-gradient(90deg, var(--accent) 0%, var(--ok) 100%);
+   border-radius: 999px;
+   transition: width 0.3s ease;
+   box-shadow: 0 0 10px rgba(125, 211, 252, 0.5);
+}
+
+.levelName {
+   font-size: 0.8125rem;
+   font-weight: 600;
+   color: var(--text);
+   text-align: center;
+}
+
+@media (min-width: 640px) {
+   .levelName {
+      font-size: 0.95rem;
+   }
+}
+
+.board {
+   width: 100%;
+   max-width: 800px;
+   display: flex;
+   flex-direction: column;
+   align-items: center;
+   gap: 12px;
+}
+
+@media (min-width: 640px) {
+   .board {
+      gap: 18px;
+   }
+}
+
+/* Three stat chips on one row, each a label over a number. */
+.chips {
+   display: grid;
+   grid-template-columns: repeat(3, minmax(0, 1fr));
+   gap: 8px;
+   width: 100%;
+}
+
+@media (min-width: 640px) {
+   .chips {
+      gap: 12px;
+      max-width: 560px;
+   }
+}
+
+.chip {
+   display: flex;
+   flex-direction: column;
+   align-items: center;
+   justify-content: center;
+   gap: 2px;
+   min-height: 46px;
+   padding: 6px 8px;
+   border-radius: 12px;
+   color: var(--text);
+   text-align: center;
+   box-sizing: border-box;
+}
+
+.chipLabel {
+   font-size: 0.8125rem;
+   font-weight: 600;
+   color: var(--muted);
+   white-space: nowrap;
+}
+
+.chipValue {
+   font-size: 1.05rem;
+   font-weight: 800;
+   line-height: 1.1;
+   white-space: nowrap;
+}
+
+@media (min-width: 640px) {
+   .chip {
+      flex-direction: row;
+      gap: 8px;
+      min-height: 44px;
+      padding: 8px 14px;
+   }
+
+   .chipLabel {
+      font-size: 0.9rem;
+   }
+
+   .chipValue {
+      font-size: 1.1rem;
+   }
+}
+
+.fieldWrap {
+   position: relative;
+   width: 100%;
+   max-width: 800px;
+}
+
+/* The tap surface: no double-tap zoom, no selection, no tap flash; pans still scroll the page. */
+.field {
+   position: relative;
+   width: 100%;
+   border-radius: 14px;
+   border: 1px solid var(--stroke);
+   background:
+      radial-gradient(320px 220px at 30% 30%, rgba(59, 130, 246, 0.1), transparent 55%),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
+   box-shadow: 0 10px 18px rgba(0, 0, 0, 0.22);
+   overflow: hidden;
+   box-sizing: border-box;
+   touch-action: manipulation;
+   user-select: none;
+   -webkit-user-select: none;
+   -webkit-touch-callout: none;
+   -webkit-tap-highlight-color: transparent;
+}
+
+/* A falling object: the button is the tap target (>= 44 px), the inner box is the drawn object,
+   rotated and scaled as before. */
+.obj {
+   position: absolute;
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   padding: 0;
+   margin: 0;
+   border: 0;
+   background: transparent;
+   color: #fff;
+   cursor: pointer;
+   z-index: 10;
+   touch-action: manipulation;
+   user-select: none;
+   -webkit-user-select: none;
+   -webkit-touch-callout: none;
+   -webkit-tap-highlight-color: transparent;
+   transition: opacity 0.1s ease;
+}
+
+.obj:disabled {
+   cursor: not-allowed;
+}
+
+.objFace {
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   border-radius: 16px;
+   flex-shrink: 0;
+}
+
+.objGood {
+   border: 2px solid rgba(134, 239, 172, 0.55);
+   background: rgba(134, 239, 172, 0.18);
+   box-shadow: 0 4px 12px rgba(134, 239, 172, 0.3);
+}
+
+.objBad {
+   border: 2px solid rgba(252, 165, 165, 0.55);
+   background: rgba(252, 165, 165, 0.16);
+   box-shadow: 0 4px 12px rgba(252, 165, 165, 0.3);
+}
+
+.flash {
+   position: absolute;
+   inset: 0;
+   border-radius: 14px;
+   pointer-events: none;
+   z-index: 5;
+}
+
+/* A floating "+1" / "-1" at the tap point. */
+.floater {
+   z-index: 30;
+   font-size: 22px;
+   text-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+   white-space: nowrap;
+}
+
+.floaterOk {
+   color: var(--ok);
+}
+
+.floaterBad {
+   color: var(--warn);
+}
+
+.hint {
+   position: absolute;
+   top: 12px;
+   left: 50%;
+   transform: translateX(-50%);
+   max-width: calc(100% - 24px);
+   padding: 8px 14px;
+   background: rgba(15, 27, 51, 0.72);
+   border: 1px solid rgba(255, 255, 255, 0.12);
+   border-radius: 999px;
+   font-size: 0.8125rem;
+   font-weight: 700;
+   color: var(--text);
+   pointer-events: none;
+   white-space: nowrap;
+   overflow: hidden;
+   text-overflow: ellipsis;
+   z-index: 6;
+   /* an opacity-only fade (no motion): after 3 s the pill no longer hides objects coming from the top */
+   animation: fallingHintOut 0.4s ease 3s both;
+}
+
+@keyframes fallingHintOut {
+   from {
+      opacity: 1;
+   }
+   to {
+      opacity: 0;
+   }
+}
+
+/* Level end notices sit inside the field, so they are always above the cookie banner. */
+.overlay {
+   position: absolute;
+   inset: 0;
+   z-index: 20;
+   display: flex;
+   padding: 12px;
+   overflow-y: auto;
+   border-radius: 14px;
+   background: rgba(8, 14, 28, 0.6);
+   backdrop-filter: blur(2px);
+   -webkit-backdrop-filter: blur(2px);
+}
+
+.card {
+   margin: auto;
+   width: min(100%, 420px);
+   box-sizing: border-box;
+   padding: 16px 18px;
+   border-radius: 14px;
+   background: rgba(15, 27, 51, 0.96);
+   border: 1px solid var(--stroke);
+   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
+   color: var(--text);
+   text-align: center;
+   font-weight: 700;
+}
+
+.badge {
+   display: inline-flex;
+   align-items: center;
+   gap: 8px;
+   padding: 8px 14px;
+   border-radius: 999px;
+   font-weight: 800;
+   font-size: 0.95rem;
+   color: var(--text);
+}
+
+.cardText {
+   margin: 12px 0 14px;
+   font-size: 1rem;
+   font-weight: 600;
+}
+
+.actions {
+   display: flex;
+   gap: 10px;
+   justify-content: center;
+   flex-wrap: wrap;
+   width: 100%;
+   max-width: 800px;
+   box-sizing: border-box;
+   padding: 10px 12px;
+   background: var(--card);
+   border-radius: 14px;
+}
+
+.btn {
+   display: inline-flex;
+   align-items: center;
+   justify-content: center;
+   gap: 8px;
+   min-height: 44px;
+   min-width: 44px;
+   padding: 10px 18px;
+   border-radius: 12px;
+   font-size: 0.95rem;
+   font-weight: 700;
+   color: var(--text);
+   cursor: pointer;
+   touch-action: manipulation;
+   user-select: none;
+   -webkit-user-select: none;
+   -webkit-tap-highlight-color: transparent;
+   white-space: nowrap;
+}
+
+.btn:disabled {
+   cursor: not-allowed;
+}
+
+.btnGrow {
+   /* 120 px basis: Replay + Share stay on one row inside a 360 px phone's card (261 px) */
+   flex: 1 1 120px;
+   min-width: 0;
+   white-space: nowrap;
+}
+
+.note {
+   width: 100%;
+   box-sizing: border-box;
+   padding: 10px 12px;
+   border-radius: 10px;
+   font-size: 0.875rem;
+   font-weight: 600;
+   text-align: center;
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   gap: 8px;
+   flex-wrap: wrap;
+}

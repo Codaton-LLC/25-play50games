@@ -1,0 +1,155 @@
+/* GameEngine (the classic game page, /games/[id]) on phones and tablets. Desktop is unchanged, and so
+   is every other page: the shared Header component is not edited, it is only styled here, inside the
+   game page's own wrapper (.page).
+
+   - Compact header (phones under 600 px wide, and screens under 900 px tall such as a landscape tablet):
+     the site header (big logo, subtitle, six full-width nav buttons, the Classic 50 pill) took about
+     710 px of a 390 x 844 phone and about 450 px of a 1180 x 820 tablet before the game. It shrinks to
+     a small logo row; a Menu button (GameEngine.tsx) shows the nav buttons again (Login / Register stay
+     one tap away).
+   - The play view's Score / Time / Target bar stays one row on phones, the exit X beside the chips.
+   - Start screen: tighter on phones, and on phones and tablets (under 1200 px wide or 900 px tall) the
+     Start / Exit row sticks to the bottom of the screen just above the cookie banner (--p50-bottom-bar,
+     from useBottomBar) and the safe area: the instructions pushed it a screen or more below the fold. */
+.page {
+   position: relative;
+}
+
+.menuButton {
+   display: none;
+}
+
+/* the play bar's exit X: a full 44 x 44 touch target (it was 44 x 41) */
+.page :global(.exit-button-small) {
+   min-width: 44px;
+   min-height: 44px;
+}
+
+@media (max-width: 599px), (max-height: 900px) {
+   .page header :global(.header-buttons-container),
+   .page header nav[aria-label="Platform"],
+   .page header p,
+   .page header div:has(> :global(.header-buttons-container)) > div:first-child {
+      display: none !important;
+   }
+   .page header img {
+      height: 52px !important;
+      width: auto !important;
+   }
+   .page header > div {
+      margin-bottom: 0 !important;
+      padding-top: 6px !important;
+      padding-bottom: 6px !important;
+   }
+   .menuButton {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      position: absolute;
+      top: 14px;
+      right: 12px;
+      z-index: 20;
+      min-height: 44px;
+      padding: 0 14px;
+      border-radius: 12px;
+      border: 1px solid var(--stroke);
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--text);
+      font-weight: 600;
+      cursor: pointer;
+   }
+   /* the menu opened: the nav buttons come back under the logo row */
+   .menuOpen header :global(.header-buttons-container) {
+      display: flex !important;
+   }
+   .menuOpen header nav[aria-label="Platform"],
+   .menuOpen header div:has(> :global(.header-buttons-container)) > div:first-child {
+      display: flex !important;
+   }
+}
+
+/* the play view's score bar: one row on phones */
+@media (max-width: 599px) {
+   .page :global(.game-header) {
+      display: grid !important;
+      grid-template-columns: minmax(0, 1fr) auto;
+      grid-template-areas:
+         "title exit"
+         "stats exit";
+      align-items: center;
+      gap: 6px 10px !important;
+      padding: 10px 12px !important;
+   }
+   .page :global(.game-title) {
+      grid-area: title;
+      font-size: 0.95rem !important;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+   }
+   .page :global(.game-stats) {
+      grid-area: stats;
+      flex-wrap: nowrap !important;
+      gap: 6px !important;
+      min-width: 0;
+   }
+   .page :global(.game-stats .stat) {
+      padding: 6px 8px !important;
+      gap: 4px !important;
+      white-space: nowrap;
+   }
+   .page :global(.exit-button-small) {
+      grid-area: exit;
+      min-width: 44px;
+      min-height: 44px;
+      margin: 0 !important;
+   }
+}
+
+/* the start screen */
+@media (max-width: 599px) {
+   .page :global(.game-start-screen) {
+      padding: 16px 10px 24px !important;
+   }
+   .page :global(.game-start-screen h2) {
+      font-size: 1.5rem !important;
+      margin: 0 0 6px !important;
+   }
+   .page :global(.game-start-screen .game-description) {
+      margin-bottom: 14px !important;
+   }
+   .page :global(.game-instructions-section) {
+      padding: 16px 14px !important;
+      margin-bottom: 14px !important;
+   }
+   .page :global(.game-instructions-section h3) {
+      margin-top: 0 !important;
+      margin-bottom: 8px !important;
+   }
+   .page :global(.game-info) {
+      gap: 8px !important;
+      margin: 12px 0 !important;
+   }
+   .page :global(.game-info .info-item) {
+      padding: 8px 10px !important;
+   }
+}
+
+@media (max-width: 1199px), (max-height: 900px) {
+   .startActions {
+      position: sticky;
+      bottom: calc(var(--p50-bottom-bar, 0px) + env(safe-area-inset-bottom, 0px) + 8px);
+      z-index: 5;
+      margin-top: 16px !important;
+      margin-left: -8px;
+      margin-right: -8px;
+      padding: 10px;
+      border-radius: 16px;
+      background: rgba(11, 16, 32, 0.92);
+      backdrop-filter: blur(8px);
+      box-shadow: 0 -6px 24px rgba(0, 0, 0, 0.35);
+   }
+   .startActions button {
+      min-height: 48px;
+   }
+}

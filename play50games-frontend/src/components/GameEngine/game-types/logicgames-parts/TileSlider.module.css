@@ -1,0 +1,38 @@
+/* Tile Slider on phones and tablets (desktop unchanged):
+   - the four-step "How to Play" card and the share / hint row sat above the board, so on a phone the
+     puzzle started a full screen down: the board now comes first, then the result, then the hints and
+     the instructions;
+   - swiping on the board slides a tile into the gap (TileSlider.tsx), and the board never scrolls the
+     page while you swipe on it. */
+.grid {
+   touch-action: none;
+}
+
+@media (max-width: 899px), (max-height: 900px) {
+   .root {
+      display: flex !important;
+      flex-direction: column !important;
+      gap: 14px !important;
+   }
+   .root > :global(.game-header) {
+      order: 0;
+   }
+   .root > :global(.tile-slider-container) {
+      order: 1;
+   }
+   .root > :global(.game-feedback) {
+      order: 2;
+   }
+   .root > :global(.hint-share-section) {
+      order: 3;
+   }
+   .root > :global(.game-instructions) {
+      order: 4;
+   }
+}
+
+@media (max-width: 599px) {
+   .root {
+      padding: 10px 4px !important;
+   }
+}

@@ -1,0 +1,61 @@
+/* Mirror Match on phones and tablets (desktop unchanged):
+   - the three answers wrapped 2 + 1 under a 360 px target card on a phone: they now sit in one row,
+     under a smaller target, so the round's result shows right under them;
+   - the number badges (keyboard keys) are hidden on touch;
+   - landscape tablets: the target beside the answers. */
+@media (hover: none), (pointer: coarse) {
+   .option [style*="monospace"] {
+      display: none !important;
+   }
+}
+
+@media (max-width: 599px) {
+   .root {
+      padding: 10px 4px !important;
+      gap: 12px !important;
+   }
+   .root :global(.mirror-match-content) {
+      gap: 12px !important;
+   }
+   .target {
+      padding: 14px 20px !important;
+      min-height: 0 !important;
+   }
+   .shape svg {
+      width: 88px !important;
+      height: 88px !important;
+   }
+   .options {
+      grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+      gap: 8px !important;
+   }
+   .option {
+      padding: 12px 4px !important;
+      min-width: 0;
+   }
+   .option svg {
+      width: 60px !important;
+      height: 60px !important;
+   }
+   .feedback {
+      border-radius: 12px;
+      padding: 10px 14px !important;
+      font-size: 1rem !important;
+   }
+}
+
+@media (min-width: 900px) and (max-height: 900px) {
+   .root :global(.mirror-match-content) {
+      display: grid !important;
+      grid-template-columns: minmax(240px, 320px) minmax(0, 1fr);
+      align-items: center;
+      gap: 24px !important;
+   }
+   .target {
+      min-height: 0 !important;
+      padding: 24px !important;
+   }
+   .options {
+      grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+   }
+}

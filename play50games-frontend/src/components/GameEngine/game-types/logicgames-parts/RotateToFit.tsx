@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import css from "./RotateToFit.module.css";
 import {
    HandThumbUpIcon,
    PuzzlePieceIcon,
@@ -396,7 +397,7 @@ function RotateToFit({
    const progress = (round / rounds) * 100;
 
    return (
-      <div className="rotate-to-fit-game">
+      <div className={`rotate-to-fit-game ${css.root}`}>
          {/* Header */}
          <div className="game-header">
             <div className="header-title">

@@ -24,7 +24,8 @@ import { useFrame, useThree } from "@react-three/fiber";
 import { CustomBlending, Euler, GreaterDepth, Matrix4, Quaternion, Vector3, type Group, type Mesh, type MeshBasicMaterial, type Object3D } from "three";
 import { useCameraViews } from "@/arcade3d/core/camera/CameraViews";
 import { useCameraZoom } from "@/arcade3d/core/useCameraZoom";
-import { CHARACTER_FRAMING, CHARACTER_TARGET_Y, phoneOffset, cameraSolids } from "./cameraViews";
+import { CHARACTER_FRAMING, CHARACTER_TARGET_Y, PHONE_LEAD, PHONE_LIFT, phoneOffset, cameraSolids } from "./cameraViews";
+import { useLeadFollow } from "@/arcade3d/core/camera/useLeadFollow";
 import CameraRig from "@/arcade3d/core/CameraRig";
 import { playSfx } from "@/arcade3d/core/audio";
 import { useGameTime } from "@/arcade3d/core/gameTime";
@@ -472,6 +473,7 @@ export default function Scene() {
    const aspect = useThree((s) => s.size.width / s.size.height);
    const portrait = aspect < 1;
    const offset = phoneOffset(view.offset, aspect);
+   const aim = useLeadFollow(run.runner, offset, PHONE_LEAD, PHONE_LIFT, portrait);
    const zoom = useCameraZoom({ min: 2.8 / Math.hypot(...offset), max: Math.max(1, 2 * view.distance / Math.hypot(...offset)) });
    useEffect(() => { zoom.current = 1; }, [portrait, zoom]);
    const cam = useCameraViews({
@@ -490,7 +492,7 @@ export default function Scene() {
          <Simulation run={run} fx={fx} yaw={cam.yaw} />
          <CameraRig
             camera={{ position: view.offset, fov: FOV, lookAt: LOOK_AT }}
-            follow={run.runner}
+            follow={aim}
             followFraction={aspect < 1 ? 1 : FOLLOW}
             bounds={REACH}
             offset={offset}

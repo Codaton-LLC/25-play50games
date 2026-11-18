@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import css from "./BlockFill.module.css";
 import {
    CheckCircleIcon,
    XCircleIcon,
@@ -673,6 +674,7 @@ function BlockFill({
 
    return (
       <div
+         className={css.root}
          style={{
             display: "flex",
             flexDirection: "column",
@@ -1030,6 +1032,7 @@ function BlockFill({
 
                {/* Controls */}
                <div
+                  className={css.controls}
                   style={{
                      display: "flex",
                      gap: "12px",
@@ -1128,6 +1131,7 @@ function BlockFill({
 
             {/* Pieces Panel */}
             <div
+               className={css.panel}
                style={{
                   background: "var(--card)",
                   borderRadius: "18px",
@@ -1204,6 +1208,7 @@ function BlockFill({
                   )}
                </div>
                <div
+                  className={css.pieces}
                   style={{
                      display: "grid",
                      gridTemplateColumns: "repeat(2, 1fr)",
@@ -1227,6 +1232,7 @@ function BlockFill({
                      return (
                         <button
                            key={piece.uid}
+                           className={css.piece}
                            onClick={() => {
                               setSelectedPieceId(piece.uid);
                               setSelectedRotation(0);

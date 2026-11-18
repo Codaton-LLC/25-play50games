@@ -6,6 +6,7 @@ import MemoryGames from "./MemoryGames";
 import SpeedGames from "./SpeedGames";
 import SkillGames from "./SkillGames";
 import FinalGameComplete from "./final-game-parts/FinalGameComplete";
+import fm from "./final-game-parts/finalMobile.module.css";
 import {
    CheckCircleIcon,
    TrophyIcon,
@@ -1299,7 +1300,7 @@ function BossPuzzle({
                return (
                   <div
                      key={challengeType}
-                     className="puzzle-challenge"
+                     className={`puzzle-challenge ${fm.challenge}`}
                      style={{
                         outline: "none",
                         outlineOffset: "2px",
@@ -1317,6 +1318,7 @@ function BossPuzzle({
                   >
                      {!isUnlocked && (
                         <div
+                           className={fm.overlay}
                            style={{
                               position: "absolute",
                               top: "50%",
@@ -1402,6 +1404,7 @@ function BossPuzzle({
                         </div>
                      ) : (
                         <div
+                           className={fm.overlay}
                            style={{
                               position: "absolute",
                               top: "50%",
@@ -1716,7 +1719,7 @@ function TimeChallenge({
                return (
                   <div
                      key={challengeType}
-                     className="puzzle-challenge"
+                     className={`puzzle-challenge ${fm.challenge}`}
                      style={{
                         outline: "none",
                         outlineOffset: "2px",
@@ -1734,6 +1737,7 @@ function TimeChallenge({
                   >
                      {!isUnlocked && (
                         <div
+                           className={fm.overlay}
                            style={{
                               position: "absolute",
                               top: "50%",
@@ -1819,6 +1823,7 @@ function TimeChallenge({
                         </div>
                      ) : (
                         <div
+                           className={fm.overlay}
                            style={{
                               position: "absolute",
                               top: "50%",

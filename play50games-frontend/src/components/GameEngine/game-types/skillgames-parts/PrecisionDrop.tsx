@@ -16,6 +16,9 @@ import {
    getShareStatus,
 } from "@/lib/api/share";
 
+import touch from "./skillTouch.module.css";
+import { usePlayAreaInView } from "./usePlayAreaInView";
+
 interface PrecisionDropProps {
    config: Record<string, any>;
    onScoreUpdate: (score: number) => void;
@@ -189,6 +192,7 @@ export default function PrecisionDrop({
    // Refs
    const canvasRef = useRef<HTMLCanvasElement>(null);
    const arenaRef = useRef<HTMLDivElement>(null);
+   const touchDropAtRef = useRef(0); // when a finger last dropped, so its trailing click is ignored
    const animationFrameRef = useRef<number | null>(null);
    const countdownTimerRef = useRef<NodeJS.Timeout | null>(null);
    const gameStateRef = useRef<"playing" | "ready" | "failed" | "paused">(
@@ -236,6 +240,10 @@ export default function PrecisionDrop({
       window.addEventListener("resize", checkResponsive);
       return () => window.removeEventListener("resize", checkResponsive);
    }, []);
+
+   // Mobile/tablet: bring the panel and the play area on screen when a round starts
+   const rootRef = useRef<HTMLDivElement>(null);
+   const pad = usePlayAreaInView(rootRef, arenaRef, true, `${gameState}-${currentLevel}`);
 
    // Sync refs with state
    useEffect(() => {
@@ -394,7 +402,13 @@ export default function PrecisionDrop({
          // Helper text
          ctx.fillStyle = "rgba(166,179,209,.55)";
          ctx.font = "12px system-ui";
-         ctx.fillText("Move left/right • Tap to drop", 14, 18);
+         ctx.fillText(
+            window.matchMedia?.("(pointer: coarse)").matches
+               ? "Drag to aim • Lift to drop"
+               : "Move to aim • Click to drop",
+            14,
+            18
+         );
       },
       [getFloorY, clamp]
    );
@@ -1230,11 +1244,12 @@ export default function PrecisionDrop({
    return (
       <>
          <div
+         ref={rootRef}
             style={{
                display: "flex",
                flexDirection: "column",
                alignItems: "center",
-               gap: isMobile ? "16px" : "20px",
+               gap: isMobile ? "10px" : "20px", // phones: the 400 px board + panel fit above a cookie banner
                width: "100%",
                maxWidth: "800px",
                margin: "0 auto",
@@ -1382,7 +1397,11 @@ export default function PrecisionDrop({
                            color: "var(--text)",
                         }}
                      >
-                        Hits: {hits}/{minHits}
+                        Hits:{" "}
+                        <span key={hits} className={touch.pop} style={{ display: "inline-block" }}>
+                           {hits}
+                        </span>
+                        /{minHits}
                      </span>
                   </div>
                   <div
@@ -1414,19 +1433,28 @@ export default function PrecisionDrop({
             {gameState === "playing" ? (
                <div
                   ref={arenaRef}
-                  onClick={handleDrop}
+                  className={touch.playArea}
+                  data-play-area=""
+                  // Mouse: hover to aim, click to drop. Touch / pen: the object follows the finger
+                  // and drops when it lifts (a moved touch never becomes a click).
+                  onClick={() => {
+                     if (Date.now() - touchDropAtRef.current < 700) return;
+                     handleDrop();
+                  }}
                   onMouseDown={() => arenaRef.current?.focus()}
                   onMouseMove={(e) => handleMove(e.clientX)}
-                  onTouchMove={(e) => {
-                     if (e.touches[0]) {
-                        handleMove(e.touches[0].clientX);
-                     }
+                  onPointerDown={(e) => {
+                     if (e.pointerType === "mouse") return;
+                     arenaRef.current?.focus({ preventScroll: true });
+                     handleMove(e.clientX);
                   }}
-                  onTouchStart={(e) => {
-                     arenaRef.current?.focus();
-                     if (e.touches[0]) {
-                        handleMove(e.touches[0].clientX);
-                     }
+                  onPointerMove={(e) => {
+                     if (e.pointerType !== "mouse") handleMove(e.clientX);
+                  }}
+                  onPointerUp={(e) => {
+                     if (e.pointerType === "mouse") return;
+                     touchDropAtRef.current = Date.now();
+                     handleDrop();
                   }}
                   tabIndex={0}
                   onKeyDown={(e) => {
@@ -1489,7 +1517,7 @@ export default function PrecisionDrop({
                      boxShadow: "0 10px 18px rgba(0, 0, 0, 0.22)",
                      overflow: "hidden",
                      userSelect: "none",
-                     touchAction: "manipulation",
+                     touchAction: "none",
                      padding: "10px",
                      cursor: "pointer",
                      outline: "none",
@@ -1540,6 +1568,7 @@ export default function PrecisionDrop({
                      {levelConfig.drops}
                   </div>
                   <button
+                  className={touch.tapButton}
                      onClick={handleNextRound}
                      disabled={nextRoundLocked}
                      style={{
@@ -1760,6 +1789,7 @@ export default function PrecisionDrop({
                )}
 
                <button
+                  className={touch.tapButton}
                   onClick={handleReplay}
                   disabled={maxReplays > 0 && replaysUsed >= maxReplays}
                   style={{
@@ -1800,7 +1830,7 @@ export default function PrecisionDrop({
                      }}
                   />
                   <span>
-                     {isMobile ? "" : "Replay "}
+                     {"Replay "}
                      {maxReplays === 0
                         ? "(∞)"
                         : `(${maxReplays - replaysUsed}/${maxReplays})`}
@@ -1808,6 +1838,7 @@ export default function PrecisionDrop({
                </button>
 
                <button
+                  className={touch.tapButton}
                   onClick={handleShare}
                   style={{
                      display: "flex",
@@ -1836,6 +1867,7 @@ export default function PrecisionDrop({
                   <span>Share for unlimited</span>
                </button>
             </div>
+            {pad > 0 && <div aria-hidden="true" style={{ height: pad, flexShrink: 0 }} />}
          </div>
       </>
    );
