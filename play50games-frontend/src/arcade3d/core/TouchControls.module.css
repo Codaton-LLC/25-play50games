@@ -1,4 +1,4 @@
-/* Touch controls layer. Lives inside the canvas wrapper (touch-action: none),
+/* Touch controls layer. On the canvas, so dark glass in both themes with the one accent (coral).  Lives inside the canvas wrapper (touch-action: none),
    so dragging the joystick never scrolls or zooms the page. */
 .controls {
    --controls-gap: 20px;
@@ -28,7 +28,7 @@
    height: 132px;
    border: 2px solid rgba(255, 255, 255, 0.22);
    border-radius: 50%;
-   background: radial-gradient(circle at 50% 50%, rgba(125, 211, 252, 0.16), rgba(11, 16, 32, 0.45) 70%);
+   background: radial-gradient(circle at 50% 50%, rgba(231, 95, 64, 0.16), rgba(11, 15, 26, 0.45) 70%);
    pointer-events: auto;
 }
 
@@ -41,7 +41,7 @@
    margin: -30px 0 0 -30px;
    border: 2px solid rgba(255, 255, 255, 0.55);
    border-radius: 50%;
-   background: rgba(125, 211, 252, 0.55);
+   background: rgba(231, 95, 64, 0.6);
    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
    will-change: transform;
 }
@@ -63,8 +63,9 @@
    min-height: 56px;
    border: 2px solid rgba(255, 255, 255, 0.35);
    border-radius: 50%;
-   background: rgba(11, 16, 32, 0.6);
-   color: var(--text);
+   background: rgba(11, 15, 26, 0.6);
+   /* on the canvas: chalk in both themes, like the HUD */
+   color: #f1f3f8;
    font: inherit;
    font-size: 13px;
    font-weight: 700;
@@ -81,7 +82,7 @@
 }
 
 .buttonDown {
-   background: rgba(125, 211, 252, 0.45);
+   background: rgba(231, 95, 64, 0.45);
    border-color: var(--accent);
    transform: scale(0.94);
 }

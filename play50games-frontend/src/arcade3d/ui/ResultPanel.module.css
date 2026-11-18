@@ -97,7 +97,8 @@
 
 .unlocked {
    margin: 0.45rem 0 0;
-   color: var(--accent);
+   /* coral text on a light sheet is Ember Text (AA); coral itself on the dark one */
+   color: var(--p50-coral-text, var(--accent));
    font-size: 0.95rem;
    font-weight: 700;
 }
