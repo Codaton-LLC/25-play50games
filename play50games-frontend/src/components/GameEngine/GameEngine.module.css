@@ -19,6 +19,12 @@
    display: none;
 }
 
+/* the play bar's exit X: a full 44 x 44 touch target (it was 44 x 41) */
+.page :global(.exit-button-small) {
+   min-width: 44px;
+   min-height: 44px;
+}
+
 @media (max-width: 599px), (max-height: 900px) {
    .page header :global(.header-buttons-container),
    .page header nav[aria-label="Platform"],

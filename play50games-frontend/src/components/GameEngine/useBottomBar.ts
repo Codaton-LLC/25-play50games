@@ -20,19 +20,28 @@ export function bottomBarHeight(): number {
    return 0;
 }
 
-/** Writes --p50-bottom-bar (px) on the element while `active`. */
-export function useBottomBar(ref: RefObject<HTMLElement>, active = true): void {
+/**
+ * Writes --p50-bottom-bar (px) on the element while `active`. With `padPage`, the page itself gets that
+ * much room at its end (body padding-bottom, and scroll-padding-bottom for focus / scrollIntoView) so
+ * its last content scrolls clear of the bar; both are put back on unmount, so only this page has them.
+ */
+export function useBottomBar(ref: RefObject<HTMLElement>, active = true, padPage = false): void {
    useEffect(() => {
       if (!active || typeof window === "undefined") return;
+      const body = document.body;
+      const html = document.documentElement;
+      const before = { pad: body.style.paddingBottom, scroll: html.style.scrollPaddingBottom };
       let last = -1;
       const measure = () => {
-         const el = ref.current;
-         if (!el) return;
-         // a sticky child above the bar would be found first: look past it
          const v = bottomBarHeight();
-         if (v !== last) {
-            last = v;
-            el.style.setProperty("--p50-bottom-bar", `${v}px`);
+         // the start and play views are different elements: (re)write the var on whichever is mounted
+         const el = ref.current;
+         if (el && el.style.getPropertyValue("--p50-bottom-bar") !== `${v}px`) el.style.setProperty("--p50-bottom-bar", `${v}px`);
+         if (v === last) return;
+         last = v;
+         if (padPage) {
+            body.style.paddingBottom = v > 0 ? `${v}px` : before.pad;
+            html.style.scrollPaddingBottom = v > 0 ? `${v}px` : before.scroll;
          }
       };
       measure();
@@ -41,6 +50,10 @@ export function useBottomBar(ref: RefObject<HTMLElement>, active = true): void {
       return () => {
          window.clearInterval(id);
          window.removeEventListener("resize", measure);
+         if (padPage) {
+            body.style.paddingBottom = before.pad;
+            html.style.scrollPaddingBottom = before.scroll;
+         }
       };
-   }, [ref, active]);
+   }, [ref, active, padPage]);
 }

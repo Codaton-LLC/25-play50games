@@ -51,6 +51,12 @@ import Header from "@/components/Header/Header";
 import mobileCss from "./GameEngine.module.css";
 import { useBottomBar } from "./useBottomBar";
 
+/** The play bar's clock: "45s" under a minute, else "m:ss". */
+function clockText(sec: number): string {
+   const s = Math.max(0, Math.floor(sec));
+   return s < 60 ? `${s}s` : `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+}
+
 // Cursor Maze Example Component - Uses canvas like the actual game
 const CursorMazeExample = () => {
    const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -404,9 +410,10 @@ export default function GameEngine({
    const [timeLeft, setTimeLeft] = useState(game.time_limit);
    const [isPlaying, setIsPlaying] = useState(false);
    const [isCompleted, setIsCompleted] = useState(false);
-   // phones / short screens: the start screen's Start / Exit row sticks above the cookie banner
-   const startScreenRef = useRef<HTMLDivElement>(null);
-   useBottomBar(startScreenRef, !isPlaying && !isCompleted);
+   // phones / tablets: the cookie banner's live height as --p50-bottom-bar on the page wrapper (the
+   // start screen's sticky Start / Exit row sits above it) and as room at the end of the page
+   const pageRef = useRef<HTMLDivElement>(null);
+   useBottomBar(pageRef, true, true);
    // the compact game-page header (phones, short screens): its nav sits behind a Menu button
    const [menuOpen, setMenuOpen] = useState(false);
    const pageClass = `${mobileCss.page} ${menuOpen ? mobileCss.menuOpen : ""}`;
@@ -448,7 +455,8 @@ export default function GameEngine({
    // Auto-focus game container when game starts
    useEffect(() => {
       if (isPlaying && gameContainerRef.current) {
-         gameContainerRef.current.focus();
+         // no jump: a phone keeps the score bar where the page put it
+         gameContainerRef.current.focus({ preventScroll: true });
          setIsGameFocused(true);
       }
    }, [isPlaying]);
@@ -468,7 +476,8 @@ export default function GameEngine({
    // Handle click to focus game container
    const handleGameClick = () => {
       if (gameContainerRef.current) {
-         gameContainerRef.current.focus();
+         // no jump: a phone keeps the score bar where the page put it
+         gameContainerRef.current.focus({ preventScroll: true });
          setIsGameFocused(true);
       }
    };
@@ -651,7 +660,7 @@ export default function GameEngine({
       const isFinalGame = game.game_type === "final";
 
       return (
-         <div className={`game-engine ${pageClass}`}>
+         <div ref={pageRef} className={`game-engine ${pageClass}`}>
             {menuButton}
             <Header
                showSubtitle={true}
@@ -659,7 +668,6 @@ export default function GameEngine({
                onShowRegisterModal={onShowRegisterModal}
             />
             <div
-               ref={startScreenRef}
                className={`game-start-screen ${
                   isFinalGame ? "final-game" : ""
                }`}
@@ -14294,7 +14302,7 @@ export default function GameEngine({
    }
 
    return (
-      <div className={`game-engine ${pageClass}`}>
+      <div ref={pageRef} className={`game-engine ${pageClass}`}>
          {menuButton}
          <Header
             showSubtitle={true}
@@ -14308,10 +14316,13 @@ export default function GameEngine({
                   <span>Score:</span>
                   <strong>{score}</strong>
                </div>
-               <div className="stat">
-                  <span>Time:</span>
-                  <strong>{timeLeft}s</strong>
-               </div>
+               {/* a limit of 30 min or more is a safety cap, not a clock (those games show their own) */}
+               {game.time_limit < 1800 ? (
+                  <div className="stat">
+                     <span>Time:</span>
+                     <strong>{clockText(timeLeft)}</strong>
+                  </div>
+               ) : null}
                <div className="stat">
                   <span>Target:</span>
                   <strong>{game.passing_score}</strong>
