@@ -17,6 +17,8 @@ import {
 } from "@/lib/api/share";
 
 import touch from "./skillTouch.module.css";
+import ui from "./skillUi.module.css";
+import sb from "./StackBlocks.module.css";
 import { usePlayAreaInView } from "./usePlayAreaInView";
 
 interface StackBlocksProps {
@@ -204,12 +206,21 @@ export default function StackBlocks({
    // (phone) canvas. Block positions, placement and scoring never use it.
    const camYRef = useRef(0);
 
+   // The page accent as "r, g, b" for the canvas (coral, gold in the final games); read from the
+   // stage's CSS variable, since a canvas cannot use var(). Drawing colours only.
+   const accentRgbRef = useRef<string | null>(null);
+
    // Draw function (defined first so it can be used in resizeCanvas)
    const draw = useCallback(() => {
       const canvas = canvasRef.current;
       if (!canvas) return;
       const ctx = canvas.getContext("2d");
       if (!ctx) return;
+      if (accentRgbRef.current === null) {
+         const v = getComputedStyle(canvas).getPropertyValue("--accent-rgb").trim();
+         accentRgbRef.current = /^\d+\s*,\s*\d+\s*,\s*\d+$/.test(v) ? v : "231, 95, 64";
+      }
+      const accent = accentRgbRef.current;
 
       // Use actual canvas dimensions
       const dpr = Math.max(1, window.devicePixelRatio || 1);
@@ -249,23 +260,23 @@ export default function StackBlocks({
       );
       for (let i = 0; i < visibleStack.length; i++) {
          const b = visibleStack[i];
-         ctx.fillStyle = "rgba(110,168,255,.28)";
+         ctx.fillStyle = `rgba(${accent}, 0.26)`;
          ctx.fillRect(b.x, b.y - BLOCK_H, b.w, BLOCK_H);
-         ctx.strokeStyle = "rgba(255,255,255,.10)";
+         ctx.strokeStyle = `rgba(${accent}, 0.55)`;
          ctx.strokeRect(b.x, b.y - BLOCK_H, b.w, BLOCK_H);
       }
 
       // Draw current moving block
       const activeBlock = currentBlockRef.current;
       if (activeBlock) {
-         ctx.fillStyle = "rgba(54,211,153,.75)";
+         ctx.fillStyle = `rgba(${accent}, 0.9)`;
          ctx.fillRect(
             activeBlock.x,
             activeBlock.y - BLOCK_H,
             activeBlock.w,
             BLOCK_H
          );
-         ctx.strokeStyle = "rgba(255,255,255,.14)";
+         ctx.strokeStyle = "rgba(255,255,255,.35)";
          ctx.strokeRect(
             activeBlock.x,
             activeBlock.y - BLOCK_H,
@@ -276,7 +287,7 @@ export default function StackBlocks({
       ctx.restore();
 
       // Floor label
-      ctx.fillStyle = "rgba(166,179,209,.55)";
+      ctx.fillStyle = "rgba(163,172,191,.8)";
       ctx.font = "12px system-ui";
       ctx.fillText("Tap / Click to drop", 14, 18);
    }, []);
@@ -1102,79 +1113,25 @@ export default function StackBlocks({
    const levelConfig = getLevelConfig(currentLevel);
    const minBlocks = levelConfig.minBlocks;
 
+   const replayLocked = maxReplays > 0 && replaysUsed >= maxReplays;
+
    return (
       <>
          <div
-         ref={rootRef}
-            style={{
-               display: "flex",
-               flexDirection: "column",
-               alignItems: "center",
-               gap: isMobile ? "10px" : "20px", // phones: the 400 px board + panel fit above a cookie banner
-               width: "100%",
-               maxWidth: "800px",
-               margin: "0 auto",
-               padding: isMobile ? "12px" : "16px",
-            }}
+            ref={rootRef}
+            className={ui.root}
+            // phones: the 400 px board + panel fit above a cookie banner
+            style={isMobile ? { gap: "10px" } : undefined}
          >
             {/* Header Section */}
-            <div
-               style={{
-                  width: "100%",
-                  maxWidth: "800px",
-                  background: "var(--card)",
-                  borderRadius: isMobile ? "16px" : "20px",
-                  padding: isMobile ? "16px" : "20px",
-                  boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: isMobile ? "12px" : "16px",
-               }}
-            >
-               <div
-                  style={{
-                     display: "flex",
-                     alignItems: "center",
-                     justifyContent: "space-between",
-                     flexWrap: "wrap",
-                     gap: isMobile ? "8px" : "12px",
-                  }}
-               >
-                  <span
-                     style={{
-                        fontSize: isMobile ? "0.875rem" : "1rem",
-                        fontWeight: 600,
-                        color: "var(--text)",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "6px",
-                     }}
-                  >
-                     <ArrowPathIcon
-                        style={{
-                           width: isMobile ? 14 : 16,
-                           height: isMobile ? 14 : 16,
-                        }}
-                     />
+            <div className={ui.hud}>
+               <div className={ui.hudRow}>
+                  <span className={ui.hudStat}>
+                     <ArrowPathIcon className={ui.hudIcon} />
                      Level {currentLevel + 1}/{maxLevels}
                   </span>
-                  <span
-                     style={{
-                        fontSize: isMobile ? "0.875rem" : "1rem",
-                        fontWeight: 600,
-                        color: "var(--text)",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "6px",
-                     }}
-                  >
-                     <TrophyIcon
-                        style={{
-                           width: isMobile ? 14 : 16,
-                           height: isMobile ? 14 : 16,
-                           color: "var(--ok)",
-                        }}
-                     />
+                  <span className={ui.hudStat}>
+                     <TrophyIcon className={ui.hudIconOk} />
                      Score:{" "}
                      {requirementsMet &&
                      lastCompletedLevelRef.current === currentLevel &&
@@ -1184,82 +1141,28 @@ export default function StackBlocks({
                      / 100
                   </span>
                   <span
-                     style={{
-                        fontSize: isMobile ? "0.875rem" : "1rem",
-                        fontWeight: 600,
-                        color: "var(--text)",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "6px",
-                     }}
+                     className={`${ui.hudStat} ${gameState === "playing" && timeLeft <= 5 ? ui.hudLow : ""}`}
                   >
-                     <ClockIcon
-                        style={{
-                           width: isMobile ? 14 : 16,
-                           height: isMobile ? 14 : 16,
-                           color: "var(--accent)",
-                        }}
-                     />
+                     <ClockIcon className={ui.hudIconAccent} />
                      {timeLeft}s
                   </span>
                </div>
                {/* Progress Bar */}
-               <div
-                  style={{
-                     width: "100%",
-                     height: isMobile ? "6px" : "8px",
-                     background: "rgba(255, 255, 255, 0.1)",
-                     borderRadius: "999px",
-                     overflow: "hidden",
-                  }}
-               >
+               <div className={ui.progressTrack}>
                   <div
-                     style={{
-                        width: `${progressPercentage}%`,
-                        height: "100%",
-                        background:
-                           "linear-gradient(90deg, var(--accent) 0%, var(--ok) 100%)",
-                        borderRadius: "999px",
-                        transition: "width 0.3s ease",
-                        boxShadow: "0 0 10px rgba(125, 211, 252, 0.5)",
-                     }}
+                     className={ui.progressFill}
+                     style={{ transform: `scaleX(${progressPercentage / 100})` }}
                   />
                </div>
             </div>
 
             {/* Stats Display */}
             {gameState === "playing" && (
-               <div
-                  style={{
-                     display: "flex",
-                     gap: isMobile ? "8px" : "12px",
-                     flexWrap: "wrap",
-                     justifyContent: "center",
-                     width: "100%",
-                     maxWidth: "800px",
-                  }}
-               >
-                  <div
-                     style={{
-                        background:
-                           "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
-                        border: "1px solid rgba(59, 130, 246, 0.4)",
-
-                        padding: "10px 16px",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "8px",
-                     }}
-                  >
-                     <span
-                        style={{
-                           fontSize: "1rem",
-                           fontWeight: 600,
-                           color: "var(--text)",
-                        }}
-                     >
+               <div className={ui.statRow}>
+                  <div className={ui.statAccent}>
+                     <span>
                         Blocks:{" "}
-                        <span key={blocksPlaced} className={touch.pop} style={{ display: "inline-block" }}>
+                        <span key={blocksPlaced} className={ui.bump}>
                            {blocksPlaced}
                         </span>
                         /{minBlocks}
@@ -1272,7 +1175,7 @@ export default function StackBlocks({
             {gameState === "playing" ? (
                <div
                   ref={arenaRef}
-                  className={touch.tapArea}
+                  className={`${ui.arena} ${sb.frame} ${touch.tapArea}`}
                   data-play-area=""
                   onClick={handlePlace}
                   tabIndex={0}
@@ -1283,18 +1186,7 @@ export default function StackBlocks({
                      }
                   }}
                   style={{
-                     position: "relative",
-                     width: "100%",
-                     maxWidth: "800px",
                      height: isMobile ? "400px" : "500px",
-                     borderRadius: "var(--radius)",
-                     border: "1px solid var(--border)",
-                     background:
-                        "radial-gradient(320px 220px at 30% 30%, rgba(59, 130, 246, 0.1), transparent 55%), linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02))",
-                     boxShadow: "0 10px 18px rgba(0, 0, 0, 0.22)",
-                     overflow: "hidden",
-                     userSelect: "none",
-                     touchAction: "manipulation",
                      padding: "10px",
                      cursor: "pointer",
                      outline: "none",
@@ -1308,56 +1200,21 @@ export default function StackBlocks({
                         display: "block",
                      }}
                   />
+                  {blocksPlaced > 0 && <span key={blocksPlaced} aria-hidden="true" className={sb.placeFlash} />}
                </div>
             ) : null}
 
             {/* Ready for Next Round Message */}
             {gameState === "ready" && currentLevel + 1 < maxLevels && (
-               <div
-                  style={{
-                     padding: isMobile ? "20px 24px" : "24px 32px",
-                     background: "var(--card)",
-                     borderRadius: "var(--radius)",
-                     color: "var(--text)",
-                     fontSize: isMobile ? "1rem" : "1.1rem",
-                     fontWeight: 700,
-                     textAlign: "center",
-                     border: "1px solid var(--border)",
-                  }}
-               >
-                  <div style={{ marginBottom: "16px" }}>
-                     Level {currentLevel + 1} Complete!
-                  </div>
-                  <div
-                     style={{
-                        fontSize: isMobile ? "0.9rem" : "1rem",
-                        fontWeight: 400,
-                        marginBottom: "20px",
-                        color: "var(--text-secondary)",
-                     }}
-                  >
-                     Blocks placed: {blocksPlaced}/{minBlocks}
+               <div className={ui.card}>
+                  <div className={ui.cardTitle}>Level {currentLevel + 1} Complete!</div>
+                  <div className={ui.cardBody}>
+                     Blocks placed: <strong>{blocksPlaced}/{minBlocks}</strong>
                   </div>
                   <button
-                  className={touch.tapButton}
+                     className={ui.buttonPrimary}
                      onClick={handleNextRound}
                      disabled={nextRoundLocked}
-                     style={{
-                        padding: isMobile ? "12px 24px" : "14px 28px",
-                        background: nextRoundLocked
-                           ? "rgba(100, 100, 100, 0.2)"
-                           : "linear-gradient(135deg, rgba(134, 239, 172, 0.25), rgba(134, 239, 172, 0.12))",
-                        border: nextRoundLocked
-                           ? "1px solid rgba(100, 100, 100, 0.4)"
-                           : "2px solid rgba(134, 239, 172, 0.6)",
-
-                        color: "var(--text)",
-                        fontSize: isMobile ? "1rem" : "1.05rem",
-                        fontWeight: 700,
-                        cursor: nextRoundLocked ? "not-allowed" : "pointer",
-                        opacity: nextRoundLocked ? 0.5 : 1,
-                        transition: "all 0.3s ease",
-                     }}
                   >
                      Next Round
                   </button>
@@ -1377,77 +1234,31 @@ export default function StackBlocks({
                   }
 
                   return (
-                     <div
-                        style={{
-                           padding: isMobile ? "20px 24px" : "24px 32px",
-                           background: "var(--card)",
-                           borderRadius: "var(--radius)",
-                           color: "var(--text)",
-                           fontSize: isMobile ? "1rem" : "1.1rem",
-                           fontWeight: 700,
-                           textAlign: "center",
-                           border: "1px solid var(--border)",
-                        }}
-                     >
-                        <div
-                           style={{
-                              marginBottom: "16px",
-                              color: "var(--warn)",
-                           }}
-                        >
-                           Level {currentLevel + 1} Failed
-                        </div>
-                        <div
-                           style={{
-                              fontSize: isMobile ? "0.9rem" : "1rem",
-                              fontWeight: 600,
-                              marginBottom: "12px",
-                              color: "var(--warn)",
-                           }}
-                        >
-                           {failureReason}
-                        </div>
-                        <div
-                           style={{
-                              fontSize: isMobile ? "0.9rem" : "1rem",
-                              fontWeight: 400,
-                              marginBottom: "8px",
-                              color: "var(--text-secondary)",
-                           }}
-                        >
-                           <div
-                              style={{
-                                 marginBottom: "4px",
-                                 display: "flex",
-                                 alignItems: "center",
-                                 gap: "4px",
-                                 justifyContent: "center",
-                              }}
-                           >
-                              <span>
-                                 Blocks: Need {minBlocks} | You placed{" "}
-                                 {blocksPlaced}
-                              </span>
-                              {blocksMet ? (
-                                 <CheckCircleIcon
-                                    style={{
-                                       width: isMobile ? 16 : 18,
-                                       height: isMobile ? 16 : 18,
-                                       color: "var(--ok)",
-                                       flexShrink: 0,
-                                    }}
-                                 />
-                              ) : (
-                                 <XCircleIcon
-                                    style={{
-                                       width: isMobile ? 16 : 18,
-                                       height: isMobile ? 16 : 18,
-                                       color: "var(--warn)",
-                                       flexShrink: 0,
-                                    }}
-                                 />
-                              )}
+                     <div className={ui.card}>
+                        <div className={ui.cardTitleWarn}>Level {currentLevel + 1} Failed</div>
+                        {failureReason && (
+                           <div className={ui.cardBody} style={{ color: "var(--warn)", fontWeight: 600 }}>
+                              {failureReason}
                            </div>
+                        )}
+                        <div
+                           className={ui.cardBody}
+                           style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "6px",
+                              justifyContent: "center",
+                           }}
+                        >
+                           <span>
+                              Blocks: Need <strong>{minBlocks}</strong> | You placed{" "}
+                              <strong>{blocksPlaced}</strong>
+                           </span>
+                           {blocksMet ? (
+                              <CheckCircleIcon className={ui.statIconOk} />
+                           ) : (
+                              <XCircleIcon className={ui.statIconWarn} />
+                           )}
                         </div>
                      </div>
                   );
@@ -1458,66 +1269,21 @@ export default function StackBlocks({
                currentLevel === maxLevels - 1 &&
                requirementsMet &&
                lastCompletedLevelRef.current === currentLevel && (
-                  <div
-                     style={{
-                        padding: isMobile ? "20px 24px" : "24px 32px",
-                        background: "var(--card)",
-                        borderRadius: "var(--radius)",
-                        color: "var(--text)",
-                        fontSize: isMobile ? "1rem" : "1.1rem",
-                        fontWeight: 700,
-                        textAlign: "center",
-                        border: "1px solid var(--border)",
-                     }}
-                  >
-                     <div style={{ marginBottom: "16px", color: "var(--ok)" }}>
-                        Game Complete!
-                     </div>
-                     <div
-                        style={{
-                           fontSize: isMobile ? "0.9rem" : "1rem",
-                           fontWeight: 400,
-                           marginBottom: "20px",
-                           color: "var(--text-secondary)",
-                        }}
-                     >
+                  <div className={ui.card}>
+                     <div className={ui.cardTitleOk}>Game Complete!</div>
+                     <div className={ui.cardBody}>
                         All {maxLevels} levels completed!
                         <br />
-                        Final Score: {currentScore}
+                        Final Score: <strong>{currentScore}</strong>
                      </div>
                   </div>
                )}
 
             {/* Action Buttons: Replay, Share */}
-            <div
-               style={{
-                  display: "flex",
-                  gap: "12px",
-                  justifyContent: "center",
-                  flexWrap: "wrap",
-                  padding: isMobile ? "12px" : "16px",
-                  background: "var(--card)",
-
-                  width: "100%",
-                  maxWidth: "800px",
-               }}
-            >
+            <div className={ui.actions}>
                {/* Share Success Message */}
                {shareSuccess && !unlimitedActivated && (
-                  <div
-                     style={{
-                        width: "100%",
-                        padding: "12px",
-                        background: "rgba(134, 239, 172, 0.2)",
-                        border: "2px solid rgba(134, 239, 172, 0.6)",
-                        borderRadius: "8px",
-                        fontSize: isMobile ? "0.9rem" : "1rem",
-                        fontWeight: 600,
-                        color: "var(--ok)",
-                        textAlign: "center",
-                        marginBottom: "8px",
-                     }}
-                  >
+                  <div className={ui.notice}>
                      Link copied! Unlimited replay will unlock when someone
                      opens your link!
                   </div>
@@ -1525,82 +1291,21 @@ export default function StackBlocks({
 
                {/* Unlimited Activated Message */}
                {unlimitedActivated && (
-                  <div
-                     style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: isMobile ? "6px" : "8px",
-                        padding: isMobile ? "10px 14px" : "8px 16px",
-                        background:
-                           "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
-                        border: "2px solid rgba(59, 130, 246, 0.6)",
-                        borderRadius: isMobile ? "10px" : "8px",
-                        color: "var(--text)",
-                        fontSize: isMobile ? "0.85rem" : "0.9rem",
-                        fontWeight: 500,
-                        width: "100%",
-                        justifyContent: "center",
-                        textAlign: "center",
-                        flexWrap: "wrap",
-                        marginBottom: "8px",
-                     }}
-                  >
-                     <CheckCircleIcon
-                        style={{
-                           width: isMobile ? 16 : 18,
-                           height: isMobile ? 16 : 18,
-                           color: "rgba(59, 130, 246, 0.9)",
-                           flexShrink: 0,
-                        }}
-                     />
+                  <div className={ui.notice}>
+                     <CheckCircleIcon className={ui.noticeIcon} />
                      <span>
-                        🎉 Someone opened your link! Unlimited replay is now
+                        Someone opened your link! Unlimited replay is now
                         active for 15 minutes!
                      </span>
                   </div>
                )}
 
                <button
-                  className={touch.tapButton}
+                  className={ui.button}
                   onClick={handleReplay}
-                  disabled={maxReplays > 0 && replaysUsed >= maxReplays}
-                  style={{
-                     display: "flex",
-                     alignItems: "center",
-                     gap: isMobile ? "6px" : "8px",
-                     padding: isMobile ? "10px 16px" : "10px 20px",
-                     width: isMobile ? "100%" : "auto",
-                     background:
-                        maxReplays > 0 && replaysUsed >= maxReplays
-                           ? "rgba(100, 100, 100, 0.2)"
-                           : "linear-gradient(135deg, rgba(125, 211, 252, 0.2), rgba(125, 211, 252, 0.1))",
-                     border:
-                        maxReplays > 0 && replaysUsed >= maxReplays
-                           ? "1px solid rgba(100, 100, 100, 0.4)"
-                           : "1px solid rgba(125, 211, 252, 0.6)",
-
-                     color: "var(--text)",
-                     fontSize: isMobile ? "0.85rem" : "0.95rem",
-                     fontWeight: 600,
-                     cursor:
-                        maxReplays > 0 && replaysUsed >= maxReplays
-                           ? "not-allowed"
-                           : "pointer",
-                     opacity:
-                        maxReplays > 0 && replaysUsed >= maxReplays ? 0.5 : 1,
-                     transition: "all 0.3s ease",
-                  }}
+                  disabled={replayLocked}
                >
-                  <ArrowPathRoundedSquareIcon
-                     style={{
-                        width: isMobile ? 18 : 20,
-                        height: isMobile ? 18 : 20,
-                        color:
-                           maxReplays > 0 && replaysUsed >= maxReplays
-                              ? "var(--muted)"
-                              : "var(--accent)",
-                     }}
-                  />
+                  <ArrowPathRoundedSquareIcon className={ui.buttonIcon} />
                   <span>
                      {"Replay "}
                      {maxReplays === 0
@@ -1609,33 +1314,8 @@ export default function StackBlocks({
                   </span>
                </button>
 
-               <button
-                  className={touch.tapButton}
-                  onClick={handleShare}
-                  style={{
-                     display: "flex",
-                     alignItems: "center",
-                     gap: isMobile ? "6px" : "8px",
-                     padding: isMobile ? "10px 16px" : "10px 20px",
-                     width: isMobile ? "100%" : "auto",
-                     background:
-                        "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
-                     border: "2px solid rgba(59, 130, 246, 0.6)",
-
-                     color: "var(--text)",
-                     fontSize: isMobile ? "0.85rem" : "0.95rem",
-                     fontWeight: 600,
-                     cursor: "pointer",
-                     transition: "all 0.3s ease",
-                  }}
-               >
-                  <ShareIcon
-                     style={{
-                        width: isMobile ? 18 : 20,
-                        height: isMobile ? 18 : 20,
-                        color: "var(--accent)",
-                     }}
-                  />
+               <button className={ui.button} onClick={handleShare}>
+                  <ShareIcon className={ui.buttonIcon} />
                   <span>Share for unlimited</span>
                </button>
             </div>
