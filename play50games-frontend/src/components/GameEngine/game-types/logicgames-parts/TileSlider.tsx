@@ -1,14 +1,10 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import theme from "./theme.module.css";
 import css from "./TileSlider.module.css";
-import mobile from "./mobile.module.css";
 import {
-   SparklesIcon,
    CheckCircleIcon,
-   ArrowPathIcon,
-   InformationCircleIcon,
-   TrophyIcon,
    ShareIcon,
    LightBulbIcon,
 } from "@heroicons/react/24/outline";
@@ -53,6 +49,29 @@ function TileSlider({
    const completionCalledRef = useRef(false);
    const onScoreUpdateRef = useRef(onScoreUpdate);
    const onCompleteRef = useRef(onComplete);
+   // the last slide (for the slide-in animation): destination index, offset in cells, move number
+   const [lastMove, setLastMove] = useState<{
+      to: number;
+      dx: number;
+      dy: number;
+      n: number;
+   } | null>(null);
+   // every one-shot timer (slide lock, hint steps, completion, share messages), cleared on unmount
+   const timersRef = useRef<Set<number>>(new Set());
+   const later = useCallback((fn: () => void, ms: number) => {
+      const id = window.setTimeout(() => {
+         timersRef.current.delete(id);
+         fn();
+      }, ms);
+      timersRef.current.add(id);
+   }, []);
+   useEffect(() => {
+      const timers = timersRef.current;
+      return () => {
+         timers.forEach((id) => window.clearTimeout(id));
+         timers.clear();
+      };
+   }, []);
 
    // Update refs when callbacks change
    useEffect(() => {
@@ -174,7 +193,7 @@ function TileSlider({
 
                // Show success message that unlimited hints are now active
                setUnlimitedActivated(true);
-               setTimeout(() => {
+               later(() => {
                   setUnlimitedActivated(false);
                   setHasShared(false);
                   localStorage.removeItem(gameKey);
@@ -301,7 +320,7 @@ function TileSlider({
             });
             // Success - show message (hints will activate when someone clicks the link)
             setShareSuccess(true);
-            setTimeout(() => setShareSuccess(false), 15000); // 15 seconds
+            later(() => setShareSuccess(false), 15000); // 15 seconds
          } catch (error: any) {
             // User cancelled or error - try copy to clipboard
             if (error.name !== "AbortError") {
@@ -324,7 +343,7 @@ function TileSlider({
          await navigator.clipboard.writeText(shareableLink);
          // Success - show message (hints will activate when someone clicks the link)
          setShareSuccess(true);
-         setTimeout(() => setShareSuccess(false), 15000); // 15 seconds
+         later(() => setShareSuccess(false), 15000); // 15 seconds
       } catch (error) {
          // Fallback for older browsers
          const textArea = document.createElement("textarea");
@@ -337,7 +356,7 @@ function TileSlider({
             document.execCommand("copy");
             // Success - show message (hints will activate when someone clicks the link)
             setShareSuccess(true);
-            setTimeout(() => setShareSuccess(false), 15000); // 15 seconds
+            later(() => setShareSuccess(false), 15000); // 15 seconds
          } catch (err) {}
          document.body.removeChild(textArea);
       }
@@ -454,7 +473,7 @@ function TileSlider({
 
          // Call onComplete after delay to show feedback and trigger completion modal
          // Pass score explicitly to ensure it's received correctly
-         setTimeout(() => {
+         later(() => {
             // Ensure score is passed correctly
             onCompleteRef.current(score);
          }, 2000); // Increased delay to ensure feedback is visible
@@ -502,12 +521,19 @@ function TileSlider({
          setTiles(newTiles);
          setEmptyIndex(index);
          setMoves((prev) => prev + 1);
+         // the tile slides from its old cell (index) into the gap (emptyIndex)
+         setLastMove((prev) => ({
+            to: emptyIndex,
+            dx: col - emptyCol,
+            dy: row - emptyRow,
+            n: (prev?.n ?? 0) + 1,
+         }));
 
-         setTimeout(() => {
+         later(() => {
             setIsAnimating(false);
          }, 300);
       },
-      [tiles, emptyIndex, gridSize, total, isAnimating]
+      [tiles, emptyIndex, gridSize, total, isAnimating, later]
    );
 
    // Keyboard controls: Tab to select, Arrow keys to move selected tile
@@ -1267,12 +1293,12 @@ function TileSlider({
 
       // Execute moves sequentially with delays
       sequence.forEach((tileIndex, moveIndex) => {
-         setTimeout(() => {
+         later(() => {
             // Highlight current tile
             setHintTileIndex(tileIndex);
 
             // Move tile after brief delay
-            setTimeout(() => {
+            later(() => {
                handleTileClick(tileIndex);
 
                // Remove current tile from sequence highlight
@@ -1304,154 +1330,33 @@ function TileSlider({
       return -1;
    };
 
+   const hintsUnlimited = maxHints <= 0 || maxHints >= 1000;
+   const hintsSpent = maxHints > 0 && maxHints < 1000 && hintsUsed >= maxHints;
+   const solved = feedback === "correct";
+
    return (
-      <div className={`tile-slider-game ${css.root}`}>
+      <div className={`${theme.game} ${css.root}`}>
          {/* Header */}
-         <div className="game-header">
-            <div className="header-stats">
-               <div className="stat-item">
-                  <ArrowPathIcon className="stat-icon" />
-                  <span>Moves: {moves}</span>
-               </div>
-               <div className="stat-item">
-                  <TrophyIcon className="stat-icon" />
-                  <span>Score: {Math.max(0, 100 - moves)} / 100</span>
-               </div>
+         <div className={`${theme.header} ${css.head}`}>
+            <div className={theme.chips}>
+               <span className={theme.chip}>
+                  Moves <strong>{moves}</strong>
+               </span>
+               <span className={theme.chip}>
+                  Score <strong>{Math.max(0, 100 - moves)} / 100</strong>
+               </span>
             </div>
          </div>
 
-         {/* Instructions */}
-         <div className="game-instructions">
-            <div className="instructions-content">
-               <p className="instructions-title">
-                  <InformationCircleIcon className="info-icon" />
-                  How to Play:
-               </p>
-               <ol className="instructions-steps">
-                  <li>
-                     <strong>Goal:</strong> Arrange numbers 1-{total - 1} in
-                     order from left to right, top to bottom
-                  </li>
-                  <li>
-                     <strong>Empty Space:</strong> The space with the sparkle
-                     icon is where tiles can move
-                  </li>
-                  <li>
-                     <strong>Move Tiles:</strong> Click on tiles that are{" "}
-                     <strong>next to</strong> the empty space (they glow green)
-                  </li>
-                  <li>
-                     <strong>Tip:</strong> Tiles can only move if they are
-                     directly above, below, left, or right of the empty space
-                  </li>
-               </ol>
-            </div>
-         </div>
-
-         {/* Share & Hint Section */}
-         <div className="hint-share-section">
-            {/* Share Button */}
-            {!hasShared && (
-               <div className="share-section">
-                  <button
-                     onClick={handleShare}
-                     className="share-button"
-                     title="Share this game to get unlimited hints!"
-                  >
-                     <ShareIcon className="share-icon" />
-                     <span>Share for Unlimited Hints</span>
-                  </button>
-                  {shareSuccess && (
-                     <div className="share-success">
-                        <CheckCircleIcon className="success-icon" />
-                        <span>
-                           Link copied! Unlimited hints will unlock when someone
-                           opens your link!
-                        </span>
-                     </div>
-                  )}
-                  {unlimitedActivated && (
-                     <div
-                        style={{
-                           display: "flex",
-                           alignItems: "center",
-                           gap: "8px",
-                           padding: "8px 16px",
-                           background:
-                              "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
-                           border: "2px solid rgba(59, 130, 246, 0.6)",
-                           borderRadius: "8px",
-                           color: "var(--text)",
-                           fontSize: "0.9rem",
-                           fontWeight: 500,
-                           animation: "slideIn 0.3s ease",
-                           marginTop: "8px",
-                        }}
-                     >
-                        <CheckCircleIcon
-                           style={{
-                              width: 18,
-                              height: 18,
-                              color: "rgba(59, 130, 246, 0.9)",
-                           }}
-                        />
-                        <span>
-                           🎉 Someone opened your link! Unlimited hints are now
-                           active for 15 minutes!
-                        </span>
-                     </div>
-                  )}
-               </div>
-            )}
-
-            {/* Hint Button */}
-            {showHints && (
-               <div className="hint-section">
-                  <div className="hint-info">
-                     <span className="hint-counter">
-                        {maxHints <= 0 || maxHints >= 1000
-                           ? "Hints: Unlimited"
-                           : `Hints: ${hintsUsed} / ${maxHints}`}
-                     </span>
-                  </div>
-                  <button
-                     onClick={handleShowHint}
-                     className="hint-button"
-                     disabled={
-                        showHint ||
-                        feedback !== null ||
-                        (maxHints > 0 &&
-                           maxHints < 1000 &&
-                           hintsUsed >= maxHints)
-                     }
-                     title={
-                        maxHints > 0 && maxHints < 1000 && hintsUsed >= maxHints
-                           ? "Maximum hints reached"
-                           : maxHints <= 0 || maxHints >= 1000
-                           ? "Solve puzzle automatically (unlimited hints)"
-                           : "Get a hint on which tile to move next"
-                     }
-                  >
-                     <LightBulbIcon className="hint-icon" />
-                     <span>
-                        {maxHints > 0 &&
-                        maxHints < 1000 &&
-                        hintsUsed >= maxHints
-                           ? "No Hints Left"
-                           : maxHints <= 0 || maxHints >= 1000
-                           ? "Solve Puzzle"
-                           : "Show Hint"}
-                     </span>
-                  </button>
-               </div>
-            )}
-         </div>
-
-         {/* Game Grid */}
-         <div className="tile-slider-container">
+         {/* Game Grid: equal square cells; a moved tile slides in with transform only */}
+         <div className={`${theme.panel} ${css.frame}`}>
             <div
-               className={`slider-grid ${css.grid}`}
-               style={{ gridTemplateColumns: `repeat(${gridSize}, 1fr)` }}
+               className={`${theme.board} ${css.board} ${
+                  solved ? `${css.solved} ${theme.pop}` : ""
+               }`}
+               style={{ "--cols": gridSize } as React.CSSProperties}
+               role="group"
+               aria-label="Sliding tiles"
                onTouchStart={(e) => {
                   const t = e.touches[0];
                   swipeStart.current = t ? { x: t.clientX, y: t.clientY } : null;
@@ -1476,85 +1381,181 @@ function TileSlider({
                   const isMovable = canMove(i);
                   const tileValue = tiles[i];
                   const isCorrect = tileValue !== null && tileValue === i + 1;
-                  const isEmpty = tileValue === null;
+                  const isEmpty = tileValue === null || tileValue === undefined;
                   const isSelected = selectedIndex === i;
                   const isHinted =
                      showHint &&
                      (hintSequence.includes(i) || hintTileIndex === i);
                   const isCurrentHint = showHint && hintTileIndex === i;
+                  const slid = lastMove !== null && lastMove.to === i;
+
+                  if (isEmpty) {
+                     return <div key={i} className={css.gap} aria-hidden />;
+                  }
+
+                  const cls = [
+                     theme.cell,
+                     css.tile,
+                     isMovable ? css.movable : "",
+                     isCorrect ? css.inPlace : "",
+                     isHinted ? css.hinted : "",
+                     isCurrentHint ? `${css.hintNow} ${theme.pop}` : "",
+                     isSelected ? `${theme.selected} ${css.sel}` : "",
+                     solved ? css.tileSolved : "",
+                     slid ? css.slide : "",
+                  ]
+                     .filter(Boolean)
+                     .join(" ");
 
                   return (
-                     <div key={i} className="slider-cell">
-                        {isEmpty ? (
-                           <div className="empty-cell">
-                              <SparklesIcon className="empty-icon" />
-                           </div>
-                        ) : (
-                           <button
-                              onClick={() => {
-                                 handleTileClick(i);
-                                 setSelectedIndex(null); // Deselect after clicking
-                                 setShowHint(false); // Hide hint after clicking
-                                 setHintTileIndex(null);
-                              }}
-                              className={`slider-tile ${
-                                 isMovable ? "movable" : ""
-                              } ${isCorrect ? "correct" : ""} ${
-                                 isSelected ? "selected" : ""
-                              } ${isHinted ? "hinted" : ""} ${
-                                 isCurrentHint ? "hint-current" : ""
-                              }`}
-                              disabled={!isMovable || isAnimating}
-                              title={
-                                 isHinted
-                                    ? `💡 Hint: Move this tile (${tileValue}) next!`
-                                    : isSelected
-                                    ? `Selected! Use Arrow keys to move this tile (${tileValue})`
-                                    : isCorrect
-                                    ? `Tile ${tileValue} is in correct position, but can still be moved if needed`
-                                    : undefined
-                              }
-                           >
-                              <span className="tile-number">{tileValue}</span>
-                              {isCorrect && (
-                                 <span
-                                    className="correct-badge"
-                                    title="In correct position"
-                                 >
-                                    ✓
-                                 </span>
-                              )}
-                              {isSelected && (
-                                 <span
-                                    className="selected-badge"
-                                    title="Selected - Press Arrow keys to move"
-                                 >
-                                    ⌂
-                                 </span>
-                              )}
-                              {isHinted && (
-                                 <span
-                                    className="hint-badge"
-                                    title="Hint: Move this tile!"
-                                 >
-                                    💡
-                                 </span>
-                              )}
-                           </button>
+                     <button
+                        // only the tile that just moved gets a new key, so its slide plays once
+                        key={slid && lastMove ? `${i}-m${lastMove.n}` : i}
+                        type="button"
+                        onClick={() => {
+                           handleTileClick(i);
+                           setSelectedIndex(null); // Deselect after clicking
+                           setShowHint(false); // Hide hint after clicking
+                           setHintTileIndex(null);
+                        }}
+                        className={cls}
+                        style={
+                           slid && lastMove
+                              ? ({
+                                   "--dx": lastMove.dx,
+                                   "--dy": lastMove.dy,
+                                } as React.CSSProperties)
+                              : undefined
+                        }
+                        disabled={!isMovable || isAnimating}
+                        aria-label={`Tile ${tileValue}${isCorrect ? ", in place" : ""}${
+                           isMovable ? ", can move" : ""
+                        }`}
+                        title={
+                           isHinted
+                              ? `Hint: move tile ${tileValue} next`
+                              : isSelected
+                              ? `Selected. Use the arrow keys to move tile ${tileValue}`
+                              : isCorrect
+                              ? `Tile ${tileValue} is in place, but can still be moved if needed`
+                              : undefined
+                        }
+                     >
+                        <span className={css.num}>{tileValue}</span>
+                        {isCorrect && (
+                           <CheckCircleIcon className={css.check} aria-hidden />
                         )}
-                     </div>
+                     </button>
                   );
                })}
             </div>
          </div>
 
          {/* Feedback */}
-         {feedback === "correct" && (
-            <div className={`game-feedback correct ${mobile.pop}`}>
-               <CheckCircleIcon className="feedback-icon" />
-               <span>Puzzle Solved! Great job!</span>
-            </div>
-         )}
+         <div className={theme.feedbackSlot} aria-live="polite">
+            {solved && (
+               <div className={`${theme.feedback} ${theme.feedbackOk} ${theme.pop}`}>
+                  <CheckCircleIcon className={`${css.btnIcon} ${css.feedbackIconGap}`} aria-hidden />
+                  <span>Puzzle solved. Well done.</span>
+               </div>
+            )}
+         </div>
+
+         {/* Share & Hint Section */}
+         <div className={css.tools}>
+            {showHints && (
+               <div className={css.toolRow}>
+                  <span className={theme.chip}>
+                     {hintsUnlimited ? (
+                        <>
+                           Hints <strong>Unlimited</strong>
+                        </>
+                     ) : (
+                        <>
+                           Hints <strong>{hintsUsed} / {maxHints}</strong>
+                        </>
+                     )}
+                  </span>
+                  <button
+                     type="button"
+                     onClick={handleShowHint}
+                     className={`${theme.btn} ${theme.btnPrimary}`}
+                     disabled={showHint || feedback !== null || hintsSpent}
+                     title={
+                        hintsSpent
+                           ? "Maximum hints reached"
+                           : hintsUnlimited
+                           ? "Solve puzzle automatically (unlimited hints)"
+                           : "Get a hint on which tile to move next"
+                     }
+                  >
+                     <LightBulbIcon className={css.btnIcon} aria-hidden />
+                     <span>
+                        {hintsSpent
+                           ? "No Hints Left"
+                           : hintsUnlimited
+                           ? "Solve Puzzle"
+                           : "Show Hint"}
+                     </span>
+                  </button>
+               </div>
+            )}
+
+            {!hasShared && (
+               <div className={css.toolRow}>
+                  <button
+                     type="button"
+                     onClick={handleShare}
+                     className={theme.btn}
+                     title="Share this game to get unlimited hints"
+                  >
+                     <ShareIcon className={css.btnIcon} aria-hidden />
+                     <span>Share for Unlimited Hints</span>
+                  </button>
+               </div>
+            )}
+            {!hasShared && shareSuccess && (
+               <div className={`${css.note} ${css.noteOk} ${theme.fadeUp}`} role="status">
+                  <CheckCircleIcon className={css.btnIcon} aria-hidden />
+                  <span>
+                     Link copied. Unlimited hints unlock when someone opens your
+                     link.
+                  </span>
+               </div>
+            )}
+            {!hasShared && unlimitedActivated && (
+               <div className={`${css.note} ${css.noteAccent} ${theme.fadeUp}`} role="status">
+                  <CheckCircleIcon className={css.btnIcon} aria-hidden />
+                  <span>
+                     Someone opened your link. Unlimited hints are active for 15
+                     minutes.
+                  </span>
+               </div>
+            )}
+         </div>
+
+         {/* Instructions */}
+         <div className={`${theme.panel} ${css.howto}`}>
+            <p className={css.howtoTitle}>How to play</p>
+            <ol className={css.steps}>
+               <li>
+                  <strong>Goal:</strong> arrange the numbers 1 to {total - 1} in
+                  order, left to right, top to bottom.
+               </li>
+               <li>
+                  <strong>Gap:</strong> the empty square is where a tile can
+                  slide.
+               </li>
+               <li>
+                  <strong>Move:</strong> tap a tile <strong>next to</strong> the
+                  gap (it has a coloured outline), or swipe on the board.
+               </li>
+               <li>
+                  <strong>Tip:</strong> only tiles directly above, below, left or
+                  right of the gap can move.
+               </li>
+            </ol>
+         </div>
       </div>
    );
 }
