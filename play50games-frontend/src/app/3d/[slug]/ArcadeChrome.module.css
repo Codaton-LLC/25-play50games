@@ -1,0 +1,32 @@
+/* The site header over the 3D shell's top edge (ArcadeChrome.tsx).
+   .p50 gives the header its tokens and resets; its page-sized box is taken back here, because the
+   shell behind it is the page. The header itself is positioned (SiteHeader immersive) with a
+   z-index above the shell's fixed frame. */
+.chrome:global(.p50) {
+   min-height: 0;
+   padding-bottom: 0;
+   background: none;
+}
+
+/* the header bar is 72px tall (56px under 900px) plus its 1px line; the shell's sheets start
+   below it (GameShell.module.css --overlay-pad-top, ArcadeGameMount.module.css .screen) */
+.withHeader {
+   --site-header-h: 73px;
+}
+
+@media (max-width: 899px) {
+   .withHeader {
+      --site-header-h: 57px;
+   }
+}
+
+/* a landscape phone: the lobby needs the whole height, so the page has no header there */
+@media (max-height: 520px) {
+   .chrome:global(.p50) {
+      display: none;
+   }
+
+   .withHeader {
+      --site-header-h: 0px;
+   }
+}

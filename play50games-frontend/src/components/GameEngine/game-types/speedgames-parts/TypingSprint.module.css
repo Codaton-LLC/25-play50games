@@ -172,7 +172,7 @@
    background: linear-gradient(90deg, var(--accent) 0%, var(--ok) 100%);
    border-radius: 999px;
    transition: width 0.3s ease;
-   box-shadow: 0 0 10px rgba(125, 211, 252, 0.5);
+   box-shadow: 0 0 10px rgba(var(--accent-rgb, 125, 211, 252), 0.5);
 }
 
 /* The typing card: prompt on top, the field right under it. On phones and tablets it is the FIRST thing
@@ -303,7 +303,7 @@
    text-align: center;
    color: var(--text);
    background: var(--background);
-   border: 2px solid rgba(125, 211, 252, 0.45);
+   border: 2px solid rgba(var(--accent-rgb, 125, 211, 252), 0.45);
    border-radius: 12px;
    outline: none;
    caret-color: var(--accent);
@@ -317,7 +317,7 @@
 
 .field:focus {
    border-color: var(--accent);
-   box-shadow: 0 0 0 3px rgba(125, 211, 252, 0.2);
+   box-shadow: 0 0 0 3px rgba(var(--accent-rgb, 125, 211, 252), 0.2);
 }
 
 .field:disabled {
@@ -532,8 +532,8 @@
 }
 
 .actionReplay {
-   background: linear-gradient(135deg, rgba(125, 211, 252, 0.2), rgba(125, 211, 252, 0.1));
-   border: 1px solid rgba(125, 211, 252, 0.6);
+   background: linear-gradient(135deg, rgba(var(--accent-rgb, 125, 211, 252), 0.2), rgba(var(--accent-rgb, 125, 211, 252), 0.1));
+   border: 1px solid rgba(var(--accent-rgb, 125, 211, 252), 0.6);
 }
 
 .actionShare {
@@ -543,10 +543,10 @@
 
 @media (hover: hover) {
    .actionReplay:not(:disabled):hover {
-      background: linear-gradient(135deg, rgba(125, 211, 252, 0.3), rgba(125, 211, 252, 0.2));
-      border-color: rgba(125, 211, 252, 0.8);
+      background: linear-gradient(135deg, rgba(var(--accent-rgb, 125, 211, 252), 0.3), rgba(var(--accent-rgb, 125, 211, 252), 0.2));
+      border-color: rgba(var(--accent-rgb, 125, 211, 252), 0.8);
       transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(125, 211, 252, 0.3);
+      box-shadow: 0 4px 12px rgba(var(--accent-rgb, 125, 211, 252), 0.3);
    }
    .actionShare:hover {
       background: linear-gradient(135deg, rgba(59, 130, 246, 0.3), rgba(59, 130, 246, 0.2));

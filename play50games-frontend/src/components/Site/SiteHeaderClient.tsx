@@ -34,6 +34,8 @@ export interface SiteHeaderClientProps {
    active: SiteSection;
    /** the visible arcade games, slimmed on the server (empty while the arcade is off) */
    games: SiteGame[];
+   /** a game page: a bar that scrolls away, and no phone tab bar (SiteHeader says why) */
+   immersive?: boolean;
 }
 
 const WORLD_IDS: WorldId[] = [
@@ -62,7 +64,7 @@ function MegaLink({ href, children, index }: { href: string; children: React.Rea
    );
 }
 
-export default function SiteHeaderClient({ active, games }: SiteHeaderClientProps) {
+export default function SiteHeaderClient({ active, games, immersive = false }: SiteHeaderClientProps) {
    const { user, isAuthenticated, login, register, logout } = useAuth();
    const pathname = usePathname();
    const rootRef = useRef<HTMLElement>(null);
@@ -159,7 +161,7 @@ export default function SiteHeaderClient({ active, games }: SiteHeaderClientProp
 
    return (
       <>
-         <header className={styles.bar} ref={rootRef}>
+         <header className={immersive ? `${styles.bar} ${styles.barStatic}` : styles.bar} ref={rootRef}>
             <div
                className={`${ui.wrap} ${styles.inner}`}
                onMouseLeave={hideWorldSoon}
@@ -477,14 +479,16 @@ export default function SiteHeaderClient({ active, games }: SiteHeaderClientProp
             </div>
          </header>
 
-         <nav className={styles.tabs} aria-label="Main">
-            {tabs.map(({ id, label, href, Icon }) => (
-               <Link key={id} href={href} className={styles.tab} aria-current={active === id ? "page" : undefined}>
-                  <Icon />
-                  {label}
-               </Link>
-            ))}
-         </nav>
+         {!immersive && (
+            <nav className={styles.tabs} aria-label="Main">
+               {tabs.map(({ id, label, href, Icon }) => (
+                  <Link key={id} href={href} className={styles.tab} aria-current={active === id ? "page" : undefined}>
+                     <Icon />
+                     {label}
+                  </Link>
+               ))}
+            </nav>
+         )}
 
          <SearchPalette
             open={searching}

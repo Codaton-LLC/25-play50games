@@ -8,7 +8,8 @@
    globals.css styles every <button>, so each button class sets its background for both states. */
 .root {
    --game-accent: var(--accent);
-   --overlay-pad-top: max(16px, env(safe-area-inset-top, 0px));
+   /* + the site header while it lies over the shell (app/3d/[slug]/ArcadeChrome: lobby, result) */
+   --overlay-pad-top: calc(max(16px, env(safe-area-inset-top, 0px)) + var(--site-header-h, 0px));
    --overlay-pad-right: max(16px, env(safe-area-inset-right, 0px));
    /* + the cookie banner while it is open (set by GameShell) */
    --overlay-pad-bottom: calc(max(16px, env(safe-area-inset-bottom, 0px)) + var(--arcade-bottom-obstruction, 0px));
@@ -24,6 +25,16 @@
    overflow: hidden;
    background: var(--bg);
    color: var(--text);
+   /* the games' own HUD panels were laid out and playtested with the system face; the page's body
+      face is the design's now (globals.css), so the frame names it. The shell's sheets and chips
+      set the design fonts themselves. */
+   font-family:
+      system-ui,
+      -apple-system,
+      "Segoe UI",
+      "Roboto",
+      "Arial",
+      sans-serif;
 }
 
 .canvasWrap {
@@ -327,19 +338,35 @@
 /* ---------- result ---------- */
 
 .resultLayer {
+   /* a sheet of the design system like the lobby: the result card (ui/ResultPanel) and the top 10
+      inside it read the legacy variables, mapped here onto the tokens, with one accent (coral) */
+   --bg: var(--p50-surface);
+   --card: var(--p50-raised);
+   --text: var(--p50-text);
+   --muted: var(--p50-text-2);
+   --stroke: var(--p50-line);
+   --accent: var(--p50-coral);
+   --ok: var(--p50-green);
+   --warn: var(--p50-red-text);
+   /* the layer is the scrim; the panel's own veil would wash the scene out twice */
+   --result-veil: transparent;
+
    position: absolute;
    inset: 0;
    z-index: 20;
-   background: rgba(11, 16, 32, 0.55);
-   -webkit-backdrop-filter: blur(4px);
-   backdrop-filter: blur(4px);
+   background: var(--p50-scrim);
+   -webkit-backdrop-filter: blur(6px);
+   backdrop-filter: blur(6px);
+   color: var(--p50-text);
+   font-family: var(--p50-font-body);
 }
 
 /* ResultPanel (ui/) lays its own overlay over this box: clear of the notch and of the cookie banner
    while it is open. Its card scrolls inside that overlay and pins its actions on view. */
 .resultWrap {
    position: absolute;
-   top: env(safe-area-inset-top, 0px);
+   /* under the site header, which is back once the result shows */
+   top: calc(env(safe-area-inset-top, 0px) + var(--site-header-h, 0px));
    right: env(safe-area-inset-right, 0px);
    bottom: calc(env(safe-area-inset-bottom, 0px) + var(--arcade-bottom-obstruction, 0px));
    left: env(safe-area-inset-left, 0px);

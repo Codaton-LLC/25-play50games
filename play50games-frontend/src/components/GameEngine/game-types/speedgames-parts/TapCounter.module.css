@@ -50,8 +50,8 @@
 }
 
 .chipRate {
-   background: linear-gradient(135deg, rgba(125, 211, 252, 0.25), rgba(125, 211, 252, 0.12));
-   border: 2px solid rgba(125, 211, 252, 0.6);
+   background: linear-gradient(135deg, rgba(var(--accent-rgb, 125, 211, 252), 0.25), rgba(var(--accent-rgb, 125, 211, 252), 0.12));
+   border: 2px solid rgba(var(--accent-rgb, 125, 211, 252), 0.6);
 }
 
 .chipNeed {
@@ -304,8 +304,8 @@
 }
 
 .btnReplay {
-   background: linear-gradient(135deg, rgba(125, 211, 252, 0.2), rgba(125, 211, 252, 0.1));
-   border: 1px solid rgba(125, 211, 252, 0.6);
+   background: linear-gradient(135deg, rgba(var(--accent-rgb, 125, 211, 252), 0.2), rgba(var(--accent-rgb, 125, 211, 252), 0.1));
+   border: 1px solid rgba(var(--accent-rgb, 125, 211, 252), 0.6);
 }
 
 .btnReplay:disabled {
@@ -324,7 +324,7 @@
    .btnReplay:not(:disabled):hover,
    .btnShare:hover {
       transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(125, 211, 252, 0.3);
+      box-shadow: 0 4px 12px rgba(var(--accent-rgb, 125, 211, 252), 0.3);
    }
 }
 

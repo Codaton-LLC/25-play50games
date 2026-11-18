@@ -1,37 +1,131 @@
 /* The classic game page /games/[id] in the redesign (docs/design/DESIGN.md).
 
-   What this file restyles: the page canvas, the start screen (title, How to Play card, tips, the
-   Time limit / Passing score figures, Start / Exit), the play view's score bar, the Game Complete
-   panel, and the page's own states (loading, not found, locked).
+   The page is a page of the site like the hub: the wrapper is .p50 (page.tsx), with the site header
+   and footer, and it follows the theme.
 
-   What it leaves alone: the game boards and the Example Round demos of the 50 games. They keep the
-   legacy colours and the system font they were laid out with, so nothing inside a game moves.
-   That is also why the page is always dark (.p50-night on the wrapper): the boards are drawn for a
-   dark surface, like the HUD on the 3D canvas.
+   The game itself sits on .stage (GameView.tsx), which carries .p50-night: the start screen, the
+   board and the Game Complete panel are always on the dark values, in both themes, because the 50
+   boards are drawn for a dark surface (white overlays, light text), like the HUD on the 3D canvas.
+   In the dark theme the stage is the page canvas and does not show; in the light theme it is a dark
+   screen on the light page.
+
+   Colours: globals.css is on the design palette (its :root variables and the board rules), and
+   .stage sets the legacy variables again, because the .p50 wrapper around it maps them onto the
+   themed tokens: on the stage they are the dark values, with one accent (coral; gold for the final
+   games). Tints a board writes inline (rgba(59, 130, 246, ..) and others) are its own and stay.
+
+   What this file restyles: the breadcrumb, the stage, the start screen (title, How to Play card, the
+   Example Round panel, tips, the Time limit / Passing score figures, Start / Exit), the play view's
+   score bar, the Game Complete panel, and the page's own states (loading, not found, locked).
 
    The shell's markup lives in GameEngine.tsx and its legacy rules in globals.css; every rule here
    is scoped under .page, which outranks them. The phone layout rules of GameEngine.module.css use
    !important and still win where they apply. */
 
-.page {
-   min-height: 100dvh;
+/* no phone tab bar on a game page (SiteHeader immersive), so no room is kept for one */
+@media (max-width: 899px) {
+   .page:global(.p50) {
+      padding-bottom: 0;
+   }
+}
+
+.main {
+   min-height: 72dvh;
+   padding-bottom: clamp(2.5rem, 6vw, 4.5rem);
+}
+
+/* ---------- breadcrumb: the way back to the path, and the game's category ---------- */
+
+.crumbs {
+   display: flex;
+   align-items: center;
+   gap: 12px;
+   max-width: 1000px;
+   margin: 0 auto;
+   padding: 16px 18px 8px;
+}
+
+.back,
+.back:hover {
+   display: inline-flex;
+   align-items: center;
+   gap: 8px;
+   min-height: 44px;
+   margin-left: -10px;
+   padding: 0 14px 0 10px;
+   border-radius: 12px;
+   color: var(--p50-text-2);
+   font: 600 0.9375rem/1 var(--p50-font-body);
+   text-decoration: none;
+   transition:
+      background-color 240ms var(--p50-ease),
+      color 240ms var(--p50-ease);
+}
+
+.back:hover {
+   background: var(--p50-raised);
+   color: var(--p50-text);
+}
+
+.back svg {
+   width: 18px;
+   height: 18px;
+}
+
+.chip {
+   padding: 6px 10px;
+   border: 1px solid var(--p50-line);
+   border-radius: 99px;
+   color: var(--p50-text-3);
+   font: 600 0.6875rem/1 var(--p50-font-body);
+   letter-spacing: 0.08em;
+   text-transform: uppercase;
+}
+
+/* ---------- the stage: the game, always on the dark values (.p50-night on the element) ---------- */
+
+.stage {
+   max-width: 1040px;
+   margin: 0 auto;
+   border-radius: 28px;
    background: var(--p50-canvas);
    color: var(--p50-text);
    color-scheme: dark;
-   font-family: var(--p50-font-body);
+
+   /* the boards' legacy variables on the design's palette. --card and --stroke stay the translucent
+      whites the boards layer on each other; an opaque surface would hide a card inside a card. */
+   --bg: var(--p50-canvas);
+   --card: rgba(255, 255, 255, 0.06);
+   --text: var(--p50-text);
+   --muted: var(--p50-text-2);
+   --stroke: rgba(255, 255, 255, 0.12);
+   --accent: var(--p50-coral);
+   --primary: var(--p50-coral);
+   --secondary: var(--p50-green);
+   --ok: var(--p50-green);
+   --warn: var(--p50-red-text);
+   /* the accent as numbers, for the tints the engine's stylesheets write as rgba(.., a) */
+   --accent-rgb: 231, 95, 64;
 }
 
-/* the body behind the page (overscroll, the strip under the cookie banner): the plain canvas
-   instead of the legacy glow */
-:global(body):has(.page) {
-   background: #0b0f1a;
-}
-
-/* the five final games: a gold light from the top instead of the coral accent */
-:global(body.final-game) .page {
+/* the five final games: trophy gold instead of the coral accent, and a gold light from the top */
+:global(body.final-game) .stage {
+   --accent: var(--p50-gold);
+   --primary: var(--p50-gold);
+   --accent-rgb: 227, 167, 47;
    background:
       radial-gradient(900px 420px at 50% -120px, rgba(227, 167, 47, 0.16), transparent 70%),
       var(--p50-canvas);
+}
+
+@media (max-width: 599px) {
+   .crumbs {
+      padding: 6px 12px 2px;
+   }
+
+   .stage {
+      border-radius: 0;
+   }
 }
 
 .page :focus-visible {
@@ -95,8 +189,12 @@
    line-height: 1.7;
 }
 
-/* the Example Round demos: the system font they were laid out with */
+/* the Example Round demos: a quiet raised panel instead of the legacy teal wash (set inline, hence
+   !important), and the system font the demo boards were laid out with */
 .page :global .game-instructions-section > div:not(.instructions-text):not(.game-tips) {
+   border: 1px solid var(--p50-line);
+   background: var(--p50-raised) !important;
+   box-shadow: none !important;
    font-family:
       system-ui,
       -apple-system,
@@ -104,6 +202,25 @@
       "Roboto",
       "Arial",
       sans-serif;
+}
+
+/* the final games keep a gold wash */
+.page :global .game-instructions-section > div.final-game:not(.instructions-text):not(.game-tips) {
+   border-color: rgba(227, 167, 47, 0.28);
+   background: linear-gradient(135deg, rgba(227, 167, 47, 0.12), rgba(227, 167, 47, 0.04)) !important;
+}
+
+/* "Example Round": plain display type instead of gradient text */
+.page :global .game-instructions-section > div:not(.instructions-text):not(.game-tips) > div:first-child > h3 {
+   background: none !important;
+   color: var(--p50-text) !important;
+   font-family: var(--p50-font-display);
+   letter-spacing: -0.01em;
+   -webkit-text-fill-color: currentColor !important;
+}
+
+.page :global .game-instructions-section > div.final-game:not(.instructions-text):not(.game-tips) > div:first-child > h3 {
+   color: var(--p50-gold) !important;
 }
 
 .page :global(.game-tips) {
@@ -330,6 +447,29 @@
       sans-serif;
 }
 
+/* accent-to-green gradients a board sets inline (progress fills, a few buttons): one accent. The
+   design has no two-colour gradients, and coral into green reads muddy. The rule after this one
+   wins for gradient text (same weight, later). */
+.stage :global([style*="var(--accent) 0%, var(--ok) 100%"]),
+.stage :global([style*="var(--accent), var(--ok)"]) {
+   background: var(--accent) !important;
+}
+
+/* board titles ("Number Grid 4x4") and any other gradient text inside a game: plain display type.
+   The design has no gradient text; coral into green also reads muddy. Some are set inline. */
+.stage :global(.sudoku-header h3),
+.stage :global(.rotate-to-fit-game .header-title h2),
+.stage :global(.mirror-match-game .header-title h2),
+.stage :global([style*="background-clip: text"]) {
+   background: none !important;
+   color: var(--p50-text) !important;
+   -webkit-text-fill-color: currentColor !important;
+}
+
+:global(body.final-game) .stage :global([style*="background-clip: text"]) {
+   color: var(--p50-gold) !important;
+}
+
 /* ---------- Game Complete ---------- */
 
 .page :global(.game-complete-overlay) {
@@ -404,7 +544,7 @@
    gap: 14px;
    max-width: 1000px;
    margin: 0 auto;
-   padding: 56px 18px 80px;
+   padding: 40px 18px 80px;
 }
 
 .state a {

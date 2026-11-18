@@ -114,8 +114,8 @@
    font-family: monospace;
    font-variant-numeric: tabular-nums;
    color: var(--text);
-   background: linear-gradient(135deg, rgba(125, 211, 252, 0.2), rgba(125, 211, 252, 0.1));
-   border: 2px solid rgba(125, 211, 252, 0.6);
+   background: linear-gradient(135deg, rgba(var(--accent-rgb, 125, 211, 252), 0.2), rgba(var(--accent-rgb, 125, 211, 252), 0.1));
+   border: 2px solid rgba(var(--accent-rgb, 125, 211, 252), 0.6);
    border-radius: 14px;
    cursor: pointer;
    touch-action: manipulation;
@@ -142,17 +142,17 @@
 
 @media (hover: hover) {
    .option:not(:disabled):hover {
-      background: linear-gradient(135deg, rgba(125, 211, 252, 0.3), rgba(125, 211, 252, 0.2));
-      border-color: rgba(125, 211, 252, 0.8);
+      background: linear-gradient(135deg, rgba(var(--accent-rgb, 125, 211, 252), 0.3), rgba(var(--accent-rgb, 125, 211, 252), 0.2));
+      border-color: rgba(var(--accent-rgb, 125, 211, 252), 0.8);
       transform: translateY(-2px);
-      box-shadow: 0 6px 16px rgba(125, 211, 252, 0.4);
+      box-shadow: 0 6px 16px rgba(var(--accent-rgb, 125, 211, 252), 0.4);
    }
 }
 
 .option:not(:disabled):active {
    transform: scale(0.96);
-   background: linear-gradient(135deg, rgba(125, 211, 252, 0.35), rgba(125, 211, 252, 0.22));
-   border-color: rgba(125, 211, 252, 0.9);
+   background: linear-gradient(135deg, rgba(var(--accent-rgb, 125, 211, 252), 0.35), rgba(var(--accent-rgb, 125, 211, 252), 0.22));
+   border-color: rgba(var(--accent-rgb, 125, 211, 252), 0.9);
 }
 
 .option:disabled {
@@ -289,8 +289,8 @@
 }
 
 .actionReplay {
-   background: linear-gradient(135deg, rgba(125, 211, 252, 0.2), rgba(125, 211, 252, 0.1));
-   border: 1px solid rgba(125, 211, 252, 0.6);
+   background: linear-gradient(135deg, rgba(var(--accent-rgb, 125, 211, 252), 0.2), rgba(var(--accent-rgb, 125, 211, 252), 0.1));
+   border: 1px solid rgba(var(--accent-rgb, 125, 211, 252), 0.6);
 }
 
 .actionShare {
@@ -300,10 +300,10 @@
 
 @media (hover: hover) {
    .actionReplay:not(:disabled):hover {
-      background: linear-gradient(135deg, rgba(125, 211, 252, 0.3), rgba(125, 211, 252, 0.2));
-      border-color: rgba(125, 211, 252, 0.8);
+      background: linear-gradient(135deg, rgba(var(--accent-rgb, 125, 211, 252), 0.3), rgba(var(--accent-rgb, 125, 211, 252), 0.2));
+      border-color: rgba(var(--accent-rgb, 125, 211, 252), 0.8);
       transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(125, 211, 252, 0.3);
+      box-shadow: 0 4px 12px rgba(var(--accent-rgb, 125, 211, 252), 0.3);
    }
    .actionShare:hover {
       background: linear-gradient(135deg, rgba(59, 130, 246, 0.3), rgba(59, 130, 246, 0.2));

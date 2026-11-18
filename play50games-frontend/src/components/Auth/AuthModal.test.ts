@@ -19,8 +19,9 @@ describe("auth modals and the cookie banner", () => {
    const content = rule(base, ".sheet");
 
    it("sit above the banner", () => {
-      const banner = read("../PrivacyConsent/PrivacyConsent.tsx");
-      const bannerZ = Number(banner.match(/zIndex:\s*(\d+)/)?.[1]);
+      // the banner's look (and its layer) lives in its CSS module since the redesign
+      const banner = read("../PrivacyConsent/PrivacyConsent.module.css");
+      const bannerZ = Number(rule(banner, ".banner").match(/z-index:\s*(\d+)/)?.[1]);
       expect(bannerZ).toBeGreaterThan(0);
       expect(Number(overlay.match(/z-index:\s*(\d+)/)?.[1])).toBeGreaterThan(bannerZ);
    });

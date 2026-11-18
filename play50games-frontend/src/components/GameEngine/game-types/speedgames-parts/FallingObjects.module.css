@@ -85,7 +85,7 @@
    background: linear-gradient(90deg, var(--accent) 0%, var(--ok) 100%);
    border-radius: 999px;
    transition: width 0.3s ease;
-   box-shadow: 0 0 10px rgba(125, 211, 252, 0.5);
+   box-shadow: 0 0 10px rgba(var(--accent-rgb, 125, 211, 252), 0.5);
 }
 
 .levelName {

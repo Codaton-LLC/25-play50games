@@ -1,8 +1,152 @@
-/* The banner's look lives in PrivacyConsent.tsx (inline styles). On touch screens its two buttons
-   grow to full-size touch targets (44 px tall, 38 px with a mouse). The 3D Arcade measures the
-   banner's height as it is drawn (useBottomObstruction), so its controls and overlays follow. */
+/* The cookie banner, in the design system (tokens: app/theme.css, docs/design/DESIGN.md).
+   It is on every page, outside any .p50 wrapper, so it reads the tokens from :root and follows the
+   theme like the site header: the same glass bar, one coral action, one quiet one.
+
+   It stays docked to the bottom edge at full width. The classic boards (useBottomBar, useMobileFit)
+   and the 3D shell (useBottomObstruction) measure a bar there, and PrivacyConsent publishes its
+   height (--cookie-banner-h) so the end of every page scrolls clear of it.
+
+   globals.css styles every <button> (padding, font) and button:hover (a background): the size is
+   set on .button, the colours on both states of .decline and .accept. */
+.banner {
+   position: fixed;
+   right: 0;
+   bottom: 0;
+   left: 0;
+   z-index: 1000;
+   padding: 14px max(20px, env(safe-area-inset-right, 0px)) calc(14px + env(safe-area-inset-bottom, 0px))
+      max(20px, env(safe-area-inset-left, 0px));
+   border-top: 1px solid var(--p50-line);
+   background: var(--p50-bar);
+   -webkit-backdrop-filter: blur(16px);
+   backdrop-filter: blur(16px);
+   color: var(--p50-text);
+   font-family: var(--p50-font-body);
+   transform: translateY(100%);
+   transition: transform 420ms var(--p50-ease);
+}
+
+.visible {
+   transform: translateY(0);
+}
+
+.inner {
+   display: flex;
+   flex-wrap: wrap;
+   align-items: center;
+   justify-content: center;
+   gap: 12px 24px;
+   max-width: 1280px;
+   margin: 0 auto;
+}
+
+.copy {
+   display: flex;
+   flex: 1;
+   align-items: center;
+   gap: 12px;
+   min-width: 250px;
+}
+
+.icon {
+   flex-shrink: 0;
+   width: 22px;
+   height: 22px;
+   color: var(--p50-text-3);
+}
+
+.text {
+   margin: 0;
+   color: var(--p50-text-2);
+   font-size: 0.875rem;
+   line-height: 1.5;
+}
+
+.link {
+   color: var(--p50-coral-text);
+   font-weight: 600;
+   text-decoration: none;
+}
+
+.link:hover {
+   text-decoration: underline;
+   text-underline-offset: 3px;
+}
+
+.actions {
+   display: flex;
+   flex-wrap: wrap;
+   align-items: center;
+   gap: 10px;
+}
+
+.button {
+   min-height: 40px;
+   padding: 0 18px;
+   border-radius: 12px;
+   font: 600 0.875rem/1 var(--p50-font-body);
+   cursor: pointer;
+   transition:
+      background-color 240ms var(--p50-ease),
+      transform 160ms var(--p50-ease);
+}
+
+.button:active {
+   transform: translateY(1px) scale(0.98);
+}
+
+.button:focus-visible,
+.link:focus-visible {
+   outline: 2px solid var(--p50-coral);
+   outline-offset: 2px;
+}
+
+.decline,
+.decline:hover {
+   border: 1px solid var(--p50-line);
+   background: transparent;
+   color: var(--p50-text);
+}
+
+.decline:hover {
+   background: var(--p50-raised);
+}
+
+.accept,
+.accept:hover {
+   border: 1px solid transparent;
+   background: var(--p50-coral);
+   color: var(--p50-on-coral);
+}
+
+.accept:hover {
+   background: var(--p50-coral-hover);
+}
+
+.accept:active {
+   background: var(--p50-coral-press);
+}
+
+/* touch screens: full-size targets (the 3D Arcade measures the banner as it is drawn) */
 @media (pointer: coarse) {
    .button {
       min-height: 44px;
+   }
+}
+
+/* phones: the two buttons share the row under the text */
+@media (max-width: 599px) {
+   .actions {
+      width: 100%;
+   }
+
+   .button {
+      flex: 1;
+   }
+}
+
+@media (prefers-reduced-motion: reduce) {
+   .banner {
+      transition: none;
    }
 }

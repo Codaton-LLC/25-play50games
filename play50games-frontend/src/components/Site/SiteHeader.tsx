@@ -14,11 +14,16 @@ export interface SiteHeaderProps {
     * already wraps itself in <GameMetas> (the /3d catalogue) passes false.
     */
    provideMetas?: boolean;
+   /**
+    * A game page (/games/[id], /3d/[slug]): the bar scrolls away with the page instead of sticking,
+    * and phones get no tab bar, because the game's own controls sit at the bottom of the screen.
+    */
+   immersive?: boolean;
 }
 
-export default function SiteHeader({ active, provideMetas = true }: SiteHeaderProps) {
+export default function SiteHeader({ active, provideMetas = true, immersive = false }: SiteHeaderProps) {
    const games = ARCADE_ENABLED ? getVisibleGames().map(toSiteGame) : [];
-   const header = <SiteHeaderClient active={active} games={games} />;
+   const header = <SiteHeaderClient active={active} games={games} immersive={immersive} />;
    if (!provideMetas || !ARCADE_ENABLED) return header;
    return <GameMetas metas={scoringMetas()}>{header}</GameMetas>;
 }

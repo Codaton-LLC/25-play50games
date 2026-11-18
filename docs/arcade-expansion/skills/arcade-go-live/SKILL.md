@@ -19,7 +19,7 @@ Print the `meta.ts` slug first to prove the target. Then check and report READY 
 3. `registry.sync.test.ts`, build, full vitest.
 4. Hand the user the exact file `play50games-backend/play50games/includes/arcade-games.json` and the target path `wp-content/themes/play50games/includes/arcade-games.json`; the user takes a Plesk backup first and uploads only that file.
 5. After the user says "uploaded": read-only `GET /wp-json/play50/v1/arcade/games` shows the new version and the slug enabled.
-6. Merge to `main` (Vercel deploys).
+6. Merge to `main` (the live host deploys: Netlify, https://play50games.netlify.app; Vercel is paused since 2026-11-18, CLAUDE.md "Deploy").
 7. Live checks: `/3d` card clickable; a guest run (best survives a reload); sitemap has `/3d/<slug>`; OG image resolves. The user does one logged-in run (rank shows).
 8. Record in `docs/status.md`: date, limits, version.
 
