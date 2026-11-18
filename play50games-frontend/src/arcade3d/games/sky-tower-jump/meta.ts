@@ -26,7 +26,7 @@ export const skyTowerJumpMeta: ArcadeGameMeta = {
    slug: "sky-tower-jump",
    title: "Sky Tower Jump",
    tagline: "Jump the floating islands to the top of the sky.",
-   description: "Climb a tower of floating islands as a Color Roll Heroes armadillo. Pick Riko, Nami, Kiro, Zuno or Vexa, grab orbs to cut your time, and reach the sky gate.",
+   description: "Climb a tower of floating islands as a Scale Squad pangolin. Pick Riko, Nami, Kiro, Zuno or Vexa, grab orbs to cut your time, and reach the sky gate.",
    order: 51,
    status: "live",
    collection: "rollheroes",

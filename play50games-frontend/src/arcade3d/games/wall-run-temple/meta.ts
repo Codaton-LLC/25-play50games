@@ -13,7 +13,7 @@ export const wallRunTempleMeta: ArcadeGameMeta = {
    slug: "wall-run-temple",
    title: "Wall Run Temple",
    tagline: "No floor. Run the walls, kick across, whip round the columns.",
-   description: "Cross a cliff temple with no floor: jump onto the glyph walls and run along them, kick from wall to wall before the run droops, and whip round stone columns at the corners. Sliding panels, spike panels, crumbling walls and swinging rams. Pick any Color Roll Hero. Level 5 is Umbra, the rival wall runner.",
+   description: "Cross a cliff temple with no floor: jump onto the glyph walls and run along them, kick from wall to wall before the run droops, and whip round stone columns at the corners. Sliding panels, spike panels, crumbling walls and swinging rams. Pick any Scale Squad hero. Level 5 is Umbra, the rival wall runner.",
    order: 70,
    status: "live",
    collection: "rollheroes",

@@ -25,7 +25,7 @@ export const ultimateColorTrialMeta: ArcadeGameMeta = {
    slug: "ultimate-color-trial",
    title: "Ultimate Color Trial",
    tagline: "One corridor, every mechanic: jump pads, trial rings, colour doors, laser runways, survival rounds, the energy core, and the Chroma Sentinel at the end.",
-   description: "The finale of the Color Roll Heroes: a trial corridor through the Prism Fortress made of sections, each one of the worlds' mechanics. Jump the pads over the void, pass the rings in order, charge a colour at a switch and take its door, hop the sweeping lasers, outlast the rolling orbs, carry the energy core to its receptor. A section's exit opens when it is done. On the summit the Chroma Sentinel turns those mechanics into his attacks.",
+   description: "The finale of the Scale Squad: a trial corridor through the Prism Fortress made of sections, each one of the worlds' mechanics. Jump the pads over the void, pass the rings in order, charge a colour at a switch and take its door, hop the sweeping lasers, outlast the rolling orbs, carry the energy core to its receptor. A section's exit opens when it is done. On the summit the Chroma Sentinel turns those mechanics into his attacks.",
    order: 100,
    status: "live",
    collection: "rollheroes",

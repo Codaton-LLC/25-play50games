@@ -22,7 +22,7 @@ const DESCRIPTIONS: Record<LevelId, string> = {
    2: "Office Roofs: window-cleaner gondolas slide across two streets. Time the roll so the leap meets one. 120 seconds.",
    3: "Moving Rooftops: crane-swung roof slabs, rain-wet tin that rolls 1.5x faster with no brakes, and blinking roofs. 150 seconds.",
    4: "Night Skyline: chimney updrafts lift you a whole climb, neon spark arcs cross the slopes. 180 seconds.",
-   5: "High-Rise Climb: up the high-rises to the helipad arena and Ashback, the Shadow Armadillo. Roll down the ramps into him. 240 seconds.",
+   5: "High-Rise Climb: up the high-rises to the helipad arena and Ashback, the Shadow Pangolin. Roll down the ramps into him. 240 seconds.",
 };
 
 const definition: GameDefinition<RoofLevel> = {

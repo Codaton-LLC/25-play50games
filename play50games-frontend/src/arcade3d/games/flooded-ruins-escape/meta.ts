@@ -25,7 +25,7 @@ export const floodedRuinsEscapeMeta: ArcadeGameMeta = {
    slug: "flooded-ruins-escape",
    title: "Flooded Ruins Escape",
    tagline: "Decide where the water goes, then escape the tide.",
-   description: "Escape a drowned temple as a Color Roll Heroes armadillo. Pull stone levers to flood a chamber and float up, or drain it to walk under a low door, while the storm tide rises behind you. Pick Riko, Nami, Kiro, Zuno or Vexa, grab orbs to cut your time, and beat Umbra Roller at the Tide Bell.",
+   description: "Escape a drowned temple as a Scale Squad pangolin. Pull stone levers to flood a chamber and float up, or drain it to walk under a low door, while the storm tide rises behind you. Pick Riko, Nami, Kiro, Zuno or Vexa, grab orbs to cut your time, and beat Umbra Roller at the Tide Bell.",
    order: 53,
    status: "live",
    collection: "rollheroes",

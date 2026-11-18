@@ -84,7 +84,7 @@ export const SECRETS: Record<LevelId, readonly SecretSpec[]> = {
  */
 export const ASHBACK: BossConfig = {
    id: "ashback",
-   name: "Ashback, the Shadow Armadillo",
+   name: "Ashback, the Shadow Pangolin",
    maxHp: 7,
    introMs: 1500,
    transitionMs: 1200,

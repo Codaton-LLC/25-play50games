@@ -32,7 +32,7 @@ export const ringJumpChallengeMeta: ArcadeGameMeta = {
    slug: "ring-jump-challenge",
    title: "Ring Jump Challenge",
    tagline: "Leap off the column and dive a sea canyon through rings.",
-   description: "Leap from a stone column and steer a long free-fall down a sea canyon as a Color Roll Heroes armadillo: thread the rings for points and speed, hit their centres, tuck into a dive to beat the clock, and land on the target pad. Pick Riko, Nami, Kiro, Zuno or Vexa; level 5 ends on Cyclone Ray's tail.",
+   description: "Leap from a stone column and steer a long free-fall down a sea canyon as a Scale Squad pangolin: thread the rings for points and speed, hit their centres, tuck into a dive to beat the clock, and land on the target pad. Pick Riko, Nami, Kiro, Zuno or Vexa; level 5 ends on Cyclone Ray's tail.",
    order: 58,
    status: "live",
    collection: "rollheroes",

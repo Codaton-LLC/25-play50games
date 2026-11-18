@@ -25,7 +25,7 @@ export const templeCoinRushMeta: ArcadeGameMeta = {
    title: "Temple Coin Rush",
    tagline: "Grab the coins, pay the gates, outrun the boulder. Or bank it all.",
    description:
-      "Run from a rolling boulder through a collapsing jungle temple as a Color Roll Heroes armadillo. Grab coins and pay the toll gates that open the fast lanes, or keep them: unspent coins score double at the finish. Spike tiles, falling floors and side-ramp boulders, and Riko, Nami, Kiro, Zuno or Vexa each find their own way through. Level 5: outrun Coilstone, the Temple Serpent, and pay the bells that bring it down.",
+      "Run from a rolling boulder through a collapsing jungle temple as a Scale Squad pangolin. Grab coins and pay the toll gates that open the fast lanes, or keep them: unspent coins score double at the finish. Spike tiles, falling floors and side-ramp boulders, and Riko, Nami, Kiro, Zuno or Vexa each find their own way through. Level 5: outrun Coilstone, the Temple Serpent, and pay the bells that bring it down.",
    order: 69,
    status: "live",
    collection: "rollheroes",

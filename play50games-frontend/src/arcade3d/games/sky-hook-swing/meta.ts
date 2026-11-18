@@ -13,7 +13,7 @@ export const skyHookSwingMeta: ArcadeGameMeta = {
    slug: "sky-hook-swing",
    title: "Sky Hook Swing",
    tagline: "Aim, reel, release. Chain the rings across the docks.",
-   description: "Swing an analytic rope between grapple rings over the sky docks. Reel in to clear a wall, release on the green flash for a faster fling, and chain four releases without touching down. Pick any Color Roll Hero. Level 5 is the Gust Galleon.",
+   description: "Swing an analytic rope between grapple rings over the sky docks. Reel in to clear a wall, release on the green flash for a faster fling, and chain four releases without touching down. Pick any Scale Squad hero. Level 5 is the Gust Galleon.",
    order: 63,
    status: "live",
    collection: "rollheroes",
