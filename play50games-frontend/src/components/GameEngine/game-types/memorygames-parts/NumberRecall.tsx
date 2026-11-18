@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useRoundsCompletion } from "./useRoundsCompletion";
 import m from "./mobile.module.css";
 import st from "./memoryStatus.module.css";
 import nr from "./NumberRecall.module.css";
@@ -235,14 +236,13 @@ function NumberRecall({
       }
    }, [currentRound]);
 
-   // Check game completion
-   useEffect(() => {
-      if (currentRound >= maxRounds) {
-         setTimeout(() => {
-            onComplete(currentScore);
-         }, 1000);
-      }
-   }, [currentRound, maxRounds, currentScore, onComplete]);
+   // Check game completion: exactly once, 1000 ms after the last round (see useRoundsCompletion)
+   useRoundsCompletion(
+      currentRound >= maxRounds,
+      currentScore,
+      onComplete,
+      (fn, ms) => setTimeout(fn, ms)
+   );
 
    const startRound = useCallback(() => {
       // Sequence length increases with round: 3 + round (min 3, max 10)
