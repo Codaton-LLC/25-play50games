@@ -221,7 +221,7 @@ function RunScene({ multi }: { multi: boolean }) {
                orbit={orbit}
                input={MIRROR_GESTURES}
                pivot={(out) => {
-                  Object.assign(out, { x: (bodyX(lead, 0) + bodyX(lead, 1)) * 0.2, y: 1.8 + Math.min(lead.bodies[0].y, 1.5) * 0.3, z: -lead.s - 5 });
+                  Object.assign(out, { x: (bodyX(lead, 0) + bodyX(lead, 1)) * 0.2, y: 1.8 + Math.min(lead.bodies[0].y, 1.5) * 0.3, z: -lead.s - (aspect < 1 ? 5 : 3) });
                   return true;
                }}
                travel={(out) => {
