@@ -58,6 +58,16 @@ is ranked and inside the server limits; random play never beats the bound nor en
 `rules.test.ts`, `powers.test.ts`, `arena.test.ts`, `assets.test.ts`, `look.test.ts`, `orbit.test.ts`,
 `multiplayer.test.ts`.
 
+The pinned rows (`limits.ts` = `meta.levels[n].scoring` = `arcade-games.json`, checked by `registry.sync.test.ts` and `menu2/limitsSync.test.ts`):
+
+| Level | Name | maxScore | minDurationMs | maxDurationMs | base | maxPointsPerSec |
+|---|---|---|---|---|---|---|
+| 1 | Two Colors | 4940 | 51000 | 121000 | 0 | 97 |
+| 2 | Three Colors | 8890 | 83900 | 151000 | 0 | 106 |
+| 3 | Four Colors | 15600 | 143400 | 211000 | 0 | 109 |
+| 4 | Fast Waves | 24150 | 179600 | 261000 | 0 | 135 |
+| 5 | Orb Defense Master | 28450 | 171400 | 321000 | 0 | 166 |
+
 ## Assets
 
 `public/models/3d/color-orb-defense`: from `ready/menu2/color-orb-defense` m2ArenaPillar, m2CastleWallBg,

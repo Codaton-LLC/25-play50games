@@ -54,6 +54,16 @@ bound under input spam for every step; idle and a lost table unranked; the pinne
 hero clears every level under 85 % of the cap), `rules.test.ts`, `powers.test.ts`, `table.test.ts`,
 `assets.test.ts`, `look.test.ts`, `orbit.test.ts`, `multiplayer.test.ts`.
 
+The pinned rows (`limits.ts` = `meta.levels[n].scoring` = `arcade-games.json`, checked by `registry.sync.test.ts` and `menu2/limitsSync.test.ts`):
+
+| Level | Name | maxScore | minDurationMs | maxDurationMs = timeBaseMs |
+|---|---|---|---|---|
+| 1 | Practice Table | 29850 | 1500 | 300000 |
+| 2 | Mushroom Garden | 32460 | 5400 | 330000 |
+| 3 | Ice Table | 35850 | 1500 | 360000 |
+| 4 | Multiball | 38750 | 2500 | 390000 |
+| 5 | Rollo's Table | 40680 | 13200 | 420000 |
+
 ## Assets
 
 Table props from `~/.play50/hyper3d/ready/menu2/plate-bounce-arena` (mushroom, bumper V2, penguin, plunger,

@@ -38,6 +38,25 @@ m2SeaRock, m2SeaCliffBg, m2MarkerBuoy, m2SeaGullDiver, m2AquaOrb, m2VoltEelBoss.
 `pirate-cannons/lighthouseV2`, `hotel-bellboy-rush/serviceBellV2`. Rock stacks, cables, gantries,
 mats' zones, sea and sky are code (terrain / markers).
 
+## Server limits and why they hold
+
+A points game with a fixed ceiling per level (`rules.ts` `limitsFor`). Each section pays at most four unique orbs (30 + 20 each)
+and one unique landing (100 + 20); the clear pays 500 once; on L5 the Volt Eel pays 5 × 250. Secrets, powers, retries and
+the flow display pay nothing, so `maxScore = maxScoreFor = sections × 320 + 500 (+1250 on L5)` bounds any run.
+`base = maxScore` and `maxPointsPerSec = 0`: the server's rate check is that ceiling at every duration.
+`minDurationMs = minDurationFor`: no hero rides faster than `MAX_SPEED` (19.6 m/s) and the fastest route adds 18 %, so each
+required span takes at least length / (MAX_SPEED × 1.18), rounded down to 100 ms; `maxDurationMs` = the level timer + 1 s.
+`proof.test.ts` drives every hero through `createArcadeStore()` at 30, 60 and 144 Hz on every level inside these rows
+(`limits.ts` = `meta.levels[n].scoring` = `arcade-games.json`):
+
+| Level | Name | maxScore | minDurationMs | maxDurationMs | base | maxPointsPerSec |
+|---|---|---|---|---|---|---|
+| 1 | Training Line | 1460 | 6200 | 151000 | 1460 | 0 |
+| 2 | Twin Lines | 1780 | 9300 | 181000 | 1780 | 0 |
+| 3 | Moving Landing | 2100 | 12500 | 211000 | 2100 | 0 |
+| 4 | Lighthouse Night | 2420 | 15500 | 241000 | 2420 | 0 |
+| 5 | Zipline Master | 3990 | 16900 | 301000 | 3990 | 0 |
+
 ## Checks
 
 ```

@@ -93,6 +93,16 @@ Tests:
 - Also `rules.test.ts`, `powers.test.ts`, `track.test.ts`, `assets.test.ts`, `look.test.ts`,
   `orbit.test.ts`, `multiplayer.test.ts`.
 
+The pinned rows (`limits.ts` = `meta.levels[n].scoring` = `arcade-games.json`, checked by `registry.sync.test.ts` and `menu2/limitsSync.test.ts`):
+
+| Level | Name | maxScore | minDurationMs | maxDurationMs = timeBaseMs |
+|---|---|---|---|---|
+| 1 | Two Gates | 10450 | 15500 | 120000 |
+| 2 | Three Colors | 12920 | 20800 | 150000 |
+| 3 | Fast Switching | 16050 | 19500 | 180000 |
+| 4 | Mixed Obstacles | 18830 | 21700 | 210000 |
+| 5 | Color Overdrive | 26690 | 33100 | 300000 |
+
 ## Assets
 
 `public/models/3d/switch-color-hero` (from `~/.play50/hyper3d/ready/menu2/switch-color-hero`, generated earlier):

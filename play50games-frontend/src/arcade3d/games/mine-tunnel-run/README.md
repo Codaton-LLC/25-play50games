@@ -56,6 +56,16 @@ gas, cracked and ghost rock, boulders and water all passable) x 70 ms (the dash 
 crossing), on L5 the gallery's cells plus Rockjaw's fastest defeat, minus every orb and the most flow
 bonus, rounded down to 100 ms. No power, dig order or tunnelling beetle can beat it.
 
+The pinned rows (`limits.ts` = `meta.levels[n].scoring` = `arcade-games.json`, checked by `registry.sync.test.ts` and `menu2/limitsSync.test.ts`):
+
+| Level | Name | maxScore | minDurationMs | maxDurationMs = timeBaseMs |
+|---|---|---|---|---|
+| 1 | Dry Tunnel | 8890 | 1100 | 90000 |
+| 2 | Pipe Zone | 11730 | 2700 | 120000 |
+| 3 | Water Gaps | 14570 | 4300 | 150000 |
+| 4 | Fast Tunnel | 11700 | 3000 | 120000 |
+| 5 | Deep Mine Sprint | 21920 | 20800 | 240000 |
+
 ## Files
 
 `levels.ts` (maps, parser) · `rules.ts` (the world, heroes, boulders, beetles, water, rails, rockfall,

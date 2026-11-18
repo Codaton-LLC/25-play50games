@@ -94,6 +94,16 @@ The guards in the tests:
 - Every hero with its power mashed never beats the floor.
 - The honest bot wins through the real store with ragged frames: a ranked win inside the limits.
 
+The pinned rows (`limits.ts` = `meta.levels[n].scoring` = `arcade-games.json`, checked by `registry.sync.test.ts` and `menu2/limitsSync.test.ts`):
+
+| Level | Name | maxScore | minDurationMs | maxDurationMs = timeBaseMs |
+|---|---|---|---|---|
+| 1 | Simple Hunt | 5840 | 1600 | 60000 |
+| 2 | Mixed Colors | 7430 | 700 | 75000 |
+| 3 | Larger Arena | 8860 | 1400 | 90000 |
+| 4 | Moving Cores | 10350 | 1500 | 105000 |
+| 5 | Core Master | 10520 | 14800 | 120000 |
+
 ## What the bots reached
 
 The honest bot (no routes, the one `?autoplay=1` uses) wins every level at 30, 60 and 144 fps:

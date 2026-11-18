@@ -76,6 +76,16 @@ and the flow bonus. Each level row is `proposeLimits(courseFor(level))`:
 
 `proof.test.ts`: every hero with its power mashed, spam at random frame times, mutation probes.
 
+The pinned rows (`limits.ts` = `meta.levels[n].scoring` = `arcade-games.json`, checked by `registry.sync.test.ts` and `menu2/limitsSync.test.ts`):
+
+| Level | Name | maxScore | minDurationMs | maxDurationMs = timeBaseMs |
+|---|---|---|---|---|
+| 1 | Wide Beams | 13610 | 13900 | 150000 |
+| 2 | Narrow Beams | 18410 | 15900 | 200000 |
+| 3 | Moving Beams | 22060 | 19400 | 240000 |
+| 4 | Rotating Path | 25990 | 20100 | 280000 |
+| 5 | Balance Master | 33960 | 20400 | 360000 |
+
 ## Models
 
 `public/models/3d/tightrope-path/`: m2BalanceBeam, m2BalancePole, m2LookoutTower, m2RaftPlatform,
