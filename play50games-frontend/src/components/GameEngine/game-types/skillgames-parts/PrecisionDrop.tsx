@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
+import { useGameTimers } from "../useGameTimers";
 import {
    CheckCircleIcon,
    XCircleIcon,
@@ -206,6 +207,8 @@ export default function PrecisionDrop({
    const prevLevelRef = useRef<number | null>(null);
    const forceStartLevelRef = useRef<number | null>(null);
    const completionCalledRef = useRef(false);
+   // Completion and "unlimited replays" timers that must not outlive the game
+   const { completeLater, expireLater } = useGameTimers();
    const lastCompletedLevelRef = useRef<number | null>(null);
    const nextRoundClickedRef = useRef(false);
    const [nextRoundLocked, setNextRoundLocked] = useState(false);
@@ -947,7 +950,7 @@ export default function PrecisionDrop({
          onScoreUpdate(finalScore);
          if (!completionCalledRef.current) {
             completionCalledRef.current = true;
-            setTimeout(() => {
+            completeLater(() => {
                onComplete(finalScore);
             }, 1500);
          }
@@ -1129,7 +1132,7 @@ export default function PrecisionDrop({
                   })
                );
 
-               setTimeout(() => {
+               expireLater(() => {
                   setUnlimitedActivated(false);
                   setHasShared(false);
                   localStorage.removeItem(gameKey);
@@ -1200,7 +1203,7 @@ export default function PrecisionDrop({
 
                            const remainingTime = data.expiry - Date.now();
                            if (remainingTime > 0) {
-                              setTimeout(() => {
+                              expireLater(() => {
                                  setUnlimitedActivated(false);
                                  setHasShared(false);
                                  localStorage.removeItem(gameKey);
@@ -1219,7 +1222,7 @@ export default function PrecisionDrop({
                                  shared: true,
                               })
                            );
-                           setTimeout(() => {
+                           expireLater(() => {
                               setUnlimitedActivated(false);
                               setHasShared(false);
                               localStorage.removeItem(gameKey);
