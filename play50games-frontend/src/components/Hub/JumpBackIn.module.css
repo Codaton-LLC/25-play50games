@@ -1,0 +1,16 @@
+/* The rail scrolls inside its own row; the page never scrolls sideways. */
+.rail {
+   display: grid;
+   grid-auto-columns: minmax(240px, 22%);
+   grid-auto-flow: column;
+   gap: 24px;
+   overflow-x: auto;
+   padding-bottom: 10px;
+   scroll-snap-type: x proximity;
+   scrollbar-width: thin;
+}
+
+.item {
+   min-width: 0;
+   scroll-snap-align: start;
+}

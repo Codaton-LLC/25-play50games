@@ -5,7 +5,9 @@ Cursor and Codex are pointed here via `AGENTS.md`. Agents: **Claude** (most work
 
 ## Current state (verified 2026-10-05)
 
-- `play50games-frontend/` – Next 14.2 (App Router), React 18.3, plain CSS (`globals.css`) + CSS vars (`--bg`, `--card`, `--stroke`, `--accent`), dark only, system fonts, Heroicons. No Tailwind.
+- `play50games-frontend/` – Next 14.2 (App Router), React 18.3, plain CSS (`globals.css`) + CSS vars (`--bg`, `--card`, `--stroke`, `--accent`), Heroicons. No Tailwind. The classic pages are dark only with system fonts.
+- **Redesign (branch `claude/redesign-hub`, 2026-11-17, source of truth `docs/design/DESIGN.md`):** the hub `/`, `/3d`, `/leaderboards` and `/scale-squad` use the new design system: tokens `--p50-*` in `src/app/theme.css` (light + dark, `data-theme` on `<html>`, System / Light / Dark switch in `src/lib/theme.ts`), fonts Outfit / DM Sans / JetBrains Mono via `next/font/google` in `app/layout.tsx`, one accent (Arcade Coral `#E75F40`). A redesigned page wraps itself in the class `p50`, which also maps the legacy vars onto the new palette; pages without it keep the old look. Site chrome in `src/components/Site/` (`SiteHeader` with the world switcher + mega panel, `SearchPalette` (Ctrl K), `SiteFooter`, `BoardRows`, shared `ui.module.css`), hub parts in `src/components/Hub/` (`HubHero`, `JumpBackIn`, `WorldsAccordion`, `HubBoards`). `globals.css` styles every `<button>` and `button:hover`: a new button class must set its own background for both states. Not redesigned yet: the game lobby, Classic 50, the player card, the login/register modals, the result panel.
+- The third world (Menu 2) is named **Scale Squad** on the site (user, 2026-11-17; it replaces the menu label "Color Roll Heroes" used further down and in the Menu 2 spec and framework, which still carry the old name): five pangolin heroes who roll into a ball (Riko, Nami, Kiro, Zuno, Vexa keep their colours and powers). The checks listed under "Menu 2 heroes" (name search in DPMA and EUIPO/TMview, Hyper3D commercial use, IP lawyer) apply to this name too, before `NEXT_PUBLIC_SQUAD_TEASER` is switched on in production. Its art is a group picture of the five, never a T-pose line-up and never the old turtle board. The picture is `public/images/worlds/scale-squad.webp` (made by the user in ChatGPT, approved 2026-11-17; `SQUAD_PICTURE` in `components/Site/siteData.ts`, where `null` draws five balls in CSS instead). Never build world art by cutting and stacking the concepts: the user rejected that collage.
 - 3D deps installed: `three@~0.170` (+ `@types/three`), `@react-three/fiber@^8`, `@react-three/drei@^9`, `@react-three/rapier@^1` (lazy, obstacle-race only), `zustand@^4`. Dev: `vitest@^2`. Never R3F 9 / drei 10 (React 19 only).
 - Scripts: `npm run dev | build | start | lint`, `npm test` (= `vitest run`, config `vitest.config.mts`, files `src/**/*.test.ts`).
 - `src/arcade3d/` contracts are written (Phase 0): `types.ts`, `flags.ts`, `registry.ts`, `loaders.ts`, `core/{types,scores,useBestScore,format}.ts`, `core/PlaceholderScene.tsx`, tests `core/scores.test.ts` + `registry.sync.test.ts`, 10 stubs `games/<slug>/{meta.ts,index.tsx}` (all `status: "soon"`), prop-typed stubs `ui/*.tsx` (K2) and `components/Hub/{HubHero,CollectionPanel,ArcadeTeaserStrip}.tsx` (K1), and `assets/shared.spec.json`.
@@ -69,6 +71,8 @@ Decisions the user made (do not re-open them without asking):
 | `/3d` | Arcade grid: 10 cards, best score each, "soon" badges | Phase 2 |
 | `/3d/[slug]` | One game, client-only mount, full screen, `generateStaticParams` for 10 slugs, noindex while "soon" | Phase 2 |
 | `/progress`, `/certificate/*` | Classic only; back link → `/classic` | Phase 1 |
+| `/leaderboards` | One board per live game (game list + top 20); 404 unless the arcade and leaderboard flags are on | Redesign |
+| `/scale-squad` | Teaser of the third world (noindex); 404 unless `NEXT_PUBLIC_SQUAD_TEASER` is on | Redesign |
 
 "Back to classic" links to fix in Phase 1: `games/[id]/page.tsx:79` (`handleExit`, also covers GameEngine Exit/X/Continue), `progress/page.tsx:183`, `certificate/page.tsx:378`. GameEngine itself is not edited.
 
@@ -80,6 +84,7 @@ Decisions the user made (do not re-open them without asking):
 | `NEXT_PUBLIC_ARCADE_LEADERBOARD` | Scores stay in localStorage only (status `leaderboard-off`) |
 | `NEXT_PUBLIC_ARCADE_API_MOCK` | On = in-memory mock instead of WP (dev only) |
 | `NEXT_PUBLIC_ARCADE_LEVELS` | Every game plays level 1 exactly as before levels: no level tiles, HUD chip, Next level / Levels buttons, `?level=` or `level` in any request (`core/README.md` "Levels"). On: games with five `meta.levels` show the level UI once the server advertises `features.levels` |
+| `NEXT_PUBLIC_SQUAD_TEASER` | Two worlds only: no Scale Squad entry in the menu, the hub or the footer, and `/scale-squad` → 404 |
 
 All default off, so merging to `main` is always safe. Read each flag with its literal key (Next inlines them at build time).
 
@@ -101,8 +106,11 @@ play50games-frontend/src/
     ui/  ArcadeCard ArcadeGrid LeaderboardTable ResultPanel BestScoreBadge  # Cursor K2, display only
     games/<slug>/  meta.ts index.tsx                                       (exist)
                    Scene.tsx rules.ts rules.test.ts assets.ts assets.spec.json README.md
-  components/Hub/  HubHero CollectionPanel ArcadeTeaserStrip (Cursor K1) · ClassicProgressBadge (Claude)
-  components/Nav/SectionTabs.tsx · components/Header/HeaderWithAuth.tsx (Claude)
+  components/Site/ SiteHeader(+Client) SearchPalette SiteFooter BoardRows ClassicPath SquadArt
+                   siteData hooks icons ui.module.css                      (Claude, redesign chrome)
+  components/Hub/  HubHero JumpBackIn WorldsAccordion HubBoards            (Claude, redesigned hub)
+  components/Nav/SectionTabs.tsx · components/Header/HeaderWithAuth.tsx (Claude; classic pages only)
+  app/theme.css · lib/theme.ts                                             (Claude, design tokens + theme)
   lib/api/arcade.ts apiBase.ts
 play50games-frontend/public/models/3d/{shared,<slug>}/*.glb   # Claude (optimized GLBs only)
 play50games-frontend/public/images/3d/<slug>.webp             # game owner (thumbnail)
@@ -223,7 +231,7 @@ Last update 2026-10-08 (Release 2 batch: `claude/golive-batch` merged, office-es
 ## Working agreements
 
 - Style: 3-space indent, double quotes, semicolons, TS strict-ish. Match surrounding code.
-- New UI: CSS Modules (`*.module.css`) + existing CSS vars (`var(--card)`, …). Never edit `globals.css` for new work. No Tailwind, no new UI libraries.
+- New UI: CSS Modules (`*.module.css`) + the design tokens `var(--p50-*)` from `app/theme.css` inside a `p50` page (`docs/design/DESIGN.md`); in-game HUD and classic pages keep the legacy vars (`var(--card)`, …). Never edit `globals.css` for new work. No Tailwind, no new UI libraries.
 - Do not touch classic game logic (`GameEngine/**`, `progressStorage`) or the WP theme unless the task says so. `rest-api.php` is never edited; `functions.php` only gets guarded `require_once` lines (Claude).
 - Only Claude edits `package.json` / lockfile. Ask Claude for a new dependency.
 - Before "done", in `play50games-frontend`: `npm run build` and `npx vitest run` (plus `npx tsc --noEmit`).

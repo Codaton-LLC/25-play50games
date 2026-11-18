@@ -22,5 +22,11 @@ export const ARCADE_PREVIEW = on(process.env.NEXT_PUBLIC_ARCADE_PREVIEW);
  */
 export const ARCADE_LEVELS = on(process.env.NEXT_PUBLIC_ARCADE_LEVELS);
 
+/**
+ * Shows the third world, Scale Squad (Menu 2), as "soon": its menu entry, its hub panel
+ * and the /scale-squad teaser page. Off = two worlds, and /scale-squad is a 404.
+ */
+export const SQUAD_TEASER = on(process.env.NEXT_PUBLIC_SQUAD_TEASER);
+
 /** Preview builds only: every level of every game is open, so a tester can jump to any level. Never set on Vercel. */
 export const ARCADE_UNLOCK_ALL = on(process.env.NEXT_PUBLIC_ARCADE_UNLOCK_ALL);

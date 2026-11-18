@@ -1,0 +1,120 @@
+/* rows: no cards, hairlines only */
+.row {
+   display: grid;
+   grid-template-columns: 40px minmax(0, 1fr) auto;
+   align-items: center;
+   gap: 12px;
+   min-height: 60px;
+   border-bottom: 1px solid var(--p50-line);
+   animation: rise 400ms var(--p50-ease) both;
+   animation-delay: calc(var(--i, 0) * 40ms);
+}
+
+.who {
+   overflow: hidden;
+   font-weight: 600;
+   text-overflow: ellipsis;
+   white-space: nowrap;
+}
+
+.score {
+   font: 500 1.125rem/1 var(--p50-font-mono);
+   font-variant-numeric: tabular-nums;
+   white-space: nowrap;
+}
+
+.rank {
+   color: var(--p50-text-3);
+   font: 500 0.875rem/1 var(--p50-font-mono);
+}
+
+.you {
+   margin: 8px -12px 0;
+   padding-inline: 12px;
+   border-bottom-color: transparent;
+   border-radius: 14px;
+   background: var(--p50-coral-wash);
+}
+
+.you .rank {
+   color: inherit;
+}
+
+.shield {
+   display: block;
+   width: 30px;
+   height: 34px;
+}
+
+.shield [data-part="shape"] {
+   fill: var(--p50-raised);
+   stroke: var(--p50-line);
+   stroke-width: 1;
+}
+
+.shield [data-part="number"] {
+   fill: var(--p50-text);
+   font: 600 13px var(--p50-font-mono);
+}
+
+.first [data-part="shape"] {
+   fill: var(--p50-gold);
+   stroke: none;
+}
+
+.first [data-part="number"] {
+   fill: #0b0f1a;
+}
+
+/* loading: the shape of the rows, no spinner */
+.skeleton {
+   animation: none;
+}
+
+.skBox,
+.skLine,
+.skScore {
+   display: block;
+   height: 14px;
+   border-radius: 7px;
+   background: var(--p50-raised);
+   animation: shimmer 1.6s ease-in-out infinite;
+}
+
+.skBox {
+   width: 28px;
+   height: 28px;
+   border-radius: 8px;
+}
+
+.skLine {
+   width: min(180px, 70%);
+}
+
+.skScore {
+   width: 72px;
+}
+
+.notice {
+   display: flex;
+   flex-direction: column;
+   align-items: flex-start;
+   gap: 14px;
+   padding: 24px 0;
+   border-top: 1px solid var(--p50-line);
+   border-bottom: 1px solid var(--p50-line);
+   color: var(--p50-text-2);
+}
+
+@keyframes rise {
+   from {
+      opacity: 0;
+      transform: translateY(8px);
+   }
+}
+
+@keyframes shimmer {
+   50% {
+      opacity: 0.5;
+   }
+}

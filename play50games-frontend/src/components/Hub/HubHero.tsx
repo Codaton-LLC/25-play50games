@@ -1,122 +1,160 @@
+"use client";
+
+// Hub hero (docs/design/DESIGN.md §6): the copy on the left, the featured stage on the right.
+// The stage shows one live game at a time and moves on every 7 seconds; the one coral button
+// always plays the game on stage. The copy is rendered on the server and passed in.
+import { useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
+import type { ArcadeGameMeta } from "@/arcade3d/types";
+import { useBestScore } from "@/arcade3d/core/useBestScore";
+import { formatScore } from "@/arcade3d/core/format";
+import { levelsActive } from "@/arcade3d/core/levels";
+import { levelClearedText, levelProgress, levelTotalText } from "@/arcade3d/core/levelProgress";
+import { PlayIcon } from "@/components/Site/icons";
+import ui from "@/components/Site/ui.module.css";
 import styles from "./HubHero.module.css";
 
-export interface HubCta {
-   label: string;
-   href: string;
-   /** shown but not clickable, e.g. "3D Arcade coming soon" */
-   disabled?: boolean;
-}
-
 export interface HubHeroProps {
-   title: string;
-   subtitle: string;
-   primaryCta: HubCta;
-   secondaryCta?: HubCta;
-   /** Phase 5: a recorded trailer replaces the CSS background */
-   media?: { type: "video"; src: string; poster: string };
+   /** eyebrow, headline and the sentence under it */
+   copy: ReactNode;
+   /** the small facts line under the button */
+   facts: ReactNode;
+   /** live games with art for the stage; empty = the classic cover with a Classic 50 button */
+   games: ArcadeGameMeta[];
 }
 
-export default function HubHero({ title, subtitle, primaryCta, secondaryCta, media }: HubHeroProps) {
+const STAGE_MS = 7000;
+
+function Stage({ games, index, onPick }: { games: ArcadeGameMeta[]; index: number; onPick: (next: number) => void }) {
+   const game = games[index];
+   const best = useBestScore(game.slug);
+   const summary = levelsActive(game) ? levelProgress(game, best) : null;
+   // the stage only moves by itself once we know the visitor has not asked for less motion
+   const [auto, setAuto] = useState(false);
+
+   useEffect(() => {
+      setAuto(games.length > 1 && !window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+   }, [games.length]);
+
    return (
-      <section className={styles.hero}>
-         {media ? (
-            <div className={styles.mediaFrame} aria-hidden="true">
-               <img className={styles.poster} src={media.poster} alt="" />
-               <video
-                  className={styles.media}
-                  src={media.src}
-                  poster={media.poster}
-                  autoPlay
-                  muted
-                  loop
-                  playsInline
+      <div className={styles.stage}>
+         <Link href={`/3d/${game.slug}`} className={styles.art} aria-label={`Play ${game.title}`}>
+            {games.map((item, itemIndex) => (
+               // eslint-disable-next-line @next/next/no-img-element
+               <img
+                  key={item.slug}
+                  src={item.thumbnail ?? ""}
+                  alt=""
+                  className={itemIndex === index ? `${styles.image} ${styles.imageOn}` : styles.image}
+                  loading={itemIndex === 0 ? "eager" : "lazy"}
                />
-               <div className={styles.scrim} />
-            </div>
-         ) : (
-            <div className={styles.backdrop} aria-hidden="true">
-               <div className={styles.sky} />
-               <div className={styles.glow} />
-               <div className={styles.floor}>
-                  <div className={styles.plane}>
-                     <div className={styles.grid} />
-                  </div>
-               </div>
-               <div className={styles.tiles}>
-                  <span className={styles.tile}>
-                     <svg viewBox="0 0 32 32" aria-hidden="true">
-                        <path d="M6 6h8.5v8.5H6zM17.5 6H26v8.5h-8.5zM6 17.5h8.5V26H6zM17.5 17.5H26V26h-8.5z" />
-                     </svg>
-                  </span>
-                  <span className={styles.tile}>
-                     <svg viewBox="0 0 32 32" aria-hidden="true">
-                        <circle cx="16" cy="16" r="9" />
-                        <circle cx="16" cy="16" r="2.4" fill="currentColor" stroke="none" />
-                     </svg>
-                  </span>
-                  <span className={styles.tile}>
-                     <svg viewBox="0 0 32 32" aria-hidden="true">
-                        <path d="M16 5.5 26.5 16 16 26.5 5.5 16z" />
-                     </svg>
-                  </span>
-                  <span className={styles.tile}>
-                     <svg viewBox="0 0 32 32" aria-hidden="true">
-                        <path d="M16 6.5 26 12v10L16 27.5 6 22V12z" />
-                        <path d="M16 16.5 26 12M16 16.5 6 12M16 16.5V27.5" />
-                     </svg>
-                  </span>
-                  <span className={styles.tile}>
-                     <svg viewBox="0 0 32 32" aria-hidden="true">
-                        <path d="M8 8h7v6h-7v10h16" />
-                        <path d="M20 20h4v4" />
-                     </svg>
-                  </span>
-                  <span className={styles.tile}>
-                     <svg viewBox="0 0 32 32" aria-hidden="true">
-                        <path
-                           fill="currentColor"
-                           stroke="none"
-                           d="M16 4.8 19.1 12h7.6l-6.1 4.6 2.3 7.4L16 19.6 9.1 24l2.3-7.4L5.3 12h7.6z"
-                        />
-                     </svg>
-                  </span>
-                  <span className={styles.tile}>
-                     <svg viewBox="0 0 32 32" aria-hidden="true">
-                        <path d="M16 5.5 26.5 11.5v9L16 26.5 5.5 20.5v-9z" />
-                     </svg>
-                  </span>
-                  <span className={styles.tile}>
-                     <svg viewBox="0 0 32 32" aria-hidden="true">
-                        <path d="M6 13 16 8l10 5-10 5z" />
-                        <path d="M6 18.5 16 23.5 26 18.5" />
-                        <path d="M6 23.5 16 28.5 26 23.5" />
-                     </svg>
-                  </span>
-               </div>
-               <div className={styles.vignette} />
-            </div>
-         )}
-         <div className={styles.content}>
-            <h1 className={styles.title}>{title}</h1>
-            <p className={styles.subtitle}>{subtitle}</p>
-            <div className={styles.actions}>
-               <Link className={`${styles.cta} ${styles.ctaPrimary}`} href={primaryCta.href}>
-                  {primaryCta.label}
-               </Link>
-               {secondaryCta ? (
-                  secondaryCta.disabled ? (
-                     <span className={`${styles.cta} ${styles.ctaDisabled}`} aria-disabled="true">
-                        {secondaryCta.label}
+            ))}
+         </Link>
+
+         {games.length > 1 ? (
+            <div className={styles.segs} role="group" aria-label="Featured games">
+               {games.map((item, itemIndex) => (
+                  <button
+                     key={item.slug}
+                     type="button"
+                     className={styles.seg}
+                     aria-label={`Show ${item.title}`}
+                     aria-pressed={itemIndex === index}
+                     onClick={() => onPick(itemIndex)}
+                  >
+                     <span className={styles.segTrack}>
+                        {itemIndex < index || (itemIndex === index && !auto) ? (
+                           <i className={`${styles.segFill} ${styles.segDone}`} />
+                        ) : itemIndex === index ? (
+                           <i
+                              key={`run-${index}`}
+                              className={`${styles.segFill} ${styles.segRun}`}
+                              style={{ animationDuration: `${STAGE_MS}ms` }}
+                              onAnimationEnd={() => onPick((index + 1) % games.length)}
+                           />
+                        ) : (
+                           <i className={styles.segFill} />
+                        )}
                      </span>
+                  </button>
+               ))}
+            </div>
+         ) : null}
+
+         <div className={styles.strip}>
+            <div className={styles.stripText}>
+               <p className={styles.kicker}>
+                  {game.order > 10 ? (
+                     <span className={`${styles.badge} ${styles.badgeNew}`}>New</span>
                   ) : (
-                     <Link className={`${styles.cta} ${styles.ctaSecondary}`} href={secondaryCta.href}>
-                        {secondaryCta.label}
-                     </Link>
-                  )
+                     <span className={styles.badge}>
+                        <i className={ui.dot} />
+                        Live
+                     </span>
+                  )}
+                  <span className={ui.label}>3D Arcade</span>
+               </p>
+               <p className={styles.title}>{game.title}</p>
+               <p className={styles.tagline}>{game.tagline}</p>
+            </div>
+            <div className={styles.side}>
+               {summary ? (
+                  <span
+                     className={summary.cleared >= summary.levels.length ? `${ui.pips} ${ui.pipsAll}` : ui.pips}
+                     role="img"
+                     aria-label={levelClearedText(summary)}
+                  >
+                     {summary.levels.map((level) => (
+                        <i key={level.id} className={level.cleared ? `${ui.pip} ${ui.pipOn}` : ui.pip} />
+                     ))}
+                  </span>
                ) : null}
+               {best && summary ? (
+                  <span className={styles.best}>{levelTotalText(game, summary)}</span>
+               ) : best ? (
+                  <span className={styles.best}>
+                     <span className={styles.bestLabel}>Best</span>
+                     {formatScore(best.best, game.scoring, best.bestDurationMs)}
+                  </span>
+               ) : (
+                  <span className={styles.none}>No score yet</span>
+               )}
             </div>
          </div>
-      </section>
+      </div>
+   );
+}
+
+export default function HubHero({ copy, facts, games }: HubHeroProps) {
+   const [index, setIndex] = useState(0);
+   const game = games[Math.min(index, games.length - 1)];
+
+   return (
+      <div className={styles.hero}>
+         <div className={styles.copy}>
+            {copy}
+            {game ? (
+               <Link href={`/3d/${game.slug}`} className={`${ui.btn} ${ui.btnPrimary} ${styles.cta}`}>
+                  <PlayIcon />
+                  Play now
+               </Link>
+            ) : (
+               <Link href="/classic" className={`${ui.btn} ${ui.btnPrimary} ${styles.cta}`}>
+                  <PlayIcon />
+                  Play Classic 50
+               </Link>
+            )}
+            {facts}
+         </div>
+
+         {game ? (
+            <Stage games={games} index={Math.min(index, games.length - 1)} onPick={setIndex} />
+         ) : (
+            <Link href="/classic" className={`${styles.stage} ${styles.cover}`} aria-label="Play Classic 50">
+               {/* eslint-disable-next-line @next/next/no-img-element */}
+               <img src="/images/play50games-cover.jpg" alt="" />
+            </Link>
+         )}
+      </div>
    );
 }

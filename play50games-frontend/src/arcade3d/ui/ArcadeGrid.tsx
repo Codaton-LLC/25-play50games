@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { ArcadeGameMeta } from "../types";
-import { useBestScore } from "../core/useBestScore";
-import ArcadeCard from "./ArcadeCard";
+import ArcadeCardLive from "./ArcadeCardLive";
 import {
    activeCollectionFilter,
    collectionChips,
@@ -23,11 +22,6 @@ export interface ArcadeGridProps {
    collections?: CollectionInfo[];
 }
 
-function CardWithBest({ meta }: { meta: ArcadeGameMeta }) {
-   const best = useBestScore(meta.slug);
-   return <ArcadeCard meta={meta} best={best} />;
-}
-
 function GameList({ games }: { games: ArcadeGameMeta[] }) {
    const ordered = [...games].sort((a, b) => a.order - b.order);
 
@@ -35,7 +29,7 @@ function GameList({ games }: { games: ArcadeGameMeta[] }) {
       <ul className={styles.grid}>
          {ordered.map((meta) => (
             <li key={meta.slug} className={styles.item}>
-               <CardWithBest meta={meta} />
+               <ArcadeCardLive meta={meta} />
             </li>
          ))}
       </ul>

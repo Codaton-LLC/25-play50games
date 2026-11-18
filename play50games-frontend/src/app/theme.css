@@ -1,0 +1,163 @@
+/* Play50Games design tokens (docs/design/DESIGN.md). Loaded after globals.css.
+   Light values on :root, dark values under the system preference and under data-theme="dark".
+   Only pages wrapped in .p50 use them; the classic pages keep the legacy look of globals.css. */
+
+:root {
+   --p50-canvas: #f2f4f8;
+   --p50-surface: #ffffff;
+   --p50-raised: #e8ecf3;
+   --p50-line: #d9dfea;
+   --p50-track: #c9d1df;
+   --p50-text: #0e1322;
+   --p50-text-2: #4f5a73;
+   --p50-text-3: #626c85;
+   --p50-coral: #e75f40;
+   --p50-coral-hover: #ec7458;
+   --p50-coral-press: #c2452a;
+   --p50-coral-text: #c2452a;
+   --p50-coral-wash: #fbe6e0;
+   --p50-on-coral: #0b0f1a;
+   --p50-gold: #e3a72f;
+   --p50-gold-text: #96660b;
+   --p50-green: #3fb57f;
+   --p50-red: #d93654;
+   --p50-red-text: #c22a47;
+   --p50-shadow: 0 18px 40px -18px rgba(14, 19, 34, 0.18);
+   --p50-float: 0 24px 60px -20px rgba(14, 19, 34, 0.3);
+   --p50-edge: 0 0 0 0 transparent;
+   --p50-seg-shadow: 0 1px 2px rgba(14, 19, 34, 0.14);
+   --p50-scrim: rgba(14, 19, 34, 0.42);
+   --p50-bar: rgba(255, 255, 255, 0.86);
+   --p50-art-line: #d9dfea;
+   --p50-ease: cubic-bezier(0.16, 1, 0.3, 1);
+   --p50-font-display: var(--font-display), "Trebuchet MS", "Segoe UI", sans-serif;
+   --p50-font-body: var(--font-body), "Segoe UI", system-ui, sans-serif;
+   --p50-font-mono: var(--font-mono), "Consolas", "Menlo", monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+   :root:not([data-theme="light"]) {
+      --p50-canvas: #0b0f1a;
+      --p50-surface: #121726;
+      --p50-raised: #1a2133;
+      --p50-line: #252d42;
+      --p50-track: #333d57;
+      --p50-text: #f1f3f8;
+      --p50-text-2: #a3acbf;
+      --p50-text-3: #7a84a0;
+      --p50-coral-text: #e75f40;
+      --p50-coral-wash: #2f2129;
+      --p50-gold-text: #e3a72f;
+      --p50-red-text: #f0708a;
+      --p50-shadow: 0 0 0 0 transparent;
+      --p50-float: 0 24px 60px -20px rgba(0, 0, 0, 0.6);
+      --p50-edge: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+      --p50-seg-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+      --p50-scrim: rgba(4, 6, 12, 0.66);
+      --p50-bar: rgba(18, 23, 38, 0.86);
+      --p50-art-line: transparent;
+   }
+}
+
+:root[data-theme="dark"] {
+   --p50-canvas: #0b0f1a;
+   --p50-surface: #121726;
+   --p50-raised: #1a2133;
+   --p50-line: #252d42;
+   --p50-track: #333d57;
+   --p50-text: #f1f3f8;
+   --p50-text-2: #a3acbf;
+   --p50-text-3: #7a84a0;
+   --p50-coral-text: #e75f40;
+   --p50-coral-wash: #2f2129;
+   --p50-gold-text: #e3a72f;
+   --p50-red-text: #f0708a;
+   --p50-shadow: 0 0 0 0 transparent;
+   --p50-float: 0 24px 60px -20px rgba(0, 0, 0, 0.6);
+   --p50-edge: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+   --p50-seg-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+   --p50-scrim: rgba(4, 6, 12, 0.66);
+   --p50-bar: rgba(18, 23, 38, 0.86);
+   --p50-art-line: transparent;
+}
+
+/* A redesigned page: paints its own canvas and maps the legacy variables onto the new palette,
+   so older components inside it (filter chips, the privacy switch) follow the theme too. */
+.p50 {
+   min-height: 100dvh;
+   overflow-x: clip;
+   background: var(--p50-canvas);
+   color: var(--p50-text);
+   font-family: var(--p50-font-body);
+   font-size: 16px;
+   line-height: 1.6;
+   --bg: var(--p50-canvas);
+   --card: var(--p50-surface);
+   --text: var(--p50-text);
+   --muted: var(--p50-text-2);
+   --stroke: var(--p50-line);
+   --accent: var(--p50-coral);
+   --primary: var(--p50-coral);
+   --secondary: var(--p50-green);
+   --ok: var(--p50-green);
+   --warn: var(--p50-red-text);
+}
+
+/* the body behind a redesigned page (overscroll, the strip under the phone tab bar) */
+html:has(.p50) body {
+   background: var(--p50-canvas);
+}
+
+/* low-specificity element defaults, so every module class can still override them */
+:where(.p50) a {
+   color: inherit;
+   text-decoration: none;
+}
+
+:where(.p50) button {
+   font-family: inherit;
+}
+
+:where(.p50) ul,
+:where(.p50) ol {
+   list-style: none;
+}
+
+:where(.p50) :focus-visible {
+   outline: 2px solid var(--p50-coral);
+   outline-offset: 2px;
+}
+
+/* room for the fixed phone tab bar (components/Site/SiteHeader) */
+@media (max-width: 899px) {
+   .p50 {
+      padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+   }
+}
+
+/* Older pieces that are not redesigned yet (the login and register modals) keep the dark
+   legacy palette wherever they are mounted. */
+.p50-legacy {
+   --bg: #0b1020;
+   --card: rgba(255, 255, 255, 0.06);
+   --text: rgba(255, 255, 255, 0.92);
+   --muted: rgba(255, 255, 255, 0.7);
+   --stroke: rgba(255, 255, 255, 0.12);
+   --ok: #86efac;
+   --warn: #fca5a5;
+   --accent: #7dd3fc;
+   --primary: #7dd3fc;
+   --secondary: #86efac;
+   color: var(--text);
+   font-family: system-ui, -apple-system, "Segoe UI", "Roboto", "Arial", sans-serif;
+}
+
+@media (prefers-reduced-motion: reduce) {
+   .p50 *,
+   .p50 *::before,
+   .p50 *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+   }
+}
