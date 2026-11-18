@@ -133,7 +133,10 @@ function cableMaterial(color: string, uniforms: CableUniforms, night: boolean): 
          .replace("#include <common>", "#include <common>\nuniform float uBeam; uniform float uNight; uniform vec3 uLh[2]; uniform vec3 uGlow;\nvarying vec3 vZipWorld;")
          .replace(
             "#include <emissivemap_fragment>",
+            // the follow camera sits on the line just behind the hero: the 6 cm cable passing a few centimetres
+            // from the lens filled the middle of the screen (a wedge over the hero), so its nearest 2.5 m is not drawn
             `#include <emissivemap_fragment>
+if (length(vViewPosition) < 2.5) discard;
 if (uNight > 0.5) {
    float lit = 0.0;
    for (int i = 0; i < 2; i++) {
