@@ -63,7 +63,8 @@
 .pad {
    position: relative;
    width: 100%;
-   background: var(--stroke);
+   /* light stage: a faint sunk well (a 12 % ink fill reads as a grey slab on white) */
+   background: var(--board-well, var(--stroke));
    border-radius: 16px;
    overflow: hidden;
    touch-action: manipulation;
@@ -138,7 +139,7 @@
 /* dark label on the green pad (white on --ok is under 3:1); the finals turn that pad into a dark gold
    tint, where the label goes back to white */
 .masterLabelLive {
-   color: #0b1020;
+   color: var(--board-on-fill, #0b1020);
 }
 
 :global(body.final-game) .masterLabelLive {
@@ -155,7 +156,7 @@
    font-weight: 700;
    font-variant-numeric: tabular-nums;
    color: var(--text);
-   background: color-mix(in srgb, var(--warn) 22%, rgba(11, 16, 32, 0.7));
+   background: color-mix(in srgb, var(--warn) 22%, rgba(var(--board-glass, 11, 16, 32), 0.7));
    border: 1px solid color-mix(in srgb, var(--warn) 60%, transparent);
    pointer-events: none;
 }
@@ -185,7 +186,7 @@
 }
 
 .toastEarly {
-   color: #0b1020;
+   color: var(--board-on-fill, #0b1020);
    background: var(--warn);
 }
 
@@ -197,11 +198,11 @@
    font-weight: 800;
    font-variant-numeric: tabular-nums;
    color: #fff;
-   background: rgba(0, 0, 0, 0.62);
+   background: rgba(var(--board-shade, 0, 0, 0), 0.62);
    padding: 10px 22px;
    border-radius: 999px;
-   border: 1px solid rgba(255, 255, 255, 0.3);
-   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+   border: 1px solid rgba(var(--board-ov, 255, 255, 255), 0.3);
+   box-shadow: 0 4px 12px rgba(var(--board-shade, 0, 0, 0), calc(0.3 * var(--board-shade-k, 1)));
    pointer-events: none;
    white-space: nowrap;
    animation: rtChipPop 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
@@ -329,7 +330,7 @@
    }
 
    .btnShare:hover {
-      background: rgba(255, 255, 255, 0.1);
+      background: rgba(var(--board-ov, 255, 255, 255), 0.1);
    }
 
    .btnNext:hover {

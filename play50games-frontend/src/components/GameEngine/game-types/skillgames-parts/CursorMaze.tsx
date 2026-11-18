@@ -20,6 +20,7 @@ import touch from "./skillTouch.module.css";
 import ui from "./skillUi.module.css";
 import cm from "./CursorMaze.module.css";
 import { usePlayAreaInView } from "./usePlayAreaInView";
+import { isLightBoard, useThemeChange } from "./boardTheme";
 
 interface CursorMazeProps {
    config: Record<string, any>;
@@ -42,6 +43,38 @@ interface Maze {
    wallsCtx: CanvasRenderingContext2D;
    gridSize: number;
    cellSize: number;
+   /** the walls recoloured for the light theme (display only; collision reads wallsCv) */
+   lightView?: HTMLCanvasElement;
+}
+
+// Light theme: Sunk Paper floor, slate walls (DESIGN.md Day Deck)
+const LIGHT_FLOOR = [232, 236, 243];
+const LIGHT_WALL = [79, 90, 115];
+const DARK_FLOOR = [15, 27, 51];
+
+/**
+ * The walls canvas (white walls on the navy floor, which pointHitsWall reads pixel by pixel) painted
+ * in the light palette: each pixel is placed between the light floor and wall by how far it is from
+ * the navy floor towards white, so the antialiased edges stay smooth. Collision is not affected.
+ */
+function lightWalls(src: HTMLCanvasElement): HTMLCanvasElement {
+   const cv = document.createElement("canvas");
+   cv.width = src.width;
+   cv.height = src.height;
+   const sctx = src.getContext("2d");
+   const ctx = cv.getContext("2d");
+   if (!sctx || !ctx) return src;
+   const img = sctx.getImageData(0, 0, src.width, src.height);
+   const d = img.data;
+   for (let i = 0; i < d.length; i += 4) {
+      const t = Math.min(1, Math.max(0, (d[i + 2] - DARK_FLOOR[2]) / (255 - DARK_FLOOR[2])));
+      d[i] = LIGHT_FLOOR[0] + (LIGHT_WALL[0] - LIGHT_FLOOR[0]) * t;
+      d[i + 1] = LIGHT_FLOOR[1] + (LIGHT_WALL[1] - LIGHT_FLOOR[1]) * t;
+      d[i + 2] = LIGHT_FLOOR[2] + (LIGHT_WALL[2] - LIGHT_FLOOR[2]) * t;
+      d[i + 3] = 255;
+   }
+   ctx.putImageData(img, 0, 0);
+   return cv;
 }
 
 export default function CursorMaze({
@@ -431,12 +464,13 @@ export default function CursorMaze({
       if (!ctx) return;
 
       const maze = mazeRef.current;
+      const light = isLightBoard(canvas);
       if (!maze) {
          // Render idle state
          ctx.clearRect(0, 0, canvas.width, canvas.height);
-         ctx.fillStyle = "rgba(15, 27, 51, 1)";
+         ctx.fillStyle = light ? "rgb(232, 236, 243)" : "rgba(15, 27, 51, 1)";
          ctx.fillRect(0, 0, canvas.width, canvas.height);
-         ctx.fillStyle = "rgba(166, 179, 209, 0.85)";
+         ctx.fillStyle = light ? "rgb(79, 90, 115)" : "rgba(166, 179, 209, 0.85)";
          ctx.font = "14px system-ui";
          ctx.fillText("Maze will be generated when level starts.", 14, 22);
          return;
@@ -444,10 +478,15 @@ export default function CursorMaze({
 
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // Draw walls
-      ctx.globalAlpha = 0.92;
-      ctx.drawImage(maze.wallsCv, 0, 0);
-      ctx.globalAlpha = 1;
+      // Draw walls (the light theme draws a recoloured copy; collision always reads wallsCv)
+      if (light) {
+         if (!maze.lightView) maze.lightView = lightWalls(maze.wallsCv);
+         ctx.drawImage(maze.lightView, 0, 0);
+      } else {
+         ctx.globalAlpha = 0.92;
+         ctx.drawImage(maze.wallsCv, 0, 0);
+         ctx.globalAlpha = 1;
+      }
 
       // Draw start and exit pads
       const pad = Math.floor(maze.cellSize * 0.25);
@@ -471,8 +510,8 @@ export default function CursorMaze({
       ctx.lineWidth = 3;
       ctx.strokeRect(ex, ey, sz, sz);
 
-      // Add exit indicator
-      ctx.fillStyle = "rgba(54, 211, 153, 1)";
+      // Add exit indicator (a deeper green on the light floor, for contrast)
+      ctx.fillStyle = light ? "rgb(26, 125, 82)" : "rgba(54, 211, 153, 1)";
       ctx.font = `${Math.max(12, Math.floor(maze.cellSize * 0.4))}px system-ui`;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
@@ -503,7 +542,7 @@ export default function CursorMaze({
          s,
          s
       );
-      ctx.strokeStyle = "rgba(255, 255, 255, 0.18)";
+      ctx.strokeStyle = light ? "rgba(14, 19, 34, 0.35)" : "rgba(255, 255, 255, 0.18)";
       ctx.lineWidth = 2;
       ctx.strokeRect(
          playerRef.current.x - s / 2,
@@ -512,6 +551,9 @@ export default function CursorMaze({
          s
       );
    }, []);
+
+   // the theme switch repaints the maze at once (the loop only runs during play)
+   useThemeChange(draw);
 
    const scheduleCanvasSync = useCallback(() => {
       let tries = 0;

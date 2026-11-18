@@ -1002,8 +1002,8 @@ export default function AvoidRed({
                         borderRadius: "999px",
                         background: "rgba(110, 168, 255, 0.95)",
                         boxShadow: vp.isTouch
-                           ? "0 0 0 8px rgba(110, 168, 255, 0.14), 0 2px 6px rgba(0, 0, 0, 0.45)"
-                           : "0 0 0 3px rgba(110, 168, 255, 0.18), 0 2px 6px rgba(0, 0, 0, 0.45)",
+                           ? "0 0 0 8px rgba(110, 168, 255, 0.14), 0 2px 6px rgba(var(--board-shade, 0, 0, 0), calc(0.45 * var(--board-shade-k, 1)))"
+                           : "0 0 0 3px rgba(110, 168, 255, 0.18), 0 2px 6px rgba(var(--board-shade, 0, 0, 0), calc(0.45 * var(--board-shade-k, 1)))",
                      }}
                   />
                </div>
@@ -1038,7 +1038,7 @@ export default function AvoidRed({
                         height: `${obs.size}px`,
                         borderRadius: "3px",
                         background: "rgba(251, 113, 133, 0.9)",
-                        boxShadow: "0 2px 6px rgba(0, 0, 0, 0.35)",
+                        boxShadow: "0 2px 6px rgba(var(--board-shade, 0, 0, 0), calc(0.35 * var(--board-shade-k, 1)))",
                         pointerEvents: "none",
                      }}
                   />

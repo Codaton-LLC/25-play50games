@@ -102,7 +102,7 @@ export default function GameView() {
    if (loading) {
       // the start screen's outline: title, description, the How to Play card
       body = (
-         <div className={`p50-night ${styles.stage}`} aria-busy="true" aria-label="Loading the game">
+         <div className={styles.stage} aria-busy="true" aria-label="Loading the game">
             <div className={styles.state}>
                <div className={styles.skeleton}>
                   <div className={`${styles.bone} ${styles.boneTitle}`} />
@@ -148,9 +148,9 @@ export default function GameView() {
          </div>
       );
    } else {
-      // the stage: the game itself is always on the dark values (page.module.css says why)
+      // the stage: the game, on the theme's values (page.module.css)
       body = (
-         <div className={`p50-night ${styles.stage}`}>
+         <div className={styles.stage}>
             <GameEngine
                game={game}
                onComplete={handleComplete}

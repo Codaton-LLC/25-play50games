@@ -1237,7 +1237,7 @@ export default function ReactionTest({
       fontSize: isMobile ? "1rem" : "1.1rem",
       fontWeight: 700,
       textAlign: "center" as const,
-      boxShadow: "0 10px 24px rgba(0, 0, 0, 0.25)",
+      boxShadow: "0 10px 24px rgba(var(--board-shade, 0, 0, 0), calc(0.25 * var(--board-shade-k, 1)))",
       width: "100%",
    });
 
@@ -1564,12 +1564,12 @@ export default function ReactionTest({
                                  borderRadius: "50%",
                                  background: isGreen
                                     ? "var(--ok)"
-                                    : "rgba(255, 255, 255, 0.1)",
+                                    : "rgba(var(--board-ov, 255, 255, 255), 0.1)",
                                  border: isGreen
                                     ? "3px solid rgba(134, 239, 172, 0.8)"
                                     : "3px solid var(--stroke)",
                                  boxShadow: isGreen
-                                    ? "0 4px 12px rgba(0, 0, 0, 0.3)"
+                                    ? "0 4px 12px rgba(var(--board-shade, 0, 0, 0), calc(0.3 * var(--board-shade-k, 1)))"
                                     : "none",
                               }}
                            />
@@ -1606,7 +1606,7 @@ export default function ReactionTest({
                               ? "3px solid rgba(134, 239, 172, 0.8)"
                               : "3px solid var(--stroke)",
                            boxShadow: greenShown
-                              ? "0 4px 12px rgba(0, 0, 0, 0.3)"
+                              ? "0 4px 12px rgba(var(--board-shade, 0, 0, 0), calc(0.3 * var(--board-shade-k, 1)))"
                               : "none",
                         }}
                      />
@@ -1698,7 +1698,7 @@ export default function ReactionTest({
                                     : "none",
                               background: "var(--accent)",
                               border: "3px solid var(--accent)",
-                              boxShadow: "0 4px 12px rgba(0, 0, 0, 0.3)",
+                              boxShadow: "0 4px 12px rgba(var(--board-shade, 0, 0, 0), calc(0.3 * var(--board-shade-k, 1)))",
                            }}
                         />
                      </div>
@@ -1745,7 +1745,7 @@ export default function ReactionTest({
                                              : "rgba(252, 165, 165, 0.8)"
                                        }`,
                                        cursor: "pointer",
-                                       boxShadow: "0 4px 12px rgba(0, 0, 0, 0.3)",
+                                       boxShadow: "0 4px 12px rgba(var(--board-shade, 0, 0, 0), calc(0.3 * var(--board-shade-k, 1)))",
                                     }}
                                  />
                               );
@@ -1787,7 +1787,7 @@ export default function ReactionTest({
                                     : "rgba(252, 165, 165, 0.8)"
                               }`,
                               cursor: "pointer",
-                              boxShadow: "0 4px 10px rgba(0, 0, 0, 0.3)",
+                              boxShadow: "0 4px 10px rgba(var(--board-shade, 0, 0, 0), calc(0.3 * var(--board-shade-k, 1)))",
                            }}
                         />
                      ))}
@@ -1825,7 +1825,7 @@ export default function ReactionTest({
                                        : color === "red"
                                        ? "var(--warn)"
                                        : "#60a5fa"
-                                    : "rgba(255, 255, 255, 0.1)",
+                                    : "rgba(var(--board-ov, 255, 255, 255), 0.1)",
                               border:
                                  idx <= patternIndex
                                     ? `3px solid ${
@@ -1874,7 +1874,7 @@ export default function ReactionTest({
                                     : "rgba(252, 165, 165, 0.8)"
                               }`,
                               cursor: "pointer",
-                              boxShadow: "0 4px 10px rgba(0, 0, 0, 0.3)",
+                              boxShadow: "0 4px 10px rgba(var(--board-shade, 0, 0, 0), calc(0.3 * var(--board-shade-k, 1)))",
                            }}
                         />
                      ))}
@@ -1901,7 +1901,7 @@ export default function ReactionTest({
                         style={{
                            width: "100%",
                            height: "20px",
-                           background: "rgba(255, 255, 255, 0.1)",
+                           background: "rgba(var(--board-ov, 255, 255, 255), 0.1)",
                            borderRadius: "999px",
                            overflow: "hidden",
                            position: "relative",
@@ -2041,7 +2041,7 @@ export default function ReactionTest({
                                              ? "rgba(134, 239, 172, 0.2)"
                                              : "var(--card)",
                                           color: isClicked
-                                             ? "#0b1020"
+                                             ? "var(--board-on-fill, #0b1020)"
                                              : "var(--text)",
                                           cursor: isClicked
                                              ? "not-allowed"
@@ -2154,7 +2154,7 @@ export default function ReactionTest({
                         alignItems: "center",
                         justifyContent: "center",
                         padding: isMobile ? "10px" : "20px",
-                        background: "rgba(11, 16, 32, 0.55)",
+                        background: "rgba(var(--board-glass, 11, 16, 32), 0.55)",
                         cursor: "default",
                      }}
                   >

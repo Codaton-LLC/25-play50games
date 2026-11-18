@@ -128,7 +128,9 @@ function MirrorMatch({
 
    // SVG shapes with asymmetric details (inspired by mirror-match/index.html)
    const getSVGShape = useCallback((shapeName: string, size: number = 80) => {
-      const strokeColor = "rgba(232, 238, 252, 0.92)";
+      // currentColor: an SVG attribute cannot read var(); MirrorMatch.module.css sets the colour
+      // (the pale chalk on the dark stage, ink on the light one)
+      const strokeColor = "currentColor";
       const strokeWidth = size / 8;
       const viewBox = "0 0 100 100";
 
