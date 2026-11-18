@@ -887,57 +887,11 @@ export default function AvoidRed({
    const inPlay = gameState === "playing" && !requirementsMet;
    const iconSize = isMobile ? 15 : 16;
 
-   // Styling helpers - theme colors
-   // --ok: #86efac (rgb 134, 239, 172), --warn: #fca5a5 (rgb 252, 165, 165)
-   const toneRgb = (tone: "success" | "danger" | "info") =>
-      tone === "success" ? "134, 239, 172" : tone === "danger" ? "252, 165, 165" : "59, 130, 246";
-
-   const getActionButtonStyle = (tone: "success" | "danger" | "info", disabled = false): React.CSSProperties => {
-      const rgb = toneRgb(tone);
-      return {
-         padding: isMobile ? "12px 20px" : "12px 24px",
-         background: disabled
-            ? "rgba(100, 100, 100, 0.2)"
-            : `linear-gradient(135deg, rgba(${rgb}, 0.25), rgba(${rgb}, 0.12))`,
-         border: disabled ? "1px solid rgba(100, 100, 100, 0.4)" : `2px solid rgba(${rgb}, 0.6)`,
-         fontSize: isMobile ? "1rem" : "1.05rem",
-         opacity: disabled ? 0.5 : 1,
-      };
-   };
-
-   const applyActionHover = (
-      e: React.MouseEvent<HTMLButtonElement>,
-      tone: "success" | "danger" | "info",
-      isEnter: boolean
-   ) => {
-      const target = e.currentTarget;
-      if (target.disabled) return;
-      const rgb = toneRgb(tone);
-      if (isEnter) {
-         target.style.background = `linear-gradient(135deg, rgba(${rgb}, 0.35), rgba(${rgb}, 0.2))`;
-         target.style.borderColor = `rgba(${rgb}, 0.8)`;
-         target.style.boxShadow = `0 6px 14px rgba(${rgb}, 0.35)`;
-      } else {
-         target.style.background = `linear-gradient(135deg, rgba(${rgb}, 0.25), rgba(${rgb}, 0.12))`;
-         target.style.borderColor = `rgba(${rgb}, 0.6)`;
-         target.style.boxShadow = "none";
-      }
-   };
-
-   const getNoticeBadgeStyle = (tone: "success" | "danger"): React.CSSProperties => {
-      const rgb = toneRgb(tone);
-      return {
-         display: "inline-flex",
-         alignItems: "center",
-         gap: "8px",
-         padding: "8px 14px",
-         borderRadius: "999px",
-         fontWeight: 800,
-         fontSize: isMobile ? "0.95rem" : "1.05rem",
-         background: `linear-gradient(135deg, rgba(${rgb}, 0.25), rgba(${rgb}, 0.1))`,
-         border: `2px solid rgba(${rgb}, 0.6)`,
-         color: "var(--text)",
-      };
+   // Tones (ok / warn tints, the final-game gold) live in the CSS module.
+   const noticeBadgeClass = (tone: "success" | "danger") =>
+      `${s.badge} ${tone === "success" ? s.badgeOk : s.badgeBad}`;
+   const noticeBadgeStyle: React.CSSProperties = {
+      fontSize: isMobile ? "0.95rem" : "1.05rem",
    };
 
    const replayLabel = maxReplays === 0 ? "(∞)" : `(${maxReplays - replaysUsed}/${maxReplays})`;
@@ -947,30 +901,7 @@ export default function AvoidRed({
          type="button"
          {...replayPress}
          disabled={replayDisabled}
-         className={`${s.btn} ${grow ? s.btnGrow : ""} ${fx.pressable}`}
-         style={{
-            background: replayDisabled
-               ? "rgba(100, 100, 100, 0.2)"
-               : "linear-gradient(135deg, rgba(125, 211, 252, 0.2), rgba(125, 211, 252, 0.1))",
-            border: replayDisabled
-               ? "1px solid rgba(100, 100, 100, 0.4)"
-               : "1px solid rgba(125, 211, 252, 0.6)",
-            opacity: replayDisabled ? 0.5 : 1,
-         }}
-         onMouseEnter={(e) => {
-            if (replayDisabled) return;
-            e.currentTarget.style.background =
-               "linear-gradient(135deg, rgba(125, 211, 252, 0.3), rgba(125, 211, 252, 0.2))";
-            e.currentTarget.style.borderColor = "rgba(125, 211, 252, 0.8)";
-            e.currentTarget.style.boxShadow = "0 4px 12px rgba(125, 211, 252, 0.3)";
-         }}
-         onMouseLeave={(e) => {
-            if (replayDisabled) return;
-            e.currentTarget.style.background =
-               "linear-gradient(135deg, rgba(125, 211, 252, 0.2), rgba(125, 211, 252, 0.1))";
-            e.currentTarget.style.borderColor = "rgba(125, 211, 252, 0.6)";
-            e.currentTarget.style.boxShadow = "none";
-         }}
+         className={`${s.btn} ${s.btnAccent} ${grow ? s.btnGrow : ""} ${fx.pressable}`}
       >
          <ArrowPathRoundedSquareIcon
             style={{
@@ -1005,46 +936,21 @@ export default function AvoidRed({
                   Time: {timeLeft}s
                </span>
             </div>
-            <div
-               style={{
-                  width: "100%",
-                  height: isMobile ? "6px" : "8px",
-                  background: "rgba(255, 255, 255, 0.1)",
-                  borderRadius: "999px",
-                  overflow: "hidden",
-               }}
-            >
+            <div className={s.progressTrack} style={{ height: isMobile ? "6px" : "8px" }}>
+               {/* full-width fill scaled on X: no layout work per level */}
                <div
-                  style={{
-                     width: `${progress}%`,
-                     height: "100%",
-                     background:
-                        "linear-gradient(90deg, var(--accent), var(--ok))",
-                     borderRadius: "999px",
-                     transition: "width 0.3s ease",
-                  }}
+                  className={s.progressFill}
+                  style={{ transform: `scaleX(${progress / 100})` }}
                />
             </div>
             <div className={s.chips}>
                <div
                   key={`hits-${hitFx}`}
-                  className={`${s.chip} ${hitFx > 0 ? fx.missShake : ""}`}
-                  style={{
-                     background:
-                        "linear-gradient(135deg, rgba(252, 165, 165, 0.25), rgba(252, 165, 165, 0.12))",
-                     border: "2px solid rgba(252, 165, 165, 0.6)",
-                  }}
+                  className={`${s.chip} ${s.chipBad} ${hitFx > 0 ? fx.missShake : ""}`}
                >
                   Hits left: {hitsLabel} / {maxHitsLabel}
                </div>
-               <div
-                  className={s.chip}
-                  style={{
-                     background:
-                        "linear-gradient(135deg, rgba(59, 130, 246, 0.25), rgba(59, 130, 246, 0.12))",
-                     border: "2px solid rgba(59, 130, 246, 0.6)",
-                  }}
-               >
+               <div className={s.chip}>
                   Obstacles: {obstacles.length}
                </div>
             </div>
@@ -1087,8 +993,8 @@ export default function AvoidRed({
                         borderRadius: "999px",
                         background: "rgba(110, 168, 255, 0.95)",
                         boxShadow: vp.isTouch
-                           ? "0 0 0 8px rgba(110, 168, 255, 0.14), 0 0 18px rgba(110, 168, 255, 0.45)"
-                           : "0 0 18px rgba(110, 168, 255, 0.45)",
+                           ? "0 0 0 8px rgba(110, 168, 255, 0.14), 0 2px 6px rgba(0, 0, 0, 0.45)"
+                           : "0 0 0 3px rgba(110, 168, 255, 0.18), 0 2px 6px rgba(0, 0, 0, 0.45)",
                      }}
                   />
                </div>
@@ -1123,7 +1029,7 @@ export default function AvoidRed({
                         height: `${obs.size}px`,
                         borderRadius: "3px",
                         background: "rgba(251, 113, 133, 0.9)",
-                        boxShadow: "0 0 16px rgba(251, 113, 133, 0.35)",
+                        boxShadow: "0 2px 6px rgba(0, 0, 0, 0.35)",
                         pointerEvents: "none",
                      }}
                   />
@@ -1144,8 +1050,8 @@ export default function AvoidRed({
             {/* Ready for Next Round */}
             {gameState === "ready" && currentLevel + 1 < maxLevels && (
                <div className={`${s.overlay} ${fx.fadeUp}`}>
-                  <div className={s.card}>
-                     <div style={getNoticeBadgeStyle("success")}>
+                  <div className={`${s.card} ${fx.staggerIn}`}>
+                     <div className={noticeBadgeClass("success")} style={noticeBadgeStyle}>
                         <CheckCircleIcon style={{ width: 20, height: 20 }} />
                         Level {currentLevel + 1} Complete
                      </div>
@@ -1153,10 +1059,11 @@ export default function AvoidRed({
                      <button
                         type="button"
                         {...nextRoundPress}
-                        className={`${s.btn} ${fx.pressable}`}
-                        style={getActionButtonStyle("success")}
-                        onMouseEnter={(e) => applyActionHover(e, "success", true)}
-                        onMouseLeave={(e) => applyActionHover(e, "success", false)}
+                        className={`${s.btn} ${s.btnOk} ${fx.pressable}`}
+                        style={{
+                           padding: isMobile ? "12px 20px" : "12px 24px",
+                           fontSize: isMobile ? "1rem" : "1.05rem",
+                        }}
                      >
                         Next Round
                      </button>
@@ -1167,13 +1074,13 @@ export default function AvoidRed({
             {/* Game Complete */}
             {gameState === "ready" && currentLevel + 1 >= maxLevels && (
                <div className={`${s.overlay} ${fx.fadeUp}`}>
-                  <div className={s.card}>
-                     <div style={getNoticeBadgeStyle("success")}>
+                  <div className={`${s.card} ${fx.staggerIn}`}>
+                     <div className={noticeBadgeClass("success")} style={noticeBadgeStyle}>
                         <TrophyIcon style={{ width: 20, height: 20 }} />
                         Game Complete!
                      </div>
                      <div className={s.cardText}>All {maxLevels} levels completed!</div>
-                     <div style={{ fontSize: "0.95rem", opacity: 0.8 }}>Final Score: 100</div>
+                     <div style={{ fontSize: "0.95rem", color: "var(--muted)" }}>Final Score: 100</div>
                   </div>
                </div>
             )}
@@ -1181,8 +1088,8 @@ export default function AvoidRed({
             {/* Level Failed */}
             {gameState === "failed" && (
                <div className={`${s.overlay} ${fx.fadeUp}`}>
-                  <div className={s.card}>
-                     <div style={getNoticeBadgeStyle("danger")}>
+                  <div className={`${s.card} ${fx.staggerIn}`}>
+                     <div className={noticeBadgeClass("danger")} style={noticeBadgeStyle}>
                         <XCircleIcon style={{ width: 20, height: 20 }} />
                         Level {currentLevel + 1} Failed
                      </div>
@@ -1204,12 +1111,7 @@ export default function AvoidRed({
                {/* Share Success Message */}
                {shareSuccess && !unlimitedActivated && (
                   <div
-                     className={`${s.note} ${fx.fadeUp}`}
-                     style={{
-                        background: "rgba(134, 239, 172, 0.2)",
-                        border: "2px solid rgba(134, 239, 172, 0.6)",
-                        color: "var(--ok)",
-                     }}
+                     className={`${s.note} ${s.noteOk} ${fx.fadeUp}`}
                   >
                      Link copied! Unlimited hits and replays will unlock when
                      someone opens your link!
@@ -1219,19 +1121,13 @@ export default function AvoidRed({
                {/* Unlimited Activated Message */}
                {unlimitedActivated && (
                   <div
-                     className={`${s.note} ${fx.fadeUp}`}
-                     style={{
-                        background:
-                           "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
-                        border: "2px solid rgba(59, 130, 246, 0.6)",
-                        color: "var(--text)",
-                     }}
+                     className={`${s.note} ${s.noteAccent} ${fx.fadeUp}`}
                   >
                      <CheckCircleIcon
                         style={{
                            width: 18,
                            height: 18,
-                           color: "rgba(59, 130, 246, 0.9)",
+                           color: "var(--accent)",
                            flexShrink: 0,
                         }}
                      />
@@ -1247,26 +1143,9 @@ export default function AvoidRed({
                <button
                   type="button"
                   onClick={handleShare}
-                  className={`${s.btn} ${s.btnGrow} ${fx.pressable}`}
-                  style={{
-                     background:
-                        "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
-                     border: "1px solid rgba(59, 130, 246, 0.6)",
-                  }}
-                  onMouseEnter={(e) => {
-                     e.currentTarget.style.background =
-                        "linear-gradient(135deg, rgba(59, 130, 246, 0.3), rgba(59, 130, 246, 0.2))";
-                     e.currentTarget.style.borderColor = "rgba(59, 130, 246, 0.8)";
-                     e.currentTarget.style.boxShadow = "0 4px 12px rgba(59, 130, 246, 0.3)";
-                  }}
-                  onMouseLeave={(e) => {
-                     e.currentTarget.style.background =
-                        "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))";
-                     e.currentTarget.style.borderColor = "rgba(59, 130, 246, 0.6)";
-                     e.currentTarget.style.boxShadow = "none";
-                  }}
+                  className={`${s.btn} ${s.btnAccent} ${s.btnGrow} ${fx.pressable}`}
                >
-                  <ShareIcon style={{ width: 20, height: 20, color: "rgba(59, 130, 246, 0.9)" }} />
+                  <ShareIcon style={{ width: 20, height: 20, color: "var(--accent)" }} />
                   <span>Share for unlimited</span>
                </button>
             </div>
