@@ -585,6 +585,18 @@ export default function PrecisionDrop({
    // Stop the drop loop and the timers when the game unmounts (they kept running before)
    useEffect(() => () => clearAll(), [clearAll]);
 
+   // A delayed start must not run once the game has exited (unmounted or
+   // stopped), or it would restart the countdown and animation after cleanup.
+   const mountedRef = useRef(true);
+   const isPlayingRef = useRef(isPlaying);
+   isPlayingRef.current = isPlaying;
+   useEffect(() => {
+      mountedRef.current = true;
+      return () => {
+         mountedRef.current = false;
+      };
+   }, [clearAll]);
+
    useEffect(() => {
       if (!isPlaying) {
          clearAll();
@@ -955,6 +967,7 @@ export default function PrecisionDrop({
       setTimeLeft(levelDur);
       clearAll();
       setTimeout(() => {
+         if (!mountedRef.current || !isPlayingRef.current) return;
          if (startLevelRef.current) {
             startLevelRef.current(currentLevel);
          }
@@ -1238,12 +1251,14 @@ export default function PrecisionDrop({
 
       if (currentLevel === 0) {
          setTimeout(() => {
+            if (!mountedRef.current || !isPlayingRef.current) return;
             if (startLevelRef.current) {
                startLevelRef.current(0);
             }
          }, 0);
       } else {
          setTimeout(() => {
+            if (!mountedRef.current || !isPlayingRef.current) return;
             if (startLevelRef.current) {
                startLevelRef.current(currentLevel);
             }

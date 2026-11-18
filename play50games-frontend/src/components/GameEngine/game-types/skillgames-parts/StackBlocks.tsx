@@ -409,6 +409,19 @@ export default function StackBlocks({
       }
    }, []);
 
+   // A delayed start must not run once the game has exited (unmounted or
+   // stopped), or it would restart the countdown and animation after cleanup.
+   const mountedRef = useRef(true);
+   const isPlayingRef = useRef(isPlaying);
+   isPlayingRef.current = isPlaying;
+   useEffect(() => {
+      mountedRef.current = true;
+      return () => {
+         mountedRef.current = false;
+         clearAll();
+      };
+   }, [clearAll]);
+
    useEffect(() => {
       if (!isPlaying) {
          clearAll();
@@ -816,6 +829,7 @@ export default function StackBlocks({
       setTimeLeft(levelDur);
       clearAll();
       setTimeout(() => {
+         if (!mountedRef.current || !isPlayingRef.current) return;
          startLevel(currentLevel);
       }, 100);
       if (maxReplays > 0) {
@@ -1094,12 +1108,14 @@ export default function StackBlocks({
 
       if (currentLevel === 0) {
          setTimeout(() => {
+            if (!mountedRef.current || !isPlayingRef.current) return;
             if (startLevelRef.current) {
                startLevelRef.current(0);
             }
          }, 0);
       } else {
          setTimeout(() => {
+            if (!mountedRef.current || !isPlayingRef.current) return;
             if (startLevelRef.current) {
                startLevelRef.current(currentLevel);
             }

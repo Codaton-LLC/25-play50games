@@ -159,6 +159,7 @@ export default function TimingBar({
    const zoneRef = useRef<HTMLDivElement>(null);
    const barRef = useRef<HTMLDivElement>(null);
    const nextRoundClickedRef = useRef(false);
+   const restartTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
    // Responsive design
    useEffect(() => {
@@ -187,6 +188,19 @@ export default function TimingBar({
       }
    }, []);
 
+   // A delayed start must not run once the game has exited (unmounted or
+   // stopped), or it would restart the countdown and animation after cleanup.
+   const mountedRef = useRef(true);
+   const isPlayingRef = useRef(isPlaying);
+   isPlayingRef.current = isPlaying;
+   useEffect(() => {
+      mountedRef.current = true;
+      return () => {
+         mountedRef.current = false;
+         clearAll();
+      };
+   }, [clearAll]);
+
    useEffect(() => {
       if (!isPlaying) {
          clearAll();
@@ -204,6 +218,13 @@ export default function TimingBar({
          if (animationFrameRef.current) {
             cancelAnimationFrame(animationFrameRef.current);
             animationFrameRef.current = null;
+         }
+
+         // A pending 700 ms restart from the previous attempt must not start
+         // a second bar loop on top of this level's loop.
+         if (restartTimeoutRef.current) {
+            clearTimeout(restartTimeoutRef.current);
+            restartTimeoutRef.current = null;
          }
 
          // Reset all state before starting new level
@@ -342,8 +363,12 @@ export default function TimingBar({
       }
 
       // Reset for next attempt after delay (similar to HTML version - 700ms)
-      setTimeout(() => {
+      if (restartTimeoutRef.current) clearTimeout(restartTimeoutRef.current);
+      restartTimeoutRef.current = setTimeout(() => {
+         restartTimeoutRef.current = null;
          if (
+            mountedRef.current &&
+            isPlayingRef.current &&
             gameStateRef.current === "playing" &&
             !requirementsMetRef.current
          ) {
@@ -754,10 +779,12 @@ export default function TimingBar({
 
       if (currentLevel === 0) {
          setTimeout(() => {
+            if (!mountedRef.current || !isPlayingRef.current) return;
             startLevelRef.current(0);
          }, 0);
       } else {
          setTimeout(() => {
+            if (!mountedRef.current || !isPlayingRef.current) return;
             startLevelRef.current(currentLevel);
          }, 1200);
       }
