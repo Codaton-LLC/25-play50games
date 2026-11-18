@@ -19,7 +19,7 @@
    max-width: 360px;
    height: 6px;
    border-radius: 999px;
-   background: rgba(255, 255, 255, 0.1);
+   background: rgba(var(--board-ov, 255, 255, 255), 0.1);
    overflow: hidden;
 }
 
@@ -65,7 +65,7 @@
    width: 22%;
    aspect-ratio: 1;
    border-radius: 50%;
-   background: rgba(255, 255, 255, 0.22);
+   background: rgba(var(--board-ov, 255, 255, 255), 0.22);
 }
 
 .root .start {
@@ -134,10 +134,10 @@
 .root .obstacle {
    background: repeating-linear-gradient(
       135deg,
-      rgba(255, 255, 255, 0.03) 0 6px,
-      rgba(255, 255, 255, 0.07) 6px 12px
+      rgba(var(--board-ov, 255, 255, 255), 0.03) 0 6px,
+      rgba(var(--board-ov, 255, 255, 255), 0.07) 6px 12px
    );
-   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+   box-shadow: inset 0 0 0 1px rgba(var(--board-ov, 255, 255, 255), 0.06);
    color: rgba(240, 112, 138, 0.75);
    cursor: not-allowed;
 }

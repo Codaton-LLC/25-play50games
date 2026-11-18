@@ -28,9 +28,9 @@
    max-width: none;
    margin: 0;
    padding: 14px 16px;
-   border: 1px solid rgba(255, 255, 255, 0.1);
+   border: 1px solid rgba(var(--board-ov, 255, 255, 255), 0.1);
    border-radius: 16px;
-   background: rgba(255, 255, 255, 0.04);
+   background: rgba(var(--board-ov, 255, 255, 255), 0.04);
    box-shadow: none;
    backdrop-filter: none;
    text-align: center;
@@ -57,7 +57,7 @@
    max-width: 320px;
    height: 6px;
    border-radius: 999px;
-   background: rgba(255, 255, 255, 0.08);
+   background: rgba(var(--board-ov, 255, 255, 255), 0.08);
    overflow: hidden;
 }
 
@@ -105,6 +105,12 @@
    justify-content: center;
    width: 70%;
    height: 70%;
+}
+
+/* the shapes are drawn in currentColor: pale chalk on the dark stage (as before), ink on the light */
+.shape,
+.optShape {
+   color: var(--board-ink, rgba(232, 238, 252, 0.92));
 }
 
 /* the shapes carry a size from getSVGShape (attributes, or inline on the icon fallbacks) */

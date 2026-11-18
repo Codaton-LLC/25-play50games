@@ -164,7 +164,7 @@ function ColorSequence({
       const c = getColorStyle(color);
       return {
          "--pad-bg": c.bg,
-         "--pad-ring": "rgba(255, 255, 255, 0.28)",
+         "--pad-ring": "rgba(var(--board-ov, 255, 255, 255), 0.28)",
          "--pad-glow": c.shadow,
          ...(i !== undefined ? { "--i": i } : {}),
       } as CSSProperties;

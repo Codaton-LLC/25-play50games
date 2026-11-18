@@ -27,7 +27,7 @@
    max-width: 360px;
    height: 6px;
    border-radius: 999px;
-   background: rgba(255, 255, 255, 0.1);
+   background: rgba(var(--board-ov, 255, 255, 255), 0.1);
    overflow: hidden;
 }
 
@@ -48,7 +48,7 @@
    border-radius: var(--lg-r-panel);
    background: var(--lg-surface);
    border: 1px solid var(--lg-line);
-   box-shadow: 0 12px 32px rgba(3, 6, 14, 0.35);
+   box-shadow: 0 12px 32px rgba(var(--board-navy, 3, 6, 14), calc(0.35 * var(--board-shade-k, 1)));
 }
 
 .grid {
@@ -61,7 +61,7 @@
    aspect-ratio: 1;
    border-radius: var(--lg-r-cell);
    overflow: hidden;
-   background: #5b6479;
+   background: var(--board-ink-2, #5b6479);
    touch-action: none;
 }
 
@@ -77,11 +77,11 @@
 
 /* walls: raised slate; paths: the dark floor */
 .wall {
-   background: #5b6479;
+   background: var(--board-ink-2, #5b6479);
 }
 
 .path {
-   background: #10141d;
+   background: var(--board-sunk, #10141d);
 }
 
 .trail {
@@ -131,7 +131,7 @@
 .playerIcon {
    width: 70%;
    height: 70%;
-   color: #1a0d09;
+   color: var(--board-on-fill, #1a0d09);
 }
 
 .won {

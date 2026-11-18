@@ -29,9 +29,9 @@
    max-width: none;
    margin: 0;
    padding: 14px 16px;
-   border: 1px solid rgba(255, 255, 255, 0.1);
+   border: 1px solid rgba(var(--board-ov, 255, 255, 255), 0.1);
    border-radius: 16px;
-   background: rgba(255, 255, 255, 0.04);
+   background: rgba(var(--board-ov, 255, 255, 255), 0.04);
    box-shadow: none;
    backdrop-filter: none;
    text-align: center;
@@ -66,7 +66,7 @@
    max-width: 320px;
    height: 6px;
    border-radius: 999px;
-   background: rgba(255, 255, 255, 0.08);
+   background: rgba(var(--board-ov, 255, 255, 255), 0.08);
    box-shadow: none;
    overflow: hidden;
 }
@@ -95,9 +95,9 @@
    gap: 12px;
    width: 100%;
    padding: 14px;
-   border: 1px solid rgba(255, 255, 255, 0.1);
+   border: 1px solid rgba(var(--board-ov, 255, 255, 255), 0.1);
    border-radius: 16px;
-   background: rgba(255, 255, 255, 0.04);
+   background: rgba(var(--board-ov, 255, 255, 255), 0.04);
    box-shadow: none;
    backdrop-filter: none;
    animation: rtfIn 320ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
@@ -203,9 +203,9 @@
    height: auto;
    aspect-ratio: 1;
    margin: 0;
-   border: 1px solid rgba(255, 255, 255, 0.12);
+   border: 1px solid rgba(var(--board-ov, 255, 255, 255), 0.12);
    border-radius: 10px;
-   background: rgba(255, 255, 255, 0.05);
+   background: rgba(var(--board-ov, 255, 255, 255), 0.05);
    backdrop-filter: none;
    color: var(--accent);
    transition:
@@ -262,8 +262,8 @@
    padding: 8px 4px;
    border: 0;
    border-radius: 12px;
-   background: rgba(255, 255, 255, 0.07);
-   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+   background: rgba(var(--board-ov, 255, 255, 255), 0.07);
+   box-shadow: inset 0 0 0 1px rgba(var(--board-ov, 255, 255, 255), 0.1);
    color: var(--text);
    font-size: 0.82rem;
    line-height: 1.15;
