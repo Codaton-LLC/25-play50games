@@ -222,9 +222,29 @@ const isMockLevel = (value: unknown): value is LevelId =>
 
 const MOCK_NAMES = ["Ana K.", "Blerim D.", "Drita M.", "Ermal S.", "Fjolla R.", "Gent H.", "Hana L."];
 
+/** more sample names for a board longer than ten rows (fictional, docs/design/DESIGN.md §10) */
+const MOCK_MORE_NAMES = ["Arta K.", "Dion B.", "Lea M.", "Besnik H.", "Yll R."];
+
+/**
+ * What the mock leaderboard answers, for looking at a board's states without WordPress:
+ * "empty" (no rows), "outside" (twelve rows, the player ranked 14th), "listed" (the player 4th in
+ * the list), "error" (the request fails). Unset = the seven sample rows plus this session's score.
+ */
+export type MockBoard = "empty" | "outside" | "listed" | "error";
+
+const MOCK_BOARDS: readonly MockBoard[] = ["empty", "outside", "listed", "error"];
+
+/** `?mockBoard=empty` in the page address picks the mock's board (the mock only; dev previews). */
+export function mockBoardFromSearch(search: string): MockBoard | null {
+   const value = new URLSearchParams(search).get("mockBoard");
+   return MOCK_BOARDS.includes(value as MockBoard) ? (value as MockBoard) : null;
+}
+
 export interface MockArcadeOptions {
    /** like the server's PLAY50_ARCADE_REQUIRE_RUN_TOKEN: reject submits without a ticket */
    requireRunToken?: boolean;
+   /** the board every leaderboard() call answers; omitted = read `?mockBoard=` in a browser */
+   board?: MockBoard | null;
 }
 
 /**
@@ -316,13 +336,32 @@ export function createMockArcadeClient(options: MockArcadeOptions = {}): ArcadeA
          };
       },
       async leaderboard(slug, limit = 10) {
-         const entries: ArcadeLeaderboardEntry[] = MOCK_NAMES.map((name, i) => ({
+         const board =
+            options.board !== undefined
+               ? options.board
+               : typeof window !== "undefined"
+                 ? mockBoardFromSearch(window.location.search)
+                 : null;
+         if (board === "error") throw new ArcadeApiError("network", "Network error");
+         if (board === "empty") return { slug, entries: [], me: null };
+         const names = board === "outside" ? [...MOCK_NAMES, ...MOCK_MORE_NAMES] : MOCK_NAMES;
+         const entries: ArcadeLeaderboardEntry[] = names.map((name, i) => ({
             rank: 0,
             name,
-            score: 1000 - i * 120,
+            score: 1000 - i * (board === "outside" ? 67 : 120),
             duration_ms: 30000 + i * 1500,
             achieved_at: new Date(Date.UTC(2026, 9, 1 + i)).toISOString(),
          }));
+         if (board === "outside") {
+            entries.forEach((e, i) => (e.rank = i + 1));
+            return { slug, entries: entries.slice(0, limit), me: { rank: 14, best_score: 184 } };
+         }
+         if (board === "listed") {
+            entries.push({ rank: 0, name: "You", score: 704, duration_ms: 35250, achieved_at: new Date(Date.UTC(2026, 9, 9)).toISOString(), is_me: true });
+            entries.sort((a, b) => b.score - a.score).forEach((e, i) => (e.rank = i + 1));
+            const listed = entries.find((e) => e.is_me)!;
+            return { slug, entries: entries.slice(0, limit), me: { rank: listed.rank, best_score: listed.score } };
+         }
          const mine = totalOf(slug);
          if (mine) {
             entries.push({ rank: 0, name: mockHideName ? "Anonymous" : "You", score: mine.score, duration_ms: mine.duration_ms, achieved_at: mine.at, is_me: true });
