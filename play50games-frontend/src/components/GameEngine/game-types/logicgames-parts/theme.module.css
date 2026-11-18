@@ -399,6 +399,19 @@
    animation-delay: calc(var(--i, 0) * 40ms);
 }
 
+/* feedback on a staggered child wins over its entry animation */
+.stagger > .pop {
+   animation: lgPop 260ms var(--lg-ease);
+}
+
+.stagger > .shake {
+   animation: lgShake 320ms ease-in-out;
+}
+
+.stagger > .reveal {
+   animation: lgReveal 240ms var(--lg-ease) both;
+}
+
 @media (prefers-reduced-motion: reduce) {
    .game *,
    .game *::before,
