@@ -140,6 +140,29 @@ export default function ReactionTest({
 
    // Start level ref
    const startLevelRef = useRef<((levelIndex?: number) => void) | null>(null);
+   // the variants' own intervals/timeouts for the current run: cleared when a level (re)starts and on unmount,
+   // so a Replay never leaves the previous attempt's timers driving the new one
+   const runIntervalsRef = useRef<Set<ReturnType<typeof setInterval>>>(new Set());
+   const runTimeoutsRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
+   const runInterval = useCallback((fn: () => void, ms: number) => {
+      const id = setInterval(fn, ms);
+      runIntervalsRef.current.add(id);
+      return id;
+   }, []);
+   const runTimeout = useCallback((fn: () => void, ms: number) => {
+      const id = setTimeout(() => {
+         runTimeoutsRef.current.delete(id);
+         fn();
+      }, ms);
+      runTimeoutsRef.current.add(id);
+      return id;
+   }, []);
+   const clearRunTimers = useCallback(() => {
+      runIntervalsRef.current.forEach((id) => clearInterval(id));
+      runIntervalsRef.current.clear();
+      runTimeoutsRef.current.forEach((id) => clearTimeout(id));
+      runTimeoutsRef.current.clear();
+   }, []);
 
    // Get variant type for current level (0-9 maps to variants 1-10)
    const getVariant = useCallback(() => {
@@ -262,7 +285,7 @@ export default function ReactionTest({
 
          case 1: // Moving Target Reaction
             setTargetPosition({ x: 20, y: 50 });
-            const moveInterval = setInterval(() => {
+            const moveInterval = runInterval(() => {
                if (gameStateRef.current !== "playing") {
                   clearInterval(moveInterval);
                   return;
@@ -272,7 +295,7 @@ export default function ReactionTest({
                   if (newX > 80) {
                      clearInterval(moveInterval);
                      const waitTime = Math.random() * 2000 + 1000;
-                     setTimeout(() => {
+                     runTimeout(() => {
                         setTargetPosition({ x: 20, y: 50 });
                         setGreenShown(true);
                         greenStartTimeRef.current = Date.now();
@@ -291,7 +314,7 @@ export default function ReactionTest({
          case 2: // Countdown Reaction
             setCountdown(3);
             let count = 3;
-            const countInterval = setInterval(() => {
+            const countInterval = runInterval(() => {
                if (gameStateRef.current !== "playing") {
                   clearInterval(countInterval);
                   return;
@@ -303,7 +326,7 @@ export default function ReactionTest({
                   setCountdown("GO");
                   setGreenShown(true);
                   greenStartTimeRef.current = Date.now();
-                  setTimeout(() => {
+                  runTimeout(() => {
                      setCountdown(null);
                   }, 2000);
                   clearInterval(countInterval);
@@ -374,14 +397,14 @@ export default function ReactionTest({
                   greenStartTimeRef.current = Date.now();
                   setGreenShown(true);
                }
-               setTimeout(() => {
+               runTimeout(() => {
                   setMovingObjects((prev) => prev.filter((o) => o.id !== id));
                }, 2000);
             };
             const speedWait = Math.random() * 2000 + 1000;
             waitTimerRef.current = setTimeout(() => {
                spawnSpeedObjects();
-               const speedInterval = setInterval(() => {
+               const speedInterval = runInterval(() => {
                   if (gameStateRef.current !== "playing") {
                      clearInterval(speedInterval);
                      return;
@@ -401,7 +424,7 @@ export default function ReactionTest({
             setPatternIndex(0); // Start at 0 to show first circle (red)
             let patternIdx = 0;
             // Show first circle immediately
-            const patternInterval = setInterval(() => {
+            const patternInterval = runInterval(() => {
                if (gameStateRef.current !== "playing") {
                   clearInterval(patternInterval);
                   return;
@@ -450,7 +473,7 @@ export default function ReactionTest({
 
          case 7: // Timing Reaction
             setProgressBar(0);
-            const progressInterval = setInterval(() => {
+            const progressInterval = runInterval(() => {
                if (gameStateRef.current !== "playing") {
                   clearInterval(progressInterval);
                   return;
@@ -516,7 +539,7 @@ export default function ReactionTest({
             }, masterWait);
             break;
       }
-   }, []);
+   }, [runInterval, runTimeout]);
 
    // Start level
    const startLevel = useCallback(
@@ -541,6 +564,7 @@ export default function ReactionTest({
             clearTimeout(gameTimerRef.current);
             gameTimerRef.current = null;
          }
+         clearRunTimers();
 
          // Reset state
          setGameState("playing");
@@ -556,7 +580,7 @@ export default function ReactionTest({
          // Initialize the specific mini-game
          initializeMiniGame(targetLevel);
       },
-      [initializeMiniGame]
+      [initializeMiniGame, clearRunTimers]
    );
 
    // Store startLevel in ref
@@ -1155,6 +1179,7 @@ export default function ReactionTest({
          if (feedbackTimerRef.current) clearTimeout(feedbackTimerRef.current);
          // leak fix: the level-end timer and the frame loop must not outlive the component
          if (gameTimerRef.current) clearTimeout(gameTimerRef.current);
+         clearRunTimers();
          if (animationFrameRef.current) {
             cancelAnimationFrame(animationFrameRef.current);
          }
