@@ -128,7 +128,7 @@ export const ARCADE_COLLECTIONS: ReadonlyArray<{ id: ArcadeCollection; title: st
    { id: "adventure", title: "Adventure" },
    { id: "skill", title: "Skill" },
    // Menu 2: every game here is "dev" until the user signs off, so the section shows only on preview builds
-   { id: "rollheroes", title: "Color Roll Heroes" },
+   { id: "rollheroes", title: "Scale Squad" },
 ];
 
 export type ScoreKind = "points" | "time";

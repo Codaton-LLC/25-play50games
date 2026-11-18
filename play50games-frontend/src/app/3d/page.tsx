@@ -85,7 +85,7 @@ const COLLECTION_INFO = [
    { id: "originals", title: "Originals", blurb: "The first ten games. Each one keeps its own best score." },
    { id: "adventure", title: "Adventure", blurb: "Explore, collect and escape in little toy worlds." },
    { id: "skill", title: "Skill", blurb: "Aim, time and steer: short runs that reward a steady hand." },
-   { id: "rollheroes", title: "Color Roll Heroes", blurb: "Five armoured heroes who roll into a ball: sky towers, caves and races." },
+   { id: "rollheroes", title: "Scale Squad", blurb: "Five pangolin heroes who roll into a ball: sky towers, caves and races." },
 ] as const satisfies ReadonlyArray<{ id: ArcadeCollection; title: string; blurb: string }>;
 
 // One grid with sections and filter chips; while only one collection shows (production today: the
@@ -93,7 +93,7 @@ const COLLECTION_INFO = [
 function ArcadeSections() {
    const games = getVisibleGames();
    const grouped = getVisibleSections().length > 1;
-   // Menu 2 (Color Roll Heroes) is drawn as its world map on preview builds; the other sections keep the card grid
+   // Menu 2 (Scale Squad on the site, "rollheroes" in code) is drawn as its world map on preview builds; the other sections keep the card grid
    const heroes = games.filter((game) => gameCollection(game) === "rollheroes");
    const sectionViews = ARCADE_PREVIEW && grouped && heroes.length > 0 ? { rollheroes: <WorldMap games={heroes} preview /> } : undefined;
    return <ArcadeGrid games={games} collections={grouped ? [...COLLECTION_INFO] : undefined} sectionViews={sectionViews} />;

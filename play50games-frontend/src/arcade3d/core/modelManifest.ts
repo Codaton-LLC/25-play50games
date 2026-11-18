@@ -1058,6 +1058,19 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/ultimate-color-trial/m2RunwayPlatform.glb",
    "/models/3d/ultimate-color-trial/m2SpawnPad.glb",
    "/models/3d/ultimate-color-trial/m2TrialRing.glb",
+   // office-escape exec decor (2026-10-25): batch 5 extra GLB, adopted as corridor decor drawn only
+   // on levels 4-5 (games/office-escape/assets.ts, Scene.tsx)
+   // robot-collector hazard beacon (2026-10-25): Hyper3D prop copied in by Claude; decor on the
+   // wall trim of levels 4-5 (Dark Storage / Mega Warehouse), adopted in games/robot-collector
+   // pigeon-crossing night decor (2026-10-25): batch 5 street props (Gen-2.5-Medium, 1500 / 3000
+   // tris), optimized GLBs copied in; dressing for levels 4 (Night Traffic) and 5 (Rush Hour) only,
+   // fitted and placed in games/pigeon-crossing (assets.ts, Decor.tsx)
+   // tower-climb storm decor (2026-10-25): batch 5 part B adoption, Gen-2.5-Medium, optimized GLB;
+   // frames levels 4-5 (Storm Tower, Sky Tower) beside the column. Fit in games/tower-climb/assets.ts.
+   // penalty-hero finalTrophy (2026-10-25): the final's presentation cup (text-to-3D batch, optimized);
+   // level 4-5 decor behind the goal, placed in games/penalty-hero/assets.ts
+   // warehouse-rush forkliftTruck (2026-10-25): parked-yard decor for levels 4-5 only (drawn there
+   // only); the fit lives in games/warehouse-rush/assets.ts
    // Menu 1 firefighter-rescue (2026-10-28): the ready menu1-firefighter-rescue GLBs (exitSignV2, not
    // exitSign; not the older firefighter-rescue/hero.glb), plus the shared ready cabinet; fits in
    // games/firefighter-rescue/assets.ts (assets.test.ts). The firefighter is auto-rigged.
