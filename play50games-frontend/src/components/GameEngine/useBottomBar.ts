@@ -5,8 +5,20 @@
 // above it (GameEngine.module.css). Light: one elementFromPoint per poll, only while mounted.
 import { useEffect, type RefObject } from "react";
 
+/** The cookie banner's own published height (PrivacyConsent's --cookie-banner-h), or null when the
+ *  site does not publish it (then the bar is measured below). */
+export function publishedBannerHeight(): number | null {
+   if (typeof document === "undefined") return null;
+   const v = document.documentElement.style.getPropertyValue("--cookie-banner-h").trim();
+   if (!v) return null;
+   const n = parseFloat(v);
+   return Number.isFinite(n) ? n : null;
+}
+
 /** px of a fixed, mostly full-width bar anchored to the bottom edge (0 when none or no DOM). */
 export function bottomBarHeight(): number {
+   const published = publishedBannerHeight();
+   if (published !== null) return published;
    if (typeof window === "undefined" || typeof document.elementFromPoint !== "function") return 0;
    const W = window.innerWidth;
    const H = window.innerHeight;
@@ -39,7 +51,8 @@ export function useBottomBar(ref: RefObject<HTMLElement>, active = true, padPage
          if (el && el.style.getPropertyValue("--p50-bottom-bar") !== `${v}px`) el.style.setProperty("--p50-bottom-bar", `${v}px`);
          if (v === last) return;
          last = v;
-         if (padPage) {
+         // the site pads the body itself when the banner publishes its height (globals.css)
+         if (padPage && publishedBannerHeight() === null) {
             body.style.paddingBottom = v > 0 ? `${v}px` : before.pad;
             html.style.scrollPaddingBottom = v > 0 ? `${v}px` : before.scroll;
          }
