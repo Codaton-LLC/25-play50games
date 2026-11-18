@@ -665,6 +665,18 @@ function CardFlipMemory({
    };
 
    const hintsOut = maxHints > 0 && hintsUsed >= maxHints;
+   const pairShown =
+      flippedCards.length === 2
+         ? flippedCards.map((id) => cards.find((c) => c.id === id))
+         : [];
+   const mismatchIds =
+      pairShown.length === 2 &&
+      pairShown[0] &&
+      pairShown[1] &&
+      !pairShown[0].matched &&
+      pairShown[0].value !== pairShown[1].value
+         ? flippedCards
+         : [];
    const isHinted = (id: number) =>
       !!(showHint && hintPair && (id === hintPair[0] || id === hintPair[1]));
 
@@ -775,14 +787,15 @@ function CardFlipMemory({
                   const maxSize = Math.max(gridWidth, gridHeight);
                   const isNumber = typeof card.value === "number";
                   const faceUp = card.flipped || card.matched;
-                  const wrongPick =
-                     card.flipped && !card.matched && feedback === "wrong";
+                  // a pair that does not match: both cards tint and shake until the game turns
+                  // them back (look only; the game still shows no message for a miss)
+                  const wrongPick = mismatchIds.includes(card.id);
                   const stateClass = card.matched
                      ? `${m.cardMatched} ${m.matched}`
                      : isHinted(card.id)
                      ? m.cardHint
                      : wrongPick
-                     ? `${m.cardWrong} ${m.wrong}`
+                     ? `${m.cardWrong} ${m.mismatch}`
                      : card.flipped
                      ? `${m.cardShown} ${m.flipped}`
                      : "";
