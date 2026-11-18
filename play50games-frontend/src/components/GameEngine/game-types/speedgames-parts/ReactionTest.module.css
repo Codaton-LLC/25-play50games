@@ -1,4 +1,7 @@
-/* ReactionTest: touch / layout polish on top of the inline styles. Rules and timing live in the TSX. */
+/* ReactionTest: layout, shape and motion on top of the inline styles. Rules and timing live in the TSX.
+   Shape scale: cells 10 px, panels 16 px, buttons 12 px, bars and badges pill.
+   The green / red / amber lights are game content: their colours stay inline in the TSX (the final games
+   recolour those inline strings gold); everything that is chrome is written here with tokens. */
 
 .root {
    display: flex;
@@ -14,6 +17,48 @@
    -webkit-tap-highlight-color: transparent;
 }
 
+/* Numbers that change (level, score, max time, reaction times, counters). */
+.nums {
+   font-variant-numeric: tabular-nums;
+}
+
+/* Header: the "Max: 400ms" chip. Accent tint with tokens, so it is coral in a game and gold in a final. */
+.maxChip {
+   display: flex;
+   align-items: center;
+   gap: 4px;
+   padding: 4px 10px;
+   border-radius: 999px;
+   font-weight: 700;
+   color: var(--text);
+   background: rgba(var(--accent-rgb, 125, 211, 252), 0.16);
+   border: 1px solid rgba(var(--accent-rgb, 125, 211, 252), 0.5);
+   font-variant-numeric: tabular-nums;
+   white-space: nowrap;
+}
+
+.maxChip svg {
+   color: var(--accent);
+   flex-shrink: 0;
+}
+
+/* Level progress: a full-width fill scaled on X (never an animated width). */
+.progressTrack {
+   width: 100%;
+   height: 8px;
+   background: var(--stroke);
+   border-radius: 999px;
+   overflow: hidden;
+}
+
+.progressFill {
+   width: 100%;
+   height: 100%;
+   background: var(--accent);
+   transform-origin: left center;
+   transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
 /* The reaction pad: fills the width, the height comes from the live viewport (inline). */
 .pad {
    position: relative;
@@ -27,6 +72,92 @@
    -webkit-touch-callout: none;
    -webkit-tap-highlight-color: transparent;
    cursor: pointer;
+}
+
+/* A light changing colour: colour only, the same 0.3 s as before, so what the player sees at the signal
+   is unchanged. Its size never changes (the border keeps one width in every state). */
+.light {
+   transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+/* The moving target: the 0.1 s glide between two 50 ms logic steps is the game's own movement. */
+.mover {
+   transition: left 0.1s linear, top 0.1s linear, background-color 0.1s linear, border-color 0.1s linear;
+}
+
+/* "Act now" cue on a live light: three beats, then still. It animates the separate `scale` property, so
+   it never overrides the translate() that centres a positioned target. */
+.livePulse {
+   animation: rtLivePulse 1s ease-in-out 3;
+}
+
+.countdown {
+   font-variant-numeric: tabular-nums;
+   transition: color 0.3s ease, transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.shapeOpt {
+   transition: transform 0.15s ease-out;
+}
+
+.shapeOpt:active {
+   opacity: 0.85;
+}
+
+/* Timing bar: full-width fill, scaleX follows the game's progress value. */
+.timingFill {
+   width: 100%;
+   height: 100%;
+   transform-origin: left center;
+   transition: transform 0.05s linear;
+}
+
+/* Memory round: the number cells. */
+.memCell {
+   border-radius: 10px;
+   font-variant-numeric: tabular-nums;
+   touch-action: manipulation;
+   -webkit-tap-highlight-color: transparent;
+   transition: background-color 0.2s ease, border-color 0.2s ease, opacity 0.2s ease, transform 0.1s ease-out;
+}
+
+.memCell:active:not(:disabled) {
+   transform: scale(0.96);
+}
+
+/* Master round: the whole pad is the light. */
+.master {
+   transition: background-color 0.3s ease;
+}
+
+.masterLabel {
+   color: var(--text);
+   transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), color 0.3s ease;
+}
+
+/* dark label on the green pad (white on --ok is under 3:1); the finals turn that pad into a dark gold
+   tint, where the label goes back to white */
+.masterLabelLive {
+   color: #0b1020;
+}
+
+:global(body.final-game) .masterLabelLive {
+   color: #fff;
+}
+
+.penaltyChip {
+   position: absolute;
+   display: flex;
+   align-items: center;
+   gap: 4px;
+   padding: 6px 12px;
+   border-radius: 999px;
+   font-weight: 700;
+   font-variant-numeric: tabular-nums;
+   color: var(--text);
+   background: color-mix(in srgb, var(--warn) 22%, rgba(11, 16, 32, 0.7));
+   border: 1px solid color-mix(in srgb, var(--warn) 60%, transparent);
+   pointer-events: none;
 }
 
 /* One beat of green or red at the pad edge on a hit / a too-early press. */
@@ -64,48 +195,204 @@
    left: 50%;
    transform: translateX(-50%);
    font-weight: 800;
+   font-variant-numeric: tabular-nums;
    color: #fff;
    background: rgba(0, 0, 0, 0.62);
    padding: 10px 22px;
    border-radius: 999px;
-   border: 2px solid rgba(255, 255, 255, 0.3);
+   border: 1px solid rgba(255, 255, 255, 0.3);
    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
    pointer-events: none;
    white-space: nowrap;
-   animation: rtChipPop 0.32s cubic-bezier(0.2, 0.9, 0.3, 1.4) both;
+   animation: rtChipPop 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
-/* Buttons: never under 44 px, pressed feel. */
+/* Result card badges (level complete / failed). */
+.badge {
+   display: inline-flex;
+   align-items: center;
+   gap: 8px;
+   padding: 8px 14px;
+   border-radius: 999px;
+   font-weight: 800;
+   font-variant-numeric: tabular-nums;
+   color: var(--text);
+}
+
+.badgeOk {
+   background: color-mix(in srgb, var(--ok) 18%, transparent);
+   border: 1px solid color-mix(in srgb, var(--ok) 55%, transparent);
+}
+
+.badgeOk svg {
+   color: var(--ok);
+}
+
+.badgeBad {
+   background: color-mix(in srgb, var(--warn) 18%, transparent);
+   border: 1px solid color-mix(in srgb, var(--warn) 55%, transparent);
+}
+
+.badgeBad svg {
+   color: var(--warn);
+}
+
+/* Green notes (link copied, the reaction line). */
+.noteOk {
+   box-sizing: border-box;
+   width: 100%;
+   padding: 10px 12px;
+   border-radius: 12px;
+   font-weight: 600;
+   font-variant-numeric: tabular-nums;
+   text-align: center;
+   color: var(--ok);
+   background: color-mix(in srgb, var(--ok) 16%, transparent);
+   border: 1px solid color-mix(in srgb, var(--ok) 55%, transparent);
+}
+
+/* "Unlimited replay is active": accent tint (tokens: coral in a game, gold in a final). */
+.noteLive {
+   box-sizing: border-box;
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   flex-wrap: wrap;
+   width: 100%;
+   border-radius: 12px;
+   font-weight: 500;
+   text-align: center;
+   color: var(--text);
+   background: rgba(var(--accent-rgb, 125, 211, 252), 0.14);
+   border: 1px solid rgba(var(--accent-rgb, 125, 211, 252), 0.5);
+}
+
+.noteLive svg {
+   color: var(--accent);
+   flex-shrink: 0;
+}
+
+/* Buttons: one look (12 px, 1 px border, readable label), never under 44 px, pressed feel. */
 .btn {
    min-height: 44px;
    min-width: 44px;
-   border-radius: 10px;
+   border-radius: 12px;
+   color: var(--text);
+   font-weight: 600;
+   cursor: pointer;
    touch-action: manipulation;
    -webkit-tap-highlight-color: transparent;
-   transition: transform 0.08s ease, box-shadow 0.12s ease, background 0.12s ease;
+   transition: transform 0.1s ease-out, background-color 0.12s ease, border-color 0.12s ease;
 }
 
 .btn:active:not(:disabled) {
    transform: scale(0.96);
 }
 
+.btn:disabled {
+   cursor: not-allowed;
+}
+
+.btnReplay {
+   background: rgba(var(--accent-rgb, 125, 211, 252), 0.16);
+   border: 1px solid rgba(var(--accent-rgb, 125, 211, 252), 0.55);
+}
+
+.btnReplay:disabled {
+   background: var(--card);
+   border-color: var(--stroke);
+   color: var(--muted);
+}
+
+.btnShare {
+   background: var(--card);
+   border: 1px solid var(--stroke);
+}
+
+.btnShare svg {
+   color: var(--muted);
+}
+
+.btnNext {
+   display: inline-flex;
+   align-items: center;
+   justify-content: center;
+   gap: 8px;
+   font-weight: 700;
+   background: color-mix(in srgb, var(--ok) 20%, transparent);
+   border: 1px solid color-mix(in srgb, var(--ok) 60%, transparent);
+}
+
+@media (hover: hover) {
+   .btnReplay:not(:disabled):hover {
+      background: rgba(var(--accent-rgb, 125, 211, 252), 0.26);
+   }
+
+   .btnShare:hover {
+      background: rgba(255, 255, 255, 0.1);
+   }
+
+   .btnNext:hover {
+      background: color-mix(in srgb, var(--ok) 30%, transparent);
+   }
+
+   .shapeOpt:hover {
+      transform: scale(1.06);
+   }
+}
+
+/* Final games: the green chrome is gold there (it was recoloured from the old inline green strings). */
+:global(body.final-game) .badgeOk,
+:global(body.final-game) .btnNext {
+   background: rgba(234, 179, 8, 0.2);
+   border-color: rgba(234, 179, 8, 0.6);
+}
+
+:global(body.final-game) .badgeOk svg {
+   color: #eab308;
+}
+
+:global(body.final-game) .noteOk {
+   color: #eab308;
+   background: rgba(234, 179, 8, 0.2);
+   border-color: rgba(234, 179, 8, 0.6);
+}
+
+@media (hover: hover) {
+   :global(body.final-game) .btnNext:hover {
+      background: rgba(234, 179, 8, 0.3);
+   }
+}
+
+@keyframes rtLivePulse {
+   0%,
+   100% {
+      opacity: 1;
+      scale: 1;
+   }
+   50% {
+      opacity: 0.7;
+      scale: 1.05;
+   }
+}
+
 @keyframes rtPadHit {
    0% {
-      box-shadow: inset 0 0 0 4px rgba(134, 239, 172, 0.95), 0 0 0 0 rgba(134, 239, 172, 0.6);
+      box-shadow: inset 0 0 0 4px color-mix(in srgb, var(--ok) 95%, transparent);
    }
    100% {
-      box-shadow: inset 0 0 0 0 rgba(134, 239, 172, 0), 0 0 0 14px rgba(134, 239, 172, 0);
+      box-shadow: inset 0 0 0 0 color-mix(in srgb, var(--ok) 0%, transparent);
    }
 }
 
 @keyframes rtPadEarly {
    0% {
-      box-shadow: inset 0 0 0 4px rgba(252, 165, 165, 0.95);
-      background: rgba(252, 165, 165, 0.18);
+      box-shadow: inset 0 0 0 4px color-mix(in srgb, var(--warn) 95%, transparent);
+      background: color-mix(in srgb, var(--warn) 18%, transparent);
    }
    100% {
-      box-shadow: inset 0 0 0 0 rgba(252, 165, 165, 0);
-      background: rgba(252, 165, 165, 0);
+      box-shadow: inset 0 0 0 0 color-mix(in srgb, var(--warn) 0%, transparent);
+      background: color-mix(in srgb, var(--warn) 0%, transparent);
    }
 }
 
@@ -131,11 +418,7 @@
 @keyframes rtChipPop {
    0% {
       opacity: 0;
-      transform: translate(-50%, 8px) scale(0.8);
-   }
-   60% {
-      opacity: 1;
-      transform: translate(-50%, 0) scale(1.08);
+      transform: translate(-50%, 8px) scale(0.9);
    }
    100% {
       opacity: 1;
@@ -144,6 +427,16 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+   .progressFill,
+   .light,
+   .mover,
+   .livePulse,
+   .countdown,
+   .shapeOpt,
+   .timingFill,
+   .memCell,
+   .master,
+   .masterLabel,
    .padHit,
    .padEarly,
    .toast,
