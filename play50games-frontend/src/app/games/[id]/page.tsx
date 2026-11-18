@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { Game } from "@/types/game";
 import { getGame } from "@/lib/api/games";
@@ -8,7 +9,11 @@ import { getGuestId } from "@/lib/storage/progressStorage";
 import GameEngine from "@/components/GameEngine/GameEngine";
 import LoginModal from "@/components/Auth/LoginModal";
 import RegisterModal from "@/components/Auth/RegisterModal";
+import { LockIcon } from "@/components/Site/icons";
+import ui from "@/components/Site/ui.module.css";
 import { useAuth } from "@/contexts/AuthContext";
+import GameBar from "./GameBar";
+import styles from "./page.module.css";
 
 export default function GamePage() {
    const params = useParams();
@@ -19,7 +24,7 @@ export default function GamePage() {
    const [guestId] = useState(() => getGuestId());
    const [showLoginModal, setShowLoginModal] = useState(false);
    const [showRegisterModal, setShowRegisterModal] = useState(false);
-   const { login, register } = useAuth();
+   const { user, login, register } = useAuth();
 
    // Add final-game class to body only for specific games: mixed-quiz, survival-mode, boss-puzzle
    // Add it during loading based on gameId (46, 47, 48) so loading is yellow
@@ -71,6 +76,11 @@ export default function GamePage() {
       }
    };
 
+   const retry = () => {
+      setLoading(true);
+      loadGame();
+   };
+
    const handleComplete = (score: number) => {
       // Progress is already saved by GameEngine
    };
@@ -79,66 +89,89 @@ export default function GamePage() {
       router.push("/classic");
    };
 
+   let body: ReactNode;
    if (loading) {
-      return (
-         <div
-            style={{
-               display: "flex",
-               justifyContent: "center",
-               alignItems: "center",
-               minHeight: "100vh",
-               width: "100%",
-            }}
-         >
-            <span className="loader"></span>
-         </div>
+      // the start screen's outline: title, description, the How to Play card
+      body = (
+         <main className={styles.state} aria-busy="true" aria-label="Loading the game">
+            <div className={styles.skeleton}>
+               <div className={`${styles.bone} ${styles.boneTitle}`} />
+               <div className={`${styles.bone} ${styles.boneLine}`} />
+               <div className={`${styles.bone} ${styles.boneCard}`} />
+            </div>
+         </main>
       );
-   }
-
-   if (!game) {
-      return <div className="error">Game not found</div>;
-   }
-
-   if (!game.is_unlocked) {
-      return (
-         <div className="locked-game">
-            <h2>Game Locked</h2>
-            <p>Complete previous games to unlock this one.</p>
-            <button onClick={handleExit}>Go Back</button>
-         </div>
+   } else if (!game) {
+      body = (
+         <main className={styles.state}>
+            <span className={`${ui.plate} ${ui.plateLg}`} aria-hidden="true">
+               50
+            </span>
+            <h1 className={styles.stateTitle}>This game did not load</h1>
+            <p className={styles.stateText}>
+               The link may be old, or the connection dropped. Your progress is safe.
+            </p>
+            <div className={styles.stateActions}>
+               <button type="button" className={`${ui.btn} ${ui.btnPrimary}`} onClick={retry}>
+                  Try again
+               </button>
+               <Link href="/classic" className={`${ui.btn} ${ui.btnQuiet}`}>
+                  Back to Classic 50
+               </Link>
+            </div>
+         </main>
       );
-   }
-
-   return (
-      <div className="game-page">
+   } else if (!game.is_unlocked) {
+      body = (
+         <main className={styles.state}>
+            <span className={styles.stateIcon} aria-hidden="true">
+               <LockIcon />
+            </span>
+            <h1 className={styles.stateTitle}>This game is still locked</h1>
+            <p className={styles.stateText}>Pass the games before it on the path and this one opens.</p>
+            <div className={styles.stateActions}>
+               <Link href="/classic" className={`${ui.btn} ${ui.btnPrimary}`}>
+                  Back to the path
+               </Link>
+            </div>
+         </main>
+      );
+   } else {
+      body = (
          <GameEngine
             game={game}
             onComplete={handleComplete}
             onExit={handleExit}
             onShowLoginModal={() => setShowLoginModal(true)}
             onShowRegisterModal={() => setShowRegisterModal(true)}
+            siteHeader={false}
          />
-         {/* this page keeps the old dark look, so its sheets take the dark values (theme.css) */}
-         <div className="p50-night">
-            <LoginModal
-               isOpen={showLoginModal}
-               onClose={() => setShowLoginModal(false)}
-               onLogin={login}
-               onSwitchToRegister={() => {
-                  setShowLoginModal(false);
-                  setShowRegisterModal(true);
-               }}
-            />
-            <RegisterModal
-               isOpen={showRegisterModal}
-               onClose={() => setShowRegisterModal(false)}
-               onRegister={register}
-               onSwitchToLogin={() => {
-                  setShowRegisterModal(false);
-                  setShowLoginModal(true);
-               }}
-            />
-         </div>
+      );
+   }
+
+   // .p50-night: the page is always dark (page.module.css says why), and its sheets follow it
+   return (
+      <div className={`p50-night game-page ${styles.page}`}>
+         <GameBar game={game} user={user} onLogin={() => setShowLoginModal(true)} />
+         {body}
+         <LoginModal
+            isOpen={showLoginModal}
+            onClose={() => setShowLoginModal(false)}
+            onLogin={login}
+            onSwitchToRegister={() => {
+               setShowLoginModal(false);
+               setShowRegisterModal(true);
+            }}
+         />
+         <RegisterModal
+            isOpen={showRegisterModal}
+            onClose={() => setShowRegisterModal(false)}
+            onRegister={register}
+            onSwitchToLogin={() => {
+               setShowRegisterModal(false);
+               setShowLoginModal(true);
+            }}
+         />
       </div>
    );
 }

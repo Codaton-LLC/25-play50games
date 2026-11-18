@@ -380,6 +380,9 @@ interface GameEngineProps {
    onExit: () => void;
    onShowLoginModal?: () => void;
    onShowRegisterModal?: () => void;
+   /** false: the page draws its own top bar (app/games/[id]/GameBar), so the legacy site header and
+    *  its phone Menu button are left out. Default true. */
+   siteHeader?: boolean;
 }
 
 export default function GameEngine({
@@ -388,6 +391,7 @@ export default function GameEngine({
    onExit,
    onShowLoginModal,
    onShowRegisterModal,
+   siteHeader = true,
 }: GameEngineProps) {
    const [isMobile, setIsMobile] = useState(false);
    const [isTablet, setIsTablet] = useState(false);
@@ -661,12 +665,14 @@ export default function GameEngine({
 
       return (
          <div ref={pageRef} className={`game-engine ${pageClass}`}>
-            {menuButton}
-            <Header
-               showSubtitle={true}
-               onShowLoginModal={onShowLoginModal}
-               onShowRegisterModal={onShowRegisterModal}
-            />
+            {siteHeader && menuButton}
+            {siteHeader && (
+               <Header
+                  showSubtitle={true}
+                  onShowLoginModal={onShowLoginModal}
+                  onShowRegisterModal={onShowRegisterModal}
+               />
+            )}
             <div
                className={`game-start-screen ${
                   isFinalGame ? "final-game" : ""
@@ -14303,12 +14309,14 @@ export default function GameEngine({
 
    return (
       <div ref={pageRef} className={`game-engine ${pageClass}`}>
-         {menuButton}
-         <Header
-            showSubtitle={true}
-            onShowLoginModal={onShowLoginModal}
-            onShowRegisterModal={onShowRegisterModal}
-         />
+         {siteHeader && menuButton}
+         {siteHeader && (
+            <Header
+               showSubtitle={true}
+               onShowLoginModal={onShowLoginModal}
+               onShowRegisterModal={onShowRegisterModal}
+            />
+         )}
          <div className="game-header">
             <div className="game-title">{game.title}</div>
             <div className="game-stats">
