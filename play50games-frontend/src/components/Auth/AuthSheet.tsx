@@ -5,6 +5,7 @@
 // (label above, input, then the error or the helper text below).
 import { useEffect, useRef, type InputHTMLAttributes, type ReactNode } from "react";
 import { BrandMark, CloseIcon } from "@/components/Site/icons";
+import form from "@/components/Site/form.module.css";
 import ui from "@/components/Site/ui.module.css";
 import styles from "./AuthModal.module.css";
 
@@ -95,19 +96,19 @@ export interface AuthFieldProps extends Omit<InputHTMLAttributes<HTMLInputElemen
 export function AuthField({ id, label, error, hint, ...input }: AuthFieldProps) {
    const note = error || hint;
    return (
-      <div className={styles.field}>
-         <label htmlFor={id} className={styles.label}>
+      <div className={form.field}>
+         <label htmlFor={id} className={form.label}>
             {label}
          </label>
          <input
             {...input}
             id={id}
-            className={styles.input}
+            className={form.input}
             aria-invalid={error ? true : undefined}
             aria-describedby={note ? `${id}-note` : undefined}
          />
          {note ? (
-            <p id={`${id}-note`} className={error ? styles.error : styles.hint}>
+            <p id={`${id}-note`} className={error ? form.error : form.hint}>
                {note}
             </p>
          ) : null}

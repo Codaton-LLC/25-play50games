@@ -1,6 +1,7 @@
 "use client";
 
-// "Show my name on leaderboards" switch on /3d (rendered only with the leaderboard flag on).
+// "Show my name on leaderboards" switch on /3d and on the player card (rendered only with the
+// leaderboard flag on).
 // Logged-in players with a JWT only: GET/POST /arcade/me/privacy need one (docs/arcade-api.md §6.5).
 // Off = leaderboards show the player as "Anonymous"; the score stays ranked (§10).
 import { useCallback, useEffect, useId, useRef, useState } from "react";
@@ -42,7 +43,12 @@ function isUnauthorized(error: unknown): boolean {
    return error instanceof ArcadeApiError && error.code === "unauthorized";
 }
 
-export default function ArcadePrivacyToggle() {
+export interface ArcadePrivacyToggleProps {
+   /** no outer margin and no width limit: the page that mounts it places it (the player card) */
+   bare?: boolean;
+}
+
+export default function ArcadePrivacyToggle({ bare = false }: ArcadePrivacyToggleProps) {
    const { user, refreshAuth } = useAuth();
    const labelId = useId();
    const hintId = useId();
@@ -166,7 +172,7 @@ export default function ArcadePrivacyToggle() {
    };
 
    return (
-      <section className={styles.panel} aria-labelledby={labelId}>
+      <section className={bare ? `${styles.panel} ${styles.bare}` : styles.panel} aria-labelledby={labelId}>
          <div className={styles.row}>
             <div className={styles.text}>
                <span id={labelId} className={styles.label}>

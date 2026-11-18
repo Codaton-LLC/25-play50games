@@ -1,0 +1,106 @@
+/* Form fields of the redesign (docs/design/DESIGN.md §4 Inputs): the label above, a 48px well with
+   a hairline, the helper text or the error below. Used by the sign-in sheet and the page forms. */
+
+.field {
+   display: grid;
+   gap: 6px;
+   min-width: 0;
+}
+
+.label {
+   color: var(--p50-text);
+   font: 500 0.875rem/1.3 var(--p50-font-body);
+}
+
+.input {
+   width: 100%;
+   height: 48px;
+   padding: 0 14px;
+   border: 1px solid var(--p50-line);
+   border-radius: 14px;
+   background: var(--p50-raised);
+   color: var(--p50-text);
+   font: 400 1rem/1.2 var(--p50-font-body);
+   transition: border-color 240ms var(--p50-ease);
+}
+
+textarea.input {
+   height: auto;
+   min-height: 144px;
+   padding: 12px 14px;
+   line-height: 1.5;
+   resize: vertical;
+}
+
+/* the arrow of a select: two small triangles drawn in the secondary text colour */
+select.input {
+   padding-right: 40px;
+   background-image:
+      linear-gradient(45deg, transparent 50%, var(--p50-text-2) 50%),
+      linear-gradient(135deg, var(--p50-text-2) 50%, transparent 50%);
+   background-position:
+      calc(100% - 21px) 21px,
+      calc(100% - 15px) 21px;
+   background-repeat: no-repeat;
+   background-size:
+      6px 6px,
+      6px 6px;
+   appearance: none;
+   cursor: pointer;
+}
+
+select.input option {
+   background: var(--p50-surface);
+   color: var(--p50-text);
+}
+
+.input::placeholder {
+   color: var(--p50-text-3);
+   opacity: 1;
+}
+
+.input:hover {
+   border-color: var(--p50-track);
+}
+
+.input:focus-visible {
+   outline: 2px solid var(--p50-coral);
+   outline-offset: 2px;
+}
+
+.input[aria-invalid="true"] {
+   border-color: var(--p50-red);
+}
+
+.input:disabled {
+   cursor: not-allowed;
+   opacity: 0.6;
+}
+
+/* a saved login keeps the well and the text of the theme instead of the browser's own fill */
+.input:-webkit-autofill {
+   -webkit-text-fill-color: var(--p50-text);
+   box-shadow: 0 0 0 100px var(--p50-raised) inset;
+   caret-color: var(--p50-text);
+}
+
+.hint,
+.error {
+   margin: 0;
+   font-size: 0.875rem;
+   line-height: 1.35;
+}
+
+.hint {
+   color: var(--p50-text-3);
+}
+
+.error {
+   color: var(--p50-red-text);
+}
+
+@media (prefers-reduced-motion: reduce) {
+   .input {
+      transition: none;
+   }
+}

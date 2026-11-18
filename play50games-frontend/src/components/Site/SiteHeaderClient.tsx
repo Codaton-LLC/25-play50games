@@ -127,9 +127,10 @@ export default function SiteHeaderClient({ active, games }: SiteHeaderClientProp
       const onPointer = (event: MouseEvent) => {
          if (rootRef.current && !rootRef.current.contains(event.target as Node)) closeAll();
       };
-      const onLogin = () => {
+      // a page asks for the login sheet; with detail "register" for the register sheet
+      const onLogin = (event: Event) => {
          closeAll();
-         setModal("login");
+         setModal((event as CustomEvent).detail === "register" ? "register" : "login");
       };
       document.addEventListener("keydown", onKey);
       document.addEventListener("mousedown", onPointer);

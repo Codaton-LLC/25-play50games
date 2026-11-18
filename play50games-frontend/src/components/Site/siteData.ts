@@ -121,3 +121,8 @@ export function publicName(user: { first_name?: string; last_name?: string; disp
 
 /** Fired by any page to open the login modal that lives in the site header. */
 export const LOGIN_EVENT = "play50games_open_login";
+
+/** Opens the header's login sheet, or its register sheet. */
+export function openLogin(sheet: "login" | "register" = "login"): void {
+   window.dispatchEvent(new CustomEvent(LOGIN_EVENT, { detail: sheet }));
+}

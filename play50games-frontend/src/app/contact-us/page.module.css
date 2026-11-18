@@ -1,0 +1,30 @@
+.form {
+   display: grid;
+   gap: 16px;
+}
+
+.pair {
+   display: grid;
+   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+   gap: 16px;
+}
+
+.send {
+   justify-self: start;
+   margin-top: 4px;
+}
+
+.send:disabled,
+.send:disabled:hover {
+   background: var(--p50-coral);
+}
+
+@media (max-width: 520px) {
+   .pair {
+      grid-template-columns: minmax(0, 1fr);
+   }
+
+   .send {
+      justify-self: stretch;
+   }
+}
