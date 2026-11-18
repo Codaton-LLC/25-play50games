@@ -125,7 +125,7 @@ export default function Hud() {
             <div className={styles.banner}>
                <span className={styles.title}>Alien Lane Escape</span>
                <span className={styles.level}>
-                  Level {level} — {config?.name ?? "Alien Meadow"}
+                  Level {level} · {config?.name ?? "Alien Meadow"}
                </span>
             </div>
             <div className={styles.clock} role="timer" aria-label="Run time">

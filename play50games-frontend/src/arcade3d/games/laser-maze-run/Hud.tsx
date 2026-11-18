@@ -117,7 +117,7 @@ export default function Hud() {
             <div className={styles.banner}>
                <span className={styles.title}>Laser Maze Run</span>
                <span className={styles.level}>
-                  Level {level} — {config?.name ?? "Static Lasers"}
+                  Level {level} · {config?.name ?? "Static Lasers"}
                </span>
             </div>
             <div className={styles.clock} role="timer" aria-label="Run time">

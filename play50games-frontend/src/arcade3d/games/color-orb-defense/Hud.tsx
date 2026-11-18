@@ -104,7 +104,7 @@ export default function Hud() {
             <div className={styles.banner}>
                <span className={styles.title}>Color Orb Defense</span>
                <span className={styles.level}>
-                  Level {level} — {config?.name ?? "Two Colors"}
+                  Level {level} · {config?.name ?? "Two Colors"}
                </span>
             </div>
             <div className={styles.row}>
@@ -116,7 +116,7 @@ export default function Hud() {
                </div>
                <div className={styles.clock} aria-label={zc ? `Shield ${zc.name}` : "Shield not charged"}>
                   <span className={styles.zoneDot} style={{ background: zc ? zc.hex : "transparent" }} aria-hidden="true" />
-                  <span className={styles.value}>{zc ? zc.name : "—"}</span>
+                  <span className={styles.value}>{zc ? zc.name : "-"}</span>
                </div>
             </div>
             {config?.boss && !playing ? <Boss /> : null}

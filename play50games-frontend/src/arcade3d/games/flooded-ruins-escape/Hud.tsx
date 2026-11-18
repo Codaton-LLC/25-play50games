@@ -122,7 +122,7 @@ export default function Hud() {
             <div className={styles.banner}>
                <span className={styles.title}>Flooded Ruins Escape</span>
                <span className={styles.level}>
-                  Level {level} — {config?.name ?? "Drain Entry"}
+                  Level {level} · {config?.name ?? "Drain Entry"}
                </span>
             </div>
             <div className={styles.clock} role="timer" aria-label="Run time">

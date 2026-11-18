@@ -192,7 +192,7 @@ export default function Hud() {
             <div className={styles.banner}>
                <span className={styles.title}>Paint the Platforms</span>
                <span className={styles.level}>
-                  Level {level} — {config?.name ?? "First Strokes"}
+                  Level {level} · {config?.name ?? "First Strokes"}
                </span>
             </div>
             <div className={styles.clock} role="timer" aria-label="Time left" style={urgent ? { color: "#fca5a5" } : undefined}>

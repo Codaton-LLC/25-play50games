@@ -125,7 +125,7 @@ export default function Hud() {
                <span className={styles.meter}>
                   <span className={`${styles.ropeFill} ${peak ? styles.ropePeak : ""}`} style={{ width: `${ropeFrac * 100}%` }} />
                </span>
-               <span className={styles.unit}>{onRope ? `${rope.toFixed(0)} m` : "—"}</span>
+               <span className={styles.unit}>{onRope ? `${rope.toFixed(0)} m` : "-"}</span>
             </div>
             <div className={styles.pill} aria-label={`${hero.name} ${hero.powerLabel}${powerLeft > 0 ? `, ready in ${powerLeft} seconds` : ", ready"}`}>
                <span className={styles.swatch} style={{ background: hero.color }} aria-hidden="true" />
@@ -137,7 +137,7 @@ export default function Hud() {
             <div className={styles.banner}>
                <span className={styles.title}>Sky Hook Swing</span>
                <span className={styles.level}>
-                  Level {level} — {config?.name ?? "Single Swing"}
+                  Level {level} · {config?.name ?? "Single Swing"}
                </span>
             </div>
             <div className={styles.clock} role="timer" aria-label="Flight time">

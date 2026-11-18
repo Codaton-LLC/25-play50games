@@ -130,7 +130,7 @@ export default function Hud() {
             <div className={styles.banner}>
                <span className={styles.title}>Toy Room Run</span>
                <span className={styles.level}>
-                  Level {level} — {config?.name ?? "Desk Start"}
+                  Level {level} · {config?.name ?? "Desk Start"}
                </span>
             </div>
             <div className={styles.clock} role="timer" aria-label="Run time">

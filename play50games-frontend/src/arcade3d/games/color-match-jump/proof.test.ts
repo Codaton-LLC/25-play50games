@@ -37,7 +37,6 @@ describe("real-store score proofs", () => {
          expect(value.score).toBeLessThanOrEqual(lim.maxScore);
          expect(value.score).toBe(Math.floor((LEVELS[level].durationMs - value.durationMs) / 10));
          expect(value.durationMs).toBeGreaterThan(HOP_MS);
-         console.log(`L${level} lead ${hero.id}: ${(value.durationMs / 1000).toFixed(2)} s, score ${value.score}, orbs ${r.orbs}, hits ${r.hits}`);
       }
    });
 });

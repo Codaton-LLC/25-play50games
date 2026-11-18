@@ -179,7 +179,7 @@ export default function Hud() {
                <span className={styles.title}>Roll Dash</span>
                <span className={styles.level}>
                   <span className={styles.levelLong}>
-                     Level {level} — {config?.name ?? "Gate Street"}
+                     Level {level} · {config?.name ?? "Gate Street"}
                   </span>
                   <span className={styles.levelShort}>{config?.name ?? "Gate Street"}</span>
                </span>

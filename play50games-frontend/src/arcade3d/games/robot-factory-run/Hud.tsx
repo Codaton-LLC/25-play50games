@@ -104,7 +104,7 @@ export default function Hud() {
             <div className={styles.banner}>
                <span className={styles.title}>Robot Factory Run</span>
                <span className={styles.level}>
-                  Level {level} — {config?.name ?? "Assembly Start"}
+                  Level {level} · {config?.name ?? "Assembly Start"}
                </span>
             </div>
             <div className={styles.clock} role="timer" aria-label="Shift time">

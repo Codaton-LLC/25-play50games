@@ -140,7 +140,7 @@ export default function Hud() {
             <div className={styles.banner}>
                <span className={styles.title}>Neon Cube Jump</span>
                <span className={styles.level}>
-                  Level {level} — {config?.name ?? "Static Grid"}
+                  Level {level} · {config?.name ?? "Static Grid"}
                </span>
             </div>
             <div className={styles.clock} role="timer" aria-label="Run time">

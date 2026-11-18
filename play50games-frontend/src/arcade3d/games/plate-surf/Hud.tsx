@@ -162,7 +162,7 @@ export default function Hud() {
             <div className={styles.banner}>
                <span className={styles.title}>Plate Surf</span>
                <span className={styles.level}>
-                  Level {level} — {config?.name ?? "Training Swell"}
+                  Level {level} · {config?.name ?? "Training Swell"}
                </span>
             </div>
             <div className={styles.clock} role="timer" aria-label="Ride time">

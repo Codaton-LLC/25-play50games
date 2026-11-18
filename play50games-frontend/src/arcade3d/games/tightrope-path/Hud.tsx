@@ -197,7 +197,7 @@ export default function Hud() {
             <div className={styles.banner}>
                <span className={styles.title}>Tightrope Path</span>
                <span className={styles.level}>
-                  Level {level} — {config?.name ?? "Wide Beams"}
+                  Level {level} · {config?.name ?? "Wide Beams"}
                </span>
             </div>
             <div className={styles.clock} role="timer" aria-label="Run time">

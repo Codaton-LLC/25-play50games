@@ -111,7 +111,7 @@ export default function Hud() {
             <div className={styles.banner}>
                <span className={styles.title}>Rooftop Roll Climb</span>
                <span className={styles.level}>
-                  Level {level} — {config?.name ?? "Low Roofs"}
+                  Level {level} · {config?.name ?? "Low Roofs"}
                </span>
             </div>
             <div className={styles.clock} role="timer" aria-label="Run time">

@@ -137,7 +137,7 @@ export default function Hud() {
             <div className={styles.banner}>
                <span className={styles.title}>Spin Pole Climb</span>
                <span className={styles.level}>
-                  Level {level} — {config?.name ?? "Slow Poles"}
+                  Level {level} · {config?.name ?? "Slow Poles"}
                </span>
             </div>
             <div className={styles.clock} role="timer" aria-label="Climb time">

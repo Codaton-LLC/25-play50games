@@ -15,7 +15,7 @@ const definition: GameDefinition<ZipLevel> = {
    touchControls: ["joystick", "jump", "action"], touchLabels: { jump: "Jump", action: "Power" },
    clockChip: false, intro: true, resultDelayMs: 2200, runPlayers: () => sessionRunPlayers(),
    instructions: [
-      "Jump to grab the trolley. Hold Down / S to tuck (+40%); Up / W to brake (−60%). Read the green speed band: 6–8 m/s is a bullseye.",
+      "Jump to grab the trolley. Hold Down / S to tuck (+40%); Up / W to brake (−60%). Read the green speed band: 6 to 8 m/s is a bullseye.",
       "Jump + sideways releases into a neighbouring cable within 3 m. Your sideways steering follows the camera. Release near the landing mat (last 16% of the line).",
       "Every mat has three zones. Too fast overshoots, too slow falls short. A miss retries the current line; orbs and landings pay only once.",
       "Power: Riko air-dashes to distant lines; Nami double-jumps to the high express cable; Kiro shields spark storms; Zuno pulls parallel orbs; Vexa phases through ghost signals.",

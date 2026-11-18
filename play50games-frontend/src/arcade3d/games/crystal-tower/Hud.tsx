@@ -174,7 +174,7 @@ export default function Hud() {
             <div className={styles.banner}>
                <span className={styles.title}>Crystal Tower</span>
                <span className={styles.level}>
-                  Level {level} — {config?.name ?? "3-Color Sequence"}
+                  Level {level} · {config?.name ?? "3-Color Sequence"}
                </span>
             </div>
             <div className={styles.clock} role="timer" aria-label="Run time">

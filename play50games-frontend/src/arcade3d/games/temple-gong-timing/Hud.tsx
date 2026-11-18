@@ -98,7 +98,7 @@ export default function Hud() {
                <span className={styles.title}>Temple Gong Timing</span>
                <span className={styles.level}>
                   <span className={styles.levelLong}>
-                     Level {level} — {config?.name ?? "Slow Beat"}
+                     Level {level} · {config?.name ?? "Slow Beat"}
                   </span>
                   <span className={styles.levelShort}>{config?.name ?? "Slow Beat"}</span>
                </span>

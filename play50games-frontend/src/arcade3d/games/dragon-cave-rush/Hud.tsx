@@ -119,7 +119,7 @@ export default function Hud() {
             <div className={styles.banner}>
                <span className={styles.title}>Dragon Cave Rush</span>
                <span className={styles.level}>
-                  Level {level} — {config?.name ?? "Crystal Entry"}
+                  Level {level} · {config?.name ?? "Crystal Entry"}
                </span>
             </div>
             <div className={styles.clock} role="timer" aria-label="Run time">

@@ -72,7 +72,7 @@ function GripPill() {
          <span className={styles.ember}>
             <span className={styles.emberFill} style={{ width: `${Math.max(0, Math.min(1, frac)) * 100}%`, background: frac > 0.66 ? "#38bdf8" : frac < 0.33 ? "#f97316" : "#4ade80" }} />
          </span>
-         <span className={styles.value}>{hanging ? `${swing}°` : "–"}</span>
+         <span className={styles.value}>{hanging ? `${swing}°` : "-"}</span>
       </div>
    );
 }
@@ -137,7 +137,7 @@ export default function Hud() {
             <div className={styles.banner}>
                <span className={styles.title}>Jungle Vine Jump</span>
                <span className={styles.level}>
-                  Level {level} — {config?.name ?? "Green Start"}
+                  Level {level} · {config?.name ?? "Green Start"}
                </span>
             </div>
             <div className={styles.clock} role="timer" aria-label="Climb time">

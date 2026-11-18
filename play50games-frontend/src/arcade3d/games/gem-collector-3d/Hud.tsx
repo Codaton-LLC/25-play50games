@@ -139,7 +139,7 @@ export default function Hud() {
             <div className={styles.banner}>
                <span className={styles.title}>Gem Collector 3D</span>
                <span className={styles.level}>
-                  Level {level} — {config?.name ?? "Vault Floor"}
+                  Level {level} · {config?.name ?? "Vault Floor"}
                </span>
             </div>
             <div className={styles.clock} role="timer" aria-label="Time left">

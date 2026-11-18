@@ -162,7 +162,7 @@ export default function Hud() {
             <div className={styles.banner}>
                <span className={styles.title}>Switch Color Hero</span>
                <span className={styles.level}>
-                  Level {level} — {config?.name ?? "Two Gates"}
+                  Level {level} · {config?.name ?? "Two Gates"}
                </span>
             </div>
             <div className={styles.row}>

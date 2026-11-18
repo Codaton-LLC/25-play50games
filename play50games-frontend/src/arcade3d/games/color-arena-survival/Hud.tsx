@@ -158,7 +158,7 @@ export default function Hud() {
                <span className={styles.title}>Color Arena Survival</span>
                <span className={styles.level}>
                   <span className={styles.levelLong}>
-                     Level {level} — {config?.name ?? "Slow Rounds"}
+                     Level {level} · {config?.name ?? "Slow Rounds"}
                   </span>
                   <span className={styles.levelShort}>{config?.name ?? "Slow Rounds"}</span>
                </span>

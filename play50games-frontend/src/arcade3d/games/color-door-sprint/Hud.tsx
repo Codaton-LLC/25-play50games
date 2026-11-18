@@ -191,7 +191,7 @@ export default function Hud() {
             <div className={styles.banner}>
                <span className={styles.title}>Color Door Sprint</span>
                <span className={styles.level}>
-                  Level {level} — {config?.name ?? "Two Doors"}
+                  Level {level} · {config?.name ?? "Two Doors"}
                </span>
             </div>
             <div className={styles.clock} role="timer" aria-label="Run time">

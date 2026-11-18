@@ -142,7 +142,7 @@ export default function Hud() {
             <div className={styles.banner}>
                <span className={styles.title}>Temple Lantern Jump</span>
                <span className={styles.level}>
-                  Level {level} — {config?.name ?? "Temple Gate"}
+                  Level {level} · {config?.name ?? "Temple Gate"}
                </span>
             </div>
             <div className={styles.clock} role="timer" aria-label="Climb time">

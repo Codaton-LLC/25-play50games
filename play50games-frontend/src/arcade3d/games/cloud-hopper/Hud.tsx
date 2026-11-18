@@ -133,7 +133,7 @@ export default function Hud() {
             <div className={styles.banner}>
                <span className={styles.title}>Cloud Hopper</span>
                <span className={styles.level}>
-                  Level {level} — {config?.name ?? "Soft Clouds"}
+                  Level {level} · {config?.name ?? "Soft Clouds"}
                </span>
             </div>
             <div className={styles.clock} role="timer" aria-label="Run time">

@@ -101,7 +101,7 @@ export default function Hud() {
             <div className={styles.banner}>
                <span className={styles.title}>Lava Pillar Jump</span>
                <span className={styles.level}>
-                  Level {level} — {config?.name ?? "Warm Cavern"}
+                  Level {level} · {config?.name ?? "Warm Cavern"}
                </span>
             </div>
             <div className={styles.clock} role="timer" aria-label="Run time">

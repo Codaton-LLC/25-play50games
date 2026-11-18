@@ -148,7 +148,7 @@ export default function Hud() {
                <span className={styles.title}>Portal Hop</span>
                <span className={styles.level}>
                   <span className={styles.levelLong}>
-                     Level {level} — {config?.name ?? "Two Portals"}
+                     Level {level} · {config?.name ?? "Two Portals"}
                   </span>
                   <span className={styles.levelShort}>{config?.name ?? "Two Portals"}</span>
                </span>

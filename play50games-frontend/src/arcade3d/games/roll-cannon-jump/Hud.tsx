@@ -116,7 +116,7 @@ export default function Hud() {
             <div className={styles.banner}>
                <span className={styles.title}>Roll Cannon Jump</span>
                <span className={styles.level}>
-                  Level {level} — {config?.name ?? "Short Launch"}
+                  Level {level} · {config?.name ?? "Short Launch"}
                </span>
             </div>
             <div className={styles.clock} role="timer" aria-label="Show time">
