@@ -1113,7 +1113,10 @@ export default function QuickCompare({
                   </span>
                </div>
                <div className={styles.progressTrack}>
-                  <div className={styles.progressFill} style={{ width: `${progress}%` }} />
+                  <div
+                     className={styles.progressFill}
+                     style={{ transform: `scaleX(${Math.max(0, Math.min(1, progress / 100))})` }}
+                  />
                </div>
             </div>
 
@@ -1220,7 +1223,7 @@ export default function QuickCompare({
 
                {/* Ready for Next Round Message */}
                {gameState === "ready" && currentLevel + 1 < maxLevels && (
-                  <div className={`${styles.notice} ${fx.fadeUp}`}>
+                  <div className={`${styles.notice} ${fx.staggerIn}`}>
                      <div className={`${styles.noticeBadge} ${styles.noticeBadgeOk}`}>
                         <CheckCircleIcon style={{ width: 20, height: 20 }} />
                         Level {currentLevel + 1} Complete
@@ -1234,7 +1237,7 @@ export default function QuickCompare({
 
                {/* Game Complete Message */}
                {gameState === "ready" && currentLevel + 1 >= maxLevels && (
-                  <div className={`${styles.notice} ${fx.fadeUp}`}>
+                  <div className={`${styles.notice} ${fx.staggerIn}`}>
                      <div className={`${styles.noticeBadge} ${styles.noticeBadgeOk}`}>
                         <TrophyIcon style={{ width: 20, height: 20 }} />
                         Game Complete!
@@ -1245,7 +1248,7 @@ export default function QuickCompare({
 
                {/* Level Failed Message */}
                {gameState === "failed" && (
-                  <div className={`${styles.notice} ${fx.fadeUp}`}>
+                  <div className={`${styles.notice} ${fx.staggerIn}`}>
                      <div className={`${styles.noticeBadge} ${styles.noticeBadgeBad}`}>
                         <XCircleIcon style={{ width: 20, height: 20 }} />
                         Level {currentLevel + 1} Failed
@@ -1259,17 +1262,15 @@ export default function QuickCompare({
                   <div className={styles.actionRow}>
                      {/* Share Success Message */}
                      {shareSuccess && !unlimitedActivated && (
-                        <div className={`${styles.actionNote} ${styles.actionNoteOk}`}>
+                        <div className={`${styles.actionNote} ${styles.actionNoteOk} ${fx.fadeUp}`}>
                            Link copied! Unlimited replay will unlock when someone opens your link!
                         </div>
                      )}
 
                      {/* Unlimited Activated Message */}
                      {unlimitedActivated && (
-                        <div className={`${styles.actionNote} ${styles.actionNoteInfo}`}>
-                           <CheckCircleIcon
-                              style={{ width: 18, height: 18, color: "rgba(59, 130, 246, 0.9)", flexShrink: 0 }}
-                           />
+                        <div className={`${styles.actionNote} ${styles.actionNoteInfo} ${fx.fadeUp}`}>
+                           <CheckCircleIcon style={{ width: 18, height: 18 }} />
                            <span>🎉 Someone opened your link! Unlimited replay is now active for 15 minutes!</span>
                         </div>
                      )}
