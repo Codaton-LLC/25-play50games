@@ -1,11 +1,17 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { LockClosedIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import Link from "next/link";
 import styles from "./PrivacyConsent.module.css";
 
 const STORAGE_KEY = "play50games_privacy_consent";
+/** The banner's height while it is up, on <html>; globals.css pads the end of every page by it. */
+const HEIGHT_VAR = "--cookie-banner-h";
+
+function clearBannerHeight() {
+  if (typeof document !== "undefined") document.documentElement.style.removeProperty(HEIGHT_VAR);
+}
 const EXPIRY_DAYS = 7; // 1 week
 
 interface ConsentData {
@@ -16,6 +22,28 @@ interface ConsentData {
 export default function PrivacyConsent() {
   const [show, setShow] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
+  const bannerRef = useRef<HTMLDivElement>(null);
+
+  // while the banner is up, publish its height so the end of the page can scroll clear of it
+  useEffect(() => {
+    const el = bannerRef.current;
+    if (!show || !el || typeof window === "undefined") {
+      clearBannerHeight();
+      return;
+    }
+    const measure = () => {
+      document.documentElement.style.setProperty(HEIGHT_VAR, `${Math.ceil(el.getBoundingClientRect().height)}px`);
+    };
+    measure();
+    const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(measure) : null;
+    ro?.observe(el);
+    window.addEventListener("resize", measure);
+    return () => {
+      ro?.disconnect();
+      window.removeEventListener("resize", measure);
+      clearBannerHeight();
+    };
+  }, [show]);
 
   useEffect(() => {
     // Check if consent has been given and is still valid
@@ -53,6 +81,7 @@ export default function PrivacyConsent() {
       timestamp: Date.now(),
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(consentData));
+    clearBannerHeight();
     setIsVisible(false);
     setTimeout(() => setShow(false), 300); // Wait for animation to complete
   };
@@ -69,6 +98,7 @@ export default function PrivacyConsent() {
 
   return (
     <div
+      ref={bannerRef}
       style={{
         position: "fixed",
         bottom: 0,

@@ -5932,3 +5932,9 @@ body.final-game .rotate-to-fit-game .object-rotate-btn .keyboard-hint {
   border-radius: 8px;
   color: var(--ok);
 }
+
+/* the cookie banner's height while it is up (PrivacyConsent sets --cookie-banner-h on <html>): the end of
+   every page can scroll clear of it; 0 once it is answered */
+body {
+  padding-bottom: var(--cookie-banner-h, 0px);
+}
