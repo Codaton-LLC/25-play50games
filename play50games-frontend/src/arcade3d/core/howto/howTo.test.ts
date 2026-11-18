@@ -121,6 +121,9 @@ describe("deriveTouch", () => {
    });
 });
 
+/** Menu 1 (orders 1-50) carries explicit howTos; Menu 2 (51-100) uses the derivation. */
+const MENU1 = ARCADE_GAMES.filter((meta) => meta.order <= 50);
+
 describe("resolveHowTo: every game works on day one", () => {
    for (const meta of ARCADE_GAMES) {
       it(`${meta.slug}: keys, touch and 3-5 steps whose highlights all exist`, () => {
@@ -155,11 +158,11 @@ describe("resolveHowTo: every game works on day one", () => {
    }
 
    it("every Menu 1 game carries its own howTo (the derivation is the fallback for new games and Menu 2)", () => {
-      expect(ARCADE_GAMES.filter((meta) => !meta.howTo).map((meta) => meta.slug)).toEqual([]);
+      expect(MENU1.filter((meta) => !meta.howTo).map((meta) => meta.slug)).toEqual([]);
    });
 
    it("every explicit howTo uses real control kinds and ends on the pause tip", () => {
-      for (const meta of ARCADE_GAMES) {
+      for (const meta of MENU1) {
          for (const t of meta.howTo?.touch ?? []) expect(["joystick", "jump", "action", "tap", "swipe", "drag"]).toContain(t.control);
          expect(meta.howTo?.steps.at(-1)?.keys, meta.slug).toEqual([PAUSE_ID]);
       }
