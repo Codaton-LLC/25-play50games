@@ -50,6 +50,22 @@ function ImageRecall({
    const [hintRevealed, setHintRevealed] = useState<number[]>([]);
    const [currentShareId, setCurrentShareId] = useState<string | null>(null);
    const shareCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
+   // result / advance / completion timers: cleared on unmount (delays unchanged)
+   const resultTimersRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
+   const later = useCallback((fn: () => void, ms: number) => {
+      const t = setTimeout(() => {
+         resultTimersRef.current.delete(t);
+         fn();
+      }, ms);
+      resultTimersRef.current.add(t);
+   }, []);
+   useEffect(() => {
+      const timers = resultTimersRef.current;
+      return () => {
+         timers.forEach(clearTimeout);
+         timers.clear();
+      };
+   }, []);
    // this board's own card grid and reveal-flash timers (never document-wide)
    const boardRef = useRef<HTMLDivElement | null>(null);
    const flashTimersRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
@@ -463,11 +479,11 @@ function ImageRecall({
    // Check game completion
    useEffect(() => {
       if (currentRound >= maxRounds) {
-         setTimeout(() => {
+         later(() => {
             onComplete(currentScore);
          }, 1000);
       }
-   }, [currentRound, maxRounds, currentScore, onComplete]);
+   }, [currentRound, maxRounds, currentScore, onComplete, later]);
 
    // Selected cell for keyboard navigation
    const [selectedCellIndex, setSelectedCellIndex] = useState<number | null>(
@@ -490,7 +506,7 @@ function ImageRecall({
          setFeedback("wrong");
 
          // Show correct sequence briefly
-         setTimeout(() => {
+         later(() => {
             setFeedback(null);
             setUserInput([]);
             setGameState("input");
@@ -511,7 +527,7 @@ function ImageRecall({
             onScoreUpdate(newScore);
          }, 0);
 
-         setTimeout(() => {
+         later(() => {
             setFeedback(null);
             setCurrentRound(currentRound + 1);
             setSelectedCellIndex(null);

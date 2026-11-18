@@ -56,6 +56,22 @@ function PathMemory({
    const [hintRevealed, setHintRevealed] = useState<number[]>([]);
    const [currentShareId, setCurrentShareId] = useState<string | null>(null);
    const shareCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
+   // result / advance / completion timers: cleared on unmount (delays unchanged)
+   const resultTimersRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
+   const later = useCallback((fn: () => void, ms: number) => {
+      const t = setTimeout(() => {
+         resultTimersRef.current.delete(t);
+         fn();
+      }, ms);
+      resultTimersRef.current.add(t);
+   }, []);
+   useEffect(() => {
+      const timers = resultTimersRef.current;
+      return () => {
+         timers.forEach(clearTimeout);
+         timers.clear();
+      };
+   }, []);
    // the flash timers of the current round, cleared on a new round and on unmount
    const roundTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
@@ -473,11 +489,11 @@ function PathMemory({
    // Check game completion
    useEffect(() => {
       if (currentRound >= maxRounds) {
-         setTimeout(() => {
+         later(() => {
             onComplete(currentScore);
          }, 1000);
       }
-   }, [currentRound, maxRounds, currentScore, onComplete]);
+   }, [currentRound, maxRounds, currentScore, onComplete, later]);
 
    // Handle cell click
    const handleCellClick = useCallback(
@@ -496,7 +512,7 @@ function PathMemory({
                // Path complete
                setGameState("correct");
                setFeedback("correct");
-               setTimeout(() => {
+               later(() => {
                   setCurrentRound((prev) => prev + 1);
                }, 900);
             }
@@ -505,14 +521,14 @@ function PathMemory({
             setGameState("wrong");
             setFeedback("wrong");
             // Allow retry - reset after showing feedback
-            setTimeout(() => {
+            later(() => {
                setPlayerPath([]);
                setGameState("input");
                setFeedback(null);
             }, 1300);
          }
       },
-      [gameState, playerPath, path]
+      [gameState, playerPath, path, later]
    );
 
    // Keyboard controls
