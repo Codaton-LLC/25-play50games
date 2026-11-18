@@ -17,6 +17,7 @@ import {
    chrome as c,
    type StepState,
 } from "./FinalChrome";
+import { useCompleteOnce } from "./useCompleteOnce";
 import FinalLogicGame from "./mini-games/FinalLogicGame";
 import FinalMemoryGame from "./mini-games/FinalMemoryGame";
 import FinalSpeedGame from "./mini-games/FinalSpeedGame";
@@ -60,6 +61,7 @@ export default function FinalGameComplete({
    const shareCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
    const maxReplays = hasShared ? 0 : 5; // 0 = unlimited
+   const { completeLater, rearm } = useCompleteOnce();
 
 
    // Check if all challenges are complete
@@ -69,9 +71,9 @@ export default function FinalGameComplete({
       );
       if (allComplete) {
          onScoreUpdate(100);
-         setTimeout(() => onComplete(100), 1000);
+         completeLater(() => onComplete(100), 1000);
       }
-   }, [puzzleState, onScoreUpdate, onComplete]);
+   }, [puzzleState, onScoreUpdate, onComplete, completeLater]);
 
    // Check if a challenge is unlocked
    const isChallengeUnlocked = (challengeType: string): boolean => {
@@ -349,6 +351,7 @@ export default function FinalGameComplete({
       setPuzzleState(resetState);
       setScore(0);
       setReplaysUsed((prev) => prev + 1);
+      rearm();
    };
 
    // Count total challenges and completed ones

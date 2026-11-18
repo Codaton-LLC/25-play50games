@@ -13,6 +13,7 @@ import {
    trackShareClick,
    getShareStatus,
 } from "@/lib/api/share";
+import { useCompleteOnce } from "../useCompleteOnce";
 
 // One 60 Hz frame. The circle shrinks by elapsed time scaled to this, so the
 // deadline is the same on every refresh rate (and exactly as before at 60 Hz).
@@ -52,6 +53,7 @@ export default function FinalSkillGame({
    const shareCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
    const maxReplays = hasShared ? 0 : 5; // 0 = unlimited
+   const { completeLater, rearm } = useCompleteOnce();
 
 
    // Get target zone based on target number
@@ -137,7 +139,7 @@ export default function FinalSkillGame({
 
          setTimeout(() => {
             if (currentTarget + 1 >= maxTargets) {
-               setTimeout(() => onComplete(100), 1000);
+               completeLater(() => onComplete(100), 1000);
             } else {
                setCurrentTarget((prev) => prev + 1);
             }
@@ -380,12 +382,13 @@ export default function FinalSkillGame({
       setCurrentScore(0);
       setFeedback(null);
       setReplaysUsed((prev) => prev + 1);
+      rearm();
 
       // Force re-initialize by calling startTarget
       setTimeout(() => {
          startTarget();
       }, 0);
-   }, [maxReplays, replaysUsed, startTarget]);
+   }, [maxReplays, replaysUsed, startTarget, rearm]);
 
    const progress =
       maxTargets > 0 ? Math.round(((currentTarget + 1) / maxTargets) * 100) : 0;

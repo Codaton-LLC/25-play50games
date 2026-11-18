@@ -16,6 +16,7 @@ import {
    trackShareClick,
    getShareStatus,
 } from "@/lib/api/share";
+import { useCompleteOnce } from "../useCompleteOnce";
 
 interface FinalSpeedGameProps {
    config: Record<string, any>;
@@ -49,6 +50,7 @@ export default function FinalSpeedGame({
    const shareCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
    const maxReplays = hasShared ? 0 : 5; // 0 = unlimited
+   const { completeLater, rearm } = useCompleteOnce();
 
 
    // Color mapping (opposite colors)
@@ -117,7 +119,7 @@ export default function FinalSpeedGame({
             setTimeout(() => {
                if (currentTarget + 1 >= maxTargets) {
                   // Wait longer before completing to show final message
-                  setTimeout(() => onComplete(100), 2500);
+                  completeLater(() => onComplete(100), 2500);
                } else {
                   setCurrentTarget((prev) => prev + 1);
                }
@@ -135,6 +137,7 @@ export default function FinalSpeedGame({
          currentScore,
          currentTarget,
          onComplete,
+         completeLater,
       ]
    );
 
@@ -396,6 +399,7 @@ export default function FinalSpeedGame({
       setTimeLeft(2);
       setFeedback(null);
       setReplaysUsed((prev) => prev + 1);
+      rearm();
 
       // Force re-initialize by generating new color
       setTimeout(() => {
@@ -404,7 +408,7 @@ export default function FinalSpeedGame({
          setCurrentColor(randomColor);
          setGameState("playing");
       }, 0);
-   }, [maxReplays, replaysUsed]);
+   }, [maxReplays, replaysUsed, rearm]);
 
    const progress =
       maxTargets > 0 ? Math.round(((currentTarget + 1) / maxTargets) * 100) : 0;

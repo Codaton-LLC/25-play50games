@@ -6,6 +6,7 @@ import MemoryGames from "./MemoryGames";
 import SpeedGames from "./SpeedGames";
 import SkillGames from "./SkillGames";
 import FinalGameComplete from "./final-game-parts/FinalGameComplete";
+import { useCompleteOnce } from "./final-game-parts/useCompleteOnce";
 import {
    FinalHead,
    ChallengeStep,
@@ -202,6 +203,7 @@ function MixedQuiz({
    onComplete,
    isPlaying,
 }: FinalGamesProps) {
+   const { completeLater } = useCompleteOnce();
    const rounds = config.rounds || 5;
    const [round, setRound] = useState(0);
    const [score, setScore] = useState(0);
@@ -218,10 +220,18 @@ function MixedQuiz({
          // Each round contributes 100/rounds, so total should be 100
          const finalScore = Math.round(score);
          onScoreUpdate(finalScore);
-         setTimeout(() => onComplete(finalScore), 1000);
+         completeLater(() => onComplete(finalScore), 1000);
          return;
       }
-   }, [round, rounds, score, gameState, onScoreUpdate, onComplete]);
+   }, [
+      round,
+      rounds,
+      score,
+      gameState,
+      onScoreUpdate,
+      onComplete,
+      completeLater,
+   ]);
 
    // Select random game only when round changes or game starts
    useEffect(() => {
@@ -440,6 +450,7 @@ function SurvivalMode({
    onComplete,
    isPlaying,
 }: FinalGamesProps) {
+   const { completeLater } = useCompleteOnce();
    const games = config.games || 5;
    const [currentGameIndex, setCurrentGameIndex] = useState(0);
    const [completedGames, setCompletedGames] = useState(0);
@@ -477,7 +488,7 @@ function SurvivalMode({
          // All games completed
          const finalScore = Math.min(100, Math.round(newScore));
          onScoreUpdate(finalScore);
-         setTimeout(() => onComplete(finalScore), 1000);
+         completeLater(() => onComplete(finalScore), 1000);
       }
    };
 
@@ -640,6 +651,7 @@ function BossPuzzle({
    onComplete,
    isPlaying,
 }: FinalGamesProps) {
+   const { completeLater } = useCompleteOnce();
    // Get full game config helper (same as in MixedQuiz)
    const getFullGameConfig = (
       gameType: string,
@@ -767,9 +779,9 @@ function BossPuzzle({
       );
       if (allComplete) {
          onScoreUpdate(100);
-         setTimeout(() => onComplete(100), 1000);
+         completeLater(() => onComplete(100), 1000);
       }
-   }, [puzzleState, onScoreUpdate, onComplete]);
+   }, [puzzleState, onScoreUpdate, onComplete, completeLater]);
 
    const handlePuzzleComplete = (type: string) => {
       setPuzzleState((prev) => ({ ...prev, [type]: true }));
@@ -960,6 +972,7 @@ function TimeChallenge({
    onComplete,
    isPlaying,
 }: FinalGamesProps) {
+   const { completeLater } = useCompleteOnce();
    // Get full game config helper (same as in BossPuzzle)
    const getFullGameConfig = (
       gameType: string,
@@ -1087,9 +1100,9 @@ function TimeChallenge({
       );
       if (allComplete) {
          onScoreUpdate(100);
-         setTimeout(() => onComplete(100), 1000);
+         completeLater(() => onComplete(100), 1000);
       }
-   }, [puzzleState, onScoreUpdate, onComplete]);
+   }, [puzzleState, onScoreUpdate, onComplete, completeLater]);
 
    const handlePuzzleComplete = (type: string) => {
       setPuzzleState((prev) => ({ ...prev, [type]: true }));
@@ -1280,6 +1293,7 @@ function FinalTest({
    onComplete,
    isPlaying,
 }: FinalGamesProps) {
+   const { completeLater } = useCompleteOnce();
    const rounds = config.rounds || 10;
    const [round, setRound] = useState(0);
    const [score, setScore] = useState(0);
@@ -1292,7 +1306,7 @@ function FinalTest({
       if (round >= rounds) {
          const finalScore = Math.round((score / rounds) * 100);
          onScoreUpdate(finalScore);
-         setTimeout(() => onComplete(finalScore), 1000);
+         completeLater(() => onComplete(finalScore), 1000);
          return;
       }
 
@@ -1313,7 +1327,7 @@ function FinalTest({
       ];
 
       setCurrentChallenge(challenges[round % challenges.length]);
-   }, [round, rounds, score, onScoreUpdate, onComplete]);
+   }, [round, rounds, score, onScoreUpdate, onComplete, completeLater]);
 
    const handleChallengeComplete = (challengeScore: number) => {
       setScore(score + challengeScore);

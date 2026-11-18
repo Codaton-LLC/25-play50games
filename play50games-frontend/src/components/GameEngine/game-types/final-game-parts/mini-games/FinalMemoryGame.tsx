@@ -13,6 +13,7 @@ import {
    trackShareClick,
    getShareStatus,
 } from "@/lib/api/share";
+import { useCompleteOnce } from "../useCompleteOnce";
 
 interface FinalMemoryGameProps {
    config: Record<string, any>;
@@ -46,6 +47,7 @@ export default function FinalMemoryGame({
    const shareCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
    const maxReplays = hasShared ? 0 : 5; // 0 = unlimited
+   const { completeLater, rearm } = useCompleteOnce();
 
 
    // Letters pool
@@ -120,7 +122,7 @@ export default function FinalMemoryGame({
          setTimeout(() => {
             if (currentRound + 1 >= maxRounds) {
                setGameState("ready");
-               setTimeout(() => onComplete(100), 1000);
+               completeLater(() => onComplete(100), 1000);
             } else {
                setCurrentRound((prev) => prev + 1);
             }
@@ -372,6 +374,7 @@ export default function FinalMemoryGame({
       setFeedback(null);
       setCurrentLetterIndex(0);
       setReplaysUsed((prev) => prev + 1);
+      rearm();
 
       // Force re-initialize by setting sequence first, then gameState
       // This ensures useEffect triggers properly
@@ -380,7 +383,7 @@ export default function FinalMemoryGame({
          setSequence(seq);
          setGameState("memorizing");
       }, 0);
-   }, [maxReplays, replaysUsed, generateSequence]);
+   }, [maxReplays, replaysUsed, generateSequence, rearm]);
 
    const progress =
       maxRounds > 0 ? Math.round(((currentRound + 1) / maxRounds) * 100) : 0;
