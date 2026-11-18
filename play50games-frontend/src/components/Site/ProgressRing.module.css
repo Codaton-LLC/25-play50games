@@ -1,0 +1,39 @@
+.ring {
+   position: relative;
+   display: grid;
+   flex: none;
+   place-items: center;
+}
+
+.ring svg {
+   position: absolute;
+   inset: 0;
+   width: 100%;
+   height: 100%;
+}
+
+.track,
+.arc {
+   fill: none;
+}
+
+.track {
+   stroke: var(--p50-track);
+}
+
+.arc {
+   stroke: var(--p50-coral);
+   stroke-linecap: round;
+}
+
+.ring[data-full] .arc {
+   stroke: var(--p50-gold);
+}
+
+.count {
+   position: relative;
+   color: var(--p50-text);
+   font: 600 1.125rem/1 var(--p50-font-mono);
+   font-variant-numeric: tabular-nums;
+   white-space: nowrap;
+}

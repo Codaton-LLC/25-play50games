@@ -1,0 +1,832 @@
+/* Classic 50 (docs/design/DESIGN.md §6 item 4). Tokens: app/theme.css.
+   globals.css styles every <button>, so the chip sets its background for both states. */
+
+.page {
+   display: flex;
+   flex-direction: column;
+}
+
+.main {
+   display: flex;
+   flex: 1;
+   flex-direction: column;
+   gap: clamp(2.5rem, 6vw, 4.5rem);
+   min-height: 60vh;
+   padding-block: clamp(28px, 4vw, 56px) clamp(3rem, 7vw, 5.5rem);
+}
+
+/* ---------- header: the ring and the next game ---------- */
+
+.head {
+   display: grid;
+   grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+   align-items: center;
+   gap: clamp(24px, 4vw, 56px);
+}
+
+.intro {
+   display: flex;
+   flex-direction: column;
+   align-items: flex-start;
+   gap: 18px;
+   min-width: 0;
+}
+
+.eyebrow {
+   display: flex;
+   align-items: center;
+   gap: 12px;
+}
+
+.title {
+   max-width: 14ch;
+   color: var(--p50-text);
+   font: 700 clamp(2rem, 3.6vw, 3rem)/1.02 var(--p50-font-display);
+   letter-spacing: -0.03em;
+}
+
+.lead {
+   max-width: 46ch;
+   color: var(--p50-text-2);
+   font-size: 1.0625rem;
+}
+
+.status {
+   display: flex;
+   align-items: center;
+   gap: 20px;
+   margin-top: 6px;
+}
+
+.statusText {
+   display: flex;
+   flex-direction: column;
+   align-items: flex-start;
+   gap: 12px;
+   min-width: 0;
+}
+
+.statusLine {
+   color: var(--p50-text);
+   font-weight: 500;
+}
+
+.statusLine b,
+.finishLine b,
+.facts b {
+   font: 600 1em/1 var(--p50-font-mono);
+   font-variant-numeric: tabular-nums;
+}
+
+.statusLinks {
+   display: flex;
+   flex-wrap: wrap;
+   gap: 10px;
+}
+
+.next {
+   display: flex;
+   flex-direction: column;
+   align-items: flex-start;
+   gap: 12px;
+   min-width: 0;
+   padding: clamp(22px, 3vw, 32px);
+   border: 1px solid var(--p50-line);
+   border-radius: 28px;
+   background: var(--p50-surface);
+   box-shadow: var(--p50-shadow), var(--p50-edge);
+}
+
+.nextKicker {
+   display: flex;
+   align-items: center;
+   gap: 12px;
+}
+
+.nextNo {
+   color: var(--p50-text-2);
+   font: 500 0.875rem/1 var(--p50-font-mono);
+   font-variant-numeric: tabular-nums;
+}
+
+.gold {
+   color: var(--p50-gold-text);
+}
+
+.nextTitle {
+   color: var(--p50-text);
+   font: 600 1.625rem/1.15 var(--p50-font-display);
+   letter-spacing: -0.02em;
+}
+
+.nextText {
+   display: -webkit-box;
+   overflow: hidden;
+   max-width: 44ch;
+   color: var(--p50-text-2);
+   -webkit-box-orient: vertical;
+   -webkit-line-clamp: 3;
+   line-clamp: 3;
+}
+
+.facts {
+   display: flex;
+   flex-wrap: wrap;
+   gap: 6px 0;
+}
+
+.facts li {
+   padding: 0 14px;
+   border-left: 1px solid var(--p50-line);
+   color: var(--p50-text-2);
+   font-size: 0.875rem;
+}
+
+.facts li:first-child {
+   padding-left: 0;
+   border-left: 0;
+}
+
+.facts b {
+   color: var(--p50-text);
+}
+
+.nextCta {
+   margin-top: 8px;
+}
+
+/* ---------- filter chips ---------- */
+
+.chips {
+   display: flex;
+   gap: 8px;
+   margin-bottom: 28px;
+   padding-block: 4px;
+   overflow-x: auto;
+   scrollbar-width: none;
+}
+
+.chips::-webkit-scrollbar {
+   display: none;
+}
+
+.chip,
+.chip:hover {
+   position: relative;
+   display: inline-flex;
+   align-items: center;
+   flex: none;
+   gap: 8px;
+   height: 36px;
+   padding: 0 14px;
+   border: 1px solid var(--p50-line);
+   border-radius: 999px;
+   background: transparent;
+   color: var(--p50-text-2);
+   font: 500 0.875rem/1 var(--p50-font-body);
+   white-space: nowrap;
+   cursor: pointer;
+}
+
+/* 44px tap area around the 36px chip */
+.chip::after {
+   content: "";
+   position: absolute;
+   inset: -4px 0;
+}
+
+.chip:hover {
+   background: var(--p50-raised);
+}
+
+.chip[aria-pressed="true"],
+.chip[aria-pressed="true"]:hover {
+   border-color: transparent;
+   background: var(--p50-coral-wash);
+   color: var(--p50-coral-text);
+}
+
+.chipCount {
+   color: var(--p50-text-3);
+   font: 500 0.875rem/1 var(--p50-font-mono);
+   font-variant-numeric: tabular-nums;
+}
+
+.chip[aria-pressed="true"] .chipCount {
+   color: inherit;
+}
+
+/* ---------- the path ----------
+   A stop is a node with its title. Every stop draws the line to the next one (::after): walked
+   (ink) once its own game is finished, hairline otherwise. In the row layouts the last stop of
+   a row draws the turn down to the next row instead, and the last stop of all a line down to
+   the certificate. The nodes are opaque and sit above the lines. */
+
+.path {
+   --node: 48px;
+   --line: 2px;
+   --turn: 28px;
+   --row-gap: 28px;
+   --chap-gap: 30px;
+   --head-h: 28px;
+   --head-gap: 18px;
+   --ink: var(--p50-track);
+
+   display: flex;
+   flex-direction: column;
+   gap: var(--chap-gap);
+}
+
+.chapHead {
+   display: flex;
+   align-items: center;
+   justify-content: space-between;
+   gap: 12px;
+   height: var(--head-h);
+   margin-bottom: var(--head-gap);
+}
+
+.chapName {
+   display: flex;
+   align-items: baseline;
+   gap: 12px;
+}
+
+.chapRange,
+.chapCount {
+   color: var(--p50-text-3);
+   font: 500 0.875rem/1 var(--p50-font-mono);
+   font-variant-numeric: tabular-nums;
+}
+
+.row,
+.half {
+   display: flex;
+}
+
+.half {
+   flex: 0 0 50%;
+   min-width: 0;
+}
+
+.stop {
+   position: relative;
+   flex: 0 0 20%;
+   min-width: 0;
+}
+
+.stop::after {
+   content: "";
+   position: absolute;
+   z-index: 0;
+   border: 0 solid var(--ink);
+   background: var(--ink);
+}
+
+.stop[data-state="done"] {
+   --ink: var(--p50-text);
+}
+
+.stopBody {
+   position: relative;
+   z-index: 1;
+   display: flex;
+   flex-direction: column;
+   align-items: center;
+   gap: 10px;
+   height: 100%;
+   padding: 0 4px;
+   border-radius: 14px;
+   color: var(--p50-text);
+   text-align: center;
+}
+
+.node {
+   position: relative;
+   display: grid;
+   flex: none;
+   place-items: center;
+   width: var(--node);
+   height: var(--node);
+   border: 1px solid var(--p50-track);
+   border-radius: 50%;
+   background: var(--p50-surface);
+   color: var(--p50-text);
+   font: 500 0.9375rem/1 var(--p50-font-mono);
+   font-variant-numeric: tabular-nums;
+   transition:
+      transform 240ms var(--p50-ease),
+      background-color 240ms var(--p50-ease);
+}
+
+a.stopBody:hover .node {
+   transform: scale(1.08);
+}
+
+a.stopBody:active .node {
+   transform: scale(0.98);
+}
+
+.stop[data-state="done"] .node {
+   border-color: transparent;
+   background: var(--p50-text);
+   color: var(--p50-canvas);
+}
+
+.stop[data-state="now"] .node {
+   border: 2px solid var(--p50-coral);
+}
+
+/* the coral ring of the next game pulses */
+.stop[data-state="now"] .node::before {
+   content: "";
+   position: absolute;
+   inset: -7px;
+   border: 2px solid var(--p50-coral);
+   border-radius: 50%;
+   opacity: 0;
+   animation: ping 2.4s var(--p50-ease) infinite;
+}
+
+.stop[data-locked] .node {
+   border-color: var(--p50-line);
+   background: var(--p50-canvas);
+   color: var(--p50-text-3);
+}
+
+.stop[data-locked][data-state="done"] .node {
+   background: var(--p50-text-3);
+   color: var(--p50-canvas);
+}
+
+.lock {
+   position: absolute;
+   right: -5px;
+   bottom: -5px;
+   width: 22px;
+   height: 22px;
+   padding: 4px;
+   border: 1px solid var(--p50-line);
+   border-radius: 50%;
+   background: var(--p50-canvas);
+   color: var(--p50-text-3);
+}
+
+.stopText {
+   display: flex;
+   flex-direction: column;
+   gap: 2px;
+   min-width: 0;
+}
+
+.stopTitle {
+   display: -webkit-box;
+   overflow: hidden;
+   font: 500 0.875rem/1.3 var(--p50-font-body);
+   overflow-wrap: break-word;
+   -webkit-box-orient: vertical;
+   -webkit-line-clamp: 2;
+   line-clamp: 2;
+}
+
+.stop[data-locked] .stopTitle {
+   color: var(--p50-text-3);
+}
+
+.stopMeta {
+   display: none;
+   color: var(--p50-text-3);
+   font-size: 0.875rem;
+   line-height: 1.35;
+}
+
+/* ---------- the certificate at the end ---------- */
+
+.finish {
+   display: flex;
+   align-items: flex-start;
+}
+
+.finishNode {
+   display: grid;
+   flex: none;
+   place-items: center;
+}
+
+.medal {
+   position: relative;
+   z-index: 1;
+   display: grid;
+   place-items: center;
+   width: var(--node);
+   height: var(--node);
+   border: 2px solid var(--p50-gold);
+   border-radius: 50%;
+   background: var(--p50-canvas);
+   color: var(--p50-gold-text);
+}
+
+.medal svg {
+   width: 24px;
+   height: 24px;
+}
+
+.finish[data-earned] .medal {
+   background: var(--p50-gold);
+   color: var(--p50-on-coral);
+}
+
+.finishText {
+   display: flex;
+   flex: 1;
+   flex-direction: column;
+   align-items: flex-start;
+   gap: 6px;
+   min-width: 0;
+}
+
+.finishTitle {
+   color: var(--p50-text);
+   font: 600 1.25rem/1.2 var(--p50-font-display);
+   letter-spacing: -0.02em;
+}
+
+.finishLine {
+   margin-bottom: 6px;
+   color: var(--p50-text-2);
+}
+
+/* ---------- loading, error and empty states ---------- */
+
+.skeleton {
+   display: flex;
+   flex-direction: column;
+   gap: clamp(2.5rem, 6vw, 4.5rem);
+}
+
+.bone {
+   display: block;
+   border-radius: 14px;
+   background: var(--p50-raised);
+   animation: shimmer 1.8s ease-in-out infinite;
+}
+
+.boneCard {
+   height: 260px;
+   border-radius: 28px;
+}
+
+.boneRows {
+   display: flex;
+   flex-direction: column;
+   gap: 56px;
+}
+
+.boneRow {
+   display: grid;
+   grid-template-columns: repeat(10, 1fr);
+   justify-items: center;
+}
+
+.boneNode {
+   width: 48px;
+   height: 48px;
+   border-radius: 50%;
+}
+
+.state {
+   display: flex;
+   flex-direction: column;
+   align-items: flex-start;
+   gap: 12px;
+   max-width: 640px;
+   padding-block: clamp(2rem, 6vw, 4rem);
+}
+
+.stateTitle {
+   color: var(--p50-text);
+   font: 700 clamp(2rem, 3.6vw, 3rem)/1.02 var(--p50-font-display);
+   letter-spacing: -0.03em;
+}
+
+.stateText {
+   color: var(--p50-text-2);
+   font-size: 1.0625rem;
+}
+
+.stateActions {
+   display: flex;
+   flex-wrap: wrap;
+   gap: 10px;
+   margin-top: 8px;
+}
+
+.stateDetails {
+   margin-top: 8px;
+   color: var(--p50-text-3);
+   font-size: 0.875rem;
+}
+
+.stateDetails summary {
+   cursor: pointer;
+}
+
+.stateDetails p {
+   margin-top: 8px;
+   overflow-wrap: anywhere;
+}
+
+.statePre {
+   white-space: pre-line;
+}
+
+@keyframes ping {
+   0% {
+      opacity: 0.7;
+      transform: scale(0.86);
+   }
+
+   70%,
+   100% {
+      opacity: 0;
+      transform: scale(1.2);
+   }
+}
+
+@keyframes shimmer {
+   50% {
+      opacity: 0.5;
+   }
+}
+
+/* ---------- rows: tablets and up ---------- */
+
+@media (min-width: 768px) {
+   /* room for the turns beside the rows */
+   .path {
+      padding-inline: calc(var(--turn) + 6px);
+   }
+
+   /* the line to the next stop */
+   .stop::after {
+      top: calc(var(--node) / 2 - var(--line) / 2);
+      left: 50%;
+      width: 100%;
+      height: var(--line);
+   }
+
+   /* a filter keeps the whole path and fades the other kinds; their nodes stay opaque, so the
+      line never shows through them */
+   .path[data-filtered] .stop[data-dim] .node {
+      border: 1px solid var(--p50-line);
+      background: var(--p50-canvas);
+      color: var(--p50-text-3);
+   }
+
+   .path[data-filtered] .stop[data-dim] .node::before {
+      display: none;
+   }
+
+   .path[data-filtered] .stop[data-dim] .stopText,
+   .path[data-filtered] .stop[data-dim] .lock {
+      opacity: 0.4;
+   }
+
+   .finish {
+      gap: 8px;
+   }
+}
+
+/* tablets: five to a row, so a chapter is two rows. The first runs left to right, the second
+   comes back right to left. */
+@media (min-width: 768px) and (max-width: 1079px) {
+   .path {
+      --node: 52px;
+   }
+
+   .row {
+      flex-direction: column;
+      gap: var(--row-gap);
+   }
+
+   .half {
+      flex-basis: auto;
+   }
+
+   .half:last-child {
+      flex-direction: row-reverse;
+   }
+
+   .half:last-child .stop::after {
+      right: 50%;
+      left: auto;
+   }
+
+   /* the turn on the right, from the first row of a chapter down to its second */
+   .half:first-child .stop:last-child::after {
+      right: calc(-1 * var(--turn));
+      bottom: calc(-1 * (var(--row-gap) + var(--node) / 2 + var(--line) / 2));
+      width: auto;
+      height: auto;
+      border-width: var(--line) var(--line) var(--line) 0;
+      border-radius: 0 var(--turn) var(--turn) 0;
+      background: none;
+   }
+
+   /* the turn on the left, from a chapter down to the next one */
+   .half:last-child .stop:last-child::after {
+      bottom: calc(-1 * (var(--chap-gap) + var(--head-h) + var(--head-gap) + var(--node) / 2 + var(--line) / 2));
+      left: calc(-1 * var(--turn));
+      width: auto;
+      height: auto;
+      border-width: var(--line) 0 var(--line) var(--line);
+      border-radius: var(--turn) 0 0 var(--turn);
+      background: none;
+   }
+
+   /* the last stop of all: straight down to the certificate, which sits under it on the left */
+   .chapter:last-of-type .half:last-child .stop:last-child::after {
+      /* from under the title, so the line never crosses it */
+      top: calc(100% + 6px);
+      right: auto;
+      bottom: calc(-1 * var(--chap-gap));
+      left: calc(50% - var(--line) / 2);
+      width: var(--line);
+      border: 0;
+      border-radius: 0;
+      background: var(--ink);
+   }
+
+   .finishNode {
+      flex-basis: 20%;
+   }
+}
+
+/* desktops: a chapter is one row of ten. Odd chapters run left to right, even ones come back. */
+@media (min-width: 1080px) {
+   .chapter:nth-of-type(even) .row,
+   .chapter:nth-of-type(even) .half {
+      flex-direction: row-reverse;
+   }
+
+   .chapter:nth-of-type(even) .stop::after {
+      right: 50%;
+      left: auto;
+   }
+
+   /* the turn at the end of a chapter, down to the next one: right after an odd chapter */
+   .half:last-child .stop:last-child::after {
+      right: calc(-1 * var(--turn));
+      bottom: calc(-1 * (var(--chap-gap) + var(--head-h) + var(--head-gap) + var(--node) / 2 + var(--line) / 2));
+      width: auto;
+      height: auto;
+      border-width: var(--line) var(--line) var(--line) 0;
+      border-radius: 0 var(--turn) var(--turn) 0;
+      background: none;
+   }
+
+   /* left after an even one */
+   .chapter:nth-of-type(even) .half:last-child .stop:last-child::after {
+      right: 50%;
+      left: calc(-1 * var(--turn));
+      border-width: var(--line) 0 var(--line) var(--line);
+      border-radius: var(--turn) 0 0 var(--turn);
+   }
+
+   /* the last stop of all: straight down to the certificate, which sits under it on the right */
+   .chapter:last-of-type .half:last-child .stop:last-child::after {
+      /* from under the title, so the line never crosses it */
+      top: calc(100% + 6px);
+      right: auto;
+      bottom: calc(-1 * var(--chap-gap));
+      left: calc(50% - var(--line) / 2);
+      width: var(--line);
+      border: 0;
+      border-radius: 0;
+      background: var(--ink);
+   }
+
+   .finish {
+      flex-direction: row-reverse;
+   }
+
+   .finishNode {
+      flex-basis: 10%;
+   }
+
+   .finishText {
+      align-items: flex-end;
+      text-align: right;
+   }
+}
+
+/* a last row that is not full: the certificate stands on its own */
+@media (min-width: 768px) {
+   .path[data-loose] .chapter:last-of-type .half:last-child .stop:last-child::after {
+      display: none;
+   }
+
+   .path[data-loose] .finish {
+      flex-direction: row;
+   }
+
+   .path[data-loose] .finishNode {
+      flex-basis: auto;
+      margin-right: 12px;
+   }
+
+   .path[data-loose] .finishText {
+      align-items: flex-start;
+      text-align: left;
+   }
+}
+
+/* ---------- phones: one column, the path runs down the left ---------- */
+
+@media (max-width: 767px) {
+   .head {
+      grid-template-columns: minmax(0, 1fr);
+   }
+
+   .path {
+      --node: 44px;
+      --stop-gap: 18px;
+      --chap-gap: 26px;
+      --head-gap: 16px;
+   }
+
+   .row,
+   .half {
+      flex-direction: column;
+      gap: var(--stop-gap);
+   }
+
+   .half,
+   .stop {
+      flex-basis: auto;
+   }
+
+   .stopBody {
+      flex-direction: row;
+      align-items: flex-start;
+      gap: 14px;
+      padding: 0;
+      text-align: left;
+   }
+
+   .stopText {
+      min-height: var(--node);
+      justify-content: center;
+   }
+
+   .stopTitle {
+      font-size: 1rem;
+   }
+
+   .stopMeta {
+      display: block;
+   }
+
+   /* down to the next node, which starts the next stop */
+   .stop::after {
+      top: calc(var(--node) / 2);
+      bottom: calc(-1 * (var(--stop-gap) + var(--node) / 2));
+      left: calc(var(--node) / 2 - var(--line) / 2);
+      width: var(--line);
+   }
+
+   /* the next node is past the chapter heading */
+   .half:last-child .stop:last-child::after {
+      bottom: calc(-1 * (var(--chap-gap) + var(--head-h) + var(--head-gap) + var(--node) / 2));
+   }
+
+   .chapter:last-of-type .half:last-child .stop:last-child::after {
+      bottom: calc(-1 * (var(--chap-gap) + var(--node) / 2));
+   }
+
+   /* a filter shows only its games: no lines between stops that are not neighbours */
+   .path[data-filtered] .stop[data-dim],
+   .path[data-filtered] .chapter[data-empty],
+   .path[data-filtered] .stop::after {
+      display: none;
+   }
+
+   .finish {
+      gap: 14px;
+   }
+
+   .boneRow {
+      grid-template-columns: repeat(5, 1fr);
+   }
+
+   .boneCard {
+      height: 200px;
+   }
+}
+
+@media (max-width: 420px) {
+   .status {
+      flex-direction: column;
+      align-items: flex-start;
+   }
+}

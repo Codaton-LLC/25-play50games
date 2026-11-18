@@ -61,6 +61,26 @@ export const LockIcon = (props: IconProps) => (
    </Line>
 );
 
+export const CheckIcon = (props: IconProps) => (
+   <Line {...props}>
+      <path d="m5 12.5 4.5 4.5L19 7.5" />
+   </Line>
+);
+
+/** a medal on its ribbon: the certificate */
+export const AwardIcon = (props: IconProps) => (
+   <Line {...props}>
+      <circle cx="12" cy="9" r="5.5" />
+      <path d="m8.5 13.5-1.5 7 5-2.5 5 2.5-1.5-7" />
+   </Line>
+);
+
+export const ArrowLeftIcon = (props: IconProps) => (
+   <Line {...props}>
+      <path d="M19 12H5M11 6l-6 6 6 6" />
+   </Line>
+);
+
 export const HomeIcon = (props: IconProps) => (
    <Line {...props}>
       <path d="M4 11 12 4l8 7v8a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z" />
