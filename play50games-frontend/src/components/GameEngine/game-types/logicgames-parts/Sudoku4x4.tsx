@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import theme from "./theme.module.css";
 import css from "./Sudoku4x4.module.css";
 import { bottomObstruction } from "./useMobileFit";
 import NumberKeypad from "../../NumberKeypad";
@@ -320,7 +321,7 @@ function Sudoku4x4({
       const allFilled = grid.every((row) => row.every((cell) => cell !== null));
       if (allFilled && errors.size === 0 && !completionCalledRef.current) {
          setIsComplete(true);
-         setFeedback("🎉 Perfect! Puzzle solved!");
+         setFeedback("Solved. Every row, column and box checks out.");
          const score = 100;
          completionCalledRef.current = true; // Prevent multiple calls
          onScoreUpdateRef.current(score);
@@ -328,7 +329,7 @@ function Sudoku4x4({
             onCompleteRef.current(score);
          }, 1500);
       } else if (allFilled && errors.size > 0) {
-         setFeedback("❌ Some cells have errors. Check your solution!");
+         setFeedback("Some numbers clash. Fix the marked cells.");
       } else if (!allFilled) {
          setFeedback("");
       }
@@ -378,20 +379,25 @@ function Sudoku4x4({
       return initialGrid[row]?.[col] !== null;
    };
 
-   const getBoxClass = (row: number, col: number) => {
-      const boxRow = Math.floor(row / 2);
-      const boxCol = Math.floor(col / 2);
-      return `box-${boxRow}-${boxCol}`;
-   };
+   // boxes 0-1 and 1-0 get a tint so the four 2x2 boxes read without uneven gaps
+   const isAltBox = (row: number, col: number) =>
+      (Math.floor(row / 2) + Math.floor(col / 2)) % 2 === 1;
 
    return (
-      <div className={`sudoku-game-modern ${css.root}`}>
-         <div className="sudoku-header">
-            <h3>Number Grid 4x4</h3>
+      <div className={`${theme.game} ${css.root}`}>
+         <div className={theme.header}>
+            <h3 className={theme.title}>Number Grid 4x4</h3>
+            <p className={theme.subtitle}>
+               Fill each row, column and 2x2 box with 1 to 4.
+            </p>
+         </div>
+
+         <div className={theme.feedbackSlot} aria-live="polite">
             {feedback && (
                <div
-                  className={`sudoku-feedback ${
-                     isComplete ? "success" : "error"
+                  key={feedback}
+                  className={`${theme.feedback} ${
+                     isComplete ? `${theme.feedbackOk} ${theme.pop}` : theme.feedbackWarn
                   }`}
                >
                   {feedback}
@@ -399,55 +405,76 @@ function Sudoku4x4({
             )}
          </div>
 
-         <div className="sudoku-container">
-            <div className="sudoku-grid-modern">
-               {grid.map((row, ri) =>
-                  row.map((cell, ci) => {
-                     const cellKey = `${ri}-${ci}`;
-                     const isError = errors.has(cellKey);
-                     const isInitial = isInitialCell(ri, ci);
-                     const isSelected =
-                        selected?.row === ri && selected?.col === ci;
+         <div
+            className={`${theme.board} ${css.board} ${isComplete ? theme.pop : ""}`}
+            role="group"
+            aria-label="Number grid"
+         >
+            {grid.map((row, ri) =>
+               row.map((cell, ci) => {
+                  const cellKey = `${ri}-${ci}`;
+                  const isError = errors.has(cellKey);
+                  const isInitial = isInitialCell(ri, ci);
+                  const isSelected =
+                     selected?.row === ri && selected?.col === ci;
 
-                     return (
-                        <button
-                           key={cellKey}
-                           onClick={() => handleCellClick(ri, ci)}
-                           className={`sudoku-cell-modern ${getBoxClass(
-                              ri,
-                              ci
-                           )} ${isInitial ? "initial" : ""} ${
-                              isSelected ? "selected" : ""
-                           } ${isError ? "error" : ""}`}
-                           disabled={isInitial}
-                           title={
-                              isError
-                                 ? "This cell has an error. Click to select and fix it."
-                                 : isInitial
-                                 ? "This is a clue and cannot be changed"
-                                 : "Click to select this cell"
-                           }
-                        >
-                           {cell || ""}
-                        </button>
-                     );
-                  })
-               )}
-            </div>
+                  const cls = [
+                     theme.cell,
+                     isInitial ? css.given : css.entered,
+                     !isInitial && !isSelected && !isError && isAltBox(ri, ci) ? css.altBox : "",
+                     isSelected ? theme.selected : "",
+                     isError ? `${theme.wrong} ${css.wrongCell}` : "",
+                  ]
+                     .filter(Boolean)
+                     .join(" ");
 
-            {selected && (
-               <div className="sudoku-controls" ref={keypadRef}>
-                  <NumberKeypad
-                     onNumberSelect={handleNumberSelect}
-                     onClear={handleClear}
-                     minNumber={1}
-                     maxNumber={4}
-                     showClear={true}
-                     className="sudoku-keypad"
-                  />
-               </div>
+                  return (
+                     <button
+                        key={cellKey}
+                        type="button"
+                        onClick={() => handleCellClick(ri, ci)}
+                        className={cls}
+                        disabled={isInitial}
+                        aria-label={`Row ${ri + 1}, column ${ci + 1}${
+                           cell ? `, ${cell}` : ", empty"
+                        }${isInitial ? ", given" : ""}${isError ? ", conflict" : ""}`}
+                        aria-pressed={isInitial ? undefined : isSelected}
+                        title={
+                           isError
+                              ? "This cell has an error. Click to select and fix it."
+                              : isInitial
+                              ? "This is a clue and cannot be changed"
+                              : "Click to select this cell"
+                        }
+                     >
+                        {cell ? (
+                           // keyed by value: a new number pops in, a conflicting one shakes once
+                           <span
+                              key={`${cell}-${isError ? "x" : "o"}`}
+                              className={`${css.cellText} ${
+                                 isInitial ? "" : isError ? theme.shake : theme.reveal
+                              }`}
+                           >
+                              {cell}
+                           </span>
+                        ) : null}
+                     </button>
+                  );
+               })
             )}
          </div>
+
+         {selected && (
+            <div className={css.keypad} ref={keypadRef}>
+               <NumberKeypad
+                  onNumberSelect={handleNumberSelect}
+                  onClear={handleClear}
+                  minNumber={1}
+                  maxNumber={4}
+                  showClear={true}
+               />
+            </div>
+         )}
       </div>
    );
 }

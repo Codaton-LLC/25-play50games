@@ -1,17 +1,147 @@
-/* Sudoku 4x4 on phones and tablets (desktop unchanged): the number keypad opens under the grid when a
-   cell is picked, which on a phone was below the fold or under the cookie banner: Sudoku4x4.tsx now
-   scrolls it into view, and its keys are at least 52 px on touch screens. */
-@media (hover: none), (pointer: coarse) {
-   .root :global(.sudoku-keypad) button {
-      min-width: 52px;
-      min-height: 52px;
-      font-size: 1.25rem;
+/* Number Grid 4x4 (game 18), modern pass 2026-11-18.
+   The board no longer uses the global .sudoku-* classes (fixed 70 px cells, a UA button border widened
+   on some cells only, radius on some cells only, a selected cell that grew 8 % with an extra border and
+   pushed its neighbours). It is the shared theme board: 4 equal 1fr tracks, square cells, one gap, the
+   frame hugging the grid. The 2x2 boxes read through a tint on two of the four boxes, not through
+   uneven gaps. Given numbers: muted, heavy, on a darker tile. Entered numbers: accent. Wrong: warn. */
+
+.root {
+   max-width: 440px;
+}
+
+.board {
+   max-width: 360px;
+}
+
+/* boxes 0-1 and 1-0 get a darker tile so the four 2x2 boxes read without changing the gap */
+.root .altBox {
+   background: rgba(255, 255, 255, 0.035);
+}
+
+.cellText {
+   display: inline-block;
+   font-size: clamp(1.5rem, 8vw, 2rem);
+}
+
+.root .given {
+   background: rgba(255, 255, 255, 0.11);
+   box-shadow: none;
+   color: var(--muted);
+}
+
+.root .given .cellText {
+   font-weight: 800;
+   color: #d6dbe6;
+}
+
+.root .entered .cellText {
+   font-weight: 600;
+   color: var(--accent);
+}
+
+.root .wrongCell .cellText {
+   color: var(--warn);
+}
+
+.keypad {
+   width: 100%;
+   max-width: 360px;
+}
+
+/* NumberKeypad (shared component, global classes) restyled here only */
+.keypad :global(.number-keypad) {
+   width: 100%;
+   max-width: none;
+   padding: 12px;
+   border-radius: 16px;
+   background: rgba(255, 255, 255, 0.04);
+   border: 1px solid rgba(255, 255, 255, 0.1);
+   box-shadow: none;
+   backdrop-filter: none;
+   animation: keypadIn 240ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.keypad :global(.keypad-numbers) {
+   grid-template-columns: repeat(4, minmax(0, 1fr));
+   gap: 8px;
+   margin-bottom: 8px;
+}
+
+.keypad :global(.keypad-number-btn) {
+   width: 100%;
+   height: auto;
+   min-height: 52px;
+   border: 0;
+   border-radius: 12px;
+   background: rgba(var(--accent-rgb, 231, 95, 64), 0.14);
+   box-shadow: inset 0 0 0 1px rgba(var(--accent-rgb, 231, 95, 64), 0.5);
+   color: var(--text);
+   font-size: 1.35rem;
+   font-weight: 700;
+   transition:
+      background-color 140ms ease,
+      transform 100ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (hover: hover) {
+   .keypad :global(.keypad-number-btn):hover {
+      background: rgba(var(--accent-rgb, 231, 95, 64), 0.26);
+      color: var(--text);
+      transform: none;
+      box-shadow: inset 0 0 0 1px var(--accent);
+   }
+}
+
+.keypad :global(.keypad-number-btn):active,
+.keypad :global(.keypad-number-btn.selected) {
+   background: var(--accent);
+   color: #1a0d09;
+   transform: scale(0.96);
+   box-shadow: none;
+}
+
+.keypad :global(.keypad-clear-btn) {
+   min-height: 44px;
+   border: 0;
+   border-radius: 12px;
+   background: rgba(255, 255, 255, 0.06);
+   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+   color: var(--muted);
+   font-size: 0.95rem;
+   transition: background-color 140ms ease, transform 100ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (hover: hover) {
+   .keypad :global(.keypad-clear-btn):hover {
+      background: rgba(240, 112, 138, 0.14);
+      color: var(--warn);
+   }
+}
+
+.keypad :global(.keypad-clear-btn):active {
+   transform: scale(0.96);
+}
+
+@keyframes keypadIn {
+   from {
+      opacity: 0;
+      transform: translateY(8px);
+   }
+   to {
+      opacity: 1;
+      transform: translateY(0);
    }
 }
 
 @media (max-width: 599px) {
    .root {
-      padding: 10px 4px !important;
-      gap: 14px !important;
+      padding: 10px 4px;
+      gap: 14px;
+   }
+}
+
+@media (prefers-reduced-motion: reduce) {
+   .keypad :global(.number-keypad) {
+      animation: none;
    }
 }
