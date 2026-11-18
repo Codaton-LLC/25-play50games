@@ -2,18 +2,21 @@ import type { AABB } from "@/arcade3d/core/collision";
 import { mapsForLevel, hazardX } from "./rules";
 import { EXTRA_BINS, HAZARDS, LEVELS, type CleanLevel } from "./levels";
 import { CAR_SPOTS, TAXI_SPOTS, VAN_SPOTS } from "./decorSpots";
+import { portraitFollowOffset } from "@/arcade3d/core/camera/portraitFollow";
+
+/** Portrait follow distance (m) and pitch (degrees down) — see phoneOffset. */
+export const PHONE_DISTANCE = 10;
+export const PHONE_PITCH_DEG = 35;
+/** Portrait look-ahead: the camera aims this far past the hero (m) and this far above it (m). */
+export const PHONE_LEAD = 3;
+export const PHONE_LIFT = 0;
 
 /**
- * Portrait follows the cleaner from this far (m). Tuned for the 1.75 m cleaner (real-world scale,
- * README "Real-world scale") so it stands about a quarter of a 390 x 844 screen; it was 4 for the
- * old 0.95 cleaner (1.75 / 0.95 x 4 = 7.4).
+ * Portrait follows the cleaner from behind, about 35 degrees down, so the litter ahead shows;
+ * landscape keeps the fitted overview.
  */
-export const PHONE_DISTANCE = 7.4;
-
-/** Portrait follows the cleaner closely; landscape keeps the existing level overview. */
 export function phoneOffset(offset: [number, number, number], aspect: number): [number, number, number] {
-   const scale = aspect < 1 ? PHONE_DISTANCE / Math.hypot(...offset) : 1;
-   return [offset[0] * scale, offset[1] * scale, offset[2] * scale];
+   return portraitFollowOffset(offset, aspect, PHONE_DISTANCE, PHONE_PITCH_DEG, PHONE_LEAD, PHONE_LIFT);
 }
 
 /** The chosen camera views' framing of the 1.75 m cleaner (was 3.5 / 3 / 3.5 for the 0.95 one), aimed at its chest. */
