@@ -1,0 +1,43 @@
+/* Block Fill on phones (desktop and tablets unchanged):
+   - the pieces panel had a 280 px minimum and two wide piece cards per row, so on a 360 px phone the
+     second card ran off the screen (the page scrolled sideways): the panel now spans the width with
+     three cards per row, the preview above the name;
+   - Rotate / Undo were 36 px tall: now at least 44 px;
+   - less padding round the game. */
+@media (max-width: 599px) {
+   .root {
+      padding: 10px 4px !important;
+      gap: 14px !important;
+   }
+   .panel {
+      min-width: 0 !important;
+      width: 100%;
+      padding: 12px !important;
+   }
+   .pieces {
+      grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+      gap: 8px !important;
+   }
+   .piece {
+      display: flex !important;
+      flex-direction: column !important;
+      align-items: center !important;
+      gap: 6px !important;
+      min-width: 0;
+      padding: 8px 4px !important;
+      text-align: center;
+   }
+   .piece > * {
+      min-width: 0;
+      max-width: 100%;
+   }
+   .controls button {
+      min-height: 44px;
+   }
+}
+
+@media (hover: none), (pointer: coarse) {
+   .controls button {
+      min-height: 44px;
+   }
+}

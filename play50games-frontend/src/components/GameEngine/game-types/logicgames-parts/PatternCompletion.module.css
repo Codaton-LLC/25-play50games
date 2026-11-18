@@ -1,0 +1,48 @@
+/* Pattern Completion on phones (desktop and tablets unchanged):
+   - the pattern wrapped onto a second line (4 + 2 on a 390 px phone), which reads as two patterns:
+     it now stays on one line, the shapes sharing the width;
+   - the four answers wrapped 3 + 1: now one row of four;
+   - less padding. */
+@media (max-width: 599px) {
+   .root {
+      padding: 10px 4px !important;
+      gap: 14px !important;
+   }
+   .root :global(.pattern-display) {
+      display: flex !important;
+      flex-wrap: nowrap !important;
+      gap: 6px !important;
+      padding: 12px 8px !important;
+      width: 100%;
+      justify-content: center;
+   }
+   .root :global(.pattern-shape) {
+      flex: 1 1 0;
+      min-width: 0 !important;
+      max-width: 64px;
+      width: auto !important;
+      height: auto !important;
+      aspect-ratio: 1;
+   }
+   .root :global(.pattern-shape) svg,
+   .root :global(.pattern-icon) {
+      width: 70% !important;
+      height: 70% !important;
+   }
+   .root :global(.pattern-options) {
+      display: grid !important;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px !important;
+      width: 100%;
+   }
+   .root :global(.pattern-options .option-btn) {
+      width: 100% !important;
+      height: auto !important;
+      aspect-ratio: 1;
+      min-height: 56px;
+   }
+   .root :global(.pattern-options .option-btn) svg {
+      width: 60% !important;
+      height: 60% !important;
+   }
+}

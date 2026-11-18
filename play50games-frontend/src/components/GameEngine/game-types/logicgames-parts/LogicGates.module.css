@@ -1,0 +1,51 @@
+/* Logic Gates on phones (desktop and tablets unchanged): the circuit (Input A, the gate, Input B, the
+   arrow, the output lamp) wrapped onto three lines on a phone, so the gate's inputs no longer read as
+   one circuit: it now stays on one line, every part smaller, inside a tighter card. The output
+   answers keep their own size (big touch targets). */
+@media (max-width: 599px) {
+   .root {
+      padding: 10px 4px !important;
+      gap: 14px !important;
+   }
+   .circuit {
+      padding: 16px 8px !important;
+      margin-bottom: 14px !important;
+      width: 100%;
+   }
+   .row {
+      flex-wrap: nowrap !important;
+      gap: 8px !important;
+   }
+   /* the parts: label + box columns */
+   .row > div {
+      gap: 6px !important;
+      min-width: 0;
+   }
+   .row > div > div:first-child {
+      font-size: 12px !important;
+      white-space: nowrap;
+   }
+   /* input boxes (80 px) and the lamp (100 px) */
+   .row > div > div:last-child {
+      width: 52px !important;
+      height: 52px !important;
+      font-size: 24px !important;
+   }
+   /* the gate box (padding 16 px 32 px) */
+   .row > div:nth-child(2) > div:last-child {
+      width: auto !important;
+      min-width: 56px;
+      padding: 8px 10px !important;
+      font-size: 18px !important;
+   }
+   .arrow {
+      font-size: 20px !important;
+   }
+   .row svg {
+      width: 30px !important;
+      height: 30px !important;
+   }
+   .options {
+      gap: 12px !important;
+   }
+}

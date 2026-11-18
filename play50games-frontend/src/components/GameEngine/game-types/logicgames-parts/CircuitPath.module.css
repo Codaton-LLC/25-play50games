@@ -1,0 +1,47 @@
+/* Circuit Path on phones and tablets (desktop unchanged):
+   - the board was a small fixed-size grid in the middle of the phone (54 px nodes) with wide empty
+     margins: it now spans the width, so the nodes are bigger touch targets (>= 44 px even 6 wide on a
+     360 px phone);
+   - the Start / End labels were 11 px: now 13 px;
+   - less padding round the board. */
+@media (max-width: 599px) {
+   .root {
+      padding: 10px 4px !important;
+      gap: 14px !important;
+   }
+   .root :global(.circuit-path-container) {
+      width: 100%;
+      padding: 8px !important;
+   }
+   .root :global(.circuit-grid) {
+      width: 100%;
+      gap: 8px !important;
+      padding: 4px !important;
+   }
+   .root :global(.circuit-node) {
+      min-width: 0 !important;
+      min-height: 44px !important;
+      width: 100%;
+      height: auto;
+   }
+   .root :global(.circuit-icon) {
+      width: 28px !important;
+      height: 28px !important;
+   }
+}
+
+.root :global(.node-label) {
+   font-size: 0.8rem !important;
+}
+
+@media (min-width: 600px) and (max-width: 899px) {
+   .root :global(.circuit-path-container) {
+      width: min(100%, 560px);
+   }
+   .root :global(.circuit-grid) {
+      width: 100%;
+   }
+   .root :global(.circuit-node) {
+      width: 100%;
+   }
+}
