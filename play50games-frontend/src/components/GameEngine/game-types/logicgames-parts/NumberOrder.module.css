@@ -1,0 +1,161 @@
+/* Number Order (Logic), modern pass 2026-11-18.
+   Before: 60 px flex-wrapped tiles (10 numbers wrapped 5 + 4 + 1 on a phone), a hover scale(1.05) and
+   a picked scale(0.95) set from JS, sky-blue / green / red hard-coded gradients and glows, a
+   "Your selection" panel that appeared on the first pick and pushed the feedback down, an
+   accent-to-green progress gradient animating width, two setTimeouts never cleared on unmount.
+   Now: the shared theme board (equal 1fr tracks, square tiles, one gap; 3 and 5 numbers in one row,
+   10 in two rows of five), picked tiles tint ok / warn with a pop / shake on the number only, a fixed
+   tray of order slots, a transform-only progress bar. */
+
+.root {
+   max-width: 520px;
+}
+
+.header {
+   gap: 10px;
+}
+
+.progress {
+   width: 100%;
+   max-width: 320px;
+   height: 6px;
+   border-radius: 999px;
+   background: rgba(255, 255, 255, 0.08);
+   overflow: hidden;
+}
+
+.progressFill {
+   width: 100%;
+   height: 100%;
+   border-radius: inherit;
+   background: var(--accent);
+   transform-origin: left center;
+   transition: transform 320ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.board {
+   max-width: 440px;
+}
+
+.tile {
+   font-size: clamp(1.35rem, 6vw, 1.9rem);
+   font-weight: 700;
+}
+
+.tileText {
+   display: inline-block;
+}
+
+/* picked tiles carry the answer: no dimming from the site's button:disabled rule */
+.root .picked:disabled {
+   opacity: 1;
+}
+
+/* the pick order, small in the corner, so a wrong order shows where it went wrong */
+.order {
+   position: absolute;
+   top: 5px;
+   right: 7px;
+   font-size: 0.7rem;
+   font-weight: 700;
+   line-height: 1;
+   color: currentColor;
+}
+
+.placeholder {
+   visibility: hidden;
+   cursor: default;
+}
+
+/* order tray: a fixed row of slots filled as you pick, so nothing below moves */
+.tray {
+   display: flex;
+   flex-direction: column;
+   gap: 10px;
+   max-width: 440px;
+   padding: 12px;
+}
+
+.trayHead {
+   display: flex;
+   align-items: center;
+   justify-content: space-between;
+   gap: 10px;
+}
+
+.trayLabel {
+   font-size: 0.85rem;
+   font-weight: 600;
+   color: var(--muted);
+}
+
+.undo {
+   padding: 8px 18px;
+}
+
+.slots {
+   display: flex;
+   flex-wrap: wrap;
+   justify-content: center;
+   gap: 6px;
+}
+
+.slot {
+   display: inline-flex;
+   align-items: center;
+   justify-content: center;
+   width: 36px;
+   height: 36px;
+   border-radius: 10px;
+   background: rgba(255, 255, 255, 0.04);
+   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+   font-size: 1rem;
+   font-weight: 700;
+   color: var(--text);
+   transition:
+      background-color 160ms ease,
+      box-shadow 160ms ease;
+}
+
+.slotOk {
+   background: rgba(63, 181, 127, 0.16);
+   box-shadow: inset 0 0 0 1px rgba(63, 181, 127, 0.6);
+   color: var(--ok);
+}
+
+.slotWarn {
+   background: rgba(240, 112, 138, 0.16);
+   box-shadow: inset 0 0 0 1px rgba(240, 112, 138, 0.6);
+   color: var(--warn);
+}
+
+@media (max-width: 599px) {
+   .root {
+      padding: 10px 4px;
+      gap: 14px;
+   }
+}
+
+@media (prefers-reduced-motion: reduce) {
+   .progressFill {
+      transition: none;
+   }
+}
+
+/* round start: the tiles stagger in. Fill mode "backwards" only (not "both"), so once the entry
+   ends the tile's own :active press scale works again */
+.dealt > * {
+   animation: noDeal 320ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+   animation-delay: calc(var(--i, 0) * 40ms);
+}
+
+@keyframes noDeal {
+   from {
+      opacity: 0;
+      transform: translateY(8px);
+   }
+   to {
+      opacity: 1;
+      transform: translateY(0);
+   }
+}
