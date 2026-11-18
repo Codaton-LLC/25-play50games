@@ -50,6 +50,22 @@ function EmojiMemory({
    const [hintPositions, setHintPositions] = useState<number[]>([]);
    const [currentShareId, setCurrentShareId] = useState<string | null>(null);
    const shareCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
+   // 15 s share-message timers: cleared on unmount
+   const shareTimersRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
+   const shareTimeout = (fn: () => void, ms: number) => {
+      const t = setTimeout(() => {
+         shareTimersRef.current.delete(t);
+         fn();
+      }, ms);
+      shareTimersRef.current.add(t);
+   };
+   useEffect(() => {
+      const timers = shareTimersRef.current;
+      return () => {
+         timers.forEach(clearTimeout);
+         timers.clear();
+      };
+   }, []);
 
    // Round / hint / feedback timers: cleared when the game unmounts (timing unchanged).
    // Score and completion timers stay plain.
@@ -400,7 +416,7 @@ function EmojiMemory({
          await navigator.clipboard.writeText(shareableLink);
          // Success - show message (hints will activate when someone clicks the link)
          setShareSuccess(true);
-         setTimeout(() => setShareSuccess(false), 15000); // 15 seconds
+         shareTimeout(() => setShareSuccess(false), 15000); // 15 seconds
       } catch (error) {
          // Fallback for older browsers
          const textArea = document.createElement("textarea");
@@ -413,7 +429,7 @@ function EmojiMemory({
             document.execCommand("copy");
             // Success - show message (hints will activate when someone clicks the link)
             setShareSuccess(true);
-            setTimeout(() => setShareSuccess(false), 15000); // 15 seconds
+            shareTimeout(() => setShareSuccess(false), 15000); // 15 seconds
          } catch (err) {}
          document.body.removeChild(textArea);
       }
@@ -439,7 +455,7 @@ function EmojiMemory({
             });
             // Success - show message (hints will activate when someone clicks the link)
             setShareSuccess(true);
-            setTimeout(() => setShareSuccess(false), 15000); // 15 seconds
+            shareTimeout(() => setShareSuccess(false), 15000); // 15 seconds
          } catch (error: any) {
             // User cancelled or error - try copy to clipboard
             if (error.name !== "AbortError") {

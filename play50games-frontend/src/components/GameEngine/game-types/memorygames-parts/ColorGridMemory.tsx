@@ -57,6 +57,22 @@ function ColorGridMemory({
    const [hintRevealed, setHintRevealed] = useState<number[]>([]);
    const [currentShareId, setCurrentShareId] = useState<string | null>(null);
    const shareCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
+   // 15 s share-message timers: cleared on unmount
+   const shareTimersRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
+   const shareTimeout = (fn: () => void, ms: number) => {
+      const t = setTimeout(() => {
+         shareTimersRef.current.delete(t);
+         fn();
+      }, ms);
+      shareTimersRef.current.add(t);
+   };
+   useEffect(() => {
+      const timers = shareTimersRef.current;
+      return () => {
+         timers.forEach(clearTimeout);
+         timers.clear();
+      };
+   }, []);
 
    // Round-flow timers (next round, retry, completion): the same delays as before, but cleared
    // when the game unmounts so a timer never fires into a closed game.
@@ -184,7 +200,7 @@ function ColorGridMemory({
                      clearInterval(shareCheckIntervalRef.current);
                   }
                   // Show message for 15 seconds
-                  setTimeout(() => {
+                  shareTimeout(() => {
                      setUnlimitedActivated(false);
                   }, 15000);
                   // Expire after 15 minutes
@@ -462,12 +478,12 @@ function ColorGridMemory({
             });
             await registerShareLink(shareId);
             setShareSuccess(true);
-            setTimeout(() => setShareSuccess(false), 15000); // 15 seconds
+            shareTimeout(() => setShareSuccess(false), 15000); // 15 seconds
          } else {
             await navigator.clipboard.writeText(shareLink);
             await registerShareLink(shareId);
             setShareSuccess(true);
-            setTimeout(() => setShareSuccess(false), 15000); // 15 seconds
+            shareTimeout(() => setShareSuccess(false), 15000); // 15 seconds
          }
       } catch (error) {
          // User cancelled or error occurred
