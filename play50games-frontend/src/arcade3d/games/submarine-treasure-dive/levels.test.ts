@@ -13,7 +13,7 @@ describe("submarine levels", () => {
       expect(levelMetaProblems(submarineTreasureDiveMeta)).toEqual([]);
       expect(definitionLevelProblems(submarineTreasureDiveMeta, definition)).toEqual([]);
       expect(submarineTreasureDiveMeta.slug).toBe("submarine-treasure-dive");
-      expect(submarineTreasureDiveMeta.status).toBe("dev");
+      expect(submarineTreasureDiveMeta.status).toBe("live");
       expect(submarineTreasureDiveMeta.owner).toBe("cursor");
       expect(submarineTreasureDiveMeta.collection).toBe("adventure");
       expect(submarineTreasureDiveMeta.order).toBe(42);

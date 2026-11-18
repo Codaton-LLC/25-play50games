@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import css from "./TileSlider.module.css";
+import mobile from "./mobile.module.css";
 import {
    SparklesIcon,
    CheckCircleIcon,
@@ -30,6 +32,8 @@ function TileSlider({
    const gridSize = config.gridSize || 3;
    const showHints = config.showHints !== false; // Default: true
    const total = gridSize * gridSize;
+   // touch: a swipe on the board slides the tile next to the gap into it (the same move as a tap)
+   const swipeStart = useRef<{ x: number; y: number } | null>(null);
    // Use array with total elements, where null represents empty space
    const [tiles, setTiles] = useState<(number | null)[]>([]);
    const [emptyIndex, setEmptyIndex] = useState(total - 1);
@@ -1286,8 +1290,22 @@ function TileSlider({
       });
    };
 
+   /** The tile a swipe moves: the neighbour of the gap on the side the finger came from. */
+   const swipeTile = (dx: number, dy: number): number => {
+      const row = Math.floor(emptyIndex / gridSize);
+      const col = emptyIndex % gridSize;
+      if (Math.abs(dx) > Math.abs(dy)) {
+         if (dx < 0 && col < gridSize - 1) return emptyIndex + 1;
+         if (dx > 0 && col > 0) return emptyIndex - 1;
+      } else {
+         if (dy < 0 && row < gridSize - 1) return emptyIndex + gridSize;
+         if (dy > 0 && row > 0) return emptyIndex - gridSize;
+      }
+      return -1;
+   };
+
    return (
-      <div className="tile-slider-game">
+      <div className={`tile-slider-game ${css.root}`}>
          {/* Header */}
          <div className="game-header">
             <div className="header-stats">
@@ -1432,8 +1450,27 @@ function TileSlider({
          {/* Game Grid */}
          <div className="tile-slider-container">
             <div
-               className="slider-grid"
+               className={`slider-grid ${css.grid}`}
                style={{ gridTemplateColumns: `repeat(${gridSize}, 1fr)` }}
+               onTouchStart={(e) => {
+                  const t = e.touches[0];
+                  swipeStart.current = t ? { x: t.clientX, y: t.clientY } : null;
+               }}
+               onTouchEnd={(e) => {
+                  const st = swipeStart.current;
+                  swipeStart.current = null;
+                  const t = e.changedTouches[0];
+                  if (!st || !t) return;
+                  const dx = t.clientX - st.x;
+                  const dy = t.clientY - st.y;
+                  if (Math.max(Math.abs(dx), Math.abs(dy)) < 28) return; // a tap: the tile's own click
+                  const i = swipeTile(dx, dy);
+                  if (i < 0 || !canMove(i) || isAnimating) return;
+                  handleTileClick(i);
+                  setSelectedIndex(null);
+                  setShowHint(false);
+                  setHintTileIndex(null);
+               }}
             >
                {Array.from({ length: total }).map((_, i) => {
                   const isMovable = canMove(i);
@@ -1513,7 +1550,7 @@ function TileSlider({
 
          {/* Feedback */}
          {feedback === "correct" && (
-            <div className="game-feedback correct">
+            <div className={`game-feedback correct ${mobile.pop}`}>
                <CheckCircleIcon className="feedback-icon" />
                <span>Puzzle Solved! Great job!</span>
             </div>

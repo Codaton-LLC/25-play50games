@@ -16,15 +16,19 @@ import { useCoarsePointer } from "@/arcade3d/core/TouchControls";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useFittedView } from "@/arcade3d/core/useFittedView";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
-import { ASSETS } from "./assets";
+import { ASSETS, decorX, isDecorLevel } from "./assets";
 import {
    COVER_HEIGHT, FOLLOW_DAMPING, FOV, LOOK_AT, STREET_VIEW, configureStreetView,
    createHorizon, createStreetCache, fallbackVertices, fillStreet, modelVertices, pigeonHull,
    maximumRows, viewGate, type StreetCache, type Horizon,
    createPigeonPose, writePigeonPose, placePigeon,
 } from "./camera";
+import { Cues } from "./Cues";
 import { useStreetGate } from "./Hud";
-import { COLORS, PigeonPrimitive, useStreetParts, type StreetParts } from "./Primitives";
+import { StreetDecor } from "./Decor";
+import { DistrictScenery } from "./DistrictScenery";
+import type { DistrictMap } from "./maps";
+import { PigeonPrimitive, useStreetParts, type StreetParts } from "./Primitives";
 import { COVER_INNER_X, HOP_MS, LANE_SLOTS, NONE, ROW_PITCH, VEHICLE_SLOTS, createRun, step, type PigeonRun } from "./rules";
 import { VEHICLE_ASSETS, vehicleFacing } from "./traffic";
 
@@ -162,7 +166,17 @@ const VehiclePool = memo(function VehiclePool({ run, kind, parts }: { run: Pigeo
    return <DynamicInstancedModel asset={VEHICLE_ASSETS[kind]} count={VEHICLE_SLOTS} update={update} fallbackParts={parts.vehicles[kind]} name={`traffic-${VEHICLE_ASSETS[kind].id}`} />;
 });
 
-const SideCover = memo(function SideCover({ layout }: { layout: Layout }) {
+/**
+ * The bundle's street decor (Decor.tsx: lamps and parked rush taxis on levels 4 and 5, at |x| = decorX)
+ * shares the side cover with the level's district props (maps.ts). It draws only when no district prop
+ * stands within a taxi's half-width (1 m) of its line, so the two never overlap.
+ */
+export function decorLineClear(map: DistrictMap): boolean {
+   const x = decorX(0);
+   return !map.props.some((p) => Math.abs(Math.abs(p.x) - x) < p.halfX + 1);
+}
+
+const SideCover = memo(function SideCover({ layout, coverColor }: { layout: Layout; coverColor: string }) {
    const left = useRef<Mesh>(null), right = useRef<Mesh>(null);
    useFrame(() => {
       const h = layout.horizon, width = Math.max(0.1, h.coverX - COVER_INNER_X), length = Math.max(1, h.coverMaxZ - h.coverMinZ), z = (h.coverMaxZ + h.coverMinZ) / 2;
@@ -171,8 +185,8 @@ const SideCover = memo(function SideCover({ layout }: { layout: Layout }) {
    });
    return (
       <group name="opaque-side-cover">
-         <mesh ref={left}><boxGeometry args={[1, 1, 1]} /><meshStandardMaterial color={COLORS.cover} roughness={0.95} polygonOffset polygonOffsetFactor={-1} polygonOffsetUnits={-1} /></mesh>
-         <mesh ref={right}><boxGeometry args={[1, 1, 1]} /><meshStandardMaterial color={COLORS.cover} roughness={0.95} polygonOffset polygonOffsetFactor={-1} polygonOffsetUnits={-1} /></mesh>
+         <mesh ref={left}><boxGeometry args={[1, 1, 1]} /><meshStandardMaterial color={coverColor} roughness={0.95} polygonOffset polygonOffsetFactor={-1} polygonOffsetUnits={-1} /></mesh>
+         <mesh ref={right}><boxGeometry args={[1, 1, 1]} /><meshStandardMaterial color={coverColor} roughness={0.95} polygonOffset polygonOffsetFactor={-1} polygonOffsetUnits={-1} /></mesh>
       </group>
    );
 });
@@ -203,7 +217,7 @@ export default function Scene() {
    const { config } = usePigeonLevel();
    const [run] = useState(() => createRun(randomSeed(), config));
    const [layout] = useState(createLayout);
-   const parts = useStreetParts();
+   const parts = useStreetParts(config.map.palette);
    const reported = useRef(false);
    useEffect(() => {
       if (!reported.current) { reported.current = true; useArcadeStore.getState().setStat("level", 1); }
@@ -212,13 +226,18 @@ export default function Scene() {
       <>
          <Simulation run={run} layout={layout} />
          <StreetCamera run={run} layout={layout} />
-         <mesh rotation-x={-Math.PI / 2} position={[0, -0.11, -8000]} name="background-grass"><planeGeometry args={[160, 20000]} /><meshStandardMaterial color={COLORS.grass} roughness={1} /></mesh>
+         <mesh rotation-x={-Math.PI / 2} position={[0, -0.11, -8000]} name="background-grass"><planeGeometry args={[160, 20000]} /><meshStandardMaterial color={config.map.palette.grass} roughness={1} /></mesh>
          <Rows run={run} parts={parts} />
          <VehiclePool run={run} kind={0} parts={parts} />
          <VehiclePool run={run} kind={1} parts={parts} />
          <VehiclePool run={run} kind={2} parts={parts} />
-         <SideCover layout={layout} />
+         <SideCover layout={layout} coverColor={config.map.palette.cover} />
+         <DistrictScenery run={run} horizon={layout.horizon} />
+         {/* the bundle's lamp and rush-taxi lines (levels 4-5 only, so level 1 never fetches their GLBs),
+             only where the level's own district props leave their line clear */}
+         {isDecorLevel(config.id) && decorLineClear(config.map) ? <StreetDecor run={run} horizon={layout.horizon} parts={parts} level={config.id} /> : null}
          <Pigeon run={run} layout={layout} />
+         <Cues run={run} />
       </>
    );
 }

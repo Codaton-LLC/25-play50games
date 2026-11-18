@@ -23,12 +23,17 @@ import { useFrame, useThree } from "@react-three/fiber";
 import { Color, Euler, Matrix4, Quaternion, Vector3, type Group, type MeshBasicMaterial } from "three";
 import CameraRig from "@/arcade3d/core/CameraRig";
 import { playSfx } from "@/arcade3d/core/audio";
+import { InstancedModel } from "@/arcade3d/core/assets";
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import { useInput } from "@/arcade3d/core/input";
 import { randomSeed } from "@/arcade3d/core/math";
 import { capScore as capToLimits } from "@/arcade3d/core/limits";
+import { Cues } from "./Cues";
 import { useOfficeLevel } from "./useOfficeLevel";
-import { BlobShadow } from "@/arcade3d/core/render";
+import { LEVEL_VARIANTS } from "./looks";
+import type { LevelId } from "@/arcade3d/types";
+import type { CorridorVariant } from "./decor";
+import { BlobShadow, Instanced } from "@/arcade3d/core/render";
 import {
    BONE,
    HumanoidModel,
@@ -48,13 +53,14 @@ import { RUNNER_LANDMARKS } from "@/arcade3d/core/sharedAssets";
 import type { ModelAsset } from "@/arcade3d/core/types";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
-import { ASSETS } from "./assets";
+import { ASSETS, EXEC_DESK_GLB, EXEC_DESK_LEVELS } from "./assets";
 import { chaseInsets, fitChase, type ChaseFit } from "./camera";
 import { CRASH, crashPlacement, crashPose, type CrashPlacement } from "./crash";
 import {
    Backdrop,
    COLORS,
    CORRIDOR,
+   execDeskSpots,
    InstancedProp,
    OfficeCorridor,
    PropMeshes,
@@ -218,7 +224,31 @@ const STAGE_FLASH_S = 0.5;
 const STRIPE = new Color(COLORS.stripe);
 const FLASH = new Color(COLORS.accent);
 
-const Corridor = memo(function Corridor({ run, fx }: { run: OfficeRun; fx: Fx }) {
+/**
+ * The executive desks lining the walls on levels 4-5 (assets.ts EXEC_DESK_LEVELS), outside the
+ * lanes where the other side decor sits. One <InstancedModel> for all spots; its spots are static
+ * treadmill-local coordinates, so it lives inside the sliding corridor group (unlike the obstacles,
+ * whose matrices are rewritten every frame). While the GLB is missing or broken, the same spots
+ * draw a plain box of the desk's turned footprint.
+ */
+const ExecFloorDesks = memo(function ExecFloorDesks({ level }: { level: LevelId }) {
+   const spots = useMemo(() => execDeskSpots(level), [level]);
+   const fallbackSpots = useMemo(() => spots.map((s) => ({ ...s, y: EXEC_DESK_GLB.height / 2 })), [spots]);
+   return (
+      <InstancedModel
+         asset={ASSETS.execDesk}
+         spots={spots}
+         fallback={
+            <Instanced spots={fallbackSpots} name="exec-desks">
+               <boxGeometry args={[EXEC_DESK_GLB.depth, EXEC_DESK_GLB.height, EXEC_DESK_GLB.width]} />
+               <meshStandardMaterial color={ASSETS.execDesk.fallbackColor} roughness={0.6} />
+            </Instanced>
+         }
+      />
+   );
+});
+
+const Corridor = memo(function Corridor({ run, fx, variant, execLevel }: { run: OfficeRun; fx: Fx; variant: CorridorVariant; execLevel: LevelId | null }) {
    const time = useGameTime();
    const camera = useThree((state) => state.camera);
    const treadmill = useRef<Group>(null);
@@ -241,9 +271,10 @@ const Corridor = memo(function Corridor({ run, fx }: { run: OfficeRun; fx: Fx })
    return (
       <>
          <group ref={treadmill}>
-            <OfficeCorridor stripes={stripes} ceiling={ceiling} />
+            <OfficeCorridor variant={variant} stripes={stripes} ceiling={ceiling} />
+            {execLevel !== null && <ExecFloorDesks level={execLevel} />}
          </group>
-         <Backdrop />
+         <Backdrop variant={variant} />
       </>
    );
 });
@@ -592,19 +623,21 @@ const Runner = memo(function Runner({ run, fx }: { run: OfficeRun; fx: Fx }) {
 export default function Scene() {
    // a new seed every run: GameShell remounts the Scene (and its game time) on start and retry.
    // createRun fills the first 74 m of rows and 72 m of coins, so the corridor is set during the countdown.
-   const { config } = useOfficeLevel();
+   const { id, config } = useOfficeLevel();
    const [run] = useState(() => createRun(randomSeed(), config));
    const [fx] = useState(createFx);
    const standIns = useStandIns();
+   const execFloor = EXEC_DESK_LEVELS.includes(id);
 
    return (
       <>
          <Simulation run={run} fx={fx} />
          <ChaseCamera />
-         <Corridor run={run} fx={fx} />
+         <Corridor run={run} fx={fx} variant={LEVEL_VARIANTS[id]} execLevel={execFloor ? id : null} />
          <Obstacles run={run} fx={fx} standIns={standIns} />
          <Coins run={run} fx={fx} standIns={standIns} />
          <Runner run={run} fx={fx} />
+         <Cues run={run} />
       </>
    );
 }

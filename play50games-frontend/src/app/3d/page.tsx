@@ -1,9 +1,9 @@
-// 3D Arcade grid "/3d". Server component: no three.js here, the game code only loads under /3d/[slug].
+// 3D Arcade catalogue "/3d". Server component: no three.js here, the game code only loads under /3d/[slug].
 import type { Metadata } from "next";
 import Link from "next/link";
-import HeaderWithAuth from "@/components/Header/HeaderWithAuth";
-import Footer from "@/components/Footer/Footer";
-import SectionTabs from "@/components/Nav/SectionTabs";
+import SiteHeader from "@/components/Site/SiteHeader";
+import SiteFooter from "@/components/Site/SiteFooter";
+import ui from "@/components/Site/ui.module.css";
 import ArcadeGrid from "@/arcade3d/ui/ArcadeGrid";
 import WorldMap from "@/arcade3d/menu2/worldMap/WorldMap";
 import { ARCADE_ENABLED, ARCADE_LEADERBOARD, ARCADE_PREVIEW } from "@/arcade3d/flags";
@@ -30,8 +30,8 @@ export const metadata: Metadata = ARCADE_ENABLED
 function ComingSoon() {
    const total = getVisibleGames().length;
    return (
-      <section className={styles.soon} aria-labelledby="arcade-title">
-         <p className={styles.eyebrow}>New collection</p>
+      <section className={styles.intro} aria-labelledby="arcade-title">
+         <p className={ui.label}>New collection</p>
          <h1 id="arcade-title" className={styles.title}>
             3D Arcade is coming soon
          </h1>
@@ -39,8 +39,8 @@ function ComingSoon() {
             {total} quick 3D mini-games for keyboard and touch are on the way. They open one at a time, and each one keeps
             its own best score and leaderboard.
          </p>
-         <Link href="/classic" className={styles.cta}>
-            Play Classic 50 Games
+         <Link href="/classic" className={`${ui.btn} ${ui.btnPrimary} ${styles.cta}`}>
+            Play Classic 50
          </Link>
       </section>
    );
@@ -51,17 +51,29 @@ function ArcadeIntro() {
    const total = getVisibleGames().length;
    return (
       <section className={styles.intro} aria-labelledby="arcade-title">
-         <h1 id="arcade-title" className={styles.title}>
-            3D Arcade
-         </h1>
+         <div className={styles.head}>
+            <span className={`${ui.plate} ${ui.plateLg}`} aria-hidden="true">
+               3D
+            </span>
+            <h1 id="arcade-title" className={styles.title}>
+               3D Arcade
+            </h1>
+         </div>
          <p className={styles.lead}>
             Quick 3D mini-games for keyboard and touch. No unlock chain: pick any game, beat your best score and climb
             its leaderboard.
          </p>
          <ul className={styles.facts}>
-            <li>{total} mini-games</li>
-            <li>Own leaderboard each</li>
-            <li>{live > 0 ? `${live} playable now` : "First game coming soon"}</li>
+            <li>
+               <b>{total}</b>games
+            </li>
+            <li>
+               <b>{live}</b>
+               {live > 0 ? "playable now" : "playable yet"}
+            </li>
+            <li>
+               <b>1</b>leaderboard each
+            </li>
          </ul>
       </section>
    );
@@ -72,15 +84,15 @@ const COLLECTION_INFO = [
    { id: "originals", title: "Originals", blurb: "The first ten games. Each one keeps its own best score." },
    { id: "adventure", title: "Adventure", blurb: "Explore, collect and escape in little toy worlds." },
    { id: "skill", title: "Skill", blurb: "Aim, time and steer: short runs that reward a steady hand." },
-   { id: "rollheroes", title: "Color Roll Heroes", blurb: "Five armoured heroes who roll into a ball: sky towers, caves and races." },
+   { id: "rollheroes", title: "Scale Squad", blurb: "Five pangolin heroes who roll into a ball: sky towers, caves and races." },
 ] as const satisfies ReadonlyArray<{ id: ArcadeCollection; title: string; blurb: string }>;
 
 // One grid with sections and filter chips; while only one collection shows (production today: the
-// originals), a plain grid without chips or headings, so the page looks as it did before the expansion.
+// originals), a plain grid without chips or headings.
 function ArcadeSections() {
    const games = getVisibleGames();
    const grouped = getVisibleSections().length > 1;
-   // Menu 2 (Color Roll Heroes) is drawn as its world map on preview builds; the other sections keep the card grid
+   // Menu 2 (Scale Squad on the site, "rollheroes" in code) is drawn as its world map on preview builds; the other sections keep the card grid
    const heroes = games.filter((game) => gameCollection(game) === "rollheroes");
    const sectionViews = ARCADE_PREVIEW && grouped && heroes.length > 0 ? { rollheroes: <WorldMap games={heroes} preview /> } : undefined;
    return <ArcadeGrid games={games} collections={grouped ? [...COLLECTION_INFO] : undefined} sectionViews={sectionViews} />;
@@ -90,16 +102,13 @@ export default function ArcadePage() {
    const jsonLd = arcadeJsonLd(SITE_URL, getLiveGames(), ARCADE_ENABLED);
    return (
       <GameMetas metas={scoringMetas()}>
-         <div className={styles.page}>
+         <div className={`p50 ${styles.page}`}>
             {jsonLd && (
                <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }} />
             )}
-            <div className={styles.header}>
-               <HeaderWithAuth />
-            </div>
+            <SiteHeader active="arcade" provideMetas={false} />
 
-            <main className={styles.content}>
-               <SectionTabs active="arcade" />
+            <main className={`${ui.wrap} ${styles.content}`}>
                {ARCADE_ENABLED ? (
                   <>
                      <ArcadeIntro />
@@ -111,7 +120,7 @@ export default function ArcadePage() {
                )}
             </main>
 
-            <Footer />
+            <SiteFooter />
             {ARCADE_ENABLED && <ArcadeScoreSync />}
          </div>
       </GameMetas>

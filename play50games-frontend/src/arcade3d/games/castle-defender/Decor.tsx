@@ -6,7 +6,10 @@ import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import { scaledCount, useQuality } from "@/arcade3d/core/quality";
 import { DynamicInstanced, Instanced, type InstanceSpot } from "@/arcade3d/core/render";
-import { BIRDS, CLOUD_DRIFT, COLORS, decorOf, type DecorSpot } from "./looks";
+import { BIRDS, CLOUD_DRIFT, COLORS, type DecorSpot } from "./looks";
+
+import { useCastleLevel } from "./useCastleLevel";
+import { sceneryFor } from "./scenery";
 
 function asSpots(list: readonly DecorSpot[]): InstanceSpot[] {
    return list.map((spot) => ({ x: spot.x, y: spot.y, z: spot.z, rotY: spot.rotY, sx: spot.sx, sy: spot.sy, sz: spot.sz }));
@@ -14,6 +17,9 @@ function asSpots(list: readonly DecorSpot[]): InstanceSpot[] {
 
 /** Low-poly forest, rocks and flowers outside the field, plus a far flock and a few clouds. */
 export function Decor({ reduced }: { reduced: boolean }) {
+   const { id } = useCastleLevel();
+   const scene = sceneryFor(id);
+   const decorOf = (kind: DecorSpot["kind"], tone?: number) => scene.decor.filter((p) => p.kind === kind && (tone === undefined || p.tone === tone));
    const quality = useQuality();
    const time = useGameTime();
    const geo = useMemo(() => {
@@ -48,15 +54,15 @@ export function Decor({ reduced }: { reduced: boolean }) {
       for (const geometry of Object.values(geo)) geometry.dispose();
    }, [geo]);
 
-   const pinesA = useMemo(() => asSpots(decorOf("pine", 0).slice(0, scaledCount(decorOf("pine", 0).length, quality.decor))), [quality.decor]);
-   const pinesB = useMemo(() => asSpots(decorOf("pine", 1).slice(0, scaledCount(decorOf("pine", 1).length, quality.decor))), [quality.decor]);
-   const rounds = useMemo(() => asSpots(decorOf("round").slice(0, scaledCount(decorOf("round").length, quality.decor))), [quality.decor]);
+   const pinesA = useMemo(() => asSpots(decorOf("pine", 0).slice(0, scaledCount(decorOf("pine", 0).length, quality.decor))), [quality.decor, scene]);
+   const pinesB = useMemo(() => asSpots(decorOf("pine", 1).slice(0, scaledCount(decorOf("pine", 1).length, quality.decor))), [quality.decor, scene]);
+   const rounds = useMemo(() => asSpots(decorOf("round").slice(0, scaledCount(decorOf("round").length, quality.decor))), [quality.decor, scene]);
    const trunks = useMemo(() => [...pinesA, ...pinesB, ...rounds], [pinesA, pinesB, rounds]);
-   const rocks = useMemo(() => asSpots(decorOf("rock").slice(0, scaledCount(decorOf("rock").length, quality.decor))), [quality.decor]);
-   const flowersA = useMemo(() => asSpots(decorOf("flower", 0).slice(0, scaledCount(decorOf("flower", 0).length, quality.decor))), [quality.decor]);
-   const flowersB = useMemo(() => asSpots(decorOf("flower", 1).slice(0, scaledCount(decorOf("flower", 1).length, quality.decor))), [quality.decor]);
-   const tufts = useMemo(() => asSpots(decorOf("tuft").slice(0, scaledCount(decorOf("tuft").length, quality.decor))), [quality.decor]);
-   const clouds = useMemo(() => decorOf("cloud"), []);
+   const rocks = useMemo(() => asSpots(decorOf("rock").slice(0, scaledCount(decorOf("rock").length, quality.decor))), [quality.decor, scene]);
+   const flowersA = useMemo(() => asSpots(decorOf("flower", 0).slice(0, scaledCount(decorOf("flower", 0).length, quality.decor))), [quality.decor, scene]);
+   const flowersB = useMemo(() => asSpots(decorOf("flower", 1).slice(0, scaledCount(decorOf("flower", 1).length, quality.decor))), [quality.decor, scene]);
+   const tufts = useMemo(() => asSpots(decorOf("tuft").slice(0, scaledCount(decorOf("tuft").length, quality.decor))), [quality.decor, scene]);
+   const clouds = useMemo(() => decorOf("cloud"), [scene]);
    const scratch = useMemo(() => ({ p: new Vector3(), q: new Quaternion(), s: new Vector3(), axis: new Vector3(0, 1, 0) }), []);
 
    const placeCloud = (i: number, m: Matrix4) => {
@@ -102,13 +108,13 @@ export function Decor({ reduced }: { reduced: boolean }) {
          {rounds.length > 0 && (
             <Instanced spots={rounds} name="castle-round">
                <primitive object={geo.round} attach="geometry" />
-               <meshStandardMaterial color={COLORS.round} flatShading roughness={1} />
+               <meshStandardMaterial color={id === 1 ? COLORS.round : scene.accent} flatShading roughness={1} />
             </Instanced>
          )}
          {rocks.length > 0 && (
             <Instanced spots={rocks} name="castle-rocks">
                <primitive object={geo.rock} attach="geometry" />
-               <meshStandardMaterial color={COLORS.rock} flatShading roughness={1} />
+               <meshStandardMaterial color={id === 1 ? COLORS.rock : scene.stone} flatShading roughness={1} />
             </Instanced>
          )}
          {flowersA.length > 0 && (

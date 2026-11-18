@@ -12,10 +12,11 @@ import { BoxGeometry, CapsuleGeometry, CylinderGeometry, MeshStandardMaterial, t
 import { InstancedModel, modelParts, useModel, type ModelPart } from "@/arcade3d/core/assets";
 import { Instanced, useCanvasTexture, useInstanceMatrices, type CanvasDraw, type InstancePart, type InstanceSpot } from "@/arcade3d/core/render";
 import type { ModelAsset } from "@/arcade3d/core/types";
+import type { LevelId } from "../../types";
 import { ASSETS, BIN_COLOR } from "./assets";
 import { disposeMaterials, slateMaterials } from "./binLook";
-import { BASE_SETS, CITY_BUILDING, GLB_PROPS, PARK_TREE, type GlbKind } from "./propSpots";
-import { FLOOR_HALF, LITTER_KINDS, MAPS } from "./rules";
+import { BASE_SETS, CITY_BUILDING, GLB_PROPS, LEVEL_PROP_SETS, PARK_TREE, type GlbKind } from "./propSpots";
+import { FLOOR_HALF, LEVEL_MAPS, LITTER_KINDS, MAPS } from "./rules";
 
 // ---------- palette ----------
 
@@ -26,6 +27,10 @@ const COLORS = {
    bench: "#c4a574",
    benchLeg: "#78716c",
    trunk: "#92400e",
+   planter: "#9b6a3e",
+   soil: "#6f5232",
+   awning: "#b45309",
+   door: "#334155",
    leaves: "#166534",
    bin: BIN_COLOR,
    binRim: "#94a3b8",
@@ -46,13 +51,53 @@ const COLORS = {
    shoe: "#0f172a",
 } as const;
 
+export interface DistrictPalette {
+   planter: string;
+   leaves: string;
+   facade: string;
+   roof: string;
+   awning: string;
+   window: string;
+   path: string;
+   accent: string;
+}
+
+export const DISTRICT_PALETTES: Record<LevelId, DistrictPalette> = {
+   1: {
+      planter: COLORS.planter, leaves: COLORS.leaves, facade: COLORS.facade, roof: COLORS.roof,
+      awning: COLORS.awning, window: COLORS.window, path: COLORS.path, accent: "rgba(255,255,255,0.28)",
+   },
+   // Level 2 — City Square: limestone planters, emerald crowns, sandstone townhouses with royal-blue awnings
+   2: {
+      planter: "#cbd5e1", leaves: "#15803d", facade: "#78716c", roof: "#334155",
+      awning: "#1d4ed8", window: "#e0f2fe", path: "rgba(226, 232, 240, 0.36)", accent: "rgba(255, 255, 255, 0.32)",
+   },
+   // Level 3 — Shopping Street: terracotta planters, boutique brick storefronts with coral awnings & lit windows
+   3: {
+      planter: "#b45309", leaves: "#3f6212", facade: "#7c6f64", roof: "#44403c",
+      awning: "#dc2626", window: "#fef08a", path: "rgba(180, 83, 9, 0.32)", accent: "rgba(254, 240, 138, 0.34)",
+   },
+   // Level 4 — River Walk: granite quay planters, deep pine crowns, harbour warehouses with teal awnings & warm night windows
+   4: {
+      planter: "#64748b", leaves: "#14532d", facade: "#475569", roof: "#1e293b",
+      awning: "#0f766e", window: "#fde047", path: "rgba(148, 163, 184, 0.35)", accent: "rgba(56, 189, 248, 0.35)",
+   },
+   // Level 5 — Festival Cleanup: amber festival planters, lush foliage, pavilion facades with gold awnings
+   5: {
+      planter: "#d97706", leaves: "#166534", facade: "#6b5b7b", roof: "#3b0764",
+      awning: "#f59e0b", window: "#fef3c7", path: "rgba(245, 158, 11, 0.32)", accent: "rgba(251, 191, 36, 0.38)",
+   },
+};
+
 // ---------- grounds (one canvas each, drawn once) ----------
 
 const TEX = 512;
 
 /** World (x, z) -> canvas px. The plane is rotated -90° around x, so world +z is canvas up. */
-function paintGround(ctx: CanvasRenderingContext2D, w: number, h: number, map: number): void {
-   const color = MAPS[map].ground;
+function paintGround(ctx: CanvasRenderingContext2D, w: number, h: number, map: number, levelId: LevelId = 1): void {
+   const maps = LEVEL_MAPS[levelId] ?? MAPS;
+   const palette = DISTRICT_PALETTES[levelId] ?? DISTRICT_PALETTES[1];
+   const color = maps[map].ground;
    ctx.fillStyle = color;
    ctx.fillRect(0, 0, w, h);
 
@@ -72,15 +117,51 @@ function paintGround(ctx: CanvasRenderingContext2D, w: number, h: number, map: n
    // plane rotation -x maps texture +y to world +z (the camera side, the start pad)
    const v = (z: number) => ((z + FLOOR_HALF) / (FLOOR_HALF * 2)) * h;
 
-   ctx.fillStyle = map === 2 ? COLORS.sandPath : COLORS.path;
+   ctx.fillStyle = map === 2 ? COLORS.sandPath : palette.path;
    ctx.fillRect(u(-1.3), v(FLOOR_HALF), u(1.3) - u(-1.3), v(-2) - v(FLOOR_HALF));
+
+   if (levelId === 2) {
+      // City Square: concentric stone plaza rings and cross-axis civic promenade
+      ctx.fillRect(u(-FLOOR_HALF), v(-1.2), u(FLOOR_HALF) - u(-FLOOR_HALF), v(1.2) - v(-1.2));
+      ctx.strokeStyle = palette.accent;
+      ctx.lineWidth = 6;
+      for (const r of [4.2, 8.4]) {
+         ctx.beginPath();
+         ctx.arc(u(0), v(0), (r / (FLOOR_HALF * 2)) * w, 0, Math.PI * 2);
+         ctx.stroke();
+      }
+   } else if (levelId === 3) {
+      // Shopping Street: storefront sidewalk aprons along both flanks and market bays
+      ctx.fillStyle = palette.accent;
+      ctx.fillRect(u(-10.5), v(-11), u(-4.5) - u(-10.5), v(9) - v(-11));
+      ctx.fillRect(u(4.5), v(-11), u(10.5) - u(4.5), v(9) - v(-11));
+      ctx.fillStyle = palette.path;
+      ctx.fillRect(u(-11), v(-2.2), u(11) - u(-11), v(0.2) - v(-2.2));
+   } else if (levelId === 4) {
+      // River Walk: stone quay coping band along the north river edge and boardwalk planks
+      ctx.fillStyle = "rgba(30, 41, 59, 0.42)";
+      ctx.fillRect(u(-FLOOR_HALF), v(-FLOOR_HALF), u(FLOOR_HALF) - u(-FLOOR_HALF), v(-12.2) - v(-FLOOR_HALF));
+      ctx.fillStyle = palette.accent;
+      ctx.fillRect(u(-FLOOR_HALF), v(-12.4), u(FLOOR_HALF) - u(-FLOOR_HALF), v(-11.8) - v(-12.4));
+      ctx.fillRect(u(-9), v(-4.5), u(9) - u(-9), v(-2.5) - v(-4.5));
+   } else if (levelId === 5) {
+      // Festival Cleanup: festive central court ring and stage apron stripes
+      ctx.strokeStyle = palette.accent;
+      ctx.lineWidth = 8;
+      ctx.beginPath();
+      ctx.arc(u(0), v(-1), (5.8 / (FLOOR_HALF * 2)) * w, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.fillStyle = "rgba(239, 68, 68, 0.22)";
+      ctx.fillRect(u(-8), v(-FLOOR_HALF), u(8) - u(-8), v(-10.5) - v(-FLOOR_HALF));
+   }
+
    if (map === 1) {
       ctx.fillStyle = "rgba(255,255,255,0.28)";
       for (let i = -3; i <= 3; i++) ctx.fillRect(u(i * 0.7 - 0.18), v(1.1), u(0.36) - u(0), v(-1.1) - v(1.1));
    }
 
    ctx.fillStyle = COLORS.curb;
-   for (const o of MAPS[map].obstacles) {
+   for (const o of maps[map].obstacles) {
       ctx.beginPath();
       ctx.ellipse(u(o.x), v(o.z), ((o.halfX + 0.15) / (FLOOR_HALF * 2)) * w, ((o.halfZ + 0.15) / (FLOOR_HALF * 2)) * h, 0, 0, Math.PI * 2);
       ctx.fill();
@@ -93,9 +174,13 @@ function paintGround(ctx: CanvasRenderingContext2D, w: number, h: number, map: n
    ctx.stroke();
 }
 
-const drawPark: CanvasDraw = (ctx, w, h) => paintGround(ctx, w, h, 0);
-const drawCity: CanvasDraw = (ctx, w, h) => paintGround(ctx, w, h, 1);
-const drawBeach: CanvasDraw = (ctx, w, h) => paintGround(ctx, w, h, 2);
+const GROUND_DRAWS: Record<LevelId, readonly [CanvasDraw, CanvasDraw, CanvasDraw]> = {
+   1: [(ctx, w, h) => paintGround(ctx, w, h, 0, 1), (ctx, w, h) => paintGround(ctx, w, h, 1, 1), (ctx, w, h) => paintGround(ctx, w, h, 2, 1)],
+   2: [(ctx, w, h) => paintGround(ctx, w, h, 0, 2), (ctx, w, h) => paintGround(ctx, w, h, 1, 2), (ctx, w, h) => paintGround(ctx, w, h, 2, 2)],
+   3: [(ctx, w, h) => paintGround(ctx, w, h, 0, 3), (ctx, w, h) => paintGround(ctx, w, h, 1, 3), (ctx, w, h) => paintGround(ctx, w, h, 2, 3)],
+   4: [(ctx, w, h) => paintGround(ctx, w, h, 0, 4), (ctx, w, h) => paintGround(ctx, w, h, 1, 4), (ctx, w, h) => paintGround(ctx, w, h, 2, 4)],
+   5: [(ctx, w, h) => paintGround(ctx, w, h, 0, 5), (ctx, w, h) => paintGround(ctx, w, h, 1, 5), (ctx, w, h) => paintGround(ctx, w, h, 2, 5)],
+};
 
 function Ground({ draw }: { draw: CanvasDraw }) {
    const map = useCanvasTexture(TEX, TEX, draw);
@@ -203,15 +288,19 @@ function BinParts({ spots }: PartsProps) {
 }
 
 function LampParts({ spots }: PartsProps) {
-   const parts = useMemo(() => ({ pole: atY(spots, 0.85), globe: atY(spots, 1.85) }), [spots]);
+   const parts = useMemo(() => ({ base: atY(spots, 0.18), pole: atY(spots, 1.7), globe: atY(spots, 3.3) }), [spots]);
    return (
       <>
+         <Instanced spots={parts.base}>
+            <cylinderGeometry args={[0.26, 0.3, 0.36, 10]} />
+            <meshStandardMaterial color={COLORS.pole} metalness={0.35} roughness={0.4} />
+         </Instanced>
          <Instanced spots={parts.pole}>
-            <cylinderGeometry args={[0.3, 0.34, 1.7, 10]} />
+            <cylinderGeometry args={[0.06, 0.08, 2.7, 10]} />
             <meshStandardMaterial color={COLORS.pole} metalness={0.35} roughness={0.4} />
          </Instanced>
          <Instanced spots={parts.globe}>
-            <sphereGeometry args={[0.36, 12, 10]} />
+            <sphereGeometry args={[0.3, 12, 10]} />
             <meshStandardMaterial color={COLORS.lamp} emissive={COLORS.lamp} emissiveIntensity={0.7} roughness={0.35} />
          </Instanced>
       </>
@@ -219,15 +308,15 @@ function LampParts({ spots }: PartsProps) {
 }
 
 function PalmParts({ spots }: PartsProps) {
-   const parts = useMemo(() => ({ trunk: atY(spots, 0.7), crown: spots.map((s) => ({ ...s, y: 1.7, sy: 0.55 })) }), [spots]);
+   const parts = useMemo(() => ({ trunk: atY(spots, 1.3), crown: spots.map((s) => ({ ...s, y: 2.75, sy: 0.55 })) }), [spots]);
    return (
       <>
          <Instanced spots={parts.trunk}>
-            <cylinderGeometry args={[0.5, 0.6, 1.4, 10]} />
+            <cylinderGeometry args={[0.12, 0.16, 2.6, 10]} />
             <meshStandardMaterial color={COLORS.palmTrunk} roughness={0.85} />
          </Instanced>
          <Instanced spots={parts.crown}>
-            <sphereGeometry args={[1.05, 12, 10]} />
+            <sphereGeometry args={[0.6, 12, 10]} />
             <meshStandardMaterial color={COLORS.palm} roughness={0.75} />
          </Instanced>
       </>
@@ -235,15 +324,15 @@ function PalmParts({ spots }: PartsProps) {
 }
 
 function UmbrellaParts({ spots }: PartsProps) {
-   const parts = useMemo(() => ({ pole: atY(spots, 0.8), canopy: atY(spots, 1.7) }), [spots]);
+   const parts = useMemo(() => ({ pole: atY(spots, 1.4), canopy: atY(spots, 2.4) }), [spots]);
    return (
       <>
          <Instanced spots={parts.pole}>
-            <cylinderGeometry args={[0.25, 0.25, 1.6, 8]} />
+            <cylinderGeometry args={[0.035, 0.035, 2.8, 8]} />
             <meshStandardMaterial color={COLORS.pole} roughness={0.5} />
          </Instanced>
          <Instanced spots={parts.canopy}>
-            <coneGeometry args={[1.15, 0.5, 14]} />
+            <coneGeometry args={[0.75, 0.6, 14]} />
             <meshStandardMaterial color={COLORS.canopy} roughness={0.55} />
          </Instanced>
       </>
@@ -265,15 +354,18 @@ const GLB_FALLBACK: Record<GlbKind, ComponentType<PartsProps>> = {
  * BASE_SETS (the palm planters, the umbrella stands), one <Instanced> per part, drawn under the GLB
  * or its fallback alike.
  */
-function GlbProps({ map }: { map: number }) {
+function GlbProps({ map, levelId = 1 }: { map: number; levelId?: LevelId }) {
+   const propSet = LEVEL_PROP_SETS[levelId] ?? LEVEL_PROP_SETS[1];
+   const glbProps = levelId === 1 ? GLB_PROPS : propSet.glbProps;
+   const baseSets = levelId === 1 ? BASE_SETS : propSet.baseSets;
    return (
       <>
-         {GLB_PROPS.filter((set) => set.map === map).map((set) => {
+         {glbProps.filter((set) => set.map === map).map((set) => {
             const Fallback = GLB_FALLBACK[set.kind];
             if (set.kind === "bin") return <BinProp key={set.kind} spots={set.spots} fallback={<Fallback spots={set.spots} />} />;
             return <Prop key={set.kind} asset={set.asset} spots={set.spots} fallback={<Fallback spots={set.spots} />} />;
          })}
-         {BASE_SETS.filter((set) => set.map === map).map(({ kind, part, spots }, i) => (
+         {baseSets.filter((set) => set.map === map).map(({ kind, part, spots }, i) => (
             <Instanced key={`${kind}-base-${i}`} spots={spots} name={`${kind}-base`}>
                <cylinderGeometry args={[part.radiusTop, part.radiusBottom, part.height, part.sides]} />
                <meshStandardMaterial color={part.color} roughness={0.85} flatShading={part.sides <= 8} />
@@ -283,20 +375,38 @@ function GlbProps({ map }: { map: number }) {
    );
 }
 
-function Trees() {
+/**
+ * The park trees (primitives, no GLB; real-world scale, README "Real-world scale"): a round planter
+ * filling the 1.4 square at the ground (the runner stops at it, as at a bench), a trunk about 0.36
+ * across, and a crown over the cleaner's head (from 1.75 up, top 3.55). Was a 1.4-wide stump 1.1
+ * tall under a crown topping out at 2.4.
+ */
+export const TREE = { planter: 0.32, trunkTop: 2.0, crownY: 2.65, crown: 0.9 } as const;
+
+function Trees({ levelId = 1 }: { levelId?: LevelId }) {
+   const spots = levelId === 1 ? PARK_TREE : LEVEL_PROP_SETS[levelId].parkTrees;
+   const palette = DISTRICT_PALETTES[levelId] ?? DISTRICT_PALETTES[1];
    return (
       <Prop
          asset={ASSETS.tree}
-         spots={PARK_TREE}
+         spots={spots}
          fallback={
             <>
-               <Instanced spots={atY(PARK_TREE, 0.55)}>
-                  <cylinderGeometry args={[0.7, 0.78, 1.1, 12]} />
+               <Instanced spots={atY(spots, TREE.planter / 2)}>
+                  <cylinderGeometry args={[0.66, 0.7, TREE.planter, 16]} />
+                  <meshStandardMaterial color={palette.planter} roughness={0.85} />
+               </Instanced>
+               <Instanced spots={atY(spots, TREE.planter + 0.006)}>
+                  <cylinderGeometry args={[0.56, 0.56, 0.012, 16]} />
+                  <meshStandardMaterial color={COLORS.soil} roughness={1} />
+               </Instanced>
+               <Instanced spots={atY(spots, TREE.trunkTop / 2)}>
+                  <cylinderGeometry args={[0.13, 0.18, TREE.trunkTop, 10]} />
                   <meshStandardMaterial color={COLORS.trunk} roughness={0.85} />
                </Instanced>
-               <Instanced spots={atY(PARK_TREE, 1.45)}>
-                  <sphereGeometry args={[0.95, 14, 12]} />
-                  <meshStandardMaterial color={COLORS.leaves} roughness={0.8} />
+               <Instanced spots={atY(spots, TREE.crownY)}>
+                  <sphereGeometry args={[TREE.crown, 14, 12]} />
+                  <meshStandardMaterial color={palette.leaves} roughness={0.8} />
                </Instanced>
             </>
          }
@@ -304,20 +414,40 @@ function Trees() {
    );
 }
 
-const drawFacade: CanvasDraw = (ctx, w, h) => {
-   ctx.fillStyle = COLORS.facade;
+/**
+ * One face of a building (3.2 wide, 2.6 tall): a one-storey shop at real-world scale (a 3-row
+ * window grid made each storey 0.87 m next to the 1.75 m cleaner). A door 0.9 x 2.0 m, a shop
+ * window 1.4 x 1.1 m from 0.8 m up, an awning band over them, the parapet on top.
+ */
+function paintFacade(ctx: CanvasRenderingContext2D, w: number, h: number, levelId: LevelId = 1): void {
+   const palette = DISTRICT_PALETTES[levelId] ?? DISTRICT_PALETTES[1];
+   const mx = w / 3.2;
+   const my = h / 2.6;
+   const fromTop = (m: number) => h - m * my;
+   ctx.fillStyle = palette.facade;
    ctx.fillRect(0, 0, w, h);
-   ctx.fillStyle = COLORS.roof;
+   ctx.fillStyle = palette.roof;
    ctx.fillRect(0, 0, w, h * 0.12);
-   ctx.fillStyle = COLORS.window;
-   for (let row = 0; row < 3; row++) {
-      for (let col = 0; col < 3; col++) ctx.fillRect(w * (0.16 + col * 0.26), h * (0.24 + row * 0.22), w * 0.14, h * 0.12);
-   }
+   ctx.fillStyle = palette.awning;
+   ctx.fillRect(w * 0.06, fromTop(2.3), w * 0.88, 0.16 * my);
+   ctx.fillStyle = COLORS.door;
+   ctx.fillRect(0.35 * mx, fromTop(2.0), 0.9 * mx, 2.0 * my);
+   ctx.fillStyle = palette.window;
+   ctx.fillRect(1.55 * mx, fromTop(1.9), 1.4 * mx, 1.1 * my);
+}
+
+const FACADE_DRAWS: Record<LevelId, CanvasDraw> = {
+   1: (ctx, w, h) => paintFacade(ctx, w, h, 1),
+   2: (ctx, w, h) => paintFacade(ctx, w, h, 2),
+   3: (ctx, w, h) => paintFacade(ctx, w, h, 3),
+   4: (ctx, w, h) => paintFacade(ctx, w, h, 4),
+   5: (ctx, w, h) => paintFacade(ctx, w, h, 5),
 };
 
-function Buildings() {
-   const facade = useCanvasTexture(128, 128, drawFacade);
-   const spots = CITY_BUILDING;
+function Buildings({ levelId = 1 }: { levelId?: LevelId }) {
+   const facade = useCanvasTexture(128, 128, FACADE_DRAWS[levelId] ?? FACADE_DRAWS[1]);
+   const spots = levelId === 1 ? CITY_BUILDING : LEVEL_PROP_SETS[levelId].cityBuildings;
+   const palette = DISTRICT_PALETTES[levelId] ?? DISTRICT_PALETTES[1];
    return (
       <Prop
          asset={ASSETS.building}
@@ -330,7 +460,7 @@ function Buildings() {
                </Instanced>
                <Instanced spots={atY(spots, 2.7)}>
                   <boxGeometry args={[3.45, 0.22, 3.45]} />
-                  <meshStandardMaterial color={COLORS.roof} roughness={0.7} />
+                  <meshStandardMaterial color={palette.roof} roughness={0.7} />
                </Instanced>
             </>
          }
@@ -338,31 +468,34 @@ function Buildings() {
    );
 }
 
-export const Park = memo(function Park() {
+export const Park = memo(function Park({ levelId = 1 }: { levelId?: LevelId }) {
+   const draws = GROUND_DRAWS[levelId] ?? GROUND_DRAWS[1];
    return (
       <group name="park">
-         <Ground draw={drawPark} />
-         <GlbProps map={0} />
-         <Trees />
+         <Ground draw={draws[0]} />
+         <GlbProps map={0} levelId={levelId} />
+         <Trees levelId={levelId} />
       </group>
    );
 });
 
-export const City = memo(function City() {
+export const City = memo(function City({ levelId = 1 }: { levelId?: LevelId }) {
+   const draws = GROUND_DRAWS[levelId] ?? GROUND_DRAWS[1];
    return (
       <group name="city">
-         <Ground draw={drawCity} />
-         <Buildings />
-         <GlbProps map={1} />
+         <Ground draw={draws[1]} />
+         <Buildings levelId={levelId} />
+         <GlbProps map={1} levelId={levelId} />
       </group>
    );
 });
 
-export const Beach = memo(function Beach() {
+export const Beach = memo(function Beach({ levelId = 1 }: { levelId?: LevelId }) {
+   const draws = GROUND_DRAWS[levelId] ?? GROUND_DRAWS[1];
    return (
       <group name="beach">
-         <Ground draw={drawBeach} />
-         <GlbProps map={2} />
+         <Ground draw={draws[2]} />
+         <GlbProps map={2} levelId={levelId} />
       </group>
    );
 });
@@ -380,16 +513,16 @@ function standOnFloor<T extends BufferGeometry>(geometry: T): T {
 
 /**
  * The litter stand-ins, one part per kind in LITTER_KINDS order (bottle, bag, can, banana):
- * bottom on y = 0, about 0.8-0.9 across, already at the drawn size (DynamicInstancedModel does
+ * bottom on y = 0, about 0.40-0.45 across (real-world scale: knee height on the 1.75 cleaner), already at the drawn size (DynamicInstancedModel does
  * not scale fallbackParts by asset.scale). Fresh geometries and materials: free them with
  * disposeLitterStandIns.
  */
 export function createLitterStandIns(): InstancePart[][] {
    const shapes: BufferGeometry[] = [
-      standOnFloor(new CylinderGeometry(0.16, 0.22, 0.9, 12)),
-      standOnFloor(new BoxGeometry(0.62, 0.8, 0.46)),
-      standOnFloor(new CylinderGeometry(0.22, 0.24, 0.85, 12)),
-      standOnFloor(new CapsuleGeometry(0.12, 0.55, 4, 8).rotateZ(0.7)),
+      standOnFloor(new CylinderGeometry(0.08, 0.11, 0.45, 12)),
+      standOnFloor(new BoxGeometry(0.31, 0.4, 0.23)),
+      standOnFloor(new CylinderGeometry(0.11, 0.12, 0.425, 12)),
+      standOnFloor(new CapsuleGeometry(0.06, 0.275, 4, 8).rotateZ(0.7)),
    ];
    return LITTER_KINDS.map((_, k) => [
       { geometry: shapes[k], material: new MeshStandardMaterial({ color: STAND_IN_COLOR[k], roughness: 0.5 }) },
@@ -426,6 +559,9 @@ export interface RunnerLimbs {
    armR: Group | null;
    bob: Group | null;
 }
+
+/** PrimitiveRunner is built 0.90 tall; Scene draws it at this scale, the cleaner's 1.75. */
+export const RUNNER_STAND_IN_SCALE = 1.75 / 0.9;
 
 /** Vinyl-toy cleaner in an orange hi-vis vest, arms down. Scene swings these groups from the humanoid pose. */
 export function PrimitiveRunner({ limbs }: { limbs: MutableRefObject<RunnerLimbs> }) {

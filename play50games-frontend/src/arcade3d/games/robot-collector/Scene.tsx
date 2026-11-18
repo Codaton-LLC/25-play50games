@@ -20,9 +20,17 @@
 // - Levels: the picked level's config comes from useLevel() (wrapped once as useRobotLevel); the
 //   run is made from it with createRun, and the scene is keyed by the level so the start card's
 //   backdrop shows the level that is picked.
-import { useRef, useState } from "react";
-import { useFrame } from "@react-three/fiber";
+import { TargetBeacon } from "@/arcade3d/core/hud/TargetBeacon";
+import { useActionPop } from "@/arcade3d/core/fx/actionPop";
+import { GUIDE, hintFor, nextTarget } from "./guide";
+import { Toss, type TossHandle } from "@/arcade3d/core/fx/Toss";
+import { useEffect, useRef, useState } from "react";
+import { useFrame, useThree } from "@react-three/fiber";
 import type { Group, Mesh, MeshStandardMaterial } from "three";
+import { useCameraViews } from "@/arcade3d/core/camera/CameraViews";
+import { useCameraZoom } from "@/arcade3d/core/useCameraZoom";
+import { PHONE_LEAD, PHONE_LIFT, phoneOffset } from "./cameraViews";
+import { useLeadFollow } from "@/arcade3d/core/camera/useLeadFollow";
 import CameraRig from "@/arcade3d/core/CameraRig";
 import { Model } from "@/arcade3d/core/assets";
 import { playSfx } from "@/arcade3d/core/audio";
@@ -51,8 +59,10 @@ import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { followFocus } from "@/arcade3d/core/view";
 import { ASSETS } from "./assets";
 import { ROBOT_SCALE, robotPhaseStep } from "./gait";
+import { SCENERY, SCENERY_AREA } from "./scenery";
+import { Scenery } from "./WarehouseScenery";
 import type { RobotLevel } from "./levels";
-import { BatteryPrimitive, COLORS, HazardMarks, RobotPrimitive, WALL, Warehouse, useBatteryParts } from "./Primitives";
+import { BatteryPrimitive, COLORS, HazardBeacons, HazardMarks, RobotPrimitive, WALL, Warehouse, useBatteryParts } from "./Primitives";
 import {
    ARENA,
    BATTERY_POINTS,
@@ -100,6 +110,12 @@ const VIEW: FittedViewOptions = {
    margin: { top: 0.11, bottom: 0.07, left: 0.02, right: 0.02 },
    padding: 8,
    shift: true,
+};
+
+// Include every perimeter fixture in the fitted solid volume. Training keeps its original fit.
+const DECORATED_VIEW: FittedViewOptions = {
+   ...VIEW,
+   area: SCENERY_AREA,
 };
 
 // ---------- the robot ----------
@@ -285,9 +301,16 @@ function Batteries({ run }: { run: Run }) {
 
 /** The scene of one level: the Scene below remounts it when another level is picked on the start card. */
 function LevelScene() {
-   const view = useFittedView(VIEW);
+   const { id, config, meta } = useRobotLevel();
+   const look = SCENERY[id];
+   const view = useFittedView(look ? DECORATED_VIEW : VIEW);
    const input = useInput();
-   const { config, meta } = useRobotLevel();
+   const pop = useActionPop();
+   const toss = useRef<TossHandle>(null);
+   const targetIndex = useRef(-1);
+   const beacon = useRef({ x: 0, y: 0.5, z: 0, hidden: true }).current;
+   const hand = useRef({ x: 0, y: 1, z: 0 }).current;
+   const wasSlowed = useRef(false);
    // a new seed every run: GameShell remounts the Scene (and its game time) on start and retry
    const [dir] = useState({ x: 0, z: 0 });
    const [run] = useState<Run>(() => {
@@ -296,12 +319,54 @@ function LevelScene() {
       return next;
    });
 
+   const aspect = useThree((s) => s.size.width / s.size.height);
+   const portrait = aspect < 1;
+   const offset = phoneOffset(view.offset, aspect);
+   const aim = useLeadFollow(run.robot, offset, PHONE_LEAD, PHONE_LIFT, portrait);
+   const zoom = useCameraZoom({ min: 2 / Math.hypot(...offset), max: Math.max(1, 2 * view.distance / Math.hypot(...offset)) });
+   useEffect(() => { zoom.current = 1; }, [portrait, zoom]);
+   const cam = useCameraViews({
+      slug: "robot-collector", subject: "character", steering: "camera", defaultYaw: view.yaw,
+      framing: { chase: { distance: 4.5, lookUp: 0 }, front: { distance: 4, lookUp: 0 }, free: { distance: 4.5, lookUp: 0 }, top: { distance: 30 } },
+      target: (o) => {
+         const r = run.robot;
+         o.x = r.x; o.y = 0.7; o.z = r.z;
+         o.heading = r.heading; o.vx = r.vx; o.vz = r.vz;
+      },
+   });
+   useEffect(() => { GUIDE.set(hintFor(run)); }, [run]);
+   const endShown = useRef(false);
+   useFrame(() => {
+      const state = useArcadeStore.getState();
+      if (state.phase === "over" && state.endReason === "timeup" && !endShown.current) {
+         endShown.current = true;
+         pop.fail({ x: run.robot.x, y: 1.8, z: run.robot.z }, "Time up");
+      }
+   });
+   const shownTaken = useRef(new Array<boolean>(run.layout.batteries.length).fill(false));
+
    // the game: move, collect, score, end. Runs only while "playing", before every visual.
    useRunFrame((_state, dt) => {
       const { moveX, moveY } = input.current;
-      inputToWorld(moveX, moveY, view.yaw, dir);
+      inputToWorld(moveX, moveY, cam.yaw(), dir);
       const got = stepRun(run, dir.x, dir.z, dt);
+      GUIDE.set(hintFor(run));
+      targetIndex.current = nextTarget(run, targetIndex.current);
+      const battery = run.layout.batteries[targetIndex.current];
+      beacon.hidden = !battery;
+      if (battery) { beacon.x = battery.x; beacon.z = battery.z; }
+      hand.x = run.robot.x; hand.z = run.robot.z;
+      const at = { x: run.robot.x, y: 1.8, z: run.robot.z };
+      if (run.slowed && !wasSlowed.current) pop.fail(at, "Oil: slowed", { shake: 0 });
+      wasSlowed.current = run.slowed;
+      for (const b of run.layout.batteries) {
+         if (run.progress.taken[b.index] && !shownTaken.current[b.index]) {
+            shownTaken.current[b.index] = true;
+            toss.current?.play({ x: b.x, y: 0.5, z: b.z }, hand, { duration: 0.35, height: 0.6, scaleTo: 0.2 });
+         }
+      }
       if (got === 0) return;
+      pop.good(at, `+${got * BATTERY_POINTS}`);
       const store = useArcadeStore.getState();
       store.addScore(got * BATTERY_POINTS);
       store.setStat("batteries", run.progress.collected);
@@ -320,16 +385,22 @@ function LevelScene() {
          {/* the camera reads run.robot, which useRunFrame already moved this frame */}
          <CameraRig
             camera={{ position: view.offset, lookAt: LOOK_AT }}
-            follow={run.robot}
-            followFraction={FOLLOW}
-            offset={view.offset}
+            follow={aim}
+            followFraction={aspect < 1 ? 1 : FOLLOW}
+            offset={offset}
+            zoom={zoom}
             shift={view.shift}
             damping={4}
          />
-         <Warehouse props={run.world.props} />
+         <Warehouse props={run.world.props} look={look} />
+         {look && <Scenery look={look} />}
          <HazardMarks level={config} />
+         {/* levels 4-5 only (Dark Storage, Mega Warehouse): warning beacons on the wall trim, outside the play area */}
+         {id === 4 || id === 5 ? <HazardBeacons /> : null}
          <Robot run={run} lamp={config.lamp} />
          <Batteries run={run} />
+         <TargetBeacon target={beacon} radius={0.55} />
+         <Toss ref={toss} slots={2}><Model asset={ASSETS.battery} /></Toss>
       </>
    );
 }

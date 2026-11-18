@@ -1,6 +1,6 @@
 // Jungle Interior (level 4): walls of foliage; a vine curtain shuts the north-east grove until the
 // 1st find, another the temple courtyard until the 3rd. The chain locks the final chest.
-import { fairnessSuite } from "./fairnessSuite";
+import { fairnessSuite } from "./testing/fairnessSuite";
 
 const GROVE = { x: 7, z: -5 };
 const TEMPLE = { x: -6, z: -7 };

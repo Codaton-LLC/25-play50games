@@ -1,0 +1,26 @@
+import { readFileSync } from "node:fs";
+import { expect, it } from "vitest";
+import { offsetPitchDeg } from "@/arcade3d/core/camera/portraitFollow";
+import { PHONE_LEAD, PHONE_LIFT, phoneOffset } from "./cameraViews";
+
+it("frames portrait from behind and further back and maps movement through the live camera yaw", () => {
+   const fitted: [number, number, number] = [10, 20, 30];
+   expect(phoneOffset(fitted, 1.5)).toEqual(fitted);
+   // user 2026-11-17: "a bit farther, looking forward, not so much from above": the portrait
+   // camera sits 10 m back and 38 degrees down, behind the hero on the fitted heading (batteries ahead)
+   // the rig offset is measured from the look-ahead point; the camera's place relative to the hero:
+   const rig = phoneOffset(fitted, 0.46);
+   const back = Math.hypot(fitted[0], fitted[2]);
+   const phone: [number, number, number] = [rig[0] - fitted[0] / back * PHONE_LEAD, rig[1] + PHONE_LIFT, rig[2] - fitted[2] / back * PHONE_LEAD];
+   expect(Math.hypot(...phone)).toBeCloseTo(10);
+   expect(offsetPitchDeg(phone)).toBeCloseTo(38);
+   expect(Math.atan2(phone[0], phone[2])).toBeCloseTo(Math.atan2(fitted[0], fitted[2]));
+   const scene = readFileSync(new URL("./Scene.tsx", import.meta.url), "utf8");
+   expect(scene).toContain("inputToWorld(moveX, moveY, cam.yaw(), dir)");
+});
+
+it("aims the portrait camera past the hero so the level ahead shows above it", () => {
+   expect(PHONE_LEAD).toBeGreaterThan(0);
+   const scene = readFileSync(new URL("./Scene.tsx", import.meta.url), "utf8");
+   expect(scene).toContain("useLeadFollow(");
+});

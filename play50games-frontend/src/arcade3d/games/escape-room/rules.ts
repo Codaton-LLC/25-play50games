@@ -63,11 +63,21 @@ function levelLayout(seed: number, level: EscapeLevel): Layout {
    layout.stations.length = 0;
    layout.obstacles.length = 0;
    const rng = { s: seed >>> 0 };
+   // Workshop: staggered work bays. Lab: paired sample banks and an offset return bay.
+   // Cabin: uneven storage alcoves. Ship: mirrored cargo banks along the full hull.
+   // Every bay sits at |z| >= 0.9, clear of the chair strip's line (|z| < 0.4 plus the runner's 0.35):
+   // from a bay in that line the straight walk across the room runs into the chairs.
+   const rows: Record<number, number[]> = {
+      2: [-3.2, -2.6, -1, 1, 3.1],
+      3: [-3.2, -3.2, -0.9, 0.9, 2.5, 3.2],
+      4: [-3.3, -3, -1.1, -0.9, 1.1, 2.5, 3.3],
+      5: [-3.3, -3.3, -1.1, -1.1, 1.1, 1.1, 3.3, 3.3],
+   };
    for (let id = 0; id < level.containers; id++) {
       const s: LayoutStation = {
          id, kind: id === 0 ? "drawer" : id === 2 ? "under-desk" : "cupboard",
          x: (id % 2 ? 1 : -1) * (3.5 + (level.shuffledOrder ? Math.floor(rngNext(rng) * 3) * 0.1 : 0)),
-         z: [-3, -1, 1, 3][Math.floor(id / 2)],
+         z: rows[level.id][id],
          item: id < level.items ? id : NONE, bounds: groundBox(0, 0, 0, 0),
       };
       positionBox(s);

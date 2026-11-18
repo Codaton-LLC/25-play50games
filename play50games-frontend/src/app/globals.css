@@ -1,14 +1,21 @@
+/* The legacy variables, on the design palette (docs/design/DESIGN.md; the tokens live in theme.css).
+   They are the dark values on purpose: what still reads them outside a .p50 page (the classic boards
+   on their stage, the 3D shell and the games' HUDs) is drawn for a dark surface. A .p50 page maps
+   them onto the themed tokens (theme.css). One accent: Arcade Coral. Green and red are the system's
+   success and error colours. --card and --stroke stay translucent whites: the boards layer them. */
 :root {
-  --bg: #0b1020;
+  --bg: #0b0f1a;
   --card: rgba(255, 255, 255, 0.06);
-  --text: rgba(255, 255, 255, 0.92);
-  --muted: rgba(255, 255, 255, 0.70);
+  --text: #f1f3f8;
+  --muted: #a3acbf;
   --stroke: rgba(255, 255, 255, 0.12);
-  --ok: #86efac;
-  --warn: #fca5a5;
-  --accent: #7dd3fc;
-  --primary: #7dd3fc;
-  --secondary: #86efac;
+  --ok: #3fb57f;
+  --warn: #f0708a;
+  --accent: #e75f40;
+  --primary: #e75f40;
+  --secondary: #3fb57f;
+  /* the accent as numbers, for tints written as rgba(var(--accent-rgb), a) */
+  --accent-rgb: 231, 95, 64;
 }
 
 * {
@@ -17,23 +24,20 @@
   padding: 0;
 }
 
+/* The plain canvas and the body face of the design (DM Sans, loaded in layout.tsx). The three
+   coloured glows of the old look are gone: the design has no neon washes. */
 body {
-  font-family: system-ui, -apple-system, 'Segoe UI', 'Roboto', 'Arial', sans-serif;
+  font-family: var(--font-body), system-ui, -apple-system, 'Segoe UI', 'Roboto', 'Arial', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background: radial-gradient(1000px 600px at 20% 10%, rgba(125, 211, 252, 0.20), transparent 60%),
-    radial-gradient(900px 550px at 80% 30%, rgba(134, 239, 172, 0.16), transparent 60%),
-    radial-gradient(900px 650px at 60% 90%, rgba(252, 165, 165, 0.14), transparent 60%),
-    var(--bg);
+  background: var(--bg);
   color: var(--text);
   min-height: 100vh;
 }
 
-/* Final games - yellow background gradient */
+/* Final games: one gold light from the top instead of three yellow glows */
 body.final-game {
-  background: radial-gradient(1000px 600px at 20% 10%, rgba(234, 179, 8, 0.20), transparent 60%),
-    radial-gradient(900px 550px at 80% 30%, rgba(234, 179, 8, 0.16), transparent 60%),
-    radial-gradient(900px 650px at 60% 90%, rgba(234, 179, 8, 0.14), transparent 60%),
+  background: radial-gradient(900px 420px at 50% -120px, rgba(227, 167, 47, 0.16), transparent 70%),
     var(--bg);
 }
 
@@ -140,8 +144,8 @@ body.final-game {
 }
 
 .main-nav a:hover {
-  background: rgba(125, 211, 252, 0.14);
-  border-color: rgba(125, 211, 252, 0.35);
+  background: rgba(231, 95, 64, 0.14);
+  border-color: rgba(231, 95, 64, 0.35);
 }
 
 .main-nav a:active {
@@ -201,7 +205,7 @@ body.final-game {
   position: absolute;
   top: 12px;
   right: 12px;
-  background: linear-gradient(135deg, var(--accent), rgba(125, 211, 252, 0.8));
+  background: linear-gradient(135deg, var(--accent), rgba(231, 95, 64, 0.8));
   color: var(--bg);
   padding: 6px 12px;
   border-radius: 20px;
@@ -210,7 +214,7 @@ body.final-game {
   display: flex;
   align-items: center;
   gap: 4px;
-  box-shadow: 0 4px 12px rgba(125, 211, 252, 0.4);
+  box-shadow: 0 4px 12px rgba(231, 95, 64, 0.4);
   z-index: 10;
   animation: badgePulse 2s ease-in-out infinite;
 }
@@ -220,12 +224,12 @@ body.final-game {
   0%,
   100% {
     transform: scale(1);
-    box-shadow: 0 4px 12px rgba(125, 211, 252, 0.4);
+    box-shadow: 0 4px 12px rgba(231, 95, 64, 0.4);
   }
 
   50% {
     transform: scale(1.05);
-    box-shadow: 0 6px 16px rgba(125, 211, 252, 0.6);
+    box-shadow: 0 6px 16px rgba(231, 95, 64, 0.6);
   }
 }
 
@@ -633,7 +637,7 @@ body.final-game button[style*="rgba(134, 239, 172"] {
   padding: 14px 32px;
   font-size: 16px;
   font-weight: 650;
-  background: linear-gradient(135deg, var(--accent), var(--secondary));
+  background: linear-gradient(135deg, var(--accent), var(--accent));
   border: none;
   color: var(--bg);
 
@@ -643,7 +647,7 @@ body.final-game button[style*="rgba(134, 239, 172"] {
 
 .game-start-screen .start-button:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(125, 211, 252, 0.3);
+  box-shadow: 0 8px 20px rgba(231, 95, 64, 0.3);
 }
 
 /* Final games - yellow button styling */
@@ -701,13 +705,13 @@ button:active {
 }
 
 button.primary {
-  border-color: rgba(125, 211, 252, 0.35);
-  background: rgba(125, 211, 252, 0.14);
+  border-color: rgba(231, 95, 64, 0.35);
+  background: rgba(231, 95, 64, 0.14);
 }
 
 button.primary:hover {
-  background: rgba(125, 211, 252, 0.24);
-  border-color: rgba(125, 211, 252, 0.5);
+  background: rgba(231, 95, 64, 0.24);
+  border-color: rgba(231, 95, 64, 0.5);
 }
 
 button:disabled {
@@ -756,7 +760,7 @@ button:disabled {
 
 .completion-message button,
 .completion-message .continue-button {
-  background: linear-gradient(135deg, var(--accent), var(--secondary));
+  background: linear-gradient(135deg, var(--accent), var(--accent));
   border: none;
   color: var(--bg);
   padding: 12px 24px;
@@ -772,7 +776,7 @@ button:disabled {
 .completion-message button:hover,
 .completion-message .continue-button:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(125, 211, 252, 0.3);
+  box-shadow: 0 8px 20px rgba(231, 95, 64, 0.3);
 }
 
 .completion-message button:active,
@@ -828,20 +832,20 @@ button:disabled {
 
 .shape:hover {
   transform: scale(1.1);
-  box-shadow: 0 8px 20px rgba(125, 211, 252, 0.4);
+  box-shadow: 0 8px 20px rgba(231, 95, 64, 0.4);
 }
 
 /* All shapes use the same theme color and size */
 .shape.circle {
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--accent) 0%, rgba(125, 211, 252, 0.8) 100%);
-  box-shadow: 0 4px 12px rgba(125, 211, 252, 0.3);
+  background: linear-gradient(135deg, var(--accent) 0%, rgba(231, 95, 64, 0.8) 100%);
+  box-shadow: 0 4px 12px rgba(231, 95, 64, 0.3);
 }
 
 .shape.square {
 
-  background: linear-gradient(135deg, var(--accent) 0%, rgba(125, 211, 252, 0.8) 100%);
-  box-shadow: 0 4px 12px rgba(125, 211, 252, 0.3);
+  background: linear-gradient(135deg, var(--accent) 0%, rgba(231, 95, 64, 0.8) 100%);
+  box-shadow: 0 4px 12px rgba(231, 95, 64, 0.3);
 }
 
 .shape.triangle {
@@ -851,12 +855,12 @@ button:disabled {
   border-right: 40px solid transparent;
   border-bottom: 80px solid var(--accent);
   background: none !important;
-  filter: drop-shadow(0 4px 12px rgba(125, 211, 252, 0.3));
+  filter: drop-shadow(0 4px 12px rgba(231, 95, 64, 0.3));
   margin: 0 auto;
 }
 
 .shape.star {
-  background: linear-gradient(135deg, var(--accent) 0%, rgba(125, 211, 252, 0.8) 100%);
+  background: linear-gradient(135deg, var(--accent) 0%, rgba(231, 95, 64, 0.8) 100%);
   clip-path: polygon(50% 0%,
       61% 35%,
       98% 35%,
@@ -867,59 +871,59 @@ button:disabled {
       32% 57%,
       2% 35%,
       39% 35%);
-  box-shadow: 0 4px 12px rgba(125, 211, 252, 0.3);
+  box-shadow: 0 4px 12px rgba(231, 95, 64, 0.3);
 }
 
 .shape.diamond {
-  background: linear-gradient(135deg, var(--accent) 0%, rgba(125, 211, 252, 0.8) 100%);
+  background: linear-gradient(135deg, var(--accent) 0%, rgba(231, 95, 64, 0.8) 100%);
   transform: rotate(45deg) !important;
 
-  box-shadow: 0 4px 12px rgba(125, 211, 252, 0.3);
+  box-shadow: 0 4px 12px rgba(231, 95, 64, 0.3);
 }
 
 .shape.heart {
-  background: linear-gradient(135deg, var(--accent) 0%, rgba(125, 211, 252, 0.8) 100%);
+  background: linear-gradient(135deg, var(--accent) 0%, rgba(231, 95, 64, 0.8) 100%);
   clip-path: path('M12,21.35l-1.45-1.32C5.4,15.36,2,12.28,2,8.5 C2,5.42,4.42,3,7.5,3c1.74,0,3.41,0.81,4.5,2.09C13.09,3.81,14.76,3,16.5,3 C19.58,3,22,5.42,22,8.5c0,3.78-3.4,6.86-8.55,11.54L12,21.35z');
-  box-shadow: 0 4px 12px rgba(125, 211, 252, 0.3);
+  box-shadow: 0 4px 12px rgba(231, 95, 64, 0.3);
   width: 120px !important;
   height: 120px !important;
   transform: scale(1.2) !important;
 }
 
 .shape.pentagon {
-  background: linear-gradient(135deg, var(--accent) 0%, rgba(125, 211, 252, 0.8) 100%);
+  background: linear-gradient(135deg, var(--accent) 0%, rgba(231, 95, 64, 0.8) 100%);
   clip-path: polygon(50% 0%, 100% 38%, 82% 100%, 18% 100%, 0% 38%);
-  box-shadow: 0 4px 12px rgba(125, 211, 252, 0.3);
+  box-shadow: 0 4px 12px rgba(231, 95, 64, 0.3);
 }
 
 .shape.hexagon {
-  background: linear-gradient(135deg, var(--accent) 0%, rgba(125, 211, 252, 0.8) 100%);
+  background: linear-gradient(135deg, var(--accent) 0%, rgba(231, 95, 64, 0.8) 100%);
   clip-path: polygon(30% 0%, 70% 0%, 100% 50%, 70% 100%, 30% 100%, 0% 50%);
-  box-shadow: 0 4px 12px rgba(125, 211, 252, 0.3);
+  box-shadow: 0 4px 12px rgba(231, 95, 64, 0.3);
 }
 
 .shape.octagon {
-  background: linear-gradient(135deg, var(--accent) 0%, rgba(125, 211, 252, 0.8) 100%);
+  background: linear-gradient(135deg, var(--accent) 0%, rgba(231, 95, 64, 0.8) 100%);
   clip-path: polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%);
-  box-shadow: 0 4px 12px rgba(125, 211, 252, 0.3);
+  box-shadow: 0 4px 12px rgba(231, 95, 64, 0.3);
 }
 
 .shape.cross {
-  background: linear-gradient(135deg, var(--accent) 0%, rgba(125, 211, 252, 0.8) 100%);
+  background: linear-gradient(135deg, var(--accent) 0%, rgba(231, 95, 64, 0.8) 100%);
   clip-path: polygon(20% 0%, 80% 0%, 80% 20%, 100% 20%, 100% 80%, 80% 80%, 80% 100%, 20% 100%, 20% 80%, 0% 80%, 0% 20%, 20% 20%);
-  box-shadow: 0 4px 12px rgba(125, 211, 252, 0.3);
+  box-shadow: 0 4px 12px rgba(231, 95, 64, 0.3);
 }
 
 .shape.arrow {
-  background: linear-gradient(135deg, var(--accent) 0%, rgba(125, 211, 252, 0.8) 100%);
+  background: linear-gradient(135deg, var(--accent) 0%, rgba(231, 95, 64, 0.8) 100%);
   clip-path: polygon(0% 20%, 60% 20%, 60% 0%, 100% 50%, 60% 100%, 60% 80%, 0% 80%);
-  box-shadow: 0 4px 12px rgba(125, 211, 252, 0.3);
+  box-shadow: 0 4px 12px rgba(231, 95, 64, 0.3);
 }
 
 .shape.crescent {
-  background: linear-gradient(135deg, var(--accent) 0%, rgba(125, 211, 252, 0.8) 100%);
+  background: linear-gradient(135deg, var(--accent) 0%, rgba(231, 95, 64, 0.8) 100%);
   clip-path: path('M 50 0 A 50 50 0 1 1 50 100 A 50 50 0 1 1 50 0 M 50 20 A 30 30 0 1 0 50 80 A 30 30 0 1 0 50 20 Z');
-  box-shadow: 0 4px 12px rgba(125, 211, 252, 0.3);
+  box-shadow: 0 4px 12px rgba(231, 95, 64, 0.3);
   position: relative;
   overflow: visible;
 }
@@ -954,17 +958,17 @@ button:disabled {
 
 .shape-button:hover:not(:disabled) {
   border-color: var(--accent);
-  background: rgba(125, 211, 252, 0.1);
+  background: rgba(231, 95, 64, 0.1);
 }
 
 .shape-button.correct {
   border-color: var(--ok);
-  background: rgba(134, 239, 172, 0.12);
+  background: rgba(63, 181, 127, 0.12);
 }
 
 .shape-button.incorrect {
   border-color: var(--warn);
-  background: rgba(252, 165, 165, 0.12);
+  background: rgba(240, 112, 138, 0.12);
 }
 
 .memory-grid {
@@ -998,7 +1002,7 @@ button:disabled {
 }
 
 .memory-card.matched {
-  background: rgba(134, 239, 172, 0.12);
+  background: rgba(63, 181, 127, 0.12);
   border-color: var(--ok);
 }
 
@@ -1080,7 +1084,7 @@ button:disabled {
   border-radius: 50%;
   transform: translate(-50%, -50%);
   transition: all 0.1s;
-  box-shadow: 0 4px 12px rgba(125, 211, 252, 0.4);
+  box-shadow: 0 4px 12px rgba(231, 95, 64, 0.4);
 }
 
 .center-zone {
@@ -1171,8 +1175,8 @@ button:disabled {
   display: inline-block;
   margin-top: 15px;
   padding: 9px 12px;
-  background: rgba(125, 211, 252, 0.14);
-  border: 1px solid rgba(125, 211, 252, 0.35);
+  background: rgba(231, 95, 64, 0.14);
+  border: 1px solid rgba(231, 95, 64, 0.35);
   color: var(--text);
   text-decoration: none;
 
@@ -1182,8 +1186,8 @@ button:disabled {
 }
 
 .continue-button:hover {
-  background: rgba(125, 211, 252, 0.24);
-  border-color: rgba(125, 211, 252, 0.5);
+  background: rgba(231, 95, 64, 0.24);
+  border-color: rgba(231, 95, 64, 0.5);
 }
 
 .progress-stats {
@@ -1242,7 +1246,7 @@ button:disabled {
 
 .progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, var(--accent), var(--ok));
+  background: linear-gradient(90deg, var(--accent), var(--accent));
   transition: width 0.3s;
 }
 
@@ -1330,8 +1334,8 @@ button:disabled {
 
 .certificate-generate button {
   padding: 9px 12px;
-  background: rgba(125, 211, 252, 0.14);
-  border: 1px solid rgba(125, 211, 252, 0.35);
+  background: rgba(231, 95, 64, 0.14);
+  border: 1px solid rgba(231, 95, 64, 0.35);
   color: var(--text);
 
   font-size: 13px;
@@ -1341,8 +1345,8 @@ button:disabled {
 }
 
 .certificate-generate button:hover:not(:disabled) {
-  background: rgba(125, 211, 252, 0.24);
-  border-color: rgba(125, 211, 252, 0.5);
+  background: rgba(231, 95, 64, 0.24);
+  border-color: rgba(231, 95, 64, 0.5);
 }
 
 .certificate-generate button:disabled {
@@ -1377,8 +1381,8 @@ button:disabled {
 .view-certificate-button {
   display: inline-block;
   padding: 12px 24px;
-  background: rgba(125, 211, 252, 0.14);
-  border: 1px solid rgba(125, 211, 252, 0.35);
+  background: rgba(231, 95, 64, 0.14);
+  border: 1px solid rgba(231, 95, 64, 0.35);
   color: var(--text);
   font-size: 14px;
   font-weight: 650;
@@ -1389,8 +1393,8 @@ button:disabled {
 }
 
 .view-certificate-button:hover {
-  background: rgba(125, 211, 252, 0.24);
-  border-color: rgba(125, 211, 252, 0.5);
+  background: rgba(231, 95, 64, 0.24);
+  border-color: rgba(231, 95, 64, 0.5);
   transform: translateY(-2px);
 }
 
@@ -1416,8 +1420,8 @@ button:disabled {
 .not-ready a {
   display: inline-block;
   padding: 9px 12px;
-  background: rgba(125, 211, 252, 0.14);
-  border: 1px solid rgba(125, 211, 252, 0.35);
+  background: rgba(231, 95, 64, 0.14);
+  border: 1px solid rgba(231, 95, 64, 0.35);
   color: var(--text);
   text-decoration: none;
 
@@ -1427,8 +1431,8 @@ button:disabled {
 }
 
 .not-ready a:hover {
-  background: rgba(125, 211, 252, 0.24);
-  border-color: rgba(125, 211, 252, 0.5);
+  background: rgba(231, 95, 64, 0.24);
+  border-color: rgba(231, 95, 64, 0.5);
 }
 
 .login-required {
@@ -1482,26 +1486,26 @@ button:disabled {
 }
 
 .login-button {
-  background: rgba(125, 211, 252, 0.14);
-  border-color: rgba(125, 211, 252, 0.35);
+  background: rgba(231, 95, 64, 0.14);
+  border-color: rgba(231, 95, 64, 0.35);
   color: var(--text);
 }
 
 .login-button:hover {
-  background: rgba(125, 211, 252, 0.24);
-  border-color: rgba(125, 211, 252, 0.5);
+  background: rgba(231, 95, 64, 0.24);
+  border-color: rgba(231, 95, 64, 0.5);
   transform: translateY(-2px);
 }
 
 .register-button {
-  background: linear-gradient(135deg, var(--accent), var(--secondary));
+  background: linear-gradient(135deg, var(--accent), var(--accent));
   border-color: var(--accent);
   color: var(--bg);
 }
 
 .register-button:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(125, 211, 252, 0.3);
+  box-shadow: 0 8px 20px rgba(231, 95, 64, 0.3);
 }
 
 .certificate-view {
@@ -1538,8 +1542,8 @@ button:disabled {
 
 .certificate-actions button {
   padding: 9px 12px;
-  background: rgba(125, 211, 252, 0.14);
-  border: 1px solid rgba(125, 211, 252, 0.35);
+  background: rgba(231, 95, 64, 0.14);
+  border: 1px solid rgba(231, 95, 64, 0.35);
   color: var(--text);
 
   font-size: 13px;
@@ -1549,8 +1553,8 @@ button:disabled {
 }
 
 .certificate-actions button:hover {
-  background: rgba(125, 211, 252, 0.24);
-  border-color: rgba(125, 211, 252, 0.5);
+  background: rgba(231, 95, 64, 0.24);
+  border-color: rgba(231, 95, 64, 0.5);
 }
 
 .certificate-actions a {
@@ -1817,7 +1821,7 @@ button:disabled {
 
   50% {
     top: 30px;
-    color: rgba(125, 211, 252, 0.2);
+    color: rgba(231, 95, 64, 0.2);
   }
 
   100% {
@@ -2271,8 +2275,8 @@ body.final-game .rotate-to-fit-game .object-rotate-btn .keyboard-hint {
 .retry-button {
   margin-top: 20px;
   padding: 9px 12px;
-  background: rgba(125, 211, 252, 0.14);
-  border: 1px solid rgba(125, 211, 252, 0.35);
+  background: rgba(231, 95, 64, 0.14);
+  border: 1px solid rgba(231, 95, 64, 0.35);
   color: var(--text);
 
   cursor: pointer;
@@ -2282,8 +2286,8 @@ body.final-game .rotate-to-fit-game .object-rotate-btn .keyboard-hint {
 }
 
 .retry-button:hover {
-  background: rgba(125, 211, 252, 0.24);
-  border-color: rgba(125, 211, 252, 0.5);
+  background: rgba(231, 95, 64, 0.24);
+  border-color: rgba(231, 95, 64, 0.5);
 }
 
 .no-games {
@@ -2324,8 +2328,8 @@ body.final-game .rotate-to-fit-game .object-rotate-btn .keyboard-hint {
 
 
 .category-tab.active {
-  background: rgba(125, 211, 252, 0.14);
-  border-color: rgba(125, 211, 252, 0.35);
+  background: rgba(231, 95, 64, 0.14);
+  border-color: rgba(231, 95, 64, 0.35);
   color: var(--text);
 }
 
@@ -2538,12 +2542,12 @@ body.final-game .rotate-to-fit-game .object-rotate-btn .keyboard-hint {
 }
 
 .row.found {
-  border-color: rgba(134, 239, 172, 0.35);
-  background: rgba(134, 239, 172, 0.08);
+  border-color: rgba(63, 181, 127, 0.35);
+  background: rgba(63, 181, 127, 0.08);
 }
 
 .row.found .status {
-  color: rgba(134, 239, 172, 0.95);
+  color: rgba(63, 181, 127, 0.95);
 }
 
 /* Keyboard Shortcut Styling */
@@ -2637,7 +2641,7 @@ body.final-game .rotate-to-fit-game .object-rotate-btn .keyboard-hint {
   font-size: 28px;
   font-weight: 700;
   margin-bottom: 12px;
-  background: linear-gradient(135deg, var(--accent), var(--secondary));
+  background: linear-gradient(135deg, var(--accent), var(--accent));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -2652,14 +2656,14 @@ body.final-game .rotate-to-fit-game .object-rotate-btn .keyboard-hint {
 }
 
 .sudoku-feedback.success {
-  background: rgba(134, 239, 172, 0.2);
-  border: 1px solid rgba(134, 239, 172, 0.4);
+  background: rgba(63, 181, 127, 0.2);
+  border: 1px solid rgba(63, 181, 127, 0.4);
   color: var(--secondary);
 }
 
 .sudoku-feedback.error {
-  background: rgba(252, 165, 165, 0.2);
-  border: 1px solid rgba(252, 165, 165, 0.4);
+  background: rgba(240, 112, 138, 0.2);
+  border: 1px solid rgba(240, 112, 138, 0.4);
   color: var(--warn);
 }
 
@@ -2701,15 +2705,15 @@ body.final-game .rotate-to-fit-game .object-rotate-btn .keyboard-hint {
 }
 
 .sudoku-cell-modern:hover:not(:disabled) {
-  background: rgba(125, 211, 252, 0.15);
+  background: rgba(231, 95, 64, 0.15);
   transform: scale(1.05);
-  box-shadow: 0 4px 12px rgba(125, 211, 252, 0.3);
+  box-shadow: 0 4px 12px rgba(231, 95, 64, 0.3);
 }
 
 .sudoku-cell-modern.selected {
-  background: linear-gradient(135deg, rgba(125, 211, 252, 0.3), rgba(134, 239, 172, 0.3));
+  background: linear-gradient(135deg, rgba(231, 95, 64, 0.3), rgba(231, 95, 64, 0.3));
   border: 2px solid var(--accent);
-  box-shadow: 0 0 0 3px rgba(125, 211, 252, 0.2), 0 4px 16px rgba(125, 211, 252, 0.4);
+  box-shadow: 0 0 0 3px rgba(231, 95, 64, 0.2), 0 4px 16px rgba(231, 95, 64, 0.4);
   transform: scale(1.08);
   z-index: 10;
 }
@@ -2727,7 +2731,7 @@ body.final-game .rotate-to-fit-game .object-rotate-btn .keyboard-hint {
 }
 
 .sudoku-cell-modern.error {
-  background: rgba(252, 165, 165, 0.25);
+  background: rgba(240, 112, 138, 0.25);
   border-color: var(--warn);
   color: var(--warn);
   animation: shake 0.3s ease-in-out;
@@ -2796,7 +2800,7 @@ body.final-game .rotate-to-fit-game .object-rotate-btn .keyboard-hint {
 .keypad-number-btn {
   width: 60px;
   height: 60px;
-  background: linear-gradient(135deg, rgba(125, 211, 252, 0.2), rgba(134, 239, 172, 0.2));
+  background: linear-gradient(135deg, rgba(231, 95, 64, 0.2), rgba(231, 95, 64, 0.2));
   border: 2px solid var(--accent);
 
   font-size: 24px;
@@ -2811,18 +2815,18 @@ body.final-game .rotate-to-fit-game .object-rotate-btn .keyboard-hint {
 }
 
 .keypad-number-btn:hover {
-  background: linear-gradient(135deg, var(--accent), var(--secondary));
+  background: linear-gradient(135deg, var(--accent), var(--accent));
   color: var(--bg);
   transform: translateY(-2px) scale(1.05);
-  box-shadow: 0 6px 20px rgba(125, 211, 252, 0.4);
+  box-shadow: 0 6px 20px rgba(231, 95, 64, 0.4);
 }
 
 .keypad-number-btn:active,
 .keypad-number-btn.selected {
-  background: linear-gradient(135deg, var(--accent), var(--secondary));
+  background: linear-gradient(135deg, var(--accent), var(--accent));
   color: var(--bg);
   transform: translateY(0) scale(0.95);
-  box-shadow: 0 4px 12px rgba(125, 211, 252, 0.3);
+  box-shadow: 0 4px 12px rgba(231, 95, 64, 0.3);
 }
 
 .keypad-clear-btn {
@@ -2839,7 +2843,7 @@ body.final-game .rotate-to-fit-game .object-rotate-btn .keyboard-hint {
 }
 
 .keypad-clear-btn:hover {
-  background: rgba(252, 165, 165, 0.2);
+  background: rgba(240, 112, 138, 0.2);
   border-color: var(--warn);
   color: var(--warn);
 }
@@ -2875,7 +2879,7 @@ body.final-game .rotate-to-fit-game .object-rotate-btn .keyboard-hint {
 .number-btn {
   width: 60px;
   height: 60px;
-  background: linear-gradient(135deg, rgba(125, 211, 252, 0.2), rgba(134, 239, 172, 0.2));
+  background: linear-gradient(135deg, rgba(231, 95, 64, 0.2), rgba(231, 95, 64, 0.2));
   border: 2px solid var(--accent);
 
   font-size: 24px;
@@ -2889,10 +2893,10 @@ body.final-game .rotate-to-fit-game .object-rotate-btn .keyboard-hint {
 }
 
 .number-btn:hover {
-  background: linear-gradient(135deg, var(--accent), var(--secondary));
+  background: linear-gradient(135deg, var(--accent), var(--accent));
   color: var(--bg);
   transform: translateY(-2px) scale(1.05);
-  box-shadow: 0 6px 20px rgba(125, 211, 252, 0.4);
+  box-shadow: 0 6px 20px rgba(231, 95, 64, 0.4);
 }
 
 .number-btn:active {
@@ -2913,7 +2917,7 @@ body.final-game .rotate-to-fit-game .object-rotate-btn .keyboard-hint {
 }
 
 .clear-btn:hover {
-  background: rgba(252, 165, 165, 0.2);
+  background: rgba(240, 112, 138, 0.2);
   border-color: var(--warn);
   color: var(--warn);
 }
@@ -2936,7 +2940,7 @@ body.final-game .rotate-to-fit-game .object-rotate-btn .keyboard-hint {
   flex-direction: column;
   gap: 16px;
   padding: 20px;
-  background: linear-gradient(135deg, rgba(125, 211, 252, 0.1) 0%, rgba(125, 211, 252, 0.05) 100%);
+  background: linear-gradient(135deg, rgba(231, 95, 64, 0.1) 0%, rgba(231, 95, 64, 0.05) 100%);
   border: 2px solid var(--stroke);
 
   backdrop-filter: blur(10px);
@@ -2970,7 +2974,7 @@ body.final-game .rotate-to-fit-game .object-rotate-btn .keyboard-hint {
   display: flex;
   justify-content: center;
   padding: 24px;
-  background: linear-gradient(135deg, rgba(125, 211, 252, 0.1), rgba(134, 239, 172, 0.1));
+  background: linear-gradient(135deg, rgba(231, 95, 64, 0.1), rgba(231, 95, 64, 0.1));
 
   border: 2px solid var(--stroke);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
@@ -2997,7 +3001,7 @@ body.final-game .rotate-to-fit-game .object-rotate-btn .keyboard-hint {
 .slider-tile {
   width: 100%;
   height: 100%;
-  background: linear-gradient(135deg, var(--accent), var(--secondary));
+  background: linear-gradient(135deg, var(--accent), var(--accent));
   border: 2px solid var(--accent);
 
   font-size: 2rem;
@@ -3008,13 +3012,13 @@ body.final-game .rotate-to-fit-game .object-rotate-btn .keyboard-hint {
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 12px rgba(125, 211, 252, 0.3);
+  box-shadow: 0 4px 12px rgba(231, 95, 64, 0.3);
   position: relative;
 }
 
 .slider-tile:hover:not(:disabled) {
   transform: translateY(-4px) scale(1.05);
-  box-shadow: 0 8px 24px rgba(125, 211, 252, 0.5);
+  box-shadow: 0 8px 24px rgba(231, 95, 64, 0.5);
   z-index: 10;
 }
 
@@ -3025,29 +3029,29 @@ body.final-game .rotate-to-fit-game .object-rotate-btn .keyboard-hint {
 .slider-tile:disabled {
   opacity: 0.4;
   cursor: not-allowed;
-  background: linear-gradient(135deg, rgba(125, 211, 252, 0.3), rgba(134, 239, 172, 0.3));
+  background: linear-gradient(135deg, rgba(231, 95, 64, 0.3), rgba(231, 95, 64, 0.3));
   border-color: var(--stroke);
 }
 
 .slider-tile.correct:disabled {
   /* Correct tiles that can't move should still show green but dimmed */
-  background: linear-gradient(135deg, rgba(34, 197, 94, 0.4), rgba(34, 197, 94, 0.3));
-  border-color: rgba(34, 197, 94, 0.5);
+  background: linear-gradient(135deg, rgba(63, 181, 127, 0.4), rgba(63, 181, 127, 0.3));
+  border-color: rgba(63, 181, 127, 0.5);
 }
 
 .slider-tile.movable {
   border-color: var(--success);
-  box-shadow: 0 4px 16px rgba(34, 197, 94, 0.4);
+  box-shadow: 0 4px 16px rgba(63, 181, 127, 0.4);
   animation: pulse 2s infinite;
 }
 
 .slider-tile.movable:hover:not(:disabled) {
   border-color: var(--success);
-  box-shadow: 0 8px 24px rgba(34, 197, 94, 0.6);
+  box-shadow: 0 8px 24px rgba(63, 181, 127, 0.6);
 }
 
 .slider-tile.correct {
-  background: linear-gradient(135deg, rgba(34, 197, 94, 0.9), rgba(34, 197, 94, 0.7));
+  background: linear-gradient(135deg, rgba(63, 181, 127, 0.9), rgba(63, 181, 127, 0.7));
   border-color: var(--success);
   position: relative;
 }
@@ -3055,14 +3059,14 @@ body.final-game .rotate-to-fit-game .object-rotate-btn .keyboard-hint {
 .slider-tile.correct.movable {
   /* When correct tile is also movable, show both indicators */
   border-color: var(--success);
-  box-shadow: 0 4px 16px rgba(34, 197, 94, 0.6);
+  box-shadow: 0 4px 16px rgba(63, 181, 127, 0.6);
 }
 
 .correct-badge {
   position: absolute;
   top: 4px;
   right: 4px;
-  background: rgba(34, 197, 94, 0.9);
+  background: rgba(63, 181, 127, 0.9);
   color: white;
   border-radius: 50%;
   width: 20px;
@@ -3079,7 +3083,7 @@ body.final-game .rotate-to-fit-game .object-rotate-btn .keyboard-hint {
 .slider-tile.selected {
   outline: 3px solid var(--accent);
   outline-offset: -3px;
-  box-shadow: 0 0 0 3px rgba(125, 211, 252, 0.5), 0 4px 16px rgba(125, 211, 252, 0.6);
+  box-shadow: 0 0 0 3px rgba(231, 95, 64, 0.5), 0 4px 16px rgba(231, 95, 64, 0.6);
   animation: selectedPulse 1.5s infinite;
 }
 
@@ -3087,7 +3091,7 @@ body.final-game .rotate-to-fit-game .object-rotate-btn .keyboard-hint {
   /* Selected and movable - show both indicators */
   outline: 3px solid var(--accent);
   border-color: var(--success);
-  box-shadow: 0 0 0 3px rgba(125, 211, 252, 0.5), 0 4px 16px rgba(34, 197, 94, 0.6);
+  box-shadow: 0 0 0 3px rgba(231, 95, 64, 0.5), 0 4px 16px rgba(63, 181, 127, 0.6);
 }
 
 .selected-badge {
@@ -3152,8 +3156,8 @@ body.final-game .rotate-to-fit-game .object-rotate-btn .keyboard-hint {
   align-items: center;
   gap: 8px;
   padding: 12px 24px;
-  background: linear-gradient(135deg, rgba(251, 191, 36, 0.2), rgba(251, 191, 36, 0.1));
-  border: 2px solid rgba(251, 191, 36, 0.5);
+  background: linear-gradient(135deg, rgba(227, 167, 47, 0.2), rgba(227, 167, 47, 0.1));
+  border: 2px solid rgba(227, 167, 47, 0.5);
 
   color: var(--text);
   font-size: 0.95rem;
@@ -3163,10 +3167,10 @@ body.final-game .rotate-to-fit-game .object-rotate-btn .keyboard-hint {
 }
 
 .hint-button:hover:not(:disabled) {
-  background: linear-gradient(135deg, rgba(251, 191, 36, 0.3), rgba(251, 191, 36, 0.2));
-  border-color: rgba(251, 191, 36, 0.8);
+  background: linear-gradient(135deg, rgba(227, 167, 47, 0.3), rgba(227, 167, 47, 0.2));
+  border-color: rgba(227, 167, 47, 0.8);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(251, 191, 36, 0.3);
+  box-shadow: 0 4px 12px rgba(227, 167, 47, 0.3);
 }
 
 .hint-button:disabled {
@@ -3177,7 +3181,7 @@ body.final-game .rotate-to-fit-game .object-rotate-btn .keyboard-hint {
 .hint-icon {
   width: 20px;
   height: 20px;
-  color: rgba(251, 191, 36, 0.9);
+  color: rgba(227, 167, 47, 0.9);
 }
 
 /* Share Section */
@@ -3200,8 +3204,8 @@ body.final-game .rotate-to-fit-game .object-rotate-btn .keyboard-hint {
   align-items: center;
   gap: 8px;
   padding: 12px 24px;
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1));
-  border: 2px solid rgba(59, 130, 246, 0.6);
+  background: linear-gradient(135deg, rgba(231, 95, 64, 0.2), rgba(231, 95, 64, 0.1));
+  border: 2px solid rgba(231, 95, 64, 0.6);
 
   color: var(--text);
   font-size: 0.95rem;
@@ -3211,16 +3215,16 @@ body.final-game .rotate-to-fit-game .object-rotate-btn .keyboard-hint {
 }
 
 .share-button:hover {
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.3), rgba(59, 130, 246, 0.2));
-  border-color: rgba(59, 130, 246, 0.8);
+  background: linear-gradient(135deg, rgba(231, 95, 64, 0.3), rgba(231, 95, 64, 0.2));
+  border-color: rgba(231, 95, 64, 0.8);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+  box-shadow: 0 4px 12px rgba(231, 95, 64, 0.3);
 }
 
 .share-icon {
   width: 20px;
   height: 20px;
-  color: rgba(59, 130, 246, 0.9);
+  color: rgba(231, 95, 64, 0.9);
 }
 
 .share-success {
@@ -3228,8 +3232,8 @@ body.final-game .rotate-to-fit-game .object-rotate-btn .keyboard-hint {
   align-items: center;
   gap: 8px;
   padding: 8px 16px;
-  background: linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(34, 197, 94, 0.1));
-  border: 2px solid rgba(34, 197, 94, 0.6);
+  background: linear-gradient(135deg, rgba(63, 181, 127, 0.2), rgba(63, 181, 127, 0.1));
+  border: 2px solid rgba(63, 181, 127, 0.6);
 
   color: var(--text);
   font-size: 0.9rem;
@@ -3240,21 +3244,21 @@ body.final-game .rotate-to-fit-game .object-rotate-btn .keyboard-hint {
 .share-success .success-icon {
   width: 18px;
   height: 18px;
-  color: rgba(34, 197, 94, 0.9);
+  color: rgba(63, 181, 127, 0.9);
 }
 
 .slider-tile.hinted {
-  outline: 3px solid rgba(251, 191, 36, 0.6);
+  outline: 3px solid rgba(227, 167, 47, 0.6);
   outline-offset: -3px;
-  box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.3), 0 2px 8px rgba(251, 191, 36, 0.4);
-  background: linear-gradient(135deg, rgba(251, 191, 36, 0.15), rgba(251, 191, 36, 0.05));
+  box-shadow: 0 0 0 2px rgba(227, 167, 47, 0.3), 0 2px 8px rgba(227, 167, 47, 0.4);
+  background: linear-gradient(135deg, rgba(227, 167, 47, 0.15), rgba(227, 167, 47, 0.05));
 }
 
 .slider-tile.hint-current {
-  outline: 4px solid rgba(251, 191, 36, 1);
+  outline: 4px solid rgba(227, 167, 47, 1);
   outline-offset: -4px;
-  box-shadow: 0 0 0 4px rgba(251, 191, 36, 0.6), 0 6px 20px rgba(251, 191, 36, 0.7);
-  background: linear-gradient(135deg, rgba(251, 191, 36, 0.25), rgba(251, 191, 36, 0.15));
+  box-shadow: 0 0 0 4px rgba(227, 167, 47, 0.6), 0 6px 20px rgba(227, 167, 47, 0.7);
+  background: linear-gradient(135deg, rgba(227, 167, 47, 0.25), rgba(227, 167, 47, 0.15));
   animation: hintPulse 0.8s infinite;
   z-index: 10;
   transform: scale(1.05);
@@ -3264,15 +3268,15 @@ body.final-game .rotate-to-fit-game .object-rotate-btn .keyboard-hint {
 
   0%,
   100% {
-    outline-color: rgba(251, 191, 36, 0.8);
+    outline-color: rgba(227, 167, 47, 0.8);
     outline-width: 3px;
-    box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.4), 0 4px 16px rgba(251, 191, 36, 0.5);
+    box-shadow: 0 0 0 3px rgba(227, 167, 47, 0.4), 0 4px 16px rgba(227, 167, 47, 0.5);
   }
 
   50% {
-    outline-color: rgba(251, 191, 36, 1);
+    outline-color: rgba(227, 167, 47, 1);
     outline-width: 4px;
-    box-shadow: 0 0 0 4px rgba(251, 191, 36, 0.6), 0 6px 20px rgba(251, 191, 36, 0.7);
+    box-shadow: 0 0 0 4px rgba(227, 167, 47, 0.6), 0 6px 20px rgba(227, 167, 47, 0.7);
   }
 }
 
@@ -3280,7 +3284,7 @@ body.final-game .rotate-to-fit-game .object-rotate-btn .keyboard-hint {
   position: absolute;
   top: 4px;
   left: 4px;
-  background: rgba(251, 191, 36, 0.9);
+  background: rgba(227, 167, 47, 0.9);
   color: var(--bg);
   border-radius: 50%;
   width: 24px;
@@ -3315,7 +3319,7 @@ body.final-game .rotate-to-fit-game .object-rotate-btn .keyboard-hint {
 .empty-cell {
   width: 100%;
   height: 100%;
-  background: linear-gradient(135deg, rgba(125, 211, 252, 0.1), rgba(134, 239, 172, 0.1));
+  background: linear-gradient(135deg, rgba(231, 95, 64, 0.1), rgba(231, 95, 64, 0.1));
   border: 2px dashed var(--stroke);
 
   display: flex;
@@ -3333,7 +3337,7 @@ body.final-game .rotate-to-fit-game .object-rotate-btn .keyboard-hint {
 
 /* Tile Slider Instructions */
 .tile-slider-game .game-instructions {
-  background: linear-gradient(135deg, rgba(125, 211, 252, 0.1), rgba(134, 239, 172, 0.1));
+  background: linear-gradient(135deg, rgba(231, 95, 64, 0.1), rgba(231, 95, 64, 0.1));
   border: 2px solid var(--stroke);
 
   padding: 20px;
@@ -3544,7 +3548,7 @@ body.final-game .rotate-to-fit-game .object-rotate-btn .keyboard-hint {
   flex-direction: column;
   gap: 16px;
   padding: 20px;
-  background: linear-gradient(135deg, rgba(125, 211, 252, 0.1) 0%, rgba(125, 211, 252, 0.05) 100%);
+  background: linear-gradient(135deg, rgba(231, 95, 64, 0.1) 0%, rgba(231, 95, 64, 0.05) 100%);
   border: 2px solid var(--stroke);
 
   backdrop-filter: blur(10px);
@@ -3620,7 +3624,7 @@ body.final-game .rotate-to-fit-game .object-rotate-btn .keyboard-hint {
 .circuit-node:hover:not(:disabled) {
   transform: scale(1.05);
   border-color: var(--accent);
-  box-shadow: 0 6px 20px rgba(125, 211, 252, 0.3);
+  box-shadow: 0 6px 20px rgba(231, 95, 64, 0.3);
 }
 
 .circuit-node:active:not(:disabled) {
@@ -3633,28 +3637,28 @@ body.final-game .rotate-to-fit-game .object-rotate-btn .keyboard-hint {
 }
 
 .circuit-node.start {
-  background: linear-gradient(135deg, rgba(34, 197, 94, 0.3) 0%, rgba(34, 197, 94, 0.15) 100%);
-  border-color: rgba(34, 197, 94, 0.6);
-  box-shadow: 0 0 20px rgba(34, 197, 94, 0.4), inset 0 0 10px rgba(34, 197, 94, 0.2);
+  background: linear-gradient(135deg, rgba(63, 181, 127, 0.3) 0%, rgba(63, 181, 127, 0.15) 100%);
+  border-color: rgba(63, 181, 127, 0.6);
+  box-shadow: 0 0 20px rgba(63, 181, 127, 0.4), inset 0 0 10px rgba(63, 181, 127, 0.2);
   animation: startPulse 2s ease-in-out infinite;
 }
 
 .circuit-node.end {
-  background: linear-gradient(135deg, rgba(239, 68, 68, 0.3) 0%, rgba(239, 68, 68, 0.15) 100%);
-  border-color: rgba(239, 68, 68, 0.6);
-  box-shadow: 0 0 20px rgba(239, 68, 68, 0.4), inset 0 0 10px rgba(239, 68, 68, 0.2);
+  background: linear-gradient(135deg, rgba(217, 54, 84, 0.3) 0%, rgba(217, 54, 84, 0.15) 100%);
+  border-color: rgba(217, 54, 84, 0.6);
+  box-shadow: 0 0 20px rgba(217, 54, 84, 0.4), inset 0 0 10px rgba(217, 54, 84, 0.2);
   animation: endPulse 2s ease-in-out infinite;
 }
 
 .circuit-node.in-path {
-  background: linear-gradient(135deg, rgba(125, 211, 252, 0.3) 0%, rgba(125, 211, 252, 0.15) 100%);
+  background: linear-gradient(135deg, rgba(231, 95, 64, 0.3) 0%, rgba(231, 95, 64, 0.15) 100%);
   border-color: var(--accent);
-  box-shadow: 0 0 20px rgba(125, 211, 252, 0.4), inset 0 0 10px rgba(125, 211, 252, 0.2);
+  box-shadow: 0 0 20px rgba(231, 95, 64, 0.4), inset 0 0 10px rgba(231, 95, 64, 0.2);
 }
 
 .circuit-node.selected {
   border-color: var(--accent);
-  box-shadow: 0 0 20px rgba(125, 211, 252, 0.5), inset 0 0 10px rgba(125, 211, 252, 0.2);
+  box-shadow: 0 0 20px rgba(231, 95, 64, 0.5), inset 0 0 10px rgba(231, 95, 64, 0.2);
   animation: selectedPulse 1.5s ease-in-out infinite;
 }
 
@@ -3673,7 +3677,7 @@ body.final-game .rotate-to-fit-game .object-rotate-btn .keyboard-hint {
   left: 50%;
   width: 80%;
   height: 2px;
-  background: rgba(239, 68, 68, 0.8);
+  background: rgba(217, 54, 84, 0.8);
   transform: translate(-50%, -50%) rotate(45deg);
 
 }
@@ -3685,7 +3689,7 @@ body.final-game .rotate-to-fit-game .object-rotate-btn .keyboard-hint {
   left: 50%;
   width: 80%;
   height: 2px;
-  background: rgba(239, 68, 68, 0.8);
+  background: rgba(217, 54, 84, 0.8);
   transform: translate(-50%, -50%) rotate(-45deg);
 
 }
@@ -3696,8 +3700,8 @@ body.final-game .rotate-to-fit-game .object-rotate-btn .keyboard-hint {
 }
 
 .circuit-icon.obstacle-icon {
-  color: rgba(239, 68, 68, 0.8);
-  filter: drop-shadow(0 0 4px rgba(239, 68, 68, 0.6));
+  color: rgba(240, 112, 138, 0.8);
+  filter: drop-shadow(0 0 4px rgba(217, 54, 84, 0.6));
   opacity: 0.8;
 }
 
@@ -3709,12 +3713,12 @@ body.final-game .rotate-to-fit-game .object-rotate-btn .keyboard-hint {
 
 .circuit-icon.start-icon {
   color: #22c55e;
-  filter: drop-shadow(0 0 8px rgba(34, 197, 94, 0.8));
+  filter: drop-shadow(0 0 8px rgba(63, 181, 127, 0.8));
 }
 
 .circuit-icon.end-icon {
   color: #ef4444;
-  filter: drop-shadow(0 0 8px rgba(239, 68, 68, 0.8));
+  filter: drop-shadow(0 0 8px rgba(217, 54, 84, 0.8));
 }
 
 .circuit-icon.node-icon {
@@ -3726,7 +3730,7 @@ body.final-game .rotate-to-fit-game .object-rotate-btn .keyboard-hint {
   width: 32px;
   height: 32px;
   color: var(--accent);
-  filter: drop-shadow(0 0 4px rgba(125, 211, 252, 0.6));
+  filter: drop-shadow(0 0 4px rgba(231, 95, 64, 0.6));
   animation: pathArrowPulse 1.5s ease-in-out infinite;
 }
 
@@ -3764,7 +3768,7 @@ body.final-game .rotate-to-fit-game .object-rotate-btn .keyboard-hint {
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  box-shadow: 0 2px 8px rgba(125, 211, 252, 0.5);
+  box-shadow: 0 2px 8px rgba(231, 95, 64, 0.5);
 }
 
 .circuit-path-game .selected-badge {
@@ -3777,7 +3781,7 @@ body.final-game .rotate-to-fit-game .object-rotate-btn .keyboard-hint {
   font-weight: 700;
   padding: 2px 6px;
 
-  box-shadow: 0 2px 8px rgba(125, 211, 252, 0.5);
+  box-shadow: 0 2px 8px rgba(231, 95, 64, 0.5);
 }
 
 .path-lines {
@@ -3803,17 +3807,17 @@ body.final-game .rotate-to-fit-game .object-rotate-btn .keyboard-hint {
 }
 
 .circuit-path-game .game-feedback.correct {
-  background: linear-gradient(135deg, rgba(134, 239, 172, 0.2) 0%, rgba(134, 239, 172, 0.1) 100%);
-  border: 2px solid #86efac;
-  color: #86efac;
-  box-shadow: 0 6px 24px rgba(134, 239, 172, 0.4);
+  background: linear-gradient(135deg, rgba(63, 181, 127, 0.2) 0%, rgba(63, 181, 127, 0.1) 100%);
+  border: 2px solid #3fb57f;
+  color: #3fb57f;
+  box-shadow: 0 6px 24px rgba(63, 181, 127, 0.4);
 }
 
 .circuit-path-game .game-feedback.wrong {
-  background: linear-gradient(135deg, rgba(252, 165, 165, 0.2) 0%, rgba(252, 165, 165, 0.1) 100%);
-  border: 2px solid #fca5a5;
-  color: #fca5a5;
-  box-shadow: 0 6px 24px rgba(252, 165, 165, 0.4);
+  background: linear-gradient(135deg, rgba(240, 112, 138, 0.2) 0%, rgba(240, 112, 138, 0.1) 100%);
+  border: 2px solid #f0708a;
+  color: #f0708a;
+  box-shadow: 0 6px 24px rgba(240, 112, 138, 0.4);
 }
 
 .circuit-path-game .feedback-icon {
@@ -3825,11 +3829,11 @@ body.final-game .rotate-to-fit-game .object-rotate-btn .keyboard-hint {
 
   0%,
   100% {
-    box-shadow: 0 0 20px rgba(34, 197, 94, 0.4), inset 0 0 10px rgba(34, 197, 94, 0.2);
+    box-shadow: 0 0 20px rgba(63, 181, 127, 0.4), inset 0 0 10px rgba(63, 181, 127, 0.2);
   }
 
   50% {
-    box-shadow: 0 0 30px rgba(34, 197, 94, 0.6), inset 0 0 15px rgba(34, 197, 94, 0.3);
+    box-shadow: 0 0 30px rgba(63, 181, 127, 0.6), inset 0 0 15px rgba(63, 181, 127, 0.3);
   }
 }
 
@@ -3837,11 +3841,11 @@ body.final-game .rotate-to-fit-game .object-rotate-btn .keyboard-hint {
 
   0%,
   100% {
-    box-shadow: 0 0 20px rgba(239, 68, 68, 0.4), inset 0 0 10px rgba(239, 68, 68, 0.2);
+    box-shadow: 0 0 20px rgba(217, 54, 84, 0.4), inset 0 0 10px rgba(217, 54, 84, 0.2);
   }
 
   50% {
-    box-shadow: 0 0 30px rgba(239, 68, 68, 0.6), inset 0 0 15px rgba(239, 68, 68, 0.3);
+    box-shadow: 0 0 30px rgba(217, 54, 84, 0.6), inset 0 0 15px rgba(217, 54, 84, 0.3);
   }
 }
 
@@ -4007,7 +4011,7 @@ body.final-game .rotate-to-fit-game .object-rotate-btn .keyboard-hint {
   flex-direction: column;
   gap: 16px;
   padding: 20px;
-  background: linear-gradient(135deg, rgba(125, 211, 252, 0.1) 0%, rgba(125, 211, 252, 0.05) 100%);
+  background: linear-gradient(135deg, rgba(231, 95, 64, 0.1) 0%, rgba(231, 95, 64, 0.05) 100%);
   border: 2px solid var(--stroke);
 
   backdrop-filter: blur(10px);
@@ -4096,12 +4100,12 @@ body.final-game .rotate-to-fit-game .object-rotate-btn .keyboard-hint {
 
 .pattern-shape:not(.missing):hover {
   transform: scale(1.05);
-  box-shadow: 0 8px 24px rgba(125, 211, 252, 0.3);
+  box-shadow: 0 8px 24px rgba(231, 95, 64, 0.3);
   border-color: var(--accent);
 }
 
 .pattern-shape.missing {
-  background: linear-gradient(135deg, rgba(125, 211, 252, 0.2) 0%, rgba(125, 211, 252, 0.1) 100%);
+  background: linear-gradient(135deg, rgba(231, 95, 64, 0.2) 0%, rgba(231, 95, 64, 0.1) 100%);
   border: 2px dashed var(--accent);
   animation: pulse 2s ease-in-out infinite;
 }
@@ -4145,7 +4149,7 @@ body.final-game .rotate-to-fit-game .object-rotate-btn .keyboard-hint {
   position: relative;
   width: 100px;
   height: 100px;
-  background: linear-gradient(135deg, rgba(125, 211, 252, 0.2) 0%, rgba(125, 211, 252, 0.1) 100%);
+  background: linear-gradient(135deg, rgba(231, 95, 64, 0.2) 0%, rgba(231, 95, 64, 0.1) 100%);
   border: 2px solid var(--stroke);
 
   display: flex;
@@ -4158,9 +4162,9 @@ body.final-game .rotate-to-fit-game .object-rotate-btn .keyboard-hint {
 
 .pattern-options .option-btn:hover:not(:disabled) {
   transform: translateY(-4px) scale(1.05);
-  box-shadow: 0 8px 24px rgba(125, 211, 252, 0.4);
+  box-shadow: 0 8px 24px rgba(231, 95, 64, 0.4);
   border-color: var(--accent);
-  background: linear-gradient(135deg, rgba(125, 211, 252, 0.3) 0%, rgba(125, 211, 252, 0.2) 100%);
+  background: linear-gradient(135deg, rgba(231, 95, 64, 0.3) 0%, rgba(231, 95, 64, 0.2) 100%);
 }
 
 .pattern-options .option-btn:disabled {
@@ -4169,16 +4173,16 @@ body.final-game .rotate-to-fit-game .object-rotate-btn .keyboard-hint {
 }
 
 .pattern-options .option-btn.correct {
-  background: linear-gradient(135deg, rgba(134, 239, 172, 0.3) 0%, rgba(134, 239, 172, 0.2) 100%);
+  background: linear-gradient(135deg, rgba(63, 181, 127, 0.3) 0%, rgba(63, 181, 127, 0.2) 100%);
   border-color: var(--ok);
-  box-shadow: 0 0 20px rgba(134, 239, 172, 0.5);
+  box-shadow: 0 0 20px rgba(63, 181, 127, 0.5);
   animation: pulse 0.5s ease-in-out;
 }
 
 .pattern-options .option-btn.incorrect {
-  background: linear-gradient(135deg, rgba(252, 165, 165, 0.3) 0%, rgba(252, 165, 165, 0.2) 100%);
+  background: linear-gradient(135deg, rgba(240, 112, 138, 0.3) 0%, rgba(240, 112, 138, 0.2) 100%);
   border-color: var(--warn);
-  box-shadow: 0 0 20px rgba(252, 165, 165, 0.5);
+  box-shadow: 0 0 20px rgba(240, 112, 138, 0.5);
   animation: shake 0.5s ease-in-out;
 }
 
@@ -4186,7 +4190,7 @@ body.final-game .rotate-to-fit-game .object-rotate-btn .keyboard-hint {
   position: absolute;
   top: 8px;
   right: 8px;
-  background: rgba(125, 211, 252, 0.2);
+  background: rgba(231, 95, 64, 0.2);
   border: 1px solid var(--accent);
   border-radius: 50%;
   width: 24px;
@@ -4212,17 +4216,17 @@ body.final-game .rotate-to-fit-game .object-rotate-btn .keyboard-hint {
 }
 
 .pattern-completion-game .game-feedback.correct {
-  background: linear-gradient(135deg, rgba(134, 239, 172, 0.2) 0%, rgba(134, 239, 172, 0.1) 100%);
-  border: 2px solid #86efac;
-  color: #86efac;
-  box-shadow: 0 6px 24px rgba(134, 239, 172, 0.4);
+  background: linear-gradient(135deg, rgba(63, 181, 127, 0.2) 0%, rgba(63, 181, 127, 0.1) 100%);
+  border: 2px solid #3fb57f;
+  color: #3fb57f;
+  box-shadow: 0 6px 24px rgba(63, 181, 127, 0.4);
 }
 
 .pattern-completion-game .game-feedback.wrong {
-  background: linear-gradient(135deg, rgba(252, 165, 165, 0.2) 0%, rgba(252, 165, 165, 0.1) 100%);
+  background: linear-gradient(135deg, rgba(240, 112, 138, 0.2) 0%, rgba(240, 112, 138, 0.1) 100%);
   border: 2px solid var(--warn);
   color: var(--warn);
-  box-shadow: 0 6px 24px rgba(252, 165, 165, 0.4);
+  box-shadow: 0 6px 24px rgba(240, 112, 138, 0.4);
 }
 
 .pattern-completion-game .feedback-icon {
@@ -4285,10 +4289,10 @@ body.final-game .rotate-to-fit-game .object-rotate-btn .keyboard-hint {
 }
 
 .maze-escape-game .game-feedback.correct {
-  background: linear-gradient(135deg, rgba(134, 239, 172, 0.2) 0%, rgba(134, 239, 172, 0.1) 100%);
-  border: 2px solid #86efac;
-  color: #86efac;
-  box-shadow: 0 6px 24px rgba(134, 239, 172, 0.4);
+  background: linear-gradient(135deg, rgba(63, 181, 127, 0.2) 0%, rgba(63, 181, 127, 0.1) 100%);
+  border: 2px solid #3fb57f;
+  color: #3fb57f;
+  box-shadow: 0 6px 24px rgba(63, 181, 127, 0.4);
 }
 
 .maze-escape-game .feedback-icon {
@@ -4355,9 +4359,9 @@ body.final-game .rotate-to-fit-game .object-rotate-btn .keyboard-hint {
 }
 
 .maze-cell.clickable:hover {
-  background: linear-gradient(135deg, rgba(125, 211, 252, 0.3) 0%, rgba(125, 211, 252, 0.15) 100%) !important;
-  border: 2px solid rgba(125, 211, 252, 0.5) !important;
-  box-shadow: 0 0 15px rgba(125, 211, 252, 0.5), inset 0 0 10px rgba(125, 211, 252, 0.2) !important;
+  background: linear-gradient(135deg, rgba(231, 95, 64, 0.3) 0%, rgba(231, 95, 64, 0.15) 100%) !important;
+  border: 2px solid rgba(231, 95, 64, 0.5) !important;
+  box-shadow: 0 0 15px rgba(231, 95, 64, 0.5), inset 0 0 10px rgba(231, 95, 64, 0.2) !important;
   transform: scale(1.08);
   z-index: 20;
 }
@@ -4370,7 +4374,7 @@ body.final-game .rotate-to-fit-game .object-rotate-btn .keyboard-hint {
   transform: translate(-50%, -50%);
   width: 40%;
   height: 40%;
-  background: rgba(125, 211, 252, 0.3);
+  background: rgba(231, 95, 64, 0.3);
   border-radius: 50%;
   animation: clickablePulse 1s ease-in-out infinite;
 }
@@ -4390,8 +4394,8 @@ body.final-game .rotate-to-fit-game .object-rotate-btn .keyboard-hint {
 }
 
 .maze-cell.trail {
-  background: linear-gradient(135deg, rgba(125, 211, 252, 0.15) 0%, rgba(125, 211, 252, 0.08) 100%);
-  border: 1px solid rgba(125, 211, 252, 0.2);
+  background: linear-gradient(135deg, rgba(231, 95, 64, 0.15) 0%, rgba(231, 95, 64, 0.08) 100%);
+  border: 1px solid rgba(231, 95, 64, 0.2);
   position: relative;
 }
 
@@ -4404,7 +4408,7 @@ body.final-game .rotate-to-fit-game .object-rotate-btn .keyboard-hint {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  box-shadow: 0 0 8px rgba(125, 211, 252, 0.6);
+  box-shadow: 0 0 8px rgba(231, 95, 64, 0.6);
   animation: trailPulse 1.5s ease-in-out infinite;
 }
 
@@ -4423,25 +4427,25 @@ body.final-game .rotate-to-fit-game .object-rotate-btn .keyboard-hint {
 }
 
 .maze-cell.player {
-  background: linear-gradient(135deg, rgba(125, 211, 252, 0.4) 0%, rgba(125, 211, 252, 0.2) 100%);
+  background: linear-gradient(135deg, rgba(231, 95, 64, 0.4) 0%, rgba(231, 95, 64, 0.2) 100%);
   border: 2px solid var(--accent);
-  box-shadow: 0 0 20px rgba(125, 211, 252, 0.5), inset 0 0 10px rgba(125, 211, 252, 0.2);
+  box-shadow: 0 0 20px rgba(231, 95, 64, 0.5), inset 0 0 10px rgba(231, 95, 64, 0.2);
   animation: playerPulse 1.5s ease-in-out infinite;
   z-index: 10;
 }
 
 .maze-cell.exit {
-  background: linear-gradient(135deg, rgba(34, 197, 94, 0.4) 0%, rgba(34, 197, 94, 0.2) 100%);
+  background: linear-gradient(135deg, rgba(63, 181, 127, 0.4) 0%, rgba(63, 181, 127, 0.2) 100%);
   border: 2px solid #22c55e;
-  box-shadow: 0 0 20px rgba(34, 197, 94, 0.5), inset 0 0 10px rgba(34, 197, 94, 0.2);
+  box-shadow: 0 0 20px rgba(63, 181, 127, 0.5), inset 0 0 10px rgba(63, 181, 127, 0.2);
   animation: exitPulse 2s ease-in-out infinite;
   z-index: 5;
 }
 
 .maze-cell.start {
-  background: linear-gradient(135deg, rgba(34, 197, 94, 0.4) 0%, rgba(34, 197, 94, 0.2) 100%);
+  background: linear-gradient(135deg, rgba(63, 181, 127, 0.4) 0%, rgba(63, 181, 127, 0.2) 100%);
   border: 2px solid #22c55e;
-  box-shadow: 0 0 20px rgba(34, 197, 94, 0.5), inset 0 0 10px rgba(34, 197, 94, 0.2);
+  box-shadow: 0 0 20px rgba(63, 181, 127, 0.5), inset 0 0 10px rgba(63, 181, 127, 0.2);
   z-index: 5;
 }
 
@@ -4457,7 +4461,7 @@ body.final-game .rotate-to-fit-game .object-rotate-btn .keyboard-hint {
   width: 60%;
   height: 60%;
   color: var(--accent);
-  filter: drop-shadow(0 0 4px rgba(125, 211, 252, 0.8));
+  filter: drop-shadow(0 0 4px rgba(231, 95, 64, 0.8));
 }
 
 .exit-marker {
@@ -4472,15 +4476,15 @@ body.final-game .rotate-to-fit-game .object-rotate-btn .keyboard-hint {
   width: 60%;
   height: 60%;
   color: #22c55e;
-  filter: drop-shadow(0 0 4px rgba(34, 197, 94, 0.8));
+  filter: drop-shadow(0 0 4px rgba(63, 181, 127, 0.8));
 }
 
 .start-marker {
   width: 100%;
   height: 100%;
-  background: linear-gradient(135deg, rgba(34, 197, 94, 0.4) 0%, rgba(34, 197, 94, 0.2) 100%);
+  background: linear-gradient(135deg, rgba(63, 181, 127, 0.4) 0%, rgba(63, 181, 127, 0.2) 100%);
   border: 2px solid #22c55e;
-  box-shadow: 0 0 20px rgba(34, 197, 94, 0.5), inset 0 0 10px rgba(34, 197, 94, 0.2);
+  box-shadow: 0 0 20px rgba(63, 181, 127, 0.5), inset 0 0 10px rgba(63, 181, 127, 0.2);
 
 }
 
@@ -4489,12 +4493,12 @@ body.final-game .rotate-to-fit-game .object-rotate-btn .keyboard-hint {
   0%,
   100% {
     transform: scale(1);
-    box-shadow: 0 0 20px rgba(125, 211, 252, 0.5), inset 0 0 10px rgba(125, 211, 252, 0.2);
+    box-shadow: 0 0 20px rgba(231, 95, 64, 0.5), inset 0 0 10px rgba(231, 95, 64, 0.2);
   }
 
   50% {
     transform: scale(1.05);
-    box-shadow: 0 0 30px rgba(125, 211, 252, 0.7), inset 0 0 15px rgba(125, 211, 252, 0.3);
+    box-shadow: 0 0 30px rgba(231, 95, 64, 0.7), inset 0 0 15px rgba(231, 95, 64, 0.3);
   }
 }
 
@@ -4503,12 +4507,12 @@ body.final-game .rotate-to-fit-game .object-rotate-btn .keyboard-hint {
   0%,
   100% {
     transform: scale(1);
-    box-shadow: 0 0 20px rgba(34, 197, 94, 0.5), inset 0 0 10px rgba(34, 197, 94, 0.2);
+    box-shadow: 0 0 20px rgba(63, 181, 127, 0.5), inset 0 0 10px rgba(63, 181, 127, 0.2);
   }
 
   50% {
     transform: scale(1.05);
-    box-shadow: 0 0 30px rgba(34, 197, 94, 0.7), inset 0 0 15px rgba(34, 197, 94, 0.3);
+    box-shadow: 0 0 30px rgba(63, 181, 127, 0.7), inset 0 0 15px rgba(63, 181, 127, 0.3);
   }
 }
 
@@ -4550,7 +4554,7 @@ body.final-game .rotate-to-fit-game .object-rotate-btn .keyboard-hint {
 .solution-preview {
   margin: 20px 0;
   padding: 20px;
-  background: linear-gradient(135deg, rgba(125, 211, 252, 0.08) 0%, rgba(125, 211, 252, 0.04) 100%);
+  background: linear-gradient(135deg, rgba(231, 95, 64, 0.08) 0%, rgba(231, 95, 64, 0.04) 100%);
   border: 2px solid var(--stroke);
 
   backdrop-filter: blur(10px);
@@ -4635,7 +4639,7 @@ body.final-game .rotate-to-fit-game .object-rotate-btn .keyboard-hint {
   flex-direction: column;
   gap: 16px;
   padding: 20px;
-  background: linear-gradient(135deg, rgba(125, 211, 252, 0.1) 0%, rgba(125, 211, 252, 0.05) 100%);
+  background: linear-gradient(135deg, rgba(231, 95, 64, 0.1) 0%, rgba(231, 95, 64, 0.05) 100%);
   border: 2px solid var(--stroke);
 
   backdrop-filter: blur(10px);
@@ -4654,7 +4658,7 @@ body.final-game .rotate-to-fit-game .object-rotate-btn .keyboard-hint {
   font-weight: 700;
   color: var(--text);
   margin: 0;
-  background: linear-gradient(135deg, var(--accent) 0%, var(--ok) 100%);
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -4729,7 +4733,7 @@ body.final-game .rotate-to-fit-game .object-rotate-btn .keyboard-hint {
   flex-direction: column;
   gap: 16px;
   padding: 24px;
-  background: linear-gradient(135deg, rgba(125, 211, 252, 0.08) 0%, rgba(125, 211, 252, 0.04) 100%);
+  background: linear-gradient(135deg, rgba(231, 95, 64, 0.08) 0%, rgba(231, 95, 64, 0.04) 100%);
   border: 2px solid var(--stroke);
 
   backdrop-filter: blur(10px);
@@ -4738,31 +4742,31 @@ body.final-game .rotate-to-fit-game .object-rotate-btn .keyboard-hint {
 .object-item:has(.rotatable-shape.correct),
 .object-item.correct {
   border-color: var(--ok);
-  background: linear-gradient(135deg, rgba(134, 239, 172, 0.1) 0%, rgba(134, 239, 172, 0.05) 100%);
+  background: linear-gradient(135deg, rgba(63, 181, 127, 0.1) 0%, rgba(63, 181, 127, 0.05) 100%);
 }
 
 .object-item.selected {
   border-color: var(--accent);
-  background: linear-gradient(135deg, rgba(125, 211, 252, 0.2) 0%, rgba(125, 211, 252, 0.1) 100%);
-  box-shadow: 0 0 0 3px rgba(125, 211, 252, 0.3);
+  background: linear-gradient(135deg, rgba(231, 95, 64, 0.2) 0%, rgba(231, 95, 64, 0.1) 100%);
+  box-shadow: 0 0 0 3px rgba(231, 95, 64, 0.3);
   animation: selectedPulse 2s ease-in-out infinite;
 }
 
 .object-item.selected.correct {
   border-color: var(--ok);
-  background: linear-gradient(135deg, rgba(134, 239, 172, 0.15) 0%, rgba(134, 239, 172, 0.08) 100%);
-  box-shadow: 0 0 0 3px rgba(134, 239, 172, 0.3);
+  background: linear-gradient(135deg, rgba(63, 181, 127, 0.15) 0%, rgba(63, 181, 127, 0.08) 100%);
+  box-shadow: 0 0 0 3px rgba(63, 181, 127, 0.3);
 }
 
 @keyframes selectedPulse {
 
   0%,
   100% {
-    box-shadow: 0 0 0 3px rgba(125, 211, 252, 0.3);
+    box-shadow: 0 0 0 3px rgba(231, 95, 64, 0.3);
   }
 
   50% {
-    box-shadow: 0 0 0 6px rgba(125, 211, 252, 0.2);
+    box-shadow: 0 0 0 6px rgba(231, 95, 64, 0.2);
   }
 }
 
@@ -4828,7 +4832,7 @@ body.final-game .rotate-to-fit-game .object-rotate-btn .keyboard-hint {
   font-size: 0.85rem;
   font-weight: 600;
   color: var(--text);
-  background: linear-gradient(135deg, rgba(125, 211, 252, 0.15) 0%, rgba(125, 211, 252, 0.08) 100%);
+  background: linear-gradient(135deg, rgba(231, 95, 64, 0.15) 0%, rgba(231, 95, 64, 0.08) 100%);
   border: 2px solid var(--stroke);
 
   cursor: pointer;
@@ -4836,10 +4840,10 @@ body.final-game .rotate-to-fit-game .object-rotate-btn .keyboard-hint {
 }
 
 .object-rotate-btn:hover {
-  background: linear-gradient(135deg, rgba(125, 211, 252, 0.25) 0%, rgba(125, 211, 252, 0.15) 100%);
+  background: linear-gradient(135deg, rgba(231, 95, 64, 0.25) 0%, rgba(231, 95, 64, 0.15) 100%);
   border-color: var(--accent);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(125, 211, 252, 0.3);
+  box-shadow: 0 4px 12px rgba(231, 95, 64, 0.3);
 }
 
 .object-rotate-btn:active {
@@ -4865,7 +4869,7 @@ body.final-game .rotate-to-fit-game .object-rotate-btn .keyboard-hint {
 .object-rotate-btn .keyboard-hint {
   font-size: 0.7rem;
   color: var(--accent);
-  background: rgba(125, 211, 252, 0.2);
+  background: rgba(231, 95, 64, 0.2);
   padding: 2px 6px;
 
   margin-top: 2px;
@@ -4913,7 +4917,7 @@ body.final-game .rotate-to-fit-game .object-rotate-btn .keyboard-hint {
 
 .target-outline {
   border-color: var(--accent);
-  background: linear-gradient(135deg, rgba(125, 211, 252, 0.1) 0%, rgba(125, 211, 252, 0.05) 100%);
+  background: linear-gradient(135deg, rgba(231, 95, 64, 0.1) 0%, rgba(231, 95, 64, 0.05) 100%);
 }
 
 .target-shape,
@@ -4984,18 +4988,18 @@ body.final-game .rotate-to-fit-game .object-rotate-btn .keyboard-hint {
   font-size: 1rem;
   font-weight: 600;
   color: var(--text);
-  background: linear-gradient(135deg, rgba(125, 211, 252, 0.2) 0%, rgba(125, 211, 252, 0.1) 100%);
+  background: linear-gradient(135deg, rgba(231, 95, 64, 0.2) 0%, rgba(231, 95, 64, 0.1) 100%);
   border: 2px solid var(--accent);
 
   cursor: pointer;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 12px rgba(125, 211, 252, 0.3);
+  box-shadow: 0 4px 12px rgba(231, 95, 64, 0.3);
 }
 
 .rotate-button:hover {
-  background: linear-gradient(135deg, rgba(125, 211, 252, 0.3) 0%, rgba(125, 211, 252, 0.2) 100%);
+  background: linear-gradient(135deg, rgba(231, 95, 64, 0.3) 0%, rgba(231, 95, 64, 0.2) 100%);
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(125, 211, 252, 0.4);
+  box-shadow: 0 6px 20px rgba(231, 95, 64, 0.4);
 }
 
 .rotate-button:active {
@@ -5018,7 +5022,7 @@ body.final-game .rotate-to-fit-game .object-rotate-btn .keyboard-hint {
   font-size: 0.9rem;
   font-weight: 600;
   color: var(--text);
-  background: linear-gradient(135deg, rgba(125, 211, 252, 0.15) 0%, rgba(125, 211, 252, 0.08) 100%);
+  background: linear-gradient(135deg, rgba(231, 95, 64, 0.15) 0%, rgba(231, 95, 64, 0.08) 100%);
   border: 2px solid var(--stroke);
 
   cursor: pointer;
@@ -5026,10 +5030,10 @@ body.final-game .rotate-to-fit-game .object-rotate-btn .keyboard-hint {
 }
 
 .rotate-direction-btn:hover {
-  background: linear-gradient(135deg, rgba(125, 211, 252, 0.25) 0%, rgba(125, 211, 252, 0.15) 100%);
+  background: linear-gradient(135deg, rgba(231, 95, 64, 0.25) 0%, rgba(231, 95, 64, 0.15) 100%);
   border-color: var(--accent);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(125, 211, 252, 0.3);
+  box-shadow: 0 4px 12px rgba(231, 95, 64, 0.3);
 }
 
 .rotate-direction-btn:active {
@@ -5047,10 +5051,10 @@ body.final-game .rotate-to-fit-game .object-rotate-btn .keyboard-hint {
   align-items: center;
   gap: 16px;
   padding: 20px 32px;
-  background: linear-gradient(135deg, rgba(134, 239, 172, 0.25) 0%, rgba(134, 239, 172, 0.15) 100%);
+  background: linear-gradient(135deg, rgba(63, 181, 127, 0.25) 0%, rgba(63, 181, 127, 0.15) 100%);
   border: 2px solid var(--ok);
 
-  box-shadow: 0 8px 32px rgba(134, 239, 172, 0.4);
+  box-shadow: 0 8px 32px rgba(63, 181, 127, 0.4);
   animation: slideUp 0.4s ease, pulse 2s ease-in-out infinite;
   backdrop-filter: blur(10px);
 }
@@ -5076,7 +5080,7 @@ body.final-game .rotate-to-fit-game .object-rotate-btn .keyboard-hint {
 
 .success-message {
   font-size: 1rem;
-  color: rgba(134, 239, 172, 0.9);
+  color: rgba(63, 181, 127, 0.9);
 }
 
 .rotate-to-fit-game .game-feedback {
@@ -5092,17 +5096,17 @@ body.final-game .rotate-to-fit-game .object-rotate-btn .keyboard-hint {
 }
 
 .rotate-to-fit-game .game-feedback.correct {
-  background: linear-gradient(135deg, rgba(134, 239, 172, 0.2) 0%, rgba(134, 239, 172, 0.1) 100%);
-  border: 2px solid #86efac;
-  color: #86efac;
-  box-shadow: 0 6px 24px rgba(134, 239, 172, 0.4);
+  background: linear-gradient(135deg, rgba(63, 181, 127, 0.2) 0%, rgba(63, 181, 127, 0.1) 100%);
+  border: 2px solid #3fb57f;
+  color: #3fb57f;
+  box-shadow: 0 6px 24px rgba(63, 181, 127, 0.4);
 }
 
 .rotate-to-fit-game .game-feedback.wrong {
-  background: linear-gradient(135deg, rgba(252, 165, 165, 0.2) 0%, rgba(252, 165, 165, 0.1) 100%);
+  background: linear-gradient(135deg, rgba(240, 112, 138, 0.2) 0%, rgba(240, 112, 138, 0.1) 100%);
   border: 2px solid var(--warn);
   color: var(--warn);
-  box-shadow: 0 6px 24px rgba(252, 165, 165, 0.4);
+  box-shadow: 0 6px 24px rgba(240, 112, 138, 0.4);
 }
 
 .rotate-to-fit-game .feedback-icon {
@@ -5189,7 +5193,7 @@ body.final-game .rotate-to-fit-game .object-rotate-btn .keyboard-hint {
   flex-direction: column;
   gap: 16px;
   padding: 20px;
-  background: linear-gradient(135deg, rgba(125, 211, 252, 0.1) 0%, rgba(125, 211, 252, 0.05) 100%);
+  background: linear-gradient(135deg, rgba(231, 95, 64, 0.1) 0%, rgba(231, 95, 64, 0.05) 100%);
   border: 2px solid var(--stroke);
 
   backdrop-filter: blur(10px);
@@ -5209,7 +5213,7 @@ body.final-game .rotate-to-fit-game .object-rotate-btn .keyboard-hint {
   font-weight: 700;
   color: var(--text);
   margin: 0;
-  background: linear-gradient(135deg, var(--accent) 0%, var(--ok) 100%);
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -5293,7 +5297,7 @@ body.final-game .rotate-to-fit-game .object-rotate-btn .keyboard-hint {
   justify-content: center;
   width: 160px;
   height: 160px;
-  background: linear-gradient(135deg, rgba(125, 211, 252, 0.1) 0%, rgba(125, 211, 252, 0.05) 100%);
+  background: linear-gradient(135deg, rgba(231, 95, 64, 0.1) 0%, rgba(231, 95, 64, 0.05) 100%);
   border: 2px dashed var(--accent);
 
   color: var(--accent);
@@ -5309,7 +5313,7 @@ body.final-game .rotate-to-fit-game .object-rotate-btn .keyboard-hint {
 
 .mirror-type-badge {
   padding: 4px 12px;
-  background: rgba(125, 211, 252, 0.15);
+  background: rgba(231, 95, 64, 0.15);
   border: 1px solid var(--accent);
 
   color: var(--accent);
@@ -5350,21 +5354,21 @@ body.final-game .rotate-to-fit-game .object-rotate-btn .keyboard-hint {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, var(--accent) 0%, rgba(125, 211, 252, 0.8) 100%);
+  background: linear-gradient(135deg, var(--accent) 0%, rgba(231, 95, 64, 0.8) 100%);
   border: 2px solid var(--accent);
   border-radius: 50%;
   color: var(--text);
   font-weight: 700;
   font-size: 1rem;
-  box-shadow: 0 4px 12px rgba(125, 211, 252, 0.3);
+  box-shadow: 0 4px 12px rgba(231, 95, 64, 0.3);
   z-index: 1;
 }
 
 .mirror-option:hover:not(:disabled) {
   border-color: var(--accent);
-  background: rgba(125, 211, 252, 0.1);
+  background: rgba(231, 95, 64, 0.1);
   transform: translateY(-4px);
-  box-shadow: 0 8px 20px rgba(125, 211, 252, 0.2);
+  box-shadow: 0 8px 20px rgba(231, 95, 64, 0.2);
 }
 
 .mirror-option:disabled {
@@ -5374,20 +5378,20 @@ body.final-game .rotate-to-fit-game .object-rotate-btn .keyboard-hint {
 
 .mirror-option.selected {
   border-color: var(--accent);
-  background: rgba(125, 211, 252, 0.15);
-  box-shadow: 0 0 0 3px rgba(125, 211, 252, 0.2);
+  background: rgba(231, 95, 64, 0.15);
+  box-shadow: 0 0 0 3px rgba(231, 95, 64, 0.2);
 }
 
 .mirror-option.correct {
   border-color: var(--ok);
-  background: rgba(134, 239, 172, 0.15);
-  box-shadow: 0 0 0 3px rgba(134, 239, 172, 0.2);
+  background: rgba(63, 181, 127, 0.15);
+  box-shadow: 0 0 0 3px rgba(63, 181, 127, 0.2);
 }
 
 .mirror-option.wrong {
   border-color: var(--warn);
-  background: rgba(252, 165, 165, 0.15);
-  box-shadow: 0 0 0 3px rgba(252, 165, 165, 0.2);
+  background: rgba(240, 112, 138, 0.15);
+  box-shadow: 0 0 0 3px rgba(240, 112, 138, 0.2);
 }
 
 .option-shape {
@@ -5435,10 +5439,10 @@ body.final-game .rotate-to-fit-game .object-rotate-btn .keyboard-hint {
 }
 
 .mirror-match-game .game-feedback.wrong {
-  background: linear-gradient(135deg, rgba(252, 165, 165, 0.2) 0%, rgba(252, 165, 165, 0.1) 100%);
+  background: linear-gradient(135deg, rgba(240, 112, 138, 0.2) 0%, rgba(240, 112, 138, 0.1) 100%);
   border: 2px solid var(--warn);
   color: var(--warn);
-  box-shadow: 0 6px 24px rgba(252, 165, 165, 0.4);
+  box-shadow: 0 6px 24px rgba(240, 112, 138, 0.4);
 }
 
 .mirror-match-game .game-feedback .feedback-icon {
@@ -5586,7 +5590,7 @@ body.final-game .rotate-to-fit-game .object-rotate-btn .keyboard-hint {
 .form-group input:focus {
   outline: none;
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(125, 211, 252, 0.1);
+  box-shadow: 0 0 0 3px rgba(231, 95, 64, 0.1);
 }
 
 .form-group small {
@@ -5598,7 +5602,7 @@ body.final-game .rotate-to-fit-game .object-rotate-btn .keyboard-hint {
 .btn-primary {
   width: 100%;
   padding: 0.75rem 1.5rem;
-  background: linear-gradient(135deg, var(--accent), var(--secondary));
+  background: linear-gradient(135deg, var(--accent), var(--accent));
   color: var(--bg);
   border: none;
 
@@ -5606,12 +5610,12 @@ body.final-game .rotate-to-fit-game .object-rotate-btn .keyboard-hint {
   font-weight: 650;
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 4px 12px rgba(125, 211, 252, 0.2);
+  box-shadow: 0 4px 12px rgba(231, 95, 64, 0.2);
 }
 
 .btn-primary:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(125, 211, 252, 0.3);
+  box-shadow: 0 8px 20px rgba(231, 95, 64, 0.3);
 }
 
 .btn-primary:disabled {
@@ -5621,8 +5625,8 @@ body.final-game .rotate-to-fit-game .object-rotate-btn .keyboard-hint {
 
 .error-message {
   padding: 0.75rem;
-  background-color: rgba(252, 165, 165, 0.1);
-  border: 1px solid rgba(252, 165, 165, 0.3);
+  background-color: rgba(240, 112, 138, 0.1);
+  border: 1px solid rgba(240, 112, 138, 0.3);
 
   color: var(--warn);
   margin-bottom: 1rem;
@@ -5704,8 +5708,8 @@ body.final-game .rotate-to-fit-game .object-rotate-btn .keyboard-hint {
 
 .verify-form button {
   padding: 12px 24px;
-  background-color: rgba(125, 211, 252, 0.14);
-  border: 1px solid rgba(125, 211, 252, 0.35);
+  background-color: rgba(231, 95, 64, 0.14);
+  border: 1px solid rgba(231, 95, 64, 0.35);
   border-radius: 8px;
   color: var(--text);
   font-size: 14px;
@@ -5715,8 +5719,8 @@ body.final-game .rotate-to-fit-game .object-rotate-btn .keyboard-hint {
 }
 
 .verify-form button:hover:not(:disabled) {
-  background-color: rgba(125, 211, 252, 0.24);
-  border-color: rgba(125, 211, 252, 0.5);
+  background-color: rgba(231, 95, 64, 0.24);
+  border-color: rgba(231, 95, 64, 0.5);
 }
 
 .verify-form button:disabled {
@@ -5927,8 +5931,14 @@ body.final-game .rotate-to-fit-game .object-rotate-btn .keyboard-hint {
 
 .success-message {
   padding: 16px;
-  background-color: rgba(134, 239, 172, 0.15);
-  border: 1px solid rgba(134, 239, 172, 0.3);
+  background-color: rgba(63, 181, 127, 0.15);
+  border: 1px solid rgba(63, 181, 127, 0.3);
   border-radius: 8px;
   color: var(--ok);
+}
+
+/* the cookie banner's height while it is up (PrivacyConsent sets --cookie-banner-h on <html>): the end of
+   every page can scroll clear of it; 0 once it is answered */
+body {
+  padding-bottom: var(--cookie-banner-h, 0px);
 }

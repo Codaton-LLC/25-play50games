@@ -73,7 +73,7 @@ describe("warehouse-rush levels: declarations", () => {
 
    it("each level's clock, lighting and order chip come from its config", () => {
       for (const id of LEVEL_IDS) expect(levelRunConfig(definition, id).durationMs).toBe(LEVELS[id].durationMs);
-      expect(LEVEL_IDS.map((id) => levelEnvironment(definition, id)!.lighting)).toEqual(["indoor", "day", "sunset", "night", "sunset"]);
+      expect(LEVEL_IDS.map((id) => levelEnvironment(definition, id)!.lighting)).toEqual(["indoor", "day", "sunset", "indoor", "night"]);
       // the deadline counts down in the order panel, not in a chip under it
       for (const id of LEVEL_IDS) expect(levelHudStats(definition, id)).toEqual(levelHudStats(definition, 1));
       expect(levelHudStats(definition, 2)).toEqual(levelHudStats(definition, 1));

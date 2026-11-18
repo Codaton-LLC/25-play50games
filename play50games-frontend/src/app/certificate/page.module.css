@@ -1,0 +1,230 @@
+/* Certificate: the state block of /certificate and the certificate itself (/certificate/[id]).
+   Trophy Gold belongs here: it is the reward of the Classic 50 path. */
+
+.state {
+   display: flex;
+   flex-direction: column;
+   align-items: flex-start;
+   gap: 12px;
+}
+
+.medal {
+   display: grid;
+   flex: none;
+   place-items: center;
+   width: 56px;
+   height: 56px;
+   margin-bottom: 6px;
+   border: 2px solid var(--p50-gold);
+   border-radius: 50%;
+   color: var(--p50-gold-text);
+}
+
+.medal svg {
+   width: 28px;
+   height: 28px;
+}
+
+.medalOn {
+   background: var(--p50-gold);
+   color: var(--p50-on-coral);
+}
+
+.title {
+   color: var(--p50-text);
+   font: 600 1.625rem/1.15 var(--p50-font-display);
+   letter-spacing: -0.02em;
+}
+
+.text {
+   max-width: 46ch;
+   color: var(--p50-text-2);
+}
+
+.name {
+   width: 100%;
+   margin-top: 8px;
+   padding-block: 18px;
+   border-block: 1px solid var(--p50-line);
+   color: var(--p50-text);
+   font: 700 clamp(2rem, 3.6vw, 3rem)/1.05 var(--p50-font-display);
+   letter-spacing: -0.03em;
+   overflow-wrap: anywhere;
+}
+
+.note {
+   color: var(--p50-text-3);
+   font-size: 0.875rem;
+}
+
+.progress {
+   display: grid;
+   gap: 10px;
+   width: 100%;
+   margin-top: 4px;
+}
+
+.count {
+   color: var(--p50-text);
+   font: 600 1.125rem/1 var(--p50-font-mono);
+   font-variant-numeric: tabular-nums;
+}
+
+.count span {
+   color: var(--p50-text-2);
+   font: 400 0.875rem/1 var(--p50-font-body);
+}
+
+.actions {
+   display: flex;
+   flex-wrap: wrap;
+   gap: 10px;
+   margin-top: 8px;
+}
+
+.generate:disabled,
+.generate:disabled:hover {
+   background: var(--p50-coral);
+}
+
+/* ---------- the certificate itself ---------- */
+
+.doc {
+   display: flex;
+   flex-direction: column;
+   align-items: center;
+   gap: 14px;
+   width: 100%;
+   max-width: 880px;
+   margin-inline: auto;
+   padding: clamp(28px, 6vw, 64px) clamp(20px, 5vw, 56px);
+   border: 1px solid var(--p50-line);
+   border-radius: 28px;
+   background: var(--p50-surface);
+   box-shadow: var(--p50-shadow), var(--p50-edge);
+   text-align: center;
+}
+
+.docTitle {
+   color: var(--p50-text);
+   font: 700 clamp(1.75rem, 3.6vw, 2.5rem)/1.05 var(--p50-font-display);
+   letter-spacing: -0.03em;
+}
+
+.docText {
+   max-width: 48ch;
+   color: var(--p50-text-2);
+}
+
+.docName {
+   width: 100%;
+   padding-block: 20px;
+   border-block: 1px solid var(--p50-line);
+   color: var(--p50-gold-text);
+   font: 700 clamp(2.25rem, 5.2vw, 4rem)/1.02 var(--p50-font-display);
+   letter-spacing: -0.035em;
+   overflow-wrap: anywhere;
+}
+
+.details {
+   display: grid;
+   grid-template-columns: repeat(3, minmax(0, 1fr));
+   width: 100%;
+   margin-top: 10px;
+}
+
+.details > div {
+   display: flex;
+   flex-direction: column;
+   gap: 8px;
+   padding: 6px 12px;
+   border-left: 1px solid var(--p50-line);
+}
+
+.details > div:first-child {
+   border-left: 0;
+}
+
+.details dt {
+   color: var(--p50-text-3);
+   font: 600 0.75rem/1.2 var(--p50-font-body);
+   letter-spacing: 0.08em;
+   text-transform: uppercase;
+}
+
+.details dd {
+   color: var(--p50-text);
+   font: 600 1.25rem/1.2 var(--p50-font-mono);
+   font-variant-numeric: tabular-nums;
+   overflow-wrap: anywhere;
+}
+
+.qr {
+   display: flex;
+   flex-direction: column;
+   align-items: center;
+   gap: 6px;
+   margin-top: 10px;
+   color: var(--p50-text);
+}
+
+.qrHint {
+   color: var(--p50-text-3);
+   font-size: 0.875rem;
+}
+
+.docId {
+   color: var(--p50-text-2);
+   font-size: 0.875rem;
+}
+
+.docId span {
+   color: var(--p50-text);
+   font: 500 0.875rem/1 var(--p50-font-mono);
+}
+
+.brand {
+   display: flex;
+   flex-direction: column;
+   align-items: center;
+   gap: 4px;
+   margin-top: 12px;
+   padding-top: 18px;
+   border-top: 1px solid var(--p50-line);
+   width: 100%;
+   color: var(--p50-text-3);
+   font-size: 0.875rem;
+}
+
+.brand strong {
+   color: var(--p50-text);
+   font: 700 1.125rem/1 var(--p50-font-display);
+   letter-spacing: -0.02em;
+}
+
+.docActions {
+   display: flex;
+   flex-wrap: wrap;
+   justify-content: center;
+   gap: 10px;
+}
+
+.missing {
+   display: flex;
+   flex-direction: column;
+   align-items: flex-start;
+   gap: 12px;
+   max-width: 560px;
+}
+
+@media (max-width: 520px) {
+   .details {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 14px;
+   }
+
+   .details > div {
+      padding: 0;
+      border-left: 0;
+   }
+}

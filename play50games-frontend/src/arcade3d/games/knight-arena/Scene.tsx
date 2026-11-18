@@ -1,5 +1,9 @@
 "use client";
 
+import { TargetBeacon } from "@/arcade3d/core/hud/TargetBeacon";
+import { useActionPop } from "@/arcade3d/core/fx/actionPop";
+import { GUIDE, hintFor, nextTarget } from "./guide";
+import { HintLine } from "@/arcade3d/core/hud/HintLine";
 import { useFrame } from "@react-three/fiber";
 import React, { useEffect, useRef, useSyncExternalStore } from "react";
 import type { Group, Object3D } from "three";
@@ -43,6 +47,7 @@ import {
    POSTS,
    SPIN,
    stepRun,
+   travelXZ,
    type StrikeDir,
 } from "./rules";
 
@@ -120,6 +125,8 @@ function ArenaPlay(): React.ReactElement {
    const muted = useMuted();
    const input = useInput();
    const fx = useFx();
+   const pop = useActionPop();
+   const beacon = useRef({ x: 0, y: 1.5, z: 0, hidden: true }).current;
    const gameTime = useGameTime();
 
    const view = useFittedView({
@@ -144,6 +151,7 @@ function ArenaPlay(): React.ReactElement {
       fx.warm("sparks", "confetti", "puff", "score");
       const store = arcadeStore.getState();
       const run = runRef.current;
+      GUIDE.set(hintFor(run));
       store.setStat("combo", 1);
       store.setStat("spin", 0);
       store.setStat("bpm", run.bpm);
@@ -184,6 +192,10 @@ function ArenaPlay(): React.ReactElement {
       const prevStreak = run.streak;
 
       stepRun(run, { strikeDir, spin }, dt, time);
+      GUIDE.set(hintFor(run));
+      const cue = nextTarget(run);
+      beacon.hidden = !cue || cue.kind === "tomato";
+      if (cue) travelXZ(cue, run.timeMs, beacon);
 
       // Optional Metronome click on each beat
       if (hudStore.getState().metronome) {
@@ -253,12 +265,14 @@ function ArenaPlay(): React.ReactElement {
          } else if (ev.kind === "tomatoHit") {
             fx.burst("puff", { x: post.x, y: 1.0, z: post.z }, 14);
             fx.shake(0.35);
-            fx.score(scorePos, `${ev.points}`, { color: COLORS.tomato });
+            pop.fail(scorePos, `Tomato ${ev.points}`, { shake: 0 });
             playSfx("splash", { pitch: 0.85 });
             playSfx("buzz", { pitch: 0.9 });
          } else if (ev.kind === "whiff") {
+            pop.fail({ x: 0, y: 1.8, z: 0 }, "Too early / empty", { shake: 0 });
             playSfx("whoosh", { pitch: 0.9, volume: 0.65 });
          } else if (ev.kind === "miss") {
+            pop.fail(scorePos, "Missed beat", { shake: 0 });
             fx.burst("puff", { x: post.x, y: 0.9, z: post.z }, 6);
          }
       }
@@ -303,7 +317,8 @@ function ArenaPlay(): React.ReactElement {
             offset={view.offset}
             shift={view.shift}
          />
-         <Arena />
+         <TargetBeacon target={beacon} radius={0.4} />
+         <Arena level={config.id} />
          <Dummies runRef={runRef} />
 
          <group ref={knightGroupRef}>
@@ -348,60 +363,62 @@ export function KnightArenaHud(): React.ReactElement {
    );
 
    return (
-      // below the shell's chip row; a right-hand column in phone landscape (Hud.module.css)
-      <div data-arcade-safe-area className={styles.panel}>
-         <span
-            style={{
-               padding: "4px 10px",
-               borderRadius: 999,
-               background: "rgba(15, 23, 42, 0.78)",
-               border: "1px solid rgba(248, 250, 252, 0.18)",
-               color: "#f8fafc",
-               fontSize: 12,
-               fontWeight: 700,
-               letterSpacing: "0.04em",
-            }}
-         >
-            STAGE {stage}/4
-         </span>
-
-         {spinReady && (
+      <>
+         <HintLine signal={GUIDE} />
+         <div data-arcade-safe-area className={styles.panel}>
             <span
-               role="status"
-               aria-live="polite"
                style={{
-                  padding: "5px 12px",
+                  padding: "4px 10px",
                   borderRadius: 999,
-                  background: "linear-gradient(90deg, #f59e0b, #facc15)",
-                  color: "#0f172a",
+                  background: "rgba(15, 23, 42, 0.78)",
+                  border: "1px solid rgba(248, 250, 252, 0.18)",
+                  color: "#f8fafc",
                   fontSize: 12,
-                  fontWeight: 800,
-                  letterSpacing: "0.05em",
-                  boxShadow: "0 0 14px rgba(250, 204, 21, 0.65)",
+                  fontWeight: 700,
+                  letterSpacing: "0.04em",
                }}
             >
-               SPIN READY! [SPACE / SPIN]
+               STAGE {stage}/4
             </span>
-         )}
 
-         <button
-            type="button"
-            onClick={() => hudStore.getState().toggleMetronome()}
-            aria-pressed={metronome}
-            title="Toggle beat metronome click (M)"
-            style={{
-               padding: "4px 10px",
-               borderRadius: 999,
-               background: metronome ? "rgba(37, 99, 235, 0.88)" : "rgba(15, 23, 42, 0.78)",
-               border: "1px solid rgba(248, 250, 252, 0.22)",
-               color: "#f8fafc",
-               fontSize: 12,
-               fontWeight: 600,
-               cursor: "pointer",
-            }}
-         >
-            Metronome [M]: {metronome ? "ON" : "OFF"}
-         </button>
-      </div>
+            {spinReady && (
+               <span
+                  role="status"
+                  aria-live="polite"
+                  style={{
+                     padding: "5px 12px",
+                     borderRadius: 999,
+                     background: "linear-gradient(90deg, #f59e0b, #facc15)",
+                     color: "#0f172a",
+                     fontSize: 12,
+                     fontWeight: 800,
+                     letterSpacing: "0.05em",
+                     boxShadow: "0 0 14px rgba(250, 204, 21, 0.65)",
+                  }}
+               >
+                  SPIN READY! [SPACE / SPIN]
+               </span>
+            )}
+
+            <button
+               type="button"
+               onClick={() => hudStore.getState().toggleMetronome()}
+               aria-pressed={metronome}
+               title="Toggle beat metronome click (M)"
+               style={{
+                  padding: "4px 10px",
+                  borderRadius: 999,
+                  background: metronome ? "rgba(37, 99, 235, 0.88)" : "rgba(15, 23, 42, 0.78)",
+                  border: "1px solid rgba(248, 250, 252, 0.22)",
+                  color: "#f8fafc",
+                  fontSize: 12,
+                  fontWeight: 600,
+                  cursor: "pointer",
+               }}
+            >
+               Metronome [M]: {metronome ? "ON" : "OFF"}
+            </button>
+         </div>
+      </>
    );
 }

@@ -124,8 +124,8 @@ export const SCORE = {
 } as const;
 
 /**
- * Proposed server limits (README "Server limits and why they hold"). meta.scoring stays the
- * provisional main value until Claude's go-live PR copies these into meta + arcade-games.json.
+ * Proven server limits (README "Server limits and why they hold"), served by meta.scoring and
+ * arcade-games.json.
  */
 export const PROPOSED_LIMITS: ScoringRules = {
    kind: "points",

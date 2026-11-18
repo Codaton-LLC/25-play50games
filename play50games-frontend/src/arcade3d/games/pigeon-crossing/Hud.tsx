@@ -21,7 +21,7 @@ export default function Hud() {
    return (
       <div className={styles.root}>
          <div className={styles.hint} role="status" aria-live="polite">
-            {reason ? <><strong>{reason === "size" ? "Make the window larger" : "Make the window wider"}</strong><span>Then press Resume to keep crossing.</span></> : <><strong>Watch the gaps</strong><span>{config.id === 1 ? "Get ready to hop. Grass is safe." : "Parked vans block outer grass. Wait in the centre."}</span></>}
+            {reason ? <><strong>{reason === "size" ? "Make the window larger" : "Make the window wider"}</strong><span>Then press Resume to keep crossing.</span></> : <><strong>Watch the gaps</strong><span>{config.map.hint}</span></>}
          </div>
       </div>
    );

@@ -1,0 +1,65 @@
+/* Rotate to Fit on phones and tablets (desktop unchanged):
+   - each object stacked its Target above Your Shape in big boxes, so two objects ran three screens on
+     a phone: the two now sit side by side, smaller, with the four rotate buttons in one row below;
+   - the keyboard hints on the rotate buttons (11 px, keys a phone does not have) are hidden on touch;
+   - tighter padding. */
+@media (hover: none), (pointer: coarse) {
+   .root :global(.keyboard-hint) {
+      display: none !important;
+   }
+}
+
+@media (max-width: 599px) {
+   .root {
+      padding: 10px 4px !important;
+      gap: 12px !important;
+   }
+   .root :global(.objects-container) {
+      gap: 12px !important;
+   }
+   .root :global(.object-item) {
+      padding: 12px !important;
+   }
+   .root :global(.object-display) {
+      display: grid !important;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px !important;
+      align-items: start;
+   }
+   .root :global(.target-outline),
+   .root :global(.rotation-area) {
+      width: 100% !important;
+      max-width: 150px;
+      height: auto !important;
+      aspect-ratio: 1;
+      margin: 0 auto;
+   }
+   .root :global(.target-shape),
+   .root :global(.rotatable-shape) {
+      width: 66% !important;
+      height: 66% !important;
+   }
+   .root :global(.object-label) {
+      font-size: 0.75rem !important;
+      margin-bottom: 6px !important;
+   }
+   .root :global(.object-controls) {
+      display: grid !important;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 6px !important;
+   }
+   .root :global(.object-rotate-btn) {
+      min-width: 0 !important;
+      min-height: 52px;
+      padding: 8px 2px !important;
+      font-size: 0.78rem !important;
+   }
+}
+
+@media (min-width: 900px) and (max-height: 900px) {
+   .root :global(.object-display) {
+      display: grid !important;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px !important;
+   }
+}

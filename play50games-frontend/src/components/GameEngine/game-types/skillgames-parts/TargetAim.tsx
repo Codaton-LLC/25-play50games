@@ -16,6 +16,10 @@ import {
    getShareStatus,
 } from "@/lib/api/share";
 
+import touch from "./skillTouch.module.css";
+import { usePlayAreaInView } from "./usePlayAreaInView";
+import { useRipples } from "./useRipples";
+
 interface TargetAimProps {
    config: Record<string, any>;
    onScoreUpdate: (score: number) => void;
@@ -123,6 +127,11 @@ export default function TargetAim({
       window.addEventListener("resize", checkResponsive);
       return () => window.removeEventListener("resize", checkResponsive);
    }, []);
+
+   // Mobile/tablet: bring the panel and the play area on screen when a round starts
+   const rootRef = useRef<HTMLDivElement>(null);
+   const pad = usePlayAreaInView(rootRef, arenaRef, true, `${gameState}-${currentLevel}`);
+   const { addRipple, rippleLayer } = useRipples();
 
    // Clear all timers
    const clearAll = useCallback(() => {
@@ -1098,6 +1107,7 @@ export default function TargetAim({
    return (
       <>
          <div
+         ref={rootRef}
             style={{
                display: "flex",
                flexDirection: "column",
@@ -1250,7 +1260,11 @@ export default function TargetAim({
                            color: "var(--text)",
                         }}
                      >
-                        Hit: {targetsHit} / {minTargetsHit}
+                        Hit:{" "}
+                        <span key={targetsHit} className={touch.pop} style={{ display: "inline-block" }}>
+                           {targetsHit}
+                        </span>{" "}
+                        / {minTargetsHit}
                      </span>
                   </div>
                   <div
@@ -1289,9 +1303,9 @@ export default function TargetAim({
             {gameState === "playing" || gameState === "paused" ? (
                <div
                   ref={arenaRef}
-                  onMouseMove={(e) => {
-                     // No viewport movement needed - arena is same size as viewport
-                  }}
+                  className={touch.tapArea}
+                  data-play-area=""
+                  onPointerDown={(e) => addRipple(e)}
                   style={{
                      position: "relative",
                      width: "100%",
@@ -1318,12 +1332,11 @@ export default function TargetAim({
                      {targets.map((target) => (
                         <div
                            key={target.id}
-                           onClick={(e) => {
+                           className={touch.hitSlop}
+                           onPointerDown={(e) => {
+                              // hit on press: a moving target can slip away before a tap's release
                               e.stopPropagation();
-                              handleTargetClick(target.id);
-                           }}
-                           onMouseDown={(e) => {
-                              e.stopPropagation();
+                              if (!target.clicked) handleTargetClick(target.id);
                            }}
                            style={{
                               position: "absolute",
@@ -1349,6 +1362,7 @@ export default function TargetAim({
                         />
                      ))}
                   </div>
+                  {rippleLayer}
                   {/* Target Icon (Sheja) - moves with keyboard or mouse */}
                   <div
                      style={{
@@ -1465,6 +1479,7 @@ export default function TargetAim({
                      Are you ready for next round?
                   </div>
                   <button
+                  className={touch.tapButton}
                      onClick={handleNextRound}
                      style={{
                         padding: isMobile ? "12px 24px" : "14px 28px",
@@ -1673,6 +1688,7 @@ export default function TargetAim({
                )}
 
                <button
+                  className={touch.tapButton}
                   onClick={handleReplay}
                   disabled={maxReplays > 0 && replaysUsed >= maxReplays}
                   style={{
@@ -1713,7 +1729,7 @@ export default function TargetAim({
                      }}
                   />
                   <span>
-                     {isMobile ? "" : "Replay "}
+                     {"Replay "}
                      {maxReplays === 0
                         ? "(∞)"
                         : `(${maxReplays - replaysUsed}/${maxReplays})`}
@@ -1721,6 +1737,7 @@ export default function TargetAim({
                </button>
 
                <button
+                  className={touch.tapButton}
                   onClick={handleShare}
                   style={{
                      display: "flex",
@@ -1749,6 +1766,7 @@ export default function TargetAim({
                   <span>Share for unlimited</span>
                </button>
             </div>
+            {pad > 0 && <div aria-hidden="true" style={{ height: pad, flexShrink: 0 }} />}
          </div>
       </>
    );

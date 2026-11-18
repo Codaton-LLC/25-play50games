@@ -186,9 +186,9 @@ describe("robot-factory levels: declarations", () => {
       expect(definitionLevelProblems(meta, definition)).toEqual([]);
       expect(meta.levels!.map((level) => level.title)).toEqual(["Basic Sort", "Shape Sort", "Color + Shape", "Fast Factory", "Overdrive"]);
       expect(meta.levels!.every((level) => level.clearScore === undefined)).toBe(true);
-      // level 1 stays the provisional set until Claude copies PROPOSED_LIMITS; 2-5 are already the proof
+      // every level serves its proof: level 1 = PROPOSED_LIMITS (since go-live), 2-5 = PROPOSED_LEVEL_LIMITS
       expect(scoringFor(meta, 1)).toEqual(meta.scoring);
-      expect(meta.scoring).toMatchObject({ maxScore: 6000, minDurationMs: 10000, maxDurationMs: 92000, base: 6000, maxPointsPerSec: 6000 });
+      expect(meta.scoring).toMatchObject({ maxScore: 4750, minDurationMs: 10000, maxDurationMs: 92000, base: 300, maxPointsPerSec: 52 });
       for (const id of LEVEL_IDS.slice(1)) expect(scoringFor(meta, id)).toEqual(PROPOSED_LEVEL_LIMITS[id]);
       expect(PROPOSED_LEVEL_LIMITS[1]).toBe(PROPOSED_LIMITS);
       expect(PROPOSED_LEVEL_LIMITS[5].maxScore).toBeLessThanOrEqual(3 * PROPOSED_LEVEL_LIMITS[1].maxScore);

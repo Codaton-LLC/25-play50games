@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import m from "./mobile.module.css";
 import {
    CheckCircleIcon,
    XCircleIcon,
@@ -549,6 +550,7 @@ function SymbolStack({
 
    return (
       <div
+         className={m.tight}
          style={{
             display: "flex",
             flexDirection: "column",
@@ -831,6 +833,7 @@ function SymbolStack({
                      return (
                         <button
                            key={`${symbol}-${index}`}
+                           className={m.card}
                            onClick={() => handleSymbolClick(symbol, index)}
                            disabled={isUsed}
                            style={{
@@ -1012,6 +1015,7 @@ function SymbolStack({
          >
             <button
                onClick={handleHint}
+               className={m.btn}
                disabled={
                   gameState !== "input" ||
                   (maxHints > 0 && hintsUsed >= maxHints) ||
@@ -1065,6 +1069,7 @@ function SymbolStack({
 
             <button
                onClick={handleShare}
+               className={m.btn}
                style={{
                   display: "flex",
                   alignItems: "center",

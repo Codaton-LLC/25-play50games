@@ -16,12 +16,17 @@ import { Color, Euler, Matrix4, MeshStandardMaterial, Quaternion, SphereGeometry
 import { InstancedModel } from "@/arcade3d/core/assets";
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import { DynamicInstanced, Instanced, type InstancePart, type InstanceSpot } from "@/arcade3d/core/render";
-import { ASSETS } from "./assets";
+import type { LevelId } from "../../types";
+import { ASSETS, FESTIVAL_STALL_SPOTS } from "./assets";
 import {
    CAR_SPOTS,
+   CITY_SQUARE_SPOTS,
    DASH_SPOTS,
+   FESTIVAL_CLEANUP_SPOTS,
    KERB_SPOTS,
    PIGEON_HOMES,
+   RIVER_WALK_SPOTS,
+   SHOPPING_STREET_SPOTS,
    SURROUND_SPOTS,
    TAXI_SPOTS,
    VAN_SPOTS,
@@ -57,7 +62,7 @@ function Surround({ color }: { color: string }) {
 // ---------- parked cars (city) ----------
 
 /** Stand-in boxes at the drawn size (w x h x l, long along z like the GLBs), until the GLB loads. */
-const CAR_BOX = { car: [0.91, 0.8, 2.18], taxi: [0.95, 0.9, 2.42], van: [1.03, 1.0, 3.0] } as const;
+const CAR_BOX = { car: [1.77, 1.49, 4.26], taxi: [1.84, 1.55, 4.72], van: [2.0, 2.06, 5.84] } as const;
 const boxSpots = (spots: readonly InstanceSpot[], height: number): InstanceSpot[] => spots.map((s) => ({ ...s, y: height / 2 }));
 const CAR_BOX_SPOTS = boxSpots(CAR_SPOTS, CAR_BOX.car[1]);
 const TAXI_BOX_SPOTS = boxSpots(TAXI_SPOTS, CAR_BOX.taxi[1]);
@@ -198,4 +203,144 @@ export const CityDecor = memo(function CityDecor() {
          </Suspense>
       </group>
    );
+});
+
+// ---------- per-level district scenery (Levels 2–5) ----------
+
+/** Level 2 — City Square: limestone plaza surround, civic balustrade, fountain, townhouses, Victorian lamps & hedges. */
+export const CitySquareDecor = memo(function CitySquareDecor({ map, run }: { map: number; run: CleanRun }) {
+   const surround = map === 0 ? "#466e56" : map === 1 ? "#5c6877" : "#c7b282";
+   return (
+      <group name="decor-city-square">
+         <Surround color={surround} />
+         <Instanced spots={KERB_SPOTS} name="decor-square-kerb">
+            <boxGeometry args={[1, 1, 1]} />
+            <meshStandardMaterial color="#e2e8f0" roughness={0.75} />
+         </Instanced>
+         <Instanced spots={CITY_SQUARE_SPOTS.pillars} name="decor-square-pillars">
+            <boxGeometry args={[1, 1, 1]} />
+            <meshStandardMaterial color="#cbd5e1" roughness={0.7} />
+         </Instanced>
+         {/* Fountain water basin plinth on the north civic terrace */}
+         <mesh position={[0, 0.12, -17.6]} name="decor-square-basin">
+            <cylinderGeometry args={[1.65, 1.8, 0.24, 16]} />
+            <meshStandardMaterial color="#94a3b8" roughness={0.6} />
+         </mesh>
+         <mesh position={[0, 0.25, -17.6]} rotation-x={-Math.PI / 2} name="decor-square-water">
+            <circleGeometry args={[1.45, 20]} />
+            <meshStandardMaterial color="#38bdf8" roughness={0.25} metalness={0.15} />
+         </mesh>
+         {map === 0 && <PigeonFlock run={run} />}
+         <Suspense fallback={null}>
+            <InstancedModel asset={ASSETS.parkFountain} spots={CITY_SQUARE_SPOTS.fountain} fallback={null} />
+            <InstancedModel asset={ASSETS.townhouseBlock} spots={CITY_SQUARE_SPOTS.townhouses} fallback={null} />
+            <InstancedModel asset={ASSETS.victorianLamp} spots={CITY_SQUARE_SPOTS.lamps} fallback={null} />
+            <InstancedModel asset={ASSETS.parkBush} spots={CITY_SQUARE_SPOTS.bushes} fallback={null} />
+         </Suspense>
+      </group>
+   );
+});
+
+/** Level 3 — Shopping Street: brick promenade surround, corner shops, café kiosks, bus shelter, traffic lights & parked vehicles. */
+export const ShoppingStreetDecor = memo(function ShoppingStreetDecor({ map }: { map: number }) {
+   const surround = map === 0 ? "#4d6b44" : map === 1 ? "#574f4a" : "#cfa96e";
+   return (
+      <group name="decor-shopping-street">
+         <Surround color={surround} />
+         <Instanced spots={KERB_SPOTS} name="decor-shopping-kerb">
+            <boxGeometry args={[1, 1, 1]} />
+            <meshStandardMaterial color="#fed7aa" roughness={0.8} />
+         </Instanced>
+         <Instanced spots={DASH_SPOTS} name="decor-shopping-line">
+            <boxGeometry args={[1, 0.004, 1]} />
+            <meshStandardMaterial color="#fde047" roughness={0.85} />
+         </Instanced>
+         <Instanced spots={SHOPPING_STREET_SPOTS.bollards} name="decor-shopping-bollards">
+            <cylinderGeometry args={[0.5, 0.55, 1, 10]} />
+            <meshStandardMaterial color="#b45309" roughness={0.6} metalness={0.25} />
+         </Instanced>
+         <Suspense fallback={null}>
+            <InstancedModel asset={ASSETS.cornerShop} spots={SHOPPING_STREET_SPOTS.cornerShops} fallback={null} />
+            <InstancedModel asset={ASSETS.zooKiosk} spots={SHOPPING_STREET_SPOTS.kiosks} fallback={null} />
+            <InstancedModel asset={ASSETS.busStop} spots={SHOPPING_STREET_SPOTS.busStop} fallback={null} />
+            <InstancedModel asset={ASSETS.trafficLight} spots={SHOPPING_STREET_SPOTS.trafficLights} fallback={null} />
+            {map === 1 && <ParkedCars />}
+         </Suspense>
+      </group>
+   );
+});
+
+/** Level 4 — River Walk: deep river channel, stone embankment quay wall, bollards, wooden footbridge, rowboats, buoys & night lamps. */
+export const RiverWalkDecor = memo(function RiverWalkDecor({ map }: { map: number }) {
+   const surround = map === 0 ? "#1e3a5f" : map === 1 ? "#172554" : "#1e40af";
+   return (
+      <group name="decor-river-walk">
+         <Surround color={surround} />
+         {/* Stone quay embankment wall along the north river edge (outside DECOR_KEEP_OUT) */}
+         <Instanced spots={KERB_SPOTS} name="decor-river-quay">
+            <boxGeometry args={[1, 1, 1]} />
+            <meshStandardMaterial color="#94a3b8" roughness={0.8} />
+         </Instanced>
+         <Instanced spots={RIVER_WALK_SPOTS.quayBollards} name="decor-river-bollards">
+            <cylinderGeometry args={[0.45, 0.55, 1, 10]} />
+            <meshStandardMaterial color="#334155" roughness={0.5} metalness={0.4} />
+         </Instanced>
+         {/* Shimmering river channel strip beyond the north quay wall */}
+         <mesh rotation-x={-Math.PI / 2} position={[0, 0.01, -18.2]} name="decor-river-water">
+            <planeGeometry args={[36, 6.4]} />
+            <meshStandardMaterial color="#0284c7" roughness={0.2} metalness={0.3} />
+         </mesh>
+         <Suspense fallback={null}>
+            <InstancedModel asset={ASSETS.woodenFootbridge} spots={RIVER_WALK_SPOTS.bridge} fallback={null} />
+            <InstancedModel asset={ASSETS.rowboat} spots={RIVER_WALK_SPOTS.rowboats} fallback={null} />
+            <InstancedModel asset={ASSETS.harbourBuoy} spots={RIVER_WALK_SPOTS.buoys} fallback={null} />
+            <InstancedModel asset={ASSETS.streetLampNight} spots={RIVER_WALK_SPOTS.nightLamps} fallback={null} />
+            <InstancedModel asset={ASSETS.beachRocks} spots={RIVER_WALK_SPOTS.rocks} fallback={null} />
+         </Suspense>
+      </group>
+   );
+});
+
+/** Level 5 — Festival Cleanup: festival stalls, tents, entrance arch, stage deck & colourful bunting posts. */
+export const FestivalCleanupDecor = memo(function FestivalCleanupDecor({ map }: { map: number }) {
+   const surround = map === 0 ? "#3f6a3a" : map === 1 ? "#584c63" : "#c99b62";
+   return (
+      <group name="decor-festival-cleanup">
+         <Surround color={surround} />
+         <Instanced spots={KERB_SPOTS} name="decor-festival-kerb">
+            <boxGeometry args={[1, 1, 1]} />
+            <meshStandardMaterial color="#fbbf24" roughness={0.7} />
+         </Instanced>
+         <Instanced spots={FESTIVAL_CLEANUP_SPOTS.buntingPosts} name="decor-festival-posts">
+            <cylinderGeometry args={[0.5, 0.5, 1, 8]} />
+            <meshStandardMaterial color="#fef08a" roughness={0.5} />
+         </Instanced>
+         <Instanced spots={FESTIVAL_CLEANUP_SPOTS.pennants} name="decor-festival-pennants">
+            <boxGeometry args={[1, 1, 1]} />
+            <meshStandardMaterial color="#f43f5e" emissive="#f43f5e" emissiveIntensity={0.35} roughness={0.5} />
+         </Instanced>
+         {/* Festival stage deck behind the arch */}
+         <mesh position={[0, 0.18, -17.5]} name="decor-festival-stage">
+            <boxGeometry args={[7.2, 0.36, 2.2]} />
+            <meshStandardMaterial color="#7c2d12" roughness={0.75} />
+         </mesh>
+         <Suspense fallback={null}>
+            <InstancedModel asset={ASSETS.festivalStall} spots={FESTIVAL_STALL_SPOTS} fallback={null} />
+            <InstancedModel asset={ASSETS.festivalTent} spots={FESTIVAL_CLEANUP_SPOTS.tents} fallback={null} />
+            <InstancedModel asset={ASSETS.finishArch} spots={FESTIVAL_CLEANUP_SPOTS.arch} fallback={null} />
+         </Suspense>
+      </group>
+   );
+});
+
+export const DistrictDecor = memo(function DistrictDecor({ levelId, map, run }: { levelId: LevelId; map: number; run: CleanRun }) {
+   if (levelId === 1) {
+      if (map === 0) return <ParkDecor run={run} />;
+      if (map === 1) return <CityDecor />;
+      return null;
+   }
+   if (levelId === 2) return <CitySquareDecor map={map} run={run} />;
+   if (levelId === 3) return <ShoppingStreetDecor map={map} />;
+   if (levelId === 4) return <RiverWalkDecor map={map} />;
+   return <FestivalCleanupDecor map={map} />;
 });

@@ -97,3 +97,19 @@ export function BenchFallback() {
       </group>
    );
 }
+
+export function BustFallback() {
+   return (
+      <group>
+         <mesh position={[0, 0.18, 0]}>
+            <cylinderGeometry args={[0.14, 0.18, 0.28, 12]} />
+            <meshStandardMaterial color="#e7e5e4" roughness={0.65} />
+         </mesh>
+         <mesh position={[0, 0.44, 0]}>
+            <sphereGeometry args={[0.14, 14, 12]} />
+            <meshStandardMaterial color="#f5f5f4" roughness={0.55} />
+         </mesh>
+      </group>
+   );
+}
+

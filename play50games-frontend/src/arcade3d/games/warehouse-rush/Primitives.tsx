@@ -20,8 +20,9 @@ import {
 } from "three";
 import { InstancedModel, useModel } from "@/arcade3d/core/assets";
 import { Instanced, useCanvasTexture, type CanvasDraw, type InstanceSpot } from "@/arcade3d/core/render";
-import { ASSETS, BOX, LID_LETTER } from "./assets";
+import { ASSETS, BOX, FORKLIFT_DRAWN, FORKLIFT_SPOTS, LID_LETTER, YARD, YARD_TOP } from "./assets";
 import { EXTRA_RACKS, SLOW_ZONES, type WarehouseLevel } from "./levels";
+import { LOOKS } from "./appearance";
 import { ARROW, ARROW_SHAPE, RING } from "./marker";
 import {
    ARENA,
@@ -267,14 +268,14 @@ function drawLetter(ctx: CanvasRenderingContext2D, letter: string, capPx: number
  * (colour fill, hazard-striped border, big letter). The letters are turned to read upright from the
  * camera's yaw. Canvas top-left = world (-10, -6); a texel row is a line of constant z.
  */
-export function floorDrawer(layout: Layout, yaw: number): CanvasDraw {
+export function floorDrawer(layout: Layout, yaw: number, floorColour: string = COLORS.floor): CanvasDraw {
    return (ctx, w) => {
       const s = w / (ARENA.halfX * 2);
       const u = (x: number) => (x + ARENA.halfX) * s;
       const v = (z: number) => (z + ARENA.halfZ) * s;
       const h = ARENA.halfZ * 2 * s;
 
-      ctx.fillStyle = COLORS.floor;
+      ctx.fillStyle = floorColour;
       ctx.fillRect(0, 0, w, h);
 
       // soft stains (fixed, so every run's concrete looks the same)
@@ -405,9 +406,10 @@ export function floorDrawer(layout: Layout, yaw: number): CanvasDraw {
    };
 }
 
-/** Floor, slab, walls, racks and this run's pallets. Level 2–5 add lanes, shelves and forklifts. */
+/** Floor, slab, walls, racks and this run's pallets. Level 2–5 add lanes, shelves and forklifts; levels 4–5 add the night yard with parked trucks outside the walls. */
 export const Warehouse = memo(function Warehouse({ layout, yaw, level, run }: { layout: Layout; yaw: number; level: WarehouseLevel; run: WarehouseRun }) {
-   const draw = useMemo(() => floorDrawer(layout, yaw), [layout, yaw]);
+   const look = LOOKS[level.id];
+   const draw = useMemo(() => floorDrawer(layout, yaw, look?.floor), [layout, yaw, look]);
    const floor = useCanvasTexture(FLOOR_TEXTURE.width, FLOOR_TEXTURE.height, draw);
    const pallets = useMemo(() => palletSpots(layout), [layout]);
 
@@ -424,20 +426,74 @@ export const Warehouse = memo(function Warehouse({ layout, yaw, level, run }: { 
          </mesh>
          <Instanced spots={WALL_SPOTS} name="walls">
             <boxGeometry />
-            <meshStandardMaterial color={COLORS.wall} roughness={0.75} />
+            <meshStandardMaterial color={look?.wall ?? COLORS.wall} roughness={0.75} />
          </Instanced>
          <Instanced spots={TRIM_SPOTS} name="wall-trim">
             <boxGeometry />
-            <meshStandardMaterial color={COLORS.trim} roughness={0.6} />
+            <meshStandardMaterial color={look?.trim ?? COLORS.trim} roughness={0.6} />
          </Instanced>
          <InstancedModel asset={ASSETS.shelfRack} spots={RACK_MODEL_SPOTS} fallback={<RackStandIns />} />
          <InstancedModel asset={ASSETS.pallet} spots={pallets} fallback={<PalletStandIns spots={pallets} />} />
+         {level.id >= 4 ? <NightYard /> : null}
          {level.slowZones > 0 ? <SlowLanes count={level.slowZones} /> : null}
          {level.extraRacks > 0 ? <ExtraShelves count={level.extraRacks} /> : null}
          {run.forklifts.length > 0 ? <Forklifts run={run} /> : null}
+         {look ? <LevelScenery level={level} /> : null}
       </group>
    );
 });
+
+/** Reused warehouse GLBs beyond the walls, never new invisible collision. Floor markings
+ * identify the existing slow zones and actual forklift paths without covering zone letters. */
+function LevelScenery({ level }: { level: WarehouseLevel }) {
+   const look = LOOKS[level.id]!;
+   const racks = useMemo(() => look.props.filter((p) => p.kind === "rack").map((p) => ({ x: p.x, y: 0, z: p.z })), [look]);
+   const pallets = useMemo(() => look.props.filter((p) => p.kind === "pallet").map((p) => ({ x: p.x, y: 0, z: p.z })), [look]);
+   return (
+      <group name={`warehouse-scenery-${level.id}`}>
+         <InstancedModel asset={ASSETS.shelfRack} spots={racks} fallback={<ExtraRackStandIn spots={racks} />} />
+         <InstancedModel asset={ASSETS.pallet} spots={pallets} fallback={<PalletStandIns spots={pallets} />} />
+         {look.props.map((p, i) => (
+            <mesh key={i} position={[p.x, -0.04, p.z]}>
+               <boxGeometry args={[p.hx * 2 + 0.12, 0.08, p.hz * 2 + 0.12]} />
+               <meshStandardMaterial color={look.trim} />
+            </mesh>
+         ))}
+         {/* Boundary guide strips give the two dispatch wings a readable blue/red identity. */}
+         {[-1, 1].map((side) => (
+            <mesh key={side} position={[side * 10.2, 0.94, 0]} rotation-x={-Math.PI / 2}>
+               <planeGeometry args={[0.18, 10.8]} />
+               <meshBasicMaterial color={level.id === 2 ? (side < 0 ? "#3b82f6" : "#ef4444") : look.accent} />
+            </mesh>
+         ))}
+         {level.forklifts > 0 ? [1.55, ...(level.forklifts > 1 ? [-1.55] : [])].map((z) => (
+            <group key={z} name="forklift-crossing">
+               {[-0.48, 0.48].map((edge) => (
+                  <mesh key={edge} position={[0, 0.025, z + edge]} rotation-x={-Math.PI / 2}>
+                     <planeGeometry args={[12.4, 0.06]} />
+                     <meshBasicMaterial color="#fbbf24" />
+                  </mesh>
+               ))}
+               {[-5.5, 0, 5.5].flatMap((x) => [-0.25, 0, 0.25].map((dx) => (
+                  <mesh key={`${x}-${dx}`} position={[x + dx, 0.026, z]} rotation={[-Math.PI / 2, 0, -0.35]}>
+                     <planeGeometry args={[0.1, 0.75]} />
+                     <meshBasicMaterial color="#fbbf24" transparent opacity={0.7} depthWrite={false} />
+                  </mesh>
+               )))}
+            </group>
+         )) : null}
+         {look.pools.map((p, i) => (
+            <group key={i} position={[p.x, 0, p.z]}>
+               <pointLight position={[0, 3, 0]} color={look.accent} intensity={level.id === 5 ? 14 : 7} distance={7} decay={2} />
+               <mesh position-y={0.027} rotation-x={-Math.PI / 2}>
+                  <circleGeometry args={[1.45, 40]} />
+                  <meshBasicMaterial color={look.accent} transparent opacity={0.06} depthWrite={false} />
+               </mesh>
+            </group>
+         ))}
+      </group>
+   );
+}
 
 const LANE_COLOUR = ["#3b82f6", "#ef4444", "#60a5fa"];
 
@@ -446,10 +502,18 @@ function SlowLanes({ count }: { count: number }) {
    return (
       <group name="slow-lanes">
          {SLOW_ZONES.slice(0, count).map((lane, i) => (
-            <mesh key={i} position={[lane.x, 0.021, lane.z]} rotation-x={-Math.PI / 2}>
-               <planeGeometry args={[lane.hx * 2, lane.hz * 2]} />
-               <meshBasicMaterial color={LANE_COLOUR[i] ?? LANE_COLOUR[0]} transparent opacity={0.32} depthWrite={false} />
-            </mesh>
+            <group key={i} position={[lane.x, 0.021, lane.z]}>
+               <mesh rotation-x={-Math.PI / 2}>
+                  <planeGeometry args={[lane.hx * 2, lane.hz * 2]} />
+                  <meshBasicMaterial color={LANE_COLOUR[i] ?? LANE_COLOUR[0]} transparent opacity={0.32} depthWrite={false} />
+               </mesh>
+               {[-1, 1].map((side) => (
+                  <mesh key={side} position={[side * (lane.hx - 0.04), 0.001, 0]} rotation-x={-Math.PI / 2}>
+                     <planeGeometry args={[0.08, lane.hz * 2]} />
+                     <meshBasicMaterial color={LANE_COLOUR[i]} />
+                  </mesh>
+               ))}
+            </group>
          ))}
       </group>
    );
@@ -494,7 +558,45 @@ function ExtraShelves({ count }: { count: number }) {
    return <InstancedModel asset={ASSETS.shelfRack} spots={spots} fallback={<ExtraRackStandIn spots={spots} />} />;
 }
 
-/** Code forklift: there is no forklift GLB. Orange body, dark cab, a beacon and two forks. */
+// ---------- the night yard (levels 4-5) ----------
+
+/**
+ * Levels 4-5 only ("Rush Shift" / "Night Logistics"): a dark apron slab around the diorama and the
+ * parked forklift trucks standing on it, outside the walls. Looks only — the trucks never enter
+ * `obstacles` and their spots clear the arena (assets.test.ts). The slab's top sits a hair below
+ * the plinth's, so the two never z-fight where they overlap.
+ */
+function NightYard() {
+   return (
+      <group name="night-yard">
+         <mesh position-y={YARD_TOP - 0.25} name="yard-slab">
+            <boxGeometry args={[YARD.halfX * 2, 0.5, YARD.halfZ * 2]} />
+            <meshStandardMaterial color={COLORS.plinth} roughness={0.9} />
+         </mesh>
+         <InstancedModel asset={ASSETS.forkliftTruck} spots={FORKLIFT_SPOTS} fallback={<ParkedForkliftStandIns />} />
+      </group>
+   );
+}
+
+/**
+ * The parked trucks while the GLB loads or if it fails: one scaled code forklift per spot, stretched
+ * from the patrol stand-in's 1.595 x 0.78 x 0.64 to the GLB's drawn FORKLIFT_DRAWN size (the asset's
+ * rotationY already aims the GLB's length along x, the stand-in's own long axis, so spot rotY fits both).
+ */
+function ParkedForkliftStandIns() {
+   const k = [FORKLIFT_DRAWN.length / 1.595, FORKLIFT_DRAWN.height / 0.78, FORKLIFT_DRAWN.width / 0.64] as const;
+   return (
+      <group name="parked-forklift-stand-ins">
+         {FORKLIFT_SPOTS.map((spot, i) => (
+            <group key={i} position={[spot.x, spot.y, spot.z]} rotation-y={spot.rotY ?? 0} scale={k}>
+               <ForkliftBody />
+            </group>
+         ))}
+      </group>
+   );
+}
+
+/** Code forklift: the patrol obstacle (no GLB: it must stay exactly this size) and the parked trucks' fallback. */
 function ForkliftBody() {
    return (
       <group>

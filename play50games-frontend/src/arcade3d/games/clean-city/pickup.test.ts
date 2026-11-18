@@ -146,7 +146,7 @@ describe("clean-city pickup: the stoop on the core rig (pickup.ts)", () => {
       }
    });
 
-   it("crouches: both knees bend and the back leans forward, so the hips drop over 5 cm and the head over 15 cm (7 and 17; standing, world units: the cleaner is 0.95 tall)", () => {
+   it("crouches: both knees bend and the back leans forward, so the hips drop over 5 cm and the head over 15 cm (world units: the cleaner is 1.75 tall)", () => {
       const stand = scenePose(0, 0, 0, 1, 0.35, 0.7);
       const stoop = scenePose(0, 0, 1, 1, 0.35, 0.7);
       const a = skeleton(stand);
@@ -160,7 +160,7 @@ describe("clean-city pickup: the stoop on the core rig (pickup.ts)", () => {
       expect(STOOP.hips + STOOP.spine + STOOP.chest).toBeGreaterThan(0.9);
    });
 
-   it("reaches with the nearer hand: its fingertip goes towards the piece (over 10 cm nearer than standing with the arms down, nearer than the other hand) and stays low, under 0.34 over the floor (a drawn piece is 0.78-0.9 tall), at a stand, a walk and a run", () => {
+   it("reaches with the nearer hand: its fingertip goes towards the piece (over 10 cm nearer than standing with the arms down, nearer than the other hand) and stays low, under 0.43 over the floor (a drawn piece is 0.39-0.45 tall: the hand reaches it; 0.31 for a piece ahead), at a stand, a walk and a run", () => {
       for (const amount of [0, 0.5, 1]) {
          for (const [lx, lz] of PIECES.slice(0, 5)) {
             const side = pickupSide(lx);
@@ -170,7 +170,7 @@ describe("clean-city pickup: the stoop on the core rig (pickup.ts)", () => {
             const piece = new Vector3(lx / S, 0, lz / S);
             const flat = (v: Vector3) => Math.hypot(v.x - piece.x, v.z - piece.z);
             const label = `amount ${amount} piece (${lx}, ${lz})`;
-            expect(near.y * S, label).toBeLessThan(0.34);
+            expect(near.y * S, label).toBeLessThan(0.43);
             expect(flat(near), label).toBeLessThan(flat(far));
             // standing with the arms down the same hand was further from the piece, and no lower
             const rest = fingertip(scenePose(0.7, 0, 0, side, lx, lz), side);

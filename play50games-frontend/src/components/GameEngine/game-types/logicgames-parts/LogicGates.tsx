@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import css from "./LogicGates.module.css";
 import {
    CheckCircleIcon,
    XCircleIcon,
@@ -156,6 +157,7 @@ function LogicGates({
 
    return (
       <div
+         className={css.root}
          style={{
             display: "flex",
             flexDirection: "column",
@@ -233,6 +235,7 @@ function LogicGates({
          <div className="logic-gates-content">
             {/* Circuit Display */}
             <div
+               className={css.circuit}
                style={{
                   background: "var(--card)",
                   borderRadius: "20px",
@@ -242,6 +245,7 @@ function LogicGates({
                }}
             >
                <div
+                  className={css.row}
                   style={{
                      display: "flex",
                      alignItems: "center",
@@ -373,6 +377,7 @@ function LogicGates({
 
                   {/* Arrow */}
                   <div
+                     className={css.arrow}
                      style={{
                         fontSize: "32px",
                         color: "var(--accent)",
@@ -468,6 +473,7 @@ function LogicGates({
 
             {/* Output Options */}
             <div
+               className={css.options}
                style={{
                   display: "flex",
                   gap: "24px",

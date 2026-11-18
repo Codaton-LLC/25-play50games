@@ -12,7 +12,7 @@ describe("farm tractor levels", () => {
       expect(levelMetaProblems(farmTractorChallengeMeta)).toEqual([]);
       expect(definitionLevelProblems(farmTractorChallengeMeta, definition)).toEqual([]);
       expect(farmTractorChallengeMeta.slug).toBe("farm-tractor-challenge");
-      expect(farmTractorChallengeMeta.status).toBe("dev");
+      expect(farmTractorChallengeMeta.status).toBe("live");
       expect(farmTractorChallengeMeta.owner).toBe("kimi");
       expect(farmTractorChallengeMeta.collection).toBe("skill");
       expect(farmTractorChallengeMeta.order).toBe(35);

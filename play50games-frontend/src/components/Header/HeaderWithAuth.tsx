@@ -22,24 +22,27 @@ export default function HeaderWithAuth() {
             onShowRegisterModal={() => setShowRegisterModal(true)}
          />
 
-         <LoginModal
-            isOpen={showLoginModal}
-            onClose={() => setShowLoginModal(false)}
-            onLogin={login}
-            onSwitchToRegister={() => {
-               setShowLoginModal(false);
-               setShowRegisterModal(true);
-            }}
-         />
-         <RegisterModal
-            isOpen={showRegisterModal}
-            onClose={() => setShowRegisterModal(false)}
-            onRegister={register}
-            onSwitchToLogin={() => {
-               setShowRegisterModal(false);
-               setShowLoginModal(true);
-            }}
-         />
+         {/* the old header belongs to pages that keep the dark look: its sheets take the dark values */}
+         <div className="p50-night">
+            <LoginModal
+               isOpen={showLoginModal}
+               onClose={() => setShowLoginModal(false)}
+               onLogin={login}
+               onSwitchToRegister={() => {
+                  setShowLoginModal(false);
+                  setShowRegisterModal(true);
+               }}
+            />
+            <RegisterModal
+               isOpen={showRegisterModal}
+               onClose={() => setShowRegisterModal(false)}
+               onRegister={register}
+               onSwitchToLogin={() => {
+                  setShowRegisterModal(false);
+                  setShowLoginModal(true);
+               }}
+            />
+         </div>
       </>
    );
 }

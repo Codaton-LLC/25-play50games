@@ -4,7 +4,20 @@
 import { useMemo } from "react";
 import { Instanced } from "@/arcade3d/core/render";
 import type { StationLevel } from "./levels";
-import { COLORS, decorSpots, lookFor } from "./looks";
+import { BED_DEPTH, COLORS, decorSpots, lookFor } from "./looks";
+
+/**
+ * Apron trees stand beside the platforms, where the only ground is the dark ballast bed (y = -BED_DEPTH,
+ * the bed plane sits 0.02 lower). Each tree stands in a raised lawn bed, 2 m x its scale square: stone
+ * sides from that ground up to the platform top and a light grass top that shows past the canopy from
+ * the high camera; the trunk runs from the grass into the canopy, so no tree floats over the bed. The
+ * spots are APRON_GAP (2.2 m) outside the walkable station and a bed reaches at most 1.6 m (scale 1.6).
+ */
+const TREE_GROUND = -BED_DEPTH - 0.02;
+const PLANTER_TOP = 0.05;
+const PLANTER = "#78716c";
+const GRASS = "#65a30d";
+const CROWN_TOP = "#15803d";
 
 /** Frames the station without standing in the play area. Palette follows the level theme. */
 export default function Decor({ level }: { level: StationLevel }) {
@@ -42,9 +55,31 @@ export default function Decor({ level }: { level: StationLevel }) {
             <>
                <Instanced
                   spots={spots.trees.map((t) => ({
-                     x: t.x, y: 0.55, z: t.z, rotY: t.rotY ?? 0,
-                     sx: 0.22 * (t.scale ?? 1), sy: 1.1 * (t.scale ?? 1), sz: 0.22 * (t.scale ?? 1),
+                     x: t.x, y: (TREE_GROUND + PLANTER_TOP) / 2, z: t.z, rotY: t.rotY ?? 0,
+                     sx: 2.0 * (t.scale ?? 1), sy: PLANTER_TOP - TREE_GROUND, sz: 2.0 * (t.scale ?? 1),
                   }))}
+                  name="apron-planters"
+               >
+                  <boxGeometry args={[1, 1, 1]} />
+                  <meshStandardMaterial color={PLANTER} roughness={0.85} />
+               </Instanced>
+               <Instanced
+                  spots={spots.trees.map((t) => ({
+                     x: t.x, y: PLANTER_TOP + 0.015, z: t.z, rotY: t.rotY ?? 0,
+                     sx: 1.86 * (t.scale ?? 1), sy: 0.03, sz: 1.86 * (t.scale ?? 1),
+                  }))}
+                  name="apron-grass"
+               >
+                  <boxGeometry args={[1, 1, 1]} />
+                  <meshStandardMaterial color={GRASS} roughness={1} />
+               </Instanced>
+               <Instanced
+                  spots={spots.trees.map((t) => {
+                     const s = t.scale ?? 1;
+                     // from the grass cap up 0.1 into the canopy (its bottom is at 0.85 s)
+                     const top = 0.95 * s;
+                     return { x: t.x, y: (PLANTER_TOP + top) / 2, z: t.z, rotY: t.rotY ?? 0, sx: 0.26 * s, sy: top - PLANTER_TOP, sz: 0.26 * s };
+                  })}
                   name="apron-trunks"
                >
                   <boxGeometry args={[1, 1, 1]} />
@@ -59,6 +94,16 @@ export default function Decor({ level }: { level: StationLevel }) {
                >
                   <boxGeometry args={[1, 1, 1]} />
                   <meshStandardMaterial color={COLORS.tree} roughness={0.9} />
+               </Instanced>
+               <Instanced
+                  spots={spots.trees.map((t) => ({
+                     x: t.x, y: 2.5 * (t.scale ?? 1), z: t.z, rotY: (t.rotY ?? 0) + Math.PI / 4,
+                     sx: 0.95 * (t.scale ?? 1), sy: 0.7 * (t.scale ?? 1), sz: 0.95 * (t.scale ?? 1),
+                  }))}
+                  name="apron-crowns"
+               >
+                  <boxGeometry args={[1, 1, 1]} />
+                  <meshStandardMaterial color={CROWN_TOP} roughness={0.9} />
                </Instanced>
             </>
          ) : null}

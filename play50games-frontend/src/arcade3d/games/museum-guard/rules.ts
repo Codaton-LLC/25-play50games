@@ -91,6 +91,8 @@ export interface Pedestal {
    z: number;
    exitX: number;
    exitZ: number;
+   /** outward lane bow in metres (0 on Level 1; > 0 on cordoned/salon arcs) */
+   detourR?: number;
 }
 
 export interface Exhibit {
@@ -147,6 +149,10 @@ export interface Run {
    /** set only by createFixture: start times for exhibits 0..2, then the director stays quiet */
    fixture: boolean;
    fixtureIndex: number;
+   /** L3 (Art Wing): paired exhibit kind queued when a catch starts returning */
+   chainKind: ExhibitKind | null;
+   /** L5 (Full Museum Night): exit of the most recent departure, for cross-gallery alternation */
+   lastExit: number;
 }
 
 export interface GuardInput {
@@ -215,7 +221,48 @@ export function makePedestal(index: number): Pedestal {
       z: Math.cos(angle) * RING.pedestalR,
       exitX: Math.sin(exit) * RING.laneR,
       exitZ: Math.cos(exit) * RING.laneR,
+      detourR: 0,
    };
+}
+
+const TURNTABLE_OFFSETS = [-0.042, -0.026, -0.014, 0.014, 0.026, 0.042] as const;
+
+export function makePedestalFor(index: number, seed: number, level: MuseumLevel): Pedestal {
+   const base = makePedestal(index);
+   if (level.twist === "cordon" && (index === 0 || index === 7)) {
+      return {
+         ...base,
+         length: base.length + 0.16,
+         detourR: 0.22,
+      };
+   }
+   if (level.twist === "paired" && base.length > 5) {
+      return {
+         ...base,
+         detourR: 0.12,
+      };
+   }
+   if (level.twist === "randomized" && base.length > 5) {
+      const hash = Math.abs((seed * 1103515245 + (index + 1) * 12345) | 0);
+      const delta = TURNTABLE_OFFSETS[hash % TURNTABLE_OFFSETS.length];
+      const angle = base.angle + delta;
+      const exit = nearerExit(angle);
+      const arc = wrapAngle(exit - angle);
+      const length = RING.inward + RING.laneR * Math.abs(arc);
+      return {
+         index,
+         angle,
+         exit,
+         arc,
+         length,
+         x: Math.sin(angle) * RING.pedestalR,
+         z: Math.cos(angle) * RING.pedestalR,
+         exitX: Math.sin(exit) * RING.laneR,
+         exitZ: Math.cos(exit) * RING.laneR,
+         detourR: 0,
+      };
+   }
+   return base;
 }
 
 /** World position of a centre `s` metres along its path. Writes `out` when given. */
@@ -226,9 +273,13 @@ export function pointOnPath(ped: Pedestal, s: number, out: { x: number; z: numbe
       out.x = Math.sin(ped.angle) * r;
       out.z = Math.cos(ped.angle) * r;
    } else {
-      const ang = ped.angle + (ped.arc < 0 ? -1 : 1) * ((clamped - RING.inward) / RING.laneR);
-      out.x = Math.sin(ang) * RING.laneR;
-      out.z = Math.cos(ang) * RING.laneR;
+      const laneLen = Math.max(1e-6, ped.length - RING.inward);
+      const frac = (clamped - RING.inward) / laneLen;
+      const ang = ped.angle + ped.arc * frac;
+      const detour = ped.detourR ? ped.detourR * Math.sin(Math.PI * frac) : 0;
+      const r = RING.laneR + detour;
+      out.x = Math.sin(ang) * r;
+      out.z = Math.cos(ang) * r;
    }
    return out;
 }
@@ -352,7 +403,7 @@ function makeExhibit(kind: ExhibitKind, pedestal: number, ped: Pedestal): Exhibi
 }
 
 export function createRun(seed: number, level: MuseumLevel = LEVELS[1]): Run {
-   const pedestals = Array.from({ length: RING.count }, (_, i) => makePedestal(i));
+   const pedestals = Array.from({ length: RING.count }, (_, i) => makePedestalFor(i, seed, level));
    const kinds = shuffleKinds(seed, rosterOf(level));
    return {
       seed,
@@ -380,6 +431,8 @@ export function createRun(seed: number, level: MuseumLevel = LEVELS[1]): Run {
       dawnBonus: 0,
       fixture: false,
       fixtureIndex: 0,
+      chainKind: null,
+      lastExit: 0,
    };
 }
 
@@ -428,11 +481,12 @@ function sneakSpeed(kind: ExhibitKind, phase: 0 | 1 | 2, level: MuseumLevel): nu
    return TYPES[kind].speed * level.speed[phase];
 }
 
-function beginReturn(ex: Exhibit, ped: Pedestal): void {
+function beginReturn(run: Run, ex: Exhibit, ped: Pedestal): void {
    ex.paid = ped.length - ex.s > SCORE.returnMinM;
    ex.mode = "returning";
    ex.coast = 0;
    ex.hold = 0;
+   if (run.level.twist === "paired") run.chainKind = ex.kind;
 }
 
 function triggerAlarm(run: Run, ex: Exhibit, at: number, sAtAlarm: number, speed: number, ped: Pedestal): void {
@@ -490,7 +544,7 @@ function moveExhibit(run: Run, index: number, h: number, t1: number): void {
       if (seen) {
          ex.hold += h;
          ex.wasSeen = true;
-         if (ex.hold >= BEAM.hold - 1e-6) beginReturn(ex, ped);
+         if (ex.hold >= BEAM.hold - 1e-6) beginReturn(run, ex, ped);
          return;
       }
       ex.hold = 0;
@@ -508,7 +562,7 @@ function moveExhibit(run: Run, index: number, h: number, t1: number): void {
       ex.justFrozen = true;
       ex.hold += h;
       ex.wasSeen = true;
-      if (ex.hold >= BEAM.hold - 1e-6) beginReturn(ex, ped);
+      if (ex.hold >= BEAM.hold - 1e-6) beginReturn(run, ex, ped);
       return;
    }
 
@@ -542,7 +596,7 @@ function moveExhibit(run: Run, index: number, h: number, t1: number): void {
       }
    }
    ex.wasSeen = seenAfter;
-   if (ex.hold >= BEAM.hold - 1e-6 && (ex.mode === "frozen" || ex.mode === "sneaking")) beginReturn(ex, ped);
+   if (ex.hold >= BEAM.hold - 1e-6 && (ex.mode === "frozen" || ex.mode === "sneaking")) beginReturn(run, ex, ped);
 }
 
 function startExhibit(run: Run, index: number): void {
@@ -557,6 +611,8 @@ function startExhibit(run: Run, index: number): void {
    ex.paid = false;
    publish(ex, ped);
    run.starts[run.phase] += 1;
+   run.lastExit = ped.exit;
+   if (run.level.twist === "paired") run.chainKind = null;
 }
 
 function sneakingCount(run: Run, shortOnly: boolean): number {
@@ -575,13 +631,34 @@ function exitGap(ped: Pedestal, yaw: number): number {
    return Math.abs(wrapAngle(ped.exit - yaw));
 }
 
-/** True when `a` should start ahead of `b` (further exit, then longer path, then lower index). */
+function seedOrder(run: Run, index: number): number {
+   const totalStarts = run.starts[0] + run.starts[1] + run.starts[2];
+   return ((run.seed * 31 + totalStarts * 17 + index * 13) >>> 0) % 97;
+}
+
+/** True when `a` should start ahead of `b` (further exit, then level twist / longer path, then lower index). */
 function prefer(run: Run, a: number, b: number): boolean {
    const pa = run.pedestals[run.exhibits[a].pedestal];
    const pb = run.pedestals[run.exhibits[b].pedestal];
    const ga = exitGap(pa, run.yaw);
    const gb = exitGap(pb, run.yaw);
+   if (run.level.twist === "full-night" && run.lastExit !== 0 && pa.exit !== pb.exit && Math.abs(ga - gb) < 0.25) {
+      return pa.exit !== run.lastExit;
+   }
    if (Math.abs(ga - gb) > 1e-9) return ga > gb;
+   const longA = pa.length >= 5;
+   const longB = pb.length >= 5;
+   if (longA !== longB) return longA;
+   if (run.level.twist === "paired" && run.chainKind !== null) {
+      const matchA = run.exhibits[a].kind === run.chainKind;
+      const matchB = run.exhibits[b].kind === run.chainKind;
+      if (matchA !== matchB) return matchA;
+   }
+   if (run.level.twist === "randomized") {
+      const oa = seedOrder(run, a);
+      const ob = seedOrder(run, b);
+      if (oa !== ob) return oa > ob;
+   }
    if (Math.abs(pa.length - pb.length) > 1e-9) return pa.length > pb.length;
    return pa.index < pb.index;
 }
@@ -592,6 +669,10 @@ function legal(run: Run, index: number, t: number, shortSneaking: number): boole
    const ped = run.pedestals[ex.pedestal];
    if (ex.kind === "dino" && (t < run.level.ends[0] || ped.length < 4)) return false;
    if (ped.length < 5 && shortSneaking >= 1) return false;
+   if (run.level.twist === "cordon" && (ped.index === 0 || ped.index === 7)) {
+      const other = ped.index === 0 ? 7 : 0;
+      if (run.exhibits[other]?.mode === "sneaking") return false;
+   }
    if (seenAt(run, ped.x, ped.z)) return false;
    return true;
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import m from "./mobile.module.css";
 import {
    CheckCircleIcon,
    XCircleIcon,
@@ -701,6 +702,7 @@ function WordMemory({
 
    return (
       <div
+         className={m.tight}
          style={{
             display: "flex",
             flexDirection: "column",
@@ -774,6 +776,8 @@ function WordMemory({
 
          {/* Game State Display */}
          <div
+            key={gameState}
+            className={gameState === "correct" ? m.feedbackOk : gameState === "wrong" ? m.feedbackBad : undefined}
             style={{
                padding: isMobile ? "14px 18px" : "16px 24px",
 
@@ -895,6 +899,8 @@ function WordMemory({
                return (
                   <div
                      key={index}
+                     role="button"
+                     className={m.card}
                      onClick={() => handleWordClick(index)}
                      style={{
                         padding: isMobile ? "16px 12px" : "20px 16px",
@@ -1047,6 +1053,7 @@ function WordMemory({
             {/* Hint Button */}
             <button
                onClick={handleHint}
+               className={m.btn}
                disabled={
                   (maxHints > 0 && hintsUsed >= maxHints) ||
                   gameState !== "input" ||
@@ -1137,6 +1144,7 @@ function WordMemory({
             {/* Share Button */}
             <button
                onClick={handleShare}
+               className={m.btn}
                style={{
                   display: "flex",
                   alignItems: "center",
@@ -1258,6 +1266,7 @@ function WordMemory({
          {/* Feedback Message */}
          {feedback !== null && (
             <div
+               className={feedback === "correct" ? m.feedbackOk : m.feedbackBad}
                style={{
                   padding: isMobile ? "12px 20px" : "16px 24px",
 

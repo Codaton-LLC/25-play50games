@@ -13,7 +13,7 @@ describe("taxi levels: declarations", () => {
    it("five levels in meta and the definition, limits = PROPOSED_LEVEL_LIMITS, cleared by a win only", () => {
       expect(levelMetaProblems(meta)).toEqual([]);
       expect(definitionLevelProblems(meta, definition)).toEqual([]);
-      expect(meta).toMatchObject({ slug: "taxi-rush-3d", status: "dev", owner: "cursor", collection: "skill", order: 32, difficulty: 2 });
+      expect(meta).toMatchObject({ slug: "taxi-rush-3d", status: "live", owner: "cursor", collection: "skill", order: 32, difficulty: 2 });
       expect(meta.controls.scheme).toBe("steer");
       expect(meta.scoring).toEqual(PROPOSED_LEVEL_LIMITS[1]);
       expect(definition).toMatchObject({ slug: "taxi-rush-3d", lives: 3, resultDelayMs: 900, touchControls: ["joystick"] });

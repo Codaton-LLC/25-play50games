@@ -16,6 +16,19 @@ import {
    getShareStatus,
 } from "@/lib/api/share";
 
+import touch from "./skillTouch.module.css";
+import { usePlayAreaInView } from "./usePlayAreaInView";
+
+// Narrow (phone) canvases draw a world at least WORLD_MIN_W wide, scaled down, so obstacles appear as
+// far ahead of the player as on a tablet: they spawn at the world's right edge and move at a fixed
+// speed, so a 280 px canvas used to give a third of the warning a 640 px one gives. Canvases this wide
+// or wider are drawn 1:1, exactly as before; speeds, gaps and jump physics are unchanged.
+const WORLD_MIN_W = 640;
+function worldOf(canvas: HTMLCanvasElement) {
+   const k = Math.min(1, canvas.clientWidth / WORLD_MIN_W) || 1;
+   return { k, w: canvas.clientWidth / k, h: canvas.clientHeight / k };
+}
+
 interface OneHandModeProps {
    config: Record<string, any>;
    onScoreUpdate: (score: number) => void;
@@ -155,6 +168,11 @@ export default function OneHandMode({
       return () => window.removeEventListener("resize", checkResponsive);
    }, []);
 
+   const arenaRef = useRef<HTMLDivElement>(null);
+   // Mobile/tablet: bring the panel and the play area on screen when a round starts
+   const rootRef = useRef<HTMLDivElement>(null);
+   const pad = usePlayAreaInView(rootRef, arenaRef, true, `${gameState}-${currentLevel}`);
+
    // Resize canvas
    const resizeCanvas = useCallback(() => {
       const canvas = canvasRef.current;
@@ -165,11 +183,12 @@ export default function OneHandMode({
       canvas.width = Math.floor(rect.width * dpr);
       canvas.height = Math.floor(rect.height * dpr);
       const ctx = canvas.getContext("2d");
+      const world = worldOf(canvas);
       if (ctx) {
-         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+         ctx.setTransform(dpr * world.k, 0, 0, dpr * world.k, 0, 0);
       }
 
-      groundYRef.current = canvas.clientHeight - 60;
+      groundYRef.current = world.h - 60;
       playerRef.current.y = groundYRef.current - playerRef.current.h;
    }, []);
 
@@ -270,7 +289,7 @@ export default function OneHandMode({
          if (spawnTimerRef.current >= spawnInterval) {
             const isBoost = level >= 11 && Math.random() < 0.2;
             obstacles.push({
-               x: (canvasRef.current?.clientWidth || 800) + 30,
+               x: (canvasRef.current ? worldOf(canvasRef.current).w : 800) + 30,
                w: 30,
                h: 30,
                id: obstacleIdCounterRef.current++,
@@ -340,8 +359,7 @@ export default function OneHandMode({
       const ctx = canvas.getContext("2d");
       if (!ctx) return;
 
-      const w = canvas.clientWidth;
-      const h = canvas.clientHeight;
+      const { w, h } = worldOf(canvas);
 
       ctx.clearRect(0, 0, w, h);
 
@@ -447,7 +465,7 @@ export default function OneHandMode({
          // Set ground position
          const canvas = canvasRef.current;
          if (canvas) {
-            groundYRef.current = canvas.clientHeight - 60;
+            groundYRef.current = worldOf(canvas).h - 60;
             playerRef.current.y = groundYRef.current - playerRef.current.h;
          }
 
@@ -456,7 +474,7 @@ export default function OneHandMode({
             resizeCanvas();
             const updatedCanvas = canvasRef.current;
             if (updatedCanvas) {
-               groundYRef.current = updatedCanvas.clientHeight - 60;
+               groundYRef.current = worldOf(updatedCanvas).h - 60;
                playerRef.current.y = groundYRef.current - playerRef.current.h;
             }
          });
@@ -939,6 +957,7 @@ export default function OneHandMode({
 
    return (
       <div
+         ref={rootRef}
          style={{
             width: "100%",
             maxWidth: "800px",
@@ -1063,6 +1082,7 @@ export default function OneHandMode({
          {/* Game Arena */}
          {gameState === "playing" || gameState === "failed" ? (
             <div
+               ref={arenaRef}
                style={{
                   width: "100%",
                   background: "var(--card)",
@@ -1116,6 +1136,8 @@ export default function OneHandMode({
                )}
                <canvas
                   ref={canvasRef}
+                  className={touch.tapArea}
+                  data-play-area=""
                   style={{
                      width: "100%",
                      height: isMobile ? "300px" : "420px",
@@ -1136,7 +1158,7 @@ export default function OneHandMode({
                   Click / Tap / Space = Jump
                   {currentLevel >= 9 && (
                      <div style={{ marginTop: "6px" }}>
-                        Level 10+: double click to jump higher
+                        Level 10+: double click or double tap to jump higher
                      </div>
                   )}
                </div>
@@ -1161,6 +1183,7 @@ export default function OneHandMode({
                   Level {currentLevel + 1} Complete!
                </div>
                <button
+                  className={touch.tapButton}
                   onClick={handleNextRound}
                   disabled={nextRoundLocked}
                   style={{
@@ -1372,6 +1395,7 @@ export default function OneHandMode({
                }}
             >
                <button
+                  className={touch.tapButton}
                   onClick={handleReplay}
                   disabled={maxReplays > 0 && replaysUsed >= maxReplays}
                   style={{
@@ -1412,7 +1436,7 @@ export default function OneHandMode({
                      }}
                   />
                   <span>
-                     {isMobile ? "" : "Replay "}
+                     {"Replay "}
                      {maxReplays === 0
                         ? "(∞)"
                         : `(${maxReplays - replaysUsed}/${maxReplays})`}
@@ -1420,6 +1444,7 @@ export default function OneHandMode({
                </button>
 
                <button
+                  className={touch.tapButton}
                   onClick={handleShare}
                   style={{
                      display: "flex",
@@ -1449,6 +1474,7 @@ export default function OneHandMode({
                </button>
             </div>
          </div>
+         {pad > 0 && <div aria-hidden="true" style={{ height: pad, flexShrink: 0 }} />}
       </div>
    );
 }

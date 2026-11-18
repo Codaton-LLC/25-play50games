@@ -34,3 +34,29 @@ export const HAZARD_RADIUS = 1.5;
 export const HAZARD_SLOW = 0.6;
 export const COMBO_WINDOW_MS = 4000;
 export const COMBO_POINTS = 10;
+
+export type DistrictTheme = "pocket-park" | "city-square" | "shopping-street" | "river-walk" | "festival-cleanup";
+
+export const LEVEL_THEMES: Record<LevelId, DistrictTheme> = {
+   1: "pocket-park",
+   2: "city-square",
+   3: "shopping-street",
+   4: "river-walk",
+   5: "festival-cleanup",
+};
+
+export const LEVEL_MAP_NAMES: Record<LevelId, readonly [string, string, string]> = {
+   1: ["Park", "City", "Beach"],
+   2: ["Civic Plaza", "Town Hall", "Esplanade"],
+   3: ["Market Green", "High Street", "Boardwalk"],
+   4: ["Riverbank", "Canal Quay", "Harbour Pier"],
+   5: ["Festival Green", "Midway", "Beach Stage"],
+};
+
+export function levelIdOf(level: CleanLevel): LevelId {
+   for (const id of [1, 2, 3, 4, 5] as const) {
+      if (LEVELS[id] === level || LEVELS[id].items === level.items) return id;
+   }
+   return 1;
+}
+

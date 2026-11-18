@@ -315,13 +315,13 @@ Branch verification: `git branch --show-current` returned `codex/levels-pigeon-c
 
 ### Levels
 
-| L | Plan title | Clear objective / score | Traffic / new mechanic | Roads per 20 rows | Lighting | Row / street bonus |
-|---|---|---|---|---:|---|---|
-| 1 | Quiet Street | 3 sections / 90 | Today's live traffic, layout, timing and controls | 13 | Existing day | 10 / 100 |
-| 2 | Main Road | 4 sections / 180 | Parked van on left grass; extra convoy member, tier +1, speed x1.05 | 13 | Day | 15 / 150 |
-| 3 | City Crossing | 5 sections / 300 | Parked vans on both sides; mixed opposing convoys, tier +2, speed x1.10 | 13 | Sunset | 20 / 200 |
-| 4 | Night Traffic | 6 sections / 850 | Grass every 4 rows: longer crossings and less recovery; tier +3, speed x1.15 | 15 | Night | 25 / 250 |
-| 5 | Rush Hour | 8 sections / 1800 | Grass every 5 rows, all hazards together; tier +4, speed x1.20 | 16 | Dramatic sunset | 30 / 300 |
+| L | Plan title | Clear objective / score | District look, props & set pieces | Traffic / median twist | Roads per 20 rows | Lighting & fog | Row / street bonus |
+|---|---|---|---|---|---:|---|---|
+| 1 | Quiet Street | 3 sections / 90 | Original clean street and palette (`MAP_1`), unchanged | Today's live traffic `[4,2,1]`, layout, timing and controls | 13 | Existing day (`#bfd6d5`, no fog) | 10 / 100 |
+| 2 | Main Road | 4 sections / 180 | Suburban boulevard (`MAP_2`): townhouses, corner shops, bus stops, leafy trees, benches, cones; **bus lay-bys** & **crosswalk beacons** | Alternating-curb parked delivery van (`alternating-curb`), commuter van mix `[3,2,2]`, tier +1, speed x1.05 | 13 | Day + morning mist (`#c8e3d4`, fog 26–78 m) | 15 / 150 |
+| 3 | City Crossing | 5 sections / 300 | Golden-hour midtown (`MAP_3`): brick apartments, glass offices, traffic lights, bins, benches; **signal cantilevers** & **pocket plazas** | Dual-curb parked vans (`dual-curb`) + downtown yellow **taxi surge** `[2,4,1]`, tier +2, speed x1.10 | 13 | Sunset + amber haze (`#e9bd99`, fog 24–72 m) | 20 / 200 |
+| 4 | Night Traffic | 6 sections / 850 | Nocturnal expressway (`MAP_4`): skyscrapers, office blocks, glowing street lamps, barriers; **neon pylons** & **acoustic sound walls** | Grass every 4 rows + **staggered night chicanes** (`night-chicane`) + night freight mix `[2,2,3]`, tier +3, speed x1.15 | 15 | Night + deep indigo fog (`#17243b`, fog 20–62 m) | 25 / 250 |
+| 5 | Rush Hour | 8 sections / 1800 | Metropolitan arterial canyon (`MAP_5`): dense towers, offices, apartments, barriers, cones, lights; **expressway toll gantries** & **work-zone barricades** | Grass every 5 rows + **pinched refuge islands** (`rush-pinch`, cols 1 & 5 on deeper medians) + rush-hour convoy mix `[1,3,3]`, tier +4, speed x1.20 | 16 | Dramatic sunset + dusk smog (`#c18070`, fog 22–66 m) | 30 / 300 |
 
 Content adaptation: a section is one grass-to-grass crossing, including the shortened final crossing of a street. The configured target is sections x grassEvery forward rows, converted by the normal street/row scoring formula. Reaching that score clears through the existing shell; the run continues until collision or timeup. The plan's collectible line becomes forward-row rewards; its static obstacles reuse parked van GLBs, with no new assets. The plan's short target times are guidance for clearing, not shortened scoring rounds. All five retain the 30-minute endless cap, so higher levels retain the full scoring opportunity and summed bests are not penalized by shorter rounds.
 

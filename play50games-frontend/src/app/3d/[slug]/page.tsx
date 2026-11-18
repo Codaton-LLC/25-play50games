@@ -1,5 +1,6 @@
 // One 3D Arcade game, full screen. The page is static (every slug); the game itself mounts on the
 // client only (ArcadeGameMount -> GAME_LOADERS + GameShell), so three.js never ships with the page.
+// The site header lies over the shell while no run is on screen (ArcadeChrome), like on the hub.
 // "soon" games stay playable at their URL but are noindex (their cards are not clickable).
 // "dev" games are 404 unless NEXT_PUBLIC_ARCADE_PREVIEW is on (preview builds), and noindex there.
 import type { Metadata, Viewport } from "next";
@@ -8,8 +9,10 @@ import { ARCADE_ENABLED } from "@/arcade3d/flags";
 import { ARCADE_SLUGS, isArcadeSlug } from "@/arcade3d/types";
 import { getGameMeta, isGameVisible } from "@/arcade3d/registry";
 import ArcadeGameMount from "@/arcade3d/core/ArcadeGameMount";
+import SiteHeader from "@/components/Site/SiteHeader";
 import { gameJsonLd, serializeJsonLd } from "@/lib/seo/jsonLd";
 import { OG_IMAGES, gameOgImagePath, ogImage } from "@/lib/seo/ogImages";
+import ArcadeChrome from "./ArcadeChrome";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://play50games.com";
 
@@ -69,11 +72,11 @@ export default function ArcadeGamePage({ params }: PageProps) {
    if (!meta || !isGameVisible(meta)) notFound();
    const jsonLd = gameJsonLd(SITE_URL, meta, ARCADE_ENABLED);
    return (
-      <main>
+      <ArcadeChrome header={<SiteHeader active="arcade" immersive />}>
          {jsonLd && (
             <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }} />
          )}
          <ArcadeGameMount slug={meta.slug} />
-      </main>
+      </ArcadeChrome>
    );
 }

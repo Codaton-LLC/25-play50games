@@ -1,8 +1,8 @@
 "use client";
 
+// The login sheet (docs/design/DESIGN.md §6 item 8). The frame and the fields are AuthSheet.tsx.
 import { useState } from "react";
-import { XMarkIcon } from "@heroicons/react/24/outline";
-import styles from "./AuthModal.module.css";
+import { AuthAlt, AuthField, AuthSheet, AuthSubmit, authStyles as styles } from "./AuthSheet";
 
 interface LoginModalProps {
    isOpen: boolean;
@@ -88,129 +88,59 @@ export default function LoginModal({
    };
 
    return (
-      <div className={`modal-overlay ${styles.overlay}`} onClick={onClose}>
-         <div className={`modal-content ${styles.content}`} onClick={(e) => e.stopPropagation()}>
-            <button className="modal-close" onClick={onClose}>
-               <XMarkIcon style={{ width: 24, height: 24 }} />
-            </button>
+      <AuthSheet
+         id="login-title"
+         title="Log in"
+         lead="Your scores and your Classic 50 progress are saved to your account."
+         error={error}
+         onClose={onClose}
+         footer={
+            <>
+               New here?
+               <AuthAlt onClick={onSwitchToRegister}>Create an account</AuthAlt>
+            </>
+         }
+      >
+         {/* noValidate: the errors show under their fields, not in the browser's own bubbles */}
+         <form className={styles.form} onSubmit={handleSubmit} noValidate>
+            <AuthField
+               id="login-email"
+               label="Email or username"
+               type="text"
+               autoComplete="username"
+               autoCapitalize="none"
+               spellCheck={false}
+               value={email}
+               onChange={(e) => handleEmailChange(e.target.value)}
+               onBlur={() =>
+                  setFieldErrors((prev) => ({
+                     ...prev,
+                     email: validateEmailOrUsername(email),
+                  }))
+               }
+               required
+               error={fieldErrors.email}
+            />
 
-            <h2>Login</h2>
+            <AuthField
+               id="login-password"
+               label="Password"
+               type="password"
+               autoComplete="current-password"
+               value={password}
+               onChange={(e) => handlePasswordChange(e.target.value)}
+               onBlur={() =>
+                  setFieldErrors((prev) => ({
+                     ...prev,
+                     password: validatePassword(password),
+                  }))
+               }
+               required
+               error={fieldErrors.password}
+            />
 
-            {error && (
-               <div
-                  className="error-message"
-                  style={{
-                     padding: "0.75rem",
-                     backgroundColor: "rgba(252, 165, 165, 0.15)",
-                     border: "1px solid rgba(252, 165, 165, 0.4)",
-                     color: "var(--warn)",
-                     marginBottom: "1rem",
-                     fontSize: "14px",
-                  }}
-               >
-                  {error}
-               </div>
-            )}
-
-            <form onSubmit={handleSubmit}>
-               <div className="form-group">
-                  <label htmlFor="login-email">Email or Username</label>
-                  <input
-                     id="login-email"
-                     type="text"
-                     value={email}
-                     onChange={(e) => handleEmailChange(e.target.value)}
-                     onBlur={() =>
-                        setFieldErrors((prev) => ({
-                           ...prev,
-                           email: validateEmailOrUsername(email),
-                        }))
-                     }
-                     required
-                     placeholder="your@email.com or username"
-                     style={{
-                        borderColor: fieldErrors.email
-                           ? "var(--warn)"
-                           : undefined,
-                     }}
-                  />
-                  {fieldErrors.email && (
-                     <small
-                        style={{
-                           color: "var(--warn)",
-                           fontSize: "0.875rem",
-                           display: "block",
-                           marginTop: "0.25rem",
-                        }}
-                     >
-                        {fieldErrors.email}
-                     </small>
-                  )}
-               </div>
-
-               <div className="form-group">
-                  <label htmlFor="login-password">Password</label>
-                  <input
-                     id="login-password"
-                     type="password"
-                     value={password}
-                     onChange={(e) => handlePasswordChange(e.target.value)}
-                     onBlur={() =>
-                        setFieldErrors((prev) => ({
-                           ...prev,
-                           password: validatePassword(password),
-                        }))
-                     }
-                     required
-                     placeholder="••••••••"
-                     style={{
-                        borderColor: fieldErrors.password
-                           ? "var(--warn)"
-                           : undefined,
-                     }}
-                  />
-                  {fieldErrors.password && (
-                     <small
-                        style={{
-                           color: "var(--warn)",
-                           fontSize: "0.875rem",
-                           display: "block",
-                           marginTop: "0.25rem",
-                        }}
-                     >
-                        {fieldErrors.password}
-                     </small>
-                  )}
-               </div>
-
-               <button type="submit" disabled={loading} className="btn-primary">
-                  {loading ? "Logging in..." : "Login"}
-               </button>
-            </form>
-
-            <div style={{ marginTop: "1rem", textAlign: "center" }}>
-               <p
-                  style={{ margin: 0, color: "var(--muted)", fontSize: "14px" }}
-               >
-                  Don't have an account?{" "}
-                  <button
-                     type="button"
-                     onClick={onSwitchToRegister}
-                     style={{
-                        background: "none",
-                        border: "none",
-                        color: "var(--accent)",
-                        cursor: "pointer",
-                        textDecoration: "underline",
-                        fontSize: "14px",
-                        fontWeight: "600",
-                     }}
-                  >
-                     Register here
-                  </button>
-               </p>
-            </div>
-         </div>
-      </div>
+            <AuthSubmit busy={loading}>{loading ? "Logging in…" : "Log in"}</AuthSubmit>
+         </form>
+      </AuthSheet>
    );
 }

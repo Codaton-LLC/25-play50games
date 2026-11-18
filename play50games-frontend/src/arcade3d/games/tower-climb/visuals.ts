@@ -1,6 +1,7 @@
 // Read-only Tower pool/pose writers. All objects used by these callbacks are made at mount.
 import { Matrix4, Quaternion, Vector3 } from "three";
 import type { RunPhase } from "@/arcade3d/core/types";
+import { STORM_CLOUD_BAND, type StormCloudSpot } from "./assets";
 import {
    FALLING, INTACT, WARNING, NONE, SPUR, COIN, FLAG, SLAB,
    debrisDrop, lossFall, posedMs, slabX,
@@ -101,4 +102,29 @@ const WIND_SCALE = new Vector3(1.7, 1.7, 1.7);
 /** A chevron. `flip` points the gust to -x. */
 export function writeWind(matrix: Matrix4, x: number, y: number, flip: boolean): void {
    matrix.makeRotationY(flip ? Math.PI : 0).scale(WIND_SCALE).setPosition(x, y, 0);
+}
+
+/** The storm clouds' slow sink down the wrap band (m/s) and their sideways sway amplitude (m). */
+export const STORM_CLOUD_SINK = 0.12;
+export const STORM_CLOUD_SWAY = 0.12;
+const STORM_CLOUD_SCALE = new Vector3();
+
+/**
+ * A storm-cloud spot (levels 4-5). The cloud sinks slowly down `STORM_CLOUD_BAND` metres above
+ * `viewBottomY` and wraps to the top, so the decor drifts as the camera rises; reduced motion
+ * pins it at its spot. Purely decorative: visual time only, never any gameplay state.
+ */
+export function writeStormCloud(
+   spot: StormCloudSpot, index: number, viewBottomY: number, now: number, reduced: boolean, matrix: Matrix4
+): void {
+   const sink = reduced ? 0 : now * STORM_CLOUD_SINK;
+   let y = (spot.y - sink) % STORM_CLOUD_BAND;
+   if (y < 0) y += STORM_CLOUD_BAND;
+   const sway = reduced ? 0 : Math.sin(now * 0.12 + index * 1.7) * STORM_CLOUD_SWAY;
+   STORM_CLOUD_SCALE.set(spot.s, spot.s, spot.s);
+   matrix.compose(
+      POSITION.set(spot.x + sway, viewBottomY + y, spot.z),
+      ROTATION.setFromAxisAngle(Y_AXIS, spot.rotY),
+      STORM_CLOUD_SCALE,
+   );
 }

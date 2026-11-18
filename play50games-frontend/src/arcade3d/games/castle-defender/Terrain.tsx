@@ -6,6 +6,9 @@ import { Water } from "@/arcade3d/core/env";
 import { useCanvasTexture, type CanvasDraw } from "@/arcade3d/core/render";
 import { COLORS, WATER, hillMesh, roadMesh, type ColoredMesh } from "./looks";
 
+import { useCastleLevel } from "./useCastleLevel";
+import { sceneryFor } from "./scenery";
+
 const drawMeadow: CanvasDraw = (ctx, width, height) => {
    ctx.fillStyle = COLORS.grass;
    ctx.fillRect(0, 0, width, height);
@@ -30,6 +33,8 @@ function coloredGeometry(data: ColoredMesh): BufferGeometry {
 
 /** Flat meadow at y 0, low hills beyond it, a cobbled strip on each lane, and the far-left river. */
 export function Terrain({ reduced, ground = "#ffffff" }: { reduced: boolean; ground?: string }) {
+   const { id } = useCastleLevel();
+   const scene = sceneryFor(id);
    const hills = useMemo(() => coloredGeometry(hillMesh()), []);
    const roads = useMemo(() => coloredGeometry(roadMesh()), []);
    const meadow = useCanvasTexture(512, 512, drawMeadow);
@@ -46,7 +51,7 @@ export function Terrain({ reduced, ground = "#ffffff" }: { reduced: boolean; gro
       <group name="castle-terrain">
          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, -1.6]} name="castle-meadow">
             <planeGeometry args={[16, 15]} />
-            <meshStandardMaterial map={meadow} color={ground} roughness={1} polygonOffset polygonOffsetFactor={1} polygonOffsetUnits={1} />
+            <meshStandardMaterial map={id === 1 ? meadow : undefined} color={scene.floor ?? ground} roughness={1} polygonOffset polygonOffsetFactor={1} polygonOffsetUnits={1} />
          </mesh>
          <mesh geometry={hills} dispose={null} name="castle-hills">
             <meshStandardMaterial vertexColors color={ground} flatShading roughness={1} />

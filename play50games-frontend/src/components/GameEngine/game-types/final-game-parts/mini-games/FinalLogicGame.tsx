@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import fx from "../finalMobile.module.css";
 import {
    CheckCircleIcon,
    XCircleIcon,
@@ -557,6 +558,7 @@ export default function FinalLogicGame({
                         <button
                            key={index}
                            onClick={() => handleNumberClick(index)}
+                           className={fx.tap}
                            disabled={isSelected || gameState !== "playing"}
                            style={{
                               padding: isMobile ? "24px" : "32px",
@@ -779,6 +781,7 @@ export default function FinalLogicGame({
                {/* Replay Button */}
                <button
                   onClick={handleReplay}
+                  className={fx.btn}
                   disabled={maxReplays > 0 && replaysUsed >= maxReplays}
                   style={{
                      display: "flex",
@@ -820,6 +823,7 @@ export default function FinalLogicGame({
                {/* Share Button */}
                <button
                   onClick={handleShare}
+                  className={fx.btn}
                   style={{
                      display: "flex",
                      alignItems: "center",

@@ -16,6 +16,9 @@ import {
    getShareStatus,
 } from "@/lib/api/share";
 
+import touch from "./skillTouch.module.css";
+import { usePlayAreaInView } from "./usePlayAreaInView";
+
 interface StackBlocksProps {
    config: Record<string, any>;
    onScoreUpdate: (score: number) => void;
@@ -197,6 +200,9 @@ export default function StackBlocks({
    const nextRoundClickedRef = useRef(false);
    const [nextRoundLocked, setNextRoundLocked] = useState(false);
    const arenaRef = useRef<HTMLDivElement>(null);
+   // Drawing only: how far the stack is drawn shifted down so the moving block stays on a short
+   // (phone) canvas. Block positions, placement and scoring never use it.
+   const camYRef = useRef(0);
 
    // Draw function (defined first so it can be used in resizeCanvas)
    const draw = useCallback(() => {
@@ -229,6 +235,14 @@ export default function StackBlocks({
          ctx.stroke();
       }
 
+      // Camera (drawing only): keep the moving block at least two rows below the top edge
+      const focusBlock = currentBlockRef.current ?? stackRef.current[stackRef.current.length - 1];
+      const camTarget = focusBlock ? Math.max(0, BLOCK_H * 3 - focusBlock.y) : 0;
+      camYRef.current += (camTarget - camYRef.current) * 0.2;
+      if (Math.abs(camTarget - camYRef.current) < 0.5) camYRef.current = camTarget;
+      ctx.save();
+      ctx.translate(0, camYRef.current);
+
       // Draw stack (last N visible rows)
       const visibleStack = stackRef.current.slice(
          Math.max(0, stackRef.current.length - TOTAL_VISIBLE_ROWS)
@@ -259,6 +273,7 @@ export default function StackBlocks({
             BLOCK_H
          );
       }
+      ctx.restore();
 
       // Floor label
       ctx.fillStyle = "rgba(166,179,209,.55)";
@@ -366,6 +381,10 @@ export default function StackBlocks({
       window.addEventListener("resize", checkResponsive);
       return () => window.removeEventListener("resize", checkResponsive);
    }, []);
+
+   // Mobile/tablet: bring the panel and the play area on screen when a round starts
+   const rootRef = useRef<HTMLDivElement>(null);
+   const pad = usePlayAreaInView(rootRef, arenaRef, true, `${gameState}-${currentLevel}`);
 
    // Clear all timers
    const clearAll = useCallback(() => {
@@ -1086,11 +1105,12 @@ export default function StackBlocks({
    return (
       <>
          <div
+         ref={rootRef}
             style={{
                display: "flex",
                flexDirection: "column",
                alignItems: "center",
-               gap: isMobile ? "16px" : "20px",
+               gap: isMobile ? "10px" : "20px", // phones: the 400 px board + panel fit above a cookie banner
                width: "100%",
                maxWidth: "800px",
                margin: "0 auto",
@@ -1238,7 +1258,11 @@ export default function StackBlocks({
                            color: "var(--text)",
                         }}
                      >
-                        Blocks: {blocksPlaced}/{minBlocks}
+                        Blocks:{" "}
+                        <span key={blocksPlaced} className={touch.pop} style={{ display: "inline-block" }}>
+                           {blocksPlaced}
+                        </span>
+                        /{minBlocks}
                      </span>
                   </div>
                </div>
@@ -1248,6 +1272,8 @@ export default function StackBlocks({
             {gameState === "playing" ? (
                <div
                   ref={arenaRef}
+                  className={touch.tapArea}
+                  data-play-area=""
                   onClick={handlePlace}
                   tabIndex={0}
                   onKeyDown={(e) => {
@@ -1313,6 +1339,7 @@ export default function StackBlocks({
                      Blocks placed: {blocksPlaced}/{minBlocks}
                   </div>
                   <button
+                  className={touch.tapButton}
                      onClick={handleNextRound}
                      disabled={nextRoundLocked}
                      style={{
@@ -1534,6 +1561,7 @@ export default function StackBlocks({
                )}
 
                <button
+                  className={touch.tapButton}
                   onClick={handleReplay}
                   disabled={maxReplays > 0 && replaysUsed >= maxReplays}
                   style={{
@@ -1574,7 +1602,7 @@ export default function StackBlocks({
                      }}
                   />
                   <span>
-                     {isMobile ? "" : "Replay "}
+                     {"Replay "}
                      {maxReplays === 0
                         ? "(∞)"
                         : `(${maxReplays - replaysUsed}/${maxReplays})`}
@@ -1582,6 +1610,7 @@ export default function StackBlocks({
                </button>
 
                <button
+                  className={touch.tapButton}
                   onClick={handleShare}
                   style={{
                      display: "flex",
@@ -1610,6 +1639,7 @@ export default function StackBlocks({
                   <span>Share for unlimited</span>
                </button>
             </div>
+            {pad > 0 && <div aria-hidden="true" style={{ height: pad, flexShrink: 0 }} />}
          </div>
       </>
    );

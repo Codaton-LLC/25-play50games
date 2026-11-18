@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import css from "./MirrorMatch.module.css";
+import mobile from "./mobile.module.css";
 import {
    ArrowLeftIcon,
    ArrowRightIcon,
@@ -1056,7 +1058,7 @@ function MirrorMatch({
    }, [options.length, isRoundComplete]);
 
    return (
-      <div className="mirror-match-game">
+      <div className={`mirror-match-game ${css.root}`}>
          {/* Header */}
          <div className="game-header">
             <div className="header-title">
@@ -1097,6 +1099,7 @@ function MirrorMatch({
          <div className="mirror-match-content">
             {/* Main Shape */}
             <div
+               className={css.target}
                style={{
                   background: "var(--card)",
                   borderRadius: "20px",
@@ -1144,7 +1147,7 @@ function MirrorMatch({
                         animation: "pulse 2s ease-in-out infinite",
                      }}
                   >
-                     {getSVGShape(mainShape, 120)}
+                     <span className={css.shape}>{getSVGShape(mainShape, 120)}</span>
                   </div>
                   <div
                      style={{
@@ -1194,6 +1197,7 @@ function MirrorMatch({
 
             {/* Options */}
             <div
+               className={css.options}
                style={{
                   display: "grid",
                   gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))",
@@ -1212,6 +1216,7 @@ function MirrorMatch({
                   return (
                      <button
                         key={index}
+                        className={`${css.option} ${isCorrectSelection ? mobile.pop : isIncorrectSelection ? mobile.shake : ""}`}
                         onClick={() => handleSelect(index)}
                         disabled={isRoundComplete}
                         style={{
@@ -1376,6 +1381,8 @@ function MirrorMatch({
          {/* Feedback Message */}
          {feedback !== null && (
             <div
+               className={css.feedback}
+               role="status"
                style={{
                   padding: "16px 24px",
 

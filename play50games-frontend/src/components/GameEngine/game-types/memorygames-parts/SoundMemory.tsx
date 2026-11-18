@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import m from "./mobile.module.css";
 import {
    CheckCircleIcon,
    XCircleIcon,
@@ -623,6 +624,7 @@ function SoundMemory({
 
    return (
       <div
+         className={m.tight}
          style={{
             display: "flex",
             flexDirection: "column",
@@ -708,6 +710,8 @@ function SoundMemory({
 
          {/* Game State Display */}
          <div
+            key={gameState}
+            className={gameState === "correct" ? m.feedbackOk : gameState === "wrong" ? m.feedbackBad : undefined}
             style={{
                width: "100%",
                background: "var(--card)",
@@ -887,6 +891,7 @@ function SoundMemory({
             {/* Replay Button */}
             <button
                onClick={handleReplay}
+               className={m.btn}
                disabled={
                   sequence.length === 0 ||
                   isPlayingSequence ||
@@ -975,6 +980,7 @@ function SoundMemory({
             {/* Share Button */}
             <button
                onClick={handleShare}
+               className={m.btn}
                style={{
                   display: "flex",
                   alignItems: "center",
@@ -1039,6 +1045,7 @@ function SoundMemory({
                      key={padIndex}
                      onClick={() => handlePadClick(padIndex)}
                      disabled={!isAcceptingInput || isPlayingSequence}
+                     className={m.card}
                      style={{
                         borderRadius: isMobile ? "18px" : "20px",
                         aspectRatio: "1",

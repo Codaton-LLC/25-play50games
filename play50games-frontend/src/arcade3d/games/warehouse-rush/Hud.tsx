@@ -14,9 +14,10 @@ import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import type { CSSProperties } from "react";
 import { COLOURS } from "./rules";
 import { useWarehouseLevel } from "./useWarehouseLevel";
+import CameraViewButton from "@/arcade3d/core/camera/CameraViewButton";
 import styles from "./Hud.module.css";
 
-export default function OrderHud() {
+function OrderHud() {
    const order = useArcadeStore((s) => s.stats.order);
    const carrying = useArcadeStore((s) => (s.stats.carry ?? 0) > 0);
    const drops = useArcadeStore((s) => s.stats.drops ?? 0);
@@ -57,4 +58,8 @@ export default function OrderHud() {
          </span>
       </div>
    );
+}
+
+export default function Hud() {
+   return <><CameraViewButton /><OrderHud /></>;
 }

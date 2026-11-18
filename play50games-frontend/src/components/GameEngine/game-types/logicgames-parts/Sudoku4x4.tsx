@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import css from "./Sudoku4x4.module.css";
+import { bottomObstruction } from "./useMobileFit";
 import NumberKeypad from "../../NumberKeypad";
 
 function Sudoku4x4({
@@ -20,6 +22,20 @@ function Sudoku4x4({
       row: number;
       col: number;
    } | null>(null);
+   // phones: the keypad opens under the grid; bring it into view when a cell is picked
+   const keypadRef = useRef<HTMLDivElement>(null);
+   useEffect(() => {
+      if (!selected) return;
+      const id = window.setTimeout(() => {
+         const el = keypadRef.current;
+         if (!el) return;
+         // above the bottom edge and any bottom bar (the cookie banner)
+         const limit = window.innerHeight - bottomObstruction() - 12;
+         const r = el.getBoundingClientRect();
+         if (r.bottom > limit) window.scrollBy({ top: r.bottom - limit, behavior: "smooth" });
+      }, 30);
+      return () => window.clearTimeout(id);
+   }, [selected]);
    const [errors, setErrors] = useState<Set<string>>(new Set());
    const [isComplete, setIsComplete] = useState(false);
    const [feedback, setFeedback] = useState<string>("");
@@ -369,7 +385,7 @@ function Sudoku4x4({
    };
 
    return (
-      <div className="sudoku-game-modern">
+      <div className={`sudoku-game-modern ${css.root}`}>
          <div className="sudoku-header">
             <h3>Number Grid 4x4</h3>
             {feedback && (
@@ -420,7 +436,7 @@ function Sudoku4x4({
             </div>
 
             {selected && (
-               <div className="sudoku-controls">
+               <div className="sudoku-controls" ref={keypadRef}>
                   <NumberKeypad
                      onNumberSelect={handleNumberSelect}
                      onClear={handleClear}

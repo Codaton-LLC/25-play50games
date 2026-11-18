@@ -4,11 +4,17 @@
 // Time game: end("win") only when the rules say the door finished. GameShell scores it.
 // Tap inspects the badge that is on screen (input.tap, on release). A miss does not fall
 // through to the E / Enter nearest-target key. E and the action button use actionPressed.
-import { memo, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { Raycaster, Vector2, Vector3, type Group, type MeshBasicMaterial, type PerspectiveCamera } from "three";
+import { useCameraViews } from "@/arcade3d/core/camera/CameraViews";
+import { useCameraZoom } from "@/arcade3d/core/useCameraZoom";
+import { PHONE_LEAD, PHONE_LIFT, phoneOffset } from "./cameraViews";
+import { useLeadFollow } from "@/arcade3d/core/camera/useLeadFollow";
+import { ROOM_STYLES, scenerySolids } from "./roomStyles";
 import CameraRig from "@/arcade3d/core/CameraRig";
 import { playSfx } from "@/arcade3d/core/audio";
+import { useActionPop } from "@/arcade3d/core/fx";
 import type { AABB } from "@/arcade3d/core/collision";
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import { useInput } from "@/arcade3d/core/input";
@@ -70,6 +76,10 @@ const VIEW: FittedViewOptions = {
    shift: true,
    fov: 45,
 };
+const DECOR_VIEW: FittedViewOptions = {
+   ...VIEW,
+   area: { min: { x: -8, y: -0.15, z: -7 }, max: { x: 8, y: 2.3, z: 5.2 } },
+};
 
 const BADGE_Y = 1.2;
 /** A tap that missed the badge. Not null, so it does not fall through to the nearest-target key. */
@@ -104,10 +114,11 @@ function placeBadge(camera: PerspectiveCamera, canvasHeight: number, x: number, 
    return screenSpriteSize(Math.abs(depth), camera.fov, canvasHeight, cssPx);
 }
 
-const Simulation = memo(function Simulation({ run, yaw }: { run: EscapeRun; yaw: number }) {
+const Simulation = memo(function Simulation({ run, yaw }: { run: EscapeRun; yaw: () => number }) {
    const input = useInput();
    const camera = useThree((s) => s.camera) as PerspectiveCamera;
    const height = useThree((s) => s.size.height);
+   const pop = useActionPop();
    const [scratch] = useState(() => ({ dir: { x: 0, z: 0 }, input: createStepInput(), hint: -1, mask: -1, found: -1 }));
 
    useLayoutEffect(() => {
@@ -122,7 +133,7 @@ const Simulation = memo(function Simulation({ run, yaw }: { run: EscapeRun; yaw:
 
    useRunFrame((_state, dt) => {
       const now = input.current;
-      inputToWorld(now.moveX, now.moveY, yaw, scratch.dir);
+      inputToWorld(now.moveX, now.moveY, yaw(), scratch.dir);
       const frame = scratch.input;
       frame.moveX = scratch.dir.x;
       frame.moveY = scratch.dir.z;
@@ -173,6 +184,8 @@ const Simulation = memo(function Simulation({ run, yaw }: { run: EscapeRun; yaw:
       if (hint !== scratch.hint) {
          scratch.hint = hint;
          store.setStat("hint", hint);
+         // the result of a failed try, over the explorer (the checklist says it too)
+         if (hint === 1 || hint === 2) pop.fail({ x: run.player.x, y: 1.7, z: run.player.z }, hint === 1 ? "Locked: find all three first" : "Empty: nothing here", { shake: 0 });
       }
       if (ev.ended === "win") {
          if (run.level.id !== 1) store.setStat("finishMs", run.finishMs);
@@ -335,21 +348,54 @@ function Runner({ run }: { run: EscapeRun }) {
 
 export default function Scene() {
    const { config } = useLevel<EscapeLevel>();
-   const view = useFittedView(VIEW);
+   const view = useFittedView(config.id === 1 ? VIEW : DECOR_VIEW);
    const [run] = useState(() => createRun(randomSeed(), config));
+   const style = ROOM_STYLES[config.id];
+   const solids = useMemo<AABB[]>(() => [
+      ...run.layout.obstacles.map((box) => ({ min: { ...box.min, y: 0 }, max: { ...box.max, y: 1.4 } })),
+      ...scenerySolids(config.id),
+      { min: { x: -6.2, y: 0, z: -5.2 }, max: { x: 6.2, y: 1.2, z: -5.04 } },
+      { min: { x: -6.2, y: 0, z: -5.2 }, max: { x: -6.04, y: 0.32, z: 5.2 } },
+      { min: { x: 6.04, y: 0, z: -5.2 }, max: { x: 6.2, y: 0.32, z: 5.2 } },
+      { min: { x: -0.95, y: 0, z: -5 }, max: { x: 0.95, y: 2.1, z: -4.75 } },
+   ], [run, config.id]);
    const [moving] = useState(() => ({ current: createMoving(run.stations.length, run.items.length) }));
+   const aspect = useThree((s) => s.size.width / s.size.height);
+   const portrait = aspect < 1;
+   const offset = phoneOffset(view.offset, aspect);
+   const aim = useLeadFollow(run.player, offset, PHONE_LEAD, PHONE_LIFT, portrait);
+   const zoom = useCameraZoom({ min: 2 / Math.hypot(...offset), max: Math.max(1, 2 * view.distance / Math.hypot(...offset)) });
+   useEffect(() => { zoom.current = 1; }, [portrait, zoom]);
+   const cam = useCameraViews({
+      slug: "escape-room", subject: "character", steering: "camera", defaultYaw: view.yaw,
+      ...(config.id === 1 ? {} : { solids: (out: AABB[]) => {
+         for (let i = 0; i < solids.length; i++) out[i] = solids[i];
+         return solids.length;
+      } }),
+      framing: { chase: { distance: 4.5, lookUp: 0 }, front: { distance: 4, lookUp: 0 }, free: { distance: 4.5, lookUp: 0 } },
+      target: (o) => {
+         const p = run.player;
+         o.x = p.x; o.y = 0.7; o.z = p.z;
+         o.heading = Math.hypot(p.vx, p.vz) > 0.01 ? Math.atan2(p.vx, p.vz) : Math.PI;
+         o.vx = p.vx; o.vz = p.vz;
+      },
+   });
    const position = useMemo<[number, number, number]>(() => [
-      ROOM_FOCUS[0] + view.offset[0],
-      ROOM_FOCUS[1] + view.offset[1],
-      ROOM_FOCUS[2] + view.offset[2],
-   ], [view.offset]);
+      ROOM_FOCUS[0] + offset[0], ROOM_FOCUS[1] + offset[1], ROOM_FOCUS[2] + offset[2],
+   ], [offset[0], offset[1], offset[2]]);
 
    return (
       <>
-         <Simulation run={run} yaw={view.yaw} />
+         {config.id !== 1 && <>
+            <color attach="background" args={[style.fog]} />
+            <fog attach="fog" args={[style.fog, 24, 65]} />
+         </>}
+         <Simulation run={run} yaw={cam.yaw} />
          <CameraRig
             camera={{ position, fov: 45, lookAt: ROOM_FOCUS }}
-            offset={view.offset}
+            offset={offset}
+            zoom={zoom}
+            follow={aspect < 1 ? aim : FOCUS[0]}
             shift={view.shift}
          />
          <Room run={run} moving={moving} />

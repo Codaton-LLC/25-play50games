@@ -32,6 +32,8 @@ export interface TowerParts {
    flag: InstancePart[]; tower: InstancePart[];
    /** Spring pad, rocket pickup and wind chevron. Level 1 draws none of them. */
    spring: InstancePart[]; rocket: InstancePart[]; wind: InstancePart[];
+   /** Storm cloud puff (levels 4-5 side decor); the fallback for ASSETS.stormCloud. */
+   stormCloud: InstancePart[];
    /** One bevelled rocket (body, fin, nozzle) for the runner's back and the drop. */
    rocketPack: BufferGeometry;
    /** [0] clips below the danger line (viewBottomY), [1] above the column top; Scene moves them every frame */
@@ -134,6 +136,16 @@ export function createTowerParts(): TowerParts {
    depthReset.renderOrder = -1;
    depthReset.onBeforeRender = clearDepth;
    const coinLocal = new Matrix4().makeRotationX(Math.PI / 2);
+   // the storm cloud drawn while stormCloud.glb is missing: one vertex-coloured puff at the
+   // asset's x1 drawn size (2.4 wide, bottom at the spot's y), scaled per spot by writeStormCloud
+   const stormCloudGeometry = merged(add => {
+      add(new SphereGeometry(1, 18, 12).scale(1.2, 0.78, 0.85), 0, 0.78, 0, "#5a6a80");
+      add(new SphereGeometry(1, 14, 10).scale(0.55, 0.5, 0.5), -0.62, 1.15, 0.08, "#6b7c94");
+      add(new SphereGeometry(1, 14, 10).scale(0.5, 0.45, 0.45), 0.58, 1.2, -0.06, "#6b7c94");
+      add(new SphereGeometry(1, 12, 9).scale(0.42, 0.38, 0.4), 0.05, 1.5, 0.02, "#7d8ea6");
+      add(new SphereGeometry(1, 16, 10).scale(0.9, 0.3, 0.62), 0, 0.28, 0, "#46536a");
+   });
+   const stormCloudMat = new MeshStandardMaterial({ vertexColors: true, roughness: 1, flatShading: true });
    return {
       slab: [part(slabMat, body(1.4)), part(trimMat, [local(0, -0.018, 0.305, 1.25, 0.028, 0.012)])],
       moving: [part(movingMat, body(1.4)), part(arrowMat, [
@@ -189,12 +201,13 @@ export function createTowerParts(): TowerParts {
          tilted(0.12, 0.09, 0, 0.26, 0.05, 0.03, -0.75),
          tilted(0.12, -0.09, 0, 0.26, 0.05, 0.03, 0.75),
       ])],
+      stormCloud: [{ geometry: stormCloudGeometry, material: stormCloudMat, locals: [new Matrix4()] }],
       rocketPack: pack,
       planes,
       runnerTrunk: runner.trunk, runnerLeg: runner.leg, runnerArm: runner.arm, runnerMaterial, depthReset,
-      geometries: [box, disc, pole, runner.trunk, runner.leg, runner.arm, resetGeometry, pack],
+      geometries: [box, disc, pole, runner.trunk, runner.leg, runner.arm, resetGeometry, pack, stormCloudGeometry],
       materials: [slabMat, trimMat, movingMat, arrowMat, ledgeMat, intactMat, crackedMat, crackMat, goldMat, poleMat, panelMat, ribMat,
-         limeMat, coilMat, springArrow, rocketBody, rocketFin, nozzleMat, windMat, runnerMaterial, resetMaterial],
+         limeMat, coilMat, springArrow, rocketBody, rocketFin, nozzleMat, windMat, runnerMaterial, resetMaterial, stormCloudMat],
    };
 }
 

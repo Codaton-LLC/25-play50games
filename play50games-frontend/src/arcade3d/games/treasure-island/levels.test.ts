@@ -10,7 +10,7 @@ import { createArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { LEVELS } from "./levels";
 import { treasureIslandMeta as meta } from "./meta";
 import definition from "./index";
-import { mapBot } from "./fairnessSuite";
+import { mapBot } from "./testing/fairnessSuite";
 import { THEMES, groundAt, hillHeight } from "./looks";
 import {
    DIG,

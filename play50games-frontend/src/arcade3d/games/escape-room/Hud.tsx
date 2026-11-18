@@ -5,11 +5,12 @@
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useLevel } from "@/arcade3d/core/level";
 import { ITEM_LABELS, type EscapeLevel } from "./levels";
+import CameraViewButton from "@/arcade3d/core/camera/CameraViewButton";
 import styles from "./Hud.module.css";
 
 const HINTS = ["", "Find all three", "Empty", "Opening", "Taking", "Unlocking"];
 
-export default function Checklist() {
+function Checklist() {
    const { config } = useLevel<EscapeLevel>();
    const next = useArcadeStore((s) => s.stats.nextItem ?? 0);
    const ready = useArcadeStore((s) => s.stats.exitReady ?? 1);
@@ -33,4 +34,8 @@ export default function Checklist() {
          </div>
       </div>
    );
+}
+
+export default function Hud() {
+   return <><CameraViewButton style={{ bottom: "calc(108px + env(safe-area-inset-bottom, 0px) + var(--arcade-bottom-obstruction, 0px))" }} /><Checklist /></>;
 }

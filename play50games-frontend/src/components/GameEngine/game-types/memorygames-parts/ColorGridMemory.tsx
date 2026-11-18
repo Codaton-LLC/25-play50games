@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import m from "./mobile.module.css";
 import {
    CheckCircleIcon,
    XCircleIcon,
@@ -584,6 +585,7 @@ function ColorGridMemory({
 
    return (
       <div
+         className={m.tight}
          style={{
             display: "flex",
             flexDirection: "column",
@@ -748,7 +750,9 @@ function ColorGridMemory({
 
             {/* Grid */}
             <div
+               className={m.fitBoard}
                style={{
+                  ["--ar" as string]: gridSize / Math.max(1, gridSize),
                   display: "grid",
                   gridTemplateColumns: `repeat(${gridSize}, 1fr)`,
                   gap: isMobile
@@ -786,6 +790,7 @@ function ColorGridMemory({
                      <button
                         key={idx}
                         onClick={() => handleCellClick(idx)}
+                        className={m.card}
                         disabled={gameState !== "input" || isSelected}
                         style={{
                            width: "100%",
@@ -932,6 +937,7 @@ function ColorGridMemory({
          {/* Feedback Messages */}
          {feedback !== null && (
             <div
+               className={feedback === "correct" ? m.feedbackOk : m.feedbackBad}
                style={{
                   padding: isMobile ? "14px 20px" : "16px 24px",
 
@@ -1052,6 +1058,7 @@ function ColorGridMemory({
             {/* Hint Button */}
             <button
                onClick={handleHint}
+               className={m.btn}
                disabled={
                   gameState !== "input" ||
                   (maxHints > 0 && hintsUsed >= maxHints) ||
@@ -1117,6 +1124,7 @@ function ColorGridMemory({
             {/* Share Button */}
             <button
                onClick={handleShare}
+               className={m.btn}
                style={{
                   display: "flex",
                   alignItems: "center",

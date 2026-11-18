@@ -1,5 +1,6 @@
-// The cookie banner's buttons are full-size touch targets on touch screens (measured in a browser:
-// 38 px tall before, 44 px now, desktop unchanged); this guards the rule they rest on.
+// The cookie banner's buttons are full-size touch targets on touch screens (44 px) and a little
+// lower with a mouse (40 px). The banner's look lives in its CSS module since the redesign; this
+// guards the rules the touch size rests on.
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
@@ -10,11 +11,16 @@ const read = (file: string) => readFileSync(path.join(__dirname, file), "utf8").
 describe("cookie banner buttons", () => {
    it("are at least 44 px tall on coarse pointers only", () => {
       const css = read("PrivacyConsent.module.css");
-      const coarse = css.match(/@media\s*\(pointer:\s*coarse\)\s*\{([\s\S]*)\}/)?.[1] ?? "";
+      const coarse = css.match(/@media\s*\(pointer:\s*coarse\)\s*\{([\s\S]*?)\}\s*\}/)?.[1] ?? "";
       const height = Number(coarse.match(/\.button\s*\{[^}]*min-height:\s*(\d+)px/)?.[1]);
       expect(height).toBeGreaterThanOrEqual(44);
-      // nothing outside the media query changes the desktop look
-      expect(css.replace(/@media[\s\S]*$/, "").trim()).toBe("");
+      // with a mouse the buttons are lower: the 44 px comes from the media query alone
+      const base = css.replace(/@media[\s\S]*$/, "");
+      const desktop = Number(base.match(/\.button\s*\{[^}]*min-height:\s*(\d+)px/)?.[1]);
+      expect(desktop).toBeGreaterThan(0);
+      expect(desktop).toBeLessThan(44);
+      // no :hover rule sets a height, so a hover cannot shrink a touch target
+      expect(css).not.toMatch(/:hover[^{]*\{[^}]*min-height/);
    });
 
    it("both carry the class", () => {
@@ -22,7 +28,7 @@ describe("cookie banner buttons", () => {
       // each button element, from its tag to its closing tag
       const buttons = source.match(/<button\b[\s\S]*?<\/button>/g) ?? [];
       expect(buttons).toHaveLength(2);
-      for (const button of buttons) expect(button).toContain("className={styles.button}");
+      for (const button of buttons) expect(button).toMatch(/className=\{`\$\{styles\.button\} /);
       expect(styles.button).toBeTruthy();
    });
 });

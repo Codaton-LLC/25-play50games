@@ -22,7 +22,7 @@ export const toyStoreNightShiftMeta: ArcadeGameMeta = {
    tagline: "Tidy up the toy store before morning.",
    description: "At night the toys came alive and wrecked the store. You are the store's tidy-up robot: put every toy back on its shelf before morning, while the wild wind-up toys run the aisles.",
    order: 48,
-   status: "dev",
+   status: "live",
    collection: "skill",
    difficulty: 2,
    orientation: "any",
@@ -30,6 +30,44 @@ export const toyStoreNightShiftMeta: ArcadeGameMeta = {
       scheme: "joystick",
       keyboard: "WASD / arrows to move, E or Enter to pick up / drop",
       touch: "Joystick to move + Use",
+   },
+   howTo: {
+      keys: [
+         { id: "move", keys: ["WASD", "Arrows"], label: "Move", main: true, role: "move" },
+         { id: "use", keys: ["E", "Enter"], label: "Pick up / drop", main: true },
+      ],
+      touch: [
+         { id: "joystick", control: "joystick", label: "Move" },
+         { id: "use", control: "action", label: "Pick up / drop" },
+      ],
+      steps: [
+         { title: "Goal", text: "Put every toy back on its shelf before the night ends." },
+         {
+            title: "Move",
+            text: "Use WASD or the arrow keys to walk the aisles.",
+            touchText: "Push the joystick to walk the aisles.",
+            keys: ["move"],
+            touch: ["joystick"],
+         },
+         {
+            title: "Pick up & shelve",
+            text: "Press E or Enter next to a toy to pick it up, and at the matching shelf to drop it.",
+            touchText: "Tap Use next to a toy to pick it up, and at the matching shelf to drop it.",
+            keys: ["use"],
+            touch: ["use"],
+         },
+         {
+            title: "Read the signs",
+            text: "Colour, shape and picture say which toys go where. A wrong shelf stuns you; wind-up robots knock toys out of your hands.",
+         },
+         {
+            title: "Tips",
+            text: "Check the shelf sign before you press Use. Esc or P pauses.",
+            touchText: "Check the shelf sign before you press Use. Tap Pause, top right, to stop.",
+            keys: ["pause"],
+            touch: ["pause"],
+         },
+      ],
    },
    scoring: SCORING,
    levels: LEVELS,

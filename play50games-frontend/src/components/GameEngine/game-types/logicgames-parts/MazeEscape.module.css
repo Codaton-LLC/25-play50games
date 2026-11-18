@@ -1,0 +1,110 @@
+/* Maze Escape on phones and tablets (desktop unchanged):
+   - on touch you moved only by tapping a neighbouring cell (35 px on a phone): now a swipe on the
+     maze takes one step, and a D-pad with 56 px buttons sits under the maze on touch screens;
+   - the maze spans the phone's width (bigger cells), and swiping on it never scrolls the page. */
+.grid {
+   touch-action: none;
+}
+
+.pad {
+   display: none;
+}
+
+@media (hover: none), (pointer: coarse) {
+   .pad {
+      display: grid;
+      grid-template-columns: repeat(3, 56px);
+      grid-template-rows: repeat(2, 56px);
+      grid-template-areas:
+         ". up ."
+         "left down right";
+      gap: 8px;
+      justify-content: center;
+      margin: 4px auto 0;
+   }
+   .pad button {
+      display: grid;
+      place-items: center;
+      width: 56px;
+      height: 56px;
+      border-radius: 14px;
+      border: 2px solid var(--stroke);
+      background: linear-gradient(135deg, rgba(var(--accent-rgb, 125, 211, 252), 0.16), rgba(var(--accent-rgb, 125, 211, 252), 0.06));
+      color: var(--accent);
+      font-size: 1.3rem;
+      cursor: pointer;
+   }
+   .pad button:active:not(:disabled) {
+      background: rgba(var(--accent-rgb, 125, 211, 252), 0.3);
+      transform: scale(0.95);
+   }
+   .pad button:disabled {
+      opacity: 0.4;
+   }
+   .up {
+      grid-area: up;
+   }
+   .left {
+      grid-area: left;
+   }
+   .down {
+      grid-area: down;
+   }
+   .right {
+      grid-area: right;
+   }
+}
+
+@media (max-width: 599px) {
+   .root {
+      padding: 10px 4px !important;
+      gap: 12px !important;
+   }
+   .container {
+      width: 100%;
+      padding: 6px !important;
+   }
+   .grid {
+      width: 100% !important;
+      max-width: 100% !important;
+      aspect-ratio: 1;
+      height: auto !important;
+   }
+}
+
+/* wide but short (tablet landscape): the maze sized to the screen height, the D-pad beside it */
+@media (min-width: 900px) and (max-height: 900px) {
+   .root {
+      display: grid !important;
+      grid-template-columns: auto auto;
+      grid-template-areas:
+         "head head"
+         "maze pad"
+         "feedback feedback";
+      justify-content: center;
+      align-items: center;
+      gap: 16px 28px !important;
+   }
+   .root > :global(.game-header) {
+      grid-area: head;
+   }
+   .container {
+      grid-area: maze;
+      width: auto !important;
+      max-width: none !important;
+      aspect-ratio: auto !important;
+      overflow: visible !important;
+   }
+   .grid {
+      width: min(560px, calc(100dvh - 330px)) !important;
+      height: min(560px, calc(100dvh - 330px)) !important;
+      max-width: none !important;
+   }
+   .pad {
+      grid-area: pad;
+      margin: 0;
+   }
+   .root > :global(.game-feedback) {
+      grid-area: feedback;
+   }
+}

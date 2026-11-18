@@ -18,6 +18,34 @@ export const RUNNER_SCALE = 0.2916;
  */
 export const COIN_SCALE = 0.6 / COIN_GLB_SIZE.width;
 
+/** stormCloud.glb (tower-climb, Hyper3D 2026-10-25) raw bounds, measured on the mesh (assets.test.ts): floor pivot, centred on x/z. */
+export const STORM_CLOUD_GLB = { width: 1.8963, height: 1.587, depth: 1.3466 } as const;
+/** Drawn 2.4 m wide, a storm puff beside the 4.6 m column; each spot scales it 0.85-1.25. */
+export const STORM_CLOUD_WIDTH = 2.4;
+export const STORM_CLOUD_SCALE = STORM_CLOUD_WIDTH / STORM_CLOUD_GLB.width;
+export const STORM_CLOUD_DRAWN = {
+   width: STORM_CLOUD_WIDTH,
+   height: STORM_CLOUD_GLB.height * STORM_CLOUD_SCALE,
+   depth: STORM_CLOUD_GLB.depth * STORM_CLOUD_SCALE,
+} as const;
+/**
+ * The clouds' wrap band (m), matched to the fitted column: viewBottomY spans 0..6 up to the column
+ * top (maxHeight + 4). The pool sinks each cloud slowly down the band and wraps it to the top.
+ */
+export const STORM_CLOUD_BAND = 6;
+export interface StormCloudSpot { readonly x: number; readonly y: number; readonly z: number; readonly s: number; readonly rotY: number }
+/**
+ * Levels 4-5 (Storm Tower, Sky Tower) side decor. Every spot's full x footprint stays clear of the
+ * camera guard box (x ±2.3, z ±0.6), so a cloud can never cover the runner, a slab or a prop;
+ * z sits behind the play plane and the tower panels (z = -0.52).
+ */
+export const STORM_CLOUD_SPOTS: readonly StormCloudSpot[] = [
+   { x: -3.7, y: 0.4, z: -1.05, s: 1.0, rotY: 0.3 },
+   { x: 4.1, y: 1.9, z: -1.25, s: 1.25, rotY: 2.4 },
+   { x: -3.9, y: 3.4, z: -0.9, s: 0.85, rotY: 1.1 },
+   { x: 3.7, y: 4.6, z: -1.15, s: 1.0, rotY: 4.0 },
+] as const;
+
 const primitive = (id: string, color: string): ModelAsset => ({
    id, url: `/models/3d/tower-climb/${id}.glb`, fallback: "box", fallbackColor: color, budget: PROP_BUDGET,
 });
@@ -38,5 +66,9 @@ export const ASSETS: Record<string, ModelAsset> = {
    rocket: {
       id: "rocket", url: "/models/3d/tower-climb/rocket.glb", scale: 1,
       fallback: "box", fallbackColor: "#e8eef2", budget: PROP_BUDGET,
+   },
+   stormCloud: {
+      id: "stormCloud", url: "/models/3d/tower-climb/stormCloud.glb", scale: STORM_CLOUD_SCALE,
+      fallback: "sphere", fallbackColor: "#5a6a80", budget: PROP_BUDGET,
    },
 };

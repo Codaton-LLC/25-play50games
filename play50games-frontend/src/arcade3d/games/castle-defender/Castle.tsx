@@ -12,11 +12,12 @@ import { SkyDome } from "@/arcade3d/core/env";
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import { Pedestal } from "@/arcade3d/core/kit";
 import { Instanced, useCanvasTexture, type CanvasDraw, type InstanceSpot } from "@/arcade3d/core/render";
-import { ASSETS } from "./assets";
+import { ASSETS, CATAPULT_SPOTS, THRONE_SPOTS, hasRoyalDecor } from "./assets";
 import { Decor } from "./Decor";
 import { COLORS, LEVEL_LOOKS, TOWERS, wallBlocks } from "./looks";
 import { GatePrimitive, TowerFallback } from "./Primitives";
 import type { CastleRun } from "./rules";
+import { LevelScenery } from "./LevelScenery";
 import { Terrain } from "./Terrain";
 
 const drawBricks: CanvasDraw = (ctx, width, height) => {
@@ -172,6 +173,11 @@ export function Castle({ run, reduced }: { run: CastleRun; reduced: boolean }) {
          <SkyDome top={sky.skyTop} bottom={sky.sky} offset={0.12} exponent={0.8} />
          <Terrain reduced={reduced} ground={sky.ground} />
          <Decor reduced={reduced} />
+         <LevelScenery id={id} />
+         {hasRoyalDecor(id) && <>
+            <InstancedModel asset={ASSETS.royalThrone} spots={THRONE_SPOTS} fallback={null} />
+            <InstancedModel asset={ASSETS.siegeCatapultT} spots={CATAPULT_SPOTS} fallback={null} />
+         </>}
          <mesh geometry={wall.geometry} dispose={null} name="castle-wall">
             <meshStandardMaterial map={wall.map} vertexColors roughness={0.94} />
          </mesh>

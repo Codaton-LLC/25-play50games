@@ -35,12 +35,13 @@ Open: registry sync fails until Claude copies the new limits into `arcade-games.
 | `levels.ts` | The five level configs (clock, lanes, extra shelves, forklifts, order deadline). Pure data. |
 | `levels.test.ts` | Declarations, level 1 = today's game, monotone difficulty, open warehouses, the limit proof per level, hazard rules. |
 | `rules.levels.test.ts` | Human / oracle / spam / idle bots per level, plus one store run per level. |
+| `assets.test.ts` | The GLB fits: every model in the manifest with a file on disk, the forkliftTruck GLB at its fitted size, its parked spots outside the play bounds. |
 | `useWarehouseLevel.ts` | `useLevel` typed to `WarehouseLevel`. |
 | `Scene.tsx` | The frame loop and the moving things: maps input with the view's yaw, calls `rules.ts`, makes the next run when the store starts it and publishes its first order (and again on mount), mirrors the run into the store, draws the robot, boxes, the order markers, the target zone and popups, places the static fitted camera. |
 | `camera.ts` | The static fitted camera's settings (`PITCH`, `FOV`, `LOOK_AT`, `WAREHOUSE`, `VIEW`): plain data, shared by `Scene.tsx`, `index.tsx` and `marker.test.ts`. |
 | `marker.ts` / `marker.test.ts` | The order markers (looks only, "Order markers"): which pallets show them, how high the arrow floats for the camera (`clearTipY`), its bounce and tuck, the floor frame's pulse / their vitest, which projects the markers through every fitted camera. Pure, no three.js. |
 | `gait.ts` / `gait.test.ts` | The GLB robot's walk-cycle phase step (looks only): core `gaitPhaseStep` with the robot's landmarks, its 0.7 scale, a 0.1 m minimum stride and the 4-strides-a-second cap / its vitest. Pure, no three.js. |
-| `Primitives.tsx` | Warehouse look: floor with the painted zone tiles (canvas texture, drawn per run), walls, the rack and pallet stand-ins (instanced parts), the box materials and stand-in, the robot stand-in, the lid letters, the popup textures and the order markers' arrow and frame textures. |
+| `Primitives.tsx` | Warehouse look: floor with the painted zone tiles (canvas texture, drawn per run), walls, the rack and pallet stand-ins (instanced parts), the box materials and stand-in, the robot stand-in, the lid letters, the popup textures and the order markers' arrow and frame textures, and the levels 4-5 night yard (the slab and the parked trucks outside the walls). |
 | `Hud.tsx` / `Hud.module.css` | The order panel ("BLUE box → Zone B"): a static fixed-size wrapper marked `data-arcade-safe-area`, the flash and shake on an inner pill. |
 | `assets.ts` / `assets.spec.json` | Models used (`ModelAsset`s) / the Hyper3D spec for the two props only this game generates. |
 
@@ -349,6 +350,7 @@ What the player looks for while empty-handed: which box to pick. The first marke
 | crate | **shared** `models/3d/shared/crate.glb` (on `main`: 1.5k tris, 100 KB) | `assets/shared.spec.json` | the boxes, **recoloured per colour** (albedo map dropped) | box in the colour with a plank texture and the letter (canvas) |
 | shelfRack | **this game** `models/3d/warehouse-rush/shelfRack.glb` | `./assets.spec.json` | the 2 racks | instanced parts: orange uprights, grey shelves, brown cartons |
 | pallet | **this game** `models/3d/warehouse-rush/pallet.glb` | `./assets.spec.json` | the 4 pickup pallets | instanced parts: 3 top slats, 3 runners |
+| forkliftTruck | **this game** `models/3d/warehouse-rush/forkliftTruck.glb` (Hyper3D, 2026-10-25 adoption) | batch 5 prop | parked trucks in the night yard, **levels 4-5 only**, outside the walls | the code forklift, scaled to the drawn size |
 | floor, walls, zone tiles, order markers, popups, ring | primitives in code | none | – | (always primitives) |
 
 - **Generate only the shelf rack and the pallet.** Both carry the look: the racks are the obstacles that shape every route, and the pallets mark where boxes come from (a painted square would not read as "pick up here"). Each is placed through `<InstancedModel>`, so the GLB costs one draw call per mesh for all copies. Two text-to-3D props, one attempt each: 2 generations, about 1 credit at 0.5 per generation. The robot and the crate already exist and are not generated again.
@@ -370,7 +372,8 @@ export const ASSETS = {
 } satisfies Record<string, ModelAsset>;
 ```
 
-- The robot and the crate are in `core/modelManifest.ts`, so they load from the first run (713 KB). The rack (183 KB) and the pallet (67 KB) are listed too since group A (2026-10-06). The rack GLB is turned a quarter and stretched to one 1.8 x 1.1 x 0.9 bay pair (`assets.ts`), two copies per rack (`Primitives.tsx` `RACK_MODEL_SPOTS`); the pallet is scaled to 1.2 x 0.18 x 1.2. The instanced primitives stay as the fallback.
+- The robot and the crate are in `core/modelManifest.ts`, so they load from the first run (713 KB). The rack (183 KB) and the pallet (67 KB) are listed too since group A (2026-10-06); the forkliftTruck since the 2026-10-25 adoption. The rack GLB is turned a quarter and stretched to one 1.8 x 1.1 x 0.9 bay pair (`assets.ts`), two copies per rack (`Primitives.tsx` `RACK_MODEL_SPOTS`); the pallet is scaled to 1.2 x 0.18 x 1.2. The instanced primitives stay as the fallback.
+- **The parked trucks (levels 4-5 only).** `forkliftTruck.glb` is a real-size 0.71 x 1.25 x 1.89 counterbalance truck (feet on y = 0, forks along z), drawn 2.0 m tall (`scale: 2.0 / 1.25058`, `rotationY: π/2` parks it parallel to the long walls). "Rush Shift" and "Night Logistics" draw a dark yard slab around the diorama (`Primitives.tsx` `NightYard`, top a hair below the plinth's) and four parked trucks on it, every spot beyond the walls with its whole footprint clear of the arena (`FORKLIFT_SPOTS` in `assets.ts`, checked in `assets.test.ts`). Looks only: they are never in `obstacles`, and the level-1 warehouse is untouched.
 
 ## HUD
 

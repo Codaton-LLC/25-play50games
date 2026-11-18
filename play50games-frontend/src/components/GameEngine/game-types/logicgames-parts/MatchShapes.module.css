@@ -1,0 +1,107 @@
+/* Match the Shapes on phones and tablets (the desktop layout is the inline styles, unchanged):
+   - phones: four options per row with smaller icons, the round's result right under the target (it
+     used to land below the fold), the number badges hidden on touch (they are keyboard keys);
+   - tablet / laptop landscape: the target on the left, the options on the right, so a round fits in
+     one screen without scrolling. */
+@media (hover: none), (pointer: coarse) {
+   .key {
+      display: none !important;
+   }
+}
+
+@media (max-width: 599px) {
+   .root {
+      gap: 14px !important;
+      padding: 12px 4px !important;
+   }
+   .head {
+      padding: 12px 14px !important;
+   }
+   .target {
+      padding: 14px 28px !important;
+      min-height: 0 !important;
+   }
+   .shape svg {
+      width: 84px !important;
+      height: 84px !important;
+   }
+   .options {
+      grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+      gap: 8px !important;
+   }
+   .option {
+      padding: 10px 2px !important;
+      min-height: 72px;
+   }
+   .option svg {
+      width: 44px !important;
+      height: 44px !important;
+   }
+   .name {
+      font-size: 0.72rem !important;
+      line-height: 1.1;
+      word-break: break-word;
+   }
+   .head,
+   .target {
+      order: 0;
+   }
+   .feedback {
+      order: 1;
+      width: 100%;
+      justify-content: center;
+      border-radius: 12px;
+      padding: 10px 14px !important;
+      font-size: 1rem !important;
+   }
+   .options {
+      order: 2;
+   }
+}
+
+@media (min-width: 600px) and (max-width: 899px) {
+   .options {
+      grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+      gap: 14px !important;
+   }
+}
+
+/* wide but short (tablet landscape, small laptops): side by side */
+@media (min-width: 900px) and (max-height: 900px) {
+   .root {
+      display: grid !important;
+      grid-template-columns: minmax(220px, 300px) minmax(0, 1fr);
+      grid-template-areas:
+         "head head"
+         "target options"
+         "feedback options";
+      align-items: start;
+      max-width: 980px !important;
+      gap: 18px 28px !important;
+      padding: 16px !important;
+   }
+   .head {
+      grid-area: head;
+   }
+   .target {
+      grid-area: target;
+      min-height: 0 !important;
+      padding: 28px !important;
+   }
+   .options {
+      grid-area: options;
+      grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+      gap: 14px !important;
+   }
+   .option {
+      padding: 12px 6px !important;
+   }
+   .option svg {
+      width: 60px !important;
+      height: 60px !important;
+   }
+   .feedback {
+      grid-area: feedback;
+      border-radius: 12px;
+   }
+}

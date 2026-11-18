@@ -1,0 +1,81 @@
+.view {
+   display: flex;
+   flex-direction: column;
+   gap: clamp(1.5rem, 4vw, 2.5rem);
+   min-width: 0;
+}
+
+.form {
+   display: grid;
+   gap: 16px;
+}
+
+.id {
+   font-family: var(--p50-font-mono);
+   text-transform: uppercase;
+}
+
+.id::placeholder {
+   text-transform: none;
+}
+
+.submit {
+   justify-self: start;
+}
+
+.submit:disabled,
+.submit:disabled:hover {
+   background: var(--p50-coral);
+}
+
+.result {
+   display: flex;
+   flex-direction: column;
+   gap: 18px;
+}
+
+.verified {
+   display: flex;
+   align-items: center;
+   gap: 12px;
+   color: var(--p50-text);
+   font: 600 1.375rem/1.2 var(--p50-font-display);
+   letter-spacing: -0.02em;
+}
+
+.tick {
+   display: grid;
+   flex: none;
+   place-items: center;
+   width: 32px;
+   height: 32px;
+   border-radius: 50%;
+   background: var(--p50-green);
+   color: var(--p50-on-coral);
+}
+
+.tick svg {
+   width: 18px;
+   height: 18px;
+}
+
+/* the certificate file itself: a paper, so it keeps a light ground in both themes */
+.pdf {
+   width: 100%;
+   height: min(800px, 80dvh);
+   overflow: hidden;
+   border: 1px solid var(--p50-line);
+   border-radius: 20px;
+   background: #f2f4f8;
+}
+
+.pdf iframe {
+   display: block;
+   border: 0;
+}
+
+@media (max-width: 520px) {
+   .submit {
+      justify-self: stretch;
+   }
+}

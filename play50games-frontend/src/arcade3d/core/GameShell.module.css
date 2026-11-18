@@ -1,8 +1,15 @@
 /* GameShell: a fixed, full-screen frame. Only .canvasWrap blocks browser touch gestures;
-   every overlay keeps normal touch behaviour so it can scroll on small screens. */
+   every overlay keeps normal touch behaviour so it can scroll on small screens.
+   Look (docs/design/DESIGN.md §5 "In-game chrome", §6 item 3): the overlays (the lobby, pause,
+   errors) are sheets of the design system and follow the theme through the --p50-* tokens. The
+   3D canvas is never themed, so what sits on it (the HUD, the countdown) keeps a dark glass look
+   in both themes, written out here in the dark values.
+   The chrome has one accent: inside an overlay --game-accent is coral, never the game's colour.
+   globals.css styles every <button>, so each button class sets its background for both states. */
 .root {
    --game-accent: var(--accent);
-   --overlay-pad-top: max(16px, env(safe-area-inset-top, 0px));
+   /* + the site header while it lies over the shell (app/3d/[slug]/ArcadeChrome: lobby, result) */
+   --overlay-pad-top: calc(max(16px, env(safe-area-inset-top, 0px)) + var(--site-header-h, 0px));
    --overlay-pad-right: max(16px, env(safe-area-inset-right, 0px));
    /* + the cookie banner while it is open (set by GameShell) */
    --overlay-pad-bottom: calc(max(16px, env(safe-area-inset-bottom, 0px)) + var(--arcade-bottom-obstruction, 0px));
@@ -18,6 +25,16 @@
    overflow: hidden;
    background: var(--bg);
    color: var(--text);
+   /* the games' own HUD panels were laid out and playtested with the system face; the page's body
+      face is the design's now (globals.css), so the frame names it. The shell's sheets and chips
+      set the design fonts themselves. */
+   font-family:
+      system-ui,
+      -apple-system,
+      "Segoe UI",
+      "Roboto",
+      "Arial",
+      sans-serif;
 }
 
 .canvasWrap {
@@ -33,6 +50,18 @@
 /* ---------- overlays ---------- */
 
 .overlay {
+   /* one accent on the chrome, and the older parts inside a sheet (the top 10, the best score
+      badge, the controls) follow the theme through the legacy variables */
+   --game-accent: var(--p50-coral);
+   --bg: var(--p50-surface);
+   --card: var(--p50-raised);
+   --text: var(--p50-text);
+   --muted: var(--p50-text-2);
+   --stroke: var(--p50-line);
+   --accent: var(--p50-coral);
+   --ok: var(--p50-green);
+   --warn: var(--p50-red-text);
+
    position: absolute;
    inset: 0;
    z-index: 20;
@@ -42,9 +71,11 @@
    overflow-y: auto;
    overscroll-behavior: contain;
    -webkit-overflow-scrolling: touch;
-   background: rgba(11, 16, 32, 0.55);
-   -webkit-backdrop-filter: blur(4px);
-   backdrop-filter: blur(4px);
+   background: var(--p50-scrim);
+   -webkit-backdrop-filter: blur(6px);
+   backdrop-filter: blur(6px);
+   color: var(--p50-text);
+   font-family: var(--p50-font-body);
 }
 
 .panel {
@@ -66,12 +97,12 @@
    overflow-y: auto;
    overscroll-behavior: contain;
    -webkit-overflow-scrolling: touch;
-   scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
+   scrollbar-color: var(--p50-track) transparent;
    scrollbar-width: thin;
-   border: 1px solid var(--stroke);
-   border-radius: 20px;
-   background: rgba(13, 19, 38, 0.9);
-   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+   border: 1px solid var(--p50-line);
+   border-radius: 28px;
+   background: var(--p50-surface);
+   box-shadow: var(--p50-float), var(--p50-edge);
 }
 
 .center {
@@ -83,30 +114,14 @@
 
 .title {
    margin: 0 0 8px;
-   font-size: 1.75rem;
-   font-weight: 800;
-   line-height: 1.15;
-   letter-spacing: -0.01em;
-}
-
-.title::after {
-   content: "";
-   display: block;
-   width: 44px;
-   height: 4px;
-   margin-top: 10px;
-   border-radius: 999px;
-   background: var(--game-accent);
-}
-
-.center .title::after {
-   margin-left: auto;
-   margin-right: auto;
+   color: var(--p50-text);
+   font: 700 1.75rem/1.1 var(--p50-font-display);
+   letter-spacing: -0.03em;
 }
 
 .tagline {
    margin: 0 0 16px;
-   color: var(--muted);
+   color: var(--p50-text-2);
    font-size: 1rem;
    line-height: 1.5;
 }
@@ -119,8 +134,8 @@
    margin: -8px 0 6px -4px;
    padding: 0 4px;
    border-radius: 8px;
-   color: var(--accent);
-   font-size: 14px;
+   color: var(--p50-text-2);
+   font-size: 0.875rem;
    font-weight: 600;
    text-decoration: none;
 }
@@ -131,53 +146,48 @@
 }
 
 .backLink:hover {
-   text-decoration: underline;
+   color: var(--p50-text);
+}
+
+/* the game's art on the lobby: shown only in the wide layout below */
+.art {
+   display: none;
 }
 
 .instructions {
    margin: 0 0 16px;
-   padding-left: 1.2em;
+   padding: 0;
+   list-style: none;
+   color: var(--p50-text);
    line-height: 1.55;
 }
 
+/* coral dashes instead of bullets */
+.instructions li {
+   position: relative;
+   padding-left: 18px;
+}
+
+.instructions li::before {
+   content: "";
+   position: absolute;
+   top: 0.72em;
+   left: 0;
+   width: 8px;
+   height: 3px;
+   border-radius: 2px;
+   background: var(--p50-coral);
+}
+
 .instructions li + li {
-   margin-top: 4px;
-}
-
-.controls {
-   display: grid;
-   gap: 8px;
-   margin: 0 0 16px;
-   padding: 12px 14px;
-   border: 1px solid var(--stroke);
-   border-radius: 12px;
-   background: var(--card);
-   font-size: 14px;
-   line-height: 1.45;
-}
-
-.controls dt {
-   color: var(--text);
-   font-size: 11px;
-   font-weight: 700;
-   letter-spacing: 0.08em;
-   text-transform: uppercase;
-}
-
-.controls dd {
-   margin: 2px 0 0;
-   color: var(--muted);
-}
-
-.controlDim {
-   opacity: 0.6;
+   margin-top: 6px;
 }
 
 .best {
    min-height: 1.5em;
    margin: 0 0 16px;
-   color: var(--muted);
-   font-size: 14px;
+   color: var(--p50-text-2);
+   font-size: 0.875rem;
 }
 
 .actions {
@@ -194,28 +204,28 @@
    width: 100%;
    min-height: 48px;
    padding: 0 24px;
-   border-radius: 12px;
-   font: inherit;
-   font-size: 1rem;
-   font-weight: 700;
+   border-radius: 14px;
+   font: 600 1rem/1 var(--p50-font-body);
    text-decoration: none;
    cursor: pointer;
-   transition: transform 0.12s ease, background-color 0.15s ease, border-color 0.15s ease;
+   transition:
+      transform 160ms var(--p50-ease),
+      background-color 240ms var(--p50-ease);
 }
 
 .primary {
    border: none;
-   background: var(--accent);
-   color: #0b1020;
+   background: var(--p50-coral);
+   color: var(--p50-on-coral);
 }
 
 .primary:hover {
-   background: #a5e3fd;
+   background: var(--p50-coral-hover);
 }
 
 /* Play on a locked level (the level tiles) */
 .primary:disabled {
-   background: var(--accent);
+   background: var(--p50-coral);
    opacity: 0.45;
    cursor: not-allowed;
 }
@@ -225,50 +235,64 @@
 }
 
 .secondary {
-   border: 1px solid var(--stroke);
-   background: rgba(255, 255, 255, 0.04);
-   color: var(--text);
+   border: 1px solid var(--p50-line);
+   background: transparent;
+   color: var(--p50-text);
 }
 
 .secondary:hover {
-   border-color: rgba(255, 255, 255, 0.3);
-   background: rgba(255, 255, 255, 0.08);
+   background: var(--p50-raised);
 }
 
 .primary:active,
 .secondary:active {
-   transform: scale(0.98);
+   transform: translateY(1px) scale(0.98);
+}
+
+.primary:active {
+   background: var(--p50-coral-press);
 }
 
 .primary:focus-visible,
 .secondary:focus-visible,
-.backLink:focus-visible,
+.backLink:focus-visible {
+   outline: 2px solid var(--p50-coral);
+   outline-offset: 2px;
+}
+
 .iconButton:focus-visible {
-   outline: 3px solid #fff;
+   outline: 2px solid #f1f3f8;
    outline-offset: 2px;
 }
 
 .hint {
    margin: 14px 0 0;
-   color: var(--muted);
-   font-size: 13px;
+   color: var(--p50-text-3);
+   font-size: 0.875rem;
    text-align: center;
 }
 
 .leaderboard {
    margin-top: 20px;
    padding-top: 16px;
-   border-top: 1px solid var(--stroke);
-   font-size: 14px;
+   border-top: 1px solid var(--p50-line);
+   font-size: 0.875rem;
+}
+
+/* the top 10's Retry sits on coral: its label is the ink of every coral button */
+.overlay .leaderboard button {
+   color: var(--p50-on-coral);
 }
 
 .sectionTitle {
    margin: 0 0 10px;
-   font-size: 1rem;
-   font-weight: 700;
+   color: var(--p50-text-3);
+   font: 600 0.75rem/1.2 var(--p50-font-body);
+   letter-spacing: 0.08em;
+   text-transform: uppercase;
 }
 
-/* ---------- start card ---------- */
+/* ---------- start card: the lobby ---------- */
 
 /* The Play bar supplies the card's bottom padding (or the top 10 below it does), so the bar can
    cover the strip under itself while it is pinned. The top padding is a box (::before), not
@@ -278,7 +302,7 @@
 .startPanel {
    padding-top: 0;
    padding-bottom: 0;
-   background: rgb(13, 19, 38);
+   background: var(--p50-surface);
 }
 
 .startPanel::before {
@@ -299,7 +323,11 @@
    z-index: 1;
    margin: -12px calc(-1 * var(--panel-pad-x)) 0;
    padding: 12px var(--panel-pad-x) var(--panel-pad-y);
-   background: rgb(13, 19, 38);
+   background: var(--p50-surface);
+   /* The pinned bar is its own layer. Where it lands between two pixels its edge showed as a
+      hairline frame on the light sheet (Chrome, measured); a transparent outline widens the layer
+      by one pixel, so the edge is drawn inside it. */
+   outline: 1px solid transparent;
 }
 
 .startAction + .leaderboard {
@@ -310,19 +338,35 @@
 /* ---------- result ---------- */
 
 .resultLayer {
+   /* a sheet of the design system like the lobby: the result card (ui/ResultPanel) and the top 10
+      inside it read the legacy variables, mapped here onto the tokens, with one accent (coral) */
+   --bg: var(--p50-surface);
+   --card: var(--p50-raised);
+   --text: var(--p50-text);
+   --muted: var(--p50-text-2);
+   --stroke: var(--p50-line);
+   --accent: var(--p50-coral);
+   --ok: var(--p50-green);
+   --warn: var(--p50-red-text);
+   /* the layer is the scrim; the panel's own veil would wash the scene out twice */
+   --result-veil: transparent;
+
    position: absolute;
    inset: 0;
    z-index: 20;
-   background: rgba(11, 16, 32, 0.55);
-   -webkit-backdrop-filter: blur(4px);
-   backdrop-filter: blur(4px);
+   background: var(--p50-scrim);
+   -webkit-backdrop-filter: blur(6px);
+   backdrop-filter: blur(6px);
+   color: var(--p50-text);
+   font-family: var(--p50-font-body);
 }
 
 /* ResultPanel (ui/) lays its own overlay over this box: clear of the notch and of the cookie banner
    while it is open. Its card scrolls inside that overlay and pins its actions on view. */
 .resultWrap {
    position: absolute;
-   top: env(safe-area-inset-top, 0px);
+   /* under the site header, which is back once the result shows */
+   top: calc(env(safe-area-inset-top, 0px) + var(--site-header-h, 0px));
    right: env(safe-area-inset-right, 0px);
    bottom: calc(env(safe-area-inset-bottom, 0px) + var(--arcade-bottom-obstruction, 0px));
    left: env(safe-area-inset-left, 0px);
@@ -331,18 +375,19 @@
 
 /* ---------- loading ---------- */
 
+/* a bar that fills, not a spinner: the dot only breathes while the files arrive */
 .spinner {
-   width: 44px;
-   height: 44px;
-   margin-bottom: 16px;
-   border: 4px solid rgba(255, 255, 255, 0.15);
-   border-top-color: var(--game-accent);
+   width: 10px;
+   height: 10px;
+   margin-bottom: 14px;
    border-radius: 50%;
-   animation: spin 0.9s linear infinite;
+   background: var(--p50-coral);
+   animation: breathe 1.6s ease-in-out infinite;
 }
 
 .loadingTitle {
    margin: 0 0 14px;
+   color: var(--p50-text);
    font-weight: 600;
 }
 
@@ -352,18 +397,18 @@
    height: 6px;
    overflow: hidden;
    border-radius: 999px;
-   background: rgba(255, 255, 255, 0.1);
+   background: var(--p50-track);
 }
 
 .progressFill {
    display: block;
    height: 100%;
    border-radius: inherit;
-   background: var(--game-accent);
+   background: var(--p50-coral);
    transition: width 0.2s ease;
 }
 
-/* ---------- countdown ---------- */
+/* ---------- countdown (on the canvas) ---------- */
 
 .countdown {
    position: absolute;
@@ -376,15 +421,13 @@
 }
 
 .countdownNumber {
-   font-size: clamp(88px, 22vmin, 160px);
-   font-weight: 900;
-   line-height: 1;
-   color: #fff;
-   text-shadow: 0 6px 30px rgba(0, 0, 0, 0.55), 0 0 40px var(--game-accent);
+   color: #f1f3f8;
+   font: 600 clamp(88px, 22vmin, 160px) / 1 var(--p50-font-mono);
+   text-shadow: 0 6px 30px rgba(0, 0, 0, 0.6);
    animation: pop 0.9s ease-out both;
 }
 
-/* ---------- HUD ---------- */
+/* ---------- HUD (on the canvas: dark glass in both themes) ---------- */
 
 .hud {
    position: absolute;
@@ -413,53 +456,76 @@
    flex-wrap: nowrap;
 }
 
+/* the box of a chip (padding, line height, sizes) is what the games' camera fits were measured
+   with: restyle its colours and faces, never its size */
 .chip {
    display: inline-flex;
    flex-direction: column;
    min-width: 58px;
    padding: 5px 10px;
-   border: 1px solid var(--stroke);
+   border: 1px solid rgba(255, 255, 255, 0.12);
    border-radius: 12px;
-   background: rgba(11, 16, 32, 0.66);
+   background: rgba(11, 15, 26, 0.7);
    -webkit-backdrop-filter: blur(6px);
    backdrop-filter: blur(6px);
+   color: #f1f3f8;
    line-height: 1.15;
 }
 
 .chipLabel {
-   color: var(--muted);
+   color: #a3acbf;
+   font-family: var(--p50-font-body);
    font-size: 10px;
    font-weight: 700;
    letter-spacing: 0.08em;
    text-transform: uppercase;
 }
 
+/* phones: the chip labels were 10px; 12px keeps Score / Time / Level / Lives readable (390 x 844 checked) */
+@media (max-width: 640px) {
+   .chipLabel {
+      font-size: 12px;
+      letter-spacing: 0.04em;
+   }
+
+   .chip {
+      min-width: 54px;
+      padding: 4px 8px;
+   }
+}
+
 .chipValue {
+   font-family: var(--p50-font-mono);
    font-size: 16px;
-   font-weight: 800;
+   font-weight: 600;
    font-variant-numeric: tabular-nums;
 }
 
 .chipWarn {
-   border-color: rgba(252, 165, 165, 0.6);
+   border-color: rgba(240, 112, 138, 0.7);
 }
 
 .chipWarn .chipValue {
-   color: var(--warn);
+   color: #f0708a;
 }
 
-.iconButton {
+.iconButton,
+.iconButton:hover {
    display: inline-flex;
    align-items: center;
    justify-content: center;
    width: 44px;
    height: 44px;
    padding: 0;
-   border: 1px solid var(--stroke);
+   border: 1px solid rgba(255, 255, 255, 0.12);
    border-radius: 12px;
-   background: rgba(11, 16, 32, 0.66);
-   color: var(--text);
+   background: rgba(11, 15, 26, 0.7);
+   color: #f1f3f8;
    cursor: pointer;
+}
+
+.iconButton:hover {
+   background: rgba(26, 33, 51, 0.9);
 }
 
 .iconButton svg {
@@ -489,7 +555,7 @@
 
 .rotate {
    z-index: 30;
-   background: rgba(11, 16, 32, 0.92);
+   background: var(--p50-canvas);
 }
 
 .rotateIcon {
@@ -497,7 +563,7 @@
    width: 44px;
    height: 72px;
    margin: 0 auto 18px;
-   border: 3px solid var(--text);
+   border: 3px solid var(--p50-text);
    border-radius: 10px;
    animation: rotatePhone 2.2s ease-in-out infinite;
 }
@@ -507,14 +573,9 @@
    text-align: center;
 }
 
-.rotate .title::after {
-   margin-left: auto;
-   margin-right: auto;
-}
-
-@keyframes spin {
-   to {
-      transform: rotate(360deg);
+@keyframes breathe {
+   50% {
+      opacity: 0.35;
    }
 }
 
@@ -558,7 +619,70 @@
    }
 }
 
-/* short screens (landscape phones): a tighter card, only the controls of this device, and the
+/* The lobby on a wide screen (docs/design/DESIGN.md §6 item 3): two columns in one sheet. Left,
+   the stage: the art, the title, the level tiles and Play. Right: how to play, the controls and
+   the top 10. The markup keeps its order (Play before the top 10). The right column is the normal
+   flow, pushed over by a left margin; the stage's parts float left beside it. So each column
+   stacks by itself from the top of the sheet, and the sheet still scrolls as one with Play pinned
+   (a float that follows the controls in the markup starts no higher than their bottom edge). */
+@media (min-width: 1040px) and (min-height: 620px) {
+   .startPanel {
+      --panel-pad-x: 32px;
+      --col-left: 56%;
+      --col-right: 39%;
+
+      max-width: 1080px;
+   }
+
+   .overlay .startPanel > * {
+      margin-left: calc(100% - var(--col-right));
+   }
+
+   .overlay .startPanel > .backLink,
+   .overlay .startPanel > .art,
+   .overlay .startPanel > .title,
+   .overlay .startPanel > .tagline,
+   .overlay .startPanel > .levelSlot,
+   .overlay .startPanel > .best,
+   .overlay .startPanel > .startAction {
+      float: left;
+      clear: left;
+      width: var(--col-left);
+      margin-left: 0;
+   }
+
+   .overlay .startPanel > .backLink {
+      width: auto;
+      margin-left: -4px;
+   }
+
+   .overlay .startPanel > .title {
+      font-size: 2.5rem;
+   }
+
+   .overlay .startPanel > .art {
+      display: block;
+      aspect-ratio: 16 / 9;
+      margin-bottom: 18px;
+      border: 1px solid var(--p50-art-line);
+      border-radius: 20px;
+      background: var(--p50-raised);
+      object-fit: cover;
+   }
+
+   /* in its column Play needs no bleed to the sheet's edges */
+   .overlay .startPanel > .startAction {
+      margin: 0;
+      padding: 12px 0 var(--panel-pad-y);
+   }
+
+   .overlay .startPanel > .leaderboard {
+      margin-top: 4px;
+      padding-bottom: var(--panel-pad-y);
+   }
+}
+
+/* short screens (landscape phones): a tighter card (howto/HowTo.module.css tightens the controls), and the
    pause / error buttons side by side, so the title, the first lines and the buttons fit at once */
 @media (max-height: 520px) {
    .panel {
@@ -573,19 +697,10 @@
       font-size: 1.4rem;
    }
 
-   .title::after {
-      margin-top: 8px;
-   }
-
    .tagline,
    .instructions,
-   .controls,
    .best {
       margin-bottom: 12px;
-   }
-
-   .controlDim {
-      display: none;
    }
 }
 

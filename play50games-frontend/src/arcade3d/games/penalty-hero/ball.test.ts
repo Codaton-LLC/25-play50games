@@ -11,7 +11,7 @@ import ts from "typescript";
 import { describe, expect, it } from "vitest";
 import { Matrix4, SphereGeometry, Vector3, type Texture } from "three";
 import { MODEL_MANIFEST } from "@/arcade3d/core/modelManifest";
-import { ASSETS, BALL_RADIUS } from "./assets";
+import { ASSETS, BALL_RADIUS, FINAL_TROPHY_ASSET } from "./assets";
 import { BallMesh, drawBall } from "./Primitives";
 import { BALL_SPOT } from "./rules";
 
@@ -205,7 +205,9 @@ describe("penalty-hero ball", () => {
    it("is BallPrimitive: no ball GLB is listed, fetched or drawn", () => {
       expect(Object.keys(ASSETS).sort()).toEqual(["keeper", "striker"]);
       const listed = MODEL_MANIFEST.filter((url) => url.startsWith("/models/3d/penalty-hero/")).sort();
-      expect(listed).toEqual([ASSETS.keeper.url, ASSETS.striker.url].sort());
+      // the trophy decor asset (assets.ts) ships too; the point is that no BALL GLB is listed
+      expect(listed).toEqual([ASSETS.keeper.url, ASSETS.striker.url, FINAL_TROPHY_ASSET.url].sort());
+      expect(listed.filter((url) => /ball/i.test(url))).toEqual([]);
       const scene = readFileSync(new URL("./Scene.tsx", import.meta.url), "utf8");
       expect(scene).not.toMatch(/ASSETS\.ball|ball\.glb|<Model\b/);
    });

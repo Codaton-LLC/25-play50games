@@ -15,12 +15,13 @@ const rule = (css: string, selector: string) => {
 describe("auth modals and the cookie banner", () => {
    const css = read("AuthModal.module.css");
    const base = css.replace(/@media[\s\S]*$/, "");
-   const overlay = rule(base, ".overlay:global(.modal-overlay)");
-   const content = rule(base, ".content:global(.modal-content)");
+   const overlay = rule(base, ".overlay");
+   const content = rule(base, ".sheet");
 
    it("sit above the banner", () => {
-      const banner = read("../PrivacyConsent/PrivacyConsent.tsx");
-      const bannerZ = Number(banner.match(/zIndex:\s*(\d+)/)?.[1]);
+      // the banner's look (and its layer) lives in its CSS module since the redesign
+      const banner = read("../PrivacyConsent/PrivacyConsent.module.css");
+      const bannerZ = Number(rule(banner, ".banner").match(/z-index:\s*(\d+)/)?.[1]);
       expect(bannerZ).toBeGreaterThan(0);
       expect(Number(overlay.match(/z-index:\s*(\d+)/)?.[1])).toBeGreaterThan(bannerZ);
    });
@@ -33,12 +34,14 @@ describe("auth modals and the cookie banner", () => {
    });
 
    it("are used by both modals", () => {
+      // both modals render the shared sheet, and the sheet carries the two guarded classes
       for (const file of ["LoginModal.tsx", "RegisterModal.tsx"]) {
-         const source = read(file);
-         expect(source).toContain("modal-overlay ${styles.overlay}");
-         expect(source).toContain("modal-content ${styles.content}");
+         expect(read(file)).toContain("<AuthSheet");
       }
+      const sheet = read("AuthSheet.tsx");
+      expect(sheet).toContain("className={styles.overlay}");
+      expect(sheet).toContain("${styles.sheet}");
       expect(styles.overlay).toBeTruthy();
-      expect(styles.content).toBeTruthy();
+      expect(styles.sheet).toBeTruthy();
    });
 });

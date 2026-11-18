@@ -1,0 +1,103 @@
+.page {
+   display: flex;
+   flex-direction: column;
+}
+
+.main {
+   display: flex;
+   flex: 1;
+   flex-direction: column;
+   gap: clamp(3rem, 7vw, 5.5rem);
+   padding-block: clamp(28px, 4vw, 56px) clamp(3rem, 7vw, 5.5rem);
+}
+
+.hero {
+   display: grid;
+   grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+   align-items: center;
+   gap: clamp(24px, 4vw, 56px);
+}
+
+.copy {
+   display: flex;
+   flex-direction: column;
+   align-items: flex-start;
+   gap: 18px;
+}
+
+.head {
+   display: flex;
+   align-items: center;
+   gap: 12px;
+}
+
+.soon {
+   display: inline-flex;
+   align-items: center;
+   height: 24px;
+   padding: 0 10px;
+   border-radius: 999px;
+   background: var(--p50-raised);
+   color: var(--p50-text-3);
+   font: 600 0.6875rem/1 var(--p50-font-body);
+   letter-spacing: 0.08em;
+   text-transform: uppercase;
+}
+
+.title {
+   color: var(--p50-text);
+   font: 700 clamp(2.5rem, 5.2vw, 4.5rem)/0.98 var(--p50-font-display);
+   letter-spacing: -0.035em;
+}
+
+.lead {
+   max-width: 40ch;
+   color: var(--p50-text-2);
+   font-size: 1.125rem;
+}
+
+.art {
+   position: relative;
+   overflow: hidden;
+   aspect-ratio: 16 / 10;
+   border: 1px solid var(--p50-line);
+   border-radius: 28px;
+}
+
+/* the five: hairline rows, no cards */
+.heroes {
+   max-width: 720px;
+   border-top: 1px solid var(--p50-line);
+}
+
+.heroRow {
+   display: grid;
+   grid-template-columns: 28px minmax(0, 1fr) auto;
+   align-items: center;
+   gap: 14px;
+   min-height: 64px;
+   border-bottom: 1px solid var(--p50-line);
+}
+
+.heroName {
+   font: 600 1.25rem/1.2 var(--p50-font-display);
+   letter-spacing: -0.02em;
+}
+
+.power {
+   display: inline-flex;
+   align-items: center;
+   height: 32px;
+   padding: 0 12px;
+   border: 1px solid var(--p50-line);
+   border-radius: 999px;
+   color: var(--p50-text-2);
+   font-size: 0.875rem;
+   font-weight: 500;
+}
+
+@media (max-width: 899px) {
+   .hero {
+      grid-template-columns: minmax(0, 1fr);
+   }
+}

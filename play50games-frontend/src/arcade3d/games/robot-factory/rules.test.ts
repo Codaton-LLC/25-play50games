@@ -426,9 +426,10 @@ describe("robot-factory scoring limit proof", () => {
       expect(withinServerLimits(300 + 52 * 20 + 1, 20_000)).toBe(false);
    });
 
-   it("keeps meta.scoring at the provisional set until go-live, which the proposed limits tighten", () => {
-      expect(robotFactoryMeta.scoring).toMatchObject({ kind: "points", maxScore: 6000, minDurationMs: 10000, maxDurationMs: 92000, base: 6000, maxPointsPerSec: 6000 });
-      expect(robotFactoryMeta.status).toBe("dev");
+   it("serves the proven PROPOSED_LIMITS in meta.scoring since go-live", () => {
+      expect(robotFactoryMeta.scoring).toMatchObject({ kind: "points", maxScore: 4750, minDurationMs: 10000, maxDurationMs: 92000, base: 300, maxPointsPerSec: 52 });
+      expect(robotFactoryMeta.scoring).toMatchObject({ maxScore: PROPOSED_LIMITS.maxScore, minDurationMs: PROPOSED_LIMITS.minDurationMs, maxDurationMs: PROPOSED_LIMITS.maxDurationMs, base: PROPOSED_LIMITS.base, maxPointsPerSec: PROPOSED_LIMITS.maxPointsPerSec });
+      expect(robotFactoryMeta.status).toBe("live");
    });
 
    it("the oracle installs all 56 parts, 12 robots, 4580 points, at 30 / 60 / 144 Hz and random frames", () => {

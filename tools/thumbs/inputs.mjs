@@ -105,7 +105,7 @@ export const INPUT_SCRIPTS = {
       { hold: "ArrowRight", ms: 600 },
       { down: "ArrowUp" },
       { wait: 600 },
-      { zoom: 1.6, at: [0.5, 0.52] },
+      { zoom: 2, at: [0.48, 0.39] },
    ],
 
    // platformer: run straight up the course and shoot mid-leap (a sidestep falls into the pool)

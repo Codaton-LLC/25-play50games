@@ -30,6 +30,42 @@ export const museumGuardMeta: ArcadeGameMeta = {
       keyboard: "Move the mouse left or right, or hold A / D or the arrows, to turn; Space or E flashes",
       touch: "Drag to turn, Flash to burst",
    },
+   howTo: {
+      keys: [
+         { id: "look", keys: ["Mouse"], label: "Turn", role: "pointer" },
+         { id: "turn", keys: ["A/D", "Left/Right"], label: "Turn", hold: true, main: true, role: "move" },
+         { id: "flash", keys: ["Space", "E"], label: "Flash", main: true },
+      ],
+      touch: [
+         { id: "drag", control: "drag", label: "Drag to turn" },
+         { id: "flash", control: "action", label: "Flash" },
+      ],
+      steps: [
+         { title: "Goal", text: "Guard the museum until dawn: statues come alive and sneak off their pedestals." },
+         {
+            title: "Turn",
+            text: "Move the mouse, or hold A / D or the arrows, to turn.",
+            touchText: "Drag anywhere to turn.",
+            keys: ["look", "turn"],
+            touch: ["drag"],
+         },
+         {
+            title: "Flash",
+            text: "Space or E flashes. Hold the beam on a statue to send it home.",
+            touchText: "Tap Flash. Hold the beam on a statue to send it home.",
+            keys: ["flash"],
+            touch: ["flash"],
+         },
+         { title: "Watch out", text: "Three alarms and the night wins." },
+         {
+            title: "Tips",
+            text: "Keep turning: statues sneak off whenever your flashlight looks away. Esc or P pauses.",
+            touchText: "Keep turning: statues sneak off whenever your flashlight looks away. Tap Pause, top right, to stop.",
+            keys: ["pause"],
+            touch: ["pause"],
+         },
+      ],
+   },
    scoring: SCORING,
    // a level clears on a win (an alarm left at dawn); no clearScore
    levels: [

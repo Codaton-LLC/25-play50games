@@ -66,7 +66,7 @@ describe("hotel levels: declarations", () => {
          expect(definition.levels?.[id - 1].description).toBe(LEVEL_LINES[id]);
       }
       expect(meta.scoring).toEqual(PROPOSED_LEVEL_LIMITS[1]);
-      expect(meta).toMatchObject({ slug: "hotel-bellboy-rush", status: "dev", owner: "claude", order: 37, collection: "skill", difficulty: 2 });
+      expect(meta).toMatchObject({ slug: "hotel-bellboy-rush", status: "live", owner: "claude", order: 37, collection: "skill", difficulty: 2 });
       expect(definition.touchControls).toEqual(["joystick", "action"]);
       expect(definition.touchLabels).toEqual({ action: "Use" });
       expect(definition.lives).toBe(3);

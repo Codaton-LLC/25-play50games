@@ -1,0 +1,79 @@
+/* The classic Logic games' shared stage (LogicGames.tsx): mobile and tablet touches every game gets.
+   - No double-tap zoom on taps (touch-action), no grey tap flash, no accidental text selection while
+     tapping or dragging pieces.
+   - Never wider than the screen: a game that is too wide scrolls inside itself, not the page.
+   - Buttons answer a press at once (a brief brighten), so a tap feels registered on glass. */
+.stage {
+   width: 100%;
+   max-width: 100%;
+   min-width: 0;
+   touch-action: manipulation;
+   -webkit-tap-highlight-color: transparent;
+   -webkit-user-select: none;
+   user-select: none;
+   overflow-x: clip;
+}
+
+.stage :global(button) {
+   touch-action: manipulation;
+   transition: filter 120ms ease, box-shadow 120ms ease;
+}
+
+.stage :global(button):active:not(:disabled) {
+   filter: brightness(1.18);
+}
+
+.stage :global(input),
+.stage :global(textarea) {
+   -webkit-user-select: text;
+   user-select: text;
+}
+
+/* room under the game for a bottom bar (the cookie banner): its height comes from useMobileFit */
+.room {
+   flex: none;
+   width: 100%;
+}
+
+/* shared win / fail feedback the games can add to an element for a moment */
+@keyframes pop {
+   0% {
+      transform: scale(1);
+   }
+   40% {
+      transform: scale(1.06);
+   }
+   100% {
+      transform: scale(1);
+   }
+}
+
+@keyframes shake {
+   0%,
+   100% {
+      transform: translateX(0);
+   }
+   20%,
+   60% {
+      transform: translateX(-6px);
+   }
+   40%,
+   80% {
+      transform: translateX(6px);
+   }
+}
+
+.pop {
+   animation: pop 320ms ease-out;
+}
+
+.shake {
+   animation: shake 360ms ease-in-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+   .pop,
+   .shake {
+      animation: none;
+   }
+}

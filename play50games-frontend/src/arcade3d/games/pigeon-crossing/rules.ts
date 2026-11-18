@@ -141,6 +141,16 @@ export function isLevelGrass(row: number, config: PigeonLevel): boolean {
    return row === ROWS_PER_LEVEL || (row >= 0 && row < ROWS_PER_LEVEL && row % config.grassEvery === 0);
 }
 
+/** Column index (0..6) of a parked van on a grass row; centre column 3 is always clear. */
+export function parkedColumn(config: PigeonLevel, localRow: number, edge: number): number {
+   if (localRow <= config.grassEvery) return edge === 0 ? 0 : 6;
+   const stepIndex = Math.floor(localRow / config.grassEvery);
+   if (config.parkedPattern === "alternating-curb") return stepIndex % 2 === 1 ? 0 : 6;
+   if (config.parkedPattern === "night-chicane") return stepIndex % 2 === 0 ? (edge === 0 ? 1 : 6) : (edge === 0 ? 0 : 5);
+   if (config.parkedPattern === "rush-pinch") return edge === 0 ? 1 : 5;
+   return edge === 0 ? 0 : 6;
+}
+
 export function levelSeedFor(seed: number, level: number): number {
    return (seed ^ Math.imul(level, LEVEL_SEED_MIX)) >>> 0;
 }
@@ -247,7 +257,8 @@ function fillLane(run: PigeonRun, lane: Lane, row: number): void {
       const direction = rngNext(run.rng) < 0.5 ? 1 : -1;
       for (let road = 0; road < Math.min(run.config.grassEvery - 1, ROWS_PER_LEVEL - group * run.config.grassEvery - 1); road++) {
          const draw = Math.floor(rngNext(run.rng) * 7);
-         const kind = draw < 4 ? 0 : draw < 6 ? 1 : 2;
+         const w0 = run.config.vehicleWeights[0], w1 = w0 + run.config.vehicleWeights[1];
+         const kind = draw < w0 ? 0 : draw < w1 ? 1 : 2;
          const type = VEHICLE_TYPES[kind];
          const speed = Math.min(8, type.baseSpeed + 0.6 * (tier - 1)) * (lane.speedFactor ?? 1);
          // Round headway up to whole ms, preserving the minimum bumper gap.
@@ -320,10 +331,11 @@ export function syncTraffic(run: PigeonRun, time: number): void {
          const age = phase - lane.startMs - member * lane.headwayMs;
          vehicle.active = lane.road && member < lane.packSize && age >= 0 && age < lane.travelMs;
          if (lane.row !== NONE && !lane.road && lane.localRow > 0 && member < run.config.parkedEdges) {
+            const col = parkedColumn(run.config, lane.localRow, member);
             vehicle.active = true;
             vehicle.kind = 2;
-            vehicle.direction = member === 0 ? 1 : -1;
-            vehicle.x = columnX(member === 0 ? 0 : 6);
+            vehicle.direction = col < 3 ? 1 : -1;
+            vehicle.x = columnX(col);
             continue;
          }
          vehicle.x = lane.direction * (-(COVER_INNER_X + type.length / 2) + lane.speed * Math.max(0, Math.min(age, lane.travelMs)) / 1000);
@@ -343,7 +355,7 @@ export function firstHit(run: PigeonRun, at: number, ms: number, fromX: number, 
       if (!lane.road) {
          if (lane.localRow === 0) continue;
          for (let edge = 0; edge < run.config.parkedEdges; edge++) {
-            const vx = columnX(edge === 0 ? 0 : 6), vz = -row * ROW_PITCH;
+            const vx = columnX(parkedColumn(run.config, lane.localRow, edge)), vz = -row * ROW_PITCH;
             pb.min.x = boxEdge(fromX - PIGEON.halfX); pb.max.x = boxEdge(fromX + PIGEON.halfX);
             pb.min.z = boxEdge(fromZ - PIGEON.halfZ); pb.max.z = boxEdge(fromZ + PIGEON.halfZ);
             vb.min.x = boxEdge(vx - VEHICLE_TYPES[2].length / 2); vb.max.x = boxEdge(vx + VEHICLE_TYPES[2].length / 2);

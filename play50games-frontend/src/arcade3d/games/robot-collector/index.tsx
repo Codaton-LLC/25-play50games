@@ -7,6 +7,7 @@
 import type { GameDefinition, LevelSpec } from "@/arcade3d/core/types";
 import { LEVEL_IDS, type LevelId } from "@/arcade3d/types";
 import Scene from "./Scene";
+import Hud from "./Hud";
 import { ASSETS } from "./assets";
 import { LEVELS, type RobotLevel } from "./levels";
 import { BATTERY_COUNT, DURATION_MS, batteryCount } from "./rules";
@@ -33,15 +34,16 @@ const DESCRIPTIONS: Record<LevelId, string> = {
 
 const ENVIRONMENTS: Record<LevelId, LevelSpec["environment"]> = {
    1: undefined,
-   2: { background: "#13233a", lighting: "day" },
-   3: { background: "#1f1530", lighting: "sunset" },
-   4: { background: "#05070d", lighting: "night" },
-   5: { background: "#2a0f14", lighting: "sunset" },
+   2: { background: "#13233a", lighting: "day", fog: ["#13233a", 45, 85] },
+   3: { background: "#1f1530", lighting: "sunset", fog: ["#1f1530", 42, 80] },
+   4: { background: "#05070d", lighting: "night", fog: ["#05070d", 38, 76] },
+   5: { background: "#2a0f14", lighting: "sunset", fog: ["#2a0f14", 46, 88] },
 };
 
 const definition: GameDefinition<RobotLevel> = {
    slug: "robot-collector",
    Scene,
+   Hud,
    assets: ASSETS,
    durationMs: DURATION_MS,
    // only the first frame uses this: Scene's own CameraRig (core useFittedView) fits the warehouse

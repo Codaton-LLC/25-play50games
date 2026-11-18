@@ -25,13 +25,15 @@ const GLB_KINDS: readonly GlbKind[] = ["bench", "bin", "lamp", "palm", "pole"];
 /** The documented drawn sizes (assets.ts, README "Obstacle props"): width x height x depth at rotY 0. */
 const DRAWN: Record<string, readonly [number, number, number]> = {
    bench: [2.4, 0.84, 0.8],
-   bin: [1.4, 1.25, 1.4],
-   lamp: [0.6, 2.0, 0.58],
-   palm: [1.2, 1.7, 1.2],
-   umbrella: [1.5, 1.6, 1.46],
+   bin: [1.4, 1.05, 1.4],
+   lamp: [0.6, 3.6, 0.58],
+   palm: [1.2, 3.2, 1.2],
+   umbrella: [1.5, 3.03, 1.46],
 };
-/** The middle of a drawn litter piece (they are 0.78-0.90 tall): the point that must stay in view. */
-const LITTER_MID = 0.4;
+/** The middle of a drawn litter piece (they are 0.39-0.45 tall): the point that must stay in view. */
+const LITTER_MID = 0.2;
+/** Half the narrowest drawn litter piece (the 0.22 bottle) less a little: where the side rays aim. */
+const PIECE_SIDE = 0.1;
 /**
  * At the runner's height (every vertex below its head, the bases included), the widest gap between a
  * copy and any edge of its square, measured on the real meshes plus about 0.01 (bench 0.0002, bin
@@ -133,7 +135,7 @@ function inPart(part: BasePart, spot: InstanceSpot, x: number, z: number): boole
 const caches: MapCache[] = [];
 const cacheOf = (map: number): MapCache => (caches[map] ??= buildMapCache(map));
 
-/** The runner as Scene draws it (the cleaner): its GLB's top times assets.ts scale (0.95). */
+/** The runner as Scene draws it (the cleaner): its GLB's top times assets.ts scale (1.75). */
 async function runnerHeight(): Promise<number> {
    const { cloud } = await readCharacterGlb(ASSETS.cleaner.url);
    let top = 0;
@@ -205,7 +207,7 @@ describe("clean-city obstacle props: the GLBs", () => {
 describe("clean-city obstacle props: the squares the runner collides with", () => {
    it("each copy (its base included) stays inside its square and spans it (the umbrella canopy: past it only above the runner's head, only where its centre cannot go)", async () => {
       const head = await runnerHeight();
-      expect(head).toBeGreaterThan(0.9);
+      expect(head).toBeGreaterThan(1.7);
       for (const { set, spot, index, o } of copies()) {
          const label = `${set.asset.id} at (${o.x}, ${o.z})`;
          const points = [...(await drawnPoints(set.asset, spot)), ...basePoints(set, index)];
@@ -353,7 +355,23 @@ describe("clean-city obstacle props: the squares the runner collides with", () =
 });
 
 describe("clean-city obstacle props: litter stays in view", () => {
-   it("from every fitted camera and follow position, no prop covers the middle of any litter piece", async () => {
+   // Since the real-world scale (README "Real-world scale") the lamp's lantern, the palm's crown and
+   // the umbrella's canopy stand over the 1.75 cleaner's head, and from the 56° camera any of them
+   // covers the spots just behind it (a part over 1.68 at a square's back edge covers the nearest
+   // spot behind, 1.0 out). So the rule is split: below the cleaner's head (the props as they were,
+   // the bases, the bench, the bin) no prop ever covers a litter piece's middle; above it a covered
+   // spot shows its ring through the prop (Scene.tsx's x-ray ring, next test).
+   it("Scene.tsx draws each litter ring a second time where something is in front of it (the x-ray ring), before the cleaner", () => {
+      const scene = readFileSync(path.join(process.cwd(), "src/arcade3d/games/clean-city/Scene.tsx"), "utf8");
+      expect(scene).toContain('name="litter-rings-xray"');
+      expect(scene).toContain("depthFunc={GreaterDepth}");
+      expect(scene).toContain("transparent={false} blending={CustomBlending}");
+      expect(scene).toContain("b.traverse(orderCleaner)");
+      expect(scene).toContain("xray.current?.traverse(orderXray)");
+   });
+
+   it("from every fitted camera and follow position, no prop's part below the cleaner's head covers the middle of any litter piece", async () => {
+      const head = await runnerHeight();
       // The closest fits (no HUD or banner rects: those only push the camera back) at desktop, wide,
       // phone and landscape sizes, plus a far camera (rays near 56° everywhere, as a phone with the
       // banner open). Each looks from a 3 x 3 grid over the follow range (camera.ts FOCUS).
@@ -372,7 +390,7 @@ describe("clean-city obstacle props: litter stays in view", () => {
 
       // A litter piece more than NEAR (horizontally) from a prop's box is never behind it: the shallowest
       // ray (to a far floor corner) still climbs above the tallest prop within that distance.
-      const NEAR = 3;
+      const NEAR = 5;
       let tallest = 0;
       for (const set of GLB_PROPS) tallest = Math.max(tallest, new Box3().setFromPoints(await drawnPoints(set.asset, set.spots[0])).max.y);
       let slope = Infinity;
@@ -393,8 +411,12 @@ describe("clean-city obstacle props: litter stays in view", () => {
             for (let index = 0; index < set.spots.length; index++) {
                const spot = set.spots[index];
                const points = await drawnPoints(set.asset, spot);
-               // the GLB and its base (the palm planters, the umbrella stands)
-               const tri = [...Array.from(indices, (i) => points[i]), ...baseTriangles(set, index)];
+               // the GLB and its base (the palm planters, the umbrella stands): every triangle that reaches below the head
+               const all = [...Array.from(indices, (i) => points[i]), ...baseTriangles(set, index)];
+               const tri: Vector3[] = [];
+               for (let t = 0; t < all.length; t += 3) {
+                  if (Math.min(all[t].y, all[t + 1].y, all[t + 2].y) < head) tri.push(all[t], all[t + 1], all[t + 2]);
+               }
                solids.push({ label: `${set.asset.id} at (${spot.x}, ${spot.z})`, tri, box: new Box3().setFromPoints(tri) });
             }
          }
@@ -406,17 +428,31 @@ describe("clean-city obstacle props: litter stays in view", () => {
             for (const solid of solids) {
                if (Math.max(solid.box.min.x - lx, lx - solid.box.max.x, solid.box.min.z - lz, lz - solid.box.max.z) > NEAR) continue;
                for (const c of cameras) {
-                  rays++;
-                  const length = c.distanceTo(target);
-                  ray.origin.copy(c);
-                  ray.direction.copy(target).sub(c).normalize();
-                  if (!ray.intersectBox(solid.box, hit)) continue;
-                  for (let t = 0; t < solid.tri.length; t += 3) {
-                     if (ray.intersectTriangle(solid.tri[t], solid.tri[t + 1], solid.tri[t + 2], false, hit) && hit.distanceTo(c) < length) {
-                        blocked.push(`map ${map}: litter (${lx}, ${lz}) behind ${solid.label}`);
+                  // the piece counts as covered when its middle and the points PIECE_SIDE either side of
+                  // it (across the view) are all behind the prop: the 0.12 lamp post may cross a piece
+                  // (0.22-0.46 wide), never hide it
+                  let covered = true;
+                  for (const side of [0, -1, 1]) {
+                     rays++;
+                     target.set(lx + side * PIECE_SIDE, LITTER_MID, lz);
+                     const length = c.distanceTo(target);
+                     ray.origin.copy(c);
+                     ray.direction.copy(target).sub(c).normalize();
+                     let hitHere = false;
+                     if (ray.intersectBox(solid.box, hit)) {
+                        for (let t = 0; t < solid.tri.length; t += 3) {
+                           if (ray.intersectTriangle(solid.tri[t], solid.tri[t + 1], solid.tri[t + 2], false, hit) && hit.distanceTo(c) < length) {
+                              hitHere = true;
+                              break;
+                           }
+                        }
+                     }
+                     if (!hitHere) {
+                        covered = false;
                         break;
                      }
                   }
+                  if (covered) blocked.push(`map ${map}: litter (${lx}, ${lz}) behind ${solid.label}`);
                }
             }
          }
