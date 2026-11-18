@@ -1043,10 +1043,9 @@ export default function ReflexArrow({
             className={styles.root}
             style={{
                ...TOUCH_SURFACE,
-               padding: `${rootPad}px`,
-               // The game is the last thing on the page: this room lets the pad and the Replay / Share row
-               // scroll above the fixed cookie banner (~190 px on phones, ~110 px elsewhere).
-               paddingBottom: `calc(env(safe-area-inset-bottom) + ${isMobile ? 190 : 110}px)`,
+               // The game is the last thing on the page: the bottom room lets the pad and the Replay / Share
+               // row scroll above the fixed cookie banner (~190 px on phones, ~110 px elsewhere).
+               padding: `${rootPad}px ${rootPad}px calc(env(safe-area-inset-bottom) + ${isMobile ? 190 : 110}px)`,
                gap: compact ? "8px" : isMobile ? "10px" : "20px",
             }}
          >

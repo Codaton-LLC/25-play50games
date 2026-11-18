@@ -108,6 +108,8 @@
 
 .stageRow {
    flex-direction: row;
+   /* the layout helper sizes the pair to the card's inner width: never wrap back into a stack */
+   flex-wrap: nowrap;
 }
 
 .promptWrap {
