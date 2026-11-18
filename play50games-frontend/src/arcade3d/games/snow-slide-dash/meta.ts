@@ -1,6 +1,5 @@
 import { LEVEL_IDS, type ArcadeGameMeta } from "../../types";
-import { LEVELS } from "./levels";
-import { LIMITS } from "./rules";
+import { LEVELS, LIMITS } from "./limits";
 export const snowSlideDashMeta: ArcadeGameMeta = {
    slug: "snow-slide-dash", title: "Snow Slide Dash", order: 80, owner: "codex", status: "live",
    collection: "rollheroes", accent: "#facc15", thumbnail: "/images/3d/snow-slide-dash.webp", difficulty: 2, orientation: "any",

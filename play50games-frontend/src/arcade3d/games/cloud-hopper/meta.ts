@@ -1,5 +1,5 @@
 import { LEVEL_IDS, type ArcadeGameMeta, type LevelId, type ScoringRules } from "../../types";
-import { PROPOSED_LEVEL_LIMITS } from "./rules";
+import { PROPOSED_LEVEL_LIMITS } from "./limits";
 
 // Plain data only (server-safe). scoring must match WP includes/arcade-games.json (registry.sync.test.ts).
 // Menu 2 (Color Roll Heroes) game 05. Status "dev" (preview builds only) until the user signs it off.

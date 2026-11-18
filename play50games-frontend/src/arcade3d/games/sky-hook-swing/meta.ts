@@ -1,6 +1,5 @@
 import { LEVEL_IDS, type ArcadeGameMeta, type LevelId, type ScoringRules } from "../../types";
-import { LEVELS } from "./levels";
-import { PROPOSED_LEVEL_LIMITS } from "./rules";
+import { LEVELS, PROPOSED_LEVEL_LIMITS } from "./limits";
 
 const scoring = (id: LevelId): ScoringRules => ({
    ...PROPOSED_LEVEL_LIMITS[id],

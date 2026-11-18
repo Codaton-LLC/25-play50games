@@ -1,6 +1,5 @@
 import { LEVEL_IDS, type ArcadeGameMeta } from "../../types";
-import { LEVELS } from "./levels";
-import { LIMITS } from "./rules";
+import { LEVELS, LIMITS } from "./limits";
 
 // Plain data (server-safe). Menu 2 game 21, World 6 "Prism Fortress" (all colours), order 92, status
 // "dev" until the user signs it off. A time game: the finish time to the crown (L5: the golem's defeat)

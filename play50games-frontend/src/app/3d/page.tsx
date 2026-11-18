@@ -5,7 +5,8 @@ import SiteHeader from "@/components/Site/SiteHeader";
 import SiteFooter from "@/components/Site/SiteFooter";
 import ui from "@/components/Site/ui.module.css";
 import ArcadeGrid from "@/arcade3d/ui/ArcadeGrid";
-import WorldMap from "@/arcade3d/menu2/worldMap/WorldMap";
+// the Menu 2 world map (preview builds only) loads as its own chunk, outside the /3d first load
+import WorldMap from "@/arcade3d/menu2/worldMap/WorldMapLazy";
 import { ARCADE_ENABLED, ARCADE_LEADERBOARD, ARCADE_PREVIEW } from "@/arcade3d/flags";
 import { gameCollection, getLiveGames, getVisibleGames, getVisibleSections, scoringMetas } from "@/arcade3d/registry";
 import GameMetas from "@/arcade3d/ui/GameMetas";

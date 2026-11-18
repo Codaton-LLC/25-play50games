@@ -1,6 +1,5 @@
 import { LEVEL_IDS, type ArcadeGameMeta } from "../../types";
-import { LEVELS } from "./levels";
-import { limitsFor } from "./rules";
+import { LEVELS, limitsFor } from "./limits";
 export const ziplineRushMeta: ArcadeGameMeta = {
    slug: "zipline-rush", title: "Zipline Rush", tagline: "Tuck the dip. Switch the line. Brake the landing.",
    description: "Ride sagging cables between coastal pine cliffs and sea-stack lighthouses. Hop between crossing lines, land on moving rafts and take on Volt Eel with five Color Roll Heroes.",
