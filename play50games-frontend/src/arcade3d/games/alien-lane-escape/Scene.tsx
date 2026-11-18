@@ -30,7 +30,7 @@ import World from "./World";
 import { Road } from "./Road";
 import { Mothership, ScannerDrone } from "./Mothership";
 import { Runner, createHeroAnim, type HeroAnim } from "./Hero";
-import { ALIEN_ORBIT, FOV, FOV_PORTRAIT, introKeyframes, orbitLookUp, orbitPivot, orbitScale, playCamera } from "./camera";
+import { ALIEN_ORBIT, FOV, FOV_PORTRAIT, introKeyframes, orbitLookUp, orbitPivot, pivotLead, orbitScale, playCamera } from "./camera";
 import { STAT, createRun, createStepInput, hiddenBy, scanEtaMs, speedNow, step, visualS, type AlienRun } from "./rules";
 import { pickedHero, subscribeHero } from "./heroes";
 import { createBot, botInput } from "./bot";
@@ -170,10 +170,10 @@ export function AlienCamera({ run, orbit }: { run: AlienRun; orbit: OrbitState }
    const pivot = useMemo(
       () => (out: { x: number; y: number; z: number }) => {
          const r = run.runner;
-         orbitPivot(r.x, r.h, visualS(run), out);
+         orbitPivot(r.x, r.h, visualS(run), out, pivotLead(aspect));
          return true;
       },
-      [run],
+      [run, aspect],
    );
    const travel = useMemo(
       () => (out: { x: number; z: number }) => {
