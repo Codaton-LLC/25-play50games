@@ -1119,7 +1119,7 @@ export default function WhackShape({
                               borderRadius: "50%",
                               background:
                                  "linear-gradient(135deg, #3b82f6, #2563eb)",
-                              border: "2px solid rgba(255, 255, 255, 0.3)",
+                              border: "2px solid rgba(var(--board-ov, 255, 255, 255), 0.3)",
                            }}
                         />
                      )}
@@ -1130,7 +1130,7 @@ export default function WhackShape({
                               height: "100%",
                               background:
                                  "linear-gradient(135deg, #3b82f6, #2563eb)",
-                              border: "2px solid rgba(255, 255, 255, 0.3)",
+                              border: "2px solid rgba(var(--board-ov, 255, 255, 255), 0.3)",
                               borderRadius: "4px",
                            }}
                         />
@@ -1216,8 +1216,8 @@ export default function WhackShape({
                                  borderRadius: "50%",
                                  background:
                                     "linear-gradient(135deg, #3b82f6, #2563eb)",
-                                 border: "2px solid rgba(255, 255, 255, 0.3)",
-                                 boxShadow: "0 4px 8px rgba(0, 0, 0, 0.2)",
+                                 border: "2px solid rgba(var(--board-ov, 255, 255, 255), 0.3)",
+                                 boxShadow: "0 4px 8px rgba(var(--board-shade, 0, 0, 0), calc(0.2 * var(--board-shade-k, 1)))",
                               }}
                            />
                         )}
@@ -1228,9 +1228,9 @@ export default function WhackShape({
                                  height: "100%",
                                  background:
                                     "linear-gradient(135deg, #3b82f6, #2563eb)",
-                                 border: "2px solid rgba(255, 255, 255, 0.3)",
+                                 border: "2px solid rgba(var(--board-ov, 255, 255, 255), 0.3)",
                                  borderRadius: "8px",
-                                 boxShadow: "0 4px 8px rgba(0, 0, 0, 0.2)",
+                                 boxShadow: "0 4px 8px rgba(var(--board-shade, 0, 0, 0), calc(0.2 * var(--board-shade-k, 1)))",
                               }}
                            />
                         )}
@@ -1249,7 +1249,7 @@ export default function WhackShape({
                                     shapeBase * 0.87 * shape.size
                                  }px solid #3b82f6`,
                                  filter:
-                                    "drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2))",
+                                    "drop-shadow(0 4px 8px rgba(var(--board-shade, 0, 0, 0), calc(0.2 * var(--board-shade-k, 1))))",
                               }}
                            />
                         )}

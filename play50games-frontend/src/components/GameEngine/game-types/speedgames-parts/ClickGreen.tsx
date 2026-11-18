@@ -1074,7 +1074,7 @@ export default function ClickGreen({
                   border: "1px solid var(--stroke)",
                   borderRadius: "16px",
                   padding: isMobile ? "12px 14px" : "16px 20px",
-                  boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
+                  boxShadow: "0 8px 24px rgba(var(--board-shade, 0, 0, 0), calc(0.2 * var(--board-shade-k, 1)))",
                }}
             >
                <div
@@ -1283,7 +1283,7 @@ export default function ClickGreen({
                                  opacity: item.clicked ? 0.5 : 1,
                                  boxShadow: item.clicked
                                     ? "none"
-                                    : "0 4px 8px rgba(0, 0, 0, 0.2)",
+                                    : "0 4px 8px rgba(var(--board-shade, 0, 0, 0), calc(0.2 * var(--board-shade-k, 1)))",
                               }}
                            >
                               {item.clicked ? (
