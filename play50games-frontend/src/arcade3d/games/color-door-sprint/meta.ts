@@ -26,7 +26,7 @@ export const colorDoorSprintMeta: ArcadeGameMeta = {
    slug: "color-door-sprint",
    title: "Color Door Sprint",
    tagline: "Read the rule lamp, commit to the one true door before the wall locks.",
-   description: "Sprint down Shadow Plates' Hall of Doors as a Scale Squad pangolin: read the rule lamp (match the colour, match the chime, NOT this colour, or remember the wall after next), change lanes and commit before the doors lock. True doors surge you on, wrong doors bounce you back. Pick Riko, Nyla, Kiro, Zuno or Vexa and outrun Flicker, the Fire Spirit.",
+   description: "Sprint down Shadow Plates' Hall of Doors as a Pangoroll pangolin: read the rule lamp (match the colour, match the chime, NOT this colour, or remember the wall after next), change lanes and commit before the doors lock. True doors surge you on, wrong doors bounce you back. Pick Riko, Nyla, Kiro, Zuno or Vexa and outrun Flicker, the Fire Spirit.",
    order: 62,
    status: "live",
    collection: "rollheroes",

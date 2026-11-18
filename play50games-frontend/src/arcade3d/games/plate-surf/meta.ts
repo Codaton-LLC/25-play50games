@@ -26,7 +26,7 @@ export const plateSurfMeta: ArcadeGameMeta = {
    slug: "plate-surf",
    title: "Plate Surf",
    tagline: "Ride a giant rolling wave. Pump for speed, air off the lip, outrun the curl.",
-   description: "Surf a curling wave on a hero plate as a Scale Squad pangolin: carve up and down the face to pump for speed, launch off the lip for spins, flips and grabs, and stay ahead of the curl. Pick Riko, Nyla, Kiro, Zuno or Vexa and ride to the lagoon.",
+   description: "Surf a curling wave on a hero plate as a Pangoroll pangolin: carve up and down the face to pump for speed, launch off the lip for spins, flips and grabs, and stay ahead of the curl. Pick Riko, Nyla, Kiro, Zuno or Vexa and ride to the lagoon.",
    order: 56,
    status: "live",
    collection: "rollheroes",

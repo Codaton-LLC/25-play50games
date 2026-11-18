@@ -288,7 +288,7 @@ export default function PlayerCard({ games: arcadeGames }: PlayerCardProps) {
                      <span className={styles.worldName}>{WORLDS.squad.title}</span>
                      <Meter value={0} total={1} />
                      <span className={styles.worldCount}>Opens soon</span>
-                     <Link href="/scale-squad" className={`${ui.btn} ${ui.btnQuiet} ${ui.btnSm}`}>
+                     <Link href="/pangoroll-worlds" className={`${ui.btn} ${ui.btnQuiet} ${ui.btnSm}`}>
                         Open
                      </Link>
                   </li>

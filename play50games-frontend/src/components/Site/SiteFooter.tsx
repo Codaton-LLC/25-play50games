@@ -13,7 +13,7 @@ interface FooterLink {
 const PLAY: FooterLink[] = [
    { label: "Classic 50", href: "/classic" },
    ...(ARCADE_ENABLED ? [{ label: "3D Arcade", href: "/3d" }] : []),
-   ...(SQUAD_TEASER ? [{ label: "Scale Squad", href: "/scale-squad" }] : []),
+   ...(SQUAD_TEASER ? [{ label: "Pangoroll Worlds", href: "/pangoroll-worlds" }] : []),
    ...(ARCADE_ENABLED && ARCADE_LEADERBOARD ? [{ label: "Leaderboards", href: "/leaderboards" }] : []),
 ];
 

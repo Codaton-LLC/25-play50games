@@ -23,8 +23,8 @@ export const ARCADE_PREVIEW = on(process.env.NEXT_PUBLIC_ARCADE_PREVIEW);
 export const ARCADE_LEVELS = on(process.env.NEXT_PUBLIC_ARCADE_LEVELS);
 
 /**
- * Shows the third world, Scale Squad (Menu 2), as "soon": its menu entry, its hub panel
- * and the /scale-squad teaser page. Off = two worlds, and /scale-squad is a 404.
+ * Shows the third world, Pangoroll Worlds (Menu 2), as "soon": its menu entry, its hub panel
+ * and the /pangoroll-worlds teaser page (/scale-squad redirects there). Off = two worlds, and the page is a 404.
  */
 export const SQUAD_TEASER = on(process.env.NEXT_PUBLIC_SQUAD_TEASER);
 

@@ -103,7 +103,7 @@ export const CubeIcon = (props: IconProps) => (
    </Line>
 );
 
-/** a rolled-up ball with two bands of scales: the Scale Squad world */
+/** a rolled-up ball with two bands of scales: Pangoroll Worlds */
 export const RollIcon = (props: IconProps) => (
    <Line {...props}>
       <circle cx="12" cy="12" r="8" />

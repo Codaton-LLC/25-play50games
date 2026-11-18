@@ -26,7 +26,7 @@ export const lavaPillarJumpMeta: ArcadeGameMeta = {
    slug: "lava-pillar-jump",
    title: "Lava Pillar Jump",
    tagline: "Climb the pillars before the lava does.",
-   description: "Out-climb a lava tide that surges on the volcano's heartbeat as a Scale Squad hero. Basalt tops heat under your feet and crumble, geysers fire on the beat, and Kalder the Magma Golem waits in the core.",
+   description: "Out-climb a lava tide that surges on the volcano's heartbeat as a Pangoroll hero. Basalt tops heat under your feet and crumble, geysers fire on the beat, and Kalder the Magma Golem waits in the core.",
    order: 54,
    status: "live",
    collection: "rollheroes",

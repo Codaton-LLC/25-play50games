@@ -116,7 +116,7 @@ export default function HubPage() {
                "Fifty brain games. One certificate."
             ) : SQUAD_TEASER ? (
                <>
-                  Fifty brain games, <InlineArt src={artA} /> a 3D arcade <InlineArt src={artB} /> and the Scale Squad.
+                  Fifty brain games, <InlineArt src={artA} /> a 3D arcade <InlineArt src={artB} /> and Pangoroll Worlds.
                </>
             ) : (
                <>
@@ -210,7 +210,7 @@ export default function HubPage() {
                        {hero.name}
                     </>
                  )),
-                 href: "/scale-squad",
+                 href: "/pangoroll-worlds",
                  cta: "Meet the squad",
                  soon: true,
                  art: <SquadArt />,

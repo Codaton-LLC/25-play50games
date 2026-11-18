@@ -2,13 +2,13 @@
 
 Source of truth for generating Play50Games screens in Google Stitch. Paste this whole file into Stitch as the design brief, then use one prompt from `stitch-prompts.md` per screen.
 
-Decisions the owner made (2026-11-17): three worlds in the main menu (the third one is named Scale Squad: five pangolin heroes who roll into a ball), a "console premium" direction inspired by Apple Arcade and the PlayStation Store, one accent colour (Arcade Coral), dark and light themes of equal quality.
+Decisions the owner made (2026-11-17): three worlds in the main menu (the third one is named Pangoroll Worlds: five pangolin heroes who roll into a ball), a "console premium" direction inspired by Apple Arcade and the PlayStation Store, one accent colour (Arcade Coral), dark and light themes of equal quality.
 
 ---
 
 ## 1. Visual Theme & Atmosphere
 
-Play50Games is a free browser game platform with three worlds: **Classic 50** (fifty 2D brain games that unlock one after another and end in a certificate), **3D Arcade** (fifty 3D mini-games with five levels each and one leaderboard per game) and **Scale Squad** (platform and runner games played with five pangolin heroes who roll into a ball).
+Play50Games is a free browser game platform with three worlds: **Classic 50** (fifty 2D brain games that unlock one after another and end in a certificate), **3D Arcade** (fifty 3D mini-games with five levels each and one leaderboard per game) and **Pangoroll Worlds** (platform and runner games played with five pangolin heroes who roll into a ball).
 
 The interface feels like the home screen of a modern console: calm ink surfaces, large cinematic game art, and a scoreboard's precision in every number. The game art carries all the colour. The chrome around it stays quiet, so a screenshot of a game always looks brighter than the page that holds it.
 
@@ -63,7 +63,7 @@ One cool ink-navy neutral family in both themes (it comes from the navy shield i
 - **Go Green** (#3FB57F, text on light #1E8A5A): "Live" dot, score saved, form success.
 - **Signal Red** (#D93654): form errors, offline notice, lives lost. A cool red, clearly different from the warm coral.
 
-### Content colours (Scale Squad heroes only)
+### Content colours (Pangoroll heroes only)
 
 The five heroes keep their own colours, shown only as the ring around a hero portrait and the hero's ability chip: Riko Red (#EF4444), Nyla Blue (#2563EB), Kiro Green (#22C55E), Zuno Yellow (#FACC15), Vexa Violet (#8B5CF6). They never colour buttons, links, tabs or headings.
 
@@ -114,7 +114,7 @@ Hierarchy comes from weight and colour first, size second. The hero headline is 
 * **Shield rank:** hexagon shield 28px tall. Rank 1: Trophy Gold fill, Night Ink numeral. Ranks 2 and 3: Raised Deck fill with hairline, primary numeral. Rank 4 and below: no shield, mono numeral in secondary colour, zero padded (`#04`).
 * **Keycap:** softly rounded (8px), 1px hairline, 2px darker bottom edge, Geist Mono 0.75rem, minimum 28px square.
 * **Chips (filters):** pill, 36px tall (44px tap area), hairline outline. Selected: Coral Wash fill, coral text, no outline.
-* **World switcher:** one pill track (Raised Deck or Sunk Paper) holding three segments: "Classic 50", "3D Arcade", "Scale Squad". The active segment sits on a Coral Wash fill that fades in. Each segment carries a small plate glyph: "50", "3D", "5".
+* **World switcher:** one pill track (Raised Deck or Sunk Paper) holding three segments: "Classic 50", "3D Arcade", "Pangoroll Worlds". The active segment sits on a Coral Wash fill that fades in. Each segment carries a small plate glyph: "50", "3D", "5".
 * **Inputs:** label above (Small, 500), field 48px tall, rounded (14px), well fill, 1px hairline. Focus: coral ring. Helper text below in Dim. Error text below in Signal Red with the border in Signal Red. No floating labels, no placeholder-only fields.
 * **Leaderboard row:** no card. Rows are separated by 1px hairlines: shield or numeral, player name ("Arta K."), score in mono right aligned, time in mono Dim. The player's own row has a Coral Wash fill and stays pinned at the bottom of the table when it is out of view.
 * **Progress ring (Classic):** thin 6px ring, coral arc on a hairline track, count in mono at the centre (`07 / 50`).
@@ -134,7 +134,7 @@ The three worlds are the navigation. Everything else is a utility.
 Deck or White Card surface. After scrolling it becomes 85% opaque with a 16px background blur and a hairline bottom border.
 
 - **Left:** logo shield mark (36px) and the wordmark "Play50Games" in Outfit 700.
-- **Centre left:** the world switcher: Classic 50, 3D Arcade, Scale Squad.
+- **Centre left:** the world switcher: Classic 50, 3D Arcade, Pangoroll Worlds.
 - **Right, in this order:** search button shaped like a field ("Find a game" with a `Ctrl K` keycap), the text link "Leaderboards", the theme icon button, then the account: a quiet "Log in" button for guests, or a 36px avatar chip with the player's initials when signed in.
 
 ### Mega panel (opens under the bar on hover or focus of a world segment)
@@ -145,7 +145,7 @@ A very round (28px) floating panel as wide as the page container, 8px below the 
 - **Zone B, shortcuts:** a plain link list with a Label heading.
   - Classic 50: Continue where you stopped, All 50 games, My progress, Certificate, Verify a certificate.
   - 3D Arcade: All games, New this month, Originals, Adventure, Skill, Time trials, Leaderboards.
-  - Scale Squad: the five heroes, each with its colour ring and its power.
+  - Pangoroll Worlds: the five heroes, each with its colour ring and its power.
 - **Zone C, featured art:** one large 16:9 tile on top and two small tiles under it.
 
 Items reveal with a 40ms stagger. The panel closes on Escape, on pointer leave and on focus leaving it.
@@ -170,7 +170,7 @@ The play page is full screen. Only a back chevron (top left), the HUD chips in m
 
 ### Footer
 
-A hairline top border, four unequal columns: the logo with one line of text, then Play (Classic 50, 3D Arcade, Scale Squad, Leaderboards), Account (Player card, Certificate, Verify a certificate) and Help (FAQ, Contact, Privacy, Terms). On phones the columns stack and the footer sits above the tab bar.
+A hairline top border, four unequal columns: the logo with one line of text, then Play (Classic 50, 3D Arcade, Pangoroll Worlds, Leaderboards), Account (Player card, Certificate, Verify a certificate) and Help (FAQ, Contact, Privacy, Terms). On phones the columns stack and the footer sits above the tab bar.
 
 ---
 
@@ -181,7 +181,7 @@ A hairline top border, four unequal columns: the logo with one line of text, the
 - **Section rhythm:** vertical gaps of `clamp(3rem, 8vw, 6rem)` between sections.
 - **No overlap.** Text never sits on top of art, except the one bottom info strip of the hero stage, which has its own solid Deck surface.
 - **Hero (hub):** split `5fr 7fr`. Left: a Label eyebrow, the headline, one sentence, one primary button. Right: the featured stage. The hero is as tall as its content, not as tall as the screen.
-- **Inline art in the headline.** The hub headline carries two small pieces of game art inline between its words, at the height of the letters, rounded (14px), like visual punctuation: "Fifty brain games, [art] a 3D arcade [art] and the Scale Squad." On phones the two images move into a small row under the headline.
+- **Inline art in the headline.** The hub headline carries two small pieces of game art inline between its words, at the height of the letters, rounded (14px), like visual punctuation: "Fifty brain games, [art] a 3D arcade [art] and Pangoroll Worlds." On phones the two images move into a small row under the headline.
 - **Three worlds, never three equal cards.** On desktop the worlds are three tall art panels in one row that behave like an accordion: the active panel takes `3fr`, the two others `1fr` each and show only the plate glyph and the name set vertically. Hover or focus moves the active state. On phones they stack as three full-width 16:10 panels.
 - **Game grids:** four columns on desktop, three on small laptops, two on tablets, one or two on phones (two below 520px only if the titles still fit). The first tile of a section spans two columns and two rows. Because the art is the card, the grid reads as a gallery, not as a wall of boxes.
 - **Leaderboards and tables:** no cards. Hairline dividers and space.
@@ -193,7 +193,7 @@ A hairline top border, four unequal columns: the logo with one line of text, the
 2. **3D Arcade `/3d`:** a title band with counts in mono ("30 games, 150 levels, 12 live"), filter chips (All, Originals, Adventure, Skill, Time trials), a sort menu (Newest, A to Z, Difficulty), then the gallery in sections.
 3. **Game lobby `/3d/[slug]`:** split `7fr 5fr`. Left: the art stage with the primary "Play" button, then five level tiles (number, name, best in mono, lock on locked levels). Right: the leaderboard (top ten and the pinned own row), the controls as keycaps, the description. Under both: "More like this".
 4. **Classic 50 `/classic`:** a header with the progress ring and "Continue: game 8". Then the path: fifty numbered nodes in five chapters of ten, drawn as a line that turns at the end of each row. Done nodes are filled, the current node has a coral ring that pulses, locked nodes are dim with a small lock. The certificate waits at the end of the path in Trophy Gold.
-5. **Scale Squad `/scale-squad`:** world hero with the title and "Soon", beside a group picture of the five heroes (never a T-pose line-up). Then the five as hairline rows: colour ring, name, power.
+5. **Pangoroll Worlds `/pangoroll-worlds`:** world hero with the title and "Soon", beside a group picture of the five heroes (never a T-pose line-up). Then the five as hairline rows: colour ring, name, power.
 6. **Leaderboards `/leaderboards`:** split `4fr 8fr`. Left: a searchable list of games with small thumbnails. Right: the podium as three columns of unequal height (second, first, third), then the table.
 7. **Player card `/progress`:** an identity block (avatar, public name, member since), three world meters, totals in large mono numerals (levels cleared of 500, games played), recent best scores as a table, certificate status, the leaderboard privacy switch.
 8. **Sign in and sign up:** one centred sheet, label above every field, one primary button, the alternative as a text link.
@@ -276,7 +276,7 @@ What is built (the hub and the site chrome on 2026-11-17, the rest of the pages 
 - **Fonts:** Outfit (display), **DM Sans** (body) and **JetBrains Mono** (numbers), loaded with `next/font/google` in `app/layout.tsx`. Geist and Geist Mono are not in the font list of Next 14.2, so the documented fallbacks are used. Swapping to Geist later is a change in `layout.tsx` only (the `--font-body` and `--font-mono` variables).
 - **Shared parts:** `src/components/Site/ui.module.css` (buttons, plate, keycap, pips, meter), `form.module.css` (label above, 48px well, helper or error below), `ProgressRing` (the thin ring with the count at its centre), `SitePage` + `PageHead` (the frame of a plain page: header, main column, footer, the heading block, the split layout, prose, facts and notices). `globals.css` styles every `<button>` and `button:hover`, so each new button class sets its own background for both states.
 - **Chrome:** `src/components/Site/` (`SiteHeader`, `SearchPalette`, `SiteFooter`, `BoardRows`, `ClassicPath`, `SquadArt`). The world switcher uses real links; the mega panel opens on hover and on keyboard focus. Any page opens the header's sign-in sheet with `openLogin()` (`siteData.ts`), or its register sheet with `openLogin("register")`.
-- **Pages done:** `/` (hub), `/3d` (catalogue), `/leaderboards` (needs the leaderboard flag), `/scale-squad` (teaser, needs `NEXT_PUBLIC_SQUAD_TEASER`), `/classic` (the path), `/progress` (the player card), `/faq`, `/contact-us`, `/privacy-policy`, `/terms-and-conditions`, `/verify`, `/certificate`, `/certificate/[id]`, the sign-in sheet (login and register), the game lobby (the start card of `/3d/[slug]`) with the shell's pause, loading and error sheets.
+- **Pages done:** `/` (hub), `/3d` (catalogue), `/leaderboards` (needs the leaderboard flag), `/pangoroll-worlds` (teaser, needs `NEXT_PUBLIC_SQUAD_TEASER`), `/classic` (the path), `/progress` (the player card), `/faq`, `/contact-us`, `/privacy-policy`, `/terms-and-conditions`, `/verify`, `/certificate`, `/certificate/[id]`, the sign-in sheet (login and register), the game lobby (the start card of `/3d/[slug]`) with the shell's pause, loading and error sheets.
 - **Sign-in sheet (§6 item 8):** `src/components/Auth/AuthSheet.tsx` is the frame and the field; `LoginModal` and `RegisterModal` keep their props. Errors show under their field (the forms are `noValidate`), the server's answer above the fields.
 - **Classic 50 (§6 item 4):** `src/app/classic/ClassicView.tsx`. Ten nodes to a row on a desktop (a chapter is one row), five on a tablet, one column on a phone (the path runs down the left). The line is drawn by each stop (`::after`): ink once its game is finished, the turn at the end of a row, a line down to the certificate. The category chips fade the other kinds instead of removing them (on a phone they filter). Data and unlock chain are loaded exactly as the old dashboard did.
 - **Player card (§6 item 7):** `src/app/progress/PlayerCard.tsx`. No "member since" (the account API has no date). The arcade total counts the levels of the playable games (games x 5), not 500. The leaderboard name switch is `app/3d/ArcadePrivacyToggle` (also on `/3d`).
@@ -287,5 +287,5 @@ What is built (the hub and the site chrome on 2026-11-17, the rest of the pages 
 - **Not done yet:** the inline tints of the 50 classic boards (above), a light version of the boards themselves, and `/diagnostics`. In the lobby: the top 10 is still the old table (no shield ranks, no pinned own row) and there is no "More like this".
 - **Left over from the old look (safe to remove later):** `components/Footer`, `components/Nav/SectionTabs` and `components/Header/HeaderWithAuth` have no users any more, and `globals.css` still carries the old page styles.
 - **Known gap:** the contact form shows "Thank you" but sends nothing (its submit was a placeholder before the redesign and still is). It needs an endpoint.
-- **Scale Squad art:** the group picture of the five heroes, `public/images/worlds/scale-squad.webp` (made by the user, approved 2026-11-17), set through `SQUAD_PICTURE` in `components/Site/siteData.ts`. With `null` the world shows five rolled-up balls in the hero colours, drawn in CSS. How the picture was made: `docs/design/scale-squad-picture.md`.
+- **Pangoroll Worlds art:** the group picture of the five heroes, `public/images/worlds/scale-squad.webp` (made by the user, approved 2026-11-17), set through `SQUAD_PICTURE` in `components/Site/siteData.ts`. With `null` the world shows five rolled-up balls in the hero colours, drawn in CSS. How the picture was made: `docs/design/scale-squad-picture.md`.
 - **Flags:** with `NEXT_PUBLIC_SQUAD_TEASER` off (the default) the site shows two worlds. With the arcade flag off it shows Classic 50 and the arcade as "soon".

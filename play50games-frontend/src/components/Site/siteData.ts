@@ -37,16 +37,16 @@ export const WORLDS: Record<WorldId, World> = {
    },
    squad: {
       id: "squad",
-      label: "Scale Squad",
-      title: "Scale Squad",
+      label: "Pangoroll Worlds",
+      title: "Pangoroll Worlds",
       plate: "5",
-      href: "/scale-squad",
+      href: "/pangoroll-worlds",
       text: "Five pangolin heroes who roll into a ball. Each one has its own colour and its own power.",
    },
 };
 
 /**
- * The five heroes of Scale Squad (Menu 2): pangolins who roll into a ball. Names, colours and
+ * The five heroes of Pangoroll Worlds (Menu 2): pangolins who roll into a ball. Names, colours and
  * powers are the user's; the colours are content and never colour buttons, links or headings.
  */
 export const SQUAD = [

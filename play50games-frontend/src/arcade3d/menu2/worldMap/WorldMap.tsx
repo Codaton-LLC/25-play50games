@@ -218,7 +218,7 @@ export default function WorldMap({ games, preview = false }: WorldMapProps) {
       <div className={styles.map}>
          <div className={styles.top}>
             <div className={styles.story}>
-               <p className={styles.eyebrow}>Menu 2 · Scale Squad</p>
+               <p className={styles.eyebrow}>Menu 2 · Pangoroll Worlds</p>
                <p className={styles.storyText}>
                   Shadow Plates drained the colour from the world. Roll through six worlds and bring it back, one game at a time.
                </p>

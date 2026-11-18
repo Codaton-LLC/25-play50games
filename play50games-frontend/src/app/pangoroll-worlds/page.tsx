@@ -1,4 +1,4 @@
-// Scale Squad teaser "/scale-squad" (the third world, Menu 2). Server component.
+// Pangoroll Worlds teaser "/pangoroll-worlds" (the third world, Menu 2). Server component.
 // Shown only with NEXT_PUBLIC_SQUAD_TEASER; otherwise a 404. Not indexed until the world opens.
 import type { Metadata } from "next";
 import type { CSSProperties } from "react";
@@ -13,9 +13,9 @@ import { ARCADE_ENABLED, SQUAD_TEASER } from "@/arcade3d/flags";
 import styles from "./page.module.css";
 
 export const metadata: Metadata = {
-   title: "Scale Squad",
-   description: "Scale Squad: five pangolin heroes who roll into a ball, each with its own colour and power. Opens soon on Play50Games.",
-   alternates: { canonical: "/scale-squad" },
+   title: "Pangoroll Worlds",
+   description: "Pangoroll Worlds: five pangolin heroes who roll into a ball, each with its own colour and power. Opens soon on Play50Games.",
+   alternates: { canonical: "/pangoroll-worlds" },
    robots: { index: false, follow: true },
 };
 
@@ -36,7 +36,7 @@ export default function ScaleSquadPage() {
                      <span className={styles.soon}>Soon</span>
                   </div>
                   <h1 id="squad-title" className={styles.title}>
-                     Scale Squad
+                     Pangoroll Worlds
                   </h1>
                   <p className={styles.lead}>{WORLDS.squad.text}</p>
                   {ARCADE_ENABLED ? (
