@@ -28,3 +28,31 @@
       justify-self: stretch;
    }
 }
+
+.notice {
+   display: grid;
+   gap: 10px;
+   justify-items: start;
+}
+
+.notice p {
+   margin: 0;
+}
+
+.done:focus {
+   outline: none;
+}
+
+.done:focus-visible {
+   outline: 2px solid var(--p50-coral);
+   outline-offset: 2px;
+}
+
+/* the honeypot: off screen, never shown, never announced */
+.trap {
+   position: absolute;
+   left: -10000px;
+   width: 1px;
+   height: 1px;
+   overflow: hidden;
+}
