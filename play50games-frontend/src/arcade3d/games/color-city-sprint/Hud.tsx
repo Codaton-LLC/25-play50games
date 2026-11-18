@@ -300,7 +300,7 @@ export default function Hud() {
             {boss && !playing ? <Boss /> : null}
             {coach ? (
                <div className={stack.boss}>
-                  <div className={stack.hint}>{coach}</div>
+                  <div className={`${stack.hint} ${styles.coachLine}`}>{coach}</div>
                </div>
             ) : null}
          </div>

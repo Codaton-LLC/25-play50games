@@ -319,3 +319,11 @@
    color: #fca5a5;
    font-weight: 900;
 }
+
+/* phones: the banner is the level line alone (short), so the clock under it needs its own drop to
+   clear the shell's Mute / Pause buttons */
+@media (max-width: 720px) and (min-height: 461px) {
+   .clock {
+      margin-top: 20px;
+   }
+}

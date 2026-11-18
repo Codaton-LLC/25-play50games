@@ -10,10 +10,10 @@
    color: var(--text, #f7fbff);
    font-variant-numeric: tabular-nums;
 }
-.pill span { font-size: 9px; letter-spacing: 0.1em; opacity: 0.85; align-self: center; }
+.pill span { font-size: 10px; letter-spacing: 0.08em; opacity: 0.85; align-self: center; }
 .pill strong { font-size: 13px; }
 .banner { padding: 8px 18px; background: #10243be6; border: 1px solid #dce6ef40; border-radius: 14px; text-align: center; }
-.banner span { display: block; font-size: 9px; letter-spacing: 0.19em; color: #fde68a; }
+.banner span { display: block; font-size: 10px; letter-spacing: 0.16em; color: #fde68a; }
 .banner strong { display: block; font-size: 16px; line-height: 1.5; color: var(--text, #f7fbff); }
 .clock { font-size: 25px; font-weight: 800; font-variant-numeric: tabular-nums; color: #fff7d6; text-shadow: 0 2px 6px #152839; text-align: center; }
 .clock small { font-size: 12px; opacity: 0.8; }
@@ -24,8 +24,8 @@
 @media (max-width: 720px) {
    .pill { padding: 6px 8px; gap: 3px; border-radius: 8px; }
    .pill strong { font-size: 11px; }
-   .pill span { font-size: 8px; }
-   .surface { font-size: 8px; }
+   .pill span { font-size: 10px; }
+   .surface { font-size: 10px; }
    .banner strong { font-size: 13px; }
    .clock { font-size: 20px; }
    .teach { font-size: 10px; max-width: 190px; }
@@ -50,8 +50,8 @@
       max-width: min(176px, 44vw);
    }
    .leftStack .pill { flex-direction: column; flex-wrap: nowrap; gap: 0; padding: 4px 7px; border-radius: 8px; }
-   .leftStack .pill span { font-size: 8px; letter-spacing: 0.06em; }
+   .leftStack .pill span { font-size: 10px; letter-spacing: 0.02em; }
    .leftStack .pill strong { font-size: 11px; line-height: 1.2; }
-   .leftStack .surface { grid-column: 1 / -1; padding: 3px 7px; font-size: 8px; }
+   .leftStack .surface { grid-column: 1 / -1; padding: 3px 7px; font-size: 10px; }
    .combo { grid-column: 1 / -1; }
 }

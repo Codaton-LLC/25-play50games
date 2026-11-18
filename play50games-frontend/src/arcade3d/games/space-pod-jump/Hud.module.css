@@ -289,9 +289,10 @@
 .upBtn {
    position: absolute;
    right: 12px;
-   bottom: calc(132px + env(safe-area-inset-bottom, 0px));
+   /* 168px on every touch screen: at 132px it covered the top of the round recenter button on a tablet */
+   bottom: calc(168px + env(safe-area-inset-bottom, 0px));
    z-index: 5;
-   min-height: 40px;
+   min-height: 44px;
    padding: 6px 14px;
    border: 2px solid rgba(126, 232, 255, 0.5);
    border-radius: 999px;

@@ -11,12 +11,12 @@
    color: #f8fafc;
    font-variant-numeric: tabular-nums;
 }
-.pill span { font-size: 9px; letter-spacing: 0.1em; opacity: 0.85; }
+.pill span { font-size: 10px; letter-spacing: 0.08em; opacity: 0.85; }
 .pill strong { font-size: 13px; }
 .hearts { color: #f472b6; letter-spacing: 2px; }
 .hearts em { color: #475569; font-style: normal; }
 .banner { padding: 7px 18px; background: #111827e6; border: 1px solid #e2e8f040; border-radius: 14px; text-align: center; }
-.banner span { display: block; font-size: 9px; letter-spacing: 0.19em; color: #f9a8d4; }
+.banner span { display: block; font-size: 10px; letter-spacing: 0.16em; color: #f9a8d4; }
 .banner strong { display: block; font-size: 16px; line-height: 1.5; color: #f8fafc; }
 .clock { font-size: 24px; font-weight: 800; font-variant-numeric: tabular-nums; color: #fff7d6; text-shadow: 0 2px 6px #0f172a; text-align: center; }
 .clock small { font-size: 12px; opacity: 0.8; }
@@ -71,7 +71,7 @@
 .active { background: var(--hero); border-color: #fff; box-shadow: 0 0 12px var(--hero); }
 .glyph { font-size: 17px; font-weight: 900; line-height: 1; text-shadow: 0 1px 2px #0009; }
 .name { font-size: 10px; font-weight: 800; }
-.key { position: absolute; top: 2px; right: 4px; font-size: 9px; opacity: 0.8; }
+.key { position: absolute; top: 2px; right: 4px; font-size: 10px; opacity: 0.8; }
 @media (pointer: coarse) {
    .strip { left: calc(env(safe-area-inset-left, 0px) + 10px); transform: none; bottom: calc(env(safe-area-inset-bottom, 0px) + 172px); }
    .portrait { width: 48px; min-height: 48px; }

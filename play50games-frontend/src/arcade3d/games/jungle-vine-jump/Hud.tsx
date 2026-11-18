@@ -109,7 +109,7 @@ export default function Hud() {
          {multiplayer && <MultiplayerHud />}
          <OrbitHud />
          {!playing && (
-            <div className={stack.hint} role="status" style={{ position: "absolute", left: "50%", bottom: 96, transform: "translateX(-50%)", textAlign: "center", pointerEvents: "none" }}>
+            <div className={`${stack.hint} ${styles.tip}`} role="status">
                {hint}
             </div>
          )}

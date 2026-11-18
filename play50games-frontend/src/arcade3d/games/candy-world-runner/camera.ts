@@ -42,17 +42,27 @@ export function distanceFor(sizeLevel: number): number {
    return (CANDY_ORBIT.distance ?? 7) + PULL_PER_SIZE * sizeLevel;
 }
 
-/** The pivot: over the runner, led down the road. */
-export function orbitPivot(x: number, h: number, s: number, out: { x: number; y: number; z: number }): { x: number; y: number; z: number } {
+/**
+ * How far down the road the pivot leads the runner (m). 4 m on a portrait phone (the camera stands
+ * farther back there and the view is tall). On a landscape screen (a tablet, a desktop) a 4 m lead put
+ * the runner at the very bottom edge with its feet out of the frame, so the lead is 2.2 m there.
+ */
+export function pivotLead(aspect: number): number {
+   const portrait = Math.max(0, Math.min(1, (1.2 - aspect) / 0.7));
+   return 2.2 + 1.8 * portrait;
+}
+
+/** The pivot: over the runner, led down the road by `lead` metres (pivotLead). */
+export function orbitPivot(x: number, h: number, s: number, out: { x: number; y: number; z: number }, lead = 4): { x: number; y: number; z: number } {
    out.x = x * 0.6;
    out.y = h + 1.3;
-   out.z = -s - 4;
+   out.z = -s - lead;
    return out;
 }
 
 export function playCamera(course: Course, aspect: number): IntroKeyframe {
    void course;
-   const p = orbitPivot(0, 0, 0, { x: 0, y: 0, z: 0 });
+   const p = orbitPivot(0, 0, 0, { x: 0, y: 0, z: 0 }, pivotLead(aspect));
    const c = orbitPosition(p.x, p.y, p.z, 0, CANDY_ORBIT.pitch ?? 0, distanceFor(0) * orbitScale(aspect), { x: 0, y: 0, z: 0 });
    return { position: [c.x, c.y, c.z], lookAt: [p.x, p.y + orbitLookUp(aspect), p.z] };
 }

@@ -155,7 +155,7 @@ export default function Hud() {
             <div className={styles.banner}>
                <span className={styles.title}>Ring Jump Challenge</span>
                <span className={styles.level}>
-                  Level {level} — {config?.name ?? "Wide Rings"}
+                  <span className={styles.levelNo}>Level {level} — </span>{config?.name ?? "Wide Rings"}
                </span>
             </div>
             <div className={styles.clock} role="timer" aria-label="Run time">

@@ -213,7 +213,8 @@ function RunScene({ multi }: { multi: boolean }) {
                   out.z = -1;
                }}
                behind={() => 0}
-               distanceScale={aspect < 1 ? 1.9 : 1}
+               // portrait: 1.45 (was 1.9, 32 m up: the hero was a speck on a phone); the pivot follows the lead hero
+               distanceScale={aspect < 1 ? 1.45 : 1}
             />
          )}
          {intro?.session && !multi && <GameIntro session={intro.session} keyframes={shots} playCamera={playCamera} hero={intro.hero} />}

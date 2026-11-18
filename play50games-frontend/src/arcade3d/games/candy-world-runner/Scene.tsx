@@ -30,7 +30,7 @@ import World from "./World";
 import { Road } from "./Road";
 import { King } from "./King";
 import { Runner, createHeroAnim, type HeroAnim } from "./Hero";
-import { CANDY_ORBIT, FOV, FOV_PORTRAIT, distanceFor, introKeyframes, orbitLookUp, orbitPivot, orbitScale, playCamera } from "./camera";
+import { CANDY_ORBIT, FOV, FOV_PORTRAIT, distanceFor, introKeyframes, orbitLookUp, orbitPivot, orbitScale, pivotLead, playCamera } from "./camera";
 import { BURN_MS, STAT, bossVulnerable, createRun, createStepInput, speedNow, step, visualS, type CandyRun } from "./rules";
 import { pickedHero, subscribeHero } from "./heroes";
 import { createBot, botInput, nextBeat } from "./bot";
@@ -182,10 +182,10 @@ export function CandyCamera({ run, orbit }: { run: CandyRun; orbit: OrbitState }
    const pivot = useMemo(
       () => (out: { x: number; y: number; z: number }) => {
          const r = run.runner;
-         orbitPivot(r.x, r.h, visualS(run), out);
+         orbitPivot(r.x, r.h, visualS(run), out, pivotLead(aspect));
          return true;
       },
-      [run],
+      [run, aspect],
    );
    const travel = useMemo(
       () => (out: { x: number; z: number }) => {

@@ -358,3 +358,21 @@
       display: none;
    }
 }
+
+/* phones: the long title fits between the shell's Level chip and its Mute / Pause buttons */
+@media (max-width: 720px) and (min-height: 461px) {
+   .banner {
+      box-sizing: border-box;
+      max-width: calc(100vw - 196px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px));
+      padding: 4px 10px 5px;
+   }
+   .title {
+      font-size: 0.86rem;
+   }
+   .title,
+   .level {
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+   }
+}

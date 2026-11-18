@@ -403,3 +403,11 @@
       bottom: calc(env(safe-area-inset-bottom, 0px) + 184px);
    }
 }
+
+/* tablets (touch, wide): the joystick and the buttons are far out in the corners, so the strip goes back
+   to the bottom edge; 184px up it covered the hero in the middle of a landscape screen */
+@media (pointer: coarse) and (min-width: 900px) {
+   .bottom {
+      bottom: calc(env(safe-area-inset-bottom, 0px) + 16px);
+   }
+}
