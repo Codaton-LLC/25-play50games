@@ -1,0 +1,94 @@
+/* The classic game page's top bar (GameBar.tsx). Tokens come from the page's .p50-night wrapper. */
+.bar {
+   border-bottom: 1px solid var(--p50-line);
+   background: var(--p50-surface);
+}
+
+.inner {
+   display: flex;
+   align-items: center;
+   gap: 12px;
+   max-width: 1000px;
+   height: 60px;
+   margin: 0 auto;
+   padding: 0 18px;
+}
+
+.bar a {
+   text-decoration: none;
+}
+
+.back,
+.back:hover {
+   margin-left: -10px;
+   color: var(--p50-text);
+}
+
+.world {
+   display: inline-flex;
+   align-items: center;
+   gap: 10px;
+   color: var(--p50-text);
+   font: 600 1rem/1 var(--p50-font-display);
+   letter-spacing: -0.01em;
+}
+
+.mark {
+   flex: none;
+   width: 24px;
+   height: 27px;
+}
+
+.chip {
+   padding: 6px 10px;
+   border: 1px solid var(--p50-line);
+   border-radius: 999px;
+   color: var(--p50-text-2);
+   font: 600 0.75rem/1 var(--p50-font-body);
+   letter-spacing: 0.08em;
+   text-transform: uppercase;
+   white-space: nowrap;
+}
+
+.spacer {
+   flex: 1;
+}
+
+.login,
+.login:hover {
+   color: var(--p50-text);
+}
+
+.avatar,
+.avatar:hover {
+   display: inline-grid;
+   place-items: center;
+   flex: none;
+   width: 40px;
+   height: 40px;
+   border: 1px solid var(--p50-line);
+   border-radius: 50%;
+   background: var(--p50-raised);
+   color: var(--p50-text);
+   font: 600 0.8125rem/1 var(--p50-font-mono);
+}
+
+.bar :focus-visible {
+   outline: 2px solid var(--p50-coral);
+   outline-offset: 2px;
+}
+
+@media (max-width: 599px) {
+   .inner {
+      gap: 10px;
+      height: 56px;
+      padding: 0 12px;
+   }
+   .back,
+   .back:hover {
+      margin-left: -6px;
+   }
+   .worldName {
+      display: none;
+   }
+}
