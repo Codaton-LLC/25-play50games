@@ -1,51 +1,216 @@
-/* Logic Gates on phones (desktop and tablets unchanged): the circuit (Input A, the gate, Input B, the
-   arrow, the output lamp) wrapped onto three lines on a phone, so the gate's inputs no longer read as
-   one circuit: it now stays on one line, every part smaller, inside a tighter card. The output
-   answers keep their own size (big touch targets). */
+/* Logic Gates, modern pass 2026-11-18.
+   Was: inline styles, sky-blue gate box, fixed 80 / 100 px parts with 40 px gaps (the phone fix needed
+   !important overrides on nth-child selectors), answer buttons that shrank 5 % when picked, check
+   badges hanging outside the button, a progress bar animating width with an accent-to-green gradient,
+   round timers never cleared, the lamp lighting only on a right answer.
+   Now: theme header and chips, the circuit on one line whose parts scale with the panel (the earlier
+   phone fix, built in), answers that only change paint, the lamp revealing the true output after
+   every answer, feedback in a fixed slot. Inputs at 1 stay green and a lit lamp stays amber: those
+   colours are the circuit's state, not chrome. */
+
+.root {
+   max-width: 600px;
+}
+
+.content {
+   display: flex;
+   flex-direction: column;
+   align-items: center;
+   gap: 16px;
+   width: 100%;
+}
+
+/* ---------- progress ---------- */
+.progress {
+   width: 100%;
+   max-width: 360px;
+   height: 6px;
+   border-radius: 999px;
+   background: rgba(255, 255, 255, 0.1);
+   overflow: hidden;
+}
+
+.progressFill {
+   width: 100%;
+   height: 100%;
+   border-radius: inherit;
+   background: var(--accent);
+   transform-origin: left center;
+   transition: transform 320ms var(--lg-ease);
+}
+
+/* ---------- circuit ---------- */
+.circuit {
+   padding: clamp(14px, 4vw, 28px) clamp(8px, 3vw, 24px);
+}
+
+.row {
+   display: flex;
+   flex-wrap: nowrap;
+   align-items: flex-end;
+   justify-content: center;
+   gap: clamp(6px, 2.5vw, 24px);
+   width: 100%;
+}
+
+.row > * {
+   min-width: 0;
+}
+
+.part {
+   display: flex;
+   flex-direction: column;
+   align-items: center;
+   gap: 8px;
+   min-width: 0;
+}
+
+.partLabel {
+   font-size: clamp(0.72rem, 2.8vw, 0.875rem);
+   font-weight: 600;
+   color: var(--muted);
+   white-space: nowrap;
+}
+
+.bit {
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   width: clamp(48px, 15vw, 80px);
+   aspect-ratio: 1;
+   border-radius: var(--lg-r-cell);
+   background: var(--lg-surface-2);
+   box-shadow: inset 0 0 0 1px var(--lg-line);
+   font-size: clamp(1.4rem, 6vw, 2rem);
+   font-weight: 700;
+   line-height: 1;
+   color: var(--muted);
+}
+
+.bitOn {
+   background: var(--lg-ok-soft);
+   box-shadow: inset 0 0 0 2px var(--ok);
+   color: var(--ok);
+}
+
+.gate {
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   min-width: clamp(56px, 17vw, 96px);
+   height: clamp(48px, 15vw, 80px);
+   padding: 0 clamp(8px, 2.5vw, 20px);
+   border-radius: var(--lg-r-cell);
+   background: var(--lg-accent-soft);
+   box-shadow: inset 0 0 0 2px var(--lg-accent-line);
+   font-size: clamp(1rem, 4.5vw, 1.5rem);
+   font-weight: 800;
+   letter-spacing: 0.02em;
+   color: var(--accent);
+}
+
+.arrow {
+   display: flex;
+   align-items: center;
+   height: clamp(48px, 15vw, 80px);
+   font-size: clamp(1.2rem, 5vw, 2rem);
+   font-weight: 700;
+   color: var(--muted);
+}
+
+.lamp {
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   width: clamp(56px, 18vw, 96px);
+   aspect-ratio: 1;
+   border-radius: 50%;
+   background: var(--lg-surface-2);
+   box-shadow: inset 0 0 0 2px var(--lg-line);
+   color: var(--muted);
+   transition:
+      background-color 240ms var(--lg-ease),
+      box-shadow 240ms var(--lg-ease),
+      color 240ms var(--lg-ease);
+}
+
+/* lit lamp: amber is the circuit's state (content), not the accent */
+.lampOn {
+   background: radial-gradient(circle, rgba(251, 191, 36, 0.55) 0%, rgba(251, 191, 36, 0.18) 70%);
+   box-shadow:
+      inset 0 0 0 2px #fbbf24,
+      0 0 24px rgba(251, 191, 36, 0.45);
+   color: #fbbf24;
+}
+
+.bulb {
+   width: 55%;
+   height: 55%;
+}
+
+.lamp:not(.lampOn) .bulb {
+   opacity: 0.45;
+}
+
+.lampQ {
+   font-size: clamp(1.2rem, 5vw, 1.5rem);
+   font-weight: 700;
+}
+
+/* ---------- answers ---------- */
+.options {
+   display: grid;
+   grid-template-columns: repeat(2, minmax(0, 1fr));
+   gap: 16px;
+   width: 100%;
+   max-width: 360px;
+}
+
+.root .answer {
+   position: relative;
+   min-height: clamp(80px, 22vw, 104px);
+   font-size: clamp(2rem, 9vw, 3rem);
+   font-weight: 700;
+   line-height: 1;
+   transition:
+      background-color 160ms var(--lg-ease),
+      box-shadow 160ms var(--lg-ease),
+      opacity 200ms var(--lg-ease),
+      transform 100ms var(--lg-ease);
+}
+
+.mark {
+   position: absolute;
+   top: 8px;
+   right: 8px;
+   width: 22px;
+   height: 22px;
+}
+
+.root .ansCorrect,
+.root .ansCorrect:hover {
+   background: var(--lg-ok-soft);
+   box-shadow: inset 0 0 0 2px var(--ok);
+   color: var(--ok);
+}
+
+.root .ansWrong,
+.root .ansWrong:hover {
+   background: var(--lg-warn-soft);
+   box-shadow: inset 0 0 0 2px var(--warn);
+   color: var(--warn);
+}
+
+.root .ansDim {
+   opacity: 0.45;
+}
+
 @media (max-width: 599px) {
    .root {
-      padding: 10px 4px !important;
-      gap: 14px !important;
-   }
-   .circuit {
-      padding: 16px 8px !important;
-      margin-bottom: 14px !important;
-      width: 100%;
-   }
-   .row {
-      flex-wrap: nowrap !important;
-      gap: 8px !important;
-   }
-   /* the parts: label + box columns */
-   .row > div {
-      gap: 6px !important;
-      min-width: 0;
-   }
-   .row > div > div:first-child {
-      font-size: 12px !important;
-      white-space: nowrap;
-   }
-   /* input boxes (80 px) and the lamp (100 px) */
-   .row > div > div:last-child {
-      width: 52px !important;
-      height: 52px !important;
-      font-size: 24px !important;
-   }
-   /* the gate box (padding 16 px 32 px) */
-   .row > div:nth-child(2) > div:last-child {
-      width: auto !important;
-      min-width: 56px;
-      padding: 8px 10px !important;
-      font-size: 18px !important;
-   }
-   .arrow {
-      font-size: 20px !important;
-   }
-   .row svg {
-      width: 30px !important;
-      height: 30px !important;
+      padding: 10px 4px;
+      gap: 14px;
    }
    .options {
-      gap: 12px !important;
+      gap: 12px;
    }
 }
