@@ -17,6 +17,7 @@ import {
 } from "@/lib/api/share";
 
 import touch from "./skillTouch.module.css";
+import ui from "./skillUi.module.css";
 import { usePlayAreaInView } from "./usePlayAreaInView";
 import { useRipples } from "./useRipples";
 
@@ -1104,73 +1105,19 @@ export default function TargetAim({
    const progress = ((currentLevel + 1) / maxLevels) * 100;
    const minTargetsHit = getMinTargetsHit();
 
+   const replayLocked = maxReplays > 0 && replaysUsed >= maxReplays;
+
    return (
       <>
-         <div
-         ref={rootRef}
-            style={{
-               display: "flex",
-               flexDirection: "column",
-               alignItems: "center",
-               justifyContent: "center",
-               minHeight: "100%",
-               width: "100%",
-               padding: isMobile ? "16px" : isTablet ? "20px" : "24px",
-               gap: isMobile ? "16px" : "20px",
-            }}
-         >
+         <div ref={rootRef} className={ui.root}>
             {/* Header */}
-            <div
-               style={{
-                  width: "100%",
-                  maxWidth: "800px",
-                  background: "var(--card)",
-                  borderRadius: isMobile ? "16px" : "20px",
-                  padding: isMobile ? "16px" : "20px",
-                  boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: isMobile ? "12px" : "16px",
-               }}
-            >
-               <div
-                  style={{
-                     display: "flex",
-                     alignItems: "center",
-                     justifyContent: "space-between",
-                     flexWrap: "wrap",
-                     gap: isMobile ? "8px" : "12px",
-                  }}
-               >
-                  <span
-                     style={{
-                        fontSize: isMobile ? "0.875rem" : "1rem",
-                        fontWeight: 600,
-                        color: "var(--text)",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "6px",
-                     }}
-                  >
+            <div className={ui.hud}>
+               <div className={ui.hudRow}>
+                  <span className={ui.hudStat}>
                      Level {currentLevel + 1}/{maxLevels}
                   </span>
-                  <span
-                     style={{
-                        fontSize: isMobile ? "0.875rem" : "1rem",
-                        fontWeight: 600,
-                        color: "var(--text)",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "6px",
-                     }}
-                  >
-                     <TrophyIcon
-                        style={{
-                           width: isMobile ? 14 : 16,
-                           height: isMobile ? 14 : 16,
-                           color: "var(--ok)",
-                        }}
-                     />
+                  <span className={ui.hudStat}>
+                     <TrophyIcon className={ui.hudIconOk} />
                      Score:{" "}
                      {requirementsMet && currentLevel + 1 >= maxLevels
                         ? 100
@@ -1178,122 +1125,41 @@ export default function TargetAim({
                      / 100
                   </span>
                   <span
-                     style={{
-                        fontSize: isMobile ? "0.875rem" : "1rem",
-                        fontWeight: 600,
-                        color: "var(--text)",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "6px",
-                     }}
+                     className={`${ui.hudStat} ${gameState === "playing" && timeLeft <= 5 ? ui.hudLow : ""}`}
                   >
-                     <ClockIcon
-                        style={{
-                           width: isMobile ? 14 : 16,
-                           height: isMobile ? 14 : 16,
-                           color: "var(--accent)",
-                        }}
-                     />
+                     <ClockIcon className={ui.hudIconAccent} />
                      {timeLeft}s
                   </span>
                </div>
                {/* Progress Bar */}
-               <div
-                  style={{
-                     width: "100%",
-                     height: isMobile ? "6px" : "8px",
-                     background: "rgba(255, 255, 255, 0.1)",
-                     borderRadius: "999px",
-                     overflow: "hidden",
-                  }}
-               >
+               <div className={ui.progressTrack}>
                   <div
-                     style={{
-                        width: `${progress}%`,
-                        height: "100%",
-                        background:
-                           "linear-gradient(90deg, var(--accent) 0%, var(--ok) 100%)",
-                        borderRadius: "999px",
-                        transition: "width 0.3s ease",
-                        boxShadow: "0 0 10px rgba(125, 211, 252, 0.5)",
-                     }}
+                     className={ui.progressFill}
+                     style={{ transform: `scaleX(${progress / 100})` }}
                   />
                </div>
             </div>
 
             {/* Hit and Missed Stats */}
             {(gameState === "playing" || gameState === "paused") && (
-               <div
-                  style={{
-                     display: "flex",
-                     alignItems: "center",
-                     justifyContent: "center",
-                     gap: "16px",
-                     flexWrap: "wrap",
-                     width: "100%",
-                     maxWidth: "800px",
-                  }}
-               >
-                  <div
-                     style={{
-                        background:
-                           "linear-gradient(135deg, rgba(134, 239, 172, 0.2), rgba(34, 197, 94, 0.1))",
-                        border: "1px solid rgba(134, 239, 172, 0.4)",
-
-                        padding: "10px 16px",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "8px",
-                     }}
-                  >
-                     <CheckCircleIcon
-                        style={{
-                           width: 18,
-                           height: 18,
-                           color: "var(--ok)",
-                        }}
-                     />
-                     <span
-                        style={{
-                           fontSize: "1rem",
-                           fontWeight: 600,
-                           color: "var(--text)",
-                        }}
-                     >
+               <div className={ui.statRow}>
+                  <div className={ui.statOk}>
+                     <CheckCircleIcon className={ui.statIconOk} />
+                     <span>
                         Hit:{" "}
-                        <span key={targetsHit} className={touch.pop} style={{ display: "inline-block" }}>
+                        <span key={targetsHit} className={ui.bump}>
                            {targetsHit}
                         </span>{" "}
                         / {minTargetsHit}
                      </span>
                   </div>
-                  <div
-                     style={{
-                        background:
-                           "linear-gradient(135deg, rgba(252, 165, 165, 0.2), rgba(239, 68, 68, 0.1))",
-                        border: "1px solid rgba(252, 165, 165, 0.4)",
-
-                        padding: "10px 16px",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "8px",
-                     }}
-                  >
-                     <XCircleIcon
-                        style={{
-                           width: 18,
-                           height: 18,
-                           color: "var(--warn)",
-                        }}
-                     />
-                     <span
-                        style={{
-                           fontSize: "1rem",
-                           fontWeight: 600,
-                           color: "var(--text)",
-                        }}
-                     >
-                        Missed: {targetsMissed}
+                  <div className={ui.statWarn}>
+                     <XCircleIcon className={ui.statIconWarn} />
+                     <span>
+                        Missed:{" "}
+                        <span key={targetsMissed} className={ui.bump}>
+                           {targetsMissed}
+                        </span>
                      </span>
                   </div>
                </div>
@@ -1303,21 +1169,15 @@ export default function TargetAim({
             {gameState === "playing" || gameState === "paused" ? (
                <div
                   ref={arenaRef}
-                  className={touch.tapArea}
+                  className={`${ui.arena} ${touch.tapArea}`}
                   data-play-area=""
                   onPointerDown={(e) => addRipple(e)}
                   style={{
-                     position: "relative",
-                     width: "100%",
-                     maxWidth: "800px",
                      height: isMobile ? "300px" : "380px",
-                     borderRadius: "var(--radius)",
-                     border: "1px solid var(--border)",
-                     background:
-                        "radial-gradient(320px 220px at 30% 30%, rgba(59, 130, 246, 0.1), transparent 55%), linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02))",
-                     boxShadow: "0 10px 18px rgba(0, 0, 0, 0.22)",
-                     overflow: "hidden",
-                     userSelect: "none",
+                     /* the frame is an inset ring, not a border: the targets bounce inside the
+                        arena's full bounding box, so a border would cover their edges */
+                     border: "none",
+                     boxShadow: "inset 0 0 0 1px rgba(255, 255, 255, 0.12)",
                      cursor: "crosshair", // Crosshair cursor (plus sign)
                   }}
                >
@@ -1326,7 +1186,6 @@ export default function TargetAim({
                         position: "absolute",
                         width: "100%",
                         height: "100%",
-                        transition: "none",
                      }}
                   >
                      {targets.map((target) => (
@@ -1340,22 +1199,22 @@ export default function TargetAim({
                            }}
                            style={{
                               position: "absolute",
-                              left: `${target.x}px`,
-                              top: `${target.y}px`,
+                              left: 0,
+                              top: 0,
                               width: `${target.size}px`,
                               height: `${target.size}px`,
                               borderRadius: "50%",
-                              background:
-                                 "radial-gradient(circle, rgba(239, 68, 68, 0.9), rgba(220, 38, 38, 0.9))",
+                              background: target.clicked
+                                 ? "var(--ok)"
+                                 : "radial-gradient(circle, rgba(239, 68, 68, 0.9), rgba(220, 38, 38, 0.9))",
                               border: "3px solid rgba(255, 255, 255, 0.8)",
-                              boxShadow: "0 4px 12px rgba(239, 68, 68, 0.6)",
+                              boxShadow: "0 3px 8px rgba(0, 0, 0, 0.35)",
                               cursor: "pointer",
                               transition: target.clicked
-                                 ? "all 0.2s ease"
+                                 ? "transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease"
                                  : "none",
-                              transform: target.clicked
-                                 ? "scale(0)"
-                                 : "scale(1)",
+                              /* moved by transform (no layout per frame); the pointer hit follows it */
+                              transform: `translate3d(${target.x}px, ${target.y}px, 0) scale(${target.clicked ? 1.35 : 1})`,
                               opacity: target.clicked ? 0 : 1,
                               pointerEvents: target.clicked ? "none" : "auto",
                            }}
@@ -1367,9 +1226,9 @@ export default function TargetAim({
                   <div
                      style={{
                         position: "absolute",
-                        left: `calc(50% + ${targetIconX}px)`,
-                        top: `calc(50% + ${targetIconY}px)`,
-                        transform: "translate(-50%, -50%)",
+                        left: "50%",
+                        top: "50%",
+                        transform: `translate(calc(${targetIconX}px - 50%), calc(${targetIconY}px - 50%))`,
                         width: "24px",
                         height: "24px",
                         pointerEvents: "none",
@@ -1380,14 +1239,10 @@ export default function TargetAim({
                      <div
                         style={{
                            position: "absolute",
-                           left: "50%",
-                           top: "50%",
-                           transform: "translate(-50%, -50%)",
-                           width: "24px",
-                           height: "24px",
+                           inset: 0,
                            borderRadius: "50%",
                            border: "2px solid rgba(255, 255, 255, 0.9)",
-                           boxShadow: "rgba(255, 255, 255, 0.8) 0px 0px 12px",
+                           boxShadow: "0 0 0 1px rgba(0, 0, 0, 0.35)",
                         }}
                      />
                      {/* Inner crosshair */}
@@ -1400,7 +1255,6 @@ export default function TargetAim({
                            width: "2px",
                            height: "12px",
                            background: "rgba(255, 255, 255, 0.9)",
-                           boxShadow: "rgba(255, 255, 255, 0.6) 0px 0px 4px",
                         }}
                      />
                      <div
@@ -1412,7 +1266,6 @@ export default function TargetAim({
                            width: "2px",
                            height: "12px",
                            background: "rgba(255, 255, 255, 0.9)",
-                           boxShadow: "rgba(255, 255, 255, 0.6) 0px 0px 4px",
                         }}
                      />
                      {/* Center dot */}
@@ -1426,7 +1279,6 @@ export default function TargetAim({
                            height: "4px",
                            borderRadius: "50%",
                            background: "rgba(255, 255, 255, 0.9)",
-                           boxShadow: "rgba(255, 255, 255, 0.8) 0px 0px 8px",
                         }}
                      />
                   </div>
@@ -1435,65 +1287,13 @@ export default function TargetAim({
 
             {/* Ready for Next Round Message */}
             {gameState === "ready" && currentLevel + 1 < maxLevels && (
-               <div
-                  style={{
-                     padding: isMobile ? "20px 24px" : "24px 32px",
-                     background: "var(--card)",
-                     borderRadius: "var(--radius)",
-                     color: "var(--text)",
-                     fontSize: isMobile ? "1rem" : "1.1rem",
-                     fontWeight: 700,
-                     textAlign: "center" as const,
-                     boxShadow: "0 10px 24px rgba(0, 0, 0, 0.25)",
-                     width: "100%",
-                     maxWidth: "800px",
-                  }}
-               >
-                  <div
-                     style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: "8px",
-                        padding: "8px 14px",
-                        borderRadius: "999px",
-                        fontWeight: 800,
-                        fontSize: isMobile ? "0.95rem" : "1.05rem",
-                        background:
-                           "linear-gradient(135deg, rgba(134, 239, 172, 0.25), rgba(134, 239, 172, 0.1))",
-                        border: "2px solid rgba(134, 239, 172, 0.6)",
-                        color: "var(--text)",
-                        marginBottom: "16px",
-                     }}
-                  >
+               <div className={ui.card}>
+                  <div className={ui.cardTitleOk} style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}>
                      <CheckCircleIcon style={{ width: 20, height: 20 }} />
                      Level {currentLevel + 1} Complete
                   </div>
-                  <div
-                     style={{
-                        fontSize: isMobile ? "1.05rem" : "1.1rem",
-                        fontWeight: 600,
-                        marginBottom: "20px",
-                        marginTop: "16px",
-                     }}
-                  >
-                     Are you ready for next round?
-                  </div>
-                  <button
-                  className={touch.tapButton}
-                     onClick={handleNextRound}
-                     style={{
-                        padding: isMobile ? "12px 24px" : "14px 28px",
-                        background:
-                           "linear-gradient(135deg, rgba(134, 239, 172, 0.25), rgba(134, 239, 172, 0.12))",
-                        border: "2px solid rgba(134, 239, 172, 0.6)",
-
-                        color: "var(--text)",
-                        fontSize: isMobile ? "1rem" : "1.05rem",
-                        fontWeight: 700,
-                        cursor: "pointer",
-                        transition: "all 0.3s ease",
-                     }}
-                  >
+                  <div className={ui.cardBody}>Are you ready for next round?</div>
+                  <button className={ui.buttonPrimary} onClick={handleNextRound}>
                      Next Round
                   </button>
                </div>
@@ -1503,148 +1303,39 @@ export default function TargetAim({
             {gameState === "ready" &&
                currentLevel + 1 >= maxLevels &&
                requirementsMet && (
-                  <div
-                     style={{
-                        padding: isMobile ? "20px 24px" : "24px 32px",
-                        background: "var(--card)",
-                        borderRadius: "var(--radius)",
-                        color: "var(--text)",
-                        fontSize: isMobile ? "1rem" : "1.1rem",
-                        fontWeight: 700,
-                        textAlign: "center" as const,
-                        boxShadow: "0 10px 24px rgba(0, 0, 0, 0.25)",
-                        width: "100%",
-                        maxWidth: "800px",
-                     }}
-                  >
-                     <div
-                        style={{
-                           display: "inline-flex",
-                           alignItems: "center",
-                           gap: "8px",
-                           padding: "8px 14px",
-                           borderRadius: "999px",
-                           fontWeight: 800,
-                           fontSize: isMobile ? "0.95rem" : "1.05rem",
-                           background:
-                              "linear-gradient(135deg, rgba(134, 239, 172, 0.25), rgba(134, 239, 172, 0.1))",
-                           border: "2px solid rgba(134, 239, 172, 0.6)",
-                           color: "var(--text)",
-                           marginBottom: "16px",
-                        }}
-                     >
+                  <div className={ui.card}>
+                     <div className={ui.cardTitleOk} style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}>
                         <TrophyIcon style={{ width: 20, height: 20 }} />
                         Game Complete!
                      </div>
-                     <div
-                        style={{
-                           fontSize: isMobile ? "1.05rem" : "1.1rem",
-                           fontWeight: 600,
-                           marginTop: "16px",
-                           marginBottom: "20px",
-                        }}
-                     >
-                        All {maxLevels} levels completed!
-                     </div>
-                     <div
-                        style={{
-                           fontSize: isMobile ? "1rem" : "1.05rem",
-                           fontWeight: 500,
-                           color: "var(--muted)",
-                        }}
-                     >
-                        Final Score: 100
+                     <div className={ui.cardBody}>All {maxLevels} levels completed!</div>
+                     <div className={ui.cardBody}>
+                        Final Score: <strong>100</strong>
                      </div>
                   </div>
                )}
 
             {/* Level Failed Message */}
             {gameState === "failed" && (
-               <div
-                  style={{
-                     padding: isMobile ? "20px 24px" : "24px 32px",
-                     background: "var(--card)",
-                     borderRadius: "var(--radius)",
-                     color: "var(--text)",
-                     fontSize: isMobile ? "1rem" : "1.1rem",
-                     fontWeight: 700,
-                     textAlign: "center" as const,
-                     boxShadow: "0 10px 24px rgba(0, 0, 0, 0.25)",
-                     width: "100%",
-                     maxWidth: "800px",
-                  }}
-               >
-                  <div
-                     style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: "8px",
-                        padding: "8px 14px",
-                        borderRadius: "999px",
-                        fontWeight: 800,
-                        fontSize: isMobile ? "0.95rem" : "1.05rem",
-                        background:
-                           "linear-gradient(135deg, rgba(252, 165, 165, 0.25), rgba(252, 165, 165, 0.1))",
-                        border: "2px solid rgba(252, 165, 165, 0.6)",
-                        color: "var(--text)",
-                        marginBottom: "16px",
-                     }}
-                  >
+               <div className={ui.card}>
+                  <div className={ui.cardTitleWarn} style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}>
                      <XCircleIcon style={{ width: 20, height: 20 }} />
                      Level {currentLevel + 1} Failed
                   </div>
-                  <div
-                     style={{
-                        fontSize: isMobile ? "1.05rem" : "1.1rem",
-                        fontWeight: 600,
-                        marginBottom: "20px",
-                        marginTop: "16px",
-                     }}
-                  >
-                     Need: {minTargetsHit} targets hit
+                  <div className={ui.cardBody}>
+                     Need: <strong>{minTargetsHit}</strong> targets hit
                   </div>
-                  <div
-                     style={{
-                        fontSize: isMobile ? "0.95rem" : "1rem",
-                        fontWeight: 500,
-                        color: "var(--muted)",
-                     }}
-                  >
-                     You hit: {targetsHit} targets
+                  <div className={ui.cardBody}>
+                     You hit: <strong>{targetsHit}</strong> targets
                   </div>
                </div>
             )}
 
             {/* Action Buttons: Replay, Share */}
-            <div
-               style={{
-                  display: "flex",
-                  gap: "12px",
-                  justifyContent: "center",
-                  flexWrap: "wrap",
-                  padding: isMobile ? "12px" : "16px",
-                  background: "var(--card)",
-
-                  width: "100%",
-                  maxWidth: "800px",
-               }}
-            >
+            <div className={ui.actions}>
                {/* Share Success Message */}
                {shareSuccess && !unlimitedActivated && (
-                  <div
-                     style={{
-                        width: "100%",
-                        padding: "12px",
-                        background: "rgba(134, 239, 172, 0.2)",
-                        border: "2px solid rgba(134, 239, 172, 0.6)",
-                        borderRadius: "8px",
-                        fontSize: isMobile ? "0.9rem" : "1rem",
-                        fontWeight: 600,
-                        color: "var(--ok)",
-                        textAlign: "center",
-                        marginBottom: "8px",
-                     }}
-                  >
+                  <div className={ui.notice}>
                      Link copied! Unlimited replay will unlock when someone
                      opens your link!
                   </div>
@@ -1652,82 +1343,21 @@ export default function TargetAim({
 
                {/* Unlimited Activated Message */}
                {unlimitedActivated && (
-                  <div
-                     style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: isMobile ? "6px" : "8px",
-                        padding: isMobile ? "10px 14px" : "8px 16px",
-                        background:
-                           "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
-                        border: "2px solid rgba(59, 130, 246, 0.6)",
-                        borderRadius: isMobile ? "10px" : "8px",
-                        color: "var(--text)",
-                        fontSize: isMobile ? "0.85rem" : "0.9rem",
-                        fontWeight: 500,
-                        width: "100%",
-                        justifyContent: "center",
-                        textAlign: "center",
-                        flexWrap: "wrap",
-                        marginBottom: "8px",
-                     }}
-                  >
-                     <CheckCircleIcon
-                        style={{
-                           width: isMobile ? 16 : 18,
-                           height: isMobile ? 16 : 18,
-                           color: "rgba(59, 130, 246, 0.9)",
-                           flexShrink: 0,
-                        }}
-                     />
+                  <div className={ui.notice}>
+                     <CheckCircleIcon className={ui.noticeIcon} />
                      <span>
-                        🎉 Someone opened your link! Unlimited replay is now
+                        Someone opened your link! Unlimited replay is now
                         active for 15 minutes!
                      </span>
                   </div>
                )}
 
                <button
-                  className={touch.tapButton}
+                  className={ui.button}
                   onClick={handleReplay}
-                  disabled={maxReplays > 0 && replaysUsed >= maxReplays}
-                  style={{
-                     display: "flex",
-                     alignItems: "center",
-                     gap: isMobile ? "6px" : "8px",
-                     padding: isMobile ? "10px 16px" : "10px 20px",
-                     width: isMobile ? "100%" : "auto",
-                     background:
-                        maxReplays > 0 && replaysUsed >= maxReplays
-                           ? "rgba(100, 100, 100, 0.2)"
-                           : "linear-gradient(135deg, rgba(125, 211, 252, 0.2), rgba(125, 211, 252, 0.1))",
-                     border:
-                        maxReplays > 0 && replaysUsed >= maxReplays
-                           ? "1px solid rgba(100, 100, 100, 0.4)"
-                           : "1px solid rgba(125, 211, 252, 0.6)",
-
-                     color: "var(--text)",
-                     fontSize: isMobile ? "0.85rem" : "0.95rem",
-                     fontWeight: 600,
-                     cursor:
-                        maxReplays > 0 && replaysUsed >= maxReplays
-                           ? "not-allowed"
-                           : "pointer",
-                     opacity:
-                        maxReplays > 0 && replaysUsed >= maxReplays ? 0.5 : 1,
-                     transition: "all 0.3s ease",
-                  }}
+                  disabled={replayLocked}
                >
-                  <ArrowPathRoundedSquareIcon
-                     style={{
-                        width: isMobile ? 18 : 20,
-                        height: isMobile ? 18 : 20,
-                        color:
-                           maxReplays > 0 && replaysUsed >= maxReplays
-                              ? "var(--muted)"
-                              : "var(--accent)",
-                     }}
-                  />
+                  <ArrowPathRoundedSquareIcon className={ui.buttonIcon} />
                   <span>
                      {"Replay "}
                      {maxReplays === 0
@@ -1736,33 +1366,8 @@ export default function TargetAim({
                   </span>
                </button>
 
-               <button
-                  className={touch.tapButton}
-                  onClick={handleShare}
-                  style={{
-                     display: "flex",
-                     alignItems: "center",
-                     gap: isMobile ? "6px" : "8px",
-                     padding: isMobile ? "10px 16px" : "10px 20px",
-                     width: isMobile ? "100%" : "auto",
-                     background:
-                        "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
-                     border: "2px solid rgba(59, 130, 246, 0.6)",
-
-                     color: "var(--text)",
-                     fontSize: isMobile ? "0.85rem" : "0.95rem",
-                     fontWeight: 600,
-                     cursor: "pointer",
-                     transition: "all 0.3s ease",
-                  }}
-               >
-                  <ShareIcon
-                     style={{
-                        width: isMobile ? 18 : 20,
-                        height: isMobile ? 18 : 20,
-                        color: "var(--accent)",
-                     }}
-                  />
+               <button className={ui.button} onClick={handleShare}>
+                  <ShareIcon className={ui.buttonIcon} />
                   <span>Share for unlimited</span>
                </button>
             </div>
