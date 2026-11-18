@@ -18,6 +18,7 @@ import {
 } from "@/lib/api/share";
 
 import touch from "./skillTouch.module.css";
+import ui from "./skillUi.module.css";
 import { usePlayAreaInView } from "./usePlayAreaInView";
 
 interface SpeedDrawingProps {
@@ -703,9 +704,19 @@ export default function SpeedDrawing({
       const width = rect.width;
       const height = rect.height;
 
-      // Set canvas size
-      canvas.width = width;
-      canvas.height = height;
+      // Set canvas size: the backing store at the device pixel ratio (sharp lines on phones), the
+      // drawing in CSS pixels, the same coordinates the pointer handlers and the scoring use
+      const dpr = Math.max(1, window.devicePixelRatio || 1);
+      canvas.width = Math.round(width * dpr);
+      canvas.height = Math.round(height * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      // The stage's colours (a canvas cannot read var(); "var(--text)" / "var(--accent)" were ignored,
+      // so the labels and the player's line took whatever colour was set last)
+      const css = getComputedStyle(canvas);
+      const cssVar = (name: string, fallback: string) => css.getPropertyValue(name).trim() || fallback;
+      const textColor = cssVar("--text", "#f1f3f8");
+      const accentColor = cssVar("--accent", "#e75f40");
 
       // Clear canvas
       ctx.clearRect(0, 0, width, height);
@@ -718,7 +729,7 @@ export default function SpeedDrawing({
          height
       );
 
-      ctx.strokeStyle = "rgba(59, 130, 246, 0.3)";
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.28)";
       ctx.lineWidth = 4;
       ctx.setLineDash([8, 8]);
       ctx.beginPath();
@@ -792,8 +803,8 @@ export default function SpeedDrawing({
       }
 
       // Draw labels
-      ctx.fillStyle = "var(--text)";
-      ctx.font = "bold 14px sans-serif";
+      ctx.fillStyle = textColor;
+      ctx.font = "bold 14px system-ui, sans-serif";
       ctx.textAlign = "center";
       ctx.textBaseline = "bottom";
       ctx.fillText("START", points.start.x, points.start.y - 18);
@@ -809,7 +820,7 @@ export default function SpeedDrawing({
 
       // Draw player path
       if (playerPath.length > 1) {
-         ctx.strokeStyle = "var(--accent)";
+         ctx.strokeStyle = accentColor;
          ctx.lineWidth = 6;
          ctx.lineCap = "round";
          ctx.lineJoin = "round";
@@ -1859,280 +1870,101 @@ export default function SpeedDrawing({
          ? levelConfig.minAccuracy
          : Number(levelConfig.minAccuracy) || 0;
 
+   const replayLocked = maxReplays > 0 && replaysUsed >= maxReplays;
+   // phones: two compact rows of chips, not three
+   const chipStyle = isMobile ? { minHeight: "34px", padding: "6px 10px" } : undefined;
+   const valueStyle = {
+      display: "inline-block",
+      minWidth: "4ch",
+      textAlign: "right" as const,
+      fontVariantNumeric: "tabular-nums" as const,
+   };
+
    return (
       <>
-         <div
-         ref={rootRef}
-            style={{
-               display: "flex",
-               flexDirection: "column",
-               alignItems: "center",
-               gap: isMobile ? "16px" : "20px",
-               width: "100%",
-               maxWidth: "800px",
-               margin: "0 auto",
-               padding: isMobile ? "12px" : "16px",
-            }}
-         >
+         <div ref={rootRef} className={ui.root}>
             {/* Header Section */}
-            <div
-               style={{
-                  width: "100%",
-                  maxWidth: "800px",
-                  background: "var(--card)",
-                  borderRadius: isMobile ? "16px" : "20px",
-                  padding: isMobile ? "16px" : "20px",
-                  boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: isMobile ? "12px" : "16px",
-               }}
-            >
-               <div
-                  style={{
-                     display: "flex",
-                     alignItems: "center",
-                     justifyContent: "space-between",
-                     flexWrap: "wrap",
-                     gap: isMobile ? "8px" : "12px",
-                  }}
-               >
-                  <span
-                     style={{
-                        fontSize: isMobile ? "0.875rem" : "1rem",
-                        fontWeight: 600,
-                        color: "var(--text)",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "6px",
-                     }}
-                  >
-                     <ArrowPathIcon
-                        style={{
-                           width: isMobile ? 14 : 16,
-                           height: isMobile ? 14 : 16,
-                        }}
-                     />
+            <div className={ui.hud}>
+               <div className={ui.hudRow}>
+                  <span className={ui.hudStat}>
+                     <ArrowPathIcon className={ui.hudIcon} />
                      Level {currentLevel + 1}/{maxLevels}
                   </span>
-                  <span
-                     style={{
-                        fontSize: isMobile ? "0.875rem" : "1rem",
-                        fontWeight: 600,
-                        color: "var(--text)",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "6px",
-                     }}
-                  >
-                     <TrophyIcon
-                        style={{
-                           width: isMobile ? 14 : 16,
-                           height: isMobile ? 14 : 16,
-                           color: "var(--ok)",
-                        }}
-                     />
+                  <span className={ui.hudStat}>
+                     <TrophyIcon className={ui.hudIconOk} />
                      Score: {currentScore} / 100
                   </span>
                   <span
-                     style={{
-                        fontSize: isMobile ? "0.875rem" : "1rem",
-                        fontWeight: 600,
-                        color: "var(--text)",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "6px",
-                     }}
+                     className={`${ui.hudStat} ${gameState === "playing" && timeLeft <= 5 ? ui.hudLow : ""}`}
                   >
-                     <ClockIcon
-                        style={{
-                           width: isMobile ? 14 : 16,
-                           height: isMobile ? 14 : 16,
-                           color: "var(--accent)",
-                        }}
-                     />
+                     <ClockIcon className={ui.hudIconAccent} />
                      {timeLeft}s
                   </span>
                </div>
                {/* Progress Bar */}
-               <div
-                  style={{
-                     width: "100%",
-                     height: isMobile ? "6px" : "8px",
-                     background: "rgba(255, 255, 255, 0.1)",
-                     borderRadius: "999px",
-                     overflow: "hidden",
-                  }}
-               >
+               <div className={ui.progressTrack}>
                   <div
-                     style={{
-                        width: `${progressPercentage}%`,
-                        height: "100%",
-                        background:
-                           "linear-gradient(90deg, var(--accent) 0%, var(--ok) 100%)",
-                        borderRadius: "999px",
-                        transition: "width 0.3s ease",
-                        boxShadow: "0 0 10px rgba(125, 211, 252, 0.5)",
-                     }}
+                     className={ui.progressFill}
+                     style={{ transform: `scaleX(${progressPercentage / 100})` }}
                   />
                </div>
             </div>
 
             {/* Stats Display */}
             {gameState === "playing" && (
-               <div
-                  style={{
-                     display: "flex",
-                     gap: isMobile ? "8px" : "12px",
-                     flexWrap: "wrap",
-                     justifyContent: "center",
-                     width: "100%",
-                     maxWidth: "800px",
-                  }}
-               >
-                  <div
-                     style={{
-                        background:
-                           "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
-                        border: "1px solid rgba(59, 130, 246, 0.4)",
-
-                        padding: isMobile ? "6px 10px" : "10px 16px", // phones: two compact rows, not three
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "8px",
-                     }}
-                  >
-                     <PencilIcon
-                        style={{
-                           width: isMobile ? 18 : 20,
-                           height: isMobile ? 18 : 20,
-                           color: "var(--accent)",
-                        }}
-                     />
-                     <span
-                        style={{
-                           fontSize: isMobile ? "0.85rem" : "1rem",
-                           fontWeight: 600,
-                           color: "var(--text)",
-                        }}
-                     >
-                        Draw: {targetShape}
-                     </span>
+               <div className={ui.statRow}>
+                  <div className={ui.statAccent} style={chipStyle}>
+                     <PencilIcon className={ui.statIconAccent} />
+                     <span>Draw: {targetShape}</span>
                   </div>
                   {/* Always laid out (dimmed until a stroke starts): showing them mid-stroke pushed the
                       canvas down under the finger on phones, where these chips wrap onto new rows */}
-                  {(
-                     <>
-                        <div
-                           style={{
-                              opacity: playerPath.length >= 3 ? 1 : 0.5,
-                              transition: "opacity 0.2s ease",
-                              background:
-                                 currentAccuracy >= minAccuracy
-                                    ? "linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(34, 197, 94, 0.1))"
-                                    : "linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(239, 68, 68, 0.1))",
-                              border: `1px solid ${
-                                 currentAccuracy >= minAccuracy
-                                    ? "rgba(34, 197, 94, 0.4)"
-                                    : "rgba(239, 68, 68, 0.4)"
-                              }`,
-
-                              padding: isMobile ? "6px 10px" : "10px 16px", // phones: two compact rows, not three
-                              display: "flex",
-                              alignItems: "center",
-                              gap: "8px",
-                           }}
-                        >
-                           {currentAccuracy >= minAccuracy ? (
-                              <CheckCircleIcon
-                                 style={{
-                                    width: isMobile ? 18 : 20,
-                                    height: isMobile ? 18 : 20,
-                                    color: "var(--ok)",
-                                 }}
-                              />
-                           ) : (
-                              <XCircleIcon
-                                 style={{
-                                    width: isMobile ? 18 : 20,
-                                    height: isMobile ? 18 : 20,
-                                    color: "var(--warn)",
-                                 }}
-                              />
+                  <div
+                     className={currentAccuracy >= minAccuracy ? ui.statOk : ui.statWarn}
+                     style={{
+                        ...chipStyle,
+                        opacity: playerPath.length >= 3 ? 1 : 0.5,
+                        transition: "opacity 0.2s ease",
+                     }}
+                  >
+                     {currentAccuracy >= minAccuracy ? (
+                        <CheckCircleIcon className={ui.statIconOk} />
+                     ) : (
+                        <XCircleIcon className={ui.statIconWarn} />
+                     )}
+                     <span>
+                        {/* fixed-width value: the chip keeps its width as the number grows, so the
+                            chips never re-wrap (and move the canvas) in the middle of a stroke */}
+                        Accuracy:{" "}
+                        <span style={valueStyle}>{Math.round(currentAccuracy)}%</span>{" "}
+                        / {minAccuracy}%
+                     </span>
+                  </div>
+                  <div
+                     className={drawingCompletionProgress >= 70 ? ui.statOk : ui.statWarn}
+                     style={{
+                        ...chipStyle,
+                        opacity: playerPath.length >= 3 ? 1 : 0.5,
+                        transition: "opacity 0.2s ease",
+                     }}
+                  >
+                     {drawingCompletionProgress >= 70 ? (
+                        <CheckCircleIcon className={ui.statIconOk} />
+                     ) : (
+                        <XCircleIcon className={ui.statIconWarn} />
+                     )}
+                     <span>
+                        Completion:{" "}
+                        <span style={valueStyle}>
+                           {Math.round(
+                              drawingCompletionProgressRef.current ||
+                                 drawingCompletionProgress
                            )}
-                           <span
-                              style={{
-                                 fontSize: isMobile ? "0.85rem" : "1rem",
-                                 fontWeight: 600,
-                                 color: "var(--text)",
-                              }}
-                           >
-                              {/* fixed-width value: the chip keeps its width as the number grows, so the
-                                  chips never re-wrap (and move the canvas) in the middle of a stroke */}
-                              Accuracy:{" "}
-                              <span style={{ display: "inline-block", minWidth: "4ch", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
-                                 {Math.round(currentAccuracy)}%
-                              </span>{" "}
-                              / {minAccuracy}%
-                           </span>
-                        </div>
-                        <div
-                           style={{
-                              opacity: playerPath.length >= 3 ? 1 : 0.5,
-                              transition: "opacity 0.2s ease",
-                              background:
-                                 drawingCompletionProgress >= 70
-                                    ? "linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(34, 197, 94, 0.1))"
-                                    : "linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(239, 68, 68, 0.1))",
-                              border: `1px solid ${
-                                 drawingCompletionProgress >= 70
-                                    ? "rgba(34, 197, 94, 0.4)"
-                                    : "rgba(239, 68, 68, 0.4)"
-                              }`,
-
-                              padding: isMobile ? "6px 10px" : "10px 16px", // phones: two compact rows, not three
-                              display: "flex",
-                              alignItems: "center",
-                              gap: "8px",
-                           }}
-                        >
-                           {drawingCompletionProgress >= 70 ? (
-                              <CheckCircleIcon
-                                 style={{
-                                    width: isMobile ? 18 : 20,
-                                    height: isMobile ? 18 : 20,
-                                    color: "var(--ok)",
-                                 }}
-                              />
-                           ) : (
-                              <XCircleIcon
-                                 style={{
-                                    width: isMobile ? 18 : 20,
-                                    height: isMobile ? 18 : 20,
-                                    color: "var(--warn)",
-                                 }}
-                              />
-                           )}
-                           <span
-                              style={{
-                                 fontSize: isMobile ? "0.85rem" : "1rem",
-                                 fontWeight: 600,
-                                 color: "var(--text)",
-                              }}
-                           >
-                              Completion:{" "}
-                              <span style={{ display: "inline-block", minWidth: "4ch", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
-                                 {Math.round(
-                                    drawingCompletionProgressRef.current ||
-                                       drawingCompletionProgress
-                                 )}
-                                 %
-                              </span>{" "}
-                              / 70%
-                           </span>
-                        </div>
-                     </>
-                  )}
+                           %
+                        </span>{" "}
+                        / 70%
+                     </span>
+                  </div>
                </div>
             )}
 
@@ -2140,14 +1972,10 @@ export default function SpeedDrawing({
             {gameState === "playing" || gameState === "paused" ? (
                <div
                   ref={arenaRef}
+                  className={ui.arena}
                   style={{
-                     width: "100%",
-                     maxWidth: "800px",
-                     background: "var(--card)",
-                     borderRadius: "var(--radius)",
                      padding: isMobile ? "16px" : "20px",
-                     boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
-                     position: "relative",
+                     background: "var(--card)",
                      pointerEvents: "auto",
                   }}
                >
@@ -2164,11 +1992,13 @@ export default function SpeedDrawing({
                      onTouchEnd={handleDrawingEnd}
                      onTouchCancel={handleDrawingEnd}
                      style={{
+                        display: "block",
                         width: "100%",
                         height: isMobile ? "300px" : "400px",
                         cursor: isDrawing ? "crosshair" : "default",
                         touchAction: "none",
-                        borderRadius: "8px",
+                        borderRadius: "10px",
+                        background: "rgba(0, 0, 0, 0.18)",
                      }}
                   />
                </div>
@@ -2176,55 +2006,19 @@ export default function SpeedDrawing({
 
             {/* Ready for Next Round Message */}
             {gameState === "ready" && currentLevel + 1 < maxLevels && (
-               <div
-                  style={{
-                     padding: isMobile ? "20px 24px" : "24px 32px",
-                     background: "var(--card)",
-                     borderRadius: "var(--radius)",
-                     color: "var(--text)",
-                     fontSize: isMobile ? "1rem" : "1.1rem",
-                     fontWeight: 700,
-                     textAlign: "center",
-                     border: "1px solid var(--border)",
-                  }}
-               >
-                  <div style={{ marginBottom: "16px" }}>
-                     Level {currentLevel + 1} Complete!
-                  </div>
-                  <div
-                     style={{
-                        fontSize: isMobile ? "0.9rem" : "1rem",
-                        fontWeight: 400,
-                        marginBottom: "20px",
-                        color: "var(--text-secondary)",
-                     }}
-                  >
-                     Accuracy: {Math.round(currentAccuracy)}% / {minAccuracy}%
+               <div className={ui.card}>
+                  <div className={ui.cardTitle}>Level {currentLevel + 1} Complete!</div>
+                  <div className={ui.cardBody}>
+                     Accuracy: <strong>{Math.round(currentAccuracy)}%</strong> / {minAccuracy}%
                      <br />
-                     Completion: {Math.round(drawingCompletionProgress)}% / 70%
+                     Completion: <strong>{Math.round(drawingCompletionProgress)}%</strong> / 70%
                      <br />
                      Great drawing!
                   </div>
                   <button
-                  className={touch.tapButton}
+                     className={ui.buttonPrimary}
                      onClick={handleNextRound}
                      disabled={nextRoundLocked}
-                     style={{
-                        padding: isMobile ? "12px 24px" : "14px 28px",
-                        background: nextRoundLocked
-                           ? "rgba(100, 100, 100, 0.2)"
-                           : "linear-gradient(135deg, rgba(134, 239, 172, 0.25), rgba(134, 239, 172, 0.12))",
-                        border: nextRoundLocked
-                           ? "1px solid rgba(100, 100, 100, 0.4)"
-                           : "2px solid rgba(134, 239, 172, 0.6)",
-
-                        color: "var(--text)",
-                        fontSize: isMobile ? "1rem" : "1.05rem",
-                        fontWeight: 700,
-                        cursor: nextRoundLocked ? "not-allowed" : "pointer",
-                        opacity: nextRoundLocked ? 0.5 : 1,
-                        transition: "all 0.3s ease",
-                     }}
                   >
                      Next Round
                   </button>
@@ -2249,77 +2043,31 @@ export default function SpeedDrawing({
                   }
 
                   return (
-                     <div
-                        style={{
-                           padding: isMobile ? "20px 24px" : "24px 32px",
-                           background: "var(--card)",
-                           borderRadius: "var(--radius)",
-                           color: "var(--text)",
-                           fontSize: isMobile ? "1rem" : "1.1rem",
-                           fontWeight: 700,
-                           textAlign: "center",
-                           border: "1px solid var(--border)",
-                        }}
-                     >
-                        <div
-                           style={{
-                              marginBottom: "16px",
-                              color: "var(--warn)",
-                           }}
-                        >
-                           Level {currentLevel + 1} Failed
-                        </div>
-                        <div
-                           style={{
-                              fontSize: isMobile ? "0.9rem" : "1rem",
-                              fontWeight: 600,
-                              marginBottom: "12px",
-                              color: "var(--warn)",
-                           }}
-                        >
-                           {failureReason}
-                        </div>
-                        <div
-                           style={{
-                              fontSize: isMobile ? "0.9rem" : "1rem",
-                              fontWeight: 400,
-                              marginBottom: "8px",
-                              color: "var(--text-secondary)",
-                           }}
-                        >
-                           <div
-                              style={{
-                                 marginBottom: "4px",
-                                 display: "flex",
-                                 alignItems: "center",
-                                 gap: "4px",
-                                 justifyContent: "center",
-                              }}
-                           >
-                              <span>
-                                 Accuracy: Need {minAccuracy}% | You got{" "}
-                                 {Math.round(currentAccuracy)}%
-                              </span>
-                              {accuracyMet ? (
-                                 <CheckCircleIcon
-                                    style={{
-                                       width: isMobile ? 16 : 18,
-                                       height: isMobile ? 16 : 18,
-                                       color: "var(--ok)",
-                                       flexShrink: 0,
-                                    }}
-                                 />
-                              ) : (
-                                 <XCircleIcon
-                                    style={{
-                                       width: isMobile ? 16 : 18,
-                                       height: isMobile ? 16 : 18,
-                                       color: "var(--warn)",
-                                       flexShrink: 0,
-                                    }}
-                                 />
-                              )}
+                     <div className={ui.card}>
+                        <div className={ui.cardTitleWarn}>Level {currentLevel + 1} Failed</div>
+                        {failureReason && (
+                           <div className={ui.cardBody} style={{ color: "var(--warn)", fontWeight: 600 }}>
+                              {failureReason}
                            </div>
+                        )}
+                        <div
+                           className={ui.cardBody}
+                           style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "6px",
+                              justifyContent: "center",
+                           }}
+                        >
+                           <span>
+                              Accuracy: Need <strong>{minAccuracy}%</strong> | You got{" "}
+                              <strong>{Math.round(currentAccuracy)}%</strong>
+                           </span>
+                           {accuracyMet ? (
+                              <CheckCircleIcon className={ui.statIconOk} />
+                           ) : (
+                              <XCircleIcon className={ui.statIconWarn} />
+                           )}
                         </div>
                      </div>
                   );
@@ -2327,66 +2075,21 @@ export default function SpeedDrawing({
 
             {/* Game Complete Message */}
             {gameState === "ready" && currentLevel === maxLevels - 1 && (
-               <div
-                  style={{
-                     padding: isMobile ? "20px 24px" : "24px 32px",
-                     background: "var(--card)",
-                     borderRadius: "var(--radius)",
-                     color: "var(--text)",
-                     fontSize: isMobile ? "1rem" : "1.1rem",
-                     fontWeight: 700,
-                     textAlign: "center",
-                     border: "1px solid var(--border)",
-                  }}
-               >
-                  <div style={{ marginBottom: "16px", color: "var(--ok)" }}>
-                     Game Complete!
-                  </div>
-                  <div
-                     style={{
-                        fontSize: isMobile ? "0.9rem" : "1rem",
-                        fontWeight: 400,
-                        marginBottom: "20px",
-                        color: "var(--text-secondary)",
-                     }}
-                  >
+               <div className={ui.card}>
+                  <div className={ui.cardTitleOk}>Game Complete!</div>
+                  <div className={ui.cardBody}>
                      All {maxLevels} levels completed!
                      <br />
-                     Final Score: {currentScore}
+                     Final Score: <strong>{currentScore}</strong>
                   </div>
                </div>
             )}
 
             {/* Action Buttons: Replay, Share */}
-            <div
-               style={{
-                  display: "flex",
-                  gap: "12px",
-                  justifyContent: "center",
-                  flexWrap: "wrap",
-                  padding: isMobile ? "12px" : "16px",
-                  background: "var(--card)",
-
-                  width: "100%",
-                  maxWidth: "800px",
-               }}
-            >
+            <div className={ui.actions}>
                {/* Share Success Message */}
                {shareSuccess && !unlimitedActivated && (
-                  <div
-                     style={{
-                        width: "100%",
-                        padding: "12px",
-                        background: "rgba(134, 239, 172, 0.2)",
-                        border: "2px solid rgba(134, 239, 172, 0.6)",
-                        borderRadius: "8px",
-                        fontSize: isMobile ? "0.9rem" : "1rem",
-                        fontWeight: 600,
-                        color: "var(--ok)",
-                        textAlign: "center",
-                        marginBottom: "8px",
-                     }}
-                  >
+                  <div className={ui.notice}>
                      Link copied! Unlimited replay will unlock when someone
                      opens your link!
                   </div>
@@ -2394,82 +2097,21 @@ export default function SpeedDrawing({
 
                {/* Unlimited Activated Message */}
                {unlimitedActivated && (
-                  <div
-                     style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: isMobile ? "6px" : "8px",
-                        padding: isMobile ? "10px 14px" : "8px 16px",
-                        background:
-                           "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
-                        border: "2px solid rgba(59, 130, 246, 0.6)",
-                        borderRadius: isMobile ? "10px" : "8px",
-                        color: "var(--text)",
-                        fontSize: isMobile ? "0.85rem" : "0.9rem",
-                        fontWeight: 500,
-                        width: "100%",
-                        justifyContent: "center",
-                        textAlign: "center",
-                        flexWrap: "wrap",
-                        marginBottom: "8px",
-                     }}
-                  >
-                     <CheckCircleIcon
-                        style={{
-                           width: isMobile ? 16 : 18,
-                           height: isMobile ? 16 : 18,
-                           color: "rgba(59, 130, 246, 0.9)",
-                           flexShrink: 0,
-                        }}
-                     />
+                  <div className={ui.notice}>
+                     <CheckCircleIcon className={ui.noticeIcon} />
                      <span>
-                        🎉 Someone opened your link! Unlimited replay is now
+                        Someone opened your link! Unlimited replay is now
                         active for 15 minutes!
                      </span>
                   </div>
                )}
 
                <button
-                  className={touch.tapButton}
+                  className={ui.button}
                   onClick={handleReplay}
-                  disabled={maxReplays > 0 && replaysUsed >= maxReplays}
-                  style={{
-                     display: "flex",
-                     alignItems: "center",
-                     gap: isMobile ? "6px" : "8px",
-                     padding: isMobile ? "10px 16px" : "10px 20px",
-                     width: isMobile ? "100%" : "auto",
-                     background:
-                        maxReplays > 0 && replaysUsed >= maxReplays
-                           ? "rgba(100, 100, 100, 0.2)"
-                           : "linear-gradient(135deg, rgba(125, 211, 252, 0.2), rgba(125, 211, 252, 0.1))",
-                     border:
-                        maxReplays > 0 && replaysUsed >= maxReplays
-                           ? "1px solid rgba(100, 100, 100, 0.4)"
-                           : "1px solid rgba(125, 211, 252, 0.6)",
-
-                     color: "var(--text)",
-                     fontSize: isMobile ? "0.85rem" : "0.95rem",
-                     fontWeight: 600,
-                     cursor:
-                        maxReplays > 0 && replaysUsed >= maxReplays
-                           ? "not-allowed"
-                           : "pointer",
-                     opacity:
-                        maxReplays > 0 && replaysUsed >= maxReplays ? 0.5 : 1,
-                     transition: "all 0.3s ease",
-                  }}
+                  disabled={replayLocked}
                >
-                  <ArrowPathRoundedSquareIcon
-                     style={{
-                        width: isMobile ? 18 : 20,
-                        height: isMobile ? 18 : 20,
-                        color:
-                           maxReplays > 0 && replaysUsed >= maxReplays
-                              ? "var(--muted)"
-                              : "var(--accent)",
-                     }}
-                  />
+                  <ArrowPathRoundedSquareIcon className={ui.buttonIcon} />
                   <span>
                      {"Replay "}
                      {maxReplays === 0
@@ -2478,33 +2120,8 @@ export default function SpeedDrawing({
                   </span>
                </button>
 
-               <button
-                  className={touch.tapButton}
-                  onClick={handleShare}
-                  style={{
-                     display: "flex",
-                     alignItems: "center",
-                     gap: isMobile ? "6px" : "8px",
-                     padding: isMobile ? "10px 16px" : "10px 20px",
-                     width: isMobile ? "100%" : "auto",
-                     background:
-                        "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
-                     border: "1px solid rgba(59, 130, 246, 0.6)",
-
-                     color: "var(--text)",
-                     fontSize: isMobile ? "0.85rem" : "0.95rem",
-                     fontWeight: 600,
-                     cursor: "pointer",
-                     transition: "all 0.3s ease",
-                  }}
-               >
-                  <ShareIcon
-                     style={{
-                        width: isMobile ? 18 : 20,
-                        height: isMobile ? 18 : 20,
-                        color: "var(--accent)",
-                     }}
-                  />
+               <button className={ui.button} onClick={handleShare}>
+                  <ShareIcon className={ui.buttonIcon} />
                   <span>Share for unlimited</span>
                </button>
             </div>
