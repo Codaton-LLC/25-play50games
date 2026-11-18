@@ -1,0 +1,647 @@
+/* Menu 2 world map. Each world is a region card: a grey (drained) board whose colour wash grows with
+   --fill (cleared games), a winding trail through the nodes, and the nodes themselves as round
+   plates. Uses the site vars (--bg, --card, --stroke, --text, --muted, --accent). Works from 320 px. */
+
+.map {
+   width: 100%;
+   min-width: 0;
+}
+
+/* ---------- top: story, stats, preview switch ---------- */
+
+.top {
+   display: grid;
+   gap: 0.9rem;
+   margin-bottom: 1.1rem;
+}
+
+.eyebrow {
+   margin: 0 0 0.3rem;
+   color: var(--accent);
+   font-size: 0.75rem;
+   font-weight: 800;
+   letter-spacing: 0.1em;
+   text-transform: uppercase;
+}
+
+.storyText {
+   max-width: 40rem;
+   margin: 0;
+   color: var(--text);
+   font-size: 0.98rem;
+   line-height: 1.5;
+}
+
+.stats {
+   display: grid;
+   grid-template-columns: repeat(2, minmax(0, 1fr));
+   gap: 0.5rem;
+   margin: 0;
+   padding: 0;
+   list-style: none;
+}
+
+.stat {
+   display: flex;
+   align-items: center;
+   gap: 0.4rem;
+   min-width: 0;
+   min-height: 2.9rem;
+   padding: 0.45rem 0.75rem;
+   border: 1px solid var(--stroke);
+   border-radius: 0.9rem;
+   background: var(--card);
+}
+
+.statValue {
+   color: var(--text);
+   font-size: 1.05rem;
+   font-weight: 800;
+   font-variant-numeric: tabular-nums;
+   white-space: nowrap;
+}
+
+.statLabel {
+   min-width: 0;
+   overflow: hidden;
+   color: var(--muted);
+   font-size: 0.8rem;
+   font-weight: 600;
+   text-overflow: ellipsis;
+   white-space: nowrap;
+}
+
+.statStar {
+   flex: none;
+   width: 1.15rem;
+   height: 1.15rem;
+   fill: #ffd257;
+}
+
+.statShard {
+   flex: none;
+   width: 0.8rem;
+   height: 1.1rem;
+   clip-path: polygon(50% 0, 100% 40%, 50% 100%, 0 40%);
+   background: linear-gradient(160deg, #e0f2fe, #7dd3fc 45%, #a855f7);
+}
+
+.xpStat {
+   --xp: 0;
+}
+
+.xpBar {
+   position: relative;
+   flex: 1 1 2.5rem;
+   min-width: 1.5rem;
+   height: 6px;
+   overflow: hidden;
+   border-radius: 999px;
+   background: rgba(255, 255, 255, 0.12);
+}
+
+.xpBar > span {
+   position: absolute;
+   inset: 0;
+   border-radius: inherit;
+   background: linear-gradient(90deg, var(--accent), #86efac);
+   transform: scaleX(var(--xp));
+   transform-origin: left center;
+}
+
+.previewSwitch {
+   display: inline-flex;
+   align-items: center;
+   gap: 0.55rem;
+   justify-self: start;
+   min-height: 44px;
+   color: var(--muted);
+   font-size: 0.85rem;
+   font-weight: 700;
+   cursor: pointer;
+}
+
+.previewSwitch input {
+   position: absolute;
+   opacity: 0;
+   pointer-events: none;
+}
+
+.switchTrack {
+   position: relative;
+   width: 2.4rem;
+   height: 1.35rem;
+   border: 1px solid var(--stroke);
+   border-radius: 999px;
+   background: rgba(255, 255, 255, 0.08);
+   transition: background 160ms ease;
+}
+
+.switchTrack::after {
+   content: "";
+   position: absolute;
+   top: 2px;
+   left: 2px;
+   width: calc(1.35rem - 6px);
+   height: calc(1.35rem - 6px);
+   border-radius: 50%;
+   background: var(--text);
+   transition: transform 160ms ease;
+}
+
+.previewSwitch input:checked + .switchTrack {
+   background: var(--accent);
+}
+
+.previewSwitch input:checked + .switchTrack::after {
+   background: #0b1020;
+   transform: translateX(1.05rem);
+}
+
+.previewSwitch input:focus-visible + .switchTrack {
+   outline: 2px solid var(--accent);
+   outline-offset: 3px;
+}
+
+/* ---------- worlds ---------- */
+
+.worlds {
+   display: grid;
+   grid-template-columns: minmax(0, 1fr);
+   gap: 1rem;
+}
+
+.world {
+   --w: var(--accent);
+   --w2: var(--accent);
+   --fill: 0;
+   position: relative;
+   isolation: isolate;
+   min-width: 0;
+   overflow: hidden;
+   padding: 0.85rem 0.75rem 0.7rem;
+   border: 1px solid color-mix(in srgb, var(--w) calc(18% + var(--fill) * 50%), var(--stroke));
+   border-radius: 1.35rem;
+   background:
+      radial-gradient(120% 70% at 0% 0%, rgba(255, 255, 255, 0.06), transparent 60%),
+      linear-gradient(170deg, #1a1f2e, #10131c 70%);
+   box-shadow: 0 14px 34px rgba(0, 0, 0, 0.35), 0 0 calc(var(--fill) * 34px) color-mix(in srgb, var(--w) 35%, transparent);
+   transition: box-shadow 300ms ease, border-color 300ms ease;
+}
+
+/* the colour coming back: always a hint, full once every game is cleared */
+.wash {
+   position: absolute;
+   inset: 0;
+   z-index: -1;
+   background:
+      radial-gradient(90% 60% at 85% 0%, color-mix(in srgb, var(--w2) 70%, transparent), transparent 70%),
+      radial-gradient(80% 70% at 10% 100%, color-mix(in srgb, var(--w) 75%, transparent), transparent 75%),
+      linear-gradient(160deg, color-mix(in srgb, var(--w) 55%, #0b1020), #0b1020 85%);
+   opacity: calc(0.14 + var(--fill) * 0.72);
+   transition: opacity 600ms ease;
+}
+
+.worldHead {
+   display: flex;
+   align-items: center;
+   gap: 0.65rem;
+}
+
+.worldNo {
+   display: grid;
+   flex: none;
+   place-items: center;
+   width: 2.5rem;
+   height: 2.5rem;
+   border-radius: 0.8rem;
+   background: linear-gradient(150deg, var(--w2), var(--w));
+   color: #0b1020;
+   font-size: 0.9rem;
+   font-weight: 900;
+   box-shadow: 0 4px 14px color-mix(in srgb, var(--w) 45%, transparent);
+}
+
+.worldText {
+   flex: 1;
+   min-width: 0;
+}
+
+.worldName {
+   margin: 0;
+   overflow: hidden;
+   color: var(--text);
+   font-size: 1.15rem;
+   font-weight: 800;
+   letter-spacing: -0.01em;
+   line-height: 1.2;
+   text-overflow: ellipsis;
+   white-space: nowrap;
+}
+
+.worldFeel {
+   margin: 0.1rem 0 0;
+   color: var(--muted);
+   font-size: 0.78rem;
+   font-weight: 700;
+}
+
+.restore {
+   position: relative;
+   display: grid;
+   flex: none;
+   place-items: center;
+   width: 2.9rem;
+   height: 2.9rem;
+}
+
+.restoreRing {
+   position: absolute;
+   inset: 0;
+   border-radius: 50%;
+   background: conic-gradient(var(--w) calc(var(--fill) * 360deg), rgba(255, 255, 255, 0.12) 0);
+   -webkit-mask: radial-gradient(circle, transparent 58%, #000 60%);
+   mask: radial-gradient(circle, transparent 58%, #000 60%);
+}
+
+.restorePct {
+   color: var(--text);
+   font-size: 0.7rem;
+   font-weight: 800;
+   font-variant-numeric: tabular-nums;
+}
+
+.worldBlurb {
+   margin: 0.55rem 0 0.35rem;
+   color: var(--muted);
+   font-size: 0.82rem;
+   line-height: 1.4;
+}
+
+/* ---------- the board: trail + nodes ---------- */
+
+.board {
+   position: relative;
+   height: calc(var(--rows) * var(--row-h));
+}
+
+.trail {
+   position: absolute;
+   inset: 0;
+   width: 100%;
+   height: 100%;
+   overflow: visible;
+   pointer-events: none;
+}
+
+.trailBase,
+.trailLit {
+   fill: none;
+   stroke-linecap: round;
+   stroke-linejoin: round;
+}
+
+.trailBase {
+   stroke: rgba(255, 255, 255, 0.16);
+   stroke-width: 3;
+   stroke-dasharray: 2 7;
+}
+
+.trailLit {
+   stroke: color-mix(in srgb, var(--w) 85%, #fff);
+   stroke-width: 4;
+   filter: drop-shadow(0 0 5px color-mix(in srgb, var(--w) 70%, transparent));
+}
+
+.nodes {
+   position: relative;
+   display: grid;
+   grid-template-columns: repeat(4, minmax(0, 1fr));
+   grid-auto-rows: var(--row-h);
+   margin: 0;
+   padding: 0;
+   list-style: none;
+}
+
+.cell {
+   display: flex;
+   justify-content: center;
+   min-width: 0;
+}
+
+.node {
+   display: flex;
+   flex-direction: column;
+   align-items: center;
+   gap: 0.28rem;
+   width: 100%;
+   max-width: 6.5rem;
+   padding-top: 0.4rem;
+   border-radius: 1rem;
+   color: var(--text);
+   text-align: center;
+   text-decoration: none;
+   -webkit-tap-highlight-color: transparent;
+}
+
+.plate {
+   position: relative;
+   display: grid;
+   place-items: center;
+   width: 3.3rem;
+   height: 3.3rem;
+   border-radius: 50%;
+   background:
+      radial-gradient(circle at 35% 28%, rgba(255, 255, 255, 0.4), transparent 45%),
+      linear-gradient(150deg, var(--w2), var(--w));
+   box-shadow:
+      0 0 0 3px #0e1220,
+      0 0 0 5px color-mix(in srgb, var(--w) 75%, #fff),
+      0 8px 18px rgba(0, 0, 0, 0.45);
+   transition: transform 180ms cubic-bezier(0.2, 1.4, 0.4, 1), box-shadow 180ms ease;
+}
+
+.thumb {
+   position: absolute;
+   inset: 0;
+   width: 100%;
+   height: 100%;
+   border-radius: 50%;
+   object-fit: cover;
+}
+
+.num {
+   position: relative;
+   display: grid;
+   place-items: center;
+   min-width: 1.55rem;
+   height: 1.55rem;
+   padding: 0 0.3rem;
+   border-radius: 999px;
+   background: rgba(11, 16, 32, 0.72);
+   color: #fff;
+   font-size: 0.78rem;
+   font-weight: 900;
+   font-variant-numeric: tabular-nums;
+}
+
+.thumb + .num {
+   align-self: end;
+   margin-bottom: -0.4rem;
+}
+
+.nodeTitle {
+   display: -webkit-box;
+   max-width: 100%;
+   overflow: hidden;
+   font-size: 0.7rem;
+   font-weight: 800;
+   line-height: 1.2;
+   overflow-wrap: anywhere;
+   -webkit-box-orient: vertical;
+   -webkit-line-clamp: 2;
+   line-clamp: 2;
+}
+
+.nodeMeta {
+   display: inline-flex;
+   align-items: center;
+   gap: 0.2rem;
+   color: var(--muted);
+   font-size: 0.68rem;
+   font-weight: 700;
+   font-variant-numeric: tabular-nums;
+}
+
+.metaStar {
+   width: 0.8rem;
+   height: 0.8rem;
+   fill: #ffd257;
+}
+
+/* states */
+a.node:hover .plate,
+a.node:focus-visible .plate {
+   transform: translateY(-3px) scale(1.07);
+   box-shadow:
+      0 0 0 3px #0e1220,
+      0 0 0 5px #fff,
+      0 0 22px color-mix(in srgb, var(--w) 80%, transparent),
+      0 10px 22px rgba(0, 0, 0, 0.5);
+}
+
+a.node:focus-visible {
+   outline: 2px solid color-mix(in srgb, var(--w) 70%, #fff);
+   outline-offset: 2px;
+}
+
+a.node:focus:not(:focus-visible) {
+   outline: none;
+}
+
+.new .plate {
+   animation: beckon 1.8s ease-in-out infinite;
+}
+
+.newDot {
+   position: absolute;
+   top: -0.45rem;
+   right: -0.7rem;
+   padding: 0.08rem 0.38rem;
+   border-radius: 999px;
+   background: #fff;
+   color: #0b1020;
+   font-size: 0.56rem;
+   font-weight: 900;
+   letter-spacing: 0.05em;
+   text-transform: uppercase;
+   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.clearMark {
+   position: absolute;
+   right: -0.3rem;
+   bottom: -0.2rem;
+   display: grid;
+   place-items: center;
+   width: 1.25rem;
+   height: 1.25rem;
+   border-radius: 50%;
+   background: var(--ok);
+   box-shadow: 0 0 0 2px #0e1220;
+}
+
+.clearMark svg {
+   width: 0.85rem;
+   height: 0.85rem;
+   fill: none;
+   stroke: #0b1020;
+   stroke-width: 3;
+   stroke-linecap: round;
+   stroke-linejoin: round;
+}
+
+.perfect {
+   background: #ffd257;
+}
+
+.locked .plate,
+.soon .plate {
+   background: linear-gradient(150deg, #3a3f4d, #262a35);
+   box-shadow:
+      0 0 0 3px #0e1220,
+      0 0 0 5px rgba(255, 255, 255, 0.14),
+      0 6px 14px rgba(0, 0, 0, 0.4);
+}
+
+.locked .thumb {
+   filter: grayscale(1) brightness(0.45);
+}
+
+.locked .nodeTitle,
+.soon .nodeTitle {
+   color: var(--muted);
+}
+
+.soon {
+   opacity: 0.55;
+}
+
+.lock {
+   width: 0.95rem;
+   height: 0.95rem;
+   fill: currentColor;
+   stroke: currentColor;
+}
+
+.lock path {
+   fill: none;
+}
+
+.worldFoot {
+   display: flex;
+   justify-content: space-between;
+   gap: 0.5rem;
+   padding-top: 0.45rem;
+   border-top: 1px solid rgba(255, 255, 255, 0.08);
+   color: var(--muted);
+   font-size: 0.78rem;
+   font-weight: 700;
+}
+
+.footStars {
+   display: inline-flex;
+   align-items: center;
+   gap: 0.25rem;
+   font-variant-numeric: tabular-nums;
+}
+
+/* W6 sealed */
+.worldLocked .board,
+.worldLocked .worldBlurb,
+.worldLocked .worldFoot {
+   filter: grayscale(0.85) blur(1.5px);
+   opacity: 0.45;
+}
+
+.gate {
+   position: absolute;
+   inset: 4.2rem 0.75rem 0.75rem;
+   display: flex;
+   flex-direction: column;
+   align-items: center;
+   justify-content: center;
+   gap: 0.35rem;
+   padding: 1rem;
+   border-radius: 1rem;
+   background: color-mix(in srgb, #0b1020 55%, transparent);
+   color: var(--text);
+   text-align: center;
+}
+
+.gate .lock {
+   width: 1.8rem;
+   height: 1.8rem;
+   color: color-mix(in srgb, var(--w) 70%, #fff);
+}
+
+.gateTitle {
+   margin: 0;
+   font-size: 1rem;
+   font-weight: 800;
+}
+
+.gateText {
+   max-width: 22rem;
+   margin: 0;
+   color: var(--muted);
+   font-size: 0.85rem;
+   line-height: 1.4;
+}
+
+@keyframes beckon {
+   0%,
+   100% {
+      box-shadow:
+         0 0 0 3px #0e1220,
+         0 0 0 5px color-mix(in srgb, var(--w) 75%, #fff),
+         0 8px 18px rgba(0, 0, 0, 0.45);
+   }
+   50% {
+      box-shadow:
+         0 0 0 3px #0e1220,
+         0 0 0 5px #fff,
+         0 0 20px color-mix(in srgb, var(--w) 85%, transparent),
+         0 8px 18px rgba(0, 0, 0, 0.45);
+   }
+}
+
+@media (min-width: 640px) {
+   .stats {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+   }
+
+   .world {
+      padding: 1rem 1rem 0.8rem;
+   }
+
+   .nodeTitle {
+      font-size: 0.76rem;
+   }
+}
+
+@media (min-width: 960px) {
+   .top {
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: end;
+   }
+
+   .stats {
+      grid-template-columns: repeat(4, auto);
+   }
+
+   .previewSwitch {
+      grid-column: 1 / -1;
+   }
+
+   .worlds {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+   }
+
+   /* the fortress spans the whole width: the finale */
+   .worlds > .world:last-child {
+      grid-column: 1 / -1;
+   }
+}
+
+@media (prefers-reduced-motion: reduce) {
+   .new .plate {
+      animation: none;
+   }
+
+   .plate,
+   .wash,
+   .world {
+      transition: none;
+   }
+}

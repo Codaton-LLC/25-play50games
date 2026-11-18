@@ -13,6 +13,7 @@ import { ArcadeApiError } from "@/lib/api/arcade";
 import {
    ARCADE_SCORES_EVENT,
    computeTimeScore,
+   isMultiplayerRun,
    isRankedRun,
    normalizeRun,
    readLocalScores,
@@ -174,6 +175,38 @@ describe("submitScore", () => {
       expect(result.status).toBe(status);
       expect(local.getItem("play50games_jwt_token")).toBe("jwt");
       expect(readLocalScores(7)["robot-collector"]!.best).toBe(900);
+   });
+});
+
+describe("local multiplayer runs (menu2/multiplayer)", () => {
+   it("are never ranked, whatever the end", () => {
+      const points = getGameMeta("robot-collector")!.scoring;
+      const time = getGameMeta("obstacle-race")!.scoring;
+      expect(isRankedRun(points, "timeup", 2)).toBe(false);
+      expect(isRankedRun(time, "win", 4)).toBe(false);
+      expect(isRankedRun(time, "win", 1)).toBe(true);
+      expect(isRankedRun(time, "win")).toBe(true);
+      expect(isMultiplayerRun(undefined)).toBe(false);
+      expect(isMultiplayerRun(1)).toBe(false);
+      expect(isMultiplayerRun(2)).toBe(true);
+   });
+
+   it("submitScore saves and sends nothing for a run marked with players > 1", async () => {
+      flags.ARCADE_LEADERBOARD = true;
+      local.setItem("play50games_jwt_token", "jwt");
+      api.submit.mockResolvedValue({ success: true, data: { slug: "robot-collector", score: 900, best_score: 900, is_new_best: true, plays: 1, rank: 1 } });
+      const result = await submitScore(run({ players: 2 }), 7);
+      expect(result).toMatchObject({ status: "unranked", score: 0, isNewBest: false });
+      expect(api.submit).not.toHaveBeenCalled();
+      expect(readLocalScores(7)["robot-collector"]).toBeUndefined();
+      expect(events).not.toContain(ARCADE_SCORES_EVENT);
+      const account = await saveRunToAccount(run({ players: 3 }), 7);
+      expect(account.status).toBe("unranked");
+      expect(api.submit).not.toHaveBeenCalled();
+      expect(readLocalScores(7)["robot-collector"]).toBeUndefined();
+      // a solo run right after still goes through
+      await submitScore(run(), 7);
+      expect(api.submit).toHaveBeenCalledTimes(1);
    });
 });
 

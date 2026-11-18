@@ -1,0 +1,246 @@
+/* Color Door Sprint HUD (the Menu 2 HUD look in World 1's ember red): dark ember pills with a light
+   edge, bold white numbers, a gold level line; the speed meter, the rule card (a copy of the lamp in
+   view), the red rush pips. Placement is menu2/hud HudStack. */
+.pill,
+.clock {
+   display: inline-flex;
+   align-items: center;
+   gap: 8px;
+   min-width: 92px;
+   padding: 6px 14px 6px 8px;
+   border: 2px solid rgba(255, 255, 255, 0.18);
+   border-radius: 999px;
+   background: linear-gradient(180deg, rgba(76, 20, 16, 0.9), rgba(40, 10, 12, 0.9));
+   box-shadow: 0 4px 14px rgba(30, 6, 4, 0.4);
+   color: #fff;
+}
+
+.value {
+   font-size: 1.25rem;
+   font-weight: 800;
+   letter-spacing: 0.01em;
+   line-height: 1;
+   font-variant-numeric: tabular-nums;
+   text-shadow: 0 2px 0 rgba(0, 0, 0, 0.25);
+}
+
+.orb {
+   width: 26px;
+   height: 26px;
+   border-radius: 50%;
+   background: radial-gradient(circle at 35% 30%, #f0fdff 0, #7dd3fc 35%, #0e7490 70%, #92400e 100%);
+   box-shadow: 0 0 10px rgba(103, 232, 249, 0.75), inset 0 -2px 3px rgba(8, 60, 80, 0.5);
+}
+
+.icon {
+   width: 24px;
+   height: 24px;
+   flex: none;
+}
+
+.banner {
+   display: flex;
+   flex-direction: column;
+   align-items: center;
+   padding: 6px 22px 7px;
+   border: 2px solid rgba(255, 255, 255, 0.2);
+   border-radius: 16px;
+   background: linear-gradient(180deg, rgba(76, 20, 16, 0.92), rgba(40, 10, 12, 0.92));
+   box-shadow: 0 6px 18px rgba(30, 6, 4, 0.4);
+   white-space: nowrap;
+}
+
+.title {
+   color: #fff;
+   font-size: 1.2rem;
+   font-weight: 800;
+   line-height: 1.15;
+}
+
+.level {
+   color: #ffd257;
+   font-size: 0.85rem;
+   font-weight: 700;
+   line-height: 1.2;
+}
+
+.clock {
+   min-width: 0;
+   padding: 4px 14px 4px 8px;
+}
+
+.swatch {
+   width: 22px;
+   height: 22px;
+   flex: none;
+   border-radius: 50%;
+   box-shadow: inset 0 -2px 3px rgba(0, 0, 0, 0.35), 0 0 8px rgba(255, 255, 255, 0.35);
+}
+
+/* narrow phones: a smaller banner between the left pills and the shell's buttons */
+@media (max-width: 520px) {
+   .banner {
+      padding: 4px 12px 5px;
+      border-radius: 12px;
+   }
+   .title {
+      font-size: 0.95rem;
+   }
+   .level {
+      font-size: 0.7rem;
+   }
+   .value {
+      font-size: 1.05rem;
+   }
+   .pill {
+      min-width: 76px;
+      padding: 4px 12px 4px 6px;
+   }
+   .orb {
+      width: 22px;
+      height: 22px;
+   }
+}
+
+/* the start card's local multiplayer entry (menu2/multiplayer; hidden on phones by device.ts) */
+.mpBtn {
+   min-height: 44px;
+   margin-left: 4px;
+   padding: 0 12px;
+   border: 2px solid #ffd257;
+   border-radius: 12px;
+   background: rgba(255, 210, 87, 0.14);
+   color: #fff;
+   font: inherit;
+   font-size: 0.78rem;
+   font-weight: 800;
+   white-space: nowrap;
+   cursor: pointer;
+}
+
+.mpBtn:focus-visible {
+   outline: 3px solid #ffd257;
+   outline-offset: 2px;
+}
+
+
+/* the speed meter: ember to gold, white-hot while a boost is up */
+.meter {
+   position: relative;
+   width: 74px;
+   height: 9px;
+   border-radius: 999px;
+   background: rgba(255, 255, 255, 0.2);
+   overflow: hidden;
+}
+
+.speedFill {
+   position: absolute;
+   inset: 0 auto 0 0;
+   border-radius: 999px;
+   background: linear-gradient(90deg, #f97316, #fde68a);
+   transition: width 90ms linear, background-color 200ms linear;
+}
+
+.speedTop {
+   background: linear-gradient(90deg, #fde68a, #fff7d6);
+   box-shadow: 0 0 8px rgba(253, 230, 138, 0.9);
+}
+
+@keyframes throb {
+   from {
+      opacity: 0.7;
+   }
+   to {
+      opacity: 1;
+   }
+}
+
+.unit {
+   font-size: 0.72rem;
+   font-weight: 700;
+   opacity: 0.8;
+}
+
+@media (prefers-reduced-motion: reduce) {
+   .rushReady {
+      animation: none;
+   }
+}
+
+/* the rule card: the lamp in view (its colour and shape; a speaker for the dimmed sound rule) */
+.rule {
+   display: inline-flex;
+   align-items: center;
+   gap: 8px;
+   padding: 4px 14px 4px 6px;
+   border: 2px solid rgba(255, 210, 87, 0.6);
+   border-radius: 999px;
+   background: rgba(20, 6, 6, 0.86);
+   color: #fff;
+   box-shadow: 0 0 14px rgba(251, 146, 60, 0.35);
+}
+
+.ruleEcho {
+   border-style: dashed;
+   border-color: #fde68a;
+}
+
+.ruleIcon {
+   width: 30px;
+   height: 30px;
+   flex: none;
+}
+
+.ruleText {
+   display: flex;
+   flex-direction: column;
+   font-size: 1rem;
+   font-weight: 800;
+   line-height: 1.05;
+}
+
+.ruleNext {
+   color: #fde68a;
+   font-size: 0.68rem;
+   font-weight: 700;
+   text-transform: uppercase;
+   letter-spacing: 0.04em;
+}
+
+.rushReady {
+   border-color: #fca5a5;
+   background: linear-gradient(180deg, rgba(220, 38, 38, 0.95), rgba(127, 29, 29, 0.95));
+   animation: throb 0.45s ease-in-out infinite alternate;
+}
+
+.pips {
+   display: inline-flex;
+   gap: 4px;
+}
+
+.pipOn,
+.pipOff {
+   width: 10px;
+   height: 10px;
+   border-radius: 50%;
+}
+
+.pipOn {
+   background: #ef4444;
+   box-shadow: 0 0 6px rgba(239, 68, 68, 0.9);
+}
+
+.pipOff {
+   background: rgba(255, 255, 255, 0.22);
+}
+
+@media (max-width: 520px) {
+   .ruleIcon {
+      width: 24px;
+      height: 24px;
+   }
+   .ruleText {
+      font-size: 0.85rem;
+   }
+}

@@ -1,0 +1,237 @@
+/* Color Arena Survival HUD: rose-violet glass pills, bold white numbers, the hearts, the orbs, the
+   power, the flow meter on the left; the banner, the clock and the CALL chip (the called colour, its
+   symbol, its name, the seconds left and the lock-in ring) centred at the top, clear of the shell's
+   Mute / Pause on the right. Every text is at least 12 px. */
+.pill,
+.clock {
+   display: inline-flex;
+   align-items: center;
+   gap: 8px;
+   min-width: 92px;
+   padding: 6px 14px 6px 8px;
+   border: 2px solid rgba(249, 168, 212, 0.35);
+   border-radius: 999px;
+   background: linear-gradient(180deg, rgba(76, 29, 149, 0.9), rgba(30, 12, 60, 0.9));
+   box-shadow: 0 4px 14px rgba(5, 2, 20, 0.45);
+   color: #fff;
+}
+
+.value {
+   font-size: 1.25rem;
+   font-weight: 800;
+   letter-spacing: 0.01em;
+   line-height: 1;
+   font-variant-numeric: tabular-nums;
+   text-shadow: 0 2px 0 rgba(0, 0, 0, 0.25);
+}
+
+.orb {
+   width: 26px;
+   height: 26px;
+   border-radius: 50%;
+   background: radial-gradient(circle at 35% 30%, #fbf5ff 0, #e9b9ff 35%, #a855f7 70%, #581c87 100%);
+   box-shadow: 0 0 10px rgba(192, 132, 252, 0.8), inset 0 -2px 3px rgba(60, 10, 90, 0.5);
+}
+
+.icon {
+   width: 24px;
+   height: 24px;
+   flex: none;
+}
+
+.hearts {
+   display: inline-flex;
+   gap: 3px;
+}
+
+.heart {
+   width: 20px;
+   height: 20px;
+}
+
+.banner {
+   display: flex;
+   flex-direction: column;
+   align-items: center;
+   padding: 6px 22px 7px;
+   border: 2px solid rgba(249, 168, 212, 0.35);
+   border-radius: 16px;
+   background: linear-gradient(180deg, rgba(76, 29, 149, 0.92), rgba(30, 12, 60, 0.92));
+   box-shadow: 0 6px 18px rgba(5, 2, 20, 0.45);
+   white-space: nowrap;
+}
+
+.title {
+   color: #fff;
+   font-size: 1.2rem;
+   font-weight: 800;
+   line-height: 1.15;
+}
+
+.level {
+   color: #f9a8d4;
+   font-size: 0.85rem;
+   font-weight: 700;
+   line-height: 1.2;
+}
+
+.levelShort {
+   display: none;
+}
+
+.clock {
+   min-width: 0;
+   padding: 4px 14px 4px 8px;
+}
+
+.swatch {
+   width: 22px;
+   height: 22px;
+   flex: none;
+   border-radius: 50%;
+   box-shadow: inset 0 -2px 3px rgba(0, 0, 0, 0.35), 0 0 8px rgba(255, 255, 255, 0.35);
+}
+
+/* the CALL chip: the called colour with its symbol, its name, the seconds left, the lock-in ring */
+.call {
+   display: inline-flex;
+   align-items: center;
+   gap: 10px;
+   padding: 6px 16px 6px 6px;
+   border: 3px solid #fff;
+   border-radius: 999px;
+   box-shadow: 0 6px 18px rgba(5, 2, 20, 0.5);
+   color: #fff;
+   transition: background-color 120ms linear;
+}
+
+.callIdle {
+   border-color: rgba(255, 255, 255, 0.4);
+   background: rgba(30, 12, 60, 0.85) !important;
+}
+
+.callWarn {
+   animation: callPulse 0.25s ease-in-out infinite alternate;
+}
+
+@keyframes callPulse {
+   from {
+      transform: scale(1);
+   }
+   to {
+      transform: scale(1.06);
+   }
+}
+
+.symbolBox {
+   position: relative;
+   width: 40px;
+   height: 40px;
+   flex: none;
+}
+
+.symbol {
+   position: absolute;
+   inset: 6px;
+   width: 28px;
+   height: 28px;
+}
+
+.lockRing {
+   position: absolute;
+   inset: 0;
+   width: 40px;
+   height: 40px;
+   transform: rotate(-90deg);
+}
+
+.callName {
+   font-size: 1.2rem;
+   font-weight: 900;
+   letter-spacing: 0.04em;
+   text-transform: uppercase;
+   text-shadow: 0 2px 0 rgba(0, 0, 0, 0.35);
+}
+
+.callLeft {
+   font-size: 1rem;
+   font-weight: 800;
+   font-variant-numeric: tabular-nums;
+   opacity: 0.92;
+}
+
+.rounds {
+   color: #fde68a;
+   font-size: 0.85rem;
+   font-weight: 800;
+   text-shadow: 0 1px 0 rgba(0, 0, 0, 0.4);
+}
+
+/* the hero row, portaled onto the page above the start card */
+.mpBtn {
+   min-height: 44px;
+   margin-left: 4px;
+   padding: 0 12px;
+   border: 2px solid #f9a8d4;
+   border-radius: 12px;
+   background: rgba(249, 168, 212, 0.14);
+   color: #fff;
+   font: inherit;
+   font-size: 0.78rem;
+   font-weight: 800;
+   white-space: nowrap;
+   cursor: pointer;
+}
+
+.mpBtn:focus-visible {
+   outline: 3px solid #f9a8d4;
+   outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+   .callWarn {
+      animation: none;
+   }
+}
+
+/* narrow phones: the banner fits between the shell's chips and its buttons with the level's name only */
+@media (max-width: 520px) {
+   .banner {
+      max-width: 108px;
+      min-height: 46px;
+      box-sizing: border-box;
+      justify-content: center;
+      padding: 4px 10px 5px;
+      border-radius: 12px;
+      white-space: normal;
+      text-align: center;
+   }
+   .title,
+   .levelLong {
+      display: none;
+   }
+   .levelShort {
+      display: inline;
+   }
+   .level {
+      font-size: 0.75rem;
+   }
+   .value {
+      font-size: 1.05rem;
+   }
+   .pill {
+      min-width: 76px;
+      padding: 4px 12px 4px 6px;
+   }
+   .orb {
+      width: 22px;
+      height: 22px;
+   }
+   .callName {
+      font-size: 1rem;
+   }
+   .heart {
+      width: 16px;
+      height: 16px;
+   }
+}

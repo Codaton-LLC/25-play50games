@@ -1,0 +1,93 @@
+/* Title and Skip for the opt-in intro. Sits over the canvas, inside the shell frame.
+   The scrim is transparent so the fly-through stays visible. Taps land on this overlay. */
+.overlay {
+   position: absolute;
+   inset: 0;
+   z-index: 16;
+   display: flex;
+   flex-direction: column;
+   justify-content: flex-end;
+   align-items: center;
+   padding:
+      max(16px, env(safe-area-inset-top, 0px))
+      max(16px, env(safe-area-inset-right, 0px))
+      calc(max(16px, env(safe-area-inset-bottom, 0px)) + var(--arcade-bottom-obstruction, 0px))
+      max(16px, env(safe-area-inset-left, 0px));
+   background: transparent;
+   pointer-events: auto;
+   user-select: none;
+   -webkit-user-select: none;
+   -webkit-tap-highlight-color: transparent;
+}
+
+.titles {
+   margin-top: 9vh;
+   margin-bottom: auto;
+   padding: 14px 28px 16px;
+   border: 2px solid rgba(255, 255, 255, 0.22);
+   border-radius: 20px;
+   background: linear-gradient(180deg, rgba(23, 37, 84, 0.86), rgba(15, 23, 60, 0.86));
+   box-shadow: 0 10px 30px rgba(8, 15, 40, 0.35);
+   text-align: center;
+   pointer-events: none;
+   animation: introTitleIn 0.45s cubic-bezier(0.2, 1.3, 0.4, 1) both;
+}
+
+@keyframes introTitleIn {
+   from {
+      opacity: 0;
+      transform: translateY(-14px) scale(0.92);
+   }
+   to {
+      opacity: 1;
+      transform: none;
+   }
+}
+
+@media (prefers-reduced-motion: reduce) {
+   .titles {
+      animation: none;
+   }
+}
+
+.level {
+   margin: 0 0 8px;
+   color: #ffd257;
+   font-size: 0.8rem;
+   font-weight: 600;
+   letter-spacing: 0.16em;
+   line-height: 1.2;
+   text-transform: uppercase;
+}
+
+.title {
+   margin: 0;
+   color: var(--text);
+   font-size: clamp(2rem, 7vw, 4.25rem);
+   font-weight: 700;
+   letter-spacing: -0.03em;
+   line-height: 0.95;
+   text-shadow: 0 2px 24px rgba(0, 0, 0, 0.55);
+}
+
+.skip {
+   align-self: flex-end;
+   min-width: 44px;
+   min-height: 44px;
+   margin-top: 16px;
+   padding: 10px 18px;
+   border: 1px solid rgba(255, 255, 255, 0.35);
+   border-radius: 999px;
+   background: rgba(15, 23, 60, 0.78);
+   color: #fff;
+   font-weight: 700;
+   font: inherit;
+   font-size: 0.95rem;
+   line-height: 1;
+   cursor: pointer;
+}
+
+.skip:focus-visible {
+   outline: 2px solid var(--accent);
+   outline-offset: 3px;
+}

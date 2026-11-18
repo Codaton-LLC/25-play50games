@@ -1,0 +1,74 @@
+"use client";
+
+// The world round the playable city: a ring of non-colliding pastel rows and glass towers (the rest
+// of Ember Heights' street city, drained grey), the volcano's glow on the horizon, the level's
+// hemisphere tint and moon/sun. The shell's lighting preset (look.ts) does the main light; the
+// streets are Course.tsx.
+import { useMemo } from "react";
+import { InstancedModel } from "@/arcade3d/core/assets";
+import type { InstanceSpot } from "@/arcade3d/core/render";
+import { ASSETS, PASTEL_SCALE, TOWER_SCALE } from "./assets";
+import { LOOKS } from "./look";
+import type { Course } from "./city";
+
+function hash(a: number, b: number): number {
+   let h = (a * 374761393) ^ (b * 668265263);
+   h = (h ^ (h >>> 13)) * 1274126177;
+   return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
+}
+
+/** Backdrop spots: rows of buildings 8-40 m outside the city on every side. */
+export function backdropSpots(c: Course): { rows: InstanceSpot[]; towers: InstanceSpot[] } {
+   const rows: InstanceSpot[] = [];
+   const towers: InstanceSpot[] = [];
+   const cx = (c.minX + c.maxX) / 2;
+   const cz = (c.minZ + c.maxZ) / 2;
+   const hw = (c.maxX - c.minX) / 2;
+   const hd = (c.maxZ - c.minZ) / 2;
+   for (let ring = 0; ring < 1; ring++) {
+      const gap = 12 + ring * 16;
+      const sides = [
+         { ox: 0, oz: -1, len: hw * 2 + gap * 2, yaw: 0 },
+         { ox: 0, oz: 1, len: hw * 2 + gap * 2, yaw: Math.PI },
+         { ox: -1, oz: 0, len: hd * 2 + gap * 2, yaw: Math.PI / 2 },
+         { ox: 1, oz: 0, len: hd * 2 + gap * 2, yaw: -Math.PI / 2 },
+      ];
+      sides.forEach((s, si) => {
+         // sparse: a row every 28 m (the triangle budget), the gaps read as side streets
+         const n = Math.ceil(s.len / 28);
+         for (let k = 0; k < n; k++) {
+            const t = -s.len / 2 + (k + 0.5) * (s.len / n);
+            const r = hash(k + ring * 31, si);
+            const x = cx + (s.ox !== 0 ? s.ox * (hw + gap) : t);
+            const z = cz + (s.oz !== 0 ? s.oz * (hd + gap) : t);
+            if (r < 0.3) {
+               // a glass tower set further back
+               towers.push({ x: x + s.ox * 10, y: 0, z: z + s.oz * 10, rotY: s.yaw, sx: TOWER_SCALE, sy: TOWER_SCALE * (1 + r * 1.2), sz: TOWER_SCALE });
+            } else {
+               rows.push({ x, y: 0, z, rotY: s.yaw, sx: PASTEL_SCALE, sy: PASTEL_SCALE * (1.1 + r * 0.6), sz: PASTEL_SCALE });
+            }
+         }
+      });
+   }
+   return { rows, towers };
+}
+
+export function World({ course }: { course: Course }) {
+   const look = LOOKS[course.id];
+   const spots = useMemo(() => backdropSpots(course), [course]);
+   const cx = (course.minX + course.maxX) / 2;
+   const cz = (course.minZ + course.maxZ) / 2;
+   return (
+      <group>
+         <hemisphereLight color={look.hemiSky} groundColor={look.hemiGround} intensity={look.hemi} />
+         <directionalLight position={[cx + 30, 45, cz - 20]} intensity={look.sunI * 0.35} color={look.sun} />
+         <InstancedModel asset={ASSETS.pastel} spots={spots.rows} fallback={null} />
+         <InstancedModel asset={ASSETS.tower} spots={spots.towers} fallback={null} />
+         {/* the volcano's ember glow low on the far horizon (day only: the night fog hides it anyway) */}
+         {look.lighting === "night" ? null : <mesh position={[cx, 14, cz - 150]}>
+            <planeGeometry args={[420, 60]} />
+            <meshBasicMaterial color="#fb923c" transparent opacity={0.18} depthWrite={false} fog={false} />
+         </mesh>}
+      </group>
+   );
+}

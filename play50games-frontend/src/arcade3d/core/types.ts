@@ -245,6 +245,12 @@ export interface GameDefinition<C = unknown> {
     * `data-arcade-safe-area` (they join useSafeArea().hud).
     */
    Hud?: ComponentType;
+   /**
+    * Optional block at the top of the result card (plain DOM, inside ResultPanel above the score
+    * details), e.g. the Menu 2 star screen (menu2/stars). Rendered only while the result shows; it
+    * reads the finished run from the store (stats, endReason). Omitted = the card as before.
+    */
+   ResultExtra?: ComponentType;
    assets: Record<string, ModelAsset>;
    /** true = wrap the scene in lazy-loaded Rapier <Physics> */
    physics?: boolean;
@@ -286,8 +292,21 @@ export interface GameDefinition<C = unknown> {
     * show two clocks. Default true.
     */
    clockChip?: boolean;
+   /**
+    * true: Play on the start card first plays the opt-in intro (core/intro, README "Game intro
+    * (opt-in)": fly-through, hero landing, title + level name, Skip), then starts the run. The run
+    * stays in "ready" (no clock) while it plays. The Scene draws it with useShellIntro() + <GameIntro>.
+    * Retry and Next level start at once. Default false.
+    */
+   intro?: boolean;
    /** override how the final score/duration is computed (default: store score + elapsedMs) */
    finalScore?(state: RunState): { score: number; durationMs: number };
+   /**
+    * How many players played this run (local multiplayer, menu2/multiplayer). Omitted = 1. More
+    * than one: the run is unranked (never submitted to the solo leaderboard, isRankedRun) and its
+    * FinishedRun carries `players`.
+    */
+   runPlayers?(state: RunState): number;
    /**
     * Omitted = one level (useLevel() gives config undefined). When present: one spec per
     * meta.levels entry, same ids in the same order (definitionLevelProblems in core/levels.ts).

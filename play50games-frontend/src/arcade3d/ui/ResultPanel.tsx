@@ -37,6 +37,8 @@ export interface ResultPanelProps {
    onSaveToAccount?: () => void;
    /** e.g. the leaderboard */
    children?: ReactNode;
+   /** a block right under the title (GameDefinition.ResultExtra: the Menu 2 star screen) */
+   banner?: ReactNode;
    rank?: number | null;
    /** the level played (levels on only): shown as "Level 3 · Copy Room" */
    level?: { id: LevelId; title: string; count: number };
@@ -120,6 +122,7 @@ export default function ResultPanel(props: ResultPanelProps) {
       onLogin,
       onSaveToAccount,
       children,
+      banner,
       rank,
       level,
       totalText,
@@ -144,6 +147,7 @@ export default function ResultPanel(props: ResultPanelProps) {
                   Level {level.id} · {level.title}
                </p>
             ) : null}
+            {banner}
             <p className={styles.score}>{resultScoreText(score, scoring, durationMs, status)}</p>
             {isNewBest ? <p className={styles.newBest}>New best!</p> : null}
             <p className={styles.best}>{resultBestText(best, scoring, durationMs, bestDurationMs, isNewBest)}</p>

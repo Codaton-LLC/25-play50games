@@ -1,0 +1,52 @@
+{
+   "slug": "paint-the-platforms",
+   "universe": "menu2",
+   "seed": 2525,
+   "assets": [
+      {
+         "id": "m2ArenaFloorTile",
+         "kind": "prop",
+         "mode": "text",
+         "prompt": "Square modular arena floor tile with softly beveled edges, neutral pale-grey material for runtime recoloring, premium clean low-poly geometry.",
+         "tier": "Gen-2.5-Medium",
+         "qualityOverride": 8000,
+         "attempts": 1,
+         "target": "paint-the-platforms",
+         "budget": {
+            "tris": 600,
+            "bytes": 200000
+         },
+         "textureSize": 512
+      },
+      {
+         "id": "m2PaintPickup",
+         "kind": "prop",
+         "mode": "text",
+         "prompt": "Paint pickup collectible: a glossy paint bucket blob, neutral white paint for runtime recoloring, premium mobile game look.",
+         "tier": "Gen-2.5-Medium",
+         "qualityOverride": 10000,
+         "attempts": 1,
+         "target": "paint-the-platforms",
+         "budget": {
+            "tris": 3000,
+            "bytes": 300000
+         },
+         "textureSize": 512
+      },
+      {
+         "id": "m2ArenaWall",
+         "kind": "prop",
+         "mode": "text",
+         "prompt": "Arena wall segment of smoked grey glass and slate with a recolorable light strip, premium mobile game look.",
+         "tier": "Gen-2.5-Medium",
+         "qualityOverride": 8000,
+         "attempts": 1,
+         "target": "paint-the-platforms",
+         "budget": {
+            "tris": 3000,
+            "bytes": 300000
+         },
+         "textureSize": 512
+      }
+   ]
+}

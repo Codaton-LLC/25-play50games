@@ -5,8 +5,9 @@ import SiteHeader from "@/components/Site/SiteHeader";
 import SiteFooter from "@/components/Site/SiteFooter";
 import ui from "@/components/Site/ui.module.css";
 import ArcadeGrid from "@/arcade3d/ui/ArcadeGrid";
-import { ARCADE_ENABLED, ARCADE_LEADERBOARD } from "@/arcade3d/flags";
-import { getLiveGames, getVisibleGames, getVisibleSections, scoringMetas } from "@/arcade3d/registry";
+import WorldMap from "@/arcade3d/menu2/worldMap/WorldMap";
+import { ARCADE_ENABLED, ARCADE_LEADERBOARD, ARCADE_PREVIEW } from "@/arcade3d/flags";
+import { gameCollection, getLiveGames, getVisibleGames, getVisibleSections, scoringMetas } from "@/arcade3d/registry";
 import GameMetas from "@/arcade3d/ui/GameMetas";
 import type { ArcadeCollection } from "@/arcade3d/types";
 import { arcadeJsonLd, serializeJsonLd } from "@/lib/seo/jsonLd";
@@ -83,6 +84,7 @@ const COLLECTION_INFO = [
    { id: "originals", title: "Originals", blurb: "The first ten games. Each one keeps its own best score." },
    { id: "adventure", title: "Adventure", blurb: "Explore, collect and escape in little toy worlds." },
    { id: "skill", title: "Skill", blurb: "Aim, time and steer: short runs that reward a steady hand." },
+   { id: "rollheroes", title: "Color Roll Heroes", blurb: "Five armoured heroes who roll into a ball: sky towers, caves and races." },
 ] as const satisfies ReadonlyArray<{ id: ArcadeCollection; title: string; blurb: string }>;
 
 // One grid with sections and filter chips; while only one collection shows (production today: the
@@ -90,7 +92,10 @@ const COLLECTION_INFO = [
 function ArcadeSections() {
    const games = getVisibleGames();
    const grouped = getVisibleSections().length > 1;
-   return <ArcadeGrid games={games} collections={grouped ? [...COLLECTION_INFO] : undefined} />;
+   // Menu 2 (Color Roll Heroes) is drawn as its world map on preview builds; the other sections keep the card grid
+   const heroes = games.filter((game) => gameCollection(game) === "rollheroes");
+   const sectionViews = ARCADE_PREVIEW && grouped && heroes.length > 0 ? { rollheroes: <WorldMap games={heroes} preview /> } : undefined;
+   return <ArcadeGrid games={games} collections={grouped ? [...COLLECTION_INFO] : undefined} sectionViews={sectionViews} />;
 }
 
 export default function ArcadePage() {

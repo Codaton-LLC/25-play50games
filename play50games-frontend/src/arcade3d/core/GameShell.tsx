@@ -52,6 +52,7 @@ import { InputProvider } from "./input";
 import TouchControls, { TouchControlsProbe, useBottomObstruction, useCoarsePointer } from "./TouchControls";
 import { SafeAreaProvider, createSafeAreaStore, useSafeAreaTracker } from "./safeArea";
 import ShellStage from "./ShellStage";
+import { IntroContext, ShellIntroDriver, introLevelName, type ShellIntroState } from "./intro/ShellIntro";
 import ErrorBoundary from "./ErrorBoundary";
 import { assetUrls, clearModelCache } from "./assets";
 import { initAudio, playSfx, toggleMuted, useMuted } from "./audio";
@@ -292,6 +293,19 @@ export default function GameShell({ meta, definition, exitHref = "/3d" }: GameSh
    );
    useEffect(() => () => tickets.reset(), [tickets]);
 
+   // the opt-in intro (definition.intro): Play mounts the driver; its onDone starts the run
+   const [introOn, setIntroOn] = useState(false);
+   const [introState, setIntroState] = useState<ShellIntroState | null>(null);
+   const introHero = useRef(0);
+   const finishIntro = useCallback(() => {
+      setIntroOn(false);
+      if (arcadeStore.getState().phase === "ready") arcadeStore.getState().start();
+   }, []);
+   useEffect(() => {
+      // an intro never outlives the start card (exit, a stage error, a level reconfigure)
+      if (phase !== "ready") setIntroOn(false);
+   }, [phase]);
+
    const pause = useCallback(() => arcadeStore.getState().pause(), []);
    const exit = useCallback(() => router.push(exitHref), [router, exitHref]);
 
@@ -395,9 +409,12 @@ export default function GameShell({ meta, definition, exitHref = "/3d" }: GameSh
             },
             scoring
          );
-         // time games: only a win has a finish time; a lost or timed-out run scores 0 and is not saved
-         const ranked = isRankedRun(scoring, state.endReason);
-         const run: FinishedRun = ranked ? normalized : { ...normalized, score: 0 };
+         // time games: only a win has a finish time; a lost or timed-out run scores 0 and is not saved;
+         // a local multiplayer run (definition.runPlayers > 1) is never saved or sent either
+         const players = Math.max(1, Math.floor(definition.runPlayers?.(state) ?? 1));
+         const ranked = isRankedRun(scoring, state.endReason, players);
+         const marked: FinishedRun = players > 1 ? { ...normalized, players } : normalized;
+         const run: FinishedRun = ranked ? marked : { ...marked, score: 0 };
          const runId = state.runId;
          const userId = userRef.current?.id ?? null;
          // frozen at the end: a ticket that arrives later is too late for this run
@@ -604,6 +621,7 @@ export default function GameShell({ meta, definition, exitHref = "/3d" }: GameSh
                         <SafeAreaProvider store={safeArea}>
                            {/* the Canvas bridges this one too: Scenes read useLevel() */}
                            <LevelProvider value={activeLevel}>
+                              <IntroContext.Provider value={introOn ? introState : null}>
                               <ShellStage
                                  key={stageKey}
                                  definition={definition}
@@ -612,6 +630,7 @@ export default function GameShell({ meta, definition, exitHref = "/3d" }: GameSh
                                  onContextLost={onContextLost}
                                  label={`${meta.title} game view`}
                               />
+                              </IntroContext.Provider>
                            </LevelProvider>
                         </SafeAreaProvider>
                      </ErrorBoundary>
@@ -651,7 +670,19 @@ export default function GameShell({ meta, definition, exitHref = "/3d" }: GameSh
 
                {!stageFailed && (phase === "loading" || webgl === "checking") && <LoadingOverlay title={meta.title} />}
 
-               {!stageFailed && phase === "ready" && webgl === "ok" && (
+               {!stageFailed && phase === "ready" && webgl === "ok" && introOn && (
+                  <ShellIntroDriver
+                     slug={meta.slug}
+                     level={levelId}
+                     title={meta.title}
+                     levelName={introLevelName(meta, levelId)}
+                     hero={introHero}
+                     onState={setIntroState}
+                     onDone={finishIntro}
+                  />
+               )}
+
+               {!stageFailed && phase === "ready" && webgl === "ok" && !introOn && (
                   <StartCard
                      meta={meta}
                      definition={definition}
@@ -660,7 +691,10 @@ export default function GameShell({ meta, definition, exitHref = "/3d" }: GameSh
                      leaderboard={leaderboard}
                      onPlay={() => {
                         if (levelsOn) writeLastLevel(meta.slug, levelId);
-                        arcadeStore.getState().start();
+                        if (definition.intro) {
+                           introHero.current = 0;
+                           setIntroOn(true);
+                        } else arcadeStore.getState().start();
                      }}
                      levels={
                         levelsOn
@@ -710,6 +744,13 @@ export default function GameShell({ meta, definition, exitHref = "/3d" }: GameSh
                            isNewBest={result?.isNewBest ?? false}
                            status={outcome.saving ? null : result?.status ?? null}
                            scoring={resultScoring}
+                           banner={
+                              definition.ResultExtra ? (
+                                 <LevelProvider value={activeLevel}>
+                                    <definition.ResultExtra />
+                                 </LevelProvider>
+                              ) : undefined
+                           }
                            onRetry={() => arcadeStore.getState().restart()}
                            onExit={exit}
                            level={

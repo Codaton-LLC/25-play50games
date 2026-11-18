@@ -3,7 +3,7 @@
 
 /**
  * All 50 Menu 1 games: the 10 originals in rollout order, the expansion (docs/arcade-expansion/02 §C.1),
- * then the 20 new Menu 1 games 31-50 (docs/menu1-new/specs-31-40.md, specs-41-50.md).
+ * then the 20 new Menu 1 games 31-50 (docs/menu1-new/specs-31-40.md, specs-41-50.md), then Menu 2 (Color Roll Heroes).
  */
 export const ARCADE_SLUGS = [
    "robot-collector",
@@ -56,6 +56,57 @@ export const ARCADE_SLUGS = [
    "toy-store-night-shift",
    "aquarium-cleaner",
    "postman-3d",
+   // Menu 2 (Color Roll Heroes): the vertical slice, docs/master-plan/PLAY50_MENU_2_50_COLOR_ROLL_HEROES_FULL.md
+   "sky-tower-jump",
+   "rooftop-roll-climb",
+   "flooded-ruins-escape",
+   "lava-pillar-jump",
+   "cloud-hopper",
+   "plate-surf",
+   "zipline-rush",
+   "ring-jump-challenge",
+   "wind-tunnel-escape",
+   "roll-cannon-jump",
+   "color-city-sprint",
+   "color-door-sprint",
+   "sky-hook-swing",
+   "mine-tunnel-run",
+   "robot-factory-run",
+   "dragon-cave-rush",
+   "temple-lantern-jump",
+   "jungle-vine-jump",
+   "temple-coin-rush",
+   "wall-run-temple",
+   "spin-pole-climb",
+   "temple-gong-timing",
+   "disc-target-throw",
+   "tightrope-path",
+   "ice-peak-jumper",
+   "toy-room-run",
+   "candy-world-runner",
+   "plate-bounce-arena",
+   "color-rail-grind",
+   "snow-slide-dash",
+   "gem-collector-3d",
+   "magnet-coin-lab",
+   "neon-cube-jump",
+   "space-pod-jump",
+   "alien-lane-escape",
+   "portal-hop",
+   "crystal-tower",
+   "mirror-dash",
+   "laser-maze-run",
+   "crystal-cave-switch",
+   "roll-dash",
+   "color-match-jump",
+   "switch-color-hero",
+   "paint-the-platforms",
+   "color-arena-survival",
+   "energy-core-hunt",
+   "color-boss-tower",
+   "color-bridge-builder",
+   "color-orb-defense",
+   "ultimate-color-trial",
 ] as const;
 
 export type ArcadeSlug = (typeof ARCADE_SLUGS)[number];
@@ -70,12 +121,14 @@ export type AgentOwner = "claude" | "cursor" | "codex" | "antigravity" | "kimi";
 export type ArcadeStatus = "live" | "soon" | "dev";
 
 /** Sections of /3d. Omitted on the first ten = "originals". */
-export type ArcadeCollection = "originals" | "adventure" | "skill";
+export type ArcadeCollection = "originals" | "adventure" | "skill" | "rollheroes";
 
 export const ARCADE_COLLECTIONS: ReadonlyArray<{ id: ArcadeCollection; title: string }> = [
    { id: "originals", title: "Originals" },
    { id: "adventure", title: "Adventure" },
    { id: "skill", title: "Skill" },
+   // Menu 2: every game here is "dev" until the user signs off, so the section shows only on preview builds
+   { id: "rollheroes", title: "Color Roll Heroes" },
 ];
 
 export type ScoreKind = "points" | "time";

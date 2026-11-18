@@ -14,13 +14,19 @@ import { hasModel } from "./core/modelManifest";
 
 const ORIGINALS = ARCADE_SLUGS.slice(0, 10);
 /** Menu 1 games 31-50 (docs/menu1-new/specs-31-40.md, specs-41-50.md). Every Menu 1 game is live (user, 2026-11-17: "all of Menu 1"). */
-const MENU1_NEW = ARCADE_SLUGS.slice(30);
+const MENU1_NEW = ARCADE_SLUGS.slice(30, 50);
 
-describe("registry for 50 games", () => {
-   it("has 50 slugs, each with one meta, a unique order and a loader", () => {
-      expect(ARCADE_SLUGS).toHaveLength(50);
-      expect(new Set(ARCADE_SLUGS).size).toBe(50);
-      expect(new Set(ARCADE_GAMES.map((g) => g.order)).size).toBe(50);
+/** Menu 2 (Color Roll Heroes): the vertical slice so far, after the 50 Menu 1 games, hidden ("dev") until the user signs off. */
+/** Owners other than Cursor in the Menu 2 slice. */
+const OWNER: Record<string, string> = { "sky-tower-jump": "claude", "plate-surf": "claude", "zipline-rush": "codex", "ring-jump-challenge": "claude", "wind-tunnel-escape": "claude", "roll-cannon-jump": "claude", "color-city-sprint": "claude", "color-door-sprint": "claude", "mine-tunnel-run": "claude", "robot-factory-run": "codex", "dragon-cave-rush": "claude", "temple-lantern-jump": "claude", "jungle-vine-jump": "claude", "temple-coin-rush": "claude", "wall-run-temple": "claude", "spin-pole-climb": "claude", "temple-gong-timing": "claude", "disc-target-throw": "claude", "tightrope-path": "claude", "ice-peak-jumper": "claude", "toy-room-run": "claude", "candy-world-runner": "claude", "plate-bounce-arena": "claude", "color-rail-grind": "claude", "snow-slide-dash": "codex", "gem-collector-3d": "claude", "magnet-coin-lab": "claude", "neon-cube-jump": "claude", "space-pod-jump": "claude", "alien-lane-escape": "claude", "portal-hop": "claude", "crystal-tower": "claude", "mirror-dash": "claude", "laser-maze-run": "claude", "crystal-cave-switch": "claude", "roll-dash": "claude", "color-match-jump": "claude", "switch-color-hero": "claude", "paint-the-platforms": "claude", "color-arena-survival": "claude", "energy-core-hunt": "claude", "color-boss-tower": "claude", "color-bridge-builder": "claude", "color-orb-defense": "claude", "ultimate-color-trial": "claude" };
+const MENU2 = ["sky-tower-jump", "rooftop-roll-climb", "flooded-ruins-escape", "lava-pillar-jump", "cloud-hopper", "plate-surf", "zipline-rush", "ring-jump-challenge", "wind-tunnel-escape", "roll-cannon-jump", "color-city-sprint", "color-door-sprint", "sky-hook-swing", "mine-tunnel-run", "robot-factory-run", "dragon-cave-rush", "temple-lantern-jump", "jungle-vine-jump", "temple-coin-rush", "wall-run-temple", "spin-pole-climb", "temple-gong-timing", "disc-target-throw", "tightrope-path", "ice-peak-jumper", "toy-room-run", "candy-world-runner", "plate-bounce-arena", "color-rail-grind", "snow-slide-dash", "gem-collector-3d", "magnet-coin-lab", "neon-cube-jump", "space-pod-jump", "alien-lane-escape", "portal-hop", "crystal-tower", "mirror-dash", "laser-maze-run", "crystal-cave-switch", "roll-dash", "color-match-jump", "switch-color-hero", "paint-the-platforms", "color-arena-survival", "energy-core-hunt", "color-boss-tower", "color-bridge-builder", "color-orb-defense", "ultimate-color-trial"];
+
+describe("registry for 50 Menu 1 games plus Menu 2", () => {
+   it("has 50 Menu 1 slugs plus the Menu 2 ones, each with one meta, a unique order and a loader", () => {
+      expect(ARCADE_SLUGS).toHaveLength(50 + MENU2.length);
+      expect(ARCADE_SLUGS.slice(50)).toEqual(MENU2);
+      expect(new Set(ARCADE_SLUGS).size).toBe(50 + MENU2.length);
+      expect(new Set(ARCADE_GAMES.map((g) => g.order)).size).toBe(50 + MENU2.length);
       expect(Object.keys(GAME_LOADERS).sort()).toEqual([...ARCADE_SLUGS].sort());
       for (const slug of ARCADE_SLUGS) expect(getGameMeta(slug)?.slug).toBe(slug);
    });
@@ -47,7 +53,7 @@ describe("registry for 50 games", () => {
    });
 
    it("adds Menu 1 games 31-50 in plan order, all live, 10 per collection, five per builder", () => {
-      const fresh = ARCADE_GAMES.slice(30);
+      const fresh = ARCADE_GAMES.slice(30, 50);
       expect(fresh.map((g) => g.slug)).toEqual(MENU1_NEW);
       expect(fresh.map((g) => g.order)).toEqual(MENU1_NEW.map((_s, i) => 31 + i));
       expect(MENU1_NEW[0]).toBe("firefighter-rescue");
@@ -63,9 +69,25 @@ describe("registry for 50 games", () => {
    });
 });
 
+describe("Menu 2", () => {
+   it("keeps its games last, in dev, in the rollheroes collection", () => {
+      const menu2 = ARCADE_GAMES.slice(50);
+      expect(menu2.map((g) => g.slug)).toEqual(MENU2);
+      expect(menu2.map((g) => g.order)).toEqual([51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100]);
+      expect(menu2.map((g) => g.owner)).toEqual(["claude", "cursor", "cursor", "cursor", "cursor", "claude", "codex", "claude", "claude", "claude", "claude", "claude", "cursor", "claude", "codex", "claude", "claude", "claude", "claude", "claude", "claude", "claude", "claude", "claude", "claude", "claude", "claude", "claude", "claude", "codex", "claude", "claude", "claude", "claude", "claude", "claude", "claude", "claude", "claude", "claude", "claude", "claude", "claude", "claude", "claude", "claude", "claude", "claude", "claude", "claude"]);
+      for (const g of menu2) {
+         expect(g.status).toBe("dev");
+         expect(g.collection).toBe("rollheroes");
+         expect(g.owner).toBe(OWNER[g.slug] ?? "cursor");
+         expect(isGameVisible(g, false)).toBe(false);
+         expect(isGameVisible(g, true)).toBe(true);
+      }
+   });
+});
+
 describe("visibility of dev games", () => {
    it("without the preview flag shows all 50 Menu 1 games (every one is live) in three sections", () => {
-      expect(getVisibleGames(false).map((g) => g.slug)).toEqual(ARCADE_GAMES.map((g) => g.slug));
+      expect(getVisibleGames(false).map((g) => g.slug)).toEqual(ARCADE_GAMES.slice(0, 50).map((g) => g.slug));
       expect(isGameVisible(getGameMeta("treasure-island")!, false)).toBe(true);
       expect(isGameVisible(getGameMeta("robot-collector")!, false)).toBe(true);
       for (const slug of MENU1_NEW) expect(isGameVisible(getGameMeta(slug)!, false), slug).toBe(true);
@@ -77,8 +99,8 @@ describe("visibility of dev games", () => {
       ]);
    });
 
-   it("with the preview flag shows all 50 in three sections", () => {
-      expect(getVisibleGames(true)).toHaveLength(50);
+   it("with the preview flag shows all 50 Menu 1 games plus Menu 2 in four sections", () => {
+      expect(getVisibleGames(true)).toHaveLength(50 + MENU2.length);
       expect(isGameVisible(getGameMeta("treasure-island")!, true)).toBe(true);
       expect(isGameVisible(getGameMeta("firefighter-rescue")!, true)).toBe(true);
       const sections = getVisibleSections(true);
@@ -86,6 +108,7 @@ describe("visibility of dev games", () => {
          ["originals", 10],
          ["adventure", 20],
          ["skill", 20],
+         ["rollheroes", MENU2.length],
       ]);
    });
 });

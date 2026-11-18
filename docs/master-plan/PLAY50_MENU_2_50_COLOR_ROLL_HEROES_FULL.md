@@ -309,12 +309,14 @@ Large stylized ancient stone water channel section, weathered sandstone, modular
 
 ## Levels
 
-### Level 1 — Drain Entry
+### Level 1 — Ruined Gate
+
+> **Course (implemented):** a gentle **switchback** of stone ledges that doubles back twice; the water climbs 0.12 m/s.
 
 - **Difficulty:** Tutorial / Easy
-- **Environment / visual:** **Drain Entry** using the same art direction as Flooded Ruins Escape; color-coded gameplay elements must be readable at a glance.
+- **Environment / visual:** **Ruined Gate** using the same art direction as Flooded Ruins Escape; color-coded gameplay elements must be readable at a glance.
 - **Map size:** Compact
-- **Layout:** Compact vertical route in **Drain Entry** with 10 primary landing surfaces and increasing moving/failing platform density.
+- **Layout:** Compact vertical route in **Ruined Gate** with 10 primary landing surfaces and increasing moving/failing platform density.
 - **Player start:** Safe start platform/zone with the first route or color objective visible.
 - **Main objective:** Reach the exit before the rising water catches the player; pass 3 vertical sections.
 - **Required 3D assets:** Stone water channel, brick ledge, stone lever, stone platform, water hazard. Recolor neutral assets at runtime whenever possible.
@@ -328,12 +330,14 @@ Large stylized ancient stone water channel section, weathered sandstone, modular
 - **Progression:** Teach jump distance and safe landings.
 - **Replay goal:** Beat personal best time/height/score and improve collectible or combo performance.
 
-### Level 2 — Pipe Maze
+### Level 2 — Flooded Hall
+
+> **Course (implemented):** a **switchback** hall with sliding stones; the water climbs 0.2 m/s.
 
 - **Difficulty:** Easy
-- **Environment / visual:** **Pipe Maze** using the same art direction as Flooded Ruins Escape; color-coded gameplay elements must be readable at a glance.
+- **Environment / visual:** **Flooded Hall** using the same art direction as Flooded Ruins Escape; color-coded gameplay elements must be readable at a glance.
 - **Map size:** Small–Medium
-- **Layout:** Small–Medium vertical route in **Pipe Maze** with 14 primary landing surfaces and increasing moving/failing platform density.
+- **Layout:** Small–Medium vertical route in **Flooded Hall** with 15 primary landing surfaces and increasing moving/failing platform density.
 - **Player start:** Safe start platform/zone with the first route or color objective visible.
 - **Main objective:** Reach the exit before the rising water catches the player; pass 4 vertical sections.
 - **Required 3D assets:** Stone water channel, brick ledge, stone lever, stone platform, water hazard. Recolor neutral assets at runtime whenever possible.
@@ -347,12 +351,14 @@ Large stylized ancient stone water channel section, weathered sandstone, modular
 - **Progression:** Add moving platforms or wider gaps.
 - **Replay goal:** Beat personal best time/height/score and improve collectible or combo performance.
 
-### Level 3 — Valve Shaft
+### Level 3 — Sunken Stairs
+
+> **Course (implemented):** a **spiral** of ledges round the flooded shaft, with crumbling stones, slick stone and water jets; the water climbs 0.4 m/s.
 
 - **Difficulty:** Medium
-- **Environment / visual:** **Valve Shaft** using the same art direction as Flooded Ruins Escape; color-coded gameplay elements must be readable at a glance.
+- **Environment / visual:** **Sunken Stairs** using the same art direction as Flooded Ruins Escape; color-coded gameplay elements must be readable at a glance.
 - **Map size:** Medium
-- **Layout:** Medium vertical route in **Valve Shaft** with 18 primary landing surfaces and increasing moving/failing platform density.
+- **Layout:** Medium vertical route in **Sunken Stairs** with 19 primary landing surfaces and increasing moving/failing platform density.
 - **Player start:** Safe start platform/zone with the first route or color objective visible.
 - **Main objective:** Reach the exit before the rising water catches the player; pass 5 vertical sections.
 - **Required 3D assets:** Stone water channel, brick ledge, stone lever, stone platform, water hazard. Recolor neutral assets at runtime whenever possible.
@@ -366,12 +372,14 @@ Large stylized ancient stone water channel section, weathered sandstone, modular
 - **Progression:** Add disappearing/slippery/animated surfaces.
 - **Replay goal:** Beat personal best time/height/score and improve collectible or combo performance.
 
-### Level 4 — Flood Rise
+### Level 4 — Rising Water
+
+> **Course (implemented):** a tighter **spiral** with sliding and crumbling stones and jets; the water climbs 0.6 m/s.
 
 - **Difficulty:** Hard
-- **Environment / visual:** **Flood Rise** using the same art direction as Flooded Ruins Escape; color-coded gameplay elements must be readable at a glance.
+- **Environment / visual:** **Rising Water** using the same art direction as Flooded Ruins Escape; color-coded gameplay elements must be readable at a glance.
 - **Map size:** Large
-- **Layout:** Large vertical route in **Flood Rise** with 22 primary landing surfaces and increasing moving/failing platform density.
+- **Layout:** Large vertical route in **Rising Water** with 24 primary landing surfaces and increasing moving/failing platform density.
 - **Player start:** Safe start platform/zone with the first route or color objective visible.
 - **Main objective:** Reach the exit before the rising water catches the player; pass 6 vertical sections.
 - **Required 3D assets:** Stone water channel, brick ledge, stone lever, stone platform, water hazard. Recolor neutral assets at runtime whenever possible.
@@ -385,12 +393,14 @@ Large stylized ancient stone water channel section, weathered sandstone, modular
 - **Progression:** Mix hazards with tighter platform spacing.
 - **Replay goal:** Beat personal best time/height/score and improve collectible or combo performance.
 
-### Level 5 — Final Escape
+### Level 5 — Temple Escape
+
+> **Course (implemented):** a long narrowing **spiral** round the shaft with every hazard; the water climbs 0.8 m/s. Stone levers (checkpoints) briefly sink the water in every level.
 
 - **Difficulty:** Challenge
-- **Environment / visual:** **Final Escape** using the same art direction as Flooded Ruins Escape; color-coded gameplay elements must be readable at a glance.
+- **Environment / visual:** **Temple Escape** using the same art direction as Flooded Ruins Escape; color-coded gameplay elements must be readable at a glance.
 - **Map size:** Large / Dense
-- **Layout:** Large / Dense vertical route in **Final Escape** with 28 primary landing surfaces and increasing moving/failing platform density.
+- **Layout:** Large / Dense vertical route in **Temple Escape** with 30 primary landing surfaces and increasing moving/failing platform density.
 - **Player start:** Safe start platform/zone with the first route or color objective visible.
 - **Main objective:** Reach the exit before the rising water catches the player; pass 8 vertical sections.
 - **Required 3D assets:** Stone water channel, brick ledge, stone lever, stone platform, water hazard. Recolor neutral assets at runtime whenever possible.

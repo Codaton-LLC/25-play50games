@@ -54,7 +54,58 @@ import { magicCarpetRideMeta } from "./games/magic-carpet-ride/meta";
 import { toyStoreNightShiftMeta } from "./games/toy-store-night-shift/meta";
 import { aquariumCleanerMeta } from "./games/aquarium-cleaner/meta";
 import { postman3dMeta } from "./games/postman-3d/meta";
+import { skyTowerJumpMeta } from "./games/sky-tower-jump/meta";
+import { rooftopRollClimbMeta } from "./games/rooftop-roll-climb/meta";
+import { floodedRuinsEscapeMeta } from "./games/flooded-ruins-escape/meta";
+import { lavaPillarJumpMeta } from "./games/lava-pillar-jump/meta";
+import { ziplineRushMeta } from "./games/zipline-rush/meta";
+import { colorDoorSprintMeta } from "./games/color-door-sprint/meta";
+import { templeCoinRushMeta } from "./games/temple-coin-rush/meta";
+import { colorRailGrindMeta } from "./games/color-rail-grind/meta";
+import { magnetCoinLabMeta } from "./games/magnet-coin-lab/meta";
+import { cloudHopperMeta } from "./games/cloud-hopper/meta";
+import { plateSurfMeta } from "./games/plate-surf/meta";
+import { robotFactoryRunMeta } from "./games/robot-factory-run/meta";
+import { ringJumpChallengeMeta } from "./games/ring-jump-challenge/meta";
+import { windTunnelEscapeMeta } from "./games/wind-tunnel-escape/meta";
+import { rollCannonJumpMeta } from "./games/roll-cannon-jump/meta";
+import { colorCitySprintMeta } from "./games/color-city-sprint/meta";
+import { templeLanternJumpMeta } from "./games/temple-lantern-jump/meta";
+import { toyRoomRunMeta } from "./games/toy-room-run/meta";
+import { gemCollector3dMeta } from "./games/gem-collector-3d/meta";
+import { jungleVineJumpMeta } from "./games/jungle-vine-jump/meta";
+import { icePeakJumperMeta } from "./games/ice-peak-jumper/meta";
+import { candyWorldRunnerMeta } from "./games/candy-world-runner/meta";
+import { alienLaneEscapeMeta } from "./games/alien-lane-escape/meta";
+import { laserMazeRunMeta } from "./games/laser-maze-run/meta";
+import { mirrorDashMeta } from "./games/mirror-dash/meta";
+import { dragonCaveRushMeta } from "./games/dragon-cave-rush/meta";
+import { skyHookSwingMeta } from "./games/sky-hook-swing/meta";
+import { tightropePathMeta } from "./games/tightrope-path/meta";
+import { discTargetThrowMeta } from "./games/disc-target-throw/meta";
+import { wallRunTempleMeta } from "./games/wall-run-temple/meta";
+import { plateBounceArenaMeta } from "./games/plate-bounce-arena/meta";
+import { mineTunnelRunMeta } from "./games/mine-tunnel-run/meta";
+import { spinPoleClimbMeta } from "./games/spin-pole-climb/meta";
+import { templeGongTimingMeta } from "./games/temple-gong-timing/meta";
+import { crystalTowerMeta } from "./games/crystal-tower/meta";
+import { spacePodJumpMeta } from "./games/space-pod-jump/meta";
+import { neonCubeJumpMeta } from "./games/neon-cube-jump/meta";
 
+import { snowSlideDashMeta } from "./games/snow-slide-dash/meta";
+import { portalHopMeta } from "./games/portal-hop/meta";
+import { colorArenaSurvivalMeta } from "./games/color-arena-survival/meta";
+import { paintThePlatformsMeta } from "./games/paint-the-platforms/meta";
+import { rollDashMeta } from "./games/roll-dash/meta";
+import { crystalCaveSwitchMeta } from "./games/crystal-cave-switch/meta";
+import { colorBridgeBuilderMeta } from "./games/color-bridge-builder/meta";
+import { switchColorHeroMeta } from "./games/switch-color-hero/meta";
+import { colorMatchJumpMeta } from "./games/color-match-jump/meta";
+import { energyCoreHuntMeta } from "./games/energy-core-hunt/meta";
+import { colorBossTowerMeta } from "./games/color-boss-tower/meta";
+import { ultimateColorTrialMeta } from "./games/ultimate-color-trial/meta";
+
+import { colorOrbDefenseMeta } from "./games/color-orb-defense/meta";
 export const ARCADE_GAMES: ArcadeGameMeta[] = [
    robotCollectorMeta,
    foodCatcherMeta,
@@ -106,6 +157,56 @@ export const ARCADE_GAMES: ArcadeGameMeta[] = [
    toyStoreNightShiftMeta,
    aquariumCleanerMeta,
    postman3dMeta,
+   skyTowerJumpMeta,
+   rooftopRollClimbMeta,
+   floodedRuinsEscapeMeta,
+   lavaPillarJumpMeta,
+   cloudHopperMeta,
+   plateSurfMeta,
+   ziplineRushMeta,
+   ringJumpChallengeMeta,
+   windTunnelEscapeMeta,
+   rollCannonJumpMeta,
+   robotFactoryRunMeta,
+   colorCitySprintMeta,
+   templeLanternJumpMeta,
+   toyRoomRunMeta,
+   gemCollector3dMeta,
+   jungleVineJumpMeta,
+   icePeakJumperMeta,
+   candyWorldRunnerMeta,
+   dragonCaveRushMeta,
+   colorDoorSprintMeta,
+   skyHookSwingMeta,
+   tightropePathMeta,
+   discTargetThrowMeta,
+   wallRunTempleMeta,
+   plateBounceArenaMeta,
+   templeCoinRushMeta,
+   snowSlideDashMeta,
+   mineTunnelRunMeta,
+   colorRailGrindMeta,
+   magnetCoinLabMeta,
+   alienLaneEscapeMeta,
+   laserMazeRunMeta,
+   mirrorDashMeta,
+   spinPoleClimbMeta,
+   templeGongTimingMeta,
+   crystalTowerMeta,
+   spacePodJumpMeta,
+   neonCubeJumpMeta,
+   portalHopMeta,
+   colorArenaSurvivalMeta,
+   paintThePlatformsMeta,
+   switchColorHeroMeta,
+   rollDashMeta,
+   crystalCaveSwitchMeta,
+   colorOrbDefenseMeta,
+   colorBridgeBuilderMeta,
+   colorMatchJumpMeta,
+   energyCoreHuntMeta,
+   colorBossTowerMeta,
+   ultimateColorTrialMeta,
 ].sort((a, b) => a.order - b.order);
 
 // Client code reads metas through metaSource.ts; wherever the registry is loaded, it is filled.

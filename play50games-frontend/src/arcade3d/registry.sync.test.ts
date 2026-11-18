@@ -17,7 +17,10 @@ const wp = JSON.parse(fs.readFileSync(WP_JSON, "utf8")) as {
 describe("arcade registry", () => {
    it("has every slug exactly once, in order", () => {
       expect(ARCADE_GAMES.map((g) => g.slug)).toEqual([...ARCADE_SLUGS]);
-      expect(ARCADE_GAMES.map((g) => g.order)).toEqual(ARCADE_SLUGS.map((_s, i) => i + 1));
+      // the first 50 fill 1-50; Menu 2 keeps reserved slots (roll-cannon-jump is 60 while 59 is being built)
+      expect(ARCADE_GAMES.slice(0, 50).map((g) => g.order)).toEqual(ARCADE_SLUGS.slice(0, 50).map((_s, i) => i + 1));
+      const orders = ARCADE_GAMES.map((g) => g.order);
+      for (let i = 1; i < orders.length; i++) expect(orders[i]).toBeGreaterThan(orders[i - 1]);
    });
 
    it("WordPress arcade-games.json has the same games", () => {

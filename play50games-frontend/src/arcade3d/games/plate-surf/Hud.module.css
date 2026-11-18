@@ -1,0 +1,202 @@
+/* Plate Surf HUD (the Menu 2 HUD look, after cloud-hopper): deep navy pills with a light edge, bold
+   white numbers, a gold level line; the speed meter (it flashes on a pump), the curl meter (red as the
+   curl closes) and the hearts. Placement is menu2/hud HudStack. */
+.pill,
+.clock {
+   display: inline-flex;
+   align-items: center;
+   gap: 8px;
+   min-width: 92px;
+   padding: 6px 14px 6px 8px;
+   border: 2px solid rgba(255, 255, 255, 0.18);
+   border-radius: 999px;
+   background: linear-gradient(180deg, rgba(23, 37, 84, 0.88), rgba(15, 23, 60, 0.88));
+   box-shadow: 0 4px 14px rgba(8, 15, 40, 0.35);
+   color: #fff;
+}
+
+.value {
+   font-size: 1.25rem;
+   font-weight: 800;
+   letter-spacing: 0.01em;
+   line-height: 1;
+   font-variant-numeric: tabular-nums;
+   text-shadow: 0 2px 0 rgba(0, 0, 0, 0.25);
+}
+
+.orb {
+   width: 26px;
+   height: 26px;
+   border-radius: 50%;
+   background: radial-gradient(circle at 35% 30%, #f0fdff 0, #67e8f9 35%, #0891b2 72%, #155e75 100%);
+   box-shadow: 0 0 10px rgba(103, 232, 249, 0.75), inset 0 -2px 3px rgba(8, 60, 80, 0.5);
+}
+
+.icon {
+   width: 24px;
+   height: 24px;
+   flex: none;
+}
+
+.banner {
+   display: flex;
+   flex-direction: column;
+   align-items: center;
+   padding: 6px 22px 7px;
+   border: 2px solid rgba(255, 255, 255, 0.2);
+   border-radius: 16px;
+   background: linear-gradient(180deg, rgba(23, 37, 84, 0.9), rgba(15, 23, 60, 0.9));
+   box-shadow: 0 6px 18px rgba(8, 15, 40, 0.35);
+   white-space: nowrap;
+}
+
+.title {
+   color: #fff;
+   font-size: 1.2rem;
+   font-weight: 800;
+   line-height: 1.15;
+}
+
+.level {
+   color: #ffd257;
+   font-size: 0.85rem;
+   font-weight: 700;
+   line-height: 1.2;
+}
+
+.clock {
+   min-width: 0;
+   padding: 4px 14px 4px 8px;
+}
+
+.swatch {
+   width: 22px;
+   height: 22px;
+   flex: none;
+   border-radius: 50%;
+   box-shadow: inset 0 -2px 3px rgba(0, 0, 0, 0.35), 0 0 8px rgba(255, 255, 255, 0.35);
+}
+
+/* narrow phones: a smaller banner between the left pills and the shell's buttons */
+@media (max-width: 520px) {
+   .banner {
+      padding: 4px 12px 5px;
+      border-radius: 12px;
+   }
+   .title {
+      font-size: 0.95rem;
+   }
+   .level {
+      font-size: 0.7rem;
+   }
+   .value {
+      font-size: 1.05rem;
+   }
+   .pill {
+      min-width: 76px;
+      padding: 4px 12px 4px 6px;
+   }
+   .orb {
+      width: 22px;
+      height: 22px;
+   }
+}
+
+/* the start card's local multiplayer entry (menu2/multiplayer; hidden on phones by device.ts) */
+.mpBtn {
+   min-height: 44px;
+   margin-left: 4px;
+   padding: 0 12px;
+   border: 2px solid #ffd257;
+   border-radius: 12px;
+   background: rgba(255, 210, 87, 0.14);
+   color: #fff;
+   font: inherit;
+   font-size: 0.78rem;
+   font-weight: 800;
+   white-space: nowrap;
+   cursor: pointer;
+}
+
+.mpBtn:focus-visible {
+   outline: 3px solid #ffd257;
+   outline-offset: 2px;
+}
+
+
+/* the speed meter: aqua, the pump's flash; the curl meter: from calm teal to red as it closes */
+.meter {
+   position: relative;
+   width: 74px;
+   height: 9px;
+   border-radius: 999px;
+   background: rgba(255, 255, 255, 0.2);
+   overflow: hidden;
+}
+
+.speedFill,
+.curlFill {
+   position: absolute;
+   inset: 0 auto 0 0;
+   border-radius: 999px;
+   transition: width 90ms linear, background-color 200ms linear;
+}
+
+.speedFill {
+   background: linear-gradient(90deg, #22d3ee, #a5f3fc);
+}
+
+.speedTop {
+   background: linear-gradient(90deg, #fde68a, #fff7d6);
+   box-shadow: 0 0 8px rgba(253, 230, 138, 0.9);
+}
+
+.curlFill {
+   background: #2dd4bf;
+}
+
+.curlNear {
+   background: #f59e0b;
+}
+
+.curlDanger {
+   background: #ef4444;
+   animation: throb 0.4s ease-in-out infinite alternate;
+}
+
+@keyframes throb {
+   from {
+      opacity: 0.65;
+   }
+   to {
+      opacity: 1;
+   }
+}
+
+.hearts {
+   display: inline-flex;
+   gap: 2px;
+   font-size: 1.05rem;
+   line-height: 1;
+}
+
+.heartOn {
+   color: #fb7185;
+   text-shadow: 0 0 6px rgba(251, 113, 133, 0.7);
+}
+
+.heartOff {
+   color: rgba(255, 255, 255, 0.25);
+}
+
+.unit {
+   font-size: 0.72rem;
+   font-weight: 700;
+   opacity: 0.8;
+}
+
+@media (prefers-reduced-motion: reduce) {
+   .curlDanger {
+      animation: none;
+   }
+}

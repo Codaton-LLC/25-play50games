@@ -1,0 +1,174 @@
+/* The shared Menu 2 hero picker: fixed top-right above the shell's overlays (start card, pause,
+   result: z-index 20-30), clear of the start card's top-left back link. Wide: the row is open.
+   Narrow (<= 700 px): a chip that opens a sheet of 44 px+ cards under it. */
+.picker {
+   position: fixed;
+   z-index: 40;
+   top: max(8px, env(safe-area-inset-top, 0px));
+   right: max(8px, env(safe-area-inset-right, 0px));
+   display: flex;
+   flex-direction: column;
+   align-items: flex-end;
+   gap: 6px;
+   max-width: calc(100vw - 16px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px));
+   pointer-events: none;
+}
+
+.chip,
+.row {
+   pointer-events: auto;
+   border: 2px solid rgba(255, 255, 255, 0.2);
+   background: linear-gradient(180deg, rgba(23, 37, 84, 0.95), rgba(15, 23, 60, 0.95));
+   box-shadow: 0 8px 22px rgba(8, 15, 40, 0.4);
+   color: #fff;
+}
+
+.chip {
+   display: none;
+   align-items: center;
+   gap: 8px;
+   min-height: 44px;
+   padding: 4px 12px 4px 8px;
+   border-radius: 999px;
+   font: inherit;
+   cursor: pointer;
+   -webkit-tap-highlight-color: transparent;
+}
+
+.chipText {
+   display: flex;
+   flex-direction: column;
+   align-items: flex-start;
+   line-height: 1.1;
+}
+
+.chipLabel {
+   color: #ffd257;
+   font-size: 0.62rem;
+   font-weight: 800;
+   letter-spacing: 0.04em;
+   text-transform: uppercase;
+}
+
+.chipName {
+   font-size: 0.9rem;
+   font-weight: 800;
+}
+
+.caret {
+   width: 12px;
+   height: 12px;
+   transition: transform 0.15s ease;
+}
+
+.sheetOpen .caret {
+   transform: rotate(180deg);
+}
+
+.row {
+   display: flex;
+   align-items: center;
+   justify-content: flex-end;
+   gap: 6px;
+   max-width: min(560px, calc(100vw - 200px));
+   box-sizing: border-box;
+   padding: 4px 8px 4px 12px;
+   border-radius: 999px;
+}
+
+.label {
+   color: #ffd257;
+   font-size: 0.75rem;
+   font-weight: 800;
+   letter-spacing: 0.04em;
+   text-transform: uppercase;
+   white-space: nowrap;
+}
+
+.hero,
+.heroOn {
+   display: flex;
+   flex-direction: column;
+   align-items: center;
+   justify-content: center;
+   min-width: 52px;
+   min-height: 44px;
+   padding: 2px 6px;
+   border: 2px solid transparent;
+   border-radius: 12px;
+   background: transparent;
+   color: #fff;
+   font: inherit;
+   cursor: pointer;
+   -webkit-tap-highlight-color: transparent;
+}
+
+.heroOn {
+   border-color: #ffd257;
+   background: rgba(255, 210, 87, 0.14);
+}
+
+.hero:focus-visible,
+.heroOn:focus-visible,
+.chip:focus-visible {
+   outline: 3px solid #ffd257;
+   outline-offset: 2px;
+}
+
+.swatch {
+   flex: none;
+   width: 16px;
+   height: 16px;
+   border: 2px solid rgba(255, 255, 255, 0.85);
+   border-radius: 50%;
+   box-shadow: 0 0 8px rgba(255, 255, 255, 0.35);
+}
+
+.name {
+   font-size: 0.72rem;
+   font-weight: 800;
+   line-height: 1.1;
+}
+
+.power {
+   font-size: 0.62rem;
+   font-weight: 700;
+   line-height: 1.1;
+   opacity: 0.8;
+}
+
+/* phones and narrow windows: the chip, and the heroes in a sheet under it */
+@media (max-width: 700px) {
+   .chip {
+      display: inline-flex;
+   }
+   .row {
+      display: none;
+      flex-wrap: wrap;
+      justify-content: center;
+      width: min(340px, calc(100vw - 16px));
+      max-width: none;
+      gap: 8px;
+      padding: 10px;
+      border-radius: 18px;
+   }
+   .sheetOpen .row {
+      display: flex;
+   }
+   .label {
+      flex-basis: 100%;
+      text-align: center;
+   }
+   .hero,
+   .heroOn {
+      width: calc((100% - 16px) / 3);
+      min-height: 56px;
+      gap: 2px;
+   }
+   .name {
+      font-size: 0.85rem;
+   }
+   .power {
+      font-size: 0.7rem;
+   }
+}

@@ -1,0 +1,119 @@
+/* The shared Menu 2 HUD placement (README.md): every game's left column (pills and meters) and its
+   top-centre column (title banner, run clock, boss bar, boss hint) sit inside the safe-area insets
+   and never overlap.
+
+   - Wide screens: the left column under the shell's chip row, the centre column centred at the top.
+   - Narrow portrait screens (phones, <= 720 px wide): the centre column becomes a two-column grid
+     across the top. The banner spans it, centred; the clock, the boss bar and its hint stack in the
+     right-hand column, beside the left column (never over it: the left column is capped at
+     --m2-left-col, the grid's first column).
+   - Short landscape phones: everything in one top row, right of the shell's level chip. */
+.left {
+   --m2-left-col: min(176px, 44vw);
+   position: absolute;
+   top: calc(env(safe-area-inset-top, 0px) + 58px);
+   left: calc(env(safe-area-inset-left, 0px) + 10px);
+   display: flex;
+   flex-direction: column;
+   align-items: flex-start;
+   gap: 8px;
+   pointer-events: none;
+}
+
+.center {
+   --m2-left-col: min(176px, 44vw);
+   position: absolute;
+   top: calc(env(safe-area-inset-top, 0px) + 8px);
+   left: 50%;
+   transform: translateX(-50%);
+   display: flex;
+   flex-direction: column;
+   align-items: center;
+   gap: 6px;
+   pointer-events: none;
+}
+
+/* the boss bar and its hint line, one block under the clock */
+.boss {
+   width: min(340px, calc(100vw - 32px));
+   pointer-events: none;
+}
+
+.boss.boss > * {
+   width: 100%;
+   box-sizing: border-box;
+}
+
+.hint {
+   margin-top: 4px;
+   text-align: center;
+   color: #fde047;
+   font-size: 0.78rem;
+   font-weight: 800;
+   line-height: 1.2;
+   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+
+@media (max-width: 720px) and (min-height: 461px) {
+   .left {
+      max-width: var(--m2-left-col);
+   }
+
+   .center {
+      top: calc(env(safe-area-inset-top, 0px) + 6px);
+      left: 0;
+      right: 0;
+      transform: none;
+      display: grid;
+      grid-template-columns: var(--m2-left-col) minmax(0, 1fr);
+      column-gap: 8px;
+      row-gap: 6px;
+      align-items: start;
+      padding: 0 calc(env(safe-area-inset-right, 0px) + 10px) 0 calc(env(safe-area-inset-left, 0px) + 10px);
+   }
+
+   /* the title banner: across the top, centred */
+   .center > :first-child {
+      grid-column: 1 / -1;
+      justify-self: center;
+   }
+
+   /* the clock, the boss bar, the hint: the right-hand column, beside the left pills */
+   .center > :not(:first-child) {
+      grid-column: 2;
+      justify-self: end;
+      max-width: 100%;
+   }
+
+   .center > .boss {
+      justify-self: stretch;
+      width: auto;
+      max-width: 26rem;
+      margin-left: auto;
+   }
+
+   .hint {
+      font-size: 0.72rem;
+   }
+}
+
+@media (max-height: 460px) {
+   .left {
+      top: calc(env(safe-area-inset-top, 0px) + 8px);
+      left: calc(env(safe-area-inset-left, 0px) + 76px);
+      flex-direction: row;
+   }
+
+   .center {
+      flex-direction: row;
+      align-items: flex-start;
+      top: calc(env(safe-area-inset-top, 0px) + 6px);
+      left: auto;
+      right: calc(env(safe-area-inset-right, 0px) + 112px);
+      transform: none;
+   }
+
+   .boss {
+      width: min(300px, 40vw);
+   }
+}
