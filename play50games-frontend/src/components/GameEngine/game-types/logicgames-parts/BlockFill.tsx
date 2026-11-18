@@ -1,16 +1,12 @@
 "use client";
 
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import type { CSSProperties } from "react";
+import theme from "./theme.module.css";
 import css from "./BlockFill.module.css";
 import {
-   CheckCircleIcon,
-   XCircleIcon,
-   ArrowPathIcon,
-   TrophyIcon,
-   PuzzlePieceIcon,
    ArrowPathRoundedSquareIcon,
    ArrowUturnLeftIcon,
-   InformationCircleIcon,
 } from "@heroicons/react/24/outline";
 
 function BlockFill({
@@ -240,6 +236,14 @@ function BlockFill({
    const onScoreUpdateRef = useRef(onScoreUpdate);
    const onCompleteRef = useRef(onComplete);
    const onRoundCompleteRef = useRef(onRoundComplete);
+   // the round-end timer is cleared if the game unmounts before it fires
+   const winTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+   useEffect(
+      () => () => {
+         if (winTimerRef.current) clearTimeout(winTimerRef.current);
+      },
+      []
+   );
 
    useEffect(() => {
       onScoreUpdateRef.current = onScoreUpdate;
@@ -565,7 +569,7 @@ function BlockFill({
          onScoreUpdateRef.current(5);
 
          // Wait before moving to next round
-         setTimeout(() => {
+         winTimerRef.current = setTimeout(() => {
             setFeedback(null);
             if (currentRound >= maxRounds) {
                // Game complete
@@ -672,195 +676,124 @@ function BlockFill({
       [placements]
    );
 
+   // Ghost preview: the cells the selected piece would cover from the hovered cell (mouse only)
+   const ghost = (() => {
+      if (!selectedPieceId || !hoveredCell) return null;
+      const piece = pieces.find((p) => p.uid === selectedPieceId);
+      if (!piece) return null;
+      const test = canPlaceAt(
+         hoveredCell.r,
+         hoveredCell.c,
+         selectedPieceId,
+         selectedRotation
+      );
+      const anchor = getAnchorCell(piece.baseCells);
+      const shape = applyRotationWithAnchor(
+         piece.baseCells,
+         selectedRotation,
+         anchor
+      );
+      const cells = new Set<number>();
+      shape.forEach(([x, y]) => {
+         const r = hoveredCell.r + y;
+         const c = hoveredCell.c + x;
+         if (r >= 0 && c >= 0 && r < gridSize && c < gridSize) {
+            cells.add(r * gridSize + c);
+         }
+      });
+      return { cells, ok: test.ok };
+   })();
+
+   const isWin = feedback === "correct";
+
    return (
-      <div
-         className={css.root}
-         style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: "32px",
-            padding: "24px",
-            maxWidth: "1200px",
-            margin: "0 auto",
-         }}
-      >
-         {/* Header */}
-         <div
-            style={{
-               width: "100%",
-               background: "var(--card)",
-               borderRadius: "16px",
-               padding: "20px",
-               boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
-            }}
-         >
-            <div
-               style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  fontSize: "0.875rem",
-                  color: "var(--muted)",
-                  fontWeight: 500,
-                  marginBottom: "12px",
-                  flexWrap: "wrap",
-                  gap: "12px",
-               }}
-            >
-               <span
-                  style={{ display: "flex", alignItems: "center", gap: "6px" }}
-               >
-                  <ArrowPathIcon
-                     style={{ width: 16, height: 16, color: "var(--accent)" }}
-                  />
-                  Round {currentRound} / {maxRounds}
+      <div className={`${theme.game} ${css.root}`}>
+         <div className={theme.header}>
+            <div className={theme.chips}>
+               <span className={theme.chip}>
+                  Round <strong>{currentRound}</strong> / {maxRounds}
                </span>
-               <span
-                  style={{ display: "flex", alignItems: "center", gap: "6px" }}
-               >
-                  <TrophyIcon
-                     style={{ width: 16, height: 16, color: "var(--ok)" }}
-                  />
-                  Score: {currentScore} / {maxRounds * 5}
+               <span className={theme.chip}>
+                  Score <strong>{currentScore}</strong> / {maxRounds * 5}
                </span>
-               <span
-                  style={{ display: "flex", alignItems: "center", gap: "6px" }}
-               >
-                  <PuzzlePieceIcon
-                     style={{ width: 16, height: 16, color: "var(--accent)" }}
-                  />
-                  Placed: {usedPieces} / {pieces.length + usedPieces}
+               <span className={theme.chip}>
+                  Placed <strong>{usedPieces}</strong> /{" "}
+                  {pieces.length + usedPieces}
                </span>
             </div>
-            {/* Progress Bar */}
-            <div
-               style={{
-                  width: "100%",
-                  height: "8px",
-                  background: "rgba(255, 255, 255, 0.1)",
-                  borderRadius: "4px",
-                  overflow: "hidden",
-               }}
-            >
+            <div className={css.progress} aria-hidden="true">
                <div
-                  style={{
-                     width: `${progress}%`,
-                     height: "100%",
-                     background:
-                        "linear-gradient(90deg, var(--accent) 0%, var(--ok) 100%)",
-                     borderRadius: "4px",
-                     transition: "width 0.3s ease",
-                     boxShadow: "rgba(125, 211, 252, 0.5) 0px 0px 10px",
-                  }}
+                  className={css.progressFill}
+                  style={{ transform: `scaleX(${Math.min(1, progress / 100)})` }}
                />
             </div>
          </div>
 
-         {/* Game Area */}
-         <div
-            style={{
-               display: "flex",
-               flexDirection: "row",
-               flexWrap: "wrap",
-               gap: "24px",
-               width: "100%",
-               alignItems: "start",
-               justifyContent: "center",
-            }}
-         >
+         <div className={css.area}>
             {/* Board */}
-            <div
-               style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  gap: "16px",
-                  flex: "1 1 0",
-                  minWidth: "300px",
-               }}
-            >
+            <div className={css.boardCol}>
+               <div className={css.status} aria-live="polite">
+                  {selectedPieceId ? (
+                     <span>
+                        Piece <strong>{selectedPieceId.split("-")[0]}</strong>{" "}
+                        selected. Tap the board to place it, Rotate (R) to turn
+                        it.
+                     </span>
+                  ) : (
+                     <span className={css.statusMuted}>
+                        Pick a piece to place. Tap a placed piece to take it
+                        back.
+                     </span>
+                  )}
+               </div>
+
                <div
-                  style={{
-                     background: "var(--card)",
-                     borderRadius: "18px",
-                     padding: "16px",
-                     position: "relative",
-                     boxShadow: "0 10px 24px rgba(0, 0, 0, 0.2)",
-                  }}
+                  key={`board-${currentRound}-${gridSize}`}
+                  className={`${theme.board} ${css.board} ${theme.fadeUp} ${
+                     isWin ? css.win : ""
+                  }`}
+                  style={{ "--cols": gridSize } as CSSProperties}
+                  role="group"
+                  aria-label={`Board, ${gridSize} by ${gridSize}`}
                   onMouseLeave={() => {
                      // Clear hover when leaving the board area
                      setHoveredCell(null);
                   }}
                >
-                  {/* Selected Piece Indicator */}
-                  {selectedPieceId && (
-                     <div
-                        style={{
-                           position: "absolute",
-                           top: "-12px",
-                           left: "50%",
-                           transform: "translateX(-50%)",
-                           background: "rgba(110, 168, 255, 0.95)",
-                           border: "2px solid rgba(110, 168, 255, 1)",
+                  {Array.from({ length: gridSize * gridSize }).map((_, idx) => {
+                     const r = Math.floor(idx / gridSize);
+                     const c = idx % gridSize;
+                     const placementId = grid[idx];
+                     const isFilled = placementId !== 0;
+                     const pieceColor = isFilled
+                        ? getPieceColor(placementId)
+                        : null;
+                     const inGhost = ghost?.cells.has(idx) ?? false;
 
-                           padding: "6px 12px",
-                           fontSize: "0.75rem",
-                           fontWeight: 700,
-                           color: "#0b1020",
-                           boxShadow: "0 4px 12px rgba(110, 168, 255, 0.4)",
-                           zIndex: 20,
-                           display: "flex",
-                           alignItems: "center",
-                           gap: "6px",
-                           whiteSpace: "nowrap",
-                        }}
-                     >
-                        <div
-                           style={{
-                              width: "8px",
-                              height: "8px",
-                              borderRadius: "50%",
-                              background: "#0b1020",
-                              animation: "pulse 2s infinite",
-                           }}
-                        />
-                        Selected: {selectedPieceId.split("-")[0]}
-                     </div>
-                  )}
-                  {(() => {
-                     const cellSize =
-                        gridSize <= 5 ? 48 : gridSize <= 6 ? 44 : 40;
-                     const cellSizePx = `${cellSize}px`;
-                     const gapPx = "6px";
+                     const cls = [
+                        theme.cell,
+                        css.cell,
+                        isFilled ? css.filled : "",
+                        !isFilled && !selectedPieceId ? css.idle : "",
+                     ]
+                        .filter(Boolean)
+                        .join(" ");
 
                      return (
-                        <div
-                           style={{
-                              display: "grid",
-                              gridTemplateColumns: `repeat(${gridSize}, ${cellSizePx})`,
-                              gridAutoRows: cellSizePx,
-                              gap: gapPx,
-                              position: "relative",
-                           }}
-                           onMouseMove={(e) => {
+                        <button
+                           key={`${r}-${c}`}
+                           type="button"
+                           className={cls}
+                           style={
+                              pieceColor
+                                 ? ({
+                                      "--pc-bg": pieceColor.bg,
+                                      "--pc-line": pieceColor.border,
+                                   } as CSSProperties)
+                                 : undefined
+                           }
+                           onMouseEnter={() => {
                               if (!selectedPieceId) {
-                                 if (hoveredCell) setHoveredCell(null);
-                                 return;
-                              }
-                              const rect =
-                                 e.currentTarget.getBoundingClientRect();
-                              const x = e.clientX - rect.left;
-                              const y = e.clientY - rect.top;
-                              const stride = cellSize + 6;
-                              const c = Math.floor(x / stride);
-                              const r = Math.floor(y / stride);
-                              if (
-                                 r < 0 ||
-                                 c < 0 ||
-                                 r >= gridSize ||
-                                 c >= gridSize
-                              ) {
                                  if (hoveredCell) setHoveredCell(null);
                                  return;
                               }
@@ -872,350 +805,91 @@ function BlockFill({
                                  setHoveredCell({ r, c });
                               }
                            }}
-                           onMouseLeave={() => {
-                              setHoveredCell(null);
-                           }}
-                        >
-                           {/* Ghost Overlay - follows mouse */}
-                           {/* Ghost Overlay - on top, follows mouse */}
-                           {selectedPieceId &&
-                              hoveredCell &&
-                              (() => {
-                                 const test = canPlaceAt(
-                                    hoveredCell.r,
-                                    hoveredCell.c,
-                                    selectedPieceId,
-                                    selectedRotation
-                                 );
-                                 const piece = pieces.find(
-                                    (p) => p.uid === selectedPieceId
-                                 );
-                                 if (!piece) return null;
-                                 const anchor = getAnchorCell(piece.baseCells);
-                                 const shape = applyRotationWithAnchor(
-                                    piece.baseCells,
-                                    selectedRotation,
-                                    anchor
-                                 );
-                                 const cellsAbs = shape.map(([x, y]) => [
-                                    hoveredCell.r + y,
-                                    hoveredCell.c + x,
-                                 ]);
-                                 const gap = 6;
-                                 const isValid = test.ok;
-
-                                 return (
-                                    <div
-                                       key="ghost-overlay"
-                                       style={{
-                                          position: "absolute",
-                                          top: 0,
-                                          left: 0,
-                                          right: 0,
-                                          bottom: 0,
-                                          pointerEvents: "none",
-                                          zIndex: 20, // On top of all cells
-                                       }}
-                                    >
-                                       {cellsAbs.map(([r, c], idx) => {
-                                          const inBounds =
-                                             r >= 0 &&
-                                             c >= 0 &&
-                                             r < gridSize &&
-                                             c < gridSize;
-                                          const cellValid = inBounds && isValid;
-                                          return (
-                                             <div
-                                                key={`ghost-${idx}`}
-                                                style={{
-                                                   position: "absolute",
-                                                   left: `${
-                                                      c * (cellSize + gap)
-                                                   }px`,
-                                                   top: `${
-                                                      r * (cellSize + gap)
-                                                   }px`,
-                                                   width: cellSizePx,
-                                                   height: cellSizePx,
-
-                                                   border: cellValid
-                                                      ? "2px dashed rgba(110, 168, 255, 0.8)"
-                                                      : "2px dashed rgba(251, 113, 133, 0.8)",
-                                                   background: cellValid
-                                                      ? "rgba(110, 168, 255, 0.25)"
-                                                      : "rgba(251, 113, 133, 0.25)",
-                                                   boxShadow: cellValid
-                                                      ? "0 0 20px rgba(110, 168, 255, 0.5), inset 0 0 10px rgba(110, 168, 255, 0.15)"
-                                                      : "0 0 20px rgba(251, 113, 133, 0.5), inset 0 0 10px rgba(251, 113, 133, 0.15)",
-                                                   pointerEvents: "none",
-                                                }}
-                                             />
-                                          );
-                                       })}
-                                    </div>
-                                 );
-                              })()}
-                           {Array.from({ length: gridSize * gridSize }).map(
-                              (_, idx) => {
-                                 const r = Math.floor(idx / gridSize);
-                                 const c = idx % gridSize;
-                                 const placementId = grid[idx];
-                                 const isFilled = placementId !== 0;
-                                 const pieceColor = isFilled
-                                    ? getPieceColor(placementId)
-                                    : null;
-
-                                 return (
-                                    <div
-                                       key={`${r}-${c}`}
-                                       onMouseEnter={(e) => {
-                                          if (isFilled) {
-                                             e.currentTarget.style.transform =
-                                                "scale(1.08)";
-                                             e.currentTarget.style.zIndex =
-                                                "10";
-                                          }
-                                       }}
-                                       onMouseLeave={(e) => {
-                                          e.currentTarget.style.transform =
-                                             "scale(1)";
-                                          e.currentTarget.style.zIndex = "1";
-                                       }}
-                                       onClick={() => {
-                                          if (isFilled) {
-                                             removePlacement(placementId);
-                                          } else if (selectedPieceId) {
-                                             place(r, c);
-                                          }
-                                       }}
-                                       style={{
-                                          width: cellSizePx,
-                                          height: cellSizePx,
-
-                                          border: isFilled
-                                             ? `2px solid ${
-                                                  pieceColor?.border ||
-                                                  "rgba(54, 211, 153, 0.6)"
-                                               }`
-                                             : "1px solid rgba(255, 255, 255, 0.1)",
-                                          background: isFilled
-                                             ? pieceColor?.bg ||
-                                               "rgba(54, 211, 153, 0.25)"
-                                             : "rgba(15, 27, 51, 0.45)",
-                                          cursor: selectedPieceId
-                                             ? "pointer"
-                                             : isFilled
-                                             ? "pointer"
-                                             : "default",
-                                          transition: "all 0.15s ease",
-                                          position: "relative",
-                                          boxShadow: isFilled
-                                             ? `0 0 12px ${
-                                                  pieceColor?.shadow ||
-                                                  "rgba(54, 211, 153, 0.4)"
-                                               }, inset 0 0 8px ${
-                                                  pieceColor?.shadow ||
-                                                  "rgba(54, 211, 153, 0.2)"
-                                               }`
-                                             : "none",
-                                          transform: "scale(1)",
-                                          zIndex: isFilled ? 3 : 1,
-                                       }}
-                                    />
-                                 );
+                           onClick={() => {
+                              if (isFilled) {
+                                 removePlacement(placementId);
+                              } else if (selectedPieceId) {
+                                 place(r, c);
                               }
+                           }}
+                           aria-label={`Row ${r + 1}, column ${c + 1}${
+                              isFilled ? ", filled, tap to take the piece back" : ", empty"
+                           }`}
+                        >
+                           {isFilled && (
+                              // keyed by placement: a newly placed piece pops in once
+                              <span
+                                 key={placementId}
+                                 className={`${css.fill} ${theme.reveal}`}
+                                 aria-hidden="true"
+                              />
                            )}
-                        </div>
+                           {inGhost && (
+                              <span
+                                 className={`${css.ghost} ${
+                                    ghost?.ok ? css.ghostOk : css.ghostBad
+                                 }`}
+                                 aria-hidden="true"
+                              />
+                           )}
+                        </button>
                      );
-                  })()}
+                  })}
                </div>
 
                {/* Controls */}
-               <div
-                  className={css.controls}
-                  style={{
-                     display: "flex",
-                     gap: "12px",
-                     alignItems: "center",
-                  }}
-               >
+               <div className={`${theme.actions} ${css.controls}`}>
                   <button
+                     type="button"
+                     className={theme.btn}
                      onClick={rotateSelected}
                      disabled={!selectedPieceId}
-                     style={{
-                        padding: "10px 16px",
-
-                        background: selectedPieceId
-                           ? "rgba(110, 168, 255, 0.1)"
-                           : "rgba(255, 255, 255, 0.05)",
-                        color: "var(--text)",
-                        cursor: selectedPieceId ? "pointer" : "not-allowed",
-                        fontSize: "0.875rem",
-                        fontWeight: 600,
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "6px",
-                        transition: "all 0.2s ease",
-                     }}
                   >
                      <ArrowPathRoundedSquareIcon
-                        style={{ width: 16, height: 16 }}
+                        className={css.btnIcon}
+                        aria-hidden="true"
                      />
                      Rotate (R)
                   </button>
                   <button
+                     type="button"
+                     className={theme.btn}
                      onClick={undo}
                      disabled={placements.length === 0}
-                     style={{
-                        padding: "10px 16px",
-
-                        background:
-                           placements.length > 0
-                              ? "rgba(110, 168, 255, 0.1)"
-                              : "rgba(255, 255, 255, 0.05)",
-                        color: "var(--text)",
-                        cursor:
-                           placements.length > 0 ? "pointer" : "not-allowed",
-                        fontSize: "0.875rem",
-                        fontWeight: 600,
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "6px",
-                        transition: "all 0.2s ease",
-                     }}
                   >
-                     <ArrowUturnLeftIcon style={{ width: 16, height: 16 }} />
+                     <ArrowUturnLeftIcon
+                        className={css.btnIcon}
+                        aria-hidden="true"
+                     />
                      Undo (U)
                   </button>
                </div>
 
-               {/* Feedback Message */}
-               {feedback && (
-                  <div
-                     style={{
-                        padding: "16px 24px",
-
-                        fontSize: "1.1rem",
-                        fontWeight: 600,
-                        animation: "slideIn 0.3s ease-out",
-                        background:
+               <div className={theme.feedbackSlot} aria-live="polite">
+                  {feedback && (
+                     <div
+                        className={`${theme.feedback} ${
                            feedback === "correct"
-                              ? "rgba(134, 239, 172, 0.2)"
-                              : "rgba(252, 165, 165, 0.2)",
-                        border: `1px solid ${
-                           feedback === "correct" ? "var(--ok)" : "var(--warn)"
-                        }`,
-                        color:
-                           feedback === "correct" ? "var(--ok)" : "var(--warn)",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "10px",
-                        width: "100%",
-                        justifyContent: "center",
-                     }}
-                  >
-                     {feedback === "correct" ? (
-                        <>
-                           <CheckCircleIcon style={{ width: 24, height: 24 }} />
-                           <span>Correct! Great job!</span>
-                        </>
-                     ) : (
-                        <>
-                           <XCircleIcon style={{ width: 24, height: 24 }} />
-                           <span>Try again! You can do it!</span>
-                        </>
-                     )}
-                  </div>
-               )}
+                              ? `${theme.feedbackOk} ${theme.pop}`
+                              : `${theme.feedbackWarn} ${theme.shake}`
+                        }`}
+                     >
+                        {feedback === "correct"
+                           ? "Board filled. +5 points"
+                           : "That does not fit. Try again."}
+                     </div>
+                  )}
+               </div>
             </div>
 
             {/* Pieces Panel */}
-            <div
-               className={css.panel}
-               style={{
-                  background: "var(--card)",
-                  borderRadius: "18px",
-                  padding: "16px",
-                  minWidth: "280px",
-                  boxShadow: "0 10px 24px rgba(0, 0, 0, 0.2)",
-               }}
-            >
+            <div className={`${theme.panel} ${css.panel}`}>
+               <div className={css.panelTitle}>Pieces</div>
                <div
-                  style={{
-                     fontSize: "0.875rem",
-                     fontWeight: 700,
-                     marginBottom: "12px",
-                     color: "var(--text)",
-                  }}
+                  key={`pieces-${currentRound}`}
+                  className={`${css.pieces} ${theme.stagger}`}
                >
-                  Pieces
-               </div>
-               <div
-                  style={{
-                     fontSize: "0.875rem",
-                     color: "var(--text)",
-                     marginBottom: "16px",
-                     padding: "12px",
-                     background: selectedPieceId
-                        ? "rgba(110, 168, 255, 0.15)"
-                        : "rgba(255, 255, 255, 0.05)",
-                     border: selectedPieceId
-                        ? "2px solid rgba(110, 168, 255, 0.5)"
-                        : "1px solid var(--stroke)",
-
-                     fontWeight: 600,
-                     display: "flex",
-                     alignItems: "center",
-                     gap: "8px",
-                     minHeight: "44px",
-                  }}
-               >
-                  {selectedPieceId ? (
-                     <>
-                        <div
-                           style={{
-                              width: "12px",
-                              height: "12px",
-                              borderRadius: "50%",
-                              background: "rgba(110, 168, 255, 1)",
-                              boxShadow: "0 0 8px rgba(110, 168, 255, 0.6)",
-                              animation: "pulse 2s infinite",
-                           }}
-                        />
-                        <span>
-                           Selected:{" "}
-                           <strong style={{ color: "var(--accent)" }}>
-                              {selectedPieceId.split("-")[0]}
-                           </strong>{" "}
-                           · Press{" "}
-                           <strong style={{ color: "var(--accent)" }}>R</strong>{" "}
-                           to rotate
-                        </span>
-                     </>
-                  ) : (
-                     <>
-                        <InformationCircleIcon
-                           style={{
-                              width: 18,
-                              height: 18,
-                              color: "var(--muted)",
-                           }}
-                        />
-                        <span style={{ color: "var(--muted)" }}>
-                           Select a piece to place
-                        </span>
-                     </>
-                  )}
-               </div>
-               <div
-                  className={css.pieces}
-                  style={{
-                     display: "grid",
-                     gridTemplateColumns: "repeat(2, 1fr)",
-                     gap: "10px",
-                  }}
-               >
-                  {pieces.map((piece) => {
+                  {pieces.map((piece, i) => {
                      const shape = applyRotation(
                         piece.baseCells,
                         selectedPieceId === piece.uid ? selectedRotation : 0
@@ -1225,113 +899,65 @@ function BlockFill({
                         w: Math.max(...shape.map((c) => c[0])) + 1,
                         h: Math.max(...shape.map((c) => c[1])) + 1,
                      };
+                     const cols = Math.max(4, dims.w);
+                     const rows = Math.max(4, dims.h);
                      const cellSet = new Set(
                         shape.map(([x, y]) => `${x},${y}`)
                      );
 
                      return (
-                        <button
+                        <div
                            key={piece.uid}
-                           className={css.piece}
-                           onClick={() => {
-                              setSelectedPieceId(piece.uid);
-                              setSelectedRotation(0);
-                           }}
-                           style={{
-                              padding: "10px",
-                              borderRadius: "16px",
-                              border: isSelected
-                                 ? "2px solid rgba(110, 168, 255, 0.8)"
-                                 : "1px solid rgba(255, 255, 255, 0.1)",
-                              background: isSelected
-                                 ? "rgba(110, 168, 255, 0.2)"
-                                 : "rgba(15, 27, 51, 0.45)",
-                              cursor: "pointer",
-                              display: "flex",
-                              alignItems: "center",
-                              gap: "10px",
-                              transition: "all 0.2s ease",
-                              textAlign: "left",
-                              boxShadow: isSelected
-                                 ? "0 0 16px rgba(110, 168, 255, 0.4), inset 0 0 8px rgba(110, 168, 255, 0.1)"
-                                 : "none",
-                              transform: isSelected
-                                 ? "scale(1.02)"
-                                 : "scale(1)",
-                           }}
+                           className={css.pieceSlot}
+                           style={{ "--i": i } as CSSProperties}
                         >
-                           <div
-                              style={{
-                                 display: "grid",
-                                 gridTemplateColumns: `repeat(${Math.max(
-                                    4,
-                                    dims.w
-                                 )}, 12px)`,
-                                 gridTemplateRows: `repeat(${Math.max(
-                                    4,
-                                    dims.h
-                                 )}, 12px)`,
-                                 gap: "4px",
-                                 width: "86px",
-                                 height: "64px",
-                                 padding: "6px",
-                                 background: "rgba(15, 27, 51, 0.45)",
-
-                                 border: "1px solid rgba(255, 255, 255, 0.1)",
+                           <button
+                              type="button"
+                              className={`${css.piece} ${
+                                 isSelected ? css.pieceSel : ""
+                              }`}
+                              aria-pressed={isSelected}
+                              aria-label={`Piece ${piece.id}, ${piece.name}`}
+                              onClick={() => {
+                                 setSelectedPieceId(piece.uid);
+                                 setSelectedRotation(0);
                               }}
                            >
-                              {Array.from({
-                                 length:
-                                    Math.max(4, dims.h) * Math.max(4, dims.w),
-                              }).map((_, idx) => {
-                                 const x = idx % Math.max(4, dims.w);
-                                 const y = Math.floor(
-                                    idx / Math.max(4, dims.w)
-                                 );
-                                 const hasCell = cellSet.has(`${x},${y}`);
-                                 return (
-                                    <div
-                                       key={`${x}-${y}`}
-                                       style={{
-                                          width: "12px",
-                                          height: "12px",
-                                          borderRadius: "4px",
-                                          background: hasCell
-                                             ? "rgba(232, 238, 252, 0.75)"
-                                             : "transparent",
-                                          opacity: hasCell ? 0.8 : 0,
-                                       }}
-                                    />
-                                 );
-                              })}
-                           </div>
-                           <div
-                              style={{
-                                 display: "flex",
-                                 flexDirection: "column",
-                                 gap: "4px",
-                                 flex: 1,
-                              }}
-                           >
-                              <div
-                                 style={{
-                                    fontWeight: 900,
-                                    fontSize: "0.8125rem",
-                                    color: "var(--text)",
-                                 }}
+                              <span
+                                 className={css.preview}
+                                 style={
+                                    {
+                                       "--pw": cols,
+                                       "--ph": rows,
+                                    } as CSSProperties
+                                 }
+                                 aria-hidden="true"
                               >
-                                 {piece.id}
-                              </div>
-                              <div
-                                 style={{
-                                    fontSize: "0.75rem",
-                                    color: "var(--muted)",
-                                 }}
-                              >
-                                 {piece.name}
-                              </div>
-                           </div>
-                        </button>
+                                 {Array.from({ length: rows * cols }).map(
+                                    (_, idx) => {
+                                       const x = idx % cols;
+                                       const y = Math.floor(idx / cols);
+                                       return (
+                                          <span
+                                             key={`${x}-${y}`}
+                                             className={
+                                                cellSet.has(`${x},${y}`)
+                                                   ? css.previewOn
+                                                   : css.previewOff
+                                             }
+                                          />
+                                       );
+                                    }
+                                 )}
+                              </span>
+                              <span className={css.pieceText}>
+                                 <span className={css.pieceId}>{piece.id}</span>
+                                 <span className={css.pieceName}>
+                                    {piece.name}
+                                 </span>
+                              </span>
+                           </button>
+                        </div>
                      );
                   })}
                </div>
