@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import m from "./mobile.module.css";
 import {
    CheckCircleIcon,
    XCircleIcon,
@@ -656,6 +657,7 @@ function ImageRecall({
 
    return (
       <div
+         className={m.tight}
          style={{
             display: "flex",
             flexDirection: "column",
@@ -796,6 +798,8 @@ function ImageRecall({
 
          {/* Game State Display */}
          <div
+            key={gameState}
+            className={gameState === "correct" ? m.feedbackOk : gameState === "wrong" ? m.feedbackBad : undefined}
             style={{
                width: "100%",
                background: "var(--card)",
@@ -859,6 +863,7 @@ function ImageRecall({
          {/* Feedback Messages */}
          {feedback !== null && (
             <div
+               className={feedback === "correct" ? m.feedbackOk : m.feedbackBad}
                style={{
                   padding: isMobile ? "14px 20px" : "16px 24px",
                   borderRadius: isMobile ? "12px" : "12px",
@@ -896,7 +901,9 @@ function ImageRecall({
 
          {/* Image Grid (dynamic size) */}
          <div
+            className={m.fitBoard}
             style={{
+               ["--ar" as string]: gridSize / Math.max(1, gridSize),
                display: "grid",
                gridTemplateColumns: `repeat(${gridSize}, 1fr)`,
                gap: isMobile
@@ -935,7 +942,7 @@ function ImageRecall({
                return (
                   <button
                      key={idx}
-                     className="image-card"
+                     className={`image-card ${m.card}`}
                      data-idx={idx}
                      onClick={() => handleCardClick(idx)}
                      disabled={gameState !== "input" || isSelected}
@@ -1130,6 +1137,7 @@ function ImageRecall({
             {/* Hint Button */}
             <button
                onClick={handleHint}
+               className={m.btn}
                disabled={
                   (maxHints > 0 && hintsUsed >= maxHints) ||
                   gameState !== "input" ||
@@ -1216,6 +1224,7 @@ function ImageRecall({
             {/* Share Button */}
             <button
                onClick={handleShare}
+               className={m.btn}
                style={{
                   display: "flex",
                   alignItems: "center",

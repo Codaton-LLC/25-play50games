@@ -1,0 +1,200 @@
+/* Phone and tablet layer for the classic Memory games (shared by memorygames-parts/*).
+   Inline styles in the games keep their look; the properties that must change with the screen
+   (paddings, gaps, tap sizes) live here, plus tap feedback and the flip / match / wrong animations.
+   No game rule, score or timing depends on anything in this file. */
+
+.root {
+   display: flex;
+   flex-direction: column;
+   align-items: center;
+   gap: 32px;
+   padding: 24px;
+   max-width: 1200px;
+   margin: 0 auto;
+   width: 100%;
+   box-sizing: border-box;
+}
+
+.panel {
+   width: 100%;
+   box-sizing: border-box;
+   padding: 20px;
+}
+
+.board {
+   box-sizing: border-box;
+   padding: 20px;
+}
+
+/* every tappable control: a finger-sized target, no 300 ms delay, no grey flash, a press feel */
+.btn {
+   min-height: 44px;
+   touch-action: manipulation;
+   -webkit-tap-highlight-color: transparent;
+   transition:
+      transform 0.12s ease,
+      box-shadow 0.2s ease,
+      background 0.2s ease;
+}
+
+.btn:active:not(:disabled) {
+   transform: scale(0.96);
+}
+
+.shareBtn {
+   padding: 10px 20px;
+   font-size: 0.95rem;
+}
+
+/* a card / cell of a board */
+.card {
+   touch-action: manipulation;
+   -webkit-tap-highlight-color: transparent;
+   user-select: none;
+   -webkit-user-select: none;
+}
+
+.card:active:not(:disabled) {
+   transform: scale(0.93) !important;
+}
+
+/* turning a card face up: it swings in from its edge */
+.flipped {
+   animation: flipIn 0.32s ease-out;
+}
+
+/* a found pair: a short pop */
+.matched {
+   animation: matchPop 0.45s ease-out;
+}
+
+/* a wrong pick: a quick shake */
+.wrong {
+   animation: shake 0.4s ease-in-out;
+}
+
+.feedbackOk {
+   animation: popIn 0.35s cubic-bezier(0.2, 0.9, 0.3, 1.4);
+}
+
+.feedbackBad {
+   animation: shake 0.45s ease-in-out;
+}
+
+@keyframes flipIn {
+   from {
+      transform: perspective(600px) rotateY(90deg);
+   }
+   to {
+      transform: perspective(600px) rotateY(0deg);
+   }
+}
+
+@keyframes matchPop {
+   0% {
+      transform: scale(1);
+   }
+   40% {
+      transform: scale(1.12);
+   }
+   100% {
+      transform: scale(1);
+   }
+}
+
+@keyframes shake {
+   0%,
+   100% {
+      transform: translateX(0);
+   }
+   20% {
+      transform: translateX(-6px);
+   }
+   40% {
+      transform: translateX(6px);
+   }
+   60% {
+      transform: translateX(-4px);
+   }
+   80% {
+      transform: translateX(4px);
+   }
+}
+
+@keyframes popIn {
+   from {
+      opacity: 0;
+      transform: scale(0.85);
+   }
+   to {
+      opacity: 1;
+      transform: scale(1);
+   }
+}
+
+/* tablets: a little less air */
+@media (max-width: 900px) {
+   .root {
+      gap: 20px;
+      padding: 16px;
+   }
+}
+
+/* phones: the board gets the width, the chrome gets compact */
+@media (max-width: 600px) {
+   .root {
+      gap: 12px;
+      padding: 8px 0;
+   }
+   .panel {
+      padding: 12px;
+   }
+   .board {
+      padding: 8px;
+   }
+   .shareBtn {
+      padding: 8px 12px;
+      font-size: 0.85rem;
+      width: 100%;
+      justify-content: center;
+   }
+   .stats {
+      font-size: 0.8rem !important;
+      gap: 6px 12px !important;
+   }
+}
+
+/* a board that never gets taller than the screen: its width is capped by the screen height times its
+   aspect ratio (--ar = columns / rows, set inline); --chrome is the height kept for the header above */
+.fitBoard {
+   max-width: min(100%, calc((100dvh - var(--chrome, 170px)) * var(--ar, 1))) !important;
+   margin-left: auto !important;
+   margin-right: auto !important;
+}
+
+/* games that size themselves for phones already: on short landscape screens (tablets, phones on
+   their side) tighten the vertical rhythm and drop the decorative title so the board is in view */
+@media (orientation: landscape) and (max-height: 900px) {
+   .tight {
+      gap: 12px !important;
+      padding-top: 8px !important;
+      padding-bottom: 8px !important;
+   }
+   .landHide {
+      display: none !important;
+   }
+}
+
+@media (prefers-reduced-motion: reduce) {
+   .flipped,
+   .matched,
+   .wrong,
+   .feedbackOk,
+   .feedbackBad {
+      animation: none;
+   }
+   .btn,
+   .card {
+      transition: none;
+   }
+}

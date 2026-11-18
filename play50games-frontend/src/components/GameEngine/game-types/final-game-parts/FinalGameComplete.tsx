@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import fx from "./finalMobile.module.css";
 import {
    TrophyIcon,
    LockClosedIcon,
@@ -647,6 +648,7 @@ export default function FinalGameComplete({
             {/* Replay Button */}
             <button
                onClick={handleReplay}
+               className={fx.btn}
                disabled={maxReplays > 0 && replaysUsed >= maxReplays}
                style={{
                   display: "flex",
@@ -688,6 +690,7 @@ export default function FinalGameComplete({
             {/* Share Button */}
             <button
                onClick={handleShare}
+               className={fx.btn}
                style={{
                   display: "flex",
                   alignItems: "center",

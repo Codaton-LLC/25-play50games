@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import fx from "../finalMobile.module.css";
 import {
    CheckCircleIcon,
    XCircleIcon,
@@ -602,6 +603,7 @@ export default function FinalMemoryGame({
                />
                <button
                   onClick={handleSubmit}
+                  className={fx.btn}
                   disabled={!userInput || userInput.length !== sequence.length}
                   style={{
                      padding: isMobile ? "12px 24px" : "14px 28px",
@@ -798,6 +800,7 @@ export default function FinalMemoryGame({
                {/* Replay Button */}
                <button
                   onClick={handleReplay}
+                  className={fx.btn}
                   disabled={maxReplays > 0 && replaysUsed >= maxReplays}
                   style={{
                      display: "flex",
@@ -839,6 +842,7 @@ export default function FinalMemoryGame({
                {/* Share Button */}
                <button
                   onClick={handleShare}
+                  className={fx.btn}
                   style={{
                      display: "flex",
                      alignItems: "center",
