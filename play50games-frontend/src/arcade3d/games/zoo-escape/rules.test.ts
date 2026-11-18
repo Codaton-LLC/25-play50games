@@ -400,8 +400,8 @@ describe("score-limit proof", () => {
       expect(Math.ceil(pps * 1.03)).toBe(PROPOSED_LIMITS.maxPointsPerSec);
       // the earliest end is a lose: three catches, each after >= 1 s of play, two 1.2 s cards between
       expect(3 * CATCH.graceS + 2 * CATCH.cardS).toBeCloseTo(5.4, 9);
-      // meta.scoring stays provisional on this branch (Claude sets both at go-live)
-      expect(zooEscapeMeta.scoring.maxScore).toBe(4500);
+      // meta.scoring serves the proof since go-live
+      expect(zooEscapeMeta.scoring).toMatchObject({ maxScore: 3290, minDurationMs: 5000, maxDurationMs: 182000, base: 0, maxPointsPerSec: 163 });
    });
 
    it("never moves the panda faster than the walk (20,000 random steps, collisions, clamps, gates)", () => {

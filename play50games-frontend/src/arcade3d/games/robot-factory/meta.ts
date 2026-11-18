@@ -1,15 +1,15 @@
 import type { ArcadeGameMeta, LevelMeta, ScoringRules } from "@/arcade3d/types";
 
 // Plain data only (server-safe). scoring must match WP includes/arcade-games.json.
-// Level 1 stays the provisional set (Claude tightens it to rules.ts PROPOSED_LIMITS at merge).
-// Levels 2-5 are PROPOSED_LEVEL_LIMITS (proof: README "Levels"); levels.test.ts checks they match.
+// Every level serves its proven limits: level 1 = rules.ts PROPOSED_LIMITS (set at go-live, 2026-11-17),
+// levels 2-5 = PROPOSED_LEVEL_LIMITS (proof: README "Levels"); levels.test.ts checks they match.
 const SCORING: ScoringRules = {
    kind: "points",
-   maxScore: 6000,
+   maxScore: 4750,
    minDurationMs: 10000,
    maxDurationMs: 92000,
-   base: 6000,
-   maxPointsPerSec: 6000,
+   base: 300,
+   maxPointsPerSec: 52,
    unitLabel: "pts",
    display: "int",
 };
