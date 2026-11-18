@@ -226,6 +226,18 @@ export default function PrecisionDrop({
    const [replaysUsed, setReplaysUsed] = useState(0);
    const [hasShared, setHasShared] = useState(false);
    const [shareSuccess, setShareSuccess] = useState(false);
+   // Hides the "shared" notice after 15 s; cleared on unmount
+   const shareSuccessTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+      null
+   );
+   useEffect(
+      () => () => {
+         if (shareSuccessTimeoutRef.current) {
+            clearTimeout(shareSuccessTimeoutRef.current);
+         }
+      },
+      []
+   );
    const [unlimitedActivated, setUnlimitedActivated] = useState(false);
    const [currentShareId, setCurrentShareId] = useState<string | null>(null);
    const shareCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -1027,7 +1039,13 @@ export default function PrecisionDrop({
                url: shareableLink,
             });
             setShareSuccess(true);
-            setTimeout(() => setShareSuccess(false), 15000);
+            if (shareSuccessTimeoutRef.current) {
+               clearTimeout(shareSuccessTimeoutRef.current);
+            }
+            shareSuccessTimeoutRef.current = setTimeout(
+               () => setShareSuccess(false),
+               15000
+            );
          } catch (error: any) {
             if (error.name !== "AbortError") {
                handleCopyLink(shareId);
@@ -1045,7 +1063,13 @@ export default function PrecisionDrop({
       try {
          await navigator.clipboard.writeText(shareableLink);
          setShareSuccess(true);
-         setTimeout(() => setShareSuccess(false), 15000);
+         if (shareSuccessTimeoutRef.current) {
+            clearTimeout(shareSuccessTimeoutRef.current);
+         }
+         shareSuccessTimeoutRef.current = setTimeout(
+            () => setShareSuccess(false),
+            15000
+         );
       } catch (error) {
          const textArea = document.createElement("textarea");
          textArea.value = shareableLink;
@@ -1056,7 +1080,13 @@ export default function PrecisionDrop({
          try {
             document.execCommand("copy");
             setShareSuccess(true);
-            setTimeout(() => setShareSuccess(false), 15000);
+            if (shareSuccessTimeoutRef.current) {
+               clearTimeout(shareSuccessTimeoutRef.current);
+            }
+            shareSuccessTimeoutRef.current = setTimeout(
+               () => setShareSuccess(false),
+               15000
+            );
          } catch (err) {
             // Failed to copy
          }
