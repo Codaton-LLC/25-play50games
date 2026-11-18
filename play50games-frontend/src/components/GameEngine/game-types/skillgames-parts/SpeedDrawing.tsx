@@ -1917,15 +1917,13 @@ export default function SpeedDrawing({
                      <PencilIcon className={ui.statIconAccent} />
                      <span>Draw: {targetShape}</span>
                   </div>
-                  {/* Always laid out (dimmed until a stroke starts): showing them mid-stroke pushed the
+                  {/* Always laid out (neutral until a stroke starts): showing them mid-stroke pushed the
                       canvas down under the finger on phones, where these chips wrap onto new rows */}
                   <div
-                     className={currentAccuracy >= minAccuracy ? ui.statOk : ui.statWarn}
-                     style={{
-                        ...chipStyle,
-                        opacity: playerPath.length >= 3 ? 1 : 0.5,
-                        transition: "opacity 0.2s ease",
-                     }}
+                     className={
+                        playerPath.length < 3 ? ui.stat : currentAccuracy >= minAccuracy ? ui.statOk : ui.statWarn
+                     }
+                     style={chipStyle}
                   >
                      {currentAccuracy >= minAccuracy ? (
                         <CheckCircleIcon className={ui.statIconOk} />
@@ -1941,12 +1939,10 @@ export default function SpeedDrawing({
                      </span>
                   </div>
                   <div
-                     className={drawingCompletionProgress >= 70 ? ui.statOk : ui.statWarn}
-                     style={{
-                        ...chipStyle,
-                        opacity: playerPath.length >= 3 ? 1 : 0.5,
-                        transition: "opacity 0.2s ease",
-                     }}
+                     className={
+                        playerPath.length < 3 ? ui.stat : drawingCompletionProgress >= 70 ? ui.statOk : ui.statWarn
+                     }
+                     style={chipStyle}
                   >
                      {drawingCompletionProgress >= 70 ? (
                         <CheckCircleIcon className={ui.statIconOk} />
