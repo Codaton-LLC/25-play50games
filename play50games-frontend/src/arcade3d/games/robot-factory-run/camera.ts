@@ -16,7 +16,8 @@ export const FOV_PORTRAIT = 66;
 
 export function orbitScale(aspect: number): number {
    const portrait = Math.max(0, Math.min(1, (1.2 - aspect) / 0.7));
-   return 1 + 0.55 * portrait;
+   // 0.3 (was 0.55): on a portrait phone the hero was a speck from 17.8 m; the pivot follows it, so the line stays in view
+   return 1 + 0.3 * portrait;
 }
 
 export function orbitLookUp(aspect: number): number {
