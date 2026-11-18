@@ -286,3 +286,13 @@
       height: 92px;
    }
 }
+
+/* the coach line: the shared hint is bare yellow text, lost on this game's bright ground and sky,
+   so it gets a dark pill here */
+.coachLine {
+   box-sizing: border-box;
+   max-width: 100%;
+   padding: 4px 10px;
+   border-radius: 10px;
+   background: rgba(8, 15, 40, 0.62);
+}
