@@ -11,6 +11,24 @@ import {
    ShareIcon,
 } from "@heroicons/react/24/outline";
 import { registerShare, getShareStatus } from "@/lib/api/share";
+import { TOUCH_SURFACE, useRevealOnPlay, useViewport } from "./touch";
+import fx from "./speedFx.module.css";
+import styles from "./WhackShape.module.css";
+import { whackArenaHeight, whackShapeBase } from "./WhackShape.layout";
+
+/** The arena in CSS px as last measured (the classic desktop numbers until the first measurement). */
+interface ArenaSize {
+   width: number;
+   height: number;
+}
+
+interface Floater {
+   id: number;
+   x: number;
+   y: number;
+   text: string;
+   ok: boolean;
+}
 
 interface WhackShapeProps {
    config: Record<string, any>;
@@ -77,8 +95,22 @@ export default function WhackShape({
       }>
    >([]);
    const animationFrameRef = useRef<number | null>(null);
-   const [isMobile, setIsMobile] = useState(false);
-   const [isTablet, setIsTablet] = useState(false);
+   const viewport = useViewport();
+   const { isMobile, isTouch } = viewport;
+   const arenaHeight = whackArenaHeight(viewport);
+   const shapeBase = whackShapeBase(viewport);
+   const shapeBaseRef = useRef(shapeBase);
+   shapeBaseRef.current = shapeBase;
+   // The arena's live size (spawn bounds and wall bounces follow the drawn box, never a fixed 800 px).
+   const arenaRef = useRef<HTMLDivElement | null>(null);
+   const arenaSizeRef = useRef<ArenaSize>({ width: 800, height: 380 });
+   const rootRef = useRef<HTMLDivElement | null>(null);
+   useRevealOnPlay(rootRef, isPlaying);
+   // Hit / miss feedback (visual only): floating "+1" at the whacked shape and a flash on the arena edge.
+   const [floaters, setFloaters] = useState<Floater[]>([]);
+   const floaterIdRef = useRef(0);
+   const [flashSeq, setFlashSeq] = useState(0);
+   const lastPressRef = useRef(0);
 
    // Replay and Share functionality
    const [replaysUsed, setReplaysUsed] = useState(0);
@@ -129,16 +161,29 @@ export default function WhackShape({
       }
    }, [isPlaying]);
 
-   // Responsive design
-   useEffect(() => {
-      const checkResponsive = () => {
-         setIsMobile(window.innerWidth < 640);
-         setIsTablet(window.innerWidth >= 640 && window.innerWidth < 1024);
-      };
-      checkResponsive();
-      window.addEventListener("resize", checkResponsive);
-      return () => window.removeEventListener("resize", checkResponsive);
+   // Measure the arena whenever it is on screen or resizes (orientation change, banner, keyboard).
+   const measureArena = useCallback(() => {
+      const el = arenaRef.current;
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      if (rect.width > 0 && rect.height > 0) {
+         arenaSizeRef.current = { width: rect.width, height: rect.height };
+      }
    }, []);
+
+   const arenaVisible = gameState === "playing" || gameState === "paused";
+   useEffect(() => {
+      if (!arenaVisible) return;
+      measureArena();
+      const el = arenaRef.current;
+      if (!el || typeof ResizeObserver === "undefined") {
+         window.addEventListener("resize", measureArena);
+         return () => window.removeEventListener("resize", measureArena);
+      }
+      const ro = new ResizeObserver(() => measureArena());
+      ro.observe(el);
+      return () => ro.disconnect();
+   }, [arenaVisible, arenaHeight, measureArena]);
 
    useEffect(() => {
       if (!isPlaying) return;
@@ -212,11 +257,11 @@ export default function WhackShape({
          const shapeType =
             shapeTypes[Math.floor(Math.random() * shapeTypes.length)];
 
-         // Random position in arena (avoid edges)
-         const arenaWidth = isMobile ? window.innerWidth - 48 : 800;
-         const arenaHeight = isMobile ? 300 : 380;
-         const x = Math.random() * (arenaWidth - 100) + 50;
-         const y = Math.random() * (arenaHeight - 100) + 50;
+         // Random position in the arena as drawn (avoid edges); x/y is the shape's centre
+         measureArena();
+         const { width: arenaWidth, height: arenaHeightNow } = arenaSizeRef.current;
+         const x = Math.random() * Math.max(1, arenaWidth - 100) + 50;
+         const y = Math.random() * Math.max(1, arenaHeightNow - 100) + 50;
 
          // Random velocity (faster at higher levels)
          const speed = 0.2 + currentLevel * 0.04; // 0.2-0.6 px/frame
@@ -251,7 +296,7 @@ export default function WhackShape({
             },
          ]);
       }
-   }, [gameState, requirementsMet, currentLevel, getItemTTL, isMobile]);
+   }, [gameState, requirementsMet, currentLevel, getItemTTL, measureArena]);
 
    // Get minimum required correct clicks for level
    const getMinCorrectClicks = useCallback(() => {
@@ -369,9 +414,8 @@ export default function WhackShape({
          }
 
          setShapes((prevShapes) => {
-            const arenaWidth = isMobile ? window.innerWidth - 48 : 800;
-            const arenaHeight = isMobile ? 300 : 380;
-            const itemSize = isMobile ? 48 : 54;
+            const { width: arenaWidth, height: arenaHeight } = arenaSizeRef.current;
+            const itemSize = shapeBaseRef.current;
 
             return prevShapes.map((shape) => {
                if (shape.clicked) return shape;
@@ -438,7 +482,6 @@ export default function WhackShape({
       clearAll,
       spawnShapes,
       getSpawnInterval,
-      isMobile,
       getLevelDuration,
       currentLevel,
       endLevel,
@@ -774,7 +817,19 @@ export default function WhackShape({
          const shape = shapes.find((s) => s.id === id);
          if (!shape || shape.clicked) return;
 
-         if (shape.type === targetShape) {
+         // Visual feedback at the whacked shape (no effect on the rules)
+         const ok = shape.type === targetShape;
+         const floaterId = floaterIdRef.current++;
+         setFloaters((prev) => [
+            ...prev,
+            { id: floaterId, x: shape.x, y: shape.y, text: ok ? "+1" : "x", ok },
+         ]);
+         setTimeout(() => {
+            setFloaters((prev) => prev.filter((f) => f.id !== floaterId));
+         }, 700);
+         setFlashSeq((prev) => prev + 1);
+
+         if (ok) {
             // Correct click
             setCorrectClicks((prev) => prev + 1);
             levelScoreRef.current += 5;
@@ -800,6 +855,28 @@ export default function WhackShape({
          }
       },
       [gameState, requirementsMet, shapes, targetShape]
+   );
+
+   // Instant activation: the whack is measured on pointerdown (touch, pen and mouse alike), and the click
+   // that follows is swallowed; a keyboard activation (click with no pointer first) still works.
+   const pressShape = useCallback(
+      (e: React.PointerEvent<HTMLButtonElement>, id: number) => {
+         if (e.pointerType === "mouse" && e.button !== 0) return;
+         e.preventDefault();
+         lastPressRef.current = performance.now();
+         handleShapeClick(id);
+      },
+      [handleShapeClick]
+   );
+   const clickShape = useCallback(
+      (e: React.MouseEvent<HTMLButtonElement>, id: number) => {
+         if (performance.now() - lastPressRef.current < 600) {
+            e.preventDefault();
+            return;
+         }
+         handleShapeClick(id);
+      },
+      [handleShapeClick]
    );
 
    const progress = ((currentLevel + 1) / maxLevels) * 100;
@@ -926,14 +1003,27 @@ export default function WhackShape({
    return (
       <>
          <div
+            ref={rootRef}
+            className={styles.root}
             style={{
-               display: "flex",
-               flexDirection: "column",
-               gap: "20px",
-               width: "100%",
-               maxWidth: "900px",
-               margin: "0 auto",
-               padding: isMobile ? "16px" : "24px",
+               ...TOUCH_SURFACE,
+               // Phones / tablets: room below the game so the page can scroll the engine's score bar to the
+               // top (useRevealOnPlay) and the controls clear the fixed cookie banner (live innerHeight, no 100vh).
+               minHeight:
+                  viewport.width < 1024
+                     ? `${Math.max(0, viewport.height - 110)}px`
+                     : undefined,
+               gap: isMobile ? "12px" : "20px",
+               padding: isMobile ? "12px 12px 0" : "24px 24px 0",
+               // Wide screens (incl. a landscape tablet): the page ends right under the game, so leave the
+               // fixed cookie banner's height (~85 px there) below the Replay / Share row.
+               // A short viewport (landscape phone) cannot show the whole game above the banner (~170 px):
+               // leave that much room so the Replay / Share row can still be scrolled clear of it.
+               paddingBottom: viewport.isShort
+                  ? "calc(env(safe-area-inset-bottom) + 180px)"
+                  : viewport.width >= 1024
+                    ? "calc(env(safe-area-inset-bottom) + 96px)"
+                    : undefined,
             }}
          >
             {/* Header */}
@@ -941,8 +1031,8 @@ export default function WhackShape({
                style={{
                   display: "flex",
                   flexDirection: "column",
-                  gap: "12px",
-                  padding: isMobile ? "16px" : "20px",
+                  gap: isMobile ? "8px" : "12px",
+                  padding: isMobile ? "12px 14px" : "20px",
                   background: "var(--card)",
                   borderRadius: "16px",
                }}
@@ -1052,118 +1142,120 @@ export default function WhackShape({
                </div>
             </div>
 
+            {/* Target Shape Indicator (its own bar, so it never hides a shape) */}
+            {(gameState === "playing" || gameState === "paused") && (
+               <div
+                  className={styles.legend}
+                  style={{
+                     fontSize: isMobile ? "0.95rem" : "1.2rem",
+                     padding: isMobile ? "6px 14px" : "10px 22px",
+                  }}
+               >
+                  <span>{isTouch ? "Tap the" : "Click the"}</span>
+                  <div
+                     style={{
+                        width: isMobile ? "28px" : "40px",
+                        height: isMobile ? "28px" : "40px",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                     }}
+                  >
+                     {targetShape === "circle" && (
+                        <div
+                           style={{
+                              width: "100%",
+                              height: "100%",
+                              borderRadius: "50%",
+                              background:
+                                 "linear-gradient(135deg, #3b82f6, #2563eb)",
+                              border: "2px solid rgba(255, 255, 255, 0.3)",
+                           }}
+                        />
+                     )}
+                     {targetShape === "square" && (
+                        <div
+                           style={{
+                              width: "100%",
+                              height: "100%",
+                              background:
+                                 "linear-gradient(135deg, #3b82f6, #2563eb)",
+                              border: "2px solid rgba(255, 255, 255, 0.3)",
+                              borderRadius: "4px",
+                           }}
+                        />
+                     )}
+                     {targetShape === "triangle" && (
+                        <div
+                           style={{
+                              width: 0,
+                              height: 0,
+                              borderLeft: `${
+                                 isMobile ? "14px" : "20px"
+                              } solid transparent`,
+                              borderRight: `${
+                                 isMobile ? "14px" : "20px"
+                              } solid transparent`,
+                              borderBottom: `${
+                                 isMobile ? "24px" : "35px"
+                              } solid #3b82f6`,
+                           }}
+                        />
+                     )}
+                  </div>
+                  <span>shape!</span>
+               </div>
+            )}
+
             {/* Game Area */}
             {(gameState === "playing" || gameState === "paused") && (
                <div
+                  ref={arenaRef}
+                  className={styles.arena}
                   style={{
-                     position: "relative",
-                     width: "100%",
-                     height: isMobile ? "300px" : "380px",
-                     background: "var(--card)",
-                     borderRadius: "16px",
-                     overflow: "hidden",
+                     ...TOUCH_SURFACE,
+                     height: `${arenaHeight}px`,
                      pointerEvents: requirementsMet ? "none" : "auto",
                   }}
                >
-                  {/* Target Shape Indicator */}
-                  <div
-                     style={{
-                        position: "absolute",
-                        top: "16px",
-                        left: "50%",
-                        transform: "translateX(-50%)",
-                        padding: "12px 24px",
-                        background:
-                           "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
-                        border: "2px solid rgba(59, 130, 246, 0.6)",
-
-                        fontSize: isMobile ? "1rem" : "1.2rem",
-                        fontWeight: 700,
-                        color: "var(--text)",
-                        zIndex: 10,
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "12px",
-                     }}
-                  >
-                     <span>Click the</span>
+                  {/* Hit / miss flash on the arena edge (re-keyed so it replays on every whack) */}
+                  {flashSeq > 0 && feedback && (
                      <div
-                        style={{
-                           width: isMobile ? "32px" : "40px",
-                           height: isMobile ? "32px" : "40px",
-                           display: "flex",
-                           alignItems: "center",
-                           justifyContent: "center",
-                        }}
-                     >
-                        {targetShape === "circle" && (
-                           <div
-                              style={{
-                                 width: "100%",
-                                 height: "100%",
-                                 borderRadius: "50%",
-                                 background:
-                                    "linear-gradient(135deg, #3b82f6, #2563eb)",
-                                 border: "2px solid rgba(255, 255, 255, 0.3)",
-                              }}
-                           />
-                        )}
-                        {targetShape === "square" && (
-                           <div
-                              style={{
-                                 width: "100%",
-                                 height: "100%",
-                                 background:
-                                    "linear-gradient(135deg, #3b82f6, #2563eb)",
-                                 border: "2px solid rgba(255, 255, 255, 0.3)",
-                                 borderRadius: "4px",
-                              }}
-                           />
-                        )}
-                        {targetShape === "triangle" && (
-                           <div
-                              style={{
-                                 width: 0,
-                                 height: 0,
-                                 borderLeft: `${
-                                    isMobile ? "16px" : "20px"
-                                 } solid transparent`,
-                                 borderRight: `${
-                                    isMobile ? "16px" : "20px"
-                                 } solid transparent`,
-                                 borderBottom: `${
-                                    isMobile ? "28px" : "35px"
-                                 } solid #3b82f6`,
-                              }}
-                           />
-                        )}
-                     </div>
-                     <span>shape!</span>
-                  </div>
+                        key={flashSeq}
+                        className={`${styles.flash} ${
+                           feedback === "correct" ? styles.flashOk : styles.flashBad
+                        }`}
+                     />
+                  )}
 
                   {/* Shapes */}
                   {shapes.map((shape) => (
                      <button
                         key={shape.id}
-                        onClick={() => handleShapeClick(shape.id)}
+                        type="button"
+                        aria-label={`${shape.type} shape`}
+                        className={`${styles.shape} ${
+                           shape.clicked
+                              ? shape.type === targetShape
+                                 ? styles.shapeHit
+                                 : styles.shapeMiss
+                              : ""
+                        }`}
+                        onPointerDown={(e) => pressShape(e, shape.id)}
+                        onClick={(e) => clickShape(e, shape.id)}
+                        onContextMenu={(e) => e.preventDefault()}
                         disabled={shape.clicked || requirementsMet}
                         style={{
-                           position: "absolute",
+                           ...TOUCH_SURFACE,
                            left: `${shape.x}px`,
                            top: `${shape.y}px`,
-                           width: `${(isMobile ? 48 : 54) * shape.size}px`,
-                           height: `${(isMobile ? 48 : 54) * shape.size}px`,
-                           background: "transparent",
-                           border: "none",
+                           width: `${shapeBase * shape.size}px`,
+                           height: `${shapeBase * shape.size}px`,
                            cursor:
                               shape.clicked || requirementsMet
                                  ? "default"
                                  : "pointer",
-                           transform: `rotate(${shape.rotation}deg)`,
-                           transition: shape.clicked ? "all 0.2s ease" : "none",
-                           opacity: shape.clicked ? 0 : 1,
-                           zIndex: 5,
-                           padding: 0,
+                           transform: `translate(-50%, -50%) rotate(${shape.rotation}deg)`,
                         }}
                      >
                         {shape.type === "circle" && (
@@ -1198,13 +1290,13 @@ export default function WhackShape({
                                  width: 0,
                                  height: 0,
                                  borderLeft: `${
-                                    (isMobile ? 24 : 27) * shape.size
+                                    shapeBase * 0.5 * shape.size
                                  }px solid transparent`,
                                  borderRight: `${
-                                    (isMobile ? 24 : 27) * shape.size
+                                    shapeBase * 0.5 * shape.size
                                  }px solid transparent`,
                                  borderBottom: `${
-                                    (isMobile ? 42 : 47) * shape.size
+                                    shapeBase * 0.87 * shape.size
                                  }px solid #3b82f6`,
                                  filter:
                                     "drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2))",
@@ -1213,59 +1305,46 @@ export default function WhackShape({
                         )}
                      </button>
                   ))}
-               </div>
-            )}
 
-            {/* Feedback Messages */}
-            {feedback === "correct" && gameState === "playing" && (
-               <div
-                  style={{
-                     display: "flex",
-                     alignItems: "center",
-                     gap: "8px",
-                     padding: isMobile ? "10px 16px" : "12px 20px",
-                     background:
-                        "linear-gradient(135deg, rgba(134, 239, 172, 0.2), rgba(134, 239, 172, 0.1))",
-                     border: "2px solid rgba(134, 239, 172, 0.6)",
-                     borderRadius: "var(--radius)",
-                     color: "var(--ok)",
-                     fontSize: isMobile ? "0.9rem" : "1rem",
-                     fontWeight: 600,
-                     width: "100%",
-                     justifyContent: "center",
-                  }}
-               >
-                  <CheckCircleIcon style={{ width: 20, height: 20 }} />
-                  +1 Correct!
-               </div>
-            )}
+                  {/* Floating "+1" / "x" at the whacked shape */}
+                  {floaters.map((f) => (
+                     <span
+                        key={f.id}
+                        className={`${fx.floatScore} ${styles.floater} ${
+                           f.ok ? styles.floaterOk : styles.floaterBad
+                        }`}
+                        style={{ left: `${f.x}px`, top: `${f.y - shapeBase / 2}px` }}
+                        aria-hidden="true"
+                     >
+                        {f.text}
+                     </span>
+                  ))}
 
-            {feedback === "wrong" && gameState === "playing" && (
-               <div
-                  style={{
-                     display: "flex",
-                     alignItems: "center",
-                     gap: "8px",
-                     padding: isMobile ? "10px 16px" : "12px 20px",
-                     background:
-                        "linear-gradient(135deg, rgba(252, 165, 165, 0.2), rgba(252, 165, 165, 0.1))",
-                     border: "2px solid rgba(252, 165, 165, 0.6)",
-                     borderRadius: "var(--radius)",
-                     color: "var(--warn)",
-                     fontSize: isMobile ? "0.9rem" : "1rem",
-                     fontWeight: 600,
-                     width: "100%",
-                     justifyContent: "center",
-                  }}
-               >
-                  <XCircleIcon style={{ width: 20, height: 20 }} />
-                  -1 Mistake!
+                  {/* Feedback chip, inside the arena so the layout below never jumps */}
+                  {feedback === "correct" && gameState === "playing" && (
+                     <div
+                        className={`${styles.chip} ${styles.chipOk} ${fx.fadeUp}`}
+                        role="status"
+                     >
+                        <CheckCircleIcon style={{ width: 18, height: 18 }} />
+                        +1 Correct!
+                     </div>
+                  )}
+                  {feedback === "wrong" && gameState === "playing" && (
+                     <div
+                        className={`${styles.chip} ${styles.chipBad} ${fx.fadeUp}`}
+                        role="status"
+                     >
+                        <XCircleIcon style={{ width: 18, height: 18 }} />
+                        -1 Mistake!
+                     </div>
+                  )}
                </div>
             )}
 
             {/* Paused Message (Requirements Met, Waiting for Timer) */}
             {gameState === "paused" && (
-               <div style={getNoticeStyle()}>
+               <div style={getNoticeStyle()} className={fx.fadeUp}>
                   <div style={getNoticeBadgeStyle("success")}>
                      <CheckCircleIcon style={{ width: 20, height: 20 }} />
                      Requirements Met
@@ -1284,7 +1363,7 @@ export default function WhackShape({
 
             {/* Ready for Next Round Message */}
             {gameState === "ready" && currentLevel + 1 < maxLevels && (
-               <div style={getNoticeStyle()}>
+               <div style={getNoticeStyle()} className={fx.fadeUp}>
                   <div style={getNoticeBadgeStyle("success")}>
                      <CheckCircleIcon style={{ width: 20, height: 20 }} />
                      Level {currentLevel + 1} Complete
@@ -1300,8 +1379,10 @@ export default function WhackShape({
                      Are you ready for next round?
                   </div>
                   <button
+                     type="button"
                      onClick={handleNextRound}
-                     style={getActionButtonStyle("success")}
+                     className={`${styles.btn} ${fx.pressable}`}
+                     style={{ ...getActionButtonStyle("success"), ...TOUCH_SURFACE }}
                      onMouseEnter={(e) => applyActionHover(e, "success", true)}
                      onMouseLeave={(e) => applyActionHover(e, "success", false)}
                   >
@@ -1312,7 +1393,7 @@ export default function WhackShape({
 
             {/* Game Complete Message */}
             {gameState === "ready" && currentLevel + 1 >= maxLevels && (
-               <div style={getNoticeStyle()}>
+               <div style={getNoticeStyle()} className={fx.fadeUp}>
                   <div style={getNoticeBadgeStyle("success")}>
                      <TrophyIcon style={{ width: 20, height: 20 }} />
                      Game Complete!
@@ -1342,7 +1423,7 @@ export default function WhackShape({
 
             {/* Level Failed Message */}
             {gameState === "failed" && (
-               <div style={getNoticeStyle()}>
+               <div style={getNoticeStyle()} className={fx.fadeUp}>
                   <div style={getNoticeBadgeStyle("danger")}>
                      <XCircleIcon style={{ width: 20, height: 20 }} />
                      Level {currentLevel + 1} Failed
@@ -1375,11 +1456,12 @@ export default function WhackShape({
                <div
                   style={{
                      display: "flex",
-                     gap: "12px",
+                     gap: isMobile ? "10px" : "12px",
                      justifyContent: "center",
                      flexWrap: "wrap",
-                     padding: isMobile ? "12px" : "16px",
+                     padding: isMobile ? "10px" : "16px",
                      background: "var(--card)",
+                     borderRadius: "16px",
                   }}
                >
                   {/* Share Success Message */}
@@ -1442,14 +1524,18 @@ export default function WhackShape({
                   )}
 
                   <button
+                     type="button"
                      onClick={handleReplay}
                      disabled={maxReplays > 0 && replaysUsed >= maxReplays}
+                     className={`${styles.btn} ${fx.pressable}`}
                      style={{
+                        ...TOUCH_SURFACE,
                         display: "flex",
                         alignItems: "center",
                         gap: isMobile ? "6px" : "8px",
-                        padding: isMobile ? "10px 16px" : "10px 20px",
-                        width: isMobile ? "100%" : "auto",
+                        padding: isMobile ? "10px 14px" : "10px 20px",
+                        flex: isMobile ? "1 1 0" : "0 0 auto",
+                        minWidth: isMobile ? "120px" : undefined,
                         background:
                            maxReplays > 0 && replaysUsed >= maxReplays
                               ? "rgba(100, 100, 100, 0.2)"
@@ -1460,7 +1546,7 @@ export default function WhackShape({
                               : "1px solid rgba(125, 211, 252, 0.6)",
 
                         color: "var(--text)",
-                        fontSize: isMobile ? "0.85rem" : "0.95rem",
+                        fontSize: isMobile ? "0.9rem" : "0.95rem",
                         fontWeight: 600,
                         cursor:
                            maxReplays > 0 && replaysUsed >= maxReplays
@@ -1509,7 +1595,7 @@ export default function WhackShape({
                         }}
                      />
                      <span>
-                        {isMobile ? "" : "Replay "}
+                        Replay{" "}
                         {maxReplays === 0
                            ? "(∞)"
                            : `(${maxReplays - replaysUsed}/${maxReplays})`}
@@ -1517,19 +1603,23 @@ export default function WhackShape({
                   </button>
 
                   <button
+                     type="button"
                      onClick={handleShare}
+                     className={`${styles.btn} ${fx.pressable}`}
                      style={{
+                        ...TOUCH_SURFACE,
                         display: "flex",
                         alignItems: "center",
                         gap: isMobile ? "6px" : "8px",
-                        padding: isMobile ? "10px 16px" : "10px 20px",
-                        width: isMobile ? "100%" : "auto",
+                        padding: isMobile ? "10px 14px" : "10px 20px",
+                        flex: isMobile ? "1 1 0" : "0 0 auto",
+                        minWidth: isMobile ? "120px" : undefined,
                         background:
                            "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
                         border: "1px solid rgba(59, 130, 246, 0.6)",
 
                         color: "var(--text)",
-                        fontSize: isMobile ? "0.85rem" : "0.95rem",
+                        fontSize: isMobile ? "0.9rem" : "0.95rem",
                         fontWeight: 600,
                         cursor: "pointer",
                         transition: "all 0.3s ease",
