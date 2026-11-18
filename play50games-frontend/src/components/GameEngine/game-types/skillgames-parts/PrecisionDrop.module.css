@@ -1,0 +1,76 @@
+/* Precision Drop: the drop arena and its hit / miss rings (classic modern pass). */
+
+.arena {
+   /* the frame is an inset ring, not a border: the canvas keeps its old size */
+   border: 0 !important;
+   box-shadow: inset 0 0 0 1px var(--stroke);
+   padding: 10px;
+   cursor: pointer;
+   outline: none;
+   box-sizing: border-box;
+   background:
+      radial-gradient(320px 220px at 30% 30%, rgba(var(--accent-rgb, 231, 95, 64), 0.07), transparent 60%),
+      rgba(255, 255, 255, 0.03);
+}
+
+.arena:focus-visible {
+   box-shadow: inset 0 0 0 2px var(--accent);
+}
+
+.canvas {
+   display: block;
+   width: 100%;
+   height: 100%;
+   max-width: 100%;
+   max-height: 100%;
+}
+
+/* a ring around the whole arena, re-keyed on every hit or miss so it plays once each time */
+.ring {
+   position: absolute;
+   inset: 0;
+   border-radius: inherit;
+   pointer-events: none;
+   opacity: 0;
+}
+
+.ringOk {
+   composes: ring;
+   box-shadow: inset 0 0 0 3px var(--ok);
+   animation: ring 0.36s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.ringWarn {
+   composes: ring;
+   box-shadow: inset 0 0 0 3px var(--warn);
+   animation: ring 0.36s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+:global(body.final-game) .ringOk {
+   box-shadow: inset 0 0 0 3px var(--accent);
+}
+
+.reasons {
+   display: inline-flex;
+   align-items: center;
+   gap: 4px;
+}
+
+@keyframes ring {
+   0% {
+      opacity: 0;
+   }
+   30% {
+      opacity: 1;
+   }
+   100% {
+      opacity: 0;
+   }
+}
+
+@media (prefers-reduced-motion: reduce) {
+   .ringOk,
+   .ringWarn {
+      animation: none;
+   }
+}
