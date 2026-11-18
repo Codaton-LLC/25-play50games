@@ -1,12 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import theme from "./theme.module.css";
 import css from "./MatchShapes.module.css";
-import mobile from "./mobile.module.css";
 import {
-   ArrowPathIcon,
-   TrophyIcon,
-   SparklesIcon,
    CheckCircleIcon,
    XCircleIcon,
    HomeIcon,
@@ -73,11 +70,11 @@ function getShapeDisplayName(shape: string): string {
 }
 
 // Helper function to get Heroicon for each shape
-function getShapeIcon(shape: string, size: number = 80) {
+// size and colour come from the parent (CSS module), so icons scale with their tile
+function getShapeIcon(shape: string) {
    const iconStyle = {
-      width: size,
-      height: size,
-      color: "var(--accent)",
+      width: "100%",
+      height: "100%",
    };
 
    const shapeLower = shape.toLowerCase();
@@ -158,6 +155,14 @@ function MatchShapes({
    const [currentRound, setCurrentRound] = useState(0);
    const [currentScore, setCurrentScore] = useState(0);
    const maxRounds = config.rounds || 20;
+   // the next-round timer, cleared on unmount
+   const roundTimerRef = useRef<number | null>(null);
+   useEffect(
+      () => () => {
+         if (roundTimerRef.current !== null) window.clearTimeout(roundTimerRef.current);
+      },
+      []
+   );
 
    useEffect(() => {
       // Start first round
@@ -184,7 +189,8 @@ function MatchShapes({
       setCurrentScore(newScore);
       onScoreUpdate(newScore);
 
-      setTimeout(() => {
+      roundTimerRef.current = window.setTimeout(() => {
+         roundTimerRef.current = null;
          setCurrentRound(nextRound);
 
          if (nextRound >= maxRounds) {
@@ -226,359 +232,118 @@ function MatchShapes({
       return () => window.removeEventListener("keydown", handleKeyPress);
    }, [selectedShape, shapes]);
 
+   const keyFor = (idx: number): string => {
+      if (idx < 9) return String(idx + 1); // 1-9
+      if (idx === 9) return "0"; // 10th shape
+      if (idx === 10) return "-"; // 11th shape
+      return "="; // 12th shape
+   };
+   const progress = Math.min(1, Math.max(0, (currentRound + 1) / maxRounds));
+
    return (
-      <div
-         className={css.root}
-         style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: "32px",
-            padding: "24px",
-            maxWidth: "600px",
-            margin: "0 auto",
-         }}
-      >
-         {/* Header with Round and Score */}
-         <div
-            className={css.head}
-            style={{
-               width: "100%",
-               background: "var(--card)",
-               borderRadius: "16px",
-               padding: "20px",
-               boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
-            }}
-         >
-            <div
-               style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  fontSize: "0.875rem",
-                  color: "var(--muted)",
-                  fontWeight: 500,
-                  marginBottom: "12px",
-               }}
-            >
-               <span
-                  style={{ display: "flex", alignItems: "center", gap: "6px" }}
-               >
-                  <ArrowPathIcon
-                     style={{ width: 16, height: 16, color: "var(--accent)" }}
-                  />
-                  Round {currentRound + 1} / {maxRounds}
+      <div className={`${theme.game} ${css.root}`}>
+         <div className={`${theme.header} ${css.head}`}>
+            <div className={theme.chips}>
+               <span className={theme.chip}>
+                  Round <strong>{Math.min(currentRound + 1, maxRounds)} / {maxRounds}</strong>
                </span>
-               <span
-                  style={{ display: "flex", alignItems: "center", gap: "6px" }}
-               >
-                  <TrophyIcon
-                     style={{ width: 16, height: 16, color: "var(--ok)" }}
-                  />
-                  Score: {currentScore} / {maxRounds * 5}
+               <span className={theme.chip}>
+                  Score <strong>{currentScore} / {maxRounds * 5}</strong>
                </span>
             </div>
-            {/* Progress Bar */}
             <div
-               style={{
-                  width: "100%",
-                  height: "8px",
-                  background: "rgba(255, 255, 255, 0.1)",
-                  borderRadius: "4px",
-                  overflow: "hidden",
-                  position: "relative",
-               }}
+               className={css.progress}
+               role="progressbar"
+               aria-valuemin={0}
+               aria-valuemax={100}
+               aria-valuenow={Math.round(progress * 100)}
+               aria-label="Rounds played"
             >
                <div
-                  style={{
-                     width: `${((currentRound + 1) / maxRounds) * 100}%`,
-                     height: "100%",
-                     background:
-                        "linear-gradient(90deg, var(--accent) 0%, var(--ok) 100%)",
-                     borderRadius: "4px",
-                     transition: "width 0.3s ease",
-                     boxShadow: "0 0 10px rgba(125, 211, 252, 0.5)",
-                  }}
+                  className={css.progressFill}
+                  style={{ transform: `scaleX(${progress})` }}
                />
             </div>
          </div>
 
-         {/* Target Shape */}
-         <div
-            className={css.target}
-            style={{
-               background: "var(--card)",
-               borderRadius: "20px",
-               padding: "40px",
-               boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
-               minHeight: "200px",
-               display: "flex",
-               alignItems: "center",
-               justifyContent: "center",
-               position: "relative",
-            }}
-         >
-            <div
-               style={{
-                  position: "absolute",
-                  top: "12px",
-                  right: "12px",
-                  background: "rgba(125, 211, 252, 0.2)",
-                  borderRadius: "50%",
-                  padding: "8px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-               }}
-            >
-               <SparklesIcon
-                  style={{ width: 20, height: 20, color: "var(--accent)" }}
-               />
-            </div>
-            <div
-               style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  gap: "16px",
-               }}
-            >
-               <div
-                  className={css.shape}
-                  style={{
-                     display: "flex",
-                     alignItems: "center",
-                     justifyContent: "center",
-                     animation: "pulse 2s ease-in-out infinite",
-                  }}
-               >
-                  {getShapeIcon(targetShape, 120)}
+         <div className={`${theme.panel} ${css.target}`}>
+            <span className={css.targetLabel}>Find this shape</span>
+            {/* keyed by round: each new target reveals once, then stays still */}
+            <div key={currentRound} className={`${css.targetBody} ${theme.reveal}`}>
+               <div className={css.shape} aria-hidden>
+                  {getShapeIcon(targetShape)}
                </div>
-               <span
-                  style={{
-                     fontSize: "1.1rem",
-                     fontWeight: 700,
-                     color: "var(--accent)",
-                  }}
-               >
+               <span className={css.targetName}>
                   {getShapeDisplayName(targetShape)}
                </span>
             </div>
          </div>
 
-         {/* Shape Options */}
-         <div
-            className={css.options}
-            style={{
-               display: "grid",
-               gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))",
-               gap: "20px",
-               width: "100%",
-            }}
-         >
+         <div className={`${theme.feedbackSlot} ${css.feedback}`} role="status" aria-live="polite">
+            {correct !== null && (
+               <div
+                  className={`${theme.feedback} ${
+                     correct ? `${theme.feedbackOk} ${theme.pop}` : `${theme.feedbackWarn} ${theme.shake}`
+                  }`}
+               >
+                  {correct ? (
+                     <>
+                        <CheckCircleIcon className={css.feedbackIcon} aria-hidden />
+                        <span>Correct, that is a match.</span>
+                     </>
+                  ) : (
+                     <>
+                        <XCircleIcon className={css.feedbackIcon} aria-hidden />
+                        <span>Not a match. Next shape.</span>
+                     </>
+                  )}
+               </div>
+            )}
+         </div>
+
+         <div className={css.options}>
             {shapes.map((shape: string, index: number) => {
                const isSelected = selectedShape === shape;
                const isCorrectSelection = isSelected && correct === true;
                const isIncorrectSelection = isSelected && correct === false;
-
-               // Get keyboard number for this shape (1-12)
-               const getKeyboardNumber = (idx: number): string => {
-                  if (idx < 9) return String(idx + 1); // 1-9
-                  if (idx === 9) return "0"; // 10th shape
-                  if (idx === 10) return "-"; // 11th shape
-                  return "="; // 12th shape
-               };
+               const state = isCorrectSelection
+                  ? `${css.optCorrect} ${theme.pop}`
+                  : isIncorrectSelection
+                  ? `${css.optWrong} ${theme.shake}`
+                  : selectedShape !== ""
+                  ? css.optIdle
+                  : "";
 
                return (
                   <button
                      key={shape}
-                     className={`${css.option} ${isCorrectSelection ? mobile.pop : isIncorrectSelection ? mobile.shake : ""}`}
+                     type="button"
+                     className={`${css.option} ${state}`}
                      onClick={() => handleShapeClick(shape)}
                      disabled={selectedShape !== ""}
-                     style={{
-                        background: isCorrectSelection
-                           ? "linear-gradient(135deg, rgba(134,239,172,0.3) 0%, rgba(134,239,172,0.1) 100%)"
-                           : isIncorrectSelection
-                           ? "linear-gradient(135deg, rgba(252,165,165,0.3) 0%, rgba(252,165,165,0.1) 100%)"
-                           : "var(--card)",
-                        border: isCorrectSelection
-                           ? "2px solid var(--ok)"
-                           : isIncorrectSelection
-                           ? "2px solid var(--warn)"
-                           : "2px solid var(--stroke)",
-                        borderRadius: "16px",
-                        cursor:
-                           selectedShape !== "" ? "not-allowed" : "pointer",
-                        transition: "all 0.3s ease",
-                        transform: isSelected ? "scale(0.95)" : "scale(1)",
-                        boxShadow: isSelected
-                           ? "0 8px 20px rgba(125, 211, 252, 0.4)"
-                           : "0 4px 12px rgba(0, 0, 0, 0.2)",
-                        opacity: selectedShape !== "" && !isSelected ? 0.5 : 1,
-                     }}
-                     onMouseEnter={(e) => {
-                        if (selectedShape === "") {
-                           e.currentTarget.style.transform = "scale(1.05)";
-                           e.currentTarget.style.boxShadow =
-                              "0 8px 20px rgba(125, 211, 252, 0.4)";
-                        }
-                     }}
-                     onMouseLeave={(e) => {
-                        if (selectedShape === "") {
-                           e.currentTarget.style.transform = "scale(1)";
-                           e.currentTarget.style.boxShadow =
-                              "0 4px 12px rgba(0, 0, 0, 0.2)";
-                        }
-                     }}
+                     aria-label={getShapeDisplayName(shape)}
                   >
-                     <div
-                        style={{
-                           display: "flex",
-                           flexDirection: "column",
-                           alignItems: "center",
-                           gap: "12px",
-                           position: "relative",
-                        }}
-                     >
-                        {isCorrectSelection && (
-                           <div
-                              style={{
-                                 position: "absolute",
-                                 top: "-8px",
-                                 right: "-8px",
-                                 background: "var(--ok)",
-                                 borderRadius: "50%",
-                                 padding: "4px",
-                                 display: "flex",
-                                 alignItems: "center",
-                                 justifyContent: "center",
-                                 zIndex: 10,
-                                 boxShadow:
-                                    "0 4px 12px rgba(134, 239, 172, 0.5)",
-                              }}
-                           >
-                              <CheckCircleIcon
-                                 style={{
-                                    width: 20,
-                                    height: 20,
-                                    color: "var(--bg)",
-                                 }}
-                              />
-                           </div>
-                        )}
-                        {isIncorrectSelection && (
-                           <div
-                              style={{
-                                 position: "absolute",
-                                 top: "-8px",
-                                 right: "-8px",
-                                 background: "var(--warn)",
-                                 borderRadius: "50%",
-                                 padding: "4px",
-                                 display: "flex",
-                                 alignItems: "center",
-                                 justifyContent: "center",
-                                 zIndex: 10,
-                                 boxShadow:
-                                    "0 4px 12px rgba(252, 165, 165, 0.5)",
-                              }}
-                           >
-                              <XCircleIcon
-                                 style={{
-                                    width: 20,
-                                    height: 20,
-                                    color: "var(--bg)",
-                                 }}
-                              />
-                           </div>
-                        )}
-                        <div
-                           style={{
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                           }}
+                     {(isCorrectSelection || isIncorrectSelection) && (
+                        <span
+                           className={`${css.badge} ${
+                              isCorrectSelection ? css.badgeOk : css.badgeWarn
+                           }`}
+                           aria-hidden
                         >
-                           {getShapeIcon(shape, 80)}
-                        </div>
-                        <div
-                           style={{
-                              display: "flex",
-                              flexDirection: "column",
-                              alignItems: "center",
-                              gap: "4px",
-                           }}
-                        >
-                           <span
-                              className={css.key}
-                              style={{
-                                 fontSize: "0.75rem",
-                                 fontWeight: 500,
-                                 color: "var(--accent)",
-                                 background: "rgba(125, 211, 252, 0.1)",
-                                 borderRadius: "4px",
-                                 padding: "2px 6px",
-                                 fontFamily: "monospace",
-                              }}
-                           >
-                              {(() => {
-                                 if (index < 9) return String(index + 1); // 1-9
-                                 if (index === 9) return "0"; // 10th shape
-                                 if (index === 10) return "-"; // 11th shape
-                                 return "="; // 12th shape
-                              })()}
-                           </span>
-                           <span
-                              className={css.name}
-                              style={{
-                                 fontSize: "0.875rem",
-                                 fontWeight: 600,
-                                 color: "var(--muted)",
-                              }}
-                           >
-                              {getShapeDisplayName(shape)}
-                           </span>
-                        </div>
-                     </div>
+                           {isCorrectSelection ? <CheckCircleIcon /> : <XCircleIcon />}
+                        </span>
+                     )}
+                     <span className={css.key} aria-hidden>
+                        {keyFor(index)}
+                     </span>
+                     <span className={css.optIcon} aria-hidden>
+                        {getShapeIcon(shape)}
+                     </span>
+                     <span className={css.name}>{getShapeDisplayName(shape)}</span>
                   </button>
                );
             })}
          </div>
-
-         {/* Feedback Message */}
-         {correct !== null && (
-            <div
-               className={css.feedback}
-               role="status"
-               style={{
-                  padding: "16px 24px",
-
-                  fontSize: "1.1rem",
-                  fontWeight: 600,
-                  animation: "slideIn 0.3s ease-out",
-                  background: correct
-                     ? "rgba(134, 239, 172, 0.2)"
-                     : "rgba(252, 165, 165, 0.2)",
-                  border: `1px solid ${correct ? "var(--ok)" : "var(--warn)"}`,
-                  color: correct ? "var(--ok)" : "var(--warn)",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "10px",
-               }}
-            >
-               {correct ? (
-                  <>
-                     <CheckCircleIcon style={{ width: 24, height: 24 }} />
-                     <span>Correct! Great job!</span>
-                  </>
-               ) : (
-                  <>
-                     <XCircleIcon style={{ width: 24, height: 24 }} />
-                     <span>Try again! You can do it!</span>
-                  </>
-               )}
-            </div>
-         )}
       </div>
    );
 }
