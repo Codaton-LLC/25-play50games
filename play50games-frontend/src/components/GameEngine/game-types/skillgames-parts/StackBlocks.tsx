@@ -20,6 +20,7 @@ import touch from "./skillTouch.module.css";
 import ui from "./skillUi.module.css";
 import sb from "./StackBlocks.module.css";
 import { usePlayAreaInView } from "./usePlayAreaInView";
+import { boardOv, isLightBoard, useThemeChange } from "./boardTheme";
 
 interface StackBlocksProps {
    config: Record<string, any>;
@@ -228,11 +229,12 @@ export default function StackBlocks({
       if (!canvas) return;
       const ctx = canvas.getContext("2d");
       if (!ctx) return;
-      if (accentRgbRef.current === null) {
-         const v = getComputedStyle(canvas).getPropertyValue("--accent-rgb").trim();
-         accentRgbRef.current = /^\d+\s*,\s*\d+\s*,\s*\d+$/.test(v) ? v : "231, 95, 64";
-      }
+      // the stage's accent and overlay colour, read every frame so the theme switch shows at once
+      const v = getComputedStyle(canvas).getPropertyValue("--accent-rgb").trim();
+      accentRgbRef.current = /^\d+\s*,\s*\d+\s*,\s*\d+$/.test(v) ? v : "231, 95, 64";
       const accent = accentRgbRef.current;
+      const ov = boardOv(canvas);
+      const light = isLightBoard(canvas);
 
       // Use actual canvas dimensions
       const dpr = Math.max(1, window.devicePixelRatio || 1);
@@ -243,7 +245,7 @@ export default function StackBlocks({
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       // Subtle grid
-      ctx.strokeStyle = "rgba(255,255,255,.04)";
+      ctx.strokeStyle = `rgba(${ov},.04)`;
       ctx.lineWidth = 1;
       for (let x = 0; x < w; x += 40) {
          ctx.beginPath();
@@ -288,7 +290,7 @@ export default function StackBlocks({
             activeBlock.w,
             BLOCK_H
          );
-         ctx.strokeStyle = "rgba(255,255,255,.35)";
+         ctx.strokeStyle = `rgba(${ov},${light ? ".3" : ".35"})`;
          ctx.strokeRect(
             activeBlock.x,
             activeBlock.y - BLOCK_H,
@@ -299,10 +301,13 @@ export default function StackBlocks({
       ctx.restore();
 
       // Floor label
-      ctx.fillStyle = "rgba(163,172,191,.8)";
+      ctx.fillStyle = light ? "rgb(79,90,115)" : "rgba(163,172,191,.8)";
       ctx.font = "12px system-ui";
       ctx.fillText("Tap / Click to drop", 14, 18);
    }, []);
+
+   // the theme switch repaints the canvas at once
+   useThemeChange(draw);
 
    // Canvas resize handler
    const resizeCanvas = useCallback(() => {

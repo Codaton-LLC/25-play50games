@@ -20,6 +20,7 @@ import touch from "./skillTouch.module.css";
 import ui from "./skillUi.module.css";
 import lt from "./LineTracer.module.css";
 import { usePlayAreaInView } from "./usePlayAreaInView";
+import { isLightBoard, useThemeChange } from "./boardTheme";
 
 interface LineTracerProps {
    config: Record<string, any>;
@@ -602,11 +603,14 @@ export default function LineTracer({
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
       ctx.clearRect(0, 0, rect.width, rect.height);
+      // the guide is chalk on the dark stage, ink on the light one
+      const light = isLightBoard(canvas);
+      const guide = light ? "14, 19, 34" : "241, 243, 248";
 
       // Draw target path
       if (targetPath && targetPath.length > 1) {
          // Draw target path glow first (behind)
-         ctx.strokeStyle = "rgba(241, 243, 248, 0.08)"; // the guide: a soft neutral band
+         ctx.strokeStyle = `rgba(${guide}, ${light ? 0.07 : 0.08})`; // the guide: a soft neutral band
          ctx.lineWidth = 10;
          ctx.lineCap = "round";
          ctx.lineJoin = "round";
@@ -624,7 +628,7 @@ export default function LineTracer({
          ctx.stroke();
 
          // Draw target path (on top)
-         ctx.strokeStyle = "rgba(241, 243, 248, 0.5)";
+         ctx.strokeStyle = `rgba(${guide}, ${light ? 0.42 : 0.5})`;
          ctx.lineWidth = 4;
          ctx.lineCap = "round";
          ctx.lineJoin = "round";
@@ -691,6 +695,8 @@ export default function LineTracer({
          ctx.stroke();
       }
    }, [targetPath, playerPath, currentAccuracy]);
+
+   useThemeChange(drawCanvas);
 
    // Draw paths on canvas
    useEffect(() => {

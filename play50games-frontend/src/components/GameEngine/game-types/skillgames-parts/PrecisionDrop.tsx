@@ -20,6 +20,7 @@ import touch from "./skillTouch.module.css";
 import ui from "./skillUi.module.css";
 import s from "./PrecisionDrop.module.css";
 import { usePlayAreaInView } from "./usePlayAreaInView";
+import { boardOv, cssVar, isLightBoard, useThemeChange } from "./boardTheme";
 
 interface PrecisionDropProps {
    config: Record<string, any>;
@@ -332,9 +333,15 @@ export default function PrecisionDrop({
          const h = canvas.height / dpr;
 
          ctx.clearRect(0, 0, canvas.width, canvas.height);
+         // white overlays on the dark stage, ink on the light one; the accent follows the theme too
+         const ov = boardOv(canvas);
+         const light = isLightBoard(canvas);
+         objRgbRef.current = cssVar(canvas, "--accent-rgb", objRgbRef.current);
+         // the target's green one step deeper on the light board
+         const tg = light ? "26,125,82" : "54,211,153";
 
          // Subtle grid
-         ctx.strokeStyle = "rgba(255,255,255,.04)";
+         ctx.strokeStyle = `rgba(${ov},.04)`;
          ctx.lineWidth = 1;
          for (let x = 0; x < w; x += 40) {
             ctx.beginPath();
@@ -351,7 +358,7 @@ export default function PrecisionDrop({
 
          // Floor
          const floorY = getFloorY();
-         ctx.fillStyle = "rgba(255,255,255,.12)";
+         ctx.fillStyle = `rgba(${ov},${light ? ".2" : ".12"})`;
          ctx.fillRect(0, floorY, w, 4);
 
          // Target (with shake offset)
@@ -380,14 +387,14 @@ export default function PrecisionDrop({
                   currentTarget.h
                );
             } else {
-               ctx.fillStyle = "rgba(54,211,153,.22)";
+               ctx.fillStyle = `rgba(${tg},${light ? ".16" : ".22"})`;
                ctx.fillRect(
                   tX,
                   tY,
                   currentTarget.w,
                   currentTarget.h
                );
-               ctx.strokeStyle = "rgba(54,211,153,.65)";
+               ctx.strokeStyle = `rgba(${tg},${light ? ".8" : ".65"})`;
                ctx.strokeRect(
                   tX,
                   tY,
@@ -420,12 +427,12 @@ export default function PrecisionDrop({
             ctx.arc(currentObj.x, currentObj.y, OBJ_R, 0, Math.PI * 2);
             ctx.fill();
 
-            ctx.strokeStyle = "rgba(255,255,255,.22)";
+            ctx.strokeStyle = `rgba(${ov},${light ? ".35" : ".22"})`;
             ctx.stroke();
          }
 
          // Helper text
-         ctx.fillStyle = "rgba(163,172,191,.8)";
+         ctx.fillStyle = light ? "rgb(79,90,115)" : "rgba(163,172,191,.8)";
          ctx.font = "12px system-ui";
          ctx.fillText(
             window.matchMedia?.("(pointer: coarse)").matches
@@ -437,6 +444,10 @@ export default function PrecisionDrop({
       },
       [getFloorY, clamp]
    );
+
+   // the theme switch repaints the canvas at once
+   const redrawForTheme = useCallback(() => draw(0), [draw]);
+   useThemeChange(redrawForTheme);
 
    // Canvas resize handler
    const resizeCanvas = useCallback(() => {

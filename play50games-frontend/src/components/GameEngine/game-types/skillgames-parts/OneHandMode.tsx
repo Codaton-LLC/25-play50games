@@ -20,6 +20,7 @@ import touch from "./skillTouch.module.css";
 import ui from "./skillUi.module.css";
 import s from "./OneHandMode.module.css";
 import { usePlayAreaInView } from "./usePlayAreaInView";
+import { boardOv, isLightBoard, useThemeChange } from "./boardTheme";
 
 // Narrow (phone) canvases draw a world at least WORLD_MIN_W wide, scaled down, so obstacles appear as
 // far ahead of the player as on a tablet: they spawn at the world's right edge and move at a fixed
@@ -390,13 +391,16 @@ export default function OneHandMode({
       const { w, h } = worldOf(canvas);
 
       ctx.clearRect(0, 0, w, h);
+      // the light stage gets one step deeper shades of the same colours (3:1 on the white board)
+      const light = isLightBoard(canvas);
+      const playerColor = light ? "#3b82f6" : "#6ea8ff";
 
       // Draw ground
-      ctx.fillStyle = "rgba(255, 255, 255, 0.14)";
+      ctx.fillStyle = `rgba(${boardOv(canvas)}, ${light ? 0.22 : 0.14})`;
       ctx.fillRect(0, groundYRef.current, w, 2);
 
       // Draw player
-      ctx.fillStyle = "#6ea8ff";
+      ctx.fillStyle = playerColor;
       if (performance.now() < boostEffectUntilRef.current) {
          const px = playerRef.current.x + playerRef.current.w / 2;
          const py = playerRef.current.y + playerRef.current.h / 2;
@@ -408,7 +412,7 @@ export default function OneHandMode({
          ctx.beginPath();
          ctx.arc(px, py, glow, 0, Math.PI * 2);
          ctx.fill();
-         ctx.fillStyle = "#6ea8ff";
+         ctx.fillStyle = playerColor;
       }
       fillRounded(
          ctx,
@@ -421,7 +425,8 @@ export default function OneHandMode({
 
       // Draw obstacles
       for (const obstacle of obstaclesRef.current) {
-         ctx.fillStyle = obstacle.type === "boost" ? "#60a5fa" : "#fb7185";
+         ctx.fillStyle =
+            obstacle.type === "boost" ? (light ? "#2563eb" : "#60a5fa") : light ? "#e11d48" : "#fb7185";
          fillRounded(
             ctx,
             obstacle.x,
@@ -450,6 +455,9 @@ export default function OneHandMode({
          }
       }
    }, []);
+
+   // the theme switch repaints the canvas at once
+   useThemeChange(draw);
 
    // Start level
    const startLevel = useCallback(
