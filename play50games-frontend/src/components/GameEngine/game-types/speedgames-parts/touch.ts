@@ -71,27 +71,44 @@ export function useViewport(): Viewport {
 }
 
 /**
- * On touch / narrow screens the site header above the engine pushes the game below the fold: when the
- * run starts, bring the engine's score bar (and the play area under it) to the top of the viewport, once.
+ * On touch / narrow / short screens the site header above the engine pushes the game below the fold: when
+ * the run starts, bring the engine's score bar (and the play area under it) to the top of the viewport, once.
  */
 export function useRevealOnPlay(ref: RefObject<HTMLElement>, isPlaying: boolean): void {
    const done = useRef(false);
    useEffect(() => {
       if (!isPlaying || done.current || typeof window === "undefined") return;
-      if (window.innerWidth >= 1024) return;
-      done.current = true;
+      // a tall desktop window shows the whole game under the site header; everything else (phones, tablets,
+      // landscape tablets and laptops under 900 px tall) needs the engine's bar at the top so the play area
+      // and the Replay / Share row end above the cookie banner
+      if (window.innerWidth >= 1024 && window.innerHeight >= 900) return;
       const root = ref.current;
       const engine = root?.closest(".game-engine");
       const target = (engine?.querySelector(".game-header") as HTMLElement | null) ?? root;
       if (!target) return;
-      const id = window.requestAnimationFrame(() => {
+      const reveal = () => {
+         // marked done only when a scroll really runs: React's dev StrictMode runs this effect, its cleanup
+         // and the effect again before the first frame, which must not count as the reveal
+         done.current = true;
          try {
             target.scrollIntoView({ block: "start", behavior: "smooth" });
          } catch {
             target.scrollIntoView();
          }
-      });
-      return () => window.cancelAnimationFrame(id);
+      };
+      const id = window.requestAnimationFrame(reveal);
+      // The engine focuses its container on start (an instant scroll) and the board can still grow in the
+      // first frames; if the header is not at the top shortly after, scroll again (same target, harmless
+      // while the first smooth scroll is still running).
+      const timers = [250, 700].map((ms) =>
+         window.setTimeout(() => {
+            if (Math.abs(target.getBoundingClientRect().top) > 4) reveal();
+         }, ms),
+      );
+      return () => {
+         window.cancelAnimationFrame(id);
+         timers.forEach((t) => window.clearTimeout(t));
+      };
    }, [ref, isPlaying]);
 }
 
