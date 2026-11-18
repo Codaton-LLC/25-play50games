@@ -155,7 +155,8 @@ export default function ResultPanel(props: ResultPanelProps) {
             </p>
             <div className={styles.actions}>
                {status === "login-required" && onLogin ? (
-                  <button type="button" className={styles.primary} onClick={onLogin}>
+                  // quiet: Retry (or Next level) is the one primary button of the sheet (DESIGN.md §4, §6 item 9)
+                  <button type="button" className={styles.secondary} onClick={onLogin}>
                      Log in
                   </button>
                ) : null}

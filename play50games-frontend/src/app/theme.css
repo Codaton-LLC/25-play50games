@@ -10,11 +10,11 @@
    --p50-track: #c9d1df;
    --p50-text: #0e1322;
    --p50-text-2: #4f5a73;
-   --p50-text-3: #626c85;
+   --p50-text-3: #5c667f;
    --p50-coral: #e75f40;
    --p50-coral-hover: #ec7458;
    --p50-coral-press: #c2452a;
-   --p50-coral-text: #c2452a;
+   --p50-coral-text: #b83f26;
    --p50-coral-wash: #fbe6e0;
    --p50-on-coral: #0b0f1a;
    --p50-gold: #e3a72f;
@@ -52,9 +52,9 @@
       --p50-track: #333d57;
       --p50-text: #f1f3f8;
       --p50-text-2: #a3acbf;
-      --p50-text-3: #7a84a0;
+      --p50-text-3: #8089a5;
       --p50-coral-text: #e75f40;
-      --p50-coral-wash: #2f2129;
+      --p50-coral-wash: #2a1d24;
       --p50-gold-text: #e3a72f;
       --p50-red-text: #f0708a;
       --p50-shadow: 0 0 0 0 transparent;
@@ -94,9 +94,9 @@ html {
    --p50-track: #333d57;
    --p50-text: #f1f3f8;
    --p50-text-2: #a3acbf;
-   --p50-text-3: #7a84a0;
+   --p50-text-3: #8089a5;
    --p50-coral-text: #e75f40;
-   --p50-coral-wash: #2f2129;
+   --p50-coral-wash: #2a1d24;
    --p50-gold-text: #e3a72f;
    --p50-red-text: #f0708a;
    --p50-shadow: 0 0 0 0 transparent;
