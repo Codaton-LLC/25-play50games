@@ -111,6 +111,22 @@ function SymbolStack({
    const [hintRevealed, setHintRevealed] = useState<number[]>([]);
    const [currentShareId, setCurrentShareId] = useState<string | null>(null);
    const shareCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
+   // 15 s share-message timers: cleared on unmount
+   const shareTimersRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
+   const shareTimeout = (fn: () => void, ms: number) => {
+      const t = setTimeout(() => {
+         shareTimersRef.current.delete(t);
+         fn();
+      }, ms);
+      shareTimersRef.current.add(t);
+   };
+   useEffect(() => {
+      const timers = shareTimersRef.current;
+      return () => {
+         timers.forEach(clearTimeout);
+         timers.clear();
+      };
+   }, []);
 
    // Round-flow timers (next round, retry, completion): the same delays as before, but cleared
    // when the game unmounts so a timer never fires into a closed game.
@@ -171,7 +187,7 @@ function SymbolStack({
                         setHasShared(true);
                         setUnlimitedActivated(true);
                         setCurrentShareId(shareId);
-                        setTimeout(() => setUnlimitedActivated(false), 15000);
+                        shareTimeout(() => setUnlimitedActivated(false), 15000);
                      }
                   }
                } catch (error) {
@@ -243,7 +259,7 @@ function SymbolStack({
                      share_id: currentShareId,
                   })
                );
-               setTimeout(() => setUnlimitedActivated(false), 15000);
+               shareTimeout(() => setUnlimitedActivated(false), 15000);
             }
          } catch (error) {
             // Handle 404 as expired share
@@ -464,7 +480,7 @@ function SymbolStack({
          }
 
          setShareSuccess(true);
-         setTimeout(() => setShareSuccess(false), 15000);
+         shareTimeout(() => setShareSuccess(false), 15000);
       } catch (error) {
          // Error sharing
       }

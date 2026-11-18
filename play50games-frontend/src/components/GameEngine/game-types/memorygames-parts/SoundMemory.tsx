@@ -55,9 +55,25 @@ function SoundMemory({
    const [unlimitedActivated, setUnlimitedActivated] = useState(false);
    const [currentShareId, setCurrentShareId] = useState<string | null>(null);
    const shareCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
+   // 15 s share-message timers: cleared on unmount
+   const shareTimersRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
+   const shareTimeout = (fn: () => void, ms: number) => {
+      const t = setTimeout(() => {
+         shareTimersRef.current.delete(t);
+         fn();
+      }, ms);
+      shareTimersRef.current.add(t);
+   };
+   useEffect(() => {
+      const timers = shareTimersRef.current;
+      return () => {
+         timers.forEach(clearTimeout);
+         timers.clear();
+      };
+   }, []);
 
    // Sound / sequence timers: cleared when the game unmounts so no tone or state change fires after
-   // the player leaves (the timing itself is unchanged). Score and completion timers stay plain.
+   // the player leaves (the timing itself is unchanged). Completion goes through finishGame below.
    const timersRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
    const later = useCallback((fn: () => void, ms: number) => {
       const t = setTimeout(() => {
@@ -73,6 +89,21 @@ function SoundMemory({
          timers.clear();
       };
    }, []);
+
+   // Completion is reached by two paths (the last correct round and the round-count effect):
+   // only the first one schedules the final score + onComplete; unmount clears it via later().
+   const completedRef = useRef(false);
+   const finishGame = useCallback(
+      (finalScore: number) => {
+         if (completedRef.current) return;
+         completedRef.current = true;
+         later(() => {
+            onScoreUpdate(finalScore);
+            later(() => onComplete(finalScore), 1000);
+         }, 0);
+      },
+      [later, onScoreUpdate, onComplete]
+   );
 
    // Max replays: 5 for Sound Memory, unlimited if shared
    const maxReplays = hasShared ? 0 : 5; // 0 = unlimited
@@ -166,13 +197,10 @@ function SoundMemory({
          // Score is calculated based on rounds completed, not from currentScore
          // Each round is worth (100 / maxRounds) points
          const finalScore = Math.round((currentRound / maxRounds) * 100);
-         // Use setTimeout to avoid calling onScoreUpdate/onComplete during render
-         setTimeout(() => {
-            onScoreUpdate(finalScore);
-            setTimeout(() => onComplete(finalScore), 1000);
-         }, 0);
+         // Deferred (not during render) and fired once, see finishGame
+         finishGame(finalScore);
       }
-   }, [currentRound, maxRounds, gameState, onScoreUpdate, onComplete]);
+   }, [currentRound, maxRounds, gameState, finishGame]);
 
    // Play tone for a specific pad - each pad always has the same sound
    const playTone = useCallback(
@@ -369,11 +397,8 @@ function SoundMemory({
                         const finalScore = Math.round(
                            (nextRound / maxRounds) * 100
                         );
-                        // Use setTimeout to avoid calling onScoreUpdate/onComplete during render
-                        setTimeout(() => {
-                           onScoreUpdate(finalScore);
-                           setTimeout(() => onComplete(finalScore), 1000);
-                        }, 0);
+                        // Deferred (not during render) and fired once, see finishGame
+                        finishGame(finalScore);
                      }
                      return nextRound;
                   });
@@ -393,6 +418,7 @@ function SoundMemory({
          onComplete,
          startNewRound,
          later,
+         finishGame,
       ]
    );
 
@@ -607,7 +633,7 @@ function SoundMemory({
                url: shareableLink,
             });
             setShareSuccess(true);
-            setTimeout(() => setShareSuccess(false), 15000);
+            shareTimeout(() => setShareSuccess(false), 15000);
          } catch (error: any) {
             if (error.name !== "AbortError") {
                handleCopyLink(shareId);
@@ -625,7 +651,7 @@ function SoundMemory({
       try {
          await navigator.clipboard.writeText(shareableLink);
          setShareSuccess(true);
-         setTimeout(() => setShareSuccess(false), 15000);
+         shareTimeout(() => setShareSuccess(false), 15000);
       } catch (error) {
          const textArea = document.createElement("textarea");
          textArea.value = shareableLink;
@@ -636,7 +662,7 @@ function SoundMemory({
          try {
             document.execCommand("copy");
             setShareSuccess(true);
-            setTimeout(() => setShareSuccess(false), 15000);
+            shareTimeout(() => setShareSuccess(false), 15000);
          } catch (err) {
             // Failed to copy
          }

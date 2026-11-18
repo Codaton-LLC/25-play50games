@@ -61,6 +61,38 @@ function WordMemory({
    const [hintRevealed, setHintRevealed] = useState<number[]>([]);
    const [currentShareId, setCurrentShareId] = useState<string | null>(null);
    const shareCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
+   // 15 s share-message timers: cleared on unmount
+   const shareTimersRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
+   const shareTimeout = (fn: () => void, ms: number) => {
+      const t = setTimeout(() => {
+         shareTimersRef.current.delete(t);
+         fn();
+      }, ms);
+      shareTimersRef.current.add(t);
+   };
+   useEffect(() => {
+      const timers = shareTimersRef.current;
+      return () => {
+         timers.forEach(clearTimeout);
+         timers.clear();
+      };
+   }, []);
+   // result / advance / completion timers: cleared on unmount (delays unchanged)
+   const resultTimersRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
+   const later = useCallback((fn: () => void, ms: number) => {
+      const t = setTimeout(() => {
+         resultTimersRef.current.delete(t);
+         fn();
+      }, ms);
+      resultTimersRef.current.add(t);
+   }, []);
+   useEffect(() => {
+      const timers = resultTimersRef.current;
+      return () => {
+         timers.forEach(clearTimeout);
+         timers.clear();
+      };
+   }, []);
 
    // Max hints: 10 for Word Memory, unlimited if shared
    const maxHints = hasShared ? 0 : 10; // 0 = unlimited
@@ -189,7 +221,7 @@ function WordMemory({
             });
             await registerShareLink(shareLink.split("shared=")[1]);
             setShareSuccess(true);
-            setTimeout(() => setShareSuccess(false), 15000);
+            shareTimeout(() => setShareSuccess(false), 15000);
          } catch (error) {
             // User cancelled or error
          }
@@ -199,7 +231,7 @@ function WordMemory({
          await navigator.clipboard.writeText(shareLink);
          await registerShareLink(shareLink.split("shared=")[1]);
          setShareSuccess(true);
-         setTimeout(() => setShareSuccess(false), 15000);
+         shareTimeout(() => setShareSuccess(false), 15000);
       }
    };
 
@@ -475,7 +507,7 @@ function WordMemory({
       } else if (currentRound >= maxRounds) {
          // Game completed
          clearSequenceTimers();
-         setTimeout(() => {
+         later(() => {
             onComplete(currentScoreRef.current);
          }, 1000);
       }
@@ -509,13 +541,13 @@ function WordMemory({
                      onScoreUpdate(newScore);
                   }, 0);
 
-                  setTimeout(() => {
+                  later(() => {
                      // Show complete notification for 2 seconds, then clear feedback
                      setFeedback(null);
                      isRoundCompletingRef.current = true; // Mark that round is completing
                      // Clear any pending sequence timers to prevent old sequence from playing
                      clearSequenceTimers();
-                     setTimeout(() => {
+                     later(() => {
                         // Wait another 1 second before starting next round
                         if (currentRound + 1 < maxRounds) {
                            // Reset flag just before changing round so useEffect can trigger startNewRound
@@ -524,7 +556,7 @@ function WordMemory({
                         } else {
                            // Last round completed
                            isRoundCompletingRef.current = false;
-                           setTimeout(() => {
+                           later(() => {
                               onComplete(newScore);
                            }, 1000);
                         }
@@ -535,7 +567,7 @@ function WordMemory({
                // Wrong - allow retry without replaying sequence
                setGameState("wrong");
                setFeedback("wrong");
-               setTimeout(() => {
+               later(() => {
                   // Reset for retry - don't replay sequence, just allow input again
                   setFeedback(null);
                   setUserInput([]);
@@ -553,6 +585,7 @@ function WordMemory({
          maxRounds,
          onScoreUpdate,
          onComplete,
+         later,
       ]
    );
 
