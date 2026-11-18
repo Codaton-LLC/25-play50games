@@ -19,6 +19,9 @@ import {
    getShareStatus,
 } from "@/lib/api/share";
 
+import touch from "./skillTouch.module.css";
+import { usePlayAreaInView } from "./usePlayAreaInView";
+
 interface BallBalanceProps {
    config: Record<string, any>;
    onScoreUpdate: (score: number) => void;
@@ -136,6 +139,10 @@ export default function BallBalance({
       window.addEventListener("resize", checkResponsive);
       return () => window.removeEventListener("resize", checkResponsive);
    }, []);
+
+   // Mobile/tablet: bring the panel and the play area (or the level card) on screen at every state change
+   const rootRef = useRef<HTMLDivElement>(null);
+   const pad = usePlayAreaInView(rootRef, arenaRef, true, `${gameState}-${currentLevel}`);
 
    // Clear all timers
    const clearAll = useCallback(() => {
@@ -1342,6 +1349,7 @@ export default function BallBalance({
 
    return (
       <div
+         ref={rootRef}
          style={{
             display: "flex",
             flexDirection: "column",
@@ -1407,9 +1415,11 @@ export default function BallBalance({
                      }}
                   />
                   Score:{" "}
-                  {currentLevel + 1 >= maxLevels && gameState === "ready"
-                     ? 100
-                     : currentScore}{" "}
+                  <span key={currentScore} className={touch.pop} style={{ display: "inline-block" }}>
+                     {currentLevel + 1 >= maxLevels && gameState === "ready"
+                        ? 100
+                        : currentScore}
+                  </span>{" "}
                   / 100
                </span>
                <span
@@ -1456,6 +1466,8 @@ export default function BallBalance({
          {(gameState === "playing" || gameState === "paused") && (
             <div
                ref={arenaRef}
+               className={touch.playArea}
+               data-play-area=""
                style={{
                   position: "relative",
                   width: "100%",
@@ -1494,7 +1506,7 @@ export default function BallBalance({
                         background: "rgba(15, 27, 51, 0.72)",
                         border: "1px solid rgba(59, 130, 246, 0.45)",
                         borderRadius: "999px",
-                        fontSize: isMobile ? "0.7rem" : "0.8rem",
+                        fontSize: isMobile ? "0.75rem" : "0.8rem",
                         fontWeight: 700,
                         color: "rgba(191, 219, 254, 0.95)",
                         pointerEvents: "none",
@@ -1584,8 +1596,19 @@ export default function BallBalance({
                      width: `${levelConfig.centerZoneSize}px`,
                      height: "70px",
                      borderRadius: "16px",
-                     border: "1px dashed rgba(54, 211, 153, 0.6)",
-                     background: "rgba(54, 211, 153, 0.08)",
+                     border:
+                        Math.abs(ballX) <= levelConfig.centerZoneSize / 2
+                           ? "1px solid rgba(54, 211, 153, 0.95)"
+                           : "1px dashed rgba(54, 211, 153, 0.6)",
+                     background:
+                        Math.abs(ballX) <= levelConfig.centerZoneSize / 2
+                           ? "rgba(54, 211, 153, 0.18)"
+                           : "rgba(54, 211, 153, 0.08)",
+                     boxShadow:
+                        Math.abs(ballX) <= levelConfig.centerZoneSize / 2
+                           ? "0 0 22px rgba(54, 211, 153, 0.35)"
+                           : "none",
+                     transition: "background 0.2s ease, box-shadow 0.2s ease",
                      pointerEvents: "none",
                      top: "50%",
                      left: "50%",
@@ -1644,6 +1667,7 @@ export default function BallBalance({
                         fontWeight: 700,
                         color: "var(--text)",
                         pointerEvents: "none",
+                        whiteSpace: "nowrap",
                      }}
                   >
                      Keep ball in center zone!
@@ -1748,6 +1772,7 @@ export default function BallBalance({
                   Are you ready for next round?
                </div>
                <button
+                  className={touch.tapButton}
                   onClick={handleNextRound}
                   style={{
                      padding: isMobile ? "12px 24px" : "14px 28px",
@@ -2019,6 +2044,7 @@ export default function BallBalance({
                )}
 
                <button
+                  className={touch.tapButton}
                   onClick={handleReplay}
                   disabled={maxReplays > 0 && replaysUsed >= maxReplays}
                   style={{
@@ -2084,7 +2110,7 @@ export default function BallBalance({
                      }}
                   />
                   <span>
-                     {isMobile ? "" : "Replay "}
+                     {"Replay "}
                      {maxReplays === 0
                         ? "(∞)"
                         : `(${maxReplays - replaysUsed}/${maxReplays})`}
@@ -2092,6 +2118,7 @@ export default function BallBalance({
                </button>
 
                <button
+                  className={touch.tapButton}
                   onClick={handleShare}
                   style={{
                      display: "flex",
@@ -2138,6 +2165,7 @@ export default function BallBalance({
                </button>
             </div>
          )}
+         {pad > 0 && <div aria-hidden="true" style={{ height: pad, flexShrink: 0 }} />}
       </div>
    );
 }

@@ -23,6 +23,9 @@ import {
    getShareStatus,
 } from "@/lib/api/share";
 
+import touch from "./skillTouch.module.css";
+import { usePlayAreaInView } from "./usePlayAreaInView";
+
 interface DragAndDropSortProps {
    config: Record<string, any>;
    onScoreUpdate: (score: number) => void;
@@ -644,6 +647,22 @@ export default function DragAndDropSort({
       return () => window.removeEventListener("resize", checkResponsive);
    }, []);
 
+   const sortRef = useRef<HTMLDivElement>(null);
+   const [wrongDrop, setWrongDrop] = useState<string | null>(null); // feedback only: the zone that shakes
+   // the drop zone under the finger while a touch drag is on (highlight only; the drop test is unchanged)
+   const hoverCategory = (() => {
+      if (!touchDragItemId || !touchDragPos) return null;
+      const hit = Object.entries(categoryRefs.current).find(([, node]) => {
+         if (!node) return false;
+         const rc = node.getBoundingClientRect();
+         return touchDragPos.x >= rc.left && touchDragPos.x <= rc.right && touchDragPos.y >= rc.top && touchDragPos.y <= rc.bottom;
+      });
+      return hit ? hit[0] : null;
+   })();
+   // Mobile/tablet: bring the panel and the play area on screen when a round starts
+   const rootRef = useRef<HTMLDivElement>(null);
+   const pad = usePlayAreaInView(rootRef, sortRef, true, `${gameState}-${currentLevel}`);
+
    const getPhase = useCallback(
       (level: number, phase: number) => {
          const levelConfig = getLevelConfig(level);
@@ -899,6 +918,8 @@ export default function DragAndDropSort({
                })
             );
          } else {
+            setWrongDrop(categoryId);
+            window.setTimeout(() => setWrongDrop(null), 400);
             setIncorrectlySorted((prev) => prev + 1);
             if (levelConfig.penaltySec > 0) {
                setTimeLeft((prev) =>
@@ -1381,6 +1402,7 @@ export default function DragAndDropSort({
    return (
       <>
          <div
+         ref={rootRef}
             style={{
                display: "flex",
                flexDirection: "column",
@@ -1540,7 +1562,11 @@ export default function DragAndDropSort({
                            color: "var(--text)",
                         }}
                      >
-                        Correct: {correctlySorted}/{minCorrect}
+                        Correct:{" "}
+                        <span key={correctlySorted} className={touch.pop} style={{ display: "inline-block" }}>
+                           {correctlySorted}
+                        </span>
+                        /{minCorrect}
                      </span>
                   </div>
                   {incorrectlySorted > 0 && (
@@ -1580,6 +1606,8 @@ export default function DragAndDropSort({
             {/* Game Arena */}
             {gameState === "playing" ? (
                <div
+                  ref={sortRef}
+                  data-play-area=""
                   style={{
                      width: "100%",
                      maxWidth: "800px",
@@ -1670,15 +1698,24 @@ export default function DragAndDropSort({
                                     fontSize: isMobile ? "1rem" : "1.1rem",
                                     fontWeight: 600,
                                     color: "var(--text)",
-                                    transition: "all 0.2s ease",
+                                    transition:
+                                       touchDragItemId === item.id
+                                          ? "none"
+                                          : "all 0.2s ease",
+                                    boxShadow:
+                                       touchDragItemId === item.id
+                                          ? "0 14px 28px rgba(0, 0, 0, 0.45)"
+                                          : undefined,
                                     minWidth: isMobile ? "60px" : "70px",
+                                    minHeight: "48px",
                                     touchAction: "none",
+                                    WebkitTouchCallout: "none",
                                     zIndex: touchDragItemId === item.id ? 5 : 1,
                                     transform:
                                        touchDragItemId === item.id &&
                                        touchDragPos &&
                                        touchDragOffset
-                                          ? "translate3d(0, 0, 0)"
+                                          ? "translate3d(0, 0, 0) scale(1.08)"
                                           : undefined,
                                     left:
                                        touchDragItemId === item.id &&
@@ -1728,7 +1765,9 @@ export default function DragAndDropSort({
                      style={{
                         display: "grid",
                         gridTemplateColumns: isMobile
-                           ? "1fr"
+                           ? categories.length === 1
+                              ? "1fr"
+                              : "repeat(2, minmax(0, 1fr))"
                            : categories.length <= 3
                            ? `repeat(${categories.length}, 1fr)`
                            : "repeat(2, 1fr)",
@@ -1743,12 +1782,26 @@ export default function DragAndDropSort({
                            }}
                            onDragOver={handleDragOver}
                            onDrop={() => handleDrop(category.id)}
+                           className={wrongDrop === category.id ? touch.shake : undefined}
                            style={{
-                              background: category.color,
-                              border: "2px dashed rgba(255, 255, 255, 0.3)",
+                              background:
+                                 hoverCategory === category.id
+                                    ? category.color.replace("0.2", "0.35")
+                                    : category.color,
+                              border:
+                                 hoverCategory === category.id
+                                    ? "2px solid rgba(96, 165, 250, 0.95)"
+                                    : wrongDrop === category.id
+                                      ? "2px solid rgba(239, 68, 68, 0.9)"
+                                      : "2px dashed rgba(255, 255, 255, 0.3)",
+                              boxShadow:
+                                 hoverCategory === category.id
+                                    ? "0 0 18px rgba(96, 165, 250, 0.35)"
+                                    : undefined,
                               borderRadius: "var(--radius)",
-                              padding: isMobile ? "16px" : "20px",
-                              minHeight: isMobile ? "120px" : "150px",
+                              padding: isMobile ? "12px" : "20px",
+                              minHeight: isMobile ? "96px" : "150px",
+                              minWidth: 0,
                               display: "flex",
                               flexDirection: "column",
                               gap: "12px",
@@ -1887,6 +1940,7 @@ export default function DragAndDropSort({
                      All items sorted!
                   </div>
                   <button
+                  className={touch.tapButton}
                      onClick={handleNextRound}
                      disabled={nextRoundLocked}
                      style={{
@@ -2122,6 +2176,7 @@ export default function DragAndDropSort({
                )}
 
                <button
+                  className={touch.tapButton}
                   onClick={handleReplay}
                   disabled={maxReplays > 0 && replaysUsed >= maxReplays}
                   style={{
@@ -2162,7 +2217,7 @@ export default function DragAndDropSort({
                      }}
                   />
                   <span>
-                     {isMobile ? "" : "Replay "}
+                     {"Replay "}
                      {maxReplays === 0
                         ? "(∞)"
                         : `(${maxReplays - replaysUsed}/${maxReplays})`}
@@ -2170,6 +2225,7 @@ export default function DragAndDropSort({
                </button>
 
                <button
+                  className={touch.tapButton}
                   onClick={handleShare}
                   style={{
                      display: "flex",
@@ -2198,6 +2254,7 @@ export default function DragAndDropSort({
                   <span>Share for unlimited</span>
                </button>
             </div>
+            {pad > 0 && <div aria-hidden="true" style={{ height: pad, flexShrink: 0 }} />}
          </div>
       </>
    );
