@@ -1,0 +1,76 @@
+/* One-Hand Mode: the runner canvas and its level badges (classic modern pass). */
+
+.arena {
+   /* no border: the canvas keeps its old width (the frame is drawn as an inset ring) */
+   border: 0 !important;
+   box-shadow: inset 0 0 0 1px var(--stroke);
+   background: var(--card);
+   padding: 12px;
+}
+
+@media (min-width: 640px) {
+   .arena {
+      padding: 16px;
+   }
+}
+
+.badges {
+   position: absolute;
+   top: 22px;
+   left: 22px;
+   display: flex;
+   flex-wrap: wrap;
+   gap: 8px;
+   z-index: 2;
+   pointer-events: none;
+}
+
+.badge {
+   padding: 5px 10px;
+   border-radius: 999px;
+   border: 1px solid rgba(var(--accent-rgb, 231, 95, 64), 0.5);
+   background: rgba(var(--accent-rgb, 231, 95, 64), 0.16);
+   color: var(--text);
+   font-size: 0.75rem;
+   font-weight: 700;
+   animation: badgeIn 0.32s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.canvas {
+   display: block;
+   width: 100%;
+   border-radius: 10px;
+   background: rgba(0, 0, 0, 0.28);
+   box-shadow: inset 0 0 0 1px var(--stroke);
+   cursor: pointer;
+}
+
+.controls {
+   margin-top: 12px;
+   text-align: center;
+   font-size: 0.9rem;
+   color: var(--muted);
+}
+
+@keyframes badgeIn {
+   from {
+      opacity: 0;
+      transform: translateY(-4px);
+   }
+   to {
+      opacity: 1;
+      transform: none;
+   }
+}
+
+@media (max-width: 767px) {
+   .controls {
+      font-size: 0.85rem;
+   }
+}
+
+@media (prefers-reduced-motion: reduce) {
+   .badge {
+      animation: none;
+   }
+}

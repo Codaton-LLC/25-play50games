@@ -20,6 +20,8 @@ import {
 } from "@/lib/api/share";
 
 import touch from "./skillTouch.module.css";
+import ui from "./skillUi.module.css";
+import bb from "./BallBalance.module.css";
 import { usePlayAreaInView } from "./usePlayAreaInView";
 
 interface BallBalanceProps {
@@ -159,6 +161,9 @@ export default function BallBalance({
          startTimeoutRef.current = null;
       }
    }, []);
+
+   // Leaving the page (or a final game switching mini-game) mid-round: stop the frame loop and timers
+   useEffect(() => () => clearAll(), [clearAll]);
 
    useEffect(() => {
       if (!isPlaying) {
@@ -1347,75 +1352,22 @@ export default function BallBalance({
          : "Wind Right Active"
       : null;
 
+   const replayLocked = maxReplays > 0 && replaysUsed >= maxReplays;
+   const ballInCenter = Math.abs(ballX) <= levelConfig.centerZoneSize / 2;
+
    return (
-      <div
-         ref={rootRef}
-         style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: isMobile ? "16px" : "20px",
-            padding: isMobile ? "16px" : "24px",
-            maxWidth: "800px",
-            margin: "0 auto",
-            width: "100%",
-         }}
-      >
-         {/* Header Section - Same as Speed Games */}
-         <div
-            style={{
-               width: "100%",
-               maxWidth: "800px",
-               background: "var(--card)",
-               borderRadius: isMobile ? "14px" : "16px",
-               padding: isMobile ? "16px" : "20px",
-               boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
-            }}
-         >
-            <div
-               style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  fontSize: isMobile ? "0.75rem" : "0.875rem",
-                  color: "var(--muted)",
-                  fontWeight: 500,
-                  marginBottom: isMobile ? "10px" : "12px",
-                  flexWrap: isMobile ? "wrap" : "nowrap",
-                  gap: isMobile ? "8px" : "0",
-               }}
-            >
-               <span
-                  style={{
-                     display: "flex",
-                     alignItems: "center",
-                     gap: "6px",
-                  }}
-               >
-                  <ArrowPathIcon
-                     style={{
-                        width: isMobile ? 14 : 16,
-                        height: isMobile ? 14 : 16,
-                        color: "var(--accent)",
-                     }}
-                  />
+      <div ref={rootRef} className={ui.root}>
+         {/* Header Section */}
+         <div className={ui.hud}>
+            <div className={ui.hudRow}>
+               <span className={ui.hudStat}>
+                  <ArrowPathIcon className={ui.hudIcon} />
                   Level {currentLevel + 1} / {maxLevels}
                </span>
-               <span
-                  style={{
-                     display: "flex",
-                     alignItems: "center",
-                     gap: "6px",
-                  }}
-               >
-                  <TrophyIcon
-                     style={{
-                        width: isMobile ? 14 : 16,
-                        height: isMobile ? 14 : 16,
-                        color: "var(--ok)",
-                     }}
-                  />
+               <span className={ui.hudStat}>
+                  <TrophyIcon className={ui.hudIconOk} />
                   Score:{" "}
-                  <span key={currentScore} className={touch.pop} style={{ display: "inline-block" }}>
+                  <span key={currentScore} className={ui.bump}>
                      {currentLevel + 1 >= maxLevels && gameState === "ready"
                         ? 100
                         : currentScore}
@@ -1423,41 +1375,16 @@ export default function BallBalance({
                   / 100
                </span>
                <span
-                  style={{
-                     display: "flex",
-                     alignItems: "center",
-                     gap: "6px",
-                  }}
+                  className={`${ui.hudStat} ${gameState === "playing" && timeLeft <= 5 ? ui.hudLow : ""}`}
                >
-                  <ClockIcon
-                     style={{
-                        width: isMobile ? 14 : 16,
-                        height: isMobile ? 14 : 16,
-                        color: "var(--accent)",
-                     }}
-                  />
+                  <ClockIcon className={ui.hudIconAccent} />
                   Time: {timeLeft}s
                </span>
             </div>
-            <div
-               style={{
-                  width: "100%",
-                  height: isMobile ? "6px" : "8px",
-                  background: "rgba(255, 255, 255, 0.1)",
-                  borderRadius: "999px",
-                  overflow: "hidden",
-               }}
-            >
+            <div className={ui.progressTrack}>
                <div
-                  style={{
-                     width: `${progress}%`,
-                     height: "100%",
-                     background:
-                        "linear-gradient(90deg, var(--accent) 0%, var(--ok) 100%)",
-                     borderRadius: "999px",
-                     transition: "width 0.3s ease",
-                     boxShadow: "0 0 10px rgba(125, 211, 252, 0.5)",
-                  }}
+                  className={ui.progressFill}
+                  style={{ transform: `scaleX(${progress / 100})` }}
                />
             </div>
          </div>
@@ -1466,24 +1393,11 @@ export default function BallBalance({
          {(gameState === "playing" || gameState === "paused") && (
             <div
                ref={arenaRef}
-               className={touch.playArea}
+               className={`${ui.arena} ${bb.arena} ${touch.playArea}`}
                data-play-area=""
                style={{
-                  position: "relative",
-                  width: "100%",
-                  maxWidth: "800px",
                   height: isMobile ? "300px" : "380px",
-                  borderRadius: "var(--radius)",
-                  border: "1px solid var(--border)",
-                  background:
-                     "radial-gradient(320px 220px at 30% 30%, rgba(59, 130, 246, 0.1), transparent 55%), linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02))",
-                  boxShadow: "0 10px 18px rgba(0, 0, 0, 0.22)",
-                  overflow: "hidden",
-                  userSelect: "none",
                   touchAction: "none",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
                   cursor:
                      gameState === "playing" && !requirementsMet
                         ? isInteracting
@@ -1496,51 +1410,18 @@ export default function BallBalance({
                         : "none",
                }}
             >
-               {windStatus && (
-                  <div
-                     style={{
-                        position: "absolute",
-                        top: "18px",
-                        right: "18px",
-                        padding: "6px 12px",
-                        background: "rgba(15, 27, 51, 0.72)",
-                        border: "1px solid rgba(59, 130, 246, 0.45)",
-                        borderRadius: "999px",
-                        fontSize: isMobile ? "0.75rem" : "0.8rem",
-                        fontWeight: 700,
-                        color: "rgba(191, 219, 254, 0.95)",
-                        pointerEvents: "none",
-                     }}
-                  >
-                     {windStatus}
-                  </div>
-               )}
+               {windStatus && <div className={bb.windPill}>{windStatus}</div>}
 
                {/* Red Zones (Danger Zones) */}
                {redZones.map((zone, idx) => (
                   <div
                      key={`red-zone-${idx}`}
+                     className={timeInRedZone > 0.5 ? bb.dangerZoneHot : bb.dangerZone}
                      style={{
-                        position: "absolute",
                         width: `${zone.end - zone.start}px`,
-                        height: "70px",
-
-                        border: "2px solid rgba(239, 68, 68, 0.8)",
-                        background:
-                           timeInRedZone > 0.5
-                              ? "rgba(239, 68, 68, 0.4)"
-                              : "rgba(239, 68, 68, 0.15)",
-                        pointerEvents: "none",
-                        top: "50%",
-                        left: "50%",
                         transform: `translate(calc(-50% + ${
                            (zone.start + zone.end) / 2
                         }px), -50%)`,
-                        transition: "background 0.2s ease",
-                        boxShadow:
-                           timeInRedZone > 0.5
-                              ? "0 0 20px rgba(239, 68, 68, 0.6)"
-                              : "none",
                      }}
                   />
                ))}
@@ -1549,39 +1430,21 @@ export default function BallBalance({
                {windZones.map((zone, idx) => (
                   <div
                      key={`wind-zone-${idx}`}
+                     className={idx === activeWindIndex ? bb.windZoneActive : bb.windZone}
                      style={{
-                        position: "absolute",
                         width: `${zone.end - zone.start}px`,
-                        height: "70px",
-
-                        border:
-                           idx === activeWindIndex
-                              ? "2px solid rgba(59, 130, 246, 0.9)"
-                              : "1px dashed rgba(59, 130, 246, 0.5)",
-                        background:
-                           idx === activeWindIndex
-                              ? "rgba(59, 130, 246, 0.2)"
-                              : "rgba(59, 130, 246, 0.08)",
-                        pointerEvents: "none",
-                        top: "50%",
-                        left: "50%",
                         transform: `translate(calc(-50% + ${
                            (zone.start + zone.end) / 2
                         }px), -50%)`,
-                        opacity: idx === activeWindIndex ? 0.9 : 0.6,
                      }}
                   >
                      {/* Wind arrow indicator */}
                      <div
+                        className={bb.windArrow}
                         style={{
-                           position: "absolute",
-                           top: "10px",
-                           left: "50%",
                            transform: `translateX(-50%) rotate(${
                               zone.force > 0 ? 0 : 180
                            }deg)`,
-                           fontSize: "20px",
-                           color: "rgba(59, 130, 246, 0.7)",
                         }}
                      >
                         →
@@ -1591,135 +1454,46 @@ export default function BallBalance({
 
                {/* Center Zone */}
                <div
+                  className={ballInCenter ? bb.centerZoneIn : bb.centerZone}
                   style={{
-                     position: "absolute",
                      width: `${levelConfig.centerZoneSize}px`,
-                     height: "70px",
-                     borderRadius: "16px",
-                     border:
-                        Math.abs(ballX) <= levelConfig.centerZoneSize / 2
-                           ? "1px solid rgba(54, 211, 153, 0.95)"
-                           : "1px dashed rgba(54, 211, 153, 0.6)",
-                     background:
-                        Math.abs(ballX) <= levelConfig.centerZoneSize / 2
-                           ? "rgba(54, 211, 153, 0.18)"
-                           : "rgba(54, 211, 153, 0.08)",
-                     boxShadow:
-                        Math.abs(ballX) <= levelConfig.centerZoneSize / 2
-                           ? "0 0 22px rgba(54, 211, 153, 0.35)"
-                           : "none",
-                     transition: "background 0.2s ease, box-shadow 0.2s ease",
-                     pointerEvents: "none",
-                     top: "50%",
-                     left: "50%",
                      transform: "translate(-50%, -50%)",
                   }}
                />
 
-               {/* Platform */}
+               {/* Platform (width follows the physics ref at once: no width transition) */}
                <div
+                  className={bb.platform}
                   style={{
-                     position: "absolute",
                      width: `${currentPlatformWidth}px`,
-                     height: "22px",
-                     borderRadius: "16px",
-                     border: "1px solid rgba(255, 255, 255, 0.14)",
-                     background: "rgba(15, 27, 51, 0.55)",
-                     boxShadow: "0 12px 26px rgba(0, 0, 0, 0.25)",
-                     top: "50%",
-                     left: "50%",
                      transform: `translate(calc(-50% + ${platformShake}px), -50%) rotate(${angle}deg) scaleX(${platformScale})`,
-                     transformOrigin: "center center",
-                     transition: "transform 0.05s linear, width 0.05s linear",
                   }}
                />
 
                {/* Ball */}
                <div
+                  className={bb.ball}
                   style={{
-                     position: "absolute",
-                     width: "28px",
-                     height: "28px",
-                     borderRadius: "50%",
-                     background:
-                        "radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.95), rgba(110, 168, 255, 0.55))",
-                     border: "1px solid rgba(255, 255, 255, 0.22)",
-                     boxShadow: "0 14px 24px rgba(0, 0, 0, 0.35)",
-                     top: "50%",
-                     left: "50%",
                      transform: `translate(calc(-50% + ${ballX}px), calc(-50% - 22px))`,
                   }}
                />
 
                {/* Game State Message */}
                {gameState === "playing" && (
-                  <div
-                     style={{
-                        position: "absolute",
-                        top: "18px",
-                        left: "50%",
-                        transform: "translateX(-50%)",
-                        padding: "8px 16px",
-                        background: "rgba(15, 27, 51, 0.72)",
-                        border: "1px solid rgba(255, 255, 255, 0.12)",
-                        borderRadius: "999px",
-                        fontSize: isMobile ? "0.75rem" : "0.85rem",
-                        fontWeight: 700,
-                        color: "var(--text)",
-                        pointerEvents: "none",
-                        whiteSpace: "nowrap",
-                     }}
-                  >
-                     Keep ball in center zone!
-                  </div>
+                  <div className={bb.message}>Keep ball in center zone!</div>
                )}
 
                {/* Paused Message (Requirements Met, Waiting for Timer) */}
                {gameState === "paused" && (
-                  <div
-                     style={{
-                        position: "absolute",
-                        top: "50%",
-                        left: "50%",
-                        transform: "translate(-50%, -50%)",
-                        padding: isMobile ? "20px 24px" : "24px 32px",
-                        background: "var(--card)",
-                        borderRadius: "var(--radius)",
-                        color: "var(--text)",
-                        fontSize: isMobile ? "1rem" : "1.1rem",
-                        fontWeight: 700,
-                        textAlign: "center" as const,
-                        boxShadow: "0 10px 24px rgba(0, 0, 0, 0.25)",
-                        zIndex: 10,
-                     }}
-                  >
-                     <div
-                        style={{
-                           display: "inline-flex",
-                           alignItems: "center",
-                           gap: "8px",
-                           padding: "8px 14px",
-                           borderRadius: "999px",
-                           fontWeight: 800,
-                           fontSize: isMobile ? "0.95rem" : "1.05rem",
-                           background:
-                              "linear-gradient(135deg, rgba(134, 239, 172, 0.25), rgba(134, 239, 172, 0.1))",
-                           border: "2px solid rgba(134, 239, 172, 0.6)",
-                           color: "var(--text)",
-                           marginBottom: "12px",
-                        }}
-                     >
-                        <CheckCircleIcon style={{ width: 20, height: 20 }} />
-                        Requirements Met
-                     </div>
-                     <div
-                        style={{
-                           fontSize: "0.9rem",
-                           opacity: 0.8,
-                           marginTop: "12px",
-                        }}
-                     >
-                        Waiting for timer... {timeLeft}s remaining
+                  <div className={bb.overlay}>
+                     <div className={ui.card}>
+                        <div className={`${ui.cardTitleOk} ${bb.titleRow}`}>
+                           <CheckCircleIcon className={bb.titleIcon} />
+                           Requirements Met
+                        </div>
+                        <div className={ui.cardBody}>
+                           Waiting for timer... <strong>{timeLeft}s</strong> remaining
+                        </div>
                      </div>
                   </div>
                )}
@@ -1728,85 +1502,13 @@ export default function BallBalance({
 
          {/* Ready for Next Round Message */}
          {gameState === "ready" && currentLevel + 1 < maxLevels && (
-            <div
-               style={{
-                  padding: isMobile ? "20px 24px" : "24px 32px",
-                  background: "var(--card)",
-                  borderRadius: "var(--radius)",
-                  color: "var(--text)",
-                  fontSize: isMobile ? "1rem" : "1.1rem",
-                  fontWeight: 700,
-                  textAlign: "center" as const,
-                  boxShadow: "0 10px 24px rgba(0, 0, 0, 0.25)",
-                  width: "100%",
-                  maxWidth: "800px",
-               }}
-            >
-               <div
-                  style={{
-                     display: "inline-flex",
-                     alignItems: "center",
-                     gap: "8px",
-                     padding: "8px 14px",
-                     borderRadius: "999px",
-                     fontWeight: 800,
-                     fontSize: isMobile ? "0.95rem" : "1.05rem",
-                     background:
-                        "linear-gradient(135deg, rgba(134, 239, 172, 0.25), rgba(134, 239, 172, 0.1))",
-                     border: "2px solid rgba(134, 239, 172, 0.6)",
-                     color: "var(--text)",
-                     marginBottom: "16px",
-                  }}
-               >
-                  <CheckCircleIcon style={{ width: 20, height: 20 }} />
+            <div className={ui.card}>
+               <div className={`${ui.cardTitleOk} ${bb.titleRow}`}>
+                  <CheckCircleIcon className={bb.titleIcon} />
                   Level {currentLevel + 1} Complete
                </div>
-               <div
-                  style={{
-                     fontSize: isMobile ? "1.05rem" : "1.1rem",
-                     fontWeight: 600,
-                     marginBottom: "20px",
-                     marginTop: "16px",
-                  }}
-               >
-                  Are you ready for next round?
-               </div>
-               <button
-                  className={touch.tapButton}
-                  onClick={handleNextRound}
-                  style={{
-                     padding: isMobile ? "12px 24px" : "14px 28px",
-                     background:
-                        "linear-gradient(135deg, rgba(134, 239, 172, 0.25), rgba(134, 239, 172, 0.12))",
-                     border: "2px solid rgba(134, 239, 172, 0.6)",
-
-                     color: "var(--text)",
-                     fontSize: isMobile ? "1rem" : "1.05rem",
-                     fontWeight: 700,
-                     cursor: "pointer",
-                     transition: "all 0.3s ease",
-                     display: "inline-flex",
-                     alignItems: "center",
-                     gap: "8px",
-                  }}
-                  onMouseEnter={(e) => {
-                     e.currentTarget.style.background =
-                        "linear-gradient(135deg, rgba(134, 239, 172, 0.35), rgba(134, 239, 172, 0.2))";
-                     e.currentTarget.style.borderColor =
-                        "rgba(134, 239, 172, 0.8)";
-                     e.currentTarget.style.transform = "translateY(-2px)";
-                     e.currentTarget.style.boxShadow =
-                        "0 6px 14px rgba(134, 239, 172, 0.35)";
-                  }}
-                  onMouseLeave={(e) => {
-                     e.currentTarget.style.background =
-                        "linear-gradient(135deg, rgba(134, 239, 172, 0.25), rgba(134, 239, 172, 0.12))";
-                     e.currentTarget.style.borderColor =
-                        "rgba(134, 239, 172, 0.6)";
-                     e.currentTarget.style.transform = "translateY(0)";
-                     e.currentTarget.style.boxShadow = "none";
-                  }}
-               >
+               <div className={ui.cardBody}>Are you ready for next round?</div>
+               <button className={ui.buttonPrimary} onClick={handleNextRound}>
                   Next Round
                </button>
             </div>
@@ -1814,193 +1516,51 @@ export default function BallBalance({
 
          {/* Game Complete Message */}
          {gameState === "ready" && currentLevel + 1 >= maxLevels && (
-            <div
-               style={{
-                  padding: isMobile ? "20px 24px" : "24px 32px",
-                  background: "var(--card)",
-                  borderRadius: "var(--radius)",
-                  color: "var(--text)",
-                  fontSize: isMobile ? "1rem" : "1.1rem",
-                  fontWeight: 700,
-                  textAlign: "center" as const,
-                  boxShadow: "0 10px 24px rgba(0, 0, 0, 0.25)",
-                  width: "100%",
-                  maxWidth: "800px",
-               }}
-            >
-               <div
-                  style={{
-                     display: "inline-flex",
-                     alignItems: "center",
-                     gap: "8px",
-                     padding: "8px 14px",
-                     borderRadius: "999px",
-                     fontWeight: 800,
-                     fontSize: isMobile ? "0.95rem" : "1.05rem",
-                     background:
-                        "linear-gradient(135deg, rgba(134, 239, 172, 0.25), rgba(134, 239, 172, 0.1))",
-                     border: "2px solid rgba(134, 239, 172, 0.6)",
-                     color: "var(--text)",
-                     marginBottom: "16px",
-                  }}
-               >
-                  <TrophyIcon style={{ width: 20, height: 20 }} />
+            <div className={ui.card}>
+               <div className={`${ui.cardTitleOk} ${bb.titleRow}`}>
+                  <TrophyIcon className={bb.titleIcon} />
                   Game Complete!
                </div>
-               <div
-                  style={{
-                     fontSize: isMobile ? "1.05rem" : "1.1rem",
-                     fontWeight: 600,
-                     marginTop: "16px",
-                     marginBottom: "20px",
-                  }}
-               >
-                  All {maxLevels} levels completed!
-               </div>
-               <div
-                  style={{
-                     fontSize: isMobile ? "0.95rem" : "1rem",
-                     opacity: 0.8,
-                     marginTop: "8px",
-                  }}
-               >
+               <div className={ui.cardBody}>All {maxLevels} levels completed!</div>
+               <div className={ui.cardBody}>
                   Final Score:{" "}
-                  {currentLevel + 1 >= maxLevels ? 100 : currentScore}
+                  <strong>{currentLevel + 1 >= maxLevels ? 100 : currentScore}</strong>
                </div>
             </div>
          )}
 
          {/* Level Failed Message */}
          {gameState === "failed" && (
-            <div
-               style={{
-                  padding: isMobile ? "20px 24px" : "24px 32px",
-                  background: "var(--card)",
-                  borderRadius: "var(--radius)",
-                  color: "var(--text)",
-                  fontSize: isMobile ? "1rem" : "1.1rem",
-                  fontWeight: 700,
-                  textAlign: "center" as const,
-                  boxShadow: "0 10px 24px rgba(0, 0, 0, 0.25)",
-                  width: "100%",
-                  maxWidth: "800px",
-               }}
-            >
-               <div
-                  style={{
-                     display: "inline-flex",
-                     alignItems: "center",
-                     gap: "8px",
-                     padding: "8px 14px",
-                     borderRadius: "999px",
-                     fontWeight: 800,
-                     fontSize: isMobile ? "0.95rem" : "1.05rem",
-                     background:
-                        "linear-gradient(135deg, rgba(252, 165, 165, 0.25), rgba(252, 165, 165, 0.1))",
-                     border: "2px solid rgba(252, 165, 165, 0.6)",
-                     color: "var(--text)",
-                     marginBottom: "16px",
-                  }}
-               >
-                  <XCircleIcon style={{ width: 20, height: 20 }} />
+            <div className={ui.card}>
+               <div className={`${ui.cardTitleWarn} ${bb.titleRow}`}>
+                  <XCircleIcon className={bb.titleIcon} />
                   Level {currentLevel + 1} Failed
                </div>
-               <div
-                  style={{
-                     marginTop: "12px",
-                     fontSize: isMobile ? "0.95rem" : "1.05rem",
-                     fontWeight: 600,
-                     color: "var(--text)",
-                     marginBottom: "18px",
-                  }}
-               >
-                  Need: {minTimeInCenter}s in center zone
+               <div className={ui.cardBody}>
+                  Need: <strong>{minTimeInCenter}s</strong> in center zone
                </div>
-               <div
-                  style={{
-                     fontSize: isMobile ? "0.9rem" : "1rem",
-                     opacity: 0.8,
-                  }}
-               >
-                  You had: {timeInCenter.toFixed(1)}s
+               <div className={ui.cardBody}>
+                  You had: <strong>{timeInCenter.toFixed(1)}s</strong>
                </div>
             </div>
          )}
 
          {/* Stats */}
          {(gameState === "playing" || gameState === "paused") && (
-            <div
-               style={{
-                  display: "flex",
-                  gap: isMobile ? "12px" : "16px",
-                  width: "100%",
-                  maxWidth: "800px",
-                  justifyContent: "center",
-                  flexWrap: "wrap",
-               }}
-            >
-               <div
-                  style={{
-                     padding: isMobile ? "8px 12px" : "10px 16px",
-                     background:
-                        "linear-gradient(135deg, rgba(134, 239, 172, 0.25), rgba(134, 239, 172, 0.12))",
-                     border: "2px solid rgba(134, 239, 172, 0.6)",
-
-                     color: "var(--text)",
-                     fontSize: isMobile ? "0.85rem" : "0.95rem",
-                     fontWeight: 600,
-                  }}
-               >
+            <div className={ui.statRow}>
+               <div className={ballInCenter ? ui.statOk : ui.stat}>
                   Center Time: {timeInCenter.toFixed(1)}s / {minTimeInCenter}s
                </div>
-               <div
-                  style={{
-                     padding: isMobile ? "8px 12px" : "10px 16px",
-                     background:
-                        "linear-gradient(135deg, rgba(110, 168, 255, 0.25), rgba(110, 168, 255, 0.12))",
-                     border: "2px solid rgba(110, 168, 255, 0.6)",
-
-                     color: "var(--text)",
-                     fontSize: isMobile ? "0.85rem" : "0.95rem",
-                     fontWeight: 600,
-                  }}
-               >
-                  Angle: {Math.round(angle)}°
-               </div>
+               <div className={ui.stat}>Angle: {Math.round(angle)}°</div>
             </div>
          )}
 
          {/* Action Buttons: Replay, Share */}
          {(gameState === "playing" || gameState === "failed") && (
-            <div
-               style={{
-                  display: "flex",
-                  gap: "12px",
-                  justifyContent: "center",
-                  flexWrap: "wrap",
-                  padding: isMobile ? "12px" : "16px",
-                  background: "var(--card)",
-
-                  width: "100%",
-                  maxWidth: "800px",
-               }}
-            >
+            <div className={ui.actions}>
                {/* Share Success Message */}
                {shareSuccess && !unlimitedActivated && (
-                  <div
-                     style={{
-                        width: "100%",
-                        padding: "12px",
-                        background: "rgba(134, 239, 172, 0.2)",
-                        border: "2px solid rgba(134, 239, 172, 0.6)",
-                        borderRadius: "8px",
-                        fontSize: isMobile ? "0.9rem" : "1rem",
-                        fontWeight: 600,
-                        color: "var(--ok)",
-                        textAlign: "center",
-                        marginBottom: "8px",
-                     }}
-                  >
+                  <div className={ui.notice}>
                      Link copied! Unlimited replay will unlock when someone
                      opens your link!
                   </div>
@@ -2008,107 +1568,21 @@ export default function BallBalance({
 
                {/* Unlimited Activated Message */}
                {unlimitedActivated && (
-                  <div
-                     style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: isMobile ? "6px" : "8px",
-                        padding: isMobile ? "10px 14px" : "8px 16px",
-                        background:
-                           "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
-                        border: "2px solid rgba(59, 130, 246, 0.6)",
-                        borderRadius: isMobile ? "10px" : "8px",
-                        color: "var(--text)",
-                        fontSize: isMobile ? "0.85rem" : "0.9rem",
-                        fontWeight: 500,
-                        width: "100%",
-                        justifyContent: "center",
-                        textAlign: "center",
-                        flexWrap: "wrap",
-                        marginBottom: "8px",
-                     }}
-                  >
-                     <CheckCircleIcon
-                        style={{
-                           width: isMobile ? 16 : 18,
-                           height: isMobile ? 16 : 18,
-                           color: "rgba(59, 130, 246, 0.9)",
-                           flexShrink: 0,
-                        }}
-                     />
+                  <div className={ui.notice}>
+                     <CheckCircleIcon className={ui.noticeIcon} />
                      <span>
-                        🎉 Someone opened your link! Unlimited replay is now
+                        Someone opened your link! Unlimited replay is now
                         active for 15 minutes!
                      </span>
                   </div>
                )}
 
                <button
-                  className={touch.tapButton}
+                  className={ui.button}
                   onClick={handleReplay}
-                  disabled={maxReplays > 0 && replaysUsed >= maxReplays}
-                  style={{
-                     display: "flex",
-                     alignItems: "center",
-                     gap: isMobile ? "6px" : "8px",
-                     padding: isMobile ? "10px 16px" : "10px 20px",
-                     width: isMobile ? "100%" : "auto",
-                     background:
-                        maxReplays > 0 && replaysUsed >= maxReplays
-                           ? "rgba(100, 100, 100, 0.2)"
-                           : "linear-gradient(135deg, rgba(125, 211, 252, 0.2), rgba(125, 211, 252, 0.1))",
-                     border:
-                        maxReplays > 0 && replaysUsed >= maxReplays
-                           ? "1px solid rgba(100, 100, 100, 0.4)"
-                           : "1px solid rgba(125, 211, 252, 0.6)",
-
-                     color: "var(--text)",
-                     fontSize: isMobile ? "0.85rem" : "0.95rem",
-                     fontWeight: 600,
-                     cursor:
-                        maxReplays > 0 && replaysUsed >= maxReplays
-                           ? "not-allowed"
-                           : "pointer",
-                     opacity:
-                        maxReplays > 0 && replaysUsed >= maxReplays ? 0.5 : 1,
-                     transition: "all 0.3s ease",
-                  }}
-                  onMouseEnter={(e) => {
-                     if (!(maxReplays > 0 && replaysUsed >= maxReplays)) {
-                        e.currentTarget.style.background =
-                           "linear-gradient(135deg, rgba(125, 211, 252, 0.3), rgba(125, 211, 252, 0.2))";
-                        e.currentTarget.style.borderColor =
-                           "rgba(125, 211, 252, 0.8)";
-                        e.currentTarget.style.transform = "translateY(-2px)";
-                        e.currentTarget.style.boxShadow =
-                           "0 4px 12px rgba(125, 211, 252, 0.3)";
-                     }
-                  }}
-                  onMouseLeave={(e) => {
-                     if (!(maxReplays > 0 && replaysUsed >= maxReplays)) {
-                        e.currentTarget.style.background =
-                           maxReplays > 0 && replaysUsed >= maxReplays
-                              ? "rgba(100, 100, 100, 0.2)"
-                              : "linear-gradient(135deg, rgba(125, 211, 252, 0.2), rgba(125, 211, 252, 0.1))";
-                        e.currentTarget.style.borderColor =
-                           maxReplays > 0 && replaysUsed >= maxReplays
-                              ? "rgba(100, 100, 100, 0.4)"
-                              : "rgba(125, 211, 252, 0.6)";
-                        e.currentTarget.style.transform = "translateY(0)";
-                        e.currentTarget.style.boxShadow = "none";
-                     }
-                  }}
+                  disabled={replayLocked}
                >
-                  <ArrowPathRoundedSquareIcon
-                     style={{
-                        width: isMobile ? 18 : 20,
-                        height: isMobile ? 18 : 20,
-                        color:
-                           maxReplays > 0 && replaysUsed >= maxReplays
-                              ? "var(--muted)"
-                              : "var(--accent)",
-                     }}
-                  />
+                  <ArrowPathRoundedSquareIcon className={ui.buttonIcon} />
                   <span>
                      {"Replay "}
                      {maxReplays === 0
@@ -2117,50 +1591,8 @@ export default function BallBalance({
                   </span>
                </button>
 
-               <button
-                  className={touch.tapButton}
-                  onClick={handleShare}
-                  style={{
-                     display: "flex",
-                     alignItems: "center",
-                     gap: isMobile ? "6px" : "8px",
-                     padding: isMobile ? "10px 16px" : "10px 20px",
-                     width: isMobile ? "100%" : "auto",
-                     background:
-                        "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
-                     border: "1px solid rgba(59, 130, 246, 0.6)",
-
-                     color: "var(--text)",
-                     fontSize: isMobile ? "0.85rem" : "0.95rem",
-                     fontWeight: 600,
-                     cursor: "pointer",
-                     transition: "all 0.3s ease",
-                  }}
-                  onMouseEnter={(e) => {
-                     e.currentTarget.style.background =
-                        "linear-gradient(135deg, rgba(59, 130, 246, 0.3), rgba(59, 130, 246, 0.2))";
-                     e.currentTarget.style.borderColor =
-                        "rgba(59, 130, 246, 0.8)";
-                     e.currentTarget.style.transform = "translateY(-2px)";
-                     e.currentTarget.style.boxShadow =
-                        "0 4px 12px rgba(59, 130, 246, 0.3)";
-                  }}
-                  onMouseLeave={(e) => {
-                     e.currentTarget.style.background =
-                        "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))";
-                     e.currentTarget.style.borderColor =
-                        "rgba(59, 130, 246, 0.6)";
-                     e.currentTarget.style.transform = "translateY(0)";
-                     e.currentTarget.style.boxShadow = "none";
-                  }}
-               >
-                  <ShareIcon
-                     style={{
-                        width: isMobile ? 18 : 20,
-                        height: isMobile ? 18 : 20,
-                        color: "var(--accent)",
-                     }}
-                  />
+               <button className={ui.button} onClick={handleShare}>
+                  <ShareIcon className={ui.buttonIcon} />
                   <span>Share for unlimited</span>
                </button>
             </div>

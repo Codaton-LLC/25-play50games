@@ -1,0 +1,75 @@
+/* Cursor Maze board (classic modern pass). The maze itself is drawn on the canvas: its wall and
+   background colours are read back for collisions and stay as they are. */
+
+.arena {
+   padding: 12px;
+}
+
+.canvas {
+   display: block;
+   width: 100%;
+   max-width: 560px;
+   height: auto;
+   aspect-ratio: 1 / 1;
+   margin: 0 auto;
+   border-radius: 10px;
+   cursor: crosshair;
+   touch-action: none;
+   background: rgba(15, 27, 51, 1);
+}
+
+.canvas:focus-visible {
+   outline: 2px solid var(--accent);
+   outline-offset: 2px;
+}
+
+.legend {
+   display: flex;
+   flex-wrap: wrap;
+   justify-content: center;
+   gap: 8px;
+   margin-top: 12px;
+}
+
+/* a colour key that matches the pads drawn on the canvas */
+.swatch {
+   width: 12px;
+   height: 12px;
+   border-radius: 3px;
+   flex-shrink: 0;
+}
+
+.swatchStart {
+   composes: swatch;
+   background: rgba(110, 168, 255, 0.55);
+   box-shadow: inset 0 0 0 2px rgba(110, 168, 255, 0.95);
+}
+
+.swatchExit {
+   composes: swatch;
+   background: rgba(54, 211, 153, 0.6);
+   box-shadow: inset 0 0 0 2px rgba(54, 211, 153, 1);
+}
+
+.hint {
+   margin-top: 10px;
+}
+
+.titleRow {
+   display: inline-flex;
+   align-items: center;
+   justify-content: center;
+   gap: 8px;
+}
+
+.titleIcon {
+   width: 20px;
+   height: 20px;
+   flex-shrink: 0;
+}
+
+@media (max-width: 767px) {
+   .arena {
+      padding: 10px;
+   }
+}

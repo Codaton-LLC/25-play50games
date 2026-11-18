@@ -17,6 +17,7 @@ import {
 } from "@/lib/api/share";
 
 import touch from "./skillTouch.module.css";
+import ui from "./skillUi.module.css";
 import { usePlayAreaInView } from "./usePlayAreaInView";
 
 interface TimingBarProps {
@@ -754,79 +755,20 @@ export default function TimingBar({
    const levelConfig = getLevelConfig(currentLevel);
    const minStops = levelConfig.minStops;
 
+   const replayLocked = maxReplays > 0 && replaysUsed >= maxReplays;
+
    return (
       <>
-         <div
-         ref={rootRef}
-            style={{
-               display: "flex",
-               flexDirection: "column",
-               alignItems: "center",
-               gap: isMobile ? "16px" : "20px",
-               width: "100%",
-               maxWidth: "800px",
-               margin: "0 auto",
-               padding: isMobile ? "12px" : "16px",
-            }}
-         >
+         <div ref={rootRef} className={ui.root}>
             {/* Header Section */}
-            <div
-               style={{
-                  width: "100%",
-                  maxWidth: "800px",
-                  background: "var(--card)",
-                  borderRadius: isMobile ? "16px" : "20px",
-                  padding: isMobile ? "16px" : "20px",
-                  boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: isMobile ? "12px" : "16px",
-               }}
-            >
-               <div
-                  style={{
-                     display: "flex",
-                     alignItems: "center",
-                     justifyContent: "space-between",
-                     flexWrap: "wrap",
-                     gap: isMobile ? "8px" : "12px",
-                  }}
-               >
-                  <span
-                     style={{
-                        fontSize: isMobile ? "0.875rem" : "1rem",
-                        fontWeight: 600,
-                        color: "var(--text)",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "6px",
-                     }}
-                  >
-                     <ArrowPathIcon
-                        style={{
-                           width: isMobile ? 14 : 16,
-                           height: isMobile ? 14 : 16,
-                        }}
-                     />
+            <div className={ui.hud}>
+               <div className={ui.hudRow}>
+                  <span className={ui.hudStat}>
+                     <ArrowPathIcon className={ui.hudIcon} />
                      Level {currentLevel + 1}/{maxLevels}
                   </span>
-                  <span
-                     style={{
-                        fontSize: isMobile ? "0.875rem" : "1rem",
-                        fontWeight: 600,
-                        color: "var(--text)",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "6px",
-                     }}
-                  >
-                     <TrophyIcon
-                        style={{
-                           width: isMobile ? 14 : 16,
-                           height: isMobile ? 14 : 16,
-                           color: "var(--ok)",
-                        }}
-                     />
+                  <span className={ui.hudStat}>
+                     <TrophyIcon className={ui.hudIconOk} />
                      Score:{" "}
                      {requirementsMet &&
                      lastCompletedLevelRef.current === currentLevel &&
@@ -836,121 +778,41 @@ export default function TimingBar({
                      / 100
                   </span>
                   <span
-                     style={{
-                        fontSize: isMobile ? "0.875rem" : "1rem",
-                        fontWeight: 600,
-                        color: "var(--text)",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "6px",
-                     }}
+                     className={`${ui.hudStat} ${gameState === "playing" && timeLeft <= 5 ? ui.hudLow : ""}`}
                   >
-                     <ClockIcon
-                        style={{
-                           width: isMobile ? 14 : 16,
-                           height: isMobile ? 14 : 16,
-                           color: "var(--accent)",
-                        }}
-                     />
+                     <ClockIcon className={ui.hudIconAccent} />
                      {timeLeft}s
                   </span>
                </div>
                {/* Progress Bar */}
-               <div
-                  style={{
-                     width: "100%",
-                     height: isMobile ? "6px" : "8px",
-                     background: "rgba(255, 255, 255, 0.1)",
-                     borderRadius: "999px",
-                     overflow: "hidden",
-                  }}
-               >
+               <div className={ui.progressTrack}>
                   <div
-                     style={{
-                        width: `${progressPercentage}%`,
-                        height: "100%",
-                        background:
-                           "linear-gradient(90deg, var(--accent) 0%, var(--ok) 100%)",
-                        borderRadius: "999px",
-                        transition: "width 0.3s ease",
-                        boxShadow: "0 0 10px rgba(125, 211, 252, 0.5)",
-                     }}
+                     className={ui.progressFill}
+                     style={{ transform: `scaleX(${progressPercentage / 100})` }}
                   />
                </div>
             </div>
 
             {/* Stats Display */}
             {gameState === "playing" && (
-               <div
-                  style={{
-                     display: "flex",
-                     gap: isMobile ? "8px" : "12px",
-                     flexWrap: "wrap",
-                     justifyContent: "center",
-                     width: "100%",
-                     maxWidth: "800px",
-                  }}
-               >
-                  <div
-                     style={{
-                        background:
-                           "linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(34, 197, 94, 0.1))",
-                        border: "1px solid rgba(34, 197, 94, 0.4)",
-
-                        padding: "10px 16px",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "8px",
-                     }}
-                  >
-                     <CheckCircleIcon
-                        style={{
-                           width: 18,
-                           height: 18,
-                           color: "var(--ok)",
-                        }}
-                     />
-                     <span
-                        style={{
-                           fontSize: "1rem",
-                           fontWeight: 600,
-                           color: "var(--text)",
-                        }}
-                     >
+               <div className={ui.statRow}>
+                  <div className={ui.statOk}>
+                     <CheckCircleIcon className={ui.statIconOk} />
+                     <span>
                         Successful:{" "}
-                        <span key={successfulStops} className={touch.pop} style={{ display: "inline-block" }}>
+                        <span key={successfulStops} className={ui.bump}>
                            {successfulStops}
                         </span>
                         /{minStops}
                      </span>
                   </div>
-                  <div
-                     style={{
-                        background:
-                           "linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(239, 68, 68, 0.1))",
-                        border: "1px solid rgba(239, 68, 68, 0.4)",
-
-                        padding: "10px 16px",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "8px",
-                     }}
-                  >
-                     <XCircleIcon
-                        style={{
-                           width: 18,
-                           height: 18,
-                           color: "var(--warn)",
-                        }}
-                     />
-                     <span
-                        style={{
-                           fontSize: "1rem",
-                           fontWeight: 600,
-                           color: "var(--text)",
-                        }}
-                     >
-                        Failed: {failedStops}
+                  <div className={ui.statWarn}>
+                     <XCircleIcon className={ui.statIconWarn} />
+                     <span>
+                        Failed:{" "}
+                        <span key={failedStops} className={ui.bump}>
+                           {failedStops}
+                        </span>
                      </span>
                   </div>
                </div>
@@ -960,29 +822,15 @@ export default function TimingBar({
             {gameState === "playing" ? (
                <div
                   ref={arenaRef}
-                  className={touch.tapArea}
+                  className={`${ui.arena} ${touch.tapArea}`}
                   data-play-area=""
                   onClick={handleStop}
                   style={{
-                     position: "relative",
-                     width: "100%",
-                     maxWidth: "800px",
-                     height: isMobile ? "220px" : "220px",
-                     borderRadius: "var(--radius)",
-                     border: "1px solid var(--border)",
-                     background:
-                        "linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02))",
-                     boxShadow: "0 10px 18px rgba(0, 0, 0, 0.22)",
-                     overflow: "hidden",
-                     userSelect: "none",
-                     touchAction: "manipulation",
+                     height: "220px",
                      display: "flex",
                      alignItems: "center",
                      justifyContent: "center",
-                     cursor:
-                        gameState === "playing" && !requirementsMet
-                           ? "pointer"
-                           : "default",
+                     cursor: !requirementsMet ? "pointer" : "default",
                   }}
                >
                   {/* Track */}
@@ -998,7 +846,7 @@ export default function TimingBar({
                         overflow: "visible",
                      }}
                   >
-                     {/* Target Zone */}
+                     {/* Target Zone (its green strings are matched by globals.css for the final games) */}
                      <div
                         ref={zoneRef}
                         style={{
@@ -1011,16 +859,12 @@ export default function TimingBar({
                               lastStop === "hit"
                                  ? "rgba(34, 197, 94, 0.75)"
                                  : "rgba(34, 197, 94, 0.45)",
-                           boxShadow:
-                              lastStop === "hit"
-                                 ? "0 0 18px rgba(34, 197, 94, 0.7)"
-                                 : "none",
-                           transition: "background 0.15s ease, box-shadow 0.15s ease",
+                           transition: "background-color 0.15s ease",
                            borderRadius: "999px",
                         }}
                      />
 
-                     {/* Moving Bar */}
+                     {/* Moving Bar: drawn exactly where the hit test reads it (offsetLeft .. + offsetWidth) */}
                      <div
                         ref={barRef}
                         style={{
@@ -1032,30 +876,16 @@ export default function TimingBar({
                            borderRadius: "6px",
                            background:
                               lastStop === "hit"
-                                 ? "linear-gradient(180deg, rgba(34, 197, 94, 1), rgba(34, 197, 94, 0.65))"
+                                 ? "var(--ok)"
                                  : lastStop === "miss"
-                                   ? "linear-gradient(180deg, rgba(239, 68, 68, 1), rgba(239, 68, 68, 0.65))"
-                                   : "linear-gradient(180deg, rgba(59, 130, 246, 0.9), rgba(59, 130, 246, 0.55))",
-                           boxShadow: "0 6px 14px rgba(0, 0, 0, 0.35)",
-                           transform: "translateX(-50%)",
+                                   ? "var(--warn)"
+                                   : "rgb(59, 130, 246)",
                            pointerEvents: "none",
                         }}
                      />
                   </div>
                   {/* hint: the whole arena is the button */}
-                  <span
-                     aria-hidden="true"
-                     style={{
-                        position: "absolute",
-                        bottom: "14px",
-                        left: 0,
-                        right: 0,
-                        textAlign: "center",
-                        fontSize: "0.8rem",
-                        color: "rgba(255, 255, 255, 0.55)",
-                        pointerEvents: "none",
-                     }}
-                  >
+                  <span aria-hidden="true" className={ui.arenaHint}>
                      {isMobile || isTablet ? "Tap anywhere to stop" : "Click anywhere to stop"}
                   </span>
                </div>
@@ -1063,51 +893,15 @@ export default function TimingBar({
 
             {/* Ready for Next Round Message */}
             {gameState === "ready" && currentLevel + 1 < maxLevels && (
-               <div
-                  style={{
-                     padding: isMobile ? "20px 24px" : "24px 32px",
-                     background: "var(--card)",
-                     borderRadius: "var(--radius)",
-                     color: "var(--text)",
-                     fontSize: isMobile ? "1rem" : "1.1rem",
-                     fontWeight: 700,
-                     textAlign: "center",
-                     border: "1px solid var(--border)",
-                  }}
-               >
-                  <div style={{ marginBottom: "16px" }}>
-                     Level {currentLevel + 1} Complete!
-                  </div>
-                  <div
-                     style={{
-                        fontSize: isMobile ? "0.9rem" : "1rem",
-                        fontWeight: 400,
-                        marginBottom: "20px",
-                        color: "var(--text-secondary)",
-                     }}
-                  >
-                     Successful stops: {successfulStops}/{minStops}
+               <div className={ui.card}>
+                  <div className={ui.cardTitle}>Level {currentLevel + 1} Complete!</div>
+                  <div className={ui.cardBody}>
+                     Successful stops: <strong>{successfulStops}/{minStops}</strong>
                   </div>
                   <button
-                  className={touch.tapButton}
+                     className={ui.buttonPrimary}
                      onClick={handleNextRound}
                      disabled={nextRoundLocked}
-                     style={{
-                        padding: isMobile ? "12px 24px" : "14px 28px",
-                        background: nextRoundLocked
-                           ? "rgba(100, 100, 100, 0.2)"
-                           : "linear-gradient(135deg, rgba(134, 239, 172, 0.25), rgba(134, 239, 172, 0.12))",
-                        border: nextRoundLocked
-                           ? "1px solid rgba(100, 100, 100, 0.4)"
-                           : "2px solid rgba(134, 239, 172, 0.6)",
-
-                        color: "var(--text)",
-                        fontSize: isMobile ? "1rem" : "1.05rem",
-                        fontWeight: 700,
-                        cursor: nextRoundLocked ? "not-allowed" : "pointer",
-                        opacity: nextRoundLocked ? 0.5 : 1,
-                        transition: "all 0.3s ease",
-                     }}
                   >
                      Next Round
                   </button>
@@ -1116,32 +910,12 @@ export default function TimingBar({
 
             {/* Level Failed Message */}
             {gameState === "failed" && (
-               <div
-                  style={{
-                     padding: isMobile ? "20px 24px" : "24px 32px",
-                     background: "var(--card)",
-                     borderRadius: "var(--radius)",
-                     color: "var(--text)",
-                     fontSize: isMobile ? "1rem" : "1.1rem",
-                     fontWeight: 700,
-                     textAlign: "center",
-                     border: "1px solid var(--border)",
-                  }}
-               >
-                  <div style={{ marginBottom: "16px", color: "var(--warn)" }}>
-                     Level {currentLevel + 1} Failed
-                  </div>
-                  <div
-                     style={{
-                        fontSize: isMobile ? "0.9rem" : "1rem",
-                        fontWeight: 400,
-                        marginBottom: "20px",
-                        color: "var(--text-secondary)",
-                     }}
-                  >
-                     Need: {minStops} successful stops
+               <div className={ui.card}>
+                  <div className={ui.cardTitleWarn}>Level {currentLevel + 1} Failed</div>
+                  <div className={ui.cardBody}>
+                     Need: <strong>{minStops}</strong> successful stops
                      <br />
-                     You achieved: {successfulStops} successful stops
+                     You achieved: <strong>{successfulStops}</strong> successful stops
                   </div>
                </div>
             )}
@@ -1151,66 +925,21 @@ export default function TimingBar({
                currentLevel === maxLevels - 1 &&
                requirementsMet &&
                lastCompletedLevelRef.current === currentLevel && (
-                  <div
-                     style={{
-                        padding: isMobile ? "20px 24px" : "24px 32px",
-                        background: "var(--card)",
-                        borderRadius: "var(--radius)",
-                        color: "var(--text)",
-                        fontSize: isMobile ? "1rem" : "1.1rem",
-                        fontWeight: 700,
-                        textAlign: "center",
-                        border: "1px solid var(--border)",
-                     }}
-                  >
-                     <div style={{ marginBottom: "16px", color: "var(--ok)" }}>
-                        Game Complete!
-                     </div>
-                     <div
-                        style={{
-                           fontSize: isMobile ? "0.9rem" : "1rem",
-                           fontWeight: 400,
-                           marginBottom: "20px",
-                           color: "var(--text-secondary)",
-                        }}
-                     >
+                  <div className={ui.card}>
+                     <div className={ui.cardTitleOk}>Game Complete!</div>
+                     <div className={ui.cardBody}>
                         All {maxLevels} levels completed!
                         <br />
-                        Final Score: {currentScore}
+                        Final Score: <strong>{currentScore}</strong>
                      </div>
                   </div>
                )}
 
             {/* Action Buttons: Replay, Share */}
-            <div
-               style={{
-                  display: "flex",
-                  gap: "12px",
-                  justifyContent: "center",
-                  flexWrap: "wrap",
-                  padding: isMobile ? "12px" : "16px",
-                  background: "var(--card)",
-
-                  width: "100%",
-                  maxWidth: "800px",
-               }}
-            >
+            <div className={ui.actions}>
                {/* Share Success Message */}
                {shareSuccess && !unlimitedActivated && (
-                  <div
-                     style={{
-                        width: "100%",
-                        padding: "12px",
-                        background: "rgba(134, 239, 172, 0.2)",
-                        border: "2px solid rgba(134, 239, 172, 0.6)",
-                        borderRadius: "8px",
-                        fontSize: isMobile ? "0.9rem" : "1rem",
-                        fontWeight: 600,
-                        color: "var(--ok)",
-                        textAlign: "center",
-                        marginBottom: "8px",
-                     }}
-                  >
+                  <div className={ui.notice}>
                      Link copied! Unlimited replay will unlock when someone
                      opens your link!
                   </div>
@@ -1218,82 +947,21 @@ export default function TimingBar({
 
                {/* Unlimited Activated Message */}
                {unlimitedActivated && (
-                  <div
-                     style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: isMobile ? "6px" : "8px",
-                        padding: isMobile ? "10px 14px" : "8px 16px",
-                        background:
-                           "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
-                        border: "2px solid rgba(59, 130, 246, 0.6)",
-                        borderRadius: isMobile ? "10px" : "8px",
-                        color: "var(--text)",
-                        fontSize: isMobile ? "0.85rem" : "0.9rem",
-                        fontWeight: 500,
-                        width: "100%",
-                        justifyContent: "center",
-                        textAlign: "center",
-                        flexWrap: "wrap",
-                        marginBottom: "8px",
-                     }}
-                  >
-                     <CheckCircleIcon
-                        style={{
-                           width: isMobile ? 16 : 18,
-                           height: isMobile ? 16 : 18,
-                           color: "rgba(59, 130, 246, 0.9)",
-                           flexShrink: 0,
-                        }}
-                     />
+                  <div className={ui.notice}>
+                     <CheckCircleIcon className={ui.noticeIcon} />
                      <span>
-                        🎉 Someone opened your link! Unlimited replay is now
+                        Someone opened your link! Unlimited replay is now
                         active for 15 minutes!
                      </span>
                   </div>
                )}
 
                <button
-                  className={touch.tapButton}
+                  className={ui.button}
                   onClick={handleReplay}
-                  disabled={maxReplays > 0 && replaysUsed >= maxReplays}
-                  style={{
-                     display: "flex",
-                     alignItems: "center",
-                     gap: isMobile ? "6px" : "8px",
-                     padding: isMobile ? "10px 16px" : "10px 20px",
-                     width: isMobile ? "100%" : "auto",
-                     background:
-                        maxReplays > 0 && replaysUsed >= maxReplays
-                           ? "rgba(100, 100, 100, 0.2)"
-                           : "linear-gradient(135deg, rgba(125, 211, 252, 0.2), rgba(125, 211, 252, 0.1))",
-                     border:
-                        maxReplays > 0 && replaysUsed >= maxReplays
-                           ? "1px solid rgba(100, 100, 100, 0.4)"
-                           : "1px solid rgba(125, 211, 252, 0.6)",
-
-                     color: "var(--text)",
-                     fontSize: isMobile ? "0.85rem" : "0.95rem",
-                     fontWeight: 600,
-                     cursor:
-                        maxReplays > 0 && replaysUsed >= maxReplays
-                           ? "not-allowed"
-                           : "pointer",
-                     opacity:
-                        maxReplays > 0 && replaysUsed >= maxReplays ? 0.5 : 1,
-                     transition: "all 0.3s ease",
-                  }}
+                  disabled={replayLocked}
                >
-                  <ArrowPathRoundedSquareIcon
-                     style={{
-                        width: isMobile ? 18 : 20,
-                        height: isMobile ? 18 : 20,
-                        color:
-                           maxReplays > 0 && replaysUsed >= maxReplays
-                              ? "var(--muted)"
-                              : "var(--accent)",
-                     }}
-                  />
+                  <ArrowPathRoundedSquareIcon className={ui.buttonIcon} />
                   <span>
                      {"Replay "}
                      {maxReplays === 0
@@ -1302,33 +970,8 @@ export default function TimingBar({
                   </span>
                </button>
 
-               <button
-                  className={touch.tapButton}
-                  onClick={handleShare}
-                  style={{
-                     display: "flex",
-                     alignItems: "center",
-                     gap: isMobile ? "6px" : "8px",
-                     padding: isMobile ? "10px 16px" : "10px 20px",
-                     width: isMobile ? "100%" : "auto",
-                     background:
-                        "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
-                     border: "2px solid rgba(59, 130, 246, 0.6)",
-
-                     color: "var(--text)",
-                     fontSize: isMobile ? "0.85rem" : "0.95rem",
-                     fontWeight: 600,
-                     cursor: "pointer",
-                     transition: "all 0.3s ease",
-                  }}
-               >
-                  <ShareIcon
-                     style={{
-                        width: isMobile ? 18 : 20,
-                        height: isMobile ? 18 : 20,
-                        color: "var(--accent)",
-                     }}
-                  />
+               <button className={ui.button} onClick={handleShare}>
+                  <ShareIcon className={ui.buttonIcon} />
                   <span>Share for unlimited</span>
                </button>
             </div>

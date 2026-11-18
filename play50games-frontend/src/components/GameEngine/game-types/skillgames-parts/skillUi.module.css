@@ -1,0 +1,511 @@
+/* The Skill games' shared frame (classic modern pass): HUD panel, level progress, stat chips, the
+   arena frame, round cards and the replay/share bar. Site tokens only (globals.css): --card, --stroke,
+   --text, --muted, --ok, --warn and the one accent (--accent / --accent-rgb).
+   Shape lock: chips and buttons are pills, panels and the arena 16 px, small inner parts 10 px.
+   Motion: transform/opacity only, cubic-bezier(.16, 1, .3, 1), all of it off under reduced motion. */
+
+.root {
+   --skill-ease: cubic-bezier(0.16, 1, 0.3, 1);
+   display: flex;
+   flex-direction: column;
+   align-items: center;
+   gap: 20px;
+   width: 100%;
+   max-width: 800px;
+   margin: 0 auto;
+   padding: 16px;
+   font-variant-numeric: tabular-nums;
+}
+
+/* ---------- HUD ---------- */
+
+.hud {
+   width: 100%;
+   display: flex;
+   flex-direction: column;
+   gap: 14px;
+   padding: 16px 20px;
+   background: var(--card);
+   border: 1px solid var(--stroke);
+   border-radius: 16px;
+}
+
+.hudRow {
+   display: flex;
+   align-items: center;
+   justify-content: space-between;
+   flex-wrap: wrap;
+   gap: 8px 12px;
+}
+
+.hudStat {
+   display: inline-flex;
+   align-items: center;
+   gap: 6px;
+   font-size: 1rem;
+   font-weight: 600;
+   color: var(--text);
+   white-space: nowrap;
+}
+
+.hudIcon {
+   width: 16px;
+   height: 16px;
+   flex-shrink: 0;
+   color: var(--muted);
+}
+
+.hudIconOk {
+   composes: hudIcon;
+   color: var(--ok);
+}
+
+.hudIconAccent {
+   composes: hudIcon;
+   color: var(--accent);
+}
+
+/* the timer chip turns warn in the last seconds (set by the game) */
+.hudLow {
+   color: var(--warn);
+}
+
+/* Level progress: a fixed track, the fill scales on x (no width animation). */
+.progressTrack {
+   width: 100%;
+   height: 6px;
+   border-radius: 999px;
+   background: rgba(255, 255, 255, 0.08);
+   overflow: hidden;
+}
+
+.progressFill {
+   width: 100%;
+   height: 100%;
+   border-radius: inherit;
+   background: var(--accent);
+   transform-origin: left center;
+   transition: transform 0.32s var(--skill-ease, ease);
+}
+
+/* ---------- stat chips under the HUD ---------- */
+
+.statRow {
+   display: flex;
+   flex-wrap: wrap;
+   justify-content: center;
+   gap: 8px;
+   width: 100%;
+}
+
+.stat {
+   display: inline-flex;
+   align-items: center;
+   gap: 8px;
+   min-height: 40px;
+   padding: 8px 14px;
+   border-radius: 999px;
+   border: 1px solid var(--stroke);
+   background: rgba(255, 255, 255, 0.04);
+   color: var(--text);
+   font-size: 0.95rem;
+   font-weight: 600;
+   white-space: nowrap;
+}
+
+.statOk {
+   composes: stat;
+   border-color: rgba(63, 181, 127, 0.45);
+   background: rgba(63, 181, 127, 0.12);
+}
+
+.statWarn {
+   composes: stat;
+   border-color: rgba(240, 112, 138, 0.45);
+   background: rgba(240, 112, 138, 0.12);
+}
+
+.statAccent {
+   composes: stat;
+   border-color: rgba(var(--accent-rgb, 231, 95, 64), 0.45);
+   background: rgba(var(--accent-rgb, 231, 95, 64), 0.12);
+}
+
+.statIcon {
+   width: 18px;
+   height: 18px;
+   flex-shrink: 0;
+}
+
+.statIconOk {
+   composes: statIcon;
+   color: var(--ok);
+}
+
+.statIconWarn {
+   composes: statIcon;
+   color: var(--warn);
+}
+
+.statIconAccent {
+   composes: statIcon;
+   color: var(--accent);
+}
+
+/* a number that just changed: short pop (re-keyed by the game) */
+.bump {
+   display: inline-block;
+   animation: skillBump 0.26s var(--skill-ease, ease-out);
+}
+
+/* ---------- the arena (play area frame) ---------- */
+
+.arena {
+   position: relative;
+   width: 100%;
+   border-radius: 16px;
+   border: 1px solid var(--stroke);
+   background: rgba(255, 255, 255, 0.03);
+   overflow: hidden;
+}
+
+/* one-line instruction drawn inside the arena, never hit-testable */
+.arenaHint {
+   position: absolute;
+   left: 0;
+   right: 0;
+   bottom: 12px;
+   text-align: center;
+   font-size: 0.8rem;
+   color: var(--muted);
+   pointer-events: none;
+}
+
+/* an instruction line above or below the arena */
+.hint {
+   width: 100%;
+   text-align: center;
+   font-size: 0.9rem;
+   color: var(--muted);
+}
+
+/* the whole arena answers a hit or a miss */
+.flashOk {
+   animation: skillFlashOk 0.32s var(--skill-ease, ease-out);
+}
+
+.flashWarn {
+   animation: skillShake 0.32s ease-in-out;
+}
+
+/* ---------- round cards (level complete / failed / game complete) ---------- */
+
+.card {
+   width: 100%;
+   max-width: 480px;
+   display: flex;
+   flex-direction: column;
+   align-items: center;
+   gap: 12px;
+   padding: 24px 28px;
+   text-align: center;
+   color: var(--text);
+   background: var(--card);
+   border: 1px solid var(--stroke);
+   border-radius: 16px;
+   animation: skillCardIn 0.32s var(--skill-ease, ease-out) both;
+}
+
+.card > * {
+   animation: skillRise 0.32s var(--skill-ease, ease-out) both;
+}
+
+.card > *:nth-child(2) {
+   animation-delay: 60ms;
+}
+
+.card > *:nth-child(3) {
+   animation-delay: 120ms;
+}
+
+.card > *:nth-child(4) {
+   animation-delay: 180ms;
+}
+
+.cardTitle {
+   font-size: 1.15rem;
+   font-weight: 700;
+   line-height: 1.3;
+}
+
+.cardTitleOk {
+   composes: cardTitle;
+   color: var(--ok);
+}
+
+.cardTitleWarn {
+   composes: cardTitle;
+   color: var(--warn);
+}
+
+.cardBody {
+   font-size: 0.95rem;
+   line-height: 1.5;
+   color: var(--muted);
+}
+
+.cardBody strong {
+   color: var(--text);
+   font-weight: 600;
+}
+
+/* ---------- buttons ---------- */
+
+.button {
+   display: inline-flex;
+   align-items: center;
+   justify-content: center;
+   gap: 8px;
+   min-height: 44px;
+   padding: 10px 20px;
+   border-radius: 999px;
+   border: 1px solid var(--stroke);
+   background: rgba(255, 255, 255, 0.06);
+   color: var(--text);
+   font: inherit;
+   font-size: 0.95rem;
+   font-weight: 600;
+   line-height: 1.2;
+   cursor: pointer;
+   -webkit-tap-highlight-color: transparent;
+   touch-action: manipulation;
+   transition:
+      transform 0.1s ease,
+      background-color 0.16s ease,
+      border-color 0.16s ease;
+}
+
+.button:hover:not(:disabled) {
+   background: rgba(255, 255, 255, 0.1);
+}
+
+.button:active:not(:disabled) {
+   transform: scale(0.96);
+}
+
+.button:focus-visible {
+   outline: 2px solid var(--accent);
+   outline-offset: 2px;
+}
+
+.button:disabled {
+   cursor: not-allowed;
+   opacity: 0.45;
+}
+
+.buttonPrimary {
+   composes: button;
+   border-color: rgba(var(--accent-rgb, 231, 95, 64), 0.6);
+   background: rgba(var(--accent-rgb, 231, 95, 64), 0.18);
+}
+
+.buttonPrimary:hover:not(:disabled) {
+   background: rgba(var(--accent-rgb, 231, 95, 64), 0.28);
+}
+
+.buttonIcon {
+   width: 20px;
+   height: 20px;
+   flex-shrink: 0;
+   color: var(--accent);
+}
+
+.button:disabled .buttonIcon {
+   color: var(--muted);
+}
+
+/* the replay / share bar under the game */
+.actions {
+   display: flex;
+   flex-wrap: wrap;
+   justify-content: center;
+   gap: 12px;
+   width: 100%;
+   padding: 16px;
+   background: var(--card);
+   border: 1px solid var(--stroke);
+   border-radius: 16px;
+}
+
+.notice {
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   flex-wrap: wrap;
+   gap: 8px;
+   width: 100%;
+   padding: 10px 14px;
+   border-radius: 12px;
+   border: 1px solid rgba(63, 181, 127, 0.45);
+   background: rgba(63, 181, 127, 0.12);
+   color: var(--text);
+   font-size: 0.9rem;
+   font-weight: 500;
+   text-align: center;
+   animation: skillRise 0.28s var(--skill-ease, ease-out) both;
+}
+
+.noticeIcon {
+   width: 18px;
+   height: 18px;
+   flex-shrink: 0;
+   color: var(--ok);
+}
+
+/* ---------- final games ----------
+   The five final games reuse these boards on a gold stage (--accent / --accent-rgb are gold there).
+   globals.css turned the old inline greens gold in that mode; these keep that look now the greens
+   live here instead of in inline styles. */
+
+:global(body.final-game) .hudIconOk,
+:global(body.final-game) .statIconOk,
+:global(body.final-game) .noticeIcon,
+:global(body.final-game) .cardTitleOk {
+   color: var(--accent);
+}
+
+:global(body.final-game) .statOk,
+:global(body.final-game) .notice {
+   border-color: rgba(var(--accent-rgb, 227, 167, 47), 0.5);
+   background: rgba(var(--accent-rgb, 227, 167, 47), 0.14);
+}
+
+/* ---------- phones ---------- */
+
+@media (max-width: 767px) {
+   .root {
+      gap: 14px;
+      padding: 12px;
+   }
+
+   .hud {
+      padding: 14px 16px;
+      gap: 12px;
+      border-radius: 14px;
+   }
+
+   .hudStat {
+      font-size: 0.875rem;
+   }
+
+   .hudIcon {
+      width: 14px;
+      height: 14px;
+   }
+
+   .stat {
+      font-size: 0.875rem;
+      padding: 8px 12px;
+   }
+
+   .card {
+      padding: 20px;
+      border-radius: 14px;
+   }
+
+   .cardTitle {
+      font-size: 1.05rem;
+   }
+
+   .actions {
+      padding: 12px;
+      border-radius: 14px;
+   }
+
+   .actions > .button {
+      width: 100%;
+   }
+}
+
+/* ---------- keyframes ---------- */
+
+@keyframes skillCardIn {
+   from {
+      opacity: 0;
+      transform: translateY(8px) scale(0.98);
+   }
+   to {
+      opacity: 1;
+      transform: none;
+   }
+}
+
+@keyframes skillRise {
+   from {
+      opacity: 0;
+      transform: translateY(6px);
+   }
+   to {
+      opacity: 1;
+      transform: none;
+   }
+}
+
+@keyframes skillBump {
+   0% {
+      transform: scale(1);
+   }
+   40% {
+      transform: scale(1.18);
+   }
+   100% {
+      transform: scale(1);
+   }
+}
+
+@keyframes skillFlashOk {
+   0% {
+      box-shadow: inset 0 0 0 0 rgba(63, 181, 127, 0);
+   }
+   35% {
+      box-shadow: inset 0 0 0 3px rgba(63, 181, 127, 0.7);
+   }
+   100% {
+      box-shadow: inset 0 0 0 0 rgba(63, 181, 127, 0);
+   }
+}
+
+@keyframes skillShake {
+   0%,
+   100% {
+      transform: translateX(0);
+   }
+   20% {
+      transform: translateX(-6px);
+   }
+   40% {
+      transform: translateX(6px);
+   }
+   60% {
+      transform: translateX(-4px);
+   }
+   80% {
+      transform: translateX(4px);
+   }
+}
+
+@media (prefers-reduced-motion: reduce) {
+   .progressFill,
+   .button {
+      transition: none;
+   }
+
+   .bump,
+   .flashOk,
+   .flashWarn,
+   .card,
+   .card > *,
+   .notice {
+      animation: none;
+   }
+}

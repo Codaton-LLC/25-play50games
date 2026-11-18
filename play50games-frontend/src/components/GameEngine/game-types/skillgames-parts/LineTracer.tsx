@@ -17,6 +17,8 @@ import {
 } from "@/lib/api/share";
 
 import touch from "./skillTouch.module.css";
+import ui from "./skillUi.module.css";
+import lt from "./LineTracer.module.css";
 import { usePlayAreaInView } from "./usePlayAreaInView";
 
 interface LineTracerProps {
@@ -173,6 +175,9 @@ export default function LineTracer({
          startTimeoutRef.current = null;
       }
    }, []);
+
+   // Leaving the page (or a final game switching mini-game) mid-round: stop the timers
+   useEffect(() => () => clearAll(), [clearAll]);
 
    useEffect(() => {
       if (!isPlaying) {
@@ -589,7 +594,7 @@ export default function LineTracer({
       // Draw target path
       if (targetPath && targetPath.length > 1) {
          // Draw target path glow first (behind)
-         ctx.strokeStyle = "rgba(59, 130, 246, 0.2)";
+         ctx.strokeStyle = "rgba(241, 243, 248, 0.08)"; // the guide: a soft neutral band
          ctx.lineWidth = 10;
          ctx.lineCap = "round";
          ctx.lineJoin = "round";
@@ -607,7 +612,7 @@ export default function LineTracer({
          ctx.stroke();
 
          // Draw target path (on top)
-         ctx.strokeStyle = "rgba(59, 130, 246, 0.6)";
+         ctx.strokeStyle = "rgba(241, 243, 248, 0.5)";
          ctx.lineWidth = 4;
          ctx.lineCap = "round";
          ctx.lineJoin = "round";
@@ -1078,79 +1083,21 @@ export default function LineTracer({
 
    const progressPercentage = ((currentLevel + 1) / maxLevels) * 100;
 
+   const replayLocked = maxReplays > 0 && replaysUsed >= maxReplays;
+   const accuracyOnTrack = currentAccuracy >= getMinAccuracy(currentLevel);
+
    return (
       <>
-         <div
-         ref={rootRef}
-            style={{
-               display: "flex",
-               flexDirection: "column",
-               alignItems: "center",
-               justifyContent: "center",
-               minHeight: "100%",
-               width: "100%",
-               padding: isMobile ? "16px" : isTablet ? "20px" : "24px",
-               gap: isMobile ? "16px" : "20px",
-            }}
-         >
+         <div ref={rootRef} className={ui.root}>
             {/* Header */}
-            <div
-               style={{
-                  width: "100%",
-                  maxWidth: "800px",
-                  background: "var(--card)",
-                  borderRadius: isMobile ? "16px" : "20px",
-                  padding: isMobile ? "16px" : "20px",
-                  boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: isMobile ? "12px" : "16px",
-               }}
-            >
-               <div
-                  style={{
-                     display: "flex",
-                     alignItems: "center",
-                     justifyContent: "space-between",
-                     flexWrap: "wrap",
-                     gap: isMobile ? "8px" : "12px",
-                  }}
-               >
-                  <span
-                     style={{
-                        fontSize: isMobile ? "0.875rem" : "1rem",
-                        fontWeight: 600,
-                        color: "var(--text)",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "6px",
-                     }}
-                  >
-                     <ArrowPathIcon
-                        style={{
-                           width: isMobile ? 14 : 16,
-                           height: isMobile ? 14 : 16,
-                        }}
-                     />
+            <div className={ui.hud}>
+               <div className={ui.hudRow}>
+                  <span className={ui.hudStat}>
+                     <ArrowPathIcon className={ui.hudIcon} />
                      Level {currentLevel + 1}/{maxLevels}
                   </span>
-                  <span
-                     style={{
-                        fontSize: isMobile ? "0.875rem" : "1rem",
-                        fontWeight: 600,
-                        color: "var(--text)",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "6px",
-                     }}
-                  >
-                     <TrophyIcon
-                        style={{
-                           width: isMobile ? 14 : 16,
-                           height: isMobile ? 14 : 16,
-                           color: "var(--ok)",
-                        }}
-                     />
+                  <span className={ui.hudStat}>
+                     <TrophyIcon className={ui.hudIconOk} />
                      Score:{" "}
                      {currentLevel + 1 >= maxLevels && gameState === "ready"
                         ? 100
@@ -1158,120 +1105,32 @@ export default function LineTracer({
                      / 100
                   </span>
                   <span
-                     style={{
-                        fontSize: isMobile ? "0.875rem" : "1rem",
-                        fontWeight: 600,
-                        color: "var(--text)",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "6px",
-                     }}
+                     className={`${ui.hudStat} ${gameState === "playing" && timeLeft <= 5 ? ui.hudLow : ""}`}
                   >
-                     <ClockIcon
-                        style={{
-                           width: isMobile ? 14 : 16,
-                           height: isMobile ? 14 : 16,
-                           color: "var(--accent)",
-                        }}
-                     />
+                     <ClockIcon className={ui.hudIconAccent} />
                      {timeLeft}s
                   </span>
                </div>
 
                {/* Progress Bar */}
-               <div
-                  style={{
-                     width: "100%",
-                     height: isMobile ? "6px" : "8px",
-                     background: "rgba(255, 255, 255, 0.1)",
-                     borderRadius: "999px",
-                     overflow: "hidden",
-                  }}
-               >
+               <div className={ui.progressTrack}>
                   <div
-                     style={{
-                        width: `${progressPercentage}%`,
-                        height: "100%",
-                        background:
-                           "linear-gradient(90deg, var(--accent) 0%, var(--ok) 100%)",
-                        borderRadius: "999px",
-                        transition: "width 0.3s ease",
-                        boxShadow: "0 0 10px rgba(125, 211, 252, 0.5)",
-                     }}
+                     className={ui.progressFill}
+                     style={{ transform: `scaleX(${progressPercentage / 100})` }}
                   />
                </div>
             </div>
 
             {/* Accuracy and Progress Stats Display */}
             {(gameState === "playing" || gameState === "paused") && (
-               <div
-                  style={{
-                     display: "flex",
-                     alignItems: "center",
-                     justifyContent: "center",
-                     gap: "16px",
-                     flexWrap: "wrap",
-                     width: "100%",
-                     maxWidth: "800px",
-                  }}
-               >
-                  <div
-                     style={{
-                        background:
-                           "linear-gradient(135deg, rgba(134, 239, 172, 0.2), rgba(34, 197, 94, 0.1))",
-                        border: "1px solid rgba(134, 239, 172, 0.4)",
-
-                        padding: "10px 16px",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "8px",
-                     }}
-                  >
-                     <CheckCircleIcon
-                        style={{
-                           width: 18,
-                           height: 18,
-                           color: "var(--ok)",
-                        }}
-                     />
-                     <span
-                        style={{
-                           fontSize: "1rem",
-                           fontWeight: 600,
-                           color: "var(--text)",
-                        }}
-                     >
-                        Accuracy: {Math.round(currentAccuracy)}%
-                     </span>
+               <div className={ui.statRow}>
+                  <div className={accuracyOnTrack ? ui.statOk : ui.stat}>
+                     <CheckCircleIcon className={ui.statIconOk} />
+                     <span>Accuracy: {Math.round(currentAccuracy)}%</span>
                   </div>
-                  <div
-                     style={{
-                        background:
-                           "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
-                        border: "1px solid rgba(59, 130, 246, 0.4)",
-
-                        padding: "10px 16px",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "8px",
-                     }}
-                  >
-                     <ClockIcon
-                        style={{
-                           width: 18,
-                           height: 18,
-                           color: "var(--primary)",
-                        }}
-                     />
-                     <span
-                        style={{
-                           fontSize: "1rem",
-                           fontWeight: 600,
-                           color: "var(--text)",
-                        }}
-                     >
-                        Progress: {Math.round(progress)}%
-                     </span>
+                  <div className={ui.stat}>
+                     <ClockIcon className={ui.statIconAccent} />
+                     <span>Progress: {Math.round(progress)}%</span>
                   </div>
                </div>
             )}
@@ -1280,79 +1139,30 @@ export default function LineTracer({
             {gameState === "playing" || gameState === "paused" ? (
                <div
                   ref={arenaRef}
-                  className={touch.playArea}
+                  className={`${ui.arena} ${touch.playArea}`}
                   data-play-area=""
                   onPointerDown={handlePointerDown}
                   onPointerMove={handlePointerMove}
                   onPointerUp={handlePointerUp}
                   onPointerLeave={handlePointerUp}
                   style={{
-                     position: "relative",
-                     width: "100%",
-                     maxWidth: "800px",
                      height: isMobile ? "300px" : "380px",
-                     borderRadius: "var(--radius)",
-                     border: "1px solid var(--border)",
-                     background:
-                        "radial-gradient(320px 220px at 30% 30%, rgba(59, 130, 246, 0.1), transparent 55%), linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02))",
-                     boxShadow: "0 10px 18px rgba(0, 0, 0, 0.22)",
-                     overflow: "hidden",
-                     userSelect: "none",
                      cursor: isDrawing ? "crosshair" : "default",
                      touchAction: "none",
                      pointerEvents: gameState === "paused" ? "none" : "auto",
                   }}
                >
-                  <div
-                     style={{
-                        position: "absolute",
-                        top: "12px",
-                        left: "12px",
-                        display: "flex",
-                        gap: "8px",
-                        zIndex: 5,
-                        flexWrap: "wrap",
-                     }}
-                  >
-                     <span
-                        style={{
-                           padding: "6px 10px",
-                           borderRadius: "999px",
-                           background: "rgba(59, 130, 246, 0.18)",
-                           border: "1px solid rgba(59, 130, 246, 0.4)",
-                           color: "var(--text)",
-                           fontSize: "12px",
-                           fontWeight: 600,
-                        }}
-                     >
+                  <div className={lt.reqs}>
+                     <span className={lt.req}>
                         Need Accuracy:{" "}
                         {Math.round(getMinAccuracy(currentLevel))}%
                      </span>
-                     <span
-                        style={{
-                           padding: "6px 10px",
-                           borderRadius: "999px",
-                           background: "rgba(34, 197, 94, 0.18)",
-                           border: "1px solid rgba(34, 197, 94, 0.4)",
-                           color: "var(--text)",
-                           fontSize: "12px",
-                           fontWeight: 600,
-                        }}
-                     >
+                     <span className={lt.req}>
                         Need Progress:{" "}
                         {Math.round(getMinProgress(currentLevel))}%
                      </span>
                   </div>
-                  <canvas
-                     ref={canvasRef}
-                     style={{
-                        position: "absolute",
-                        top: 0,
-                        left: 0,
-                        width: "100%",
-                        height: "100%",
-                     }}
-                  />
+                  <canvas ref={canvasRef} className={lt.canvas} />
                   {/* "Start here": a pulsing ring on the start dot until the trace begins */}
                   {gameState === "playing" && !isDrawing && targetPath.length > 1 && (
                      <span
@@ -1364,205 +1174,18 @@ export default function LineTracer({
                </div>
             ) : null}
 
-            {/* Action Buttons: Replay, Share */}
-            <div
-               style={{
-                  display: "flex",
-                  gap: "12px",
-                  justifyContent: "center",
-                  flexWrap: "wrap",
-                  padding: isMobile ? "12px" : "16px",
-                  background: "var(--card)",
-
-                  width: "100%",
-                  maxWidth: "800px",
-               }}
-            >
-               {/* Share Success Message */}
-               {shareSuccess && !unlimitedActivated && (
-                  <div
-                     style={{
-                        width: "100%",
-                        padding: "12px",
-                        background: "rgba(134, 239, 172, 0.2)",
-                        border: "2px solid rgba(134, 239, 172, 0.6)",
-                        borderRadius: "8px",
-                        fontSize: isMobile ? "0.9rem" : "1rem",
-                        fontWeight: 600,
-                        color: "var(--ok)",
-                        textAlign: "center",
-                        marginBottom: "8px",
-                     }}
-                  >
-                     Link copied! Unlimited replay will unlock when someone
-                     opens your link!
-                  </div>
-               )}
-
-               {/* Unlimited Activated Message */}
-               {unlimitedActivated && (
-                  <div
-                     style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: isMobile ? "6px" : "8px",
-                        padding: isMobile ? "10px 14px" : "8px 16px",
-                        background:
-                           "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
-                        border: "2px solid rgba(59, 130, 246, 0.6)",
-                        borderRadius: isMobile ? "10px" : "8px",
-                        color: "var(--text)",
-                        fontSize: isMobile ? "0.85rem" : "0.9rem",
-                        fontWeight: 500,
-                        width: "100%",
-                        justifyContent: "center",
-                        textAlign: "center",
-                        flexWrap: "wrap",
-                        marginBottom: "8px",
-                     }}
-                  >
-                     <CheckCircleIcon
-                        style={{
-                           width: isMobile ? 16 : 18,
-                           height: isMobile ? 16 : 18,
-                           color: "rgba(59, 130, 246, 0.9)",
-                           flexShrink: 0,
-                        }}
-                     />
-                     <span>
-                        🎉 Someone opened your link! Unlimited replay is now
-                        active for 15 minutes!
-                     </span>
-                  </div>
-               )}
-
-               <button
-                  className={touch.tapButton}
-                  onClick={handleReplay}
-                  disabled={maxReplays > 0 && replaysUsed >= maxReplays}
-                  style={{
-                     display: "flex",
-                     alignItems: "center",
-                     gap: isMobile ? "6px" : "8px",
-                     padding: isMobile ? "10px 16px" : "10px 20px",
-                     width: isMobile ? "100%" : "auto",
-                     background:
-                        maxReplays > 0 && replaysUsed >= maxReplays
-                           ? "rgba(100, 100, 100, 0.2)"
-                           : "linear-gradient(135deg, rgba(125, 211, 252, 0.2), rgba(125, 211, 252, 0.1))",
-                     border:
-                        maxReplays > 0 && replaysUsed >= maxReplays
-                           ? "1px solid rgba(100, 100, 100, 0.4)"
-                           : "1px solid rgba(125, 211, 252, 0.6)",
-
-                     color: "var(--text)",
-                     fontSize: isMobile ? "0.85rem" : "0.95rem",
-                     fontWeight: 600,
-                     cursor:
-                        maxReplays > 0 && replaysUsed >= maxReplays
-                           ? "not-allowed"
-                           : "pointer",
-                     opacity:
-                        maxReplays > 0 && replaysUsed >= maxReplays ? 0.5 : 1,
-                     transition: "all 0.3s ease",
-                  }}
-               >
-                  <ArrowPathRoundedSquareIcon
-                     style={{
-                        width: isMobile ? 18 : 20,
-                        height: isMobile ? 18 : 20,
-                        color:
-                           maxReplays > 0 && replaysUsed >= maxReplays
-                              ? "var(--muted)"
-                              : "var(--accent)",
-                     }}
-                  />
-                  <span>
-                     {"Replay "}
-                     {maxReplays === 0
-                        ? "(∞)"
-                        : `(${maxReplays - replaysUsed}/${maxReplays})`}
-                  </span>
-               </button>
-
-               <button
-                  className={touch.tapButton}
-                  onClick={handleShare}
-                  style={{
-                     display: "flex",
-                     alignItems: "center",
-                     gap: isMobile ? "6px" : "8px",
-                     padding: isMobile ? "10px 16px" : "10px 20px",
-                     width: isMobile ? "100%" : "auto",
-                     background:
-                        "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
-                     border: "2px solid rgba(59, 130, 246, 0.6)",
-
-                     color: "var(--text)",
-                     fontSize: isMobile ? "0.85rem" : "0.95rem",
-                     fontWeight: 600,
-                     cursor: "pointer",
-                     transition: "all 0.3s ease",
-                  }}
-               >
-                  <ShareIcon
-                     style={{
-                        width: isMobile ? 18 : 20,
-                        height: isMobile ? 18 : 20,
-                        color: "var(--accent)",
-                     }}
-                  />
-                  <span>Share for unlimited</span>
-               </button>
-            </div>
-
             {/* Ready for Next Round Message */}
             {gameState === "ready" && currentLevel + 1 < maxLevels && (
-               <div
-                  style={{
-                     padding: isMobile ? "20px 24px" : "24px 32px",
-                     background: "var(--card)",
-                     borderRadius: "var(--radius)",
-                     color: "var(--text)",
-                     fontSize: isMobile ? "1rem" : "1.1rem",
-                     fontWeight: 700,
-                     textAlign: "center",
-                     border: "1px solid var(--border)",
-                  }}
-               >
-                  <div style={{ marginBottom: "16px" }}>
-                     Level {currentLevel + 1} Complete!
-                  </div>
-                  <div
-                     style={{
-                        fontSize: isMobile ? "0.9rem" : "1rem",
-                        fontWeight: 400,
-                        marginBottom: "20px",
-                        color: "var(--text-secondary)",
-                     }}
-                  >
-                     Accuracy: {Math.round(currentAccuracy)}% | Progress:{" "}
-                     {Math.round(progress)}%
+               <div className={ui.card}>
+                  <div className={ui.cardTitle}>Level {currentLevel + 1} Complete!</div>
+                  <div className={ui.cardBody}>
+                     Accuracy: <strong>{Math.round(currentAccuracy)}%</strong> | Progress:{" "}
+                     <strong>{Math.round(progress)}%</strong>
                   </div>
                   <button
-                  className={touch.tapButton}
+                     className={ui.buttonPrimary}
                      onClick={handleNextRound}
                      disabled={nextRoundClickedRef.current}
-                     style={{
-                        padding: isMobile ? "12px 24px" : "14px 28px",
-                        background:
-                           "linear-gradient(135deg, rgba(134, 239, 172, 0.25), rgba(134, 239, 172, 0.12))",
-                        border: "2px solid rgba(134, 239, 172, 0.6)",
-
-                        color: "var(--text)",
-                        fontSize: isMobile ? "1rem" : "1.05rem",
-                        fontWeight: 700,
-                        cursor: nextRoundClickedRef.current
-                           ? "not-allowed"
-                           : "pointer",
-                        opacity: nextRoundClickedRef.current ? 0.6 : 1,
-                        transition: "all 0.3s ease",
-                     }}
                   >
                      Next Round
                   </button>
@@ -1588,105 +1211,30 @@ export default function LineTracer({
                   }
 
                   return (
-                     <div
-                        style={{
-                           padding: isMobile ? "20px 24px" : "24px 32px",
-                           background: "var(--card)",
-                           borderRadius: "var(--radius)",
-                           color: "var(--text)",
-                           fontSize: isMobile ? "1rem" : "1.1rem",
-                           fontWeight: 700,
-                           textAlign: "center",
-                           border: "1px solid var(--border)",
-                        }}
-                     >
-                        <div
-                           style={{
-                              marginBottom: "16px",
-                              color: "var(--warn)",
-                           }}
-                        >
-                           Level {currentLevel + 1} Failed
-                        </div>
-                        <div
-                           style={{
-                              fontSize: isMobile ? "0.9rem" : "1rem",
-                              marginBottom: "12px",
-                              color: "var(--warn)",
-                              fontWeight: 600,
-                           }}
-                        >
-                           {failureReason}
-                        </div>
-                        <div
-                           style={{
-                              fontSize: isMobile ? "0.9rem" : "1rem",
-                              fontWeight: 400,
-                              marginBottom: "8px",
-                              color: "var(--text-secondary)",
-                           }}
-                        >
-                           <div
-                              style={{
-                                 marginBottom: "4px",
-                                 display: "flex",
-                                 alignItems: "center",
-                                 gap: "4px",
-                              }}
-                           >
+                     <div className={ui.card}>
+                        <div className={ui.cardTitleWarn}>Level {currentLevel + 1} Failed</div>
+                        <div className={lt.reason}>{failureReason}</div>
+                        <div className={ui.cardBody}>
+                           <div className={lt.reqLine}>
                               <span>
                                  Accuracy: Need {Math.round(minAccuracy)}% | You
                                  achieved {Math.round(currentAccuracy)}%
                               </span>
                               {accuracyMet ? (
-                                 <CheckCircleIcon
-                                    style={{
-                                       width: isMobile ? 16 : 18,
-                                       height: isMobile ? 16 : 18,
-                                       color: "var(--ok)",
-                                       flexShrink: 0,
-                                    }}
-                                 />
+                                 <CheckCircleIcon className={lt.reqIconOk} />
                               ) : (
-                                 <XCircleIcon
-                                    style={{
-                                       width: isMobile ? 16 : 18,
-                                       height: isMobile ? 16 : 18,
-                                       color: "var(--warn)",
-                                       flexShrink: 0,
-                                    }}
-                                 />
+                                 <XCircleIcon className={lt.reqIconWarn} />
                               )}
                            </div>
-                           <div
-                              style={{
-                                 display: "flex",
-                                 alignItems: "center",
-                                 gap: "4px",
-                              }}
-                           >
+                           <div className={lt.reqLine}>
                               <span>
                                  Progress: Need {Math.round(minProgress)}% | You
                                  achieved {Math.round(progress)}%
                               </span>
                               {progressMet ? (
-                                 <CheckCircleIcon
-                                    style={{
-                                       width: isMobile ? 16 : 18,
-                                       height: isMobile ? 16 : 18,
-                                       color: "var(--ok)",
-                                       flexShrink: 0,
-                                    }}
-                                 />
+                                 <CheckCircleIcon className={lt.reqIconOk} />
                               ) : (
-                                 <XCircleIcon
-                                    style={{
-                                       width: isMobile ? 16 : 18,
-                                       height: isMobile ? 16 : 18,
-                                       color: "var(--warn)",
-                                       flexShrink: 0,
-                                    }}
-                                 />
+                                 <XCircleIcon className={lt.reqIconWarn} />
                               )}
                            </div>
                         </div>
@@ -1696,35 +1244,56 @@ export default function LineTracer({
 
             {/* Game Complete Message */}
             {gameState === "ready" && currentLevel === maxLevels - 1 && (
-               <div
-                  style={{
-                     padding: isMobile ? "20px 24px" : "24px 32px",
-                     background: "var(--card)",
-                     borderRadius: "var(--radius)",
-                     color: "var(--text)",
-                     fontSize: isMobile ? "1rem" : "1.1rem",
-                     fontWeight: 700,
-                     textAlign: "center",
-                     border: "1px solid var(--border)",
-                  }}
-               >
-                  <div style={{ marginBottom: "16px", color: "var(--ok)" }}>
-                     Game Complete!
-                  </div>
-                  <div
-                     style={{
-                        fontSize: isMobile ? "0.9rem" : "1rem",
-                        fontWeight: 400,
-                        marginBottom: "20px",
-                        color: "var(--text-secondary)",
-                     }}
-                  >
+               <div className={ui.card}>
+                  <div className={ui.cardTitleOk}>Game Complete!</div>
+                  <div className={ui.cardBody}>
                      All {maxLevels} levels completed!
                      <br />
-                     Final Score: {currentScore}
+                     Final Score: <strong>{currentScore}</strong>
                   </div>
                </div>
             )}
+
+            {/* Action Buttons: Replay, Share */}
+            <div className={ui.actions}>
+               {/* Share Success Message */}
+               {shareSuccess && !unlimitedActivated && (
+                  <div className={ui.notice}>
+                     Link copied! Unlimited replay will unlock when someone
+                     opens your link!
+                  </div>
+               )}
+
+               {/* Unlimited Activated Message */}
+               {unlimitedActivated && (
+                  <div className={ui.notice}>
+                     <CheckCircleIcon className={ui.noticeIcon} />
+                     <span>
+                        Someone opened your link! Unlimited replay is now
+                        active for 15 minutes!
+                     </span>
+                  </div>
+               )}
+
+               <button
+                  className={ui.button}
+                  onClick={handleReplay}
+                  disabled={replayLocked}
+               >
+                  <ArrowPathRoundedSquareIcon className={ui.buttonIcon} />
+                  <span>
+                     {"Replay "}
+                     {maxReplays === 0
+                        ? "(∞)"
+                        : `(${maxReplays - replaysUsed}/${maxReplays})`}
+                  </span>
+               </button>
+
+               <button className={ui.button} onClick={handleShare}>
+                  <ShareIcon className={ui.buttonIcon} />
+                  <span>Share for unlimited</span>
+               </button>
+            </div>
             {pad > 0 && <div aria-hidden="true" style={{ height: pad, flexShrink: 0 }} />}
          </div>
       </>
