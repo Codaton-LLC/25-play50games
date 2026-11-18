@@ -348,19 +348,22 @@ export default function PrecisionDrop({
             const minX = TARGET_MARGIN;
             const maxX = w - TARGET_MARGIN - currentTarget.w;
             const tX = clamp(currentTarget.x + shakeOffset, minX, maxX);
+            // drawn on the live floor (its spawn y is floorY + 6): a canvas that grows after the
+            // level starts no longer leaves the target floating; landing is judged on x only
+            const tY = floorY + 6;
 
             if (targetFlashRef.current) {
                ctx.fillStyle = "rgba(34,197,94,.45)";
                ctx.fillRect(
                   tX,
-                  currentTarget.y,
+                  tY,
                   currentTarget.w,
                   currentTarget.h
                );
                ctx.strokeStyle = "rgba(34,197,94,.95)";
                ctx.strokeRect(
                   tX,
-                  currentTarget.y,
+                  tY,
                   currentTarget.w,
                   currentTarget.h
                );
@@ -368,14 +371,14 @@ export default function PrecisionDrop({
                ctx.fillStyle = "rgba(54,211,153,.22)";
                ctx.fillRect(
                   tX,
-                  currentTarget.y,
+                  tY,
                   currentTarget.w,
                   currentTarget.h
                );
                ctx.strokeStyle = "rgba(54,211,153,.65)";
                ctx.strokeRect(
                   tX,
-                  currentTarget.y,
+                  tY,
                   currentTarget.w,
                   currentTarget.h
                );
