@@ -374,6 +374,13 @@
    animation: shake 0.36s ease-in-out;
 }
 
+/* the second card of a pair that does not match: it finishes turning over, then shakes */
+.mismatch {
+   animation:
+      flipIn 0.28s var(--mg-ease),
+      shake 0.36s ease-in-out 0.3s;
+}
+
 /* a cell being flashed in a "watch" phase: the inner layer lifts, the box keeps its size */
 .flash > .face {
    transform: scale(1.08);
@@ -415,10 +422,26 @@
 }
 
 /* a list or grid that appears at the start of a round: children rise in one after another;
-   each child sets --i (its index) inline */
+   each child sets --i (its index) inline. One-shot by design: it is a transition from
+   @starting-style on opacity + translate, so it plays once when the child is inserted, never
+   replays when a state class comes and goes, and never competes with the state animations
+   (.flipped / .wrong / .matched), which use `animation` and `transform`. The transition list
+   repeats .card's own transitions so a staggered cell keeps its hover/state fades. */
 .stagger > * {
-   animation: riseIn 0.32s var(--mg-ease) both;
-   animation-delay: calc(min(var(--i, 0), 24) * 18ms);
+   --mg-delay: calc(min(var(--i, 0), 24) * 18ms);
+   transition:
+      opacity 0.32s var(--mg-ease) var(--mg-delay),
+      translate 0.32s var(--mg-ease) var(--mg-delay),
+      background-color 0.2s ease,
+      box-shadow 0.2s ease,
+      transform 0.1s ease;
+}
+
+@starting-style {
+   .stagger > * {
+      opacity: 0;
+      translate: 0 8px;
+   }
 }
 
 @keyframes flipIn {
@@ -548,13 +571,16 @@
    .panel,
    .note,
    .flipped,
+   .mismatch,
    .matched > .face,
    .matched:not(:has(> .face)),
    .wrong,
    .feedbackOk,
-   .feedbackBad,
-   .stagger > * {
+   .feedbackBad {
       animation: none;
+   }
+   .stagger > * {
+      transition: none;
    }
    .btn,
    .card,
