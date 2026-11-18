@@ -57,7 +57,7 @@ function SoundMemory({
    const shareCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
    // Sound / sequence timers: cleared when the game unmounts so no tone or state change fires after
-   // the player leaves (the timing itself is unchanged). Score and completion timers stay plain.
+   // the player leaves (the timing itself is unchanged). Completion goes through finishGame below.
    const timersRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
    const later = useCallback((fn: () => void, ms: number) => {
       const t = setTimeout(() => {
@@ -73,6 +73,21 @@ function SoundMemory({
          timers.clear();
       };
    }, []);
+
+   // Completion is reached by two paths (the last correct round and the round-count effect):
+   // only the first one schedules the final score + onComplete; unmount clears it via later().
+   const completedRef = useRef(false);
+   const finishGame = useCallback(
+      (finalScore: number) => {
+         if (completedRef.current) return;
+         completedRef.current = true;
+         later(() => {
+            onScoreUpdate(finalScore);
+            later(() => onComplete(finalScore), 1000);
+         }, 0);
+      },
+      [later, onScoreUpdate, onComplete]
+   );
 
    // Max replays: 5 for Sound Memory, unlimited if shared
    const maxReplays = hasShared ? 0 : 5; // 0 = unlimited
@@ -166,13 +181,10 @@ function SoundMemory({
          // Score is calculated based on rounds completed, not from currentScore
          // Each round is worth (100 / maxRounds) points
          const finalScore = Math.round((currentRound / maxRounds) * 100);
-         // Use setTimeout to avoid calling onScoreUpdate/onComplete during render
-         setTimeout(() => {
-            onScoreUpdate(finalScore);
-            setTimeout(() => onComplete(finalScore), 1000);
-         }, 0);
+         // Deferred (not during render) and fired once, see finishGame
+         finishGame(finalScore);
       }
-   }, [currentRound, maxRounds, gameState, onScoreUpdate, onComplete]);
+   }, [currentRound, maxRounds, gameState, finishGame]);
 
    // Play tone for a specific pad - each pad always has the same sound
    const playTone = useCallback(
@@ -369,11 +381,8 @@ function SoundMemory({
                         const finalScore = Math.round(
                            (nextRound / maxRounds) * 100
                         );
-                        // Use setTimeout to avoid calling onScoreUpdate/onComplete during render
-                        setTimeout(() => {
-                           onScoreUpdate(finalScore);
-                           setTimeout(() => onComplete(finalScore), 1000);
-                        }, 0);
+                        // Deferred (not during render) and fired once, see finishGame
+                        finishGame(finalScore);
                      }
                      return nextRound;
                   });
@@ -393,6 +402,7 @@ function SoundMemory({
          onComplete,
          startNewRound,
          later,
+         finishGame,
       ]
    );
 
