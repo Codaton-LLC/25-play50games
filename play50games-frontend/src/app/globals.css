@@ -556,10 +556,13 @@ body.final-game .game-start-screen h2 {
   color: #eab308 !important;
 }
 
-/* Final games - override progress bar gradient and box-shadow */
-body.final-game div[style*="linear-gradient(90deg, var(--accent) 0%, var(--ok) 100%)"] {
-  background: linear-gradient(90deg, #eab308, rgba(234, 179, 8, 0.8)) !important;
-  box-shadow: 0 0 10px rgba(234, 179, 8, 0.5) !important;
+/* Final games - the progress fill in one flat gold (the design has no outer glows and no gradients).
+   The second selector outweighs the "yellow box-shadows" rules further down, which put the glow back
+   on a fill that sets a shadow inline. */
+body.final-game div[style*="linear-gradient(90deg, var(--accent) 0%, var(--ok) 100%)"],
+body.final-game div[style*="linear-gradient(90deg, var(--accent) 0%, var(--ok) 100%)"][style*="box-shadow"] {
+  background: #eab308 !important;
+  box-shadow: none !important;
 }
 
 /* Final games - override SVG icons with var(--ok) color to yellow */
@@ -2074,10 +2077,10 @@ body.final-game .game-feedback.correct svg {
 }
 
 /* Final games - yellow for Rotate to Fit game elements */
-/* Progress bar with blue/green gradient */
+/* Progress bar: one flat gold, like the rule for every final game above */
 body.final-game .rotate-to-fit-game .progress-bar-container div[style*="linear-gradient(90deg, var(--accent) 0%, var(--ok) 100%)"] {
-  background: linear-gradient(90deg, #eab308 0%, rgba(234, 179, 8, 0.8) 100%) !important;
-  box-shadow: rgba(234, 179, 8, 0.5) 0px 0px 10px !important;
+  background: #eab308 !important;
+  box-shadow: none !important;
 }
 
 /* SVG icons with var(--accent) color */

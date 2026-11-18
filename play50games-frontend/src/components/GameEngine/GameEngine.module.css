@@ -7,7 +7,8 @@
      710 px of a 390 x 844 phone and about 450 px of a 1180 x 820 tablet before the game. It shrinks to
      a small logo row; a Menu button (GameEngine.tsx) shows the nav buttons again (Login / Register stay
      one tap away).
-   - The play view's Score / Time / Target bar stays one row on phones, the exit X beside the chips.
+   - The play view's Score / Time / Target bar stays one row on phones, the exit X beside the chips
+     (up to 430 px wide the title sits on its own line above the chips, at the same bar height).
    - Start screen: tighter on phones, and on phones and tablets (under 1200 px wide or 900 px tall) the
      Start / Exit row sticks to the bottom of the screen just above the cookie banner (--p50-bottom-bar,
      from useBottomBar) and the safe area: the instructions pushed it a screen or more below the fold. */
@@ -119,6 +120,29 @@
       min-width: 44px;
       min-height: 44px;
       margin: 0 !important;
+   }
+}
+
+/* narrow phones (up to 430 px): beside the three chips the title had about 40 px at 360 px
+   ("One-Han…", "Symb ol…"). It takes its own line above the chips, whole; the X spans both lines.
+   Title line + chips fit in the X's 44 px, so the bar is exactly as tall as before and the boards'
+   phone fit (useMobileFit) is not affected. */
+@media (max-width: 430px) {
+   .page > :global(.game-header) {
+      grid-template-columns: minmax(0, 1fr) auto;
+      grid-template-areas:
+         "title exit"
+         "stats exit";
+      row-gap: 4px !important;
+   }
+   .page > :global(.game-header .game-title) {
+      display: block;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      overflow-wrap: normal;
+   }
+   .page > :global(.game-header .game-stats) {
+      justify-self: start;
    }
 }
 
