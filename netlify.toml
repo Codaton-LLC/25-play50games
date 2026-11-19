@@ -16,6 +16,8 @@
 
 [build.environment]
   NODE_VERSION = "20"
+  # more heap for next build (see next.config.js: one static-generation worker)
+  NODE_OPTIONS = "--max-old-space-size=4096"
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
