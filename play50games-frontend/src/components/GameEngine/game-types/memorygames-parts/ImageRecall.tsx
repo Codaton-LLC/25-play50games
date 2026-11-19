@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import { useRoundsCompletion } from "./useRoundsCompletion";
 import m from "./mobile.module.css";
 import ir from "./SequenceRecall.module.css";
 import {
@@ -492,14 +493,13 @@ function ImageRecall({
       }
    }, [currentRound, maxRounds, startRound]);
 
-   // Check game completion
-   useEffect(() => {
-      if (currentRound >= maxRounds) {
-         later(() => {
-            onComplete(currentScore);
-         }, 1000);
-      }
-   }, [currentRound, maxRounds, currentScore, onComplete, later]);
+   // Check game completion: exactly once, 1000 ms after the last round (see useRoundsCompletion)
+   useRoundsCompletion(
+      currentRound >= maxRounds,
+      currentScore,
+      onComplete,
+      later
+   );
 
    // Selected cell for keyboard navigation
    const [selectedCellIndex, setSelectedCellIndex] = useState<number | null>(

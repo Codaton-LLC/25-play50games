@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
+import { useGameTimers } from "../useGameTimers";
 import {
    CheckCircleIcon,
    XCircleIcon,
@@ -143,6 +144,8 @@ export default function CursorMaze({
    const prevLevelRef = useRef<number | null>(null);
    const forceStartLevelRef = useRef<number | null>(null);
    const completionCalledRef = useRef(false);
+   // Completion and "unlimited replays" timers that must not outlive the game
+   const { completeLater, expireLater } = useGameTimers();
    const lastCompletedLevelRef = useRef<number | null>(null);
    const levelStartTimeRef = useRef<number>(0);
    const nextRoundClickedRef = useRef(false);
@@ -1063,7 +1066,7 @@ export default function CursorMaze({
                   })
                );
 
-               setTimeout(() => {
+               expireLater(() => {
                   setUnlimitedActivated(false);
                   setHasShared(false);
                   localStorage.removeItem(gameKey);
@@ -1133,7 +1136,7 @@ export default function CursorMaze({
 
                            const remainingTime = data.expiry - Date.now();
                            if (remainingTime > 0) {
-                              setTimeout(() => {
+                              expireLater(() => {
                                  setUnlimitedActivated(false);
                                  setHasShared(false);
                                  localStorage.removeItem(gameKey);
@@ -1152,7 +1155,7 @@ export default function CursorMaze({
                                  shared: true,
                               })
                            );
-                           setTimeout(() => {
+                           expireLater(() => {
                               setUnlimitedActivated(false);
                               setHasShared(false);
                               localStorage.removeItem(gameKey);
@@ -1200,7 +1203,7 @@ export default function CursorMaze({
       ) {
          completionCalledRef.current = true;
          const finalScore = 100;
-         setTimeout(() => {
+         completeLater(() => {
             onComplete(finalScore);
          }, 1000);
       }

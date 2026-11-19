@@ -7,6 +7,7 @@ import React, {
    useRef,
    useMemo,
 } from "react";
+import { useGameTimers } from "../useGameTimers";
 import {
    CheckCircleIcon,
    XCircleIcon,
@@ -138,6 +139,9 @@ export default function ReactionTest({
    const gameStateRef = useRef<"ready" | "playing" | "failed">("ready");
    const requirementsMetRef = useRef(false);
    const completionCalledRef = useRef(false);
+   // The 1 s delayed onComplete: if the game unmounts while it is pending it is delivered
+   // right then (once), so a finished run is never dropped and no timer fires after leaving
+   const { completeLater } = useGameTimers();
    const waitTimerRef = useRef<NodeJS.Timeout | null>(null);
    const greenTimerRef = useRef<NodeJS.Timeout | null>(null);
    const feedbackTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -810,7 +814,7 @@ export default function ReactionTest({
                onScoreUpdate(finalScore);
                if (!completionCalledRef.current) {
                   completionCalledRef.current = true;
-                  setTimeout(() => {
+                  completeLater(() => {
                      onComplete(finalScore);
                   }, 1000);
                }
@@ -905,7 +909,7 @@ export default function ReactionTest({
       setGameState("ready");
       onScoreUpdate(finalScore);
 
-      setTimeout(() => {
+      completeLater(() => {
          onComplete(finalScore);
       }, 1000);
    }, [onComplete, onScoreUpdate]);
