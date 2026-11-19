@@ -82,7 +82,7 @@ describe("shopping-cart levels: declarations", () => {
       expect(levelHudStats(definition, 1)).toEqual([{ key: "items", label: "Items", max: 6 }]);
       expect(levelInstructions(definition, 1)).toEqual([
          "Steer the runaway cart through aisles to grab all 6 items on your list.",
-         "Hold Ride (Space or Ride button) to drift faster; dodge shoppers, spills & pyramids.",
+         "Hold Space or the Ride button to drift faster; dodge shoppers, spills and can pyramids.",
          "Collect all 6 items and dash to checkout before 75 s runs out!",
       ]);
    });
