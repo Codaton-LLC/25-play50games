@@ -2,7 +2,7 @@
 
 // The form and the result of the verify page. The request and the PDF address are the old
 // page's, unchanged.
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { Certificate } from "@/types/game";
 import { getApiHeaders } from "@/lib/api/apiUtils";
@@ -19,6 +19,16 @@ export default function VerifyView() {
    const [certificate, setCertificate] = useState<Certificate | null>(null);
    const [loading, setLoading] = useState(false);
    const [error, setError] = useState<string | null>(null);
+   // a verification the visitor asked for moves the focus to its result heading
+   const resultRef = useRef<HTMLHeadingElement>(null);
+   const focusResult = useRef(false);
+
+   useEffect(() => {
+      if (certificate && focusResult.current) {
+         focusResult.current = false;
+         resultRef.current?.focus();
+      }
+   }, [certificate]);
 
    // Get cert_id from URL query parameter
    useEffect(() => {
@@ -64,6 +74,7 @@ export default function VerifyView() {
 
    const handleSubmit = (e: React.FormEvent) => {
       e.preventDefault();
+      focusResult.current = true;
       handleVerify();
    };
 
@@ -100,7 +111,8 @@ export default function VerifyView() {
                   value={certId}
                   onChange={(e) => setCertId(e.target.value.toUpperCase())}
                   placeholder="P50-2026-56966"
-                  disabled={loading}
+                  // read-only, not disabled, while verifying: the field keeps the focus
+                  readOnly={loading}
                   autoComplete="off"
                   spellCheck={false}
                   aria-invalid={error ? true : undefined}
@@ -117,11 +129,15 @@ export default function VerifyView() {
             >
                {loading ? "Verifying…" : "Verify certificate"}
             </button>
+            {/* read out: the request's progress and its success (an error is the field's alert) */}
+            <p className={ui.srOnly} role="status">
+               {loading ? "Verifying the certificate." : certificate ? "Certificate verified." : ""}
+            </p>
          </form>
 
          {certificate ? (
             <section className={styles.result} aria-labelledby="verify-result">
-               <h2 id="verify-result" className={styles.verified}>
+               <h2 id="verify-result" className={styles.verified} ref={resultRef} tabIndex={-1}>
                   <span className={styles.tick} aria-hidden="true">
                      <CheckIcon />
                   </span>
