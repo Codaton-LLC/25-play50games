@@ -21,6 +21,8 @@ import { dronePos, type DefenseRun } from "./rules";
 
 const PAL = PALETTE.map((p) => new Color(p.hex));
 const GOLD = new Color(COLORS.golden);
+const CORE_COLOR = new Color(COLORS.core);
+const CORE_HURT_COLOR = new Color(COLORS.coreHurt);
 const M = new Matrix4();
 const P = new Vector3();
 const S = new Vector3();
@@ -166,7 +168,7 @@ export default function ArenaView({ run, level }: { run: DefenseRun; level: Leve
       if (core.current) {
          const mat = core.current.material as MeshStandardMaterial;
          const hp = run.shared.coreHp / CORE_HP;
-         color.set(COLORS.core).lerp(new Color(COLORS.coreHurt), 1 - hp);
+         color.copy(CORE_COLOR).lerp(CORE_HURT_COLOR, 1 - hp);
          mat.color.copy(color);
          mat.emissive.copy(color);
          mat.emissiveIntensity = 0.6 + 0.4 * Math.sin(t * 2) + (run.shieldUntil >= run.simMs ? 1 : 0);

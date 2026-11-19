@@ -21,6 +21,7 @@ import { bossShowColorNow, type VisualClock } from "./TowerView";
 import { COLORS } from "./look";
 
 const PAL = PALETTE.map((p) => new Color(p.hex));
+const WHITE = new Color("#ffffff");
 const GREY = new Color("#6b7280");
 
 export function Boss({ run, clock }: { run: TowerRun; clock: VisualClock }) {
@@ -61,7 +62,7 @@ export function Boss({ run, clock }: { run: TowerRun; clock: VisualClock }) {
          const col = bossShowColorNow(run);
          p.visible = col >= 0;
          if (col >= 0) {
-            (p.material as MeshBasicMaterial).color.copy(PAL[col]).lerp(new Color("#ffffff"), 0.3);
+            (p.material as MeshBasicMaterial).color.copy(PAL[col]).lerp(WHITE, 0.3);
             const k = 1 + 0.25 * Math.sin(ms / 60);
             p.scale.setScalar(k);
          }

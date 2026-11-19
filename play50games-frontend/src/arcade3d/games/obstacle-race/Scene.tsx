@@ -185,7 +185,7 @@ const Simulation = memo(function Simulation({ run, fx, follow }: { run: Obstacle
    const beacon = useRef(nextTarget(run)).current;
    const [beaconGround, setBeaconGround] = useState(beacon.y + 0.03);
    const time = useGameTime();
-   const [scratch] = useState(() => ({ step: createStepInput(), dir: { x: 0, z: 0 } }));
+   const [scratch] = useState(() => ({ step: createStepInput(), dir: { x: 0, z: 0 }, at: { x: 0, y: 0, z: 0 } }));
 
    useEffect(() => { GUIDE.set(hintFor(run)); }, [run]);
 
@@ -201,7 +201,11 @@ const Simulation = memo(function Simulation({ run, fx, follow }: { run: Obstacle
       GUIDE.set(hintFor(run));
       Object.assign(beacon, nextTarget(run));
       if (ev.checkpoint !== NONE) setBeaconGround(beacon.y + 0.03);
-      const at = { x: run.runner.x, y: run.runner.y + 1.8, z: run.runner.z };
+      // a scratch point (fx copies it): no object per frame
+      const at = scratch.at;
+      at.x = run.runner.x;
+      at.y = run.runner.y + 1.8;
+      at.z = run.runner.z;
       if (ev.knocked) pop.fail(at, "Bar hit!");
       else if (ev.lost && !fx.flung) pop.fail(at, "Fell! Back to checkpoint");
       if (ev.checkpoint !== NONE) pop.good(at, `Checkpoint ${ev.checkpoint}/3`);

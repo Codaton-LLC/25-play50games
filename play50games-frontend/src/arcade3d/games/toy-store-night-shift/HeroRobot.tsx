@@ -14,6 +14,9 @@ import { FRAME_PRIORITY } from "@/arcade3d/core/frameLoop";
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import { ASSETS, HERO_SCALE } from "./assets";
 import { HERO_CLIPS, POINT_SECONDS, POINT_WINDOW, gaitFor, inPlace, strideRate, wobble, type HeroClip } from "./heroAnim";
+
+/** the clips rig.weights holds, once (not an Object.keys array per frame) */
+const CLIP_KEYS = Object.keys(HERO_CLIPS) as HeroClip[];
 import { HeroFigure } from "./Primitives";
 import type { Run } from "./rules";
 
@@ -122,7 +125,7 @@ function RobotRig({ run, cues, scene, animations }: { run: Run; cues: MutableRef
       const gait = won ? "happy" : gaitFor(speed, rig.gait);
       rig.gait = gait;
       const ease = 1 - Math.exp(-FADE * dt);
-      for (const key of Object.keys(rig.weights) as HeroClip[]) {
+      for (const key of CLIP_KEYS) {
          const action = rig.actions[key];
          if (!action) continue;
          rig.weights[key] += ((key === gait ? 1 : 0) - rig.weights[key]) * ease;
