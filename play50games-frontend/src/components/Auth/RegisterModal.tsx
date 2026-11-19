@@ -2,6 +2,7 @@
 
 // The register sheet (docs/design/DESIGN.md §6 item 8). The frame and the fields are AuthSheet.tsx.
 import { useState } from "react";
+import { focusFirstInvalid } from "@/lib/a11y/modalStack";
 import { AuthAlt, AuthField, AuthSheet, AuthSubmit, authStyles as styles } from "./AuthSheet";
 
 interface RegisterModalProps {
@@ -135,6 +136,8 @@ export default function RegisterModal({ isOpen, onClose, onRegister, onSwitchToL
 
       // Check if there are any errors
       if (Object.values(errors).some((err) => err !== "")) {
+         // the first invalid field takes the focus; its label and error are read out with it
+         focusFirstInvalid(e.currentTarget as HTMLFormElement);
          return;
       }
 
