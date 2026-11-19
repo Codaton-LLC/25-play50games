@@ -4,6 +4,7 @@
 // The stage shows one live game at a time and moves on every 7 seconds; the one coral button
 // always plays the game on stage. The copy is rendered on the server and passed in.
 import { useEffect, useState, type ReactNode } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import type { ArcadeGameMeta } from "@/arcade3d/types";
 import { useBestScore } from "@/arcade3d/core/useBestScore";
@@ -39,16 +40,20 @@ function Stage({ games, index, onPick }: { games: ArcadeGameMeta[]; index: numbe
    return (
       <div className={styles.stage}>
          <Link href={`/3d/${game.slug}`} className={styles.art} aria-label={`Play ${game.title}`}>
-            {games.map((item, itemIndex) => (
-               // eslint-disable-next-line @next/next/no-img-element
-               <img
-                  key={item.slug}
-                  src={item.thumbnail ?? ""}
-                  alt=""
-                  className={itemIndex === index ? `${styles.image} ${styles.imageOn}` : styles.image}
-                  loading={itemIndex === 0 ? "eager" : "lazy"}
-               />
-            ))}
+            {games.map((item, itemIndex) =>
+               item.thumbnail ? (
+                  // the first frame is the LCP image of the hub: preloaded, never lazy
+                  <Image
+                     key={item.slug}
+                     src={item.thumbnail}
+                     alt=""
+                     fill
+                     sizes="(max-width: 899px) 100vw, 58vw"
+                     priority={itemIndex === 0}
+                     className={itemIndex === index ? `${styles.image} ${styles.imageOn}` : styles.image}
+                  />
+               ) : null,
+            )}
          </Link>
 
          {games.length > 1 ? (
@@ -151,8 +156,14 @@ export default function HubHero({ copy, facts, games }: HubHeroProps) {
             <Stage games={games} index={Math.min(index, games.length - 1)} onPick={setIndex} />
          ) : (
             <Link href="/classic" className={`${styles.stage} ${styles.cover}`} aria-label="Play Classic 50">
-               {/* eslint-disable-next-line @next/next/no-img-element */}
-               <img src="/images/play50games-cover.jpg" alt="" />
+               <Image
+                  src="/images/play50games-cover.jpg"
+                  alt=""
+                  width={1200}
+                  height={630}
+                  sizes="(max-width: 899px) 100vw, 58vw"
+                  priority
+               />
             </Link>
          )}
       </div>

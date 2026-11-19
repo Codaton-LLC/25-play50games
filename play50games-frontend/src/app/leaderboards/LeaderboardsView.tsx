@@ -19,6 +19,8 @@ const ROWS = 20;
 
 export default function LeaderboardsView({ games }: LeaderboardsViewProps) {
    const [slug, setSlug] = useState(games[0]?.slug);
+   // the picked board's state, read out from a line that stays mounted while boards change
+   const [status, setStatus] = useState("");
    const game = games.find((item) => item.slug === slug) ?? games[0];
 
    if (!game) {
@@ -62,7 +64,10 @@ export default function LeaderboardsView({ games }: LeaderboardsViewProps) {
                   Play
                </Link>
             </div>
-            <BoardRows key={game.slug} game={game} limit={ROWS} />
+            <BoardRows key={game.slug} game={game} limit={ROWS} onStatus={setStatus} />
+            <p className={ui.srOnly} role="status">
+               {status}
+            </p>
          </section>
       </div>
    );

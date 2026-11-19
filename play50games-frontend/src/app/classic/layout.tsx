@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { OG_IMAGES, ogImage } from "@/lib/seo/ogImages";
+import { SITE_URL } from "@/lib/seo/site";
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://play50games.com";
 
 const TITLE = "Play Classic 50 Games";
 const DESCRIPTION =

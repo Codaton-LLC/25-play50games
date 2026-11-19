@@ -738,3 +738,8 @@
       transition: none;
    }
 }
+
+/* Resume hands the focus to the game area (tabIndex -1): a landing spot, not a control */
+.canvasWrap:focus {
+   outline: none;
+}

@@ -192,3 +192,17 @@ a.card:focus-visible .play {
       aspect-ratio: 16 / 9;
    }
 }
+
+/* reduced motion here too: in the 3D lobby ("More like this") the card is outside .p50, whose
+   theme.css rule only reaches its descendants */
+@media (prefers-reduced-motion: reduce) {
+   .card,
+   .image {
+      transition: none;
+   }
+
+   a.card:active,
+   a.card:hover .image {
+      transform: none;
+   }
+}

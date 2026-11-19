@@ -2,22 +2,36 @@
 
 // One game's leaderboard on the hub and on /leaderboards: loads the board and draws it with
 // BoardList (hairline rows, shields for ranks 1 to 3, the visitor's own row washed in coral).
+import { useEffect } from "react";
 import Link from "next/link";
 import type { ArcadeGameMeta } from "@/arcade3d/types";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLeaderboard } from "@/arcade3d/core/useLeaderboard";
-import BoardList from "./BoardList";
+import BoardList, { boardStatusText } from "./BoardList";
 import ui from "./ui.module.css";
 
 export interface BoardRowsProps {
    game: ArcadeGameMeta;
    /** rows to load (the API clamps to 1..50) */
    limit: number;
+   /** hears the board's state as one sentence (boardStatusText), for a status line of the caller */
+   onStatus?: (text: string) => void;
 }
 
-export default function BoardRows({ game, limit }: BoardRowsProps) {
+export default function BoardRows({ game, limit, onStatus }: BoardRowsProps) {
    const { user } = useAuth();
    const board = useLeaderboard(game.slug, { limit, refreshKey: user?.id ?? null });
+   const status = board.enabled
+      ? boardStatusText(game.title, {
+           loading: board.loading,
+           error: board.error,
+           rows: board.data?.entries.length ?? 0,
+           me: !!board.data?.me,
+        })
+      : "";
+   useEffect(() => {
+      onStatus?.(status);
+   }, [status, onStatus]);
 
    if (!board.enabled) return null;
 

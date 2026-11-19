@@ -5,6 +5,7 @@
 // (label above, input, then the error or the helper text below).
 import { useEffect, useRef, type InputHTMLAttributes, type ReactNode } from "react";
 import { BrandMark, CloseIcon } from "@/components/Site/icons";
+import { useModal } from "@/lib/a11y/useModal";
 import form from "@/components/Site/form.module.css";
 import ui from "@/components/Site/ui.module.css";
 import styles from "./AuthModal.module.css";
@@ -32,6 +33,10 @@ export function AuthSheet({ id, title, lead, error, wide, onClose, children, foo
    const pressedScrim = useRef(false);
    const onCloseRef = useRef(onClose);
    onCloseRef.current = onClose;
+
+   // Tab stays in the sheet, the page behind is inert, and closing hands the focus back to the
+   // opener (switching between log in and register passes the opener on: lib/a11y/modalStack.ts)
+   useModal(sheetRef);
 
    useEffect(() => {
       sheetRef.current?.focus({ preventScroll: true });

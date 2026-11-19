@@ -320,7 +320,34 @@
 }
 
 button.avatar {
+   position: relative;
    cursor: pointer;
+}
+
+/* tap areas of at least 44px (DESIGN.md §7) without resizing what is drawn: the account button
+   (40px), the world links (40px) and the theme choices (36px) reach past their edges */
+button.avatar::after,
+.seg::after,
+.seg3 button::after {
+   content: "";
+   position: absolute;
+}
+
+button.avatar::after {
+   inset: -2px;
+   border-radius: 50%;
+}
+
+.seg::after {
+   inset: -2px 0;
+}
+
+.seg3 button {
+   position: relative;
+}
+
+.seg3 button::after {
+   inset: -4px 0;
 }
 
 .pop {

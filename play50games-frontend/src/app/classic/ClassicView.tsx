@@ -103,6 +103,8 @@ function StopItem({ stop, state, dim }: { stop: Stop; state: StopState; dim: boo
 function Skeleton() {
    return (
       <div className={styles.skeleton} role="status" aria-label="Loading the Classic 50 games">
+         {/* the server HTML is this skeleton: it carries the h1 of the page until the path loads */}
+         <h1 className={ui.srOnly}>Fifty brain games, one path.</h1>
          <div className={styles.head}>
             <div className={styles.intro}>
                <i className={styles.bone} style={{ width: 120, height: 26 }} />

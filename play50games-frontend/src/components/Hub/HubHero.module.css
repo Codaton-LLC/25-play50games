@@ -47,6 +47,8 @@
 .cover img {
    display: block;
    width: 100%;
+   /* next/image writes a height attribute: the ratio below sets the height */
+   height: auto;
    aspect-ratio: 16 / 9;
    object-fit: cover;
 }

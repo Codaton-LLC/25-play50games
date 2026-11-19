@@ -24,7 +24,12 @@ const CATEGORY: Record<Game["game_type"], string> = {
    final: "Final",
 };
 
-export default function GameView() {
+export interface GameViewProps {
+   /** the game title from the server: the h1 of the page while the game loads and plays */
+   heading: string;
+}
+
+export default function GameView({ heading }: GameViewProps) {
    const params = useParams();
    const router = useRouter();
    const gameId = parseInt(params.id as string);
@@ -172,6 +177,9 @@ export default function GameView() {
             </Link>
             {game && <span className={styles.chip}>{CATEGORY[game.game_type] ?? "Game"}</span>}
          </nav>
+         {/* The not-loaded and locked states carry their own h1. Hidden from sight only: the start
+             screen shows the title itself and the layout of the board must not move. */}
+         {loading || game?.is_unlocked ? <h1 className={ui.srOnly}>{game?.title ?? heading}</h1> : null}
          {body}
          <LoginModal
             isOpen={showLoginModal}

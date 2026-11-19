@@ -5,11 +5,17 @@ import type { Metadata } from "next";
 import SitePage, { PageHead } from "@/components/Site/SitePage";
 import page from "@/components/Site/SitePage.module.css";
 import VerifyView from "./VerifyView";
+import { OG_IMAGES } from "@/lib/seo/ogImages";
+import { pageSocial } from "@/lib/seo/pageMetadata";
+
+const TITLE = "Verify a certificate";
+const DESCRIPTION =
+   "Enter a Play50Games certificate ID to check that the certificate is real and to view it.";
 
 export const metadata: Metadata = {
-   title: "Verify a certificate",
-   description: "Enter a Play50Games certificate ID to check that the certificate is real and to view it.",
-   alternates: { canonical: "/verify" },
+   title: TITLE,
+   description: DESCRIPTION,
+   ...pageSocial({ title: TITLE, description: DESCRIPTION, path: "/verify", image: OG_IMAGES.classic }),
 };
 
 export default function VerifyPage() {

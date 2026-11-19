@@ -28,6 +28,20 @@ export interface BoardListProps {
    ghost?: boolean;
 }
 
+/**
+ * What a polite status line says about a board (the /leaderboards page reads it out when the
+ * picked game's board is loading, ready, empty or failed).
+ */
+export function boardStatusText(
+   title: string,
+   state: { loading: boolean; error: string | null; rows: number; me: boolean },
+): string {
+   if (state.loading) return `Loading the ${title} leaderboard.`;
+   if (state.error) return `The ${title} leaderboard did not load.`;
+   if (state.rows === 0 && !state.me) return `${title}: no scores yet.`;
+   return `${title} leaderboard, ${state.rows} ${state.rows === 1 ? "row" : "rows"}.`;
+}
+
 export const rankText = (rank: number): string => `#${String(rank).padStart(2, "0")}`;
 
 /**

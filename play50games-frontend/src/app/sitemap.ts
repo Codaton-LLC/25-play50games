@@ -2,28 +2,21 @@ import { MetadataRoute } from 'next';
 import { ARCADE_ENABLED, ARCADE_LEADERBOARD } from '@/arcade3d/flags';
 import { getLiveGames } from '@/arcade3d/registry';
 import { getApiBase } from '@/lib/api/apiBase';
-
-// Helper function to get site URL
-function getSiteUrl(): string {
-  return process.env.NEXT_PUBLIC_SITE_URL || 'https://play50games.com';
-}
+import { SITE_URL } from '@/lib/seo/site';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const SITE_URL = getSiteUrl();
-  const currentDate = new Date();
+  // Static pages carry no lastmod: the build time is not a content date. A game uses the CMS's date.
 
   // 3D Arcade pages - only while the arcade is switched on; "soon" games are left out (they are noindex)
   const arcadePages: MetadataRoute.Sitemap = ARCADE_ENABLED
     ? [
         {
           url: `${SITE_URL}/3d`,
-          lastModified: currentDate,
           changeFrequency: 'weekly',
           priority: 0.9,
         },
         ...getLiveGames().map((game) => ({
           url: `${SITE_URL}/3d/${game.slug}`,
-          lastModified: currentDate,
           changeFrequency: 'weekly' as const,
           priority: 0.8,
         })),
@@ -32,7 +25,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
           ? [
               {
                 url: `${SITE_URL}/leaderboards`,
-                lastModified: currentDate,
                 changeFrequency: 'daily' as const,
                 priority: 0.6,
               },
@@ -47,56 +39,47 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticPages: MetadataRoute.Sitemap = [
     {
       url: `${SITE_URL}/`,
-      lastModified: currentDate,
       changeFrequency: 'daily',
       priority: 1.0, // Homepage (landing hub) has highest priority
     },
     {
       url: `${SITE_URL}/classic`,
-      lastModified: currentDate,
       changeFrequency: 'daily', // Classic 50 games dashboard
       priority: 0.9,
     },
     ...arcadePages,
     {
       url: `${SITE_URL}/progress`,
-      lastModified: currentDate,
       changeFrequency: 'weekly', // User progress changes weekly
       priority: 0.8,
     },
     {
       url: `${SITE_URL}/certificate`,
-      lastModified: currentDate,
       changeFrequency: 'monthly', // Certificate page rarely changes
       priority: 0.7,
     },
     {
       url: `${SITE_URL}/verify`,
-      lastModified: currentDate,
       changeFrequency: 'monthly', // Verify page rarely changes
       priority: 0.6,
     },
     {
       url: `${SITE_URL}/faq`,
-      lastModified: currentDate,
       changeFrequency: 'monthly', // FAQ page rarely changes
       priority: 0.6,
     },
     {
       url: `${SITE_URL}/contact-us`,
-      lastModified: currentDate,
       changeFrequency: 'monthly', // Contact page rarely changes
       priority: 0.6,
     },
     {
       url: `${SITE_URL}/terms-and-conditions`,
-      lastModified: currentDate,
       changeFrequency: 'yearly', // Terms rarely change
       priority: 0.5,
     },
     {
       url: `${SITE_URL}/privacy-policy`,
-      lastModified: currentDate,
       changeFrequency: 'yearly', // Privacy policy rarely changes
       priority: 0.5,
     },
@@ -130,13 +113,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         updated_at?: string;
         created_at?: string;
       }) => {
-        // Use updated_at if available, otherwise use created_at, otherwise use current date
-        let lastModified = currentDate;
-        if (game.updated_at) {
-          lastModified = new Date(game.updated_at);
-        } else if (game.created_at) {
-          lastModified = new Date(game.created_at);
-        }
+        // updated_at if available, otherwise created_at, otherwise no lastmod
+        const stamp = game.updated_at || game.created_at;
+        const parsed = stamp ? new Date(stamp) : null;
+        const lastModified = parsed && !Number.isNaN(parsed.getTime()) ? parsed : undefined;
         
         // Determine priority and changeFrequency based on game type
         let priority = 0.9;
@@ -155,7 +135,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         
         return {
           url: `${SITE_URL}/games/${game.id}`,
-          lastModified,
+          ...(lastModified ? { lastModified } : {}),
           changeFrequency,
           priority,
         };
@@ -169,7 +149,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // Fallback: Use static game IDs (1-50) if API fails
     gamePages = Array.from({ length: 50 }, (_, i) => i + 1).map((gameId) => ({
       url: `${SITE_URL}/games/${gameId}`,
-      lastModified: currentDate,
       changeFrequency: 'weekly' as const,
       priority: gameId >= 46 ? 0.95 : 0.9, // Final games have higher priority
     }));

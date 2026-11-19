@@ -50,6 +50,15 @@
    color: var(--p50-text);
 }
 
+@media (pointer: coarse) {
+   .link {
+      display: flex;
+      align-items: center;
+      min-height: 44px;
+      padding: 0;
+   }
+}
+
 .note {
    margin-top: 28px;
    padding-top: 16px;

@@ -4,11 +4,16 @@ import type { Metadata } from "next";
 import SitePage, { PageHead } from "@/components/Site/SitePage";
 import page from "@/components/Site/SitePage.module.css";
 import ContactForm from "./ContactForm";
+import { pageSocial } from "@/lib/seo/pageMetadata";
+
+const TITLE = "Contact";
+const DESCRIPTION =
+   "Have a question about Play50Games or need help? Write to us.";
 
 export const metadata: Metadata = {
-   title: "Contact",
-   description: "Have a question about Play50Games or need help? Write to us.",
-   alternates: { canonical: "/contact-us" },
+   title: TITLE,
+   description: DESCRIPTION,
+   ...pageSocial({ title: TITLE, description: DESCRIPTION, path: "/contact-us" }),
 };
 
 export default function ContactUsPage() {

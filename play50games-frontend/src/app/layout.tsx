@@ -1,11 +1,14 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import Script from "next/script";
 import { DM_Sans, JetBrains_Mono, Outfit } from "next/font/google";
 import "./globals.css";
 import "./theme.css";
 import { AuthProvider } from "@/contexts/AuthContext";
 import PrivacyConsent from "@/components/PrivacyConsent/PrivacyConsent";
+import { organizationJsonLd, serializeJsonLd } from "@/lib/seo/jsonLd";
+import SkipLink from "@/components/SkipLink/SkipLink";
 import { OG_IMAGES, ogImage } from "@/lib/seo/ogImages";
+import { SITE_URL, THEME_COLOR_DARK, THEME_COLOR_LIGHT } from "@/lib/seo/site";
 import { THEME_INIT_SCRIPT } from "@/lib/theme";
 
 // Fonts of the redesigned pages (theme.css reads the variables; the classic pages keep system fonts).
@@ -13,12 +16,21 @@ const fontDisplay = Outfit({ subsets: ["latin"], variable: "--font-display", dis
 const fontBody = DM_Sans({ subsets: ["latin"], variable: "--font-body", display: "swap" });
 const fontMono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-mono", display: "swap", preload: false });
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://play50games.com";
-
 const DEFAULT_TITLE = "Play50Games – classic brain games and a 3D Arcade";
 const DEFAULT_DESCRIPTION =
    "One place to play: 50 classic brain games with a certificate at the end, plus a 3D Arcade of quick mini-games that each keep their own best score.";
 const DEFAULT_IMAGE = ogImage(SITE_URL, OG_IMAGES.hub, "Play50Games - classic brain games and a 3D Arcade");
+
+// The browser bar follows the system theme with the page canvas of theme.css. (A theme picked with
+// the site's own switch cannot change a media-query meta tag; /3d/[slug] sets its own dark value.)
+export const viewport: Viewport = {
+   width: "device-width",
+   initialScale: 1,
+   themeColor: [
+      { media: "(prefers-color-scheme: light)", color: THEME_COLOR_LIGHT },
+      { media: "(prefers-color-scheme: dark)", color: THEME_COLOR_DARK },
+   ],
+};
 
 export const metadata: Metadata = {
    metadataBase: new URL(SITE_URL),
@@ -106,6 +118,12 @@ export default function RootLayout({
             <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
          </head>
          <body suppressHydrationWarning>
+            <script
+               type="application/ld+json"
+               dangerouslySetInnerHTML={{ __html: serializeJsonLd(organizationJsonLd(SITE_URL)) }}
+            />
+            {/* the first Tab stop of every page: past the header to the page's <main> */}
+            <SkipLink />
             {/* Google Tag Manager */}
             <Script
                id="gtm-script"
