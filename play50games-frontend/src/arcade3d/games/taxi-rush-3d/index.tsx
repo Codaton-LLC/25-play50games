@@ -12,7 +12,7 @@ import { U } from "./rules";
 import Scene from "./Scene";
 
 const LINES = [
-   "WASD or the stick drives. There is no button.",
+   "Drive with WASD, the arrows or the joystick. There is no button.",
    "Stop inside the gold pad (green for the drop-off) and hold still for half a second.",
    "Red lights and a hard hit cost a life. Three lives. Patience is the fare meter.",
 ];

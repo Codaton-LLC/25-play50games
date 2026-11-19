@@ -36,13 +36,13 @@ export const warehouseRushMeta: ArcadeGameMeta = {
    orientation: "any",
    controls: {
       scheme: "joystick",
-      keyboard: "WASD to move, E / Space to pick up and drop",
+      keyboard: "WASD / arrows to move, E, Enter or Space to pick up and drop",
       touch: "Joystick + Action button",
    },
    howTo: {
       keys: [
-         { id: "move", keys: ["WASD"], label: "Drive", main: true, role: "move" },
-         { id: "act", keys: ["E", "Space"], label: "Lift / drop", main: true },
+         { id: "move", keys: ["WASD", "Arrows"], label: "Drive", main: true, role: "move" },
+         { id: "act", keys: ["E", "Enter", "Space"], label: "Lift / drop", main: true },
       ],
       touch: [
          { id: "joystick", control: "joystick", label: "Drive" },
@@ -52,7 +52,7 @@ export const warehouseRushMeta: ArcadeGameMeta = {
          { title: "Goal", text: "Fill the orders: the right box colour into the right zone in 60 seconds." },
          {
             title: "Drive",
-            text: "Use WASD to drive the robot.",
+            text: "Use WASD or the arrow keys to drive the robot.",
             touchText: "Push the joystick to drive the robot.",
             keys: ["move"],
             touch: ["joystick"],

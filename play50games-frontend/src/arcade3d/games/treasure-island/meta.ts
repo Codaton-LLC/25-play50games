@@ -44,7 +44,7 @@ export const treasureIslandMeta: ArcadeGameMeta = {
    slug: "treasure-island",
    title: "Treasure Island",
    tagline: "Follow the detector, dig up the treasure.",
-   description: "Explore a tiny tropical island with a buzzing treasure detector and dig up five buried treasures before the tide comes in.",
+   description: "Explore a tiny tropical island with a buzzing treasure detector and dig up the buried treasures before the tide comes in.",
    order: 11,
    status: "live",
    collection: "adventure",
