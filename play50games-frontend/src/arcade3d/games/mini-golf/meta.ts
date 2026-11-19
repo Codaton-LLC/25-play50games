@@ -17,7 +17,7 @@ export const miniGolfMeta: ArcadeGameMeta = {
    orientation: "any",
    controls: {
       scheme: "aim-drag",
-      keyboard: "Drag to aim and putt, or arrows to aim and hold Space, release to putt",
+      keyboard: "Drag to aim and putt. Or aim with the arrows, hold Space to charge, release to putt",
       touch: "Pull back from anywhere, release to putt",
    },
    howTo: {

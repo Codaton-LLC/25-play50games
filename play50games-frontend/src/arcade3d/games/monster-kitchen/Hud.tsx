@@ -58,7 +58,7 @@ function Hand() {
          <div className={`${styles.hand} ${styles.handBusy}`}>
             <KindIcon kind={flying} size={30} />
             <span className={styles.handText}>
-               <span className={styles.handLabel}>Throwing</span>
+               <span className={styles.handLabel}>Tossing</span>
                <span className={styles.handName}>{KIND_LABEL[flying]}</span>
             </span>
          </div>
@@ -156,7 +156,7 @@ const press = (dir: -1 | 1) => ({
 
 /** Level 1 keeps the original hint. Later levels name the mechanic that level adds. */
 function hintFor(windowBAtS: number, driftEveryS: number, penalty: number): string {
-   if (windowBAtS >= 70) return "Tap a front item to throw it · tap a back item to turn it here";
+   if (windowBAtS >= 70) return "Tap a front item to toss it · tap a back item to turn it here";
    if (penalty > 3) return "Patience is short · a wrong toss costs more";
    if (driftEveryS < 6) return "The wheel drifts · keep the next ingredient at the front";
    return "Two monsters can order at once · cook both bubbles";

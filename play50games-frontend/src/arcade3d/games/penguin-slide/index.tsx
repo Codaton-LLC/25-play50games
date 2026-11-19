@@ -12,7 +12,7 @@ const HUD: NonNullable<GameDefinition["hudStats"]> = [{ key: "time", label: "Tim
 
 /** One line under the level tiles. */
 const DESCRIPTIONS: Record<LevelId, string> = {
-   1: "A sunny pine slope, two obstacles a stretch to start. Score 3000 to clear.",
+   1: "A sunny pine slope with two obstacles at a time to start. Score 3000 to clear.",
    2: "A dim ice cave of glowing crystals: fallen ice blocks and narrow passages. Score 3500.",
    3: "A frozen lake: thin ice cracks everywhere, more bends. Score 4000.",
    4: "Night under the northern lights: a snowman parade, more ramps and narrows. Score 4500.",

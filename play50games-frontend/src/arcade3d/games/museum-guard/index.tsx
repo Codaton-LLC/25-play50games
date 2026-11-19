@@ -11,7 +11,7 @@ import Scene from "./Scene";
 const INSTRUCTIONS = [
    "Turn with the mouse, A / D or the arrows. Drag to turn on a phone.",
    "Space or E flashes (the Flash button). Hold the beam to send a statue home.",
-   "Three alarms and the night wins. Last until dawn.",
+   "Three alarms and you lose. Last until dawn.",
 ];
 
 /** one line under the level tiles */

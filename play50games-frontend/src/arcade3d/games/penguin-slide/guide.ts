@@ -18,7 +18,7 @@ export function hintCode(run: Run): number {
 }
 
 export function hintFor(code: number): HintState {
-   if (code === 1) return { text: "Steer to the fish and through the gates (+8 s). Hop over ramps", key: "slide", tone: "info" };
+   if (code === 1) return { text: "Get fish, cross gates (+8 s). Ride ramps to spin", key: "slide", tone: "info" };
    if (code === 2) return { text: "Facing forward: land now", key: "aligned", tone: "ready", sticky: true };
    if (code === 3) return { text: "Turn to face forward before you land", key: "turn", tone: "warn", sticky: true };
    if (code === 4) return { text: "Time is nearly up: cross a gate for +8 s", key: "hurry", tone: "warn", sticky: true };

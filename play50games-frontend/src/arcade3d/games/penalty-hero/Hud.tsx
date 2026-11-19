@@ -12,8 +12,8 @@ export const FEEDBACK = { none: 0, goal: 1, saved: 2, wide: 3, timeout: 4 } as c
 const FEEDBACK_TEXT: Record<number, { title: string; detail: string } | undefined> = {
    [FEEDBACK.goal]: { title: "GOAL!", detail: "" },
    [FEEDBACK.saved]: { title: "SAVED", detail: "The keeper guessed right" },
-   [FEEDBACK.wide]: { title: "SAVED", detail: "Wide – shoot inside the band" },
-   [FEEDBACK.timeout]: { title: "SAVED", detail: "Too slow – 20 s per shot" },
+   [FEEDBACK.wide]: { title: "MISS", detail: "Wide - shoot inside the band" },
+   [FEEDBACK.timeout]: { title: "MISS", detail: "Too slow - 20 s per shot" },
 };
 
 const DOTS = Array.from({ length: SHOTS }, (_v, i) => i);

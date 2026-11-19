@@ -12,7 +12,7 @@ import { TUNING } from "./rules";
 import Scene from "./Scene";
 
 const LINES = [
-   "Move with WASD, the arrows or the stick. E, Enter or Use works the station you stand at.",
+   "Move with WASD, the arrows or the joystick. E, Enter or Use works the station you stand at.",
    "Dough, then sauce, cheese and the toppings in ticket order, then the oven. A wrong one spoils the pizza.",
    "Take it out while the ring is green (the first part pays a perfect bake), then serve it at the hatch.",
 ];
