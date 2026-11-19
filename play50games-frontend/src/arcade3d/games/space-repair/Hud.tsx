@@ -40,7 +40,7 @@ function GameHud() {
          <TimingRing size={size} source={readNeedle} zones={zones} perfectShare={1 / 3} zoneColor={COLORS.mint} perfectColor={COLORS.white} label={waiting ? "WAIT" : docked >= 0 ? "REPAIR" : "BRAKE"} />
          <div className={styles.caption} aria-live="polite">{docked >= 0 ? feedback === 5 ? "GOOD HIT" : `#${docked + 1} · ${hits}/${required}` : "Find a dock"}</div>
       </div>
-      <div className={styles.feedback} aria-live="polite">{bonus > 0 ? `POWER BONUS +${bonus}` : feedback === 3 ? "MISS · reset & retry" : feedback === 2 ? "PERFECT REPAIR" : feedback === 1 ? "REPAIRED" : feedback === 4 ? "POWER CELL +25" : power < 25 ? "LOW POWER · repair a module" : ""}</div>
+      <div className={styles.feedback} aria-live="polite">{bonus > 0 ? `POWER BONUS +${bonus}` : feedback === 3 ? "MISS · reset & retry" : feedback === 2 ? "PERFECT REPAIR" : feedback === 1 ? "REPAIRED" : feedback === 4 ? "POWER CELL +25" : power < 25 ? "LOW POWER · repair a dock" : ""}</div>
    </>;
 }
 

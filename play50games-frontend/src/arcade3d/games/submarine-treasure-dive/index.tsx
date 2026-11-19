@@ -11,7 +11,7 @@ import { FOV, fogOf, lookAtFor } from "./looks";
 import Scene from "./Scene";
 
 const LINES = [
-   "WASD or the stick flies the sub. Hold Dive to sink, release to rise.",
+   "WASD, the arrows or the joystick steer the sub. Hold Dive to sink, release to rise.",
    "Scoop a treasure only on the sea floor, then follow the next ping.",
    "With every treasure aboard, land on the dock before the battery dies.",
 ];
@@ -25,7 +25,7 @@ function stats(level: SubLevel): GameDefinition["hudStats"] {
 
 function instructionsFor(id: LevelId): string[] {
    if (id === 2) return [LINES[0], "Coral heads are solid. Steer around them.", LINES[2]];
-   if (id === 3) return [LINES[0], "Jellyfish drift between the wrecks. A touch costs battery.", LINES[2]];
+   if (id === 3) return [LINES[0], "Jellyfish drift around the wreck. A touch costs battery.", LINES[2]];
    if (id === 4) return [LINES[0], "The water is dark and a current pushes east.", LINES[2]];
    if (id === 5) return [LINES[0], LINES[1], "Eight treasures. The headlight is your lamp."];
    return LINES;

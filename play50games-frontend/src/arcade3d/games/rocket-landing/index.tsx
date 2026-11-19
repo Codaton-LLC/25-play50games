@@ -12,8 +12,8 @@ const DESCRIPTIONS: Record<LevelId, string> = {
    1: "Five worlds: Moon, Desert, Ice, a windy Gas Moon and the Asteroid cave with its sliding pad.",
    2: "Wide Crater: five landings in one big crater; a breeze on three (watch the windsock), the last pad rides a sled.",
    3: "Mars Ridge: red rock towers stand beside the pads, a dust storm gusts, the last pad slides along the ridge.",
-   4: "High winds & caverns: crystal caves close over three pads (fly in from a side shaft) and a gale ridge between.",
-   5: "Precision landing: a night beacon field of needle-narrow pads, two on rails, one in the wind, and an orbital dock.",
+   4: "High Winds & Cavern: crystal caves close over three pads (fly in from a side shaft) and a gale ridge between.",
+   5: "Precision Landing: a night beacon field of needle-narrow pads, two on rails, one in the wind, and an orbital dock.",
 };
 
 /** Each level's own hazard line. */

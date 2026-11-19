@@ -43,7 +43,7 @@ export const postman3dMeta: ArcadeGameMeta = {
             keys: ["post"],
             touch: ["post"],
          },
-         { title: "Watch out", text: "Dogs stun you. Cross on the zebra: cars yield there. Three lives." },
+         { title: "Watch out", text: "Dogs stun you. Cross at the zebra crossing: cars stop for you there. Three lives." },
          {
             title: "Tips",
             text: "Follow the list order for +40. Return to POST for more mail. Esc or P pauses.",

@@ -56,7 +56,7 @@ export const snowballBattleMeta: ArcadeGameMeta = {
          { id: "tap", control: "tap", label: "Tap a rival to throw" },
       ],
       steps: [
-         { title: "Goal", text: "Tag each rival three times to knock them out before the 90 seconds end." },
+         { title: "Goal", text: "Tag each rival three times to knock them out before the 90 seconds run out." },
          {
             title: "Move",
             text: "Use WASD or the arrow keys to move. Aim with the mouse.",

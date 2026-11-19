@@ -26,7 +26,7 @@ const levelScoring = (
 const LEVELS: readonly LevelMeta[] = [
    { id: 1, title: "Basic Sort", scoring: SCORING },
    { id: 2, title: "Shape Sort", scoring: levelScoring(6370, 10000, 122000, 300, 52) },
-   { id: 3, title: "Color + Shape", scoring: levelScoring(6370, 10000, 122000, 300, 52) },
+   { id: 3, title: "Colour + Shape", scoring: levelScoring(6370, 10000, 122000, 300, 52) },
    { id: 4, title: "Fast Factory", scoring: levelScoring(5640, 13300, 122000, 120, 62) },
    { id: 5, title: "Overdrive", scoring: levelScoring(6310, 11800, 122000, 120, 70) },
 ];

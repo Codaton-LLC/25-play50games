@@ -12,10 +12,10 @@ import { CLOCK } from "./rules";
 
 /** One line under each level tile: where this level's repairs happen. */
 const DESCRIPTIONS: Record<LevelId, string> = {
-   1: "Docking Bay: the eight pods ring the round hub between the solar wings. 30 tickets in 2 minutes.",
-   2: "Power Wing: pods round a long oval on the power spine, giant solar arrays north and south.",
+   1: "Docking Bay: the eight docks ring the round hub between the solar wings. 30 repairs in 2 minutes.",
+   2: "Power Wing: docks round a long oval on the power spine, giant solar arrays north and south.",
    3: "Comms Wing: a wide ring round the big comms dish; antenna masts crowd the outer lane where debris flies.",
-   4: "External Platform: an open square deck in raw sunlight, pods on the corners, debris swinging wide.",
+   4: "External Platform: an open square deck in raw sunlight, docks on the corners, debris swinging wide.",
    5: "Station Emergency: red alert, the ring turned and sealed by bulkheads between the docks; the fastest debris.",
 };
 /** Each level's light: the bay's night space, the power wing in full sun, the comms wing at dusk-blue,
