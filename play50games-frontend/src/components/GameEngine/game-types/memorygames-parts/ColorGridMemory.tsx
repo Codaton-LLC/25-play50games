@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import { useRoundsCompletion } from "./useRoundsCompletion";
 import m from "./mobile.module.css";
 import c from "./ColorGridMemory.module.css";
 import {
@@ -393,14 +394,13 @@ function ColorGridMemory({
       }
    }, [currentRound, maxRounds, onScoreUpdate]);
 
-   // Check game completion
-   useEffect(() => {
-      if (currentRound >= maxRounds) {
-         later(() => {
-            onComplete(currentScore);
-         }, 1000);
-      }
-   }, [currentRound, maxRounds, currentScore, onComplete, later]);
+   // Check game completion: exactly once, 1000 ms after the last round (see useRoundsCompletion)
+   useRoundsCompletion(
+      currentRound >= maxRounds,
+      Math.round((currentRound / maxRounds) * 100),
+      onComplete,
+      later
+   );
 
    // Handle cell click
    const handleCellClick = useCallback(

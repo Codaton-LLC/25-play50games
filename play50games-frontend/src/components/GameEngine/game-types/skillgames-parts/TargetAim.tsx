@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
+import { useGameTimers } from "../useGameTimers";
 import {
    CheckCircleIcon,
    XCircleIcon,
@@ -126,6 +127,8 @@ export default function TargetAim({
    const prevLevelRef = useRef<number | null>(null);
    const forceStartLevelRef = useRef<number | null>(null);
    const completionCalledRef = useRef(false);
+   // Completion and "unlimited replays" timers that must not outlive the game
+   const { completeLater, expireLater } = useGameTimers();
    const lastTimestampRef = useRef<number>(0);
    const lastSpawnTimeRef = useRef<number>(0);
    const nextRoundClickedRef = useRef(false);
@@ -765,7 +768,7 @@ export default function TargetAim({
       setGameState("ready");
       onScoreUpdate(finalScore);
 
-      setTimeout(() => {
+      completeLater(() => {
          onComplete(finalScore);
       }, 1000);
    }, [onComplete, onScoreUpdate]);
@@ -966,7 +969,7 @@ export default function TargetAim({
                   })
                );
 
-               setTimeout(() => {
+               expireLater(() => {
                   setUnlimitedActivated(false);
                   setHasShared(false);
                   localStorage.removeItem(gameKey);
@@ -1037,7 +1040,7 @@ export default function TargetAim({
 
                            const remainingTime = data.expiry - Date.now();
                            if (remainingTime > 0) {
-                              setTimeout(() => {
+                              expireLater(() => {
                                  setUnlimitedActivated(false);
                                  setHasShared(false);
                                  localStorage.removeItem(gameKey);
@@ -1056,7 +1059,7 @@ export default function TargetAim({
                                  shared: true,
                               })
                            );
-                           setTimeout(() => {
+                           expireLater(() => {
                               setUnlimitedActivated(false);
                               setHasShared(false);
                               localStorage.removeItem(gameKey);

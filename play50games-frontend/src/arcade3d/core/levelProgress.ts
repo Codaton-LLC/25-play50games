@@ -98,10 +98,10 @@ export function pickInitialLevel(progress: readonly LevelProgress[], requested: 
    return open ? open.id : (progress[progress.length - 1].id as LevelId);
 }
 
-/** A tile's best: the points, or the time for a time game; "–" when never scored. */
+/** A tile's best: the points, or the time for a time game; "-" when never scored. */
 export function levelBestText(level: Pick<LevelProgress, "best" | "bestDurationMs">, scoring: ScoringRules): string {
-   if (level.best === null) return "–";
-   if (scoring.display === "time") return level.bestDurationMs !== null ? formatDuration(level.bestDurationMs) : "–";
+   if (level.best === null) return "-";
+   if (scoring.display === "time") return level.bestDurationMs !== null ? formatDuration(level.bestDurationMs) : "-";
    return formatScore(level.best, scoring);
 }
 

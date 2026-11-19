@@ -502,14 +502,24 @@ function PathMemory({
       }
    }, [currentRound, maxRounds, onScoreUpdate]);
 
-   // Check game completion
+   // Check game completion: fires exactly once, with the final score. The score
+   // is computed here (same formula as the score effect above) instead of read from
+   // state, and onComplete is read through a ref, so a late score update or a new
+   // onComplete identity from the parent cannot schedule a second completion.
+   const onCompleteRef = useRef(onComplete);
    useEffect(() => {
-      if (currentRound >= maxRounds) {
+      onCompleteRef.current = onComplete;
+   }, [onComplete]);
+   const completedRef = useRef(false);
+   useEffect(() => {
+      if (currentRound >= maxRounds && !completedRef.current) {
+         completedRef.current = true;
+         const finalScore = Math.round((currentRound / maxRounds) * 100);
          later(() => {
-            onComplete(currentScore);
+            onCompleteRef.current(finalScore);
          }, 1000);
       }
-   }, [currentRound, maxRounds, currentScore, onComplete, later]);
+   }, [currentRound, maxRounds, later]);
 
    // Handle cell click
    const handleCellClick = useCallback(

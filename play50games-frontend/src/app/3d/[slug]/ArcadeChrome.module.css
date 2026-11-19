@@ -3,6 +3,10 @@
    shell behind it is the page. The header itself is positioned (SiteHeader immersive) with a
    z-index above the shell's fixed frame. */
 .chrome:global(.p50) {
+   /* opaque: the bar's glass (86 % white in the light theme) turned a muddy grey over the shell's
+      scrim and the scene behind it, and the quiet buttons lost their edge */
+   --p50-bar: var(--p50-surface);
+
    min-height: 0;
    padding-bottom: 0;
    background: none;

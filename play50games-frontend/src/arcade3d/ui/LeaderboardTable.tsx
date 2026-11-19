@@ -101,7 +101,7 @@ export default function LeaderboardTable({ entries, me, loading, error, scoring,
                      </th>
                      <td className={styles.name}>You</td>
                      <td className={styles.score}>{formatScore(me.best_score, scoring)}</td>
-                     <td className={styles.date}>—</td>
+                     <td className={styles.date}>-</td>
                   </tr>
                </tbody>
             ) : null}

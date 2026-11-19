@@ -136,7 +136,7 @@ export function HudChips({ scoring, score, time, timed, lives, stats, hudStats, 
             <span className={styles.chip} role="group" aria-label={`${lives} lives left`}>
                <span className={styles.chipLabel}>Lives</span>
                <span className={styles.chipValue} aria-hidden="true">
-                  {lives > 0 ? "♥".repeat(Math.min(lives, 5)) : "–"}
+                  {lives > 0 ? "♥".repeat(Math.min(lives, 5)) : "0"}
                   {lives > 5 ? ` ${lives}` : ""}
                </span>
             </span>

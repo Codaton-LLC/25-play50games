@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
+import { useGameTimers } from "../useGameTimers";
 import {
    CheckCircleIcon,
    XCircleIcon,
@@ -152,6 +153,8 @@ export default function LineTracer({
    const prevLevelRef = useRef<number | null>(null);
    const forceStartLevelRef = useRef<number | null>(null);
    const completionCalledRef = useRef(false);
+   // Completion and "unlimited replays" timers that must not outlive the game
+   const { completeLater, expireLater } = useGameTimers();
    const arenaRef = useRef<HTMLDivElement>(null);
    const canvasRef = useRef<HTMLCanvasElement>(null);
    const lastPointRef = useRef<PathPoint | null>(null);
@@ -450,7 +453,7 @@ export default function LineTracer({
          onScoreUpdate(finalScore);
          if (!completionCalledRef.current) {
             completionCalledRef.current = true;
-            setTimeout(() => {
+            completeLater(() => {
                onComplete(finalScore);
             }, 1500);
          }
@@ -990,7 +993,7 @@ export default function LineTracer({
                   })
                );
 
-               setTimeout(() => {
+               expireLater(() => {
                   setUnlimitedActivated(false);
                   setHasShared(false);
                   localStorage.removeItem(gameKey);
@@ -1061,7 +1064,7 @@ export default function LineTracer({
 
                            const remainingTime = data.expiry - Date.now();
                            if (remainingTime > 0) {
-                              setTimeout(() => {
+                              expireLater(() => {
                                  setUnlimitedActivated(false);
                                  setHasShared(false);
                                  localStorage.removeItem(gameKey);
@@ -1080,7 +1083,7 @@ export default function LineTracer({
                                  shared: true,
                               })
                            );
-                           setTimeout(() => {
+                           expireLater(() => {
                               setUnlimitedActivated(false);
                               setHasShared(false);
                               localStorage.removeItem(gameKey);
