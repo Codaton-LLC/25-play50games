@@ -5,7 +5,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import type { ScoringRules } from "../types";
 import { formatScore } from "../core/format";
-import ResultPanel, { resultBestText, resultScoreText, type ResultPanelProps } from "./ResultPanel";
+import ResultPanel, { resultAnnouncement, resultBestText, resultScoreText, type ResultPanelProps } from "./ResultPanel";
 import styles from "./ResultPanel.module.css";
 
 const TIME: ScoringRules = {
@@ -147,5 +147,31 @@ describe("result card layout", () => {
       // `}` in column 0; inner rules are indented), wherever it sits in the file
       const short = css.match(/@media \(max-height: 520px\) and \(min-width: 560px\) \{([\s\S]*?)\n\}/)?.[1] ?? "";
       expect(short.replace(/\s+/g, " ")).toMatch(/\.primary, \.secondary \{ flex-basis: 0; \}/);
+   });
+});
+
+describe("result announcement (accessibility)", () => {
+   it("reads the score, a new best and an unlocked level", () => {
+      expect(resultAnnouncement("1,240 pts", false)).toBe("Score 1,240 pts.");
+      expect(resultAnnouncement("1,240 pts", true, 4)).toBe("Score 1,240 pts. New best! Level 4 unlocked!");
+   });
+
+   it("is a named dialog that is not modal (the site header stays usable) and reads the summary once saved", () => {
+      const props: ResultPanelProps = {
+         title: "Time up",
+         score: 1240,
+         best: 1240,
+         isNewBest: true,
+         status: "saved-local",
+         scoring: { kind: "points", maxScore: 5000, minDurationMs: 0, maxDurationMs: 60000, base: 0, maxPointsPerSec: 100, unitLabel: "pts", display: "int" } as ScoringRules,
+         onRetry: () => {},
+         onExit: () => {},
+      };
+      const html = renderToStaticMarkup(createElement(ResultPanel, props));
+      expect(html).toContain('role="dialog" aria-labelledby="result-title"');
+      expect(html).not.toContain("aria-modal");
+      expect(html).toMatch(/aria-live="polite"[^>]*>.*Score .*New best!/);
+      const saving = renderToStaticMarkup(createElement(ResultPanel, { ...props, status: null }));
+      expect(saving).not.toMatch(/Score [^<]*New best!/);
    });
 });

@@ -21,15 +21,21 @@
 //   server supports them): the start card shows the level tiles (LevelTiles) with the total in
 //   place of the best-score badge, the picked level's instructions, and Play disabled on a locked
 //   level; the HUD gets an "L3" chip. Without `levels` both render exactly as before levels.
+// - Focus ownership (lib/a11y/modalStack.ts): an Overlay is modal by default (pause, error,
+//   rotate, graphics stopped: no site header is on screen then): Tab stays inside, the rest of the
+//   page is inert, and closing hands the focus back (`restoreFocus`). The lobby is `modal={false}`:
+//   it is the page's content under the site header, so only the rest of the shell (the canvas, the
+//   HUD) is inert behind it (`data-modal-scope` on the shell root) and Tab goes on to the header.
 // - HudButtons: the HUD's Mute and Pause. Pause is shown (and in the tab order) only while the run
 //   can be paused, so the start card's Play is the first focus and nothing is tabbable behind it.
-import { useRef, type ButtonHTMLAttributes, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ButtonHTMLAttributes, type ReactNode } from "react";
 import Link from "next/link";
 import { ArrowLeftIcon, PauseIcon, SpeakerWaveIcon, SpeakerXMarkIcon } from "@heroicons/react/24/solid";
 import type { ArcadeGameMeta, LevelId, ScoringRules } from "../types";
 import type { GameDefinition } from "./types";
 import type { LeaderboardState } from "./useLeaderboard";
 import { useInitialFocus } from "./overlayFocus";
+import { useModal } from "@/lib/a11y/useModal";
 import { scrollPanelFromBackdrop } from "./overlayScroll";
 import BestScoreBadge from "../ui/BestScoreBadge";
 import LeaderboardTable from "../ui/LeaderboardTable";
@@ -38,27 +44,41 @@ import BoardList from "@/components/Site/BoardList";
 import LevelTiles from "./LevelTiles";
 import ControlsPanel from "./howto/ControlsPanel";
 import type { LevelProgressSummary } from "./levelProgress";
+import { hudAnnouncement, type HudSnapshot } from "./hudAnnounce";
+import ui from "@/components/Site/ui.module.css";
 import styles from "./GameShell.module.css";
 
 export { scrollPanelFromBackdrop, type BackdropWheel, type ScrollBox } from "./overlayScroll";
+
+/** The frame a non-modal shell sheet makes inert around itself: the shell root (GameShell). */
+export const shellScope = (el: HTMLElement): Element | null => el.closest("[data-modal-scope]");
 
 export function Overlay({
    children,
    label,
    className,
    panelClassName,
+   modal = true,
+   restoreFocus,
 }: {
    children: ReactNode;
    label: string;
    className?: string;
    panelClassName?: string;
+   /** false: the lobby, page content beside the site header (see the file comment) */
+   modal?: boolean;
+   /** where the focus goes when a modal overlay closes; default the element focused before it */
+   restoreFocus?: () => HTMLElement | null | undefined;
 }) {
    const panelRef = useRef<HTMLDivElement>(null);
+   const rootRef = useRef<HTMLDivElement>(null);
+   useModal(rootRef, true, { modal, scope: shellScope, restoreFocus });
    return (
       <div
+         ref={rootRef}
          className={`${styles.overlay} ${className ?? ""}`}
          role="dialog"
-         aria-modal="true"
+         aria-modal={modal ? "true" : undefined}
          aria-label={label}
          onWheel={(event) => scrollPanelFromBackdrop(event, event.currentTarget, panelRef.current)}
       >
@@ -154,6 +174,48 @@ export function HudChips({ scoring, score, time, timed, lives, stats, hudStats, 
             );
          })}
       </div>
+   );
+}
+
+/** objective progress is read at most this often; lives and time marks always */
+const MINOR_GAP_MS = 2500;
+
+/**
+ * The run's spoken status (hudAnnounce.ts): a visually hidden polite line in the HUD that reads a
+ * lost life, the 30 / 10 second marks and objective progress. `active` only while the run is
+ * played, so the countdown and the result say nothing here. No box: it never moves a chip.
+ */
+export function HudAnnouncer({
+   active,
+   time,
+   timed,
+   lives,
+   stats,
+   hudStats,
+}: HudSnapshot & { active: boolean; hudStats?: GameDefinition["hudStats"] }) {
+   const prev = useRef<HudSnapshot | null>(null);
+   const lastMinor = useRef(0);
+   const [text, setText] = useState("");
+   useEffect(() => {
+      const next = { time, timed, lives, stats };
+      const before = prev.current;
+      prev.current = next;
+      if (!active) {
+         setText("");
+         return;
+      }
+      if (!before) return;
+      const news = hudAnnouncement(before, next, hudStats);
+      if (!news) return;
+      const now = Date.now();
+      if (news.minor && now - lastMinor.current < MINOR_GAP_MS) return;
+      if (news.minor) lastMinor.current = now;
+      setText(news.text);
+   }, [active, time, timed, lives, stats, hudStats]);
+   return (
+      <p className={ui.srOnly} role="status">
+         {text}
+      </p>
    );
 }
 
@@ -273,7 +335,7 @@ export function StartCard({ meta, definition, coarse, exitHref, leaderboard, onP
    const picked = levels?.progress.levels.find((level) => level.id === levels.selected);
    const locked = !!levels && !picked?.unlocked;
    return (
-      <Overlay label={`${meta.title}: start`} panelClassName={styles.startPanel}>
+      <Overlay label={`${meta.title}: start`} panelClassName={styles.startPanel} modal={false}>
          <Link href={exitHref} className={styles.backLink}>
             <ArrowLeftIcon aria-hidden="true" /> 3D Arcade
          </Link>

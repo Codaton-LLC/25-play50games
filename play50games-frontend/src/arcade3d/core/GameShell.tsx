@@ -61,8 +61,7 @@ import { initAudio, playSfx, toggleMuted, useMuted } from "./audio";
 import { loopsStopOn, stopShellLoops } from "./loopControl";
 import { trackArcade } from "./analytics";
 import { useLeaderboard } from "./useLeaderboard";
-import { FocusButton, HudButtons, HudChips, LeaderboardBlock, Overlay, StartCard } from "./ShellOverlays";
-import { focusWithoutScroll } from "./overlayFocus";
+import { FocusButton, HudAnnouncer, HudButtons, HudChips, LeaderboardBlock, Overlay, StartCard } from "./ShellOverlays";
 import {
    isRankedRun,
    normalizeRun,
@@ -197,23 +196,29 @@ function Hud({
    const lives = useArcadeStore((s) => s.lives);
    const stats = useArcadeStore((s) => s.stats);
    const canPause = useArcadeStore((s) => isPausable(s.phase));
+   const playing = useArcadeStore((s) => s.phase === "playing");
    const muted = useMuted();
+   const hudStats = levelHudStats(definition, level ?? 1);
 
    return (
-      <div ref={rootRef} className={styles.hud} style={hidden ? { visibility: "hidden" } : undefined} aria-hidden={hidden || undefined}>
-         <HudChips
-            scoring={scoring}
-            score={score}
-            time={time}
-            timed={timed}
-            lives={lives}
-            stats={stats}
-            hudStats={levelHudStats(definition, level ?? 1)}
-            clock={definition.clockChip !== false}
-            level={level}
-         />
-         <HudButtons hidden={hidden} canPause={canPause} muted={muted} onToggleMute={toggleMuted} onPause={onPause} />
-      </div>
+      <>
+         <div ref={rootRef} className={styles.hud} style={hidden ? { visibility: "hidden" } : undefined} aria-hidden={hidden || undefined}>
+            <HudChips
+               scoring={scoring}
+               score={score}
+               time={time}
+               timed={timed}
+               lives={lives}
+               stats={stats}
+               hudStats={hudStats}
+               clock={definition.clockChip !== false}
+               level={level}
+            />
+            <HudButtons hidden={hidden} canPause={canPause} muted={muted} onToggleMute={toggleMuted} onPause={onPause} />
+         </div>
+         {/* beside the HUD, not in it: the safe area measures every child of the HUD */}
+         <HudAnnouncer active={playing && !hidden} time={time} timed={timed} lives={lives} stats={stats} hudStats={hudStats} />
+      </>
    );
 }
 
@@ -279,7 +284,6 @@ export default function GameShell({ meta, definition, exitHref = "/3d" }: GameSh
    const gameHudRef = useRef<HTMLDivElement>(null);
    const probeRef = useRef<HTMLDivElement>(null);
    const [safeArea] = useState(createSafeAreaStore);
-   const resultRef = useRef<HTMLDivElement>(null);
    const submittedRunRef = useRef<number | null>(null);
    const userRef = useRef(user);
    userRef.current = user;
@@ -528,11 +532,7 @@ export default function GameShell({ meta, definition, exitHref = "/3d" }: GameSh
       if (wrongOrientation) pause();
    }, [wrongOrientation, pause]);
 
-   // result screen: move focus into it for keyboard and screen-reader users (once it appears),
-   // without scrolling it away from its title
-   useEffect(() => {
-      if (resultShown) focusWithoutScroll(resultRef.current);
-   }, [resultShown]);
+   // the result screen takes the focus itself (ui/ResultPanel: its named dialog, not this wrapper)
 
    const onContextLost = useCallback(() => {
       setContextLost(true);
@@ -581,7 +581,7 @@ export default function GameShell({ meta, definition, exitHref = "/3d" }: GameSh
 
    if (webgl === "unsupported") {
       return (
-         <div className={styles.root} style={accentStyle}>
+         <div className={styles.root} style={accentStyle} data-modal-scope="">
             <Overlay label="3D is not available">
                <h1 className={styles.title}>3D is not available here</h1>
                <p className={styles.tagline}>
@@ -616,9 +616,10 @@ export default function GameShell({ meta, definition, exitHref = "/3d" }: GameSh
 
    return (
       <>
-         <div className={styles.root} style={accentStyle}>
+         <div className={styles.root} style={accentStyle} data-modal-scope="">
             <InputProvider target={canvasWrapRef} drag={!!definition.input?.drag}>
-               <div ref={canvasWrapRef} className={styles.canvasWrap}>
+               {/* tabIndex -1: Resume hands the focus back here (the game's keys are window-wide) */}
+               <div ref={canvasWrapRef} className={styles.canvasWrap} tabIndex={-1}>
                   {webgl === "ok" && (
                      <ErrorBoundary resetKey={stageKey} onError={onStageError}>
                         {/* the Canvas bridges this context, so Scenes can read useSafeArea() */}
@@ -718,7 +719,7 @@ export default function GameShell({ meta, definition, exitHref = "/3d" }: GameSh
                {!stageFailed && phase === "countdown" && <Countdown />}
 
                {!stageFailed && phase === "paused" && !contextLost && !wrongOrientation && (
-                  <Overlay label="Paused">
+                  <Overlay label="Paused" restoreFocus={() => canvasWrapRef.current}>
                      <h1 className={styles.title}>Paused</h1>
                      <div className={styles.actions}>
                         <FocusButton className={styles.primary} onClick={() => arcadeStore.getState().resume()}>
@@ -738,7 +739,7 @@ export default function GameShell({ meta, definition, exitHref = "/3d" }: GameSh
                {/* ResultPanel's own overlay fills .resultWrap, which ends above the cookie banner */}
                {!stageFailed && resultShown && outcome && (
                   <div className={styles.resultLayer}>
-                     <div ref={resultRef} className={styles.resultWrap} tabIndex={-1}>
+                     <div className={styles.resultWrap}>
                         <ResultPanel
                            title={END_TITLES[endReason ?? "lose"] ?? "Game over"}
                            score={result?.score ?? outcome.run.score}

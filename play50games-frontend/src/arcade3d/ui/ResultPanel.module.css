@@ -249,3 +249,18 @@
       flex-basis: 0;
    }
 }
+
+/* the card's dialog takes the focus when it appears (named by its title); no ring on the sheet */
+.overlay:focus {
+   outline: none;
+}
+
+/* read out, not shown: the result summary in the status line */
+.srOnly {
+   position: absolute;
+   width: 1px;
+   height: 1px;
+   overflow: hidden;
+   clip-path: inset(50%);
+   white-space: nowrap;
+}
