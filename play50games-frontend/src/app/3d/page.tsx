@@ -21,7 +21,7 @@ export const metadata: Metadata = ARCADE_ENABLED
         alternates: { canonical: "/3d" },
      }
    : {
-        title: { absolute: "3D Arcade – coming soon | Play50Games" },
+        title: { absolute: "3D Arcade: coming soon | Play50Games" },
         alternates: { canonical: "/3d" },
         robots: { index: false, follow: true },
      };

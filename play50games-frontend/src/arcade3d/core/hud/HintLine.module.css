@@ -46,9 +46,9 @@
    padding: 7px 14px;
    border: 1px solid rgba(255, 255, 255, 0.18);
    border-radius: 22px;
-   background: rgba(11, 16, 32, 0.8);
+   background: rgba(11, 15, 26, 0.8);
    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
-   color: #f8fafc;
+   color: #f1f3f8;
    font-size: 14px;
    font-weight: 700;
    line-height: 1.2;
@@ -88,23 +88,25 @@
    box-shadow: 0 0 8px var(--hint-tone);
 }
 
+/* the dot's tones are the design's (DESIGN.md §2): coral for a plain hint, gold, green and the
+   dark theme's red for state; the chip itself stays dark glass in both themes */
 .info {
-   --hint-tone: #7dd3fc;
+   --hint-tone: #e75f40;
 }
 
 .carry {
-   --hint-tone: #fbbf24;
-   border-color: rgba(251, 191, 36, 0.55);
+   --hint-tone: #e3a72f;
+   border-color: rgba(227, 167, 47, 0.55);
 }
 
 .ready {
-   --hint-tone: #4ade80;
-   border-color: rgba(74, 222, 128, 0.6);
+   --hint-tone: #3fb57f;
+   border-color: rgba(63, 181, 127, 0.6);
 }
 
 .warn {
-   --hint-tone: #f87171;
-   border-color: rgba(248, 113, 113, 0.7);
+   --hint-tone: #f0708a;
+   border-color: rgba(240, 112, 138, 0.7);
 }
 
 @media (prefers-reduced-motion: reduce) {

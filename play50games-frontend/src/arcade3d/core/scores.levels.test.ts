@@ -179,7 +179,7 @@ describe("per-level saves, totals and unlocks", () => {
       expect(levelClearedText(progress)).toBe("2 of 5 levels cleared");
       expect(levelTotalText(meta, progress)).toBe("Total 670 pts");
       expect(levelBestText(progress.levels[0], meta.scoring)).toBe("520 pts");
-      expect(levelBestText(progress.levels[2], meta.scoring)).toBe("–");
+      expect(levelBestText(progress.levels[2], meta.scoring)).toBe("-");
       // nothing stored: only level 1
       expect(levelProgress(meta, null).levels.map((l) => l.unlocked)).toEqual([true, false, false, false, false]);
       // levels off: one tile's worth of data, the game's best
