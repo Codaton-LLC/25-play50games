@@ -92,7 +92,8 @@ export default function Hud() {
    const chain = useArcadeStore((s) => s.stats[STAT.comboChain] ?? 0);
    const mult = useArcadeStore((s) => s.stats[STAT.comboMult] ?? 100);
    const flow = useArcadeStore((s) => s.stats[STAT.comboFlow] ?? 0);
-   const elapsed = useArcadeStore((s) => s.elapsedMs);
+   // the clock and coach thresholds need whole seconds (multiples of 100 ms): one render per 100 ms, not per frame
+   const elapsed = useArcadeStore((s) => Math.floor(s.elapsedMs / 100) * 100);
    const playingPhase = useArcadeStore((s) => s.phase === "playing" || s.phase === "countdown");
    const pick = useSyncExternalStore(subscribeHero, pickedHero, pickedHero);
    const hero = heroById(heroStat === undefined ? pick : HERO_STAT[heroStat] ?? "zuno");

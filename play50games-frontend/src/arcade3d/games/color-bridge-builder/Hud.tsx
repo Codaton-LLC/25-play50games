@@ -61,7 +61,8 @@ export default function Hud() {
    const multi = usePlayers((s) => s.phase !== "off");
    const playing = usePlayers((s) => s.phase === "playing");
    const stats = useArcadeStore((s) => s.stats);
-   const elapsed = useArcadeStore((s) => s.elapsedMs);
+   // tenths are all the clock shows: one render per 100 ms, not per frame
+   const elapsed = useArcadeStore((s) => Math.floor(s.elapsedMs / 100) * 100);
    const phase = useArcadeStore((s) => s.phase);
    const { config } = useLevel<BridgeLevel>();
    const c = config ?? LEVELS[1];
