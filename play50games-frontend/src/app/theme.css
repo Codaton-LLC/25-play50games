@@ -178,3 +178,8 @@ html:has(.p50) body {
       transition-duration: 0.01ms !important;
    }
 }
+
+/* the skip link's landing spot (components/SkipLink): a focused <main> shows no ring, it is not a control */
+main[tabindex="-1"]:focus {
+   outline: none;
+}

@@ -5,6 +5,7 @@ import "./globals.css";
 import "./theme.css";
 import { AuthProvider } from "@/contexts/AuthContext";
 import PrivacyConsent from "@/components/PrivacyConsent/PrivacyConsent";
+import SkipLink from "@/components/SkipLink/SkipLink";
 import { OG_IMAGES, ogImage } from "@/lib/seo/ogImages";
 import { THEME_INIT_SCRIPT } from "@/lib/theme";
 
@@ -106,6 +107,8 @@ export default function RootLayout({
             <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
          </head>
          <body suppressHydrationWarning>
+            {/* the first Tab stop of every page: past the header to the page's <main> */}
+            <SkipLink />
             {/* Google Tag Manager */}
             <Script
                id="gtm-script"

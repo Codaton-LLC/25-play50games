@@ -123,6 +123,13 @@ export default function SiteHeaderClient({ active, games, immersive = false }: S
             closeAll();
             setSearching(true);
          } else if (event.key === "Escape") {
+            // the focus was in a panel that Escape removes: back to the trigger that opened it
+            // (focused before closeAll, which also cancels the world link's focus-open timer)
+            const root = rootRef.current;
+            const active = document.activeElement;
+            if (root && active && active !== document.body && root.contains(active)) {
+               root.querySelector<HTMLElement>('[aria-expanded="true"]')?.focus();
+            }
             closeAll();
          }
       };
@@ -145,6 +152,13 @@ export default function SiteHeaderClient({ active, games, immersive = false }: S
          window.clearTimeout(closeTimer.current);
       };
    }, [closeAll]);
+
+   // Tab out of the theme or account popup (and its trigger) closes it. A null relatedTarget (a
+   // click on a part that takes no focus, as in Safari) is left to the outside-click handler.
+   const leaveMenu = (event: React.FocusEvent<HTMLDivElement>) => {
+      const next = event.relatedTarget as Node | null;
+      if (next && !event.currentTarget.contains(next)) setMenu(null);
+   };
 
    const canHover = () => typeof window !== "undefined" && window.matchMedia("(hover: hover)").matches;
 
@@ -380,12 +394,13 @@ export default function SiteHeaderClient({ active, games, immersive = false }: S
                      </Link>
                   ) : null}
 
-                  <div className={styles.anchor}>
+                  <div className={styles.anchor} onBlur={leaveMenu}>
                      <button
                         type="button"
                         className={ui.iconBtn}
                         aria-label="Theme"
                         aria-expanded={menu === "theme"}
+                        aria-controls={menu === "theme" ? "site-theme-menu" : undefined}
                         onClick={() => {
                            setOpenWorld(null);
                            setMenu(menu === "theme" ? null : "theme");
@@ -394,7 +409,7 @@ export default function SiteHeaderClient({ active, games, immersive = false }: S
                         <ThemeIcon />
                      </button>
                      {menu === "theme" ? (
-                        <div className={styles.pop}>
+                        <div className={styles.pop} id="site-theme-menu">
                            <p className={`${ui.label} ${styles.popLabel}`}>Theme</p>
                            <div className={styles.seg3} role="group" aria-label="Theme">
                               {THEMES.map((item) => (
@@ -413,12 +428,13 @@ export default function SiteHeaderClient({ active, games, immersive = false }: S
                   </div>
 
                   {isAuthenticated && user ? (
-                     <div className={styles.anchor}>
+                     <div className={styles.anchor} onBlur={leaveMenu}>
                         <button
                            type="button"
                            className={styles.avatar}
                            aria-label="Account menu"
                            aria-expanded={menu === "account"}
+                           aria-controls={menu === "account" ? "site-account-menu" : undefined}
                            onClick={() => {
                               setOpenWorld(null);
                               setMenu(menu === "account" ? null : "account");
@@ -427,7 +443,7 @@ export default function SiteHeaderClient({ active, games, immersive = false }: S
                            {initialsOf(user)}
                         </button>
                         {menu === "account" ? (
-                           <div className={styles.pop}>
+                           <div className={styles.pop} id="site-account-menu">
                               <div className={styles.me}>
                                  <span className={styles.avatar} aria-hidden="true">
                                     {initialsOf(user)}
