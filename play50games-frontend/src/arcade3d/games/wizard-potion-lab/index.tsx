@@ -11,7 +11,7 @@ import { FOV, fogFor, lookAtFor } from "./looks";
 import Scene from "./Scene";
 
 const LINES = [
-   "WASD or the stick moves. E or Use picks up an ingredient. You carry one.",
+   "Move with WASD, the arrows or the joystick. E or Use picks up an ingredient. You carry one.",
    "Stand at the cauldron and Use. Only the next step of an open recipe goes in.",
    "Each finished recipe scores. A recipe with no wrong add scores more.",
 ];

@@ -11,9 +11,9 @@ import { FOG_NEAR, FOV, lookAtFor } from "./looks";
 import Scene from "./Scene";
 
 const LINES = [
-   "WASD or joystick to move. Hold E, Enter or Use within 1.2 m to pick keys, open doors, and pull levers.",
+   "WASD, arrows or joystick to move. Hold E, Enter or Use within 1.2 m to pick keys, open doors, and pull levers.",
    "Each locked door matches a key shape and colour. Find the key before trying its door.",
-   "Basement and Grand Escape add patrolling suits of armour. Three lives.",
+   "Basement and Grand Mansion Escape add patrolling suits of armour. Three lives.",
 ];
 
 function stats(level: MansionLevel): GameDefinition["hudStats"] {
@@ -22,7 +22,7 @@ function stats(level: MansionLevel): GameDefinition["hudStats"] {
 
 function instructionsFor(id: LevelId): string[] {
    if (id === 3) return [LINES[0], "Pulling a wall lever opens a shortcut door.", LINES[1]];
-   if (id === 4) return [LINES[0], "An armour walks the corridor. Avoid touching it.", LINES[2]];
+   if (id === 4) return [LINES[0], "An armour walks the hall. Avoid touching it.", LINES[2]];
    if (id === 5) return [LINES[0], "Twelve rooms, five keys, and patrolling armour.", LINES[2]];
    return LINES;
 }

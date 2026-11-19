@@ -19,9 +19,9 @@ export default function Hud() {
                <span className={styles.swatch} style={{ background: HOUSE_COLORS[color] }} />
                <strong>{number}</strong><span className={styles.colorName}>{ADDRESS_COLORS[color]}</span>
                <span aria-label={stats[`parcel${slot}`] ? "Parcel: front door" : "Letter: mailbox"}>{stats[`parcel${slot}`] ? "Door" : "Box"}</span>
-            </div> : <div className={styles.item} key={slot}>—</div>;
+            </div> : <div className={styles.item} key={slot}>-</div>;
          })}
       </div>
-      <div className={styles.hint}>{stats.message === 1 ? "Wrong address or item type — check the list" : stats.message === 2 ? "Mailbag refilled" : "Letters → mailbox · Parcels → front door"}</div>
+      <div className={styles.hint}>{stats.message === 1 ? "Wrong address or item type! Check the list" : stats.message === 2 ? "Mailbag refilled" : "Letters → mailbox · Parcels → front door"}</div>
    </aside></>;
 }

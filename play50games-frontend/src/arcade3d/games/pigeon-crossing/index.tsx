@@ -24,7 +24,7 @@ const definition: GameDefinition<PigeonLevel> = {
       description: [
          "Cross three sections. The live street, unchanged.",
          "Four sections: Suburban Main Road with alternating bus-layby vans and commuter traffic.",
-         "Five sections: Golden-hour City Crossing with dual curb vans and downtown taxi surges.",
+         "Five sections: Golden-hour City Crossing with vans on both sides and downtown taxi surges.",
          "Six sections: Four-row Night Traffic expressway with neon pylons and staggered chicanes.",
          "Eight sections: Five-row Rush Hour arterial canyon with gantries and pinched islands.",
       ][id - 1],

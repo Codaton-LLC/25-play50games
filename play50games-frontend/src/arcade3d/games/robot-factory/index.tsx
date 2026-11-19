@@ -24,7 +24,7 @@ const BASE_LINES = [
 function instructionsFor(level: FactoryLevel): string[] {
    if (level.sorter) {
       return [
-         "The line is sorting by colour and icon. Keys 1 to 4, or tap that bin — both act on the same moment.",
+         "The line is sorting by colour and icon. Keys 1 to 4, or tap that bin: both work the same way.",
          "A correct drop scores. A wrong bin costs 10 and locks the claw for 1 second. A part that falls off is a miss.",
          `Sort ${level.sortQuota} parts in the ${level.duration} s shift. The belt speeds up, and so do the parts.`,
       ];

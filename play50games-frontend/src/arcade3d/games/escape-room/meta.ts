@@ -25,7 +25,7 @@ export const escapeRoomMeta: ArcadeGameMeta = {
       ],
       touch: [
          { id: "joystick", control: "joystick", label: "Move" },
-         { id: "tap", control: "tap", label: "Tap a marker to inspect" },
+         { id: "tap", control: "tap", label: "Inspect" },
       ],
       steps: [
          { title: "Goal", text: "Find all the items and open the door. Faster escapes rank higher." },
@@ -38,16 +38,16 @@ export const escapeRoomMeta: ArcadeGameMeta = {
          },
          {
             title: "Inspect",
-            text: "Close to a yellow marker, press E or click it to open a container.",
-            touchText: "Close to a yellow marker, tap it to open a container.",
+            text: "When you are close to a yellow marker, press E or click it to inspect it.",
+            touchText: "When you are close to a yellow marker, tap it to inspect it.",
             keys: ["inspect"],
             touch: ["tap"],
          },
-         { title: "Escape", text: "With every item in hand, open the exit. You have 10 minutes." },
+         { title: "Escape", text: "With every item in hand, open the exit before time runs out." },
          {
             title: "Tips",
-            text: "The checklist shows what is still missing: search every container once. Esc or P pauses.",
-            touchText: "The checklist shows what is still missing: search every container once. Tap Pause, top right, to stop.",
+            text: "The checklist shows what is still missing: inspect every container once. Esc or P pauses.",
+            touchText: "The checklist shows what is still missing: inspect every container once. Tap Pause, top right, to stop.",
             keys: ["pause"],
             touch: ["pause"],
          },

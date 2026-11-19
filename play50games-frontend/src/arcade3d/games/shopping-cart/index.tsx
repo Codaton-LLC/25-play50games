@@ -14,7 +14,7 @@ import { DURATION_MS, LIST_COUNT } from "./rules";
 function instructionsFor(level: ShoppingCartLevel): string[] {
    return [
       `Steer the runaway cart through aisles to grab all ${level.listCount} items on your list.`,
-      "Hold Ride (Space or Ride button) to drift faster; dodge shoppers, spills & pyramids.",
+      "Hold Space or the Ride button to drift faster; dodge shoppers, spills and can pyramids.",
       `Collect all ${level.listCount} items and dash to checkout before ${Math.round(level.durationMs / 1000)} s runs out!`,
    ];
 }

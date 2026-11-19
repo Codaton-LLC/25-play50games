@@ -50,7 +50,7 @@ export const toyStoreNightShiftMeta: ArcadeGameMeta = {
             touch: ["joystick"],
          },
          {
-            title: "Pick up & shelve",
+            title: "Pick up & drop",
             text: "Press E or Enter next to a toy to pick it up, and at the matching shelf to drop it.",
             touchText: "Tap Use next to a toy to pick it up, and at the matching shelf to drop it.",
             keys: ["use"],

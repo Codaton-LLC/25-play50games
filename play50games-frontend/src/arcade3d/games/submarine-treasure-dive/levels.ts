@@ -50,7 +50,7 @@ export const LEVEL_TITLES: Record<LevelId, string> = {
 export const LEVEL_LINES: Record<LevelId, string> = {
    1: "Three treasures, a full battery.",
    2: "Coral everywhere: steer around it.",
-   3: "Jellyfish drift between the wrecks.",
+   3: "Jellyfish drift around the wreck.",
    4: "Dark water and a current.",
    5: "Eight treasures, one battery.",
 };

@@ -16,7 +16,7 @@ import { DURATION_MS, PROPOSED_LEVEL_LIMITS, capScore } from "./rules";
 
 const INSTRUCTIONS = [
    "Read the order at the top: a box colour and its zone.",
-   "Drive to a box of that colour and press Action (E or Space) to lift it.",
+   "Drive to a box of that colour and press Action (E, Enter or Space) to lift it.",
    "Drive into its zone and press Action again: +50. Wrong zone: -20.",
    "One box at a time. You have 60 seconds.",
 ];
@@ -25,7 +25,7 @@ const INSTRUCTIONS = [
 function instructionsFor(level: WarehouseLevel): string[] {
    const lines = [
       "Read the order at the top: a box colour and its zone.",
-      "Drive to a box of that colour and press Action (E or Space) to lift it.",
+      "Drive to a box of that colour and press Action (E, Enter or Space) to lift it.",
       "Drive into its zone and press Action again: +50. Wrong zone: -20.",
       "One box at a time.",
    ];
@@ -33,7 +33,7 @@ function instructionsFor(level: WarehouseLevel): string[] {
    if (level.extraRacks > 0) lines.push("Extra shelves stand in the side gates.");
    if (level.forklifts === 1) lines.push("A forklift crosses the north lane.");
    if (level.forklifts > 1) lines.push("Forklifts cross the north and south lanes.");
-   if (level.orderMs > 0) lines.push(`Deliver each order within ${level.orderMs / 1000} seconds, or it expires for −20.`);
+   if (level.orderMs > 0) lines.push(`Deliver each order within ${level.orderMs / 1000} seconds, or it expires for -20.`);
    lines.push(`You have ${level.durationMs / 1000} seconds.`);
    return lines;
 }

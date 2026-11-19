@@ -150,7 +150,7 @@ export const MAP_2: DistrictMap = {
    id: 2,
    name: "Main Road",
    theme: "main-road",
-   hint: "Parked vans alternate curbs on Main Road. Wait in the middle.",
+   hint: "Parked vans switch sides on Main Road. Wait in the middle.",
    palette: {
       background: "#c8e3d4",
       road: "#46586c",
@@ -207,7 +207,7 @@ export const MAP_3: DistrictMap = {
    id: 3,
    name: "City Crossing",
    theme: "city-crossing",
-   hint: "Downtown taxis surge and vans block both curbs. Aim for the centre.",
+   hint: "Downtown taxis surge and vans block both sides. Aim for the centre.",
    palette: {
       background: "#e9bd99",
       road: "#434957",

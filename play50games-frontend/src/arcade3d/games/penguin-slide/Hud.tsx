@@ -27,7 +27,7 @@ function GameHud() {
    return <aside style={{ top }} className={`${styles.panel} ${time <= 5 ? styles.low : ""}`} data-arcade-safe-area aria-label="Slide assist and landing">
       <span>Auto-hop <strong>{assist ? "On" : "Off"}</strong></span>
       {air > 0 && <><TimingRing source={rotation} zones={LANDING_ZONE} size={40} label="↑" needleColor="var(--text)" />
-         <span className={alignment ? styles.aligned : styles.turn}>{alignment ? "Aligned — land straight" : "Turn to face forward"}</span></>}
+         <span className={alignment ? styles.aligned : styles.turn}>{alignment ? "Aligned: land straight" : "Turn to face forward"}</span></>}
    </aside>;
 }
 

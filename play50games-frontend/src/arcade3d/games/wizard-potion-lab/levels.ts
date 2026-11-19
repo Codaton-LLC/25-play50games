@@ -38,7 +38,7 @@ export const LEVEL_TITLES: Record<LevelId, string> = {
 /** Start-card line under the level tile. */
 export const LEVEL_LINES: Record<LevelId, string> = {
    1: "Two short recipes.",
-   2: "A cellar of giant glowing mushrooms. A wrong bottle costs a life.",
+   2: "A cellar of giant glowing mushrooms. A wrong ingredient costs a life.",
    3: "An ice-crystal cave. One ingredient slides along a glowing crystal rail.",
    4: "A lab grown into the forest, leaves drifting down. Five-step recipes.",
    5: "The master's tower under the stars: two recipes at once.",

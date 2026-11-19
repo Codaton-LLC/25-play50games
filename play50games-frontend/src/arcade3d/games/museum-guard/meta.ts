@@ -56,7 +56,7 @@ export const museumGuardMeta: ArcadeGameMeta = {
             keys: ["flash"],
             touch: ["flash"],
          },
-         { title: "Watch out", text: "Three alarms and the night wins." },
+         { title: "Watch out", text: "Three alarms and you lose the night." },
          {
             title: "Tips",
             text: "Keep turning: statues sneak off whenever your flashlight looks away. Esc or P pauses.",

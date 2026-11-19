@@ -11,7 +11,7 @@ import { FOG_FAR, FOG_NEAR, FOV, lookAtFor } from "./looks";
 import Scene from "./Scene";
 
 const LINES = [
-   "WASD or the stick moves the cat. Collect every treat.",
+   "WASD, the arrows or the joystick move the cat. Collect every treat.",
    "Hop (Space) for a short dodge past a robot vacuum. A hit costs a life.",
    "When every treat is in, curl up on the bed to finish.",
 ];

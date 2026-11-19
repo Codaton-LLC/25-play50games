@@ -11,9 +11,9 @@ import { FOV, fogFor, lookAtFor } from "./looks";
 import Scene from "./Scene";
 
 const LINES = [
-   "WASD or the stick drives. Roll slowly into a bale to hitch it.",
-   "A fast hit bumps the bale and costs a life. Fences bump above a crawl.",
-   "Stop in the barn bay until the load counts.",
+   "Drive with WASD, the arrows or the joystick. Roll slowly into a bale to hitch it.",
+   "A fast hit bumps the bale and costs a life. Hit a fence faster than a crawl and you bump.",
+   "Stop in the barn bay until the load is counted.",
 ];
 
 function stats(level: FarmLevel): GameDefinition["hudStats"] {

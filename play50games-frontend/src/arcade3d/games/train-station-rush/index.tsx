@@ -11,7 +11,7 @@ import { LEVELS, LEVEL_LINES, passengerCount, type StationLevel } from "./levels
 import { FOV, fogOf, restLook } from "./looks";
 import Scene from "./Scene";
 
-const MOVE = "WASD or the stick walks. E, Enter or Use picks up at the entrance and hands over on a boarding pad.";
+const MOVE = "Walk with WASD, the arrows or the joystick. E, Enter or Use picks up at the entrance and hands over on a boarding pad.";
 const BAGS = "Each task shows its platform: colour, shape and number. Carry the bag to that pad while its train is in.";
 const PASSENGERS = "A passenger follows you: walk them onto their platform's pad, then Use.";
 const SCORE = "+100 a task, +50 with more than half the train's wait left. A train that leaves without its task costs a life.";

@@ -18,7 +18,7 @@ const DESCRIPTIONS: Record<LevelId, string> = {
    2: "Two Destinations: two airliners at the gates, 150 seconds, a faster belt.",
    3: "Four Destinations at sunset: four gates, 180 seconds, bags arrive faster.",
    4: "Rush Hour at night under blinking apron lights: the belt steps up every 10 s, more heavy bags.",
-   5: "International Hub: widebodies, the tower, 200 seconds on the fastest belt.",
+   5: "International Hub: big jets, the tower, 200 seconds on the fastest belt.",
 };
 
 /** Lighting only. Fog and the hall colours stay the game's; level 1 keeps the definition. */
@@ -31,9 +31,9 @@ const MOOD: Partial<Record<LevelId, NonNullable<LevelSpec["environment"]>["light
 
 function instructionsFor(level: LuggageLevel): string[] {
    return [
-      `A / left, S / down and D / right flip diverters 1–3. W / up flips diverter 4 after ${level.phaseD4} s.`,
+      `A / left, S / down and D / right flip diverters 1 to 3. W / up flips diverter 4 after ${level.phaseD4} s.`,
       "Or tap a diverter. Match each bag's colour and symbol to its chute.",
-      "+20 a bag, up to ×3 in a row. A gold rim is a VIP and scores double. Three misses end the run.",
+      "+20 a bag, up to x3 in a row. A gold rim is a VIP and scores double. Three misses end the run.",
    ];
 }
 
@@ -56,9 +56,9 @@ const definition: GameDefinition<LuggageLevel> = {
       { key: "combo", label: "Combo" },
    ],
    instructions: [
-      "A / left, S / down and D / right flip diverters 1–3. W / up flips diverter 4 after 70 s.",
+      "A / left, S / down and D / right flip diverters 1 to 3. W / up flips diverter 4 after 70 s.",
       "Or tap a diverter. Match each bag's colour and symbol to its chute.",
-      "+20 a bag, up to ×3 in a row. A gold rim is a VIP and scores double. Three misses end the run.",
+      "+20 a bag, up to x3 in a row. A gold rim is a VIP and scores double. Three misses end the run.",
    ],
    levels: LEVEL_IDS.map((id) => {
       const level = LEVELS[id];

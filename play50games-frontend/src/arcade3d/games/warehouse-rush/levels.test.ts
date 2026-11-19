@@ -65,7 +65,7 @@ describe("warehouse-rush levels: declarations", () => {
       expect(levelHudStats(definition, 1)).toEqual([{ key: "delivered", label: "Delivered" }]);
       expect(levelInstructions(definition, 1)).toEqual([
          "Read the order at the top: a box colour and its zone.",
-         "Drive to a box of that colour and press Action (E or Space) to lift it.",
+         "Drive to a box of that colour and press Action (E, Enter or Space) to lift it.",
          "Drive into its zone and press Action again: +50. Wrong zone: -20.",
          "One box at a time. You have 60 seconds.",
       ]);

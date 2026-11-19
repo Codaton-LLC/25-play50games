@@ -46,7 +46,7 @@ export const luggageRushMeta: ArcadeGameMeta = {
    orientation: "any",
    controls: {
       scheme: "tap-target",
-      keyboard: "A / left, S / down and D / right flip diverters 1–3; W / up flips diverter 4 after 70 s; or click a diverter",
+      keyboard: "A / left, S / down and D / right flip diverters 1 to 3; W / up flips diverter 4 after 70 s; or click a diverter",
       touch: "Tap a diverter to flip it",
    },
    howTo: {

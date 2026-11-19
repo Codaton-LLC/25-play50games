@@ -40,7 +40,7 @@ const definition: GameDefinition<EscapeLevel> = {
    touchControls: ["joystick", "tap"],
    hudStats: [{ key: "found", label: "Found", max: 3 }],
    instructions: [
-      "Open containers, take all three items, then open the door.",
+      "Inspect the containers, take all three items, then open the door.",
       "Walk with WASD or arrows. Click a yellow marker, or press E, when you are close.",
       "Faster escapes rank higher. You have 10 minutes.",
    ],

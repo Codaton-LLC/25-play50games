@@ -11,9 +11,9 @@ import { FOV, lookAtFor } from "./looks";
 import Scene from "./Scene";
 
 const LINES = [
-   "WASD or the stick moves. Hold Spray on a fire for 0.75 seconds.",
-   "Hold Spray on a neighbour for 0.30 seconds, then walk them to the exit. One at a time.",
-   "Space or Hop clears debris. Smoke slows you and spends breath. Three lives.",
+   "Move with WASD, the arrows or the joystick. Hold Spray on a fire for 0.75 seconds.",
+   "Hold Spray on a neighbour for 0.3 seconds, then walk them to the exit. One at a time.",
+   "Space or Hop hops over debris. Smoke slows you and spends breath. Three lives.",
 ];
 
 function stats(level: FireLevel): GameDefinition["hudStats"] {

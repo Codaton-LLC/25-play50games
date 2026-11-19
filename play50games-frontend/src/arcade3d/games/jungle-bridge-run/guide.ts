@@ -99,7 +99,7 @@ export function cueHint(code: number, touch: boolean): HintState {
       case 15:
          return { text: `Rolling log: jump it (${jump}) or dodge`, key: "log", tone: "warn" };
       case 16:
-         return { text: `Rope bridge: ${side} onto the planked lane (arrow)`, key: "bridge", tone: "warn" };
+         return { text: `Rope bridge: ${side} to the planked lane (arrow)`, key: "bridge", tone: "warn" };
       case 17:
          return { text: "On the planks: stay in this lane", key: "bridge-ok", tone: "ready" };
       case 18:

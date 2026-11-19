@@ -13,7 +13,7 @@ import Scene from "./Scene";
 
 const LINES = [
    "At night the toys came alive and wrecked the store. You are the tidy-up robot: put every toy back on its shelf before morning.",
-   "WASD or the stick walks. Press Use next to a toy to lift it, then Use at the shelf whose sign (colour, shape, picture) matches it.",
+   "Walk with WASD, the arrows or the joystick. Press Use next to a toy to lift it, then Use at the shelf whose sign (colour, shape, picture) matches it.",
    "A wrong shelf drops the toy back and stuns you for half a second.",
 ];
 
@@ -27,7 +27,7 @@ function stats(level: ToyLevel): GameDefinition["hudStats"] {
 function instructionsFor(id: LevelId): string[] {
    if (id === 2) return [LINES[1], LINES[2], "A wild red wind-up robot runs the aisles. A bump knocks the toy out of your hands."];
    if (id === 3) return [LINES[1], "Two shelves take each kind: either one is right.", "Wild wind-ups run the dark aisles. Your lamp lights the floor ahead."];
-   if (id === 4) return [LINES[1], "You can lift two toys. Use drops the top one: a wrong top toy blocks the one under it.", "Three wild wind-ups run the aisles."];
+   if (id === 4) return [LINES[1], "You can carry two toys. Use puts down the top toy first, so a wrong toy on top blocks the one under it.", "Three wild wind-ups run the aisles."];
    if (id === 5) return [LINES[1], "Lift two. Seven kinds, eighteen toys, four wild wind-ups. Only your lamp and the emergency strips are lit.", LINES[2]];
    return LINES;
 }

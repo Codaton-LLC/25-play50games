@@ -13,7 +13,7 @@ function GameHud() {
    const width = Math.max(0, Math.min(100, battery));
    return (
       <div className={styles.battery} data-arcade-safe-area>
-         <span>Battery {width}</span>
+         <span>Battery {width}%</span>
          <span className={scoop ? styles.ready : styles.wait}>{scoop ? "Scoop: ready" : "Scoop: hold Dive"}</span>
          <div className={styles.track} aria-hidden>
             <div className={width < 25 ? `${styles.fill} ${styles.low}` : styles.fill} style={{ width: `${width}%` }} />

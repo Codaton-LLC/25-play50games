@@ -69,9 +69,9 @@ export const constructionWorkerMeta: ArcadeGameMeta = {
             touch: ["tap", "action"],
          },
          {
-            title: "Drop on gold",
-            text: "Press Space when the guide turns gold to drop the piece on its mark.",
-            touchText: "Press Action when the guide turns gold to drop the piece on its mark.",
+            title: "Drop on green",
+            text: "Press Space when the guide turns green to drop the piece on its mark.",
+            touchText: "Press Action when the guide turns green to drop the piece on its mark.",
             keys: ["drop"],
             touch: ["action"],
          },

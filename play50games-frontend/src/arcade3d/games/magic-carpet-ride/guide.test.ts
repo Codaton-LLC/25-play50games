@@ -4,7 +4,7 @@ import { hintFor } from "./guide";
 
 describe("magic-carpet-ride guide", () => {
    it("counts the rings still needed, then points at the palace", () => {
-      expect(hintFor(4, false).text).toMatch(/4 more/);
+      expect(hintFor(4, false).text).toMatch(/Rings to clear: 4/);
       expect(hintFor(0, false).text).toMatch(/palace/);
       expect(hintFor(0, false).tone).toBe("ready");
       expect(hintFor(3, true).text).toMatch(/boost/i);

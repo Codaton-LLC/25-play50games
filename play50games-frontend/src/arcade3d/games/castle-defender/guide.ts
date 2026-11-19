@@ -18,7 +18,7 @@ export function hintFor(climb: number, rock: number, offer: boolean, touch: bool
          : { text: "A ladder is up: shoot the climbers while Rock reloads", tone: "warn" };
    }
    return {
-      text: touch ? "Tap the field to fire at a goblin. Hit shields from behind" : "Click the field (or arrows + Space) to fire. Hit shields from behind",
+      text: touch ? "Tap the field to fire at a goblin. Hit shields from behind" : "Click the field to fire. Hit shields from behind",
       tone: "info",
    };
 }

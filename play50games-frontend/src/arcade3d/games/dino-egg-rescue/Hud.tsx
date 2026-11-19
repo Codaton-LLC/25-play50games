@@ -29,7 +29,7 @@ function GameHud() {
             </span>
             {golden && <span className={styles.goldenBadge}>⭐ Gold</span>}
             <span className={dashReady ? styles.dashBadge : styles.dashWait}>
-               {dashReady ? "⚡ Dash" : "⏳ CD"}
+               {dashReady ? "⚡ Dash" : "⏳ Wait"}
             </span>
          </div>
       </div>

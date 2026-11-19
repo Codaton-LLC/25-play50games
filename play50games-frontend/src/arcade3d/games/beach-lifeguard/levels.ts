@@ -38,6 +38,6 @@ export const LEVEL_LINES: Record<LevelId, string> = {
    1: "Two swimmers, a short swim.",
    2: "A crowded beach and a boardwalk to run past.",
    3: "Golden hour at the resort: chairs and the pool deck to weave through.",
-   4: "The jet ski is in the water, slides tower past the beach ends.",
+   4: "The jet ski is in the water, and the slides tower past the beach ends.",
    5: "Night storm: rain, heavy seas, six alerts and short clocks.",
 };

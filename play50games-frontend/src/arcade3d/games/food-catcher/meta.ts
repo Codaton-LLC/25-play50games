@@ -41,7 +41,7 @@ export const foodCatcherMeta: ArcadeGameMeta = {
    orientation: "any",
    controls: {
       scheme: "lanes",
-      keyboard: "Left / right arrows to move",
+      keyboard: "A / D or the left / right arrows to move",
       touch: "Hold and drag left / right"
    },
    howTo: {
@@ -55,7 +55,7 @@ export const foodCatcherMeta: ArcadeGameMeta = {
          { title: "Goal", text: "Slide the chef and catch the good food." },
          {
             title: "Move",
-            text: "Use the Left and Right arrow keys to slide.",
+            text: "Use A / D or the Left and Right arrow keys to slide.",
             touchText: "Hold and drag left or right to slide.",
             keys: ["move"],
             touch: ["drag"],

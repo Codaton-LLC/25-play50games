@@ -9,7 +9,7 @@ import { CAMERA, environmentFor } from "./looks";
 import Scene from "./Scene";
 
 const instructions = [
-   "WASD / arrows or the stick moves. E / Enter or the Post button delivers within 1.2 m.",
+   "WASD / arrows or the joystick moves. E / Enter or the Post button delivers within 1.2 m.",
    "Match the number and colour. Letters go in mailboxes; parcels go to the front door.",
    "Follow the list for +40. Return to POST for more mail and one parcel at a time.",
 ];
@@ -22,7 +22,7 @@ const definition: GameDefinition<PostLevel> = {
    levels: LEVEL_IDS.map((id) => ({
       id, config: LEVELS[id], description: LEVEL_LINES[id], durationMs: LEVELS[id].durationMs,
       lives: LEVELS[id].lives, environment: environmentFor(LEVELS[id]), hudStats: stats(LEVELS[id]),
-      instructions: [...instructions, ...(id >= 3 ? ["Dogs stun you. Read the street plates; address markers are off."] : []), ...(id >= 4 ? ["Three lives. Cross on the zebra: approaching cars yield there."] : [])],
+      instructions: [...instructions, ...(id >= 3 ? ["Dogs stun you. Read the street plates; address markers are off."] : []), ...(id >= 4 ? ["Three lives. Cross at the zebra crossing: cars stop for you there."] : [])],
    })),
 };
 

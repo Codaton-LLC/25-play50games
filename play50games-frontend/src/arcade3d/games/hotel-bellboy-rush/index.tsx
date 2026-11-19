@@ -12,12 +12,12 @@ import { FOV, fogOf, restLook } from "./looks";
 import Scene from "./Scene";
 
 const LINES = [
-   "WASD or the stick walks. E, Enter or Use takes the bag at the desk and tries the door you stand at.",
+   "Walk with WASD, the arrows or the joystick. E, Enter or Use takes the bag at the desk and tries the door you stand at.",
    "Read the key card: deliver to that room. A wrong door costs a life. Three lives.",
    "+80 a bag, +40 if it is delivered within 15 s, +5 for each second left when the last bag is in.",
 ];
 
-const ELEVATOR = "The doors show one floor. Stand on the elevator pad and Use: one second later they show the bag's floor.";
+const ELEVATOR = "The doors show one floor. Stand on the elevator pad and press Use: one second later they show the bag's floor.";
 
 function stats(level: HotelLevel): GameDefinition["hudStats"] {
    const out = [{ key: "bags", label: "Bags", max: level.bags }];

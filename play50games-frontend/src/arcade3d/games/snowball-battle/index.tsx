@@ -38,7 +38,7 @@ function environmentFor(id: LevelId) {
 }
 
 const INSTRUCTIONS = [
-   "Hold Scoop to pack a snowball. Space throws at the rival you are aiming at.",
+   "Hold E or Enter (Scoop on a phone) to pack a snowball. Space throws at the rival you are aiming at.",
    "On a phone, tap a rival or the arrow at the edge of the screen.",
    "Three tags knock a rival out. Five tags on you and the fight is over.",
 ];
