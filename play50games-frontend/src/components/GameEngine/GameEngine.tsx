@@ -50,6 +50,7 @@ import { trackShareClick } from "@/lib/api/share";
 import Header from "@/components/Header/Header";
 import mobileCss from "./GameEngine.module.css";
 import { useBottomBar } from "./useBottomBar";
+import { useModal } from "@/lib/a11y/useModal";
 
 /** The play bar's clock: "45s" under a minute, else "m:ss". */
 function clockText(sec: number): string {
@@ -414,6 +415,14 @@ export default function GameEngine({
    const [timeLeft, setTimeLeft] = useState(game.time_limit);
    const [isPlaying, setIsPlaying] = useState(false);
    const [isCompleted, setIsCompleted] = useState(false);
+   // Game Complete is a modal dialog: the board and the page behind are inert, Tab stays on its
+   // Continue, and the focus lands there so the title, score and outcome are read out
+   const completeRef = useRef<HTMLDivElement>(null);
+   const continueRef = useRef<HTMLButtonElement>(null);
+   useModal(completeRef, isCompleted, { restoreFocus: false });
+   useEffect(() => {
+      if (isCompleted) continueRef.current?.focus({ preventScroll: true });
+   }, [isCompleted]);
    // phones / tablets: the cookie banner's live height as --p50-bottom-bar on the page wrapper (the
    // start screen's sticky Start / Exit row sits above it) and as room at the end of the page
    const pageRef = useRef<HTMLDivElement>(null);
@@ -678,7 +687,8 @@ export default function GameEngine({
                   isFinalGame ? "final-game" : ""
                }`}
             >
-               <h2>{game.title}</h2>
+               {/* the page's own heading when the site header (with no h1) is around it */}
+               <h2 aria-level={siteHeader ? undefined : 1}>{game.title}</h2>
                <p className="game-description">{displayDescription}</p>
 
                <div
@@ -686,7 +696,7 @@ export default function GameEngine({
                      isFinalGame ? "final-game" : ""
                   }`}
                >
-                  <h3>How to Play</h3>
+                  <h3 aria-level={siteHeader ? undefined : 2}>How to Play</h3>
                   <div
                      className="instructions-text"
                      dangerouslySetInnerHTML={{
@@ -14336,8 +14346,8 @@ export default function GameEngine({
                   <strong>{game.passing_score}</strong>
                </div>
             </div>
-            <button onClick={onExit} className="exit-button-small">
-               <XMarkIcon style={{ width: 20, height: 20 }} />
+            <button onClick={onExit} className="exit-button-small" aria-label="Exit game">
+               <XMarkIcon style={{ width: 20, height: 20 }} aria-hidden="true" />
             </button>
          </div>
 
@@ -14357,10 +14367,18 @@ export default function GameEngine({
 
          {isCompleted && (
             <div className="game-complete-overlay">
-               <div className="completion-message">
-                  <h2>Game Complete!</h2>
-                  <p>Final Score: {score}</p>
+               <div
+                  ref={completeRef}
+                  className="completion-message"
+                  role="dialog"
+                  aria-modal="true"
+                  aria-labelledby="game-complete-title"
+                  aria-describedby="game-complete-score game-complete-outcome"
+               >
+                  <h2 id="game-complete-title">Game Complete!</h2>
+                  <p id="game-complete-score">Final Score: {score}</p>
                   <div
+                     id="game-complete-outcome"
                      className={
                         score >= game.passing_score ? "success" : "failure"
                      }
@@ -14383,6 +14401,7 @@ export default function GameEngine({
                      )}
                   </div>
                   <button
+                     ref={continueRef}
                      onClick={onExit}
                      className="continue-button"
                      style={{

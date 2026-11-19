@@ -75,6 +75,8 @@
 
 .item[aria-selected="true"] {
    background: var(--p50-coral-wash);
+   /* a shape cue besides the colour wash: the active result of the arrow keys */
+   box-shadow: inset 3px 0 0 var(--p50-coral);
 }
 
 .thumb {

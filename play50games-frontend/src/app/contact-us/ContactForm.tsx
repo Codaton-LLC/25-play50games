@@ -42,8 +42,16 @@ export default function ContactForm() {
       if (!sent) shownAt.current = Date.now();
    }, [sent]);
 
+   // sent: the thanks takes the focus; "Write another message" brings it back to the first field
+   const wasSent = useRef(false);
    useEffect(() => {
-      if (sent) doneRef.current?.focus();
+      if (sent) {
+         doneRef.current?.focus();
+         wasSent.current = true;
+      } else if (wasSent.current) {
+         wasSent.current = false;
+         formRef.current?.querySelector<HTMLElement>("#contact-name")?.focus();
+      }
    }, [sent]);
 
    const focusFirst = (errs: ContactFieldErrors) => {

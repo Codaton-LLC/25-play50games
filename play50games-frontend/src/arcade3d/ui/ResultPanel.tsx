@@ -11,7 +11,11 @@
 // level's, "Level 4 unlocked!" on a first clear, the game's total, and the bar gains Next level
 // (primary, once the level is cleared and a next one exists) and Levels (back to the tiles). Without
 // `level` the card is exactly as before levels.
-import { useRef, type ReactNode } from "react";
+// Accessibility: the card is page content under the site header (a non-modal dialog): it takes
+// the focus when it appears (named by its title), the shell behind it is inert (lib/a11y), and the
+// polite status line reads a summary (score, new best, unlocked level) once the run is saved.
+import { useEffect, useRef, type ReactNode } from "react";
+import { useModal } from "@/lib/a11y/useModal";
 import type { LevelId, ScoringRules } from "../types";
 import type { SubmitStatus } from "../core/scores";
 import { formatScore } from "../core/format";
@@ -79,6 +83,14 @@ export function resultBestText(
    return `Best ${formatScore(best, scoring, isNewBest ? durationMs : bestDurationMs)}`;
 }
 
+/** What the status line reads out once the run is saved: "Score 1,240. New best! Level 4 unlocked." */
+export function resultAnnouncement(scoreText: string, isNewBest: boolean, unlockedLevel?: LevelId | null): string {
+   const parts = [`Score ${scoreText}.`];
+   if (isNewBest) parts.push("New best!");
+   if (unlockedLevel) parts.push(`Level ${unlockedLevel} unlocked!`);
+   return parts.join(" ");
+}
+
 function submitMessage(status: SubmitStatus | null, rank?: number | null): string {
    switch (status) {
       case "synced":
@@ -131,30 +143,43 @@ export default function ResultPanel(props: ResultPanelProps) {
       onLevels,
    } = props;
    const cardRef = useRef<HTMLDivElement>(null);
+   const rootRef = useRef<HTMLDivElement>(null);
+   useModal(rootRef, true, { modal: false, scope: (el) => el.closest("[data-modal-scope]") });
+   // the focus moves into the card when it appears, without scrolling it away from its title
+   useEffect(() => {
+      rootRef.current?.focus({ preventScroll: true });
+   }, []);
+   const scoreText = resultScoreText(score, scoring, durationMs, status);
 
    return (
       <div
+         ref={rootRef}
          className={styles.overlay}
          role="dialog"
-         aria-label={title}
-         aria-modal="true"
+         aria-labelledby="result-title"
+         tabIndex={-1}
          onWheel={(event) => scrollPanelFromBackdrop(event, event.currentTarget, cardRef.current)}
       >
          <div ref={cardRef} className={styles.card}>
-            <h2 className={styles.title}>{title}</h2>
+            <h2 id="result-title" className={styles.title}>
+               {title}
+            </h2>
             {level ? (
                <p className={styles.level}>
                   Level {level.id} · {level.title}
                </p>
             ) : null}
             {banner}
-            <p className={styles.score}>{resultScoreText(score, scoring, durationMs, status)}</p>
+            <p className={styles.score}>{scoreText}</p>
             {isNewBest ? <p className={styles.newBest}>New best!</p> : null}
             <p className={styles.best}>{resultBestText(best, scoring, durationMs, bestDurationMs, isNewBest)}</p>
             {unlockedLevel ? <p className={styles.unlocked}>Level {unlockedLevel} unlocked!</p> : null}
             {totalText ? <p className={styles.total}>{totalText}</p> : null}
             {rank != null ? <p className={styles.rank}>Rank #{rank}</p> : null}
             <p className={styles.message} aria-live="polite" data-status={status ?? "saving"}>
+               {status !== null ? (
+                  <span className={styles.srOnly}>{resultAnnouncement(scoreText, isNewBest, unlockedLevel)} </span>
+               ) : null}
                {submitMessage(status, rank)}
             </p>
             <div className={styles.actions}>

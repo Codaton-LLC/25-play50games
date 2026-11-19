@@ -6,6 +6,7 @@ import "./theme.css";
 import { AuthProvider } from "@/contexts/AuthContext";
 import PrivacyConsent from "@/components/PrivacyConsent/PrivacyConsent";
 import { organizationJsonLd, serializeJsonLd } from "@/lib/seo/jsonLd";
+import SkipLink from "@/components/SkipLink/SkipLink";
 import { OG_IMAGES, ogImage } from "@/lib/seo/ogImages";
 import { SITE_URL, THEME_COLOR_DARK, THEME_COLOR_LIGHT } from "@/lib/seo/site";
 import { THEME_INIT_SCRIPT } from "@/lib/theme";
@@ -121,6 +122,8 @@ export default function RootLayout({
                type="application/ld+json"
                dangerouslySetInnerHTML={{ __html: serializeJsonLd(organizationJsonLd(SITE_URL)) }}
             />
+            {/* the first Tab stop of every page: past the header to the page's <main> */}
+            <SkipLink />
             {/* Google Tag Manager */}
             <Script
                id="gtm-script"

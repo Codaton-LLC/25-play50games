@@ -78,7 +78,8 @@ export default function FaqList() {
                      const open = openItems.includes(faq.id);
                      return (
                         <div key={faq.id} className={styles.item}>
-                           <h3 className={styles.heading}>
+                           {/* under the page h1 directly when the group has no title */}
+                           <h3 className={styles.heading} aria-level={group.group_title ? undefined : 2}>
                               <button
                                  type="button"
                                  className={styles.question}

@@ -99,7 +99,12 @@ export default function PrivacyConsent() {
   // The look lives in PrivacyConsent.module.css (the design tokens of theme.css). The bar stays
   // docked to the bottom edge at full width: the classic boards and the 3D shell measure it there.
   return (
-    <div ref={bannerRef} className={isVisible ? `${styles.banner} ${styles.visible}` : styles.banner}>
+    <div
+      ref={bannerRef}
+      className={isVisible ? `${styles.banner} ${styles.visible}` : styles.banner}
+      role="region"
+      aria-label="Cookie consent"
+    >
       <div className={styles.inner}>
         <div className={styles.copy}>
           <LockClosedIcon className={styles.icon} aria-hidden="true" />
