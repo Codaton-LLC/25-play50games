@@ -319,4 +319,6 @@ export interface GameShellProps {
    definition: GameDefinition;
    /** defaults to "/3d" */
    exitHref?: string;
+   /** the lobby's "More like this" (arcade3d/related.ts, computed on the server); omitted = no row */
+   related?: readonly ArcadeGameMeta[];
 }

@@ -7,7 +7,8 @@ import type { Metadata, Viewport } from "next";
 import { notFound } from "next/navigation";
 import { ARCADE_ENABLED } from "@/arcade3d/flags";
 import { ARCADE_SLUGS, isArcadeSlug } from "@/arcade3d/types";
-import { getGameMeta, isGameVisible } from "@/arcade3d/registry";
+import { ARCADE_GAMES, getGameMeta, isGameVisible } from "@/arcade3d/registry";
+import { relatedGames } from "@/arcade3d/related";
 import ArcadeGameMount from "@/arcade3d/core/ArcadeGameMount";
 import SiteHeader from "@/components/Site/SiteHeader";
 import { gameJsonLd, serializeJsonLd } from "@/lib/seo/jsonLd";
@@ -76,7 +77,7 @@ export default function ArcadeGamePage({ params }: PageProps) {
          {jsonLd && (
             <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }} />
          )}
-         <ArcadeGameMount slug={meta.slug} />
+         <ArcadeGameMount meta={meta} related={relatedGames(meta, ARCADE_GAMES)} />
       </ArcadeChrome>
    );
 }

@@ -5,10 +5,9 @@
 import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import type { ArcadeSlug } from "../types";
+import type { ArcadeGameMeta } from "../types";
 import type { GameDefinition } from "./types";
 import { GAME_LOADERS } from "../loaders";
-import { getGameMeta } from "../registry";
 import ErrorBoundary from "./ErrorBoundary";
 import styles from "./ArcadeGameMount.module.css";
 
@@ -46,8 +45,12 @@ const GameShell = dynamic(() => import("./GameShell"), {
    loading: () => <MountLoading title="the game" />,
 });
 
-export default function ArcadeGameMount({ slug }: { slug: ArcadeSlug }) {
-   const meta = getGameMeta(slug);
+/**
+ * `meta` and `related` come from the server page: importing the registry here would put every game's
+ * meta (and the rules modules many metas compute their limits from) into the page's first-load JS.
+ */
+export default function ArcadeGameMount({ meta, related }: { meta: ArcadeGameMeta; related?: readonly ArcadeGameMeta[] }) {
+   const slug = meta.slug;
    const title = meta?.title ?? "the game";
    const [definition, setDefinition] = useState<GameDefinition | null>(null);
    const [failed, setFailed] = useState(false);
@@ -78,7 +81,7 @@ export default function ArcadeGameMount({ slug }: { slug: ArcadeSlug }) {
       <ErrorBoundary
          fallback={() => <MountError title={meta.title} onRetry={() => window.location.reload()} />}
       >
-         <GameShell meta={meta} definition={definition} />
+         <GameShell meta={meta} definition={definition} related={related} />
       </ErrorBoundary>
    );
 }
