@@ -41,6 +41,7 @@ import BestScoreBadge from "../ui/BestScoreBadge";
 import LeaderboardTable from "../ui/LeaderboardTable";
 import MoreLikeThis from "../ui/MoreLikeThis";
 import BoardList from "@/components/Site/BoardList";
+import { worldHomeOf } from "../worlds";
 import LevelTiles from "./LevelTiles";
 import ControlsPanel from "./howto/ControlsPanel";
 import type { LevelProgressSummary } from "./levelProgress";
@@ -337,7 +338,7 @@ export function StartCard({ meta, definition, coarse, exitHref, leaderboard, onP
    return (
       <Overlay label={`${meta.title}: start`} panelClassName={styles.startPanel} modal={false}>
          <Link href={exitHref} className={styles.backLink}>
-            <ArrowLeftIcon aria-hidden="true" /> 3D Arcade
+            <ArrowLeftIcon aria-hidden="true" /> {worldHomeOf(meta).name}
          </Link>
          {/* the art of the wide lobby; lazy, so a narrow card (where it is hidden) never fetches it */}
          {meta.thumbnail ? (

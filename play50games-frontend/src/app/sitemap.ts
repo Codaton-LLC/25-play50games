@@ -15,6 +15,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
           changeFrequency: 'weekly',
           priority: 0.9,
         },
+        // the third world (Menu 2): its own page; its games stay at /3d/[slug] below
+        {
+          url: `${SITE_URL}/pangoroll-worlds`,
+          changeFrequency: 'weekly',
+          priority: 0.9,
+        },
         ...getLiveGames().map((game) => ({
           url: `${SITE_URL}/3d/${game.slug}`,
           changeFrequency: 'weekly' as const,

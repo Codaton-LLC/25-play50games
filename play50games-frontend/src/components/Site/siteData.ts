@@ -1,6 +1,7 @@
 // Plain data shared by the site chrome (header, menus, search) and the hub. Server-safe.
 import type { ArcadeGameMeta } from "@/arcade3d/types";
 import { formatDuration } from "@/arcade3d/core/format";
+import { worldOf, type ArcadeWorld } from "@/arcade3d/worlds";
 
 /** The page a header is shown on; decides the resting position of the world switcher. */
 export type SiteSection = "home" | "classic" | "arcade" | "squad" | "leaderboards" | "other";
@@ -41,7 +42,7 @@ export const WORLDS: Record<WorldId, World> = {
       title: "Pangoroll Worlds",
       plate: "5",
       href: "/pangoroll-worlds",
-      text: "Five pangolin heroes who roll into a ball. Each one has its own colour and its own power.",
+      text: "Fifty 3D roll-and-jump games with five pangolin heroes who roll into a ball. Each hero has its own colour and its own power.",
    },
 };
 
@@ -74,6 +75,8 @@ export interface SiteGame {
    order: number;
    unitLabel: string;
    display: "int" | "time";
+   /** the site world the game is listed in: the 3D Arcade or Pangoroll Worlds (its page stays /3d/[slug]) */
+   world: ArcadeWorld;
 }
 
 export function toSiteGame(meta: ArcadeGameMeta): SiteGame {
@@ -86,6 +89,7 @@ export function toSiteGame(meta: ArcadeGameMeta): SiteGame {
       order: meta.order,
       unitLabel: meta.scoring.unitLabel,
       display: meta.scoring.display,
+      world: worldOf(meta),
    };
 }
 

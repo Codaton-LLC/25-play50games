@@ -567,3 +567,8 @@ button.popOut:hover {
       display: none;
    }
 }
+
+/* the Pangoroll Worlds hero roster across the whole art column */
+.rosterWide {
+   grid-column: 1 / -1;
+}

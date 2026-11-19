@@ -14,8 +14,8 @@ import JumpBackIn from "@/components/Hub/JumpBackIn";
 import HubBoards from "@/components/Hub/HubBoards";
 import WorldsAccordion, { type WorldPanel } from "@/components/Hub/WorldsAccordion";
 import ArcadeCardLive from "@/arcade3d/ui/ArcadeCardLive";
-import { ARCADE_ENABLED, ARCADE_LEADERBOARD, SQUAD_TEASER } from "@/arcade3d/flags";
-import { getLiveGames, getVisibleGames } from "@/arcade3d/registry";
+import { ARCADE_ENABLED, ARCADE_LEADERBOARD } from "@/arcade3d/flags";
+import { getLiveGames, getVisibleGames, getWorldGames } from "@/arcade3d/registry";
 import type { ArcadeGameMeta } from "@/arcade3d/types";
 import { hubJsonLd, serializeJsonLd } from "@/lib/seo/jsonLd";
 import { OG_IMAGES, ogImage } from "@/lib/seo/ogImages";
@@ -92,9 +92,13 @@ function InlineArt({ src }: { src: string | null | undefined }) {
 export default function HubPage() {
    const visible = ARCADE_ENABLED ? getVisibleGames() : [];
    const live = ARCADE_ENABLED ? getLiveGames() : [];
+   // the two 3D worlds: the 3D Arcade (/3d) and Pangoroll Worlds (/pangoroll-worlds)
+   const arcade = ARCADE_ENABLED ? getWorldGames("arcade") : [];
+   const pangoroll = ARCADE_ENABLED ? getWorldGames("squad") : [];
+   const arcadeLive = arcade.filter((game) => game.status === "live");
    const stage = stageGames(live);
-   // newest first: the bento's large tile is the newest game
-   const bento = [...visible].sort((a, b) => b.order - a.order).slice(0, BENTO_SIZE);
+   // newest arcade games first: the bento's large tile is the newest game
+   const bento = [...arcade].sort((a, b) => b.order - a.order).slice(0, BENTO_SIZE);
    const hasNew = bento.some((game) => game.order > 10);
    const artA = stage[1]?.thumbnail ?? stage[0]?.thumbnail;
    const artB = stage[2]?.thumbnail ?? stage[0]?.thumbnail;
@@ -114,13 +118,9 @@ export default function HubPage() {
          <h1 className={styles.h1}>
             {!ARCADE_ENABLED ? (
                "Fifty brain games. One certificate."
-            ) : SQUAD_TEASER ? (
-               <>
-                  Fifty brain games, <InlineArt src={artA} /> a 3D arcade <InlineArt src={artB} /> and Pangoroll Worlds.
-               </>
             ) : (
                <>
-                  Fifty brain games <InlineArt src={artA} /> and a 3D arcade <InlineArt src={artB} /> in one place.
+                  Fifty brain games, <InlineArt src={artA} /> a 3D arcade <InlineArt src={artB} /> and Pangoroll Worlds.
                </>
             )}
          </h1>
@@ -134,7 +134,7 @@ export default function HubPage() {
          ) : null}
          <p className={styles.sub}>
             {ARCADE_ENABLED
-               ? "Classic games with a certificate at the end, and quick 3D mini-games with their own leaderboards. Nothing to download."
+               ? "Classic games with a certificate at the end, quick 3D mini-games, and roll-and-jump worlds with five pangolin heroes. Nothing to download."
                : "Fifty games across logic, memory, speed and skill. Finish them all to earn your certificate. Nothing to download."}
          </p>
       </>
@@ -145,9 +145,14 @@ export default function HubPage() {
          <li>
             <b>50</b>classic games
          </li>
-         {visible.length > 0 ? (
+         {arcade.length > 0 ? (
             <li>
-               <b>{visible.length}</b>3D games
+               <b>{arcade.length}</b>arcade games
+            </li>
+         ) : null}
+         {pangoroll.length > 0 ? (
+            <li>
+               <b>{pangoroll.length}</b>Pangoroll games
             </li>
          ) : null}
          <li>
@@ -177,7 +182,7 @@ export default function HubPage() {
             ? "Quick 3D mini-games for keyboard and touch. No unlock chain: pick any game and chase your best score."
             : "Quick 3D mini-games for keyboard and touch are on the way. They open one at a time, each with its own leaderboard.",
          stats: ARCADE_ENABLED
-            ? [`${visible.length} games`, `${live.length} live now`, ...(ARCADE_LEADERBOARD ? ["1 leaderboard each"] : [])]
+            ? [`${arcade.length} games`, `${arcadeLive.length} live now`, ...(ARCADE_LEADERBOARD ? ["1 leaderboard each"] : [])]
             : ["Opens soon"],
          href: ARCADE_ENABLED ? "/3d" : undefined,
          cta: "Enter 3D Arcade",
@@ -196,7 +201,7 @@ export default function HubPage() {
                </div>
             ),
       },
-      ...(SQUAD_TEASER
+      ...(ARCADE_ENABLED
          ? [
               {
                  id: "squad",
@@ -204,15 +209,17 @@ export default function HubPage() {
                  name: WORLDS.squad.label,
                  title: WORLDS.squad.title,
                  text: WORLDS.squad.text,
-                 stats: SQUAD.map((hero) => (
-                    <>
-                       <i className={`${ui.ring} ${styles.statRing}`} style={{ "--ring": hero.color } as CSSProperties} />
-                       {hero.name}
-                    </>
-                 )),
+                 stats: [
+                    `${pangoroll.length} games`,
+                    ...SQUAD.map((hero) => (
+                       <>
+                          <i className={`${ui.ring} ${styles.statRing}`} style={{ "--ring": hero.color } as CSSProperties} />
+                          {hero.name}
+                       </>
+                    )),
+                 ],
                  href: "/pangoroll-worlds",
-                 cta: "Meet the squad",
-                 soon: true,
+                 cta: "Play Pangoroll Worlds",
                  art: <SquadArt />,
               } satisfies WorldPanel,
            ]
@@ -251,7 +258,7 @@ export default function HubPage() {
                         {hasNew ? "New in the arcade" : "In the arcade"}
                      </h2>
                      <Link href="/3d" className={styles.more}>
-                        All {visible.length} games
+                        All {arcade.length} games
                      </Link>
                   </div>
                   <ul className={styles.bento}>

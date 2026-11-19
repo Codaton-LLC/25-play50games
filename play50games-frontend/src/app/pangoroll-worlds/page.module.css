@@ -25,25 +25,6 @@
    gap: 18px;
 }
 
-.head {
-   display: flex;
-   align-items: center;
-   gap: 12px;
-}
-
-.soon {
-   display: inline-flex;
-   align-items: center;
-   height: 24px;
-   padding: 0 10px;
-   border-radius: 999px;
-   background: var(--p50-raised);
-   color: var(--p50-text-3);
-   font: 600 0.6875rem/1 var(--p50-font-body);
-   letter-spacing: 0.08em;
-   text-transform: uppercase;
-}
-
 .title {
    color: var(--p50-text);
    font: 700 clamp(2.5rem, 5.2vw, 4.5rem)/0.98 var(--p50-font-display);
@@ -54,6 +35,38 @@
    max-width: 40ch;
    color: var(--p50-text-2);
    font-size: 1.125rem;
+}
+
+.facts {
+   display: flex;
+   flex-wrap: wrap;
+   gap: 8px 0;
+}
+
+.facts li {
+   display: flex;
+   align-items: baseline;
+   gap: 6px;
+   padding: 0 16px;
+   border-left: 1px solid var(--p50-line);
+   color: var(--p50-text-2);
+   font-size: 0.875rem;
+}
+
+.facts li:first-child {
+   padding-left: 0;
+   border-left: 0;
+}
+
+.facts b {
+   color: var(--p50-text);
+   font: 600 1.125rem/1 var(--p50-font-mono);
+   font-variant-numeric: tabular-nums;
+}
+
+/* the catalogue: scrolled to by the hero's button, below the sticky header */
+.games {
+   scroll-margin-top: 88px;
 }
 
 .art {

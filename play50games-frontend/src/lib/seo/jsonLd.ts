@@ -3,7 +3,10 @@ import type { ArcadeGameMeta } from "@/arcade3d/types";
 // Explicit inputs keep these builders pure and safe to use in server components.
 export function hubJsonLd(siteUrl: string, arcadeEnabled: boolean) {
    const collections = [{ name: "Classic 50 Games", path: "/classic" }];
-   if (arcadeEnabled) collections.push({ name: "3D Arcade", path: "/3d" });
+   if (arcadeEnabled) {
+      collections.push({ name: "3D Arcade", path: "/3d" });
+      collections.push({ name: "Pangoroll Worlds", path: "/pangoroll-worlds" });
+   }
 
    return [
       {

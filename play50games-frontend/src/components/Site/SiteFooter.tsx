@@ -1,6 +1,6 @@
 // Footer of the redesigned pages (DESIGN.md §5). Server component.
 import Link from "next/link";
-import { ARCADE_ENABLED, ARCADE_LEADERBOARD, SQUAD_TEASER } from "@/arcade3d/flags";
+import { ARCADE_ENABLED, ARCADE_LEADERBOARD } from "@/arcade3d/flags";
 import { BrandMark } from "./icons";
 import ui from "./ui.module.css";
 import styles from "./SiteFooter.module.css";
@@ -13,7 +13,7 @@ interface FooterLink {
 const PLAY: FooterLink[] = [
    { label: "Classic 50", href: "/classic" },
    ...(ARCADE_ENABLED ? [{ label: "3D Arcade", href: "/3d" }] : []),
-   ...(SQUAD_TEASER ? [{ label: "Pangoroll Worlds", href: "/pangoroll-worlds" }] : []),
+   ...(ARCADE_ENABLED ? [{ label: "Pangoroll Worlds", href: "/pangoroll-worlds" }] : []),
    ...(ARCADE_ENABLED && ARCADE_LEADERBOARD ? [{ label: "Leaderboards", href: "/leaderboards" }] : []),
 ];
 

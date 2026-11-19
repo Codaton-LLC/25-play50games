@@ -1,14 +1,14 @@
 // 3D Arcade catalogue "/3d". Server component: no three.js here, the game code only loads under /3d/[slug].
+// Lists the 3D Arcade world only (originals, adventure, skill); the Menu 2 games ("rollheroes") are
+// their own world on /pangoroll-worlds, though their pages stay at /3d/[slug].
 import type { Metadata } from "next";
 import Link from "next/link";
 import SiteHeader from "@/components/Site/SiteHeader";
 import SiteFooter from "@/components/Site/SiteFooter";
 import ui from "@/components/Site/ui.module.css";
 import ArcadeGrid from "@/arcade3d/ui/ArcadeGrid";
-// the Menu 2 world map (preview builds only) loads as its own chunk, outside the /3d first load
-import WorldMap from "@/arcade3d/menu2/worldMap/WorldMapLazy";
-import { ARCADE_ENABLED, ARCADE_LEADERBOARD, ARCADE_PREVIEW } from "@/arcade3d/flags";
-import { gameCollection, getLiveGames, getVisibleGames, getVisibleSections, scoringMetas } from "@/arcade3d/registry";
+import { ARCADE_ENABLED, ARCADE_LEADERBOARD } from "@/arcade3d/flags";
+import { getVisibleSections, getWorldGames, scoringMetas } from "@/arcade3d/registry";
 import GameMetas from "@/arcade3d/ui/GameMetas";
 import type { ArcadeCollection } from "@/arcade3d/types";
 import { arcadeJsonLd, serializeJsonLd } from "@/lib/seo/jsonLd";
@@ -29,7 +29,7 @@ export const metadata: Metadata = ARCADE_ENABLED
      };
 
 function ComingSoon() {
-   const total = getVisibleGames().length;
+   const total = getWorldGames("arcade").length;
    return (
       <section className={styles.intro} aria-labelledby="arcade-title">
          <p className={ui.label}>New collection</p>
@@ -48,8 +48,8 @@ function ComingSoon() {
 }
 
 function ArcadeIntro() {
-   const live = getLiveGames().length;
-   const total = getVisibleGames().length;
+   const live = getWorldGames("arcade").filter((game) => game.status === "live").length;
+   const total = getWorldGames("arcade").length;
    return (
       <section className={styles.intro} aria-labelledby="arcade-title">
          <div className={styles.head}>
@@ -85,22 +85,18 @@ const COLLECTION_INFO = [
    { id: "originals", title: "Originals", blurb: "The first ten games. Each one keeps its own best score." },
    { id: "adventure", title: "Adventure", blurb: "Explore, collect and escape in little toy worlds." },
    { id: "skill", title: "Skill", blurb: "Aim, time and steer: short runs that reward a steady hand." },
-   { id: "rollheroes", title: "Pangoroll Worlds", blurb: "Five pangolin heroes who roll into a ball: sky towers, caves and races." },
 ] as const satisfies ReadonlyArray<{ id: ArcadeCollection; title: string; blurb: string }>;
 
-// One grid with sections and filter chips; while only one collection shows (production today: the
-// originals), a plain grid without chips or headings.
+// One grid with sections and filter chips; while only one collection shows, a plain grid without
+// chips or headings.
 function ArcadeSections() {
-   const games = getVisibleGames();
-   const grouped = getVisibleSections().length > 1;
-   // Menu 2 (Pangoroll Worlds on the site, "rollheroes" in code) is drawn as its world map on preview builds; the other sections keep the card grid
-   const heroes = games.filter((game) => gameCollection(game) === "rollheroes");
-   const sectionViews = ARCADE_PREVIEW && grouped && heroes.length > 0 ? { rollheroes: <WorldMap games={heroes} preview /> } : undefined;
-   return <ArcadeGrid games={games} collections={grouped ? [...COLLECTION_INFO] : undefined} sectionViews={sectionViews} />;
+   const games = getWorldGames("arcade");
+   const grouped = getVisibleSections(undefined, "arcade").length > 1;
+   return <ArcadeGrid games={games} collections={grouped ? [...COLLECTION_INFO] : undefined} />;
 }
 
 export default function ArcadePage() {
-   const jsonLd = arcadeJsonLd(SITE_URL, getLiveGames(), ARCADE_ENABLED);
+   const jsonLd = arcadeJsonLd(SITE_URL, getWorldGames("arcade"), ARCADE_ENABLED);
    return (
       <GameMetas metas={scoringMetas()}>
          <div className={`p50 ${styles.page}`}>

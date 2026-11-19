@@ -9,6 +9,7 @@ import type { ArcadeGameMeta } from "../types";
 import type { GameDefinition } from "./types";
 import { GAME_LOADERS } from "../loaders";
 import ErrorBoundary from "./ErrorBoundary";
+import { worldHomeOf, type WorldHome } from "../worlds";
 import styles from "./ArcadeGameMount.module.css";
 
 /** Warms the shell chunk while the game module loads (same chunk as the dynamic import below). */
@@ -23,7 +24,7 @@ function MountLoading({ title }: { title: string }) {
    );
 }
 
-function MountError({ title, onRetry }: { title: string; onRetry: () => void }) {
+function MountError({ title, home, onRetry }: { title: string; home: WorldHome; onRetry: () => void }) {
    return (
       <div className={styles.screen} role="alert">
          <h1 className={styles.title}>{title} could not be loaded</h1>
@@ -32,8 +33,8 @@ function MountError({ title, onRetry }: { title: string; onRetry: () => void }) 
             <button type="button" className={styles.primary} onClick={onRetry}>
                Try again
             </button>
-            <Link href="/3d" className={styles.secondary}>
-               Back to the 3D Arcade
+            <Link href={home.href} className={styles.secondary}>
+               Back to {home.name}
             </Link>
          </div>
       </div>
@@ -73,13 +74,13 @@ export default function ArcadeGameMount({ meta, related }: { meta: ArcadeGameMet
    }, [slug, attempt]);
 
    if (!meta || failed) {
-      return <MountError title={meta?.title ?? "This game"} onRetry={() => setAttempt((n) => n + 1)} />;
+      return <MountError title={meta?.title ?? "This game"} home={worldHomeOf(meta ?? {})} onRetry={() => setAttempt((n) => n + 1)} />;
    }
    if (!definition) return <MountLoading title={title} />;
 
    return (
       <ErrorBoundary
-         fallback={() => <MountError title={meta.title} onRetry={() => window.location.reload()} />}
+         fallback={() => <MountError title={meta.title} home={worldHomeOf(meta)} onRetry={() => window.location.reload()} />}
       >
          <GameShell meta={meta} definition={definition} related={related} />
       </ErrorBoundary>

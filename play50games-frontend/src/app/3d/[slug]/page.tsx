@@ -9,6 +9,7 @@ import { ARCADE_ENABLED } from "@/arcade3d/flags";
 import { ARCADE_SLUGS, isArcadeSlug } from "@/arcade3d/types";
 import { ARCADE_GAMES, getGameMeta, isGameVisible } from "@/arcade3d/registry";
 import { relatedGames } from "@/arcade3d/related";
+import { worldHomeOf, worldOf } from "@/arcade3d/worlds";
 import ArcadeGameMount from "@/arcade3d/core/ArcadeGameMount";
 import SiteHeader from "@/components/Site/SiteHeader";
 import { gameJsonLd, serializeJsonLd } from "@/lib/seo/jsonLd";
@@ -40,13 +41,15 @@ export function generateMetadata({ params }: PageProps): Metadata {
    if (!meta || !isGameVisible(meta)) return {};
 
    const url = `${SITE_URL}/3d/${meta.slug}`;
-   const socialTitle = `${meta.title} | 3D Arcade | Play50Games`;
+   // a Pangoroll Worlds game is titled after its own world (the /3d layout's template says 3D Arcade)
+   const world = worldHomeOf(meta).name;
+   const socialTitle = `${meta.title} | ${world} | Play50Games`;
    // a dev game without a thumbnail has no card of its own yet: share the arcade card
    const card = meta.thumbnail ? gameOgImagePath(meta.slug) : OG_IMAGES.arcade;
-   const image = ogImage(SITE_URL, card, `${meta.title} - 3D Arcade`);
+   const image = ogImage(SITE_URL, card, `${meta.title} - ${world}`);
 
    return {
-      title: meta.title,
+      title: worldOf(meta) === "arcade" ? meta.title : { absolute: socialTitle },
       description: meta.description,
       alternates: { canonical: `/3d/${meta.slug}` },
       robots: meta.status === "live" ? undefined : { index: false, follow: true },
@@ -73,7 +76,7 @@ export default function ArcadeGamePage({ params }: PageProps) {
    if (!meta || !isGameVisible(meta)) notFound();
    const jsonLd = gameJsonLd(SITE_URL, meta, ARCADE_ENABLED);
    return (
-      <ArcadeChrome header={<SiteHeader active="arcade" immersive />}>
+      <ArcadeChrome header={<SiteHeader active={worldOf(meta)} immersive />}>
          {jsonLd && (
             <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }} />
          )}

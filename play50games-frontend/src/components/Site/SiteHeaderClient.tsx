@@ -9,7 +9,7 @@ import { usePathname } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import LoginModal from "@/components/Auth/LoginModal";
 import RegisterModal from "@/components/Auth/RegisterModal";
-import { ARCADE_ENABLED, ARCADE_LEADERBOARD, SQUAD_TEASER } from "@/arcade3d/flags";
+import { ARCADE_ENABLED, ARCADE_LEADERBOARD } from "@/arcade3d/flags";
 import type { ThemeChoice } from "@/lib/theme";
 import {
    LOGIN_EVENT,
@@ -25,7 +25,6 @@ import {
 import { CLASSIC_TOTAL, useClassicCompleted, useLocalScores, useTheme } from "./hooks";
 import ClassicPath from "./ClassicPath";
 import SearchPalette from "./SearchPalette";
-import SquadArt from "./SquadArt";
 import { BrandMark, ChevronIcon, CubeIcon, GridIcon, HomeIcon, RollIcon, PodiumIcon, SearchIcon, ThemeIcon } from "./icons";
 import ui from "./ui.module.css";
 import styles from "./SiteHeader.module.css";
@@ -41,7 +40,7 @@ export interface SiteHeaderClientProps {
 const WORLD_IDS: WorldId[] = [
    "classic",
    ...(ARCADE_ENABLED ? (["arcade"] as const) : []),
-   ...(SQUAD_TEASER ? (["squad"] as const) : []),
+   ...(ARCADE_ENABLED ? (["squad"] as const) : []),
 ];
 
 /** The leaderboards page exists only with the arcade and its leaderboards on. */
@@ -80,8 +79,14 @@ export default function SiteHeaderClient({ active, games, immersive = false }: S
    const classicDone = useClassicCompleted(classicSeen);
    const scores = useLocalScores();
 
-   const playable = games.filter(isPlayable);
-   const played = playable.filter((game) => scores[game.slug as keyof typeof scores]).length;
+   // the 3D games split into their two worlds (all of them stay in the search)
+   const arcadeGames = games.filter((game) => game.world === "arcade");
+   const squadGames = games.filter((game) => game.world === "squad");
+   const playable = arcadeGames.filter(isPlayable);
+   const squadPlayable = squadGames.filter(isPlayable);
+   const playedOf = (list: SiteGame[]) => list.filter((game) => scores[game.slug as keyof typeof scores]).length;
+   const played = playedOf(playable);
+   const squadPlayed = playedOf(squadPlayable);
    // the newest games with art first: the mega panel's featured tiles
    const featured = [...playable]
       .filter((game) => game.thumbnail)
@@ -166,7 +171,7 @@ export default function SiteHeaderClient({ active, games, immersive = false }: S
       { id: "home", label: "Home", href: "/", Icon: HomeIcon },
       ...WORLD_IDS.map((id) => ({
          id: id as SiteSection,
-         label: id === "classic" ? "Classic" : id === "arcade" ? "Arcade" : "Squad",
+         label: id === "classic" ? "Classic" : id === "arcade" ? "Arcade" : "Pangoroll",
          href: WORLDS[id].href,
          Icon: WORLD_ICONS[id],
       })),
@@ -257,7 +262,19 @@ export default function SiteHeaderClient({ active, games, immersive = false }: S
                            ) : null}
                            {openWorld === "squad" ? (
                               <div className={styles.progress}>
-                                 <span>Opens soon</span>
+                                 <span>
+                                    {String(squadPlayed).padStart(2, "0")} / {squadPlayable.length} games played
+                                 </span>
+                                 <div className={ui.meter}>
+                                    <i
+                                       className={ui.meterFill}
+                                       style={
+                                          {
+                                             "--v": squadPlayable.length ? squadPlayed / squadPlayable.length : 0,
+                                          } as React.CSSProperties
+                                       }
+                                    />
+                                 </div>
                               </div>
                            ) : null}
 
@@ -272,7 +289,7 @@ export default function SiteHeaderClient({ active, games, immersive = false }: S
                                     : "Play Classic 50"
                                  : openWorld === "arcade"
                                    ? "Enter 3D Arcade"
-                                   : "Meet the squad"}
+                                   : "Play Pangoroll Worlds"}
                            </Link>
                         </div>
 
@@ -303,7 +320,7 @@ export default function SiteHeaderClient({ active, games, immersive = false }: S
                                     </MegaLink>
                                  ))}
                                  <MegaLink href="/3d" index={5}>
-                                    All {games.length} games
+                                    All {arcadeGames.length} games
                                  </MegaLink>
                                  {BOARDS ? (
                                     <MegaLink href="/leaderboards" index={6}>
@@ -314,8 +331,24 @@ export default function SiteHeaderClient({ active, games, immersive = false }: S
                            ) : null}
                            {openWorld === "squad" ? (
                               <>
-                                 <p className={ui.label}>The five</p>
-                                 <ul className={styles.roster}>
+                                 <p className={ui.label}>Play now</p>
+                                 {squadPlayable.slice(0, 5).map((game, index) => (
+                                    <MegaLink key={game.slug} href={`/3d/${game.slug}`} index={index}>
+                                       {game.title}
+                                    </MegaLink>
+                                 ))}
+                                 <MegaLink href="/pangoroll-worlds" index={5}>
+                                    All {squadGames.length} games
+                                 </MegaLink>
+                              </>
+                           ) : null}
+                        </div>
+
+                        <div className={styles.megaArt}>
+                           {openWorld === "squad" ? (
+                              <>
+                                 <p className={ui.label}>The five heroes</p>
+                                 <ul className={`${styles.roster} ${styles.rosterWide}`}>
                                     {SQUAD.map((hero) => (
                                        <li key={hero.name}>
                                           <i className={ui.ring} style={{ "--ring": hero.color } as React.CSSProperties} />
@@ -326,9 +359,6 @@ export default function SiteHeaderClient({ active, games, immersive = false }: S
                                  </ul>
                               </>
                            ) : null}
-                        </div>
-
-                        <div className={styles.megaArt}>
                            {openWorld === "classic" ? (
                               <>
                                  <p className={ui.label}>Your path</p>
@@ -352,14 +382,6 @@ export default function SiteHeaderClient({ active, games, immersive = false }: S
                                        {game.title}
                                     </Link>
                                  ))}
-                              </>
-                           ) : null}
-                           {openWorld === "squad" ? (
-                              <>
-                                 <p className={ui.label}>The squad</p>
-                                 <div className={styles.pathBox}>
-                                    <SquadArt />
-                                 </div>
                               </>
                            ) : null}
                         </div>

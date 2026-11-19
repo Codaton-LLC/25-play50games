@@ -16,7 +16,7 @@ import { getGameMeta } from "@/arcade3d/metaSource";
 import { levelsActive } from "@/arcade3d/core/levels";
 import { levelClearedText, levelProgress, levelTotalText } from "@/arcade3d/core/levelProgress";
 import { formatScore } from "@/arcade3d/core/format";
-import { ARCADE_ENABLED, ARCADE_LEADERBOARD, SQUAD_TEASER } from "@/arcade3d/flags";
+import { ARCADE_ENABLED, ARCADE_LEADERBOARD } from "@/arcade3d/flags";
 import ArcadePrivacyToggle from "@/app/3d/ArcadePrivacyToggle";
 import { LOGIN_EVENT, WORLDS, initialsOf, publicName, type SiteGame } from "@/components/Site/siteData";
 import { useLocalScores } from "@/components/Site/hooks";
@@ -168,6 +168,16 @@ export default function PlayerCard({ games: arcadeGames }: PlayerCardProps) {
    const played = arcade.filter((item) => item.entry);
    const levelTotal = arcade.reduce((sum, item) => sum + (item.summary ? item.summary.levels.length : 0), 0);
    const levelsCleared = arcade.reduce((sum, item) => sum + (item.summary ? item.summary.cleared : 0), 0);
+   // one row per 3D world (the 3D Arcade and Pangoroll Worlds)
+   const worldRow = (world: "arcade" | "squad") => {
+      const items = arcade.filter((item) => item.game.world === world);
+      return {
+         total: items.length,
+         played: items.filter((item) => item.entry).length,
+         levelTotal: items.reduce((sum, item) => sum + (item.summary ? item.summary.levels.length : 0), 0),
+         levelsCleared: items.reduce((sum, item) => sum + (item.summary ? item.summary.cleared : 0), 0),
+      };
+   };
    const recent = [...played]
       .sort((a, b) => (b.entry?.lastPlayed ?? "").localeCompare(a.entry?.lastPlayed ?? ""))
       .slice(0, RECENT);
@@ -226,9 +236,9 @@ export default function PlayerCard({ games: arcadeGames }: PlayerCardProps) {
                {ARCADE_ENABLED ? (
                   <>
                      {levelTotal > 0 ? (
-                        <Total value={two(levelsCleared)} of={String(levelTotal)} label="Arcade levels cleared" />
+                        <Total value={two(levelsCleared)} of={String(levelTotal)} label="3D levels cleared" />
                      ) : null}
-                     <Total value={two(played.length)} of={String(arcade.length)} label="Arcade games played" />
+                     <Total value={two(played.length)} of={String(arcade.length)} label="3D games played" />
                   </>
                ) : null}
             </div>
@@ -254,45 +264,37 @@ export default function PlayerCard({ games: arcadeGames }: PlayerCardProps) {
                      {classicDone > 0 && !certificateReady ? "Continue" : "Open"}
                   </Link>
                </li>
-               {ARCADE_ENABLED ? (
-                  <li className={styles.world}>
-                     <span className={ui.plate} aria-hidden="true">
-                        {WORLDS.arcade.plate}
-                     </span>
-                     <span className={styles.worldName}>{WORLDS.arcade.title}</span>
-                     {levelTotal > 0 ? (
-                        <>
-                           <Meter value={levelsCleared} total={levelTotal} />
-                           <span className={styles.worldCount}>
-                              {two(levelsCleared)} / {levelTotal} levels
-                           </span>
-                        </>
-                     ) : (
-                        <>
-                           <Meter value={played.length} total={arcade.length} />
-                           <span className={styles.worldCount}>
-                              {two(played.length)} / {arcade.length} games
-                           </span>
-                        </>
-                     )}
-                     <Link href="/3d" className={`${ui.btn} ${ui.btnQuiet} ${ui.btnSm}`}>
-                        Open
-                     </Link>
-                  </li>
-               ) : null}
-               {SQUAD_TEASER ? (
-                  <li className={styles.world}>
-                     <span className={ui.plate} aria-hidden="true">
-                        {WORLDS.squad.plate}
-                     </span>
-                     <span className={styles.worldName}>{WORLDS.squad.title}</span>
-                     <Meter value={0} total={1} />
-                     <span className={styles.worldCount}>Opens soon</span>
-                     <Link href="/pangoroll-worlds" className={`${ui.btn} ${ui.btnQuiet} ${ui.btnSm}`}>
-                        Open
-                     </Link>
-                  </li>
-               ) : null}
+               {ARCADE_ENABLED
+                  ? (["arcade", "squad"] as const).map((world) => {
+                       const row = worldRow(world);
+                       return (
+                          <li key={world} className={styles.world}>
+                             <span className={ui.plate} aria-hidden="true">
+                                {WORLDS[world].plate}
+                             </span>
+                             <span className={styles.worldName}>{WORLDS[world].title}</span>
+                             {row.levelTotal > 0 ? (
+                                <>
+                                   <Meter value={row.levelsCleared} total={row.levelTotal} />
+                                   <span className={styles.worldCount}>
+                                      {two(row.levelsCleared)} / {row.levelTotal} levels
+                                   </span>
+                                </>
+                             ) : (
+                                <>
+                                   <Meter value={row.played} total={row.total} />
+                                   <span className={styles.worldCount}>
+                                      {two(row.played)} / {row.total} games
+                                   </span>
+                                </>
+                             )}
+                             <Link href={WORLDS[world].href} className={`${ui.btn} ${ui.btnQuiet} ${ui.btnSm}`}>
+                                Open
+                             </Link>
+                          </li>
+                       );
+                    })
+                  : null}
             </ul>
          </section>
 

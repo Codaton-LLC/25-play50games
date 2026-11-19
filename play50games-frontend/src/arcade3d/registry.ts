@@ -4,6 +4,7 @@ import type { ArcadeCollection, ArcadeGameMeta, ArcadeSlug, GameScoringMeta } fr
 import { ARCADE_COLLECTIONS } from "./types";
 import { ARCADE_PREVIEW } from "./flags";
 import { provideGameMetas, scoringMetaOf } from "./metaSource";
+import { worldOf, type ArcadeWorld } from "./worlds";
 import { robotCollectorMeta } from "./games/robot-collector/meta";
 import { foodCatcherMeta } from "./games/food-catcher/meta";
 import { officeEscapeMeta } from "./games/office-escape/meta";
@@ -239,11 +240,17 @@ export function gameCollection(game: ArcadeGameMeta): ArcadeCollection {
    return game.collection ?? "originals";
 }
 
+/** The visible games of one site world: the 3D Arcade (/3d) or Pangoroll Worlds (/pangoroll-worlds). */
+export function getWorldGames(world: ArcadeWorld, preview: boolean = ARCADE_PREVIEW): ArcadeGameMeta[] {
+   return getVisibleGames(preview).filter((game) => worldOf(game) === world);
+}
+
 /** The visible games grouped by collection, in ARCADE_COLLECTIONS order; empty sections are left out. */
 export function getVisibleSections(
    preview: boolean = ARCADE_PREVIEW,
+   world?: ArcadeWorld,
 ): Array<{ id: ArcadeCollection; title: string; games: ArcadeGameMeta[] }> {
-   const visible = getVisibleGames(preview);
+   const visible = world ? getWorldGames(world, preview) : getVisibleGames(preview);
    return ARCADE_COLLECTIONS.map((section) => ({
       ...section,
       games: visible.filter((game) => gameCollection(game) === section.id),

@@ -22,11 +22,5 @@ export const ARCADE_PREVIEW = on(process.env.NEXT_PUBLIC_ARCADE_PREVIEW);
  */
 export const ARCADE_LEVELS = on(process.env.NEXT_PUBLIC_ARCADE_LEVELS);
 
-/**
- * Shows the third world, Pangoroll Worlds (Menu 2), as "soon": its menu entry, its hub panel
- * and the /pangoroll-worlds teaser page (/scale-squad redirects there). Off = two worlds, and the page is a 404.
- */
-export const SQUAD_TEASER = on(process.env.NEXT_PUBLIC_SQUAD_TEASER);
-
 /** Preview builds only: every level of every game is open, so a tester can jump to any level. Never set on a production host (Netlify, Vercel). */
 export const ARCADE_UNLOCK_ALL = on(process.env.NEXT_PUBLIC_ARCADE_UNLOCK_ALL);

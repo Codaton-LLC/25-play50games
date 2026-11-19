@@ -35,13 +35,13 @@ const VIDEO_GAME = {
 };
 
 describe("hub JSON-LD", () => {
-   it("describes the website and both collections with absolute URLs", () => {
+   it("describes the website and its three worlds with absolute URLs", () => {
       expect(hubJsonLd(SITE_URL, true)).toEqual([
          { "@context": "https://schema.org", "@type": "WebSite", name: "Play50Games", url: "https://games.example/" },
          {
             "@context": "https://schema.org",
             "@type": "ItemList",
-            numberOfItems: 2,
+            numberOfItems: 3,
             itemListElement: [
                {
                   "@type": "ListItem", position: 1,
@@ -50,6 +50,10 @@ describe("hub JSON-LD", () => {
                {
                   "@type": "ListItem", position: 2,
                   item: { "@type": "CollectionPage", name: "3D Arcade", url: "https://games.example/3d" },
+               },
+               {
+                  "@type": "ListItem", position: 3,
+                  item: { "@type": "CollectionPage", name: "Pangoroll Worlds", url: "https://games.example/pangoroll-worlds" },
                },
             ],
          },

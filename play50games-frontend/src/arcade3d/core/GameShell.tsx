@@ -74,6 +74,7 @@ import { formatDuration } from "./format";
 import { endCue, isPausable, isResultShown, pauseKeyAction, stageFrameloop } from "./frameLoop";
 import { createRunTickets } from "./runTicket";
 import { ARCADE_LEADERBOARD } from "../flags";
+import { worldHomeOf } from "../worlds";
 import { useAuth } from "@/contexts/AuthContext";
 import { arcadeApi } from "@/lib/api/arcade";
 import { getJwtToken } from "@/lib/api/apiUtils";
@@ -240,7 +241,10 @@ const END_TITLES: Record<string, string> = {
    quit: "Run ended",
 };
 
-export default function GameShell({ meta, definition, exitHref = "/3d", related }: GameShellProps) {
+export default function GameShell({ meta, definition, exitHref: exitTo, related }: GameShellProps) {
+   // back goes to the game's world: the 3D Arcade (/3d) or Pangoroll Worlds (/pangoroll-worlds)
+   const home = worldHomeOf(meta);
+   const exitHref = exitTo ?? home.href;
    const router = useRouter();
    const { user, login, register } = useAuth();
    const coarse = useCoarsePointer();
@@ -585,7 +589,7 @@ export default function GameShell({ meta, definition, exitHref = "/3d", related 
                   Safari, Firefox or Edge, or turn on hardware acceleration.
                </p>
                <Link href={exitHref} className={styles.primary}>
-                  Back to the 3D Arcade
+                  Back to {home.name}
                </Link>
             </Overlay>
          </div>

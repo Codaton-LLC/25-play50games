@@ -46,6 +46,20 @@ describe("site url", () => {
       expect(urls.filter((url) => /diagnostics|scale-squad|pangoroll/.test(url))).toEqual([]);
    // importing the sitemap loads the whole arcade registry: slow on a busy machine
    }, 30_000);
+
+   it("lists both 3D worlds while the arcade is on", async () => {
+      vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://a.example");
+      vi.stubEnv("NEXT_PUBLIC_ARCADE_ENABLED", "1");
+      vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("offline")));
+      vi.resetModules();
+
+      const urls = (await (await import("@/app/sitemap")).default()).map((entry) => entry.url);
+      expect(urls).toContain("https://a.example/3d");
+      expect(urls).toContain("https://a.example/pangoroll-worlds");
+      // a Pangoroll Worlds game keeps its /3d/[slug] page
+      expect(urls).toContain("https://a.example/3d/sky-tower-jump");
+      expect(urls.filter((url) => /scale-squad/.test(url))).toEqual([]);
+   }, 30_000);
 });
 
 describe("theme-color", () => {

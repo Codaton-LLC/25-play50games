@@ -4,6 +4,7 @@ import {
    gameCollection,
    getGameMeta,
    getVisibleGames,
+   getWorldGames,
    getVisibleSections,
    isGameVisible,
 } from "./registry";
@@ -11,6 +12,7 @@ import { GAME_LOADERS } from "./loaders";
 import { ARCADE_SLUGS } from "./types";
 import { REUSED_ASSETS } from "./core/sharedAssets";
 import { hasModel } from "./core/modelManifest";
+import { worldHomeOf } from "./worlds";
 
 const ORIGINALS = ARCADE_SLUGS.slice(0, 10);
 /** Menu 1 games 31-50 (docs/menu1-new/specs-31-40.md, specs-41-50.md). Every Menu 1 game is live (user, 2026-11-17: "all of Menu 1"). */
@@ -111,6 +113,26 @@ describe("visibility of dev games", () => {
          ["skill", 20],
          ["rollheroes", MENU2.length],
       ]);
+   });
+});
+
+describe("site worlds", () => {
+   it("splits the visible games into the 3D Arcade (50) and Pangoroll Worlds (Menu 2)", () => {
+      for (const preview of [false, true]) {
+         const arcade = getWorldGames("arcade", preview);
+         const squad = getWorldGames("squad", preview);
+         expect(arcade).toHaveLength(50);
+         expect(squad.map((g) => g.slug)).toEqual(MENU2);
+         expect(arcade.some((g) => g.collection === "rollheroes")).toBe(false);
+         expect(arcade.length + squad.length).toBe(getVisibleGames(preview).length);
+      }
+      expect(getVisibleSections(false, "arcade").map((s) => s.id)).toEqual(["originals", "adventure", "skill"]);
+      expect(getVisibleSections(false, "squad").map((s) => [s.id, s.games.length])).toEqual([["rollheroes", MENU2.length]]);
+   });
+
+   it("sends a game page back to the home of its world", () => {
+      expect(worldHomeOf(getGameMeta("robot-collector")!)).toEqual({ href: "/3d", name: "3D Arcade" });
+      expect(worldHomeOf(getGameMeta("sky-tower-jump")!)).toEqual({ href: "/pangoroll-worlds", name: "Pangoroll Worlds" });
    });
 });
 

@@ -64,7 +64,7 @@ export default function SearchPalette({ open, onClose, games, worlds, boards }: 
       const gameItem = (game: SiteGame): Item => ({
          key: `game-${game.slug}`,
          title: game.title,
-         sub: "3D Arcade",
+         sub: WORLDS[game.world].title,
          href: `/3d/${game.slug}`,
          thumb: game.thumbnail,
          right: bestText(game, scores[game.slug as keyof typeof scores]),
