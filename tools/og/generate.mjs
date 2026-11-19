@@ -224,6 +224,37 @@ function classicSvg() {
    `);
 }
 
+// The classic games share five cards, one per category (game_type of the WordPress API):
+// ogImages.ts `classicOgImagePath`. [title, line under it]
+const CLASSIC_CARDS = {
+   logic: ["Logic Games", "Puzzles, patterns and deduction."],
+   memory: ["Memory Games", "Remember, recall and match."],
+   speed: ["Speed Games", "Quick reactions against the clock."],
+   skill: ["Skill Games", "Precision, timing and control."],
+   final: ["Final Challenge", "The last games before your certificate."],
+};
+
+function classicCategorySvg(title, line) {
+   return svg(`
+      <rect width="${W}" height="${H}" fill="${BG}"/>
+      <radialGradient id="glow" cx="0%" cy="100%" r="70%">
+         <stop offset="0%" stop-color="${ACCENT}" stop-opacity="0.14"/>
+         <stop offset="70%" stop-color="${ACCENT}" stop-opacity="0"/>
+      </radialGradient>
+      <rect width="${W}" height="${H}" fill="url(#glow)"/>
+      <text x="72" y="150" font-family="${FONT}" font-size="22" font-weight="600" letter-spacing="3">
+         <tspan fill="${ACCENT}">PLAY50GAMES</tspan>
+         <tspan fill="rgba(255,255,255,0.45)">  |  </tspan>
+         <tspan fill="${TEXT}">CLASSIC 50</tspan>
+      </text>
+      <text x="72" y="390" fill="${ACCENT}" font-family="${FONT}" font-size="220" font-weight="700">50</text>
+      <text x="430" y="320" fill="${TEXT}" font-family="${FONT}" font-size="72" font-weight="700">${esc(title)}</text>
+      <rect x="430" y="350" width="72" height="4" rx="2" fill="${ACCENT}"/>
+      <text x="430" y="416" fill="${MUTED}" font-family="${FONT}" font-size="28" font-weight="600">${esc(line)}</text>
+      <rect x="0" y="${H - 6}" width="${W}" height="6" fill="${ACCENT}"/>
+   `);
+}
+
 function arcadeSvg() {
    return svg(`
       <rect width="${W}" height="${H}" fill="${BG}"/>
@@ -320,6 +351,9 @@ async function main() {
    await writeCard("hub.png", await sharp(hubSvg()).png().toBuffer());
    await writeCard("classic.png", await sharp(classicSvg()).png().toBuffer());
    await writeCard("arcade.png", await sharp(arcadeSvg()).png().toBuffer());
+   for (const [type, [title, line]] of Object.entries(CLASSIC_CARDS)) {
+      await writeCard(path.join("classic", `${type}.png`), await sharp(classicCategorySvg(title, line)).png().toBuffer());
+   }
    for (const game of GAMES) await gameCard(game);
 }
 

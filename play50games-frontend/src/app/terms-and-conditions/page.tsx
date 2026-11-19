@@ -3,11 +3,16 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import SitePage, { PageHead } from "@/components/Site/SitePage";
 import page from "@/components/Site/SitePage.module.css";
+import { pageSocial } from "@/lib/seo/pageMetadata";
+
+const TITLE = "Terms and Conditions";
+const DESCRIPTION =
+   "The terms for using Play50Games: accounts, fair play, certificates and the limits of our liability.";
 
 export const metadata: Metadata = {
-   title: "Terms and Conditions",
-   description: "The terms for using Play50Games: accounts, fair play, certificates and the limits of our liability.",
-   alternates: { canonical: "/terms-and-conditions" },
+   title: TITLE,
+   description: DESCRIPTION,
+   ...pageSocial({ title: TITLE, description: DESCRIPTION, path: "/terms-and-conditions" }),
 };
 
 export default function TermsAndConditionsPage() {

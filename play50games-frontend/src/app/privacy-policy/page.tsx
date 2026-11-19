@@ -3,11 +3,16 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import SitePage, { PageHead } from "@/components/Site/SitePage";
 import page from "@/components/Site/SitePage.module.css";
+import { pageSocial } from "@/lib/seo/pageMetadata";
+
+const TITLE = "Privacy Policy";
+const DESCRIPTION =
+   "How Play50Games collects, uses and stores your data: accounts, game progress, 3D Arcade scores and leaderboards.";
 
 export const metadata: Metadata = {
-   title: "Privacy Policy",
-   description: "How Play50Games collects, uses and stores your data: accounts, game progress, 3D Arcade scores and leaderboards.",
-   alternates: { canonical: "/privacy-policy" },
+   title: TITLE,
+   description: DESCRIPTION,
+   ...pageSocial({ title: TITLE, description: DESCRIPTION, path: "/privacy-policy" }),
 };
 
 export default function PrivacyPolicyPage() {

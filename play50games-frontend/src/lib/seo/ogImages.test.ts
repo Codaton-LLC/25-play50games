@@ -3,7 +3,15 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { ARCADE_GAMES, getGameMeta } from "@/arcade3d/registry";
-import { OG_IMAGE_HEIGHT, OG_IMAGE_WIDTH, OG_IMAGES, gameOgImagePath, ogImage } from "./ogImages";
+import {
+   CLASSIC_OG_TYPES,
+   OG_IMAGE_HEIGHT,
+   OG_IMAGE_WIDTH,
+   OG_IMAGES,
+   classicOgImagePath,
+   gameOgImagePath,
+   ogImage,
+} from "./ogImages";
 
 /**
  * Every registered game with a thumbnail, including "dev" ones. A dev game may still have none
@@ -52,6 +60,18 @@ describe("Open Graph cards", () => {
       const buf = publicFile(gameOgImagePath(slug));
       expect(pngSize(buf)).toEqual({ width: OG_IMAGE_WIDTH, height: OG_IMAGE_HEIGHT });
       expect(buf.byteLength).toBeLessThanOrEqual(200 * 1024);
+   });
+
+   it.each(CLASSIC_OG_TYPES)("classic %s games have a 1200x630 category card under 200 KB", (type) => {
+      expect(classicOgImagePath(type)).toBe(`/images/og/classic/${type}.png`);
+      const buf = publicFile(classicOgImagePath(type));
+      expect(pngSize(buf)).toEqual({ width: OG_IMAGE_WIDTH, height: OG_IMAGE_HEIGHT });
+      expect(buf.byteLength).toBeLessThanOrEqual(200 * 1024);
+   });
+
+   it("falls back to the Classic 50 card for an unknown or missing game type", () => {
+      expect(classicOgImagePath("puzzle")).toBe(OG_IMAGES.classic);
+      expect(classicOgImagePath(undefined)).toBe(OG_IMAGES.classic);
    });
 
    it("builds absolute urls on the site url", () => {

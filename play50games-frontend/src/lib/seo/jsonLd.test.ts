@@ -1,7 +1,15 @@
 import { describe, expect, it } from "vitest";
 import type { ArcadeGameMeta } from "@/arcade3d/types";
 import { robotCollectorMeta } from "@/arcade3d/games/robot-collector/meta";
-import { arcadeJsonLd, gameJsonLd, hubJsonLd, serializeJsonLd } from "./jsonLd";
+import {
+   arcadeJsonLd,
+   breadcrumbJsonLd,
+   classicGameJsonLd,
+   gameJsonLd,
+   hubJsonLd,
+   organizationJsonLd,
+   serializeJsonLd,
+} from "./jsonLd";
 
 const SITE_URL = "https://games.example";
 const LIVE: ArcadeGameMeta = {
@@ -132,5 +140,66 @@ describe("JSON-LD serialization", () => {
 
    it("serializes page data as JSON without changing its values", () => {
       expect(JSON.parse(serializeJsonLd(VIDEO_GAME))).toEqual(VIDEO_GAME);
+   });
+});
+
+describe("organization JSON-LD", () => {
+   it("names the site with absolute URLs on the configured address", () => {
+      expect(organizationJsonLd(`${SITE_URL}/`)).toEqual({
+         "@context": "https://schema.org",
+         "@type": "Organization",
+         name: "Play50Games",
+         url: "https://games.example/",
+         logo: "https://games.example/images/logo/play50games.png",
+         email: "support@play50.games",
+      });
+   });
+});
+
+describe("breadcrumb JSON-LD", () => {
+   it("numbers the crumbs from one and makes every item absolute", () => {
+      expect(breadcrumbJsonLd(SITE_URL, [{ name: "Home", path: "/" }, { name: "FAQ", path: "/faq" }])).toEqual({
+         "@context": "https://schema.org",
+         "@type": "BreadcrumbList",
+         itemListElement: [
+            { "@type": "ListItem", position: 1, name: "Home", item: "https://games.example/" },
+            { "@type": "ListItem", position: 2, name: "FAQ", item: "https://games.example/faq" },
+         ],
+      });
+   });
+});
+
+describe("classic game JSON-LD", () => {
+   const game = { id: 18, title: "Number Grid 4x4", description: "Fill the grid.", game_type: "logic" };
+
+   it("describes the game and its trail Home > Classic 50 > game", () => {
+      const [videoGame, trail] = classicGameJsonLd(SITE_URL, { ...game, image: "/images/og/classic/logic.png" });
+      expect(videoGame).toEqual({
+         "@context": "https://schema.org",
+         "@type": "VideoGame",
+         name: "Number Grid 4x4",
+         description: "Fill the grid.",
+         url: "https://games.example/games/18",
+         image: "https://games.example/images/og/classic/logic.png",
+         genre: "Logic",
+         gamePlatform: "Web browser",
+         applicationCategory: "Game",
+         operatingSystem: "Any",
+         isAccessibleForFree: true,
+      });
+      expect(trail).toEqual(
+         breadcrumbJsonLd(SITE_URL, [
+            { name: "Play50Games", path: "/" },
+            { name: "Classic 50", path: "/classic" },
+            { name: "Number Grid 4x4", path: "/games/18" },
+         ]),
+      );
+   });
+
+   it("leaves out an empty description and a missing image", () => {
+      const [videoGame] = classicGameJsonLd(SITE_URL, { ...game, description: "", game_type: "other" });
+      expect(videoGame).not.toHaveProperty("description");
+      expect(videoGame).not.toHaveProperty("image");
+      expect(videoGame).toMatchObject({ genre: "Puzzle" });
    });
 });

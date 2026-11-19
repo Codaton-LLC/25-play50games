@@ -9,11 +9,17 @@ import { ARCADE_ENABLED, ARCADE_LEADERBOARD } from "@/arcade3d/flags";
 import { getLiveGames } from "@/arcade3d/registry";
 import LeaderboardsView from "./LeaderboardsView";
 import styles from "./page.module.css";
+import { OG_IMAGES } from "@/lib/seo/ogImages";
+import { pageSocial } from "@/lib/seo/pageMetadata";
+
+const TITLE = "Leaderboards";
+const DESCRIPTION =
+   "The top scores of every 3D Arcade game on Play50Games. Each game has its own leaderboard.";
 
 export const metadata: Metadata = {
-   title: "Leaderboards",
-   description: "The top scores of every 3D Arcade game on Play50Games. Each game has its own leaderboard.",
-   alternates: { canonical: "/leaderboards" },
+   title: TITLE,
+   description: DESCRIPTION,
+   ...pageSocial({ title: TITLE, description: DESCRIPTION, path: "/leaderboards", image: OG_IMAGES.arcade }),
 };
 
 export default function LeaderboardsPage() {

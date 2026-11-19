@@ -25,6 +25,7 @@ The script writes:
 | `play50games-frontend/public/images/og/classic.png` | Classic 50. The big 50 and "Play Classic 50 Games." |
 | `play50games-frontend/public/images/og/arcade.png` | Arcade index. Wordmark `3D Arcade \| Play50Games`. |
 | `play50games-frontend/public/images/og/3d/<slug>.png` | One card per arcade game. |
+| `play50games-frontend/public/images/og/classic/<type>.png` | One card per classic category (`logic`, `memory`, `speed`, `skill`, `final`): the big 50, the category name and one line. `/games/<id>` attaches its category's card (`classicOgImagePath`). |
 
 Game cards place the in-game thumbnail `public/images/3d/<slug>.webp` (captured by `tools/thumbs`) in a rounded square frame on the left (cover crop: the middle 56% of the 16:9 shot, so keep the hero near the centre of its capture) and the game title plus the wordmark on the right. A missing thumbnail stops the script: capture it first, then regenerate the cards.
 

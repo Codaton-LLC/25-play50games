@@ -11,11 +11,16 @@ import { SQUAD, WORLDS } from "@/components/Site/siteData";
 import ui from "@/components/Site/ui.module.css";
 import { ARCADE_ENABLED, SQUAD_TEASER } from "@/arcade3d/flags";
 import styles from "./page.module.css";
+import { pageSocial } from "@/lib/seo/pageMetadata";
+
+const TITLE = "Pangoroll Worlds";
+const DESCRIPTION =
+   "Pangoroll Worlds: five pangolin heroes who roll into a ball, each with its own colour and power. Opens soon on Play50Games.";
 
 export const metadata: Metadata = {
-   title: "Pangoroll Worlds",
-   description: "Pangoroll Worlds: five pangolin heroes who roll into a ball, each with its own colour and power. Opens soon on Play50Games.",
-   alternates: { canonical: "/pangoroll-worlds" },
+   title: TITLE,
+   description: DESCRIPTION,
+   ...pageSocial({ title: TITLE, description: DESCRIPTION, path: "/pangoroll-worlds" }),
    robots: { index: false, follow: true },
 };
 

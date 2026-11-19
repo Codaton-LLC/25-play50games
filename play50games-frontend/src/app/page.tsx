@@ -19,9 +19,9 @@ import { getLiveGames, getVisibleGames } from "@/arcade3d/registry";
 import type { ArcadeGameMeta } from "@/arcade3d/types";
 import { hubJsonLd, serializeJsonLd } from "@/lib/seo/jsonLd";
 import { OG_IMAGES, ogImage } from "@/lib/seo/ogImages";
+import { SITE_URL } from "@/lib/seo/site";
 import styles from "./page.module.css";
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://play50games.com";
 
 const HUB_TITLE = "Play50Games – classic brain games and a 3D Arcade";
 const HUB_DESCRIPTION =
