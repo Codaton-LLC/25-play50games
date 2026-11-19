@@ -12,7 +12,7 @@ import { LIVES } from "./rules";
 import Scene from "./Scene";
 
 const LINES = [
-   "WASD, the arrows or the stick move. You wade slower in the water.",
+   "WASD, the arrows or the joystick move. You wade slower in the water.",
    "Reach the swimmer in the pink ring and press E, Enter or Grab, then carry them back up the beach.",
    "A rescue counts on the dry sand past the white line. Three missed alerts end the run.",
 ];

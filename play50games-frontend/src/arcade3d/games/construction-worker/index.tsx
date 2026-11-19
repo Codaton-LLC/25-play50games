@@ -18,7 +18,7 @@ const HUD: NonNullable<GameDefinition["hudStats"]> = [
 /** One line under the level tiles. */
 const DESCRIPTIONS: Record<LevelId, string> = {
    1: "A back garden at midday; the wind gusts at the tower. Score 2500 or finish.",
-   2: "A street of tiny houses: piles spread wide, a tight little house, wind from the east from the shop on. Score 2600.",
+   2: "A street of tiny houses: piles spread wide, a tight little house. From the shop on, the wind blows from the east. Score 2600.",
    3: "A garage yard at sunset: two workstations, a wide garage, gusts across the yard. Score 2700.",
    4: "A shop street at dusk: the piles alternate sides and the crosswind flips with every gust. Score 2800.",
    5: "Downtown at night: a slim tower and diagonal gusts that come round from every side. Build all you can.",

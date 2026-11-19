@@ -15,7 +15,7 @@ import { DURATION_MS, ITEMS_PER_MAP, MAP_COUNT } from "./rules";
 
 const DESCRIPTIONS: Record<LevelId, string> = {
    1: "The original park, city and beach: 60 pieces in four minutes.",
-   2: "City Square: 72 pieces across the civic plaza, town hall and esplanade. Return to the white pad after each map.",
+   2: "City Square: 72 pieces across the civic plaza, town hall and esplanade. Return to the white start ring after each map.",
    3: "Shopping Street: 84 pieces along the market green, high street and boardwalk. Moving maintenance zones slow you down.",
    4: "River Walk: 96 pieces at night along the riverbank, canal quay and harbour pier. Sort the highlighted batch first.",
    5: "Festival Cleanup: 108 pieces across the festival green, midway and beach stage. +10 for pickups under 4 s apart.",

@@ -44,7 +44,7 @@ export const cleanCityMeta: ArcadeGameMeta = {
             keys: ["move"],
             touch: ["joystick"],
          },
-         { title: "Pick up", text: "Walk into litter to pick it up: +50 a piece.", keys: ["move"], touch: ["joystick"] },
+         { title: "Pick up", text: "Walk into litter to pick it up: +50 or more a piece.", keys: ["move"], touch: ["joystick"] },
          { title: "Beat the clock", text: "Clear all three maps before time runs out; every second left pays extra." },
          {
             title: "Tips",

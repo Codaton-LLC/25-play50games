@@ -22,7 +22,7 @@ function MapHud() {
       <>
       <HintLine signal={GUIDE} />
       <div className={styles.panel} data-arcade-safe-area="" role="status" aria-live="polite">
-         <div className={styles.pill}>{config.delivery && delivering ? "Return to pad" : config.matching ? ({ 0: "Bottle / bag", 2: "Can / banana" } as Record<number, string>)[kind] ?? name : name}</div>
+         <div className={styles.pill}>{config.delivery && delivering ? "Return to start ring" : config.matching ? ({ 0: "Bottle / bag", 2: "Can / banana" } as Record<number, string>)[kind] ?? name : name}</div>
       </div>
       </>
    );

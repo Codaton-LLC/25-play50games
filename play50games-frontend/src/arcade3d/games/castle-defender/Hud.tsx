@@ -14,7 +14,7 @@ import { comboMultiplier } from "./rules";
 const CARDS = [
    { icon: "↻", title: "Quick reload", effect: "Reload ×0.85" },
    { icon: "◎", title: "Wide splash", effect: "Radius ×1.25" },
-   { icon: "+", title: "Repair gate", effect: "+25 HP / max125" },
+   { icon: "+", title: "Repair gate", effect: "+25 HP / max 125" },
    { icon: "●●", title: "Double shot", effect: "2 balls / reload" },
 ];
 const samePlacement = (a: CardPlacement, b: CardPlacement) =>

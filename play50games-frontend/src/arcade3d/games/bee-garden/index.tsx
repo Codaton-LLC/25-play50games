@@ -12,7 +12,7 @@ import Scene from "./Scene";
 import { TUNING } from "./rules";
 
 const LINES = [
-   "Fly with WASD, the arrows or the stick. Hold Space or Boost to fly faster while stamina lasts.",
+   "Fly with WASD, the arrows or the joystick. Hold Space or Boost to fly faster while stamina lasts.",
    "Fly into the nectar on the flowers: carry up to three, then fly over the hive pad to bank them.",
    "A full load of three pays a bonus, and time left pays at the end.",
 ];

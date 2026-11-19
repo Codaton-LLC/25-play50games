@@ -11,7 +11,7 @@ import { FOV, fog, lookAtFor } from "./looks";
 import Scene from "./Scene";
 
 const LINES = [
-   "WASD or the stick walks. Hold Work for 1 second at an algae patch, 1.5 seconds at a filter.",
+   "Walk with WASD, the arrows or the joystick. Hold Work for 1 second at an algae patch, 1.5 seconds at a filter.",
    "Walk over the trash and drop it in the basket. Your air runs down: refill it in the bubble column.",
    "Float lifts you for a moment. Finish the list, then stand on the hatch. Three lives.",
 ];
@@ -25,7 +25,7 @@ function stats(level: AquariumLevel): GameDefinition["hudStats"] {
 
 function instructionsFor(id: LevelId): string[] {
    if (id === 2) return [LINES[0], "A high patch only scrubs while you float above it: hold Work and tap Float.", LINES[1]];
-   if (id === 3) return [LINES[0], LINES[1], "A shark patrols the middle. A bite costs 30 air. A 2 m lane along the glass stays clear."];
+   if (id === 3 || id === 4) return [LINES[0], LINES[1], "A shark patrols the middle. A bite costs 30 air. A 2 m lane along the glass stays clear."];
    if (id === 5) return [LINES[0], LINES[1], "A current pushes you to the right. Two sharks. Eight tasks."];
    return LINES;
 }

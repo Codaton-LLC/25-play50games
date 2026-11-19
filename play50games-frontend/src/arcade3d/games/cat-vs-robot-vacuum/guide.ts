@@ -74,12 +74,12 @@ export function hintCode(run: Run, goal: Goal): number {
 
 export function hintFor(run: Run, goal: Goal): HintState {
    if (run.over || goal.kind === "none") return { text: null };
-   if (chaseNear(run)) return { text: "A vacuum is chasing you! Tap Hop to jump over it", key: "chase", tone: "warn", sticky: true };
-   if (goal.kind === "bed") return { text: "All fish eaten: run to the bed (arrow) and nap", key: "bed", tone: "ready" };
+   if (chaseNear(run)) return { text: "A vacuum is chasing you! Hop over it (Space / Hop)", key: "chase", tone: "warn", sticky: true };
+   if (goal.kind === "bed") return { text: "All treats eaten: run to the bed (arrow) and nap", key: "bed", tone: "ready" };
    const left = run.treats.length - run.collected;
    const streak = streakLive(run);
    return {
-      text: streak ? `Keep eating fast for a streak bonus (${left} fish left)` : `Eat the gold fish (arrow), ${left} left. Dodge the red vacuums`,
+      text: streak ? `Keep eating fast for a streak bonus (${left} treats left)` : `Eat the fish treats (arrow), ${left} left. Dodge the red vacuums`,
       key: `treat-${goal.index}-${streak ? 1 : 0}`,
       tone: streak ? "carry" : "info",
    };
