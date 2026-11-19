@@ -450,9 +450,14 @@ describe("lobby: top 10 and More like this", () => {
       expect(ruleIn(css, ".related")).toContain("var(--panel-pad-y)");
    });
 
-   it("GameShell picks the row from the registry's live games", () => {
+   it("the server page picks the row from the registry's live games and GameShell shows it", () => {
+      // the registry stays out of the client bundle: the page computes the row, the mount hands it on
+      const page = readFileSync(path.join(__dirname, "../../app/3d/[slug]/page.tsx"), "utf8");
+      const mount = readFileSync(path.join(__dirname, "ArcadeGameMount.tsx"), "utf8");
       const shell = readFileSync(path.join(__dirname, "GameShell.tsx"), "utf8");
-      expect(shell).toMatch(/relatedGames\(meta, ARCADE_GAMES\)/);
+      expect(page).toMatch(/related=\{relatedGames\(meta, ARCADE_GAMES\)\}/);
+      expect(mount).toMatch(/<GameShell\s[^>]*\brelated=\{related\}/);
       expect(shell).toMatch(/<StartCard\s[^>]*\brelated=\{related\}/);
+      for (const source of [mount, shell]) expect(source).not.toMatch(/from "\.\.\/registry"/);
    });
 });
