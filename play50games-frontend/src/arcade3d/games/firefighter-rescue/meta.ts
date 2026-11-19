@@ -28,7 +28,7 @@ export const firefighterRescueMeta: ArcadeGameMeta = {
    controls: {
       scheme: "joystick",
       keyboard: "WASD / arrows move, hold E or Enter to spray, Space hops",
-      touch: "Joystick moves, Spray, Hop",
+      touch: "Joystick to move, hold Spray, tap Hop",
    },
    howTo: {
       keys: [
@@ -52,15 +52,15 @@ export const firefighterRescueMeta: ArcadeGameMeta = {
          },
          {
             title: "Spray",
-            text: "Hold E or Enter on a fire for 0.75 s. Hold it on a neighbour for 0.3 s, then walk them out. One at a time.",
-            touchText: "Hold Spray on a fire for 0.75 s. Hold it on a neighbour for 0.3 s, then walk them out. One at a time.",
+            text: "Hold E or Enter on a fire for 0.75 seconds. Hold it on a neighbour for 0.3 seconds, then walk them out. One at a time.",
+            touchText: "Hold Spray on a fire for 0.75 seconds. Hold it on a neighbour for 0.3 seconds, then walk them out. One at a time.",
             keys: ["spray"],
             touch: ["spray"],
          },
          {
             title: "Hop & smoke",
             text: "Space hops over debris. Smoke slows you and spends breath. Three lives.",
-            touchText: "Tap Hop to clear debris. Smoke slows you and spends breath. Three lives.",
+            touchText: "Tap Hop to hop over debris. Smoke slows you and spends breath. Three lives.",
             keys: ["hop"],
             touch: ["hop"],
          },

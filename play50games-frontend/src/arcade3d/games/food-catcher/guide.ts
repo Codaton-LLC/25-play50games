@@ -15,6 +15,6 @@ export function nextTarget(run: RunState) {
 }
 export function hintFor(run: RunState): HintState {
    if (run.ended) return { text: null };
-   if (run.lives === 1) return { text: "Last life! Catch food, dodge socks and cans", key: "last-life", tone: "warn", sticky: true };
-   return { text: `Left/right: catch food | dodge socks/cans${run.level.dropsPerLife > 0 ? " | drops cost lives" : ""}`, key: "catch" };
+   if (run.lives === 1) return { text: "Last life! Catch food, dodge socks and tins", key: "last-life", tone: "warn", sticky: true };
+   return { text: `Catch food, dodge socks and tins${run.level.dropsPerLife > 0 ? ". Drops cost lives" : ""}`, key: "catch" };
 }

@@ -48,11 +48,11 @@ export const farmTractorChallengeMeta: ArcadeGameMeta = {
          },
          {
             title: "Hitch slowly",
-            text: "Roll slowly into a bale to hitch it, then stop in the barn bay until the load counts.",
+            text: "Roll slowly into a bale to hitch it, then stop in the barn bay until the load is counted.",
             keys: ["move"],
             touch: ["joystick"],
          },
-         { title: "Watch out", text: "A fast hit bumps the bale and costs a life. Fences bump above a crawl." },
+         { title: "Watch out", text: "A fast hit bumps the bale and costs a life. Hit a fence faster than a crawl and you bump." },
          {
             title: "Tips",
             text: "Ease off early: a crawl is always safe. Esc or P pauses.",

@@ -26,7 +26,7 @@ function Checklist() {
             ) : (
                <>
                   {ITEM_LABELS.slice(0, config.items).map((name, id) => <span key={name} className={mask & (1 << id) ? styles.got : undefined}>{name}</span>)}
-                  {config.id !== 1 ? <span>Searched: {searched}/{config.containers}</span> : null}
+                  {config.id !== 1 ? <span>Inspected: {searched}/{config.containers}</span> : null}
                   {config.ordered && next >= 0 ? <span>Next: {ITEM_LABELS[next]}</span> : null}
                   {config.returnSwitch && next < 0 && !ready ? <span>Return to first drawer</span> : null}
                </>

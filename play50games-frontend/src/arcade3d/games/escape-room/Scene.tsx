@@ -185,7 +185,7 @@ const Simulation = memo(function Simulation({ run, yaw }: { run: EscapeRun; yaw:
          scratch.hint = hint;
          store.setStat("hint", hint);
          // the result of a failed try, over the explorer (the checklist says it too)
-         if (hint === 1 || hint === 2) pop.fail({ x: run.player.x, y: 1.7, z: run.player.z }, hint === 1 ? "Locked: find all three first" : "Empty: nothing here", { shake: 0 });
+         if (hint === 1 || hint === 2) pop.fail({ x: run.player.x, y: 1.7, z: run.player.z }, hint === 1 ? "Locked: find every item first" : "Empty: nothing here", { shake: 0 });
       }
       if (ev.ended === "win") {
          if (run.level.id !== 1) store.setStat("finishMs", run.finishMs);

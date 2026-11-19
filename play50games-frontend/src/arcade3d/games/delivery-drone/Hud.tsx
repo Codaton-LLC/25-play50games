@@ -29,8 +29,8 @@ function GameHud() {
    const top = useSafeArea(panelTop);
    return <div className={styles.panel} style={{ top }} data-arcade-safe-area>
       <div className={battery <= 20 ? styles.low : styles.battery}>Battery {percent}% <progress aria-label="Battery" max={100} value={percent} /></div>
-      <div aria-live="polite">{loading > 0 ? `Loading ${loading}% — hold still` : carrying ? fragile ? `Fragile — aim for ${config.fragilePrecision}+ precision` : "Follow the blue rooftop beacon" : "Return to depot · hover to reload"}</div>
-      <div className={styles.hint}>{feedback === 1 ? "Delivered!" : feedback === 2 ? "Parcel missed — reload" : feedback === 3 ? "Tower contact!" : "Brake early · line up the landing cross"}</div>
+      <div aria-live="polite">{loading > 0 ? `Loading ${loading}% - hold still` : carrying ? fragile ? `Fragile - aim for ${config.fragilePrecision}+ precision` : "Follow the blue rooftop beacon" : "Return to depot · hover to reload"}</div>
+      <div className={styles.hint}>{feedback === 1 ? "Delivered!" : feedback === 2 ? "Parcel missed - reload" : feedback === 3 ? "Tower contact!" : "Brake early · line up the landing cross"}</div>
    </div>;
 }
 

@@ -28,7 +28,7 @@ export const dogParkFetchMeta: ArcadeGameMeta = {
    controls: {
       scheme: "joystick",
       keyboard: "WASD / arrows to run, Space to jump",
-      touch: "Joystick to run + Jump",
+      touch: "Joystick to run, tap Jump to jump",
    },
    howTo: {
       keys: [
@@ -50,8 +50,8 @@ export const dogParkFetchMeta: ArcadeGameMeta = {
          },
          {
             title: "Jump",
-            text: "Press Space to catch a frisbee in the air: jump low, just before it lands.",
-            touchText: "Tap Jump to catch a frisbee in the air: jump low, just before it lands.",
+            text: "Press Space just before the frisbee lands: a low jump catches it.",
+            touchText: "Tap Jump just before the frisbee lands: a low jump catches it.",
             keys: ["jump"],
             touch: ["jump"],
          },

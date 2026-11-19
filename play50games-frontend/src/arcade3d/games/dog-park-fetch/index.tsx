@@ -11,7 +11,7 @@ import Hud from "./Hud";
 import Scene from "./Scene";
 
 const LINES = [
-   "WASD or the stick runs the dog. Run to the toy and pick it up.",
+   "WASD, the arrows or the joystick run the dog. Run to the toy and pick it up.",
    "Jump catches a frisbee in the air, low, just before it lands.",
    "Bring each toy back to the blanket. A mower knocks you down.",
 ];

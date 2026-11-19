@@ -71,7 +71,7 @@ export function farmHint(run: Run, code: number): HintState {
    const trip = `Trip ${Math.min(run.trip + 1, run.level.trips)}/${run.level.trips}`;
    switch (code) {
       case 1:
-         return { text: "Slow down! Touch the bale under 2 m/s", key: "slow", tone: "warn", sticky: true };
+         return { text: "Slow down! Touch the bale very gently", key: "slow", tone: "warn", sticky: true };
       case 2:
          return { text: `${trip}: drive gently into the ringed ${size > 1 ? "bales" : "bale"} (arrow)`, key: `bale-${run.trip}` };
       case 3:
