@@ -7,12 +7,12 @@
 // and, with ?perf=1 in the URL, the perf probe (core/perfProbe.tsx). Frame order: core/frameLoop.ts
 // FRAME_PRIORITY.
 import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { Canvas, useFrame, type RootState } from "@react-three/fiber";
+import { Canvas, useFrame, useThree, type RootState } from "@react-three/fiber";
 import { PerformanceMonitor } from "@react-three/drei";
 import type { AmbientLight, Color, DirectionalLight, Fog, HemisphereLight } from "three";
 import type { GameDefinition } from "./types";
 import { arcadeStore, useArcadeStore } from "./useArcadeStore";
-import { FRAME_PRIORITY, advanceRunClock } from "./frameLoop";
+import { FRAME_PRIORITY, advanceRunClock, createDemandSettle, settleFrame, type StageFrameloop } from "./frameLoop";
 import { GameTimeProvider } from "./gameTime";
 import { InputLatch } from "./input";
 import CameraRig from "./CameraRig";
@@ -40,6 +40,26 @@ const DEFAULT_ENVIRONMENT: Environment = { background: "#0b1020", lighting: "day
 /** Advances the countdown and the run timer once per frame (before game callbacks). */
 function RunClock() {
    useFrame((_state, delta) => advanceRunClock(arcadeStore, delta), FRAME_PRIORITY.clock);
+   return null;
+}
+
+/**
+ * Under frameloop "demand" (behind the lobby, loading, pause and result overlays): any frame
+ * something else asked for (a resize, a React commit, a loaded model, a level pick) keeps the
+ * canvas drawing for DEMAND_SETTLE_MS, so the camera fit, lighting fades and poses settle, then it
+ * stops. Inert under "always".
+ */
+function DemandSettle({ active }: { active: boolean }) {
+   const invalidate = useThree((state) => state.invalidate);
+   const [settle] = useState(createDemandSettle);
+   useEffect(() => {
+      if (!active) return;
+      settle.own = false;
+      invalidate();
+   }, [active, invalidate, settle]);
+   useFrame(() => {
+      if (active && settleFrame(settle, performance.now())) invalidate();
+   });
    return null;
 }
 
@@ -106,8 +126,8 @@ export interface ShellStageProps {
    definition: GameDefinition;
    /** the picked level's environment (core/levels.ts levelEnvironment); default definition.environment */
    environment?: GameDefinition["environment"];
-   /** "demand" while paused (still redraws on resize), "never" after a lost context */
-   frameloop: "always" | "demand" | "never";
+   /** stageFrameloop (core/frameLoop.ts): "demand" behind the overlays, "never" after a lost context */
+   frameloop: StageFrameloop;
    onContextLost: () => void;
    label: string;
 }
@@ -167,7 +187,9 @@ export default function ShellStage({ definition, environment = definition.enviro
          aria-label={label}
          role="img"
       >
-         <PerformanceMonitor onDecline={onDecline} onIncline={onIncline} />
+         {/* samples only a running loop: a "demand" gap would read as a slow period */}
+         {frameloop === "always" && <PerformanceMonitor onDecline={onDecline} onIncline={onIncline} />}
+         <DemandSettle active={frameloop === "demand"} />
          {perf && <PerfProbe />}
          <SceneEnvironment environment={environment} lighting={lighting} />
          <CameraRig camera={camera} />

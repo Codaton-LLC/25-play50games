@@ -74,7 +74,7 @@ import {
    type SubmitResult,
 } from "./scores";
 import { formatDuration } from "./format";
-import { endCue, isPausable, isResultShown, pauseKeyAction } from "./frameLoop";
+import { endCue, isPausable, isResultShown, pauseKeyAction, stageFrameloop } from "./frameLoop";
 import { createRunTickets } from "./runTicket";
 import { ARCADE_LEADERBOARD } from "../flags";
 import { useAuth } from "@/contexts/AuthContext";
@@ -607,7 +607,8 @@ export default function GameShell({ meta, definition, exitHref = "/3d" }: GameSh
    // and only the run's own player, or anyone for a guest run
    const canSaveToAccount =
       !!user && !!getJwtToken() && (outcome?.userId == null || outcome.userId === user.id);
-   const frameloop = contextLost ? "never" : phase === "paused" ? "demand" : "always";
+   // "demand" behind the loading, lobby, pause and result overlays; a live lobby (intro games) keeps drawing
+   const frameloop = stageFrameloop({ contextLost, phase, resultShown, liveLobby: !!definition.intro || introOn });
    // the result's level: the level the shown run was played on
    const resultLevel: LevelId = outcome?.run.level ?? levelId;
    const resultScoring = scoringFor(meta, resultLevel);

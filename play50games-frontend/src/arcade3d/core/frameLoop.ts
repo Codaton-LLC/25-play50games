@@ -143,6 +143,59 @@ export function isResultShown(
    return state.overMs >= Math.min(delayMs, RESULT_DELAY_MAX_MS);
 }
 
+// ---------- canvas frame loop (GameShell -> ShellStage) ----------
+
+export type StageFrameloop = "always" | "demand" | "never";
+
+/**
+ * The R3F frameloop for the shell's canvas. "always" while the scene is the show (countdown, play,
+ * the result delay, the intro, and the lobby of a game whose scene is alive behind the start card);
+ * "demand" behind a full overlay (loading, paused, a static lobby, the result panel): the canvas
+ * draws only when something changes (DemandSettle in ShellStage); "never" after a lost context.
+ * `liveLobby`: the game shows a live scene in the lobby (definition.intro: the Menu 2 hero picker,
+ * orbit and intro), or the intro is playing.
+ */
+export function stageFrameloop(s: {
+   contextLost: boolean;
+   phase: RunPhase;
+   resultShown: boolean;
+   liveLobby: boolean;
+}): StageFrameloop {
+   if (s.contextLost) return "never";
+   if (s.phase === "paused" || s.phase === "loading") return "demand";
+   if (s.phase === "ready") return s.liveLobby ? "always" : "demand";
+   if (s.phase === "over" && s.resultShown) return "demand";
+   return "always";
+}
+
+/**
+ * Under "demand", how long (ms) the canvas keeps drawing after anything asked for a frame (a resize,
+ * a React commit, a loaded model, a level pick), so camera fits, lighting fades and poses settle
+ * before it stops.
+ */
+export const DEMAND_SETTLE_MS = 1500;
+
+export interface DemandSettle {
+   /** keep drawing until this time (ms) */
+   until: number;
+   /** the frame now being drawn was asked for by settleFrame itself */
+   own: boolean;
+}
+
+export function createDemandSettle(): DemandSettle {
+   return { until: 0, own: false };
+}
+
+/**
+ * Called once per drawn frame under "demand": a frame something else asked for starts (or extends)
+ * a settle burst. Returns true when one more frame is needed (the caller invalidates).
+ */
+export function settleFrame(settle: DemandSettle, now: number, settleMs: number = DEMAND_SETTLE_MS): boolean {
+   if (!settle.own) settle.until = Math.max(settle.until, now + settleMs);
+   settle.own = now < settle.until;
+   return settle.own;
+}
+
 // ---------- game time (visual animation) ----------
 
 /** A long frame (tab switch, a redraw while paused) never moves an animation more than this (s). */

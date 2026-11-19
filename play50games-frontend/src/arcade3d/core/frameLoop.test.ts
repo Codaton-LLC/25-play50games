@@ -16,6 +16,10 @@ import {
    playedFrameDt,
    resultDelayFor,
    runFramePriority,
+   settleFrame,
+   createDemandSettle,
+   stageFrameloop,
+   DEMAND_SETTLE_MS,
 } from "./frameLoop";
 import { COUNTDOWN_MS, createArcadeStore, type ArcadeStore } from "./useArcadeStore";
 import type { StoreApi } from "zustand/vanilla";
@@ -372,5 +376,35 @@ describe("end cue", () => {
       expect(endCue("time", "timeup", 0)).toBe("lose");
       expect(endCue("points", "lose", 900)).toBe("lose");
       expect(endCue("points", null, 0)).toBe("lose");
+   });
+});
+
+describe("canvas frame loop", () => {
+   const base = { contextLost: false, resultShown: false, liveLobby: false };
+   it("draws every frame while the scene is the show", () => {
+      for (const phase of ["countdown", "playing"] as RunPhase[]) expect(stageFrameloop({ ...base, phase })).toBe("always");
+      expect(stageFrameloop({ ...base, phase: "over" })).toBe("always");
+   });
+   it("draws on demand behind a full overlay", () => {
+      expect(stageFrameloop({ ...base, phase: "loading" })).toBe("demand");
+      expect(stageFrameloop({ ...base, phase: "paused" })).toBe("demand");
+      expect(stageFrameloop({ ...base, phase: "ready" })).toBe("demand");
+      expect(stageFrameloop({ ...base, phase: "over", resultShown: true })).toBe("demand");
+   });
+   it("keeps a live lobby alive, and never draws after a lost context", () => {
+      expect(stageFrameloop({ ...base, phase: "ready", liveLobby: true })).toBe("always");
+      expect(stageFrameloop({ ...base, phase: "loading", liveLobby: true })).toBe("demand");
+      expect(stageFrameloop({ ...base, phase: "playing", contextLost: true })).toBe("never");
+   });
+   it("settles for a while after an outside frame, then stops", () => {
+      const s = createDemandSettle();
+      expect(settleFrame(s, 0)).toBe(true);
+      let frames = 1;
+      let t = 0;
+      while (settleFrame(s, (t += 16))) frames++;
+      expect(t).toBeGreaterThanOrEqual(DEMAND_SETTLE_MS);
+      expect(frames).toBeLessThan(DEMAND_SETTLE_MS / 16 + 2);
+      // the loop is idle now; a later outside frame starts a new burst
+      expect(settleFrame(s, t + 5000)).toBe(true);
    });
 });
