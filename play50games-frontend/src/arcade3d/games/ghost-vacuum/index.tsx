@@ -39,7 +39,7 @@ const ENVIRONMENT: Partial<Record<LevelId, NonNullable<GameDefinition["environme
 const INSTRUCTIONS = [
    "Explore the rooms: nearby desks reveal hidden ghosts.",
    "Aim the flashlight to stun; hold E, Enter or Space to vacuum.",
-   "Touch: joystick moves and aims; held Vacuum assists nearby stunned targets.",
+   "Touch: the joystick moves and aims; hold Vacuum near a stunned ghost to suck it in.",
 ];
 
 const definition: GameDefinition<GhostLevel> = {

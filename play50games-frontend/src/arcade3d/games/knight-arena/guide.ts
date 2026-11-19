@@ -12,7 +12,7 @@ export function hintFor(run: RunState): HintState {
    const cue = nextTarget(run);
    const combo = `Combo x${run.combo}`;
    if (cue?.kind === "tomato") return { text: `Avoid the tomato! | ${combo}`, key: `tomato-${cue.id}`, tone: "warn", sticky: true };
-   if (run.spinMeter >= SPIN.MAX_METER) return { text: `Spin ready: Space / Spin | ${combo}`, key: "spin", tone: "ready", sticky: true };
+   if (run.spinMeter >= SPIN.MAX_METER) return { text: `Spin ready: Space / E / Spin | ${combo}`, key: "spin", tone: "ready", sticky: true };
    if (!cue) return { text: `Arrow keys / swipe toward dummies on the beat | ${combo}`, key: "intro" };
    const ready = Math.abs(run.timeMs - cue.beatTimeMs) <= run.onBeatWindowMs;
    return { text: `${ready ? "Strike" : "Wait for green"}: ${POSTS[cue.postIndex].direction}${cue.kind === "shield" ? " | shield takes two hits" : ""} | ${combo}`, key: `${cue.id}-${ready}-${run.combo}`, tone: ready ? "ready" : "info", sticky: true };

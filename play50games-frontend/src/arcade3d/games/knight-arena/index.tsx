@@ -8,7 +8,7 @@ import { BEAT } from "./rules";
 import { CAMERA_CONFIG, KnightArenaHud, KnightArenaScene } from "./Scene";
 
 const BASE_INSTRUCTIONS = [
-   "Strike training dummies on the beat using Arrow keys, WASD, D-pad, or swipes.",
+   "Strike training dummies on the beat using the Arrow keys, WASD, or swipes.",
    "Watch the shrinking approach ring and overhead directional arrow (Up / Down / Left / Right).",
    "Shield dummies take 2 consecutive beat hits; ignore red tomato decoys (-50 pts).",
    "At 100% Spin meter, press Space / E / Spin to sweep all active real targets (+50 bonus).",

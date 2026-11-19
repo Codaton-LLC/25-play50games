@@ -44,8 +44,8 @@ export const LEVEL_TITLES: Record<LevelId, string> = {
 /** Start-card line under the level tile. */
 export const LEVEL_LINES: Record<LevelId, string> = {
    1: "Three bags, the doors you can already see.",
-   2: "Three floors — ride the elevator between bags.",
+   2: "Three floors: ride the elevator between bags.",
    3: "Marble lobby, gold trim, seven bags.",
-   4: "Glass and slate — nine bags before dusk.",
+   4: "Glass and slate: nine bags before dusk.",
    5: "Chandelier hall, twelve bags, four floors.",
 };

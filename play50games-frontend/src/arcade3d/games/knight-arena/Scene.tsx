@@ -269,7 +269,7 @@ function ArenaPlay(): React.ReactElement {
             playSfx("splash", { pitch: 0.85 });
             playSfx("buzz", { pitch: 0.9 });
          } else if (ev.kind === "whiff") {
-            pop.fail({ x: 0, y: 1.8, z: 0 }, "Too early / empty", { shake: 0 });
+            pop.fail({ x: 0, y: 1.8, z: 0 }, "Missed swing!", { shake: 0 });
             playSfx("whoosh", { pitch: 0.9, volume: 0.65 });
          } else if (ev.kind === "miss") {
             pop.fail(scorePos, "Missed beat", { shake: 0 });
@@ -396,7 +396,7 @@ export function KnightArenaHud(): React.ReactElement {
                      boxShadow: "0 0 14px rgba(250, 204, 21, 0.65)",
                   }}
                >
-                  SPIN READY! [SPACE / SPIN]
+                  SPIN READY! [SPACE / E / SPIN]
                </span>
             )}
 
